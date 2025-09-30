@@ -1,277 +1,167 @@
-# What does 'Reversible' Mean in Reversible Computing?
+# What exactly does “reversible” mean in the theory of Reversible Computation?
 
-Reversible computing is a software construction theory that I was inspired by physics and mathematics, around 2007. The term "reversible" is closely related to the concept of entropy in physics. Entropy increase determines the direction of time arrows in the physical world, and reversible computing research focuses on the rules for constructing coarser-grained software structures, particularly those related to the laws governing entropy.
+The theory of Reversible Computation is a next-generation software construction theory I proposed around 2007, inspired by physics and mathematics. The term “reversible” is closely related to the concept of entropy in physics: the direction of entropy increase determines the arrow of time in the physical world. Reversible Computation studies the construction laws of evolution-oriented, coarse-grained software structures, so “reversibility” is the linchpin of the theory. Some readers unfamiliar with thermodynamics and statistical physics may be unaware of the concept of entropy; seeing the term “reversible” may naturally cause confusion. Is reversibility important? How can software be reversible? Does it mean reverse execution? What’s the point? In this article, I briefly explain what “reversible” actually means in the theory of Reversible Computation.
 
-For those unfamiliar with thermodynamics or statistical mechanics, this concept may be confusing. Is "reversible" important? How can software be made reversible? Does it mean reversing execution? What does it signify in this context? In this document, I will explain these concepts step by step.
+## I. The core equation of Reversible Computation
 
----
-
-## 1. The Core Formula of Reversible Computing
-
-Reversible computing introduced a core formula for software construction:
+Reversible Computation proposes a core equation for software construction:
 
 ```
-App = Delta x-extends Generator<DSL>
+   App = Delta x-extends Generator<DSL>
 ```
 
-This formula needs to be clearly understood. Reversible computing is not a vague methodology; it's a well-defined scientific theory. Unlike some "reversed engineering" approaches, this formula does not rely on analogies or metaphors. Instead, it provides precise definitions for the following:
+It is important to emphasize that Reversible Computation is a scientifically rigorous theory with precise definitions. It is not a methodology open to subjective interpretation. The equation here is not a loose analogy; it actually encompasses the following precisely defined content:
 
-1. **Delta**, Generator, and DSL all have Tree structures.
-2. A coordinate system is defined for precise identification and tracking within Tree structures.
-3. The `x-extends` operator is a generic difference-algebraic operation with a precise mathematical definition.
+1. Delta, Generator, and DSL all have Tree structures, and we explicitly define a coordinate system for precise positioning and dependency tracking within Tree structures.
+2. `x-extends` is a general Delta merge operator over Tree structures. It has a precise mathematical definition and can be mathematically proven to satisfy associativity.
+3. Generator is a functor mapping over the DSL structural space. It maps one class of structures to another (note: it is not tied to a single object but applies to a large class of structures within a domain).
 
-The Nop platform serves as a reference implementation of this theory. Essentially, it translates abstract symbols and definitions into concrete code.
+The Nop platform is a reference implementation of Reversible Computation; it simply translates abstract mathematical symbols and definitions into concrete implementation code.
 
----
+Traditional software engineering also has the notion of incremental development, but there is no systematic, precise technical formalism to express such increments—especially lacking clearly defined inverse operations and inverse elements. In common parlance, “increment” just means “add,” which is essentially different from the concept of Delta in Reversible Computation.
 
-## 2. Inverse Elements: Achieving Reduction Through Addition
+Contrary to what many might think, “reversible” in Reversible Computation does not mean reverse execution. In fact, we generally apply Reversible Computation at compile time; the system hasn’t even reached runtime, so reverse execution is not an issue.
 
-In the context of reversible computing, the first noticeable aspect is **Delta**. This term represents a difference structure that can be applied to any element in a Tree structure.
+Because the core equation of Reversible Computation has an explicit mathematical definition, the so-called reversibility is entirely embodied in the mathematical operations implied by this equation.
 
-1. **Delta** in Trees:
-   - Every node in a Tree has children and attributes.
-   - Delta captures differences between parent nodes and their children.
-   - The Nop platform uses Delta to track changes and dependencies throughout the software structure.
+## II. Inverse elements: Achieving removal by addition
 
-2. **x-extends**:
-   - This is a generic difference-algebraic operator.
-   - In mathematical terms, it combines additive and subtractive operations.
-   - For example:
-     ```
-     A = B + (-C) = B - C
-     ```
-     This operation allows for precise inversion of changes.
+The first obvious manifestation of reversibility in Reversible Computation is the basic structural unit that includes inverse elements: Delta. Traditionally, the basic units of software construction have no notion of inverse elements—everything we operate on is a positive element, whereas an inverse element is something that, when added, cancels what was previously there.
 
-3. **Generator**:
-   - A Functor that operates on DSL structures.
-   - It transforms one type of structure into another while preserving the essential properties.
-   - The Nop platform uses Generators to build complex systems from modular components.
+Delta in Reversible Computation is a complex delta-structured entity; decomposed to the finest granularity, it is effectively a mixture of various positive atomic elements and negative atomic elements.
 
----
+> In our physical world, all matter can be decomposed into a small number of fundamental particles, and every particle has a corresponding antiparticle. Particles and antiparticles can emerge from the vacuum and can annihilate into a flash of light when they meet.
 
-## 3. Subtraction: Solving Equations in Reverse
+Assuming the existence of an identity element, any element can always be viewed as some Delta acting on the identity: $0 + A = A$. Thus, a full object is a special case of a Delta. We can reinterpret and rebuild all software structures on top of the Delta concept.
 
-When dealing with equations, subtraction plays a crucial role:
+Mathematically, elements and the operations acting on them are defined as a whole; that is, Delta and the `x-extends` operator must be considered together. Only by making the action of `x-extends` explicit can we clearly explain what inverse elements inside a Delta actually mean.
+
+## III. Subtraction: Solving equations in reverse
+
+When we understand inverse elements from an operational perspective, subtraction naturally follows from the concept of inverses.
 
 ```
-A = B + C
-==> B = A - C
+  A = B + (-C) = B - C
 ```
 
-This process allows for the inversion of additive operations. By applying `x-extends` and Delta, we can reverse engineer the relationships between components.
-
-For example:
-```
-App = Delta x-extends Generator<DSL>
-==> Delta = App - (x-extends Generator<DSL>)
-```
-
-This demonstrates how reversible operations enable precise control over software evolution.
-
----
-
-## 4. The Nop Platform: A Practical Implementation
-
-The Nop platform provides a concrete realization of these principles:
+With subtraction introduced, we can solve equations in reverse by transposing terms:
 
 ```
-App = Delta x-extends Generator<DSL>
-==> Delta = App - (x-extends Generator<DSL>)
+ A = B + C ==>  B = A - C
 ```
 
-This implementation serves as a foundation for exploring reversible computing concepts. It demonstrates that the abstract theories can be translated into functional, working code.
+In the Nop platform, the concrete implementation is:
 
----
+```
+App = Delta x-extends Base ==>  Delta = App x-diff Base
+```
 
+[DeltaMerger.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/delta/DeltaMerger.java) and [DeltaDiffer.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/delta/DeltaDiffer.java) implement the forward `x-extends` and the reverse `x-diff` operations, respectively. In other words, after merging via the Delta merge algorithm to produce the whole, the Nop platform can reverse-compute via a diff algorithm to split out the Delta components. This capability lets us construct software in a delta-ized manner—just like solving equations.
 
-[DeltaMerger.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/delta/DeltaMerger.java) and [DeltaDiffer.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/delta/DeltaDiffer.java) implement the `x-extends` (forward operation) and `x-diff` (reverse operation), respectively. This means that in the Nop platform, after merging using DeltaMerger's delta merge algorithm, we can apply the diff algorithm to decompose the delta into its constituent parts. This capability enables us to perform delta-based model generation and fine-tuning of generated views.
-
-
-## Specific Use Case
-
-A concrete use case is the support for both automated model generation and visual design of frontend pages in the Nop platform. The frontend page is automatically generated based on the data model, and after generation, we can manually refine it using the visual designer. When saving back to the DSL file, only the delta (localized changes) is stored instead of the entire page, allowing for efficient version control and collaboration.
-
-
+A practical scenario: a front-end page designer that supports both automated model generation and visual design. In the Nop platform, front-end pages are inferred and generated automatically from data models. After auto-generation, we can tweak the result with a visual editor and then, when saving back to the page DSL, apply the diff algorithm to compute only the delta part corresponding to the visual modifications. That is, if the visual editor only performs local adjustments, what is actually saved to the DSL file is a small amount of Delta information, not the entire page. This approach enables synergy between automated model generation and visual design.
 
 ```
 PageInEditor = DeltaPage x-extends Generator<ViewModel>
 DeltaPage = PageInEditor x-diff Generator<ViewModel>
 ```
 
-When editing in the visual editor, the entire PageInEditor is modified. However, when saving to the file system, only the localized changes (delta) are stored, highlighting manual modifications.
+What is edited in the visual editor is always the full page PageInEditor, but the DSL saved to the file system has the following structure, which highlights only the manually modified local Delta:
 
 ```yaml
 x:gen-extends: |
   <web:GenPage view="NopAuthUser.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
+
+title: 修改后的标题
 ```
 
-After generating the main page using the visual designer, the delta (localized changes) is stored in the DSL file. This approach ensures that only the differences are tracked, facilitating efficient collaboration and version control.
+## IV. Reversible transformations
 
----
+Mainstream software construction theories are mostly based on composition/assembly, and few systematically examine construction from the perspective of transformations. However, as I pointed out in my Zhihu article [Decoupling goes far beyond dependency injection](https://zhuanlan.zhihu.com/p/550923860), to achieve decoupling, the most fundamental and powerful technique should be representation transformation; interfaces are merely the simplest form of representation transformation.
 
+> Recall Fourier transform theory in mathematical physics: multiple signals of different frequencies superposed together are completely mixed in the time domain—at each time point, multiple signals are present. But via Fourier transform, we obtain completely separated signals in the frequency domain!
 
+In the theory of Reversible Computation, the unit `Generator<DSL>` is explicitly included as a computational unit corresponding to generative programming. DSL efficiently expresses domain information, and the Generator applies a formal transformation to the information expressed by the DSL to obtain other representations of the same information (potentially introducing new information or pruning existing information). A special case here is when the Generator admits an inverse transformation.
 
-The reverse transformation plays a crucial role in modern software development. While traditional approaches focus on assembly-like operations, the Nop platform leverages the power of DeltaMerger for forward transformations and DeltaDiffer for reverse operations. This allows developers to decompose complex systems into manageable components and reassemble them as needed.
+Interestingly, although reversible transformations are a special case of general formal transformations, in practice they can systematically solve a large number of real problems.
 
----
+> In fact, at a theoretical level, we can solve all computational problems within the framework of reversible transformations—after all, quantum computation is a reversible transformation.
 
+Assume a transformation G has an inverse F; then we can realize bidirectional conversion between A and B:
 
+```
+B = G(A), A = F(B)
+```
 
-In software development, inversion of control (IoC) is a common technique used to decouple dependencies. While dependency injection is the most widely recognized form of IoC, other mechanisms such as delegate injection or property injection also exist. The Nop platform provides robust support for IoC through its sophisticated configuration management and plugin architecture.
+The visual design problem in low-code platforms can be automatically solved under the framework of reversible transformations.
 
----
+```
+Visual representation = Designer(Textual representation),   Textual representation = Serializer(Visual representation)
+```
 
+A visual editor reads the textual representation and produces a visual representation, enabling users to edit the model visually. When users save, the model information in the visual editor is serialized back to text and exported to a DSL model file.
 
+Reversibility composes: if each subpart of a structure supports a reversible transformation, we can automatically derive a reversible transformation for the entire structure. For example, if we define both a visual representation and a textual representation for each field-level structure, we can automatically derive a bidirectional conversion between the whole DSL text and the visual design form.
 
-- **DeltaMerger**: responsible for merging deltas into a unified model.
-- **DeltaDiffer**: capable of decomposing the merged model back into individual deltas.
-- **x-extends**: forward operation used to merge deltas.
-- **x-diff**: reverse operation used to extract deltas.
+$$
+\left(\begin{array}{c} a\\ a^{-1} \end{array} \right)*\left( \begin{array}{c} b\\ b^{-1} \end{array} \right) =\left( \begin{array}{c} ab\\ b^{-1}a^{-1} \end{array} \right) \\
+$$
 
---- 
+From the inverses of a and b, we can automatically derive that the inverse of ab is $b^{-1}a^{-1}$.
 
+Note that in practical applications, we often encounter similarity transformations, not exact equivalences. For instance, in DSL visual editing, for better presentation the visual representation may contain layout information used only for visualization, which is entirely redundant for the DSL textual representation. In this case, to allow free switching between textual editing and visual editing, we can apply the delta-ization idea of Reversible Computation: augment the textual representation with extended Delta structures dedicated to storing these extra pieces of information, thereby turning an approximate similarity into a strict equality.
 
+$$
+B \approx G (A) , A \approx F(B) \Longrightarrow 
+B + dB = G(A + dA), A + dA = F(B + dB)
+$$
 
-The ability to perform delta operations is a powerful feature in software development. It allows for atomic rollbacks, incremental builds, and precise debugging. By leveraging DeltaMerger and DeltaDiffer, developers can achieve a higher level of control over their applications, enabling efficient maintenance and evolution of complex systems.
+In the Nop platform, the delta-ization concept is fully embraced: all structures have a built-in extension-attributes mechanism—i.e., we always adopt a paired design of the form `(data, ext_data)`. Technically, ext_data often serves as metadata. For example, in message object design it appears as `data + headers`; in Java class design, as `field + annotations`; and in DSL model design, as `props + ext_props`.
 
+It is also worth emphasizing that mathematical reversible transformations are far more sophisticated and powerful than the simple idea of invertible functions. Most reversible transformations in the Nop platform correspond to functor transformations in category theory. That is, they are not applied to a single object, but are defined for every object in a domain (i.e., a category). For example, the Nop platform provides reversible conversion between DSL objects and Excel: without programming, you can parse an Excel file into a DSL object, and you can also export a DSL object to an Excel file.
 
-The inverse of a matrix \( A \) is denoted as \( A^{-1} \). When multiplying two matrices, the inverse of their product is the product of their inverses in reverse order:
+```
+DslModel = Importor<Excel>, Excel = ReportExporter<DslModel>
+```
 
-\[
-(A^{-1}) (B^{-1}) = (AB)^{-1}
-\]
+In traditional programming practice, we always write parsing code for a specific Excel file to obtain a particular data object; conversely, we implement an Excel export function for a specific business object. If we now implement bidirectional conversion functions for a given requirement, later changes or new products allow us only to reference the old import/export code—we cannot directly reuse them and must rewrite them for the new object structures.
 
+However, in the Nop platform, the import model and the report model form a very general pair of reversible transformations. They can automatically export any data object to Excel and can parse any Excel (as long as it meets fairly broad Tree-structure conditions) into a corresponding data object. In category-theoretic terms, the Nop platform establishes a pair of adjoint functors between the DSL category and the Excel category. If such functorial reversible transformations are further composed, they yield an unprecedentedly powerful technical means.
 
-## Example Calculation
+In real-world business applications, if we consistently pursue minimal information expression and emphasize framework neutrality in business development, it naturally leads to reversible formal transformations. For detailed analysis, see my article [The path to freedom in business development: How to break framework constraints and achieve true framework neutrality](https://zhuanlan.zhihu.com/p/682910525).
 
-Consider the following matrices:
-\[
-A = \begin{pmatrix} a \\ a^{-1} \end{pmatrix}, \quad B = \begin{pmatrix} b \\ b^{-1} \end{pmatrix}
-\]
+## V. Going backward along the timeline
 
-Their product is:
-\[
-AB = \begin{pmatrix} ab \\ b^{-1}a^{-1} \end{pmatrix}
-\]
+Traditional software engineering constructs proceed forward along the timeline. Conceptually, we develop base class A first, then derived class B; A always precedes B. When extending, we usually add different derived classes to introduce new information structures. In rare cases we modify base class A, which requires recompilation, effectively reconstructing all derived classes. Viewed along the timeline, information is layered and accretive—old information below, new information above. To inject new information into the system’s foundation, we must modify source code, effectively breaking apart the structure and rebuilding it.
 
-The inverse of \( AB \) is:
-\[
-(AB)^{-1} = \begin{pmatrix} a^{-1}b^{-1} \\ 1 \end{pmatrix}
-\]
+The construction equation of Reversible Computation is a purely mathematical formal expression; its parts have no explicit assumptions about time dependency.
 
-This demonstrates that the inverse of a product of matrices is the product of their inverses in reverse order.
+```
+App[t] = Delta[t-1] x-extends Generator[t]<DSL[t]>
+```
 
+The system needed at time t can be composed by applying the Delta determined at time t-1 to the structure `Generator[t]<DSL[t]>` that is only determined at time t. Because at time t (e.g., deployment time) we already know all business-relevant information, we can avoid guessing at numerous potential scenarios; we only need to describe the information currently required and use a Generator customized by time-t information to dynamically expand it.
 
-
-In practical applications, we often encounter approximate transformations rather than exact equivalences. For example, in the visualization layer of a DSL (Domain-Specific Language), additional layout information may be included for visual purposes. This information is irrelevant to the textual representation of the DSL. To maintain flexibility between text editing and visualization, we can extend the Delta structure to store these auxiliary details, effectively converting approximate similarities into exact equivalences.
-
-
-
-The following algebraic operations are supported:
-
-\[
-B \approx G(A), \quad A \approx F(B) \implies B + dB = G(A + dA), \quad A + dA = F(B + dB)
-\]
-
-Here, \( dB \) represents the derivative of \( B \) with respect to some variable.
-
-
-
-The Nop platform incorporates a Delta-based design approach. This means that all structures within the system are equipped with an extension mechanism for storing additional information. For instance:
-- In data processing: \( data + headers \)
-- In Java classes: \( field + annotations \)
-- In DSL models: \( props + ext_props \)
-
-
-
-In mathematical terms, the operations described can be viewed as functors. Specifically, they map domain elements to elements of a codomain while preserving certain structure. For example:
-- The Nop platform provides a bijective mapping between DSL objects and Excel objects via their respective inverses.
-
-This relationship is formally expressed as:
-\[
-DslModel = Importor<Excel>, \quad Excel = ReportExporter<DslModel>
-\]
-
-
-
-Traditionally, programming involves writing code tailored to specific Excel files. This approach requires parsing and transforming the file into a data object. Reverse operations are similarly manual and often require recompiling derived classes.
-
-However, the Nop platform automates these processes:
-- Importing models and exporting data becomes seamless.
-- Any Excel file can be mapped to a DSL model without manual code changes.
-
-
-
-When new requirements emerge, traditional practices demand rewriting existing code and adjusting imports. This is where the Nop platform excels by allowing dynamic extension of existing models. For example:
-\[
-DslModel = Importor<Excel>, \quad Excel = ReportExporter<DslModel>
-\]
-
-This allows for flexible extensions while maintaining compatibility with existing systems.
-
-
-
-The Nop platform supports reverse engineering through its Delta mechanism. This enables:
-- Automatic generation of derived classes based on existing models.
-- Dynamic updates to these classes as the base models evolve.
-
-This capability significantly reduces development and maintenance overhead.
-
-
-
-From a temporal perspective, software development often requires balancing between stability and change. The Nop platform's design allows for incremental updates without disrupting existing functionality.
-
-For instance:
-\[
-App[t] = Delta[t-1] \times Generator[t] < DSL[t]
-\]
-
-This relationship ensures that each version of the application is built upon the previous one, minimizing regression risks.
-
-
-
-The Nop platform leverages advanced mathematical concepts to provide a robust framework for software development. By automating many aspects of data transformation and reverse engineering, it simplifies the creation and maintenance of complex systems. This approach not only enhances productivity but also ensures that the resulting applications are both reliable and scalable.
-
-
-The system under construction can be determined at the t time by the Delta determined at t-1. The structure `Generator[t] < DSL[t]>` is formed as a whole.
-
-At the t time (e.g., deployment time), all business-related information is already known, allowing us to avoid excessive guessing about application scenarios. As a result, we only need to describe the information currently required, which in turn enables us to use a `Generator` customized based on t-time information to dynamically expand these details.
-
-When applied to specific code implementation, the Nop platform provides a unique Delta customization capability. This capability allows for differential adjustments of all DSL structures within the system without modifying existing source code. This characteristic is analogous to Java's implementation, clearly demonstrating the uniqueness of Delta customization.
-
-Assume we have built a system `A extends B extends C`. These components are bundled into jar files. Without altering this jar file, Java lacks any means of modifying the existing structure. Therefore, external补充新的信息是唯一的选择。
-
-
+In concrete code, the Nop platform provides a unique Delta customization capability. Without modifying existing source code, it can delta-adjust all DSL structures used across the system. Comparing with Java makes the uniqueness of Delta customization clearer. Suppose we have built a system `A extends B extends C` and packaged it into a JAR. Without modifying this JAR, there is no way in Java to alter the existing structure—we can only add new information externally:
 
 ```
 E extends A extends B extends C
 ```
 
-However, by leveraging the Delta customization mechanism, we can supplement a delta description to replace existing structures. For example, replacing B with `E + F` results in:
-
-```
-A extends E extends F extends C
-```
-
-Mathematically, this is represented as:
+But with the Delta customization mechanism, by supplying a Delta description we can arbitrarily replace existing code structures. For example, replace B with `E + F`, obtaining `A extends E extends F extends C`. Mathematically, this is:
 
 ```
 X = A + B + C
-Y = X + (-B + E + F) = A + E + F + C
+Y = X + (-B + E + F) = A + E + F +C
 ```
 
-The capability of Delta customization is evident in reversible computations. Perturbations can arise from any part, and these variations are then aggregated into a single external fix for `dApp`. This mathematical construction ensures that perturbation information flows freely between existing structures without altering the original source code.
-
-For instance:
+The power of Delta customization is reflected in the following derivation of the Reversible Computation equation:
 
 ```
 App = B + G<S>
 App + dApp = B + G<S> + dApp = B + dB + (G + dG)<S + dS>
 ```
 
-This demonstrates how Delta customization enables differential adjustments across various system components, ultimately addressing issues encountered at the t time.
+In the construction equation of Reversible Computation, perturbation Deltas can arise in any part; they can flow across existing structures and be aggregated into an external correction dApp. A special application is to inject information only known at time t, in delta-ized form, directly into preexisting program structures solidified at time t-1—without modifying the existing source code. It is as if we always have a “second chance” to travel back to time t-1 and adapt the program structure arbitrarily to ultimately solve the problems we encounter at time t.
 
-
-
-While Docker also employs a similar structure with `App = Delta x-extends Generator<DSL>`, it is not compatible with Nop's dynamic Delta customization. Docker containers are immutable, and their layered relationships resemble a blockchain-like structure, ensuring an unalterable timeline of updates. However, this approach does not support Nop's external fixes for `dApp`.
-
+Note that although Docker technology also adopts a computation pattern of the form `App = Delta x-extends Generator<DSL>`—a typical application instance of Reversible Computation—it does not support the kind of dynamic Delta customization available on the Nop platform. Docker images are immutable, and the relationships between layers are bound: a later layer explicitly specifies the hash digest of the prior layer it depends on, akin to a blockchain, forming an immutable timeline.
+<!-- SOURCE_MD5:253a61cc505fa09b818a36db2af9f27d-->

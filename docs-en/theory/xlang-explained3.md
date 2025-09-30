@@ -1,133 +1,72 @@
-# About the Third Round of Q&A on XLang Language
+
+# Third Round of Q&A on the XLang Language
 
 ## 1. Is XLang a framework or a programming language?
 
-XLang is not a traditional programming language, but if you ask DeepSeek, they will explain:
+XLang is not a traditional programming language, but if you ask DeepSeek, DeepSeek would answer:
 
-> XLang combines the high level of abstraction characteristic of Fourth-generation languages (4GL) and the theoretical innovation of Fifth-generation languages (5GL). Its core positioning is "a meta-language for reversible computation," which enhances efficiency through domain-specific syntax while redefining the lower-level rules of program construction using structural space theory and differential computing. Therefore, XLang can be viewed as a progression within Fourth-generation languages or referred to as a "Fourth-generation+ language" that achieves a unique balance between low-code and theoretical innovation.
+> XLang combines the high abstraction of fourth-generation languages with the theoretical innovations of fifth-generation languages. Its core positioning is a “meta-language supporting Reversible Computation,” which boosts development efficiency through low-code and domain-specific syntax while redefining the underlying rules of program construction via structural space theory and Delta operations. Therefore, XLang can be regarded as an evolutionary form of a fourth-generation language—call it a “Fourth-Generation+ Language”—achieving a unique balance between low-code and theoretical innovation.
 
-Mainstream programming languages are referred to as Third-generation languages (3GL). They typically use a `main` function as the entry point. The overall purpose of these languages is to write executable functions, and the compiler's role is to translate the program logic into hardware-executable instructions. However, Fourth-generation languages (4GL) shift focus to descriptive capabilities through highly abstract declarative syntax and graphical programming tools. In essence, 4GL emphasizes "non-procedural" approaches, moving away from hardware-level adaptation toward higher levels of abstraction.
+Mainstream programming languages today are so-called third-generation programming languages (3GL), which typically use a main function as the program’s entry point. Fundamentally, the language design is about writing that executable main function, and the compiler translates the execution logic written in the programming language into instructions executable by a hardware model. Fourth-generation programming languages (4GL), however, began to emphasize descriptiveness, simplifying development through highly abstract declarative syntax and graphical programming tools. In other words, the core of 4GL is “non-procedural,” emphasizing higher-level abstraction rather than adaptation to lower-level hardware models.
 
-The development of LLVM has made hardware-level optimization an independent issue, allowing different programming languages to share a common compilation back-end. This does not define the core requirements of a programming language. We expect `Moonbit`, this newly emerging programming language, to provide a compact and lightweight toolchain. By translating XScript's Abstract Syntax Tree (AST) into `Moonbit`'s AST, subsequent processes will handle it automatically.
+With the rise of LLVM, hardware-level optimization is essentially a separate concern, and different programming languages can share a common compilation backend. This does not constitute an essential requirement of a programming language. I expect new languages like `Moonbit` to offer a very compact, lightweight toolchain. As long as XScript’s AST is translated to `Moonbit`’s AST, the rest is handled automatically.
+XLang includes a sub-language XScript, whose syntax deliberately adopts a subset of JavaScript plus minor extensions, and the type system mimics a simplified Java-like type system. This ensures lossless translation at the AST level to all mainstream programming languages.
 
-XLang includes a sub-language called XScript. Its syntax intentionally selects a subset of JavaScript syntax with limited extensions, while its type system mirrors that of Java in simplified form. This ensures lossless translation from the AST layer to all mainstream programming languages.
+Although the Nop platform is a complete low-code platform built on the XLang language, this does not mean that XLang itself is a framework. While XLang currently runs on the JVM and relies on certain helper libraries and implementation classes provided by the underlying Java language, it does not depend on Java. The entire content of XLang can be ported to other programming languages such as `Lisp` or `Rust`. When writing business code, you can use only the XLang language without touching the underlying Java language.
 
-While the Nop platform is built on the XLang language and establishes a comprehensive low-code platform, this does not imply that XLang itself is a framework. Currently, XLang runs on the JVM, relying on some libraries and implementations provided by Java's ecosystem, but this does not mean it depends on Java as a whole. The entire functionality of XLang can be ported to other programming languages like `Lisp` or `Rust`. When writing business code, you can use only the XLang language without interacting with Java's lower-level components.
+## 2. The fundamental reason a Turing machine achieves Turing completeness is that a Turing machine can be viewed as a virtual machine that can simulate all other automatic computing machines.
+For this statement, those with formal training may object: Turing completeness is defined via the Turing machine, so “a Turing machine is Turing-complete” is a conclusion by definition. My view is: if you get entangled in the mathematical definition and say Turing completeness is defined via the Turing machine, that’s fine; but this is merely due to a historical contingency.
 
-## 2. Can a Turing machine implement Turing completeness?
+Conceptually, Turing completeness and NP-completeness are similar classifications in computation. The computational complexities of every NP-complete problem are comparable; solving any one of them allows you to solve all NP-complete problems. Yet we do not define NP-completeness as “knapsack-completeness.”
 
-The root reason for Turing completeness in a Turing machine lies in its ability to simulate all other automata. A Turing machine is defined as a theoretical model of computation that can be configured to recognize any computable language, and it serves as the foundation for understanding computational complexity.
+Similarly, Turing completeness is an abstract computational capability. All computing machines are equivalent at this capability boundary; no particular machine has a more special capability. By historical accident, this capability was named Turing completeness. Turing completeness can be defined as a computing system’s ability to execute any computable function; it could just as well have been named Lambda Calculus completeness.
 
-Regarding this statement, some programming enthusiasts might object: "Turing completeness is defined by the Turing machine, so 'the Turing machine is Turing complete' is a definition-based truth." My perspective is that while one may get stuck on the mathematical definitions, the historical context often drives such terminology. The term "Turing complete" is more about recognition of any computable function rather than strict adherence to formal definitions.
+In physics, all concepts are independent of any particular problem or choice of reference frame. If one insists that Turing completeness is defined via the Turing machine, that is merely a concrete manifestation of using a specific idealized model to describe an abstract computational capability. What we care about is not the concrete form, but the universal capability itself.
 
-In terms of concepts:
+## 3. Is the development goal of XLang to replace general-purpose languages like Java?
 
-- **Turing completeness** and **NP completeness** are analogous in the sense that both describe the computational power of a system. A Turing machine can compute all functions that are considered computable, while NP-completeness refers to a class of problems that are computationally intensive but still solvable within polynomial time. However, not all NP-complete problems are Turing complete.
-
-- **Lambda calculus**, which underpins functional programming, is another foundational model of computation, with its own form of completeness. Lambda expressions can be used to define functions and are considered Turing complete in the theoretical sense.
-
-In practical terms, the distinction between these models often revolves around their specific computational properties rather than abstract definitions. While a Turing machine's definition inherently implies its Turing completeness, the applicability of this concept depends on the context of computation.
-
-## 3. Is XLang aiming to replace Java?
-
-XLang is not intended to replace `C++` or `Java`, which are mainstream programming languages. In fact, they should be viewed as complementary.
+XLang’s development goal is not to replace mainstream languages such as `C++` or `Java`; in fact, they should be complementary.
 
 ```xml
 <c:script lang="groovy">
-  Here you can use Groovy syntax
+  Groovy syntax can be used here
 </c:script>
 ```
 
-XLang uses XML syntax for its sub-languages like XScript and Xpl (a template language). The `<c:script>` tag allows embedding XScript scripts into the system. If `lang="groovy"` is specified, it uses Groovy syntax for scripting.
+XLang uses XML syntax. When execution logic needs to be expressed, it employs the Xpl template language, a sub-language that is Turing-complete. Within it, you can embed XScript via the `<c:script>` tag. If `lang="groovy"` is specified, you can implement the script in Groovy. Similarly, you can integrate virtually any other language.
 
-The existing programming languages have solved many of the problems that XLang addresses in their own ways. While low-code platforms like Nop leverage XLang's descriptive capabilities, this does not mean that XLang itself is a framework or that its core purpose is to replace traditional programming languages.
+Existing programming languages already address a large problem space effectively; there is often no need to invent new syntax for expressing procedural computation logic—reusing existing language syntax or even language runtimes will suffice.
+XLang focuses on areas not effectively handled by existing languages. By introducing the concepts of Delta and Reversible Computation, XLang can solve many problems that require the computing pattern `F(X)+Delta` to be handled effectively. In other words, the problem space XLang addresses is largely non-overlapping with that of existing languages. However, this does not mean XLang is a DSL; its syntax and semantics are general-purpose and not tied to any specific business domain. Ultimately, in usage, XLang can cooperate with any third-generation programming language: the XScript part can be replaced with any other third-generation programming language.
 
-In summary:
+If we regard TypeScript as an extension of JavaScript, `TypeScript = JavaScript + JSX + TypeSystem`, then XLang can also be viewed as an extension of JavaScript, `XLang = XScript + Xpl + XDef + MetaProgramming + DeltaProgramming`. Xpl is an XML-form template language, similar in purpose to JSX.
+The distinctive parts here are DeltaProgramming and MetaProgramming. XLang does not strongly depend on JavaScript syntax; the XScript sub-language can be replaced by any other third-generation programming language.
 
-- **Fourth-generation languages (4GL)** focus on reducing procedural coding through high-level abstractions.
-- **XLang** builds upon these concepts while introducing new theoretical frameworks for program construction.
-- **Traditional programming languages** like `Java` and `C++` remain essential for performance-critical applications.
+Some misunderstand XLang’s capabilities because it adopts an XML syntactic form and thus fail to associate it with a conventional programming language. But if you think carefully, TypeScript embeds XML-like JSX syntax inside JavaScript, and JavaScript code blocks can be embedded inside JSX. It is a bona fide programming language. Conversely, embedding JavaScript syntax inside XML format is equivalent to what TypeScript does, isn’t it?
 
-Thus, XLang is positioned to complement rather than replace existing programming paradigms, offering a unique approach that bridges low-code convenience with high-level abstraction.
+XLang’s outermost entry point is not a simple main function; rather, it is a variety of DSLs with diverse structures and semantics, and even visual models.
 
+## 4. Can XLang build its own ecosystem?
 
+Certainly. But the content in XLang’s ecosystem is not the usual generic functionality that every new language seems destined to re-implement, such as JSON parsers or HTTP clients. XLang is typically used with a host language (e.g., Java), allowing direct reuse of functionality implemented in the host, at most with a wrapper over standard interfaces. This is similar to how TypeScript directly reuses the underlying JavaScript host ecosystem.
+Future directions include cross-language code reuse across multiple syntactic forms, e.g., all based on WASM bytecode, or via GraalVM’s polyglot interop mechanisms.
 
-## 1. Understanding XLang
+What should be shared within XLang’s ecosystem are primarily XDef meta-model definitions for various DSLs, as well as code generators and meta-programming structural transformations written in the Xpl template language.
 
-XLang is designed to address certain aspects of programming that existing languages struggle with. By introducing **differential concepts** and **reversible concepts**, XLang can handle problems that require both `F(X) + Delta` computations efficiently.
+To reiterate, XLang’s primary use is to rapidly develop and extend domain-specific languages, realizing the so-called Language Oriented Programming paradigm. Business development is essentially independent of any specific programming language—akin to physical facts being independent of coordinate systems. A general-purpose language is like a general Euclidean coordinate system; locally, we can adopt more efficient specialized coordinate systems, i.e., DSLs. As technology advances, descriptive programming and imperative programming can be better integrated, and the descriptive subspace occupied by DSLs can grow larger. Multiple DSLs can be seamlessly bonded via `G<DSL1> + G<DSL2> +Delta`; the concept of Delta must be added to break the limitation that a DSL applies only to a single domain.
 
-While XLang addresses unique problem domains, it does not confine itself to domain-specific languages (DSLs). Instead, its syntax and semantics remain general-purpose, making it suitable for collaboration with any third-generation programming language. For example, XScript can be replaced by any other third-generation language.
+## 5. Are there intuitive examples showing how XLang is used?
 
+You can refer to the following articles:
+- [Looking at Kustomize through Reversible Computation](https://mp.weixin.qq.com/s/48LWMYjEoRr3dT_HSHP0jQ)
+- [Design Comparison: NopTaskFlow Logic Orchestration Engine vs. SolonFlow](https://mp.weixin.qq.com/s/rus4sPKvO-C78cOjSd0ivA)
+- [XDSL: A General-Purpose Domain-Specific Language Design](https://mp.weixin.qq.com/s/usInt7_odzvFzuiIUPw4iQ)
+- [A Theoretical Analysis of Reversible Computation for Programmers](https://mp.weixin.qq.com/s/aT99VX6ecmZXdemBPnBcoQ)
+- [Addendum: A Theoretical Analysis of Reversible Computation for Programmers](https://mp.weixin.qq.com/s/zGfo7pvKjOCa11PYLJHzzA)
 
-## 2. Technical Foundation
+Detailed syntax can be found in the Nop platform documentation [XLang Language](https://nop-platform.github.io/projects/nop-entropy/docs/dev-guide/xlang/)
 
-Just as TypeScript extends JavaScript with `TypeScript = JavaScript + TypeSystem + JSX`, XLang builds upon JavaScript with:
-
-```
-XLang = JavaScript + Xpl + MetaProgramming + DeltaProgramming
-```
-
-Here, **Xpl** is an XML-based template language similar to JSX.
-
-The unique aspects of XLang are:
-- **DeltaProgramming**: Handling differences between versions.
-- **MetaProgramming**: Customizing code generation based on context.
-
-XLang does not rely heavily on JavaScript syntax. Instead, it allows the use of any third-generation programming language for its `XScript` component.
-
-
-
-A common misunderstanding about XLang is that it uses XML syntax, making it incompatible with standard programming languages. However, this isn't the case. Like TypeScript embeds JSX within JavaScript, XLang embeds XML-like structures (`<...>`) directly into JavaScript without altering its core syntax.
-
-Is `XLang = JavaScript + XML` equivalent to `TypeScript = JavaScript + TypeSystem + JSX`? Not exactly. While both extend JavaScript, XLang does so with a focus on XML-based abstractions and reversibility, whereas TypeScript focuses on type safety.
-
-
-
-Can XLang establish its own ecosystem?
-
-Yes, but it's not unique in this regard. Every new language seems to require common utilities like JSON parsers or HTTP clients. Instead of reinventing these tools for each language, XLang leverages existing ecosystems by integrating with popular languages such as Java.
-
-XLang's ecosystem includes:
-- **Common utilities**: JSON parsers, HTTP clients, etc.
-- **Host languages**: Java, JavaScript, etc.
-- **Custom generators**: Tools like `xpl2js` or `metaprogramming frameworks`.
-
-The future of XLang lies in enabling code reuse across multiple programming paradigms. For example:
-```
-Future: F(X) + G(X) + Delta
-```
-could be implemented using a combination of WebAssembly and GraalVM's polyglot capabilities.
-
-
-
-Can we visualize how XLang works?
-
-Yes, through tools like `xlang-visualizer` or custom diagrams that illustrate:
-- **Reversible operations**: How changes propagate.
-- **Differential computations**: How deltas are applied.
-- **Meta abstractions**: Higher-level constructs.
-
-For a concrete example, refer to the article [From Reversible Computation to Kustomize](https://example.com/reversible-kustomize).
-
-
-
-For instance:
-```
-<Delta: type="binary" src="FileA.xml" dest="FileB.xml"/>
-```
-This XLang snippet defines a binary delta between two XML files, ensuring efficient updates.
-
-The list of resources for detailed explanations is available here:
-- [Reversible Programming Basics](https://example.com/reversible-basics)
-- [MetaProgramming Techniques](https://example.com/meta-programming)
-
-
-In general, we do not directly use XLang for business application development. Instead, we first define a Domain-Specific Language (DSL) using XLang and then develop specific business logic using this DSL. XLang defines the structure of the DSL through its XDef meta-model, while the Nop platform's `nop-xdefs` module collects all predefined DSL meta-model files.
-
-When developing your own DSL, you do not need to start from scratch. You can directly combine existing XDef meta-model definitions. For example, in a rule model, you can reuse variables defined in `var-define.xdef` using the `xdef:ref` attribute.
-
-
-## Example Rule Definition
+In most cases we do not develop business applications directly with XLang. Instead, we first use XLang to define a DSL, and then develop the actual business using that DSL. XLang defines DSL structure via the XDef meta-model language; the Nop platform’s `nop-xdefs` module collects all meta-model files of already-defined DSLs.
+When developing your own DSL, you generally do not have to start from scratch. You can compose these existing XDef meta-model definitions directly—for example, reuse the variable definition model `var-define.xdef` via `xdef:ref` in a rules model.
 
 ```xml
 <rule>
@@ -137,34 +76,23 @@ When developing your own DSL, you do not need to start from scratch. You can dir
 </rule>
 ```
 
+In fact, XLang’s concrete merge algorithm is very simple—essentially akin to the virtual DOM diff algorithms in React and Vue, only simpler. XLang stipulates that elements in a list have unique identifiers such as name or id, thereby ensuring stable XPath that can serve as domain coordinates. During diff and merge computation, items are merged directly by coordinates.
 
-
-XLang's merging algorithm is straightforward, similar to React and Vue's virtual DOM diff algorithm but even simpler. Due to its design, any list in XLang must have a unique identifier (e.g., `id` or `name`). This ensures stable `xpath` references for consistent updates.
-
-
-
-XLang extends standard XML with a few special annotations like `x:schema`, `x:extends`, and `x:override`. The underlying language engine understands these annotations and applies the corresponding transformations. The `x:schema` annotation references an XDef meta-model, which defines the structure of the XML nodes and attributes.
-
-
+Syntactically, XLang is essentially ordinary XML augmented with a small set of special annotations such as `x:schema`, `x:extends`, and `x:override`. The underlying language engine understands these annotations and performs Delta merge after parsing. `x:schema` imports the XDef meta-model; via XDef we can define the types of nodes and attributes in XML. If an attribute’s type is specified as xpl, that attribute is parsed using the Xpl template language.
 
 ```xml
-<task x:schema="/nop/schema/task.xdef">
+<task x:schema="/nop/schema/xdef.xdef">
   <steps xdef:body-type="list" xdef:key-attr="name">
     <xpl name="!string">
-      <source xdef:value="xpl"/>
-      <logInfo("hello world")/>
+      <source xdef:value="xpl" />
     </xpl>
   </steps>
 </task>
 ```
 
+The meta-model above defines the structure of `task.xml`. It states that steps are a set of step definitions, each step has type xpl, and it has a source attribute, which is parsed using the Xpl template language.
 
-
-The meta-model defined in `task.xdef` specifies that a `<task>` element contains multiple `<steps>`, each with a unique name. Each `<step>` can have an `<xpl>` child, which represents the template to be evaluated.
-
-The structure of `task.xdef` is similar to `task.xml`. The root `<task>` element's `x:schema` points to `task.xdef`, defining its structure and constraints.
-
-
+An example of a concrete task.xml:
 
 ```xml
 <task x:schema="/nop/schema/task.xdef">
@@ -178,34 +106,22 @@ The structure of `task.xdef` is similar to `task.xml`. The root `<task>` element
 </task>
 ```
 
+Note that the structure of the `task.xdef` meta-model and the `task.xml` model file it describes are essentially identical. `task.xdef` is like an XML template with annotations indicating the types of the template’s attributes. The concrete `task.xml` is the result of filling the template’s attributes and child nodes with specific values.
 
+`x:schema="/nop/schema/xdef.xdef"` on the root of the meta-model indicates that `task.xdef` is a meta-model definition file whose structure is constrained by `xdef.xdef`. Meanwhile, `x:schema="/nop/schema/task.xdef` on the root of `task.xml` indicates that `task.xml` is a model file whose structure is constrained by `task.xdef`.
+If you look at the definition of `xdef.xdef`, you will find its `x:schema` also points to `xdef.xdef`. In other words, model structure is defined by the XDef meta-model, and the XDef meta-model itself is defined using the XDef meta-model.
 
-1. **Meta-Model Definition**: The `task.xdef` meta-model defines the structure of `<task>` elements in XML format.
-2. **Consistency**: Both `task.xdef` and `task.xml` use the same structure, ensuring compatibility between meta-model and actual usage.
-3. **Reusability**: Custom extensions can be added to `task.xdef`, allowing for flexible configurations without altering existing XML files.
+Here is one community member’s understanding:
 
+> I finally fully grasped your principle of Delta-based merging today. XLang is a set of standard attribute definitions used to add, delete, or modify node definitions. Delta-based merging is the process of merging a main file with a Delta, and the merge rules are defined by the XLang language specification. After merging, you get a new DSL description (which can be XML, JSON, or any tree structure). You then hand this new DSL to an execution engine; how it parses and handles the DSL is the execution engine’s responsibility.
 
+XLang defines DSLs and automatically implements DSL decomposition, merging, and Delta customization. In principle, once you obtain the merged DSL, it is no longer tied to XLang; the execution engine can use any other technology to parse XML/YAML for subsequent processing. If you use the Nop platform deeply, the execution engine can leverage the XDef meta-model to automatically parse the DSL, and executable code segments can directly reuse the Xpl template language.
 
-A friend once explained it like this:
+## 6. How does XLang define Delta at the language level? (not a formula)
+XLang defines XDSL via the XDef meta-model; every syntactic element in an XDSL has a unique, stable domain coordinate. Business is expressed in XDSL, effectively projecting business into the coordinate system defined by XDSL. A Delta can be defined at any point in this coordinate system. Furthermore, Deltas that arise at many coordinates can be factored out and recognized and managed conceptually as one large Delta—an integrated change pattern that becomes an independent cognitive entity.
 
-"I finally get how XLang handles differences! It's like a set of rules that define what changes when something is updated. XLang uses these rules to merge changes efficiently, whether they're in XML, YAML, or any other format. The difference is applied using the defined templates, making it easy to manage and extend."
+XLang can be viewed as a meta-language. It does not directly express Deltas; it first defines a DSL, and then defines language-level Deltas within that DSL. At a more abstract level, all sub-languages in XLang are defined via the XDef meta-model language, and XDef itself is defined via XDef as well. Consequently, all its sub-languages automatically inherit the concept of language-level Deltas.
 
-XLang defines how DSLs are built and how differences between versions are handled. Once a DSL is defined, the actual implementation can be extended without changing the meta-model, allowing for flexible and scalable solutions.
+Many find this difficult to grasp because they do not realize the meta-level nature here. It is not directly about “A solves problem X,” but rather solving it at a higher meta-level through a logical ladder, then projecting it down to the next level where it manifests concretely.
 
-
-XLang leverages the power of meta modeling by defining a domain-specific language (DSL) through its `xdef` meta model. This DSL, referred to as XDSL, maps business operations into a structured coordinate system defined by XDSL. Each point within this system can define a delta difference.
-
-In this system, large quantities of coordinates can be processed to derive Delta differences. These deltas are identified and managed conceptually, representing an integrated change pattern as a distinct cognitive entity.
-
-
-
-XLang serves as a meta language that operates indirectly through the definition of a DSL. Instead of directly expressing deltas, it first defines a specific DSL and then models language-level deltas within this DSL. From an abstract perspective, every sub-language within XLang is defined by the `xdef` meta model itself.
-
-This recursive definition means that even the `xdef` meta model is defined by itself. Consequently, all aspects of language-level delta modeling are inherently encapsulated within this self-referential system.
-
-
-
-Many find it difficult to grasp the meta properties because they fail to recognize the inherent nature of these meta constructs. It’s not about directly solving problems with A (a specific tool or framework) but navigating through a logical hierarchy on a higher meta level. Solutions are projected down into lower levels where specific implementations take shape.
-
-The essence lies in understanding that complex systems are built upon layers of abstraction, each defined by its own meta model. Only by mastering these meta properties can one effectively design and implement the underlying structures that support such systems.
-
+<!-- SOURCE_MD5:afd8453aca84e37269b7d33af71ff0a6-->

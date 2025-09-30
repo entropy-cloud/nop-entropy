@@ -1,9 +1,9 @@
 # Unified SQL Management
 
-When constructing complex SQL or EQL statements, managing them through an external model file is undoubtedly of significant value. MyBatis provides a mechanism to modelize SQL statements, but many still prefer dynamically concatenating SQL using QueryDsl within Java code. This essentially highlights
-**MyBatis's limited functionality**, failing to fully leverage the potential of modelization.
+When we need to construct fairly complex SQL or EQL statements, managing them through an external model file is undoubtedly of great value. MyBatis provides a mechanism to model SQL statements, yet many developers still prefer dynamically concatenating SQL in Java code using solutions like QueryDsl. This essentially indicates that
+**MyBatis’s implementation is rather thin and fails to fully leverage the advantages of modeling**.
 
-In NopOrm, we use the sql-lib model to uniformly manage all complex SQL/EQL/DQL statements. By leveraging existing infrastructure in the Nop platform, implementing a similar mechanism to MyBatis for managing SQL statements can be achieved with approximately 500 lines of code. For specific implementation details, refer to
+In NopOrm, we use the sql-lib model to centrally manage all complex SQL/EQL/DQL statements. Leveraging the existing infrastructure of the Nop platform, implementing a MyBatis-like SQL statement management mechanism takes roughly 500 lines of code. See the implementation:
 
 [SqlLibManager](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlLibManager.java)
 
@@ -11,19 +11,20 @@ In NopOrm, we use the sql-lib model to uniformly manage all complex SQL/EQL/DQL 
 
 [SqlLibInvoker](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/sql_lib/proxy/SqlLibInvoker.java)
 
-For testing purposes, refer to the sql-lib file:
+See the test sql-lib file:
 
 [test.sql-lib.xml](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/test/resources/_vfs/nop/test/sql/test.sql-lib.xml)
 
-Video: [How to Implement MyBatis-like Functionality with 500 Lines of Code](https://www.bilibili.com/video/BV1xX4y1e7Tv/)
+Video: [How to implement MyBatis-like functionality with 500 lines of code](https://www.bilibili.com/video/BV1xX4y1e7Tv/)
 
-**sql-lib Features**
+sql-lib provides the following features
 
-## 1. Unified Management of SQL/EQL/DQL
+## 1  Unified management of SQL/EQL/DQL
 
-In the sql-lib file, there are three nodes corresponding to SQL statements, EQL statements, and the query model discussed in the previous section. These can be managed uniformly.
+The sql-lib file contains three kinds of nodes: sql/eql/query correspond to SQL statements, EQL statements, and the Runqian DQL query model introduced in the previous section. They can be managed in a unified manner.
 
 ```xml
+
 <sql-lib>
     <sqls>
         <sql name="xxx">...</sql>
@@ -33,53 +34,53 @@ In the sql-lib file, there are three nodes corresponding to SQL statements, EQL 
 </sql-lib>
 ```
 
-The first benefit of modelization is the built-in Delta customization mechanism in the Nop platform. Suppose you have developed a Base product and need to optimize SQL queries for specific customer data during deployment. You
-**do not need to modify any Base product code**, only add a delta model file in sql-lib. This allows for customizing any SQL statement.
+The first benefit of modeling is the Nop platform’s built-in Delta customization mechanism. Suppose we have already developed a Base product, and during deployment at a customer site we need to optimize SQL based on the customer’s data profile; then we
+**do not need to modify any Base product code**. We only need to add a Delta-based sql-lib model file to customize any SQL statement. For example:
 
 ```xml
+
 <sql-lib x:extends="raw:/original.sql-lib.xml">
     <sqls>
-        <!-- Same-named SQL statements will override definitions in the base file -->
+        <!-- SQL statements with the same name will override definitions in the base file -->
         <eql name="yyy">...</eql>
     </sqls>
 </sql-lib>
 ```
 
-Another common use of Delta customization is combined with meta-programming. Suppose your system is a well-structured domain model with many similar SQL statements. You can use meta-programming to generate these SQL statements at compile time and then refine them using Delta customization.
+Another common usage of Delta customization is in combination with a metaprogramming mechanism. If our system has a very regular domain model with a large number of similar SQL statements, we can use metaprogramming to automatically generate these SQL statements at compile time, and then refine them via Delta customization. For example:
 
 ```xml
+
 <sql-lib>
     <x:gen-extends>
         <app:GenDefaultSql />
     </x:gen-extends>
 
     <sqls>
-        <!-- Customization of automatically generated SQL -->
-        <eql name="yyy">...</eql>
+        <!-- You can customize the auto-generated SQL here -->
+        <eql name="yyy">...
+        </eql>
     </sqls>
 </sql-lib>
 ```
 
-## 2. XPL Template's Component Abstractability
+## 2. Component abstraction capability of XPL templates
 
-MyBatis only provides a limited set of tags like foreach, if, include, etc. Writing highly complex dynamic SQL statements can be described as half-hearted. Many find it cumbersome to work with XML for constructing SQL, essentially because MyBatis offers an incomplete solution.
+MyBatis only provides a few fixed tags such as foreach/if/include. It is quite inadequate when it comes to writing highly complex dynamic SQL statements. Many developers find stitching SQL in XML troublesome; fundamentally this is because MyBatis offers an incomplete solution—it
+**lacks a mechanism for secondary abstraction**. In Java programs we can always use function encapsulation to reuse certain SQL concatenation logic, whereas MyBatis offers only a handful of built-ins and basically no support for reuse.
 
-# Lack of Double Abstraction Mechanism
+NopOrm adopts the XPL template language from XLang as its underlying generation engine, thereby inheriting XPL’s tag abstraction capabilities.
 
-In Java programs, we can encapsulate SQL concatenation logic by wrapping it in functions. However, MyBatis only provides a one-size-fits-all approach with its built-in macros, offering very limited support for reusable logic.
-
-NopOrm leverages XLang's XPL template language as its underlying rendering engine, inheriting the abstraction capabilities of XPL templates.
-
-# XLang Language
-
-XLang is designed specifically for reversible computation theories. It consists of multiple components such as XDefinition/XScript/Xpl/XTransform and is focused on generating, transforming, and merging abstract syntax trees (ASTs), making it akin to a Tree-based language.
+> XLang is a programming language born for Reversible Computation theory. It comprises XDefinition/XScript/Xpl/XTransform, and its core design focuses on generation, transformation, and Delta merging of abstract syntax trees (AST). You can think of it as a programming language designed for tree grammars.
 
 ```xml
+
 <sql name="xxx">
     <source>
         select
         <my:MyFields/>
-        <my:WhenAdmin>,
+        <my:WhenAdmin>
+            ,
             <my:AdmninFields/>
         </my:WhenAdmin>
         from MyEntity o
@@ -89,28 +90,27 @@ XLang is designed specifically for reversible computation theories. It consists 
 </sql>
 ```
 
-Xpl templates not only include essential syntax elements like `<c:for>` and `<c:if>`, but also allow custom tag abstraction through a user-defined tag mechanism, similar to Vue components.
+The Xpl template language not only includes `<c:for>`, `<c:if>` and other syntax elements required by a Turing-complete language, but also allows introducing new tag abstractions through a customizable tag mechanism (similar to front-end Vue component encapsulation).
 
-# Macro Tags in Templates
-
-Some template systems require all functions usable within the template to be pre-registered. However, Xpl templates allow direct Java calls without prior registration.
+Some template languages require pre-registering all functions used in templates, whereas Xpl can directly call Java.
 
 ```xml
+
 <sql>
     <source>
         <c:script>
             import test.MyService;
 
             let service = new MyService();
-            let bean = inject("MyBean"); // Directly retrieve beans from the IOC container
+            let bean = inject("MyBean"); // Directly obtain a bean registered in the IoC container
         </c:script>
     </source>
 </sql>
 ```
 
-# Macro Tag's Meta-Programming Ability
+## 3. Metaprogramming capabilities of Macro tags
 
-MyBatis concatenates dynamic SQL in a very inefficient manner. Some MyBatis-like frameworks provide special syntax at the SQL template level for simplified logic, such as conditional statements.
+MyBatis’s way of concatenating dynamic SQL is clumsy, so some MyBatis-like frameworks offer specially designed simplified syntax at the SQL template level. For example, some frameworks introduce implicit conditional mechanisms:
 
 ```sql
 select xxx
@@ -119,11 +119,12 @@ where id = :id
 [and name=:name]
 ```
 
-By automatically analyzing variable definitions within parentheses, NopOrm adds an implicit condition check only when the `name` attribute is not empty.
+By automatically analyzing variables inside the brackets, an implicit condition is added. Only when the value of name is not empty will the corresponding SQL fragment be output.
 
-In NopOrm, we can achieve similar **local syntax transformation** using macro tags:
+In NopOrm, we can implement similar **local syntactic structure transformations** using macro tags:
 
 ```xml
+
 <sql>
     <source>
         select o from MyEntity o
@@ -133,124 +134,99 @@ In NopOrm, we can achieve similar **local syntax transformation** using macro ta
 </sql>
 ```
 
-`<sql:filter>` is a macro tag that executes at compile time, effectively transforming the code structure. It is equivalent to writing:
+`<sql:filter>` is a macro tag executed at compile time, essentially transforming the source structure. It is equivalent to the following handwritten code:
 
 ```xml
+
 <c:if test="${!_.isEmpty(myVar)}">
     and o.classId = ${myVar}
 </c:if>
 ```
 
-For specific implementations of this macro tag, refer to:
+See the implementation of specific tags:
 
 [sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib)
 
-In essence, this concept is equivalent to macros in Lisp, especially since it allows for replacement of any AST node with a macro. However, unlike Lisp's minimalistic symbol-based syntax, XLang uses XML-like structures, making it more user-friendly.
+This concept is essentially equivalent to macros in Lisp, especially in that it can be used in any part of program code (i.e., any AST node can be replaced by a macro node). It just adopts an XML representation, which is more human-friendly compared to Lisp’s terse mathematical-symbol style.
 
-# Macro Tags in C#
-
-For C#, Microsoft's LINQ provides a query syntax that compiles at runtime into method calls. While this is efficient, it lacks the flexibility of true macro support. In contrast, Xpl templates provide both built-in macros and custom tag abstraction for dynamic SQL handling.
-
-The final translated content ends here:
+Microsoft C# language’s LINQ (Language Integrated Query) achieves its syntax by obtaining the expression’s AST at compile time and then delegating structural transformation to application code—essentially a compile-time macro transformation technique. In XLang, apart from macro tags provided by Xpl templates, you can use XScript macro functions to transform between SQL syntax and object syntax. For example:
 
 ```xml
-<!-- c:script -->
-<c:script>
-<![CDATA[
-    function f(x, y) {
-        return x + y;
+
+<c:script><![CDATA[
+    function f(x,y){
+    return x + y;
     }
-    let obj = ...;
-    let { a, b } = linq `
+    let obj = ...
+    let {a,b} = linq `
     select sum(x + y) as a , sum(x * y) as b
     from obj
-    where f(x, y) > 2 and sin(x) > cos(y)
-`]];
-</c:script>
+    where f(x,y) > 2 and sin(x) > cos(y)
+    `
+]]></c:script>
 ```
 
-XScript template expressions will automatically identify macro functions and execute them at compile time. Therefore, we can define a macro function `linq` that parses the template string into an SQL syntax tree at compile time and then transforms it into standard JavaScript
-AST. This effectively embeds embedded SQL-like DSL similar to LINQ into the object-oriented XScript syntax (similar to TypeScript), enabling capabilities similar to LINQ but with a much simpler implementation and structure.
+XScript’s template expressions automatically recognize macro functions and execute them at compile time. Thus we can define a macro function linq, which parses the template string into an SQL AST at compile time, then transforms it into a regular JavaScript AST, effectively embedding a SQL-like DSL into the object-oriented XScript syntax (similar to TypeScript). This accomplishes LINQ-like functionality with a much simpler implementation, and in a form closer to SQL’s original style.
 
-> The above is just an example of a concept. Currently, the Nop platform only provides macro functions like xpath/jpath/xpl and does not provide built-in `linq` macro functions.
+> The above is only a conceptual example. Currently the Nop platform only provides macro functions such as xpath/jpath/xpl, and does not include a built-in linq macro function.
 
-## 4. SQL Output Pattern
+## 4. SQL output mode of the template language
 
-In comparison to regular programming languages, template language's design bias is to treat output (Output) as the first class concept. When no special modifications are applied, it handles standard output. If we want to execute other logic, we must isolate these using expressions, labels, etc. Xpl template language enhances this concept by strengthening output patterns and enabling multipattern outputs.
+Compared to general-purpose programming languages, a template language is biased to treat output (a side effect) as a first-class concept. When nothing is specially marked, it represents output; if other logic needs to be described, expressions/tags explicitly isolate it. As a generic template language, Xpl strengthens the notion of output and introduces a multi-mode output design.
 
-Xpl template language supports various output modes (Output Mode):
+Xpl supports multiple Output Modes:
 
-- **text**: Standard text output without additional escaping.
-- **xml**: XML formatted text output with automatic XML escaping.
-- **node**: Structural node output that retains source location.
-- **sql**: Support for SQL object output to prevent SQL injection attacks.
+* text: plain text output, no extra escaping
+* xml: XML format output, automatically escaped per XML rules
+* node: structured AST output, with source locations preserved
+* sql: supports SQL object output, preventing SQL injection attacks
 
-The sql mode provides special handling for SQL outputs, adding the following rules:
+The sql mode adds special handling for SQL output, mainly the following rules:
 
-1. For output objects, replace them with '?' and collect the object into a parameter collection. For example, `id = ${id}` will generate id=?, collecting the value into parameters.
-2. For output collections, expand them into multiple parameters. For example, `id in (${ids})` will generate IN (?,?), expanding the collected parameter values.
+1. If an object is output, it is replaced with ?, and the object is collected into a parameter set. For example, `id = ${id}` actually generates `id=?` in SQL text and uses a List to store parameter values.
+2. If a collection object is output, it automatically expands into multiple parameters. For example, `id in (${ids})` generates `id in (?,?,?)`.
 
-If we truly want to directly output SQL text and concatenate it into the SQL statement, we can use the raw function to wrap it.
+If you do want to output SQL text directly and concatenate it into SQL, you can wrap it with the raw function.
 
 ```sql
 from MyEntity_${raw(postfix)} o
 ```
 
-Additionally, NopOrm has established a simple wrapping model for parameterized SQL objects:
+In addition, NopOrm provides a simple wrapper model for parameterized SQL objects themselves:
 
 ```java
 SQL = Text + Params
 ```
 
-Using `sql = SQL.begin().sql("o.id = ? ", name).end()` enables constructing parameterized SQL statements. The xpl template's sql output mode will automatically identify SQL objects and handle text and collection parameters separately.
+Using sql = SQL.begin().sql("o.id = ? ", name).end() constructs a parameterized SQL object. Xpl’s sql output mode automatically recognizes SQL objects and handles the text and parameter collections separately.
 
-## 5. Automatic Validation
+## 5. Automatic validation
 
-The external file managing the SQL template has a drawback: it cannot rely on the type system for validation; instead, it depends on runtime testing to check SQL correctness. If the data model changes, it may be challenging to immediately identify affected SQL statements.
- 
-However, there are straightforward solutions. Since SQL statements are managed as structured models, we have powerful tools to manipulate them. NopOrm includes a mechanism similar to Contract Based Programming: each EQL statement model supports a `validate-input` configuration. We can prepare test data in advance. When the ORM engine loads `sql-lib`, it automatically executes `validate-input` to generate test data and runs the SQL template, allowing the EQL parser to validate its legality, achieving static verification of ORM models and EQL statements.
+Managing SQL templates in external files has a drawback: it cannot rely on the type system for validation and must rely on runtime testing to check SQL correctness. If the data model changes, it may not be immediately obvious which SQL statements are affected. There are, however, some fairly simple solutions. Since SQL statements are already managed as structured models, the ways we can operate on them become abundantly rich.
+NopOrm has a mechanism similar to Contract Based Programming: each EQL statement model supports a validate-input configuration where we can prepare test data. When the ORM engine loads a sql-lib, it automatically runs validate-input to obtain test data, then executes the SQL template based on the test data to produce an EQL statement. The EQL parser then analyzes its validity, thereby implementing a quasi-static analysis to check consistency between the ORM model and EQL statements.
 
-## 6. Debugging Support
+## 6. Debugging support
 
-Unlike MyBatis's built-in lightweight template language, NopOrm uses Xpl templates to generate SQL statements, making it natural to utilize XLang debugging tools. The Nop platform provides an IDEA plugin supporting DSL syntax suggestions and breakpoint debugging. It reads `sql-lib.xdef` based on the model root node:
+Unlike MyBatis’s built-in, homemade, lightweight template language, NopOrm uses the Xpl template language to generate SQL statements, so it naturally leverages the XLang debugger. The Nop platform provides an IntelliJ IDEA plugin with DSL syntax hints and breakpoint debugging. It automatically reads the sql-lib.xdef meta-model definition file, validates sql-lib files using the meta-model, provides syntax hints, supports adding breakpoints in the source block, and single-stepping, etc.
+
+All DSLs on the Nop platform are built on the principles of Reversible Computation and use the unified meta-model definition language XDefinition for descriptions, so there is no need to develop separate IDE plugins and debuggers for each DSL. To add IDE support for a custom sql-lib model, the only requirement is to add the attribute x:
+schema="/nop/schema/orm/sql-lib.xdef" on the model root node to reference the xdef meta-model.
+
+XLang also has some built-in debugging features that help diagnose issues during metaprogramming:
+
+1. AST nodes generated under outputMode=node automatically retain source file line numbers, so when compiled code reports errors, we can directly map them back to source locations.
+2. Xpl template language nodes can add the xpl:dump attribute to print the AST produced by dynamic compilation of the current node.
+3. Any expression can append the extension function `$`, which automatically prints the text, line number, and the result of the expression, and returns the expression’s result. For example:
 
 ```java
-// In IDEA:
-from MyEntity_${raw(postfix)} o
+x = a.f().$(prefix)
+// Corresponds to
+x = DebugHelper.v(location,prefix, "a.f()",a.f())
 ```
 
-NopOrm's DSLs are built on reversible computation principles, enabling unified modeling with XDefinition. Therefore, we don't need separate IDE plugins or debuggers for each DSL. To support SQL-LIB models in IDEA:
+## 7. Generate SQL statements based on Dialect
 
-1. Add this to your model root:
-   ```xml
-   <x:property name="schema">/nop/schema/orm/sql-lib.xdef</x:property>
-   ```
-2. Import the XDefinition-based model for debugging.
-
-This setup ensures that NopOrm's ORM and EQL models can be effectively debugged using standard tools, achieving consistent and efficient development practices.
-
-The XLang language incorporates built-in debugging features to facilitate issue diagnosis during the meta-programming phase.
-
-1. **outputMode=node**  
-   In output mode set to "node", generated AST nodes automatically retain the line numbers from the source file. This allows for precise error mapping back to the original code when compilation errors occur.
-
-2. **Xpl Template Language Extension**  
-   Xpl template nodes can be extended with the `xpl:dump` attribute, which prints out the AST structure dynamically generated after debug compilation.
-
-3. **Expression Extensions**  
-   Any expression can be extended by calling the `$` method, which automatically logs the corresponding text, line number, and execution result of the expression. For example:
-
-   ```java
-   x = a.f().$(prefix)
-   ```
-   This corresponds to:
-   ```java
-   x = DebugHelper.v(location, prefix, "a.f()", a.f());
-   ```
-
-
-## Generating SQL Statements Based on Dialect
-Using tags allows for the introduction of various custom extension logic. For example, generating different SQL statements based on database dialects.
+Tag libraries can introduce various custom extension logic—for example, generating different SQL statements according to the database dialect.
 
 ```xml
 select
@@ -260,11 +236,12 @@ select
 from my_entity
 ```
 
+## 8. Mapper interfaces
 
-## Mapper Interface Generation
-Adding `mapper` tags within an Excel data model generates corresponding MyBatis-like strongly-typed Mapper interfaces. These interfaces can then be used to call SQL models managed by SqlLibManager. For example, the interface for [LitemallGoodsMapper.java](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-dao/src/main/java/app/mall/dao/mapper/LitemallGoodsMapper.java) is defined as follows:
+As long as you add a mapper tag for an entity in the Excel data model, code generation will automatically produce type-safe Mapper interfaces similar to MyBatis. Through them you can invoke SQL model files managed by SqlLibManager. For example [LitemallGoodsMapper.java](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-dao/src/main/java/app/mall/dao/mapper/LitemallGoodsMapper.java).
 
 ```java
+
 @SqlLibMapper("/app/mall/sql/LitemallGoods.sql-lib.xml")
 public interface LitemallGoodsMapper {
 
@@ -272,45 +249,124 @@ public interface LitemallGoodsMapper {
 }
 ```
 
+Use the SqlLibMapper annotation to specify the SQL model file associated with the current interface.
 
-## Loading Entities with Native SQL
-Normally, we use the `<eql>` node to load entity data. However, if `rowType` is set to an entity type, we can also use the `<sql>` node for loading.
+## 9. Load entity objects using native SQL
+In most cases we use the `<eql>` node to load entity data. However, if rowType is set to an entity type, the `<sql>` node can also be used to load entity data.
 
 ```xml
-<sql name="testOrmEntityRowMapper" rowType="io.nop.app.SimsClass" sqlMethod="findFirst"
-     colNameCamelCase="true">
-    <source>
-        select o.class_id, o.class_name, o.college_id
-        from sims_class o
-    </source>
+  <sql name="testOrmEntityRowMapper" rowType="io.nop.app.SimsClass" sqlMethod="findFirst"
+       colNameCamelCase="true" >
+      <source>
+          select o.class_id, o.class_name, o.college_id
+          from sims_class o
+      </source>
+  </sql>
+```
+
+* When colNameCamelCase is set, return column names like `class_id` are automatically converted to entity property names like `classId`.
+* If the SQL result does not include the primary key field, a new entity object will be created; otherwise the entity will be loaded by id from the current OrmSession and its properties updated.
+* If, before executing SQL, the corresponding entity data has already been loaded into memory and modified, executing SQL will throw `nop.err.orm.entity-prop-is-dirty`. If it has not been modified, the entity properties will be updated.
+* You can change this behavior via ormEntityRefreshBehavior. errorWhenDirty is the default behavior. useFirst retains the first loaded entity data and ignores the current SQL query’s data. useLast takes the data from the most recent query.
+
+## 10. Pass in a Map or JavaBean
+For cases with many parameters, you can aggregate them into a Map parameter or a JavaBean object.
+
+```java
+interface MyMapper{
+  List<MyEntity> findByXX(@Name("query")MyQuery query);
+}
+```
+In sql-lib you can access them using expressions or composite properties.
+
+```xml
+<eql name="findByXX" >
+  <source>
+    select o from MyEntity o
+    where o.fldA = ${query.fldA}
+    <sql:filter> and o.fldB = :query.fldB </sql:filter>
+  </source>
+</eql>
+```
+
+## 11. Field Mapping
+
+```xml
+<sql name="findByXX" colNameCamelCase="true">
+  <fields>
+    <field name="my_date" as="myDate2" stdSqlType="DATE" />
+  </fields>
 </sql>
 ```
 
-* **colNameCamelCase="true"** will automatically convert return field names like `class_id` into properties like `classId`.
-* If the SQL query returns a primary key and the corresponding entity is not already loaded, a new entity will be created. Otherwise, it will load the existing entity from the OrmSession.
-* If the SQL query resultset contains modified entities, an exception `nop.err.orm.entity-prop-is-dirty` will be thrown if the entity data has changed since the last update. If no changes are detected, the entity's properties will be updated with the query results.
-* The behavior can be customized using `ormEntityRefreshBehavior`. The default behavior is `errorWhenDirty`, which skips updating entities unless an error occurs. The `useFirst` option retains the first loaded instance, while `useLast` uses the last query result.
+1. **`stdSqlType` attribute**
+  - Specifies the SQL type used when reading data from `IDataSet` (e.g., `DATE`/`TIMESTAMP`/`BLOB`)
+  - The system calls the corresponding method based on the type (e.g., `getDate()` instead of `getObject()`)
+  - Defaults to `getObject()` if not specified
+
+2. **`as` attribute**
+  - Renames the field (e.g., `my_date → myDate2`)
+  - Supports nested properties (e.g., `a.b.c` produces `{a: {b: {c: value}}}`)
+  - If not specified:
+    - If `colNameCamelCase=true`, automatically converts to camelCase (e.g., `user_name → userName`)
+    - Otherwise keeps the original column name
+
+3. **`colNameCamelCase` attribute**
+  - Global switch (located on the `<sql>` node)
+  - Enables camelCase conversion for all fields without an explicit `as`
+  - Priority: explicit `as` > camelCase conversion > original column name
+
+---
+
+## 12. Row Type (rowType)
+
+```xml
+<sql name="findByXX" rowType="xxx.MyEntity" colNameCamelCase="true">
+  ...
+</sql>
+```
+
+1. **Entity type**
+  - When `rowType` is an ORM entity class (e.g., `xxx.MyEntity`):
+    - If the query result includes the entity’s **primary key field**, the entity object is automatically constructed
+    - The entity is bound to the current `OrmSession` (supports lazy loading/dirty checking and other ORM features)
+
+2. **Non-entity type**
+  - When `rowType` is a regular DTO or Map:
+    - The query result is directly converted to the specified type
+    - Supports basic types (e.g., `rowType="java.lang.Integer"`)
+    - Supports nested objects (must match field mapping rules)
+
+3. **`colNameCamelCase` working in concert**
+  - CamelCase conversion also applies to `rowType` mapping
+  - Ensure the converted field names match target class property names
+
+#### Notes:
+- If the entity primary key does not appear in the query result, it falls back to a plain object (without ORM features)
+- Nested property paths (e.g., `a.b.c`) require the target class to have the corresponding structure
 
 
 ## Comparison with MyBatis
 
+| MyBatis         |Nop Platform|
+|-----------------|---|
+| Dynamic SQL via XML configuration    | Configuration fixes via unified Delta customization|
+| Encapsulate SQL execution via Mapper interfaces | Nop Platform uses the unified @Name annotation to define parameter names and passes context via IEvalContext|
+| Generate dynamic SQL via a few fixed tag functions | Introduce custom tags via the Xpl tag library|
+| Generate SQL parameters via expressions    | Expressions use a general-purpose expression engine; Xpl’s SQL output mode converts expression outputs into SQL parameters|
+| Supports transactions, result data caching, etc.    | Using the Dao layer’s JdbcTemplate, transactions and result caching are supported automatically|
+| Manage SQL statements         | Manage EQL, SQL, DQL, and other query languages together|
 
-| **MyBatis**       | **Nop Platform** |
-|------------------|-----------------|
-| XML Configuration for Dynamic SQL | Unified Delta Customization for Configuration Adjustment |
-| Mapper Interfaces for SQL Execution | Nop Platform uses unified `@Name` annotation to define parameter names, transmitted via `IEvalContext` |
-| Fixed Tag Functions for Dynamic SQL Generation | Nop Platform utilizes Xpl tags for custom tag definitions |
-| Expression-based Parameter Setting | General expression engine used for parameter generation, leveraging Xpl template language for SQL output format |
-| Transaction Support and Result Caching | JdbcTemplate in DAO layer supports transactions and result caching |
-| Management of SQL Statements | Simultaneous management of EQL, SQL, DQL, etc., query languages |
+With the Nop platform’s built-in mechanisms, you also automatically get the following:
 
-Nop Platform also provides built-in mechanisms for additional functionalities:
+1. Multiple data sources, multi-tenancy, and database/table sharding
 
-1. **Multiple Data Sources, Tenants, and Sharding**  
-2. **Direct exposure of SQL statements in a dictionary table**, with the dictionary name format `sql/{sqlName}`  
-3. **Batch loading support in EQL queries**, enabling association attribute specification after query execution  
+2. Expose SQL statements directly as dictionary tables accessible from the frontend; the dictionary table name is sql/{sqlName}
+
+3. When using the EQL query language, support batch property loading. After obtaining result data, you can directly specify associated properties to load.
 
 ```xml
+
 <eql name="findActiveTasks">
     <batchLoadSelection>
         relatedEntity{ myProp }, myParent{ children }
@@ -322,14 +378,14 @@ Nop Platform also provides built-in mechanisms for additional functionalities:
 </eql>
 ```
 
+## Extension configuration
 
-## Extended Configuration
+### Set enableFilter to true to enable data permission filtering
 
-
-### EnableFilter Property Set to True
-Enables data permission filtering via the built-in mechanisms of Nop Platform. The `OrmSessionFactory` supports `IEntityFilterProvider`, which is provided by the `nop-auth-service` module.
+OrmSessionFactory supports configuration of IEntityFilterProvider; the default implementation provided by the nop-auth-service module corresponds to data permission filtering.
 
 ```xml
+
 <eql name="xxx" enableFilter="true">
     <source>
         select u.xx from MyEntity u, OtherEntity t where u.fldA = t.fldA
@@ -337,33 +393,32 @@ Enables data permission filtering via the built-in mechanisms of Nop Platform. T
 </eql>
 ```
 
-Additionally, the `enableFilter` property can be set directly when constructing the SQL object:
+You can also specify enableFilter directly when constructing an SQL object.
 
 ```java
 SQL sql = SQL.begin().enableFilter(true).sql("...").end();
 ```
 
-When `enableFilter` is enabled, it automatically utilizes `IServiceContext(bindingCtx())` to retrieve the current context and invoke `IDataAuthChecker.getFilter()` to obtain data permission filtering conditions, which are then appended to the original SQL statement.
+After enabling enableFilter, `IServiceContext.bindingCtx()` is automatically used to obtain the IServiceContext from the current context, and `IDataAuthChecker.getFilter()`
+is called to obtain the data permission filter condition. It is converted to SQL and concatenated to the original SQL statement.
 
-> If direct SQL statement composition is allowed, `enableFilter` can be used to automatically append data permission filtering conditions, preventing unauthorized data access.
+> If users are allowed to write SQL directly, you can leverage enableFilter to automatically append data permission filters and avoid data leaks.
 
-
-### AllowUnderscoreName Property Set to True
-Permits direct use of database column names in EQL queries by enabling underscored attribute access.
+### Set allowUnderscoreName to true to allow direct use of database column names in EQL
 
 ```xml
 <eql name="xx" allowUnderscoreName="true">
-    <source>
-        select o.statusId, o.status_id from MyEntity o
-    </source>
+  <source>
+     select o.statusId, o.status_id from MyEntity o
+  </source>
 </eql>
 ```
 
-Attributes like `statusId` or `status_id` can both be accessed via the entity object.
+Either statusId or status_id can access the entity’s property.
 
-The `allowUnderscoreName` property can also be set directly when constructing the SQL object:
+You can also specify allowUnderscoreName directly when constructing an SQL object.
 
 ```java
-SQL sql = SQL.begin().allowUnderscoreName(true).sql("....").end();
+SQL.begin().allowUnderscoreName(true).sql("....").end();
 ```
-
+<!-- SOURCE_MD5:5e5c48e9ea45683d1b339b323775472c-->

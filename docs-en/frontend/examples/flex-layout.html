@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEMO</title>
+<style>
+    body,html{
+      width:100%;
+      height:100%;
+      margin:0;
+      padding:0;
+    }
+    
+  .container {
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* 假设外层容器的高度为视口高度 */
+  }
+
+  .container-header {
+    height: 100px; /* 头部固定高度 */
+    background-color: #ddd;
+  }
+
+  .container-body {
+    flex: 1;
+    overflow: auto; /* 如果内容超出，则出现滚动条。不设置这个属性body会自动延展 */
+    display:flex;
+  }
+
+  .container2 {
+    display: flex;
+    flex-direction: column;
+    flex:1;
+  }
+
+  .container2-header {
+    height: 100px; /* container2的头部固定高度 */
+    background-color: #ccc;
+  }
+
+  .container2-body {
+    flex: 1;
+    overflow:auto;
+    position:relative;
+  }
+  
+  .content {
+    padding-top: 30px; /* 防止内容和按钮栏重叠 */
+  }
+  
+
+  .wrapper {
+    position:relative;
+    overflow: auto;
+    height:100%;
+  }
+
+  .button-bar {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    z-index: 1; /* 确保按钮栏在内容之上 */
+    border: 1px solid black;
+  }
+
+  .data{
+    height: 300px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="container-header">Container Header</div>
+  <div class="container-body">
+    <div class="container2">
+      <div class="container2-header">Container2 Header</div>
+      <div class="container2-body">
+        <div class="wrapper">
+          <div class="content">
+            <!-- 这里放入实际的内容 -->
+            <p>Data</p>
+            <div class="data">Data1</div>
+            <div class="data">Data2</div>
+          </div>
+        </div>
+                  <div class="button-bar">Button Bar</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

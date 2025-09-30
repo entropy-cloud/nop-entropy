@@ -1,8 +1,9 @@
 # ORM Extension Mechanism
 
-## Adding Extended Logic When Saving Entities
+## Add Extension Logic When Saving Entities
 
-NopORM automatically sets the 【Creator】field when saving entities. If you wish to add similar extensions, you can implement the IOrmInterceptor interface. NopORM will automatically search for this interface in the IoC container during initialization.
+NopORM automatically sets fields such as [Creator] when saving an entity. If you want to add a similar extension to execute some callback logic when saving an entity, you can implement the IOrmInterceptor interface.
+During initialization, the NopORM engine will automatically look up implementations of the IOrmInterceptor interface registered in the IoC container.
 
 ```java
 interface IOrmInterceptor extends IOrdered {
@@ -48,9 +49,10 @@ interface IOrmInterceptor extends IOrdered {
 }
 ```
 
-You can also define a file in each module at the path `{moduleId}/orm/app.orm-interceptor.xml` to define your `IOrmInterceptor`.
+In each module, you can also define a `/{moduleId}/orm/app.orm-interceptor.xml` file, in which you define an IOrmInterceptor using the xpl template language.
 
 ```xml
+
 <interceptor x:schema="/nop/schema/orm/orm-interceptor.xdef" xmlns:x="/nop/schema/xdsl.xdef">
   <entity name="io.nop.auth.dao.entity.NopAuthUser">
     <pre-save id="syncFullName">
@@ -62,10 +64,12 @@ You can also define a file in each module at the path `{moduleId}/orm/app.orm-in
 </interceptor>
 ```
 
-The `OrmEntity` also defines the `IOrmEntityLifecycle` interface, which can be directly implemented on entities to handle callbacks like `orm_preSave`.
+The OrmEntity class also defines the IOrmEntityLifecycle interface, allowing you to implement callbacks such as orm_preSave directly on the entity.
 
-## Field Encryption
+## Field Encryption/Decryption
 
-If a column's `tagSet` contains encryption tags, the field will be automatically encrypted when stored in the database and automatically decrypted when read into Java properties. The default encryption method is `AESTextCipher`.
+If a column's tagSet contains the enc tag, the field will be automatically encrypted when stored in the database and automatically decrypted when read into the Java property. By default, AESTextCipher is used for encryption/decryption.
 
-If you want to add additional processing at the field level, you can implement the `IOrmColumnBinder` interface to override `nopOrmColumnBinderEnhancer`. The default implementation is `DefaultOrmColumnBinderEnhancer`.
+To extend additional field-level processing logic, implement the IOrmColumnBinder interface and override the nopOrmColumnBinderEnhancer bean. Its default implementation is DefaultOrmColumnBinderEnhancer.
+
+<!-- SOURCE_MD5:b66f65dad980edef6649eb5ba1679b07-->

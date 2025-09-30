@@ -1,10 +1,11 @@
 # SQL Data Types
-NopORM defines `StdSqlType`, which unifies field types across all databases. In `dialect.xml`, you can map database-specific types to `StdSqlType` using the `sqlDataType` type.
+StdSqlType is defined in NopORM to unify field types across all databases. In dialect.xml, you can use the sqlDataType type to map each database’s native types to StdSqlType.
 
 ```xml
     <sqlDataType name="DOUBLE" stdSqlType="DOUBLE" alias="DOUBLE PRECISION"/>
 ```
 
-* Alias indicates another name for this data type in the database.
+* alias indicates that this data type has alternative names in the database.
 
-The `StdSqlType` is related to `StdDataType`, which determines the corresponding Java entity class type during generation. Additionally, you can specify `StdSqlType` individually for columns. This ensures that Java property types may not match database column types, such as a String in Java versus a BIGINT in the database.
+StdSqlType is associated with StdDataType. When generating Java entity classes, the corresponding type is determined by StdDataType. Additionally, you can specify StdDataType for a column independently, which allows the Java property type to differ from the database column type—for example, String in Java while BIGINT in the database.
+<!-- SOURCE_MD5:b671cd9f6fb2ed2c5bb6fc303c314925-->

@@ -1,53 +1,54 @@
-# Using the Local Deployment of DeepSeek 8B Model for Long Document Translation
 
-With the release of DeepSeek, AI models have taken their first steps towards democratization. By deploying an 8B model locally, we can achieve some useful functions.
+# Translating Long Documents with a Locally Deployed DeepSeek 8B Model
 
-This document briefly introduces the practical deepseek model for translating technical documents and some issues encountered during the translation process.
-
+    With the emergence of DeepSeek, AI large models have begun to democratize technology; deploying a model of around 8B locally can already enable useful features. This article briefly introduces a practical workflow for translating technical documents using the DeepSeek large model, along with some issues encountered during the translation process.
 
 ## Model Selection
-Using ollama on a local notebook to run AI models, we explored the following options:
-
+Using Ollama to run AI large models on a local laptop, I tried the following options:
 1. `qwen2.5:7b`
-   - This model often takes Chinese text and slightly rewrites it before outputting in Chinese without performing actual translation.
-   - It frequently adds extra markdown blocks in the output.
+This model often slightly rewrites the Chinese input and outputs it in Chinese instead of translating, and it frequently adds extra Markdown block markers in its output.
 
 2. `deepseek-r1:7b`
-   - Similar to `qwen2.5`, this model often outputs Chinese without translation.
-   - It sometimes fails to understand further corrections and may respond with irrelevant answers if the temperature is set too high (e.g., above 1).
+This model has issues similar to `qwen2.5`: it often outputs Chinese during translation instead of actually translating, and it cannot understand further corrective instructions. If you increase the temperature, say to above 1, it often responds with irrelevant math-related answers.
 
 3. `deepseek-r1:8b`
-   - Better than the previous two models, it shares similar issues but generally performs slightly better.
+Better than the previous two. Under the same conditions and higher temperature settings, `deepseek-r1:7b` starts producing nonsense, while `deepseek-r1:8b` can still remain largely normal.
 
+4. `deepseek-r1:14b`
+Sometimes throws errors and runs slowly. Some numbers seem to get rewritten.
 
-## Environment Preparation
-My notebook is a ThinkPad X1 Carbon 2024, equipped with an Intel Arc series GPU for GPU acceleration.
+5. `ollama3.1:8b`
+If you set the input to 8k, the output gets truncated. 2k also gets truncated.
 
-To enable ollama to support GPU, download the latest release from [https://github.com/francisol/ollatel/releases](https://github.com/francisol/ollatel/releases).
+6. `phi4:14b`
+Consumes 12 GB of memory. At 4k it is better than `ollam3.1:8b`, but it still cannot fully translate at 8k.
 
-The ollamel interface is straightforward, as shown in the attached image ([images/ollamel.png](images/ollamel.png)).
+## Environment Setup
+My laptop is a ThinkPad X1 Carbon 2024 with an Intel Arc-series GPU, which provides GPU acceleration.
 
-For debugging, use [ChatBox](https://chatboxai.app/zh) for a visual chat interface.
+To enable Ollama to support Intel GPUs, you can download the Ollatel installer from [https://github.com/francisol/ollatel/releases](https://github.com/francisol/ollatel/releases) and run it directly.
 
-To download the model, run `ollama pull deepseek-r1:8b` in the command line.
+Ollatel provides a simple Ollama control interface.
 
+![](images/ollatel.png)
 
-### Context Size Adjustment
-By default, ollama uses a context length of 2048. For longer prompts, this may cause truncation issues.
-- Pass `num_ctx` parameter when calling to avoid this.
-- Create a file named `deepseek-8b-8k.txt` with `num_ctx` configurations.
+For a visual chat interface during debugging, you can use [ChatBox](https://chatboxai.app/zh).
 
-```markdown
+Download the DeepSeek model via the command line with `ollama pull deepseek-r1:8b`.
+
+### Adjusting the Maximum Token Counts for Input and Output
+Ollama’s default input context length is 2048, which can cause truncation for longer prompts.
+You can pass the `num_ctx` parameter when invoking, or create a file named `deepseek-8b-8k.txt` that adds the num_ctx configuration:
+
+```
 FROM deepseek-r1:8b
 
 PARAMETER num_ctx 8192
 PARAMETER num_predict -1
 ```
 
-Execute:
-```bash
-ollama create deepseek-r1:8b-8k -f deepseek-8b-8k.txt
-```
+Then run `ollama create deepseek-r1:8b-8k -f deepseek-8b-8k.txt` to create a new model named `deepseek-r1:8b-8k`.
 
-Adjusting the context size increases runtime memory consumption.
+Increasing the context length will increase runtime memory consumption.
 
+<!-- SOURCE_MD5:4767c70ae128055f52f080ce4f8b2cb5-->

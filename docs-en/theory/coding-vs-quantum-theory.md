@@ -1,204 +1,203 @@
-```markdown
-# Programming and Quantum Mechanics: A Surplus of Analogy
+# The Ostensible Parallels between Programming and Quantum Mechanics
 
-As [Li Hui](https://www.zhihu.com/people/li-hui-53-72) has pointed out in *The Loneliness of Lagrange*, the analogy between programming and quantum mechanics currently lacks a strict scientific foundation. These conceptual connections are more like similarities than true equivalences. However, within these analogies, I have discovered some interesting and highly inspirational ideas. These ideas have led me to propose a new software construction theory—reversible computing theory, which can overcome the limitations of traditional software construction theories such as object-oriented programming and component-based programming, enabling coarse-grained, system-level reuse.
+As [@拉格朗日的忧郁](https://www.zhihu.com/people/li-hui-53-72) points out, analogies between programming and quantum mechanics currently lack a rigorous scientific foundation; the conceptual connections are, at best, superficial. Nonetheless, within these superficial parallels, I’ve found some interesting and highly inspiring ideas. They led me to propose a new theory of software construction—Reversible Computation—which can transcend the limitations of traditional software construction theories like object orientation and component theory, enabling coarse-grained, system-level reuse.
 
-**Note:** The reversible computing theory mentioned here is not aligned with the existing concept of reversible computers in physics, even though both emphasize the importance of reversibility.**
+Note that the Reversible Computation theory discussed here is not identical to the reversible computer concept already existing in physics, even though both emphasize the importance of reversibility.
 
-> Reversible computing and reversible computers share the same foundational ideas in physics, even though their specific technical content differs. Just as cloud computing aims to implement the cloudification of computation, **reversible computing aims to implement the reversibility of computation**. See [The Methodological Roots of Reversible Computing](https://zhuanlan.zhihu.com/p/64007521)
+> Reversible Computation and reversible computers share the same conceptual roots in physics. While their technical connotations differ, they converge on a common goal. Just as cloud computing seeks to “cloudify” computation, Reversible Computation and reversible computers both aim to make computation reversible. See [Methodological Origins of Reversible Computation](https://zhuanlan.zhihu.com/p/64007521)
 
-[Reversible Computing: The Next Generation Software Construction Theory](https://mp.weixin.qq.com/s/CwCQgYqQZxYmlZcfXEWlgA)
+[Reversible Computation: The Next-Generation Software Construction Theory](https://mp.weixin.qq.com/s/CwCQgYqQZxYmlZcfXEWlgA)
 
-## Section 1. Two-Phase Commit and Quantum Entanglement
+## I. Two-Phase Commit and Quantum Entanglement
 
-Ask DeepSeek:
+Question to DeepSeek:
 
-> Briefly introduce quantum entanglement and two-phase commit, then explain their similarity using the superposition state |commit⟩ + |rollback⟩.
+> First briefly introduce quantum entanglement and two-phase commit, then use superpositions like |commit> + |commit> and |rollback> + |rollback> to explain their similarity.
 
-The following is the response from DeepSeek AI:
+Below is DeepSeek AI’s answer:
 
-### **Quantum Entanglement (Quantum Entanglement)**
+### Quantum Entanglement
 
-Quantum entanglement is one of the core phenomena in quantum mechanics. When particles become entangled, their quantum states are bound together in an inseparable way:
+Quantum entanglement is a central phenomenon in quantum mechanics. When two or more particles form an entangled state, their quantum states become inseparably correlated:
 
-- **Superposition**: The system's state is a superposition of the individual particles' states (e.g., |↑↑⟩ + |↓↓⟩)
-- **Non-separability**: Measuring one particle instantaneously determines the state of the others, regardless of the distance between them
-- **Collapse of Probability**: Before measurement, the system is in a probabilistic superposition state; after measurement, it collapses into a definite state
+- Superposition: The state of an entangled system is a superposition of the constituent particles’ states (e.g., |↑↑> + |↓↓>)
+- Nonlocality: Measuring one particle instantaneously determines the state of the others (even if light-years apart)
+- Collapse: Before measurement the system is in a probabilistic superposition; after measurement, it collapses to a definite state
 
-### **Two-Phase Commit (2-Phase Commit, 2PC)**
+### Two-Phase Commit (2PC)
 
-2PC is a distributed transaction protocol that ensures atomicity through a coordinator. It works as follows:
+2PC is a distributed transaction protocol ensuring atomicity and consistency across participants via a coordinator:
 
-1. **Preparation Phase**: The coordinator asks all participants if they are ready to commit
-   - Participants lock resources and return "Ready" or "Abort"
-2. **Commit Phase**: If all participants are in the "Ready" state, the coordinator broadcasts a commit instruction; otherwise, it broadcasts a rollback
+1. Prepare phase: The coordinator asks all participants if they can commit
+   - Participants lock resources and reply “Ready” or “Abort”
+2. Commit phase: If all are ready, the coordinator broadcasts Commit; otherwise, it broadcasts Rollback
 
-### **Participant State Representation in Quantum Terms**
+### Quantum-Like Representation of Participant States
 
-Assuming each participant's transaction status can be represented as a quantum state:
+Assume each participant’s transaction state can be described by a quantum state:
 
-- **Ground State**:
-  `|commit⟩ = |0⟩`
-  `|rollback⟩ = |1⟩`
-- **Superposition State During Preparation**:
-  When participants respond "Ready," their state enters a superposition:
-  `|state⟩ = α|0⟩ + β|1⟩`
-  (where |α|² represents the commit probability and |β|² represents the rollback probability)
+- Basis states:
+  `|Commit> = |0>`
+  `|Rollback> = |1>`
+- Superposition during prepare:
+  When a participant responds “Ready,” its state enters a superposition:
+  `|State> = α|0> + β|1>`
+  (where |α|² is the commit probability and |β|² is the rollback probability)
 
-### **Formation of a Global Entangled State**
+### Formation of a Global Entangled State
 
-All participants and the coordinator form a **logical entangled state**:
-
-```
-|global state⟩ = (|0⟩₁ ⊗ |0⟩₂ ⊗ ... ⊗ |0⟩ₙ) + (|1⟩₁ ⊗ |1⟩₂ ⊗ ... ⊗ |1⟩ₙ)
-```
-
-- **Physical Meaning**:  
-  All participants are either committed (|0⟩⊗|0⟩⊗...) or rolled back (|1⟩⊗|1⟩⊗...)
-- **Entanglement Features**:
-  - A single participant's state cannot be described independently; the global state must be defined collectively
-
-### **Protocol Execution and Quantum Collapse Analogy**
-
-#### **Stage Evolution Illustration**
+All participants and the coordinator form a logically entangled state:
 
 ```
-        Preparation Phase                  Coordinator Decision               State Collapse
-|?> ──────────────> α|0⟩ + β|1⟩ ───[Commit/Abract]────> |0⟩ or |1⟩
-(Initial Uncertainty)   (Superposition State)    (Observation Behavior)     (Definite State)
+|Global State> = (|0>₁⊗|0>₂⊗...⊗|0>ₙ) + (|1>₁⊗|1>₂⊗...⊗|1>ₙ)
 ```
 
-#### **Key Correspondences**
+- Physical meaning:
+  Either all participants commit (|0>⊗|0>⊗...) or all roll back (|1>⊗|1>⊗...)
+- Entanglement feature:
+  A single participant’s state cannot be described independently; it must be defined via the global state
 
-1. **Preparation Phase** → **Quantum Superposition State**
+### Analogy between Protocol Execution and Quantum Collapse
+
+#### Stage evolution schematic
+
+```
+        Prepare Phase                 Coordinator Decision               Collapse
+|?> ────────────> α|0> + β|1> ───[Commit/Abort]───> |0> or |1>
+(Initial uncertainty)     (Superposition)              (Measurement)      (Definite state)
+```
+
+#### Key correspondences
+
+1. Prepare phase → Quantum superposition
    
-   - Participants entering the "Ready" state ≈ Quantum system in `|0⟩ + |1⟩` superposition state
-   - The transaction result remains uncertain at this stage
+   - Participant enters “Ready” ≈ the quantum system is in a |0> + |1> superposition
+   - The transaction outcome remains uncertain
 
-2. **Coordinator Decision** → **Quantum Measurement**
+2. Coordinator’s decision → Quantum measurement
    
-   - The coordinator's final instruction (Commit/Abract) is analogous to measuring the system
-   - Triggers synchronized collapse of all participants' states
+   - The coordinator’s final directive (Commit/Abort) is analogous to measurement
+   - It triggers simultaneous collapse of all participants’ states
 
-3. **Log Persistency** → **Quantum Coherence Suppression**
+3. Log persistence → Decoherence suppression
    
-   - Transaction logs ensure state traceability ≈ Quantum error correction maintains entanglement state
+   - Transaction logs ensure state traceability ≈ quantum error correction sustaining entanglement
 
-> Here, we emphasize the observed facts from the observer's perspective, regardless of whether they are in the classical or quantum domain.
+> The emphasis here is on observer-level facts; it is independent of whether the underlying world is classical or quantum.
 
-## Section 2. Paxos Protocol and Quantum Entanglement
+## II. The Paxos Protocol and Quantum Entanglement
 
-Paxos is a distributed consensus algorithm used to reach agreement among unreliable nodes. Its core phases include the preparation phase and the acceptance phase, ensuring consistency through a majority rule. Without a global clock or real-time communication, nodes cannot instantly know the system's overall state, leading to uncertainty periods. If we view the entire distributed system as a macro world, the system's state at any given time (simulated by a logical clock) is in an additive state of `|already reached consensus> + |not yet reached consensus>`.
+Paxos is a distributed consensus algorithm used to reach agreement among unreliable nodes. Its core stages include the prepare and accept phases, and it ensures consistency via a majority (quorum) principle. Without a global clock or instantaneous communication, nodes cannot know the global system state in real-time, hence a period of uncertainty exists. If we view the entire distributed system as a macroscopic world, then at any given “moment” (global time simulated by logical clocks) the system’s state is in a superposition of |consensus reached> + |consensus not reached>.
 
-For a detailed analysis of the Paxos protocol, see
+For detailed analyses of Paxos, see:
 
-* [A Simple Explanation of the Paxos/Raft Algorithms Even for Elementary Students](https://mp.weixin.qq.com/s/LD8fDbyPohJkA9sbWGjXkQ)
+* [The Paxos/Raft Secrets Even Elementary School Students Can Grasp](https://mp.weixin.qq.com/s/LD8fDbyPohJkA9sbWGjXkQ)
 
-* [An Easy-to-Understand Explanation of the Paxos Algorithm for Ordinary Elementary Students](https://mp.weixin.qq.com/s/fo2iih0u0ECzQO3pgsKOhg)
+* [Explaining Paxos in a Way Even Ordinary Elementary School Students Can Understand](https://mp.weixin.qq.com/s/fo2iih0u0ECzQO3pgsKOhg)
 
-Ask DeepSeek:
+Question to DeepSeek:
 
-> First, briefly introduce the Paxos protocol. Then explain how in distributed systems, without global knowledge, nodes cannot determine whether consensus has been reached. This leads to uncertainty and forces active selection of a non-conflicting option, thereby reducing the decision space. Explain how this situation resembles quantum entanglement.
+> First briefly introduce the Paxos protocol, then explain how the lack of global knowledge in a distributed system prevents determination of whether consensus has been reached, and finally show how proactively choosing a non-conflicting option causes the choice space to collapse. Explain the similarity to quantum entanglement.
 
-Here is DeepSeek's response:
+Below is DeepSeek’s answer:
 
-### **Core Mechanisms of the Paxos Protocol**
+### Core Mechanics of Paxos
 
-#### **Three Phases of Consensus**
+#### Three stages to consensus
 
-1. **Proposing Phase (Prepare)**  
+1. Proposal phase (Prepare)  
    
-   - The proposer generates an incrementally numbered proposal `n` and broadcasts a Prepare request to acceptors.
-   - Acceptors' promise: They will no longer accept proposals with IDs ≤ `n` and will return the highest ID proposal they have accepted, if any.
+   - The Proposer generates a monotonically increasing proposal number n and broadcasts a Prepare request to Acceptors
+   - Acceptors promise not to accept proposals numbered ≤ n and return the highest-numbered proposal they have accepted (if any)
 
-2. **Committing Phase (Promise)**  
+2. Promise phase (Promise)  
    
-   - Once the proposer receives responses from the majority, it selects the highest existing proposal value `v` (or a new value) and sends an Accept request (`Accept(n, v)`).
+   - After receiving a majority of responses, the Proposer chooses the value v of the highest-numbered existing proposal (or proposes a new value)
+   - It sends Accept(n, v) to Acceptors
 
-3. **Accepting Phase (Accept)**  
+3. Accept phase (Accept)  
    
-   - If an acceptor accepts proposal `n` without violating its promise, it persistsently stores `(n, v)` in its ledger.
-   - Once the majority of acceptors have accepted, value `v` becomes the system-wide consensus.
+   - Acceptors accept proposal (n, v) if doing so does not violate their promises, and persist (n, v)
+   - Once a majority accepts, v becomes the system’s consensus
 
-### **Cognitive Limitations in Distributed Systems**
+### Cognitive Limitations in Distributed Systems
 
-#### **The Dilemma Without Global Knowledge**
+#### The predicament of missing global knowledge
 
-1. **No Omnipresent View**  
+1. No “God’s-eye” view:  
    
-   - Nodes only possess local information and cannot instantly perceive the entire network's state.
-   - Different nodes may observe delays in determining whether consensus has been reached.
+   - Nodes only have local information and cannot perceive the global state in real-time
+   - Different nodes experience observation delays regarding whether consensus has been reached
 
-2. **Uncertainty in Additive States**  
+2. Uncertain superposition:  
    
-   - Before consensus is finally determined, the system exists in a potential multi-value additive state.
-   - For example, it might simultaneously contain:
-     `|consensus value> = α|A> + β|B> + γ|C>`
-     where `(α, β, γ)` represent the probabilities or weights of each value being accepted.
+   - Before the final consensus is established, the system is in a potential multi-value superposition
+   - For example, there may be:
+     `|Consensus Value> = α|A> + β|B> + γ|C>`
+     (α, β, γ are the probability weights for each value being accepted)
 
-3. **Risk of Deadlock**  
+3. Risk of livelock:  
    
-   - Multiple proposers continuously generate higher-numbered proposals, preventing consensus from converging.
-   - This is akin to a quantum system unable to stabilize and collapse into a single state.
+   - Multiple Proposers keep generating higher-numbered proposals, preventing consensus from converging
+   - Analogous to a quantum system oscillating in superposition and failing to collapse
 
-### **Active Selection and Space Contraction**
+### Proactive Choice and Collapse of the Choice Space
 
-#### **Triggering Mechanism in Paxos**
+#### Collapse trigger in Paxos
 
-1. **Majority Observer Principle**  
+1. Majority-observer principle:  
    
-   - Any majority of acceptors forms an equivalent observation system.
-   - Once a proposal is accepted by the majority, its value becomes an objective fact, even if some nodes have not perceived it.
+   - Any majority of Acceptors forms an effective observation system
+   - Once a majority accepts a proposal, its value becomes an objective fact (even if some nodes have not yet observed it)
 
-2. **Process of Space Contraction**  
+2. Choice space collapse:
    
    ```
-   |A> + |B> + |C>  ——[majority Accept(n,v)]——> |v>
-   (Additive state)          (Active selection trigger)    (Determined state)
+   |A>+|B>+|C>  ——[Majority Accept(n,v)]——> |v>
+   (Superposition)      (Proactive choice)     (Definite state)
    ```
    
-   - By actively selecting a non-conflicting value (e.g., the highest proposal ID), it eliminates other possibilities.
-   - This is similar to quantum measurement, which collapses the entangled state into a single basis state.
+   - By forcibly choosing a non-conflicting value (e.g., adopting the value from the highest-numbered proposal), other possibilities are eliminated
+   - Analogous to measurement breaking superposition and collapsing the system to a single basis state
 
-3. **Contagious Contraction**  
+3. Transitivity of collapse:  
    
-   - New nodes join by querying acceptors' historical records to synchronize their state.
-   - Similar to quantum entanglement states (though limited by light-speed delays).
+   - Newly joined nodes synchronize by querying Acceptors’ histories
+   - Similar to synchronization of information in entangled states (though limited by propagation delays)
 
-### **Comparison with Quantum Entanglement's Analogies**
+### Metaphorical Comparison to Quantum Entanglement
 
-#### **Similarities in Characteristics**
+#### Dimensions of similarity
 
-| Feature            | Paxos Protocol        | Quantum Entanglement System      |
-|---------------------|----------------------|---------------------------------|
-| **State Uncertainty** | Existence of multiple possible values before consensus is reached | Probabilistic superposition state before measurement |
-| **Triggering Mechanism** | Majority acceptance behavior | Observation/measurement behavior |
-| **State Propagation** | Synchronous determination through message passing | Non-domain-based instantaneous correlation (limited by light-speed constraints)|
-| **Error Tolerance** | Tolerates Byzantine failures (Byzantine fault-tolerant) | Quantum error correction tolerates local superposition |
+| Feature           | Paxos Protocol                  | Quantum Entangled System           |
+| ----------------- | -------------------------------- | ---------------------------------- |
+| State uncertainty | Multiple potential values pre-consensus | Probabilistic superposition pre-measurement |
+| Collapse trigger  | Majority acceptance of a proposal | Observation/measurement            |
+| State propagation | Message-passing to sync the definite state | Nonlocal correlations with instantaneous sync |
+| Fault tolerance   | Tolerates minority failures (Byzantine tolerance) | Quantum error correction tolerates local decoherence |
 
-### **Thought Experiment: Schrödinger's Consensus Value**
+### Thought Experiment: Schrödinger’s Consensus Value
 
-Suppose an undecided proposal:
+Assume an undecided proposal:
 
 ```
-|consensus value> = 0.6|X> + 0.4|Y>
+|Consensus> = 0.6|X> + 0.4|Y>
 ```
 
-- **Engineering Perspective**: 60% of nodes lean toward X, 40% toward Y, but no majority has been reached.
-- **Paxos Operation**:
-  1. Proposer detects the highest proposal ID as X
+- Engineering perspective: 60% of nodes favor X, 40% favor Y, but no majority yet
+- Paxos operation:
+  1. The Proposer observes the highest-numbered proposal is X
+  2. By issuing Accept(n, X), the system collapses to |X>
+- Quantum metaphor:
+  Equivalent to performing a correlated measurement on entangled particles, forcing the entire system into a consistent state
 
-  2. Collapse the system to |X> using Accept(n,X)  
-- **Quantum analogy**:  
-  Equivalent to measuring entangled particles and forcing the entire system into a consistent state  
+## III. Software Construction and Wave–Particle Duality
 
-## Three. Software Construction and Wave-Particle Duality
+Most people’s foundational understanding of software structure is reductionist: continually decomposing downward to find atomic elements and then assembling using those atoms. The notionally virtual concept of components is subconsciously treated as real, discrete entities—analogous to particles in the physical world—composed via nested combination to build the world. But there is another constructive mode in physics: waves. Waves are continuous patterns that build the world through interference and superposition.
 
-**Most people currently understand software structure construction based on reductionism, constantly decomposing components into atomic units before assembling them back together.** The original concept of virtualized components, which was unconsciously treated as real discrete entities in the mind, is analogous to particles in the material world. These particles construct the world through nested combinations. However, there's another way of construction in the physical world—through waves. Waves are continuously existing patterns constructed by interference and superposition.
+An intriguing question: can we construct software via wave-like superposition, thereby transcending the whole–part composition paradigm?
 
-An interesting question arises: Can we use a method similar to wave superposition to construct software, surpassing the whole-part structure?
-
-Traditionally, after constructing X well, any modification requires altering X itself. However, if using an additive approach, **we can add an extra Delta without changing X directly to obtain a new Y**.
+Traditionally, after constructing X, any change requires modifying X itself. Under a superposition-based approach, however, we can obtain a new Y by supplementing X with an additional Delta without directly changing X.
 
 ```
 X = A + B + C
@@ -207,175 +206,177 @@ Y = A + B + D
   = X + Delta
 ```
 
-Under the traditional software engineering paradigm, even if additive development is possible, it often requires special design of many extension points. It's not easy to perform tailored modifications at arbitrary locations using the Delta method. Especially in traditional software engineering, additive operations usually imply adding new functionalities rather than reducing existing features. The Delta customization approach allows us **to achieve reduction through addition**.
+Within traditional software engineering, even when incremental development is possible, it often necessitates designing numerous extension points in advance, and not every change can be customized via a Delta approach. In particular, in traditional software engineering, increments generally imply adding new functionality, rarely enabling the inverse removal of existing features. Delta customization allows us to achieve reduction by addition.
 
-> Note that wave-like construction requires Delta to be a mixture of positive and negative elements, thereby expanding the software's structural space to include inverses.
+> Note: Superposition-based construction requires the Delta to be a mixture of positive and negative elements; we must enlarge the software’s structural space to include inverses.
 
-The XLang language is the world's first programming language that explicitly defines domain structure coordinates and embeds general delta computation rules. Its design follows the guidelines of reversible computing theory.
+XLang is the world’s first programming language to explicitly define domain structural coordinates and to embed a general Delta calculus in the language, designed under the guidance of Reversible Computation.
 
-**Systems developed with XLang automatically support Delta customization without any additional effort, significantly reducing productization development costs.** For example, a bank core system can be packaged into a jar file without modifying the underlying product code. All user-specific customizations and secondary developments can be stored as separate Delta differences, allowing switching between different customized versions through Deltas. The same mechanism applies to multi-tenant customization.
+Systems developed with XLang support Delta customization out of the box with no extra work. This dramatically reduces the cost of productizing products. For example, once a core banking system is packaged into a jar, you need not modify the base product’s code; all customer-specific customizations and secondary development can be stored as separate Deltas. Switching Deltas yields multiple customized variants. The same mechanism supports multi-tenant customization.
 
-Delta customization enables precise customization down to individual attributes. Traditional software engineering typically provides only a limited number of predefined extension points, making it difficult to support fine-grained customization across all aspects. For example, changing a single property of a button often requires adding a new component or page. **All business-related concepts can be individually customized**, which is an expression of continuity.
+Delta customization enables precision down to a single attribute. Traditional software engineering offers only a handful of pre-defined extension points and struggles to support fine-grained customization everywhere. For example, to define a single property of a button, one often needs to add a new component or page. Every concept of interest at the business layer can be customized one by one—this is a manifestation of continuity.
 
-The black-box model of components resembles the mechanical worldview from high school physics: rigid bodies' motion is fully described by their center-of-mass coordinates and a few shape-related parameters, while internal structure and interactions are irrelevant. Even in classical mechanics, more advanced perspectives eventually converge into Lagrangian or Hamiltonian formulations, reflecting a shift toward the field-based view of reality.
+The black-box model of components is akin to the high-school-level Newtonian worldview: a rigid body’s motion is fully described by a few parameters—its center-of-mass coordinates, size, shape, and orientation. Its internal structure is unobservable and irrelevant; rigid bodies interact via direct contact, and their shapes must precisely match to form a seamless whole. Even within classical mechanics, more advanced viewpoints adopt the Lagrangian or Hamiltonian formulations, which shift toward a field-theoretic worldview. A field establishes an omnipresent coordinate system, and at each point in that coordinate system a physical quantity can be specified. A field has infinite degrees of freedom, yet via coordinates it is describable, definable, and analyzable; we can precisely measure local variations at every point in the coordinate system. In the field worldview, the core image we face is that objects are always immersed in a field (an omnipresent coordinate system), rather than isolated pairwise interactions between objects.
 
-**In the realm of fields (Fields)**, an infinite coordinate system is established, allowing precise measurement of local changes at every point within this system. The core image in the field-based worldview is that objects are always embedded within this infinite coordinate system, no longer viewed as isolated entities interacting with one another.
+For more on XLang:
 
-For detailed information about XLang, please refer to:
+* [Why Is XLang an Innovative Programming Language?](https://mp.weixin.qq.com/s/O4VeA7Dw8cRF7HTHxi6pNw)
+* [Q&A on “Why XLang Is an Innovative Programming Language”](https://mp.weixin.qq.com/s/XtqjqoC8bhDSuCwGhrMbnw)
+* [DeepSeek’s Layman’s Explanation: Why Is XLang an Innovative Programming Language?](https://mp.weixin.qq.com/s/GsGrmaXMqKmmrYW7EuAuig)
+* [Further Explanation of “Why XLang Is an Innovative Programming Language”](https://mp.weixin.qq.com/s/TtTfcVqklEeZm-UdLBaaZA)
+* [Third Round of Q&A on the XLang Language](https://mp.weixin.qq.com/s/uw88ceRGPcEDlb4W8cNC1g)
 
-* [Why is XLang considered an innovative programming language?](https://mp.weixin.qq.com/s/O4VeA7Dw8cRF7HTHxi6pNw)
-* [Clarifications on "Why XLang is Considered an Innovative Programming Language"](https://mp.weixin.qq.com/s/XtqjqoC8bhDSuCwGhrMbnw)
-* [DeepSeek's Simple Explanation: Why XLang is an Innovative Programming Language](https://mp.weixin.qq.com/s/GsGrmaXMqKmmrYW7EuAuig)
-* [Further Explanations of "Why XLang is Considered an Innovative Programming Language"](https://mp.weixin.qq.com/s/TtTfcVqklEeZm-UdLBaaZA)
-* [Third Round Q&A on the XLang Language](https://mp.weixin.qq.com/s/uw88ceRGPcEDlb4W8cNC1g)
+## IV. Reversible Computation and the Interaction Picture
 
-## Four. Reversible Computing and Interactive Landscape
+Computer science offers two fundamental worldviews: the Turing machine and the lambda calculus—two technical routes to Turing completeness. Quantum mechanics, however, presents three: the Schrödinger picture, the Heisenberg picture, and the Dirac (interaction) picture. Why does computer science have two basic worldviews while quantum mechanics has three pictures? Is there a correspondence?
 
-Computer science operates on two basic worldviews: Turing machines and Lambda calculus, which outline two distinct technical paths toward achieving universal computation. However, quantum mechanics presents three distinct landscapes: the Schrödinger picture, the Heisenberg picture, and the Dirac picture. Why does computer science have two fundamental worldviews, yet quantum mechanics offers three? What is their relationship?
+In fact, the fundamental technical routes to Turing completeness in computer science can also be viewed as three, corresponding to the pictures of quantum mechanics as follows:
 
-In actuality, there are also three corresponding technical paths in computer science that aim for Turing completeness:
+- Turing machine            <=> Schrödinger picture
+- Lambda calculus           <=> Heisenberg picture
+- Reversible Computation    <=> Dirac (interaction) picture
 
-* **Turing machine**            \<=\> Schrödinger picture
+Here is the analysis. First, quantum mechanics also has two foundational pictures; the Dirac picture naturally derives from the first two:
 
+1. In the Schrödinger picture, operators are fixed and state vectors evolve
+2. In the Heisenberg picture, state vectors are fixed and operators evolve
+3. In the Dirac (interaction) picture, both state vectors and operators evolve in time
 
-* Lambda calculus  \<=\>  Heisenberg picture
-* Reversible computation  \<=\>  Dirac picture
-
-The following analysis provides specifics. In quantum mechanics, the most fundamental world pictures are two in number: the Schrödinger picture and the Heisenberg picture, with the Dirac picture emerging naturally as a result of their interaction.
-
-1. **Schrödinger Picture**: Operators are fixed; the state function evolves over time.
-2. **Heisenberg Picture**: The state function is fixed, while operators evolve over time.
-3. **Dirac (Interaction) Picture**: Neither the state function nor the operators are fixed; both evolve with time.
-
-In the Dirac picture, we decompose the Hamiltonian into a known part and a small perturbation:
+In the Dirac picture, we decompose the system’s Hamiltonian into a known part and a small perturbation to be studied:
 
 $$
 H = H_0 + H_1
 $$
 
-We then investigate how the system evolves when deviating from the known model. This is precisely what interests us in the context of interaction pictures, where both the state function and operators evolve with time.
+We then study how the system evolves away from the known model—i.e., we focus on the evolution of the Delta description. In the interaction picture, both state vectors and operators evolve with time.
 
 $$
-i\hbar \frac{d}{dt} |\psi_I(t)\rangle = H_1|\psi_I(t)\rangle \\
-i\hbar \frac{d}{dt} |A_I(t)\rangle = [A_I(t), H_0]
+i\hbar \frac d {dt} |\psi_I(t)\rangle = H_1|\psi_I(t)\rangle \\
+  i\hbar \frac d {dt} |A_I(t)\rangle = [A_I(t), H_0]
 $$
 
-Interestingly, the Dirac picture is the one used most frequently in actual physical computations. In mathematical physics, there exists a specialized branch of study known as **Perturbation Theory** (Perturbation Theory). This theory systematically investigates how a system evolves when small perturbations are added to a known model. Moreover, the majority of valuable computations performed in theoretical physics operate under the framework of Perturbation Theory.
-
-When comparing quantum mechanics with computer science, an intriguing correspondence exists between the world pictures in quantum mechanics and the computational models in computer science:
-
-1. **Turing Machines**: These are machines with fixed structures, capable of processing a countable infinity of states through a finite number of operations. However, they can read and write data from infinitely long tapes. For instance, modern computers have their hardware capabilities fixed at the factory level, but by installing different software and inputting varying data files, they can produce arbitrary complex outputs. The computation process of a Turing machine can be formally expressed as:
+All three pictures yield identical physical measurement results:
 
 $$
-Target\ Output = Fixed\ Machine\ (Unbounded\ Input\ Complexity) 
+\langle \psi_S(t)|A_S|\psi_S(t)\rangle = \langle \psi_H|A_H(t)|\psi_H\rangle
+ = \langle \psi_I(t)|A_I(t)|\psi_I(t)\rangle
 $$
 
-2. **Lambda Calculus**: The core concept here is the function, which can be thought of as a small computing machine. The composition of functions still results in a function, meaning that complex machines can be constructed by recursively combining simpler ones. Lambda calculus possesses computational power equivalent to that of Turing machines. This equivalence implies that even if we allow the creation of increasingly complex machines, feeding a fixed input (such as the number 0) can still yield arbitrarily complex outputs.
+Interestingly, the interaction picture is the one physicists most often use in practice. Indeed, mathematical physics has a dedicated branch—Perturbation Theory—which systematically studies how adding small perturbations to a known model drives the evolution of a new model. Most valuable calculations in theoretical physics take place within the framework of perturbation theory.
+
+Comparing quantum mechanics and computer theory, we discover a compelling correspondence between the pictures of quantum mechanics and the worldviews of computer theory.
+
+1. A Turing machine is a structurally fixed machine with a finite, enumerable set of states and a finite instruction set. It reads and writes data on an infinitely long tape. For example, your everyday computer ships with fixed hardware capabilities, but by installing different software and feeding different input files, it can automatically produce arbitrarily complex outputs. Formally, a Turing machine’s computation can be written as:
 
 $$
-Target\ Output = Unbounded\ Complexity\ Machine\ (Fixed\ Input)
+\text{Target Output} = \text{Fixed Machine}(\text{Infinitely Complex Input})
 $$
 
-In computer science, two fundamental theories can be formally expressed in the abstract form \( Y = F(X) \). Drawing inspiration from the derivation of the Dirac picture, we recognize that human cognition in the real world is inherently limited. Therefore, we must distinguish between known and unknown components:
+2. In contrast, the core concept of the lambda calculus is the function, with a function representing a small computational machine. Composition of functions yields another function—that is, machines composed recursively yield more complex machines. The lambda calculus is computationally equivalent to the Turing machine, implying that if we can keep creating ever more complex machines, then even with a constant input of 0 we can obtain arbitrarily complex target outputs.
+
+$$
+\text{Target Output} = \text{Infinitely Complex Machine}(\text{Fixed Input})
+$$
+
+Both foundational theories in computer science can be abstracted as Y = F(X). Following the derivation of the Dirac picture, recognizing that human cognition is limited and that all quantities must be separated into known and unknown parts, we perform the following decomposition:
 
 $$
 \begin{aligned}
-Y &= F(X) \\
-&= (F_0 + F_1)(X_0 + X_1)\\
-&= F_0(X_0) + \Delta
+ Y &= F(X) \\
+   &= (F_0 + F_1) (X_0+X_1)\\
+   &= F_0(X_0) + \Delta
 \end{aligned}
 $$
 
-By reorganizing the symbols, we obtain a more versatile computational pattern:
+Re-arranging notation yields a more broadly applicable computational model:
 
 $$
 Y = F(X) \oplus \Delta
 $$
 
-Here, \( \oplus \) represents a structural operation combining two elements, not to be confused with ordinary addition. The delta (\( \Delta \)) introduces an intriguing new concept: it necessarily contains an inverse element (negative), so the combination of \( F(X) \) and \( \Delta \) does not necessarily result in increased output but could also lead to decreased output.
+Beyond the functional operation F(X), a new structural operator ⊕ appears, denoting a composition operation between two elements (not ordinary numerical addition) and introducing a new concept: Delta. The peculiarity of Delta is that it must contain some negative elements; combining F(X) with Δ does not necessarily “increase” the output—it may well “decrease” it.
 
-In physics, the necessity of the delta and its inherent inverse are self-evident. Physical models must account for two fundamental facts:
+In physics, the necessity of a Delta and the fact that Δ contains inverse elements are self-evident because physical modeling must address two basic facts:
 
-1. The world is inherently "uncertain," with noise always present.
-2. The complexity of a model should match the intrinsic complexity of the problem it aims to solve, capturing stable trends and patterns within the problem's core.
+1. The world is uncertain; noise always exists
+2. Model complexity must match the intrinsic complexity of the problem, capturing stable, invariant trends and laws at its core
 
-For example, given data as represented in the image below:
-
+For example, given the following data:
 ![](https://pic4.zhimg.com/80/v2-91f19a10faa36653267ffbd4eab86b7f_1440w.webp)
 
-Our model can only resemble the simple curve depicted in figure (a). Figure (b) attempts to fit every data point perfectly, a practice known as overfitting. This approach struggles to describe new data effectively. Conversely, restricting the delta to positive values severely limits the model's descriptive accuracy, as seen in figure (c).
+Our model should be a simple curve like in (a). The model in (b), which attempts to fit every data point exactly, is mathematically overfitting and generalizes poorly to new data, while in (c) constraining the Delta to be only positive severely limits the model’s descriptive precision.
 
-**Reversible Computation Theory proposes a novel software construction formula that implements the above computational pattern as a concrete technical route for achieving Turing completeness.**
+Reversible Computation proposes a new formula for software construction, materializing the above computational mode into a concrete technical route to Turing completeness.
 
 ```
    App = Delta x-extends Generator<DSL>
 ```
 
-* **App**: The target application program to be constructed.
+* App: The target application to be constructed
+* DSL: Domain-Specific Language—business logic description tailored to a specific domain; a textual representation of the domain model
+* Generator: Given the domain model, repeatedly applying generation rules derives a large amount of code. Implementations include standalone code generators and compile-time template expansion via metaprogramming
+* Delta: The differences between logic generated from the known model and the target application’s logic are identified, collected, and expressed as an independent Delta
+* x-extends: The Delta and the model-generated parts are combined using techniques akin to Aspect-Oriented Programming, involving a series of operations such as addition, modification, replacement, and deletion of the generated model parts
 
-* DSL: Domain-Specific Language (DSL), a custom business logic description language tailored for specific business domains. It is also known as the textual representation of domain models.
-* Generator: A tool that generates large amounts of derived code based on information provided by the domain model, using repeated application of generation rules. Implementation methods include independent code generation tools and metaprogramming-based compile-time template expansion.
-* Delta: The differences between the logic generated from a known model and the target application's logic are identified and collected to form an independent delta description.
-* x-extends: A technique that combines delta descriptions with model generation using aspects, allowing for operations such as adding, modifying, replacing, or deleting parts of the model generation process.
+A DSL is a high-density expression of critical domain information and directly guides the Generator to produce code, analogous to a Turing computation driven by input data executing built-in instructions. If we regard the Generator as textual symbol substitution and expansion, then its execution and composition rules mirror the lambda calculus. Delta merging is novel in a sense because it demands a meticulous, all-pervasive ability to capture variations—to separate like-order small terms scattered across the system and combine them—so that the Delta possesses independent meaning and value. Simultaneously, the system must explicitly establish inverse elements and inverse operations; only then can the Delta, as a mixture of “existence” and “non-existence,” be expressed.
 
-DSL provides a high-density expression of essential domain information, directly guiding the Generator in generating code. This is akin to Turing machines executing built-in instructions based on input data. If we view the Generator as a text symbol replacement tool, its execution and composition rules are essentially a replica of lambda calculus. The delta merging operation is unique in that it requires meticulous change collection capabilities across all levels of the system, allowing for the separation and merging of small quantities distributed throughout the system. This makes deltas meaningful and valuable on their own. Additionally, the system must establish inverse meta-models and inverse operations to express deltas as a mix of "existence" and "non-existence."
+The fundamental reason a Turing machine achieves Turing completeness is that it can be viewed as a virtual machine capable of simulating all other automatic computing machines. If we keep raising the level of abstraction of the virtual machine, we eventually obtain a VM that can directly “run” a Domain-Specific Language (DSL). However, because a DSL focuses on domain-specific concepts, it cannot conveniently express all general-purpose logic (otherwise it would be a general-purpose language). Some information inevitably spills over and becomes the Delta term.
 
-**The fundamental reason why Turing machines can implement Turing complete systems lies in their ability to be viewed as virtual machines**, capable of simulating all other automata. By continuously increasing the level of abstraction of virtual machines, we can obtain a virtual machine that can directly "run" so-called domain-specific languages (DSLs). However, since DSL focuses on specific domain concepts, it cannot conveniently express all general computation logic (otherwise, it would become a general language), leading to information overflow and resulting in what is known as the delta component.
+The Turing machine and the lambda calculus laid the conceptual foundation of universal computation, solving—in principle—the feasibility of computation: why a universal machine can mechanically perform actions and, with finite resources, accomplish all computations we can conceive. In an era where universal computers are ubiquitous, our foremost practical challenge is computational efficiency. Efficiency gains rely on discovering “shortcuts” in computation, which depend on insights into the essence of problems—and such insights are intimately tied to the form of representation. Representation transformations can themselves be a means of problem solving because a new representation may make the solution apparent. Via domain models and Delta descriptions, Reversible Computation provides a new, systematic way to transform representations, allowing us to focus attention on the new problems to be solved.
 
-Turing machines and lambda calculus established the theoretical foundation for general-purpose computers, resolving the question of why there exists a universal machine capable of performing mechanical operations using finite resources. In today's era of widely available general-purpose computers, the most pressing practical challenge is how to perform computations **efficiently**. The improvement of computational efficiency depends on our ability to find "shortcuts" within computations, which in turn relies on our understanding of the problem's essence. This understanding is closely tied to the problem's representation form. Representation transformation itself is a way to solve problems because it can make solutions clearer and more visible. Reversible computation, leveraging domain models and delta descriptions, provides a new, systematized form of representation transformation, allowing us to focus on solving new problems.
+> For more on the role of representation transformation, see [Decoupling Is Not Just Dependency Injection](https://zhuanlan.zhihu.com/p/550923860)
 
-> For the role of representation transformation, see [Decoupled Methods Far Exceed Dependency Injection](https://zhuanlan.zhihu.com/p/550923860)
-
-Based on reversible computation's basic formula, we can naturally derive the following generalized software construction method:
+From the basic formula of Reversible Computation, we naturally obtain the following generalized software construction method:
 
 $$
 \begin{aligned}
-App &= Biz \oplus G1(DSL1) \oplus G2(DSL2) + ...\\
+ App &= Biz \oplus G1(DSL1) \oplus G2(DSL2) + ...\\
    & \equiv (Biz, DSL1, DSL2, ...)
 \end{aligned}
 $$
 
-If we treat Generator (which can also be viewed as Translator or Transformer) as background knowledge and hide its existence at the symbol level (similar to introducing parentheses in physics), we can view App as a set of DSLs that form a characteristic vector. In other words, during the development of first-generation, second-generation, and third-generation programming languages, abstraction levels are continuously enhanced while still functioning as general-purpose program languages. **However, when we reach fourth-generation programming languages, what we are likely to obtain is not another general-purpose program language but rather a forest of DSLs constructed from numerous domain-specific languages**, enabling new representations and cognitive models for original program structures.
+If we treat Generators (or Translators/Transformers) as known background knowledge and elide them symbolically (akin to introducing Poisson brackets in physics), we can view App as a feature vector composed of a set of DSLs. That is, through the development of first-, second-, and third-generation programming languages, abstraction levels have continuously increased, yet they remain general-purpose languages. Upon reaching fourth-generation programming languages, however, we may not obtain another general-purpose language but rather a forest of Domain-Specific Languages (a DSL forest), through which we can form a new representation and understanding of existing program structures.
 
-For further details, see:
+For further reading:
 
-* [Reversible Computation Theory for Programmers](https://mp.weixin.qq.com/s/aT99VX6ecmZXdemBPnBcoQ)  
-* [Supplementary Explanation of Reversible Computation Theory for Programmers](https://mp.weixin.qq.com/s/zGfo7pvKjOCa11PYLJHzzA)  
-* [Explanation of Delta Concepts with Git and Docker as Examples](https://mp.weixin.qq.com/s/D5bDNkMJ9gYrFb0uDj2EzQ)  
-* [What Does "Reversible" Mean in Reversible Computation Theory?](https://mp.weixin.qq.com/s/Fngl7vYWhULn0VKeAEKPkQ)
+* [An Analysis of Reversible Computation Theory for Programmers](https://mp.weixin.qq.com/s/aT99VX6ecmZXdemBPnBcoQ)  
+* [Addendum to “An Analysis of Reversible Computation Theory for Programmers”](https://mp.weixin.qq.com/s/zGfo7pvKjOCa11PYLJHzzA)  
+* [Analyzing the Delta Concept in Reversible Computation via Git and Docker](https://mp.weixin.qq.com/s/D5bDNkMJ9gYrFb0uDj2EzQ)
+* [What Exactly Is “Reversible” in Reversible Computation Theory?](https://mp.weixin.qq.com/s/Fngl7vYWhULn0VKeAEKPkQ)
 
-## Five. DSL Forest and Differential Manifolds
+## V. The DSL Forest and Differentiable Manifolds
 
-Modern physics describes spacetime using multiple Euclidean coordinate systems rather than a single global one, requiring the use of so-called differential manifolds to describe it.
+The spacetime studied in modern physics cannot be described by a single global Euclidean coordinate system; it must be described as a differentiable manifold stitched together from multiple Euclidean patches.
 
-In the field of programming, traditionally, general-purpose programming languages such as Java and C are used to express business logic. If we view a language as a description of a coordinate system, programming essentially maps business operations into this coordinate space. The problem lies in that the coordinate system defined by general-purpose languages is unstable at the business level. For example, when an additional field is added at the data model layer, expressing this change using a general-purpose language may require manual modifications across multiple locations of the code. However, with a model-driven architecture, modifying the DSL (Domain-Specific Language) for the data model might only require changes in one place, automatically propagating the necessary modifications elsewhere. This change would result in only a localized disturbance within the coordinate system defined by the data model.
+In programming, business logic is traditionally expressed using general-purpose languages like Java or C. If we regard a language as a descriptive coordinate system, programming maps the business onto that coordinate space. The problem is that the coordinates of general-purpose languages are unstable at the business level. For example, adding a field at the data-model layer may require manual code changes in many places when using a general-purpose language. In a model-driven architecture, however, you might only need to change a single definition in the data-model DSL (Domain-Specific Language), from which all other changes are automatically derived. We can say that adding a field causes only a local perturbation in the coordinate system defined by the data model.
 
-> The analogy is drawn between the description of a circle in Euclidean coordinates and its optimal representation in polar coordinates.
+> Compare the description of a circle in a Euclidean coordinate system versus in the most suitable polar coordinate system.
 
-The reversible computing theory outlines a systematic approach to expressing business logic using multiple DSLs.
+Reversible Computation points to a systematic route for using multiple DSLs to express business logic.
 
 $$
 \begin{aligned}
-& \text{// Horizontal decomposition, generating multiple $DSL$s} \\
+& \text{// Lateral decomposition yielding multiple $DSL$} \\
 App &= Delta +  G_1\langle DSL_1\rangle + G_2\langle DSL_2\rangle + ... \\
 \\
-&\text{// Deep decomposition, generating multiple $DSL$s} \\
+&\text{// Deep decomposition yielding multiple $DSL$} \\
 App &= Delta + G_1\langle Delta_2 + G_2\langle Delta_3 + G_3\langle DSL_3\rangle\rangle\rangle
 \end{aligned}
 $$
 
-A vast number of DSLs form a DSL forest, which collectively addresses the problem.
+A large number of DSLs form a DSL forest, which then collaborates to solve problems.
 
-It is crucial to emphasize that **each DSL language automatically defines a coordinate system suitable for a specific domain**. This concept may seem subtle, but understanding it involves recalling concepts from active differential geometry. Typically, we define motion within a pre-defined coordinate system, but the active differential geometry approach leverages the intrinsic properties of motion itself to automatically generate an inherent coordinate system attached to the trajectory of motion. In other words, **motion occurs within a coordinate system while the motion itself generates that coordinate system**. Similarly, business logic expressed using DSLs simultaneously defines a coordinate system through its abstract syntax tree (AST) and node attributes. Specifically, each attribute in the AST has a unique XPath path, such as `/task/steps[@name=a]/@name`, which refers to the `name` attribute of step `a`. **Since any logic must be expressed using a programming language, there is no gap in the coordinate system; business operations inherently occur within the coordinate space defined by this system**.
+It’s important to emphasize that each DSL automatically defines a coordinate system suited to its local domain. This may sound subtle, but if you’ve studied the method of moving frames in differential geometry, it becomes straightforward. Typically, we define motion within a chosen coordinate system; the method of moving frames leverages intrinsic properties of the motion to define a coordinate system attached to the trajectory—an intrinsic coordinate system. In other words, motion occurs within a coordinate system, and motion itself generates a coordinate system. Similarly, business logic is expressed using DSLs, and in expressing the business, the DSL’s abstract syntax tree and its node attributes automatically constitute a coordinate system. Concretely, each property on the abstract syntax tree has a unique XPath—for example, `/task/steps[@name=a]/@name` refers to the name attribute of step a. Because any logic must be expressed in a programming language, there is no case where this coordinate system fails to cover the domain: all business occurs within the coordinate space defined by this coordinate system.
 
-> The essence of active differential geometry is to **replace externally imposed coordinate systems with the intrinsic properties of geometric objects**, aligning with modern physics' "background independence" (e.g., general relativity) and computer science's "domain-specific language" (DSL) design principles—**defining descriptive frameworks based on the object's own structure rather than relying on external abstractions**.
+> The essence of the method of moving frames is to replace externally imposed coordinates with the object’s intrinsic geometric properties. This aligns with “background independence” in modern physics (e.g., general relativity) and with the design philosophy of Domain-Specific Languages (DSLs) in computer science—defining the descriptive framework via the object’s own structure rather than relying on external abstractions.
 
-A low-code platform designed based on reversible computing theory, NopPlatform, has been open-sourced:
+The low-code platform NopPlatform, designed based on Reversible Computation, is open source:
 
-- Gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
-- GitHub: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- Gitcode: [https://gitcode.com/canonical-entropy/nop-entropy](https://gitcode.com/canonical-entropy/nop-entropy)
-- Development Example: [https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- Reversible computing principles, NopPlatform introduction, and Q&A: [https://www.bilibili.com/video/BV14u411T715/](https://www.bilibili.com/video/BV14u411T715/)
-- International Website: [https://nop-platform.github.io/](https://nop-platform.github.io/)
-- Community member Crazydan Studio's Nop development practice sharing website: [https://nop.crazydan.io/](https://nop.crazydan.io/)
+- gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+- github: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+- gitcode: [https://gitcode.com/canonical-entropy/nop-entropy](https://gitcode.com/canonical-entropy/nop-entropy)
+- Development example: [https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- Principles of Reversible Computation and Nop platform intro and Q&A: [https://www.bilibili.com/video/BV14u411T715/](https://www.bilibili.com/video/BV14u411T715/)
+- Official site (International): [https://nop-platform.github.io/](https://nop-platform.github.io/)
+- Nop development practice site built by community member Crazydan Studio: [https://nop.crazydan.io/](https://nop.crazydan.io/)
+<!-- SOURCE_MD5:265c5871cfec457e54aa0bd3e88dd82f-->

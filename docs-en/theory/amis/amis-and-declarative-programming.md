@@ -1,158 +1,94 @@
-# Further Discussion on Baidu AMIS Framework and Declarative Programming
+# Revisiting Baidu AMIS and Declarative Programming
 
-In my previous article [Why the Baidu AMIS Framework is an Excellent Design](https://zhuanlan.zhihu.com/p/599773955), someone raised a question: Is it necessary to use the [Api对象](https://aisuda.bce.baidu.com/amis/zh-CN/docs/types/api) defined in AMIS? Can we achieve the same results using traditional event listeners without introducing an additional concept?
+In response to my previous article [Why Baidu AMIS is an excellent design](https://zhuanlan.zhihu.com/p/599773955), someone raised a question: Is the [Api object](https://aisuda.bce.baidu.com/amis/zh-CN/docs/types/api) defined in AMIS really necessary? Traditional event listening approaches can solve the problem—what’s the point of introducing an extra concept?
 
-To address this question, let's look at a concrete example:
+To answer this, let’s look at a concrete example:
 
 ```json
 {
     "type": "form",
-    "body": [
+    "body":[
         {
-            "type": "select",
-            "name": "a",
-            "options": [ ... ]
+        "type": "select",
+           "name": "a",
+           "options" : [ ...]
         },
         {
             "type": "select",
             "name": "b",
             "source": {
-                "method": "post",
-                "url": "/get-related-options",
+                "method" : "post",
+                "url" : "/get-related-options",
                 "data": {
-                    "value": "${a}"
-                }
+                     "value": "${a}"
+                 }
             }
         }
     ]
 }
 ```
 
-In the above example, the first select control has a `name` attribute set to `a`, indicating that its selected value corresponds to the variable `a` in the context. The select control can be seen as both an observer and a modifier of this variable. The second select control's `source` property corresponds to an [Api类型的对象](https://aisuda.bce.baidu.com/amis/zh-CN/docs/types/api), which listens for changes to the variable `a` through data binding. When `a` changes, it automatically performs an AJAX call to retrieve new options.
+In the example above, the first select control is named a, meaning its selected value corresponds to the variable named a in the contextual environment. The select control can be regarded as both a viewer and an editor of that variable. The other select control’s source attribute corresponds to an [Api-typed object](https://aisuda.bce.baidu.com/amis/zh-CN/docs/types/api). It listens to changes in variable a through a data-binding expression and, when a changes, automatically executes an AJAX call to retrieve a new list of options.
 
-In this example, both event binding and event handling for the select control are implicit. We do not see explicit triggers for events, nor do we directly intervene in the event handling process. Does this mean we lose fine-grained control over the program logic?
+In this example, event binding and event handling for the select control are implicit. We don’t see explicit trigger timings, nor can we directly intervene in the handling process. Does this imply we lose fine-grained control over the program’s logic?
 
-Actually, looking at the evolution of frontend frameworks will help us understand that this is not something to worry about. We have been moving away from granular low-level control with each framework's evolution. During jQuery's popularity era, we frequently manipulated the DOM object directly, calling various methods to access and modify child nodes, attributes, etc. For instance, to implement CRUD operations on a list, we would listen for the `click` event of corresponding buttons and update the DOM accordingly. However, in modern frameworks like Vue and React, **the DOM object's presence has been reduced to an extremely low level**. The virtual DOM is no longer an independently valuable entity but merely a representation of our template (JSX) or similar structures. Based on this virtualization concept, we only need to write a `render` function for the current state data. When the state data changes (add, modify, delete), the framework will **automatically derive** and update the UI logic.
+If we recall the evolution of frontend frameworks, this is not something to worry about, because we have been consistently moving away from fine-grained control over low-level details. In the era when jQuery was popular, we frequently manipulated underlying DOM model objects, calling methods on DOM objects to find child nodes, update attributes, and so on. For instance, to implement editing of list data, create/update/delete operations required listening to the click events of corresponding buttons, then locating target DOM objects by class or id and invoking methods on those objects to update the UI. In modern frameworks like Vue and React, the presence of DOM objects has been reduced to a minimum. The virtual DOM is merely a data record generated by templates or JSX, rather than an object with intrinsic standalone value and a large number of properties and methods. Based on the virtual DOM concept, we only need to write a render function against the current state data; when the state data is added, modified, or deleted, the frontend framework will automatically derive the update logic for the UI.
 
-By abandoning explicit DOM manipulation and fine-grained control over DOM updates, we gain a more compact way of expressing business logic and can even migrate this logic to non-browser environments using React Native technology.
+By giving up explicit use of DOM objects and fine-grained control over the DOM update process, we gain a more compact way to express business logic, as well as the ability to migrate to non-browser runtimes via React Native.
 
-> Many data-driven frameworks are now enhancing their **observability**, allowing us to monitor data changes through `watch`, `subscribe` mechanisms, and even supporting history tracking and time travel. The key distinction here is that we are not merely watching irrelevant component events but directly observing business-relevant data changes or meaningful action events.
+> Many data-driven frameworks are also gradually enhancing their observability. They can listen to data changes via watch or subscribe, and even support history and time-travel. The difference from traditional event listening is that we are not listening to component events unrelated to the business; instead, we directly listen to changes in business data or actions with clear business semantics.
 
 ## Declarative vs. Imperative
 
-The evolution of frontend frameworks can be viewed as a continuous shift from **imperative programming** to **declarative programming**.
+The evolution of frontend frameworks can be viewed as a continuous transition from the imperative programming paradigm to the declarative programming paradigm.
 
-In imperative programming, we explicitly define each step in the execution process. Each line of code is an instruction telling the system what to do next. For example:
+![declarative-vs-imperative](declarative-vs-imperative.png)
 
-```javascript
-function multiplyNumbers(a, b) {
-    return a * b;
-}
-```
+Imperative means we explicitly specify an execution path from A to B, with every step’s detail under our control. Declarative means we merely state that we need to move from A to B. Since multiple potential paths may exist, the system will, according to certain rules or cost considerations, automatically derive a specific path from A to B.
 
-Here, the function explicitly defines how to multiply two numbers by performing the multiplication operation.
+Because declarative approaches focus only on the endpoints of a path and ignore many details, they naturally introduce optimization opportunities. For example, in Vue and React, the virtual DOM produced by the render function represents the UI structure we expect to produce. Through virtual DOM diff operations, we can analyze which parts of the UI actually change relative to the previous state, and then automatically generate an optimal DOM update strategy. If we handwrite DOM read/write methods, a non-optimized read/write order may cause the browser’s layout engine to run multiple times, leading to poor performance.
 
-In declarative programming, we focus on what needs to be done rather than how to do it. The framework takes responsibility for managing the details of the implementation. For example:
+Declarative styles focus only on the effect on the final state, without caring about the precise steps and order of the intermediate process, which often allows optimization via caching or deferred processing. For example, within one event trigger, a state variable might be modified multiple times; we only need to ensure that the last modification is ultimately reflected in the UI, while the previous changes can be automatically ignored.
 
-```vue
+State is the endpoint of the path; essentially, it is the surface of the path. When we examine the state space formed by business states, we generally find that the number of states we need to pay attention to is far less than the number of possible transition paths (akin to dimensionality reduction). For example, if our data-binding expression uses only the state variable a, then no matter which path leads to the state a=1, the triggered related computations are identical.
+
+> In physics, at the introductory level we learn Newtonian mechanics, which uses the concept of force and focuses on precise trajectories of motion and the external forces at every point along them. In more advanced formulations, we use energy and action, solving for the optimal path between two points in state space that minimizes the action to derive the process that occurs in the real physical world.
+
+In a low-code frontend framework like AMIS, information transmission is implemented as much as possible using reactive data binding, thus minimizing the need for imperative code and increasing the share of declarative descriptions across the page. On further reflection, once reactive data binding is comprehensively adopted, the importance of component objects themselves diminishes (similar to DOM objects). At the implementation level, we may even avoid requiring the underlying runtime to provide corresponding component structures!
+
+```html
+<select id="a" onchange="handleChange">
+</select>
+<select id="b">
+</selection>
+
 <script>
-  data() {
-    return { a: 1 };
-  }
+function handleChange(value){
+    fetchRelatedOptions(value).then(result=>{
+        getComponent('b').setOptions(result)
+    })
+}
 </script>
-
-<template>
-  <div>{{ a }}</div>
-</template>
 ```
 
-Here, we declare that we want `a` to be displayed, and the framework automatically handles fetching, updating, and rendering based on this declaration.
+In traditional event handler functions, we obtain the relevant component object and call its methods, such as getComponent('b').setOptions(result). This requires the system to provide a code-accessible component object at runtime, and that it must expose a setOptions member function. When using reactive Api objects, we can express business logic without touching the concept of Components at all—every input, output, and processing step is business-related state data, rather than UI components and their properties. AMIS’s JSON description is merely information fed to the underlying engine; it does not require corresponding components to exist at runtime, nor does it require underlying components to provide the properties used in the JSON description. We can entirely decompose a complex component into multiple atomic components at compile time, and the runtime only needs to support certain atomic components. For example, in the Nop platform, based on AMIS JSON we provide a compile-time control. During the loading of AMIS JSON, we identify compile-time XPL tags and execute them to dynamically generate AMIS descriptions. This can be seen as a purely functional component that exists only at compile time and not at runtime.
 
-Because declarative programming only concerns itself with the end points (what needs to be achieved), it naturally introduces opportunities for optimization. For instance, in frameworks like Vue and React, the virtual DOM is used to optimize rendering performance by deriving only the necessary changes from one render cycle to the next. This approach ensures that we do not perform unnecessary DOM manipulations, which can be especially beneficial for large applications.
+> AMIS also performs some structural transformations when loading JSON descriptions to handle version compatibility, such as converting deprecated property names. If we explicitly use those component property names in code, compatibility handling becomes significantly more difficult.
 
-In contrast, imperative programming often requires us to manually access and modify the DOM object, which can lead to inefficient layouts in browsers due to frequent re-renders and redundant calculations.
+## Natural evolution of data binding: from computed to Api
 
-By adopting declarative programming, we trade away explicit control over certain aspects of our application's behavior but gain significant benefits in terms of code simplicity, performance, and scalability. This shift has been particularly impactful with the rise of React Native, allowing declarative patterns to extend beyond the browser environment.
+The [Api object](https://aisuda.bce.baidu.com/amis/zh-CN/docs/types/api) in AMIS can be viewed as a natural evolution of the reactive data binding mechanism.
 
-```markdown
+In Vue 3.0, values passed to component props fall into three categories: 1) constant values, 2) variable values, and 3) Ref references (conceptually, a Reactive object can be regarded as a special kind of Ref). A Ref reference is essentially an information conduit: construct once (pass in and hold the Ref), use many times (each time a new value flows through the Ref, external observers are automatically triggered). To maximize the value of this conduit, we obviously need to enrich the sources of conduit data and support recombination and processing of that data.
 
-## reactive programming concepts: states and paths
+[computed](https://vue3js.cn/reactivity/computed.html) is a special Ref—it is no longer a simple mutable value, but is associated with executable code. Computed is essentially a wrapper around a function, but we only care about its return value. From a data perspective, a function becomes a reactive value with automatic updates. Anywhere a value is required, a computed value can be naturally supplied.
 
-Reactive programming focuses on the final state's impact, not the intermediate steps. The precise execution steps and order are often ignored, allowing for optimizations like caching and deferred processing.
+Computed is a Ref wrapper around a synchronous function, whereas AMIS’s Api object can be considered a Ref wrapper around a remote asynchronous call. Building on this, we can further wrap streaming data—this is the Service container in AMIS. A Service container can encapsulate a WebSocket connection; each time backend data is received, it automatically updates its current value. It can also perform polling at regular intervals and update the current value upon data retrieval.
 
-For example, during event triggering, a state variable may be modified multiple times. However, only the final modification needs to be reflected in the UI. Previous modifications can be safely ignored.
+> My personal view is that, if designing from scratch, AMIS’s Service and Api concepts could be unified, and the Service container’s Schema-loading capability split out.
 
-A state is the endpoint of a path and represents the surface (surface) of the path. When examining the state space composed of business states, we often find that the number of relevant states is far fewer than the number of possible state transition paths (similar to dimensionality reduction).
+## Summary
 
-For instance, if a data binding expression only uses the state variable `a`, then regardless of which state transition path leads to `a=1`, the related computations will yield identical results.
+From the perspective of declarative programming, introducing the Api object in the AMIS framework is an entirely reasonable and natural choice.
 
-
-
-In physics, during initial learning, we study Newtonian mechanics using force concepts. We focus on precise paths and the forces acting at each point in the path. However, at a more advanced level, we use energy and action quantity concepts to find the minimal action paths that describe real-world processes.
-
-
-
-In AMIS (a low-code frontend framework), we strive to leverage reactive data binding mechanisms for information transmission, minimizing reliance on imperative code as much as possible. This approach maximizes the proportion of declarative descriptions in the UI.
-
-Careful analysis reveals that after fully adopting reactive data binding, the importance of component objects naturally diminishes (similar to DOM objects). At the implementation level, we can often omit specific component structures, even if the underlying system supports them.
-
-For example, in the Nop platform, during AMIS JSON loading, we identify and execute compile-time XPL tags dynamically. These tags generate AMIS descriptions at runtime. This component can be seen as a pure function component existing only at compile time, not at runtime.
-
-
-
-In AMIS, the [Api object](https://aisuda.bce.baidu.com/amis/zh-CN/docs/types/api) represents the natural evolution of the reactive data binding mechanism.
-
-In Vue 3.0, property values for controls can be of three types:
-1. Fixed values
-2. Variable values
-3. Ref references (Reactive in concept; Ref in implementation)
-
-Ref references act as a data pipeline: construction (input and holding Ref) and usage (passing new values through Ref to external observers). To maximize the value of this pipeline, we should enrich its source and support further processing of the pipeline's data.
-
-The [computed](https://vue3js.cn/reactivity/computed.html) is a special Ref that no longer represents a simple, mutable value. Instead, it encapsulates a function whose return value is tracked for reactivity. From a data perspective, the function has become a reactive value with automatic updates.
-
-All places where data is used can be supplied with a computed value, ensuring that all inputs, processing, and outputs are business-related state data, not component-specific objects or properties.
-
-AMIS JSON descriptions are input to the lower-level engine as metadata. They do not require corresponding components at runtime (unlike traditional UI components). We can decompose complex components into atomic components at compile time, requiring only basic support for specific atomic components at runtime.
-
-For example, in the Nop platform, AMIS JSON is loaded and processed, identifying compile-time XPL tags to generate dynamic descriptions. This component behaves like a pure function component, existing only during compilation, not at runtime.
-
-The use of Api objects allows us to express business logic without involving Component concepts. All inputs, processing, and outputs are related to state data, not UI components or their properties.
-
-AMIS JSON descriptions do not require corresponding components at runtime. We can decompose complex components into atomic components at compile time, requiring only basic support for specific atomic components at runtime.
-
-For instance, in the Nop platform, during AMIS JSON loading, we identify and execute compile-time XPL tags dynamically. These tags generate AMIS descriptions at runtime. This component can be seen as a pure function component existing only at compile time, not at runtime.
-
-
-
-The [Api object](https://aisuda.bce.baidu.com/amis/zh-CN/docs/types/api) in AMIS represents the natural evolution of the reactive data binding mechanism.
-
-In Vue 3.0, property values for controls can be of three types:
-1. Fixed values
-2. Variable values
-3. Ref references (Reactive in concept; Ref in implementation)
-
-Ref references act as a data pipeline: construction (input and holding Ref) and usage (passing new values through Ref to external observers). To maximize the value of this pipeline, we should enrich its source and support further processing of the pipeline's data.
-
-The [computed](https://vue3js.cn/reactivity/computed.html) is a special Ref that no longer represents a simple, mutable value. Instead, it encapsulates a function whose return value is tracked for reactivity. From a data perspective, the function has become a reactive value with automatic updates.
-
-All places where data is used can be supplied with a computed value, ensuring that all inputs, processing, and outputs are business-related state data, not component-specific objects or properties.
-```
-
-
-The computed property is an encapsulation of a synchronous function's reference. The AMIS API object can be considered an encapsulation of a remote async function's reference.
-
-On this basis, we can further encapsulate stream data, which is the Service Container in AMIS.
-
-
-## Service Container
-
-- The Service Container can encapsulate a WebSocket connection, automatically updating the current value whenever backend data is received.
-- It can also periodically poll the API, updating the current value upon receiving data.
-
-> From a personal perspective, if we start from scratch, the concepts of Service and API in AMIS can be unified, and the functionality of loading Schema can be separated from the Service Container.
-
-
-
-For a declarative programming perspective, the AMIS framework's introduction of the API object is entirely reasonable and natural.
-
+<!-- SOURCE_MD5:c946cc0207f2ca3ff39f155eacff0e40-->

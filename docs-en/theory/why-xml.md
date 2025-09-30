@@ -1,39 +1,49 @@
-# Why the Nop Platform Uses XML Instead of JSON or YAML
+# Why the Nop Platform Sticks with XML Instead of JSON or YAML
 
-In the development field, there seems to be a form of political correctness: XML is considered an outdated technology and should no longer be widely used. For the Nop platform, which heavily uses XML to represent domain models, some netizens humorously comment that all information is expressed using XML, which is against the tide. In a previous article titled "[The Equivalence of XML, JSON, and Function AST](https://zhuanlan.zhihu.com/p/554294376)," I explained the equivalence between XML and JSON. Based on this equivalence, both XML and JSON are automatically supported for conversion in the Nop platform, and the choice of which format to use does not affect the semantic meaning of the model. Therefore, it is entirely possible to store model information using JSON files. However, given the current situation, XML has some advantages over JSON in terms of expression.
+In today’s development world, a kind of political correctness seems to have formed: XML is an outdated technology and should no longer be widely used. Because the Nop platform uses XML extensively to express domain models, some people joke: if you express everything in XML, you’re being counter-(trend)revolutionary. In a previous article, Equivalence Among XML, JSON, and Function ASTs (https://zhuanlan.zhihu.com/p/554294376), I have already explained the equivalence between XML and JSON. Based on this equivalence, XML and JSON are automatically supported for bidirectional conversion in the Nop platform. Essentially, using either form does not affect the semantics of the model; you can absolutely store model information in JSON files. However, under current circumstances, XML has some advantages over JSON in terms of expressiveness. In this article I will add some concrete analysis.
 
-## Issues with JSON
+## Problems with JSON
 
-The primary issue with JSON is the lack of a comment mechanism and multi-line text representation. These issues are resolved in YAML, which is compatible with JSON. Therefore, in the Nop platform, we generally prefer to use YAML over JSON, such as storing front-end JSON pages in `page.yaml`.
+The main issues with JSON are the lack of a commenting mechanism and a way to represent multi-line text. These problems have been addressed in YAML, which is compatible with JSON. Therefore, in the Nop platform, we generally prefer YAML as a replacement for JSON, for example using page.yaml to store front-end JSON pages.
 
 ```yaml
 x:gen-extends: |
   <web:GenPage view="NopAuthUser.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
+
+body:
+  name: crud-grid
+  filter:
+    id: crud-filter
+    actions:
+      - id: submit-button
+        icon: fa fa-snapchat
 ```
 
-In XML, embedding JSON is a straightforward matter. However, embedding XML within JSON requires string escaping, which significantly affects data readability. In contrast, embedding XML within YAML is simple and intuitive.
+Embedding JSON in XML is very straightforward. Embedding XML in JSON, however, requires string escaping, which greatly harms readability. If you use YAML, embedding XML becomes simple and intuitive.
 
-Another issue with both JSON and YAML is the lack of special defined type attributes. In JSON, all properties are theoretically on equal footing, and there is no specification in the JSON standard to quickly distinguish the structure of JSON objects. This makes it difficult to perform efficient deserialization during reverse engineering.
+Another issue with JSON—and even YAML—is the lack of a specially defined type attribute. In JSON objects, all properties are, in principle, equal; the JSON specification does not define a type attribute for quickly distinguishing object structures, which makes performance optimization during deserialization difficult.
 
-During deserialization, we often need to determine the type of the object being deserialized based on type attributes. However, because JSON does not define a specific `type` attribute that must always be the first property, this determination can only be made after fully parsing the entire object structure. This leads to unnecessary temporary object construction and additional memory consumption.
+During deserialization, we often need a type attribute to decide the target object type. But since JSON does not specify that a type property must appear first, you may only be able to determine the type after parsing the entire object structure, leading to unnecessary temporary object construction and extra memory consumption.
 
-In comparison, XML always emphasizes the `tagName` special attribute, which helps in visually identifying specific local structures. In simple structures, XML expressions are often more concise and intuitive compared to JSON.
+By contrast, XML always highlights the element tag name (tagName) as a special discriminator, helping us quickly recognize particular local structures visually. For simple structures, XML can be more concise and intuitive than JSON.
 
-```xml
-<row a="1" b="xyz" />
+```
+ <row a="1" b="xyz" />
 
-{
-  "a": 1,
-  "b": "xyz",
-  "type": "row"
-}
+ {
+ 	"a": 1,
+ 	"b": "xyz",
+ 	"type": "row"
+ }
 ```
 
-## Issues with XML
+## Problems with XML
 
-It is undeniable that XML has some obvious issues in practical use. The primary reason is that XML was originally designed as a text data markup language, and for data types with rich variations, it lacks standardized expression methods. For instance, major corporations like IBM and SUN have actively promoted a series of XML-related standards, which have gradually established XML's reputation as a cumbersome and rigid technology.
+There is no doubt that XML has some obvious problems in practice. Fundamentally, XML was originally designed as a tag language for text data and lacks normalized ways to express rich application data types. A series of XML-related standards aggressively promoted by big companies like IBM and Sun introduced a lot of complex designs in the name of rigor, gradually cementing XML’s stereotype of being verbose and cumbersome.
 
-Taking XSD (XML Schema Definition) as an example, if you compare it to JSON Schema, the information density of XSD is significantly lower. While JSON Schema can naturally define nested structures, XSD forces all structures to be broken down into `type` and `element` layers.
+Take XSD (XML Schema Definition) (https://www.w3school.com.cn/schema/schema_intro.asp) as an example. Compared with JSON Schema, it is easy to conclude that XML Schema has much lower information density.
+
+JSON Schema can naturally declare nested structures, whereas XML Schema forces everything to be split into two layers: type and element.
 
 ```xml
 <xs:element name="personinfo">
@@ -47,13 +57,11 @@ Taking XSD (XML Schema Definition) as an example, if you compare it to JSON Sche
 </xs:element>
 ```
 
-When using XSD, many developers tend to use `xs:sequence` to enforce order on child elements. This enforces a specific sequence on the child nodes, which deviates from the fundamental concept of declarative programming. While this might seem useful in some cases, it introduces unnecessary complexity and overhead.
+Many people also tend to use xs:sequence in XSD, which forces order dependencies among child nodes. This runs counter to the basic idea of declarative programming and usually has little practical value in use—only introducing unnecessary trouble.
 
-> Declarative programming is essentially about reducing reliance on sequentiality. Command-line programming imposes an unnecessary burden of ordering and causality.
->
-> However, in JSON schema, there's no way to define the order of properties. This means that the structure of JSON objects cannot be enforced to follow a specific sequence.
+> Declarative programming is largely about de-emphasizing order dependency, freeing ourselves from the non-causal constraints forcibly introduced by imperative programming.
 
-In summary, while XML may have some advantages in terms of expression over JSON in simple structures, it also has significant limitations in practical use. The choice between XML and JSON ultimately depends on specific requirements and use cases. However, for the Nop platform, XML is considered more suitable due to its inherent properties.
+In JSON Schema, you cannot define ordering relationships among properties at all.
 
 ```json
 {
@@ -72,82 +80,53 @@ In summary, while XML may have some advantages in terms of expression over JSON 
 }
 ```
 
-
 ## XML in the Nop Platform
 
-The Nop platform extensively uses XML syntax but does not fully comply with current XML standards. It only incorporates a specific subset of XML grammar, such as:
-
-- Removal of Entity support (preventing potential security vulnerabilities)
-- Simplified namespace handling (only processed at the root level)
-- Elimination of Instruction support (processed only at the root level)
-
-Additionally, the Nop platform does not utilize existing Java-based XML binding technologies like JAXB. Instead, it develops its own XML parser.
-
-The resulting structure is not based on standard DOM but instead follows an application-specific XNode design.
+Although the Nop platform heavily uses XML syntax, it does not fully adopt the existing XML standards. Instead, it only adopts a subset of the syntax and features. For example, NopXML removes external entity support (thereby avoiding many security vulnerabilities), simplifies the namespace concept (handling xmlns only on the root node), and removes the Instruction concept (only recognizing Instructions on the root element). The Nop platform also does not use existing JAXB (Java Architecture for XML Binding) technology for parsing and processing XML; it implements its own XML parser. The result of parsing is not the DOM structure defined by standard XML technologies, but an XNode structure redesigned for the application layer.
 
 ```java
 class XNode{
-  SourceLocation loc;
-  String tagName;
-  Map<String, ValueWithLocation> attributes;
-  List<XNode> children;
-  ValueWithLocation content;
+	SourceLocation loc;
+	String tagName;
+	Map<String, ValueWithLocation> attributes;
+	List<XNode> children;
+	ValueWithLocation content;
 
-  XNode parent;
+	XNode parent;
 }
 
 class ValueWithLocation{
-  SourceLocation location;
-  Object value;
+	SourceLocation location;
+	Object value;
 }
 ```
 
-The XNode structure records both attribute and node locations, converting the attribute's and content's value types to Object. This design addresses XML's limitation of primarily handling text documents, enabling more efficient representation of complex business object structures.
+The XNode structure records the source locations of attributes and nodes, and changes the value types of attributes and content to Object, thereby overcoming XML’s original text-document-oriented design flaw and making it more efficient at expressing complex business object structures.
 
+The Nop platform replaces XML Schema with the XDef meta-model language. Leveraging a prefix-guided syntax design, it is more compact and intuitive than JSON Schema.
 
-## Replacement of XML Schema with XDef Meta-model
-
-Instead of using XML Schema, the Nop platform employs an XDef meta-model for data constraints. This approach is similar to XML Schema in structure but offers a more compact and intuitive design. It utilizes prefix-based syntax, aligning closely with JSON Schema in functionality.
+> For the design of prefix-guided syntax, see DSL Layered Syntax Design and Prefix-Guided Syntax (https://zhuanlan.zhihu.com/p/548314138)
 
 ```xml
 <person firstname="!string" lastname="!string" address="string" />
 ```
 
-The XDef meta-model defines constraints that mirror the data structure, allowing for precise type enforcement on specific properties. This reduces ambiguity and enhances data integrity.
+The structure defined by the XDef meta-model basically resembles the data structure it constrains; you can think of it as taking a concrete model instance and replacing the actual values with type declarations.
 
+For XPath and XSLT transformation syntax, the Nop platform likewise does not adopt them but instead designs alternative syntaxes: XSelector and XTransform.
 
+More importantly, the Nop platform introduces an XML-based template language, XPL (XLang Template Language). It is a Turing-complete template language that supports conditionals, loops, tag abstraction, and template metaprogramming. It is one of the key technologies enabling Reversible Computation on the Nop platform based on XML.
 
-While XPath and XSLT are widely used in XML processing, the Nop platform opts for its own XSelector and XTransform syntax. These alternatives provide more flexibility and better alignment with application-specific requirements.
+For details, see xpl.md (https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/xlang/xpl.md)
 
+**The most important reason the Nop platform insists on the XML file format is that JSON and even YAML lack a template language like XPL for generating code with complex structures.**
 
+## Features of XPL
 
-The XPL (XML Processing Language) template language is a Turing-complete template language that supports conditional statements, loops, tag abstraction, and template-based programming. It is a key technology in the Nop platform for reversible computation.
+1. Lisp-like homoiconicity: XPL is in XML format, and its output is also in XML format.
+2. Multiple output modes. When outputMode=node, it directly emits XNode nodes and records the source locations of attributes and nodes during output. This is particularly useful for code generation and breakpoint debugging. It means we can always trace the current node to its original source location, and debugging or error reporting can directly pinpoint the source line.
+3. Supports compile-time execution, essentially similar to macros in Lisp.
+4. Supports custom tag libraries, and tag libraries support Delta customization. In other words, the XPL template language supports function-level Delta customization.
 
-**[xpl.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/xlang/xpl.md)**
-
-
-
-Despite advancements in JSON and YAML, the Nop platform continues to prioritize XML due to its support for more complex structures through XPL. The availability of robust tools for parsing and manipulating XML makes it a suitable choice for structured data processing.
-
----
-
-
-
-1. Lisp-like Syntax: XPL is designed for XML input and output, mirroring some aspects of Lisp.
-2. Multiple Output Modes: When `outputMode` is set to "node," XPL outputs XNode structures, recording both attribute and node locations. This is particularly useful during debugging or when tracking the origin of nodes.
-3. Compile-Time Execution: XPL exhibits behavior similar to Lisp's macros, allowing for compile-time optimizations.
-4. Customizable Tag Libraries: XPL supports Delta-defined custom tags, enabling function-level customization.
-
-
-
-The following example demonstrates how XPL can be used in conjunction with XBiz configuration files to define backend services:
-
-```xml
-<service xmlns:xpl="https://example.com/xpl">
-  <xpl:define name="backend-service">
-    <xpl:property name="url">http://example.com/api</xpl:property>
-    <xpl:property name="method">GET</xpl:property>
-  </xpl:define>
-</service>
-```
-
+For concrete examples, see the video [How to implement back-end service functions in the Nop platform via XBiz configuration files](Nop平台中如果通过XBiz配置文件实现后台服务函数)
+<!-- SOURCE_MD5:88cf22815577b85308eeca4e78fc1dc6-->

@@ -1,289 +1,257 @@
 # NopIoC Container
 
-NopIoC is a lightweight dependency injection container used in the Nop platform. Initially, my goal was to define a compatible BeanContainer interface with both Spring and Quarkus, but I quickly realized that Spring's native application support module (spring-native) is not mature, while Quarkus's dependency injection container lacks the organizational capabilities of SpringBoot. Some simple configurations in SpringBoot are difficult to implement in Quarkus, and Quarkus's preprocessing approach makes runtime debugging cumbersome. Therefore, I decided to implement an IoC container as the default BeanContainer implementation for the Nop platform.
-
+NopIoC is a lightweight dependency injection container used in the Nop platform. Initially, my goal was to define a BeanContainer interface compatible with Spring and Quarkus, but I soon found that Spring’s native application support module spring-native was very immature, Quarkus’s dependency injection container’s organizational capability was far inferior to Spring Boot, some configurations that are very simple in Spring Boot were hard to achieve in Quarkus, and Quarkus’s ahead-of-time compilation made runtime debugging difficult. So I ultimately decided to implement an IoC container as the default BeanContainer implementation for the Nop platform.
 
 ## 3.1 XDef Meta-Model Definition
 
-**An IoC container must have a domain model with a clearly defined semantic meaning**, which can be viewed as a Domain Specific Language (DSL). The IoC container itself serves as both the parser and executor of this DSL. If we serialize domain model objects into text for storage, it becomes an IoC-specific model file, such as Spring's beans.xml configuration file. Java annotations can also be considered another form of expressing this domain model, such as using JPA annotations to define Hibernate models or hbm configuration files.
+A descriptive IoC container must have a domain model with a well-defined semantics. This model can be considered a DSL (Domain Specific Language). The IoC container itself is the interpreter and executor of this DSL. If we serialize domain model objects into text and save them, they become an IoC-specific model file, for example Spring’s beans.xml configuration file. Java annotations can be regarded as another form of this domain model; for instance, Hibernate’s model definition can be expressed with JPA annotations or with hbm configuration files.
 
-**A well-defined model can be described by a general meta-model (Meta-Model)**. While Spring 1.0 provides XML syntax with an XSD definition, SpringBoot lacks corresponding XML syntax capabilities for conditional configurations, leading to a lack of a clear domain model in SpringBoot. Although XML Schema (XSD) is more powerful than DTDs, it is overly verbose and designed primarily for constraining general XML data files. For DSL models that require executable semantics, XSD falls short.
+A well-defined model can be described by a general meta-model. Spring 1.0’s XML syntax has an XML Schema definition, but capabilities introduced in Spring Boot such as conditional configuration lack the corresponding XML syntax, which ultimately results in Spring Boot not having a clearly defined domain model.
 
-NopIoC adopted the XDefinition meta-model language to define its own domain model. XDef language is specifically designed as a replacement for XML Schema and JSON Schema in the Nop platform, offering more intuitive and efficient information expression compared to these formats. It allows direct generation of executable domain models, code generation, IDE tips, and even visualization of a design environment.
+Although XML Schema is much more powerful than DTD, it is very verbose, and its design goal is only to constrain general XML data files. For constraining DSL models with execution semantics, it falls short.
 
-Below is a comparison of how XSD and XDef define Spring 1.0 configurations:
+NopIoC uses the XDefinition meta-model language to define its domain model. The XDef language is used in the Nop platform to replace XML Schema and JSON Schema. It is designed specifically for DSLs and is far more intuitive and efficient than XML Schema and JSON Schema in terms of expressive power. You can directly obtain an executable domain model from the XDef definition, or generate code, IDE hints, and even visual designer pages based on the XDef definition.
 
-- **XSD Definition**:  
-  [Spring 1.0 Configuration Format](https://www.springframework.org/schema/beans/spring-beans-4.3.xsd)
+Below we can intuitively compare the Spring 1.0 configuration formats defined with xsd and xdef respectively
 
-- **XDef Definition**:  
-  [Nop-XDefs Configuration File](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)
+https://www.springframework.org/schema/beans/spring-beans-4.3.xsd
 
-I will write a separate article later to detail the technical specifics of the XDef meta-model language.
+[nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)
 
+I will write a dedicated article later to introduce the technical details of the XDef meta-model definition language.
 
-## 3.2 Natural Extension of Spring 1.0 Syntax
+## 3.2 Natural Extensions to Spring 1.0 Syntax
 
-NopIoC builds upon Spring 1.0's configuration syntax (NopIoC can directly parse Spring 1.0 configuration files) and extends it with concepts introduced by SpringBoot, such as conditional configurations. All extended attributes in NopIoC are prefixed with `ioc:` to distinguish them from Spring's native attributes.
-
-Below is an example of a Spring 1.0 configuration file, which corresponds to the following SpringBoot configuration:
+NopIoC is based on Spring 1.0’s configuration syntax (NopIoC can directly parse Spring 1.0 configuration files) and supplements it with concepts introduced by Spring Boot such as conditional wiring. All extension attributes use the `ioc:` prefix to distinguish them from Spring’s built-in attributes.
 
 ```xml
 <beans>
-    <bean id="xx.yy">
-        <ioc:condition>
-            <if-property name="xxx.enabled" />
-            <on-missing-bean-type>java.sql.DataSource</on-missing-bean-type>
-            <on-class>test.MyObject</on-class>
-        </ioc:condition>
-    </bean>
+   <bean id="xx.yy">
+     <ioc:condition>
+        <if-property name="xxx.enabled" />
+        <on-missing-bean-type>java.sql.DataSource</on-missing-bean-type>
+        <on-class>test.MyObject</on-class>
+     </ioc:condition>
+  </bean>
 </beans>
 ```
 
-SpringBoot equivalent:
+The configuration above corresponds to Spring Boot configuration:
 
 ```java
 @ConditionalOnProperty("xxx.enabled")
 @ConditionalOnMissingBean({DataSource.class})
 @ConditionalOnClass({MyObject.class})
 @Bean("xx.yy")
-public XXX getXx() {
+public XXX getXx(){
 }
 ```
 
+### 3.3 AOP Based on Source Code Generation
 
-### 3.3 Aspect-Oriented Programming (AOP) Based on Source Code Generation
-
-Using AOP in NopIoC is straightforward, as you only need to configure the corresponding interceptor and pointcut.
+Using AOP in NopIoC is very simple: just configure the pointcut for the interceptor.
 
 ```xml
-<bean id="nopTransactionalMethodInterceptor"
+ <bean id="nopTransactionalMethodInterceptor"
       class="io.nop.dao.txn.interceptor.TransactionalMethodInterceptor">
-    <ioc:pointcut annotations="io.nop.api.core.annotations.txn.Transactional"
+     <ioc:pointcut annotations="io.nop.api.core.annotations.txn.Transactional"
           order="1000"/>
-</bean>
+ </bean>
 ```
 
-The above configuration indicates that the IoC container will scan all beans (provided that `ioc:aop` is not set to false) and apply the `TransactionalMethodInterceptor` to any method annotated with `@Transactional`.
+The above configuration means the container will scan all beans (whose ioc:aop attribute is not set to false). If it finds that some method has the `@Transactional` annotation, it applies this interceptor.
+The specific implementation principles are:
 
-### Implementation Details
+1. Register annotation classes that need to be recognized by AOP in `resources/_vfs/nop/aop/{module name}.annotations`.
 
-1. **Registering AOP-Recognizable Annotations**  
-   - The annotations that need to be recognized by AOP are registered in the file located at:
-     ```
-     resources/_vfs/nop/aop/{module_name}.annotations
-     ```
-   
-2. **Scan and Compile with Maven Plugin**  
-   - During the build process, a Maven plugin scans the `target/classes` directory for classes annotated with AOP-recognizable annotations.
-   - If such annotations are found on methods of a class, an `_aop` derived class is generated to wrap the original class and inject the corresponding interceptor.
+2. During project compilation, a Maven plugin scans the classes under the target/classes directory and checks whether methods of classes have annotations recognizable by AOP. If so, it generates a \_\_aop derived class for that class to insert the AOP interceptor. Thus, the packaged jar contains the AOP-related generated code, and there is no need to generate bytecode dynamically at runtime when using the AOP mechanism. The implementation principle is actually similar to AspectJ, but the process is greatly simplified. For the specific implementation of the code generator, see
 
-3. **IoC Container Behavior**  
-   - When creating beans, if an interceptor is applicable to a method of the bean, an `_aop` derived class is instantiated and used instead.
-   - The implementation pattern closely resembles AspectJ but with simplified logic for code generation. For detailed implementation specifics, refer to:
-     ```
-     nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java
-     ```
+   [nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java)
 
-4. **AOP Configuration in Nop Platform**  
-   - All DSL models in the Nop platform support AOP configuration through `x:gen-extends`.
-   - The process involves generating XML nodes during compilation, which are then merged using the DeltaMerge algorithm to form the final configuration node.
-   - This mechanism effectively translates Spring 2.0-like syntax into custom tags and configurations within the Nop engine.
+3. When the IoC container creates a bean, if it finds that there are interceptors applicable to the class, it uses the \_\_aop derived class to instantiate the object and inserts the interceptor.
 
-### Example Configuration
+An example of the generated file is as follows:
+
+[docs/ref/AuditServiceImpl__aop.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/ref/AuditServiceImpl__aop.java)
+
+### 3.4 Layered Abstraction Implemented Based on the Principles of Reversible Computation
+
+NopIoC uses compile-time generation techniques defined by Reversible Computation to provide custom tag abstractions similar to Spring 2.0.
 
 ```xml
 <beans>
-    <x:gen-extends>
-        <my:MyTask xpl:lib="my.xlib">
-            <reader bean="myReader" />
-            <writer bean="myWriter" />
-        </my:MyTask>
-    </x:gen-extends>
+  <x:gen-extends>
+     <my:MyTask xpl:lib="my.xlib">
+         <reader bean="myReader" />
+         <writer bean="myWriter" />
+     </my:MyTask>
+  </x:gen-extends>
 </beans>
 ```
 
-The Nop platform supports all DSL models through the `x:gen-extends` mechanism. This process generates XML nodes during compilation, which are then merged using the DeltaMerge algorithm to form final configuration nodes. The result is a simplified yet powerful way to define custom tags and configurations within the Nop engine.
+All DSL models in the Nop platform support the `x:gen-extends` mechanism. It runs at compile time, outputs XML nodes, and then executes the DeltaMerge merge algorithm with external XML nodes to produce the final XML configuration nodes. This is equivalent to writing Spring 2\.0 custom tags using the XPL template language, then executing these tags at compile time to output configuration content in Spring 1.0 syntax. The NopIoC engine only needs to support the most basic Spring 1.0 syntax to obtain custom tag abstractions for free.
 
-### AOP Proxy Generation
+In the Nop platform, the concept of layered abstraction is pervasive, allowing us to perform as many operations as possible at compile time, reduce runtime complexity, and improve runtime performance. For example, after completing all condition evaluation and type scanning, NopIoC outputs a final assembled version that removes all optional conditions to the \_dump directory. This version can be executed by a Spring 1\.0 execution engine. On this basis, we can write a translator that converts Spring 1.0 syntax XML configuration into annotation-based configuration to adapt to other IoC runtimes, or translate it into Java construction code, completely eliminating the IoC runtime.
 
-NopIoC provides an `ioc:proxy` attribute that can be used to dynamically create proxy objects based on the current bean's interface.
+### 3.5 Generate Java Proxy
+
+NopIoC has a built-in ioc:proxy attribute, which can directly create a Proxy object that implements a specified interface based on the current bean.
 
 ```xml
 <bean id="myBean" class="xx.MyInvocationHandler"
       ioc:type="xx.MyInterface" ioc:proxy="true" />
 ```
 
-Using this configuration, the `myBean` object will be replaced by a proxy that implements the `MyInterface` and delegates calls to the actual bean.
+With the above configuration, the actual object returned for myBean is a proxy that implements the MyInterface interface.
 
-### AOP Scanning
+### 3.6 Scan by Annotation or Type
 
-NopIoC supports scanning beans either via annotations or type-based scanning. For example:
-
-- **Annotation-Based Scanning**: Detects classes annotated with specific AOP annotations, such as `@AopService` or `@AuditServiceImpl`.
-- **Type-Based Scanning**: Automatically identifies classes that should be wrapped by interceptors based on their type.
-
-
-The following configuration defines a bean "nopBizObjectManager" of type `io.nop.biz.impl.BizObjectManager`. This bean will automatically collect all classes annotated with `@BizModel` from the application context, ignoring abstract classes and interfaces.
+NopIoC has built-in capabilities to collect beans by annotation. For example:
 
 ```xml
-<bean id="nopBizObjectManager" class="io.nop.biz.impl.BizObjectManager">
-    <property name="bizModelBeans">
-        <ioc:collect-beans by-annotation="io.nop.api.core.annotations.biz.BizModel"
-                           only-concrete-classes="true"/>
-    </property>
-</bean>
+ <bean id="nopBizObjectManager" class="io.nop.biz.impl.BizObjectManager">
+     <property name="bizModelBeans">
+        <ioc:collect-beans
+           by-annotation="io.nop.api.core.annotations.biz.BizModel"
+           only-concrete-classes="true"/>
+     </property>
+ </bean>
 ```
 
----
+The above configuration means to find all classes in the container that have the `@BizModel` annotation, ignore all abstract classes and interfaces, and consider only concrete implementation classes.
 
+### 3.7 Prefix-Guided Syntax
 
-### # 3.7 Prefix-Based Syntax in Spring 1.0
-
-In Spring 1.0, to access built-in properties and methods of the IoC container, certain interfaces like `BeanNameAware` and `ApplicationContextAware` must be implemented. In NopIoC, however, we can achieve similar functionality using prefix-based syntax.
-
-For example:
+In the design of Spring 1\.0, in order to obtain some built-in properties and objects of the IoC container, objects must implement specific interfaces, such as BeanNameAware and ApplicationContextAware. In NopIoC, we can obtain the corresponding values through prefix-guided syntax. For example:
 
 ```xml
 <bean id="xx">
-    <property name="id" value="@bean:id" />
-    <property name="container" value="@bean:container" />
-    <property name="refB" value="@inject-ref:objB" />
-    <!-- Equivalent to -->
-    <property name="refB" value-ref="objB" />
+   <property name="id" value="@bean:id" />
+   <property name="container" value="@bean:container" />
+   <property name="refB" value="@inject-ref:objB" />
+  <!-- Equivalent to -->
+   <property name="refB" value-ref="objB" />
 </bean>
 ```
 
----
+Prefix-guided syntax is widely used in the Nop platform and is a very general and extensible syntax design. For a detailed introduction, see my article
 
+[DSL layered syntax design and prefix-guided syntax](https://zhuanlan.zhihu.com/p/548314138)
 
-### # 3.8 Responsive Configuration Updates
+### 3.8 Reactive Configuration Updates
 
-NopIoC supports responsive configuration updates. We can bind individual properties to change-triggered updates.
+NopIoC has built-in support for reactive configuration. We can specify reactive configuration binding for a single property:
 
 ```xml
 <bean id="xx">
-    <!-- `@cfg` is used at bean creation time to get the initial value -->
-    <property name="configValue" value="@cfg:config.my-value" />
-    <!-- `@r-cfg` triggers an update whenever the configuration changes -->
-    <property name="dynValue" value="@r-cfg:config.my-dyn-value" />
+  <!--  @cfg means to obtain the configuration value when the bean is created for the first time, but it will not be reactively updated -->
+  <property name="configValue" value="@cfg:config.my-value" />
+  <!-- @r-cfg means that when the configuration value changes, the bean’s property value is automatically updated -->
+   <property name="dynValue" value="@r-cfg:config.my-dyn-value" />
 </bean>
 ```
 
-We can also use a similar approach to Spring's `@ConfigurationProperties` annotation, binding all properties of an object using prefix-based syntax.
+Or, similar to Spring’s `@ConfigurationProperties` annotation, bind all properties on the object to configuration items via a prefix:
 
 ```xml
-<bean id="xx" class="xxx.MyConfiguration">
-    <ioc:config-prefix="app.my-config" ioc:auto-refresh="true"/>
+<!-- ioc:auto-refresh means that when the configuration changes, the bean’s properties are automatically updated -->
+<bean id="xx" ioc:config-prefix="app.my-config" ioc:auto-refresh="true"
+    class="xxx.MyConfiguration" />
+```
+
+NopIoC also defines a special syntax node ioc:config:
+
+```xml
+<ioc:config id="xxConfig" ioc:config-prefix="app.my-config" ... />
+
+<bean id="xx" ioc:on-config-refresh="refreshConfig" >
+  <property name="config" ref="xxConfig" />
 </bean>
 ```
 
----
+When the configuration is updated, xxConfig will be automatically updated, and this update process will propagate to all beans that use xxConfig, triggering their refreshConfig function.
 
+### 3.9 Auto-Configuration Discovery
 
-### # 3.9 Automatic Configuration Discovery
+NopIoC provides a mechanism similar to Spring Boot’s AutoConfiguration. NopIoC will automatically search the virtual file system for all files with the suffix beans under the `/nop/autoconfig` directory during initialization and automatically load the beans.xml files defined therein. For example, the content of the file [/nop/autoconfig/nop-auth-core.beans](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-core/src/main/resources/_vfs/nop/autoconfig/nop-auth-core.beans) is /nop/auth/beans/auth-core-defaults.beans.xml. Generally, the file name of a beans file is the corresponding Java module name, so when multiple modules are packaged into a fat-jar, file conflicts will not occur.
 
-NopIoC provides an auto-configuration mechanism similar to Spring Boot's `AutoConfiguration`. During initialization, it scans the virtual file system for files in the `/nop/autoconfig` directory that end with "beans.xml" and automatically loads them.
+Unlike Spring Boot, NopIoC does not register beans while loading configuration files. NopIoC only executes the conditional logic once after collecting all bean definitions. Therefore, in NopIoC, in principle, the order of bean definitions does not affect the result of the IoC container’s dynamic computation.
 
-For example:
+### 3.10 Get Beans by Type
 
-```xml
-/nop/autoconfig/nop-auth-core.beans
-```
+`BeanContainer.getBeanByType(beanClass)` can find the corresponding bean by type. If multiple beans have the same type, you can set a bean’s primary attribute to true to prefer that bean, or set other beans’ autowire-candidate attribute to false to indicate they should not be considered as candidates.
 
-```markdown
-# Configuration File Path
+### 3.11 Unit Test Support
 
-The configuration file is located at `/nop/auth/beans/auth-core-defaults.beans.xml`. Typically, the filename of the beans file corresponds to the name of the Java module it represents. This ensures that when multiple modules are packaged into a single fat-jar, there is no file conflict.
-
-## Differences from Spring Boot
-
- Unlike Spring Boot, NopIoC does not register bean configurations while loading the configuration files. Instead, NopIoC waits until all beans' definitions have been collected before performing the final condition logic check. This means that in NopIoC, the order of bean definition does not affect the dynamic calculation results of the IoC container.
-
-## 3.10 Bean Retrieval by Type
-
- The `BeanContainer.getBeanByType(beanClass)` method allows retrieval of beans based on their type. If multiple beans exist for a specific type, you can set the `primary` attribute to true to prioritize one bean. Alternatively, you can set the `autowire-candidate` attribute of other beans to false, indicating they should not be considered as candidate beans.
-
-## 3.11 Test Support
-
- NopIoC has been integrated with JUnit 5. In unit tests, we primarily use the `@NopTestConfig` annotation to control the initialization process of the IoC container.
-
-## 3.12 Configuration Annotation
-
- The `@NopTestConfig` annotation is used as follows:
+NopIoC is integrated with JUnit 5. In unit tests, we mainly control the initialization process of the IoC container through the `@NopTestConfig` annotation.
 
 ```java
 public @interface NopTestConfig {
     /**
-     * Whether to force the `nop.datasource.jdbc-url` to an H2 in-memory database.
+     * Whether to force nop.datasource.jdbc-url to be set to an H2 in-memory database
      */
     boolean localDb() default false;
 
     /**
-     * Whether to use a randomly generated port for the service.
+     * Use a randomly generated server port
      */
     boolean randomPort() default false;
 
     /**
-     * Whether to use lazy loading mode for unit tests by default.
+     * By default, run unit tests in lazy mode
      */
     BeanContainerStartMode beanContainerStartMode() default BeanContainerStartMode.ALL_LAZY;
 
     /**
-     * Whether to automatically load configurations from the `/nop/auto-config/` directory.
+     * Whether to automatically load xxx.beans configurations under /nop/auto-config/
      */
     boolean enableAutoConfig() default true;
 
     String autoConfigPattern() default "";
+
     String autoConfigSkipPattern() default "";
 
     /**
-     * Specifies the test beans configuration file.
+     * beans configuration file specified for unit tests
      */
     String testBeansFile() default "";
 
     /**
-     * Specifies the test config files.
+     * properties configuration file specified for unit tests
      */
     String testConfigFile() default "";
 }
-```
 
-## Integration with JUnit
 
- NopIoC supports integration with JUnit 5. The `@NopTestConfig` annotation is used to control the initialization of the IoC container in unit tests.
-
-```java
 @NopTestConfig
-public class MyTestCase extends JunitBaseTestCase {
-    // Beans can be injected using @Inject
+public class MyTestCase extends JunitBaseTestCase{
+    // You can inject beans managed by the container via @Inject
     @Inject
     IGraphQLEngine engine;
 }
 ```
 
-## NopIoC Test Support Features
+NopIoC’s JUnit support provides the following capabilities:
 
-1. Control whether to use an in-memory database (H2) instead of the configuration file's specified database connection.
-2. Control whether auto-config is enabled and which modules' auto-config should be used.
-3. Control whether to import test-specific beans configurations.
-4. Control whether to import test-specific config files.
-5. Support injection of beans using @Inject in test cases.
+1. Control whether to use a test in-memory database to replace the database connection specified in the configuration file
 
-For detailed information about Nop platform automation support, refer to [autotest.md](autotest.md).
+2. Control whether to enable autoconfig and which modules’ autoconfig to use
 
-## 3.12 Cycle Detection
+3. Control whether to include beans configurations specific to tests
 
- By default, NopIoC allows circular dependencies among beans. For example:
-- A depends on B,
-- B depends on C,
-- C depends on A.
+4. Control whether to include properties configurations specific to tests
 
- However, if `nop.ioc.bean-depends-graph.allow-cycle` is set to false, the container will check for circular dependencies during startup and report errors if any are found.
+5. Support injecting beans via @Inject in test cases
 
- Circular dependencies can be broken by either:
-- Using the `@IgnoreDepends` annotation or
-- Configuring `ioc:ignore-depends` in the configuration file
+For a detailed introduction to automation support in the Nop platform, see [autotest.md](autotest.md)
+
+### 3.11 Issue Diagnosis
+
+#### Check Circular Dependencies
+By default, NopIoC allows circular dependencies among bean definitions, such as A injects B, B injects C, and C injects A.
+If `nop.ioc.bean-depends-graph.allow-cycle` is set to false, the reference relationships among beans will be checked at startup, and an error will be reported if a circular dependency is found.
+
+You can break cycles via the `@IgnoreDepends` annotation or the `ioc:ignore-depends` attribute in ioc configuration.
 
 ```java
 public class SysSequenceGenerator implements ISequenceGenerator {
@@ -298,13 +266,13 @@ public class SysSequenceGenerator implements ISequenceGenerator {
 ```
 
 ```xml
-<bean id="nopOrmSessionFactory" class="io.nop.orm.factory.OrmSessionFactoryBean"
-      ioc:bean-method="getObject" ioc:default="true">
+    <bean id="nopOrmSessionFactory" class="io.nop.orm.factory.OrmSessionFactoryBean"
+          ioc:bean-method="getObject" ioc:default="true">
 
-  <property name="daoListeners">
-    <ioc:collect-beans by-type="io.nop.orm.IOrmDaoListener" ioc:ignore-depends="true"/>
-  </property>
-  ...
-</bean>
+        <property name="daoListeners">
+            <ioc:collect-beans by-type="io.nop.orm.IOrmDaoListener" ioc:ignore-depends="true"/>
+        </property>
+        ...
+    </bean>
 ```
-
+<!-- SOURCE_MD5:3057cef9f3ff698f07baf9aec588d45f-->

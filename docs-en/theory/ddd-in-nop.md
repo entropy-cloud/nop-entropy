@@ -1,95 +1,98 @@
-# DDD in Low-Code Platforms: Best Practices
+# A Long-Form Article Explaining DDD Best Practices in Low-Code Platforms
 
-In the context of microservices, DDD has experienced a new wave of popularity. However, standardizing its best practices into a cohesive technical framework remains a subject of debate. During the implementation of DDD, many design meetings are dominated by unnecessary disputes over technical details, leaving little room for constructive dialogue.
+A wave of renaissance for DDD has been triggered in the context of microservices, yet there is much debate over whether its best practices can be standardized into a technical framework. In the process of implementing DDD, many design meetings are filled with pointless disputes over technical details, with nobody able to convince anyone else.
 
-Is DDD better suited to adapt to object ecosystems or to unify domain knowledge, address management layer resistance, and establish mappings between technology and business? Are there mathematical layers that can provide evidence for a necessary technological evolution? This text combines the technical implementation of the open-source low-code platform "Nop" with an analysis of DDD's technical core.
+Is DDD’s advantage that it better adapts to the object ecological environment? Or that it better unifies stakeholders’ mental models, making management-level resistance explicitly expressed in the technical world? Better mapping between technology and business? Or is there some mathematically provable technical inevitability? This article, combined with the technical implementation of the open-source low-code Nop platform, analyzes the technical core of DDD.
 
-In object-oriented programming, state encapsulation is less critical than it seems. The most chaotic code often stems from encapsulated states that cannot be legally operated on using legitimate means; instead, developers resort to hack methods to bypass these restrictions.
+The concept of state encapsulation in object orientation is not that important. The most chaotic code actually arises when encapsulation prevents legitimate operations, leading to hacky workarounds.
 
-DDD's value lies in its ability to achieve maximum impact either within a low-code platform or model-driven frameworks.
+DDD can only realize its greatest value in a low-code platform or model-driven framework.
 
-The evolution of platforms and business logic is not about fixing rules and letting businesses operate within them. Instead, businesses can continuously define new rules without relying on third-party vendors for platform customization. This allows the business layer to take ownership of its own rules.
+Co-evolution of platform and business logic. It is not that platform rules are fixed with business expressed under those rules; rather, new rules can be continuously customized. This customization does not require going through the platform vendor; the business layer can customize on its own.
 
-## Effective Organization of Design Space
+## Effective Organization of the Design Space
 
-1. Vertical Splitting
-2. Horizontal Splitting
-3. Time and Space Organization: Lifecycle, Service Singleton
+1. Vertical partitioning
+2. Horizontal partitioning
+3. Organization across time and space: lifecycle, service singleton
 
-After splitting, look for similarities and extract common parts.
+After partitioning, look for similarities, then abstract the common parts.
 
-1. Divide et impera leads to multi-level decomposition.
-2. Setting boundaries can help avoid bottlenecks.
+1. Divide-and-conquer naturally yields multi-layer decomposition
+2. Set bottlenecks at the boundaries
 
-Structured models over flat models are generally preferred. Dependency injection is better understood in terms of object trees and business flow separation.
+Structured models rather than flat domain services.
+Relationship to dependency injection: separate the object tree from the business flow
 
 ## Domain Language
 
-- A language can be seen as a coordinate system.
-- Through the coordinate system, define a domain semantic space.
-- Different domains may correspond to different coordinate systems; equivalent meanings must be merged.
-- Business expressions are independent of technical implementations.
-- Value chains: guided by financial considerations.
-- The value of modeling lies in abstracting and refining domain concepts, such as converting cashiers into roles, deeper understanding of business essence rather than surface-level details.
+* A language can be regarded as a descriptive coordinate system
+* Define a domain semantic space through the coordinate system
+* Multiple domain spaces correspond to different coordinate systems; semantically equivalent parts need to be glued together
+* Business expression is independent of technical implementation
+* Value chain: some propose being guided by finance
+* The value of domain modeling is to transform domain nouns into domain models, requiring abstraction and refinement. For example, abstract tellers and lobby managers into roles, digging deeper into the business essence rather than staying at the surface—this is the most important outcome of DDD.
 
-## Aggregation Root
-Aggregations aren't just for transaction management.
+## Aggregate Root
+Aggregation is not for implementing transactions
 
-- Primary decomposition: decompose based on main properties.
-- Facade pattern: handle complex operations without exposing internal details.
-- Not object-oriented but focused on DO (data objects).
-- Global relationships and local relationships must be considered simultaneously.
-- Entities, lazy loading, and session caching contribute to structural aggregation.
-- BizObject for behavior aggregation.
-- GraphQL for structural selection and combination.
+* Primary decomposition dimension, Facade pattern
+  Object-oriented rather than DTO-oriented, not ID-oriented
+* Global relationships + internal local relationships. Maps at different scales
+* Information at your fingertips
+* Entity + lazy loading + session cache: structural aggregation
+* BizObject: behavioral aggregation
+* GraphQL: selection and composition of structure
 
-Aggregation roots begin with logical aggregation. BizModel's slice construction is an aggregation approach, not traditional object-oriented inheritance or composition. Dynamic slicing via GraphQL provides a dynamic slicing capability at information retrieval time. Without dual slicing concepts, the aggregation root becomes bloated and drags performance.
+An aggregate root is first and foremost a logical aggregation. The slicing construction of BizModel is a form of aggregation, which is not the traditional inheritance or composition in object orientation. Moreover, the dual concept of aggregation is dynamic slicing, and GraphQL happens to provide a dynamic slicing capability when retrieving information. This allows us to maintain a large aggregate-root concept at the conceptual level while loading only small amounts of data in practice each time. Without the dual slicing concept, the aggregate root itself becomes bloated and a performance burden.
 
-From a coordinate system perspective, understanding aggregation.
+Understand aggregation from the perspective of coordinates
 
-Data collection for use is the primary goal. Pure historical data queries should be handled by dedicated query services.
+Data is fetched for use; purely historical data queries should go through dedicated query services.
 
-## Business Facade
-Same entity with different configurations leads to distinct objects, which can be modified via extends.
+## Business Aspect
+The same entity + different configurations produce differently named objects. These objects can use extends to inherit existing parts and apply Delta modifications.
 
-## Blood or Nutrient?
+## Anemic or Rich
 
-Balanced partitioning.
-Different stability and scope levels.
-Common CRUD problems vs specific business challenges. BizService doesn't include CRUD operations.
+* Balanced division of labor
+* Different stability and information scope
+* Generic CRUD problems + specific business problems. Different problem subspaces can use different solutions; there is no need for a single uniform treatment. BizService does not include CRUD.
 
-## Command Query Responsibility Separation (CQRS)
-- Is there a need to encapsulate commands as clear DomainCommand forms? ApiRequest + domain-specific structure, general structures for universal data extension. No explicit abstraction needed at the implementation level.
-- Combine with TCC for persistent transactions.
-- Boundary layer and internal models differ in representation: ID vs entity.
+## CQRS
+* Should it be wrapped as an explicit Command form? ApiRequest + domain-specific structure; the only purpose of the generic structure is to introduce extension data in a standard way. But at the implementation layer, there is no need to express it explicitly; an explicit DomainCommand abstraction is not necessary.
+* Combined with TCC, requests need to be persistable
+* Representations differ between the boundary layer and the internal model layer: id => entity. Internal vs external perspectives
+* Difference between domain events and commands. Events as a modeling entry point. State Delta
 
-## State Delta
-Domain events as deltas.
-Reversible transformations require completeness.
-Fixed notifications vs variable commands.
-Fact (determined) vs operation (indeterminate).
+## Delta Update
 
-## Data Separation
+* Domain events as Delta
+* Completeness required by reversible transformations
+* Fixed notifications vs mutable commands
+  Facts that have occurred (certain) vs operations that trigger events (uncertain)
+* Multiverse: read-write separation
 
-Reads and writes separated by domain.
+## Logical Orchestration
 
-## Logical Arrangement
-Logic is a function. Each unit is a function. Traditional inheritance vs composition.
+Logical orchestration is function-oriented; each unit is a function. The implementation of a function may simply trigger a method on a service object—this is a secondary concern.
 
-From the domain perspective, DDD also involves coding practices: abstraction, separation of concerns, testing patterns. However, these are not covered in this text.
+From domain concepts, DDD should also include orchestration; the elements involved in orchestration can be based on domain terminology. However, traditional DDD is oriented toward data modeling, and orchestration is content not yet addressed.
+
+Domain-oriented orchestration requires abstracting domain logic, mapping it to corresponding concrete technical entities, and then manipulating them through various means. Traditionally, data modeling is relatively mature, but logic modeling is weak, especially lacking systematic means to use the modeling results after modeling.
 
 ## Implementation Technology
 
-sqlalchemy's lazy loading attribute can be changed to eager loading by specifying it during data retrieval.
+In SQLAlchemy, to change a lazy-loaded attribute to eager loading, you need to specify it when fetching the data.
 
-Through deep abstraction:
-A generates B, then runs B, while keeping B simple. Each phase handles partial complexity without passing it to the next stage.
+Abstract via deep implementation: A generates B, then run B; this is simpler than handling multiple possible Bs at runtime simultaneously. Multi-stage, with each stage handling part of the complexity, and that complexity not being propagated to the next stage but gradually reduced.
 
 ## Summary
 
-1. Objectification is a natural abstraction method.
-2. Aggregation stems from aggregation, leading to selection.
-3. IoC manages object lifecycles through containers.
+1. Object orientation is a very natural abstraction approach
+2. Aggregate roots originate from aggregation and boil down to selection
+3. IoC containers manage object lifecycles along the time dimension
+4. Proper distribution of information can minimize the scope of perturbations
+5. Refactor all understanding around Delta
 
-4. A reasonable distribution of information can minimize the disturbance impact range
-5. A differential reconstruction approach provides a comprehensive understanding
+<!-- SOURCE_MD5:27420dd642b67301b95ef42539505c4c-->

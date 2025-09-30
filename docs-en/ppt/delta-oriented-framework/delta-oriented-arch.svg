@@ -1,0 +1,117 @@
+<svg width="1000" height="680" viewBox="0 0 1000 680" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+  <!-- 
+    Design Rationale for V3.0 (Animation):
+    1. Narrative Sequencing: Animation is timed to tell a story: first build the stable base layers, then introduce the Delta pillar as a non-invasive force, and finally show its impact via animated arrows.
+    2. Animation Techniques:
+       - Layers use a staggered fade-in (`opacity`) to show a build-up process.
+       - The Delta Pillar uses a slide-in (`transform`) with an ease-out curve for a modern feel.
+       - Arrows use the `stroke-dashoffset` technique to create a "drawing" effect, making the connection feel active.
+    3. Self-Contained: All animations are implemented using SVG SMIL for maximum portability without external CSS or JS.
+  -->
+  <defs>
+    <!-- Gradients (same as before) -->
+    <linearGradient id="grad-business-v2" x1="0%" y1="0%" x2="100%" y2="0%"> <stop offset="0%" style="stop-color:#38BDF8;stop-opacity:1" /> <stop offset="100%" style="stop-color:#60A5FA;stop-opacity:1" /> </linearGradient>
+    <linearGradient id="grad-engine-v2" x1="0%" y1="0%" x2="100%" y2="0%"> <stop offset="0%" style="stop-color:#2563EB;stop-opacity:1" /> <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" /> </linearGradient>
+    <linearGradient id="grad-foundation-v2" x1="0%" y1="0%" x2="100%" y2="0%"> <stop offset="0%" style="stop-color:#1E40AF;stop-opacity:1" /> <stop offset="100%" style="stop-color:#1D4ED8;stop-opacity:1" /> </linearGradient>
+    <linearGradient id="grad-delta-pillar" x1="0%" y1="0%" x2="0%" y2="100%"> <stop offset="0%" style="stop-color:#A855F7;stop-opacity:1" /> <stop offset="100%" style="stop-color:#D946EF;stop-opacity:1" /> </linearGradient>
+    <linearGradient id="grad-flow" x1="0.5" y1="0" x2="0.5" y2="1"> <stop offset="0%" stop-color="white" stop-opacity="0.6"/> <stop offset="100%" stop-color="white" stop-opacity="0.1"/> </linearGradient>
+    
+    <!-- Filters (same as before) -->
+    <filter id="soft-shadow" x="-50%" y="-50%" width="200%" height="200%"> <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#1E40AF" flood-opacity="0.1"/> </filter>
+    <filter id="delta-glow" x="-100%" y="-100%" width="300%" height="300%"> <feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="#D946EF" flood-opacity="0.75"/> </filter>
+    
+    <!-- Arrowhead -->
+    <marker id="arrow-delta-v2" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#D946EF"/>
+    </marker>
+  </defs>
+
+  <!-- Clean, light background -->
+  <rect width="100%" height="100%" fill="#F8FAFC"/>
+
+  <!-- Main Title -->
+  <g id="title-section" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="0s" fill="freeze" />
+    <text x="500" y="45" font-size="24" font-weight="700" text-anchor="middle" fill="#1E3A8A">Delta-Oriented Architecture</text>
+    <text x="500" y="70" font-size="14" font-weight="400" text-anchor="middle" fill="#64748B">A Layered Blueprint for Extensibility</text>
+  </g>
+
+  <!-- Flow Channels (Appear with layers) -->
+  <g id="flow-channels" opacity="0">
+      <animate attributeName="opacity" from="0" to="1" dur="1s" begin="1.0s" fill="freeze" />
+      <path d="M 440 250 L 560 250 L 560 420 L 440 420 Z" fill="url(#grad-flow)" />
+      <path d="M 440 90 L 560 90 L 560 260 L 440 260 Z" fill="url(#grad-flow)" />
+  </g>
+
+  <!-- Layer 3: Business Application Layer -->
+  <g id="layer-3" filter="url(#soft-shadow)" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.5s" fill="freeze" />
+    <!-- content from original svg -->
+    <rect x="120" y="100" width="680" height="140" rx="12" fill="url(#grad-business-v2)"/>
+    <rect x="120" y="100" width="680" height="40" rx="12" ry="12" fill="black" fill-opacity="0.1" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+    <text x="140" y="125" font-size="16" font-weight="600" fill="white">Business Application Layer</text>
+    <g transform="translate(140, 155)"> <rect width="200" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">Issuing</text> </g>
+    <g transform="translate(350, 155)"> <rect width="200" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">Acquiring</text> </g>
+    <g transform="translate(560, 155)"> <rect width="220" height="45" rx="8" fill="rgba(255,255,255,0.7)" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4 2"/> <text x="20" y="28" fill="#1E3A8A" font-size="13" font-weight="500">Other Business (e.g., Value-add)</text> </g>
+  </g>
+
+  <!-- Layer 2: Core Engine Layer -->
+  <g id="layer-2" filter="url(#soft-shadow)" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.0s" fill="freeze" />
+    <!-- content from original svg -->
+    <rect x="120" y="260" width="680" height="140" rx="12" fill="url(#grad-engine-v2)"/>
+    <rect x="120" y="260" width="680" height="40" rx="12" ry="12" fill="black" fill-opacity="0.1" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+    <text x="140" y="285" font-size="16" font-weight="600" fill="white">Core Engine Layer</text>
+    <g transform="translate(140, 315)"> <rect width="160" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">RuleEngine</text> </g>
+    <g transform="translate(310, 315)"> <rect width="160" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">BatchEngine</text> </g>
+    <g transform="translate(480, 315)"> <rect width="160" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">TaskFlowEngine</text> </g>
+    <g transform="translate(650, 315)"> <rect width="130" height="45" rx="8" fill="rgba(255,255,255,0.7)" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4 2"/> <text x="20" y="28" fill="#1E3A8A" font-size="13" font-weight="500">Extensions...</text> </g>
+  </g>
+
+  <!-- Layer 1: Foundation Layer -->
+  <g id="layer-1" filter="url(#soft-shadow)" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="0.5s" fill="freeze" />
+    <!-- content from original svg -->
+    <rect x="120" y="420" width="680" height="180" rx="12" fill="url(#grad-foundation-v2)"/>
+    <rect x="120" y="420" width="680" height="40" rx="12" ry="12" fill="black" fill-opacity="0.1" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+    <text x="140" y="445" font-size="16" font-weight="600" fill="white">Foundation Layer</text>
+    <g transform="translate(140, 475)"> <rect width="310" height="50" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="24" fill="#0F172A" font-size="13" font-weight="600">Delta Virtual File System</text> <text x="20" y="40" fill="#475569" font-size="12">(DeltaFS)</text> </g>
+    <g transform="translate(470, 475)"> <rect width="310" height="50" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="24" fill="#0F172A" font-size="13" font-weight="600">Unified Model &amp; Delta</text> <text x="20" y="40" fill="#475569" font-size="12">Loader, x:extends, etc.</text> </g>
+    <g transform="translate(140, 535)"> <rect width="310" height="50" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="24" fill="#0F172A" font-size="13" font-weight="600">Core Models</text> <text x="20" y="40" fill="#475569" font-size="12">RecordModel, etc.</text> </g>
+    <g transform="translate(470, 535)"> <rect width="310" height="50" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="24" fill="#0F172A" font-size="13" font-weight="600">Code Generation Engine</text> </g>
+  </g>
+  
+  <!-- Delta Customization Pillar -->
+  <g id="delta-pillar" transform="translate(200 0)" opacity="0">
+    <animateTransform attributeName="transform" type="translate" from="200 0" to="0 0" dur="0.8s" begin="1.8s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.1 0.8 0.2 1"/>
+    <animate attributeName="opacity" from="0" to="1" dur="0.8s" begin="1.8s" fill="freeze" />
+    <g filter="url(#soft-shadow)">
+      <rect x="820" y="100" width="60" height="500" rx="12" fill="url(#grad-delta-pillar)"/>
+      <text x="850" y="350" font-size="18" font-weight="700" fill="white" text-anchor="middle" transform="rotate(-90, 850, 350)">
+        Delta Customization
+      </text>
+    </g>
+  </g>
+  
+  <!-- Connecting arrows from pillar to layers -->
+  <g id="delta-arrows" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.1s" begin="2.8s" fill="freeze" />
+    <g filter="url(#delta-glow)">
+      <!-- Arrow 1 to Business Layer -->
+      <path d="M 820 170 C 810 170, 810 170, 800 170" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="25">
+        <animate attributeName="stroke-dashoffset" from="25" to="0" dur="0.4s" begin="2.8s" fill="freeze" />
+      </path>
+      <!-- Arrow 2 to Engine Layer -->
+      <path d="M 820 330 C 810 330, 810 330, 800 330" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="25">
+         <animate attributeName="stroke-dashoffset" from="25" to="0" dur="0.4s" begin="3.2s" fill="freeze" />
+      </path>
+      <!-- Arrow 3 to Foundation Layer -->
+      <path d="M 820 510 C 810 510, 810 510, 800 510" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="25">
+        <animate attributeName="stroke-dashoffset" from="25" to="0" dur="0.4s" begin="3.6s" fill="freeze" />
+      </path>
+    </g>
+  </g>
+
+  <!-- Version info -->
+  <text x="950" y="665" font-size="10" fill="#94A3B8" text-anchor="end">v3.0 Animated Blueprint</text>
+</svg>

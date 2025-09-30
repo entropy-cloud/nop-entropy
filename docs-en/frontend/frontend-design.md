@@ -1,19 +1,24 @@
 # Frontend Architecture Design
 
-The overall design concept is to establish a micro-nuclear architecture on the frontend, providing a set of public plugin registration mechanisms that can support various low-code engines such as AMIS and OpenTiny.
+The overall design philosophy is to build a micro-kernel architecture on the frontend and provide a common plugin registration mechanism that can support multiple frontend low-code engines such as amis and OpenTiny.
 
-## 1. Overall Structure
+## I. Overall Structure
 
-1. The `packages` directory contains basic SDK implementations and establishes the fundamental micro-nuclear architecture.
-2. Plugins are integrated through a plugin mechanism, with AMIS being introduced as a plugin.
-3. Shells provide the overall program framework, including frontend menus, frame pages, and authentication, etc.
-4. Applications (apps) integrate shells, plugins, and packages to build comprehensive applications. Since the entire system has adopted micro-nuclear technology, apps primarily serve as glue modules with relatively simple functions. Nop-site provides an example of such a glued application.
+1. The packages directory provides the basic SDK implementation and establishes the foundational micro-kernel architecture.
 
-## 2. Core Module Functions
+2. plugins integrates various low-code technologies via the plugin mechanism, with amis introduced as a plugin.
 
-1. The `nop-core` module defines basic Adapter interfaces and Registry interfaces. These are independent of Vue and React frameworks.
-2. Modules like `nop-vue-core`, `nop-react-core`, and `nop-vue-react` provide integration support for Vue and React, along with helper functions for mixed use cases.
-3. `nop-graph-designer` provides an abstract graphical designer using React for implementation, with specific flowchart and property-editing functionalities introduced as plugins.
+3. shells provides the overall application framework, including frontend menus, layout pages, and security/authentication.
+
+4. apps integrate the capabilities of shells, plugins, and packages to assemble a complete application. Since the system already adopts a micro-kernel architecture, apps mainly play a glue role and are not complex. nop-site provides an example of such a glue application.
+
+## II. Core Module Capabilities
+
+1. nop-core defines the basic Adapter and Registry interfaces, and its implementation is framework-agnostic with respect to Vue and React.
+
+2. nop-vue-core, nop-react-core, and nop-vue-react provide integration support for Vue and React, along with helper functions for mixed invocation between Vue and React.
+
+3. nop-graph-designer provides an abstract graph designer implemented with React, while concrete flowchart and property editing are introduced as plugins.
 
 ## Plugin Design and Dynamic Loading
 
@@ -21,12 +26,11 @@ The overall design concept is to establish a micro-nuclear architecture on the f
 Plugin = Module + PluginFunctions
 ```
 
-Depending on a page's required modules, those modules can be pre-loaded.
+Modules that a single page depends on can be preloaded.
 
-1. A general module management mechanism is established to manage plugin mechanisms. Each plugin corresponds to an entry point in the module.
-2. Currently, SystemJs is used for module loading.
-3. Dynamic updates can be handled using HMR (Hot Module Replacement), although this is not yet necessary for the simple frontend of the Nop platform. HMR may be added later.
-4. The basic unit of dynamic loading is the `Module`.
+1. Build a plugin management mechanism on top of the general module management system. Each plugin corresponds to a module entry point. Currently, SystemJS is used to load modules.
+2. Dynamic module updates can use HMR (Hot Module Replacement). However, given the current simplicity of the Nop platform’s frontend, full refreshes are generally sufficient, so HMR is not needed for now.
+3. The basic unit of dynamic loading is a Module. A module can contain multiple components.
 
 ## Store
 
@@ -34,97 +38,93 @@ Depending on a page's required modules, those modules can be pre-loaded.
 Store = State + Methods + Scope
 ```
 
-Based on Zustand, a unified architecture support is added to the store.
+Add unified architectural support on top of Zustand.
 
-The role of Store replaces event handling. Native Event logic belongs to the lower-level interaction abstraction layer. In the abstract business layer, UI-specific concepts like Events are not used; instead, only business-related state and processing functions are handled by the Store.
+The Store is intended to replace event handling. Logic that truly requires native Events belongs to the underlying interaction abstraction layer. In the abstracted business layer, UI-specific Event concepts will not be used; only business-related state data and handlers—i.e., the Store object—will be used.
 
-1. The Store itself is a Module.
-2. The `createStore` function in the Module is used to create a Store instance.
-3. Introducing a StoreModule node automatically creates a Store and stores it in the Scope context, similar to variable scoping. On the framework level, the `useContext` mechanism is utilized to provide the Store.
-4. Store propagation no longer requires passing props through multiple levels; it can be implicitly transmitted as implicit context.
-5. The constructor of the Store primarily accepts inherited parts from the parent Store and initial data sets.
-6. The Store uses an immutable data set, making its information more predictable in terms of derivation. It should be possible to enhance Zustand with Vue 3 reactivity.
+1. A Store is also a Module. The Module includes a createStore function to create the Store.
+2. A node that imports a StoreModule will automatically create a Store and place it into the Scope context object, implementing a variable lookup chain similar to lexical scoping. At the framework level, the Store Scope is provided via useContext. Passing the store no longer requires prop drilling and can be delivered as an implicit context.
+3. The constructor primarily accepts parts inherited from the parent Store and the initial dataset.
+4. Using immutable datasets for the Store simplifies implementation and improves predictability of data derivation. It should be possible to add a Vue 3 reactivity adapter for Zustand.
+5. Child nodes can access the Store provided by their parent and directly invoke functions on the store. In general, sibling-to-sibling communication should not be necessary; any shared information can be lifted to the parent.
+6. Attribute-binding expression syntax can be used during configuration.
 
 ## Schema
 
 ```
-component = compile(schema);
+ component = compile(schema);
 ```
 
-The schema is structured in JSON format for editing purposes. During runtime, the `compile` function converts the schema into a virtual DOM.
+A JSON-form schema is an edit-oriented representation. Before runtime, it can be compiled into a component via the compile function.
+
+RenderContext provides low-code runtime support and includes two functions:
+
+1. render: directly transforms the schema into a virtual DOM.
+2. invokeApi: executes an Api object. Api is not limited to remote calls; various frontend-triggered functions can be represented in the Api configuration format.
 
 ## Render
 
 ```
-render(name, schema, options, {props, store});
+render(name, schema, options, {props, store})
 ```
 
-The render function generates the virtual DOM tree based on the component name and schema.
+The render function generates the virtual DOM tree.
 
-1. The `type` property is mapped to the component definition using the `resolve` function.
-2. For asynchronous loading, an `AsyncWrapperComponent` can be returned if needed.
+1. The type attribute is mapped to a component definition via the resolve function.
+2. resolve always returns a Component definition; for asynchronous loading, it can return an AsyncWrapperComponent.
 
 ## Framework Support
 
-1. `xui:schema-type`
-2. `xui:import`
-3. `xui:store-lib`, `xui:store-init-data`, `xui:store-inherit`
-4. `xui:component-lib`
+1. xui:schema-type
+2. xui:import
+3. xui:store-lib, xui:store-init-data, xui:store-inherit
+4. xui:component-lib
 
-## Dynamic Loading of Controls
+## Dynamic Loading
 
-Controls provide atomic semantics. Control libraries can be dynamically loaded and locally applied.
+### Dynamic Loading of Component Libraries
 
-1. The `componentLib` parameter specifies the control library path, which is loaded from the backend using SystemJS format.
-2. Timestamps are used to prevent duplicate loading. The URL is automatically updated with a timestamp to avoid cache issues.
-3. Loaded controls are directly placed into the Context object for use by components.
+Components provide atomic semantics. Component libraries can be dynamically loaded and applied locally.
 
+1. The componentLib parameter is the path to the component library, which is loaded from the backend in SystemJS format.
+2. Use a timestamp to prevent duplicate loading. The backend automatically appends a timestamp to the URL in responses.
+3. The loaded component set is placed directly into the Context.
 
 ### Dynamic Loading of State Libraries
 
-Based on `storeLib`, load state libraries. Create a `store` using the `createStore` function and register it to the `Context`.
+Load the state library specified by storeLib, create the store using its createStore function, and register it into the Context.
 
 ### Schema Organization
 
-Schemas are organized within the control library, using JSON format for expression.
+The Schema is organized on top of the component library and expressed in JSON format.
 
-Nodes can serve as lifecycle controls, used for creating components.
+Nodes can serve as the basis for lifecycle control to manage component creation.
 
-Libraries are loaded based on page granularity. After loading the schema, scan all libraries dynamically before loading them. Once completed, create a `Page` object based on the schema.
+Libraries are loaded at page granularity. After loading the schema, scan all libs and dynamically load them. Once loading is complete, create the Page object based on the schema.
 
 ### Schema Rendering
 
-When rendering schemas, additional intermediate nodes may be inserted to adapt to low-code frameworks and Nop contexts.
+During actual rendering of the Schema, extra intermediary nodes may need to be inserted to adapt to the low-code framework and the Nop context.
 
-`xui:import` functions do not require initialization, but `store` does, requiring additional handling.
+Functions imported via xui:import do not need initialization; the store, however, must be constructed and requires extra handling.
 
-`useStore(path)` and `useContext(StoreType)` are essentially the same in nature.
+useStore(path) and useContext(StoreType) are essentially the same thing.
 
----
-
-### Code Snippets
-
-```javascript
+```
 Editor(data)
-```
 
-```javascript
-Editor = GenericEditor<Components, Store>
-```
+Editor = GenericEditor<Components,Store>
 
-```javascript
 Components = Loader(componentLib)
 Store = Loader(storeLib)
-```
 
-```javascript
 storeLib = Generator<EditorModel>
 componentLib = Generator<EditorModel>
-```
 
-```javascript
 eventHandler = store.method
-data = useStore(state => selector(state))
+
+data = useStore(state=> selector(state))
+
 ```
 
----
+<!-- SOURCE_MD5:e1147975e9bd4f931870a911cf84b4e7-->

@@ -1,262 +1,225 @@
-# Meta Programming in Low-Code Platforms
+# Metaprogramming in Low-Code Platforms (Meta Programming)
 
-In the realm of programming languages, Lisp has always stood out as a unique entity. Its uniqueness is often summarized with the phrase "Lisp is a programmable programming language." This implies that Lisp possesses strong meta-programming capabilities, allowing developers to create new syntax abstractions on their own. In simple terms, **writing code** refers to creating programs, while **meta-programming** involves **writing code that generates code**.
+Among many programming languages, the venerable Lisp has always been a unique presence, a uniqueness often summarized as “Lisp is a programmable programming language.” This means Lisp has powerful metaprogramming capabilities, allowing programmers to freely create new syntactic abstractions. Put simply, programming is writing code, while metaprogramming is writing code that generates code. Lisp provides metaprogramming via macros, which are essentially code generators embedded in the language. Beyond Lisp, modern languages like Scala and Rust also offer macro designs, but macros are generally seen as complex, low-level technologies and rarely make it into the average programmer’s toolbox.
 
-Lisp achieves this through macros. Essentially, a Lisp macro is a built-in code generator embedded within the language itself. While modern languages like Scala and Rust also employ macros, they are typically viewed as complex lower-level tools, rarely used by average developers.
+XLang, part of the Nop platform, is one of the core technologies implementing the principles of Reversible Computation. To realize the programming paradigm proposed by the Reversible Computation theory, namely
+`App = Delta x-extends Generator<DSL>`,
+a new DSL- and Delta-oriented paradigm,
+XLang defines a complete, systematic set of Generators covering all aspects of application development. Lisp macros only provide a metaprogramming mechanism for generating Lisp AST, while XLang not only introduces macro functions to generate XLang AST, but also provides the Xpl template syntax for code generation—ranging from local function bodies, to individual model files, and even entire module directories. In particular, all DSLs defined in the Nop platform have a built-in Delta generation mechanism via `x:gen-extends`, allowing model deltas to be dynamically generated and automatically merged during parsing and loading. This creates a new approach to software structure reuse, solving many technical problems that are difficult to handle under traditional programming paradigms. In this article, I will briefly introduce these built-in metaprogramming mechanisms in the Nop platform.
 
-Nop platform's XLang language is considered a core technology for implementing reversible computing principles, as outlined in the equation `App = Delta x-extends Generator<DSL>`. This represents a new programming paradigm focused on DSLs (Domain-Specific Languages) and differential programming. XLang offers a comprehensive system of structured, scalable solutions based on the Generator pattern.
+## Macro Functions
 
-Lisp's macros provide meta-programming capabilities, while XLang goes further by introducing macro functions. These macro functions operate at compile time to automatically generate abstract syntax trees (ASTs). For instance, a macro function might take a scope and an expression as parameters and return a CallExpression representing the AST of the generated code.
+XLang defines macro functions similar to Lisp macros. Macro functions are executed at compile time and automatically generate Expression abstract syntax tree (AST) nodes.
 
-Macro functions in XLang require specific parameters:
-- The first parameter must be of type `IXLangCompileScope`.
-- The second parameter must be a `CallExpression`.
-- The return type is always an `Expression`.
+Macro functions have special parameter requirements and need the `@Macro` annotation. See [GlobalFunctions](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/functions/GlobalFunctions.java) for concrete examples.
 
-When compiling macro functions, the corresponding AST (Abstract Syntax Tree) is passed as a `CallExpression`. For example:
+> EvalGlobalRegistry.instance().registerStaticFunctions(GlobalFunctions.class) registers all static functions in the class as global functions available in the XScript scripting language.
 
 ```javascript
-let result = xpl `<c:if test="${x}">aaa</c:if>`;
+    @Macro
+    public static Expression xpl(@Name("scope") IXLangCompileScope scope, @Name("expr") CallExpression expr) {
+        return TemplateMacroImpls.xpl(scope, expr);
+    }
 ```
 
-Here, `xpl` is a macro function that takes two parameters:
-1. A `TemplateStringLiteral` containing the XML text `<c:if test="${x}">aaa</c:if>`.
-2. The variable `x`.
+The first parameter of a macro function must be of type IXLangCompileScope, the second must be of type CallExpression, and the return value must be of type Expression.
 
-The macro function then generates a `CallExpression` representing this XML structure.
+When compiling a macro function, the AST corresponding to the function call is passed in as a CallExpression. For example:
 
-By leveraging macro functions, developers can embed various syntax formats into XScript, such as:
-- C#-style LINQ (`let result = linq `select ff from myObject o where o.value > 3`;`)
-
-Nop platform's built-in macros, like `x:gen-extends`, enable dynamic generation of model differences during analysis and loading. This allows for efficient resolution of traditional programming challenges through a novel approach to code generation.
-
-In summary, the Nop platform's meta-programming capabilities, particularly through XLang's macro functions, offer powerful tools for addressing complex technical challenges in a manner that is both intuitive and highly effective.
-
-
-| Function Name | Description |
-|--------------|-------------|
-| xml          | Parses XML text to get an XNode node, and wraps it as a LiteralExpression. |
-| xpl          | Parses XPL template text to get an Expression. |
-| sql          | Parses XPL template text to generate SQL statements, getting an Expression. |
-| jpath        | Parses JSON path text to get a JPath object, and wraps it as a LiteralExpression. |
-| xpath        | Parses XPath text to get an XSelector object, and wraps it as a LiteralExpression. |
-| selection    | Parses similar to GraphQL Query, getting a FieldSelection object, wrapped as a LiteralExpression. |
-| order\_by     | Parses the `order by` clause, obtaining a List<OrderFieldBean> object, wrapped as a LiteralExpression. |
-| location      | Returns the source code location of the function call, wrapping it as a LiteralExpression. |
-| IF           | Implements similar to Excel's IF function. |
-| SWITCH       | Implements similar to Excel's SWITCH function. |
-
-Because macros are executed at compile time, using macros for parsing can optimize system performance. For example, when retrieving the `a` attribute of node `b` from an XNode:
-
-```xml
-node.selectOne(xpath `a/@b`)
+```
+let result = xpl `<c:if test="${x}">aaa</c:if>`
 ```
 
-Since XPath is a macro, it will be parsed during compilation, and at runtime, it simply passes a constant value to `selectOne`.
+When compiling the xpl macro function, the first argument of the CallExpression is a TemplateStringLiteral—that is, the XML text in the call above, `<c:if test="${x}">aaa</c:if>`. Inside the macro function, we can parse this XML text and construct a new Expression object to return.
 
-Macros enable custom syntax, such as converting `IF(X, Y, Z)` into an `if` statement.
+By leveraging macro functions together with TemplateStringLiteral in XScript, we can easily embed DSLs with different syntaxes into XScript. For example, **provides a SQL query syntax similar to C# LINQ**.
 
+```
+let result = linq `select ff from myObject o  where o.value > 3`
+```
 
-## XPL Template Language
+The Nop platform currently ships with the following macro functions:
 
-XPL is part of the XLang language. It uses XML format and includes tags like `<c:if>` and `<c:for>`, providing comprehensive logical operation rules. The XML-based template language supports Lisp-like behavior, where the code format matches the generated data format.
+|函数名|说明|
+|---|---|
+|xml|Parses XML text into an XNode and wraps it as a LiteralExpression|
+|xpl|Parses Xpl template text into an Expression|
+|sql|Parses Xpl template text into an Expression that generates SQL statements|
+|jpath|Parses a JSON path into a JPath object and wraps it as a LiteralExpression|
+|xpath|Parses XSelector text into an XSelector object and wraps it as a LiteralExpression|
+|selection|Parses GraphQL-like object property selection text into a FieldSelection object and wraps it as a LiteralExpression|
+|order\_by|Parses an order by clause snippet into a List<OrderFieldBean> object and wraps it as a LiteralExpression|
+|location|Returns the source location of the calling function and wraps it as a LiteralExpression|
+|IF|Implements functionality similar to the IF function in Excel formulas|
+|SWITCH|Implements functionality similar to the SWITCH function in Excel formulas|
 
-General template languages (like Freemarker or Velocity) lack this similarity and are mainly used for text generation rather than code generation. XPL template language is designed specifically for code generation, offering multiple output modes:
+Because macro functions execute at compile time, implementing parsing via macro functions can optimize runtime performance. For example, to read attribute b of child node a from an XNode:
 
-1. **node Mode**: Outputs an XNode node. This mode retains source code location information, allowing you to know which attributes and nodes were generated from the source code.
-2. **xml Mode**: Outputs XML text, automatically escaping attributes and content.
-3. **html Mode**: Outputs XHTML text, with most tags using full formatting (e.g., `<div></div>`) instead of short tags like `<div/>`.
-4. **text Mode**: Disallows node and attribute output, only allowing text content without XML escaping.
-5. **xjson Mode**: Converts XNode nodes into JSON objects following specific rules.
-6. **sql Mode**: Outputs SQL statements, converting expressions into parameters.
+```
+  node.selectOne(xpath `a/@b`)
+```
 
-For example, generating a complex SQL query:
+Because xpath is a macro function, it completes parsing at compile time, and at runtime it’s equivalent to passing a constant object to the selectOne function.
 
-```xml
+Macro functions can implement custom syntactic structures, e.g., IF(X,Y,Z) can be transformed into an if statement.
+
+## Xpl Template Language for Code Generation
+
+The Xpl template language is part of XLang. It uses XML format and includes Turing-complete logical constructs such as `<c:if>` and `<c:for>`. The XML-formatted template language can achieve Lisp’s homoiconicity—that is, the format of the code is the same as the format of the generated data.
+
+Common template languages (such as Freemarker or Velocity) are not homoiconic; moreover, they are used for text generation only and do not truly support code generation. To support code generation, the Xpl template language provides multiple output modes:
+
+1. node mode: Outputs XNode nodes. This mode preserves source code location information, i.e., in the final result we can trace which segment of source generated each attribute and node.
+2. xml mode: Outputs XML text, automatically escaping attributes and text content.
+3. html mode: Outputs XHTML text. Except for a few tags like `<br/>`, most tags are output in full form—i.e., always output `<div></div>` rather than `<div/>`.
+4. text mode: Disallows outputting nodes and attributes; only text content is allowed, and XML escaping is not required.
+5. xjson mode: Outputs XNode nodes which are automatically converted into JSON objects according to fixed rules.
+6. sql mode: Outputs SQL statements; expression results are automatically converted into SQL parameters.
+
+For example, for the following SQL output:
+
+```
 <filter:sql>
   o.id in (select o.id from MyTable o where o.id = ${entity.id})
 </filter:sql>
 ```
 
-At runtime, this becomes `o.id in (select o.id from MyTable o where o.id = ? )`, with the value replaced by a parameter rather than being concatenated directly into the SQL text.
+it will actually generate `o.id in (select o.id from MyTable o where o.id = ? )`; the value of the expression will not be directly concatenated into the SQL text, but will be replaced with an SQL parameter.
 
+## Compile-Time Expressions
 
-## Compiled Expressions
+The Xpl template language has built-in `<macro:gen>` and `<macro:script>` tags that automatically execute at compile time.
 
-XPL template language includes tags like `<macro:gen>` and `<macro:script>`, which are executed at compile time. For example:
+- `<macro:script>` indicates executing an expression at compile time—for example, dynamically parsing an Excel model file at compile time to obtain a model object:
 
 ```xml
-<macro:script>
-  import test.MyModelHelper;
 
-  const myModel = MyModelHelper.loadModel('/nop/test/test.my-model.xlsx');
+<macro:script>
+    import test.MyModelHelper;
+
+    const myModel = MyModelHelper.loadModel('/nop/test/test.my-model.xlsx');
 </macro:script>
 ```
 
-After compilation, subsequent expressions can use the compiled variables, such as `${myModel.myFunc(3)}`.
+After obtaining compile-time variables, subsequent expressions can use compile-time expressions to access the object, e.g., `#{myModel.myFunc(3)}`.
 
-The language also supports compiled expressions using `#{expr}` syntax. These are executed and replaced at compile time, passing their results directly to runtime.
+- Compile-time expressions use the form `#{expr}`. A compile-time expression is executed immediately when it is compiled; only its return value is retained for runtime.
+- Compile-time expressions can be used within regular expressions, e.g., ${ x \> #{MyConstants.MIN\_VALUE} }.
+- During compilation, the Xpl template language automatically executes compile-time expressions and optimizes based on the results. For example, `<div xpl:if="#{false}>` allows the compiler to know that xpl:if is false, so this node will be automatically deleted.
 
-For instance:
+The content of `<macro:gen>` is Xpl template syntax: it first compiles the body, then executes the body, collects the output, and finally compiles the generated result. The content of `<macro:script>` is XScript syntax, and it discards its return value.
 
-```xml
-<div xpl:if="#{false}">This node will be automatically removed during compilation.</div>
-```
+## Custom Macro Tags
 
-At compile time, if the value of `xpl:if` is `false`, the node is removed from the final output.
+Tags in the Xpl template language’s tag library can define macro tags. Unlike regular tags, the source section of a macro tag is executed immediately after compilation, and the content output during execution is then compiled.
 
-
-The `<macro:gen>` content is part of the Xpl template syntax. It will first compile the body, then execute it, collect the output result, and finally compile the generated result.
-
-The `<macro:script>` content is part of the XScript syntax, and it will discard the return value.
-
-
-## Custom Macros
-
-In the Xpl template language, macros can be defined within the tag library. The difference between a macro tag and a regular tag lies in that the macro's source segment is immediately executed after compilation, followed by collecting the output generated during execution.
-
-For example, you can define a macro tag like `<sql:filter>`, which can perform the following structure transformation:
+For example, we can define a macro tag `<sql:filter>` that performs the following structural transformation:
 
 ```xml
+
 <sql:filter>and o.fld = :param</sql:filter>
-```
-
-This will be transformed into:
-
-```xml
+        transforms into
 <c:if test="${!_.isEmpty(param)}">
-  and o.fld = ${param}
+and o.fld = ${param}
 </c:if>
 ```
 
-The specific implementation can be found in the [sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib) library.
+See the specific implementation in the [sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib) tag library.
 
 ```xml
+
 <filter macro="true" outputMode="node">
-  <slot name="default" slotType="node"/>
+    <slot name="default" slotType="node"/>
 
-  <source>
-    <c:script>
-      import io.nop.core.lang.sql.SqlHelper;
-      import io.nop.core.lang.sql.SQL;
+    <source>
+        <c:script>
+            import io.nop.core.lang.sql.SqlHelper;
+            import io.nop.core.lang.sql.SQL;
 
-      const sb = SqlHelper.markNamedParam(slot_default.contentValue);
-      const cond = sb.markers.map(marker => "!_.isEmpty("+marker.name+")")
-        .join(" and ");
-      const sqlText = sb.renderText(marker => {
-        return "${" + marker.name + "}";
-      });
-    </c:script>
+            const sb = SqlHelper.markNamedParam(slot_default.contentValue);
+            const cond = sb.markers.map(marker=> "!_.isEmpty("+marker.name+")").join(" and ");
+            const sqlText = sb.renderText(marker =>{
+            return "${" + marker.name + "}";
+            });
+        </c:script>
 
-    <c:if xpl:ignoreTag="true" test="${'$'}{${cond}}">${sqlText}</c:if>
-  </source>
+        <c:if xpl:ignoreTag="true" test="${'$'}{${cond}}">
+            ${sqlText}
+        </c:if>
+    </source>
 </filter>
 ```
 
-The above macro will transform the node content, generating a `<c:if>` node, which is then compiled by the template engine. This achieves the same effect as manually writing the corresponding node.
+The macro tag above performs structural transformation on the node content, generating a `<c:if>` node. The template engine then compiles the output `<c:if>` node, yielding a result equivalent to manually writing the corresponding node.
 
-* By setting `slotType="node"`, the slot directly reads the node's content without parsing.
-* The `xpl:ignoreTag` attribute ensures that the current node and its children are not treated as Xpl tags, so they are output as plain XML nodes.
-* The `test="${'$'}{${cond}}"` expression is correctly identified and transformed into `test="${cond}"`.
+- Use a slot with `slotType="node"` to read node content directly. When slotType=node, the slot content is not parsed and is passed as an XNode variable.
+- `xpl:ignoreTag` indicates that the current node and its children should not be recognized as xpl tags; `<c:if>` is output directly as a normal XML node.
+- The expression in `test="${'$'}{$cond}"` is recognized; after executing the expression, it becomes `test="${cond}"`.
 
-**Note:** This macro resembles Lisp's macros in simplicity. It provides a lightweight AST transformation mechanism similar to an embedded code generator.
-
+**Macro tags are similar to macros in Lisp. They provide a lightweight AST transformation mechanism—a kind of embedded code generator.**
 
 ## Compiling to AST
 
-The `<c:ast>` tag can be used to obtain the Abstract Syntax Tree (AST) of the content. For example:
+You can obtain the abstract syntax tree (Expression type) corresponding to the content via the `<c:ast>` tag.
 
 ```xml
-<c:ast>Content</c:ast>
-```
 
-This will return the AST corresponding to "Content".
-
-```markdown
-# Validator Configuration
-
-- The `<Validator>` component is used to configure validation logic.
-- Below is the XML configuration for the validator:
-
-```xml
 <Validator ignoreUnknownAttrs="true" macro="true">
+
+    <!-- The runtime attribute indicates a variable that exists at runtime. This attribute only applies when the tag is a macro tag. -->
+    <attr name="obj" defaultValue="$scope" runtime="true" optional="true"/>
+
+    <!-- slotType=node means pass the content as an XNode to the source section. Without this, the content would be compiled before being passed. -->
+    <slot name="default" slotType="node"/>
+    <description>
+        Use the macro tag mechanism to parse the XNode into a Validator model, and transform it into a call to ModelBasedValidator.
+        The source section of a macro tag executes at compile time; its output is what gets compiled.
+    </description>
+    <source>
+
+        <!-- Parse the tag body at compile time into a ValidatorModel and save it as the compile-time variable validatorModel -->
+        <c:script><![CDATA[
+                    import io.nop.biz.lib.BizValidatorHelper;
+
+                    let validatorModel = BizValidatorHelper.parseValidator(slot_default);
+                    // Obtain the AST corresponding to <c:script>
+                    let ast = xpl `
+                         <c:ast>
+                            <c:script>
+                               import io.nop.biz.lib.BizValidatorHelper;
+                               if(obj == '$scope') obj = $scope;
+                               BizValidatorHelper.runValidatorModel(validatorModel,obj,svcCtx);
+                            </c:script>
+                         </c:ast>
+                     `
+                    // Replace the identifier name in the AST with the model object parsed at compile time. This avoids dynamic loading and parsing at runtime.
+                    return ast.replaceIdentifier("validatorModel",validatorModel);
+                ]]></c:script>
+    </source>
+</Validator>
 ```
 
-## Attributes
-
-1. `runtime`: Indicates whether runtime attributes should be processed.
-
-2. Optional attributes:
-   - `optional="true"`
-   - `defaultValue="$scope"`
-
-3. `<attr>` tags define attributes to validate:
+- The source section of a macro tag executes at compile time. `BizValidatorHelper.parseValidator(slot_default)` means parsing the tag node to obtain a ValidatorModel object (which exists at compile time).
+- In the XScript scripting language (syntax similar to TypeScript), XML-formatted Xpl template code can be embedded via the xpl template function.
+- `ast = xpl <c:ast>...</c:ast>` means executing the xpl template function; `<c:ast>` indicates obtaining only the AST of its child nodes, not executing their content.
+- `ast.replaceIdentifier("validatorModel",validatorModel)` replaces the identifier named validatorModel in the AST with the compile-time variable ValidatorModel. This is effectively a constant replacement: replacing the variable name with the value it represents. Because validatorModel is a model parsed at compile time, there is no need for any dynamic parsing at runtime.
+- The source section can return an AST node (Expression type) directly, without necessarily constructing the AST via XNode output (the previous section’s example constructed the AST via output).
+- `<attr name="obj" runtime="true">` indicates that the obj attribute is a runtime attribute; in the source section it corresponds to an Expression, rather than its value. Without `runtime=true`, the attribute can be used in the source section, but because the source runs at compile time, the attribute value must be a fixed value or a compile-time expression.
 
 ```xml
-<attr name="obj" defaultValue="$scope" runtime="true" optional="true"/>
-```
 
-## Slot Configuration
-
-1. `<slot>` defines a slot for the validator's output.
-
-2. The `slotType` attribute specifies the type of slot:
-
-```xml
-<slot name="default" slotType="node"/>
-```
-
-3. Description:
-   - The macro functionality processes the component at runtime.
-   - Use XML macros to embed dynamic content into templates.
-   - Ensure that compiled content is stored in variables for runtime use.
-
-## Code Block
-
-Here's an example of a validator configuration using `<c:script>` tags:
-
-```xml
-<c:script>
-  import io.nop.biz.lib.BizValidatorHelper;
-  
-  let validatorModel = BizValidatorHelper.parseValidator(slot_default);
-  let ast = xpl `
-    <c:ast>
-      <c:script>
-        import io.nop.biz.lib.BizValidatorHelper;
-        if(obj == '$scope') obj = $scope;
-        BizValidatorHelper.runValidatorModel(validatorModel, obj, svcCtx);
-      </c:script>
-    </c:ast>
-  `;
-  
-  // Replace the AST with the compiled model
-  return ast.replaceIdentifier("validatorModel", validatorModel);
-</c:script>
-```
-
-# Runtime Attribute Handling and Expression Evaluation
-
-The `obj` attribute is treated as a runtime attribute, not its value. If the `runtime=true` attribute is not marked, it can be used in the source segment. However, due to the macro tag's execution during compilation, the attribute value at runtime can only be a fixed value or an expression evaluated at compile time.
-
-```xml
 <biz:Validator obj="${entity}"/>
 ```
 
-## XDSL Delta Generation and Merging Mechanism
+## Delta Generation and Merge Mechanism for XDSL
 
-All DSLs in the Nop platform support delta merging via the `x-extends` mechanism. This mechanism implements the reversible computation theory required by the Delta x-extends Generator<DSL>.
+All DSLs in the Nop platform support the x-extends Delta merge mechanism, through which the computation model required by the Reversible Computation theory is achieved:
 
 > App = Delta x-extends Generator<DSL>
 
-### Detailed Explanation of Merging Order
+Specifically, all DSLs support `x:gen-extends` and `x:post-extends` configuration sections. These are compile-time Generators that use the XPL template language to dynamically generate model nodes, allowing multiple nodes to be generated at once and then merged in sequence. The merge order is defined as follows:
 
-The merging order is defined as follows:
-
-1. `x:gen-extends`
-2. `x:post-extends`
-
-```xml
+```
 <model x:extends="A,B">
     <x:gen-extends>
         <C/>
@@ -270,44 +233,36 @@ The merging order is defined as follows:
 </model>
 ```
 
-### Merging Result
+The merge result is:
 
-The final merged result is:
-
-```xml
-<F x-extends="E,F" x-extends="D,C" x-extends="B,A"/>
+```
+F x-extends E x-extends model x-extends D x-extends C x-extends B x-extends A
 ```
 
-### Overriding Behavior
+The current model overrides the results of `x:gen-extends` and `x:extends`, while `x:post-extends` overrides the current model.
 
-1. The current model overrides `x:gen-extends` and `x:extends`.
-2. `x:post-extends` overrides the current model.
+With `x:extends` and `x:gen-extends`, we can effectively decompose and compose DSLs. See [XDSL: A General-Purpose Domain-Specific Language Design](https://zhuanlan.zhihu.com/p/612512300) for details.
 
-Using `x:extends` and `x:gen-extends`, we can effectively implement the decomposition and composition of DSLs. For detailed information, refer to [XDSL: General Domain-Specific Language Design](https://zhuanlan.zhihu.com/p/612512300).
+## Data-Driven Delta-Based Code Generator
 
-## Data-Driven Delta Code Generation
+To realize the software construction pattern required by the Reversible Computation theory at the system level, the Nop platform provides a data-driven Delta-based code generator, XCodeGenerator.
 
-To implement reversible computation theory at the system level, Nop platform provides a data-driven delta code generation tool called XCodeGenerator.
+Typical code generators are customized for specific purposes. For example, a common MyBatis code generator has its control logic implemented in a dedicated CodeGenerator class that reads templates, constructs output file paths, initializes context model variables, and executes loops. If you want to adjust generation details, you usually have to modify this CodeGenerator class.
 
-### Customization of Generators
+XCodeGenerator takes a different approach. It treats the template path as a micro-formatted DSL, encoding conditions and loop logic in the path format, so the template’s organization controls the generation process. For example:
 
-Most generators are tailored to specific purposes, such as MyBatis's code generator. Its control logic is implemented by a specific `CodeGenerator` class, which reads templates, constructs file paths, and initializes context variables. If you need to adjust code generation details, you typically modify the `CodeGenerator` class.
-
-### Unique Approach of XCodeGenerator
-
-XCodeGenerator differs from traditional generators in that it treats template paths as a micro-DSL. It encodes judgment and loop logic within the path format, allowing the generator to control the code generation process through the template's structure. For example:
-
-```xml
+```
 /src/{package.name}/{model.webEnabled}{model.name}Controller.java.xgen
 ```
 
-This pattern generates a `Controller.java` class for each enabled model where the `webEnabled` attribute is set to true.
+This pattern indicates iterating over each model under a package and generating a Controller.java class for each Model whose webEnabled attribute is true.
 
-### Design Advantages
+Based on this design, simply adjusting the directory structure of template files lets you control the target code directory structure and generation timing.
 
-By adjusting the template directory structure, you can control both the target code's directory structure and generation timing. For detailed information, refer to [Data-Driven Delta Code Generation](https://zhuanlan.zhihu.com/p/540022264).
+See [Data-Driven Delta-Based Code Generator](https://zhuanlan.zhihu.com/p/540022264) for details.
 
-XCodeGenerator can be integrated with Maven packaging tools. It performs code generation both before and after Java compilation, acting similarly to a Java annotation processor (APT). However, its usage is simpler and more intuitive than APT.
+XCodeGenerator can be integrated with the Maven build tool to run code generation before and after Java compilation, acting similarly to Java’s annotation processor (APT) technology—but it is much simpler and more intuitive to use.
 
-For integration details, refer to [Integrating Nop Platform's Code Generator](https://zhuanlan.zhihu.com/p/613448320).
+See [How to Integrate Nop Platform’s Code Generator](https://zhuanlan.zhihu.com/p/613448320) for integration details.
 
+<!-- SOURCE_MD5:376c14f9cf59021c9ea0eb5f04650359-->

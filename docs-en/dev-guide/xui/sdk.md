@@ -1,12 +1,13 @@
-# Implementing Frontend Integration with nop-sdk
 
-The frontend project of nop-chaos consolidates all platform-related code within the `@nop-chaos/sdk` module. To introduce AMIS page support in a new project, follow these steps:
+# Frontend Integration via nop-sdk
 
-* For detailed examples, refer to [nop-for-ruoyi-vue3](https://gitee.com/canonical-entropy/nop-for-ruoyi-vue3) and the [nop-site](https://gitee.com/canonical-entropy/nop-chaos/tree/master/packages/nop-site) module.
+All nop platform-related code in the nop-chaos frontend project is centralized in the `@nop-chaos/sdk` module. To add AMIS page support to a new project, simply perform the following steps.
 
-* **Minimal example available in** [nop-sdk-demo](https://gitee.com/canonical-entropy/nop-chaos/tree/master/packages/nop-sdk-demo).
+* For concrete examples, see [nop-for-ruoyi-vue3](https://gitee.com/canonical-entropy/nop-for-ruoyi-vue3) and the [nop-site](https://gitee.com/canonical-entropy/nop-chaos/tree/master/packages/nop-site) module.
 
-## 1. Importing the nop-sdk Module
+* **For a minimal example, see [nop-sdk-demo](https://gitee.com/canonical-entropy/nop-chaos/tree/master/packages/nop-sdk-demo)**
+
+## 1. Bring in the nop-sdk module
 
 ```
 "@nop-chaos/sdk": "file:./nop-sdk",
@@ -18,26 +19,25 @@ The frontend project of nop-chaos consolidates all platform-related code within 
 "amis-ui": "^3.4.0",
 ```
 
-The [nop-sdk](https://gitee.com/canonical-entropy/nop-chaos/tree/master/nop-sdk) is the compiled result of the `@nop-chaos/sdk` module. Simply copy it into your target project.
-`file:./nop-sdk` indicates that the module code resides in the nop-sdk subdirectory within the current directory.
+[nop-sdk](https://gitee.com/canonical-entropy/nop-chaos/tree/master/nop-sdk) is the packaged output of the `@nop-chaos/sdk` module. Copy it directly into the target project.  
+`file:./nop-sdk` indicates the module code resides in the nop-sdk subdirectory of the current directory.
 
-## 2. Implementing the Adapter
+## 2. Implement the adapter
 
-In `[src/nop/initNopApp.ts](https://gitee.com/canonical-entropy/nop-chaos/blob/master/packages/nop-site/src/nop/initNopApp.ts)`, provide an implementation for the adapter interface to integrate nop-sdk.
+Provide implementations for the adapter interface in the [src/nop/initNopApp.ts](https://gitee.com/canonical-entropy/nop-chaos/blob/master/packages/nop-site/src/nop/initNopApp.ts) file to integrate nop-sdk.
 
 ```javascript
-// Using elements' components
+// The debugger uses components from Element Plus
 import 'element-plus/dist/index.css'
 
-// Amis-built-in debugger requires this CSS
+// Amis’s built-in debugger requires these CSS files
 import 'amis/lib/helper.css';
 
 import '@fortawesome/fontawesome-free/css/all.css';
 import '@fortawesome/fontawesome-free/css/v4-shims.css';
 import 'amis/lib/themes/cxd.css';
 
-// Importing amis icons
-// import 'amis/sdk/iconfont.css';
+//import 'amis/sdk/iconfont.css';
 import 'amis-ui/lib/locale/en-US';
 import 'amis-ui/lib/locale/zh-CN';
 
@@ -53,7 +53,7 @@ function initAdapter(app: App) {
         },
 
         /**
-         * Returns the current authentication token
+         * Return the current authentication token
          */
         useAuthToken(): string {
             return getToken()
@@ -74,9 +74,10 @@ export function initNopApp(app: App) {
 }
 ```
 
-## 3. Calling initNopApp in main.ts
+## 3. Add a call to initNopApp in main.ts
 
 ```javascript
+
 import {initNopApp} from '@/nop/initNopApp'
 
 const app = createApp(App)
@@ -86,26 +87,23 @@ initNopApp(app)
 app.mount('#app')
 ```
 
-## 4. Adding AmisToast Component to the Main Page for Error Notifications
+## 4. Add the AmisToast component on the main page to show error messages
 
-Typically, this component is added in `App.vue`. 
+Typically add the component in the App.vue page.
 
-
-```markdown
-# Template Section
-
+```javascript
 <template>
   <ConfigProvider :locale="getAntdLocale">
     <AmisToast theme="cxd"/>
-    ...
+   ...
   </ConfigProvider>
 </template>
-
-# Script Section
 
 <script lang="ts" setup>
   import { ConfigProvider } from 'ant-design-vue';
   ...
-  import { AmisToast } from '@nop-chaos/sdk'
+  import {AmisToast} from '@nop-chaos/sdk'
 </script>
 ```
+
+<!-- SOURCE_MD5:ceb7090c990f774613605be3bdc61cee-->

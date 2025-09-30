@@ -2,35 +2,41 @@
 
 [https://zhuanlan.zhihu.com/p/64004026](https://zhuanlan.zhihu.com/p/64004026)
 
-The inherent assumption of component technology is that "the same can be reused," but the common part between A and B is smaller than either A or B, which makes it difficult to address coarse-grained software reuse from a theoretical perspective. To solve software reuse at the system level, new developments are needed in software construction theory.
+The implicit assumption of component technology is “identical can be reused,” but the common part of A and B is smaller than both A and B, which makes component technology theoretically ill-suited to address coarse-grained software reuse.
+To solve system-level software reuse, we need new developments in software construction theory.
 
-In recent years' technical practices, Docker, React, k8s's Kustomize, and other technologies based on delta concepts have emerged in abundance. Behind all these ad hoc practices lies a unified software construction rule.
-
-Reversible computing proposed a software construction formula based on reversible delta operations:
+In recent years, technologies based on the Delta concept—such as Docker, React, and k8s’s Kustomize—have emerged in abundance. Behind all these Ad Hoc practices lies a unified law of software construction.
+Reversible Computation proposes a software construction formula based on reversible Delta operations:
 
 ```
 App = Delta x-extends Generator<DSL>
 ```
 
-It provides a unified theoretical explanation for various practices and indicates their future development direction, such as:
+It can provide a unified theoretical explanation for various practices and indicate directions for further development. For example,
 
 ```
 DockerApp = DockerBuilder<DockerFile> overlay-fs BaseImage
 ```
 
-To better demonstrate the content of reversible computing theory, I open-sourced a low-code platform called Nop Platform 2.0, which is similar in goals to JetBrains's MPS product but differs fundamentally in its implementation method. The platform is designed for DSL development.
+To better demonstrate the concrete technical content of Reversible Computation, I have open-sourced a low-code platform for DSL development, Nop Platform 2.0. Its goal is similar to JetBrains’ MPS product: to build a Domain Language Workbench for rapid development and extension of DSLs. However, its specific implementation is fundamentally different from MPS.
+https://github.com/entropy-cloud/nop-entropy
 
-The Nop platform now includes an example production line. It can generate GraphQL service and front-end pages from Excel data models and allows manual adjustments on the generated code, ensuring that manually written delta code and auto-generated code remain isolated and do not interfere with each other.
+The Nop platform now includes a demo software production line that can automatically generate GraphQL services and front-end pages from data models in Excel format. Based on the generated code, we can then make manual adjustments. The hand-written Delta code is isolated from the auto-generated code and does not interfere with it.
+![delta-pipeline](../tutorial/delta-pipeline.png)
 
-In essence, software products developed based on the Nop platform support Delta customization without requiring any special design (e.g., abstracting out expandable interfaces in advance). This enables completely incrementalized customized development, where custom increments are independent of base product code, whether it's for customizing the base product or Nop platform functionality, and no changes are needed to the original source code.
+In fact, software products developed on the Nop platform all support the Delta customization mechanism. Application-layer code requires no special design (such as pre-abstracted extension interfaces) to achieve fully incremental customization capabilities (the customized Delta code is completely independent of the base product code; customizing the base product or the Nop platform’s functionality requires no modification to the original code
 
-[How to implement customized development without modifying the base product source code](https://zhuanlan.zhihu.com/p/628770810)
+[How to achieve customized development without modifying the source code of the base product](https://zhuanlan.zhihu.com/p/628770810)
 
-The nop-ide-plugin provides debugging and code suggestion features for all DSLs.
+nop-ide-plugin provides breakpoint debugging and syntax hints for all DSLs
+![xlang-debugger](../tutorial/xlang-debugger.png)
 
-Through Excel modeling:
+Design data models via Excel
 ![excel-data-model](../tutorial/excel-model.png)
 
-Using Excel to define business rules:
+Define business rules with Excel
 ![decision-matrix](../dev-guide/rule/decision-matrix.png)
+
 ![decision-tree](../dev-guide/rule/decision-tree.png)
+
+<!-- SOURCE_MD5:4dbfe2ded88db5cbfcd42b263ccde36d-->

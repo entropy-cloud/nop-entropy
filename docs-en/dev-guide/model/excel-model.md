@@ -1,248 +1,197 @@
 # Excel Data Model
 
-Through the Excel formatted document, data models can be configured. The specific structure of the data model is defined by importing the `[orm.imp.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/imp/orm.imp.xml)` model file.
+You can configure the data model through Excel-formatted documents. The specific structure of the data model is defined by the import model file [orm.imp.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/imp/orm.imp.xml).
 
-In the Nop platform, manual programming is not required. Only the addition of the `imp.xml` configuration file is needed to enable Excel file parsing. For example, the [Api Model](api-model.md) also uses the same mechanism.
+In the Nop platform, there is no need for manual coding—simply add an `imp.xml` configuration file to enable parsing of Excel files. For example, the [Api model](api-model.md) is implemented using the same mechanism.
 
-The `imp` import specification for Excel has relatively flexible requirements and does not depend on the order in which fields appear. Non-mandatory fields can be directly removed from the template if they are not required.
+The `imp` import specification is relatively flexible regarding Excel format: it does not depend on the order of fields. Non-required fields can be removed from the template if not needed.
+You only need to satisfy the following two rules to use the `imp` model for parsing:
 
-Two rules must be satisfied to use the `imp` model for parsing:
-
-1. For regular fields, the layout should be `field name - field value`, where the field name cell's right side contains the field value.
-2. For list fields, the field name cell's below cell contains the list of values. The first column must be a numerical index column in numerical format.
-
-The field name cell must cover all columns.
-
----
-
+1. Regular fields should follow the layout `Field Name - Field Value`, i.e., the cell to the right of the field name contains the field value.
+2. For list fields, the rows below the field name contain the list of values. The first column must be the index column in numeric format. Note that the cell containing the field name must span all its columns.
 
 ## Configuration
 
+* `registerShortName`: The entity name is the fully qualified class name including the package name. If `registerShortName` is set to `true`, the entity can also be accessed by its short class name without the package.
+* `appName`: The prefix name for all submodules. The format must be `xxx-yyy`, for example `nop-sys`. It will automatically become a two-level subdirectory name in the virtual file system, such as `src/resources/_vfs/nop/sys`, and the platform restricts it to two levels to control the module scan scope. The Excel model name should match `appName` (i.e., the Excel file must be named `${appName}.orm.xlsx`), otherwise the automatically generated configuration in the `codegen` module will be incorrect.
+* `entityPackageName`: The package name where entity objects reside, usually `xxx.dao.entity`, e.g., `io.nop.sys.dao.entity`.
+* `basePackageName`: The parent package name for all submodules, e.g., `io.nop.sys`.
+* `maven.groupId`: The `groupId` of the main project.
+* `maven.artifactId`: The `artifactId` of the main project.
+* `maven.version`: The version of the main project and all submodules.
+* `platformVersion`: The version of the Nop platform.
+* `dialect`: Generate table creation statements for the corresponding databases. It can be a comma-separated list of names, e.g., `mysql,oracle,postgresql`.
+* `deltaDir`: Used only in Delta data models, specifying which delta customization directory to generate into.
+* `allowIdAsColName`: Allow a column name of `id`. By default, `id` is reserved for primary key use, and any column named `id` will have its corresponding Java property name automatically renamed to `id_`. If this option is set, it remains `id`. Note that in the Nop platform, `id` is fixed and reserved for primary key usage.
 
-## `registerShortName`
-- The entity name is the fully qualified class name that includes the package name.
-- If `registerShortName` is set to `true`, the short class name (without the package name) can also be used to access the entity.
+## Data Domains
 
+The concept of a data domain (`domain`) is similar to the `domain` concept in the PowerDesigner design tool. It provides a reusable name for fields that appear repeatedly and have business significance.
 
-## `appName`
-- The prefix name for all submodules.
-- The format must be `xxx-yyy`, such as `nop-sys`.
-- It will automatically become a two-level subdirectory name in the virtual file system, such as `src/resources/_vfs/nop/sys`.
-- The platform restricts it to two levels to control module scanning.
+1. In general, the type definition set for a column in a data table should be consistent with the specified data domain. For example, the data domain `json-1000` has type `VARCHAR` with length `1000`; then fields using this data domain should also be set to `VARCHAR` with length `1000`. If inconsistent, model validation will warn.
+2. Standard domains are standard business data types registered in `StdDomainRegistry` in the Nop platform, e.g., `var-name` indicates it must be a valid Java variable name.
+3. During code generation, the following data domains are specially recognized: `version`, `createTime`, `createdBy`, `updateTime`, `updatedBy`, `delFlag`, `tenantId`. Fields marked with these domains will be automatically identified as optimistic lock fields, creation time fields, etc., supported by the ORM engine.
+4. When generating `meta` files, a `domain` attribute under the `schema` node is generated automatically. In the frontend layout engine, it will automatically map to display and editing controls defined in `control.xlib`. For example, `domain=phone` corresponds to the `<edit-phone/>` control.
 
-The entity's name should match `appName` (i.e., the Excel file name must be `${appName}.orm.xlsx`). Otherwise, auto-generation of the `codegen` module's configuration will be incorrect.
+## Dictionary Tables
 
+## Using a Data Table as a Dictionary Table
 
-## `entityPackageName`
-- The package name where the entity objects reside.
-- Typically, it is `xxx.dao.entity`, such as `io.nop.sys.dao.entity`.
+* Add the `dict` tag to a data table to indicate it can be used as a dictionary table. Dictionary tables should not contain large amounts of data and are typically displayed using dropdown lists.
+* Then reference this data table as a dictionary via `obj/{objName}`, for example `obj/LitemallBrand`.
 
+## Add a Dictionary Table in [Dictionary Definition]
 
-## `basePackageName`
-- The parent package name for all submodules, such as `io.nop.sys`.
-- `maven.groupId`: The main project's groupId.
-- `maven.artifactId`: The main project's artifactId.
-- `maven.version`: The version of the main project and all submodules.
-- `platformVersion`: The Nop platform version.
-- `dialect`: The dialect for generating table statements. It can be a comma-separated list, such as `mysql,oracle,postgresql`.
-- `deltaDir`: Used only in delta modeling to specify the delta customization directory.
+Dictionary tables defined here will generate static dictionary files to the `{appName}-dao/src/main/resources/_vfs/nop/dict` directory during code generation.
 
+* Name: The reference name of the dictionary table, e.g., `mall/order-status`.
+* Chinese name, English name: The display names of the dictionary.
+* Value type: The type of the dictionary value, typically `int` or `string`.
 
-- Allows using 'id' as the column name.
-- By default, 'id' is preserved for primary key usage. If this option is set, all columns named 'id' will be automatically renamed to 'id_' in Java code.
-- If `allowIdAsColName` is enabled, 'id' remains as 'id'.
+In dictionary item configuration:
 
-Note: In the Nop platform, 'id' is always exposed for primary key usage.
+* Value: The `value` of the dictionary item.
 
----
+* Name: The `label` of the dictionary item.
 
-
-
-The concept of a data domain (`domain`) is similar to the `domain` concept in PowerDesigner. It provides a reusable name for frequently occurring fields with business meaning.
-
-1. Typically, the data table's column type should match the specified data domain. For example, if the data domain is `json-1000`, its data type is `VARCHAR(1000)`. If the field's type does not match, model validation will fail.
-2. Standard domains are registered in `StdDomainRegistry` within the Nop platform. Each domain must follow specific naming conventions, such as `var-name` for Java variable names.
-
-3. During code generation, special handling is applied for the following data domains: `version`, `createTime`, `createdBy`, `updateTime`, `updatedBy`, `delFlag`, and `tenantId`. Fields marked with these domains will be recognized as optimistic locking fields or creation/copy timestamps in the ORM engine.
-
-4. When generating metadata (`meta` files), the system automatically assigns the `domain` attribute to the schema node defined in `_control.xlib`. For example, if `domain=phone`, it corresponds to `<edit-phone/>`.
-
----
-
-
-
-
-
-- Add a `dict` tag to the data table to indicate that it can be used as a dictionary. Dictionary tables typically contain small amounts of data and are displayed using dropdown lists.
-- Use `{objName}` in URLs to reference this data table as a dictionary, such as `obj/LitemallBrand`.
-
----
-
-
-
-
-Herein are defined dictionary tables which, upon code generation, will generate static dictionary files into the `${appName}-dao/src/main/resources/_vfs/nop/dict` directory.
-
-* **Name**: Reference name of the dictionary, e.g., `mall/order-status`
-* **Chinese Name/English Name**: Display name of the dictionary in Chinese and English
-* **Value Type**: Type of the dictionary value, generally either `int` or `string`
-
-
-## Dictionary Item Configuration
-
-Within the dictionary configuration:
-
-* **Value**: Value of the dictionary item (`value`)
-* **Name**: Label of the dictionary item (`label`)
-* **Code**: If this property is configured, a constant will be generated in the `DaoConstants` class, e.g., `mall/order-status` will have `CREATED` corresponding to the generated code.
+* Code: If this attribute is configured, a constant definition will be generated in the `DaoConstants` constants class. For example, in `mall/order-status`, the `CREATED` code corresponds to generating:
 
 ```java
 public interface _AppMallDaoConstants {
 
-    /**
-     * Order status: unpaid
-     */
-    int ORDER_STATUS_CREATED = 101;
-    ...
+  /**
+    * Order status: Unpaid
+    */
+  int ORDER_STATUS_CREATED = 101;
+  ...
 }
 ```
 
+## Data Tables
 
-## Data Table
+Table names map directly to object names in GraphQL using camel case, so table names should be globally unique in principle (table names across different modules should not conflict). It is recommended that each module has its own special table name prefix, such as `litemall_xxx`, `nop_wf_xxx`, etc. Built-in table names in the Nop platform have the prefix `nop_`.
 
-The table name will be directly mapped to the GraphQL object name following camelCase rules, thus requiring global uniqueness (no conflicts between different modules). It is recommended that each module has a unique prefix for its table names, such as `litemall_xxx`, `nop_wf_xxx`, etc. Built-in tables in the Nop platform will have the prefix `nop_`.
+For each table in the Excel model, you can add a configuration field [Is View]. If set to true, SQL generation will skip it.
 
+## Table Tags
 
-## Data Table Tags
+* `dict`: Mark as a dictionary table; elsewhere it can be used as a dictionary via `obj/{objName}`.
+* `mapper`: Generate a Mapper definition file and Mapper interface class similar to MyBatis for the table.
+* `no-web`: A data object used by the backend; do not generate a separate frontend page entry for it.
+* `no-tenant`: When tenant support is globally enabled, this table also does not automatically enable tenant filtering, such as the `nop_auth_user` and `nop_auth_tenant` tables.
+* `kv-table`: Mark the current entity to implement the `IOrmKeyValueTable` interface. This interface requires the table to have fields such as `fieldName`, `fieldType`, `stringValue`, etc. See the field design of the `nop_sys_ext_field` table for details.
+* `use-ext-field`: Add support for extension fields to the current entity, saving extension field values as data rows in the `nop_sys_ext_field` table. For a detailed introduction to extension fields, see [ext-field.md](../orm/ext-field.md).
+* `many-to-many`: Mark an intermediate table for many-to-many associations. Based on this tag, multiple helper functions will be generated on the Java entity to automatically handle many-to-many associations. See [many-to-many.md](../orm/many-to-many.md).
+* `not-gen`: Indicates a table defined in another model. When generating code from this model, do not generate entity definitions for this table.
+* `view`: Read-only table; adding, updating, and deleting are not allowed.
+* `log`: Log table; adding and updating are not allowed. Inserts are performed automatically by backend programs; only delete operations are allowed.
+* `not-pub`: Indicates it will not participate in GraphQL object construction and will not be exposed externally.
 
-* **`dict`**: Marks the table as a dictionary. Other parts can use `${objName}` to access data from this dictionary
-* **`mapper`**: Generates MyBatis-like mapper definitions and interface classes for the table
-* **`no-web`**: Indicates that this table is used in the back-end, not generated for front-end entry points
-* **`no-tenant`**: When global tenant support is enabled, this table does not automatically apply tenant filtering (e.g., `nop_auth_user` and `nop_auth_tenant` tables)
-* **`kv-table`**: Marks the entity as requiring implementation of the `IOrmKeyValueTable` interface. This interface requires fields such as `fieldName`, `fieldType`, and `stringValue`, referencing `nop_sys_ext_field` table design
-* **`use-ext-field`**: Enables extended field support, storing extended field values in the `nop_sys_ext_field` table. Detailed documentation is available in [ext-field.md](../orm/ext-field.md)
-* **`many-to-many`**: Indicates a many-to-many relationship table. Based on this tag, multiple helper functions will be generated for Java entities to automatically handle M2M relationships. Detailed documentation is available in [many-to-many.md](../orm/many-to-many.md)
-* **`not-gen`**: Indicates that this table is defined elsewhere. When generating code for this model, no entity definitions are generated for this table
-* **`view`**: Read-only table; disallows insert, update, and delete operations (except for back-end management)
-* **`log`**: Log table; disallows inserts and updates. Inserts are handled automatically by the back-end, while deletes are allowed
-* **`not-pub`**: Indicates that this table is not involved in GraphQL object construction and is not exposed to external systems
+## Field Tags
 
+* `seq`: Automatically generate primary keys using `SequenceGenerator`. The Nop built-in implementations are `UuidSequenceGenerator` and `SysSequenceGenerator` (specified as the default generator on the bean with id `nopSequenceGenerator` in `/_vfs/nop/orm/beans/orm-defaults.beans.xml`). When the field type is a string, both default to generating UUIDs; if the field is numeric, they default to generating random numbers. If `SysSequenceGenerator` disables UUID, it will use the `nop_sys_sequence` table to record incrementing integer sequences and, when the field is a string, use its string form as the field value.
+  In the `nop_sys_sequence` table, you can specify a sequence for each entity, named {entityName}@{colPropName}.
 
+* `seq-default`: Different from `seq` in that if there is no sequence for the specified entity field in the `nop_sys_sequence` table, it will automatically choose the sequence named `default`. The configuration `nop.sys.seq.default-seq-init-next-value` sets the initial value of the sequence named `default`, defaulting to `1`.
 
-* **`seq`**: Uses `SequenceGenerator` to auto-generate primary keys. Nop provides built-in generators such as `UuidSequenceGenerator` and `SysSequenceGenerator` (located in `/_vfs/nop/orm/beans/orm-defaults.beans.xml`). For string fields, UUIDs are generated by default; for numeric fields, random numbers are generated. If `SysSequenceGenerator` is disabled for UUIDs, the `nop_sys_sequence` table will be used to store incrementing integer sequences. For each entity, you can specify a custom sequence in `nop_sys_sequence`, using `{entityName}@{colPropName}`
-* **`seq-default`**: Similar to `seq`, but if no specific sequence is defined for a field in `nop_sys_sequence`, it will automatically use the default sequence named `default-seq-init-next-value`. The default starting value is `1`
-* **`var`**: Indicates a randomly generated variable. In automated testing frameworks, this field will be recorded as a variable. For example, the `userId` field in `NopAuthUser` table will have its value replaced with `@var:NopAuthUser@userId` when generating test data files
+* `var`: Indicates a randomly generated variable. In the automated testing framework, this field will be recorded as a variable and will be replaced with the variable name when recorded into the data file. For example, for the `userId` field in the `NopAuthUser` table, when creating a new user, the value of the `userId` column in the automatically recorded `nop_auth_user.csv` is `@var:NopAuthUser@userId`.
 
+* `disp`: The display name of the data record. It will be used as `label` in dictionary tables or selection lists. If no other column is marked with `disp`, the primary key is used as the default display name.
 
-The following document describes the configuration options for fields in a typical ORM system. Each field can be configured with various properties to control its behavior and appearance.
+* `parent`: Indicates whether the column is a parent attribute. If marked as `parent`, the default frontend list will provide an "Add child" dropdown menu item under "More" in the "Operations" column to directly add child data. If, in the [Association List], the [Associated Property Name] is also specified for this column, the frontend list will by default show a tree structure for parent-child data.
 
+* `masked`: Indicates that it needs to be masked when printed in logs.
+
+* `not-pub`: Indicates it will not be returned to the frontend.
+
+* `sort`: Indicates the default sort field for the list. `sort-desc` indicates descending sort by this field. When generating `meta`, it corresponds to the `orderBy` section.
+
+* `not-gen`: Used only in Delta models. Indicates that the field definition will be inherited from the base class and no Java property will be generated for this field.
+
+* `del`: Used only in Delta models. Indicates that the field definition will be removed from the ORM model, so the field will not be used when accessing the database and the generated table creation statements will not include this field.
+
+* `clock`: Marks that the field is determined dynamically based on the invocation time, so it needs to be recorded as a variable during automated unit test recording.
+
+* `like`: Mark on text fields. It will automatically generate `ui:filterOp="contains"` on the property, indicating fuzzy query.
 
 ## Field Display
-- `disp`：Field display name. If not specified elsewhere, the field's primary key is used as the display name.
-- `parent`：Indicates whether this field is a parent field. If marked as `parent`, the default behavior will display hierarchical data in the front-end list's more column, allowing for easier addition of child data. If both the association list and the association property are specified, the front-end list will display tree-like structure.
 
+During code generation, list and form layout definitions are automatically generated in the `view.xml` page structure file. The list displays fields by default in the order of the model. For form layouts, if the number of fields exceeds 10, they are displayed in two columns; otherwise they are displayed in a single column.
 
-## Field Masking
-- `masked`：Indicates whether the field value should be masked when logged. This is commonly used for sensitive information like passwords or credit card numbers.
+To reduce manual adjustments to `view.xml`, you can configure the most commonly used display controls in the model:
 
+* `X` indicates the field is not shown on the UI and used internally by the program,
+* `R` indicates a read-only field,
+* `C` indicates it cannot be modified but can be inserted,
+* `S` indicates it occupies a single row,
+* `L` indicates it is not displayed on the list.
 
-## Field Accessibility
-- `not-pub`：Indicates that this field is not accessible in the front-end interface.
-- `sort`：Default sorting field for the list. `sort-desc` indicates that the sorting should be in descending order.
-- `not-gen`：Used to indicate fields that are not automatically generated. These fields will inherit their definition from a base class and will not have corresponding Java properties generated.
+## Field Data Types
 
+Must be one of the types defined in `StdSqlType`, including `BOOLEAN`, `TINYINT`, `INTEGER`, `BIGINT`, `CHAR`, `VARCHAR`, `DATE`, `DATETIME`, `TIMESTAMP`, `DECIMAL`, `FLOAT`, `DOUBLE`, etc.
 
-- `del`：Indicates whether this field is deletable through the ORM. This setting affects how the database interacts with the application, specifically in delete operations.
+## Association Property Tags
 
+In general, we only define `to-one` associations. The [Left Object] corresponds to the current table, and the [Associated Object] corresponds to the parent table. In a `join`, the [Left Property] corresponds to the foreign key property (not the database column name, but the Java property name, i.e., the camel case form of the column name). The [Associated Property] is the collection property in the parent entity corresponding to the child entity, and the [Right Property] of the `join` is the primary key property of the parent table.
 
-- `clock`: Marks fields that are timestamped based on the system clock for automatic recording during automation testing.
-- `like`: Indicates a similarity match operation when searching text fields. The default behavior is to use a containment check (`ui:filterOp="contains"`).
+* `pub`: Association properties are, by default, only used in backend programming and not exposed as GraphQL interfaces. They are exposed only after being marked with `pub`.
+* `cascade-delete`: Delete associated objects when deleting the current object. Generally, `ref-cascade-delete` is used instead of `cascade-delete`.
+* `ref-cascade-delete`: Automatically delete child table collection objects when the parent table is deleted.
+* `ref-insertable`: Allow submitting child table data when the parent table is submitted, inserting them in one batch.
+* `ref-updatable`: Allow updating child table data when the parent table is submitted.
+* `ref-grid`: When generating the UI automatically, add a child table grid on the parent table editing page. Child table data will be submitted together with parent table data.
+* `ref-connection`: Add a Connection-like paginated query property on the parent table for the child table, similar to the Relay framework. See [connection.md](../graphql/connection.md) for details.
+* `ref-query`: Set `graphql:findMethod="findList"` on the parent table’s associated child collection property to support paginated queries on the child table. If no limit parameter is passed and no fetchSize is configured, by default only maxPageSize records are retrieved.
 
+`ref-xx` denotes tags added to the property on the parent table corresponding to the child table. For example, adding the `ref-pub` tag on the child table association corresponds to adding the `pub` tag on the `parent.children` property.
 
-```markdown
-- `X`：Indicates that this field should not be displayed in the interface, while still being used internally.
-- `R`：Read-only field; cannot be edited but can be viewed.
-- `C`：Field is read-only and does not allow modifications, but allows insertions.
-- `S`：Field occupies a single row in the display.
-- `L`：Indicates that this field should not be displayed in lists.
-```
+**[Property Name] is the property name pointing from the child table to the parent table; [Associated Property Name] is the reverse, the collection property name pointing from the parent table to the child table.** If [Associated Property Name] is not set, all `ref-xxx` configurations are invalid.
 
+In reverse engineering, the [Property Name] of the left object will be automatically generated based on existing database column names (for non-reverse engineering, you need to fill in the [Property Name] yourself). Suppose the current table is `PurchaseOrder`, it has a column `SUPPLIER_ID` associated with the parent table `Supplier`. A `to-one` association will be automatically generated for the `PurchaseOrder` table, with the [Property Name] as `supplier` (corresponding to `Supplier#getSupplier()` in Java). The [Associated Property Name] is the collection property name in the parent entity corresponding to the child entity. Unless you need to use this collection in memory, do not set the [Associated Property Name]. Especially when the number of items in the child table collection exceeds 1000, manipulating them in memory may consume too much memory and cause poor performance.
 
-The following data types are supported based on `StdSqlType`:
-- `BOOLEAN`
-- `TINYINT`
-- `INTEGER`
-- `BIGINT`
-- `CHAR`
-- `VARCHAR`
-- `DATE`
-- `DATETIME`
-- `TIMESTAMP`
-- `DECIMAL`
-- `FLOAT`
-- `DOUBLE`
+For each column in the target database, NopOrm will automatically generate a corresponding Java property with a camel case property name, e.g., `SUPPLIER_ID` corresponds to the Java property `supplierId`. For association object properties, it will guess the Java property name based on the database column names involved in the association. The rules are as follows:
 
+1. If the column name is `XXX_ID`, then the object property name is `xxx`.
+2. If the column name is not `XXX_ID` but `YYY`, then the object property name is `yyyObj`, i.e., add the `Obj` suffix to avoid conflicts with existing property names.
 
-By default, associations are configured as `to-one`. The following properties control association behavior:
-- `pub`: Indicates whether this field is exposed through GraphQL. If not set, it remains internal.
-- `cascade-delete`: Indicates that when a parent record is deleted, all associated records should also be deleted. This is typically handled via `ref-cascade-delete` in the ORM.
-- `ref-cascade-delete`: Handles deletion of child records when the parent is deleted.
-- `ref-insertable`: Allows inserting child records when the parent is inserted.
-- `ref-updatable`: Allows updating child records when the parent is updated.
-- `ref-grid`: Displays a grid of child data in the parent's interface.
-- `ref-connection`: Handles pagination of child data using a connection mechanism, similar to relay. For details, refer to [connection.md](../graphql/connection.md).
-- `ref-query`: Facilitates fetching child data with pagination. If no limit is provided, only maxPageSize is fetched.
+> Some may prefer column names that directly correspond to Java property names, such as the column `UserName`. However, according to database standard conventions, column names are usually normalized to all uppercase or all lowercase characters, making it impossible to recognize mixed-case scenarios when migrating between different databases.
+> Therefore, the Nop platform assumes all column names will be automatically converted to uppercase and separated by underscores, and then named according to camel case rules when converted to Java properties.
 
+Note that when converting to Java property names according to camel case rules, the first letter is generally lowercase. However, considering the Java Bean specification, there are special cases.
+Suppose the database column name is `S_USER_NAME`, its corresponding Java Getter method is `String#getSUserName()`. According to the JavaBean specification, if the first two letters are both uppercase after removing the `get` prefix, then the Java property name also keeps the first letter uppercase. Therefore, the Java property name is `SUserName`, not `sUserName`.
 
-During reverse engineering:
-- Fields marked with `to-one` will have corresponding associations in the ORM.
-- Child tables will have fields defined based on their parent's structure.
+### ref-grid Configuration
+In the child table’s corresponding view.xml, you can configure the `sub-grid-edit` and `sub-grid-view` grids to control child table fields.
+In the parent table’s xmeta file, you can set `ui:editGrid` and `ui:viewGrid` on the property corresponding to the child table to customize which child table grid to use. Their default values are `sub-grid-edit` and `sub-grid-view`.
 
-For example, if a `PurchaseOrder` entity has a `SUPPLIER_ID`, it will automatically generate a `to-one` association to `Supplier` and include a `supplier` property. If no specific association is needed, the field remains as `SUPPLIER_ID`.
+### Sorting Conditions for Associated Collections
+You can specify sorting conditions for an associated collection through the [Sorting Conditions] configuration, which corresponds to `refSet.sort`. For example, configure [Sorting Conditions] as `orderNo asc` in `nop-rule.orm.xlsx` for NopAuth.
 
+## External Tables
 
-In memory manipulation may cause excessive memory consumption, leading to performance degradation.
+Sometimes you need to introduce entities from other modules. In this case, write the full entity name and insert a placeholder sheet in which only the primary key is defined, and add the `not-gen` tag on the table.
 
-For each column in the target database, NopOrm will automatically generate a corresponding Java attribute. The attribute name follows camel case convention, such as `SUPPLIER_ID` corresponds to `supplierId`. For related object attributes, the Java attribute name is inferred based on the relationship involving the database column name.
+For example, the following `course_evaluation` table references the `nop_auth_user` table.
 
-The naming rule is as follows:
+![](ref-external-table.png)
 
-1. If the field name is `XXX_ID`, the object attribute name will be `xxx`.
-2. If the field name is not `XXX_ID` but `YYY`, the object attribute name will be `yyyObj`. Adding `Obj` suffix helps avoid conflicts with existing attribute names.
+The `nop_auth_user` table is defined in the `nop-auth` module, so you need to use the fully qualified class name again to represent the associated entity. Also insert a definition sheet for the `nop_auth_user` table.
 
-> Some users are accustomed to column names directly corresponding to Java attribute names, such as `UserName`. However, according to database standards, column names are typically standardized to all uppercase or all lowercase characters, causing issues during database migrations due to case sensitivity. Therefore, Nop assumes that all column names should be automatically converted to uppercase using underscores as separators. When converting to Java attribute names, the camel case convention is applied.
+![](external-table.png)
 
-> Note that according to JavaBean conventions, there are special cases. For example, if the database column name is `S_USER_NAME`, the corresponding Java Get method is `String#getSUserName()`. Removing the `get` prefix and retaining uppercase letters for consecutive letters results in the attribute name `SUserName` instead of `sUserName`.
+As it is an external table, you do not need to generate code for this table, so add the `not-gen` tag. You also need to specify the module where this table resides; the `Module ID` format is `A/B`, corresponding to a two-level directory structure.
+For example, resources generated for the `nop-auth` package are stored in `/_vfs/nop/auth`. Its module name corresponds to `nop/auth`.
 
+If the Excel model defines the parameter `Belonging Model`, then `biz:moduleId` will be added to both the automatically generated `_app.orm.xml` and the meta definitions of the associated fields.
 
-### Sorting Conditions for Reference Sets
+Frontend controls are inferred by default from meta configurations via the `control.xlib` library. The `edit-relation` control will call the `XuiHelper.getRelationPickerUrl`
+function to generate the link to the `picker` page. The link format is `"/" + moduleId + "/pages/" + bizObjName + "/picker.page.yaml"`. If the meta configuration of the associated child table sets the `biz:moduleId` attribute, then `moduleId` will use the configured value; otherwise, it will be automatically inferred from the path of the meta file.
 
-The sorting condition for reference sets can be configured using `[sorting condition]`. For example, configuring `refSet.sort` in `nop-rule.orm.xlsx` with `[sorting condition]` set to `orderNo asc`.
+## Common Issue Diagnosis
+1. An association property is defined in the Excel model, but it is missing in the generated `app.orm.xml` file.
+Note that association properties are defined in the [Association List]. For list structures, the first column of each item is the index column, which must be set to an integer value. ![](images/relation.png)
 
+2. A dictionary is defined in Excel, but no `dict.yaml` file is generated.
+Note that the first column of the dictionary must be numeric. When parsing a list structure, the first column is used to determine which content belongs to the list. The first column is the index column.
 
-## External Tables and Module Structure
-
-When importing external modules, the full name of the entity must be specified. For example, adding an `not-gen` tag to an external table like `course_evaluation` and referencing it in `nop_auth_user` requires defining it in its module.
-
-
-## Example: External Table Relation
-The `nop_auth_user` table is defined in the `nop-auth` module, so use the fully qualified name. For example:
-- Table name: `nop_auth_user`
-- Module path: `/_vfs/nop/auth`
-
-When generating Java attributes for columns like `SUPPLIER_ID`, the attribute name becomes `supplierId`. For non-`XXX_ID` columns like `yyy`, the attribute becomes `yyyObj`.
-
-
-
-Controls on the frontend, such as `control.xlib`, are configured by `[meta configuration]`. For example, the `edit-relation` control calls `XuiHelper.getRelationPickerUrl` to generate links like `/{moduleId}/pages/{bizObjName}/picker.page.yaml`. If a child table's meta configuration includes `biz:moduleId`, it will use that value; otherwise, it will be determined based on the meta file path.
-
-
-1. **Missing Association Attributes in Excel Model**  
-   - The Excel model defines association attributes like `relatedField`.
-   - However, the generated `app.orm.xml` may not include them.
-   - Ensure `[association list]` is defined in the XML with the correct data type for the first column (usually a number).  
-   - Example: ![images/relation.png](images/relation.png)
-
-2. **Missing Dictionary Entries**  
-   - If a dictionary is defined in Excel but not generated in `dict.yaml`, check if the first column of the list is numeric.
-
+<!-- SOURCE_MD5:6577690688c43b5720c1c89ae5afe450-->

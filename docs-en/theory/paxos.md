@@ -1,583 +1,164 @@
-# Paxos Algorithm Research Report
+# A Magical Studies Research Report on Paxos
 
-The Paxos algorithm is not long, but it consists of only a few short sentences. It appears to be like sacred text because we do not fully understand the rules and their underlying intentions. Why does it work? Would the system fail if we don't follow these rules? The fundamental nature of distributed systems is characterized by birth and death in an unpredictable environment, but the Paxos algorithm somehow manages to establish a consistent consensus world within this chaos. It seems almost divine, like a miracle. However, humans are limited by their finite experiences and cannot achieve the same level of understanding as the algorithm. We can only try to interpret its intentions with our limited knowledge, which inevitably leads to confusion.
+The Paxos algorithm is not long—just four succinct sentences on paper. It looks like an arcane scripture of terse profundities mainly because we don’t clearly understand the design intent behind these simple rules: why they work, and whether deviating from them is unacceptable. The backdrop of distributed systems is a chaos where liveness is freedom and failures are random; conflicts abound everywhere. Yet Paxos builds a unified, consistent world of consensus atop this chaos, which feels miraculous. But mortals find miracles hard to grasp; unable to view all beings from a god’s vantage point, they can only infer divine intent through limited experience, inevitably falling into mortal confusion. This article attempts an interpretation of Paxos from the perspective of extradimensional magical studies, constructing a concise magical image behind Paxos to achieve an intuitive understanding of the algorithm.
 
-This report attempts to analyze the Paxos algorithm from an extraterrestrial perspective. By establishing a simple graphical representation of the algorithm's rules, we aim to gain a clearer understanding of how it operates. This visualization helps us see the underlying structure and logic behind the algorithm.
+## I. The God’s Troubles
 
----
+First, let’s look at the problem facing the god and where his troubles might lie.
 
-## 1. The Trouble with God
+Suppose the god needs to have a team collectively perform the same task. His first problem is that nobody is reliable. You assign a task to A; he might be so absent-minded he never even heard it, or he might be slow and dilatory, or worst of all, just lie down halfway and refuse to work. This problem is relatively easy: if one person is unreliable, no big deal—so long as a few in the crowd are reliable, the advanced can bring along the lagging. The god only needs to seize a few key members each time, guide them to do things right, and the rest can learn the divine will from those backbone members.
 
-Let's first examine the problems faced by the algorithm and its potential sources of trouble.
+The truly thorny problem is that many things happen in parallel. The god just finished assigning work to A and, while explaining things to B, A’s situation changes (say A receives another divine command). The god has to hustle back to A and assign a new oracle. Just as A is sorted, B sprouts new issues, so the god gallops over there again. After repeating this a few times, even the supreme, omniscient, omnipotent god, no matter how good-tempered, would lose patience.
 
-Assume that God wants a group of people to collectively perform the same task. The first issue the algorithm encounters is that everyone is unreliable. When assigning tasks to person A, there are two possibilities: either A is completely unaware of the task assignment (due to wandering off or being preoccupied), or A reacts very slowly and hesitantly, sometimes even refusing to perform the task midway through.
+## II. Level-9 Magic: Time Stop
 
-This problem seems somewhat manageable as long as not all individuals are unreliable. If a few reliable individuals exist within the group, they can guide the rest. The algorithm repeatedly selects a subset of reliable individuals to ensure that tasks are completed correctly.
+A god transcends all finite beings and remains a most complete existence, so he doesn’t truly face the above troubles. Because he can softly utter: “Stop,” cast a Level-9 magic “Time Stop,” and bring this noisy world into complete silence, then calmly do whatever he wishes.
 
----
+According to modern physics in our plane, time is merely a measure of change. We construct the concept of time by comparing a pendulum’s periodic motion with other motions. If no change is observed, it essentially means perceived time remains unchanged. In particular, if all atoms in the universe oscillate one beat slower in unison, humans within it cannot detect it.
 
-## 2. The Nine Levels of Magic: Time Stand Still
+Review the steps of Paxos: the Proposer first, via the promise phase, determines a unique ProposalID from all Acceptors; then whenever any event needing recognition occurs—for example, receiving new messages—the ProposalID automatically increases, so ProposalID is effectively a time marker. When an Acceptor receives an accept message, if it finds the ProposalID hasn’t changed compared to the promise, it can judge that time remained static during this process and that no relevant events occurred.
 
-The most challenging issue, however, is that many tasks occur in **parallel** (denoted as `||` in the algorithm). When person A is busy performing their task, it's not uncommon for person B to receive a new instruction. If B ignores this new instruction and continues with the old one, the entire system may collapse.
+![时间箭头](paxos/time_arrow.png)
 
-The algorithm addresses this issue by employing a **time stand still** mechanism (`Time Stand Still`). By freezing all activities at specific moments, the algorithm ensures that everyone is working on the latest version of their task. This requires precise coordination and synchronization between all participants.
+Each Acceptor records a monotonically increasing ProposalID, which is tantamount to establishing a local arrow of time. The whole system, by aligning ProposalIDs to the same time point, aligns multiple local time arrows into a bundled, coarse-grained, global arrow of time (the prerequisite for alignment is that events occurring at the same time point are identical, e.g., setting the same value). The passage of time is akin to a wavefront sweeping through the system.
 
----
+Thus, from the god’s perspective, Paxos is merely a parlor trick: using the Time Stop magic to forcibly align multiple timelines into a unique primary timeline.
 
-## 2.1 The Nine Levels of Magic: Time Stand Still
+This “stop-align” technique is a fundamental strategy for achieving consensus in distributed systems. For instance, in Kafka, multiple consumers within the same consumer group act independently, yet must reach consensus on work allocation. Therefore, when membership changes in a consumer group or the topic structure changes, a rebalance process is triggered. During rebalance, the Coordinator first requires all workers to stop current work, collectively switch to the next epoch, and then distribute a new assignment. An assignment is valid only within an epoch.
 
-As the almighty being, God can observe the entire system from a perspective far beyond the limitations of mortal beings. With perfect knowledge and infinite power, God can directly intervene in the system's operations. This divine ability allows God to freeze time at will, ensuring that all tasks are aligned before any new instructions are processed.
+Optimistic locking in databases follows the same strategy. Upon entering the handler, you read the version of the MainRecord, modify the MainRecord and related SubRecords, and finally commit modifications in one transaction while attempting to change the main record’s version:
 
-From a human standpoint, this capability seems almost impossible to achieve. However, by understanding the fundamental principles of modern physics, we can approximate this behavior using **time stand still** mechanisms. These mechanisms allow the system to pause and align its state before proceeding with updates.
-
----
-
-### 2.1.1 The Basics of Time Stand Still
-
-The concept of time stand still is rooted in modern physics, particularly in how clocks operate. By maintaining a consistent reference point (`Global Timestamp`), all participants can synchronize their actions. This ensures that any new instructions are processed after all previous tasks have been completed.
-
----
-
-### 2.1.2 Steps in the Paxos Algorithm
-
-Here's a step-by-step breakdown of the Paxos algorithm:
-
-1. **Proposer's Step**: The Proposer (denoted as `P`) generates a new proposal (`ProposalID`). This ID is unique and increases with each attempt.
-   
-   ```plaintext
-   update MainRecord
-   set version = version + 1
-   where version = :record_version
-   ```
-
-2. **Acceptor's Step**: Each Acceptor (denoted as `A`) checks if the new proposal matches their current version (`Version`). If it does, they accept the proposal and update their own record.
-
-3. **Consensus Achievement**: Once all Acceptors have accepted a proposal, the system reaches consensus, and time stand still no longer is necessary.
-
----
-
-## 2.2 The Underlying Mechanism
-
-The algorithm's success lies in its ability to synchronize all participants. By using a **global timestamp**, it ensures that updates are processed in the correct order. This prevents conflicting instructions from causing chaos within the system.
-
-For example, in Kafka's distributed streaming system, multiple consumers can be part of the same topic. While each consumer processes data independently, the Paxos algorithm ensures that their actions remain aligned through a shared timestamp (`Global Timestamp`).
-
----
-
-### 2.2.1 Example: Kafka and the Global Timestamp
-
-In Kafka, consumers within the same consumer group may have different lag levels. To ensure consistency, the algorithm uses a global timestamp to track when each partition was last updated. This allows all consumers to fetch messages from the same point in time.
-
----
-
-## 3. The Eight Levels of Magic: Divination by Numbers
-
-The final challenge is to translate these abstract concepts into practical mechanisms. The algorithm's ability to handle distributed coordination without centralized control is what makes it so powerful. However, implementing this requires a deep understanding of both the algorithm and the underlying system.
-
----
-
-### 3.1 The Role of Optimistic Concurrency Control
-
-A key component of the algorithm is its use of **optimistic concurrency control** (`OCC`). This mechanism allows multiple users to work on the same data without locking mechanisms, as long as changes are versioned correctly.
-
-For instance:
-
-```plaintext
-update MainRecord
-set version = version + 1
-where version = :record_version
+```
+  update MainRecord
+  set version = version + 1
+  where version = :record_version
 ```
 
-This update operation increments the record's version number. If another user has updated the record since the last fetch, their version will differ, and the operation will fail unless it can be retried.
+If the update succeeds, it means time remained static throughout the process and no conflicting actions occurred.
 
----
+## III. Level-8 Magic: Grand Puppetry
 
-### 3.2 The Final Leap: From Theory to Implementation
+Casting Level-9 magic is power-intensive. A god committed to thrift and socialist core values would never waste mana. So once time is stopped, to maintain consistent behavior across geographically dispersed nodes, the god’s optimal choice is to cast Level-8 magic “Grand Puppetry,” replicating behavior from one node to all others.
 
-Translating these ideas into actual code requires careful design and implementation. The algorithm's reliance on version numbers and global timestamps means that any system implementing it must have a robust way of tracking changes.
+This replication is powered by the god; once the leader initiates a new action, it traverses mountains and seas, ignoring physical barriers, and descends upon remote followers. Followers have no right to refute—only the freedom to execute. But as the saying goes, those above move their lips, those below run themselves ragged. In our low-magic world, implementing Grand Puppetry is far from trivial and is typically achieved by adding a log at both sender and receiver.
 
----
+The sender writes decisions to a log, making them immutable oracles. The sending component scans the log and ensures each entry is transmitted to the remote end. If it can’t connect to the receiver, or sending fails, or the expected response isn’t received, the sender can neither complain nor give up—it must keep working and keep retrying until a success response arrives, achieving at-least-once delivery (At Least Once). The receiver must unconditionally accept all messages, neither reject nor tamper. Because it might receive the same message multiple times, it must perform idempotence checks via a local log, filtering duplicates to achieve at-most-once processing (At Most Once). If messages flow through a stream processing system, to avoid replaying from the source each time, intermediate nodes must record completed processing via snapshots.
 
-## Conclusion
+Unquestionably, MultiPaxos and Raft are concrete implementations of this replication strategy. Once leader election succeeds, the term number can be reused multiple times; within the same term number, multiple execution commands can be issued so long as log index distinguishes them.
 
-From an extraterrestrial perspective, the Paxos algorithm appears as a simple set of rules. However, its ability to handle distributed coordination without centralized control makes it a true miracle of modern computing. While humans may never fully grasp its complexity, our attempts to implement and understand it bring us closer to achieving similar capabilities.
+Analyze carefully and you’ll find messages received from the network fall into two categories: requests, where the receiver can freely choose a handling method and outcomes are uncertain (success or exception), and one-way notices, whose handling is fixed and the receiver cannot disagree.
 
----
+A fun example is two-phase commit. In Prepare, a Participant receives a request and can, by its own will, choose to commit or roll back. Once the Participant returns its potential choice to the Coordinator, it cedes autonomy, promising to accept only notices henceforth and align its behavior to the Coordinator. When the Coordinator decides to commit, the Participant will never choose rollback. Similarly, if the Participant rolls back, we know the Coordinator’s choice can only be rollback. Their choices are no longer independent but entangled.
 
+Viewed individually, each Participant and the Coordinator may randomly be in either commit or rollback states. But as a whole, not all states are possible; only |commit, commit> and |rollback, rollback> are allowed within the system’s state space. That is, during 2PC, the system effectively resides in a quantum entangled state composed of |commit, commit> and |rollback, rollback>!
 
+Based on this, in our plane, quantum entanglement is a viable mechanism for implementing puppetry.
 
-## 1. Introduction to Distributed Systems
-Distributed systems are systems where the failure of one component does not affect the entire system. These systems rely on multiple nodes (nodes) working together to achieve a common goal.
+## IV. The Secret of Magical Theory: What’s Unseen Does Not Exist
 
+As mere mortals, we lack mana to drive magic. But we’ve all seen magic shows and experienced “the moment of witnessing a miracle.” Miracles are born from magicians guiding us to observe only revealed facts, while the under-the-hood secrets are not for outsiders. Magic, as a strengthened form of magic tricks, is similar in essence: simply ensure all facts that violate magical principles are deleted from our cognition!
 
-- **Scalability**: The ability to expand or contract the system as needed.
-- **Fault Tolerance**: The ability to continue functioning even when some components fail.
-- **Distributed Coordination**: The ability for nodes to work together without a central coordinator.
+After Paxos starts, we try to make time stand still, but pesky interference keeps appearing. Acceptors might receive messages from the past (ProposalID less than the current value). The Paxos solution is to pretend we didn’t see them—just drop them! On the other hand, Acceptors may receive messages from the future; the simplest solution is still to drop them. But that would cause something like distributed locks and weaken fault tolerance: in the current Time Stop cycle, the Proposer may have crashed and cannot finish setting values on Acceptors. So faced with a choice between “current” and “future,” to be safe, the Acceptor must abandon the current cycle’s progress and choose the future possibility (it’s not shameful if magic fails—feign ignorance and proceed to the next round). Of course, if the Acceptor already knows via the Learner mechanism that the current value has been chosen, there’s no need to run another Paxos round; future requests can be rejected directly. Similarly, in Raft, to avoid oscillations from repeated re-elections, as long as heartbeats confirm the Leader remains within a time window, RequestVote messages from the future are ruthlessly discarded.
 
+In algorithms requiring leader election, a classic problem is avoiding split-brain. What if a new Leader has won the people’s support, but the old Leader refuses to step down and keeps making trouble? A general solution is to directly define the old Leader as a zombie and completely ignore all information from the previous epoch (e.g., reject requests with smaller epochs). In fact, we don’t restrict the old Leader’s behavior; in its own small world, it can do whatever it thinks is right, but its behavior cannot ascend to collective will and cannot affect the primary world. Once the new Leader takes office, it must write-before-read—first stamp its epoch on the primary world (akin to changing a globally shared variable). Then the old Leader, upon committing results, discovers via optimistic locking that it has lost power and is forced to abandon its results.
 
-The Paxos algorithm is used to achieve consensus in distributed systems. It works by dividing the system into phases and ensuring that all nodes agree on a single value.
+In our plane’s physics, with quantum mechanics, observation or measurement has a unique theoretical significance. In quantum field theory’s view, within imaginary time, countless wild phenomena compete and annihilate; only some combined results are reflected in reality. Through the strange quantum tunneling effect, we can glimpse the raging waves behind the scenes.
 
+Covering one’s ears while stealing a bell is not an absurd joke but a rule that can operate genuinely in our world. If one can effectively create an information cocoon that shrouds everything, it can manipulate what we accept as truth. Hence, the “Understanding King,” a man claiming to be infinitely close to godhood, kept insinuating: without testing, COVID-19 doesn’t exist! As a fire-stealer leaking heavenly secrets, he truly understands.
 
-- **Proposer**: The node responsible for generating a proposal.
-- **Acceptor**: The node responsible for accepting or rejecting proposals.
-- **Prepare Phase**: The phase where the proposer collects votes.
-- **Commit Phase**: The phase where the accepted value is written to the log.
+## V. Mortal Consensus: Symmetry Breaking
 
+The god says all beings are equal. In mathematical terms, no one is special—they are symmetric! A society cannot have only one voice; everyone can have an opinion, each deserving equal respect. Then why is one voice chosen to overshadow all others and become consensus? Essentially, this is a process of breaking equality—symmetry breaking.
 
-The Raft algorithm is another consensus algorithm that uses a leader election mechanism. Once a leader is elected, it is responsible for replicating its state across all other nodes.
+The most basic symmetry breaking technique is majority voting. Since a set cannot simultaneously contain two majorities, at any moment (determined by ProposalID), if we know a majority of Acceptors accepted some value, we say that value is chosen—consensus is reached.
 
+### When is consensus achieved?
 
-- **Leader**: The node responsible for replicating its state.
-- **Candidate**: A node that can become the leader if the current leader fails.
-- **Heartbeat Mechanism**: Ensures that the leader is always available to replicate its state.
-
-
-The Transmission Control Protocol (TCP) is a connection-oriented protocol used for data transmission over the internet. It ensures that data packets are delivered reliably by using acknowledgments and retransmissions.
-
-
-- **Three-Way Handshake**: Establishes a connection between two nodes.
-- **Acknowledge**: Confirms the receipt of data packets.
-- **Retransmission**: Resends data if it is not received correctly.
-
-
-The User Datagram Protocol (UDP) is a connectionless protocol used for real-time applications like video streaming and online gaming. It does not guarantee data delivery but provides low latency.
-
-
-- **No Connection**: Unlike TCP, UDP does not establish a connection before data transmission.
-- **Best-Effort Delivery**: Attempts to deliver data as quickly as possible, but does not guarantee it.
-
-
-In distributed systems, log replication is used to ensure that all nodes have the same state. This is achieved by replicating the log of one node to all other nodes.
-
-
-- **Log Entry Generation**: The node generates a log entry.
-- **Transmission**: The log entry is transmitted to other nodes.
-- **Application of Log Entries**: Each node applies the log entries in the order they were received.
-
-
-Consensus algorithms are used to ensure that all nodes agree on a single value. Two common consensus algorithms are Paxos and Raft.
-
-
-- **Paxos**: Uses a leader election mechanism and ensures agreement through the Prepare and Commit phases.
-- **Raft**: Also uses leader election but focuses on replicating the state of the leader node.
-
-
-Failure detection is the process of identifying when a component has failed. In distributed systems, this is often done using heartbeat messages or other mechanisms.
-
-
-- **Sender**: Sends periodic heartbeat messages.
-- **Receiver**: Monitors for heartbeat messages to detect failures.
-
-
-Recovery mechanisms are used to restore the system to a consistent state after a failure. This can be achieved through log replay or other recovery protocols.
-
-
-- **Log Entry Extraction**: Extracts log entries from the failed node.
-- **Application of Log Entries**: Applies the log entries to other nodes to restore consistency.
-
-
-
-## Classic Problem: How to Prevent Brainiac from Taking Over
-
-In algorithms that require leader election, a classic problem is **how to prevent the system from splitting into two separate clusters** (i.e., **preventing brainiac from taking over**). If the old leader has already been accepted by the majority of the cluster but refuses to step down, what can we do? A general solution is:
-
-1. **Define the Old Leader as a Zombie**: Ignore all epoch values from the previous generation (e.g., reject any request where `epoch` is too small).
-2. **Let the Old Leader Do Whatever It Wants**: We don't restrict its behavior in its own little world. However, it cannot rise above becoming just one of many zombies.
-3. **Let the New Leader Take Over**: The new leader should **write its epoch value** (similar to writing a global shared variable) before processing any requests.
-
-In this setup:
-- The old leader will process requests but won't be able to influence the outcome because it can't see the new leader's epoch.
-- The system will eventually elect a new leader that can communicate with all members of the cluster.
-
-
-### Quantum Mechanics and Our Visible World
-
-In our current understanding of physics, as quantum mechanics progresses, observing or measuring has taken on a whole new meaning. According to quantum field theory, we have a view (picture) of what's happening in an invisible time (quantum realm). In this strange world:
-- Wild things (entities) are competing and annihilating each other.
-- Ultimately, all we see in our visible world is the result of these quantum computations.
-
-Through the weird phenomenon of quantum tunneling, we can actually observe phenomena that would otherwise be hidden from our classical understanding. This allows us to **peek behind the veil** of the overwhelming complexity of our everyday world.
-
-
-### The "Cover and Conceal" Principle
-
-The old saying "Plug your ears, close your eyes" is not just a silly joke. In our world, it's a principle that can actually work:
-- If we can effectively create an information bubble (i.e., isolate all the information in a separate universe), we can manipulate what people know.
-- This manipulation allows us to control their perception of reality.
-
-Thus, understanding this principle is crucial for anyone trying to influence or control large-scale systems.
-
-
-
-According to religious teachings:
-- All beings are equal. There is no distinction between them.
-- This equality implies symmetry (Symmetric), which is the foundation of harmony in society.
-
-However, a society cannot survive on just one sound. Each individual must have their own opinion, and every opinion deserves respect. Why then does one opinion emerge victorious? It's not because of its inherent superiority but because of how it reflects the collective will.
-
-Mathematically, this process is called **breaking symmetry** (Symmetry Broken). It represents a fundamental concept in distributed systems where agreement is reached through a series of proposals and acceptances.
-
-
-
-When consensus is achieved:
-- Who knows what the others have agreed on?
-- A fascinating fact: At the exact moment consensus is reached, no individual participant knows that a consensus has been reached.
-
-This seems contradictory. However, as time progresses:
-- The system will reveal the truth through a series of steps.
-- Each participant will learn about the agreed value (chosen value) in their own time.
+When consensus arises, does anyone among participants know it has been achieved? An interesting fact: at the instant consensus is achieved, no participant in the system—neither Acceptors nor Proposers—knows that consensus has been reached! Only gradually, as time goes by and the algorithm runs, is the fact of consensus being achieved revealed.
 
 ![paxos\_consensus](paxos/paxos_consensus.png)
 
+Consider 5 Acceptors and multiple Proposers. At ProposalID = t1, proposal P1 is accepted by A1 and A2, but not a majority; no value is determined in that round. ProposalID = t2, P2 likewise fails to reach a majority. ProposalID = t3, P3 is accepted by majority A2, A3, A4, and consensus is reached.
 
+First, note that before consensus is reached, an Acceptor may change the value it accepts; for example, A3 first accepted P2 and later accepted P3. Because Proposers may disconnect at any time, Acceptors can only choose to accept new values. This implies that when A3 accepts P3, it cannot know that consensus has been reached and that P3 is the chosen value. Similarly, A2 and A4 know only their local situations; they cannot judge whether the system has achieved consensus overall. On the Proposer side, before receiving successful responses from a majority of Acceptors, it doesn’t know whether P3 it submitted will be accepted by the majority and become final consensus. Thus, consensus belongs to the whole; individual participants need a process to come to understand whether consensus has been achieved.
 
-Consider a scenario with 5 acceptors and multiple proposers:
-- At ProposalID = t1, proposal P1 is accepted by A1 and A2. No majority yet.
-- At ProposalID = t2, proposal P2 is accepted by A3 and A4. No majority yet.
-- At ProposalID = t3, proposal P3 is accepted by A2, A3, and A4. Now a majority!
+### Can established consensus be overturned?
 
-This shows that even if the first two proposals fail to get majority acceptance, subsequent proposals can still lead to consensus.
+In the previous example, after consensus at ProposalID = t3, could we reach a new consensus P4 at t4? Then t3’s consensus is P3, t4’s is P4, while t1 and t2 have no consensus. For a god, different values chosen at different times are perfectly fine—no problem—because a god is omniscient and omnipotent. But for dull mortals, allowing different consensus at different times causes cognitive impairment.
 
-
-
-From the previous example:
-- Before consensus was reached, **acceptors could change their view** (e.g., A3 accepted P2 and then P3).
-- Propoters might go offline, causing temporary communication issues.
-- However, once a proposal is accepted by a majority, it becomes the chosen value.
-
-This means that consensus is a dynamic process. New information can continuously update our understanding of what has been agreed.
-
-
-
-If we allow for the possibility of consensus being overturned:
-- Suppose at ProposalID = t3, P3 was accepted by A2, A3, and A4.
-- Now, at ProposalID = t4, can a new proposal P4 be accepted, overwriting the previous consensus?
-- From a logical standpoint: Yes. If the system allows for dynamic updates to the agreed value, then yes.
-
-However, from a practical perspective:
-- Once a value is established as the chosen value, changing it requires a lot of trust in the system's ability to handle dynamic changes.
-- This is where the concept of **consensus dynamics** comes into play.
+If consensus can be overturned, how does a mortal with limited cognition know which value to use? Many times have no consensus (e.g., t1 and t2). Must he traverse all times from t1 to tn to discover all consensuses?
 
 ![paxos\_consensus\_fail](paxos/paxos_consensus_fail.png)
 
+Now, consider the case above. Suppose A3 crashes while processing P3. From the outside, there are two possibilities:
 
+1. A3 already accepted P3, so consensus was reached.
+2. A3 hadn’t accepted P3 yet, so consensus wasn’t reached.
 
-Now, let's consider the case when A3 crashes during processing of P3:
-1. If A3 has already accepted P3: No problem.
-2. If A3 hasn't yet accepted P3: Then A3 is in a state where it can no longer influence the outcome.
+No one but A3 knows the outcome—and A3 has crashed and cannot answer! So if different times may have different consensus, we might be trapped in an awkward situation where historical results are quantum indeterminate, making yes/no answers impossible.
 
-This means that:
-- If A3 was about to accept P3, but the system crashes before it does so, then the cluster will not have reached consensus on P3.
-- This creates a situation where some participants are partially committed but unable to complete their action.
+For mortals, the ideal is a system with some monotonicity: it advances only in one direction, and once it reaches the target state, it remains locked in that state forever. Then, any time we want to extract information, we can push the system forward one step. If consensus is reached, pushing one more step still yields the consensus value; if not, we will actually choose a value, escaping uncertainty. In the above example, if we run one more Paxos round, regardless of A3’s choice at t3, we will obtain P3 at t4, thus eliminating uncertainty beyond t4. In Yubai’s article, this is called the maximum commit principle.
 
+Note that by running one more Paxos round, we may move the system from its original indeterminate state to a determinate one. This is akin to a quantum system: observe it, and its state collapses to an eigenstate. If it was already in an eigenstate, observation doesn’t change the system’s state.
 
-The following document provides a technical explanation of the Paxos algorithm, including its key concepts and implementation details.
+### How to ensure consensus remains unchanged?
 
+Consensus is knowledge on the primary timeline of the primary world. According to modern magical studies, knowledge at two different points on the timeline is completely independent! If we want to relate the knowledge at those two points, we must introduce some **"connection"** mechanism so information can transfer from one time point to another.
 
-### 1. Introduction to Paxos Algorithm
+First, we know all facts on the primary timeline can be ordered by their “time points,” and consensus is a write occurring at some point on the primary timeline. The simplest way to keep consensus consistent is read-before-write—peek at the prior state before writing.
 
-The Paxos algorithm is a method for achieving consensus in a distributed system. It relies on the concept of **quorum** (a group of nodes that must all agree on a value) and **proposal IDs** (unique identifiers for each proposal). The algorithm ensures that if a majority of nodes agree on a value, it will be accepted as the correct value.
+![paxos\_phase2](paxos/paxos_phase2.png)
 
+When writing at t4, if we can peek at t3’s result, wouldn’t directly using t3’s result as the value for t4 ensure consistency?
 
-## 1.1 Key Components
+Under Level-9 magic, with a single divine thought, we can complete a composite atomic event—read-process-write—at any point on the primary timeline. Events on the primary timeline can be decomposed into events in lower worlds. Journey to the West records: one day in heaven equals one year on earth. Thus a point in the primary world maps to an interval in the lower world (a local clock in the lower world would see a longer process—start-process-end—rather than a time-stopped point). This mapping preserves atomicity and relative ordering. For instance, in the figure above, A5’s t3 and t4 are indivisible and won’t interleave. If t3 and t4 interleave, that implies unexpected events occurred during Time Stop, contradicting the assumption. t4 must be after t3 and not overlap it; thus it can see t3’s result.
 
-- **Proposer**: A node responsible for generating and submitting proposals.
-- **Acceptor**: A node that votes on whether to accept or reject a proposal.
-- **Proposal ID**: A unique identifier assigned to each proposal.
-- **Quorum**: A set of nodes that must all agree on a value.
+In Paxos Phase 1, we collect the values already accepted by a majority of Acceptors.
 
+1. If consensus has already been reached, Phase 1 will necessarily return this consensus value, and it must be the one with the largest ProposalID. Proof: if consensus is reached at t3, then the immediately following t4 will have seen t3’s result, and by rule, its value must be the consensus value. So if the largest ProposalID’s value isn’t the consensus, it indicates consensus cannot have been reached before it.
 
+2. If consensus hasn’t been reached, the Proposer is free to choose a preferred value; choosing the one with the largest ProposalID to help others is also perfectly fine.
 
-The algorithm proceeds in two phases:
+Some may wonder: if the Proposer submits others’ values, what about its own? Note: Paxos aims to achieve consensus, not satisfy personal desire by turning one’s own value into consensus. In fact, a Proposer who finds its value cannot be submitted can simply abandon subsequent work without affecting correctness. Helping others proactively accelerates system convergence. If some Proposer receives responses from all Acceptors and, upon analysis, finds consensus hasn’t been reached, it may choose not to support others and persist in submitting its own value. Mutual assistance is a human virtue—help others this time, and perhaps they’ll help you next time.
 
-1. **Phase 1: Proposal Generation**
-   - The Proposer generates a new proposal with a unique Proposal ID.
-   - The Proposer sends this proposal to all Acceptors.
+## VI. Certainty atop Uncertainty
 
-2. **Phase 2: Value Assignment**
-   - Each Acceptor votes on the proposal based on their local state.
-   - If a majority of Acceptors agree, the value is committed; otherwise, it is rejected.
+In mortal eyes, the world teems with aggravating uncertainty; every action yields three possible outcomes: 1) success, 2) failure, 3) unknown. Once, isolated single-machine systems offered a utopian illusion: the world is binary—good vs. bad, success vs. failure, light vs. darkness. But reality sobers us: in a world ruled by chance, inherent uncertainty gives distributed systems their essential difficulty.
 
+To strive in a random, uncertain world, we must cooperate sincerely to form a collective consciousness that transcends the individual. The individual can perish; the collective achieves immortality through renewal. An interesting question: is majority the only way to form collective consciousness? Clearly not. For spiritual inheritance, seeds suffice.
 
-
-In the following example:
-
-- Node A3 (A3) is responsible for generating proposals.
-- Nodes A1, A2, and A4 are Acceptors.
-- Proposal ID "P3" is assigned to a new proposal.
-
-
-A3 submits Proposal P3 to all Acceptors:
-```
-ProposalID = "P3"
-Value = current_value_of_A3
-```
-
-
-Each Acceptor votes on the proposal:
-
-- A1 votes `accept` because its local value matches.
-- A2 votes `reject` because its local value differs.
-- A4 votes `accept` because its local value matches.
-
-Since two out of three Acceptors agree, the proposal is accepted. The value associated with Proposal P3 becomes the new consensus value.
-
----
-
-
-
-In an ideal system where all nodes agree on a single value (i.e., the system exhibits **monotonicity**), the following behavior is observed:
-
-1. Once a value is committed, it will never change.
-2. All future proposals will reflect this committed value.
-
-
-
-Consider the following scenario:
-
-- The system has reached a consensus on value `V`.
-- A new proposal is submitted with value `V'` (where \( V' \neq V \)).
-
-If the system exhibits monotonicity, all Acceptors will reject this new proposal. This ensures that the system remains in a consistent state and avoids oscillations between conflicting values.
-
----
-
-
-
-In reality, distributed systems often face uncertainty due to network delays, failures, or inconsistent local states. The Paxos algorithm addresses these challenges by:
-
-1. Allowing for a **graceful degradation** when consensus cannot be reached.
-2. Enabling the system to recover from conflicts and reach subsequent agreements.
-
-
-
-Suppose two nodes (A3 and A4) are attempting to agree on a value:
-
-- A3 has value `V1`.
-- A4 has value `V2`.
-
-If no quorum can be formed, the system will not commit any value. However, if additional nodes join the system and reach agreement on a new value \( V \), the system can continue operating normally.
-
----
-
-
-
-The **maximum proposer rule** is a key optimization in the Paxos algorithm. It states that:
-
-1. If a Proposer has submitted more proposals than any other node, its latest proposal will always be accepted (provided it has majority support).
-2. This prevents multiple Propoters from dominating the system and ensures efficient agreement.
-
-
-
-In this scenario:
-
-- A3 is the current maximum proposer with Proposal ID "P5".
-- A1, A2, and A4 are Acceptors.
-- A3 submits Proposal P5 with value `V_new`.
-
-If at least two other nodes accept this proposal, it will be committed as the new consensus value. This ensures that the system progresses toward agreement.
-
----
-
-
-
-When implementing the Paxos algorithm, consider the following:
-
-1. **Network Latency**: Ensure that all Acceptors receive proposals within a reasonable time.
-2. **Failure Handling**: Implement mechanisms to handle node failures and ensure quorum formation.
-3. **Security**: Protect against malicious nodes attempting to disrupt the consensus process.
-
-
-
-If an Acceptor fails just before voting on a proposal:
-
-- The Proposer resends the proposal to all other Acceptors.
-- If a new quorum can be formed, the value is committed; otherwise, it remains in limbo.
-
----
-
-
-
-Achieving consensus in distributed systems is challenging due to:
-
-1. **Network Uncertainty**: Nodes may have conflicting views of the system's state.
-2. **Time Constraints**: Proposals must be processed within a limited timeframe.
-3. **Adversarial Behavior**: Some nodes may attempt to disrupt the consensus process.
-
-
-
-If an adversary submits conflicting proposals, the system must:
-
-- Detect the conflict.
-- Resolve it by selecting a proposal that has majority support.
-- Minimize the impact on system performance.
-
----
-
-
-
-Consider a grid of nodes where each node's state is determined by its position in the grid. The quorum formation process involves:
-
-1. Identifying a set of nodes that can reach agreement.
-2. Using their collective state to determine the final value.
-
+Consider a Grid Quorum example,
 ![paxos\_grid\_quorum](paxos/paxos_grid_quorum.png)
 
----
+For the 3*6 Acceptors forming a grid above, we can stipulate that writing any column quorum suffices to deem consensus reached. Evidently, any two columns are disjoint. To avoid contradictory choices, we need to build a bridge horizontally: require that Paxos Phase 1 reads at least one row. Suppose consensus has arisen at some time; then the next consensus must perform a row read followed by a column write. Since any row and any column intersect, the row read will necessarily read the consensus value, ensuring the newly written value remains consistent with the prior consensus. Note that the row quorum and its intersecting column quorum both need not be majorities, and their total elements are 3+6-1=8, which is not a majority. Thus, read and write quorums need not be the same, nor majorities; intersection suffices to transmit information.
 
+To transcend the individual, elevate the individual to a member of a quorum. An individual can belong to multiple quorums. As long as past and future quorums coordinate and avoid conflicting choices, we can ultimately form a unified collective will.
 
+## VII. The Secret of Time
 
-The Paxos algorithm provides a robust method for achieving consensus in distributed systems. By leveraging quorums and proposal IDs, it ensures that the system can reliably reach agreement on values even in uncertain environments.
+For mortals, time is a mysterious a priori existence. It seems all coordination essentially leverages the direction provided by the arrow of time. In our plane, Sir Newton first discovered that time partitions causality—cause on the left, effect on the right. For this he wrote the immortal Newton’s second law:
 
+> F = m\* a, cause = linear coefficient * effect
 
-The following is a translation of the Chinese technical document, preserving its original Markdown format, including headers, lists, and code blocks.
+Later, by imagining emitting a photon to probe the world, Einstein inadvertently revealed a shocking secret: timelines are not unique!
 
----
+If timelines aren’t unique, how do we avoid losing our way? One choice is to remember all timelines—Vector Clock technology. And if we choose to align all timelines into a unique one, we get the Paxos algorithm.
 
+Do we have other choices? Imagine if we could break free of causality, roam the timeline freely, indifferent to past or future—how cool would that be. Cause on the left, effect on the right—why not invert them? Essentially this is because the system lacks commutativity; swapping left and right yields different results. Only in a high-magic world, indifferent to left/right and before/after, can true Level-10 magic be cast: Reverse Causality. CRDT data structures, anyone?
 
-## 1. Introduction to Quorum-Based Consensus
+## VIII. Conclusion
 
-In this section, we will explore the concept of **Quorum**-based consensus, which forms the foundation of many distributed systems. A **Quorum** is a set of nodes in a distributed system that can reach agreement on a specific value or decision.
+The divide between man and god lies in the divine realm. Within the divine realm, words command law. Making rules is the god’s genesis, while humbly accepting rules—and cunningly exploiting them—is human essence.
 
+A small subset of mortals, called programmers, fancy themselves pseudo-gods of the program world, always trying to overstep this chasm. But only by truly simulating divine behavior can humans recognize their limits and the greatness of gods. Why does sending a message yield a response? Because all servers reside on Earth; their distances are finite. Why can a Lease term be decided by local clocks? Because servers are on Earth, in similar gravitational fields, making local clocks comparable. From human scale, we cannot imagine achieving consensus across half the galaxy.
 
-## Key Components of a Quorum
-1. **Size**: The number of nodes required to form a Quorum.
-2. **Consistency**: All nodes in the Quorum must agree on the same value.
-3. **Fault Tolerance**: The Quorum should be able to function even if some nodes fail.
+Finally, let us once again heed the god’s will:
 
-For the example provided, we have `3*6` Acceptors forming a Grid. We can define a Quorum as any single column of the Grid. It is clear that any two columns are disjoint. To avoid making conflicting decisions, we need to build a bridge between these columns and define the **Paxos first phase**.
+* The god said: let there be time
+* The god said: time shall stop
+* The god said: myriad worlds
+* The god said: countless avatars
+* The god said: pass the flame
 
----
-
-
-
-1. **Reading Phase**: During this phase, at least one row must be read from the Quorum.
-2. **Agreement**: If a value is already established in the system, it will not change during this phase.
-
-In the example provided:
-- Any row and any column are disjoint.
-- Once a value is read from the system, it remains consistent.
-- The total number of nodes involved is `3 + 6 - 1 = 8`.
-
-Thus, reading and writing to the Quorum ensures that the new value will not conflict with existing values.
-
----
-
-
-
-To achieve consensus in a distributed system:
-1. **Overcome Individual Limitations**: Transform an individual into a member of a group.
-2. **Belonging to Multiple Quorums**: An individual can belong to multiple Quorums.
-3. **Coordination Between Quorums**: Ensure that all past and future Quorums are coordinated.
-
----
-
-
-
-For humans, time is a mysterious pre-existing entity. Our coordination work seems to rely heavily on time's arrow.
-
-
-- Isaac Newton first discovered the law of cause and effect.
-- According to his view:
-  - Time's left side causes effects on its right side.
-  - This led to the famous equation:  
-    ```plaintext
-    F = m\* a, \* cause = m\* a, \* effect
-    ```
-  - The right side is the effect.
-
-
-- Albert Einstein questioned Newton's view through his thought experiments.
-- He proposed that time is not unique:
-  - **Time lines are not unique**.
-  - How do we avoid losing direction in such a system?
-
----
-
-
-
-To address these questions, distributed systems often use **Vector Clocks**:
-1. **Remember all time lines**: Maintain a record of all known time lines.
-2. **Total ordering**: Create a total order that respects all time lines.
-
-By aligning all time lines into a single clock, we can avoid conflicts and implement the **Paxos algorithm**.
-
----
-
-
-
-1. **Time is not unique**: This creates ambiguity in distributed systems.
-2. **Avoid direction loss**: Use Vector Clocks to maintain consistency.
-
-The **Vector Clock** provides a way to:
-- **Remember all time lines**: By keeping track of multiple timestamps.
-- **Maintain total order**: By combining all known time lines into one.
-
-This ensures that the system can still form a Quorum and achieve consensus even when time is not unique.
-
----
-
-
-
-For ordinary people, time is a magical pre-existing entity. Our coordination work seems to rely heavily on time's arrow.
-
-
-- Isaac Newton first discovered the law of cause and effect.
-- According to his view:
-  - Time's left side causes effects on its right side.
-  - This led to the famous equation:  
-    ```plaintext
-    F = m\* a, \* cause = m\* a, \* effect
-    ```
-  - The right side is the effect.
-
-
-- Albert Einstein questioned Newton's view through his thought experiments.
-- He proposed that time is not unique:
-  - **Time lines are not unique**.
-  - How do we avoid losing direction in such a system?
-
----
-
-
-
-To address these questions, distributed systems often use **Vector Clocks**:
-1. **Remember all time lines**: Maintain a record of all known time lines.
-2. **Total ordering**: Create a total order that respects all time lines.
-
-By aligning all time lines into a single clock, we can avoid conflicts and implement the **Paxos algorithm**.
-
----
-
-
-
-1. **Time is not unique**: This creates ambiguity in distributed systems.
-2. **Avoid direction loss**: Use Vector Clocks to maintain consistency.
-
-The **Vector Clock** provides a way to:
-- **Remember all time lines**: By keeping track of multiple timestamps.
-- **Maintain total order**: By combining all known time lines into one.
-
-This ensures that the system can still form a Quorum and achieve consensus even when time is not unique.
-
----
-
-
-
-Finally, let us listen once more to the divine intention:
-
-* Divine says: There must be time.
-* Divine says: Time should stand still.
-* Divine says: The world is vast.
-* Divine says: Infinity in flesh.
-* Divine says: Fire passes through.
-* Divine says: The world is connected.
-
----
-
-
-
-In conclusion, the **Paxos algorithm** and **Vector Clocks** are powerful tools for achieving consensus in distributed systems. By understanding and addressing the complexities of time, we can build systems that are both efficient and reliable.
-
----
-
+Lamport: Paxos!
+<!-- SOURCE_MD5:5fd6e72488f8b59119ecb9d031b90e5c-->

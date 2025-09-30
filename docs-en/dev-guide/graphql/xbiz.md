@@ -1,21 +1,21 @@
 # Biz Model
 
-Video Introduction: [How to Implement Backend Service Functions in the Nop Platform Using XBiz Configuration Files](https://www.bilibili.com/video/BV1aN411B7Ju/)
+Video introduction: [How to implement backend service functions via XBiz configuration files in the Nop platform](https://www.bilibili.com/video/BV1aN411B7Ju/)
 
 ## Code Generation
 
-The default code generation template will generate corresponding XBiz model files based on the meta file and automatically import the biz-gen.xlib tag library to generate default function parameter declarations for CRUD operations.
+The default code generation template will automatically create the corresponding xbiz model file based on the meta file, and will automatically include the biz-gen.xlib tag library to generate default function parameter declarations for CRUD operations.
 
-In XBiz files, you can directly define query, mutation, loader functions. These will override the corresponding functions in Java's BizModel.
-This means that the exposed BizObject is composed of all functions defined in both BizModel classes and XBiz model files. When BizObjectManager starts up, it scans
-all BizModel classes in the system as well as XBiz model files to generate corresponding BizObject objects.
+In xbiz files, you can directly write function definitions such as query, mutation, loader, etc.; these will override the corresponding function implementations in Java's BizModel.
+In other words, the externally exposed BizObject is composed of all BizModel classes as well as all functions defined in XBiz model files. When the BizObjectManager starts, it scans all BizModel classes and XBiz model files in the system to generate the corresponding BizObject instances.
 
-**Functions defined in XBiz have the highest priority. If a function with the same name already exists, it will be automatically overridden.**
+**Functions defined in XBiz have the highest priority; if they share the same name as existing functions, they will automatically override them.**
 
-For example, if NopAuthUser.xbiz adds an active_findPage function:
+For example, NopAuthUser.xbiz adds an active_findPage function:
 
 ```xml
 <query name="active_findPage" x:prototype="findPage">
+
     <source>
         <c:import class="io.nop.auth.api.AuthApiConstants" />
 
@@ -28,7 +28,7 @@ For example, if NopAuthUser.xbiz adds an active_findPage function:
 </query>
 ```
 
-If x:prototype="findPage" is not inherited, the complete function can be written as:
+x:prototype="findPage" indicates that it inherits the parameter definitions of the default generated findPage function. If you do not inherit, the complete function would be written as follows:
 
 ```xml
 <query name="active_findPage">
@@ -47,15 +47,15 @@ If x:prototype="findPage" is not inherited, the complete function can be written
 </query>
 ```
 
-This function is equivalent to defining the following Java function:
+This function definition is equivalent to defining the following function in Java:
 
 ```javascript
+
 @BizQuery
-public PageBean<NopAuthUser> active_findPage(
-    @Name("query") QueryBean query,
-    FieldSelection selection,
-    IServiceContext ctx
-) {
-    return ...;
+public PageBean<NopAuthUser> active_findPage(@Name("query") QueryBean query, 
+    FieldSelection selection, IServiceContext ctx){
+    return ...    
 }
 ```
+
+<!-- SOURCE_MD5:c41e94c74520623f6b0f39b42e071cbb-->

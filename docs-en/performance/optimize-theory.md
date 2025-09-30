@@ -1,14 +1,14 @@
 # Performance Optimization Methodology
 
-## Elementary View's Performance Optimization
+## Performance Optimization from a Grade-School Perspective
 
-## Pipeline and Temporal Graph
+## Pipelining and Space-Time Diagram
 
 ### Asynchronous
 
-### Amdahl's Law
+### Amdahl's Theorem
 
-## Golden Three Principles
+## The Three Golden Factors
 
 ### Little's Law
 
@@ -23,3 +23,4 @@
 ### GPU
 
 ## Tensor Decomposition
+<!-- SOURCE_MD5:735940c8a122d6be7a481405f0059b74-->

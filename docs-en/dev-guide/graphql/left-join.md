@@ -1,6 +1,6 @@
-# Using QueryBean for Left Join Queries
+# Implement Left Join Queries via QueryBean
 
-The `QueryBean` now includes a `leftJoinProps` collection property. The specified properties will be converted into left join syntax.
+A leftJoinProps collection property has been added to QueryBean; properties specified here will be translated into left join syntax.
 
 ```json
 {
@@ -13,9 +13,10 @@ The `QueryBean` now includes a `leftJoinProps` collection property. The specifie
     "value": "a"
   }
 }
+
 ```
 
-When translated into EQL object queries, it becomes:
+When translated into an EQL object query, it becomes:
 
 ```sql
 select o
@@ -23,7 +24,7 @@ from MyEntity o left join o.dept
 where o.dept.name = 'a'
 ```
 
-Parameters can be passed via URL in frontend queries like:
+When querying from the frontend, you can pass parameters via URL:
 
 ```
 /r/NopAuthUser__findPage?query_leftJoinProps=dept,xxx
@@ -31,6 +32,8 @@ Parameters can be passed via URL in frontend queries like:
 
 ## Security Control
 
-To prevent unexpected association conditions that could lead to attacks, `CrudBizModel` checks the `biz:allowedLeftJoinProps` collection.
+To prevent attacks caused by the frontend sending unexpected join conditions, CrudBizModel will verify that the properties in leftJoinProps are already defined in the meta's `biz:allowedLeftJoinProps` collection.
 
-By default, direct sending of association conditions from frontend to backend is not allowed, and the number of associations is limited to 3.
+By default, the frontend is not allowed to directly send join conditions to the backend, and the number of joins is limited to no more than 3.
+
+<!-- SOURCE_MD5:a015e0d433fed636690f3c8601880b36-->

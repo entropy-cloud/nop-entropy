@@ -4,7 +4,7 @@
 
 See [graphql-java.md](graphql-java.md)
 
-## Built-in CRUD Service
+## Built-in CRUD Services
 
 See [crud.md](crud.md)
 
@@ -16,22 +16,22 @@ See [left-join.md](left-join.md)
 
 See [upload.md](upload.md)
 
-## Service Function in XBiz File
+## Define Service Functions in XBiz Files
 
 See [xbiz.md](xbiz.md)
 
-## Pagination for Sub-tables
+## Paginate Subtables
 
-Implement a mechanism similar to the Relay framework's Connection mechanism, see [connection.md](connection.md)
+Implements a Connection mechanism similar to the Relay framework, see [connection.md](connection.md)
 
-## Using Fragment to Simplify Queries
+## Use Fragments to Simplify Queries
 
 See [fragments.md](fragments.md)
 
-## Directly Calling BizModel Without Going Through GraphQL Engine
-
+## Call BizModel directly without going through the GraphQL engine
 See [call-biz-model.md](call-biz-model.md)
 
-## About GraphQL Answers
-
+## Q&A about GraphQL
 See [qa-about-graphql.md](qa-about-graphql.md)
+
+<!-- SOURCE_MD5:d1f7dda68d515fd61f3c63dd85eb5087-->

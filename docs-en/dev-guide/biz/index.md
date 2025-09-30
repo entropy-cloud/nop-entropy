@@ -1,17 +1,16 @@
-# Business Expansion
+# Business Extensions
 
 ## Coding Rules
 
-See [CODERULE.md](# "Coded rule file")  
-[CODERULE.md](#)
+See [coderule.md](coderule.md)
 
-## Validation Model  
+## Validation Model
 
-The validation model built into `CrudBizModel` uses the rules defined in [VALIDATE.md](validate.md).  
+CrudBizModel contains built-in validation rules; see [validate.md](validate.md)
 
-For details, refer to [VALIDATE.md](validate.md).
+For a detailed introduction to the validation model, see [validator.md](validator.md)
 
-## Action Decorator  
+## Action Decorators
 
-See [ACTION-DECORATOR.md](action-decorator.md)  
-[ACTION-DECORATOR.md](action-decorator.md)
+See [action-decorator.md](action-decorator.md)
+<!-- SOURCE_MD5:e615ed95a6eb5e1e50e26f74bcadd5cb-->

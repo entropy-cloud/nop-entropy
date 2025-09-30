@@ -1,220 +1,164 @@
-# Those used in Nop code generator DSL
+# The DSLs Used in the Nop Code Generator
 
-Nop platform is based on so-called reversible computing theory from scratch writing, its overall implementation can be seen as the following software construction formula applied across different abstract layers:
+The Nop platform was written from scratch based on the so-called Reversible Computation theory. Its overall implementation can be regarded as repeated applications of the following software construction formula at different levels of abstraction:
 
 > `App = Delta x-extends Generator<DSL>`
 
-To realize this abstract formula into specific technical implementation, Nop platform integrates a series of generic mechanisms for implementing Generator, defining DSL (Domain-Specific Language), splitting and merging Delta, etc. The essential difference lies in that Nop platform provides **reversible computing theory-guided general solutions**. From the traditional technical perspective, DSL design is essentially an AdHoc-style edge-case solution, relying heavily on luck, while truly generic solutions are practically non-existent.
+To concretize this abstract formula into specific technical implementations, the Nop platform builds in a set of general mechanisms to implement Generators, define DSLs (Domain Specific Languages), and split/merge Deltas. It is important to emphasize that the fundamental difference between the Nop platform and traditional technologies is that it provides a general solution guided by Reversible Computation theory. From a traditional perspective, DSL design is typically an ad-hoc solution for edge domains whose usefulness depends largely on luck; fully general-purpose solutions are thought not to exist. We often see statements like:
 
-We often encounter the following statement:
+> Redefining a new DSL to replace the Java language that developers are already familiar with—where does the confidence come from to surpass masters of language design? And beyond that, the development process still needs IDEs, debugging environments, and tools.
 
-> Redefine a set of DSL to replace developers' familiar Java language, why would one have more confidence in language-designers than in language itself? Moreover, the development process still requires various IDE, debug environments, and tools.
+As the saying goes, people cannot comprehend what they have not yet comprehended. Because the current mainstream technology stacks do not offer solutions, many people believe that certain problems have no general solution, and further assume that some problems do not exist or do not need to be solved: **problems that cannot be solved are subconsciously regarded as problems that do not need to be solved**.
 
-It's only human that we cannot understand things we haven't understood yet. Because the current mainstream technical体系没有解决方案，导致 many people believe that certain problems lack a general solution, leading them to subconsciously think that some problems are either unsolvable or not worth solving:
+The Nop platform aims to be a general Domain Specific Language Workbench. In other words, it provides a series of technical supports for creating new domain languages, striving to minimize the cost of building a new domain language. The most important part of a domain-specific language is its semantic structure (what domain-specific atomic concepts exist and how they interact), while surface syntax is secondary. **Designing and implementing a DSL does not need to start from scratch; you can reuse a variety of general-purpose infrastructure**. The emergence of Nop is a natural consequence of the development of general-purpose language design reaching its peak—further development following the standardization of general-purpose language infrastructure. In fact, developing a new general-purpose language in 2024 costs far less than it did 20 years ago; for example, a small team of a dozen people like Moonbit can develop a new language. And the runtime for a DSL does not have the stringent performance requirements of a general-purpose language; it can be translated into a general-purpose language via a Generator, making it far cheaper than building a general-purpose language.
 
-> **Intractable problems will be unconsciously deemed unnecessary to solve**.
+The Nop platform systematically uses DSLs to solve problems in traditional software engineering, which leads to the introduction of a large number of custom DSLs. To those unfamiliar with Nop, it may look like a bunch of xdef, xpl, xrun, xdsl files, and even Antlr—so how do these DSL files with different suffixes work together? This article explains the various DSLs used in the Nop platform’s code generator using the execution process of XCodeGenerator as an example.
 
-The design goal of Nop platform is to become a general Domain-Specific Language Workbench (DSL Workbench), meaning it provides a series of technical supports for creating new DSL, striving to reduce the cost of developing new DSL. The most critical part of Domain-Specific Language is its semantic structure (what domain-specific atomic concepts exist and how they interact), while syntactic aspects are secondary. **Implementing a DSL doesn't require starting from scratch; instead, it can leverage a series of generic infrastructure**. The emergence of Nop is a natural outcome of generalizable language design reaching its peak, followed by further development of its own infrastructure after standardization of language基础设施. In fact, developing a new generalizable language in 2024 costs far less than it did 20 years ago—for example, a small team like Moonbit can develop a new language. Furthermore, the runtime of a DSL language doesn't demand the strict performance requirements that a general-purpose language does—Generator translates well into general-purpose language, and its cost is much lower.
+## 1. XCodeGenerator Execution Flow
 
-Nop platform systematizes the use of DSL to solve traditional software engineering problems, which in turn introduces numerous custom DSLs. To someone unfamiliar with Nop, this might seem like just a collection of xdef, xpl, xrun, xdsl, even antlr—so many different suffixes on DSL files, how do they all work together? This text takes the execution process of XCodeGenerator as an example to explain the various DSL used in Nop code generator.
+The Generator mentioned in the formula `App = Delta x-extends Generator<DSL>` is an abstract concept that broadly represents any abstract transformation mechanism on domain structures. Its concrete manifestations can be standalone code generation tools or macro functions and metaprogramming mechanisms built into programming languages. XCodeGenerator is a general-purpose code generator built into the Nop platform.
 
-## 1. Execution Process of XCodeGenerator
+> See [The most powerful model-driven code generator: NopCodeGen](https://mp.weixin.qq.com/s/rd36AFh5pmjwtRFmApRswg)
 
-`App = Delta x-extends Generator<DSL>`
-
-This formula mentions Generator, which is an abstract concept referring to anything related to domain-specific transformation mechanisms, whether it's a standalone code generation tool or a built-in macro function and meta-programming mechanism within a programming language. XCodeGenerator is a generic code generator integrated into Nop platform.
-
-> See [The strongest model-driven code generator NopCodeGen](https://mp.weixin.qq.com/s/rd36AFh5pmjwtRFmApRswg)
-
-Generally, you can use Maven plugin to call XCodeGenerator:
+Generally, we can invoke XCodeGenerator via a Maven plugin:
 
 ![](images/CodeGenTask.png)
 
-Alternatively, you can use the nop-cli command line tool to invoke XCodeGenerator:
+We can also invoke XCodeGenerator using the nop-cli command-line tool:
 
 ![](images/nop-cli.png)
 
-When executing the following command via CLI:
-
-```bash
-java -jar nop-cli.jar gen model/test.orm.xlsx -t=/nop/templates/orm
-```
-
-The logic is pseudocoded as follows (note: this is not actual Java code):
+When we run the command `java -jar nop-cli.jar gen model/test.orm.xlsx -t=/nop/templates/orm` from the command line, the logic it actually executes can be expressed in pseudocode as:
 
 ```javascript
-templateDir = "/nop/templates/orm"
-modelPath = "model/test.orm.xlsx"
-// Specify template directory and input file directory via parameters
-codegen = new XCodeGenerator(templateDir, targetDir);
-codegen.renderModel(modelPath, scope);
+   templateDir = "/nop/templates/orm"
+   modelPath = "model/test.orm.xlsx"
+   // Specify the template directory and input file directory via parameters
+   codegen = new XCodeGenerator(templateDir, targetDir);
+   codegen.renderModel(modelPath, scope);
 ```
 
-The renderModel function of XCodeGenerator performs the actual logic (pseudocode):
+The execution logic of XCodeGenerator’s renderModel function can be expressed in pseudocode as:
 
 ```javascript
-def renderModel(modelPath, scope):
-    read_model(modelPath)
-    generate_code(scope)
-    output_result()
-```
-
-```markdown
-# XCodeGenerator
-
-## 1. renderModel Function
-```javascript
-void renderModel(modelPath, scope){
-    // Parse model file to get model object
-    codeGenModel = ResourceComponentManager.instance().loadComponentModel(modelPath);
-    
-    // Set parsed model to context
-    scope.setLocalValue("codeGenModel", codeGenModel);
-    
-    // Execute model rendering
-    execute(scope);
+void renderModel(modelPath,scope){
+   // Parse the model file to obtain the model object
+   codeGenModel = ResourceComponentManager.instance().loadComponentModel(modelPath);
+   // Put it into the execution context
+   scope.setLocalValue("codeGenModel", codeGenModel);
+   // Execute the code generation templates
+   execute(scope);
 }
 ```
 
-## 2. execute Function (Pseudo-Code)
+The execute function of XCodeGenerator, in pseudocode:
+
 ```javascript
 void execute(scope){
-    // Run initialization file
-    runInitFile("@init.xrun", scope);
-    
-    // Retrieve nested loop object from context
+    // Run the init file under the root of templateDir
+    runInitFile("@init.xrun",scope);
+    // Retrieve the NestedLoop loop model object created by the init code
     codeGenLoop = scope.getValue("codeGenLoop");
-    
-    // Recursively process each template path
-    // Use nested loop to determine how many times each template should be processed
-    // For each variable combination, execute the generation logic
-    processDir(codeGenLoop);
+    // Recursively traverse each templatePath
+    //   Use NestedLoop.loopForVars(templatePath) to determine how many times each template file should be generated
+    //   For each combination of loop variables, execute code generation once
+    processDir(codeGenLoop)
 }
 ```
 
-## 3. DSL Overview
+XCodeGenerator uses the following DSLs:
 ![](images/codegen-dsl.png)
 
-## 4. Parsing Excel Files
-### 1. Loading Excel Workbook
+## 2. Parsing Excel Files into ExcelWorkbook
+
+The Nop platform does not use the Apache POI library to parse Excel files. Instead, it implements the xlsx file format parser ExcelWorkbookParser from scratch.
+
 ```javascript
-ExcelWorkbookParser parser = new ExcelWorkbookParser();
-ExcelWorkbook wk = parser.parseFromFile(file);
+ExcelWorkbook wk = new ExcelWorkbookParser().parseFromFile(file);
 ```
 
-### 2. Generating Excel Output
+ExcelWorkbook is a model object defined by Nop for the Excel tabular data model. It provides a simplified description of the Excel model; you can parse an ExcelWorkbook from an xlsx file, and you can also generate an xlsx from an ExcelWorkbook.
+
 ```javascript
-ExcelTemplate template = new ExcelTemplate(wk);
-template.generateToFile(file, XLang.newEvalScope());
+new ExcelTemplate(wk).generateToFile(file, XLang.newEvalScope());
 ```
 
-### 3. Key Characteristics
-1. **No Apache POI Dependency**: The Nop platform does not rely on external libraries like Apache POI for Excel processing.
-2. **Model-Driven Approach**: Excel workbooks are treated as models that can be parsed and used to generate other formats.
+ExcelWorkbook supports only some basic Excel features (including styles, images, etc.); many advanced features are not supported. However, for most applications, the information provided by ExcelWorkbook is rich enough, and for report import/export scenarios, Excel’s advanced features are typically unnecessary.
 
-### 4. Model Transformation
+A distinguishing feature of the Nop platform versus other technologies is: **every model object has a corresponding DSL format, and every DSL has a corresponding XDef meta-model definition**. For example, ExcelWorkbook is a modeling result for the tabular data model; it is not bound to Excel. Excel is merely one serialization form of ExcelWorkbook; it can also be serialized into a simpler xpt.xml model file.
+
+```javascript
+ExcelWorkbook wk = (ExcelWorkbook) DslModelHelper.loadDslModel(resource);
+DslModelHelper.saveDslModel("/nop/schema/excel/workbook.xdef",
+                  wk, targetResource);
+```
+
 ![](images/workbook-model.png)
 
-1. **Define the workbook.xdef model**:
-   - This defines how data in an Excel workbook should be transformed into another format.
-   - The transformation rules are specified using a domain-specific language (DSL).
+1. First define the workbook.xdef meta-model, then automatically generate the code for the ExcelWorkbook model class from it.
 
-2. **Mapping Rules**:
-   - Similar to JSON serialization, where `XDef` defines the structure and transformations.
-   - Nop supports multiple output formats by leveraging its built-in DSL.
+2. Based on the information in workbook.xdef, ExcelWorkbook can be saved as an xpt.xml model file and parsed back. All DSL models defined via xdef can automatically support parsing and serialization. **By analogy: JSON serialization = object + annotations; DSL serialization = object + XDef**. Since XML and JSON can be converted to each other on the Nop platform, although DSL models are typically stored in XML, they can also be stored in formats like YAML or JSON. JSON objects edited by the front-end visual designer can be automatically saved in XML format. **The Nop platform emphasizes that the same information can have multiple manifestations (multiple representations), and there can be automatic reversible conversions between different representations**.
 
-3. **Implementation Notes**:
-   - While not supporting all Excel features, the Nop platform provides sufficient capabilities for common use cases.
-   - The focus is on maintaining a consistent model representation across different formats.
+3. The mutual conversion between ExcelWorkbook and xlsx is implemented via ExcelWorkbookParser and ExcelTemplate. The Nop platform does not use the POI library; it parses xlsx files itself (an xlsx file is essentially a zip archive of several XML files). Note that **the Nop platform does not use Java’s built-in XML parsers nor the DOM node interfaces defined by the XML standards**; it uses a custom XNodeParser and a custom XNode structure written from scratch.
 
-3. ExcelWorkbook and xlsx file format conversion is implemented using ExcelWorkbookParser and ExcelTemplate. The Nop platform does not use the POI library but instead performs self-contained parsing of the xlsx files (which are essentially a zip package containing multiple XML files).
+> Some people remain fixated on Nop’s extensive use of XML, believing XML is outdated and that any technology using XML is behind the times. In reality, XML as a format is not the problem; most issues encountered with XML stem from a series of bloated and cumbersome XML specifications and their implementations. By implementing its own parsers and transformers for XML structures, the Nop platform naturally avoids related issues. See [Why the Nop platform insists on XML instead of JSON or YAML](https://zhuanlan.zhihu.com/p/651450252)
 
-**Note:**  
-- The Nop platform does not use Java's built-in XML parser nor the DOM node interfaces specified in XML standards. Instead, it uses its own XNodeParser and custom XNode structure.
-- There is a persistent misconception that XML is outdated and that any technology using XML is lagging behind. However, XML itself does not have significant issues; most problems stem from over-complex implementations of XML specifications. The Nop platform avoids these issues by implementing its own XML structure parser, transformer, and validator. For details, see [Why Does the Nop Platform Stick with XML Instead of JSON or YAML](https://zhuanlan.zhihu.com/p/651450252).
-
-One important point is that the corresponding DSL file format for ExcelWorkbook is typically `xpt.xml`, referred to as the Xpt report model file. In the design of the Nop platform, an Excel file without any dynamic expansion logic is still considered a valid template file. Therefore, any ExcelWorkbook can be directly saved as a valid `xpt.xml` file.
+One point to note is that the DSL file format corresponding to ExcelWorkbook is generally `xpt.xml`, i.e., the Xpt report model file. In the design of the Nop platform, an Excel file without any dynamic expansion logic is also a valid report template file, so any ExcelWorkbook can be directly saved as a valid `xpt.xml`.
 
 ## 3. Parsing ExcelWorkbook into ModelObject
 
-The Nop platform extensively uses models to express requirement information, such as data models for defining database structures and API models for defining backend service interfaces. These models can be expressed using XML-based DSL. However, since business users are more familiar with Excel, allowing them to directly edit and view model information in Excel ensures that the documentation can be used as input for code generation tools, ensuring that models remain consistent with the code.
+The Nop platform extensively uses models to express requirements: for example, using data models to define database schema and API models to define backend service interfaces. These models can be expressed as DSLs in XML format. However, XML is a language more familiar to technical staff, while business users are more familiar with Excel. If business users can directly edit and view model information in Excel, requirement documents can serve directly as inputs to the code generation tool, ensuring that models and code remain consistent forever.
 
-The Nop platform provides a generic [ImportExcelParser](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-entropy/blob/master/nop-excel/src/main/java/io/nop/excel/imp/ImportExcelParser.java) class, which can automatically parse ExcelWorkbook into ModelObject based on the ImportModel configuration. During parsing, it performs detailed field validation and executes complex transformation logic if errors are detected.
+The Nop platform provides a general-purpose [ImportExcelParser](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-excel/src/main/java/io/nop/excel/imp/ImportExcelParser.java) that can automatically parse an ExcelWorkbook into a model object according to an ImportModel configuration. During parsing, detailed field validation is performed and complex transformation logic can be executed; if an error is found, it will indicate the exact cell and the reason for the error.
 
-### Example:
-The traditional approach requires writing specific parsing code for each file format, ultimately requiring strict consistency between Excel formats and parsing configurations. Minor changes, such as adding blank lines or adjusting cell order, can break the parsing logic and lead to failures.
+![](images/excel-to-obj.png)
 
-The Nop platform's generic parser determines how to parse an ExcelWorkbook based on the ImportModel configuration. It extracts field values from cells and executes transformation/ validation logic to construct a strongly typed Java object. In the reverse direction, for a given ModelObject, it uses ReportModel configuration to generate an ExcelWorkbook.
+Traditionally, parsing Excel requires writing format-specific parsing code for particular needs, and ultimately the Excel format must strictly match the format assumed by the parsing code. Operations that are semantically invariant, such as adding blank rows or reordering cells, still break the parser and lead to failures.
 
-### Key Points:
-- **Forward Direction:** ExcelWorkbook → ModelObject  
-  The parser reads cell values based on ImportModel's mapping and applies transformation/ validation rules to create a ModelObject.
+The Nop platform offers a general-purpose parser that decides how to parse an ExcelWorkbook into field values based on the information provided by the ImportModel. It runs conversion and validation logic and finally assembles a strongly typed Java object. In the reverse direction, given a ModelObject and the metadata provided by a ReportModel, we utilize the NopReport engine to generate an ExcelWorkbook.
 
-- **Reverse Direction:** ModelObject → ExcelWorkbook  
-  Using ReportModel, the NopReport engine generates an ExcelWorkbook with structured data. This process handles complex nesting and conditional logic, making it more advanced than simple JSON serialization.
+Note that the conversion logic here is more complex than JSON serialization. The parsed model object loses the Excel formatting and layout information. Its conversions to/from ExcelWorkbook are asymmetric in both directions; you can think of it as a non-symmetric extension of JSON serialization.
 
-### Syntax Example:
-```xml
-<ExcelWorkbook>
-    <ImportModel>
-        <!-- Mapping configuration -->
-    </ImportModel>
-    <!-- Data transformations and validations -->
-</ExcelWorkbook>
-```
+> **ExcelWorkbook  + ImportModel => ModelObject**
+>
+> **ModelObject + ReportModel => ExcelWorkbook**
 
-The Nop platform's approach allows for a flexible yet consistent way to map Excel data to Java objects, ensuring that models remain aligned with the codebase.
-
----
+ImportModel is the model information used by ImportExcelParser at runtime. It can be saved as an imp.xml file—i.e., it exists in the form of a DSL.
 
 ### Report Model (ReportModel)
-The Nop platform provides a versatile [NopReport](https://mp.weixin.qq.com/s/_nKUiryetF2O5zSrPfU8FQ) engine for complex row-wise operations. This open-source Chinese-style report engine supports intricate row and column operations, making it suitable for scenarios where Excel expertise is valuable.
 
-When generating an ExcelWorkbook from ModelObject, the NopReport engine executes dynamic row and column operations based on the ModelObject's structure. This includes handling nested objects, conditional formatting, and complex calculations, which goes beyond simple JSON or YAML processing.
+The Nop platform provides a Chinese-style report engine that supports complex row/column expansion algorithms and hierarchical coordinates. See [NopReport: An open-source Chinese-style report engine using Excel as its designer](https://mp.weixin.qq.com/s/_nKUiryetF2O5zSrPfU8FQ). When generating Excel from a ModelObject, we typically do not simply fill property values into specific cells; instead, there may be nested child object lists requiring conditionals, loops, and other logic to dynamically generate rows—even columns. Therefore, generating an ExcelWorkbook from a ModelObject is performed via the NopReport engine.
 
-### Example Code:
-```java
-import io.nop.excel.ImpExcel;
-```
+In the implementation of NopReport, ReportModel is built upon ExcelWorkbook, augmented with model information required by the report expansion computation.
 
-[ImportExcelParser](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-entropy/blob/master/nop-excel/src/main/java/io/nop/excel/imp/ImportExcelParser.java) is a generic parser that accepts an ImportModel configuration to determine how to process Excel files.
+> ReportModel = ExcelWorkbook + XptWorkbookModel
 
----
+The Nop platform provides multiple ways to express a ReportModel:
 
-### Summary:
-The Nop platform's approach to parsing Excel data into Java objects eliminates the need for custom parsers for each file format. By using its own XML parser and transformer, it ensures flexibility while maintaining consistency between models and code. This avoids the pitfalls of traditional approaches that require tailored solutions for specific Excel formats.
+1. Use the xpt.xml DSL model file; parse `xpt.xml` to obtain a ReportModel. The `xpt.xml` is constrained by the `workbook.xdef` meta-model.
 
+2. NopReport also supports defining report models using Excel as the carrier, with annotations in regular Excel files to introduce additional configuration.
 
-The `ReportModel` is defined in the `ExcelWorkbook` foundation, expanding the required model information for report generation.
+3. A third way to define a ReportModel is to automatically infer it from the `imp.xml` import model configuration combined with an empty template.
 
-```
-ReportModel = ExcelWorkbook + XptWorkbookModel
-```
+![](../../user-guide/report/MOM-YOY-report.png)
 
-The Nop platform provides multiple expression ways for `ReportModel`:
+## 4. A Unified Model Loader
 
-1. **DSL Model File (`xpt.xml`)**: Can be parsed using `xpt.xml` to obtain `ReportModel`. The `xpt.xml` uses the `workbook.xdef` meta-model for constraints.
+The Nop platform introduces a large number of model file formats, and the same model can correspond to multiple file formats. For example, an ORM model can be saved in an Excel file like `nop-auth.orm.xlsx`, or in an XML DSL file like `app.orm.xml`.
 
-2. **Excel-Based Model**: Offers model definitions within standard Excel files, supporting additional configurations through annotations.
-
-3. **Configuration File (`imp.xml`)**: Imports model configurations using `imp.xml`, combining with an empty `template` to derive a `ReportModel`.
-
-
-## Four. Unified Model Loader
-
-The Nop platform handles numerous model file formats, with the same model corresponding to multiple file formats. For instance, the `orm` model can be stored in both `nop-auth.orm.xlsx` and `app.orm.xml`.
-
-Nop adheres to a **Language-Oriented Programming (LOP)** approach. Before solving business problems, we define a DSL tailored to the current domain, then employ this DSL for problem resolution. To uniformly manage multiple DSLs, Nop provides a unified model loader.
+The Nop platform provides a programming paradigm called Language Oriented Programming (LOP). That is, before solving business problems, we first define a DSL for the relevant business domain, and then use that DSL to solve the business problems. To uniformly manage numerous DSLs, the Nop platform provides a unified model loader.
 
 ```javascript
 model = ResourceComponentManager.instance().loadComponentModel(path)
 ```
 
-The `ResourceComponentManager` loads all models. It determines file-to-model format correspondence through the standard `register-model.xml` configuration.
+We can use ResourceComponentManager to load all model files. How does ResourceComponentManager know the mapping between files and model formats? As expected, **the Nop standard approach is to introduce a new `register-model.xml` for registration**.
 
 ```xml
 <!-- orm.register-model.xml -->
-<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef" name="orm">
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="orm">
     <loaders>
         <xlsx-loader fileType="orm.xlsx" impPath="/nop/orm/imp/orm.imp.xml"/>
         <xdsl-loader fileType="orm.xml" schemaPath="/nop/schema/orm/orm.xdef"/>
@@ -222,85 +166,77 @@ The `ResourceComponentManager` loads all models. It determines file-to-model for
 </model>
 ```
 
-Upon platform startup, the system automatically scans the virtual file directory for files matching `*/nop/core/registry/*.register-model.xml`, registering their extensions to model parsers.
+When the Nop platform starts up, it automatically scans all files in the virtual file system that match `/nop/core/registry/*.register-model.xml` and registers the mappings from file suffixes to model parsers.
 
-In the example:
-- Files ending with `.orm.xlsx` use `ImportExcelParser`.
-- Those ending with `.orm.xml` use `DslModelParser`.
+In the example above, files ending with `orm.xlsx` will be parsed using ImportExcelParser, with ImportModel information sourced from `/nop/orm/imp/orm.imp.xml`. Files ending with `orm.xml` will be parsed using DslModelParser, with the XDefinition meta-model sourced from `/nop/schema/orm/orm.xdef`.
 
+## 5. Executing Code Generation Templates
 
-## Five. Code Generation Template
-
-The code generation template uses `xrun`, `xgen`, and similar tools, all stemming from XPL template language.
+File formats such as xrun and xgen used in code generation templates are essentially XPL template language files.
 
 ```xml
 <!-- xpl.register-model.xml -->
 <model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        name="xpl">
-    
+
     <loaders>
         <loader fileType="xpl" class="io.nop.xlang.xpl.loader.HtmlXplModelLoader"/>
         <loader fileType="xgen" class="io.nop.xlang.xpl.loader.HtmlXplModelLoader"/>
         <loader fileType="xrun" class="io.nop.xlang.xpl.loader.NoneXplModelLoader"/>
     </loaders>
+
 </model>
 ```
 
-Through the `xpl.register-model.xml` file, the relationship and differences between them can be clearly understood.
+The `xpl.register-model.xml` file clearly shows their relationships and differences:
 
-* xpl and xgen are the same. However, when used in code generation, xgen is a specially identified suffix. After execution, the generated files will remove the xgen suffix. For example, `test/a.java.xgen` will generate `test/a.java`.
+- xpl and xgen are the same thing; when used in code generation, xgen is a specially recognized suffix, and files produced by it will have the xgen suffix removed. For example, `test/a.java.xgen` generates `test/a.java`.
 
-* xrun is also an xpl template file but does not allow output and is only used for executing code.
+- xrun is also an xpl template file, but it does not allow output; it is used purely for code execution.
 
-In debug mode, when the Nop platform starts, it will output all register-model contents in the `/nop/main/registry/app.registry.xml` file. This file can be viewed to determine which file suffixes are identified by the unified model loader. For details, refer to this file.
+**In debug mode, when the Nop platform starts, it will output the contents of all register-model files into `/nop/main/registry/app.registry.xml`. You can inspect this file to know all the file suffixes recognized by the unified model loader.**
 
-### XLang Language
+### The XLang Language
 
-The xpl template language is part of the larger XLang family. XLang is a critical infrastructure within the Nop platform and provides multiple sub-languages that collectively form an embedded language supporting delta concepts and compile-time meta-programming, supporting `Delta x-extends Generator<DSL>` patterns for a computational mode language family. For detailed information, refer to [xlang.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/xlang/xlang.md).
+The xpl template language is part of the broader XLang language family. XLang is a key piece of infrastructure in the Nop platform, providing a set of sub-languages that together form a family of programming languages with built-in support for the Delta concept, compile-time metaprogramming, and the computation model `Delta x-extends Generator<DSL>`. For details, see [xlang.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/xlang/xlang.md).
 
-![images/xlang.png](images/xlang.png)
+![](images/xlang.png)
 
-* The xpl template language supports a mechanism similar to Vue tags, using the Xlib DSL to express tag libraries.
+- The Xpl template language supports a tag-library mechanism similar to Vue components; tag libraries are described by the Xlib DSL.
 
-* The xpl template language can use the built-in `<c:script>` tag to invoke XScript scripting language.
+- The Xpl template language can invoke the XScript scripting language via the built-in `<c:script>` tag.
 
-* XScript is a syntax similar to TypeScript and its parser is generated by antlr. For more details, refer to [Antlr4: How Antlr4 automatically generates AST instead of ParseTree](https://zhuanlan.zhihu.com/p/534178264).
+- XScript has a syntax similar to TypeScript; its parser is generated using Antlr.
 
-* When generating XLangASTParser, you need to use XCodeGenerator, which in turn uses XScript. This creates a circular dependency. The Nop platform manually writes XLangASTParser and XLangASTBuildVisitor before transitioning to automatic generation of these components.
+- Nop extends Antlr to automatically generate AST parsers, not just the built-in ParseTree parser. See [How Antlr4 can automatically parse to AST instead of ParseTree](https://zhuanlan.zhihu.com/p/534178264).
 
-* In the Nop platform, all XML-formatted files use xdef meta-models to define their structure, referred to as XDSL. For example, the xpl template language corresponds to `xpl.xdef`, while tag libraries correspond to `xlib.xdef`.
+- Generating XLangASTParser requires using XCodeGenerator, and that in turn uses XScript. In other words, generating the XScript parser requires using XScript syntax, which introduces a circular dependency. The Nop platform initially hand-wrote XLangASTParser and XLangASTBuildVisitor to complete the most basic code generator, then gradually switched to auto-generating XLangASTParser and XLangASTBuildVisitor.
 
-* The xdef meta-model itself is constrained by `xdef.xdef`. However, in implementation, XDefinitionParser manually parses xdef files without automatic generation to avoid circular dependencies when parsing xdef.
+- **All XML-format files in the Nop platform use xdef meta-models to define their structure, collectively known as XDSL.** For example, the xpl template language corresponds to xpl.xdef, and the tag library xlib corresponds to xlib.xdef.
 
-* Although xpl uses XML syntax, its parsed AST and XScript are consistent with XLangAST, which is also consistent with XScript.
+- The XDef meta-model itself is constrained by `xdef.xdef`. However, in implementation, XDefinitionParser for parsing XDef files is hand-written rather than auto-parsed, otherwise parsing XDef would first require parsing `xdef.xdef`, causing a cycle.
 
-```xml
-<c:unit>
-    <c:for var="x" items="${list}">
+- Although Xpl uses XML syntax, the AST obtained after parsing is consistent with XScript—both are XLangAST.
+
+  ```xml
+  <c:unit>
+     <c:for var="x" items="${list}">
         ...
-    </c:for>
-    <c:script>
+     </c:for>
+     <c:script>
         for(let x of list){
-            // ...
+           // ...
         }
-    </c:script>
-</c:unit>
-```
+     </c:script>
+  </c:unit>
+  ```
 
-The `<c:for>` and `<c:script>` tags in the above example translate to `ForOfStatement` in ForOfStatement.
+  The `<c:for>` tag above and the for statement inside `<c:script>` both parse to a ForOfStatement.
 
-## 6. DSL Behind the Unified Structure Construction Rules
-# Nop: A New Paradigm for Problem Solving
+## 6. Unified Structural Construction Laws Behind DSLs
 
-Nop is not merely a specific development framework. **It is a completely new way of thinking**. The approach taken by Nop is to define a domain-specific language (DSL) and build a local description framework within this DSL. This process allows us to create individual points in the vast model space, and then establish automated conversion paths between different models. Through fully automated reasoning, we can freely navigate through the model space.
+Nop is not merely a concrete development framework—**it is a new way of thinking**. Nop’s approach to problem-solving is to first define a DSL that establishes a local descriptive framework, akin to building strongholds across the vast model space. Then, by establishing automatic conversion paths between different models, fully automated inference enables free traversal across this model space. In traditional programming approaches, each structure requires hand-written code to establish connections. In the world of Nop, by viewing everything from the higher level of meta-models, we discover that behind the myriad DSLs lie unified laws of decomposition, merging, and transformation. We can write unified logic against meta-models, which then automatically adapts to each specific model object.
 
-In traditional programming approaches, each structural component must be manually coded to establish connections. However, in the Nop world, we can achieve a higher-level view of the world by leveraging meta-models. By observing the uniform decomposition, integration, and transformation rules hidden behind the DSL, we can perform unified logical coding on the meta-model. This allows us to automatically adapt to each specific model object.
+Existing low-code platforms try to build some ad-hoc development models and then think about how to improve visual editors so users can more easily configure models using the editor. Nop contemplates a completely different set of questions: what are the construction laws behind all models, how can we automatically infer visual designers, and how can we automatically infer free conversions between models?
 
-# Limitations of Existing Low-Code Platforms
-
-Existing low-code platforms attempt to create ad hoc development models for specific purposes, then try to improve the visualization editor to make it easier for users to configure models. However, Nop addresses entirely different concerns. It focuses on uncovering the underlying construction rules of all models and enabling automated derivation of a visualization designer. It seeks to establish free conversion between model pairs.
-
-# The Unique Nature of Nop
-
-Nop deals with a fundamentally different set of problems compared to traditional programming languages or even most existing low-code platforms. Instead of focusing on how to connect individual components, Nop explores the underlying patterns that govern all models and seeks to automate the process of translating these patterns into a coherent visualization.
-
+<!-- SOURCE_MD5:7da6163702ff8ac473efac24fc077b92-->

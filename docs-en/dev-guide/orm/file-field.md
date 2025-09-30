@@ -1,14 +1,15 @@
-# Attachments and Attachment List Field
+# Attachments and Attachment List Fields
 
-## Implementation Principle
+## Implementation Details
 
-1. In the `orm.xml` model, set the domain of the field to "file", i.e., `stdDomain="file"`
-2. Add `<orm-gen:DefaultPostExtends/>` tag in the `x:post-extends` section of `orm.xml`
-3. The DefaultPostExtends tag will call FileComponentSupport tag, which will iterate over all fields with `stdDomain="file"` and generate corresponding FileComponent fields.
+1. In the `orm.xml` model, set the field's [Standard Domain] to file, i.e., `stdDomain="file"`.
+2. In the `x:post-extends` section of `orm.xml`, introduce the `<orm-gen:DefaultPostExtends/>` tag.
+3. The DefaultPostExtends tag invokes the FileComponentSupport tag, which iterates over all fields with `stdDomain=file` and generates the corresponding FileComponent field definitions for them.
 
-![Attachment Component Example](images/file-component.png)
+![](images/file-component.png)
 
 ```xml
+
 <orm>
   <x:post-extends>
     <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
@@ -17,9 +18,8 @@
   <entities>
     <entity className="io.nop.auth.dao.entity.NopAuthUser" attrs="...">
       <columns>
-        <column code="AVATAR" displayName="Avatar" domain="image" name="avatar"
-                precision="100" propId="10" stdDataType="string" stdDomain="file"
-                stdSqlType="VARCHAR" i18n-en:displayName="Avatar"
+        <column code="AVATAR" displayName="头像" domain="image" name="avatar" precision="100" propId="10"
+                stdDataType="string" stdDomain="file" stdSqlType="VARCHAR" i18n-en:displayName="Avatar"
                 ui:show="X"/>
       </columns>
     </entity>
@@ -27,4 +27,6 @@
 </orm>
 ```
 
-4. When `OrmSession.flush` is called, it will trigger the `onEntityFlush` method of all Component attributes for each entity. The `OrmFileComponent.onEntityFlush` method will link temporary files uploaded with the current entity. If an entity has already been linked to other files, it will automatically delete the previously uploaded file.
+4. When `OrmSession.flush` is executed, it invokes the `onEntityFlush` callback on all Component properties of all entities. `OrmFileComponent.onEntityFlush` associates the uploaded temporary file with the current entity property. If the entity property was previously associated with another file, the previously uploaded file will be automatically deleted.
+
+<!-- SOURCE_MD5:f41f9f98f60f00c45c2c0af2fd38e23b-->

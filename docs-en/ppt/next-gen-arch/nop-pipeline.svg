@@ -1,0 +1,104 @@
+<svg width="1000" height="600" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="backendGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#42a5f5" />
+            <stop offset="100%" stop-color="#64b5f6" />
+        </linearGradient>
+        <linearGradient id="frontendGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ef5350" />
+            <stop offset="100%" stop-color="#ef5350" />
+        </linearGradient>
+        <linearGradient id="serviceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#66bb6a" />
+            <stop offset="100%" stop-color="#81c784" />
+        </linearGradient>
+        <linearGradient id="sourceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ab47bc" />
+            <stop offset="100%" stop-color="#ba68c8" />
+        </linearGradient>
+        <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+            <feOffset dx="2" dy="2" result="offsetblur" />
+            <feFlood flood-color="rgba(0,0,0,0.1)" />
+            <feComposite in2="offsetblur" operator="in" />
+            <feMerge>
+                <feMergeNode />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#555" />
+        </marker>
+    </defs>
+    
+    <!-- 背景区域 -->
+    <rect x="50" y="80" width="900" height="460" rx="10" fill="rgba(255, 255, 255, 0.9)" stroke="#e0e0e0" stroke-width="1" />
+    <rect x="60" y="90" width="430" height="440" rx="5" fill="rgba(225, 245, 254, 0.3)" stroke="#b3e5fc" stroke-width="1" />
+    <rect x="500" y="90" width="440" height="440" rx="5" fill="rgba(255, 235, 238, 0.3)" stroke="#ffcdd2" stroke-width="1" />
+    
+    <!-- 标题 -->
+    <text x="500" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="600" fill="#455a64">差量化的软件生产线</text>
+    
+    <!-- 区域标签 -->
+    <text x="275" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="#42a5f5">后台 (Backend)</text>
+    <text x="720" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="#ef5350">前台 (Frontend)</text>
+    
+    <!-- XORM/_XORM 组合矩形 -->
+    <rect x="80" y="280" width="120" height="100" rx="10" fill="url(#backendGradient)" filter="url(#dropShadow)" />
+    <line x1="80" y1="330" x2="200" y2="330" stroke="white" stroke-width="2" />
+    <text x="140" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">XORM</text>
+    <text x="140" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">_XORM</text>
+    
+    <!-- Excel (放置在_XORM正下方) -->
+    <ellipse cx="140" cy="450" rx="70" ry="40" fill="url(#sourceGradient)" filter="url(#dropShadow)" />
+    <text x="140" y="455" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">Excel</text>
+    
+    <!-- XMeta/_XMeta 组合矩形 -->
+    <rect x="280" y="280" width="120" height="100" rx="10" fill="url(#backendGradient)" filter="url(#dropShadow)" />
+    <line x1="280" y1="330" x2="400" y2="330" stroke="white" stroke-width="2" />
+    <text x="340" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">XMeta</text>
+    <text x="340" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">_XMeta</text>
+    
+    <!-- XView/_XView 组合矩形 -->
+    <rect x="550" y="280" width="120" height="100" rx="10" fill="url(#frontendGradient)" filter="url(#dropShadow)" />
+    <line x1="550" y1="330" x2="670" y2="330" stroke="white" stroke-width="2" />
+    <text x="610" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">XView</text>
+    <text x="610" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">_XView</text>
+    
+    <!-- XPage/_XPage 组合矩形 -->
+    <rect x="750" y="280" width="120" height="100" rx="10" fill="url(#frontendGradient)" filter="url(#dropShadow)" />
+    <line x1="750" y1="330" x2="870" y2="330" stroke="white" stroke-width="2" />
+    <text x="810" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">XPage</text>
+    <text x="810" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">_XPage</text>
+    
+    <!-- GraphQL -->
+    <rect x="430" y="150" width="120" height="50" rx="10" fill="url(#serviceGradient)" filter="url(#dropShadow)" />
+    <text x="490" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">GraphQL</text>
+    
+    <!-- 界面 (放在XPage的上方) -->
+    <rect x="750" y="150" width="120" height="50" rx="10" fill="url(#sourceGradient)" filter="url(#dropShadow)" />
+    <text x="810" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">界面</text>
+    
+    <!-- 箭头和连接线 -->
+    <!-- Excel 到 _XORM (指向下边沿中点，直线箭头) -->
+    <line x1="140" y1="410" x2="140" y2="380" stroke="#555" stroke-width="2" marker-end="url(#arrow)" />
+    
+    <!-- XORM 到 _XMeta (从XORM右侧边中点指向_XMeta左侧边中点) -->
+    <path d="M200,310 L240,310 L240,350 L280,350" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    
+    <!-- XMeta 到 _XView -->
+    <path d="M400,310 L475,310 L475,350 L550,350" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    
+    <!-- XView 到 _XPage -->
+    <path d="M670,310 L720,310 L720,350 L750,350" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    
+    <!-- XPage 到 界面 (指向界面的下边沿) -->
+    <line x1="810" y1="280" x2="810" y2="200" stroke="#555" stroke-width="2" marker-end="url(#arrow)" />
+    
+    <!-- XMeta 到 GraphQL (指向GraphQL左侧边中点) -->
+    <path d="M340,280 L340,175 L430,175" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    <text x="300" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#ef5350" font-weight="500">+ BizModel</text>
+    
+    <!-- 服务层标签 -->
+    <text x="490" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="#66bb6a">服务层 (Service Layer)</text>
+</svg>

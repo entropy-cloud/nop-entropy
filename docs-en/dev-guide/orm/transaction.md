@@ -1,47 +1,39 @@
 # Transaction Template
 
-In the Nop platform, transactions are managed primarily through `TransactionTemplate`, which is similar in design to the `TransactionTemplate` in the Spring framework but with added asynchronous context support.
+In the Nop platform, transaction scope is primarily controlled via TransactionTemplate, whose design is similar to the transaction template object in the Spring framework, with the addition of asynchronous context support.
 
-To obtain a transaction template, you can use dependency injection:
+In code, you can obtain the transaction template via dependency injection.
 
-```inject
+```
 @Inject
 ITransactionTemplate transactionTemlate;
 
-public void myMethod() {
-    transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn -> doSomething());
+public void myMethod(){
+   transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn-> doSomething());
 }
 ```
 
+Because the Nop platform’s JdbcTransaction implementation applies the following optimizations:
 
-## Optimizations in Nop's JdbcTransaction Implementation
-
-1. Lazy connection acquisition: After starting a transaction, the JDBC connection is not immediately retrieved. The connection is only obtained when the database is first accessed.
-2. Active connection release: If a `commit` operation is performed, the JDBC connection is actively released (though the transaction itself is not closed). Once committed, subsequent database access will use a new connection.
-
+1. Lazy connection acquisition: After a transaction is started, a JDBC connection is not obtained immediately; the connection is acquired only upon the first access to the database.
+2. Eager connection release: If a commit is executed, the JDBC connection is proactively released (the transaction is not closed at this point). Since the transaction has been committed, subsequent database access can obtain a new connection.
 
 ## TransactionPropagation
+This setting is the same as in the Spring framework; the TransactionPropagation class itself was copied from Spring. The two most commonly used options are:
 
-The configuration for `TransactionPropagation` is identical to that in the Spring framework. The `TransactionPropagation` class is directly copied from Spring.
-
-
-## Common Settings
-1. `REQUIRE_NEW`: Requires a new transaction to be started, overriding any existing transaction.
-2. `REQUIRED`: If no transaction exists, a new one is started; otherwise, the current transaction is joined.
-
+1. REQUIRE_NEW: Requires starting a new transaction; the current transaction is suspended.
+2. REQUIRED: If there is no current transaction, start a new one; otherwise, join the current transaction.
 
 ## @Transactional Annotation
 
-In application code, methods that require transactional behavior can be marked with the `@Transactional` annotation. This ensures that the method is executed within a transaction context. However, this is managed by the AOP (Aspect-Oriented Programming) layer provided by the Nop IoC engine, which means only beans registered in `beans.xml` will have transaction support.
+In application code, you can mark Java methods that need to run in a transactional context with the @Transactional annotation. A constraint is that AOP enhancements are executed by the NopIoC engine; therefore, only beans registered in the beans.xml file have transaction support.
+Additionally, AOP generates code ahead of time.
 
-Additionally, AOP will generate the necessary transactional logic automatically.
+**Note that this Transactional is an annotation of the Nop platform, not the Spring framework. The internal functionality of the Nop platform does not depend on the Spring framework.**
 
-**Note:** The `@Transactional` annotation refers to the Nop platform's own annotation and not the one from Spring. Nop does not rely on Spring for transaction management.
+## @BizMutation
 
-
-## @BizMutation Annotation
-
-The Nop GraphQL engine supports mutations out of the box, including automatic transaction initiation when a mutation operation is performed. Therefore, methods annotated with `@BizMutation` do not require additional transaction configuration.
+The NopGraphQL engine automatically starts a transaction for mutation operations. Therefore, as long as a method is annotated with @BizMutation, there is no need to additionally add the @Transactional annotation.
 
 ```java
 @BizModel("NopAuthUser")
@@ -54,25 +46,23 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
                                   @Name("password") String password,
                                   IServiceContext context) {
         NopAuthUser user = this.get(userId, false, context);
-        // Additional logic for resetting the password
         ...
     }
 }
 ```
 
+## Multi-Data-Source Transactions
 
+See [multi-datasource.md](multi-datasource.md)
 
-For details on multi-source transactions, refer to [multi-datasource.md](multi-datasource.md).
+The NopORM engine supports using multiple data sources concurrently; for example, some tables may reside in database A and others in database B, and once mapped to entity objects they can exist within the same OrmSession.
+By default, all data sources belong to the same transaction group (txnGroup=default). When a transaction is opened, it is considered the transaction group to be opened, and transactions of different data sources are attached to this transaction group.
+When the transaction group is committed, the transactions of the underlying data sources that were opened are committed one by one.
 
-Nop ORM supports transactions across multiple data sources. For example, some entities may be stored in Database A while others are stored in Database B. After a transaction is started, all relevant data sources will participate in the same transaction context.
+## Listen for Transaction Commit or Rollback Events
 
-By default, all data sources belong to the same transaction group (`txnGroup=default`). When a transaction is initiated, it affects all associated data sources within that transaction group. Each data source's transaction is then committed individually.
+`ITransactionTemplate.addTransactionListener(txnGroup, listener)` can register transaction events.
 
-
-
-To listen for transaction events (commit or rollback), you can use:
-
-```java
-ITransactionTemplate.addTransactionListener(txnGroup, listener);
-```
-
+## Spring Transaction Integration
+When nop.dao.use-parent-transaction-factory is set to true, NopSpringTransactionFactory is enabled. It uses Spring transactions to implement ITransactionFactory, but this implementation does not support asynchronous transactions.
+<!-- SOURCE_MD5:69d8615cc79fd14801d6a9802678f6df-->

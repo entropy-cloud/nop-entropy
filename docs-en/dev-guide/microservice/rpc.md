@@ -1,39 +1,40 @@
-The Nop platform implements a simple distributed RPC mechanism using HttpClient.
+The Nop platform implements a simple distributed RPC mechanism based on HttpClient. For the design principles, see [rpc-design.md](rpc-design.md)
 
-Example projects can be found in [nop-rpc-client-demo](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-demo/nop-rpc-client-demo), which acts as both an RPC client and service. The server-side implementation using SpringMVC is available in [nop-rpc-server-demo](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-demo/nop-rpc-server-demo).
+For sample projects, see [nop-rpc-client-demo](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-demo/nop-rpc-client-demo), which acts as both the RPC client and server.
+For a server implemented with SpringMVC, see [nop-rpc-server-demo](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-demo/nop-rpc-server-demo)
 
-# Server Configuration
+# 1. Server Configuration
 
 ## 1.1 Enable Nacos Service Discovery
 
-Both the server and client need to import the `nop-cluster-nacos` and `nop-rpc-cluster` modules, using Nacos as the service registry. The following configuration parameters are provided:
+Both the server and client need to include the nop-cluster-nacos and nop-rpc-cluster modules, using Nacos as the service registry. Configuration parameters are as follows:
 
-| Parameter | Default Value | Description |
-|-----------|--------------|-------------|
-| nop.cluster.discovery.nacos.enabled | true | Whether to enable the Nacos service discovery mechanism |
-| nop.cluster.discovery.nacos.server-addr | - | List of Nacos service addresses, comma-separated, e.g.,: localhost:8848 |
-| nop.cluster.discovery.nacos.username | - | Username for Nacos |
-| nop.cluster.discovery.nacos.password | - | Password for Nacos |
-| nop.cluster.discovery.nacos.group | DEFAULT_GROUP | Group name |
-| nop.cluster.discovery.nacos.namespace | - | Namespaces |
+|Parameter|Default|Description|
+|---|---|---|
+|nop.cluster.discovery.nacos.enabled|true|Whether to enable the Nacos service discovery mechanism|
+|nop.cluster.discovery.nacos.server-addr||Nacos server address list, separated by commas, e.g.: localhost:8848|
+|nop.cluster.discovery.nacos.username||Username|
+|nop.cluster.discovery.nacos.password||Password|
+|nop.cluster.discovery.nacos.group|DEFAULT\_GROUP|Group|
+|nop.cluster.discovery.nacos.namespace||Namespace|
 
-## 1.2 Enable Automatic Registration
+## 1.2 Enable Auto Registration
 
-If automatic registration is enabled, the application will be automatically registered in the service registry when the platform starts.
+If auto registration is enabled, the platform will register the current application with the service registry on startup.
 
-| Parameter | Default Value | Description |
-|-----------|--------------|-------------|
-| nop.application.name | - | Service name, which must be configured in bootstrap.yaml |
-| nop.cluster.registration.enabled | false | Whether to automatically register with the service registry |
-| nop.server.addr | - | Address for registration in the service registry |
-| nop.server.port | - | Port for registration in the service registry |
-| nop.cluster.registration.tags | - | Additional tags for registration |
-| nop.application.version | 1.0.0 | Version of the service to be registered, using semantic versioning (major.minor.patch) |
+|Parameter|Default|Description|
+|---|---|---|
+|nop.application.name||Service name, must be configured in bootstrap.yaml|
+|nop.cluster.registration.enabled|false|Whether to auto-register with the registry|
+|nop.server.addr||Service address to register with the registry|
+|nop.server.port||Service port to register with the registry|
+|nop.cluster.registration.tags||Additional service tags|
+|nop.application.version|1.0.0|Service version registered with the registry; follows semantic versioning and must have the three parts major.minor.patch|
 
-The standard `sentinel.properties` file should include additional Sentinel variables, such as `csp.sentinel.dashboard.server=localhost:8080`, which sends monitoring information to the Sentinel visualization dashboard.
+Add built-in Sentinel variables to the standard sentinel.properties file. For example, csp.sentinel.dashboard.server=localhost:8080 means that Sentinel monitoring information will be reported to the Sentinel dashboard.
 
-- If Sentinel rate limiting is used, the `nop-cluster-sentinel` module must be imported.
-- Nop platform's REST services rely on either Spring or Quarkus, so the effective port configuration is `quarkus.http.port`. However, internally, the `nop.server.port` parameter is used, which should be linked via parameter alias.
+* To use Sentinel rate limiting, include the nop-cluster-sentinel module.
+* The Nop platform’s REST services are implemented on top of Spring or Quarkus frameworks, so the effective server port is configured via quarkus.http.port. Internally, Nop uses nop.server.port, so you need to associate them via the parameter alias mechanism.
 
 ```yaml
 quarkus:
@@ -42,9 +43,9 @@ quarkus:
     port: ${nop.server.port}
 ```
 
-## 1.3 Implementing Services
+## 1.3 Implement the Service
 
-Implement `BizModel` in the Nop platform, which provides both GraphQL and REST external interfaces. Regular REST services can be implemented using SpringMVC.
+Implement a BizModel in the Nop platform; it will expose both GraphQL and REST interfaces. You can also use standard REST frameworks such as SpringMVC.
 
 ```java
 
@@ -52,7 +53,7 @@ Implement `BizModel` in the Nop platform, which provides both GraphQL and REST e
 public class TestRpcBizModel {
 
     /**
-     * Call Spring implementation of REST service
+     * Call a REST service implemented by Spring
      */
     @BizQuery
     public String test(@Name("myArg") String myArg) {
@@ -68,20 +69,20 @@ public class TestRpcBizModel {
         //res.setValue2(value2);
         return res;
     }
-}
+}    
 ```
 
-The above service can be called in two forms:
+We can invoke the above service in two ways:
 
-```java
+```
 // GraphQL request:
 query{
-  TestRpc__test(myArg: "333")
+   TestRpc__test(myArg: "333")
 }
 
 mutation{
-  TestRpc__myMethod(name: "xxx", type:"bbb") {
-    value1, value2
+  TestRpc__myMethod(name: "xxx",type:"bbb"){
+     value1, value2
   }
 }
 
@@ -91,41 +92,36 @@ GET /r/TestRpc__test?myArg=333
 
 POST /r/TestRpc__myMethod?@selection=value1,value2
 {
-  "name" : "xxx",
-  "type" : "bbb"
+   "name" : "xxx",
+   "type" : "bbb"
 }
 ```
 
-For detailed information, please refer to [graphql-java.md](../graphql/graphql-java.md).
+For details, see [graphql-java.md](../graphql/graphql-java.md)
 
+## 1.4 Enable Circuit Breaking and Rate Limiting
 
-## 1.4 Enable Circuit Breaker
+Include nop-cluster-sentinel to enable circuit breaking and rate limiting. Configuration parameters are as follows:
 
-Introduce nop-cluster-sentinel for circuit breaking. Configuration parameters as follows:
-
-| Parameter           | Default Value | Explanation                  |
-|--------------------|--------------|-----------------------------|
-| nop.cluster.sentinel.enabled | true        | Whether to enable sentinel circuit breaker |
-| nop.cluster.sentinel.flow-rules   ||          | Flow rules, which can be dynamically updated via config center |
-| nop.cluster.sentinel.degrade-rules    ||          | Degradation rules, which can be dynamically updated |
-| nop.cluster.sentinel.sys-rules     ||          | System flow rules, which can be dynamically updated |
-| nop.cluster.sentinel.auth-rules    ||          | Authorization rules, which can be dynamically updated |
-
+|Parameter|Default|Description|
+|---|---|---|
+|nop.cluster.sentinel.enabled|true|Whether to enable the Sentinel rate limiting mechanism|
+|nop.cluster.sentinel.flow-rules||Flow control rules; can be dynamically updated via the configuration center|
+|nop.cluster.sentinel.degrade-rules||Degrade rules; can be dynamically updated|
+|nop.cluster.sentinel.sys-rules||System rate limiting rules; can be dynamically updated|
+|nop.cluster.sentinel.auth-rules||Authorization rules; can be dynamically updated|
 
 ## 2. Client Configuration
 
-
 ## 2.1 Enable Nacos Service Discovery
 
-Similar to server configuration, but auto-registration is not enabled.
-
+Settings are similar to the server, except you don’t need to enable auto registration.
 
 ## 2.2 Introduce Service Interfaces
 
+### Service Interfaces Published by the Nop Platform
 
-### Nop Platform Published Services Interface
-
-If the server is Nop platform, define the following interface:
+If the server is the Nop platform, you can define an interface as follows:
 
 ```java
 
@@ -139,13 +135,11 @@ public interface TestRpc {
 }
 ```
 
-Nop services always use POST method, with REST path `/r/{bizObjName}__{bizMethod}`, such as `/r/TestRpc__myMethod`. Request parameters are always passed via Request Body, and return type is always ApiResponse.
+Nop services always use the POST method. The REST path is `/r/{bizObjName}__{bizMethod}`, e.g., `/r/TestRpc__myMethod`. Request parameters are always passed via the Request Body, and the return type is always ApiResponse.
 
-If it's an asynchronous call, the method name is suffixed with "Async", and the return type is CompletionStage.
+For asynchronous calls, the convention is to append the Async suffix to the method name, with the return type being CompletionStage.
 
-Note: Unlike general RPC frameworks, client and server do not need to share the same API interface. If you don't want to access backend services via remote RPC, you can omit the client API interface definition. This approach is similar to SpringCloud's Feign framework: any HTTP client can call remote services, and the client interface does not need to match the server interface.
-
-For example, the following client interfaces can call the same server method:
+Note that unlike typical RPC frameworks, the client and server do not need to share the same API interface. If you don’t need to access backend services via remote RPC, you can omit client-side API interface definitions. This approach is similar to Feign in SpringCloud: any HTTP client can invoke remote services, and the client interface method definitions don’t need to match the server implementation functions. For example, the following client interface methods can all invoke the same function on the server:
 
 ```java
 @BizModel("TestRpc")
@@ -155,18 +149,17 @@ public interface TestRpc {
 
     @BizMutation 
     MyResponse myMethod(@RequestBean MyRequest req);
-    
+
     @BizMutation
     CompletionStage<ApiResponse<MyResponse>> myMethodAsync(ApiRequest<MyRequest> req);
 }
 ```
 
-
 ### BizSelection Support
 
-On the client interface, you can add the `@BizSelection` annotation. It will automatically set the `selection` property of `ApiRequest`. If a field list is specified, it will be used; otherwise, it will default to all non-lazy fields.
+You can add the `@BizSelection` annotation to the client interface; it will automatically set the selection section of ApiRequest. If a field list is specified, that list is used; otherwise, all non-lazy fields of the function’s return type are used.
 
-```java
+```
 @BizModel("TestRpc")
 public interface TestRpc{
     @BizMutation 
@@ -178,37 +171,33 @@ public interface TestRpc{
 }
 ```
 
-Both methods will call the `myMethod` method on the backend `TestRpcBizModel` object. The second method will pass in the `selection`, corresponding to `SubResponse`, which only returns fields within the `SubResponse` range.
+Both methods above invoke the myMethod on the backend TestRpcBizModel object. The second method passes a selection corresponding to SubResponse, requesting only the fields within the scope of SubResponse.
 
+### Server-side Implementation
 
-### Service Implementation
-
-The implementation functions on the server can be adjusted based on the following parameter forms:
-
-```javascript
-@BizMutation
-public CompletionStage<MyResponse> myMethodAsync(@RequestBean MyRequest req, FieldSelectionBean selection, IServiceContext context) {
-    ...
-    return res;
-}
-```
-
-or
+On the server side, implementation functions can accept different parameter forms as needed:
 
 ```javascript
-@BizMutation
-public MyResponse myMethod(@RequestBean MyRequest req, FieldSelectionBean selection) {
-    ...
-    return res;
-}
+
+    @BizMutation
+    public CompletionStage<MyResponse> myMethodAsync(@RequestBean MyRequest req, FieldSelectionBean selection, IServiceContext context) {
+        ...
+        return res;
+    }
+    或者
+
+    @BizMutation
+    public MyResponse myMethod(@RequestBean MyRequest req, FieldSelectionBean selection) {
+        ...
+        return res;
+    }
 ```
 
-On the server side, `FieldSelection` and `IServiceContext` are optional parameters. If the function definition does not include corresponding parameters, they will be ignored. Additionally, if the method is asynchronous, it is generally agreed that the method name will have an "Async" suffix, and the return type will be `CompletionStage`.
+On the server, FieldSelection and IServiceContext are optional parameters. If they are not declared in the function signature, they are ignored. Also, for asynchronous execution, the convention is to add the Async suffix to the method name, with the return type being CompletionStage.
 
+### General REST Service Interfaces
 
-### General REST Service Interface
-
-If the service on the server side is a standard REST service, it can use JAXRS interface definitions.
+If the server is a general REST service, you can use a JAX-RS interface definition.
 
 ```java
 public interface EchoService {
@@ -217,103 +206,99 @@ public interface EchoService {
 }
 ```
 
-Using `@Path` declares the call path, while `@QueryParam` and `@PathParam` handle query and path parameters respectively.
+Declare the invocation path with the @Path annotation; parameters are supported via @QueryParam and @PathParam.
 
+## 2.3 Create Service Proxies
 
-## Creating Service Proxies
-
-On the client side, you need to import the `nop-cluster-rpc` module and configure proxy classes for each service interface.
+On the client side, include the nop-cluster-rpc module and add proxy class configuration for each service interface:
 
 ```xml
+
 <bean id="testGraphQLRpc" parent="AbstractRpcProxyFactoryBean"
       ioc:type="io.nop.rpc.client.TestRpc">
-    <property name="ServiceProviderName" value="rpc-demo-consumer"/>
+    <property name="serviceName" value="rpc-demo-consumer"/>
 </bean>
 ```
 
-* Inherits `interceptors`, `serverChooser` etc. from `AbstractRpcProxyFactoryBean`.
-* `ioc:type` corresponds to the service interface class to be created.
-* `serviceName` corresponds to the service name registered in the registry.
+* Inherit configurations such as interceptors and serverChooser from AbstractRpcProxyFactoryBean.
+* ioc:type corresponds to the service interface class to be created.
+* serviceName corresponds to the service name registered in the registry.
 
+## 2.4 Use the Service Interface
 
-## Using Service Interfaces
+In your code, obtain the proxy interface via dependency injection:
 
-In the program, you can use the proxy interface through dependency injection.
-
-```java
+```
 @Inject
 TestRpc rpc;
 ```
 
+## 2.5 Notes on Service Interfaces
 
-## Service Interface Explanation
-
-Under the NopGraphQL framework, similar to the implementation of Feign service, the interfaces used by the client and those used on the server do not need to be identical. In general, server-side interfaces allow additional parameters such as selection and context.
+In the NopGraphQL system, similar to Feign-style services, the client-side interfaces used for invocation do not need to exactly match the interfaces used on the server side. Generally, server-side interface functions may accept additional selection and context parameters.
 
 ```java
 @BizModel("MyService")
-class MyServiceBizModel {
+class MyServiceBizModel{
     @BizMutation
-    public MyResponse myMethod(@RequestBean MyRequest request, FieldSelectionBean selection, IServiceContext context) {
-        // ...
+    public MyResponse myMethod(@RequestBean MyRequest request, FieldSelectionBean selection, IServiceContext context){
+        //...
     }
-
+    
     @BizMutation
-    public MyResponse myMethod2(@Name("name") String name, @Name("value") String value) {
-        // ...
+    MyResponse myMethod2(@Name("name") String name, @Name("value")String value){
+        
     }
 }
 ```
 
-* If the number of parameters is large or if future expandability is considered, we will define a Request object and add the @RequestBean annotation to indicate it corresponds to all sent parameters.
-* If only one or two parameters are needed, individual annotations like @Name can be used to mark each parameter.
-* The selection corresponds to either GraphQL field selection or REST's @selection parameter, which tells the server to return specific result fields.
-* The context corresponds to the server-side execution context, similar to a Map. When multiple backend services are called in a single GraphQL query, this context can cache shared data. Additionally, the client can actively cancel executions by triggering the server's IServiceContext.cancel method. The server can check if the client has canceled using context.isCancelled().
-* Both selection and context are optional parameters and do not need to be present.
-* The return type of server functions should be a regular JavaBean, not an ApiResponse. If the server throws an exception, the framework automatically captures it and returns it as either a GraphQLResponse or RESTResponse object.
+* If there are many parameters, or to allow for future extensibility, define a Request object and annotate it with `@RequestBean`, indicating it corresponds to all parameters sent from the frontend.
+* If there are only one or two parameters, you can use the `@Name` annotation to mark each parameter individually.
+* selection corresponds to the field selection in a GraphQL call, or the `@selection` parameter in REST calls, used to tell the server which result fields are required.
+* context corresponds to the server-side execution context. It works like a Map. When GraphQL invokes multiple backend service functions in one request, you can use this context to cache shared data. The frontend can also proactively cancel the execution of general service functions; when the frontend cancels, it triggers the server’s `IServiceContext.cancel` function. The server can check `context.isCancelled()` to see if the client has proactively canceled.
+* selection and context are both optional parameters and are not required.
+* The return type of server-side functions should be a regular JavaBean; there is no need to use ApiResponse. When a server-side function throws an exception, the framework will capture it and ultimately return an ApiResponse or GraphQLResponseBean to the frontend.
 
-## 2.6 Client Interface Explanation
+## 2.6 Notes on Client Interfaces
 
-The general format for client interfaces is as follows:
+The general format for client invocation interfaces is as follows:
 
 ```java
 @BizModel("MyService")
-interface MyService {
-    @BizMutation("myMethod")
-    ApiResponse<MyResponse> api_myMethod(ApiResponse<MyRequest> request, ICancelToken cancelToken);
-
-    @BizMutation("myMethod")
-    ApiResponse<MyResponse> myMethod(@RequestBean MyRequest request, @QueryParam("@selection") String selection);
+interface MyService{
+   @BizMutation("myMethod")
+   ApiResponse<MyResponse> api_myMethod(ApiRequest<MyRequest> request, ICancelToken cancelToken);
+   
+   @BizMutation("myMethod")
+   ApiResponse<MyResponse> myMethod(@RequestBean MyRequest request, @QueryParam("@selection") String selection);
 }
 ```
 
-* The parameters can be either an ApiRequest type. Additional information can be sent via the request's headers or using the selection parameter.
-* Additionally, parameters can be split into two parts: use @RequestBean to send the request body and use @selection to send field selection information.
-* The return type is fixed as ApiResponse. If using the NopRPC client framework, it can directly return MyResponse. If the returned ApiResponse's status is not 0, it will throw a NopRebuildException with the error information from ApiResponse.
-* If using Feign interfaces, the general configuration format is:
+* Service parameters can be of type ApiRequest; additional information can be passed via the request header, and field selection via the request’s selection.
+* Alternatively, you can split them: pass the request body via `@RequestBean` and the field selection via the `@selection` parameter.
+* The return type is fixed as ApiResponse. If you use the NopRPC client invocation framework, you can also return MyResponse directly. In this case, if the status of the returned ApiResponse is not 0, the error information in ApiResponse will automatically be thrown as a NopRebuildException.
 
-```java
+If calling via a Feign interface, the typical configuration is as follows:
+
+```
 @FeignClient
-interface MyService {
-    @PostMapping("/r/MyService__myMethod")
-    ApiResponse<MyResponse> myMethod(@RequestBody MyRequest request, @QueryParam("%40selection") String selection);
+interface MyService{
+  @PostMapping("/r/MyService__myMethod")
+  ApiResponse<MyResponse> myMethod(@RequestBody MyRequest request, @QueryParam("%40selection") String selection);
 }
 ```
 
-* Because of the limitations in Feign's implementation, parameters like '@' in URLs need to be encoded as "%40" when using QueryParams. Using '@selection' would prevent proper parameter transmission.
+* Due to implementation details of the Feign framework, special characters in URL parameters (such as `@`) must be encoded, so the QueryParam parameter name must be `%40selection`. If you use `@selection`, the parameter will not be passed correctly.
+* A Feign interface must return `ApiResponse<T>`. After receiving the response, the caller can invoke response.get() to obtain the actual result object. If the ApiResponse status is not 0, a NopRebuildException will be thrown.
 
+## 3. Using a Service Mesh
 
-The return type of the Feign interface must be `ApiResponse<T>`. After obtaining the response on the calling side, you can call `response.get()` to obtain the actual result object. At this point, if the status of `ApiResponse` is not 0, it will throw a `NopRebuildException`.
+If you use a Kubernetes service mesh, you don’t need to enable the Nacos registry. On the client, configure the interface proxy as above and add the following:
 
+|Parameter|Default|Description|
+|---|---|---|
+|nop.rpc.service-mesh.enabled|false|Whether to use a service mesh|
+|nop.rpc.service-mesh.base-url||A service mesh always accesses a fixed service address and port|
 
-## Using Service Mesh
-
-If using Kubernetes's service mesh, then nacos registry need not be enabled. The client still needs to be configured in the same way as before for interface proxying, with additional configurations added.
-
-| Parameter | Default Value | Explanation |
-|----------|--------------|-------------|
-| nop.rpc.service-mesh.enabled | false | Whether to use service mesh |
-| nop.rpc.service-mesh.base-url |  | Service mesh always accesses a fixed service address and port |
-
-After setting `nop.rpc.service-mesh.enabled` to true, the implementation of `AbstractRpcProxyFactoryBean` will be automatically replaced with `AbstractHttpRpcProxyFactoryBean`.
-
+After setting nop.rpc.service-mesh.enabled to true, the implementation of AbstractRpcProxyFactoryBean will be automatically replaced with AbstractHttpRpcProxyFactoryBean
+<!-- SOURCE_MD5:e0a2003c2ea752f636ba2451060a5225-->

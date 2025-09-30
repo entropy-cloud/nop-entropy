@@ -1,104 +1,102 @@
+
 # Overview
 
-The Nop platform contains a vast amount of innovative designs. At first glance, it may seem overwhelming due to the sheer volume of content. However, every aspect of the Nop platform's design is grounded in the principles of reversible computation, ensuring high consistency. Once you grasp the fundamental concepts of reversible computing, you can gain a significant understanding of the Nop platform by examining its XDef meta-model.
+The Nop platform contains a large number of innovative designs, which may feel overwhelming at first. In reality, all internal designs in Nop strictly follow the principles of Reversible Computation and are highly consistent. Once you grasp the basic theory of Reversible Computation, you can directly consult the XDef meta-model to learn most of what you need about the models.
 
-For a more structured approach to getting started, we recommend following this order:
+Bilibili video: [Nop Platform Development](https://www.bilibili.com/video/BV1u84y1w7kX/). You can watch it in the order of the playlist.
 
-# Quick Start
+For first-time users, we recommend browsing the documentation once in the following order:
 
-## [Tutorial](tutorial/tutorial.md)
+## [Quick Start](tutorial/tutorial.md)
 
-This tutorial provides a comprehensive overview of the development process based on data models. For a concrete example, you can refer to the video [Developing with Nop Platform: Complete Example](https://www.bilibili.com/video/BV1u84y1w7kX/).
+Introduces the overall process of developing systems based on data models.
+Refer to the video [A Complete Example of Developing a Product List Page with the Nop Platform](https://www.bilibili.com/video/BV1384y1g78L/)
 
-## [Videos](tutorial/tutorial.md)
+For the Nop platform’s positioning and roadmap, see [why-nop.md](./why-nop.md)
 
-For a more visual learning experience, we suggest watching the video [Introduction to Nop Platform Development](https://www.bilibili.com/video/BV1384y1g78L/).
+## [XLang Language](dev-guide/xlang/index.md)
 
-# Understanding Nop Platform's Position and Roadmap
+The XLang language is the core technology that enables Reversible Computation in the Nop platform. It comprises a suite of sub-languages including XDef, XScript, and Xpl. Having a holistic understanding makes other parts of the Nop platform easier to grasp.
+In particular, [XDSL: A Generic Design for Domain-Specific Languages](dev-guide/xlang/xdsl.md) introduces the common syntactic features of XDSL domain-specific languages in the Nop platform, which is key to understanding customization development on Nop.
 
-The position and development roadmap of the Nop platform can be found in [why-nop.md](./why-nop.md).
+## [Code Generator](dev-guide/codegen.md)
 
-# [XLang Language](dev-guide/xlang/index.md)
+How to use and extend the Nop platform’s code generator. The Nop code generator can be used outside of the platform, with customizable generation templates to generate code for other frameworks and languages.
 
-XLang is the core technology implemented by the Nop platform for reversible computation. It includes a series of sub-languages such as XDef, XScript, and Xpl. A comprehensive understanding of these languages is essential for grasping other components of the Nop platform. Notably, [XDSL: Domain-Specific Language Design](dev-guide/xlang/xdsl.md) elaborates on the common syntax features of XDSL, a critical component for customized development within the Nop platform.
+## [Architecture Design](arch/index.md)
 
-# [Code Generator](dev-guide/codegen/index.md)
+Introduces the dependencies among numerous internal modules. Only a handful of modules—nop-commons, nop-core, and nop-xlang—are core to implementing the principles of Reversible Computation.
 
-## Usage and Extension
+For the path patterns and automatic loading order of internal model files, see [std-resource-path.md](dev-guide/vfs/std-resource-path.md)
 
-The code generator in the Nop platform can be utilized both within and outside the platform. It allows customization of templates to generate code for various frameworks and languages.
+## [Core Code Guidance](core-code-guidance.md)
 
-# [Architecture Design](arch/index.md)
+Introduces the Java classes that contain the core code in each module, and the general responsibilities of each class.
 
-This section details the dependencies among numerous modules within the Nop platform, focusing on its core module, nop-commons, nop-core, and nop-xlang. Additionally, it explains how the system's file paths and auto-loading order function, as described in [std-resource-path.md](dev-guide/vfs/std-resource-path.md).
+## [Excel Model](dev-guide/model/index.md)
 
-# [Core Code Guidance](core-code-guidance.md)
+Beyond using the platform’s built-in data models and API models, we can leverage Nop mechanisms to customize and implement our own Excel models. For example, we can use Excel models to define the formats of network protocol packets, and more.
 
-This section outlines the core code locations within each module, specifying the Java classes and their functionalities.
+## [IoC Container](dev-guide/ioc.md)
 
-# [Excel Model](dev-guide/model/index.md)
+For AOP-related principles, see [aop.md](dev-guide/ioc/aop.md)
 
-In addition to utilizing the platform's built-in data models (API models, etc.), you can leverage Nop's mechanisms to create a custom Excel model. For instance, you can use an Excel model to define network protocol formats or other data formats.
+## [Configuration Management (Config)](dev-guide/config.md)
 
-# [IoC Container](dev-guide/ioc/index.md)
+## [GraphQL](dev-guide/graphql/graphql-java.md)
 
-The AOP principles are covered in [aop.md](dev-guide/ioc/aop.md).
+The Nop platform adopts a GraphQL engine to implement backend services, exposing both GraphQL APIs and traditional REST APIs. All REST services support GraphQL-style result field selection.
+For an implementation similar to distributed RPC services in Spring Cloud and Dubbo, see [rpc.md](dev-guide/microservice/rpc.md), and for its design principles, see [rpc-design.md](dev-guide/microservice/rpc-design.md)
 
-## [Config Management](dev-guide/config/index.md)
+NopGraphQL can be exposed as a Grpc interface; see [grpc.md](dev-guide/microservice/grpc.md)
 
-# [GraphQL](dev-guide/graphql/graphql-java.md)
+## [ORM Framework](dev-guide/orm/index.md)
 
-The Nop platform employs a GraphQL engine to handle backend services while simultaneously exposing both GraphQL and traditional REST interfaces. All REST services support GraphQL result field selection capabilities, similar to SpringCloud and Dubbo frameworks.
+## [Frontend UI Development](dev-guide/xui/index.md)
 
-For RPC implementation details, refer to [rpc.md](dev-guide/microservice/rpc.md) and its design principles in [rpc-design.md](dev-guide/microservice/rpc-design.md).
+On the frontend, our approach is to generate the JSON description for the Baidu AMIS framework based on the XView view model. We have also added some extensions on top of AMIS, enabling direct use of Vue components within AMIS pages.
+AMIS documentation: [AMIS Docs](https://aisuda.bce.baidu.com/amis/zh-CN/docs/index)
 
-NopGraphQL is exposed via gRPC interfaces, as detailed in [grpc.md](dev-guide/microservice/grpc.md).
+## [Authorization Configuration](dev-guide/auth/auth.md)
 
-# [ORM Framework](dev-guide/orm/index.md)
+You can control operation permissions down to the button level, and implement column-level data access control, applying different filters for different roles.
+The Nop platform has built-in SSO support and can integrate with Keycloak for single sign-on.
 
-## ORM Framework
+## [Development and Debugging](dev-guide/debug.md)
 
-# [Frontend Development](dev-guide/xui/index.md)
+How to diagnose errors and print debug information when something goes wrong.
 
-Our approach to frontend development involves generating JSON descriptions using XView view models. Additionally, we've extended AMIS with Vue components for use within its pages.
+## [Common Development Tasks](dev-guide/recipe/index.md)
 
-For detailed documentation on AMIS, refer to [AMIS Docs](https://aisuda.bce.baidu.com/amis/zh-CN/docs).
+Collects implementations of common development tasks, such as how to add a field and how to add filtering conditions to a list.
+For common troubleshooting, see [faq.md](faq/faq.md)
 
-# [Permission Configuration](dev-guide/auth/index.md)
+## [Automated Testing](dev-guide/autotest.md)
 
-This section outlines button-level operation permissions and column-level data permissions. It also explains how to implement different filter conditions based on user roles.
+The Nop platform includes a built-in automated testing framework that can automatically implement test cases via a record-and-playback mechanism, without manual data initialization or result verification code.
 
-The Nop platform supports built-in SSO, which can be integrated with Keycloak for single sign-on services.
+## [Reporting Engine](dev-guide/report/index.md)
 
-# [Debugging](dev-guide/debug/index.md)
+Use Excel as the designer to configure Chinese-style reports: [report.md](user-guide/report.md)
+Use Word as the designer to configure export reports: [word-template.md](dev-guide/report/word-template.md)
 
-## Debugging
+## [No-Code Development](dev-guide/nocode/index.md)
 
-This section covers error handling during development, including how to diagnose issues and print debug information.
+The Nop platform supports no-code development, allowing you to design data models and write backend service functions online without coding or packaging.
+When no-code development reaches a certain level of complexity, you can smoothly migrate to a code-generation approach and adopt a high-code development model.
 
-# [Common Development Tasks](dev-guide/recipe/index.md)
+## [Comparison with Other Low-Code Platforms](compare/nop-vs-skyve.md)
 
-This section aggregates common development tasks and their implementation methods. For example, it details how to add a new field to a list or implement filtering for lists.
+The design of the Nop platform differs substantially from traditional low-code platforms, achieving flexibility and extensibility that traditional platforms cannot match.
 
-The common solutions to some issues can be found in [faq.md](faq/faq.md).
+If Nop is not used as a low-code platform, it can also serve as a development framework similar to Spring Cloud. For a comparison between Nop and the Spring framework, see [nop-vs-spring](compare/nop-vs-springcloud.md)
 
+## [Customized Development](dev-guide/delta/delta-customization.md)
 
-## Automated Testing
-The Nop platform includes an **Automated Testing Framework**. It allows for the automated generation of test cases through a **recording and replaying mechanism**, without needing manual coding for data initialization or result validation.
+Products developed based on the Nop platform can achieve Delta-based customization without any special design. For example, when deploying a core banking application built on Nop across different banks, you can avoid modifying the base product’s source code entirely, while performing comprehensive customization of the database schema, business logic, and frontend UI to meet the most specialized customer needs. The base product delivered to customers is just a set of JAR packages; whether adjusting backend or frontend logic, there is no need to modify the source code within the JARs.
 
+## [AI-Generated Review Article](theory/xlang-review.md)
 
-## Report Engine
-The Nop platform's **Report Engine** supports configuring Chinese-style reports using Excel as a configuration tool, which generates Chinese-style reports: [report.md](user-guide/report.md). Additionally, Word can be used to configure exportable reports: [word-template.md](dev-guide/report/word-template.md).
+GPT5 read the theoretical articles under the docs/theory directory (total length ~500K), then was asked to write a review and interpretation as an absolutely objective and professional software expert. GPT5 was relatively objective, but the writing quality was poor, so after the first draft, gemini-2.5-pro was used for polishing.
 
-
-## No-Code Development
-The Nop platform supports **No-Code Development**, enabling the creation of data models and backend service functions without coding. When no-code development becomes complex, it can transition to a code generation solution using a high-code approach.
-
-
-## Comparison with Other Low-Code Platforms
-The design of the Nop platform differs significantly from traditional low-code platforms in terms of flexibility and scalability. It can be used not only as a low-code platform but also as a framework akin to SpringCloud. A comparison between Nop and Spring frameworks is provided here: [nop-vs-springcloud](compare/nop-vs-springcloud.md).
-
-
-## Customization
-Nop-based products can be customized using **Delta Differential Customization** without modifying the base source code. This involves performing full-fledged customizations on database structures, business logic, and user interfaces. The final deliverable is a series of Jar packages, with neither the backend nor frontend logic requiring modification of their respective source codes.
-
+<!-- SOURCE_MD5:ae7888e8cd3c2e76b125738a6aad3d73-->

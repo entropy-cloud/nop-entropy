@@ -1,70 +1,63 @@
 # Dynamic Column Expansion
 
-## Report Requirements:
-- Display based on predefined component lists
-- Each row shows components if there is a corresponding match
-- Refer to the image for visual representation
+Report requirements: Display component columns according to a preset component list, and then for each row, show the corresponding component if it exists.
 ![](dynamic-col/dynamic-col.png)
 
-## Backend Data:
+Backend data:
 
 ```javascript
 let ds1 = [
-  { "Name": "A", "Specification": "x", chenfen: [ { name: "001", weight: 3 }, { name: "003", weight: 4 } ] },
-  { "Name": "B", "Specification": "y", chenfen: [ { name: "001", weight: 5 }, { name: "005", weight: 6 } ] }
+ { "名称":"A", "规格": "x",  chenfen: [ { name: "001", weight: 3}, {name: "003", weight:4}] },
+ { "名称": "B", "规格": "y", chenfen: [  { name: "001", weight: 5}, {name: "005", weight:6}]  }
 ];
 let chenfenList = [
-  { value: "001", name: "Component 1" },
-  { value: "002", name: "Component 2" },
-  { value: "003", name: "Component 3" },
-  { value: "004", name: "Component 4" },
-  { value: "005", name: "Component 5" },
-  { value: "006", name: "Component 6" }
-];
+    {value: "001",name:"成分1" },
+    {value: "002",name:"成分2" }, 
+    {value: "003",name:"成分3" },
+    {value: "004",name:"成分4" },
+    {value: "005",name:"成分5" },
+    {value: "006",name:"成分6" },
+] 
 ```
 
 [View Report Template](https://gitee.com/canonical-entropy/nop-entropy/raw/master/nop-report/nop-report-demo/src/main/resources/_vfs/nop/report/demo/base/08-%E5%8A%A8%E6%80%81%E5%B1%95%E5%BC%80%E5%88%97.xpt.xlsx)
 
-## Basic Approach:
+The basic approach is:
 
-1. Use expandExpr to trigger expansion based on predefined lists
-2. Access parent cells using cell.rowParent and cell.colParent
-3. Utilize Underscore.js functions in valueExpr for advanced lookups
+1. Use expandExpr to expand according to the specified list.
+2. In a cell, you can use cell.rowParent.expandValue and cell.colParent.expandValue to get the corresponding expansion object from the row/column parent cell.
+3. In valueExpr, you can use the collection functions provided by Underscore to perform collection lookups.
 
-## Detailed Steps:
+## 1. Configure row expansion in cell A4
 
-### 1. In A4 Cell:
-- Configure row expansion
-- Use ds1 for component lookup
-- valueExpr = cell.ei + 1
 ![](dynamic-col/row-expand.png)
 
-*expandType*: r  
-*expandExpr*: ds1  
-*valueExpr*: cell.ei + 1
+* expandType=r indicates a row expansion
+* expandExpr=ds1 indicates expanding according to dataset ds1
+* valueExpr=cell.ei+1 indicates the cell displays the expansion index (starting from 0) + 1
 
-### 2. In D3 Cell:
-- Configure column expansion
-- Use chenfenList for component lookup
-- valueExpr = cell.ev.name
+## 2. Configure column expansion in cell D3
+
 ![](dynamic-col/expand-col.png)
 
-*expandType*: c  
-*expandExpr*: chenfenList  
-*valueExpr*: cell.ev.name  
-*colParent*: D5
+* expandType=c indicates a column expansion
+* expandExpr=chenfenList indicates expanding according to chenfenList
+* valueExpr=cell.ev.name indicates the displayed content is the name property of the expansion object
+* colParent=D5 indicates that cell D5 is its column parent; when D3 expands, D5 will expand along with it
 
-### 3. In D2 Cell:
-- Configure parent row expansion
-- Use colParent for dynamic lookup
-- valueExpr = cell.cp.ei + 1
+## 3. Configure the column parent in cell D2
+
 ![](dynamic-col/col-parent.png)
 
-*colParent*: D3  
-*valueExpr*: cell.cp.ei + 1
+* colParent=D3 indicates that when cell D3 expands, cell D2 will be copied along with it
+* valueExpr=cell.cp.ei + 1 indicates that the value of cell D2 is colParent.expandValue.expandIndex + 1
 
-### 4. In D4 Cell:
-- Use advanced expressions
-- Combine multiple lookups using Underscore.js
-*valueExpr*: (`_.findWhere(cell.rp.ev.chenfen, { name: "name" }, cell.cp.ev.value)?.weight`) || 0) + 'g'
+## 4. Use an expression to get the value in cell D4
+
 ![](dynamic-col/cell-value.png)
+
+\*`valueExpr=(_.findWhere(cell.rp.ev.chenfen,"name",cell.cp.ev.value)?.weight || 0) + 'g'`
+This indicates using the findWhere function on the [Underscore](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/lang/utils/Underscore.java) class to find the object in the chenfen list whose name equals the specified value, and then display its weight property.
+In report expressions, you can use all built-in functions and objects of the XLang language, and you can define local functions in the [Before Expand] section.
+
+<!-- SOURCE_MD5:ade6f31e1375ed6e43b5c254679fa3aa-->

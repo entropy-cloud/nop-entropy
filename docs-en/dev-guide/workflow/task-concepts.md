@@ -1,19 +1,19 @@
-# Stack-Based Task Flow
+# Stack-based Task Flow
 
-TaskFlow is a lightweight flow that uses a stack structure. It has the following features:
+TaskFlow is a lightweight workflow that adopts a stack structure. It provides the following capabilities:
 
 1. A Task is decomposed into multiple Steps.
-2. Each Step can be executed asynchronously or synchronously.
-3. In the default case, after executing Step A, it will proceed to execute the next sibling node in the sequence.
+2. Steps can execute asynchronously or synchronously.
+3. By default, after finishing Step A, execution proceeds to the next sibling node.
 
-* The stack structure essentially functions as a linear execution flow, where each Step has a unique parent Step.
-* Each Step possesses an `IEvalScope`. Child Steps obtain input variables from the parent scope and return output values back to the parent scope. This is akin to function calls.
+* The stack structure can essentially be regarded as linear execution; each step has a unique parent step.
+* Each step has an IEvalScope. Child steps obtain variables from the parent scope via input and return data to the parent scope via output—akin to a function call.
 
 ```
-var { outVar } = child({inputVar: expr_eval_in_parent_scope});
+ var { outVar } = child( {inputVar: expr_eval_in_parent_scope })
 ```
 
-**Each Step essentially functions as a configurable, asynchronous, restartable, and interceptable function.**
+**Each Step is essentially a configurable, asynchronously executed, interruptible-and-restartable function into which interceptors can be inserted.**
 
 ## Task Step Interface
 
@@ -29,51 +29,74 @@ interface ITaskStep {
 }
 ```
 
-* `runId`: A unique identifier is generated for each execution. For example, if a Step is executed 10 times, it will generate 10 different runIds, allowing us to distinguish between multiple instances of the same Step.
-* `parentState`: The execution instance records the parent-child relationship, enabling reconstruction of the call stack based on these state records.
-* `taskRt`: The global context of the task execution. Each Step's input is read from this context, and after execution, the output modifies the global variables in `taskRt`.
+* runId: Each execution of the step produces a new runId. For example, if it runs in a loop 10 times, 10 different runIds are generated. You can distinguish different instances of multiple executions via runId. id = stepId + runId.
+* parentState: The execution instance of a step records the parent-child relationship, so the call stack structure can be reconstructed from these state records.
+* taskRt: The global context during task execution. Each step reads its inputs from taskRt; after the step finishes, it modifies global variables in taskRt via its outputs.
 
-Steps communicate via the global `taskRt`, mimicking a blackboard pattern.
+Steps exchange information through the global taskRt, which is essentially a blackboard pattern.
 
-## Step Common Capabilities
+## Common Capabilities of Steps
 
-All Steps possess some common attributes, such as execution conditions, failure handling, retry limits, timeouts, etc. The processing logic for these common attributes is as follows:
+All task steps share common attributes such as execution condition checks, failure retries, trigger limits, timeouts, and more. The handling logic for these common attributes is as follows:
 
-1. Check if the `when` condition in the parent scope is met. If not, skip the Step.
-2. Evaluate the `when` expression in the parent scope to obtain input variables and set them in the current Step's scope.
-3. Register a timeout; if exceeded, cancel the Step's execution and transition its state to TIMEOUT.
-4. Implement retry logic: if subsequent executions fail, retry according to the defined strategy.
-5. Define error handling: if an exception occurs, handle it with the associated catch block. Upon catching an error, restore the Step's state to a normal state, effectively treating the Step as successfully completed.
-6. Enforce throttling and rate limiting based on configuration.
-7. Apply decorators to the Step.
-8. Execute the Step's logic in the `body`.
+1. Check the when condition within parentScope; if not satisfied, skip the step directly.
+2. Evaluate input expressions in parentScope to obtain input variables, then set them into the current step’s scope.
+3. Register a timeout; when the timeout is reached, cancel the entire step execution and set the step’s state to TIMEOUT.
+4. Register the retry policy; if subsequent execution fails, retry according to the policy.
+5. Register error handling; on failure, execute catch handling. If caught, the step is considered recovered, effectively completing successfully.
+6. Check throttle and rate-limit configurations to rate-limit requests.
+7. Execute decorators.
+8. Execute the step body.
+9. Persist variables from the step scope to parentScope or the global scope according to the output settings. When an exception is thrown, output processing is not performed.
 
-Upon execution completion, variables from the current Step's scope are copied to either the parent scope or the global scope. If an exception occurs during this process, it will not be handled by the `output` processing.
+```javascript
+  if(task.cancelled) stop;
+
+  stepRt = taskRt.newStepRunTime(stepName);
+
+  if(first run){
+    if(condition not met) return SUCCESS;
+    initialize inputs from parentScope
+    perform input validation
+  }else{
+    restore stepState from persistent storage
+  }
+
+  registerTimeout()
+
+  retry{
+    try{
+       rateLimit()
+       result = execute(stepRt)
+    }catch(e){
+       onException(e)
+    }finally{
+       onFinally()
+    }
+  }
+
+  copy variables from result to parentScope according to output configuration
+```
 
 ## State Management
 
-* The parentScope variables cannot be directly accessed; they must be retrieved via the input mechanism.
-* `catch` and `finally` blocks in the code are executed immediately upon encountering an error, without considering asynchronous state maintenance. Asynchronous execution can only be achieved through variable substitution or step transitions.
-* If a Step is configured with `useParentScope=true`, it will directly utilize the parentScope instead of creating its own new scope.
-* Each Step maintains its own `stepState` for internal use, which is stored within the Step's context to support state recovery.
+* Variables in parentScope are not directly visible; all available variables are passed in via input.
+* The code in catch and finally is an immediately executed script function and does not involve asynchronous state retention. You can return variables or jump to another step to transition to a new asynchronous step for asynchronous execution.
+* If the step sets useParentScope=true, this step uses parentScope directly instead of creating its own scope.
+* To support state recovery, each step’s internal state is stored on its own stepState.
+* An ORM session is opened on the main thread, but an ORM session is inherently single-threaded. Therefore, if a child step executes asynchronously, the child step’s input must not pass entity objects—only plain POJOs. In principle, entity data should be re-fetched within the child step.
+* The scope corresponds to the current step; taskRt.scope corresponds to the global scope shared by the entire task.
+* Variables in the Step’s scope marked as persist will be persisted. When restore runs, an additional _recoveryMode variable is injected.
 
-## State Recovery
+## Execution
 
-- The main thread initializes an `orm session`. However, due to the limitations of the `orm session`, only synchronous operations can be performed. Asynchronous Steps cannot transfer entity data through their input parameters; they must operate on plain POJOs. In principle, asynchronous Steps should obtain entity data from child Steps.
+* If next is not specified, next defaults to the next sibling node.
+* Tag libraries can serve as implementations of the interface.
+* Task execution has a clear lifecycle concept. When the lifecycle ends, related resources are automatically reclaimed.
 
+Error Recovery:
 
-* If `next` is not specified, `next` will be the next sibling node.
-* The library can be used as an implementation of the interface.
-
-
-## Execution Flow
-
-* The execution has a clear lifecycle concept. When the lifecycle ends automatically releases related resources.
-
-
-## Error Recovery
-
-* The implementation resembles the continuation mechanism. The basic approach is to store the internal execution state explicitly in `taskState`. Thus, only the taskState needs to be recovered to restore the internal execution state.
+* Implement a mechanism similar to continuations. The basic approach is to explicitly store internal execution state in taskState, so restoring taskState restores internal execution state.
 * `inputs + internalStates ==> change internalStates ==> outputs when finished`
 
 ```javascript
@@ -85,30 +108,28 @@ Upon execution completion, variables from the current Step's scope are copied to
   outputs = buildOutputs(scope)
 ```
 
+## Data-Driven Pattern
 
-## Data-Driven Mode
+In non-streaming scenarios, dependencies among data essentially derive from dependencies among steps, because step outputs are holistic and only available after the step completes.
 
-In non-streaming processing scenarios, the dependencies between data are essentially derived from the dependencies between steps. Because the output of a step is an overall output, the entire step must complete before its output can be obtained.
+Considering side effects, not all dependencies will intuitively manifest as input/output dependencies. Dependencies among steps themselves are important.
 
-Considering side effects, not all dependencies evident in the data flow will manifest as input-output dependencies. The dependencies of the steps themselves are important.
+* In the data-driven mode, each step defines several output variables, and only nodes that reference these outputs form dependencies.
+* Data-driven introduces an implicit asynchronous waiting semantics: this step executes only after all predecessor steps have successfully produced their outputs.
+* Data-driven is akin to using only spatial coordinates, without explicitly using temporal coordinates.
 
-* In the data-driven mode, each step defines a few output variables, and only nodes referencing these output variables form dependencies.
-* The data-driven mode introduces an implicit asynchronous semantic. A step will only execute once all preceding steps have successfully produced their output variables.
-* Data-driven mode is similar to using space coordinates instead of explicitly using time coordinates.
+## Inputs, Outputs, and References
 
+* A Step is similar to a function; cross-level jumps are not allowed, so using the local stepName suffices.
+* A Step has a global path formed by concatenating stepNames across levels: stepPath={stepName}/{stepName}
+* SubTask provides basic reuse. It can build an independent taskRt or be embedded directly into the current taskRt for execution.
+* The return type is normalized to Map, thereby automatically supporting multiple outputs. If only a single result value is returned, the variable name is RESULT.
 
-## Input-Output and References
+## Design Details
 
-* Steps are similar to functions, which do not allow cross-layer jumps. Thus, only the local `stepName` needs to be used.
-* The step has a global `path`, which is composed by concatenating the `stepName` of each layer: `stepPath={stepName}/{stepName}`
-* SubTask provides a basic reuse mechanism. It can build an independent `taskRt` or directly embed in the current `taskRt`.
-* The return type is normalized into a Map type, which supports multiple outputs. If only a single result value is returned, the variable name is RESULT.
-
-
-
-1. Runtime model and DSL definition are separated. The descriptive model undergoes compilation to generate the runtime model and does not directly use it.
-2. The runtime model is static and cacheable. It does not contain runtime state information. Runtime state information is separated into an independent `TaskStepRuntime`.
-3. If no scheduler is used for simple cases, complex scheduling techniques are not employed.
-4. Asynchronous descriptions can hide all thread-related concepts.
-5. It's not a flat expansion of steps. Layered abstraction through `extType + xpl` is used for extension.
-
+1. The runtime model is separated from the definition DSL. The declarative model is compiled/transformed into the runtime model; the definition is not used directly as the runtime model.
+2. The runtime model is a static, cacheable model and does not contain runtime state. Runtime state is separated into a dedicated TaskStepRuntime.
+3. By default, no task queue is used for scheduling; complex scheduling techniques are not used in simple cases.
+4. By default, no thread operations are involved. The asynchronous description already abstracts away all thread concepts.
+5. Extensions are not done as a flat list of steps. We use layered abstractions and implement extensions via extType + xpl.
+<!-- SOURCE_MD5:b7164d1edd49b8fd704c511f772309b3-->

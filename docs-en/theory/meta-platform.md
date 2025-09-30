@@ -1,19 +1,26 @@
-# How to Develop a Platform for Low-Code Development
+# How to Develop a Platform that Can Develop Low-Code Platforms
 
-Assume we have a platform X capable of developing low-code platforms. We can examine its operating principles at the abstract level.
+Assume we now have a platform X that can develop low-code platforms. We can then look at how it operates at an abstract level.
 
-1. **Scope of a Low-Code Platform**  
-   A low-code platform is not limited to visual form editing but should include all technologies that enable programming through model abstraction. This means our platform X should possess shared knowledge among all platforms and be able to implement this knowledge as a universal implementation. For example, developing an ORM model and a workflow model should share over 50% of common knowledge for platform X to claim it can develop both models. The question then arises: What exactly constitutes these commonalities?
+1. First, low-code platforms are not limited to visual form editing; they should include any technological platform that simplifies programming through model abstraction. This means our platform X should possess the common knowledge shared across all technology platforms and be able to implement that knowledge as a general technical solution. For example, when developing an ORM model and a workflow model, they should share more than 50% of common knowledge; only then can we say that a platform X can be used to develop these two different models. This raises the question: what exactly is this common knowledge?
 
-2. **Developing Workflow Designers**  
-   If we use platform X to develop workflows, `WorkflowDesigner = PlatformX<WorkflowDesignerSpec>` at the conceptual level. In this context, platform X acts as a generator that creates a WorkflowDesigner based on the WorkflowDesignerSpec definition. The WorkflowDesignerSpec corresponds to a workflow designer model, and platform X can also provide a designer for this Spec. Further, `WorkflowDesignerSpecDesigner = PlatformX<SpecSpec>` means that platform X generates a SpecDesigner from the Spec's definition. This implies that models are defined by meta-models, which in turn are defined by higher-level meta-models. This chain can continue indefinitely. In the Nop platform, xdef defines meta-models, while xdef.xdef defines higher-level meta-models, thereby breaking the chain. Ultimately, we only need xdef, as it defines itself.
+2. If we use platform X to develop workflows, `WorkflowDesigner = PlatformX<WorkflowDesignerSpec>`. At the conceptual level, PlatformX acts as a generator: it generates a WorkflowDesigner based on the definition of WorkflowDesignerSpec.
 
-3. **Visual Designers and Their Underlying Models**  
-   Every visual designer has an underlying mental model that corresponds to the designer's input and output. The visual designer provides content that is seen as the visualization of the model (VisualModel). This content is stored in a text-based format (Text DSL) that can be reverse-converted back to the VisualModel. Thus, there is an invertible relationship between the VisualModel and the Text DSL.
+WorkflowDesignerSpec corresponds to a workflow designer model, and PlatformX can likewise provide a designer to design this Spec.
 
-4. **Systemizing Concepts**  
-   Systematize the concepts by filling in the gaps between different abstraction levels. This involves bridging information granularity differences across various abstraction layers. By doing so, we can achieve seamless integration of multiple DSLs into a unified framework. This naturally leads to deriving an invertible mathematical formula at the core of computational theory.
+`WorkflowDesignerSpecDesigner = PlatformX<SpecSpec>`, which means that based on the Spec of the Spec, PlatformX should generate a Designer for the Spec. In other words, a model is defined by a metamodel, and a metamodel is defined by a meta-metamodel, and this chain can continue indefinitely. In the Nop platform, xdef defines the metamodel, and xdef.xdef defines the meta-metamodel, thereby truncating this chain. Ultimately, we only need xdef; xdef uses xdef to define itself.
+
+3. Behind every visual designer there is a mental model corresponding to what the designer’s inputs and outputs are. The content provided by the visual designer can be regarded as the WYSIWYG visual form of this model.
+
+```
+   WorkflowEditView ~ WorkflowDefinition
+```
+
+The visual editing form (VisualModel) and the textually persisted workflow model file (Text DSL) can be regarded as a reversible transformation.
+
+4. By systematizing the above concepts and introducing the notion of Delta to bridge differences in information granularity between abstraction levels—thus enabling seamless composition of multiple DSLs—we naturally arrive at the core formula of Reversible Computation:
 
 ```
   App = Delta x-extends Generator<DSL>
 ```
+<!-- SOURCE_MD5:4ae399b7d41371f7ebe815a69c55de3c-->

@@ -1,22 +1,25 @@
-# The SQL statement is executed directly in the tag library.
+# Execute SQL Statements Directly in the Tag Library
 
 ```xml
+
 <dao:FindPage xpl:lib='/nop/orm/xlib/dao.xlib' offset='0' limit='10'>
     select o from NopAuthUser o
     where o.id= ${id}
 </dao:FindPage>
 ```
 
-The `/nop/orm/xlib/dao.xlib` library provides the ability to execute SQL statements directly. In the body of the tag, the xpl tag dynamically generates SQL.
+`/nop/orm/xlib/dao.xlib` provides the capability to execute SQL statements directly. In the body of the tag, you can dynamically generate SQL via xpl tags.
 
 The common attributes of the FindPage/FindFirst/FindAll tags are as follows:
 
-| Property | Description |
-|---------|-------------|
-| sqlType | The value can be "sql" or "eql", specifying whether to execute SQL or EQL statements |
-| rowType | The type of rows returned, corresponding to Java objects |
-| querySpace | The query space, corresponding to different database connections |
-| timeout | The timeout for executing SQL statements |
-| cacheName | Cache name |
-| cacheKey | Cache key |
-| disableLogicalDelete | Disable the logical delete condition |
+|Name|Description|
+|---|---|
+|sqlType|Value is sql or eql; specifies whether to execute statements in SQL or EQL|
+|rowType|The Java class used to wrap each row of the query result as a Java object|
+|querySpace|Query space, corresponding to different database connections|
+|timeout|Timeout for SQL statement execution|
+|cacheName|Cache name|
+|cacheKey|Cache key|
+|disableLogicalDelete|Disables the logical-delete condition|
+
+<!-- SOURCE_MD5:111c14fe7e17e2f7463d39a40464e5e0-->

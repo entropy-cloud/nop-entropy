@@ -1,7 +1,8 @@
 # Common Errors
 
-## Without Session
+## No Session
 
-![images/no-session-orm.png](images/no-session-orm.png)
+![](images/no-session-orm.png)
 
-Using `@Singleton` and `@Transactional` annotations, classes require code generation tasks to be executed during Maven packaging. Therefore, you need to first run `mvn compile -DskipTests` before you can start debugging in IDEA.
+Classes annotated with `@SingleSession` and `@Transactional` need to execute the CodeGenTask code-generation task during Maven packaging. Therefore, run mvn compile -DskipTests first, and only then can you start debugging in IDEA.
+<!-- SOURCE_MD5:9e65e328f1ed07589af5ed342d147119-->

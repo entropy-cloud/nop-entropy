@@ -1,36 +1,45 @@
-# How Does Nop Overcome the Limitation That DSL Can Only Be Applied to Specific Domains?
+# How does Nop overcome the limitation that DSLs can only be applied to specific domains?
 
-The **Nop platform** can be considered as a **Language Workbench**, providing comprehensive theoretical support and underlying tools for the design and development of **DSL (Domain Specific Language)**. When developing using the Nop platform, the primary focus is on expressing business logic using **DSL**, rather than using general programming languages. Some may wonder: if DSL is referred to as a domain-specific language, does that mean it can only be applied to specific domains? Does this inherently impose fundamental limitations when describing businesses?
+Nop can be viewed as a Language Workbench. It provides a complete theoretical foundation and low-level toolset for designing and developing DSLs (Domain Specific Languages). When developing with Nop, you mainly use DSLs to express business logic rather than general-purpose programming languages. Some may wonder: since DSLs are “domain-specific,” doesn’t that mean they can only be applied to a specific domain, implying intrinsic limitations when describing business? Back when the ROR (Ruby On Rails) framework was popular, the concept of DSLs was hyped for a while, but it then faded into silence—so what’s special about Nop? The answer is simple: Nop is a next-generation low-code platform built from scratch based on the theory of Reversible Computation, which is a systematic theory for the design and construction of DSLs. At a theoretical level, it addresses the longstanding issues in traditional DSL design and application.
 
-In the past, frameworks like **ROR (Ruby On Rails)** were popular, and DSL concepts were briefly in vogue. However, these concepts have now largely faded from prominence. What sets Nop apart from other platforms? The answer is simple: **Nop is built on reversible computing theory from scratch**, making it the next-generation low-code platform. Reversible computing theory is a systematic approach to designing and constructing DSLs, addressing the theoretical issues inherent in traditional DSL design and application.
+## I. Horizontal DSL decomposition: DSL feature vector space
 
-## 1. Horizontal DSL Decomposition: DSL Attribute Vector Space
+The fundamental reason a Turing machine achieves Turing-completeness is that it can be viewed as a virtual machine capable of simulating all other automatic computational machines. If we keep elevating the abstraction level of the virtual machine, we eventually arrive at a VM that can directly “run” so-called domain-specific languages (DSLs). However, because DSLs focus on domain-specific concepts, they inevitably cannot conveniently express all general-purpose computational logic (otherwise they would be general-purpose languages). This inevitably leads to certain information overflow, becoming the so-called Delta term.
 
-A Turing machine can be viewed as a virtual machine that can simulate all other automatic machines. By continuously increasing the level of abstraction in virtual machines, we can obtain virtual machines that can run so-called domain-specific languages (DSL). However, since DSL focuses on specific domain concepts, it inherently cannot express general-purpose computing logic without becoming a general programming language, which would lead to information overflow and Delta items.
+Bold claim: throughout the evolution from first- to second- to third-generation programming languages, abstraction levels improved continuously, yet they remained general-purpose languages. However, by the fourth generation, we are likely not getting another general-purpose language, but a DSL forest composed of many domain-specific languages, through which we can form new representations and understandings of original program structures.
 
-During the evolution of first-generation, second-generation, and third-generation programming languages, abstract layers were continuously added, but they remained general programming languages. By the fourth generation, we no longer end up with another general programming language but instead encounter an abundance of DSLs forming a **DSL forest**. Through these DSLs, we can represent and understand the structure of existing programs in a new way.
-
-According to the core construction formula of reversible computing:  
-`App = Delta x-extends Generator<DSL>`  
-We can continuously apply Delta decomposition to obtain the following formula:
+According to the core construction formula of Reversible Computation `App = Delta x-extends Generator<DSL>`, we can apply successive Delta decomposition to obtain:
 
 ```
 App = G1<DSL1> + G2<DSL2> + ... + Delta
 App ~ [DSL1, DSL2, ..., Delta]
 ```
 
-Using a series of DSL languages, we can glue together Generators and Delta items. If we treat Generator as background knowledge that does not need to be explicitly expressed when expressing business logic, each DSL can be viewed as a **Feature** dimension. Applications can then be projected onto a multi-dimensional Feature space. Each individual DSL indeed has limitations in expression, but multiple Features combined, along with additional Delta information, enable comprehensive descriptions.
+We can leverage a series of DSLs and glue them together via Generators and Delta terms. If we regard the Generator as background knowledge that can be ignored (not explicitly expressed when describing business), then each DSL can be seen as a feature dimension (Feature), and the application can be projected into a multi-dimensional feature space. Each DSL indeed has expressive limitations, but by combining multiple feature dimensions and adding extra Delta information, we can construct a complete description.
 
-## 2. Vertical DSL Decomposition: Multi-stage, Multi-level Software Production Line
+## II. Vertical DSL decomposition: multi-stage, multi-layer software production line
 
-The previous section discussed horizontal DSL decomposition within reversible computing theory. In this section, we introduce vertical DSL decomposition, which can be applied to traditional Model-Driven Architecture (MDA) and solve its inherent flaws.
+This section introduced the horizontal DSL decomposition in Reversible Computation. Similarly, we can introduce multi-level vertical DSL decomposition to overcome the inherent flaws of traditional Model-Driven Architecture (MDA).
 
+![](../tutorial/delta-pipeline.png)
 
-When performing model derivation, we only derive an alternative result (generally stored in files with underscores as prefixes). We can then choose to inherit this alternative model, manually correct it, and add additional information through Delta reasoning (stored in files without underscores as prefixes). Each step of the inference relationship is a selectable component: **we can start from any step and begin, or completely discard all information derived from previous steps**.
+In daily development, we often observe similarities and certain imprecise derivation relationships among logical structures. For example, the strong association between a backend data model and a frontend page: in simple cases, we can derive CRUD pages directly from the data model, or conversely, derive database storage structures from form fields. However, such imprecise derivation is hard to capture and utilize with existing techniques. If we forcibly impose association rules, they will only apply to highly constrained scenarios, leading to incompatibility with other technical approaches, making it difficult to reuse existing tools and technologies, and hard to accommodate the dynamic evolution of requirements from simple to complex. This is precisely the dilemma faced by traditional MDA: for a model to exert maximal power, it must embed a large amount of knowledge for automatic reasoning, but the more knowledge is embedded, the more it gets bound to a specific application scenario, making it hard to handle unforeseen new requirements.
 
-For example, we can manually add an `xview` model without requiring it to have specific `xmeta` support, or directly create a new `page.yaml` file and write JSON code according to the AMIS component specifications. The AMIS framework's capabilities are not constrained by reasoning pipelines. Leveraging a pattern similar to deep learning's divide-and-conquer approach, we can fully harness model-driven power while optionally incorporating Delta information when necessary. This ensures that **the final product's capabilities are not limited by model expression capabilities**.
+Nop, based on Reversible Computation, provides a standard technical path for reuse oriented around dynamic similarity:
 
-This also means that **during modeling, we no longer need to cover every detail; instead, we focus on the core and universal aspects**.
+1. With embedded metaprogramming and code generation, an inference pipeline can be established between any structures A and C
+2. Decompose the inference pipeline into multiple steps: A => B => C
+3. Further Delta-ize the inference pipeline: A => `_B` => B => `_C` => C
+4. Each stage allows buffering and pass-through of extension information that is not needed at that step
+
+Concretely, Nop’s built-in model-driven production line can be decomposed into four major models:
+
+1. XORM: Domain model for the storage layer
+2. XMeta: Domain model for the GraphQL interface layer, can directly generate GraphQL type definitions
+3. XView: Frontend logic at the business level, using a small set of UI elements such as forms, tables, and buttons, independent of frontend frameworks
+4. XPage: Page model for a specific frontend framework
+
+During model derivation, we only obtain a candidate result (typically stored in model files with an underscore prefix). We can then choose to inherit this candidate model and add manual corrections and Delta reasoning that rely on extra information (stored in models without an underscore prefix). All steps in the inference relationship are optional: we can start from any step directly, or completely discard all information derived in previous steps. For example, we can manually add an `xview` model without requiring it to have specific `xmeta` support, or we can directly create a `page.yaml` file and write JSON according to the AMIS component specification—the capabilities of the AMIS framework will not be constrained by the inference pipeline. With this deep decomposition pattern akin to deep learning, we can fully unleash the power of model-driven approaches, while introducing extra information via Delta where necessary. The final product’s capabilities will not be limited by the expressiveness of the models. This also means we no longer need to chase coverage of every detail in modeling—just focus on the core, most general needs.
 
 > `XORM = Generator<ExcelModel> + Delta`
 >
@@ -40,40 +49,27 @@ This also means that **during modeling, we no longer need to cover every detail;
 >
 > `XPage = Generator<XView> + Delta`
 
+## III. Non-programming means non-imperative programming
 
-## Non-Programming Means Non-Command Programming
+Nop is a recursive acronym for “Nop is nOt Programming.” Nop non-programming means it is not traditional imperative programming, but instead expands the reach of declarative programming as much as possible. A “DSL” can be seen as a declarative way to express business logic. It focuses on using concepts internal to the business domain to describe the business itself, rather than using the terms of a general-purpose language to express how to implement the functionality step by step. Conversely, if we can find a declarative expression for the current business and store it in the most minimal textual structure, it naturally becomes a DSL.
 
-Nop is the recursive abbreviation for **Not Operational Programming** (NOP). Non-programming refers to non-command programming, which aims to expand the scope of descriptive programming as much as possible. A DSL (Domain-Specific Language) can be viewed as a descriptive expression method tailored for business logic, focusing on how domain concepts describe the business itself rather than using general programming language terms to express step-by-step implementation of business functions.
+In traditional programming, when we aim to raise abstraction levels and improve software flexibility and adaptability, we repeatedly emphasize the importance of domain concepts—for example, the Ubiquitous Language in DDD (Domain-Driven Design). However, in traditional programming, domain concepts are ultimately carried by the universal program structures of a general-purpose language. Therefore, their freedom and richness of expression are constrained by the syntax of the underlying general-purpose language. Moreover, many well-designed frameworks have an underlying mental model that corresponds to an implicitly existing DSL, but we don’t explicitly express it. For instance, SpringBoot’s conditional bean assembly mechanism could have been implemented by adding a few conditional tags to the Spring 1.0 syntax. Yet, SpringBoot did not define such a DSL; as a result, it lost its proud declarative assembly capability and transparent insight into the global assembly outcome. For a detailed analysis, see [If we rewrote SpringBoot, what different choices would we make?](https://mp.weixin.qq.com/s/_ZVXESRqjSbObmr7DZoGMQ)
 
-Conversely, if we can find a descriptive expression method suited to the current business, then simplify it into the most concise textual structure and save it, it naturally becomes a DSL. In traditional programming domains, when we aim to elevate programming's abstract level, enhance software flexibility and adaptability, we repeatedly emphasize the importance of domain concepts, such as those in Domain-Driven Design (DDD) where a unified language (Ubiquitous Language) is promoted. However, in traditional programming domains, domain concepts are ultimately carried by general programming structures within the Ubiquitous Language, limiting their expression's freedom and richness.
+Nop does not use third-party frameworks like Spring or Quarkus. Instead, it builds from scratch a series of low-level engines such as IoC/ORM/Workflow/BatchJob. The most important reason is to redesign these engines according to the theory of Reversible Computation. Every engine that has independent value necessarily corresponds to an intrinsic model, and this model necessarily corresponds to a DSL. The key to Nop is to explicitly define a DSL for each engine and, leveraging Nop’s infrastructure, automatically implement parsing, validation, caching, decomposition/merging, metaprogramming, etc., for the DSL. In this setup, all engines only need to handle their unique runtime logic. Moreover, because extensive extensibility can be handled at compile time via Nop, the runtime structures of the engines can be greatly simplified. In Nop, the code size for each engine is typically an order of magnitude smaller than the corresponding open-source implementations, while offering richer features, better extensibility, and superior performance. See [Feature comparison between the Nop platform and SpringCloud](https://mp.weixin.qq.com/s/Dra8yf2O5VMJyEPox4dGBw).
 
-On the other hand, many excellent program frameworks inherently correspond to an implicit DSL, but we rarely make it explicit. For example, SpringBoot's condition-based bean assembly mechanism can be extended using limited conditional tags under Spring 1.0 syntax, but SpringBoot itself does not define a DSL for this, resulting in its loss of declarative assembly capability and global assembly results' intuitiveness. Detailed analysis: [If we rewrite SpringBoot, what different choices would we make?](https://mp.weixin.qq.com/s/_ZVXESRqjSbObmrkDZoGMQ)
+> The Nop platform’s scope is not limited to low-code focused on visual editing. It provides numerous foundational engines that are comparable to the corresponding parts of the SpringCloud ecosystem and has the potential to become a SpringCloud-like foundational technology base for the AI era.
 
-Nop platform does not use Spring or Quarkus, the third-party frameworks; instead, it opts to write IoC/ORM/Workflow/BatchJob etc. foundational engines from scratch. The most critical reason is adherence to reversible computation principles for engine design. **Each engine that holds intrinsic value corresponds to an internal model, which inherently corresponds to a DSL language**. Nop platform's key points are:
+## IV. Unified metamodel, unified rules for constructing DSL structures
 
-> **For each engine, clearly define its own DSL;**
->
-> Leverage Nop platform's infrastructure for automatic DSL analysis, validation, caching, decomposition, and merging, as well as meta-programming.
->
-> In this scenario, each engine only needs to handle its specific runtime logic, with extensive expandability handled during compilation via the Nop platform. Thus, the engine's runtime structure is significantly simplified.
+The most common objections to DSLs are:
 
-In the Nop platform, the code volume for each engine generally scales less than that of corresponding open-source implementations. Additionally, it provides richer functionality, better expandability, and superior performance. See [Nop Platform vs SpringCloud Functionality Comparison](https://mp.weixin.qq.com/s/Dra8yf2O5VMJyEPox4dGBw).
+1. Building and maintaining DSLs is costly
+2. DSLs differ greatly in syntax forms, leading to high learning costs
+3. Interaction between DSLs and general-purpose languages is difficult
 
-> Nop platform's application scope extends beyond low-code visualization to include numerous foundational engines, enabling it to compete with SpringCloud's ecosystem in certain aspects.
+Therefore, many people recommend internal DSLs embedded in general-purpose languages. Internal DSLs use the host general-purpose programming language’s syntax and structure to construct domain-specific languages without requiring independent parsers or compilers. They can leverage existing language tools and ecosystems (code editing, debugging, packaging, deployment, etc.), and have relatively lower learning costs since users need not learn an entirely new language.
 
+However, common internal DSLs typically over-emphasize superficial similarity between DSL syntax and natural language (in fact, not natural language—just English), effectively introducing unnecessary formal complexity. Furthermore, internal DSLs usually rely on the host language’s built-in type system for formal constraints and often cannot guarantee syntactic stability—multiple equivalent forms may exist to express the same domain logic—so the so-called DSL syntax is merely an unwritten convention. Internal DSL parsing generally depends on the host language’s parser, making it difficult to parse and transform outside the host language. This tangles the internal DSL’s syntax and semantics with the host language, and few people focus on the internal DSL’s conceptual integrity, extensibility, and structural reversibility.
 
-## Four. Universal Meta-Model and DSL Structure Rules
-
-The most common objections to DSL are:
-
-1. High construction and maintenance costs
-2. Significant differences in DSL syntax, leading to high learning costs
-3. Difficulties in interaction between DSL and general programming languages
-
-
-Internal DSL (Internal Domain Specific Language) is often recommended as a way to embed domain-specific languages within general-purpose programming languages. An internal DSL constructs a domain-specific language using the syntax and structure of a host general-purpose programming language, rather than requiring its own separate parser or compiler. This approach allows leveraging existing programming language tools and ecosystems, such as code editing, debugging, packaging, and deployment, while minimizing learning costs for users who do not need to master an entirely new language.
-
-However, common internal DSLs have issues. They often emphasize surface-level similarities between DSL syntax and natural language, which is misleading (they are more similar to English than to natural language). This introduces unnecessary complexity. Additionally, typical internal DSLs rely on the host programming language's built-in type systems for form constraints, which can lead to unstable DSL syntax if the underlying language changes. There may be multiple equivalent ways to express the same domain logic, and the so-called DSL syntax is little more than an implicit convention. The parsing of internal DSLs typically depends on the host language's parser, making it difficult to perform domain-specific analysis outside the host language's context. This tight coupling between DSL syntax and semantics and the underlying programming language leads to limited attention paid to the DSL's own concept completeness, expandability, and invertibility.
-
-The Nop platform addresses these issues by introducing a unified XDef meta-model that standardizes all DSL syntax and semantic structures. It provides unified development and debugging tools to assist in DSL development. Once you grasp the meta-model, you can immediately understand all DSL syntaxes, including decomposition and merging, differential customization, etc., without needing to learn each DSL individually. When developing a new engine with the Nop platform, you can reference existing DSLs using `xdef:ref` and achieve seamless integration of multiple DSLs. The XPL template language is used to implement command-style automation based on descriptive logic. For more details, see [Meta Programming in Low-Code Platforms](https://mp.weixin.qq.com/s/LkTIVGSrK9zomPW4bNiqqA).
-
+Nop’s approach is to introduce a unified XDef metamodel to normalize the syntax and semantic structures of all DSLs, and to provide unified development and debugging tools to assist DSL development. Once you master the metamodel, you can immediately grasp the syntax of all DSLs as well as standard solutions for decomposition/merging and Delta-based customization, without having to learn each DSL separately. When developing a new engine on Nop, we can use `xdef:ref` to reference existing DSLs to achieve natural fusion among multiple DSLs, and use the XPL template language to automatically convert declarative specifications into imperative implementations. For details, see [Meta Programming in a low-code platform](https://mp.weixin.qq.com/s/LkTIVGSrK9zomPW4bNiqqA).
+<!-- SOURCE_MD5:5565d431c48bb9f2db02a8b2da0bc187-->

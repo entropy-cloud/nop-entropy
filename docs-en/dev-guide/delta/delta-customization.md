@@ -1,263 +1,252 @@
-  
-  # How to Implement Custom Development Without Modifying the Base Product Source Code
-  
-  In the ToB market, software development for a product often comes with an unavoidable curse: customization. General situation is that custom development requires extensive modifications of the base product's source code, significantly eroding the product's genericity and flexibility. If the relationship between customized development and standardized product development is not balanced properly, it can lead to severe drag on the overall product development progress. Given that competitive strength at the commercial level is largely derived from differentiation capabilities, high-value mid-to-high-end customers will inevitably require a substantial amount of customization. Moreover, these customized requirements often lack standardization and abstraction into a configurable framework.
-  
-  Ideally, we aim to minimize both the cost of custom development and the cost of base product R&D by avoiding modifications to the base product's source code. However, achieving this with existing software engineering theories and generic frameworks is highly challenging or comes at a very high cost. In this paper, we will analyze the technical reasons why customized development falls into trouble and introduce the innovative capabilities provided by the Nop platform leveraging reversible computation principles. This allows us to achieve full incrementalized customized development without any special design, such as preabstracting extendable interfaces (e.g., abstracting out extension points). The result is a complete incrementally customizable capability where custom incremental code remains entirely independent of the base product's source code, whether it's for Nop platform functions or base product functionalities.
-  
-  Specific examples can be found in the sample project [nop-app-mall/app-mall-delta](https://gitee.com/canonical-entropy/nop-app-mall/tree/master/app-mall-delta). For reversible computation theory, please refer to the article [Reversible Computing: The Next Generation of Software Construction Theory](https://zhuanlan.zhihu.com/p/64004026).
-  
-  ## Section 1: The Predicament of Customized Development
-  
-  Traditionally, our approach to solving customized development issues has primarily focused on two main strategies:
-  
-  ### 1.1 Branching
-  
-  The most common approach is to create a separate branch for each client and then periodically merge the code back into the main branch. However, this method can become chaotic when there are five or more branches in use, especially within the same team managing multiple divergent code branches. This is because it often leads to error-prone submission processes, such as accidentally merging conflicting versions of files or committing changes intended for one client's branch into another.
-  
-  The complexity arises further due to the nature of base product code. As a complex system with numerous dependencies, maintaining multiple code branches increases the cost of operations significantly. When issues arise during debugging, identifying whether the problem lies in the modified custom code or the base product becomes challenging. Additionally, merging changes from a custom branch back into the main branch can be time-consuming and error-prone.
-  
-  This issue is compounded by the fact that the base product's source code is typically extensive. Syncing and comparing large amounts of code during integration can be resource-intensive, requiring high levels of technical expertise and significant time investment.
-  
-  ### 1.2 Configuration and Plugins
-  
-  Configuration and plugins represent another key approach to supporting customized development. A mature productized solution should inherently be highly configurable. Most customer-specific requirements can be abstracted into configuration parameters that are then combined using a set of predefined rules or templates.
-  
-  However, this approach also has its limitations. For instance, predicting all possible changes and ensuring that no critical functionality is overlooked during the configuration phase can be extremely challenging. This often leads to a situation where critical changes occur in areas that were not initially accounted for in the configuration logic, resulting in a "configuration nightmare."
-  
-  The primary issue here lies in the difficulty of accurately anticipating all potential future changes and ensuring that the configuration framework remains adaptable enough to handle them without requiring extensive redesign or modification whenever new features are added.
-  
-  ## Section 2: Reversible Computing Theory
-  
-  
-  ## The Case for Incremental Development
-  
-  Predicting upfront is not reliable, and separating costs afterward can be costly. If you aim to develop custom software at a low cost, ideally, customized code and base product code should be physically isolated without leaving any interfaces, enabling some generic mechanism to trim or expand the base functionality.
+# How to Implement Customized Development Without Modifying the Base Product Source Code
 
-  Assuming we've established the base product `X`, which consists of multiple components that can be expressed with the following formula:
+In the ToB market, software product development is often haunted by the “customization” curse. Typically, customized development requires extensive modifications to the product’s source code to meet the specific needs of specific users, which severely corrodes the generality of the product code. If the relationship between customized development and standardized product development cannot be properly balanced, it may seriously slow down the overall progress of the company’s products. Since competitiveness at the business level largely stems from differentiation, high-value mid-to-high-end customers inevitably have a large number of customization requirements—requirements that can be hard to abstract into a standardized, configurable pattern. To minimize the cost of conducting customized development alongside base product R&D, ideally customization should not modify the base product’s code. However, under current software engineering theory and general-purpose frameworks, achieving this is fraught with difficulties or incurs very high costs. In this article, I analyze the technical reasons why customized development gets into trouble and introduce how the Nop platform leverages the principles of Reversible Computation to offer an innovative customization capability, enabling application-layer code to gain fully incremental (delta-based) customization without any special design (such as pre-abstracted extension interfaces). The delta customization code is completely independent of the base product code; customizing the base product or Nop platform functionality requires no changes to the original code.
 
-  ```plaintext
-  X = A + B + C
-  ```
+For concrete customization examples, see the sample project [nop-app-mall/app-mall-delta](https://gitee.com/canonical-entropy/nop-app-mall/tree/master/app-mall-delta). For the theory of Reversible Computation, see [Reversible Computation: Next-Generation Software Construction Theory](https://zhuanlan.zhihu.com/p/64004026).
 
-  We aim to develop the target product `Y`, which also has multiple components, expressed as:
+## I. The Predicament of Customized Development
 
-  ```plaintext
-  Y = A + B + D
-  ```
+Traditionally, we mainly adopt two technical approaches to address customized development:
 
-  **Developing Product X on the Base of Product Y corresponds to an abstract relationship between X and Y.**
+## 1.1 Code Branching
 
-  The following formula represents this relationship:
+The most common approach is to create a dedicated code branch for each customer and then periodically merge from the trunk. Based on our observations, once there are more than five branches, confusion arises easily—especially when the same team maintains multiple branches with major differences simultaneously—leading even to erroneous commits and releasing the wrong versions.
 
-  ```plaintext
-  Y = A + B + D = (A + B + C) + (-C + D) = X + Delta
-  ```
+Base products are generally complex and have numerous dependencies. Each branch containing similar yet not identical copies of the base product’s code causes development environment maintenance costs to skyrocket. When issues arise and diagnosis is needed, it’s often hard to quickly determine whether the root cause lies in the modified base product code or in the newly developed customization code because the base product code has been frequently altered.
 
-  If we can truly implement zero-change development for the base product `X`, a natural theoretical conclusion is that **customized code is essentially a Delta correction for the base product**.
+The base product typically has a large codebase, and the effort and expertise required to perform diff analysis during code synchronization are both significant. If a bug is fixed or new functionality is added in the base product, synchronizing these changes downstream often becomes a prolonged process that must be carried out by developers who clearly understand the reasons behind the changes. Conversely, when an excellent feature in a customization branch is to be reverse-extracted and merged back into the main trunk, peeling off general-purpose code from that customization branch is also quite complex. **Base product code and bespoke customization code get entangled and intermingled, lacking clear formal boundaries, easily forming spaghetti dependencies that are hard to disentangle.**
 
-  Further, the following derived conclusions can be made:
+## 1.2. Configurability and Pluggability
 
-  1. **Delta should be a first-class concept in architectural design**. This allows it to be independently identified, managed, and stored. Customized code and base product code should be physically separated at the hardware level for independent version management.
+Configurability and pluggability constitute the other major technical route for supporting customized development. A mature productized offering must be highly configurable, with a large number of customer demands abstracted into cross-combinations of configuration items. For demand variations that are hard to exhaustively enumerate upfront, if we can anticipate where changes will occur, we can reserve extension points (extension interfaces) in the base product and then inject special plugin implementations during customization.
 
-  2. The formula `X = 0 + X` implies that any change applied to the unit affects only itself, making **the whole quantity a special case of the Delta concept**. Delta's definition and representation at the theoretical level do not require special design; any inherent form can be considered a Delta expression, requiring only proper definition of Delta operations.
+The main problem with this approach is that predictions can be inaccurate. Especially when the product itself is immature, it’s possible that none of the anticipated variations occur, and changes happen in unanticipated places. This leads to an awkward situation: **when we need extensibility the most to reduce product evolution costs, it may not even exist.**
 
-  3. The formula `Y = X + Delta1 + Delta2` allows for combining multiple Delta changes into one unified Delta change, satisfying the associativity property. This enables separation from the base product and independent merging of multiple Delta changes into a single Delta.
+High flexibility typically comes with increased complexity and performance overhead at runtime. Some uncommon requirements may leave deep and disproportionate scars inside the base product, leaving later developers puzzled: why is there such a convoluted design here? The requirement is only one sentence—how does it translate into so many interfaces and implementation classes? If we consider specific business requirements as a logical path, then configurability amounts to embedding multiple logical paths into the product to form a crisscrossed network, controlled by numerous switches to enable specific path connections. Without global guiding principles and design planning, configuration itself easily becomes a new source of complexity—hard to understand and hard to reuse.
 
-  4. The formula `Delta = -C + D` introduces an inverse component beyond just adding new components; **Delta must include its own inverse** to allow for removal or rollback of changes, making it a comprehensive change management tool.
+Based on existing software engineering theory, such as Software Product Line engineering, technical means to enhance software flexibility can be categorized into adaptation, replacement, and extension. They can all be seen as additions to the core architecture. However, customization is not always about adding new functionality; oftentimes it involves hiding or simplifying existing functionality. Current techniques struggle to efficiently achieve the goal of removing existing features.
 
-  5. The formula `Y = (A + dA) + (B + dB) + (C + dC)` demonstrates that Delta can encompass additions, modifications, and deletions across all components of the system. If the entire system is allowed to change at every point, a stable coordinate system must exist for Delta to function effectively. After separation, `dA` is stored independently in Delta, inherently retaining a positional coordinate, which only becomes meaningful when Delta is applied alongside `X`.
+## II. Reversible Computation Theory
 
-  Flexible SaaS products typically store form and workflow configurations in database tables, allowing for customization at the user level through configuration adjustments. In such solutions, configuration tables and process tables are joined via a primary key that essentially forms a coordinate system.
+Upfront predictions are unreliable; ex-post separation is costly. If we want lightweight customized development, then ideally the customization code and the base product code should be physically separated and, without reserved interfaces, a general mechanism should enable pruning and extension of base product functionality. To achieve this goal, we need to revisit the theoretical foundations of customized development.
 
-  Some software's patching mechanisms inherently follow a Delta correction approach. The success of these mechanisms depends on the underlying architecture's coordinate system and the algorithm used to merge Deltas post-application. However, compared to custom development, patches often have lower structural requirements and may not inherently carry semantic meaning in the code itself.
+Assume we have built a base product `X` with multiple components, expressed as:
 
-  Before Docker, virtual machine technology allowed for incremental backups but treated increments as binary changes at the byte level. This made VM increments fragile, as even minor changes could lead to large-scale instability. VM increments lacked semantic meaning and were rarely of strategic value.
-
-  The arrival of Docker changed this by introducing a Delta merging rule within the filesystem. Docker images now have clear semantic meanings, built dynamically using Dockerfiles, and can be stored, retrieved, and versioned in centralized repositories. This has opened up a complete line of reasoning centered around Delta concepts in software construction.
-
-  The invertible nature of mathematics underpins reversible computing. Various practices, from data transformation to state management, rely on Deltas as a form of incremental change. In the context of reversible computing, any operation must be trackable backward, implying that **Delta must include positional coordinates** to enable reversal.
-
-  A Delta is not just an additive change; it's a comprehensive representation of all possible transformations, from addition and modification to deletion and rollback. This makes Deltas powerful tools for understanding and managing system evolution.
-
-  The Nop platform serves as a reference implementation of reversible computing theory, using its Delta mechanism to enable incremental software development without additional costs. This approach allows for zero-change development of the base product `X`, focusing solely on applying Delta corrections to achieve desired enhancements.
-
-  In the next section, I will delve into specific practices implemented in the Nop platform.
-  
-  ## 三. Nop平台中的Delta定制
-
-  All applications developed using the Nop platform inherently support Delta customization. This section provides an example of a commerce application that demonstrates how functionality can be added without modifying the base product source code, as well as how existing functionality can be modified or removed. Specific implementation details and examples are provided in the [nop-app-mall/app-mall-delta](https://gitee.com/canonical-entropy/nop-app-mall/tree/master/app-mall-delta) repository.
-
-
-## 3.1 Custom Delta Module
-
-Delta customization code can be centralized within a dedicated Delta module, such as the [app-mall-delta](https://gitee.com/canonical-entropy/nop-app-mall/tree/master/app-mall-delta) module.
-
-In the `app-mall-codegen` module's [gen-orm.xgen](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-codegen/postcompile/gen-orm.xgen) file, the following functionality is added to generate Delta customization code into the `app-mall-delta` module:
-
-```javascript
-codeGenerator.withTargetDir("../app-mall-delta").renderModel('../../model/nop-auth-delta.orm.xlsx', '/nop/templates/orm-delta', '/', $scope);
-codeGenerator.withTargetDir("../app-mall-delta").renderModel('../../model/nop-auth-delta.orm.xlsx', '/nop/templates/meta-delta', '/', $scope);
+```
+   X = A + B + C
 ```
 
-For other modules, such as the `app-mall-app` module, customization can be achieved by simply depending on the `app-mall-delta` module to enable Delta-based customization of Nop's built-in functionalities.
+We aim to develop a target product `Y`, which also has multiple components:
 
+```
+   Y = A + B + D
+```
 
-## 3.2 Customizing Data Models with Delta
+**Developing product Y based on product X, at the abstract level, corresponds to establishing an operation from X to Y:**
 
-The `nop-auth` module is a default permission management module provided by the Nop platform and is based on the [nop-auth.orm.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/model/nop-auth.orm.xlsx) data model. This model generates ORM and GraphQL definitions automatically. If you need to add fields to the system's default `User` table, you can create a Delta model such as [nop-auth-delta.orm.xlsx](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/model/nop-auth-delta.orm.xlsx), which includes only the tables and fields that require extension.
+```
+   Y = A + B + D = (A + B + C) + (-C + D) = X + Delta
+```
+
+If we truly can avoid modifying the base product `X`, a natural theoretical conclusion is: **customization code amounts to a Delta correction applied to the base product.**
+
+Furthermore, we can derive the following:
+
+1. Delta should be a **first-class concept** in architectural design—so it can be independently identified, managed, and stored. Customization code should be physically separated from the base product code and versioned independently.
+
+2. `X = 0 + X`. Any quantity applied to the identity element yields itself; therefore **a full set is a special case of Delta**. Delta’s definition and form need no special design at a theoretical level: any existing formal expression can be seen as a delta expression as long as we define the rules for delta operations.
+
+3. `Y = X + Delta1 + Delta2 = X + (Delta1 + Delta2) = X + Delta`. **Delta should satisfy associativity**, allowing multiple Deltas to be merged independently of the base product—packaging multiple deltas into one.
+
+4. `Delta = -C + D`. Besides new components, **Delta must include inverses** to enable pruning of the original system. Delta should be a mixture of additions, modifications, and deletions.
+
+5. `Y = (A + dA) + (B + dB) + (C + dC) = A + B + C + (dA + dB + dC) = X + Delta`. If changes can occur anywhere in the original system, the Delta mechanism must collect changes across the system’s fine-grained parts and aggregate them into an overall Delta. **This implicitly requires the original system to have a stable coordinate system.** After `dA` separates from `A` to be stored in an independent Delta, it must retain some locating coordinates. Only then can the Delta, when combined with `X`, find the original structure `A` and integrate with it.
+
+Some highly flexible SaaS products store form configurations and workflow configurations in database tables and achieve customized development per specific users by adjusting configurations. In this approach, the configuration tables and the primary keys of configuration items essentially form a coordinate system. Based on this, one can add version fields to configuration items to enable version management and even version inheritance.
+
+Hot patch mechanisms offered by some software are essentially a Delta correction mechanism. Successful patch application relies on coordinate system positioning provided at the infrastructure level and a delta merge algorithm executed after locating. However, compared to customized development, hot updates impose lower structural requirements on patches: patches need not have relatively stable business semantics, and they may not correspond to source code directly understandable to developers.
+
+Before Docker, virtual machine technology already supported incremental backups, but the VM-level deltas are defined in the binary byte space, where even a minor business change may lead to massive byte-level changes—highly unstable and devoid of business semantics, rarely of standalone value. **Docker, by contrast, defines delta merge rules in the file system space. Docker images have clear business semantics, can be dynamically constructed via the DockerFile DSL, and can be uploaded to a central registry for storage and retrieval—thus opening a complete technical route to application construction based on the delta concept.**
+
+Reversible Computation theory posits that behind various delta-based technical practices lies a unified principle of software construction, expressible as:
+
+```
+  App = Delta x-extends Generator<DSL>
+```
+
+For a detailed introduction to Reversible Computation, see [Reversible Computation: Next-Generation Software Construction Theory](https://zhuanlan.zhihu.com/p/64004026).
+
+The Nop platform is a reference implementation of Reversible Computation. With Nop’s Delta customization mechanism, at zero extra cost we can achieve fully incremental customized software development. The next section details how this works in Nop.
+
+## III. Delta Customization in the Nop Platform
+
+All applications developed with the Nop platform are automatically delta-customizable. Using an e-commerce application as an example, we demonstrate how to add, modify, and delete functionality across various layers of the system without changing base product source code. See the sample code in [nop-app-mall/app-mall-delta](https://gitee.com/canonical-entropy/nop-app-mall/tree/master/app-mall-delta).
+
+## 3.1 Dedicated Delta Module
+
+All delta customization code can be stored in a dedicated module, such as [app-mall-delta](https://gitee.com/canonical-entropy/nop-app-mall/tree/master/app-mall-delta).
+
+In the `app-mall-codegen` module, add the following calls to [gen-orm.xgen](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-codegen/postcompile/gen-orm.xgen), indicating that delta customization code will be generated under the `app-mall-delta` module:
+
+```javascript
+codeGenerator.withTargetDir("../app-mall-delta").renderModel('../../model/nop-auth-delta.orm.xlsx','/nop/templates/orm-delta', '/',$scope);
+codeGenerator.withTargetDir("../app-mall-delta").renderModel('../../model/nop-auth-delta.orm.xlsx','/nop/templates/meta-delta', '/',$scope);
+```
+
+In other modules, such as `app-mall-app`, simply depend on the `app-mall-delta` module to customize built-in Nop platform features.
+
+## 3.2 Delta Customization of Data Models
+
+The `nop-auth` module is the Nop platform’s default access control module. Nop automatically generates ORM model definitions and GraphQL type definitions based on the data model [nop-auth.orm.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/model/nop-auth.orm.xlsx). If we need to add fields to the system’s built-in user table, we can add a delta model [nop-auth-delta.orm.xlsx](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/model/nop-auth-delta.orm.xlsx) containing only the tables and fields to be extended.
 
 ![delta-table.png](delta-table.png)
 
-In the `NopAuthUser` table, we added a `MALL_USER_ID` field that links to the `LitemallUser` table defined in the `nop-app-mall` project.
+We added a `MALL_USER_ID` field to the `NopAuthUser` table, linking to the `LitemallUser` table defined in the `nop-app-mall` project.
 
-1. **Unique Identifier Requirement**: The `MALL_USER_ID` column must have a unique identifier. Typically, we can start from `base_model_max_id + 50` to avoid conflicts with new fields added to the base model.
-   
-2. **Maintaining Model Integrity**: The primary key definition in the `NopAuthUser` table must be included to ensure model integrity. Adding a `not-gen` tag in the `Tags` column prevents redundant code generation for existing fields.
+1. The [Index] column for `MALL_USER_ID` must specify a unique identifier. Typically, choose values starting from “max index in the base model + 50” to avoid conflicts with newly added fields in the base model.
 
-3. **Preserving Entity Names**: To maintain consistency with the base model, the entity name for `NopAuthUser` should remain as `io.nop.auth.dao.entity.NopAuthUser`, ensuring that existing code remains unaffected.
+2. To ensure structural integrity in the model, we must include the primary key definition in the `NopAuthUser` table. To avoid duplicate code generation, add the `not-gen` tag in the [Tags] column, indicating that this field is defined in the base class and corresponding property definition code need not be generated.
 
-4. **Inheritance in Derived Classes**: Setting the table's `Base Class` to `io.nop.auth.dao.entity.NopAuthUser` and the class name to `NopAuthUserEx` ensures that derived classes inherit from `NopAuthUser`.
+3. Set the table’s [Object Name] to `io.nop.auth.dao.entity.NopAuthUser` to preserve the entity name defined in the base model so that existing code remains unaffected.
 
-If other modules require references to entities defined in other modules, use the full entity name, such as `app.mall.dao.entity.LitemallUser`.
+4. Set the table’s [Base Class] to `io.nop.auth.dao.entity.NopAuthUser` and the [Class Name] to `NopAuthUserEx`, so the generated entity class inherits from `NopAuthUser`.
 
-![external-table.png](external-table.png)
+If the delta model references entity classes defined in other modules, you must use the full entity name, such as `app.mall.dao.entity.LitemallUser`.
 
-Since external tables do not require code generation, we add a `not-gen` tag to the `Tags` configuration in the `LitemallUser` table, retaining only the primary key definition for model validation purposes.
+![external-table](external-table.png)
 
-![delta-config.png](delta-config.png)
+Since no code needs to be generated for these external tables, add the `not-gen` tag to the [Tags] of the `LitemallUser` table, and retain only the primary key definition for the table’s fields to satisfy model integrity checks.
 
-  
-  **Note**  
-  The `appName` must match the custom module name to enable customization. Otherwise, it will throw an error during runtime due to duplicate entity definitions.
+![delta-config](delta-config.png)
 
-  In the data model configuration, we set `deltaDir=default`, which results in the model file being generated at the path `/_vfs/_delta/{deltaDir}/{originalPath}`. During model loading, files from the delta directory are prioritized, overriding the default definitions in the base product.
+**Note: appName must match the name of your customized module; otherwise customization will fail and runtime errors about duplicate entity definitions will occur.**
 
-  The generated ORM model structure is as follows:
+In the data model configuration, set `deltaDir=default`, so generated model files go to `/_vfs/_delta/{deltaDir}/{originalPath}`. During model loading, files under the delta directory are loaded first to override base product definitions.
 
-  ```xml
-  <orm x:extends="super,default/nop-auth.orm.xml">
-    <entities>
-      <entity className="app.mall.delta.dao.entity.NopAuthUserEx" displayName="用户"
-              name="io.nop.auth.dao.entity.NopAuthUser">
-        ...
-      </entity>
-    </entities>
-  </orm>
+The actual generated ORM model structure is:
+
+```xml
+<orm x:extends="super,default/nop-auth.orm.xml">
+  <entities>
+     <entity className="app.mall.delta.dao.entity.NopAuthUserEx" displayName="用户"
+             name="io.nop.auth.dao.entity.NopAuthUser">
+             ...
+     </entity>
+  </entities>
+</orm>
 ```
 
-  Under this configuration, when creating entities using `entityDao` or `ormTemplate`, the generated implementation class will be `NopAuthUserEx`, while the entity name remains `NoptAuthUser`.
+Under this configuration, `entityDao` or `ormTemplate` will return `NopAuthUserEx` as the implementation type when creating entities, while preserving the entity name as `NoptAuthUser`.
 
-  ```javascript
-  IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
-  NopAuthUserEx user = (NopAuthUser) dao.newEntity();
+```javascript
+ IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
+ NopAuthUserEx user = (NopAuthUser)dao.newEntity();
 
-  Or
-
-  NopAuthUserEx user = (NopAuthUserEx) ormTemplate.newEntity(NopAuthUser.class.getName());
+Or
+ NopAuthUserEx user = (NopAuthUserEx) ormTemplate.newEntity(NopAuthUser.class.getName());
 ```
 
-  The generated entity class structure is:
+The generated entity class structure:
 
-  ```java
-  class NopAuthUserEx extends _NopAuthUserEx {
-    // Empty implementation
-  }
+```java
+class NopAuthUserEx extends _NopAuthUserEx{
 
-  class _NopAuthUserEx extends NopAuthUser {
-    // Inherit all base functionality
-  }
+}
+
+class _NopAuthUserEx extends NopAuthUser{
+
+}
 ```
 
-  The extended entity class inherits all functionalities from the base model and can be used to add additional fields via `_NopAuthUserEx`.
+In the extended entity class, you inherit all features of the base model’s entity class, and you can add new field information via the generated `_NopAuthUserEx` class.
 
-  If you want to remove certain fields from the database, simply add a `del` tag in the corresponding column configuration:
+If you want to streamline database fields by removing certain field definitions, simply add the `del` tag in the field’s [Tags] configuration. It generates the following configuration:
 
-  ```xml
-  <orm>
-    <entities>
+```xml
+<orm>
+   <entities>
       <entity name="io.nop.auth.dao.entity.NopAuthUser">
-        <columns>
-          <!-- x:override="remove" indicates deletion of this field -->
-          <column name="clientId" x:override="remove" />
-        </columns>
+         <columns>
+            <!-- x:override=remove indicates deletion of this field definition -->
+            <column name="clientId" x:override="remove" />
+         </columns>
       </entity>
-    </entities>
-  </orm>
+   </entities>
+</orm>
 ```
 
-  Using a delta-based data model allows for easy tracking of customizations between the customized and base versions.
+Using delta-based data models makes it easy to track database differences between the customized version and the base product version.
 
-  > The data model documentation should clearly state customization reasons and timestamps for reference.
+> The data model documentation can clearly annotate the reasons for customization and the time of changes, along with other supplementary information.
 
-  ### 3.3 IoC Container Customization
+### 3.3 Delta Customization of the IoC Container
 
-  The Nop platform includes an IoC container compatible with Spring 1.0 syntax, named **NopIoC** ([link to documentation](https://zhuanlan.zhihu.com/p/579847124)).
+The Nop platform includes an IoC container, [NopIoC](https://zhuanlan.zhihu.com/p/579847124), compatible with Spring 1.0 configuration syntax.
 
-  #### 1. Conditional Logic
-  NopIoC extends Spring 1.0's XML configuration with similar capabilities to Spring Boot's conditional loading. You can enable or disable beans using configuration variables:
+#### 1. Conditional Switches
+   On top of Spring 1.0’s XML syntax, NopIoC adds conditional assembly capabilities similar to Spring Boot. You can use configuration variable switches to enable or disable beans participating in assembly:
 
-  ```xml
-  <bean id="nopAuthHttpServerFilter" class="io.nop.auth.core.filter.AuthHttpServerFilter">
-    <ioc:condition>
-      <if-property name="nop.auth.http-server-filter.enabled" enableIfMissing="true"/>
-    </ioc:condition>
-    <property name="config" ref="nopAuthFilterConfig"/>
-  </bean>
+```xml
+    <bean id="nopAuthHttpServerFilter" class="io.nop.auth.core.filter.AuthHttpServerFilter">
+        <ioc:condition>
+            <if-property name="nop.auth.http-server-filter.enabled" enableIfMissing="true"/>
+        </ioc:condition>
+        <property name="config" ref="nopAuthFilterConfig"/>
+    </bean>
 ```
 
-  #### 2. Default Implementations
-  NopIoC provides default implementations for beans if none are specified. If another bean with the same ID exists in the container, the default implementation will be ignored, similar to Spring Boot's `ConditionOnMissingBean` mechanism.
+#### 2. Default Implementations
+   NopIoC can provide a default implementation for a bean with a specified name. If another bean with the same name exists in the container, the default implementation is automatically ignored—similar to Spring Boot’s `ConditionOnMissingBean` mechanism.
+   
+```xml
+<bean id="nopActionAuthChecker" class="io.nop.auth.service.auth.DefaultActionAuthChecker" ioc:default="true"/>
 
-  
-  ```xml
-  <bean id="nopActionAuthChecker" class="io.nop.auth.service.auth.DefaultActionAuthChecker" ioc:default="true"/>
-  
-  <!-- Beans marked with ioc:default="true" will be overridden by other files defining the same ID -->
-  <bean id="nopActionAuthChecker" class="com.ruoyi.framework.web.service.PermissionService"/>
-  ```
+<!-- Beans marked with ioc:default="true" are overridden by same-named beans defined in other files -->
+<bean id="nopActionAuthChecker" class="com.ruoyi.framework.web.service.PermissionService" />
+```
 
-  Also, you can add `primary=true` to newly added beans, giving them higher priority than beans without this marked.
+You can also add `primary=true` to a new bean. Its priority will be higher than any bean not marked `primary`.
 
-  ### 3. x-extends Inheritance
+#### 3. x-extends Inheritance
 
-  The most powerful aspect of NopIoC is its built-in Delta customization mechanism using XLang. You can place a file named `beans.xml` in the delta directory to override existing configuration files. For example, placing `app-mall-delta` module's `/_vfs/_delta/default/nop/auth/auth-service.beans.xml` will override the base product's configuration.
+NopIoC is more powerful because it supports the delta customization mechanism built into the XLang language. We can add a same-named `beans.xml` configuration file under the delta directory to override an existing configuration in the base product. For example, in the `app-mall-delta` module at `/_vfs/_delta/default/nop/auth/auth-service.beans.xml`:
 
-  ```xml
-  <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-         x:extends="super">
+```xml
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       x:extends="super">
 
-  <bean id="nopAuthFilterConfig">
-      <property name="authPaths">
-          <list x:override="append">
-              <value>/mall*</value>
-          </list>
-      </property>
-  </bean>
+    <bean id="nopAuthFilterConfig">
+        <property name="authPaths">
+            <list x:override="append">
+                <value>/mall*</value>
+            </list>
+        </property>
+    </bean>
 
 </beans>
 ```
 
-  This configuration inherits from existing models (`x:extends="super"`), then modifies the `nopAuthFilterConfig` bean's `authPaths` property to add an entry.
+The above configuration indicates that we inherit the existing model (`x:extends="super"`) and then modify the `authPaths` property of the `nopAuthFilterConfig` bean by adding one item.
 
-  Beyond overriding bean configurations, you can use Delta customization to delete bean configurations. For example, when integrating Nop with Ruoyi framework, you may need to remove the default `dataSource` configuration:
+Beyond overriding bean configurations, we can remove bean configurations via delta customization. For example, when integrating Nop with the Ruoyi framework, we need to delete the built-in `dataSource` configuration:
 
-  ```xml
-  <bean id="nopDataSource" x:override="remove" />
-  ```
+```xml
+    <bean id="nopDataSource" x:override="remove" />
+```
 
-  The specific configuration can be found in [delta directory's dao-defaults.beans.xml](https://gitee.com/canonical-entropy/nop-for-ruoyi/blob/master/ruoyi-admin/src/main/resources/_vfs/_delta/default/nop/dao/beans/dao-defaults.beans.xml).
+See the specific configuration in [dao-defaults.beans.xml under the delta directory](https://gitee.com/canonical-entropy/nop-for-ruoyi/blob/master/ruoyi-admin/src/main/resources/_vfs/_delta/default/nop/dao/beans/dao-defaults.beans.xml).
 
-  Delta customization is straightforward and **suitable for all model files and granular attribute customization**. Compared to SpringBoot's equivalent implementation, SpringBoot's customization capabilities are significantly limited:
+Delta customization is simple and intuitive—**it applies to all model files and can customize down to the finest granularity of individual properties.** Compared to the equivalent in Spring Boot, we find notable limitations in Spring Boot’s customization: first, to implement Bean exclusion and Bean override, Spring must add a lot of processing code in the engine and introduces many special usage patterns. Second, Spring’s customization mechanisms target single-bean configurations (e.g., disabling a bean) but lack suitable means to customize individual properties. Without good upfront planning, it’s hard to override existing bean definitions across the system in a simple way.
 
-  - First, to implement Bean exclusion and Override, Spring requires adding substantial internal processing code and special syntax.
-  - Second, Spring's customization mechanism only targets individual bean configurations, such as disabling a bean, but lacks appropriate methods for customizing individual attributes.
+> Because the IoC container can search for matching beans by name, type, annotation, etc., and perform assembly, we generally do not need to additionally design a plugin mechanism.
 
-  If prior planning is inadequate, fine-tuning via simple means becomes difficult when dealing with existing configurations.
+> When starting in debug mode, NopIoC outputs all bean definitions to `/_dump/{appName}/nop/main/beans/merged-app.beans.xml`, where you can see the source location corresponding to each bean’s definition.
 
-  > Because the IoC container can search for matching beans based on name, type, and annotations among others, additional plugin mechanisms are generally unnecessary in most cases.
+### 3.4 Delta Customization of GraphQL Objects
 
-  > When running in debug mode, NopIoC outputs all bean definitions to `/_dump/{appName}/nop/main/beans/merged-app.beans.xml`, where you can see the source code locations of each bean definition.
+In the Nop platform, GraphQL services typically correspond to `BizModel` objects. For example, `NopAuthUser__findPage` refers to calling the `findPage` method on the `NopAuthUserBizModel` class. We can customize GraphQL services by overriding the `BizModel` registration class. Steps:
+
+#### 1. Inherit an existing `BizModel` class, adding new service methods or overriding existing ones.
 
 ```java
 public class NopAuthUserExBizModel extends NopAuthUserBizModel {
@@ -272,21 +261,22 @@ public class NopAuthUserExBizModel extends NopAuthUserBizModel {
 }
 ```
 
-#### 2. Override Default Bean Definition in `beans.xml`
+#### 2. Override the original bean definition in `beans.xml`.
+   
+   ```xml
+    <bean id="io.nop.auth.service.entity.NopAuthUserBizModel"
+          class="app.mall.delta.biz.NopAuthUserExBizModel"/>
+   ```
+   
+   Auto-generated bean definitions are marked `ioc:default="true"`, so registering a bean with the same `id` will override the default.
 
-```xml
-<bean id="io.nop.auth.service.entity.NopAuthUserBizModel"
-      class="app.mall.delta.biz.NopAuthUserExBizModel"/>
-```
-
-The automatically generated bean definition includes the attribute `ioc:default="true"`, which means that registering another bean with the same ID will override this default definition.
-
-In addition to extending the existing `BizModel` class, we can use an `XBiz` model to override the service methods defined in the Java object. For example, by customizing the `NopAuthUser.xbiz` file and adding method definitions:
+Besides extending existing `BizModel` classes, we can override service methods defined in Java objects via the `XBiz` model. For example, customize the `NopAuthUser.xbiz` file and add a method definition:
 
 ```xml
 <biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="super">
+
     <actions>
-        <query name="extAction3" displayName="Test Function 3">
+        <query name="extAction3" displayName="Test function 3 defined in the biz file">
             <source>
                 return "result3"
             </source>
@@ -295,89 +285,70 @@ In addition to extending the existing `BizModel` class, we can use an `XBiz` mod
 </biz>
 ```
 
-The NopGraphQL engine collects all `biz` files and those annotated with `@BizModel`, grouping them by `bizObjName` to form the final service object. This approach is similar to the Entity-Component-System (ECS) architecture in game development, where each entity is composed of multiple components. In this architecture, you don't necessarily need to modify existing components; instead, you can stack a new component on top of an existing one to override its functionality. The `XBiz` file defines methods with the highest priority, which will override those defined in the `BizModel` class.
+The Nop GraphQL engine automatically collects all biz files and beans annotated with `@BizModel`, and groups them by `bizObjName` to form the final service object. This approach is reminiscent of the [ECS Architecture (Entity-Component-System)](https://zhuanlan.zhihu.com/p/30538626) in game development. In such an architecture, uniquely identified objects are composed of stacked slices, so customization doesn’t necessarily require modifying original slices; instead, adding a new slice to override existing functionality suffices. Functions defined in `XBiz` files have the highest priority and override functions defined in `BizModel`.
 
-## 3.5 Delta Customization for Frontend
+## 3.5 Delta Customization of Front-End Pages
 
-The frontend of the Nop platform is primarily defined in two model files: `view.xml` and `page.yaml`. The former serves as a neutral `XView` blueprint that describes page structure using form, table, button, etc., while the latter corresponds to a YAML-based definition used by Baidu's AMIS framework. The actual content rendered on the frontend is dynamically generated based on these models.
+Front-end pages in Nop are mainly defined in two model files: `view.xml` and `page.yaml`. The former is the technology-neutral `XView` view outline model, using coarse-grained concepts—form, table, page, button—to describe page structure, sufficient for typical admin pages. The `page.yaml` model corresponds to the JSON schema of Baidu AMIS; in practice, the content delivered to the front end comes from `page.yaml`. Using the meta-programming mechanism `x:gen-extends`, `page.yaml` dynamically generates page content from the `XView` model.
 
-By customizing these model files, you can adjust the layout of forms, add individual field controls, insert buttons, delete buttons, and even completely override the base product's page content.
+By customizing these two model files, we can adjust form layouts, set display controls for individual fields, add or remove buttons on pages, and even completely override page content in the base product.
 
-## 3.6 Delta Customization for Tags
+## 3.6 Delta Customization of Tag Functions
 
-Nop platform's code generation and its meta-programming mechanism heavily rely on the Xpl template language, which is used throughout the workflow models and other executable models. The Xpl template language incorporates a tag library that allows function-level encapsulation (each tag behaves like a static method). This tag library is defined in the `xlib` file, and customization can be achieved through the Delta mechanism.
+The Nop platform extensively uses the Xpl template language for code generation and meta-programming, and all script execution areas in executable models (such as workflow models) use Xpl. The Xpl template language has a tag library mechanism to encapsulate functions (each tag is akin to a static function). Tag library `.xlib` files can be customized via Delta. For example, we can customize [control.xlib](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-app/src/main/resources/_vfs/_delta/default/nop/web/xlib/control.xlib) to adjust the default display controls for field types, or customize [ddl.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/ddl/ddl_mysql.xlib) to fix SQL syntax in create-table statements for a specific database version.
 
-  
-  For example, we can customize the `[control.xlib](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-app/src/main/resources/_vfs/_delta/default/nop/web/xlib/control.xlib)` to adjust default display controls for field types. Similarly, we can customize `[ddl.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/ddl/ddl_mysql.xlib)` to fix the syntax of table creation statements for specific database versions.
+## 3.7 Delta Customization of Rule Models, Report Models, etc.
 
-## 3.7 Customization of Rule Models and Report Models
+All models in the Nop platform—workflow models, report models, rule models, etc.—are constrained by the XDef meta-model and comply with XDSL domain syntax rules (see [XDSL: General Domain-Specific Language Design](https://zhuanlan.zhihu.com/p/612512300)). Therefore, all models automatically support Delta customization: add model files under the `/_vfs/_delta/{deltaDir}` directory with corresponding paths to customize base product models.
 
-All models in the Nop platform, including workflow models, report models, rule models, etc., are constrained using the XDef meta-model. These models comply with the grammar rules of the XDSL domain (for detailed information, refer to [XDSL: General Domain-Specific Language Design](https://zhuanlan.zhihu.com/p/612512300)). Therefore, all models inherently possess Delta customization capabilities and can be extended by adding corresponding files in the `_vfs/_delta/{deltaDir}` directory.
+Unlike typical report engines and workflow engines, Nop engines extensively use the Xpl template language as the executable script, allowing custom tag libraries for extension. For instance, typical report engines might offer built-in data loading mechanisms such as JDBC/CSV/JSON/Excel. If we want to add a new loading method, we typically need to implement specialized interfaces built into the engine and register them using special mechanisms; modifying the visual designer to support custom configurations is generally non-trivial.
 
-Unlike typical report engines or workflow engines, the Nop platform heavily relies on Xpl template language as executable scripts. This allows us to introduce custom tag libraries for tailored extensions. For instance:
-- General report engines typically support data loading mechanisms such as JDBC, CSV, JSON, and Excel.
-- To add new loading methods, we usually need to implement engine-specific interfaces and use registration mechanisms to integrate them into the engine. Customizing the visualization designer to support these configurations can be a complex task.
-
-In contrast, the `NopReport` report model provides an extension point named `beforeExecute`, which is based on a universal interface ([IEvalAction](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/lang/eval/IEvalAction.java)). This allows us to introduce new data loading mechanisms in the `beforeExecute` section:
+In the `NopReport` model, we provide an Xpl template section named `beforeExecute`, which acts as an extension point based on a universal interface ([IEvalAction](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/lang/eval/IEvalAction.java)). In `beforeExecute`, we can introduce a new data loading mechanism as follows:
 
 ```xml
 <beforeExecute>
-  <spl:MakeDataSet xpl:lib="/nop/report/spl/spl.xlib" dsName="ds1" src="/nop/report/demo/spl/test-data.splx" />
+   <spl:MakeDataSet xpl:lib="/nop/report/spl/spl.xlib" dsName="ds1" src="/nop/report/demo/spl/test-data.splx" />
 </beforeExecute>
 ```
 
-By examining the XDef meta-model, we can easily identify which nodes are Xpl template configuration nodes without needing to define or understand special plugin interfaces.
+> By inspecting the XDef meta-model, it’s easy to discover which nodes are Xpl template configuration nodes—no need to define or understand special plugin interfaces.
 
-Tag invocation functions are both function calls and can be viewed as easily parsable XML configurations. Customizable visualization is achieved by supplementing a `XView` model file, which automatically generates the `<beforeExecute>` section's visualization editor.
+Tag invocations are both function calls and easily parsed XML configurations. We can add an `XView` model file to automatically generate a visual editor for the `beforeExecute` section. If the platform already provides a visual designer for models, custom extensions can be easily achieved by customizing the designer’s corresponding model files.
 
-Another approach is to leverage built-in extension attribute configurations in XDSL. All Nop platform models, including workflow models, report models, rule models, etc., inherently support extension attributes, except for those defined in the XDef meta-model. Properties and nodes with namespaces are stored as extension attributes by default (similar to allowing arbitrary Annotation annotations in Java classes). We can introduce extension attribute nodes to store configurations and utilize `<x:post-extends>` meta-programming mechanisms during compilation to parse and dynamically generate the `<beforeExecute>` section.
-
-This approach avoids embedding data source configurations directly into report models and eliminates the need for engines to support special interfaces at runtime. Instead, it relies on **local compile-time transformations** to integrate arbitrary external data sources.
+Another approach is to utilize XDSL’s built-in extension property configuration. All Nop model files automatically support extension properties: beyond attributes and nodes defined in the XDef meta-model, namespaced attributes and nodes are, by default, not validated and are stored as extension properties (similar to allowing arbitrary annotations in Java classes). We introduce extension property nodes for configuration, then use the meta-programming mechanism `x:post-extends` to parse the extension configuration at compile time, dynamically generating the `beforeExecute` section. This approach requires no built-in “data source” concept in the report model and no special runtime interfaces in the report engine. It achieves integration with any external data source purely via **localized compile-time transformation**.
 
 ```xml
 <x:post-extends>
-  <xpt-gen:DataSetSupport/>
+   <xpt-gen:DataSetSupport/> <!-- Parses ext:dataSets extension config, dynamically generates code, and appends to beforeExecute -->
 </x:post-extends>
 
 <ext:dataSets>
-  <spl name="ds1" src="/nop/report/demo/spl/test-data.splx" />
+   <spl name="ds1" src="/nop/report/demo/spl/test-data.splx" />
 </ext:dataSets>
 
-<beforeExecute>
-  Here you can add other initialization code
-</beforeExecute>
+<beforeExecute> Other initialization code can be written here </beforeExecute>
 ```
 
-The `<x:post-extends>` mechanism is used to extend the engine's functionality at compile time, allowing it to support arbitrary external data sources without requiring special runtime interfaces or configurations.
+## 3.8 Compile-Time Feature Switches
 
-## 3.8 Compile-Time Features
+A highly configurable product should strive to evaluate feature switches at compile time to preserve runtime performance, simplifying the final generated code. In the Nop platform, all XDSL domain model files support `feature:on` and `feature:off` feature switches. For example:
 
-  
-  ## A Highly Configurable Product
-  
-  For a product to maintain runtime performance, it should ideally enable various features during compilation rather than runtime. This approach leads to optimized code and reduced complexity in the final implementation.
-  
-  In the Nop platform, all XDSL domain models support `feature:on` and `feature:off` feature control mechanisms. For example:
-  
-  ```xml
-  <form id="view" feature:on="!nop.auth.use-ext-info"> ...</form>
-  ```
-  
-  The `feature:on="!nop.auth.use-ext-info"` attribute indicates that the `nop.auth.use-ext-info` configuration variable is set to `false`, resulting in the node's existence only when this condition is met. Otherwise, the node is automatically removed.
-  
-  ### Comparison with SpringBoot's Conditional Mechanism
-  
-  While Nop's built-in `feature` attributes can control any node across all model files without requiring additional runtime engine code or tailored logic for specific conditions, SpringBoot's conditional evaluation mechanism demands custom coding and cannot be applied to other models.
-  
-  ## Summary
-  
-  The Nop platform leverages the reversible computation principle to implement the so-called Delta customization mechanism. This allows for extensive customization of both frontend and backend functionalities without altering the core product, enabling tailored configurations through Deltas.
-  
-  ## Official Resources
-  
-  - GitHub: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-  - Gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
-  - Documentation Example: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-  
-  - [Reversible Computation Principle and Introduction to Nop Platform on Bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+```xml
+<form id="view" feature:on="!nop.auth.use-ext-info"> ...</form>
+```
 
+You can set `feature:on` and `feature:off` on any XML node. `feature:on="!nop.auth.use-ext-info"` means the node exists only when the `nop.auth.use-ext-info` configuration variable is `false`; otherwise it is automatically removed.
+
+Compared to Spring Boot’s conditional switches: Nop’s built-in `feature` switches can apply to any node in any model file. The model itself requires no special design for conditional switches, and the runtime engine needs no added code. Feature filtering is realized when loading XML. Spring Boot’s conditional switches, by contrast, require dedicated code and cannot be applied to other model files.
+
+## IV. Conclusion
+
+Based on Reversible Computation principles, the Nop platform implements a Delta customization mechanism, enabling comprehensive customization of both front-end and back-end functionality without modifying the base product at all.
+
+Open-source repositories for the Nop platform:
+
+- gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+- github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+- Development example: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [Reversible Computation Principles and Nop Platform Introduction & Q&A_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+<!-- SOURCE_MD5:e58134e9f62b5cd88af9209e28ad85ec-->

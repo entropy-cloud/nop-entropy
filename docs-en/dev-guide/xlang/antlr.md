@@ -1,15 +1,12 @@
+In the Nop platform, based on g4 grammar files, by adding only a few naming conventions and metadata settings, you can automatically parse and obtain the AST, which greatly reduces the cost of AST reconstruction.
 
-In the Nop platform, by defining name conventions and metadata settings in grammar files (g4), we can automatically parse and generate an AST syntax tree, significantly reducing the cost of AST restructuring.
+# AST Mapping Conventions
 
+Compared with the Abstract Syntax Tree (AST), the Parse Tree (ParseTree) contains more detailed information. Therefore, in theory, as long as we add some annotations on the ParseTree, ignore the parts we don't care about, and keep only what we need, we can achieve our goal. Specifically, we define the following annotation rules:
 
-# AST Mapping Convention
+## 1. One parsing rule maps to one kind of AST node
 
-A Parse tree (ParseTree) compared to an Abstract Syntax Tree (AST) contains more detailed information. In theory, by adding some annotations to the Parse tree, we can ignore unnecessary parts and only retain the parts we need. Specifically, we have defined the following annotation rules:
-
-
-## 1. Mapping of a Parsing Rule to an AST Node
-
-The most natural scenario is when a parsing rule directly corresponds to an AST node. The name of the parsing rule directly corresponds to the class name of the AST node. For example:
+The most natural case is that a parsing rule directly corresponds to an AST node, and the name of the rule corresponds directly to the class name of the AST node. For example:
 
 ```
 sqlDelete
@@ -23,14 +20,11 @@ class SqlDelete extends SqlStatement {
 }
 ```
 
-The `sqlDelete` rule directly corresponds to the `SqlDelete` class. The ANTLR grammar allows specifying a variable name for a specific syntax element using `altLabel`, which is particularly useful for marking attributes of AST nodes. For example, `tableName=sqlTableName` indicates that the `tableName` attribute is parsed based on the `sqlTableName` rule.
+The sqlDelete rule directly corresponds to the SqlDelete class. The antlr grammar allows specifying explicit variable names for grammar elements via altLabel. This mechanism can be used to mark properties of AST nodes. For example, tableName=sqlTableName indicates that the tableName property is parsed according to the sqlTableName rule. At the same time, all parts not marked with altLabel will be ignored, such as the DELETE keyword.
 
-Meanwhile, any part not annotated with `altLabel` will be ignored, such as the `DELETE` keyword.
+### 2. Each alternative of a parsing rule maps to a kind of AST node
 
-
-### 2. Mapping of Each Parsing Rule Branch to an AST Node
-
-A single parsing rule may correspond to multiple AST nodes, where each branch represents a different situation. The type of the parsed object becomes the base class for all branches. For example:
+A single parsing rule may also correspond to multiple AST nodes, with each alternative corresponding to a different case. The parsed object type is the base class of the objects produced by all alternatives. For example:
 
 ```
 sqlStatement
@@ -45,44 +39,41 @@ abstract class SqlStatement {
 abstract class SqlSelect extends SqlStatement {
 }
 
-abstract class SqlInsert extends SqlStatement {
+class SqlQuerySelect extends SqlSelect {
+   ...
 }
 
-abstract class SqlUpdate extends SqlStatement {
-}
-
-abstract class SqlDelete extends SqlStatement {
-}
+class SqlUpdate extends SqlStatement{
+   ...
+}    
 ```
 
-`sqlStatement` corresponds to the base class `SqlStatement` for all branches. If a rule name starts with `ast_`, the return type of the parsing function will be the base class `XLangASTNode`. For instance, in `XLangParser.g4`, the `ast_topLevelStatement` rule returns `XLangASTNode`.
+The sqlStatement rule maps to the base class SqlStatement for the results of all alternatives, and each grammar alternative parses to a specific case.
 
+> If a rule name is prefixed with ast_, it indicates that the return type of the parse function is the common base class of AST nodes. For example, in the XLangParser.g4 file, the return type of the ast_topLevelStatement rule is XLangASTNode. XLangASTNode is the common base class defined for all AST nodes in XLangAST.
 
-### 3. Mapping of Multiple Parsing Rules or Branches to a Single AST Node
+### 3. Multiple parsing rules or alternatives map to the same AST node type
 
-Multiple parsing rules or branches may correspond to a single AST node. For example:
+Different parsing rules, or different alternatives of one rule, may map to the same AST node. For example:
 
 ```
 expression_single
     : left=expression_single operator=('*' | '/' | '%') right=expression_single    # BinaryExpression_multiplicative
     | left=expression_single operator=('+' | '-') right=expression_single        # BinaryExpression_additive
-    ...
+    ...;
 ```
 
-ANTLR relies on the order of parsing rules to determine operator precedence. Therefore, the same `BinaryExpression` can be split into multiple syntax branches based on different operators. This is a common scenario where multiple grammar rules map to the same AST type. By adding suffix names (e.g., `BinaryExpression_multiplicative` and `BinaryExpression_additive`), we can distinguish between different situations in the grammar file.
+antlr relies on the order of parsing rules to determine operator precedence, so the same BinaryExpression is split into multiple grammar alternatives based on the different operators. This situation, where multiple grammar rules parse to the same AST node type, is very common. We can distinguish the different cases by appending suffixes. In the example above, both BinaryExpression_multiplicative and BinaryExpression_additive parse to the BinaryExpression type. Meanwhile, the overall expression_single rule itself parses to the type Expression.
 
+### 4. A parsing rule maps to a property of an AST node
 
-### 4. Mapping of Parsing Rules to AST Node Attributes
-
-Some parsing rules do not correspond directly to an AST node but instead map to an attribute of an AST node. For example:
+Some parsing rules do not correspond to an AST node, but to a property of an AST node. For example:
 
 ```
 assignmentExpression
     :  left=leftHandSide operator=assignmentOperator_ right=expression_single eos__    
     ;
-```
 
-```
 assignmentOperator_
     : Assign
     | MultiplyAssign
@@ -97,9 +88,7 @@ assignmentOperator_
     | BitXorAssign // '^='
     | BitOrAssign // '|='
     ;
-```
 
-```java
 class AssignmentExpression extends Expression {
     XLangOperator operator;
     Expression left;
@@ -107,41 +96,31 @@ class AssignmentExpression extends Expression {
 }
 ```
 
-The `assignmentOperator_` rule resolves to an `AssignmentExpression` object's `operator` property, which is of type `XLangOperator`. For rules that do not correspond to abstract syntax tree nodes, we conventionally name them with a trailing underscore `_`. This means that all parsing rules that do not map directly to AST nodes are named with underscores. For example, if a rule's name is not ending with `_`, its parsed result must be an abstract syntax tree node type.
+The assignmentOperator_ rule maps to the operator property of the AssignmentExpression object, whose type is XLangOperator. For parsing rules that do not correspond to AST nodes, we stipulate that their names end with `_`. Note that this is equivalent to the convention that **all parsing rules whose names do not end with `_` must produce an AST node type**.
 
-### 5. Mapping Parsing Rules to AST Node Lists
+### 5. A parsing rule maps to a list of AST nodes
 
-A single parsing rule may correspond to one or more AST node lists. For example:
+A parsing rule may also correspond to a list of AST nodes, such as a function's parameter list or a field list in an SQL statement. For example:
 
-- Function parameters
-- SQL statement columns
-
-For instance:
-
-```sql
+```
 sqlInsert
     : INSERT INTO tableName=sqlTableName LP_ {indent();} columns=columnNames_ { br();} RP_
-        ( values=sqlValues | select=sqlSelect )
+        ( values=sqlValues | select=sqlSelect)
     ;
-```
 
-Here, `sqlInsert` corresponds to an AST node list representing an INSERT statement.
-
-Each list is defined by a specific rule. For example:
-
-```sql
 columnNames_
     : e=sqlColumnName (COMMA_ e=sqlColumnName)*
-    ;
+    ;    
 ```
 
-This rule defines how column names are parsed and mapped to the `List` type.
+We stipulate that each list corresponds to a separate parsing rule, and within that rule the property e is used to mark the element part of the list. For example, the columnNames_ rule parses into a List type.
 
-### 6. Ignoring Some Syntax Tree Nodes
+### 6. Ignore certain parse tree nodes
 
-Some parsing rules may not correspond to any part of the abstract syntax tree. For example:
+Some parsing rule results may not correspond to any part of the AST. For example, the end-of-statement marker:
 
-```eos__
+```
+eos__
     : SemiColon
     | EOF
     | {this.lineTerminatorAhead()}?
@@ -149,63 +128,77 @@ Some parsing rules may not correspond to any part of the abstract syntax tree. F
     ;
 ```
 
-We conventionally exclude rules ending with `__` from being part of the abstract syntax tree.
+We stipulate that rules ending with `__` do not participate in AST construction.
 
-### 7. Simplifying Terminal Symbols Mapping
+### 7. Simplify the mapping of terminal symbols
 
-To simplify terminal symbol mapping, we can use the `astProp` attribute instead of defining individual rules for each terminal. For example:
+For mapping rules where terminal symbols directly correspond to AST properties, it would be too complex to define a separate parsing rule for each terminal symbol. This can be simplified using the astProp attribute annotation.
 
-```literal
-options {
-    astProp = value;
-}
-:
-    StringLiteral
-    | NumericLiteral;
+```
+literal
+options{
+  astProp=value;
+}:
+  StringLiteral
+  | NumericLiteral;
 
-literal_string
-    : value = StringLiteral;
+literal_string:
+   value = StringLiteral;  
 ```
 
-> The `options` is a built-in mechanism in ANTLR that allows custom extendable attributes.
+> options is an antlr built-in metadata extension mechanism that allows setting custom extensible attributes.
 
-In our conventions, terminal nodes will not directly correspond to abstract syntax tree nodes. They may map to at most one AST node attribute. For instance, the `literal_string` rule parses `StringLiteral` and maps it to the `value` attribute of a `Literal` AST node.
+Note that in our conventions, terminal symbols will not directly correspond to AST nodes; at most they correspond to a single property of an AST node. For example, in the literal_string rule, the terminal symbol StringLiteral is parsed to the value property of a Literal node.
 
-### 8. Helper Rules
+Where multiple terminal symbols correspond to the same AST node, you can uniformly specify the target property name via the astProp option, avoiding the need to specify each alternative case individually.
 
-Sometimes, we introduce helper rules for convenience. For example:
+In the example above, all alternatives of literal must correspond to a single terminal symbol, and their parse results all map to the value property of the Literal node.
 
-```expression_initializer
+### 8. Auxiliary rules
+
+Sometimes, for ease of writing, we introduce auxiliary rules. For example:
+
+```
+expression_initializer
     : '=' expression_single
     ;
 ```
 
-This helper rule simplifies the definition of expression initializers, mapping directly to an AST node without additional parsing logic.
+Currently, only one kind of auxiliary rule is allowed: the kind shown above, where only one grammar component inside the rule ultimately corresponds to an AST node. This is equivalent to adding some terminal symbols (that do not end up in the AST) around an existing AST rule. The result type parsed by an auxiliary rule is the same as that of the inner rule.
 
-### 9. Avoid Name Conflicts
+### 9. Avoid naming collisions
 
-Due to the limitations in the implementation of ANTLR, it does not allow the reuse of `altLabel` with an existing rule name. When a conflict arises, you can avoid this by appending an underscore `_` to the `altLabel`.
+Due to antlr implementation constraints, it does not allow an altLabel to duplicate an existing rule name. When a conflict occurs, you can avoid it by appending a trailing underscore to the altLabel.
 
-### 10. Set Fixed Attribute Values
+```
+arrayBinding
+    : '[' elements=arrayElementBindings_ (Comma restBinding_=restBinding |Comma)? CloseBracket # ArrayBinding_full
+    | OpenBracket restBinding_=restBinding Comma? CloseBracket # ArrayBinding_rest
+    ;
+```
 
-Sometimes, we want to directly set the value of an attribute of an AST node when parsing a rule, instead of mapping it from the parse tree. For example:
+restBinding itself is a rule name and also corresponds to the class name of the AST node. Therefore, in the arrayBinding rule, you cannot use restBinding as the altLabel property name; you need to replace it with restBinding_.
+
+### 10. Set fixed property values
+
+Sometimes when obtaining an AST node from a parsing rule, we want to set a certain property of the AST node directly to a fixed value, rather than mapping the property from the ParseTree. For example:
 
 ```
 expression_single
     :
     ...
-    | <astAssign=computed> object=expression_single '[' property=expression_single CloseBracket # MemberExpression_index
-    | object=expression_single '.' property=identifier_ex # MemberExpression_dot
+    | <astAssign=computed> object=expression_single '[' property=expression_single CloseBracket     #   MemberExpression_index
+    | object=expression_single '.' property=identifier_ex               #  MemberExpression_dot
     | <astAssign='optional:false'>expr=expression_single {this.notLineTerminator()}? optional='!' # ChainExpression 
     ...
     ;
 ```
 
-In ANTLR, you can specify fixed attribute values using `<name=value>`. For example, `astAssign` is an extended option that can be set as `<astAssign=computed>`. If the attribute is a boolean, it can be simplified to `<astAssign=true>`.
+antlr allows adding so-called ELEMENT_OPTIONS metadata to grammar elements in the form `<name=value>`. astAssign is an extension option we added. Its format is astAssign='name1:value1,name2:value2'. For boolean properties, you can use a short form with only the property name. For example, `<astAssign=computed>` means that after parsing the AST node, the code will automatically set astNode.computed = true.
 
-### 11. Formatting Rules
+### 11. Formatting rules
 
-To format the AST in a readable manner, you can add indentation and line breaks in the actions section of your `.g4` file.
+To support formatted output of syntax trees, you can add indent and br annotations in the action sections of the g4 file.
 
 ```
 sqlDelete
@@ -214,13 +207,13 @@ sqlDelete
     ;
 ```
 
-This rule indicates that after `alias`, a newline is required.
+The rule above indicates that after outputting alias, a line break is needed.
 
-Currently, the code generator only supports the above syntax. Therefore, third-party ANTLR files may need to be modified before they can be integrated with the code generator to generate an abstract syntax tree parser.
+> Currently, when reading antlr grammar files, the code generator supports only the above cases. Therefore, third-party antlr grammars need to be adapted before they can be integrated with the code generator to directly produce an AST parser.
 
-## Manual Code Writing
+## Code that needs to be handwritten
 
-The Nop platform's code generator generates classes like `XXXBuildVisitor` to convert the parse tree into specific AST objects. It requires some helper functions for terminal nodes to be manually implemented.
+The XXXBuildVisitor class generated by the Nop platform's code generator is responsible for converting antlr's ParseTree into the specified AST objects. It requires a few helper functions to parse terminal symbols.
 
 ```java
 public class XLangASTBuildVisitor extends _XLangASTBuildVisitor {
@@ -235,15 +228,13 @@ public class XLangASTBuildVisitor extends _XLangASTBuildVisitor {
 }    
 ```
 
-The code generator will automatically generate the `BuildVisitor` framework, and only a few mappings need to be implemented. For example, how to map `assignmentExpression` rule to `XLangOperator` in the AST.
+The code generator automatically generates the BuildVisitor framework; you only need to fill in a small number of mapping functions. For example, how to map from the operator in the ParseTree of the assignmentExpression rule to the XLangOperator enum value.
 
+In addition, ASTNode provides normalize and validate functions. By customizing these two functions, after AST node initialization, we can first normalize the AST node structure based on the parse results (e.g., populate default parts or simplify the AST structure), and then validate that the abstract AST nodes meet the specification requirements. For instance, the Identifier node can automatically validate that the name property is not empty.
 
-Moreover, `ASTNode` provides `normalize` and `validate` functions. By customizing these functions, we can first normalize the abstract syntax tree node structure (e.g., filling in default or simplified parts of the AST node), and then validate the abstracted AST node against its defined requirements, such as ensuring that an `Identifier` node has a non-empty `name`.
+## Automatically generating AST node classes
 
-
-## Automatically Generating AST Node Classes
-
-When using an parser like ANTLR, AST node classes are typically manually written, which can be labor-intensive. Additionally, each Java file often corresponds to a specific AST node type, making it difficult to gain an overall understanding of the entire AST structure. Furthermore, operations such as copying, comparing, traversing, and transforming AST nodes involve repetitive code patterns that are costly to maintain and error-prone. Therefore, we defined a domain-specific language (DSL) for defining AST structures, which directly generates various AST node classes along with auxiliary classes like `ASTVisitor`, `ASTOptimizer`, and `ASTProcessor`.
+When using an Antlr parser, AST node classes are usually handwritten, which is a certain amount of work. Moreover, typically one Java file corresponds to one AST node type, which makes it hard to get an intuitive overview of the entire AST. In addition, operations such as AST copying, comparison, traversal, and transformation are pattern-like boilerplate code: expensive to write by hand and prone to errors. Therefore, we defined a description grammar for ASTs, and generate various AST node classes directly from it, as well as auxiliary processing classes such as ASTVisitor/ASTOptimizer/ASTProcessor.
 
 ```java
 import io.nop.api.core.annotations.meta.PropMeta;
@@ -267,113 +258,74 @@ public class XLangAST {
     }
 
     class Program extends Expression {
-        String sourceType; //: "script" | "module"
+        String sourceType; //: "script" | "module";
 
         @PropMeta(mandatory = true)
-        List<XLangASTNode> body; //: [ Statement | ModuleDeclaration ]
+        List<XLangASTNode> body; //: [ Statement | ModuleDeclaration ];
     }
 
     class Identifier extends Expression implements IdentifierOrPattern {
         @PropMeta(mandatory = true)
         String name;
     }
-}
+    ...
+}    
 ```
 
-We define the AST structure using a domain-specific language called "xjava". Interestingly, "xjava" is essentially standard Java. We use the `@PropMeta` annotation to introduce additional metadata. The Nop platform utilizes the Janino library to parse xjava files and convert them into `ObjMeta`, which in turn generates corresponding Java classes.
+We define the AST structure using the so-called xjava syntax. Interestingly, xjava syntax is just ordinary Java syntax, and we can introduce additional descriptive information via annotations such as @PropMeta. The Nop platform uses the Janino library to parse xjava files, convert them into ObjMeta definitions, and then generate corresponding Java classes from ObjMeta.
 
-> `ObjMeta` is a data schema defined within the Nop platform, resembling JSON Schema. It uses its own XML-based syntax for defining structures. Essentially, you can define `ObjMeta` using either XML or xjava formats, and both formats are interchangeable due to built-in conversion rules. In some cases, multiple definition formats may coexist, allowing flexibility in how structures are defined.
+> ObjMeta is an object metadata specification defined in the Nop platform, similar to JSON Schema, and it has an XML definition syntax. In other words, you can define ObjMeta either in XML format or xjava format, and XML and xjava formats can be converted to each other. This situation—one structure having multiple representational formats—is exactly the concept of multiple Representations emphasized in Reversible Computation.
+> In different usage scenarios, we can choose the appropriate representation as needed. For example, for visual editing we can choose XML or JSON formats (the Nop platform defines reversible conversion rules between XML and JSON), while for human reading or leveraging IDE refactoring we can use the xjava format.
 
-> For example:
-  - When performing visual editing, you might choose between XML or JSON formats (Nop platform defines conversion rules for XML and JSON).
-  - During manual review or refactoring using an IDE, xjava format is more practical.
+If we compare it with the proto format used in gRPC, we’ll find that xjava can also describe Protocol Buffers structures—so long as we allow introducing additional metadata via annotation classes!
 
-If we compare this with gRPC's `proto` format, "xjava" can also describe `proto` structures. This is possible as long as additional metadata is allowed through annotations like `@PropMeta`.
-
-According to the principles of reversible computing:
-- **Data and metadata form a complementary relationship**.
-- Combining data and metadata results in a comprehensive information description.
-- In certain scenarios, data and metadata may appear interchangeable, but their separation ensures proper reversibility.
+According to Reversible Computation, metadata and data form a complementary relationship. Only metadata + data together fully describe structural information. Moreover, under certain conditions, there is no essential difference between metadata and data, and they can be transformed into each other.
 
 ```
 Structure = Data1 + Metadata1 = Data2 + Metadata2
 ```
 
-In different representation formats:
-- If we focus only on the data part (e.g., under a searchlight), structures might not be reversible.
-- Reversibility issues arise when transformations introduce lossy steps or when metadata is missing.
+In different representations, if we only focus on the data under the spotlight, we may find them nonequivalent, with distortion and loss in transformation.
 
 $$
-Data1 \approx Data2 \\ Data1 \neq Data2 \\
+Data1 \approx Data2 \\ Data1 \ne Data2 \\
 $$
 
-Treating metadata as an essential component of information expression is crucial for achieving reversibility as per reversible computing theory:
+Only by recognizing metadata as a necessary and indispensable part of information expression—and always pairing metadata with data as a whole—can we achieve the reversibility required by Reversible Computation.
 
 $$
 Data1 \approx Data2 \\ Data1 + Metadata1 \equiv Data2 + Metadata2 \\
 $$
 
-When information is transmitted between different systems, it can be viewed as a transformation problem. Thus, cross-system transmission requires structured data with clear headers, such as `data` and `header`. Proper handling of these ensures that the message is accurately interpreted.
+Following the analysis of Reversible Computation, information transmission between different systems can also be regarded as a representation conversion problem. Therefore, cross-system message objects must have a data + header structure, and we need an extensible way to store metadata whose structure may not yet be fixed!
 
-To store untamed data, we need an expandable structure for raw data and its metadata:
+In the technical approach introduced in this article, it is precisely by leveraging antlr’s built-in extensible metadata definitions that we can achieve functionality beyond the original author’s intent.
 
-$$
-Data1 \approx Data2 \\ Data1 + Metadata1 \equiv Data2 + Metadata2 \\
-$$
+## Deep Syntax vs. Surface Syntax
 
-According to reversible computing principles:
-- **Data and metadata are interdependent**.
-- Their combination must allow for accurate reconstruction of the original information.
+In the 1950s, Noam Chomsky, the founding father of modern language theory, proposed Transformational-Generative Grammar, triggering the so-called “Chomsky Revolution” in linguistics.
 
-## Deep Syntax vs. Shallow Syntax
+> The well-known concepts of regular grammars, context-free grammars, context-sensitive grammars, etc., come from the famous Chomsky hierarchy.
 
-In this document, **we leverage the built-in extensible metadata definition in ANTLR**, enabling us to achieve functionality beyond the original author's intentions.
+Chomsky posited that every sentence has two structural levels—deep structure and surface structure. Deep structure “refers to the inherent grammatical relations among the constituents of a phrase or sentence, relations that cannot be directly read off from their linear sequence. In generative grammar, it is the abstract syntactic representation of a sentence that determines all factors governing how the sentence is interpreted,” i.e., it determines meaning. Surface structure “refers to the final stage of a sentence’s syntactic representation, which is derived from deep structure; it is the result of a linear arrangement of the relationships among the constituents of the sentence used in communication,” i.e., the sentence’s realized form. Transformational-Generative Grammar links sentences that differ in surface form but share the same meaning. For example, “Mary cleaned the room” and “The room was cleaned by Mary” have different surface structures but the same deep structure.
 
-## Deep Syntax vs. Shallow Syntax
+Simply put, deep syntax determines semantics; deep structure is transformed into surface structure via transformation rules; and surface syntax determines the sentence’s final appearance. The same deep syntax can correspond to multiple surface syntaxes. In this light, the AST can be seen as the deep structure of a language, whereas the antlr grammar file specifies a kind of surface syntax.
 
-The grandfather of modern linguistics, Noam Chomsky, introduced the Transformational-Generative Grammar theory in the 1950s, sparking what is known as the "Chomsky Revolution" in the field of linguistics.
+If we push this line of thinking further: since what truly matters is a stable domain structure (i.e., the AST), why not stipulate a universal, stable form of AST representation and completely abandon unstable, varied surface syntax forms? Isn’t this essentially Lisp?
 
-> Terms like "regular grammar," "context-free grammar," and "context-sensitive grammar" originate from Chomsky's renowned levels.
+The Nop platform’s overall technical strategy revolves around AST tree structures, choosing XML and JSON—formats friendlier to editing—as structured representations instead of Lisp’s traditional syntax.
 
-Chomsky believed that each sentence has two structural levels—**deep structure** and **shallow structure**. The **deep structure** refers to the internal syntactic relationships between phrases or clauses, but these relationships cannot be directly observed from their linear sequences in the shallow structure. In the generative component (i.e., the grammar), he emphasized that it determines all factors influencing sentence interpretation, including the abstract syntactic expressions that define how a sentence's components interact.
+The Nop platform aims to be a general-purpose Domain Specific Language Workbench; that is, it provides a suite of technical support to create new domain languages and strives to minimize their development cost. The most important part of a DSL is its semantic structure (the domain-specific atomic concepts and how they interact), while the apparent syntactic form is secondary.
 
-The **shallow structure** is described as the final stage of a sentence's syntax, derived from the deep structure through transformational rules. While the shallow structure reflects the surface grammatical features of a sentence (e.g., word order and tense), it does not capture the underlying syntactic relationships.
+To develop a new domain language in the Nop platform, the fundamental requirement is just one: provide an AST definition file. The Nop platform will generate AST node classes based on various AST definition formats such as xdef/xjava/xmeta. These defined ASTs inherently support both XML and JSON representations. Without writing any code, you can parse ASTs from XML/JSON and serialize ASTs back to XML/JSON. If you need a syntax similar to traditional programming languages, you can additionally define an antlr grammar file.
 
-Through the Transformational-Generative Grammar theory, sentences with different surface structures but equivalent meanings can be related—e.g., "Mary cleaned the room" and "The room was cleaned by Mary." Here, their deep structures are identical, while their shallow structures differ.
+Reversible Computation is not a simple design pattern aimed at a specific low-code product; it is a next-generation software construction theory with broad applicability. Within the theoretical framework of Reversible Computation, a series of scattered design practices can be given a unified theoretical explanation, naturally yielding a series of inherently consistent extensibility designs.
 
-In simple terms, **deep syntax** determines meaning, while the **shallow structure** determines form. The deep structure is derived from transformational rules that convert abstract syntactic expressions into concrete ones, determining a sentence's ultimate form. A single deep structure can correspond to multiple shallow structures.
+The scope of Reversible Computation is by no means limited to a single system. In fact, only when both upstream and downstream software adhere to Reversible Computation principles can we achieve unprecedented coarse-grained software reuse. In the next article, I will introduce a technical approach that integrates Reversible Computation with Office Word to implement template-based export. With just a few hundred lines of code, it delivers functionality similar to [poi-tl](http://deepoove.com/poi-tl/), and—for free—offers extensibility surpassing other approaches.
 
-From this perspective, an abstract syntax tree (AST) represents the deep structure of a language, while an ANTLR-generated file defines the shallow structure. If we stick to Chomsky's framework and focus on stable domain structures (i.e., ASTs), why not establish a general, stable AST format instead of compromising with unstable, format-multiplying shallow structures? Is this not akin to Lisp?
+## References
 
-The Nop platform's overall strategic direction can be described as revolves around the AST node structure. While it opts for XML and JSON over traditional Lisp syntax due to its more user-friendly nature, its primary objective is to serve as a domain-specific language workbench.
+For concrete configuration examples of the Antlr-based automatic AST parsing introduced in this article, see [XLangAST.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/model/ast/io/nop/xlang/ast/XLangAST.xjava) [XLangParser.g4](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/model/antlr/XLangParser.g4)
 
-In the Nop platform, developing a domain-specific language requires one fundamental requirement: an abstract syntax tree definition file. The Nop platform generates AST node classes based on various definitions like xdef/xjava/xmeta. These ASTs can be derived from XML/JSON without writing any code, and they can be serialized back to XML/JSON.
-
-If you need a syntax similar to traditional programming languages, you can supplement the ANTLR-generated files with additional definitions.
-
-The reversible nature of transformational theory is not limited to a specific low-code product; it's a widely applicable next-generation software construction theory. Within this framework, scattered practices can be unified under a coherent theory.
-
-The applicability of transformational theory is not confined to a single system—it thrives when all upstream and downstream systems adhere to reversible computing principles. **Only when all software components follow the reversible computing principles can we achieve unprecedented granularity in software reuse**. This is precisely what Lisp language embodies.
-
-The Nop platform's overall technical strategy revolves around AST node structures, choosing between XML and JSON over traditional Lisp syntax due to its more user-friendly nature. However, the primary goal of the Nop platform is to become a general-purpose domain-specific language workbench.
-
-The Nop platform's design objective is to minimize the cost of developing new domain-specific languages by providing comprehensive technical support. While syntax (e.g., specific programming languages) may be secondary, semantics (e.g., domain-specific concepts and their interactions) are paramount.
-
-To develop a new domain-specific language on the Nop platform, the most basic requirement is an abstract syntax tree definition file. The Nop platform generates AST node classes based on various definitions like xdef/xjava/xmeta. These ASTs can be derived from XML/JSON without writing any code and can be serialized back to XML/JSON.
-
-If you need a syntax similar to traditional programming languages, you can supplement the ANTLR-generated files with additional definitions.
-
-Reversible computing theory is not limited to a specific low-code product; it's a widely applicable next-generation software construction theory. Within this framework, scattered practices can be unified under a coherent theory.
-
-The applicability of transformational theory is not confined to a single system—it thrives when all upstream and downstream systems adhere to reversible computing principles. **Only when all software components follow the reversible computing principles can we achieve unprecedented granularity in software reuse**. This is precisely what Lisp language embodies.
-
-> References
-
-For more details on the techniques discussed in this document, please refer to the following resources:
-
-- [XLangAST.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/model/ast/io/nop/xlang/ast/XLangAST.xjava)  
-- [XLangParser.g4](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/model/antlr/XLangParser.g4)
-
-- [EqlAST.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm-eql/model/ast/io/nop/orm/eql/ast/EqlAST.xjava)  
-- [DMLStatement.g4](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm-eql/model/antlr/DMLStatement.g4)
-
+[EqlAST.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm-eql/model/ast/io/nop/orm/eql/ast/EqlAST.xjava) [DMLStatement.g4](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm-eql/model/antlr/DMLStatement.g4)
+<!-- SOURCE_MD5:f42787ee793cfe152c12433d04bcba72-->

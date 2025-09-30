@@ -1,7 +1,9 @@
-# Interface Framework
+# UI Framework
 
 ## Menu Construction
 
-In `src/store/modules/permission.ts`, the `getMenuList` function is used to dynamically load the menu. Then, the `transformObjToRoute` function in `src/router/helper/routeHelper.ts` is called to convert the menu result into a Vue route.
+In `src/store/modules/permission.ts`, dynamically load menus via the getMenuList function, then call
+the transformObjToRoute function in `src/router/helper/routeHelper.ts` to convert the menu response into Vue routes.
 
-Modify `src/settings/projectSettings.ts` to set `permissionMode` as "BACK" to load the menu from the backend.
+Set permissionMode in `src/settings/projectSettings.ts` to BACK to load menus from the backend.
+<!-- SOURCE_MD5:cc4611e355d4ab0c67481202649c1a55-->

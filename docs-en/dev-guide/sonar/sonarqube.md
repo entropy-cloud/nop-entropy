@@ -1,24 +1,25 @@
 # Configuration
 
-1. Modify Maven's settings file
+1. Modify the Maven settings file
 
 ```xml
-  <profile>
-    <id>sonar</id>
-    <activation>
-      <activeByDefault>true</activeByDefault>
-    </activation>
-    <properties>
-      <sonar.host.url>http://localhost:9000</sonar.host.url>
-      <sonar.token>xxx</sonar.token>
-      <sonar.scm.provider>git</sonar.scm.provider>
-    </properties>
-  </profile>
+    <profile>
+      <id>sonar</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <properties>
+        <sonar.host.url>http://localhost:9000</sonar.host.url>
+        <sonar.token>xxx</sonar.token>
+        <sonar.scm.provider>git</sonar.scm.provider>
+      </properties>
+    </profile>
 ```
 
-2. Modify the root directory's pom file
+2. Modify the pom file in the project root directory
 
 ```xml
+
 <pom>
     <properties>
         <sonar.coverage.jacoco.xmlReportPaths>
@@ -29,17 +30,21 @@
 
     <build>
         <plugins>
-            <!-- Generate test report using mvn surefire-report:report -->
+            <!-- The mvn surefire-report:report command generates a test report -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.2</version>
+
                 <configuration>
-                    <argLine>${jacocoArgLine}</argLine>
+                    <argLine>
+                        ${jacocoArgLine}
+                    </argLine>
                     <testFailureIgnore>false</testFailureIgnore>
                     <forkCount>4</forkCount>
                     <reuseForks>true</reuseForks>
                 </configuration>
+
             </plugin>
         </plugins>
     </build>
@@ -62,7 +67,7 @@
                                 <goals>
                                     <goal>prepare-agent</goal>
                                 </goals>
-                                <!-- Rename argLine when using surefire -->
+                                <!-- When used together with Surefire, argLine needs to be renamed -->
                                 <configuration>
                                     <propertyName>jacocoArgLine</propertyName>
                                 </configuration>
@@ -73,6 +78,7 @@
                                 <exclude>**/_gen/*.*</exclude>
                                 <exclude>**/*Errors.*</exclude>
                                 <exclude>**/*Configs.*</exclude>
+                                <exclude>**/*Constants*</exclude>
                                 <exclude>**/parse/antlr/*.*</exclude>
                             </excludes>
                         </configuration>
@@ -83,3 +89,5 @@
     </profiles>
 </pom>
 ```
+
+<!-- SOURCE_MD5:58cc1f87df5f3e5b5b98cc4d08185649-->

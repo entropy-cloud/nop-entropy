@@ -1,42 +1,41 @@
-  
-  # Automatic Testing
-  
-  ## 1. Data-Driven Testing
-  
-  The NopAutoTest framework is a data-driven testing framework, which means that in most cases, you do not need to write any code for preparing input data or verifying output results. Instead, you only need to write a skeleton function and provide a set of test data files. Let's look at an example:
+# Automated Testing
 
-  [nop-auth/nop-auth-service/src/test/io/nop/auth/service/TestLoginApi.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestLoginApi.java)
+## I. Data-Driven Testing
 
-  [nop-auth/nop-auth-service/cases/io/nop/auth/service/TestLoginApi](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-auth/nop-auth-service/cases/io/nop/auth/service/TestLoginApi)
+The NopAutoTest testing framework is a data-driven testing framework, which means that in most cases you don’t need to write any code to prepare input data or verify output results. You only need to write a skeleton function and provide a set of test data files. Let’s look at an example:
 
-  ```java
-  class TestLoginApi extends JunitAutoTestCase {
-      // @EnableSnapshot
-      @Test
-      public void testLogin() {
-          LoginApi loginApi = buildLoginApi();
+[nop-auth/nop-auth-service/src/test/io/nop/auth/service/TestLoginApi.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestLoginApi.java)
 
-          // ApiRequest<LoginRequest> request = request("request.json5", LoginRequest.class);
-          ApiRequest<LoginRequest> request = input("request.json5", new TypeReference<ApiRequest<LoginRequest>>() {
-          }).getType();
+[nop-auth/nop-auth-service/cases/io/nop/auth/service/TestLoginApi](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-auth/nop-auth-service/cases/io/nop/auth/service/TestLoginApi)
 
-          ApiResponse<LoginResult> result = loginApi.login(request);
+```java
+class TestLoginApi extends JunitAutoTestCase {
+    // @EnableSnapshot
+    @Test
+    public void testLogin() {
+        LoginApi loginApi = buildLoginApi();
 
-          output("response.json5", result);
-      }
-  }
-  ```
+        //ApiRequest<LoginRequest> request = request("request.json5", LoginRequest.class);
+        ApiRequest<LoginRequest> request = input("request.json5", new TypeReference<ApiRequest<LoginRequest>>() {
+        }.getType());
 
-  Test cases are inherited from the JunitAutoTestCase class and use `input(fileName, javaType)` to read external data files and convert them into the specified type. The data format is determined by the file extension, which can be json/json5/yaml等。
+        ApiResponse<LoginResult> result = loginApi.login(request);
 
-  After calling the tested function, the result data is saved to an external data file using `output(fileName, result)` instead of writing validation code.
+        output("response.json5", result);
+    }
+}
+```
 
-  ### 1.1 Recording Mode
+The test case inherits from the JunitAutoTestCase class, then uses input(fileName, javaType) to read external data files and cast the data to the type specified by javaType. The specific data format is determined by the file extension, which can be json/json5/yaml, etc.
 
-  When testLogin is executed in recording mode, it generates the following data files:
+After invoking the function under test, you save the result to an external data file via output(fileName, result) instead of writing result verification code.
 
-  ```
-  TestLoginApi
+### 1.1 Recording Mode
+
+When testLogin runs in recording mode, it generates the following data files:
+
+```
+TestLoginApi
     /input
        /tables
           nop_auth_user.csv
@@ -45,413 +44,438 @@
     /output
        /tables
           nop_auth_session.csv
-       response.json5
-  ```
-
-  The `/input/tables` directory will record all database records, with each table corresponding to a CSV file.
-
-  > Even if no data is read, it will generate corresponding empty files. This is because in validation mode, the table names recorded during recording need to be created in the test database.
-
-  If response.json5 is opened, you can see the following content:
-
-  
-  ```
-{
-    "data": {
-      "accessToken": "@var:accessToken",
-      "attrs": null,
-      "expiresIn": 600,
-      "refreshExpiresIn": 0,
-      "refreshToken": "@var:refreshToken",
-      "scope": null,
-      "tokenType": "bearer",
-      "userInfo": {
-        "attrs": null,
-        "locale": "zh-CN",
-        "roles": [],
-        "tenantId": null,
-        "timeZone": null,
-        "userName": "auto_test1",
-        "userNick": "autoTestNick"
-      }
-    },
-    "httpStatus": 0,
-    "status": 0
-  }
+      response.json5
 ```
 
-Notice that `accessToken` and `refreshToken` have been automatically replaced with variable matching expressions. This process requires no manual intervention by developers.
+Under the /input/tables directory, all database rows that were read will be recorded, with one CSV file per table.
 
-Regarding the recorded `nop_auth_session.csv`, its content is as follows:
+> Even if no data was read, a corresponding empty file will still be generated. This is because in verification mode the recorded table names are used to determine which tables must be created in the test database.
+
+If you open response.json5, you’ll see something like this:
+
+```
+{
+  "data": {
+    "accessToken": "@var:accessToken",
+    "attrs": null,
+    "expiresIn": 600,
+    "refreshExpiresIn": 0,
+    "refreshToken": "@var:refreshToken",
+    "scope": null,
+    "tokenType": "bearer",
+    "userInfo": {
+      "attrs": null,
+      "locale": "zh-CN",
+      "roles": [],
+      "tenantId": null,
+      "timeZone": null,
+      "userName": "auto_test1",
+      "userNick": "autoTestNick"
+    }
+  },
+  "httpStatus": 0,
+  "status": 0
+}
+```
+
+Note that accessToken and refreshToken have been automatically replaced with variable matching expressions. This process requires no manual intervention by the developer.
+
+As for the recorded nop_auth_session.csv, its contents are as follows:
 
 ```csv
 _chgType,SID,USER_ID,LOGIN_ADDR,LOGIN_DEVICE,LOGIN_APP,LOGIN_OS,LOGIN_TIME,LOGIN_TYPE,LOGOUT_TIME,LOGOUT_TYPE,LOGIN_STATUS,LAST_ACCESS_TIME,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
 A,@var:NopAuthSession@sid,067e0f1a03cf4ae28f71b606de700716,,,,,@var:NopAuthSession@loginTime,1,,,,,0,autotest-ref,*,autotest-ref,*,
 ```
 
-The first column `chgType` indicates change types: A - addition, U - modification, D - deletion. The primary key, which is randomly generated, has been replaced with a variable matching expression `@var:NopAuthSession@sid`.
+The first column _chgType indicates the data change type: A - Add, U - Update, D - Delete. The randomly generated primary key has been replaced with the variable matching expression @var:NopAuthSession@sid. Meanwhile, based on information provided by the ORM model, createTime and updateTime are bookkeeping fields and are not involved in data matching verification; therefore, they are replaced with *, meaning “match any value.”
 
-Additionally, based on the ORM model, fields like `createTime` and `updateTime` are recorded in the system as log fields and thus do not require data matching validation, hence they are marked with an asterisk (*) to indicate any value.
+### 1.2 Verification Mode
 
-### 1.2 Validation Mode
+Once the testLogin function has executed successfully, you can enable the @EnableSnapshot annotation to switch the test case from recording mode to verification mode.
+In verification mode, the test case performs the following operations during setUp:
 
-After the `testLogin` function successfully executes, we can enable the `@EnableSnapshot` annotation to convert the recorded test case from recording mode to validation mode.
+1. Adjusts configurations such as jdbcUrl to force the use of a local in-memory database (H2).
+2. Loads the input/init_vars.json5 file to initialize the variable environment (optional).
+3. Collects table names under input/tables and output/tables, generates corresponding CREATE TABLE statements based on the ORM model, and executes them.
+4. Executes all xxx.sql scripts under the input directory to perform custom initialization on the newly created database (optional).
+5. Inserts data from the input/tables directory into the database.
 
-In validation mode:
-- During the `setUp` phase, perform the following actions:
-
-1. Adjust configurations such as `jdbcUrl` and enforce the use of a local H2 database.
-2. Load the `input/init_vars.json5` file to initialize variable environments (optional).
-3. Collect table names from the `input/tables` and `output/tables` directories, generate corresponding creation statements based on the ORM model, and execute them.
-4. Execute all `xxx.sql` scripts in the `input` directory for customized database initialization (optional).
-5. Insert data from the `input/tables` directory into the database.
-
-If the `output` function is called during test execution, the matching will be performed based on the `MatchPattern` mechanism using the recorded JSON object and the `nop_auth_session.csv` file. Specific matching rules are detailed in the next section.
-
-If an exception is expected to be thrown by the `testXXXThrowException` method, it can be described using the `error` function:
+If the test case calls the output function during execution, the output JSON object will be compared with the recorded pattern file based on the MatchPattern mechanism. See the next section for specific comparison rules.
+If you expect the test function to throw an exception, you can describe it using error(fileName, runnable):
 
 ```java
 @Test
-public void testXXXThrowException() {
-    error("response-error.json5",()->xxx());
-}
+public void testXXXThrowException(){
+        error("response-error.json5",()->xxx());
+        }
 ```
 
-In the `tearDown` phase, the test case will automatically perform the following actions:
+During teardown, the test case automatically performs the following:
 
-1. Compare the data changes in the `output/tables` directory with the current database state to ensure consistency.
-2. Execute SQL checks defined in `sql_check.yaml`, comparing them with expected results (optional).
+1. Compares the data changes defined under output/tables with the current state in the database to determine whether they match.
+2. Executes the validation SQL defined in sql_check.yaml and compares it with the expected results (optional).
 
-### 1.3 Test Update
+### 1.3 Updating Tests
 
-If the code is later modified, the test result will change accordingly. We can temporarily set `saveOutput` to `true` and update the recorded output in the `output` directory.
+If you later modify the code and the return results of the test case change, you can temporarily set the saveOutput attribute to true to update the recorded results under the output directory.
 
 ```java
 @EnableSnapshot(saveOutput = true)
 @Test
-public void testLogin() {
-    // ... 
+public void testLogin(){
+        ....
+        }
+```
+
+## II. Object Pattern Matching Based on Prefix-Guided Syntax
+
+In the previous section, the matching conditions in the data template files contained only fixed values and variable expressions @var:xx. The variable expression adopts the so-called prefix-guided syntax (for details, see my article [DSL Layered Syntax Design and Prefix-Guided Syntax](https://zhuanlan.zhihu.com/p/548314138)), which is an extensible DSL design. First, note that the @var: prefix can be extended to more cases; for example, @ge:3 means greater than or equal to 3. Second, this is an open-ended design. We can add more syntax at any time and ensure that there will be no syntax conflicts among them. Third, this is a localized embedded syntax: the String->DSL transformation can enhance any string into an executable expression, such as expressing field matching conditions in CSV files. Let’s look at a more complex matching configuration:
+
+```json
+{
+  "a": "@ge:3",
+  "b": {
+    "@prefix": "and",
+    "patterns": [
+      "@startsWith:a",
+      "@endsWith:d"
+    ]
+  },
+  "c": {
+    "@prefix": "or",
+    "patterns": [
+      {
+        "a": 1
+      },
+      [
+        "@var:x",
+        "s"
+      ]
+    ]
+  },
+  "d": "@between:1,5"
 }
 ```
 
-## 2. Object Matching Based on Prefix Syntax
+In this example, @prefix introduces complex and/or matching conditions. Similarly, we can introduce conditional branches such as if and switch.
 
-In the previous section, the data template file used for matching only contained fixed values and variable expressions `@var:xx`. This section will elaborate on object matching based on prefix syntax.
-
-  
-  Two types of variable expressions were adopted, utilizing so-called prefix-based syntax (detailed explanation can be found in my article [DSL Layer Design and Prefix Syntax](https://zhuanlan.zhihu.com/p/548314138))
-），which is a highly customizable domain-specific syntax (DSL) design. First, we observe that the `@var:` prefix can be extended to accommodate more scenarios, such as `@ge:3`, which means "greater than or equal to 3". This is an open-ended design.
-  
-  We can add more syntax support at any time and ensure no syntax conflicts arise between them***. Thirdly, this is a localized embedded syntax design, where `String->DSL` converts any string into executable expressions, for example, field matching conditions in CSV files. Let's examine a more complex matching configuration:
-  
-  ```json
-  {
-    "a": "@ge:3",
-    "b": {
-      "@prefix": "and",
-      "patterns": [
-        "@startsWith:a",
-        "@endsWith:d"
-      ]
-    },
-    "c": {
-      "@prefix": "or",
-      "patterns": [
-        {
-          "a": 1
-        },
-        [
-          "@var:x",
-          "s"
-        ]
-      ]
-    },
-    "d": "@between:1,5"
+```json
+{
+  "@prefix": "if"
+  "testExpr": "matchState.value.type == 'a'",
+  "true": {
+    ...
   }
-  ```
-  
-  This example introduces a complex structure of `@prefix`-based matching conditions. Similarly, we can introduce condition branches like `if`, `switch`, etc.
-  
-  ```json
-  {
-    "@prefix": "if",
-    "testExpr": "matchState.value.type == 'a'",
-    "true": {
-      // True case implementation
-    },
-    "false": {
-      // False case implementation
-    }
+  "false": {
+    ...
   }
-  ```
+}
+{
+  ”@prefix":"switch",
+"chooseExpr": "matchState.value.type",
+"cases": {
+"a": {...},
+"b": {
+...
+}
+},
+"default": {
+...
+}
+}
+```
 
-  
-  `testExpr` is an XLang expression, where `matchState` corresponds to the current matching context and can be accessed via `value`. Depending on the return value, either the true or false branch will be selected.
-  
-  Here, `@prefix` corresponds to the prefix-based syntax's `explode` mode, which unfolds the DSL into a JSON-formatted abstract syntax tree. Due to data structure limitations, direct embedding of JSON is not allowed, but we can still use the standard form of prefix-based syntax in configurations like CSV files:
-  
-  ```json
-  @if:{testExpr:'xx', true:{...}, false:{...}}
-  ```
-  
-  By encoding the `if` parameters into JSON strings and prepending `@if:`, we can achieve this. The prefix-based syntax offers highly flexible grammar design, where no strict unification of different prefixes is required. For example, `@between:1,5` means "greater than or equal to 1 and less than or equal to 5".
-  
-  If only specific fields need to be validated against matching conditions, we can use `*` to indicate ignoring other fields:
-  
-  ```json
-  {
-    "a": 1,
-    "*": "*"
+testExpr is an XLang expression, where matchState corresponds to the current matching context object. You can access the currently matched data node via value. Depending on the return value, the true or false branch will be chosen for matching.
+
+Here, "@prefix" corresponds to the explode mode of the prefix-guided syntax, which expands the DSL into a JSON-form abstract syntax tree. If, due to data structure constraints, inline JSON is not allowed (for example, when used in a CSV file), you can still use the standard form of the prefix-guided syntax.
+
+```
+@if:{testExpr:'xx',true:{...},false:{...}}
+```
+
+Just JSON-encode the parameters for if into a string, then prepend the @if: prefix.
+
+The syntactic design of the prefix-guided syntax is very flexible and does not require different prefixes to share exactly the same format. For example, @between:1,5 means greater than or equal to 1 and less than or equal to 5. The data format following the prefix is recognized only by the parser corresponding to that prefix, allowing you to design simplified syntax as needed.
+
+If you only need to verify that part of an object’s fields satisfy the matching conditions, you can use the symbol * to ignore other fields:
+
+```json
+{
+  "a": 1,
+  "*": "*"
+}
+```
+
+## III. Multi-Step Correlated Tests
+
+If you need to test multiple related business functions, you must pass correlation information between them. For example, after logging in you obtain an accessToken, then use the accessToken to get detailed user information, and after completing other operations you pass the accessToken as a parameter to call logout.
+
+Because there is a shared AutoTestVars context environment, business functions can pass correlation information automatically via AutoTestVariable. For example:
+
+```java
+    @EnableSnapshot
+@Test
+public void testLoginLogout(){
+        LoginApi loginApi=buildLoginApi();
+
+        ApiRequest<LoginRequest> request=request("1_request.json5",LoginRequest.class);
+
+        ApiResponse<LoginResult> result=loginApi.login(request);
+
+        output("1_response.json5",result);
+
+        ApiRequest<AccessTokenRequest> userRequest=request("2_userRequest.json5",AccessTokenRequest.class);
+
+        ApiResponse<LoginUserInfo> userResponse=loginApi.getLoginUserInfo(userRequest);
+        output("2_userResponse.json5",userResponse);
+
+        ApiRequest<RefreshTokenRequest> refreshTokenRequest=request("3_refreshTokenRequest.json5",RefreshTokenRequest.class);
+        ApiResponse<LoginResult> refreshTokenResponse=loginApi.refreshToken(refreshTokenRequest);
+        output("3_refreshTokenResponse.json5",refreshTokenResponse);
+
+        ApiRequest<LogoutRequest> logoutRequest=request("4_logoutRequest.json5",LogoutRequest.class);
+        ApiResponse<Void> logoutResponse=loginApi.logout(logoutRequest);
+        output("4_logoutResponse.json5",logoutResponse);
+        }
+```
+
+The contents of 2_userRequest.json5 are:
+
+```json
+{
+  data: {
+    accessToken: "@var:accessToken"
   }
-  ```
-  
-  ## Three. Multi-step Related Tests
-  
-  To test multiple interconnected business functions, we need to pass association information between multiple business functions. For example, after logging in, we obtain `accessToken`, then use it to retrieve detailed user information, perform other business operations, and pass `accessToken` as a parameter for logout.
-  
-  Since shared context environments like `AutoTestVars` exist, business functions can automatically pass association information via `AutoTestVariable`. For example:
-  
-  ```
-  // Example of passing test variables
-  ```
+}
+```
 
-  
-  ```java
-  @EnableSnapshot
-  @Test
-  public void testLoginLogout() {
-      LoginApi loginApi = buildLoginApi();
-
-      ApiRequest<LoginRequest> request = request("1_request.json5", LoginRequest.class);
-
-      ApiResponse<LoginResult> result = loginApi.login(request);
-      output("1_response.json5", result);
-
-      ApiRequest<AccessTokenRequest> userRequest = request("2_userRequest.json5", AccessTokenRequest.class);
-      ApiResponse<LoginUserInfo> userResponse = loginApi.getLoginUserInfo(userRequest);
-      output("2_userResponse.json5", userResponse);
-
-      ApiRequest<RefreshTokenRequest> refreshTokenRequest = request("3_refreshTokenRequest.json5", RefreshTokenRequest.class);
-      ApiResponse<LoginResult> refreshTokenResponse = loginApi.refreshToken(refreshTokenRequest);
-      output("3_refreshTokenResponse.json5", refreshTokenResponse);
-
-      ApiRequest<LogoutRequest> logoutRequest = request("4_logoutRequest.json5", LogoutRequest.class);
-      ApiResponse<Void> logoutResponse = loginApi.logout(logoutRequest);
-      output("4_logoutResponse.json5", logoutResponse);
-  }
-  ```
-  
-  Where `2_userRequest.json5` contains:
-
-  ```json
-  {
-    "data": {
-      "accessToken": "@var:accessToken"
-    }
-  }```
-
-  We can use `@var:accessToken` to reference the `accessToken` variable returned from the previous step.
+You can use @var:accessToken to reference the accessToken variable returned by the previous step.
 
 ### Integration Test Support
 
-In an integration test scenario, if we cannot rely on the underlying engine to automatically identify and register `AutoTestVariable`, we can manually register it within the test case:
+In integration testing scenarios, if the underlying engine cannot automatically identify and register AutoTestVariable, you can register it manually in the test case:
 
 ```java
-public void testXXX() {
-    ....
-    response = myMethod(request);
-    setVar("v_myValue", response.myValue);
-    // Subsequent input files can then reference this variable using @var:v_myValue
-    request2 = input("request2.json5", Request2.class);
-    ...
-}
+public void testXXX(){
+        ....
+        response=myMethod(request);
+        setVar("v_myValue",response.myValue);
+        // Subsequent input files can reference the variable defined here via @var:v_myValue
+        request2=input("request2.json",Request2.class);
+        ...
+        }
 ```
 
-In an integration test scenario, we need to access an externally deployed test database rather than using the local in-memory database. At this time, we can configure `localDb = false` to disable the local database:
+In integration testing, you need to access an externally deployed test database and can no longer use a local in-memory database. In this case, you can set localDb=false to disable the local database:
 
 ```java
 @Test
 @EnableSnapshot(localDb = false)
-public void integrationTest() {
-    ....
+public void integrationTest(){
+        ...
+        }
+```
+
+EnableSnapshot provides multiple switches so you can flexibly choose which automated testing support to enable:
+
+```java
+public @interface EnableSnapshot {
+
+    /**
+     * If the snapshot mechanism is enabled, by default it forces the use of a local database
+     * and uses the recorded data to initialize the database.
+     */
+    boolean localDb() default true;
+
+    /**
+     * Whether to automatically execute SQL files under the input directory
+     */
+    boolean sqlInput() default true;
+
+    /**
+     * Whether to automatically insert data from the input/tables directory into the database
+     */
+    boolean tableInit() default true;
+
+    /**
+     * Whether to save collected output data to the results directory.
+     * When saveOutput=true, the setting of checkOutput will be ignored.
+     */
+    boolean saveOutput() default false;
+
+    /**
+     * Whether to verify that the recorded output data matches the current data in the database
+     */
+    boolean checkOutput() default true;
 }
 ```
 
-`EnableSnapshot` offers multiple controls, allowing flexible selection of automated test support.
-  
-  The `init` directory's `xxx.sql` will be executed before the database initialization, while the `input` directory's `xxx.sql` will be executed after the database initialization.
-  
-  In SQL files, you can use the `@include: ../init.sql` method to include other directories' SQL files.
-  
-  ## Four. Data Variant
-  
-  One of the most significant advantages of data-driven testing is its ability to easily perform detailed testing of edge cases.
-  
-  Suppose we need to test the system behavior when a user account falls into arrears. We know that the size and duration of the overdue amount can significantly affect the system's behavior near certain thresholds. Constructing a complete history of a user's consumption and settlement is a very complex task, and it's difficult to create a large number of user data with subtle differences in databases for edge case testing. If a data-driven automated testing framework is used, we can simply copy existing test data and fine-tune it as needed.
-  
-  The NopAutoTest framework supports this kind of detailed testing by leveraging the concept of `data variant` (variant). For example:
-  
-  ```java
-  @ParameterizedTest
-  @EnableVariants
-  @EnableSnapshot
-  public void testVariants(String variant) {
-      input("request.json", ...);
-      output("displayName.json5", testInfo.getDisplayName());
-  }
-  ```
-  
-  After adding `@EnableVariants` and `@ParameterizedTest` annotations, calling the `input()` function will read data from `/variants/{variant}/input/` and `/input/` directories.
-  
-  Below is an example of how data is organized and merged:
-  
-  ```plaintext
-  /input
-    /tables
-      my_table.csv
-    request.json
-  /output
-    response.json
-  /variants
-    /x
-      /input
-        /tables
-          my_table.csv
-        request.json
-      /output
-        response.json
-    /y
-      /input
-        /tables
-          my_table.csv
-        request.json
-      /output
-        response.json
-  ```
-  
-  First, the test runs without considering `variants` settings, and data is recorded into `input/tables` directory. Then, with `EnableSnapshot` enabled, each variant will trigger a separate test case.
-  
-  For example, `testVariants("default")` will execute three times:
-  1. With `variant = "default"` (using the default value), merging data from `/variants/default/input/tables/` and `/input/tables/`.
-  2. With `variant = "x"`, merging data from `/variants/x/input/tables/` and `/input/tables/`.
-  3. With `variant = "y"`, merging data from `/variants/y/input/tables/` and `/input/tables/`.
-  
-  Since the data across different variants often has high similarity, there's no need to create an extensive dataset. The NopAutoTest framework here employs a unified design based on reversible computing theory and utilizes the platform's built-in delta merging mechanism for configuration simplification. For instance:
-  
-  ```json
-  {
-    "x:extends": "../../input/request.json",
-    "amount": 300
-  }
-  ```
-  
-  Here, `x:extends` is a reversible computing theory-introduced extension syntax that allows inheritance from the original `request.json`, but modifies the `amount` attribute to 300.
+### SQL Initialization
+Files xxx.sql under the init directory are executed before automatic table creation, while xxx.sql under the input directory are executed after automatic table creation.
 
- 
- Similar to this, for data in `/input/tables/my_table.csv`, we can simply add the primary key column and any custom columns needed, after which the data will automatically merge with the corresponding files in the original directory. For example:
+In SQL files, you can include SQL files from other directories using @include: ../init.sql.
+
+## IV. Data Variants
+
+One major advantage of data-driven testing is that it makes it easy to refine tests for edge scenarios.
+
+Suppose you need to test system behavior when a user account is in arrears. We know that, depending on the amount owed and how long the arrears have lasted, system behavior can change significantly around certain thresholds. Constructing a complete user consumption and settlement history is very complex, and it is hard to construct a large volume of user data with subtle differences in the database for edge-case testing. With a data-driven automated testing framework, you can copy existing test data and directly make fine-grained adjustments.
+
+The NopAutoTest framework supports such refined testing through the concept of data variants (Variant). For example:
+
+```java
+    @ParameterizedTest
+@EnableVariants
+@EnableSnapshot
+public void testVariants(String variant){
+        input("request.json",...);
+        output("displayName.json5",testInfo.getDisplayName());
+        }
+```
+
+After adding the @EnableVariants and @ParameterizedTest annotations, when you call the input function, it reads the merged result of /variants/{variant}/input and /input.
+
+```
+/input
+   /tables
+      my_table.csv
+   request.json
+/output
+   response.json
+/variants
+   /x
+      /input
+         /tables
+            my_table.csv
+         request.json
+      /output
+         response.json
+   /y
+      /input
+     ....
+```
+
+First, the test will run while ignoring the variants configuration, and data will be recorded under input/tables. Then, after enabling the variant mechanism, the test case will be executed again for each variant.
+
+Using the configuration of testVariants as an example, it will actually be executed three times. The first time, variant=_default, means running with the original input/output directory data. The second run uses the data under variants/x, and the third run uses variants/y.
+
+Because data among different variants is often highly similar, there is no need to fully copy the original data. The NopAutoTest testing framework here adopts a unified design based on Reversible Computation and leverages the Nop platform’s built-in Delta merge mechanism to simplify configuration. For example, in /variants/x/input/request.json:
+
+```json
+{
+  "x:extends": "../../input/request.json"
+  "amount": 300
+}
+```
+
+x:extends is the standard Delta extension syntax introduced by Reversible Computation theory. It means to inherit from the original request.json while only changing the amount property to 300.
+
+Similarly, for the data in /input/tables/my_table.csv, you can include only the primary key column and the columns you need to customize; its contents will be automatically merged with the corresponding file under the original directory. For example:
 
 ```csv
 SID, AMOUNT
 1001, 300
 ```
 
-The entire Nop platform is designed and implemented from scratch based on the principles of reversible computing. For detailed information about it, please refer to the reference document at the end of this document.
+The entire Nop platform has been designed and implemented from the ground up based on the principles of Reversible Computation. For details, see the references at the end.
 
-In some way, data-driven testing also demonstrates the so-called reversibility requirement of reversible computing. The information expressed through DSL (JSON data and matching templates) can be reversed back, and through further processing, it can be converted into other types of information. For instance, when the data structure or interface changes, we can write unified data migration code to move test case data to the new structure without re-recording test cases.
+To some extent, data-driven testing also embodies the so-called reversibility requirement of Reversible Computation: the information expressed via DSL (JSON data and matching templates) can be factored back and then transformed into other information. For example, when data structures or interfaces change, we can write unified data migration code to migrate test case data to the new structure without re-recording test cases.
 
-## Five. Markdown as a DSL Carrier
+## V. Markdown as a DSL Carrier
 
-Reversible computing theory emphasizes using descriptive DSL (data description language) to replace general command-driven programming. This reduces the amount of business logic-related code across various domains and levels. By standardizing the implementation through systemic approaches, we can achieve low-code development.
+Reversible Computation emphasizes using declarative DSLs to replace general imperative programming, thereby reducing the amount of code corresponding to business logic across domains and layers and implementing low-code through systematic solutions.
 
-In addition to using formats like JSON/YAML, we can also consider using Markdown, which is more akin to document-like structures.
+For expressing test data and verification, in addition to formats such as JSON/YAML, you can also use documentation-like Markdown.
 
-In testing data expression and validation, besides using JSON/yaml formats, Markdown format can be a better choice for certain scenarios. For example, in XLang language testing, we have established a standardized Markdown structure for expressing test cases:
+In XLang tests, we define a standardized Markdown structure to express test cases:
 
 ```markdown
 # Test Case Title
 
-Specific descriptions are written using general Markdown syntax. During test case analysis, these explanations will be automatically ignored.
+Explanatory text can use regular markdown syntax; the test case parser will automatically ignore these explanations
+‘’‘language of the test code block
+test code
+’‘’
+
+* Setting Name: Setting Value
+* Setting Name: Configuration
 ```
 
-`Testing code block's language`
-`Test code`
-```
-
-* Configuration Name: Configuration Value
-* Configuration Name: Configuration
-```
-
-For specific examples, please refer to the TestXpl test cases [TestXpl](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-xlang/src/test/resources/io/nop/xlang/xpl/xpls).
+For concrete examples, see TestXpl test cases [TestXpl](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-xlang/src/test/resources/io/nop/xlang/xpl/xpls)
 
 ## Other Annotations
 
 ### @NopTestConfig
 
-The `@NopTestConfig` annotation can be used on test classes to control the initialization process of test cases. Using this annotation requires inheriting from either `JunitAutoTestCase` or `JunitBaseTestCase`. The main difference between these two base classes is that `JunitBaseTestCase` does not use recording-and-replay mechanisms; it only initializes the NopIoC container.
-
-  
-  ```java
-  public @interface NopTestConfig {
-      /**
-       * Whether to set nop.datasource.jdbc-url to an H2 in-memory database
-       */
-      boolean localDb() default false;
-
-      /**
-       * Whether to use a randomly generated server port
-       */
-      boolean randomPort() default false;
-
-      /**
-       * Whether to execute unit tests with the lazy mode by default
-       */
-      BeanContainerStartMode beanContainerStartMode() default BeanContainerStartMode.ALL_LAZY;
-
-      String enableActionAuth() default "";
-
-      String enableDataAuth() default "";
-
-      /**
-       * Whether to automatically load configurations from the /nop/auto-config/ directory under xxx.beans
-       */
-      boolean enableAutoConfig() default true;
-
-      boolean enableMergedBeansFile() default true;
-
-      String autoConfigPattern() default "";
-
-      String autoConfigSkipPattern() default "";
-
-      /**
-       * Whether to automatically load app-beans.xml configuration files from modules
-       */
-      boolean enableAppBeansFile() default true;
-
-      String appBeansFilePattern() default "";
-
-      String appBeansFileSkipPattern() default "";
-
-      /**
-       * Whether to automatically load module-based app.beans.xml configurations
-       */
-      boolean enableModuleConfigurations() default true;
-
-      String testBeansFile() default "";
-
-      String testConfigFile() default "";
-
-      boolean initDatabaseSchema() default false;
-  }
-```
-
-### @NopTestProperty
-
-The `@NopTestProperty` annotation can be used directly on test classes to specify configuration options tailored to the test class, allowing you to avoid modifying the `application.yaml` file. For example:
+On the test class, you can control the initialization process in the test case via the @NopTestConfig annotation. Using @NopTestConfig requires inheriting from either JunitAutoTestCase or JunitBaseTestCase.
+The difference between these two base classes is that JunitBaseTestCase does not use the record-and-replay mechanism; it only starts the NopIoC container.
 
 ```java
-@NopTestProperty(name = "my.xxx", value = "true")
-@NopTestProperty(name = "my.yyy", value = "123")
-class MyTestCase extends JunitBaseTestCase {
+public @interface NopTestConfig {
+    /**
+     * Whether to forcefully set nop.datasource.jdbc-url to an H2 in-memory database
+     */
+    boolean localDb() default false;
+
+    /**
+     * Use a randomly generated server port
+     */
+    boolean randomPort() default false;
+
+    /**
+     * By default, run unit tests in lazy mode
+     */
+    BeanContainerStartMode beanContainerStartMode() default BeanContainerStartMode.ALL_LAZY;
+
+    String enableActionAuth() default "";
+
+    String enableDataAuth() default "";
+
+    /**
+     * Whether to automatically load xxx.beans configurations under /nop/auto-config/
+     */
+    boolean enableAutoConfig() default true;
+
+    boolean enableMergedBeansFile() default true;
+
+    String autoConfigPattern() default "";
+
+    String autoConfigSkipPattern() default "";
+
+    /**
+     * Whether to automatically load app.beans.xml under modules
+     */
+    boolean enableAppBeansFile() default true;
+
+    String appBeansFilePattern() default "";
+
+    String appBeansFileSkipPattern() default "";
+
+    /**
+     * Beans configuration file specified for unit tests
+     */
+    String testBeansFile() default "";
+
+    /**
+     * Config configuration file specified for unit tests
+     */
+    String testConfigFile() default "";
+
+    boolean initDatabaseSchema() default false;
 }
 ```
 
+During testing, you can include test-specific bean configurations via testConfigFile and define beans for mocks there.
+
+### @NopTestProperty
+
+On the test class, you can directly specify properties specific to this test class using the @NopTestProperty annotation, so you don’t need to modify application.yaml. For example:
+
+```java
+@NopTestProperty(name="my.xxx",value="true")
+@NopTestProperty(name="my.yyy",value="123")
+class MyTestCase extends JunitBaseTestCase{
+
+}
+```
+<!-- SOURCE_MD5:d45f55685d8eda9120dfcd1117be1b5c-->

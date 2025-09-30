@@ -2,26 +2,27 @@
 
 ## Functional Design
 
-XView is a front-end interface description that is independent of the frontend framework and oriented toward the business domain. It expresses the core interaction logic of the front-end using a minimal set of concepts such as page (page), table (grid), form (form), and action (action). The final used front-end page `page.yaml` can leverage the `x:gen-extends` meta-programming mechanism to dynamically generate AMIS pages based on the XView model.
+XView is a frontend UI description that is framework-agnostic and oriented toward business domains. It expresses the core interaction logic of the frontend using a small set of concepts such as page, grid, form, and action. The final frontend page `page.yaml` can use the `x:gen-extends` metaprogramming mechanism to dynamically generate AMIS pages based on the xview model.
 
-The XView model decomposes the construction of the front-end interface into field-level, form/table-level, and page-level.
+The XView model decomposes the construction of the frontend UI into field-level, form/grid-level, and page-level.
 
-1. `control.xlib`: Based on data type, domain, and edit mode, it infers the display control for a single field.
-2. The `layout` model controls how the page is laid out, and in cases where field controls do not need to be changed, it can adjust the layout of the page.
-3. Construction of the page can directly reference predefined forms and tables.
+1. `control.xlib` infers the display control for a single field according to data type, data domain, and edit mode.
+2. The form’s layout model controls how the page is laid out. You can adjust the page layout without changing the field controls.
+3. When constructing pages, you can directly reference already defined forms and grids.
 
-### Standard CRUD Page
+### Standard CRUD Pages
 
-Generally, the `xxx-web` module will execute a code generator located in the `precompile` directory when packaging with Maven, which is based on `xmeta` to generate front-end code. For example, in the `nop-auth-web/precompile/gen-page.xgen` file:
+Generally, the `xxx-web` module will execute the code generator under the precompile directory during Maven packaging to generate web frontend code based on xmeta. For example, in `nop-auth-web/precompile/gen-page.xgen`:
 
 ```xml
 <c:script>
-// Based on xmeta, generates page files such as view.xml and page.yaml
-codeGenerator.withTplDir('/nop/templates/orm-web').execute("/", { moduleId: "nop/auth" }, $scope);
+// Generate page files view.xml and page.yaml based on xmeta
+codeGenerator.withTplDir('/nop/templates/orm-web').execute("/",{ moduleId: "nop/auth" },$scope);
 </c:script>
 ```
 
-For example, based on the `NopAuthUser.xmeta` model, it generates the `_NopAuthUser.view.xml` file:
+For example, the `_NopAuthUser.view.xml` model generated based on the `NopAuthUser.xmeta` model:
+
 ```xml
 <view ...>
     <objMeta>/nop/auth/model/NopAuthUser/NopAuthUser.xmeta</objMeta>
@@ -31,10 +32,11 @@ For example, based on the `NopAuthUser.xmeta` model, it generates the `_NopAuthU
     <grids>
         <grid id="list" x:abstract="true">
             <cols>
-                <!--用户名-->
+
+                <!-- Username -->
                 <col id="userName" mandatory="true" sortable="true"/>
                 ..
-                <!--生日-->
+                <!-- Birthday -->
                 <col id="birthday" sortable="true" x:abstract="true"/>
             </cols>
         </grid>
@@ -42,24 +44,24 @@ For example, based on the `NopAuthUser.xmeta` model, it generates the `_NopAuthU
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-用户" i18n-en:title="View User">
+        <form id="view" editMode="view" title="View - User" i18n-en:title="View User">
             <layout>
-                userName[用户名] nickName[昵称]
-                deptId[部门] openId[用户外部标识]
-                ...
-            </layout>
+ userName[Username] nickName[Nickname]
+ deptId[Department] openId[External User Identifier]
+ ...
+</layout>
         </form>
-        <form id="add" editMode="add" title="新增-用户" i18n-en:title="Add User" x:prototype="edit"/>
-        <form id="edit" editMode="update" title="编辑-用户" i18n-en:title="Edit User">
+        <form id="add" editMode="add" title="Add - User" i18n-en:title="Add User" x:prototype="edit"/>
+        <form id="edit" editMode="update" title="Edit - User" i18n-en:title="Edit User">
             <layout>...</layout>
         </form>
-        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+        <form id="query" editMode="query" title="Query Condition" i18n-en:title="Query Condition" x:abstract="true">
             <layout/>
         </form>
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
             <layout/>
         </form>
-        <form id="batchUpdate" editMode="update" title="修改-用户" i18n-en:title="Update User">
+        <form id="batchUpdate" editMode="update" x:abstract="true" title="Update - User" i18n-en:title="Update User">
             <layout/>
         </form>
     </forms>
@@ -83,140 +85,121 @@ For example, based on the `NopAuthUser.xmeta` model, it generates the `_NopAuthU
         </simple>
     </pages>
 </view>
-# Abstract Handling in XUI Models
+```
 
-In many nodes generated by the xview model, the attribute `x:abstract="true"` is set. This indicates that the node is a virtual node and must be explicitly declared in derived models to retain its content. This design is similar to the `abstract` attribute in Spring Bean XML files, where `x:abstract` signifies that a node exists as a template.
+Many generated nodes are marked with `x:abstract="true"`, indicating the node is virtual. It will only be retained if explicitly declared in the derived model. This design is similar to the abstract attribute in Spring Beans XML—`x:abstract` indicates the node exists as a template.
 
-1. **`objMeta`**  
-   The `objMeta` indicates that the current xview model will use field configurations from the specified XMeta file.
+1. `objMeta` indicates that the current xview model will use the field configuration from the specified XMeta file.
+2. `controlLib` controls how field types map to specific frontend controls and generally does not need to be modified. However, if we need to display different components for Mobile compared to standard Web pages, we can specify a control library for Mobile.
+3. By default, alternative grids `list` and `pick-list` are generated. `pick-list` is used for pop-up selection list pages. The attribute `x:prototype="list"` on `pick-list` indicates that `pick-list` is generated based on the structure of its sibling `list`, i.e., the selection list page is the same as the regular list page. You can customize `pick-list` in a derived xview model to tailor the selection list page.
+4. Similar to the relationship between `pick-list` and `list`, the add form `add` inherits from `edit` by default, meaning unless specially customized, the layout of the add page is the same as the edit page. Each form has its own `editMode`, allowing the same field to be displayed using different controls when adding, modifying, selecting, or viewing.
+5. The `main` page sets `filterForm="query"` and `asiderFilterForm="asideFilter"`. This means the `query` form will be used as the query condition form on the `main` page. If the `asideFilter` form is configured, part of the query conditions will be displayed in a left side sidebar on the `main` page.
 
-2. **`controlLib`**  
-   The `controlLib` defines how field types are mapped to specific UI components on the front end. Generally, no modification is needed for standard Web components. However, if you need to display different UI components for Mobile compared to standard ones, you can specify a separate control library.
+### Basic Grid Configuration
 
-3. **Default List and Pick-list Generation**  
-   By default, a secondary table `list` and `pick-list` is generated. The `pick-list` uses the attribute `x:prototype="list"` to generate its structure based on sibling nodes of type `list`. This means that the appearance of the `pick-list` is the same as that of the `list`.
+For specific configuration options, see the [grid.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/grid.xdef) meta-model definition.
 
-   In derived xview models, you can customize the `pick-list` by modifying its prototype.
-
-4. **Add Form Behavior**  
-   Similar to the relationship between `pick-list` and `list`, the `add` form inherits from the default `edit` form unless customized. The `editMode` property allows each form to have its own edit mode, ensuring that add, modify, select, and view operations can be handled by different UI components.
-
-5. **Main Page Configuration**  
-   The `main` page is configured with `filterForm="query"` and `asideFilterForm="asideFilter"`. This means that the query form is used as the main page's filter form. If you configure an `asideFilter` form, it will be displayed in the left sidebar of the main page to show a subset of query conditions.
-
----
-
-# Table Configuration
-
-For detailed configuration options, refer to the `[grid.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/grid.xdef)` model definition.
-
----
-
-## Grid Structure
-
-### 1. Specifying Fields and Order
+#### 1. Control which fields the list displays, and their order
 
 ```xml
 <grid id="list">
-    <cols x:override="bounded-merge">
-        <col id="fieldA"></col>
-        <col id="fieldB"></col>
-    </cols>
+   <cols x:override="bounded-merge">
+      <col id="fieldA">
+      </col>
+
+      <col id="fieldB">
+      </col>
+   </cols>
 </grid>
 ```
 
-Here, `x:override="bounded-merge"` ensures that the columns' scope is bounded within the current context. Any extra fields defined in inherited models will be automatically removed unless explicitly overridden.
+`x:override="bounded-merge"` indicates that the scope of the `cols` child nodes is limited to the range specified here. Extra fields defined in the inherited base model will be automatically removed. If `x:override` is not specified, the default is `merge` mode—the result adds and modifies fields relative to the base model, unless you explicitly specify `x:override="remove"` to delete fields.
 
----
-
-### 2. Column Configuration
+#### 2. Specify the column header, width, alignment, etc.
 
 ```xml
-<col width="100px" align="right" id="fieldA" label="My Field"></col>
+
+<col width="100px" align="right" id="fieldA" label="My Field" />
+
 ```
 
-This configuration sets the column's width to 100 pixels, aligns its content to the right, assigns an ID of `fieldA`, and provides a display label.
+#### 3. Specify explicit control
 
----
+By default, the display control for grid fields is determined by the field type and the `editMode` specified on the grid. The specific controls used are defined in [control.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-web/src/main/resources/_vfs/nop/web/xlib/control.xlib).
 
-### 3. Explicit Control
-
-By default, table columns use the control specified by their type and the model's `editMode`. If you need a specific control for a column, you can explicitly define it using `[control.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-web/src/main/resources/_vfs/nop/web/xlib/control.xlib)`.
-
-For example:
+If you need to explicitly specify the display control, use `gen-control`:
 
 ```xml
 <col id="fieldA">
-    <gen-control>
-        <c:script>
-            return {
-                'type': 'my-control'
-            }
-        </c:script>
-    </gen-control>
+  <gen-control>
+    <c:script>
+       return {
+         'type': 'my-control'
+       }
+    </c:script>
+  </gen-control>
 </col>
 ```
 
----
+### Basic Form Configuration
 
-# Form Layout
+For the DSL used for form layouts, see [layout.md](layout.md).
 
-The layout DSL (`Domain Specific Language`) is defined in `[layout.md](layout.md)`. For form configuration, refer to the `[form.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/form.xdef)` model.
+Form configuration options are defined in the [form.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/form.xdef) meta-model.
 
----
+## Common Feature Configurations
 
-# Common Functional Configurations
+### 1. Display filter conditions as a tree on the left
 
-### 1. Sidebar for Filter Conditions
-The sidebar can display filter conditions in a tree-like structure using `[tree.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/tree.xdef)`. 
-
----
-
-The form structure is defined in the `NopAuthUser.view.xml` file, where the left side contains a tree structure (`departmentTree`). When a department is clicked, it filters the user list on the right based on the selected department.
+For example, in the user management page corresponding to `NopAuthUser`, there is a unit tree on the left. Clicking a unit filters the user list on the right by unit. The existing query conditions in the user list and the unit tree’s query conditions are merged together and sent to the backend.
 
 ```xml
 <form id="asideFilter" submitOnChange="true">
     <layout>
-        ==dept[部门]==
+        ==dept[Department]==
         !deptId
     </layout>
     <cells>
         <cell id="deptId">
             <gen-control>
                 <input-tree
-                    source="@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildren(max:5)?filter_parentId=__null"/>
+                        source="@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildren(max:5)?filter_parentId=__null"/>
             </gen-control>
         </cell>
     </cells>
 </form>
 ```
 
-The `submitOnChange` attribute indicates that the form should submit a query when an item is clicked.
+You only need to add a form with `id="asideFilter"`. `submitOnChange` means a query is submitted immediately upon clicking.
 
+### 2. List data has a nested parent-child relationship
 
-### 2. Nested Relationships in List Data
-List data contains nested relationships, such as parent-child relationships in a department tree (`departmentTree`). The `@TreeChildren` directive allows for recursive fetching of up to 5 levels of data.
+For example, a unit tree where `Parent Unit - Child Unit` forms a tree structure.
+
+As required by the AMIS frontend component, as long as the backend returns data with a `children` field, it will automatically expand as a tree. The Nop platform adds a Tree structure extension for GraphQL, making it easy to specify recursive tree data retrieval via the `@TreeChildren` directive.
 
 ```yaml
 url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildren(max:5)?filter_parentId=__null"
 ```
 
-This query fetches children recursively using the `@TreeChildren` directive, limiting the depth to 5 levels. The `filter_parentId=__null` parameter ensures that only root nodes are included.
+This call invokes the backend function `NopAuthDept__findList`, requesting a `children` field and specifying that up to 5 levels of data are returned recursively via the `@TreeChildren` directive.
 
+`filter_parentId=__null` means filtering for root node lists using the condition `parentId=null`.
 
-### 3. Combining Multiple Existing Pages into a Composite Page
-The composite page structure is defined in `NopAuthDept.view.xml`, where each tab corresponds to a specific functionality (e.g., `main` for the department tree and `list` for the user list).
+### 3. Organize multiple existing pages into a composite page using tabs
+
+See the tabs used for the department management feature in `NopAuthDept.view.xml`:
 
 ```xml
-<tabs name="tabsView" tabsMode="vertical" mountOnEnter="true" unmountOnExit="true">
-    <tab name="main" page="main" title="@i18n:common.treeView"/>
-    <tab name="list" page="list" title="@i18n:common.listView"/>
-</tabs>
+    <tabs name="tabsView" tabsMode="vertical" mountOnEnter="true" unmountOnExit="true">
+        <tab name="main" page="main" title="@i18n:common.treeView"/>
+        <tab name="list" page="list" title="@i18n:common.listView"/>
+    </tabs>
 ```
 
+### 4. Add multiple query conditions for the list page
 
-### 4. Adding Multiple Query Conditions to a List Page
-To add multiple query conditions to a list page, refer to the `NopAuthUser.view.xml` file. New fields can be added directly in the form (`id="query"`).
+As shown in `NopAuthUser.view.xml`, just add fields to the form with `id="query"`. The default generated CRUD page references the `query` form via the `filterForm` attribute.
 
 ```xml
 <form id="query">
@@ -226,70 +209,58 @@ To add multiple query conditions to a list page, refer to the `NopAuthUser.view.
 </form>
 
 <pages>
-    <crud filterForm="query" ... >
-    </pages>
+  <crud filterForm="query" ... >
+</pages>
 ```
 
-By default, all fields use an equality condition. Custom conditions can be defined in `NopAuthUser.xmeta` to specify query operators like `eq`, `contains`, and `like`.
+By default, fields are queried using the equality condition. You can customize property settings in the `NopAuthUser.xmeta` file to specify query operators.
 
 ```xml
 <prop name="userName" allowFilterOp="eq,contains" xui:defaultFilterOp="contains"/>
 ```
 
+This configuration indicates that `userName` allows filtering using the `eq` and `contains` operators. `eq` means equality; `contains` means substring containment, implemented via `like`. `xui:defaultFilterOp` indicates that the default filter operator is `contains`.
 
-### 5. Hiding Row Actions
-The row actions are hidden by default in the list view.
+All supported filter operators are defined in the `FilterOp.java` class. Common ones include `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `contains`, `in`, `startsWith`, and `endsWith`.
 
-### English Translation of Technical Document
-
-#### 1. Add a Page
-Add a page similar to the default CRUD page, but with different query conditions.
+### 5. The list page has no row action buttons; hide the operations column
 
 ```xml
-<crud name="xxx">
+ <crud name="xxx">
     <table noOperations="true" />
-</crud>
+ </crud>
 ```
 
----
-
-### 6. Add a Page
-Add a page similar to the default CRUD page, but with different query conditions.
+### 6. Add a page similar to the default CRUD page, but with different query conditions for the list
 
 ```xml
-<crud name="list" grid="list" x:prototype="main">
-    <table x:prototype-override="replace">
-        <api url="@query:NopAuthDept__findPage/{@pageSelection}"/>
-    </table>
-</crud>
+
+        <crud name="list" grid="list" x:prototype="main">
+            <table x:prototype-override="replace">
+                <api url="@query:NopAuthDept__findPage/{@pageSelection}"/>
+            </table>
+        </crud>
+
 ```
 
-* `x:prototype` indicates inheritance from the sibling node.
-* `x:prototype-override=replace` indicates overriding of the table node, merging instead of completely replacing in the default case.
+`x:prototype` indicates inheritance from a sibling node. `x:prototype-override="replace"` indicates that the current node overrides the inherited `table` node. By default, nodes are merged (`merge`), not completely replaced.
 
----
-
-### 7. Button Click
-Click a button to pop up a dialog box. After filling out, perform backend operations, close the dialog box, and refresh the original page.
+### 7. Click a button to open a dialog, complete the form, execute a backend operation, close the dialog, and refresh the original page
 
 See [LitemallGoods.view.xml](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/LitemallGoods.view.xml)
-
----
-
-### 8. Submit Form
-Click a button to pop up a dialog box. After filling out, perform backend operations, close the dialog box, and refresh the original page.
 
 ```xml
 <crud name="role-users" grid="simple-list">
     <listActions>
         <action id="select-user-button" label="@i18n:common.selectUser">
             <dialog page="select-role-users" size="md" noActions="true">
-                </dialog>
-            </action>
-        </listActions>
-    </crud>
+            </dialog>
+        </action>
+    </listActions>
+</crud>
 
 <crud name="select-role-users" grid="pick-list" title="@i18n:common.selectUser">
+
     <listActions>
         <action id="batch-add-user-button" label="@i18n:common.submit" level="primary"
                 batch="true" close="select-role-users" reload="role-users-grid">
@@ -304,104 +275,94 @@ Click a button to pop up a dialog box. After filling out, perform backend operat
 </crud>
 ```
 
-* In `action` configuration, if `dialog` child node exists, it will display a dialog box.
-* The `page` attribute in `dialog` can directly reference the defined page. If the full path is used, it refers to an external definition. If the `page` name is provided, it refers to the current XView model's definition.
-* The `noActions="true"` in `dialog` indicates that built-in submit and cancel buttons should not be used.
-* In `action`, `batch="true"` indicates that this action handles batch selections. `close` indicates closing the window after the operation is performed. `reload` indicates reloading the specified grid, such as the `role-users` table.
+* If an `action` configuration has a `dialog` child node, it means a pop-up dialog is used for display. The `page` attribute on `dialog` can directly reference a pre-defined page. If it’s a full path, it corresponds to an externally defined complete page; if it’s the name of a `page`, it references the page defined in the current XView model.
+* `noActions="true"` on the `dialog` indicates that the dialog’s built-in submit and cancel buttons are not used.
+* `batch="true"` on the `action` indicates an operation applied to a batch of selected list items. `close` indicates that the current window will close after the operation completes. `reload` indicates reloading the specified grid by name, i.e., the CRUD grid in the `role-users` page.
 
----
-
-### 8. Submit Form
-Submit form data along with the main table data.
-
-```markdown
-# Adding a View Configuration for Subtable Property
+### 8. Submit child table data together with the main table
 
 ```xml
 <form id="edit">
 <cells>
   <cell id="products">
-    <!-- Reference an external view model's grid to display sub-table -->
-    <view path="/app/mall/pages/LitemallGoodsProduct/LitemallGoodsProduct.view.xml" 
-          grid="ref-edit"/>
-  </cell>
+        <!-- You can reference a grid in an external view model to display the child table -->
+        <view path="/app/mall/pages/LitemallGoodsProduct/LitemallGoodsProduct.view.xml"
+              grid="ref-edit"/>
+    </cell>
 </cells>
 </form>
 ```
 
-Add a view configuration for the subtable property. This allows you to specify which table should be edited in the subtable. The XView model will automatically analyze the view configuration and retrieve the table fields, merging them into the current form's corresponding GraphQL query.
+Add a view configuration to the child table property, specifying which grid edits the child table data. The XView model automatically analyzes the view configuration, extracts the grid’s field list, and merges it into the GraphQL request corresponding to the current form.
 
----
-
-### Customizing Buttons on List Rows
+### 9. Customize row action buttons on the list
 
 ```xml
 <crud name="main">
-<!-- Bounded-merge indicates that results are merged within the current model scope. Fields present in the base model but not in the current model will be automatically deleted. -->
-  <!-- Default generated code already includes row-update-button and row-delete-button, with x:abstract="true set. -->
-  <!-- Therefore, you only need to declare the ID to enable inheritance of buttons, avoiding duplicate code. -->
-  
-  <rowActions x:override="bounded-merge">
-    <action id="row-update-button" actionType="drawer"/>
-    
-    <action id="row-delete-button"/>
-  </rowActions>
+    <!-- bounded-merge means the merge result is limited to the scope of the current model.
+         Child nodes present in the base model but not in the current model are automatically removed.
+         The default generated code already defines row-update-button and row-delete-button with x:abstract=true,
+         so you only need to declare the id here to enable the inherited buttons, avoiding duplicate code.
+     -->
+    <rowActions x:override="bounded-merge">
+        <!--
+            Use a drawer instead of a dialog to display the edit form
+        -->
+        <action id="row-update-button" actionType="drawer"/>
+
+        <action id="row-delete-button"/>
+
+    </rowActions>
 </crud>
 ```
 
----
-
-### Displaying Form Data Excessively
+### 10. When a form has too much data, display it in tabs
 
 ```xml
-<form id="view" layoutControl="tabs">...</form>
+<form id="view" layoutControl="tabs" >...</form>
 ```
 
-Configure `layoutControl="tabs"` to display form data in tabbed sections.
+Configure `layoutControl="tabs"`.
 
----
-
-### Opening Related Subtable Edit Page
+### 11. Click a row button to pop up the CRUD page for a related child table
 
 ```xml
-<action id="row-edit-rule-nodes" label="@i18n:rule.ruleNodes|Rules Nodes" actionType="drawer">
-  <dialog page="/nop/rule/pages/NopRuleNode/ref-ruleDefinition.page.yaml" size="xl">
-    <data>
-      <ruleId>$ruleId</ruleId>
-      <ruleDefinition>
-        <displayName>$displayName</displayName>
-      </ruleDefinition>
-    </data>
-  </dialog>
+<action id="row-edit-rule-nodes" label="@i18n:rule.ruleNodes|规则节点" actionType="drawer">
+    <dialog page="/nop/rule/pages/NopRuleNode/ref-ruleDefinition.page.yaml" size="xl">
+        <data>
+            <ruleId>$ruleId</ruleId>
+            <ruleDefinition>
+                <displayName>$displayName</displayName>
+            </ruleDefinition>
+        </data>
+    </dialog>
 </action>
 ```
 
-When the row button is clicked, a dialog opens to edit related rule nodes. The `data` section specifies which fields should have fixed values during the dialog.
+When popping up the dialog, use the `data` section to specify which field values are fixed in the pop-up page.
 
----
+> When the `ruleId` field is converted to a view control for display, it needs to use `ruleDefinition.displayName` as the display text, so we need to pass this value.
 
-### Fixed Props in Dialog
+In the pop-up page file `ref-ruleDefinition.page.yaml`, we can reference an existing CRUD page and use `fixedProps` to specify which fields have fixed values and are not editable.
 
 ```yaml
 x:gen-extends: |
-  <web:GenPage view="NopRuleNode.view.xml" page="main" fixedProps="ruleId" xpl:lib="/nop/web/xlib/web.xlib"/>
+  <web:GenPage view="NopRuleNode.view.xml" page="main" fixedProps="ruleId" xpl:lib="/nop/web/xlib/web.xlib" />
 ```
 
-This configuration ensures that specific fields (e.g., `ruleId`) are set to fixed values in the dialog, preventing users from editing them.
+### 12. Use the Combo component to display recursive data structures
 
----
-
-### Displaying Recursive Data Structure with Combo
+See the configuration of `ruleInputs` in `NopRuleDefinition.view.xml`:
 
 ```xml
 <cell id="ruleInputs">
-  <gen-control>
-    return { "$ref": "viewInputDefinition" }
-  </gen-control>
+    <gen-control>
+        return { "$ref": "viewInputDefinition" }
+    </gen-control>
 </cell>
 ```
 
-In the `page.yaml` file, include the `definitions` section to reference nested structures, ensuring that combo components display recursive data accurately.
+Introduce `definitions` in the `page.yaml` file:
 
 ```yaml
 x:gen-extends: |
@@ -411,81 +372,72 @@ definitions:
     "x:extends": "var-definitions.json5"
 ```
 
+### 13. Add a field used only on the frontend; its value will not be submitted to the backend
 
-### 13. Add a field that is only used in the frontend, not submitted to the backend
-
-`custom="true"` indicates this field does not need to be defined in meta. Two underscores as a prefix indicate this field is only used in the frontend and will not be submitted to the backend.
+`custom="true"` indicates that this field does not need to be defined in meta. A double underscore prefix indicates that the field is used only on the frontend and will not be submitted to the backend.
 
 ```xml
-<cell id="__useImportFile" label="导入模型文件" custom="true" stdDomain="boolean">
-</cell>
+    <cell id="__useImportFile" label="Import Model File" custom="true" stdDomain="boolean">
+    </cell>
 ```
 
-
-### 14. Specify query conditions and sorting criteria via URL
+### 14. Specify query and sort conditions via the URL
 
 ```xml
 <api url="@query:NopAuthUser__findList?filter_userStatus=1&amp;orderField=userName&amp;orderDir=asc" />
 ```
 
-Sorting conditions can be represented by `orderField={fieldName}&orderDir={asc|desc}` or passed as an Array.
+Sorting conditions are specified via `orderField={fieldName}&orderDir={asc|desc}`. An array format can also be passed.
 
+## Troubleshooting
 
-## Problem Handling
-
-
-### 1. AJAX call on CRUD buttons may not trigger table reload
+### 1. Executing an AJAX call from a CRUD row button triggers a table reload by default
 
 ```xml
-<crud name="main">
-    <rowActions>
-        <action id="test_ajax" level="primary" label="nop test ajax"
-                actionType="ajax" reload="none">
-            <api url="@query:NopAuthDept__get?id=$id" gql:selection="managerId"/>
-        </action>
-    </rowActions>
-</crud>
+        <crud name="main">
+            <rowActions>
+                <action id="test_ajax" level="primary" label="nop test ajax"
+                        actionType="ajax" reload="none">
+                    <api url="@query:NopAuthDept__get?id=$id" gql:selection="managerId"/>
+                </action>
+            </rowActions>
+        </crud>
 ```
+You can set `reload="none"` to disable this behavior.
 
-`reload="none"` can be set to disable this feature.
-
-
-### 2. Passing parameters to referenced child pages
+### 2. How to pass parameters to a referenced subpage
 
 ```xml
-<form id="rowView" editMode="view" title="查看合同" size="lg">
-    <layout>
-        !@contractId
-    </layout>
-    <cells>
-        <cell id="contractId">
-            <view path="/app/demo/pages/ContractMain/detail.page.yaml" />
-        </cell>
-    </cells>
-    <data>
-        <id>$contractId</id>
-    </data>
+<form id="rowView" editMode="view" title="View Contract" size="lg">
+  <layout>
+  !@contractId
+  </layout>
+  <cells>
+    <cell id="contractId">
+        <view path="/app/demo/pages/ContractMain/detail.page.yaml" />
+    </cell>
+  </cells>
+  <data>
+    <id>$contractId</id>
+  </data>
 </form>
 ```
 
-* The child page (AMIS) can directly access the parent's variables via `$scope.parent contratoId`. Setting form data will cause each form control to display the corresponding variable.
+* AMIS subpages can directly access variables in the parent scope, so setting the form’s data causes each form control to see the corresponding variables.
 
-Additionally, it can be implemented by customizing the view:
+Alternatively, you can achieve this by customizing the view:
 
 ```xml
-<cell id="contractId">
-    <view path="/app/demo/pages/ContractMain/ContractMain.view.xml" page="viewContract"/>
-</cell>
+    <cell id="contractId">
+        <view path="/app/demo/pages/ContractMain/ContractMain.view.xml" page="viewContract"/>
+    </cell>
 ```
 
-* In the specified `view.xml` model file, add a `page` definition and utilize Delta customization to inherit existing pages and customize `initApi` settings. This is on the XView model level.
+* Add a page definition to the specified view.xml model file, then use Delta customization to inherit existing pages and customize the `initApi` configuration. This is customization at the XView model level.
 
-Also, it can be implemented by importing `page.yaml` and inheriting existing `page.yaml` in the `page.yaml`, making adjustments on the AMIS layer.
+You can also include `page.yaml` via `view`, then inherit an existing `page.yaml` and customize at the AMIS level.
 
+## default-query Configuration
+If the meta has a `default-query` tag, all fields that are visible and !internal and queriable and whose ui:show does not contain Q will be automatically collected into the query form, using AMIS’s autoGenerateFilter mechanism to implement the frontend query form.
 
-## default-query configuration
-
-If `meta` has a `default-query` label, it will automatically collect all fields where `visible and !internal and queriable and ui:show` into the query form.
-
-Using the AMIS `autoGenerateFilter` mechanism to achieve frontend query forms.
-
+<!-- SOURCE_MD5:5da0f55b77f76fb67ffdd8fc50435d02-->

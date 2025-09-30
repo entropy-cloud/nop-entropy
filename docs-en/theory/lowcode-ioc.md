@@ -1,533 +1,455 @@
-# If We Rewrite SpringBoot, What Choices Would We Make?
 
-SpringBoot is a significant advancement built on top of the Spring framework. It introduced the concept of dynamic auto-configuration, discarded cumbersome XML configurations, and leveraged Java's built-in annotations and ServiceLoader mechanisms to drastically reduce the number of configuration decisions required in typical business development. It also reshaped Java application development and deployment processes. However, as time has progressed, SpringBoot has become somewhat aged, with design choices from different eras accumulating unfavorable impacts, particularly when addressing performance optimization, building native applications, and other emerging challenges.
+# If We Rewrote SpringBoot from Scratch, What Different Choices Would We Make?
 
-If we were to completely rebuild SpringBoot from scratch, what core problems would we define for the underlying framework to solve? What solutions would we propose for these issues? How do these proposed solutions differ fundamentally from SpringBoot's current approaches? Additionally, in the Nop platform, the dependency injection container NopIoC is implemented from scratch using reversible computation principles. It incorporates approximately 5000 lines of code to replicate all of SpringBoot's dynamic auto-configuration mechanisms and AOP interception logic, while also supporting integration with GraalVM for easy compilation into native images.
+SpringBoot is a major leap forward built on the Spring framework. It introduced the concept of dynamic auto-configuration, abandoned cumbersome XML configuration, and fully leveraged Java’s built-in annotations and the ServiceLoader mechanism, greatly reducing the number of configuration decisions required in typical business development, thereby reshaping how Java applications are developed and deployed. However, as time has gone on, SpringBoot has grown old. The accumulated adverse effects of design decisions made at different historical points have made it difficult for SpringBoot to tackle new challenges such as performance optimization and building native applications.
 
-This paper will analyze these issues from the perspective of reversible computing theory under the NopIoC implementation.
+If we were to rewrite SpringBoot entirely from scratch, which core problems would we explicitly assign to the underlying framework to solve? What solutions would we propose for those problems? How do these solutions fundamentally differ from SpringBoot’s current approach? Nop platform’s dependency injection container, NopIoC, is a model-driven DI container implemented from scratch based on the principles of Reversible Computation. With roughly 5,000 lines of code, it implements all the dynamic auto-configuration and AOP interception mechanisms we rely on in SpringBoot, and it integrates with GraalVM, making it easy to compile into native images. In this article, I will discuss some analyses of IoC container design principles from the perspective of Reversible Computation theory, using NopIoC’s implementation code as a reference.
 
-## 一. SpringBoot解决的核心问题
+## I. The Core Problems SpringBoot Solves
 
-SpringBoot has been evolving over time, so its objectives were not clearly defined all at once. Initially, its sole purpose was to handle object configuration. However, as it matured, it expanded to address a broader range of challenges.
+SpringBoot evolved over time, so the problems it set out to solve were not clearly defined in one shot. Early on, its goal was quite simple: declarative object assembly.
 
-### 1.1 POJO Configuration
+### 1.1 Declarative Assembly of POJOs
 
-As a counter to Sun's Enterprise Java Bean (EJB) initiative, Spring sought to support plain old Java objects (POJOs). It promoted the lightweight framework concept. The "lightweight" here refers not just to the simplicity of Spring's codebase but also to how business objects can be made ready for deployment without deep knowledge of Spring-specific concepts. A typical POJO requires only standard getter/setter methods, not complex Spring-specific frameworks knowledge. Business logic can be encapsulated in simple classes without relying on advanced Spring features like remoting or data access objects.
+As the rebel against EJB (Enterprise Java Bean, Sun’s enterprise object standard), Spring’s original intent was to serve the masses of POJOs (Plain Old Java Objects), emphasizing the notion of so-called lightweight frameworks. Here, lightweight not only means that Spring’s code implementation is relatively straightforward, but more importantly that business objects can travel light. In our business objects, we only need to write ordinary get/set property methods,**
+no advanced, proprietary Spring framework knowledge (so-called non-intrusiveness) is required to build our business**
+. At runtime, we only need to supply a self-evident, declarative beans.xml assembly file to achieve flexible object assembly. In principle, runtime is not constrained by the Spring framework; we can choose other assembly technologies to wire objects, and we could even write an optimized version of Spring ourselves that reads the beans.xml configuration file and executes the related assembly logic.
 
-The XML configuration file, beans.xml, provides a flexible and descriptive way to define object wiring. At runtime, Spring doesn't impose restrictive control over application architecture. Users have the freedom to choose alternative configuration mechanisms or even roll their own lightweight version of Spring, as long as it meets their specific requirements.
+The XML assembly format defined in Spring 1.0 is a complete DSL for object assembly. It **defines the most basic set of primitives needed for object assembly; any complex object assembly process can be described using this DSL**. For example, the following example describes the assembly logic of two interdependent beans:
 
-Spring 1.0 introduced XML as a comprehensive Object-to-Object (O-O) DSL. It defined the essential primitives for object wiring:
 ```xml
-<bean id="a" class="test.MyObjectA" init-method="init">
-    <property name="b" ref="b" />
-    <property name="strValue" value="xxx" />
+<bean id="a" class="test.MyObjectA" init-method="init" >
+   <property name="b" ref="b" />
+   <property name="strValue" value="xxx" />
 </bean>
 
-<bean id="b" class="test.MyObjectB">
-    <property name="a" ref="a" />
+<bean id="b" classs="test.MyObjectB">
+   <property name="a" ref="a" />
 </bean>
 ```
-This configuration is equivalent to:
+
+They are equivalent to the following Java code:
+
 ```java
 a = new MyObjectA();
-scope.put("a", a);
-
+scope.put("a",a);
 b = new MyObjectB();
-scope.put("b", b);
+scope.put("b",b);
 
-a.setB(scope.get("b"));
+a.setB(scope.get("a"));
 a.setStrValue("xxx");
 b.setA(scope.get("a"));
 
 a.init();
+// ... use the object
+a.destroy(); // Upon container shutdown, it is responsible for destroying all created objects
 ```
-The essence of object wiring is reduced to object creation, property assignment, and method invocation. This simplicity enabled Spring to become the de facto standard for POJO configuration without compromising flexibility or maintainability.
 
-The container itself plays a non-trivial role in managing object lifecycles. It provides an external scope where temporary objects can be stored during their creation. This external scope is essential for managing object dependencies and ensuring proper cleanup when the container shuts down.
+Break down any object assembly process into its smallest atomic actions, and it’s nothing more than creating objects, setting properties, and calling initialization methods. Therefore, the object assembly process previously written in Java code can be described using beans.xml.
 
-### 2. Spring 1.0's XML Configuration
+Here we note that the Bean container itself plays a **non-trivial coordination role** during bean creation. Since a and b depend on each other, we need to set a and b’s properties first and then invoke their initialization methods. During this process, there must be an external scope environment to temporarily hold the objects created and provide a mechanism to obtain temporary references.
 
-Spring 1.0's XML configuration provided a robust DSL for object wiring:
-```xml
-<bean id="a" class="test.MyObjectA" init-method="init">
-    <property name="b" ref="b" />
-    <property name="strValue" value="xxx" />
-</bean>
-
-<bean id="b" class="test.MyObjectB">
-    <property name="a" ref="a" />
-</bean>
-```
-This was equivalent to:
-```java
-a = new MyObjectA();
-scope.put("a", a);
-
-b = new MyObjectB();
-scope.put("b", b);
-
-a.setB(scope.get("b"));
-a.setStrValue("xxx");
-b.setA(scope.get("a"));
-
-a.init();
-```
-The container's role extended beyond just wiring objects. It provided an external scope for managing object lifecycles, enabling consistent management of object creation and destruction.
-
-Spring 1.0's XML configuration was a significant advancement in making object wiring accessible to developers without deep Spring framework knowledge. The simplicity of the XML DSL reduced the learning curve while maintaining flexibility in application architecture.
-
-However, as applications grew more complex, the limitations of XML-based configurations became apparent. The nesting structure of XML can become unwieldy for large-scale applications, and the lack of a true DSL for object wiring made certain configurations cumbersome.
-
-### 1.0 Introduction to Customizable Scope Extensions
-
-The release of **Spring 2.0** introduced customizable scope extensions. By leveraging scopes, dependency management can be extended to more dynamic environments, such as Android Activities (available only during runtime in the Activity context) and background tasks (available only during runtime in the Task context), among others.
+Spring 1.0 only distinguished whether a bean was a singleton (if not singleton, then prototype), but people soon realized that scope is a concept that needs to be explicitly identified. Spring 2.0 introduced an extension point for custom scopes. With scope, we can extend bean dependency management to more dynamic environments, such as Android Activity (beans exist only during the activity’s lifetime), backend batch jobs (beans exist only during the step’s execution), and so on.
 
 ### 1.2 @Autowired Automatic Dependency Injection
 
-The primary value of **descriptive dependency injection** lies in its mechanism for delayed injection of information into the system. **Forward dependencies** are objects that possess complete knowledge about their associated objects (e.g., object a knows everything about object b). In contrast, **reverse dependencies** pull information from the environment into the object itself. **Dependency injection (DI)**, driven by the container, pushes information into the object at the right moment, ensuring it is fully prepared for use.
+The most important value of declarative dependency injection is that it provides a mechanism for **delaying the injection of information into the system**. Forward dependency means object a possesses all the knowledge needed to assemble/acquire the associated object b; it has all the information or pulls information from the external environment into itself, whereas dependency injection (inversion of control) means the environment pushes information into object a. Declarative dependency injection delays the moment of pushing information to the last possible instant: right up until the object is used. At this last moment, we**
+have all the relevant information about runtime objects and no longer need to predict the object’s usage scenarios or purposes**
+; we can choose the implementation that best fits our actual needs.
 
-### 1.3 Flexible Wiring in Configuration
+In Spring 1.0, the configuration file contains all the assembly-related information; the assembly approach is very flexible. However, we don’t always need this entire flexibility. At compile-time, we already know part of the information about dependent objects: the object’s interface type. Within a certain scope, often there is only a single object that implements the specified interface type. Via the `@Autowired` annotation, we fully leverage the portion of information the object holds, automatically injecting the dependent object based on it, without needing to manually define dependencies between objects again in bean.xml.
 
-In **Spring 2.0**, configuration files contain comprehensive wiring information. While the wiring mechanism is highly flexible, it's not always necessary to rely on such extreme flexibility during compilation. At compile time, we already know a significant portion of our dependencies: their interfaces and specific types.
-
-### 1.4 @Autowired with Spring 2.5
-
-With **Spring 2.5**, the `@Autowired` annotation functions similarly to Java's import statement. Just as an import statement brings a class into scope, `@Autowired` automatically injects a class that meets certain criteria (e.g., type or interface). However, to achieve full object readiness, additional steps are often required, such as calling constructors, setting properties, and invoking initializers.
+Introduced in Spring 2.5, the role of the `@Autowired` annotation is actually similar to the import keyword in the Java language. The import keyword brings in an externally defined Java class; we still need to invoke the constructor, set the relevant member variables, and call the initialization function to obtain an object capable of serving externally.
 
 ```java
-// Declare dependencies
+// Declare dependent class
 import test.MyObject;
 
-// Inject dependencies using @Autowired
+// Declare dependent object
 @Autowired
-MyObject myObject;
+MyObject a;
 ```
 
-Through `@Autowired`, Spring can automatically import classes that are currently active (e.g., MyObject) rather than relying on static templates for object creation. This approach allows for dynamic injection based on the current state of the application.
+With the `@Autowired` annotation, we can directly import a Java object in an active state that can be used immediately, rather than a static template for object creation (classes can be regarded as templates for creating objects).
+
+The `@Autowired` annotation can only be applied to class member variables or methods, essentially due to restrictions of the Java language. We can imagine a program syntax that allows injecting dependent objects directly into any local variable:
 
 ```java
 public void myMethod(@Inject MyObject b){
     if(b.value > 3){
-        @Inject MyObject a;
+        @Inject MyObject a;
     }
 }
 ```
 
-Additionally, Spring supports injecting by type:
+We could also choose to provide an inject function that takes a type as a parameter and returns an object that implements that type. For example:
 
 ```java
 const a = inject(MyObject);
-// Or, if the programming language supports generic metadata
-const a = inject<MyObject>();
+or
+const a = inject<MyObject>(); // If the language’s built-in metaprogramming can read generic type info
 ```
 
-This mechanism is particularly useful in frontend frameworks like Vue 3.0, where `provide/inject` functions serve as a natural fit for this kind of behavior.
+This is the solution used in the frontend framework vue 3.0’s provide/inject.
 
 ### 1.4 AOP Interception
 
-The combination of **dependency injection (DI)** and **AOP (Aspect-Oriented Programming)** is almost seamless. The essence of DI is to introduce external influences (via an IoC container) into the system, which inherently aligns with the principles of AOP. While objects are never truly "naked" in a well-designed system, they are wrapped within an environment that enhances their behavior through interception.
+The conjunction of dependency injection and AOP (Aspect Oriented Programming) is a natural, inevitable result. **The essence of dependency injection is to bring in the influence of the external environment (the IoC container is an environment object with global knowledge and global rules).** We never rely on and use bare objects; rather, objects are immersed in the environment and will be enhanced by the environment’s rules as wrapped objects.
 
-In our physical world, even fundamental particles like quarks and electrons have no mass on their own but interact with the surrounding electromagnetic field. Similarly, in software systems, objects are rarely standalone; instead, they operate within a grid (metaphorically speaking) of interdependent services.
+> In our physical world, all fundamental particles, such as quarks and electrons, are themselves massless, but they interact with the ubiquitous Higgs field. The motion of an electron always drags the surrounding Higgs particles along, so the electron we observe always has mass.
 
-The concept of AOP can be understood as an enhancement layer applied over the core system:
-```text
+Our understanding of environmental influence is not completed in one step. In the early days of component technologies, Microsoft’s COM component technology was the de facto market standard. An emphasized design point then was that once you obtained a pointer to a dependent object from the global Registry, you directly interacted with that object, thereby completely escaping reliance on the global environment to achieve the highest performance. But with the development of Microsoft’s DCOM (Distributed COM), the importance of sustained environmental influence was gradually recognized. In today’s cloud-native environments, the ubiquitous service mesh makes all interactions between service objects effectively indirect. **Objects interact within a mesh (similar to an electromagnetic field).**
+
+AOP is a standardized means of enhancing raw, bare objects within programs.
+
+```
 Enhanced Object = Naked Object + Environment(Interceptors)
 ```
 
-This means that when an object is injected with dependencies via `@Autowired`, it also inherits certain behaviors from its surrounding environment, such as logging or profiling. The interception happens at the right moment—just before the object becomes fully active.
+Therefore, when a dependency injection container already has global environment management capabilities, if some environment information is still needed for subsequent interactions when we inject object b into object a, the container can bundle this environment information with the original object b, generate an enhanced object via AOP, and then inject it into object a.
 
-For instance:
-```java
-public void myMethod(@Inject MyObject b){
-    if(b.value > 3){
-        @Inject MyObject a;
-    }
-}
+Here’s an interesting question: Since AOP enhancement binds some environment information to a specific object, for environment information that can be obtained directly from global knowledge, we don’t need to perform AOP enhancement for every object separately. For instance, in Java backend development, Controller objects typically need to annotate all modification operations with `@Transactional`, indicating that the method must run within a transaction context. However, **if we uniformly adopt the GraphQL interface protocol and define a global rule: all mutation operations execute within a transactional environment, then we don’t need to apply Transactional enhancement to each individual object**, thereby reducing unnecessary calls and improving performance.
+
+### 1.5 @ComponentScan Dynamically Collecting Bean Definitions
+
+For any structure of reasonable complexity, we inevitably need a decomposition mechanism to break it down into multiple parts that can be independently identified, stored, and managed, and then a synthesis mechanism to assemble these parts back together.
+
+Spring 1.0 introduced a built-in import syntax that can break a complex beans.xml file into multiple subfiles.
+
+```xml
+<beans> 
+   <import resource="base.beans.xml" />
+   <import resource="ext.beans.xml" />
+   <bean profile="dev">
+      <import resource="dev.beans.xml" />
+   </bean>
+</beans>
 ```
 
-Here, `@Inject` is used within a method to inject `MyObject a` only when certain conditions are met. This approach allows for highly contextual injections without disrupting the core functionality of the object.
+The design of the import syntax is relatively crude; its semantics are essentially an include, equivalent to copying and pasting the content from an external beans.xml file. If we import the same file multiple times, it will lead to duplicate bean definitions and throw a BeanDefinitionOverrideException.
 
-Here is the translated English version of the Chinese technical document, preserving the original Markdown format, including headers, lists, and code blocks:
+ComponentScan is a more flexible solution. First, it has the property of **idempotency**: scanning the same package multiple times does not lead to duplicate bean registration, making its semantics closer to the import semantics in programming languages. Second, it **leverages the existing package structure** as the basic unit of collection, allowing flexible choices of which packages or classes to collect. If we were to implement such flexible organization using XML, we would need to create an xml file for each package.
 
----
+### 1.6 @Conditional Conditional Assembly
 
-### Interesting Problem
-There's an interesting issue here. If AOP (Aspect-Oriented Programming) enhancements are intended to bind specific environment information with particular objects, then there's no need for separate AOP enhancements for each object when the necessary environment information can be globally accessed. For example, in typical Java backend development, a `Controller` object generally requires the `@Transactional` annotation over all modification operations to indicate that these operations should execute within a transactional context.
+Spring 1.0 provides complete assembly primitives, but it does not define how to incorporate more variability into assembly. Based on Spring 1.0 mechanisms, to accommodate business changes, the only thing we can do is manually adjust the beans.xml configuration file, which leads to frequent changes and poor reusability.
 
-However, **if we uniformly adopt the GraphQL interface protocol and define global rules such that all mutation operations are executed within a transactional environment**, then we no longer need to apply `@Transactional` to individual objects. This can reduce unnecessary method calls and improve program performance.
+From Spring 4.0 onward, Spring provides the `@Conditional` annotation to implement conditional assembly, and it eventually evolved into SpringBoot’s `@ConditionalOnBean`, `@ConditionalOnProperty`, and other condition annotations with explicit domain semantics. Based on these condition annotations, many variabilities that can be predicted at compile time are explicitly defined, and common configuration combinations can be solidified as defaults.
 
----
+Without condition annotations, we can only define a single, fixed assembly process. With condition annotations, we can **predefine multiple possible assembly processes and provide one most common choice as the default**.
 
-### 1.5 @ComponentScan Dynamic Collection of Bean Definitions
+> Programming always faces multiple feasible worlds, not just the current deterministic one.
 
-For any structure with sufficient complexity, it's essential to decompose the structure into multiple independently identifiable, storable, and manageable sub-components. We then need a way to synthesize these sub-components back together.
+From the perspective of Reversible Computation, we can consider that Spring 1.0 provides an assembly model built from scratch, while **SpringBoot provides a Delta-oriented assembly model**, where we only need to add some Delta descriptions relative to the default configuration, thereby greatly reducing the amount of configuration work required for business development.
 
-Spring 1.0 introduced an built-in import syntax that allows a complex `beans.xml` file to be split into multiple sub-files. This approach is somewhat cumbersome, as it essentially treats the import statements like copy-and-paste operations. Repeatedly importing the same file can lead to duplicate bean definitions, which may throw `BeanDefinitionOverrideException`.
+### 1.7 @EnableAutoConfiguration Multi-Entry Auto-Configuration
 
----
+Spring 1.0 provides a single-entry static configuration scheme, i.e., we read the beans.xml configuration file from a fixed location and analyze it, recursively reading its included subconfiguration files. SpringBoot provides a multi-entry dynamic configuration scheme: each time we introduce a dependency module, we automatically bring in its corresponding entry configuration class, whose role is equivalent to dynamically generating configuration files and introducing related beans.
 
-### 1.6 @Conditional Conditional Wiring
-
-While Spring 1.0 provides a robust configuration language, it doesn't provide a mechanism to accommodate variability within configurations. As a result, changes in business requirements force manual adjustments to the `beans.xml` file, leading to ongoing modifications and difficulty in reuse.
-
-Starting from version 4.0, Spring introduced the `@Conditional` annotation to enable conditional wiring. This evolved into annotations like `@ConditionalOnBean`, `@ConditionalOnProperty`, etc., which carry explicit domain semantics. These annotations allow us to define clear conditional logic based on the presence or absence of certain beans or properties in the application context.
-
-Without such conditional annotations, configurations remain rigid and static. However, using these annotations allows us to **define multiple possible wiring scenarios upfront** while providing a default configuration that can be easily adjusted if needed.
-
----
-
-### 1.7 @EnableAutoConfiguration Automatic Configuration
-
-Spring 1.0 offers a single entry point for static configuration: reading from a fixed `beans.xml` file and recursively analyzing its nested configurations. In contrast, Spring Boot provides a dynamic entry point where each dependency module automatically registers its corresponding configuration classes. This dynamic approach eliminates the need to manually manage `beans.xml` files.
-
-The behavior can be visualized as:
 ```
 Config = Registrar(ScanClassesA) + Registrar(ScanClassesB) + ...
 ```
 
-While this simplifies default configurations, it also introduces new complexities in managing dependencies and their interactions.
+Multi-entry plus dynamic bean scanning and registration greatly simplifies configurations for applications under default settings, but it also introduces new complexity.
 
----
+Under Spring 1.0 syntax, bean parsing and registration are executed in the explicit XML-described order; the execution result is deterministic, making diagnostics relatively easy when issues arise. Under multi-entry configuration, the scanned bean configurations are dynamically merged together, and their merging rules and results are implicit and non-obvious. Sometimes, seemingly trivial adjustments to package order can lead to different execution results, and results in the IDE may subtly differ from those in runtime packaging and deployment. Once we deviate from default configurations, it’s easy to observe configuration chaos when multiple modules are merged at runtime, and generally, if you’re not very familiar with low-level implementation details, it’s hard to pinpoint the problem.
 
+> In daily development, it’s common to see newcomers spend a lot of time diagnosing why SpringBoot’s auto-configuration doesn’t work after introducing new modules or adjusting default configurations.
 
-In **Spring 1.0**, bean parsing and registration are executed in a deterministic order based on explicit XML configuration. This results in predictable outcomes and easier debugging when issues arise. However, in multi-entry configuration scenarios, dynamically merged bean configurations are combined implicitly, with their merging rules and outcomes not explicitly defined. The order of processing seemingly unrelated packages can lead to differences in execution results, even within the same IDE environment. Slight deviations from default configurations often result in configuration chaos across multiple modules during runtime.
+The best practice to resolve this is to avoid defining the same bean in multiple packages and avoid complex dependencies between beans. Essentially, we hope that the merging of multiple dynamic configurations **obeys the commutative law**, i.e., no matter what order they are identified and processed, the final result remains unaffected—an expectation that declarative programming promises.
 
-> In everyday development, it is common to observe that new developers spend a significant amount of time debugging issues related to Spring Boot's auto-configuration not taking effect after introducing new modules or adjusting default configurations.
+### 1.8 Embedded Expressions and Reactive Configuration
 
-The best practice to resolve this issue is to avoid defining the same bean across multiple packages and to minimize complex dependency relationships between beans. Ideally, dynamic configurations should **satisfy the principle of interchangeability**, meaning that the order in which they are identified and processed does not affect the final outcome. This principle is inherently supported by descriptive programming.
-
----
-
-
-### 1.8 Embedded Expressions and Responsive Configurations
-
-In **Spring 1.0**, placeholder mechanisms allow for extraction of configuration parameters from XML files, such as:
+In Spring 1.0, we can extract configuration parameters from XML files through the placeholder mechanism, for example:
 
 ```xml
 <bean id="dataSource" ...>
-    <property name="jdbcUrl" value="${spring.datasource.jdbc-url}" />
+  <property name="jdbcUrl" value="${spring.datasource.jdbc-url}" />
 </bean>
 ```
 
-The placeholder mechanism can be viewed as a way to glue together `application.properties` and `applicationContext.xml` configuration files. It acts as an expression that extracts values from the `application.properties` file and applies them to the current bean configuration. Conceptually, this is demonstrated by:
+Placeholders can be viewed as an adaptation mechanism that binds the application.properties configuration parameter file and the applicationContext.xml object assembly file together. A placeholder can be regarded as an adaptation expression: it extracts parameter information from the application.properties file and applies it to the current bean configuration. Conceptually, its work is:
 
-```java
+```
 bean.jdbcUrl = props.get('spring.datsource.jdbc-url')
 ```
 
-Over time, this mechanism has been expanded in two key directions:
-
-1. **Expression Enhancement**: Starting with **Spring 3.0**, true Expression Language (EL) support was introduced, allowing for more complex expression evaluation, such as:
+In subsequent Spring development, this mechanism was extended in two directions. First, the concept of expression was enhanced. After Spring 3.0, we can use a true Expression Language to write adaptation expressions. For example:
 
 ```xml
 <bean id="readStep">
-    <property name="filePath" value="${jobParameters['filePath']}" />
-    <property name="testValue" value="${T(java.lang.Math).PI}" />
+   <property name="filePath" value="#{jobParameters['filePath']}" />
+   <property name="testValue" value="#{T(java.lang.Math).PI}" />
 </bean>
 ```
 
-2. **Dynamic Configuration Variables**: Starting with **Spring 3.1**, the `Environment` concept was introduced, enabling Spring Cloud to extend simple configuration variables into a distributed, responsive configuration center.
+In the EL expression execution context, not only do we have the configuration variables defined in application.properties, but the context also contains all beans defined in the bean container, and we can directly access all Java classes by class name.
+
+The second direction is enhanced dynamic configuration variable collections. After Spring 3.1, the so-called Environment concept was introduced. Leveraging this concept, SpringCloud extended rudimentary configuration variable sets into a distributed configuration center with reactive updates.
 
 ```java
 @RefreshScope
 @Service
-public class MyService {
+public class MyService{
 
     @Value("${app.user-local-cache}")
     boolean useLocalCache;
 }
 ```
 
-This ensures that configurations marked with `@RefreshScope` are dynamically refreshed when changes occur.
+Beans annotated with RefreshScope are recreated when configurations change, thereby applying new configurations.
 
----
+## II. Design Defects of SpringBoot
 
+### 2.1 A Departure from the Basic Principles of Declarative Programming
 
-## II. Spring Boot's Design Flaws
+Although Spring was founded on declarative assembly, it has drifted away from declarative programming since Spring 2.0. Spring 1.0 could only constrain XML file formats with rudimentary DTD syntax; Spring 2.0 introduced the more powerful XML Schema to provide stricter format definitions, but at the same time it introduced the custom namespace mechanism. Custom namespaces are parsed and processed by the [NamespaceHandler](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/beans/factory/xml/NamespaceHandler.html#:~:text=public%20interface%20NamespaceHandler%20Base%20interface%20used%20by%20the,custom%20namespaces%20in%20a%20Spring%20XML%20configuration%20file.) interface. On the surface, this seems to provide declarative custom XML tags, but behind the scenes it is a series of imperative code blocks with strong sequencing dependencies.
 
+1. When implementing custom tags, we cannot reuse existing functionality through a simple declarative approach. Adding a new custom tag requires implementing a new NamespaceHandler and adding a series of related registration configurations. The cost is high, and it’s difficult to ensure that tags from different namespaces can be correctly nested.
 
-### 2.1 Deviation from Descriptive Programming Principles
+2. Although Spring 1.0 provides complete object assembly primitives, Spring 2.0’s custom tags cannot be reduced to the tags defined in Spring 1.0. In other words, if a software package provides configuration support using Spring 2.0 syntax, we cannot guarantee that it can be configured using Spring 1.0 syntax. This results in more semantic ambiguity as custom configuration tags proliferate, making it hard to compile a general Spring configuration analysis tool.
 
-While Spring is built upon descriptive configuration, it gradually drifts away from the core principles of descriptive programming starting with **Spring 2.0**. In **Spring 1.0**, only basic DTD syntax was supported for constraining XML file formats. With **Spring 2.0**, more robust XML Schema support was introduced to enforce stricter formatting, while also introducing custom namespace handling through the `NamespaceHandler` interface:
+3. 
+
+In SpringBoot’s design and evolution, there is no clearly defined semantic model. Behind many annotations lies very complex imperative identification and handling code entangled with global state and lacking coordination rules. In practice, bean assembly results exhibit very subtle relationships with the execution order of imperative code. This becomes particularly evident when we need to migrate SpringBoot configuration code to other IoC containers.
+
+Take Quarkus migration as an example. [Quarkus](https://quarkus.io/) is an open-source Kubernetes-native JavaTM framework tailored for GraalVM and OpenJDK HotSpot. Like the Go language, it supports Ahead-of-Time (AOT) compilation to directly produce a single executable, freeing itself from the JDK runtime at execution, improving startup speed and reducing memory consumption. As a new framework, Quarkus certainly covets Spring’s vast community resources. To this end, it attempts to provide an adaptation mechanism for migrating from Spring to Quarkus. The first problem Quarkus faces is that Spring’s various annotation classes weren’t separated into a standalone annotation API package but were mixed with all sorts of implementation code. Quarkus had to extract some annotation classes into a separate jar and implement a hacky approach to replace Spring dependency packages. The second problem is that Spring’s assembly process cannot be preprocessed via compile-time analysis, making it impossible to implement object assembly through compile-time code generation as Quarkus’s built-in CDI container does. Quarkus’s choice is to support only those Spring annotations with clear semantics, while ignoring various load-and-scan implementations based on imperative code. This directly results in its Spring compatibility and migration features being merely window dressing, suitable for marketing but not a true migration tool.
+
+From a non-technical standpoint, SpringBoot’s non-declarative design might be intentional. As a commercial product, the team behind Spring would prefer the community’s sunk cost in this product to grow over time, thereby constructing migration barriers favorable to themselves. Compatibility features are easy; compatibility with bugs is hard. The reason a community product can run smoothly within the Spring container is that massive manual debugging effort has been invested, tolerating various bugs and design conflicts. When migrating to a new framework or platform, unless we fully move Spring’s container implementation code, how can we guarantee a bug happens to be triggered and our bug-prevention code happens to kick in?
+
+### 2.2 Compatibility Burdens from Past Successes
+
+Spring has a very long history—since its 1.0 release in March 2004 to now, it’s been nearly twenty years. Over the course of a whole generation, it witnessed the development of various programming paradigms and techniques, and at each stage it successfully provided corresponding encapsulation support. These successful experiences sedimented at Spring’s lower levels into today’s seemingly inexplicable redundancy.
+
+Take SpringMVC as an example. When frontend JSON field names don’t match, the backend may not throw a clear JSON parsing error but rather some other obscure error. SpringMVC supports multiple parameter-passing mechanisms; when one mechanism fails to parse, it tries the next. Before JSON gained wide popularity, various imaginative [encoding schemes](https://www.npmjs.com/package/qs) existed for transmitting complex structures—for example, `?a[]=1&a[]=2` for arrays and `foo[bar]=baz` for Maps. Search for SpringMVC online today and you’ll find many “X ways to pass complex objects in SpringMVC” articles.
+
+If we adopt best practices for the present moment, we can say that over 90% of SpringMVC’s code is completely unnecessary. For example, if we adopt the GraphQL interface standard, the backend only needs to recognize a single `/graphql` endpoint that accepts only POST requests, receives only JSON for the request body, and returns JSON in the response body. Various encoding schemes and the URL matching spec defined in JAX-RS become redundant.
+
+### 2.3 Constraints from the “Don’t Reinvent the Wheel” Positioning
+
+Spring has long presented itself as a packager, claiming not to reinvent wheels—just nature’s packer—polishing and packaging the industry’s most mature and excellent implementation technologies. This positioning places Spring in an awkward spot when handling many issues: should it propose a complete interface standard that fully shields underlying implementations, or should it retain all the lower-level implementation details and merely wrap them in SpringBoot’s configuration style? The inconsistency of underlying technical sources and styles also makes Spring’s upper-layer encapsulation work challenging.
+
+For example, consider Spring’s classic declarative transaction encapsulation. To unify transaction handling for plain JDBC and Hibernate operations, Spring internally defines multiple thread context objects like SessionHolder and ConnectionHolder and relies on TransactionSynchronization for synchronization. But if Hibernate and Spring could collaborate, Hibernate could directly call JdbcTemplate to perform database access without adding extra wrappers. In fact, after Hibernate 5.3, Hibernate explicitly introduced the [BeanContainer](https://docs.jboss.org/hibernate/stable/core/javadocs/org/hibernate/resource/beans/container/spi/BeanContainer.html) interface and assumed the presence of an IoC container, making some traditional encapsulations in Spring [lose their significance](https://www.matez.de/index.php/2019/04/05/connecting-spring-and-hibernate-though-beancontainer).
+
+Sometimes, technologies being encapsulated are themselves overly complex concept systems relative to our needs—for example, the AOP mechanism provided by AspectJ. AspectJ offers very powerful aspect interception capabilities, can match package names and method names via regex-like syntax, and can recognize complex nested call relationships.
 
 ```java
-public interface NamespaceHandler extends BaseInterface {
-    // Methods for handling custom namespaces
-}
+    @Pointcut("execution(public * *(..))")
+    private void anyPublicOperation() {}
+
+    @Pointcut("within(com.xyz.someapp.trading..*)")
+    private void inTrading() {}
+
+    @Pointcut("anyPublicOperation() && inTrading()")
+    private void tradingOperation() {}
 ```
 
----
+However, in daily business development, only one pointcut definition is used widely: intercepting Java methods annotated with a specified annotation. Spring, in its AOP conceptual system, always seeks convergence to AspectJ, thereby needlessly adding complexity. In the Nop platform, to introduce AOP support into the DI container, we added fewer than about 1,000 lines of code; at this point, the cost of wrapping an extra AOP framework is already much higher than implementing it directly.
 
-The interface is responsible for parsing and processing, which on the surface seems to provide descriptive tags for custom XML tags. However, the actual implementation consists of ordered command-line code.
+Spring’s design style in recent years has begun to shift. For example, SpringCloud was initially built on the Netflix OSS codebase. Later, as the Netflix OSS codebase fell behind the times, SpringCloud gradually embarked on a journey of self-development.
 
-1. When implementing custom tags, we cannot simply reuse existing functionality through declarative means. Adding new custom tags requires implementing a new `NamespaceHandler` and adding related configurations, which is costly and difficult to ensure proper nesting of tags across different namespaces.
+## III. NopIoC: A Declarative IoC Container
 
-2. While Spring 1.0 provides comprehensive object graph assembly, the custom tags in Spring 2.0 cannot be mapped back to Spring 1.0 tag definitions. This means that if a package implements Spring 2.0 syntax support, we cannot guarantee that it can be configured using Spring 1.0 syntax for that package. This leads to an increasing number of custom configuration tags and an unclear semantic structure, making it difficult to develop a general-purpose Spring configuration analysis tool.
+NopIoC is the lightweight dependency injection container used in the Nop platform. Initially, my goal was to define a BeanContainer interface compatible with Spring and Quarkus, but I quickly discovered that Spring’s native application support module, spring-native, is quite immature, while Quarkus’s DI container’s organizational capabilities fall far short of SpringBoot. Some configurations that are very simple in SpringBoot are hard to implement in Quarkus, and Quarkus’s precompilation approach makes runtime debugging difficult. So I ultimately decided to implement an IoC container as the default BeanContainer for the Nop platform.
 
-3.  
-SpringBoot's design and development lacks a clearly defined semantic model. The numerous annotations are complex, intertwined with global state, and lack collaborative rules for command-line identification and handling. In practical applications, the bean assembly result is closely related to command-line code execution order. This relationship becomes particularly apparent when migrating SpringBoot configurations to other IoC containers.
+### 3.1 XDef Meta-Model Definition
 
-For example, [Quarkus](https://quarkus.io/) is a custom-built open-source Kubernetes-native Java framework designed specifically for GraalVM and OpenJDK HotSpot. Like Go, it uses Ahead Of Time (AOT) compilation to compile directly into a single executable file, freeing the application from the JDK runtime environment during execution, thereby improving startup speed and reducing memory consumption. As a new framework, Quarkus is envious of Spring's extensive community resources, so it aims to provide a migration mechanism from Spring to Quarkus. However, Quarkus faces challenges:
+**A declarative IoC container must have a clearly defined semantic domain model**, which can be regarded as a DSL (Domain Specific Language). The IoC container itself is the interpreter and executor of this DSL. If we serialize domain model objects to text for storage, we get an IoC-specific model file, e.g., Spring’s beans.xml configuration file. Java annotations can be considered another manifestation of this domain model—for instance, Hibernate’s model definitions can be expressed via JPA annotations or via hbm configuration files.
 
-- The first issue with Quarkus is that Spring's various annotations have not been separated into a single dedicated annotation API package. Instead, they are mixed together with implementation code.
-- The second challenge is that Spring's configuration process cannot be fully analyzed at compile time to enable runtime handling, unlike Quarkus' built-in CDI container, which uses compile-time code generation for object assembly.
+**A well-defined model can be described by a general Meta-Model.** Spring 1.0’s XML syntax has an XML Schema definition, but capabilities introduced in SpringBoot—such as conditional assembly—lack corresponding XML syntax, so SpringBoot ultimately does not have a clearly defined domain model.
 
-Quarkus chooses to support only a subset of Spring's annotations, implementing command-line loading and scanning through command-line code. This makes its Spring compatibility feature effectively useless, serving only as a marketing tool rather than an actual migration aid.
+The XML Schema format, although far more powerful than DTD, is extremely verbose. Its design goal is merely to constrain general XML data files, and it falls short when constraining DSL models with execution semantics.
 
-From a non-technical perspective, SpringBoot's non-declarative design may be intentional. After transitioning to a commercial product, the Spring framework's team likely aims to increase community sunk costs, creating barriers to migration by constructing a wall of FEAR (Fear of Attempting Relocation). The idea is that compatibility becomes easier when you stay within the Spring ecosystem, while migrating to another container incurs significant costs unless you fully move the Spring container itself.
+NopIoC uses the XDefinition meta-model language to define its domain model. The XDef language is the Nop platform’s replacement for XML Schema and JSON Schema. It is designed specifically for DSLs, making information expression far more intuitive and efficient than XML Schema and JSON Schema. You can directly obtain executable domain models based on XDef definitions, generate code from XDef definitions, produce IDE hints, and even generate visual designer pages, etc.
 
+Below we can directly compare Spring 1.0’s configuration format defined with xsd versus xdef:
 
-### Historical Success and Compatibility Burden
-Spring's history spans over two decades since its initial release in March 2004. Over the years, it has witnessed various programming paradigms and technologies evolve. Through each era, Spring has provided corresponding encapsulation support, which now appears as an unnecessary layer of complexity.
+https://www.springframework.org/schema/beans/spring-beans-4.3.xsd
 
-For example, consider SpringMVC. When field names in the request do not match those in the backend, the backend may not throw a clear JSON parsing error but instead encounter other unexplained issues. This is because SpringMVC supports multiple parameter transmission mechanisms. If one fails, it tries another. However, before JSON became widely adopted, developers resorted to creative workarounds like `?a[]=1&a[]=2` for arrays and `foo[bar]=baz` for maps.
+[nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)
 
-Using modern tools like [qs](https://www.npmjs.com/package/qs), such encoding is no longer necessary. In fact, most of the code in SpringMVC is unnecessary, as approximately 90% or more of it can be removed through proper optimization.
+I will write a follow-up article specifically introducing the technical details of the XDef meta-model definition language.
 
-If we adopt current best practices, SpringMVC's complex object graph management becomes redundant. For instance, using GraphQL instead of multiple REST endpoints simplifies data fetching significantly. With GraphQL, you define a single endpoint like `/graphql`, send a POST request with a JSON body containing your query, and receive a structured JSON response. This approach eliminates the need for complex URL pattern matching and reduces the amount of code needed to handle object graph assembly.
+### 3.2 Natural Extensions of Spring 1.0 Syntax
 
-In summary, while SpringMVC's historical success demonstrates its value in simplifying certain aspects of application development, its design has also introduced complexities that make it difficult to maintain and extend over time. The increasing number of custom tags and the lack of a unified semantic model are significant challenges that have driven the development of alternative frameworks like Quarkus.
-
-### 2.3 Limitations of the "Not Inventing the Wheel" Positioning
-
-Spring has always positioned itself as a framework that doesn't "reinvent the wheel." It claims to avoid duplicating the efforts of other mature and excellent frameworks by encapsulating their functionality according to its own design style. This positioning leads to Spring often finding itself in an uncomfortable position when dealing with many common issues. It either has to hide the underlying implementation behind its own interfaces or needs to expose and manage the details of the underlying implementations, which are often inconsistent with Spring Boot's configuration styles. This creates significant challenges for upper layers that rely on Spring's encapsulation.
-
-For example, looking at Spring's classic transaction encapsulation: To unify JDBC operations and Hibernate operations, Spring internally defines various thread-local objects like SessionHolder and ConnectionHolder, using TransactionSynchronization to synchronize them. However, if Hibernate could seamlessly integrate with Spring, it would be possible to directly use JdbcTemplate for database access without additional encapsulation. In fact, starting from Hibernate 5.3 onwards, Hibernate explicitly introduced the [BeanContainer](https://docs.jboss.org/hibernate/stable/core/javadocs/org/hibernate/resource/beans/container/spi/BeanContainer.html) interface, signaling that it assumes the presence of an IoC container. This makes some traditional Spring encapsulation patterns obsolete.
-
-Sometimes, the technology to be encapsulated itself becomes overly complex compared to what is needed. For example, AspectJ's AOP mechanism is inherently complex. It provides a powerful aspect interception model that can match method names and package structures using regular expressions but also requires managing complex interdependencies between aspects.
-
-### 3.1 XDef Model Definition
-
-A custom IoC container like NopIoC has its own domain model. This model can be seen as a Domain-Specific Language (DSL). The container itself acts as both the interpreter and executor of this DSL. If you serialize domain objects into text, you get an IoC-specific configuration file, similar to Spring's beans.xml or Hibernate's hbm.xml. Java annotations can also represent the domain model in another form, such as using JPA annotations for Hibernate models or hbm files.
-
-A well-defined model can be described by a general meta-model (Meta-Model). For example, Spring 1.0's XML syntax uses XML
-# Schema Definition vs. Spring Boot Configuration
-
-In the context of Spring Boot applications, **Schema Definition** (XSD) is often used to define domain models and constraints for XML data. However, Spring Boot lacks a built-in XML syntax for configuration, which can lead to complex and less intuitive configurations.
-
-While XSD provides powerful validation capabilities, it is verbose and not designed for dynamic or executable Domain Specific Languages (DSLs). This limitation makes it difficult to create reusable and modular configurations directly within XML files.
-
-# Comparison of Schema Definition and XDefinition
-
-The following section compares **XSD** and **XDefinition**:
-
-- **XSD**: XML Schema Definition is a powerful but verbose tool for defining data constraints. It is primarily designed for validating general-purpose XML data.
-- **XDefinition**: XDefinition is a lightweight and intuitive meta-language specifically designed to define domain models. It provides an executable DSL, making it easier to create clear and maintainable configurations.
-
-# Example: Spring 1.0 Configuration Syntax
-
-Here’s an example of how Spring 1.0 configuration can be extended using NopIoC:
+NopIoC builds upon Spring 1.0’s configuration syntax (NopIoC can parse Spring 1.0 configuration files directly) and supplements concepts introduced in SpringBoot such as conditional assembly. All extended properties use the `ioc:` prefix to distinguish them from Spring’s built-in properties.
 
 ```xml
 <beans>
-    <bean id="xx.yy">
-        <ioc:condition>
-            <if-property name="xxx.enabled" />
-            <on-missing-bean-type>java.sql.DataSource</on-missing-bean-type>
-            <on-class>test.MyObject</on-class>
-        </ioc:condition>
-    </bean>
+   <bean id="xx.yy">
+     <ioc:condition>
+        <if-property name="xxx.enabled" />
+        <on-missing-bean-type>java.sql.DataSource</on-missing-bean-type>
+        <on-class>test.MyObject</on-class>
+     </ioc:condition>
+  </bean> 
 </beans>
 ```
 
-This configuration corresponds to the following Java annotation-based configuration in Spring Boot:
+The configuration above corresponds to SpringBoot’s configuration:
 
 ```java
 @ConditionalOnProperty("xxx.enabled")
 @ConditionalOnMissingBean({DataSource.class})
 @ConditionalOnClass({MyObject.class})
 @Bean("xx.yy")
-public XXX getXx() {
+public XXX getXx(){
 }
 ```
 
-# Example: AOP Configuration
+### 3.3 Source-Code-Generated AOP
 
-Here’s an example of how to configure an interceptor using NopIoC:
+Using AOP in NopIoC is very simple—just configure the interceptor’s pointcut:
 
 ```xml
-<bean id="nopTransactionalMethodInterceptor"
+ <bean id="nopTransactionalMethodInterceptor" 
       class="io.nop.dao.txn.interceptor.TransactionalMethodInterceptor">
-    <ioc:pointcut annotations="io.nop.api.core.annotations.txn.Transactional"
-                   order="1000"/>
-</bean>
+     <ioc:pointcut annotations="io.nop.api.core.annotations.txn.Transactional"
+          order="1000"/>
+ </bean>
 ```
 
-This configuration indicates that any method annotated with `@Transactional` will be intercepted by the `TransactionalMethodInterceptor`.
+This configuration means: scan all beans in the container (unless ioc:aop is set to false); if a method on a bean has the `@Transactional` annotation, apply this interceptor.
+The implementation principle is:
 
-The implementation logic is as follows:
+1. Register the annotations to be recognized by AOP in the `resources/_vfs/nop/aop/{module-name}.annotations` file.
 
-1. **Registering AOP-Scanning Classes**:
-   - Place classes to be scanned by AOP in the `resources/_vfs/nop/aop/{module_name}.annotations` directory.
+2. During project compilation, a Maven plugin will scan the classes under target/classes to check whether class methods have AOP-recognizable annotations; if so, it generates a __aop derived class for that class to insert AOP interceptors. Thus, the packaged jar contains the AOP-related generated code, and no dynamic bytecode generation is needed when using AOP. The underlying principle is similar to AspectJ, but the process is much simpler. See:
 
-2. **Maven Plugin for Compilation**:
-   - During compilation, a Maven plugin scans the `target/classes` directory for classes annotated with AOP-recognizable annotations.
-   - If an annotation is detected on a method, an AOP class (`_aop`) is generated and included in the JAR.
+   [nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java)
 
-3. **Dynamic Bytecode Generation**:
-   - At runtime, the generated AOP classes are dynamically loaded into the application container.
-   - This eliminates the need for dynamic bytecode generation during compilation, similar to AspectJ's approach but simplified.
+3. When the IoC container creates beans, if it finds an interceptor applicable to a class, it uses the __aop derived class to instantiate the object and insert the interceptor.
 
-# Summary
+Example generated file:
 
-The key difference between XSD and XDefinition lies in their intended use cases. While XSD is excellent for static data validation, XDefinition provides a more flexible and intuitive way to define domain models and configurations within Spring Boot applications.
+[docs/ref/AuditServiceImpl__aop.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/ref/AuditServiceImpl__aop.java)
 
+### 3.4 Layered Abstractions Implemented Based on the Principles of Reversible Computation
 
-Below is the translation of a Chinese technical document into English, maintaining the original Markdown format, including headers, lists, and code blocks.
-
----
-
-
-### 3.1 Based on Reversible Calculation Principle for Layered Abstraction
-
-The NopIoC framework implements layered abstraction based on the reversible calculation principle. During compilation, it generates code similar to Spring 2.0's custom tags using defined compilation techniques.
+NopIoC utilizes compile-time generation techniques defined by Reversible Computation to provide abstractions similar to Spring 2.0’s custom tags.
 
 ```xml
 <beans>
   <x:gen-extends>
-    <my:MyTask xpl:lib="my.xlib">
-      <reader bean="myReader" />
-      <writer bean="myWriter" />
-    </my:MyTask>
+     <my:MyTask xpl:lib="my.xlib">
+         <reader bean="myReader" />
+         <writer bean="myWriter" />
+     </my:MyTask>
   </x:gen-extends>
 </beans>
 ```
 
-In the Nop platform, all DSL models support the `x:gen-extends` mechanism. This mechanism generates XML nodes during compilation and then applies a DeltaMerge algorithm to merge these nodes with external XML nodes, resulting in final XML configuration nodes. This process is equivalent to using the XPL template language to write custom tags for Spring 2.0, which are then executed at compile time. The NopIoC engine only needs to support basic Spring 1.0 syntax to provide custom tag abstraction.
+All DSL models in the Nop platform support the `x:gen-extends` mechanism, which runs at compile time, outputs XML nodes, and then merges with external XML nodes via the DeltaMerge algorithm to synthesize final XML configuration nodes. This is equivalent to writing Spring 2.0 custom tags with the XPL template language, executing those tags at compile time, and outputting configuration content in Spring 1.0 syntax. The NopIoC engine only needs to support the most basic Spring 1.0 syntax to obtain custom tag abstractions for free.
 
-The layered abstraction concept is consistently implemented in the Nop platform, allowing as many operations as possible to be moved to the compilation phase, reducing runtime complexity and improving performance. For example, after executing all conditional checks and type scans, NopIoC outputs a version of the configuration that excludes all optional conditions. This output is placed in the `_dump` directory, which can then be processed by Spring 1.0's execution engine. On this basis, a translator can convert Spring 1.0 syntax into annotations, making it compatible with other IOC runtimes or translating it directly into Java code to eliminate the need for runtime IoC.
+In the Nop platform, the concept of layered abstraction is pervasive, allowing us to perform as many operations as possible at compile time, reducing runtime complexity and improving runtime performance. For example, after finishing all conditional evaluations and type-based scans, NopIoC dumps a final assembly version—stripped of all optional conditions—to the _dump directory. This version can be executed by a Spring 1.0 execution engine. On this basis, we can write a translator to convert Spring 1.0 XML configuration into annotation-based configuration to adapt to other IoC runtimes, or translate it into pure Java construction code, eliminating the IoC runtime entirely.
 
----
+### 3.5 Generating Java Proxies
 
-
-### 3.2 Generating Java Proxy
-
-The NopIoC framework includes an `ioc:proxy` attribute that allows direct creation of a proxy object based on the current bean and its specified interfaces.
+NopIoC includes a built-in ioc:proxy property that can directly create a Proxy object implementing a specified interface based on the current bean.
 
 ```xml
-<bean id="myBean" class="xx.MyInvocationHandler"
-      ioc:type="xx.MyInterface"
-      ioc:proxy="true" />
+<bean id="myBean" class="xx.MyInvocationHandler" 
+      ioc:type="xx.MyInterface" ioc:proxy="true" />
 ```
 
-Using this configuration, the `myBean` object is replaced by a proxy that implements the `MyInterface` interface.
+With the configuration above, the actual returned myBean object is a proxy object implementing the MyInterface interface.
 
----
+### 3.6 Scanning by Annotation or Type
 
-
-### 3.3 By Annotation or Type Scan
-
-NopIoC supports collection of beans based on annotations. For example:
+NopIoC has built-in capabilities to collect beans by annotation. For example:
 
 ```xml
-<bean id="nopBizObjectManager" class="io.nop.biz.impl.BizObjectManager">
-  <property name="bizModelBeans">
-    <ioc:collect-beans
-       by-annotation="io.nop.api.core.annotations.biz.BizModel"
-       only-concrete-classes="true"/>
-  </property>
-</bean>
+ <bean id="nopBizObjectManager" class="io.nop.biz.impl.BizObjectManager">
+     <property name="bizModelBeans">
+        <ioc:collect-beans 
+           by-annotation="io.nop.api.core.annotations.biz.BizModel"
+           only-concrete-classes="true"/>
+     </property>
+ </bean>
 ```
 
-This configuration collects all classes annotated with `@BizModel`, ignoring abstract classes and interfaces, and focusing solely on concrete implementations.
+This configuration searches the container for all classes annotated with `@BizModel`, ignores abstract classes and interfaces, and considers only concrete implementations.
 
----
+### 3.7 Prefix-Guided Syntax
 
-
-### 3.4 Prefix-Based Syntax
-
-In Spring 1.0, to access certain properties or behaviors provided by the IOC container, specific interfaces (e.g., `BeanNameAware` or `ApplicationContextAware`) must be implemented by the bean. NopIoC supports a prefix-based syntax to achieve this without manual implementation.
-
----
-
-Here is the translation of the Chinese technical document into English, maintaining the original Markdown format including headers, lists, and code blocks:
-
----
-
-# Prefix Guided Syntax
-
-The prefix syntax is widely used in the Nop platform as a highly flexible and extensible design. For detailed explanations, please refer to my article on [DSL分层语法设计与前缀引导语法](https://zhuanlan.zhihu.com/p/548314138).
-
----
-
-## 3.8 Responsive Configuration Updates
-
-The NopIoC framework includes built-in knowledge of responsive configuration updates. We can bind individual properties to responsive configuration bindings.
+In Spring 1.0’s design, to obtain some built-in properties and objects from the IoC container, objects must implement certain interfaces such as BeanNameAware, ApplicationContextAware, etc. In NopIoC, we can obtain corresponding values via the prefix-guided syntax. For example:
 
 ```xml
 <bean id="xx">
-  <!-- @cfg indicates that a value is obtained when the bean is first created, but it does not perform responsive updates -->
-  <property name="configValue" value="@cfg:config.my-value" />
-  <!-- @r-cfg indicates that when the configuration value changes, the bean's property will automatically update -->
-  <property name="dynValue" value="@r-cfg:config.my-dyn-value" />
+   <property name="id" value="@bean:id" />
+   <property name="container" value="@bean:container" />
+   <property name="refB" value="@inject-ref:objB" />
+  <!-- Equivalent to -->
+   <property name="refB" value-ref="objB" />
 </bean>
 ```
 
-Additionally, it is possible to use an annotation similar to Spring's `@ConfigurationProperties` to bind all properties of an object to configuration values using the prefix syntax.
+Prefix-guided syntax is widely used in the Nop platform, a highly general and extensible syntax design. For detailed introductions, see my article:
+
+[DSL Layered Syntax Design and Prefix-Guided Syntax](https://zhuanlan.zhihu.com/p/548314138)
+
+### 3.8 Reactive Configuration Updates
+
+NopIoC has built-in knowledge of reactive configurations. We can specify reactive configuration binding for individual properties:
 
 ```xml
-<!-- ioc:auto-refresh indicates that when the configuration changes, the bean's properties will automatically update -->
+<bean id="xx">
+  <!-- @cfg means fetching the configuration value when the bean is first created, but not performing reactive updates -->
+  <property name="configValue" value="@cfg:config.my-value" />
+  <!-- @r-cfg means automatically updating the bean’s property when the configuration value changes -->
+   <property name="dynValue" value="@r-cfg:config.my-dyn-value" />
+</bean>
+```
+
+We can also bind all properties of an object to configuration items via a prefix, similar to Spring’s `@ConfigurationProperties` annotation:
+
+```xml
+<!-- ioc:auto-refresh means the bean’s properties will be automatically updated when configuration changes -->
 <bean id="xx" ioc:config-prefix="app.my-config" ioc:auto-refresh="true"
     class="xxx.MyConfiguration" />
 ```
 
-The NopIoC framework also defines a special syntax node `ioc:config`.
+NopIoC also defines a special syntax node, ioc:config:
 
 ```xml
 <ioc:config id="xxConfig" ioc:config-prefix="app.my-config" ... />
 
-<bean id="xx" ioc:on-config-refresh="refreshConfig">
+<bean id="xx" ioc:on-config-refresh="refreshConfig" >
   <property name="config" ref="xxConfig" />
 </bean>
 ```
 
-When the configuration updates, `xxConfig` will automatically update, and this propagation will trigger `refreshConfig` in all beans that have referenced `xxConfig`.
+When configuration updates, xxConfig will be automatically updated, and this update process will propagate to all beans using xxConfig, triggering their refreshConfig functions.
 
----
+### 3.9 Auto-Configuration Discovery
 
-## 3.9 Automatic Configuration Discovery
+NopIoC provides a mechanism similar to SpringBoot’s AutoConfiguration. During initialization, NopIoC automatically looks for all files with a .beans suffix in the `/nop/autoconfig` directory of the virtual file system and loads the beans.xml files defined therein. For example, the content in the [/nop/autoconfig/nop-auth-core.beans](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-core/src/main/resources/_vfs/nop/autoconfig/nop-auth-core.beans) file is /nop/auth/beans/auth-core-defaults.beans.xml. Generally, the filename of the beans file is the corresponding Java module name, so when multiple modules are packaged into a fat-jar, file conflicts do not occur.
 
-The NopIoC framework provides an auto-configuration mechanism similar to Spring Boot's AutoConfiguration. During initialization, NopIoC automatically searches for files in the virtual file system under the `/nop/autoconfig` directory with filenames ending in `.beans`, and it loads any `beans.xml` files found there. For example:
+Unlike SpringBoot, NopIoC does not register beans while loading configuration files. NopIoC only executes the conditional logic once after collecting all bean definitions. Therefore, in NopIoC, the order of bean definitions does not, in principle, affect the container’s dynamic computation result.
 
-```xml
-/nop/autoconfig/nop-auth-core.beans
-```
+### 3.10 Unit Test Support
 
-This typically resolves to:
-```xml
-/nop/auth/beans/auth-core-defaults.beans.xml
-```
+NopIoC is integrated with JUnit5. In unit tests, we mainly control IoC container initialization via the `@NopTestConfig` annotation.
 
-In general, the filename of a beans file corresponds to the name of the Java module it represents. This avoids conflicts when multiple modules are packaged into a single Fat-JAR.
-
----
-
-The key difference from Spring Boot is that NopIoC does not load configuration files or register beans on the fly while loading. Instead, it waits until all bean definitions have been collected before performing any conditional logic. Thus, the order of bean definition in NopIoC generally does not affect the container's dynamic calculations.
-
----
-
-## 3.10 Unit Test Support
-
-The NopIoC framework has been integrated with JUnit 5. In unit tests, we primarily use the `@NopTestConfig` annotation to control the initialization of the IoC container.
 ```java
 public @interface NopTestConfig {
     /**
-     * Whether to enforce setting nop.datasource.jdbc-url to an H2 in-memory database
+     * Whether to force set nop.datasource.jdbc-url to an H2 in-memory database
      */
     boolean localDb() default false;
 
     /**
-     * Whether to use a random port for the service
+     * Use randomly generated server ports
      */
     boolean randomPort() default false;
 
     /**
-     * Whether to use lazy loading mode for unit tests
+     * Default to lazy mode when running unit tests
      */
     BeanContainerStartMode beanContainerStartMode() default BeanContainerStartMode.ALL_LAZY;
 
     /**
-     * Whether to automatically load configurations from/nop/auto-config/ directories
+     * Whether to automatically load xxx.beans configurations under /nop/auto-config/
      */
     boolean enableAutoConfig() default true;
 
@@ -536,46 +458,51 @@ public @interface NopTestConfig {
     String autoConfigSkipPattern() default "";
 
     /**
-     * Configuration file for unit test beans
+     * Beans configuration file specified for unit tests
      */
     String testBeansFile() default "";
 
     /**
-     * Configuration file for unit test configurations
+     * Properties configuration file specified for unit tests
      */
     String testConfigFile() default "";
 }
 
 
 @NopTestConfig
-public class MyTestCase extends JunitBaseTestCase {
-    // Can be injected into the Bean container using @Inject
+public class MyTestCase extends JunitBaseTestCase{
+    // Inject beans managed by the container via @Inject
     @Inject
     IGraphQLEngine engine;
 }
 ```
 
-NopIoC's JUnit support provides the following features:
+NopIoC’s JUnit support provides the following features:
 
-1. Whether to use an in-memory database for testing instead of the database connection specified in the configuration files  
-2. Whether to enable auto-config, controlling which modules are enabled for auto-config  
-3. Whether to import test-specific beans configurations  
-4. Whether to import test-specific properties configurations  
-5. Support for injecting beans into test cases using @Inject  
+1. Control whether to use a test in-memory database to replace the database connection specified in the configuration file
 
-For detailed information about Nop platform's automation support, please refer to my previous articles.
+2. Control whether to enable autoconfig and which module autoconfigs to use
 
-[Automation in Low-Code Platforms](https://zhuanlan.zhihu.com/p/569315603)
+3. Control whether to introduce test-specific beans configurations
+
+4. Control whether to introduce test-specific properties configurations
+
+5. Support injecting beans in test cases via @Inject
+
+For a detailed introduction to automation in the Nop platform, see my previous article:
+
+[Automated Testing in Low-Code Platforms](https://zhuanlan.zhihu.com/p/569315603)
 
 ## Summary
 
-The Nop platform is built from scratch based on reversible computation principles. NopIoC is a modular component of the Nop platform. All other modules in the Nop platform do not directly depend on NopIoC. In principle, any implementation that satisfies the IBeanContainer interface can replace NopIoC's implementation. However, compared to frameworks like Spring/Quarkus, NopIoC has some unique design aspects, particularly based on reversible computation principles for layered abstraction, allowing it to provide a rich and complex feature set while maintaining simplicity.
+The Nop platform is a low-code development platform built from scratch based on the principles of Reversible Computation. NopIoC is an optional component of the Nop platform. All other modules in the Nop platform have no direct dependency on NopIoC; in principle, as long as the IBeanContainer interface is implemented, NopIoC can be replaced. However, compared with frameworks like Spring/Quarkus, NopIoC has some unique designs—especially the layered abstractions implemented based on Reversible Computation—which allow it to provide a very rich, complex feature set while maintaining a simple structure.
 
-For detailed information about reversible computing theory, please refer to my previous articles.
+For a detailed introduction to Reversible Computation theory, see my previous articles:
 
-[Reversible Computing: The Next Generation of Software Construction Theory](https://zhuanlan.zhihu.com/p/64004026)
+[Reversible Computation: Next-Generation Software Construction Theory](https://zhuanlan.zhihu.com/p/64004026)
 
-[Technical Implementation of Reversible Computing](https://zhuanlan.zhihu.com/p/163852896)
+[Technical Implementation of Reversible Computation](https://zhuanlan.zhihu.com/p/163852896)
 
-[Exploring Nop Platform's Design from Tensor's Perspective](https://zhuanlan.zhihu.com/p/531474176)
+[Low-Code Platform Design through the Lens of Tensor Products](https://zhuanlan.zhihu.com/p/531474176)
 
+<!-- SOURCE_MD5:c7182078e801ed6d4e0cd39b93223291-->

@@ -1,56 +1,60 @@
-# General Workflow Designer
+# General Flow Designer
 
-Workflow, logic flow, approval flow, etc., are all similar in their visual representation. They define a set of nodes and connections that can be dragged and edited.
+Workflow, logic flow, and approval flow visual designers share similar structures: they define a set of nodes and connections, allow dragging nodes, editing node properties, and so on.
 
-The Nop platform provides a built-in general workflow designer, which can be customized based on the meta-model to generate a specific workflow designer. The specific steps are as follows:
+The Nop Platform provides a built-in general flow designer that can generate a specific flow designer based on a meta-model definition. The steps are as follows:
 
-## Steps to Generate the Workflow Designer
+## Steps to Generate a Flow Designer
 
-1. Design a specific workflow designer model based on graph-designer.xdef, such as oa-flow.graph-designer.xml
-2. Use FlowBuilderGenerator to generate a JS library from oa-flow.graph-designer.xml. The front-end can load this workflow definition library using the SystemJs package dynamic loading mechanism.
-3. In the front-end's amis page, there is an embedded nop-graph-designer control. It loads workflow graph data via initApi and saves it via saveApi. The internal editor identifies the workflow type and uses the dynamically loaded workflow definition library.
+1. Design a concrete flow designer model based on graph-designer.xdef, for example, oa-flow.graph-designer.xml
+2. FlowBuilderGenerator generates a JS library from oa-flow.graph-designer.xml; the frontend can dynamically load this flow definition library using the SystemJs package loading mechanism
+3. On the frontend amis page, the nop-graph-designer control is built in. It loads flowchart data via initApi and saves it via saveApi.
+   Its internal editor will recognize the flow type and use the dynamically loaded flow definition library.
 
-## Workflow Data
+## Flowchart Data
 
-When editing in the front-end editor, the data is divided into two parts: `diagram` (for visual representation, such as node position, size, style, etc.) and `data` (additional business data attached to nodes and connections).
+When editing in the frontend editor, data is split into two parts: diagram and data. diagram corresponds to the graphical display data, such as node position, size, style, etc., while data refers to additional business data attached to nodes and connections.
 
-## Workflow Model Conversion
+## Flow Model Transformation
 
-The meta-model of NopWorkflow is defined by xwf.xdef. It is a general workflow model supporting concepts like step, action, transition, and actor. However, it is not specifically designed for approval workflows, which lack concepts like signature and approval-specific terms.
+The NopWorkflow meta-model is defined by the xwf.xdef meta-model. It is a general workflow model that supports core workflow concepts such as step/action/transition/actor, but it is not a flow engine specifically designed for approval flows.
+Therefore, core concepts such as countersign and OR-sign, which are specific to approvals, are not present. A workflow model is far more powerful than an approval flow model; however, in terms of configuration and usage, for approval scenarios the approval flow model is simpler and easier to use.
 
-Therefore, the core concepts in the workflow model are more comprehensive than those of approval workflows. NopWorkflow's approach uses meta-programming to convert approval workflows into a base workflow model, allowing it to balance ease of use with the flexibility of the underlying engine.
+NopWorkflow uses metaprogramming to transform the approval flow model into the underlying workflow model, thereby balancing the model’s ease of use with the generality of the underlying engine.
 
-## Framework-Independent Low-Code Solution
+## Framework-agnostic Low-code Solution
 
-The front-end module `@nop-chaos/nop-core` provides an abstract RenderContext type. This allows low-code rendering and inter-component communication, as well as remote calls, to be defined in a framework-independent manner.
+The frontend `@nop-chaos/nop-core` module provides the RenderContext abstraction, which defines low-code rendering, inter-component communication, and remote invocation in a framework-agnostic manner.
 
 ```javascript
 type RenderContext = {
     /**
-     * Renders a JSON object into a virtual DOM type. Different frameworks may implement this differently.
+     * Render a JSON object into a virtual DOM type. Different frameworks have different implementations
      */
-    render: (name: string, schema: SchemaType, props: any, ctx: any) => VDomType,
+    render: (name:string, schema: SchemaType, props:any, ctx:any) => VDomType,
 
     /**
-     * Dynamically executes an AJAX call.
+     * Dynamically execute an AJAX call,
      */
-    executor: (request: FetcherRequest, ctx: any) => Promise<FetcherResult>,
+    executor: (request: FetcherRequest, ctx:any) => Promise<FetcherResult>,
 
     /**
-     * Triggers a custom action via event bubbling.
+     * Bubble up to trigger a custom action
      */
-    onEvent: (event: string, data: any, ctx: any) => any
+    onEvent: (event:string, data:any, ctx:any) => any
 
     /**
-     * Listens to events triggered by sibling or parent nodes.
-     * @param source The identifier of the sibling or parent node
-     * @param handler The callback function
+     * Listen to events triggered by sibling or parent nodes
+     * @param source Identifier of the sibling or parent node
+     * @param handler Callback function
      */
     observeEvent: (source: string, handler: OnEventType) => void
 }
 ```
 
-* The `render` function can be used to encapsulate amis or fomily, etc., for JSON-based front-end low-code frameworks.
-* The `executor` function can perform remote API calls via the description-based mechanism, executing asynchronous AJAX requests and handling errors.
-* The `onEvent` function can be used to trigger custom actions on parent nodes.
-* The `observeEvent` function can monitor events from sibling or parent nodes.
+* The render function can be used to wrap any frontend low-code framework that renders from JSON, such as amis or fomily
+* The executor function can execute AJAX requests based on declarative remote API calls and return results asynchronously, automatically handling loading states and error message prompts
+* The onEvent function can be used to notify the parent node that an event occurred on the current object
+* observeEvent can be used to listen for events occurring in parent or sibling nodes
+
+<!-- SOURCE_MD5:fa0a882373bd321aff5185d33b88c275-->

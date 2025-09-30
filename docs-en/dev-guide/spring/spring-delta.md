@@ -1,31 +1,33 @@
+
 # How to Add Reversible Computation Support to Spring and Mybatis
 
-Mybatis manages SQL statements in XML configuration files, claimed to allow customization of database access logic without modifying source code, such as adapting to different database dialects. However, in practical usage, if the XML file has been packaged into a Jar package, even customizing a single SQL statement requires copying the entire configuration file, which is a design flaw.
+The SQL statements managed by Mybatis are stored in XML configuration files, claiming that database access logic can be customized via configuration without modifying the source code, such as adapting to different database dialects.
+However, in practice, if the XML files have been packaged into a JAR, even customizing a single SQL statement requires copying the entire configuration file, which is clearly a design flaw.
+The theory of Reversible Computation provides a unified Delta-based customization syntax for all DSLs. Leveraging the Nop platform infrastructure, we only need to add a small amount of code to intercept Mybatis’s configuration loading process to introduce Reversible Computation support into the Mybatis framework, enabling fine-grained, Delta-based customization. By analogy, the same approach can be applied to adapting the Spring framework.
 
-Reversible computation theory provides a unified delta customization syntax for all DSL languages. By leveraging the Nop platform's infrastructure, we can intercept Mybatis' configuration file loading process with minimal additional code and thereby introduce reversible computation support to the Mybatis framework, enabling fine-grained delta customization. The same approach can be applied to modify the Spring framework.
+## I. Delta Customization for Mybatis
 
-## 1. Mybatis Delta Customization
+Mybatis has a simple split/aggregate mechanism: multiple XML files can share the same namespace and thus be aggregated into a single unified Mapper interface.
 
-Mybatis has an inherent simple decomposition and aggregation mechanism: multiple XML files can have the same namespace, which are aggregated into a single unified Mapper interface.
+> In Mybatis, the namespace configuration corresponds to the Java class name of the Mapper interface
 
-> In Mybatis, the namespace configuration corresponds to the Java class name of the Mapper interface.
+In a model-driven development mode, we typically auto-generate a set of CRUD SQL statements based on the model, store them in a dedicated Mapper file, and map these statements through a standard BaseMapper interface.
+We then generate a derived interface from BaseMapper to map hand-written SQL statements. For example:
 
-Under model-driven development, we typically generate a set of CRUD SQL statements based on models and store them in separate Mapper files. These SQL statements are mapped to a standard BaseMapper interface. Additionally, a derived interface is generated for mapping manually written SQL statements. For example:
+1. Code-generated [\_SysUser.mapper.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-spring-demo/src/test/resources/_vfs/nop/spring/mapper/_gen/_SysUser.mapper.xml)
+2. Manually written [SysUser.mapper.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-spring-demo/src/test/resources/_vfs/nop/spring/mapper/SysUser.mapper.xml),
+   which shares the same namespace as the auto-generated Mapper.
+3. Add the Java interface [SysUserMapper](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-spring-demo/src/test/java/io/nop/demo/spring/SysUserMapper.java), which inherits from the BaseMapper interface to avoid redefining the standard CRUD methods.
 
-1. Generate [\_SysUser.mapper.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-spring-demo/src/test/resources/_vfs/nop/spring/mapper/_gen/_SysUser.mapper.xml) file
-2. Manually write [SysUser.mapper.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-spring-demo/src/test/resources/_vfs/nop/spring/mapper/SysUser.mapper.xml), which shares the same namespace with the automatically generated Mapper
-3. Implement Java interface [SysUserMapper](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-spring-demo/src/test/java/io/nop/demo/spring/SysUserMapper.java), inheriting from the BaseMapper interface to avoid defining standard CRUD functions repeatedly.
+If we want to achieve incremental model-driven development, each code generation run needs to directly overwrite the \_SysUser.mapper.xml file, ensuring that code and model remain in sync.
+What if the auto-generated SQL doesn’t meet our needs? One option is to modify the code generator, but that would affect all modules using this generator. Another option is to declare that SysUser.mapper.xml inherits from \_SysUer.mapper.xml and implement SQL statements with the same names in SysUser.mapper.xml, hoping to override the auto-generated SQL like object inheritance. Unfortunately, Mybatis does not support file inheritance: if multiple XML files contain SQL statements with the same names, it will report an error.
 
-To implement incremental model-driven development, we need to directly override [\_SysUser.mapper.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-spring-demo/src/test/resources/_vfs/nop/spring/mapper/_gen/_SysUser.mapper.xml) each time the code is generated, ensuring consistency between code and models.
+## Mapper File Scanning and Registration
 
-If the automatically generated SQL statements do not meet requirements, one approach is to modify the code generator, which would affect all modules using it. Another approach is to specify that [\_SysUser.mapper.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-spring-demo/src/test/resources/_vfs/nop/spring/mapper/_gen/_SysUser.mapper.xml) should inherit from manually written SQL statements, similar to class inheritance. However, **Mybatis does not support file inheritance**, and having multiple XML files with the same namespace will result in errors.
+Based on the Nop platform, Mybatis can be adapted as follows:
 
-## 2. Mapper File Scanning and Registration
-
-Using the Nop platform, Mybatis can be modified as follows:
-
-1. Add [mapper.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-spring/nop-spring-delta/src/main/resources/_vfs/nop/spring/schema/mapper.xdef) metadata definition to define two nodes for delta merging
-2. Use NopMybatisSessionFactoryCustomizer to scan and register Mapper files on the Nop platform, leveraging its DSL file loader.
+1. Add the [mapper.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-spring/nop-spring-delta/src/main/resources/_vfs/nop/spring/schema/mapper.xdef) meta-model definition to specify how two nodes are Delta-merged
+2. Add NopMybatisSessionFactoryCustomizer, which uses the Nop platform’s DSL file loader to load mapper files
 
 ```java
 @Service
@@ -39,7 +41,7 @@ public class NopMybatisSessionFactoryCustomizer implements SqlSessionFactoryBean
         if (!resources.isEmpty()) {
             List<Resource> locations = new ArrayList<>(resources.size());
             for (IResource resource : resources) {
-                // Ignore automatically generated mapper files; they should only exist as base classes
+                // Ignore auto-generated mapper files; they can only serve as base classes
                 if (resource.getName().startsWith("_"))
                     continue;
 
@@ -51,7 +53,7 @@ public class NopMybatisSessionFactoryCustomizer implements SqlSessionFactoryBean
                         "<!DOCTYPE mapper\n" +
                         "        PUBLIC \"-//mybatis.org//DTD Mapper 3.0//EN\"\n" +
                         "        \"http://mybatis.org/dtd/mybatis-3-mapper.dtd\">\n" + node.xml();
-                locations.add(new ByteArrayResource(xml.getBytes(StandardCharsets.UTF_8)), resource.getPath());
+                locations.add(new ByteArrayResource(xml.getBytes(StandardCharsets.UTF_8), resource.getPath()));
             }
             factoryBean.addMapperLocations(locations.toArray(new Resource[0]));
         }
@@ -59,16 +61,18 @@ public class NopMybatisSessionFactoryCustomizer implements SqlSessionFactoryBean
 }
 ```
 
-* Use ModuleManager.findModuleResources to scan all modules' mapper directories and collect all resources with the suffix .mapper.xml.
+* Use ModuleManager.findModuleResources to scan the mapper directories of all modules and collect all resources with the mapper.xml suffix
 
-* DslNodeLoader.loadFromResource will parse the XML file, perform Delta merging, and return the composed XNode node.
+* DslNodeLoader.loadFromResource parses the XML files, performs the Delta merge algorithm, and returns the synthesized XNode.
 
-* Serialize the XNode content into bytes, then wrap it in a Spring-provided Resource interface, and register it with Mybatis's SqlSessionFactoryBean.
+* Serialize the contents of the XNode to bytes, wrap them as Spring’s built-in Resource, and register them with Mybatis’s SqlSessionFactoryBean
 
-DslNodeLoader loads DSL files and automatically identifies the delta directory. If it finds a file named similarly in the `_vfs/_delta/default/` directory, it will prioritize loading from there. For example: [SysUser.mapper.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-spring-demo/src/test/resources/_vfs/_delta/default/nop/spring/mapper/SysUser.mapper.xml)
+When DslNodeLoader loads DSL files, it automatically recognizes the delta directory. If a file with the same name exists under `/_vfs/_delta/default/`, it will prefer the file in the delta directory. For example [SysUser.mapper.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-spring-demo/src/test/resources/_vfs/_delta/default/nop/spring/mapper/SysUser.mapper.xml)
+
 ```xml
 <mapper x:extends="super" x:schema="/nop/spring/schema/mapper.xdef" xmlns:x="/nop/schema/xdsl.xdef">
-    <!-- Custom usage of nop_auth_user table -->
+
+    <!-- Customize to use table nop_auth_user -->
     <sql id="selectUserVo">
         select u.user_id, u.dept_id, u.user_name, u.nick_name
         from nop_auth_user u
@@ -76,12 +80,14 @@ DslNodeLoader loads DSL files and automatically identifies the delta directory. 
 </mapper>
 ```
 
-## Delta Customization
+In a customization file under the delta directory, we can use `x:extends="super"` to indicate inheritance from the DSL file at the original path.
 
-Based on the Nop platform, Mybatis can be modified as follows:
+## II. Delta Customization for Spring
 
-1. **Increase [beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef) model definition**: Define how two nodes perform delta merging.
-2. **Add NopBeansRegistrar**: Utilize the Nop platform's DSL file loader to load mapper files.
+Based on the Nop platform, Spring can be adapted as follows:
+
+1. Add the [beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef) meta-model definition to specify how two nodes are Delta-merged
+2. Add NopBeansRegistrar, which uses the Nop platform’s DSL file loader to load beans files
 
 ```java
 @Import(NopBeansAutoConfiguration.NopBeansRegistrar.class)
@@ -91,17 +97,15 @@ public class NopBeansAutoConfiguration {
     public static class NopBeansRegistrar implements ImportBeanDefinitionRegistrar {
         @Override
         public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata,
-                                        BeanDefinitionRegistry registry) {
+                                            BeanDefinitionRegistry registry) {
             List<IResource> resources = ModuleManager.instance().findModuleResources("/beans", "beans.xml");
-            if (resources.isEmpty()) {
+            if (resources.isEmpty())
                 return;
-            }
 
             XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(registry);
             for (IResource resource : resources) {
-                if (!resource.getName().startsWith("spring-")) {
+                if (!resource.getName().startsWith("spring-"))
                     continue;
-                }
 
                 XDslExtendResult result = DslNodeLoader.INSTANCE.loadFromResource(resource);
                 XNode node = result.getNode();
@@ -111,31 +115,26 @@ public class NopBeansAutoConfiguration {
                 reader.loadBeanDefinitions(springResource);
             }
         }
-    }
+   }
 }
 ```
 
-The process is similar to NopMybatisSessionFactoryCustomizer.
+The handling is similar to NopMybatisSessionFactoryCustomizer.
 
-Using the delta customization feature of beans.xml, we can also extend Mybatis's Mapper interface.
+Using the Delta customization capabilities of beans.xml, we can also extend Mybatis Mapper interfaces.
 
+1. Define sysUserMapper in [spring-demo.beans.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-spring-demo/src/test/resources/_vfs/nop/spring/beans/spring-demo.beans.xml). NopBeansRegistrar will automatically scan all modules’ beans directories for beans configuration files prefixed with "spring-". (When using this registration approach, do not use the MapperScan annotation.)
 
+2. Inherit from the SysUserMapper interface and implement an extended interface, SysUserMapperEx, in which additional SQL invocation methods can be added.
 
-The `sysUserMapper` is defined in the [Spring-Demo.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-spring-demo/src/test/resources/_vfs/nop/spring/beans/spring-demo.beans.xml) file. The `NopBeansRegistrar` automatically scans all modules' `beans` directories for files prefixed with "spring". Note: Do not use the `MapperScan` annotation.
-
-
-
-The `SysUserMapper` interface is inherited, and an extended interface `SysUserMapperEx` can be implemented to add extended SQL invocation methods.
-
-
-
-In the `delta` directory, you can customize the [Spring-Demo.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-spring-demo/src/test/resources/_vfs/_delta/default/nop/spring/beans/spring-demo.beans.xml) file by setting the `mapperTypeEx` property to the extended interface type.
+3. In the delta directory, customize [spring-demo.beans.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-spring-demo/src/test/resources/_vfs/_delta/default/nop/spring/beans/spring-demo.beans.xml), setting the mapperTypeEx attribute to the extended interface type.
 
 ```xml
-<bean id="sysUserMapper" parent="nopBaseMapper">
-    <property name="mapperInterface" value="io.nop.demo.spring.SysUserMapper"/>
-</bean>
+    <bean id="sysUserMapper" parent="nopBaseMapper">
+        <property name="mapperInterface" value="io.nop.demo.spring.SysUserMapper"/>
+    </bean>
 ```
 
-Through this method, we extend the existing `mapper` and `beans` files by adding a separate `delta` module. This allows for the extension of the `Mapper` interface.
+With this approach, by adding a separate delta module we can customize existing mapper and beans files and implement extensions to Mapper interfaces.
 
+<!-- SOURCE_MD5:761b4153620a84e7599efa7b9181079d-->

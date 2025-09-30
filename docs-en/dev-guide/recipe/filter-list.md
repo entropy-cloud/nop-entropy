@@ -1,46 +1,38 @@
-# How to Implement List Data Filtering
 
+# How to implement filtering for list data
 
-## Problem
-The problem is to add a filter condition to the table, for example, to display only data where `type=2` or to show only data that the user has permission to see.
+Problem: We want to add filter criteria to a table, such as showing only data with type=2, or showing only data the user is authorized to see.
+There are multiple solutions:
 
+## 1. Filter via data authorization
 
-## Solutions
-Several solutions exist:
+The backend built-in actions findPage, findList, and findFirst all apply the data authorization check interface IDataAuthChecker.
+Enable data authorization via nop.auth.enable-data-auth, default is true.
 
----
-
-
-## 1. Implement Filtering via Data Permissions
-In the backend, built-in actions such as `findPage`, `findList`, and `findFirst` will apply data permissions using the `IDataAuthChecker` interface. Data permissions can be enabled by setting `nop.auth.enable-data-auth` to `true` (default is `true`).
-
-
-## Configuration via Auth Module
-Filtering can be configured through the `auth` module's data permission menu, which corresponds to the `NopAuthRoleDataAuth` table.
-Configuration can also be done in the `/nop/main/auth/app.data-auth.xml` file.
+* Configure data authorization via the data authorization menu in the auth module; it corresponds to the NopAuthRoleDataAuth table.
+* Configure data authorization in the /nop/main/auth/app.data-auth.xml file.
 
 ```xml
 <data-auth>
-  <objs>
-    <obj name="MyEntity">
-      <role-auths>
-        <role-auth roleId="manager">
-          <filter>
-            <eq name="type" value="1" />
-          </filter>
-        </role-auth>
-      </role-auths>
-    </obj>
-  </objs>
+    <objs>
+        <obj name="MyEntity">
+            <role-auths>
+                <role-auth roleId="manager">
+                    <filter>
+                        <eq name="type" value="1" />
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+    </objs>
 </data-auth>
 ```
 
-For detailed configuration, refer to [auth.md](../auth/auth.md).
+For detailed data authorization configuration, see [auth.md](../auth/auth.md)
 
----
+## 2. Append filter criteria on the frontend
 
-
-In the `XView` model, you can define a `grid` with a `filter` condition. When querying data from this grid, the filter condition will automatically be included.
+The grid defined in the XView model can configure filter conditions; queries issued by tables generated from this grid will automatically include these filters.
 
 ```xml
 <grid id="list">
@@ -54,133 +46,124 @@ In the `XView` model, you can define a `grid` with a `filter` condition. When qu
 </grid>
 ```
 
-**Note:** The conditions defined in the `grid` are propagated to the backend as query conditions.
+Note that the conditions configured in the grid are propagated to the backend as frontend query conditions.
 
----
+## 3. Configure filter conditions in backend XMeta objects
 
-
-In the `xmeta` configuration file, you can define a `filter` condition. If this filter is configured in the metadata (`meta`), then when creating or editing an entity, this filter will automatically be applied based on the configured values.
-
-For example:
+The xmeta configuration file can specify filter conditions. If configured in meta, create and update operations will automatically set fields according to these filters. For example:
 
 ```xml
 <filter>
-  <eq name="type" value="1" />
+   <eq name="type" value="1" />
 </filter>
 ```
 
-When adding a new entity or modifying an existing one, the `type` field will be set to `1`. If you need to create a new metadata (`meta`) for this filter, you can extend it as follows:
+Then both create and update operations will set type=1.
+
+Based on an existing xmeta, you can create a new xmeta. For example, MyEntity_ext.xmeta
 
 ```xml
 <meta x:extends="MyEntity.xmeta">
   <filter>
-    <eq name="type" value="1" />
+     <eq name="type" value="1" />
   </filter>
 </meta>
 ```
 
-In the frontend, when querying using `MyEntity_ext`, the metadata (`meta`) will automatically apply the filter. For example:
+Use the object name `MyEntity_ext` on the frontend and this meta will be applied automatically. For example:
 
 ```graphql
-query {
-  MyEntity_ext_findPage {
-    ...
-  }
+query{
+   MyEntity_ext__findPage{
+      ...
+   }
 }
 ```
 
-The filter conditions added via `meta` are appended in the backend and not visible in the frontend. These filters will be applied during creation and editing, ensuring that new entities and modified entities meet the filtering requirements.
+Filters added in meta are appended on the backend and are invisible to the frontend. They also affect create and update operations; create and update will set values per the filters, ensuring the entity meets the filter requirements.
 
----
+## 4. Add new methods in the backend BizModel
 
-
-
-
-
-## 1. Business Logic Model Class
 ```java
-class MyEntityBizModel extends CrudBizModel<MyEntity> {
+class MyEntityBizModel extends CrudBizModel<MyEntity>{
     @BizQuery
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
-    public PageBean<T> findPage_ext(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
-                                    FieldSelectionBean selection, IServiceContext context) {
-        if (query != null) {
+    public PageBean<T> findPage_ext(@Name("query") @Description("@i18n:biz.query|Query Conditions") QueryBean query,
+                                FieldSelectionBean selection, IServiceContext context) {
+        if (query != null)
             query.setDisableLogicalDelete(false);
-        }
 
         return doFindPage(query, this::addExtQuery, selection, context);
     }
 
     protected void defaultPrepareQuery(@Name("query") QueryBean query, IServiceContext context) {
-        query.addFilter(FilterBeans.eq(MyEntity.PROP_NAME_status, 1));
+        query.addFilter(FilterBeans.eq(MyEntity.PROP_NAME_status,1));
     }
 }
 ```
 
-
-## 2. Front-end Development
-In the front-end, you can inherit existing pages and customize their API request links.
+On the frontend you can extend an existing page and customize the API request URL therein.
 
 ```xml
 <form id="edit">
   <cells>
     <cell id="productId">
-      <gen-control>
-        return {
-            "x:extends": "xxx.page.yaml",
-            initApi: {
-                url: "@query:MyEntity__findPage_ext/{@gridSelection}"
+       <gen-control>
+          return {
+                "x:extends":"xxx.page.yaml",
+                initApi: {
+                   url: "@query:MyEntity__findPage_ext/{@gridSelection}"
+                }
             }
-        }
-      </gen-control>
+       </gen-control>
     </cell>
   </cells>
 </form>
 ```
 
-
-You can use subqueries to filter data.
+## 5. Filter using subqueries
 
 ```xml
 <filter>
     <eq name="type" value="${3}" />
     <filter:sql xpl:lib="/nop/core/xlib/filter.xlib">
         o.id in (
-            select t.task.id from MyTask t
-            where t.userId = ${ $context.userId || '1' }
+          select t.task.id from MyTask t
+          where t.userId = ${ $context.userId || '1' }
         )
     </filter:sql>
 </filter>
 ```
 
-In this filter, `o` represents the current entity class. The entire `<filter>` block will be translated into a WHERE clause.
+`<filter:sql>` will generate a filter of the form `<sql value="SQL" />`.
 
-Translated SQL:
+Here, `o` denotes the current entity; the entire filter block will be translated into a WHERE clause. For example, the above filter will be translated as:
+
 ```sql
 o.type = 3
 and o.id in (
-    select t.task.id from MyTask t
-    where t.userId = ${ $context.userId || '1' }
+  select t.task.id from MyTask t
+  where t.userId = ${ $context.userId || '1' }
 )
 ```
 
+> The value attribute of the sql node must be of SQL type, not a simple text string. This convention is intended to prevent SQL injection via subqueries inserted by frontend-submitted filter conditions. Requiring value to be of SQL type means it can only be constructed programmatically on the backend.
 
-The `<sql>` node's `value` attribute must be set to SQL type, not a simple text string. This is done to prevent frontend submitted filters from being injected as raw SQL queries.
-
-In Java programs, you can construct safe SQL queries using the following approach:
+In Java you can append subquery conditions as follows:
 
 ```java
-QueryBean query = ...;
-SQL sql = SQL.begin().sql("o.id in (select t.task.id from MyTask t where t.userId = ?", userId).end();
-query.addFilter(FilterBeans.assertOp("sql", sql));
+QueryBean query= ...;
+SQL sql = SQL.begin().sql("o.id in (select t.task.id from MyTask t where t.userId = ?",userId).end();
+query.addFilter(FilterBeans.assertOp("sql",sql));
 ```
 
-`SQL.begin()` returns an `SqlBuilder` object that provides methods to simplify SQL statement construction.
+SQL.begin() returns a SqlBuilder object that provides many helper functions to simplify SQL building.
 
-
+## 6. Configure filter conditions in XBiz model files
 
 ```xml
 <query name="active_findPage" x:prototype="findPage">
+
     <source>
         <c:import class="io.nop.auth.api.AuthApiConstants" />
 
@@ -193,14 +176,14 @@ query.addFilter(FilterBeans.assertOp("sql", sql));
 </query>
 ```
 
-* In the `xbiz` file, the configuration has higher priority than in `BizModel`. If the function name matches that of `BizModel`, it will override the Java implementation.
+* Methods configured in xbiz files take precedence; if a method shares the same name as one in the Java BizModel, it will override the Java implementation.
 
-* `bo.xlib` provides a series of default implementations. Additional filter conditions can be added based on these defaults.
+* bo.xlib provides a series of default implementations; we can add extra filters on top of the defaults.
 
-* The `xbiz` file already includes standard CRUD functions like `findPage/findList/save/update` in their parameter declarations. By inheriting existing configurations using `x:prototype="findPage"`, similar function writing can be simplified.
-  - Generally, when extending standard functions, use naming rules `{extName}_{stdName}` for consistency. This allows the frontend to automatically infer parameter types and return types for GraphQL calls, thus avoiding redundant type declarations in the frontend.
+* Auto-generated xbiz files already include parameter declarations for standard CRUD functions like findPage/findList/save/update. By inheriting existing configurations with `x:prototype="findPage"`, we can simplify writing similar functions.
+  For extensions of standard functions, we generally adopt the naming rule `{extName}_{stdName}`, allowing the frontend to automatically infer the parameter and return types for GraphQL calls, thus avoiding type declarations on the frontend.
 
-* The code below is fully expanded and corresponds to the following code (can be viewed in the `_dump` directory):
+The above code, when fully expanded, corresponds to the following (you can check under the `_dump` directory):
 
 ```xml
 <!--LOC:[49:26:0:0]/nop/core/xlib/biz-gen.xlib#/nop/auth/model/NopAuthUser/_NopAuthUser.xbiz
@@ -223,42 +206,58 @@ query.addFilter(FilterBeans.assertOp("sql", sql));
 </query>
 ```
 
-## 7. Adding Filters for Sub-Entities
+## 7. Add filter conditions to child-table properties
 
-In `xmeta`, you can configure `graphql:queryMethod` for sub-entities, which corresponds to the `GraphQLQueryMethod` enum. The values include `findCount`, `findFirst`, `findList`, `findPage`, and `findConnection`.
-- `findPage` represents a paginated query returning a `PageBean` object.
-- `findConnection` refers to a paginated query returning a `GraphQLConnection` object.
+In xmeta you can configure `graphql:queryMethod` for child-table properties; its value corresponds to the GraphqlQLQueryMethod enum, including findCount/findFirst/findList/findPage/findConnection.
+Among them, findPage indicates a paginated query returning a PageBean object, while findConnection indicates a paginated query returning a GraphQLConnection object.
 
-> Connection is a concept in the **GraphQL Relay** framework. For detailed information, refer to [connection.md](../graphql/connection.md).
+> Connection is a concept in the GraphQL Relay framework; for details, see [connection.md](../graphql/connection.md)
 
-
-
-## 8. Filter main table records based on child table attributes
-
-
-
-
-
-
-
-
-
-
+A prop specified with `graphql:queryMethod` supports pagination and sorting criteria; the concrete type corresponds to `GraphQLConnectionInput`.
 
 ```xml
-<prop name="myCustomFilter" queryable="true">
-  <graphql:transFilter>
-    <filter:sql>
-      exists(
-        select o2 from NopAuthResource o2 where o2.siteId = o.id
-          and o2.status >= ${ filter.getAttr('value') }
-      )
-    </filter:sql>
-  </graphql:transFilter>
+<prop name="resourcesConnection" graphql:queryMethod="findConnection">
+  <schema bizObjName="NopAuthResource" />
+
+  <graphql:filter>
+     <eq name="siteId" value="@prop-ref:siteId" />
+  </graphql:filter>
+
+  <graphql:orderBy>
+     <field name="displayName" desc="false" />
+  </graphql:orderBy>
 </prop>
 ```
 
-* The `queryable="true` attribute can be used to include this condition in the front-end query conditions.
-* `graphql:transFilter` is a function. It exists in the context as a filter object corresponding to the name specified for this filter.
-* `<filter:sql>` is a tag defined in `filter.xlib`. It wraps dynamically generated SQL statements as a `$type=sql` TreeBean object for database queries.
+Use `graphql:filter` and `graphql:orderBy` to specify filtering and sorting for child-table queries. In filter conditions, the form `@prop-ref:{propName}` denotes referencing a property of the current entity.
+With this syntax we bypass the ORM engine to implement associated queries between arbitrary entities.
 
+If the ORM engine has already defined an associated object property, we can simplify by using `graphql:connectionProp` to specify the corresponding ORM property and obtain its association condition definition to replace `graphql:filter`.
+
+```xml
+<prop name="resourcesConnection" graphql:queryMethod="findConnection" graphql:connectionProp="resources" />
+```
+
+## 8. Filter master records based on child-table properties
+
+QueryBean provides the transformFilter function, which can structurally transform frontend-submitted query conditions, for example, converting the condition of the myCustomFilter field into a subquery condition.
+
+In XMeta you can define the transformation logic via the `graphql:transFilter` child node of the prop node.
+
+```xml
+  <prop name="myCustomFilter" queryable="true">
+      <graphql:transFilter>
+          <filter:sql>
+              exists( select o2 from NopAuthResource o2 where o2.siteId= o.id
+                and o2.status >= ${ filter.getAttr('value') }
+              )
+          </filter:sql>
+      </graphql:transFilter>
+  </prop>
+```
+
+* A property with `queryable=true` can be used in filter conditions submitted by the frontend. The field does not need to be an actual entity attribute.
+* `graphql:transFilter` is a function; the context contains a filter object, which corresponds to a TreeBean whose name is the specified property.
+* `<filter:sql>` is a tag defined in `filter.xlib`; it can wrap a dynamically generated SQL statement into a TreeBean with `$type=sql`, used as a database query condition.
+
+<!-- SOURCE_MD5:a90a3590137058325b029cbd4d8b6bd8-->

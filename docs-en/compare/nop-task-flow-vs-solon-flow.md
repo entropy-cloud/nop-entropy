@@ -1,52 +1,55 @@
-# Comparison of NopTaskFlow and SolonFlow Logic Engines
 
-solon-flow is a domestically produced open-source development framework with an embedded foundational flow engine. It can be used for business rules, decision-making, orchestration, and process approval across various scenarios (where "flow processing" refers to workflow or business process management). The design of solon-flow is lightweight, with implemented functions being relatively basic. Its architecture shares some similarities with Nop's built-in logic orchestration engine, NopTaskFlow. This comparison provides an opportunity for analysis, allowing us to clearly see the fundamental differences between the Nop platform and traditional development platforms in terms of underlying design.
+# Design Comparison Between the NopTaskFlow and SolonFlow Logical Orchestration Engines
 
-The Nop platform is based on reversible computation theory and has built a comprehensive technological infrastructure. This means that when developing any engine (such as ORM engines, rule engines, or orchestration engines), you don't need to design separate scalable mechanisms for each engine; instead, you can directly reuse the common scalable design provided by Nop. This significantly improves development efficiency and reduces development costs, enabling engines developed on the Nop platform to be more flexible in functionality extension and customization.
+solon-flow is a foundational stream-processing engine built into the domestic open-source development framework Solon, which can be used in various scenarios such as business rules, decision processing, compute orchestration, and workflow approvals (here, stream processing should refer to workflow or business flow processing). The design of solon-flow is very lightweight, and the functionality implemented so far is relatively simple. Its design bears certain similarities to the logical orchestration engine NopTaskFlow built into the Nop Platform, which gives us an opportunity for comparative analysis. Through comparison, we can clearly see the essential difference between the Nop Platform and traditional development platforms—namely, how the underlying platform automatically provides a general, extensible design.
+
+The Nop Platform is built on reversible computing theory and constructs a comprehensive set of general foundational technical infrastructure. This means that when developing any engine (such as an ORM engine, a rules engine, or a process orchestration engine), there is no need to design an extensibility mechanism for each engine separately; instead, you can directly reuse this general extensible design and its implementation. This greatly improves development efficiency, reduces development costs, and enables engines developed on the Nop Platform to be more flexible in functional extension and customization.
 
 ## 1. Simple Example: Order Discount Rules
 
-The following example is based on a simple discount rule for an order. It draws from a brief guide provided by solon-flow (see [Drools Rule Engine vs. solon-flow: Which is Better?](https://zhuanlan.zhihu.com/p/20299193626)).
+> Example source: [Which is better, the drools rules engine or solon-flow? solon-flow concise tutorial](https://zhuanlan.zhihu.com/p/20299193626)
 
-First, define the BookOrder entity:
+Solon’s concise tutorial provides a demonstration of implementing an order discount rule using solon-flow.
+
+First, define the entity class BookOrder:
 
 ```java
 @DataBean
 public class Order {
-    private Double originalPrice; // Original price, i.e., pre-discount price
-    private Double realPrice;   // Discounted price, i.e., post-discount price
+    private Double originalPrice; // Order’s original price, i.e., price before discount
+    private Double realPrice;     // Order’s actual price, i.e., price after discount
 }
 ```
 
-Next, define a YAML workflow model file `bookDiscount.yaml`:
+Second, define a YAML-format flow model file `bookDiscount.yaml`:
 
 ```yaml
 id: "book_discount"
 nodes:
   - type: "start"
   - id: "book_discount_1"
-    when: "order.originalPrice < 100"
+    when: "order.getOriginalPrice() < 100"
     task: |
-      order.realPrice = order.originalPrice;
+      order.setRealPrice(order.getOriginalPrice());
       System.out.println("No discount");
   - id: "book_discount_4"
-    when: "order.originalPrice >= 300"
+    when: "order.getOriginalPrice() >= 300"
     task: |
-      order.realPrice = order.originalPrice - 100;
-      System.out.println("Discounted by 100");
+      order.setRealPrice(order.getOriginalPrice() - 100);
+      System.out.println("Discount 100 yuan");
   - id: "book_discount_2"
-    when: "order.originalPrice < 200 && order.originalPrice > 100"
+    when: "order.getOriginalPrice() < 200 && order.getOriginalPrice() > 100"
     task: |
-      order.realPrice = order.originalPrice - 20;
-      System.out.println("Discounted by 20");
+      order.setRealPrice(order.getOriginalPrice() - 20);
+      System.out.println("Discount 20 yuan");
   - type: "end"
 ```
 
-Then, invoke the workflow using the following JavaScript test case:
+Then invoke the flow model as follows:
 
 ```javascript
-@Test
-public void testDiscount() {
+ @Test
+ public void testDiscount()
     FlowEngine flowEngine = FlowEngine.newInstance();
     flowEngine.load(Chain.parseByUri("classpath:flow/bookDiscount.yml"));
 
@@ -58,16 +61,13 @@ public void testDiscount() {
 
     flowEngine.eval("book_discount", ctx);
 
-    // Assert that the discount is applied correctly
+    // Price changed, saved 100 yuan
     assert bookOrder.getRealPrice() == 400;
 }
 ```
 
-## Key Features of NopTaskFlow
+**Although the core of NopTaskFlow (the nop-task-core module) has only about 3,000 lines of code, it is a very complete logical orchestration engine, supporting advanced features such as asynchronous execution, timeout retries, and resume-from-breakpoint.** Therefore, using NopTaskFlow, it is straightforward to implement the functionality demonstrated by solon-flow.
 
-While NopTaskFlow's core module, nop-task-core, consists of approximately 3,000 lines of code, it is a complete logic orchestration engine supporting asynchronous processing, timeout retries, and other advanced features. This makes it easy to implement the capabilities demonstrated by solon-flow.
-
-  
 ```yaml
 version: 1
 steps:
@@ -76,36 +76,36 @@ steps:
     when: "order.getOriginalPrice() < 100"
     source: |
       order.setRealPrice(order.getOriginalPrice());
-      logInfo("没有优惠");
+      logInfo("No discount");
   - type: xpl
     name: book_discount_4
     when: "order.getOriginalPrice() >= 300"
     source: |
       order.setRealPrice(order.getOriginalPrice() - 100);
-      logInfo("优惠100元");
+      logInfo("Discount 100 yuan");
   - type: xpl
     name: book_discount_2
     when: "order.getOriginalPrice() >= 100 && order.getOriginalPrice() < 200"
     source: |
       order.setRealPrice(order.getOriginalPrice() - 20);
-      logInfo("优惠20元");
+      logInfo("Discount 20 yuan");
 outputs:
   - name: realPrice
     source: order.realPrice
 ```
 
-除了属性名的差异之外，整个流程定义基本与solon-flow完全一致。
- 
- | Feature      | Solon-Flow        | NopTaskFlow         |
-| ----------- | ----------------- | ------------------ |
-| **Overall Structure** | Uses `id` and `nodes` to define the process, distinguishing nodes with `id` and `type`. | Uses `version` and `steps` to define the process, distinguishing steps with `type` and `name`. |
-| **Start/End Node** | Identifies the start and end of the process using `type: "start"` and `type: "end"`. | Determines the start and end of the process by default following the order of steps, or switches to graph mode requiring explicit next step specification. |
-| **Step Definition** | Each step is defined by `id` and `when` conditions, with tasks specified via the `task` field. | Each step is defined by `type` and `name`, with tasks specified via the `source` field. |
-| **Condition Judgement** | Uses the `when` field to define conditions, such as `order.getOriginalPrice() < 100`. | Uses the `when` field to define conditions, such as `order.getOriginalPrice() < 100`. |
-| **Task Execution** | Tasks are defined by the `task` field and executed with code blocks like `order.setRealPrice(order.getOriginalPrice());`. | Tasks are defined by the `source` field and executed with code blocks like `order.setRealPrice(order.getOriginalPrice());`. |
-| **Output Result** | No explicit output definition is specified, results are returned indirectly via task operations like `order.setRealPrice`. | Outputs are explicitly defined using the `outputs` field, such as `outputs: - name: realPrice source: order.realPrice`. |
+Aside from differences in property names, the entire flow definition is essentially identical to solon-flow.
 
-NopTaskFlow's usage pattern is very similar to solon-flow:
+| Feature        | Solon-Flow                                                                  | NopTaskFlow                                                                     |
+| -------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Overall structure | Defines the flow using `id` and `nodes`, with nodes distinguished by `id` and `type`. | Defines the flow using `version` and `steps`, with steps distinguished by `type` and `name`. |
+| Start/end nodes  | Explicitly marks the start and end of the flow with `type: "start"` and `type: "end"`. | By default, executes the steps in order; graph mode can also be enabled, in which case the next step must be explicitly specified. |
+| Step definition  | Each step is defined by `id` and a `when` condition; the task is specified via the `task` field. | Each step is defined by `type` and `name`; the task is specified via the `source` field. |
+| Conditional logic | Uses the `when` field to define conditions, e.g., `order.getOriginalPrice() < 100`. | Uses the `when` field to define conditions, e.g., `order.getOriginalPrice() < 100`. |
+| Task execution   | Tasks are defined via the `task` field and directly embed code blocks, e.g., `order.setRealPrice(order.getOriginalPrice());`. | Tasks are defined via the `source` field and directly embed code blocks, e.g., `order.setRealPrice(order.getOriginalPrice());`. |
+| Output results   | No explicit output result definition; results are indirectly returned through operations within the task code (such as `order.setRealPrice`). | Explicitly defines output results via the `outputs` field, e.g., `outputs: - name: realPrice source: order.realPrice`. |
+
+The way to invoke NopTaskFlow is also very similar to solon-flow:
 
 ```javascript
 @Test
@@ -123,68 +123,71 @@ public void testDiscount01ForYaml() {
 
   assertEquals(400.0, bookOrder.getRealPrice());
 }
-| Feature          | Solon-Flow         | NopTaskFlow        |
-|------------------|-------------------|------------------|
-| **Engine Loading Method** | Uses `flowEngine.load(Chain.parseByUri)` to load workflow model files. | Uses `taskFlowManager.loadTaskFromPath` to load workflow model files. |
-| **Task Loading Path** | File path in the classpath or system directory, e.g., `classpath:flow/bookDiscount.yml`. | File path in the virtual file system, e.g., `/nop/demo/task/discount-01.task.yaml`. |
-| **Context Setting Method** | Uses `ChainContext.put` to set context variables. | Uses `ITaskRuntime.setInput` to set input parameters. |
-| **Task Execution Method** | Synchronous execution via `flowEngine.eval`. | Asynchronous execution using `task.execute`. |
-| **Task Execution** | Synchronous execution through object properties. | Supports asynchronous execution. Returns result variables in `outputs`, or via object properties. |
+```
 
+| Feature            | Solon-Flow                                                  | NopTaskFlow                                         |
+| ------------------ | ----------------------------------------------------------- | --------------------------------------------------- |
+| Engine loading     | Loads the flow model file using `flowEngine.load(Chain.parseByUri)`. | Loads the flow model file using `taskFlowManager.loadTaskFromPath`. |
+| Model load path    | Files in the classpath or OS directories, e.g., `classpath:flow/bookDiscount.yml` | Paths in a virtual file system, e.g., `/nop/demo/task/discount-01.task.yaml` |
+| Context setup      | Sets context variables using `ChainContext.put`.            | Sets input parameters using `ITaskRuntime.setInput`. |
+| Task execution     | Executes the task via `flowEngine.eval`.                    | Executes the task via `task.execute`.               |
+| Execution behavior | Synchronous execution; returns results via object properties. | Supports asynchronous execution. Tasks return a collection of output variables, and of course results can also be returned via object properties. |
 
-## II. NopTaskFlow's Built-in Extensibility
+## 2. Built-in Extensibility Capabilities of NopTaskFlow
 
-NopTaskFlow is highly flexible, supporting automatic asynchronous execution, graph execution, and stack-based execution modes. It also provides fine-grained control over variable scoping. For detailed documentation, see [The Next-Generation Logic Arrangement Engine NopTaskFlow](https://mp.weixin.qq.com/s/2mFC0nQon_l2M82tOlJVhg).
+NopTaskFlow is very powerful: it automatically supports asynchronous execution; multiple execution modes including graph mode and stack mode; and very fine-grained variable scope control. For a detailed introduction, see [The next-generation logical orchestration engine NopTaskFlow written from scratch](https://mp.weixin.qq.com/s/2mFC0nQon_l2M82tOlJVhg). Anywhere a function is needed can be replaced with NopTaskFlow; for example, backend service functions can directly call NopTaskFlow for implementation without coding in Java. See [Implement backend service functions via NopTaskFlow logical orchestration](https://mp.weixin.qq.com/s/CMBcV9Riehlf4_Ds_BmyEw).
 
-Any function that requires modification can be replaced with NopTaskFlow implementation, such as backend service functions which can directly use NopTaskFlow without requiring Java coding. For example, see [Implementing Backend Service Functions Using NopTaskFlow Logic Arrangement](https://mp.weixin.qq.com/s/CMBcV9Riehlf4_Ds_BmyEw).
-
-In addition to domain-specific designs (such as transactions, asynchronous operations, and recovery), NopTaskFlow also inherits a series of extensible mechanisms from the Nop platform, including those provided by the XLang language.
-
+Beyond the domain-specific designs mentioned above (such as transactions, async, state recovery, etc.), NopTaskFlow also automatically inherits a series of extensibility mechanisms that come with the XLang language from the Nop Platform.
 
 ### 2.1 Unified Model Loader
 
-The solon-flow example demonstrates model loading via classpath, while NopTaskFlow uses `ResourceComponentManager.loadComponentModel` from the Nop platform to load models. It automatically identifies virtual file paths and supports storage in the classpath, system directories, or database tables. The model loading process caches parsed results and tracks dependencies, such as for files like `a.task.xml` which rely on `batch.xlib`. When `batch.xlib` is modified, the corresponding cached model (`a.task.xml`) becomes invalid.
+The solon-flow example demonstrates loading model files from the classpath, whereas NopTaskFlow loads model files using the Nop Platform’s unified ResourceComponentManager.loadComponentModel. It automatically recognizes virtual file paths, and the actual storage location of virtual files can be the classpath, a directory in the operating system, or a model table in a database. The model loading process automatically caches parsed results and automatically tracks model file dependencies. For example, if `a.task.xml` uses the xpl tag library `batch.xlib`, then when `batch.xlib` is modified, the corresponding model cache for `a.task.xml` will automatically be invalidated.
 
-The virtual file system's capabilities can be shared across other DSLs, such as ORM models. If we add Redis storage to the virtual file system, both ORM and NopTaskFlow models will gain support for it. However, solon-flow cannot share this underlying mechanism across multiple DSLs.
+The virtual file system’s capabilities can be shared by other DSLs. For instance, ORM model files are loaded based on the same mechanism. If we add Redis storage support for the virtual file system, both ORM models and NopTaskFlow models immediately gain that support. In solon-flow’s approach, such underlying mechanisms cannot be shared across multiple DSL models.
 
+### 2.2 Delta Customization
 
-### 2.2 Customization (Delta)
+DSL models managed by the unified model loader in the Nop Platform automatically support Delta customization. When we need to modify model content, we do not need to directly change the original model file. Instead, we can add a model file with the same name under the `_delta` directory, which will override the original model file, and files in the delta directory are loaded with priority. In the customization file, you can use `x:extends='super'` to indicate inheritance from an existing model file.
 
-In the Nop platform, DSL models managed by the unified model loader inherently support Delta customization. When modifying model content, you don't need to edit existing files directly; instead, you can place a corresponding file in the `_delta` directory. This will override the original file and take priority during loading. For example, `x:extends='super'` indicates inheritance from existing models.
+Delta customization is similar to Docker’s layered filesystem, where files in upper layers automatically override files with the same name in lower layers. However, with the XLang language’s `x:extends` syntax, model files in the Nop Platform can implement merging of the internal structures of two model files, rather than only overriding the whole file by filename as Docker does.
 
-### 2.3 Differential Merge
+For a detailed introduction, see [How to implement customized development without modifying the base product’s source code](https://mp.weixin.qq.com/s/JopDTYBIw0_Pmp0ZsTuMpA)
 
-Nop platform's DSL models support `x:extends` and `x:gen-extends` syntax, allowing for the merging of complex models. For example:
+### 2.3 Delta Merging
+
+All DSL models in the Nop Platform support the `x:extends` and `x:gen-extends` syntax, which can be used to implement decomposition and merging of complex models. For example:
 
 ```yaml
 x:extends: "base.task.xml"
 x:gen-extends: |
-  <task-gen:GenAppWorkflow bizObjName="XXX"/>
+   <task-gen:GenAppWorkflow bizObjName="XXX"/>
+
+steps:
+   - type: step
+     name: step2
+     x:override: remove
 ```
 
-The `x:extends` syntax can be used to indicate inheritance of existing model files. Multiple base files can be specified by separating them with commas, and they will be merged in order from first to last.
+`x:extends` indicates inheritance from existing model files; multiple base files can be specified, separated by commas, and they will be merged in order from first to last.
 
-The `x:gen-extends` and `x:post-extends` syntax is used during compilation to generate the necessary code logic for generating inherited models dynamically.
+You can use `x:gen-extends` and `x:post-extends` to run compile-time code generation logic that dynamically produces base models to inherit from.
 
-During the merge process, the `x:override` mechanism can be employed to control specific node merging logic. For instance, `x:override: remove` indicates the removal of a particular node.
+During the merge process, you can control the merge logic for specific nodes using `x:override`. For example, `x:override: remove` indicates deleting that node. In this way, deletion semantics and the notion of inverse elements can be introduced.
 
-This approach allows for the introduction of delete semantics and inverse metadata concepts.
+For a detailed introduction, see [XDSL: A general design for domain-specific languages](https://mp.weixin.qq.com/s/usInt7_odzvFzuiIUPw4iQ)
 
-For detailed information, refer to [XDSL: General Domain-Specific Language Design](https://mp.weixin.qq.com/s/usInt7_odzvFzuiIUPw4iQ).
+### 2.4 Multiple Representations
 
-### 2.4 Multi-Representation
+Reversible computing theory emphasizes that the same information can have multiple forms of representation, and because these forms are information-equivalent, they can be freely and reversibly transformed. For example, what is called “visual design” can be seen as a visual representation of a DSL model, whereas DSL code text is a textual representation of the model. The reason visual design is possible is precisely because visual and textual representations can be transformed into each other.
 
-The reversible computation theory emphasizes that a single piece of information can have multiple representation forms (Representaion). Due to information equivalence, these representations can be freely converted into one another. For example, the visualization design can be considered as a form of DSL model's visualization presentation, while the DSL code serves as the textual representation of model information.
-
-The ability to visualize and edit is rooted in the interconversion between visual representation and textual representation:
 ```
-Visual Representation = Designer(textual representation),
-Textual Representation = Serializer(visual representation)
+Visual representation = Designer(textual representation),   Textual representation = Serializer(visual representation)
 ```
 
-In the Nop platform, mechanisms are built-in to handle field-level multi-representation, enabling automatic derivation of object-level multi-representation and subsequent visualization editing. For instance, for solon-flow workflows, developing a specialized visual editor requires specific syntax for solon-flow. However, in the Nop platform, we can leverage meta-modeling to automatically generate a dedicated visual editor tailored for logic compilation, without needing to manually design and implement the editor.
+Using the Nop Platform’s built-in mechanisms and the composability of reversibility, multiple representations at the field level can automatically infer multiple representations at the object level, thereby automatically enabling visual editing of model objects. For instance, for solon-flow, if you want to develop a visual designer, you need to specifically design and implement the designer tailored to solon-flow’s syntax. In the Nop Platform, however, we can automatically generate a visual designer dedicated to logical orchestration based on meta-model definitions, without having to write a designer for the orchestration engine itself.
 
-As a simple example, the Nop platform supports multiple representation forms such as XML, YAML, and others for model representations, enabling comprehensive business logic expression through various means.
+As a simple example, all models in the Nop Platform automatically support multiple syntactic representations, such as XML and YAML, which can express the same business logic in different forms.
+
 ```xml
 <task version="1" x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <steps>
@@ -194,7 +197,7 @@ As a simple example, the Nop platform supports multiple representation forms suc
             ]]></when>
             <source>
                 order.setRealPrice(order.getOriginalPrice());
-                logInfo("没有优惠");
+                logInfo("No discount");
             </source>
         </xpl>
 
@@ -204,7 +207,7 @@ As a simple example, the Nop platform supports multiple representation forms suc
             ]]></when>
             <source>
                 order.setRealPrice(order.getOriginalPrice() - 100);
-                logInfo("优惠100元");
+                logInfo("Discount 100 yuan");
             </source>
         </xpl>
 
@@ -214,7 +217,7 @@ As a simple example, the Nop platform supports multiple representation forms suc
             ]]></when>
             <source>
                 order.setRealPrice(order.getOriginalPrice() - 20);
-                logInfo("优惠20元");
+                logInfo("Discount 20 yuan");
             </source>
         </xpl>
     </steps>
@@ -225,16 +228,16 @@ As a simple example, the Nop platform supports multiple representation forms suc
 </task>
 ```
 
-The XML information presented here is identical to the information provided in the previous section, which was expressed using YAML formatting.
+The information expressed in this XML is exactly the same as the information expressed in YAML format in the previous section.
 
-In the Nop platform, another form of modeling, Excel, exists. For any DSL model, there's no need to write Excel parsing or generating code. Instead, you can use Excel to configure complex domain models such as ORM models and API models. This is unlike using `orm.xml` and `api.xml` files for configuration. The Excel model can automatically generate corresponding XML model files.
+In the Nop Platform, another representation available out-of-the-box is Excel. For any DSL model, without writing Excel parsing and generation code, you can configure complex domain model objects via Excel. For example, ORM and API models are typically managed via Excel rather than via `orm.xml` and `api.xml` model files. The Excel models can be automatically converted into the corresponding XML model files.
 
-## 3. Rule Model
+## 3. Rules Model
 
-In addition to NopTaskFlow logic arrangement, the Nop platform also provides a dedicated model called NopRule (NopRule) for complex logic description. It can be used to describe decision tables or decision trees. The key difference between NopRule and NopTaskFlow is that NopRule focuses on logic evaluation. Using tree structures and matrix structures allows for reusable conditions, simplifying configuration and improving performance. For example, in a decision tree, after evaluating the top-level nodes, the bottom-level nodes no longer need to be re-evaluated. Additionally, the rule model introduces weighted average concepts, which can be directly mapped to business scoring tools, making management more efficient than using logic arrangement.
+In addition to NopTaskFlow logical orchestration, the Nop Platform also provides a rules model (NopRule) dedicated to describing complex decision logic, which can be used to define decision tables or decision trees. Compared to NopTaskFlow, NopRule focuses on logical predicates; through tree and matrix structures, it can reuse conditions, thereby simplifying configuration and optimizing performance. For example, in a decision tree, after conditions are evaluated at upper-level nodes, those conditions do not need to be repeated at lower-level nodes. The rules model also introduces concepts such as weighted averages, which can directly map to business-level tools like scorecards, making it simpler than using orchestration directly.
 
-Using NopRule for rule configuration is much simpler than using logic arrangement.
-  
+Configuring the same discount rules using NopRule:
+
 ```xml
 <rule ruleVersion="1" x:schema="/nop/schema/rule.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <input name="order" mandatory="true"/>
@@ -244,7 +247,7 @@ Using NopRule for rule configuration is much simpler than using logic arrangemen
         <children>
             <child id="discount-1" label="Price less than 100">
                 <predicate>
-                    <lt name="order.originalPrice" value="100"/>
+                    <lt name="order.originalPrice" value="100" />
                 </predicate>
                 <output name="discount">
                     <valueExpr>0</valueExpr>
@@ -253,8 +256,9 @@ Using NopRule for rule configuration is much simpler than using logic arrangemen
 
             <child id="discount-4" label="Price greater than 300">
                 <predicate>
-                    <ge name="order.originalPrice" value="300"/>
+                    <ge name="order.originalPrice" value="300" />
                 </predicate>
+
                 <output name="discount">
                     <valueExpr>100</valueExpr>
                 </output>
@@ -270,32 +274,31 @@ Using NopRule for rule configuration is much simpler than using logic arrangemen
 </rule>
 ```
 
-Except for XML format, we can also use Excel format to configure decision tables and trees.
+Besides XML, we can also use Excel format to configure decision tables and decision trees:
+![](nop/nop-rule.png)
 
-![NopRule Decision Table](nop/nop-rule.png)
+In the Nop Platform, we can also import Excel models into the database, edit and adjust rules online via a web page, and debug online.
 
-In the Nop platform, you can import Excel models into the database via the Web interface and perform online editing, rule adjustments, and debugging.
-
-For detailed information about NopRule, please refer to [Open-Source Rule Engine NopRule](https://mp.weixin.qq.com/s/zJvovUG2f4mjB5CbrlX6RA).
+For a detailed introduction to NopRule, see [NopRule: An open-source rules engine that uses Excel as a visual designer](https://mp.weixin.qq.com/s/zJvovUG2f4mjB5CbrlX6RA)
 
 ## 4. Model Nesting
 
-The fundamental difference between the Nop platform and all other platforms/frameworks is that it does not develop a standalone lower-level engine in isolation but abstracts and completes the technical architecture of all engines at once, ensuring that all engines share the same XLang language and reversible computation support. Using the DSL defined by XLang, you do not need to worry about extensibility (nor related syntax design), and you also do not need to consider how multiple DSLs can be seamlessly integrated into one another.
+An essential difference between the Nop Platform and all other platforms and frameworks is that it does not develop some underlying engine in isolation; instead, it abstracts the underlying technical architecture for all engines in one go. All engines share the same XLang language and support for reversible computing. DSLs defined using XLang do not need to consider extensibility issues themselves (nor design related syntax), and they also do not need to worry about how multiple DSLs are seamlessly integrated and used together.
 
-Previously, we discussed NopTaskFlow and NopRule, two DSL models defined using Xpl template language. By implementing a single Xpl label function (similar to Vue components), these two DSL models can be seamlessly combined for use.
+As introduced earlier, NopTaskFlow and NopRule are two DSL models. Through the xpl template language, we can seamlessly integrate and use the two DSL models together by simply implementing an xpl tag function (similar to a Vue component).
 
 ```xml
 <task version="1" x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-    xmlns:rule="rule" xmlns:xpl="xpl" xmlns:c="c">
+      xmlns:rule="rule" xmlns:xpl="xpl" xmlns:c="c">
     <steps>
         <xpl name="calcDiscount">
             <source>
-                <rule:Execute ruleModelPath="/nop/demo/rule/discount.rule.xlsx"
-                            inputs="${{order}}" xpl:return="outputs"
-                            xpl:lib="/nop/rule/xlib/rule.xlib" />
-                <c:script>
+               <rule:Execute ruleModelPath="/nop/demo/rule/discount.rule.xlsx"
+                             inputs="${{order}}" xpl:return="outputs"
+                             xpl:lib="/nop/rule/xlib/rule.xlib" />
+               <c:script>
                     order.setRealPrice(order.originalPrice - outputs.discount);
-                </c:script>
+               </c:script>
             </source>
         </xpl>
     </steps>
@@ -306,27 +309,28 @@ Previously, we discussed NopTaskFlow and NopRule, two DSL models defined using X
 </task>
 ```
 
-In the above example, we use the `<rule:Execute>` tag function to call the `discount.rule.xlsx` rule model to calculate the discount. The result is stored in the `outputs` variable. This allows us to maintain business rules in Excel and directly invoke Excel-formatted business rules within the business code.
+In the example above, we call the `discount.rule.xlsx` rules model via the `<rule:Execute>` tag function to calculate the discount, and store the result in the `outputs` variable. In this way, we can maintain business rules in Excel and invoke Excel-formatted business rules directly in business code.
 
-The implementation of `rule.xlib` is also straightforward:
+The implementation of `rule.xlib` is also very simple:
 
 ```xml
-<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" 
-    xmlns:c="c" xmlns:xpl="xpl">
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:xpl="xpl"
+>
+
     <tags>
+
         <Execute>
             <attr name="ruleModelPath" stdDomain="v-path" optional="true" />
             <attr name="ruleName" type="String" optional="true"/>
             <attr name="ruleVersion" type="Long" optional="true"/>
             <attr name="inputs" type="Map" optional="true" />
 
-            <attr name="svcCtx" type="io.nop.core.context.IServiceContext" 
-                  implicit="true" optional="true"/>
+            <attr name="svcCtx" type="io.nop.core.context.IServiceContext" implicit="true" optional="true"/>
 
             <source><![CDATA[
                 const ruleManager = inject('nopRuleManager');
-                const rule = ruleModelPath ? ruleManager.loadRuleFromPath(ruleModelPath) :
-                                      ruleManager.getRule(ruleName, ruleVersion);
+                const rule = ruleModelPath? ruleManager.loadRuleFromPath(ruleModelPath) :
+                            ruleManager.getRule(ruleName,ruleVersion);
 
                 const ruleRt = ruleManager.newRuleRuntime(svcCtx, $scope);
                 if(inputs != null){
@@ -336,21 +340,22 @@ The implementation of `rule.xlib` is also straightforward:
             ]]></source>
         </Execute>
 
-        </tags>
-    </lib>
+    </tags>
+</lib>
 ```
 
-You can either specify `ruleModelPath`, or specify `ruleName` and `ruleVersion`, and then dynamically determine the rule model object (loaded from virtual files within the system). If not found, it will attempt to load the rule from the database.
+You can directly specify `ruleModelPath`, or specify `ruleName` and `ruleVersion` to dynamically determine the rules model object (load from the virtual file system, and if not found, attempt to load from the database).
 
-The Nop platform is not just a single functional DSL, but rather a series of DSLs that make up what is referred to as the DSL forest. For a detailed explanation of the DSL forest, please refer to [How does Nop overcome the limitations of DSL?](https://mp.weixin.qq.com/s/6TOVbqHFmiFIqoXxQrRkYg). More detailed examples are provided in [Why is SpringBatch a bad design?](https://mp.weixin.qq.com/s/1F2Mkz99ihiw3_juYXrTFw).
+The Nop Platform does not offer a single-function DSL, but rather a collection of DSLs—a so-called DSL forest. For a detailed introduction to the DSL forest, see [How does Nop overcome the limitation that DSLs can only apply to specific domains?](https://mp.weixin.qq.com/s/6TOVbqHFmiFIqoXxQrRkYg), and for more detailed examples, see [Why is SpringBatch a poor design?](https://mp.weixin.qq.com/s/1F2Mkz99ihiw3_juYXrTFw).
 
+The low-code platform NopPlatform, designed based on reversible computing theory, is open source:
 
-The NopPlatform, designed based on reversible computing theory as a low-code platform, has now been open-sourced:
+- gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+- github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+- gitcode: [canonical-entropy/nop-entropy](https://gitcode.com/canonical-entropy/nop-entropy)
+- Development examples: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [Principles of Reversible Computing and Nop Platform Introduction & Q&A\_bilibili](https://www.bilibili.com/video/BV14u411T715/)
+- International site: [https://nop-platform.github.io/](https://nop-platform.github.io/)
+- Nop development practice sharing site by Crazydan Studio: [https://nop.crazydan.io/](https://nop.crazydan.io/)
 
-- On Gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
-- On GitHub: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- On Gitcode: [canonical-entropy/nop-entropy](https://gitcode.com/canonical-entropy/nop-entropy)
-- For development examples: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- [Reversible computing principles and Nop platform introduction on Bilibili](https://www.bilibili.com/video/BV14u411T715/)
-- International website: [https://nop-platform.github.io/](https://nop-platform.github.io/)
-- Community member Crazydan Studio's Nop development practice sharing site: [https://nop.crazydan.io/](https://nop.crazydan.io/)
+<!-- SOURCE_MD5:9b58b32ebe0e6e4d85fae1b7e8033154-->

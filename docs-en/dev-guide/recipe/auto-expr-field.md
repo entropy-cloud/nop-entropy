@@ -1,78 +1,77 @@
 # How to Implement Automatically Generated Read-Only Fields
 
-The system stores `family` and `name` fields and wants to automatically generate a readable `fullName` field for queries.
+The system stores two fields, [Family Name] and [Given Name], and we want to automatically generate a [Full Name] field that can be used for querying.
 
-## 1. Prevent Modification
-First, configure the `fullName` field in `meta` to prevent its creation and modification.
+## 1. Prohibit modifications
+First, configure in the meta to prohibit creation and updates for the [Full Name] field.
 
 ```xml
 <prop name="fullName" insertable="false" updatable="false">
+
 </prop>
 ```
 
-Here, `insertable=false` and `updatable=false` only control whether the Web layer allows creating and updating, not affecting the ORM layer.
-Even if set to `false`, submissions will be ignored by the system.
+Here, `insertable=false` and `updatable=false` only control whether the Web service layer allows creation and updates, and are unrelated to the ORM data storage layer. If set to false, submissions to the backend will be automatically ignored.
 
-## 2. Configure autoExpression for Automatic Concatenation
+## 2. Configure autoExpr for automatic concatenation
 
 ```xml
 <prop name="fullExpr" insertable="false" updatable="false">
     <autoExpr when="save,update">
-        return entity.familyName + entity.givenName;
+      return entity.familyName + entity.givenName
     </autoExpr>
 </prop>
 ```
 
-The Nop platform uses the `autoExpression` mechanism for similar cases, such as generating order numbers. For example, see [coderule.md](../biz/coderule.md).
+In the Nop platform, coding rules such as order numbers are implemented using the autoExpr mechanism; see [coderule.md](../biz/coderule.md).
 
-When using `OrmEntityCopier` to update entities, `autoExpression` logic is triggered. The specific usage can be found in the built-in `CrudBizModel`'s `save/update` methods.
+The autoExpr logic runs only when entity updates are performed via OrmEntityCopier. For usage details, see the save/update functions provided by the built-in CrudBizModel.
 
-## 3. Implementing Automatic Field Computation in Other Ways
+## 3. Other approaches to implement auto-calculated fields
 
-### 3.1 Using CrudBizModel's Callback Methods
-Typically, we inherit from `CrudBizModel` to implement additional logic in its default `prepareSave` and `prepareUpdate` methods.
+### 3.1 Via callback functions provided by CrudBizModel
+
+For typical CRUD operations, we usually extend CrudBizModel. It provides defaultPrepareSave/defaultPrepareUpdate callback functions where you can execute additional extension logic.
 
 ```java
 @BizModel("NopAuthUser")
 @Locale("zh-CN")
 public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
-    @BizAction
-    @Override
-    protected void defaultPrepareSave(EntityData<NopAuthUser> entityData, IServiceContext context) {
-        super.defaultPrepareSave(entityData, context);
-        NopAuthUser entity = entityData.getEntity();
-        entity.setFullName(entity.getFamilyName() + entity.getGivenName());
-    }
+  @BizAction
+  @Override
+  protected void defaultPrepareSave(EntityData<NopAuthUser> entityData, IServiceContext context) {
+    super.defaultPrepareSave(entityData, context);
+    NopAuthUser entity = entityData.getEntity();
+    entity.setFullName(entity.getFamilyName() + entity.getGivenName());
+  }
 }
 ```
 
-However, this method only works when the entity is submitted via `save/update` calls. If saved via other means, this logic won't execute.
+However, this approach is only executed when save/update is invoked from the frontend; if the entity is saved through other means, this logic will not run.
 
-### 3.2 Using ORM Engine's Entity Life Cycle Callbacks
-Implement `orm_preSave` in your entity class to trigger before saving. The ORM engine will call these callbacks just before attempting to save the entity. This approach is lower-level than `CrudBizModel` callbacks and ensures no logic is missed.
+### 3.2 Via entity lifecycle callbacks provided by the ORM engine
+
+In the entity class, you can implement callbacks such as orm_preSave. The ORM engine executes these callbacks before saving the entity, so this approach is lower-level than the CrudBizModel callbacks and ensures it will not be missed.
 
 ```java
 public class NopAuthUser extends _NopAuthUser {
-    public ProcessingResult orm_preSave() {
-        this.setFullName(getFamilyName() + getGivenName());
-        return ProcessingResult.CONTINUE;
-    }
+  public ProcessingResult orm_preSave() {
+    this.setFullName(getFamilyName() + getGivenName());
+    return ProcessingResult.CONTINUE;
+  }
 }
 ```
 
-If the callback returns `STOP`, the entity's save operation will be skipped. This is similar to Hibernate's life cycle callbacks.
+* If the callback returns STOP, the entity’s save will be skipped. This logic is similar to lifecycle callbacks in Hibernate.
 
-### 3.3 Implementing Additional Logic in OrmInterceptor
-The NopOrm engine provides an `IOrmInterceptor` interface with methods like `preSave`, `postSave`, etc., allowing you to intercept all CRUD operations. Define your logic in the interceptor located at `{moduleId}/orm/app.orm-interceptor.xml`.
+### 3.3 Implement additional processing in OrmInterceptor
 
-```xml
-<interceptor class="YourModule_OrmInterceptor" />
-```
+The NopOrm engine provides the IOrmInterceptor interface with callbacks such as preSave/postSave, allowing interception of CRUD operations on each entity.
 
-Implement `xpl:propertySetter` or similar templates in the XML file to define custom behavior for specific fields, such as automatically setting `fullName`.
-
+In each module, you can also define a `/{moduleId}/orm/app.orm-interceptor.xml` file, where an IOrmInterceptor can be defined using the xpl template language.
 
 ```xml
+
 <interceptor x:schema="/nop/schema/orm/orm-interceptor.xdef" xmlns:x="/nop/schema/xdsl.xdef">
   <entity name="io.nop.auth.dao.entity.NopAuthUser">
     <pre-save id="syncFullName">
@@ -84,8 +83,8 @@ Implement `xpl:propertySetter` or similar templates in the XML file to define cu
 </interceptor>
 ```
 
-### 3.4 Display Field Used Only for Viewing
-If the `fullName` field is not stored in the database and only needed for display purposes, you can add this as an extended field in the metadata.
+### 3.4 Display-only field used at view time
+If the fullName field does not need to be stored in the database and is only required for display in certain views, you can add an extension field in the meta.
 
 ```xml
 <prop name="fullName">
@@ -97,26 +96,25 @@ If the `fullName` field is not stored in the database and only needed for displa
 </prop>
 ```
 
-* Through the `getter` function, an expression is evaluated to compute and return the value.
-* By default, both `insertable` and `updatable` properties are set to false. If the field is defined in the entity, it will inherit properties like `insertable=true` from the generated `_NopAuthUser.xmeta` file.
+* A getter function can evaluate an expression to compute the returned value.
+* By default, the insertable and updatable attributes are false. If the field is defined on the entity, attributes such as `insertable=true` will be inherited from automatically generated files like `_NopAuthUser.xmeta`.
 
-### 3.5 Implementing Loading Logic with BizLoader
-If the computation logic is complex or not suitable for placement in metadata getter methods, you can implement it directly in a Java method.
+### 3.5 Implement loading logic using BizLoader
+If the computation is complex or you prefer not to place it in the meta file’s getter function, you can implement the loading logic in a Java method.
 
-```java
+```
 public class NopAuthUserBizModel {
-    @BizLoader(autoCreateField = true)
-    public String fullName(@ContextSource NopAuthUser entity, IServiceContext context) {
-        return entity.getFamilyName() + entity.getGivenName();
-    }
+   @BizLoader(autoCreateField=true)
+   public String fullName(@ContextSource NopAuthUser entity, IServiceContext context){
+      return entity.getFamilyName() + entity.getGivenName();
+   }
 }
 ```
 
-* `autoCreateField` indicates that if the `fullName` property is not defined in metadata, it will be automatically created. If all fields are explicitly defined in metadata, this configuration can be removed, as its default value is false.
-* To ensure all fields are explicitly defined in metadata, you must explicitly define the `fullName` property.
+* autoCreateField indicates that if the fullName prop is not defined in the meta, the attribute will be created automatically. If you want all fields to be explicitly defined in the meta, remove the autoCreateField configuration; its default is false. In that case, you must explicitly define the fullName attribute in the meta.
 
-### 3.6 Implementing Loader in Xbiz File
-All BizActions and BizLoaders implemented in Java can be implemented in xbiz using XPL template language. Xbiz acts as a low-code layer that overlays over the lower Java layer, allowing it to override any method in the high-layer Java code. This approach is similar to Docker's layered file system overlay.
+### 3.6 Implement the Loader in an xbiz file
+Any BizAction and BizLoader implemented in Java can be implemented in xbiz using the xpl template language. xbiz serves as a low-code editing layer over the high-code Java implementation layer, and can override any function in the high-code layer. This approach is similar to Docker’s layered filesystem overlay.
 
 ```xml
 <biz>
@@ -131,10 +129,11 @@ All BizActions and BizLoaders implemented in Java can be implemented in xbiz usi
 </biz>
 ```
 
-* If both xbiz and BizModel classes define the same function name, the xbiz implementation takes precedence and overrides the Java layer definition.
+If the same-named function is defined both in the xbiz file and in the BizModel class, the xbiz-defined function takes precedence and overrides the function defined in the Java layer.
 
-## 4. Implementing Automatic Calculation of Redundant Fields
-In the Amis framework, you can leverage its built-in dynamic expression evaluation mechanism to automatically calculate values for fields that are not stored in the database but are needed for display purposes.
+## 4. Implement redundant auto-calculated field on the frontend
+
+In the frontend (amis), you can use its built-in dynamic expression mechanism.
 
 ```json
 {
@@ -142,3 +141,4 @@ In the Amis framework, you can leverage its built-in dynamic expression evaluati
   "tpl": "${familyName + givenName}"
 }
 ```
+<!-- SOURCE_MD5:c3381c1d9fa8751acb49a470c1e1bd54-->

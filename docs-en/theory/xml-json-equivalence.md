@@ -1,12 +1,12 @@
-# Equivalence of XML, JSON, and Function AST
+# Equivalence of XML, JSON, and Function ASTs
 
-The overall technical strategy of the Nop platform can be said to revolve around Tree structures. The key challenge for the Nop platform is how to represent these Tree structures. In the Java backend architecture, XML was once the preferred method for representing Tree structures, with Spring, Hibernate, SOA, BPMN, etc., being classic use cases for XML. However, over time, there has been a persistent criticism that XML is cumbersome and inefficient. Is this truly an inherent flaw of XML? With the rise of Web frontends, JSON, which is easier to parse and manipulate in JavaScript, gradually took the place of XML, becoming the de facto standard for expressing complex data objects. Does this mean XML is now obsolete? The rise of low-code development introduced a new requirement: how to structure executable function logic? How can we achieve a natural and intuitive conversion and processing of AST syntax trees? This paper will briefly introduce the basic abstraction of Tree structures in Nop Platform 2.0, as well as the equivalence transformation scheme between XML, JSON, and AST.
+The Nop Platform’s overarching technical strategy can be said to revolve around Tree structures. How to express Tree structures is the first tactical problem the Nop Platform needs to solve. In Java backend architectures, XML used to be the preferred way to represent Tree structures; Spring, Hibernate, SOA, BPMN, and others are classic application cases of XML. However, for a long time there has also been a chorus of criticism that XML is verbose and slow. Are these truly inherent flaws of XML? With the rise of the Web frontend, JSON—which is easy to parse and manipulate in JavaScript—has gradually replaced XML and become the de facto standard for expressing complex data objects. Does that mean XML is completely outdated? The rise of low-code brings a new requirement: how do we structurally express executable function logic? How do we perform transformations and processing of ASTs in a natural and intuitive way? This article briefly introduces the basic abstractions of Tree structures in Nop Platform 2.0, as well as the equivalent conversion schemes among XML, JSON, and AST.
 
-The Nop platform believes that **Everything is a Tree**. Trees can be represented through various serialized formats such as XML and JSON. XML and JSON can also perform bidirectional conversion. If an interpreter is assigned to each node of the Tree, it automatically becomes an Abstract Syntax Tree (AST) and gains executable semantics.
+The Nop Platform holds that Everything is Tree. A Tree can be serialized in multiple forms such as XML and JSON, and bidirectional conversion can be achieved between XML and JSON. If each Tree node is assigned an interpreter, it automatically becomes an AST (Abstract Syntax Tree) and acquires executable semantics.
 
-## 1. Issues with XML
+## I. Problems with XML
 
-The DOM structure obtained from XML parsing indeed has serious design flaws, **essentially because its original design intent was for text documents rather than general application data structures**. For example:
+The DOM structure produced by XML parsing indeed suffers from serious design issues, essentially because it was originally intended for textual documents rather than general-purpose application data structures. Consider the following text:
 
 ```xml
 <book>
@@ -16,7 +16,7 @@ The DOM structure obtained from XML parsing indeed has serious design flaws, **e
 </book>
 ```
 
-To ensure that the text document can be re-serialized to reconstruct the original document without losing any text, DOM inserts additional text nodes, leading to a mismatch between the DOM structure and application semantics. The resulting DOM structure is as follows:
+To ensure that a textual document can be read and then losslessly re-serialized back to the original, the DOM inserts additional text nodes, causing the DOM structure to be mismatched with application semantics.
 
 ```javascript
 Element("book")
@@ -24,24 +24,24 @@ Element("book")
    Element("title")
       Text("aaa")
    Text(Blank)
-   Comment("销售价格")
+   Comment("Sales price")
    Text(Blank)
    Element("price")
       Text("30")
    Text(Blank)
 ```
 
-In the DOM structure, the `book` node has seven child nodes instead of two, including four text nodes containing only whitespace to preserve the original document's formatting information and one comment node. Additionally, the `price` child node does not contain the number 30 directly but rather a text node with the string "30".
+In the DOM structure, the book node does not have two children but seven, because four extra text nodes containing only spaces and line breaks are needed to preserve the original file’s formatting information, and one comment node is needed to preserve the comment. Meanwhile, the content of the price child node is not the number 30, but a Text node, whose string content is "30".
 
-Using the DOM structure to organize application data introduces numerous redundancies while losing the most basic distinction between atomic data types. It is not a universally suitable choice. The earlier proposal by PuTTY EOS that all business data should be centralized in DOM nodes and then accessed via DOM APIs, supposedly simplifying programming and unifying the processing mechanism, strikes me as either misguided or indicative of someone who has been influenced by XML dogmatism.
+Clearly, using the DOM structure to organize application data introduces a great deal of redundancy while losing the most basic distinction among atomic data types—it is not a universally applicable choice. Back in the day, Primeton EOS hyped the so-called XML data bus technology: pull all business data into DOM nodes, then read and write through the DOM API, allegedly to simplify programming and unify processing. My first reaction was: what were they thinking? Or were the founders returning from abroad, indoctrinated by XML fundamentalism?
 
-In addition to the issues with the DOM structure, XML dogmatism has deepened人们对XML的误解。例如，明明可以采用以下表达方式：
+Beyond being dragged down by the DOM structure, some fundamentalist design exemplars also deepened misperceptions about XML. For example, though the following expression would suffice:
 
 ```xml
 <MyFunction a="xxx" b=”3“ />
 ```
 
-但XML狗马主义的设计却是：
+The fundamentalist design would be:
 
 ```xml
 <function>
@@ -59,108 +59,107 @@ In addition to the issues with the DOM structure, XML dogmatism has deepened人�
 </function>
 ```
 
-XML's original design aim was to be minimalistic, and in a sense, node attributes are redundant features. Dogmatists often prefer not to use the attribute mechanism, going so far as to advocate for the cancellation of self-closing tags like `<node/>`, since `<node></node>` already indicates a closed tag.
+The original intent of XML was a minimalist design, and attributes can be viewed as a redundant feature to some extent, so purists tend to avoid attribute mechanisms. Some even argue that self-closing syntax like `<node/>` should be eliminated, since `<node></node>` already expresses closure.
 
-Additionally, because XML originated from markup languages, its primary application scenarios involved adding metadata to business data. This led some people to insist that all business data must be expressed through text nodes, with attributes only used for invisible identifiers like `id`.
+At the same time, since XML evolved from a markup language, in its original use case markup was ancillary to business data. That is, if you remove all tags and attributes, the remaining text is all the business data, so some have long insisted that business data must be expressed via text nodes, with attributes used only for non-user-visible identifiers like ids.
 
-This approach was once very popular, exemplified by formats like the Maven pom.xml file and SOAP's XML serialization format.
+Such practices were once prevalent, e.g., the pom.xml format used by Maven projects, and the XML serialization format used by SOAP.
 
-While the XML format has certain limitations, these issues can be effectively mitigated. On top of the DOM structure, simplified APIs are provided to hide the complexity of DOM operations. For instance, the dom4j library offers APIs like `elements/elementText` for directly accessing non-whitespace nodes. Furthermore, we can even discard the DOM structure and parse XML into a generic Tree structure directly.
+Although XML has its issues, they are not insurmountable. On top of the DOM, one can provide simplified APIs to abstract away DOM complexity. For instance, the dom4j library provides elements/elementText and other APIs to directly retrieve non-whitespace nodes. Going a step further, we can actually discard the DOM structure entirely and parse XML directly into a general Tree structure.
 
-For the issue where XML only supports text attributes, the simplest solution is to extend the XML syntax slightly. For numeric and boolean attributes, remove quotes from attribute values, such as:
+As for XML only supporting textual attributes, the simplest solution is to add a small extension to the XML syntax: for numeric and boolean attributes, drop the quotes around attribute values, for example:
 
 ```xml
 <Window enabled=true size=3 />
 ```
 
-Modern HTML parsers can actually parse this tag structure; they just always interpret the results as text values.
+In fact, HTML parsers can parse the tag structure above; they merely force the parsed value to be a text value.
 
-React's JSX syntax can be considered another variant of XML. It extends attribute value types using the `{}` syntax, like:
+The JSX syntax introduced by React can be seen as another variant of XML—it expands attribute value types to expressions via the {} syntax, e.g.:
 
 ```xml
 <Control size={3} enabled={true}>
 </Control>
 ```
 
-If you still want to adhere strictly to the XML format, you can use template syntax, such as:
+If you still want to strictly conform to XML, you can introduce template syntax, e.g.:
 
 ```xml
 <Control size="${3}" enabled="${true}">
 </Control>
 ```
 
-Alternatively, use the prefix syntax introduced in my previous article [DSL分层语法设计及前缀引导语法](https://zhuanlan.zhihu.com/p/548314138):
+Or use the prefix-guided syntax I introduced in the previous article, Layered DSL Syntax Design and Prefix-Guided Syntax:
+https://zhuanlan.zhihu.com/p/548314138
 
 ```xml
 <Control size="@:3" enabled="@:true">
 </Control>
 ```
 
+## II. XNode: A General-Purpose Tree Structure
 
-## 2. XNode: Generic Tree Structure
-
-In the Nop platform, XNode is used to represent a generic Tree structure:
+The Nop Platform uses XNode to represent general Tree structures:
 
 ```java
-class XNode implements ITreeStructure {
+class XNode implements ITreeStructure{
     String comment;
     String tagName;
     Map<String, ValueWithLocation> attributes;
     List<XNode> children;
     ValueWithLocation content;
 }
-class ValueWithLocation {
+class ValueWithLocation{
     SourceLocation location;
     Object value;
 }
 ```
 
-- **XNode** omits support for namespaces, which is rarely used in business scenarios but significantly impacts performance.
-- **Comment** is simplified to only allow annotations above nodes.
-- During XML parsing, all empty text nodes are ignored.
-- If a node has no child nodes, its content is stored in the `content` field.
-- Both attributes and node values are of type Object, along with their SourceLocation.
+1. XNode removes support for XML namespaces. This feature is rarely used in business, but it has a noticeable performance impact.
 
-Unlike typical template languages, Nop's Xpl template language features specialized syntax designed for code generation.
+2. For comments, we simplify by supporting only comments above a node.
 
-1. **Xpl Template** supports multiple output modes. If `outputMode=node` is selected, it will output an XNode instead of text content. The `ValueWithLocation` class then stores the source location corresponding to the output value. This mechanism is simpler and more stable than JavaScript's SourceMap, while offering better debugging capabilities via `XNode.dump()`, which prints attribute and node source locations.
+3. When parsing XML into XNode, all whitespace text nodes are directly ignored.
 
-2. **XNode attributes** cannot be null. If an attribute's value is set to null, it effectively removes that attribute. This feature simplifies the generation of optional attributes:
+4. If there are no child nodes, the node content is stored in content.
+
+5. Both attributes and node values are of type Object and carry the corresponding SourceLocation.
+
+Unlike typical template languages, the Xpl template language in the Nop Platform has syntax features specifically designed for code generation.
+
+1. Xpl templates have multiple output modes. If outputMode=node is chosen, it outputs XNode nodes instead of text. ValueWithLocation records the source location corresponding to the output value. Compared with JavaScript’s SourceMap mechanism, this is much simpler and far more stable. Meanwhile, XNode.dump() will print the source location of attributes and nodes in comments, making it easier to diagnose issues during debugging.
+
+2. XNode attribute values are not allowed to be null. Setting an XNode attribute value to null is equivalent to deleting that attribute. This can simplify the generation of optional attributes.
 
 ```xml
 <prop name="a" mandatory="${model.mandatory ? true: null}" />
-```
-
-For cases where `mandatory=false`, the following is generated:
-
-```xml
+For mandatory=false, the actual output will be
 <prop name="a" />
 ```
 
+## III. Bidirectional Conversion between XML and JSON
 
-## 3. XML to JSON Conversion
-
-In the Nop platform, the conversion between XML and JSON follows the diagram shown below:
+In the Nop Platform, the conversion path between XML and JSON is as follows:
 
 <img title="" src="xml-to-json.png" alt="" data-align="center" width="360">
 
-The XDefinition meta-model (similar to XML Schema Definition, XSD) defines the structure of an XNode (Tree), while the XMeta meta-model (similar to JSON Schema) defines the structure of DataBean objects (Classes). XDefinition and XMeta are converted between each other through specific rules, such as mapping XNode nodes to objects, node attributes to object properties, and converting XML names to camelCase for object attribute names.
+The XDefinition metamodel (similar to XML Schema Definition, XSD) defines the structure of XNode (Tree), while the XMeta metamodel (similar to JSON Schema) defines the structure of DataBean objects (Class). Bidirectional conversion between XDefinition and XMeta follows certain rules, e.g., XNode nodes map to objects, node attributes map to object properties, and XML names are transformed via camelCase to obtain object property names.
 
 ```java
 objMeta = new XDefToObjMeta().transform(xdef);
-bean = new DslXNodeToJsonTransformer(forEditor, xdef).transformToObject(node);
+bean = new DslXNodeToJsonTransformer(forEditor,xdef).transformToObject(node);
 node = new DslModelToXNodeTransformer(objMeta).transformToXNode(bean);
 ```
 
-In the process of converting an XNode to a DataBean, there is a subtle aspect to note: the transformation result may not be unique. We can transform an XNode into different structures of DataBean based on specific usage requirements. If we view DataBean as a form of representation for complex domain model structures, then at least two distinct purposes must be considered: one for editing the domain model within a visualization editor and another for interpreting the domain model in an interpreter. If the domain model contains function definitions, the function can be defined using text-based code during editing, while execution requires compiling the function definition into an executable `IEvalAction` object. In the Nop platform, the `forEditor` parameter is used to distinguish between these two usage scenarios, thereby determining whether to compile function code during XNode transformation.
+There is a subtlety in converting from XNode to DataBean: the result is not necessarily unique. We can convert an XNode into different DataBean structures for different purposes. If you view a DataBean as a representational form (Representation) of a complex domain model structure, then at least two use cases exist: editing the domain model in a visual editor, and executing the domain model in an interpreter. If the domain model contains function definitions, editing only needs textual code definitions, whereas execution requires compiling the function definition into executable objects such as IEvalAction. In the Nop Platform, we distinguish these two scenarios through the forEditor parameter to decide whether function code needs to be compiled when converting an XNode.
 
-Currently available workflow engines or rule engines do not explicitly support multiple representation concepts, leading to a significant amount of repetitive code when implementing both editors and runtime engines.
+Common workflow engines or rule engines today do not have a clear concept of multiple representations, resulting in considerable code duplication between editors and runtime engines.
 
-In the Nop platform, even when an XDefinition meta-model is not defined, a simplified bidirectional conversion mechanism between XML and JSON is still provided. For example:
+When no XDefinition metamodel is provided, the Nop Platform also defines a simple bidirectional conversion mechanism between XML and JSON. For example:
 
 ```xml
 <root a="1">
-  <child name="c1">child value</child>
+   <child name="c1">child value</child>
 </root>
 ```
 
@@ -171,14 +170,15 @@ is converted to
     "$tag": "root",
     "a": "1",
     "$body": [
-        { "$tag": "child", "name": "c1", "$body": "child value" }
+       { "$tag": "child", "name":"c1", "$body": "child value"}
     ]
 }
 ```
 
-Using the `$tag` attribute to represent XML tag names and the `$body` attribute to represent XML node content.
+Use the $tag property to denote the XML tag name, and the $body property to denote the XML node’s content.
 
-The JSON format used in the [Baidu AMIS framework](https://aisuda.bce.baidu.com/amis/zh-CN/components/form/index) is quite similar, using the `type` attribute for tag names and the `body` attribute for node content:
+The JSON format used in the Baidu AMIS framework is actually quite close to this. It uses the type property to denote the tag name and the body property to denote the node content.
+https://aisuda.bce.baidu.com/amis/zh-CN/components/form/index
 
 ```json
 {
@@ -202,9 +202,30 @@ The JSON format used in the [Baidu AMIS framework](https://aisuda.bce.baidu.com/
 }
 ```
 
-However, the consistency of AMIS formats is not very good. While early container components had messy body property names (e.g., `controls/content/body`), later versions were cleaned up to some extent but still lack automatic XML conversion capabilities and require additional descriptive information.
+However, the consistency of the AMIS format is not great—this rule does not apply uniformly to all components. Early on, container components had a messy naming of body, with controls/content/body coexisting. After a unification cleanup, things improved somewhat, but it still cannot be automatically converted to XML. Additional descriptive information is required.
 
-A disadvantage of JSON in practice is its lack of a comment mechanism. To address this, the Nop platform supports JSON5 and YAML formats internally while treating them as extensions of the JSON object format for consistent processing.
+One inconvenience of JSON in practice is the lack of comments. To address this, the Nop Platform also supports JSON5 and YAML at the bottom layer, treating them as extended forms of JSON, while internally processing them uniformly as JSON objects.
+
+## IV. From XNode to AST
+
+Function calls can be viewed as a general Tree structure definition—everything can be expressed in the form (name, arg, arg, ...). This insight is the cornerstone of the Lisp language.
+
+If we take a closer look at the form of function calls:
+
+```javascript
+myFunc(1,"xx")
+```
+
+It is equivalent to named-argument form:
+
+```javascript
+myFunc({a:1,b:"xx"})
+```
+
+> Positional argument passing is a historical legacy: at the machine language level, parameters are passed via the stack. In modern software framework design, named argument passing has become the norm. For example, parameters of loader functions in GraphQL are named. The inability of Java to retrieve function parameter names via reflection is considered a flaw that needs fixing. In the frontend Vuex framework, the function parameter payload is forcibly constrained to a single Map-like object.
+
+If we then move the function name inside the parentheses, we get a JSON-style function call:
+
 ```json
 {
     "$fn":"myFunc",
@@ -213,9 +234,9 @@ A disadvantage of JSON in practice is its lack of a comment mechanism. To addres
 }
 ```
 
-If we treat the function name as a component name and the function parameters as component parameters, then the actual function call can be implemented using a visual component designer. Currently, most low-code platforms implement their visual designers based on form models. While many have attempted to decouple the visual designer from specific component libraries, we can take it further by also separating layout logic out of the designer. **A designer without built-in layout logic can still be used to configure function combination logic.**
+If we treat the function name as a component name and the function arguments as component parameters, then function calls can actually be edited using a visual component designer. Currently, common visual designers in the low-code space are implemented for form models. Although many have attempted to decouple visual designers from specific component libraries, we can go further by stripping out layout logic as well—and a designer without built-in layout logic can be used to configure function composition logic.
 
-In the Nop platform, the primary approach for converting XNode into executable logic is through the custom tag library mechanism in the XPL template language. For example, in the action definition within a workflow:
+In the Nop Platform, the primary mechanism for converting XNode into executable logic is the custom tag library mechanism in the Xpl template language. For example, in a workflow action definition:
 
 ```xml
 <action id="approve">
@@ -228,18 +249,18 @@ In the Nop platform, the primary approach for converting XNode into executable l
 </action>
 ```
 
-Each node corresponds to a custom tag, which is translated into executable code by the tag library. If we consider XNode as an abstract syntax tree (AST), then these custom tags are akin to the syntax-directed translation in compiler theory. This translation process is context-independent, meaning that regardless of how the tags are nested, the corresponding tag name will always translate into the same executable logic.
+Each node can correspond to a custom tag, and the tag library is responsible for translating the node content into executable code. If we view XNode as an abstract syntax tree, then custom tags are analogous to syntax-directed translation in compiler theory. This translation process is context-free: regardless of the nesting structure of the tags, as long as the corresponding tag name is found, it translates to the same executable logic.
 
-> The early implementation of the Baidu AMIS framework deviated from this approach. Instead of translating based solely on the `type` name, it considered the full path of the JSON nodes.
+> In its early implementation, the Baidu AMIS framework deviated from this principle: the translation from JSON to components was not uniquely determined by the type name; the entire JSON node path had to be considered.
 
-In common workflow engines, simplifying user configuration often requires embedding numerous business-specific implementations directly into the engine. Consequently, the designer also needs to be customized and modified accordingly. In contrast, the Nop platform leverages meta-programming and the XTransform mechanism to isolate these extensions entirely outside the engine. For example:
+In common workflow engines, to simplify user configuration, a large number of business-specific implementations are often built into the engine, and the designer must be customized accordingly. In the Nop Platform, with metaprogramming and the XTransform mechanism, we can move a large amount of extension code completely outside the engine. For example:
 
 ```xml
-配置文件中的
+In the config file
 <email-action>
    <content>data</content>
 </email-action>
-可以通过如下转换规则转换为引擎内置支持的action节点
+can be transformed into an engine-built-in supported action node via the following mapping rules
 <xt:mapping>
    <match tag="email-action">
      <action xt:node=".">
@@ -254,5 +275,5 @@ In common workflow engines, simplifying user configuration often requires embedd
 </xt:mapping>
 ```
 
-The underlying engine does not need to embed numerous executable actions. Instead, using AST transformation at the XNode level allows for extensive structural modifications, which are then translated into executable semantics via the custom tag library mechanism and the XPL template language.
-
+The underlying engine does not need to embed a large number of executable actions. Through AST transformations, we can perform extensive structural transformations at the XNode level, and finally obtain executable semantics via the custom tag mechanism of the Xpl template language.
+<!-- SOURCE_MD5:6a027fb037401229081409c189b1a679-->

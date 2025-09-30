@@ -1,140 +1,124 @@
+
 # Approval Flow
 
-The description of the approval flow is based on the introduction document of [FlowLong workflow engine](https://doc.flowlong.com/docs/preface).
+The functional description of the approval flow refers to the introduction document of the [FlowLong Workflow Engine](https://doc.flowlong.com/docs/preface).
 
 ## Conditional Branch
-When the `splitType` of a transition is set to "or", only the first condition that is met will be selected. If no conditions are met, an exception will be thrown.
+If the transition’s splitType is configured as or, then when transitioning steps only the first to node that satisfies the condition will be selected. If none of the to nodes satisfy the condition, an exception will be thrown.
 
 ## Parallel Branch
-When the `splitType` of a transition is set to "and", all conditions that are met will be selected. Parallel branches can be combined using a join node.
+If the transition’s splitType is configured as and, then when transitioning steps all to nodes that satisfy the condition will be selected. After parallel branches, multiple branches can be joined together via a join node.
 
-## Subflow
-Entering a subflow node causes the parent process to enter a waiting state. When the subflow completes, the parent process resumes execution.
+## Subprocess
+When entering a subprocess node, the parent process step enters the waiting state. When the subprocess ends, the parent process resumes execution.
 
-## Signatory
-In the same approval node, multiple people can be set, such as A, B, and C. All three will handle the task simultaneously. Only after all have approved will the next step be triggered.
+## Joint Sign-off
+This means setting multiple people for the same approval node, such as A, B, and C. The three will handle simultaneously, and only after all agree can the approval proceed to the next node.
 
-* New `stepInstance` is in `activated` state
-* After completing `stepInstance`, check if all `execGroup` members' `stepInstance` have completed. If so, trigger the next move.
+* A newly created stepInstance is in the activated state.
+* After completing a stepInstance, check whether the other stepInstances in the same execGroup have all been completed. If so, trigger the transition to the next step.
 
-## Voting
-In the same approval node, multiple people can be set, such as A, B, and C, each with different weights. If the voting weight percentage exceeds 50%, the task can proceed to the next node.
+## Voting Sign-off
+This means setting multiple people for the same approval node, such as A, B, and C, and defining different weights for them respectively. When the voting weight ratio exceeds 50%, the process can enter the next node.
 
-Other logic for signature and voting is similar.
+Other logic is basically the same as Joint Sign-off.
 
-## Or Signatory
-An approval node can have multiple handlers. Any handler completing their task will allow the process to move forward.
+## Any-one Sign-off
+In an approval node with multiple handlers, as long as any one person processes it, the process can enter the next node.
 
-* New `stepInstance` is in `activated` state
-* After completing `stepInstance`, check if all `execGroup` members' `stepInstance` have completed. If so, trigger the next move.
+* A newly created stepInstance is in the activated state.
+* After completing the stepInstance, automatically cancel the other steps in the same execGroup, then trigger the transition to the next step.
 
-## Sequential Signatory
-In the same approval node, multiple people can be set, such as A, B, and C, to handle tasks in sequence. Only after A approves and submits, B can approve, and only then will the process proceed.
+## Serial Sign-off
+This means setting multiple people for the same approval node, such as A, B, and C. The three handle in order, i.e., A approves first; only after A submits can B approve; only after all agree can the approval proceed to the next node.
 
-* New `stepInstance` is in `waiting` state
-* After completing `stepInstance`, check if all `execGroup` members' `stepInstance` have completed in order. If so, trigger the next move.
+* A newly created stepInstance is in the waiting state, then it checks whether all stepInstances in the same execGroup with an execOrder less than its own have already finished. If yes, it changes to the activated state.
+* After completing the stepInstance, automatically activate the stepInstance with the next execOrder. If it is the last stepInstance in the execGroup, trigger the transition.
 
-## Assignment
-The approval result is notified to the specified person.
+## CC
+Notify the approval result to designated personnel.
 
-## Rejection
-The approval result is resent to the node for re-approval. A rejection can also be referred to as a refusal, which may involve rolling back to previous steps or any number of steps backward.
+## Reject/Return
+Reset the approval and send it to a certain node for re-approval. Rejection is also called return, and can be categorized as return to the applicant, return to the previous step, arbitrary return, etc.
+In DingTalk workflow mode, all step nodes form a tree structure, and only one step will be executing at a time. A single step has multiple actors, and multiple actors can execute in parallel.
+Therefore, the concept of rollback is quite clear: find the parent node on the tree structure, cancel all currently executing stepInstances, jump to the new step, and create the step instances.
 
-In the DingDing workflow pattern, all step nodes form a tree structure, and each time only one step is executed.
+## Forward
+A forwards to B for approval; after B approves, enter the next node.
 
-Thus, the concept of rollback is quite clear: find the parent node in the tree structure and cancel all currently executing `stepInstance`, then jump to a new step.
+* Add a new actor within the same execGroup. The current step enters the TRANSFERRED state. When calculating the approval ratio, do not count this instance.
 
-## Transition
-A transition from A to B approval. After B approves, the process moves to the next node.
+## Delegate
+A delegates to B for approval; after B approves, it is transferred back to A; after A approves, enter the next node.
 
-* Add a new `actor` to the same `execGroup`
-* The current step enters `TRANSFERRED` state
-* No calculation of the agreement ratio is performed for this example
-
-## Delegation
-A transitions to B approval, then to A again. After A approves, the process moves to the next node.
-
-* `stepInstanceA` changes to `TRANSFERRED` state
-* Wait for `stepInstanceB` to complete
-* Then reactivate `stepInstanceA`
+* The state of stepInstanceA changes to TRANSFERRED, then it waits for stepInstanceB to complete. After stepInstanceB completes, its state is COMPLETED, then stepInstanceA is reactivated.
 
 ## Proxy
-A delegates to B, allowing B to see A's pending tasks. If A completes a task actively, B will no longer see it.
+After A designates B as the proxy, B can see A’s pending tasks. If A actively completes the task, B will no longer see it. If B completes the task, B should be able to see it.
 
 ## Jump
-The current process instance can be jumped to any execution node.
+You can jump the current process instance to any handling node.
 
 ## Recall
-Before handling a file, allow the previous node to submit again.
+Before the current handler has processed the document, allow the submitter of the previous step to perform a recall.
 
-## Wakeup
+## Wake Up
 Wake up historical tasks and re-enter the approval flow.
 
-## Abandonment
-The initiator of the process can abandon the process. All currently executing `stepInstance` will be canceled. The entire process enters the `CANCELLED` state.
+## Cancel
+The process initiator can cancel the process, cancel all currently executing stepInstances. The entire process also enters the CANCELLED state.
 
-## Signature Addition
-Allow the current handling node to add or modify the participants (predecessor, successor) as needed.
+## Add Signers
+Allow the current handler to add handling personnel to the current handling node (pre-node, post-node).
+* Add a new actor’s corresponding stepInstance within the current execGroup. You should check that there is no such actor among the active stepInstances.
 
-* Add a new `actor` corresponding to the `stepInstance`
-* No calculation of the agreement ratio is performed in this example
+## Remove Signers
+Reduce handlers before the current handler operates.
+* Cancel the stepInstance corresponding to the specified actor within the current execGroup.
 
-## Signature Deletion
-Remove participants before handling.
+## Append
+Add or modify node handlers for any step.
 
-* Remove the specified `actor` from the same `execGroup`
+* `step.changeOwner` and `step.changeActor` can change handlers.
 
-## Addition
-Add or modify participants for any step.
+## Claim
+Claim public tasks.
 
-* `step.changeOwner` and `step.changeActor` can be used to modify participants
+* All users belonging to the specified actor can see the step instance, e.g., the actor is Role A. Claiming sets the owner to oneself.
 
-## Recognition
-Public tasks are claimed by participants.
+## Mark as Read
+Mark the step instance as read.
 
-* Participants belonging to a specific `actor` group can see the task instance, e.g., actor A
+* Set `isRead=true`.
 
-## Readiness
-Mark a task instance as read.
+## Expedite
+Notify the handlers of the current active task to process the task, using mechanisms outside the workflow system.
 
-* Set `isRead=true`
+## Communicate
+Communicate with the handlers of the current active task, executed outside the workflow system.
 
-## Initiation
-Initiate tasks outside the workflow system using mechanisms.
+## Terminate
+Terminate the process instance at any node.
 
-## Communication
-Communicate with task handlers outside the workflow system.
-
-## Termination
-Terminate any executing process instance at any node.
-
-## Scheduling
-
+## Schedule
+Set a time point to execute the task and proceed to the next step.
 
 ## Trigger
-Implement the business logic of the trigger. After execution, proceed to the next step. Supports two types of triggers: Immediate Trigger and Scheduled Trigger.
-
+Execute the business logic of the process trigger. Upon completion, proceed to the next step. Supports two implementations: [Immediate Trigger] and [Scheduled Trigger].
 
 ## Timeout Approval
-Automatically approve or reject based on the configured timeout setting after the specified time has elapsed.
+According to the configured timeout approval time, automatically approve after timeout [auto approve or reject].
 
-
-## Automatic Reminder
-Send reminders at the configured intervals. The system will notify the approver via SMS, email, WeChat, DingDing, etc., with the remaining number of days for approval.
-
+## Auto Reminder
+According to the configured reminder time, remind approvers to approve [the number of reminders can be set]. Implement reminders via any interface/method [SMS, email, WeChat, DingTalk, etc].
 
 ## Execution Group execGroup
 
+* Each step corresponds to a set of actors. Each time entering a new step, a stepInstance is created for each actor.
+* These stepInstances form an execGroup.
+* According to the creation order of stepInstances, an execOrder is automatically generated. This execOrder is used in Serial Sign-off.
+* When transitioning to other steps, the engine automatically cancels all stepInstances in the execGroup.
+* The step configuration needs to explicitly enable `useExecGroup=true`. Otherwise, the engine will not consider execGroup-specific handling logic internally and will treat each stepInstance individually.
+* Ending a stepInstance has two meanings: ending the current step instance, and possibly ending the current execution group.
 
-- Each step corresponds to a group of actors.
-- When entering a new step, a `stepInstance` is created for each actor.
-- These `stepInstances` form an `execGroup`.
-- The order of creating `stepInstances` determines the order of generating `execOrder`.
-- Moving to other steps automatically cancels all `stepInstances` in the current `execGroup`.
-- In step configuration, enable `useExecGroup=true`. If not enabled, the engine will treat each `stepInstance` as independent and ignore any group-specific logic.
-
-
-There are two meanings when a stepInstance ends:
-1. The current step instance is completed.
-2. The current execution group may be terminated, depending on the context.
-
+<!-- SOURCE_MD5:c4b4c25152b47f1332270fab34605af5-->

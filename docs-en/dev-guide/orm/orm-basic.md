@@ -1,18 +1,15 @@
 # Basic Usage
 
-QueryBean provides encapsulation for complex query conditions. The supported query operators can be referenced at [filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef). This definition is part of the meta-model.
+QueryBean provides encapsulation for complex query criteria. The supported query operators are defined in the metamodel of [filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef).
 
+## 1. Complex query criteria
 
-## 1. Complex Query Conditions
-
-
-## MyBatisPlus
 ```javascript
 // MyBatisPlus
 LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
 wrapper.eq(User::getUsername, "张三")
-        .and(w -> w.between(User::getAge, 18, 30))
-        .or().eq(User::getGender, 1)
+        .and(w -> w.between(User::getAge, 18, 30)
+                .or().eq(User::getGender, 1))
         .orderByDesc(User::getCreateTime);
 List<User> userList = userMapper.selectList(wrapper);
 
@@ -20,41 +17,30 @@ List<User> userList = userMapper.selectList(wrapper);
 
 QueryBean query = new QueryBean();
 query.addFilter(eq(PROP_Name_username,"张三"))
-        .addFilter(and(
-          or(
-            between(PROP_NAME_age, 18,30),
-            eq(PROP_NAME_gender, 1)
-          ),
-          eq(PROP_NAME_createTime, true)
-        ))
-        .addOrderField(PROP_NAME_createTime, true);
+    .addFilter(and(
+      or(
+        between(PROP_NAME_age, 18,30),
+        eq(PROP_NAME_gender, 1)
+      )))
+     .addOrderField(PROP_NAME_createTime, true);
 
 IEntityDao<User> dao = daoProvider.daoFor(User.class);
-List<User> userList = dao.findAllByQuery(query);
+List<User> usreList = dao.findAllByQuery(query);
 
-// Pagination
+// If paginated query
 query.setOffset(100);
-query.setLimit(20);
+queyr.setLimit(20);
 List<User> userList = dao.findPageByQuery(query);
 
-// Single Record Query
+// If only querying a single record
 User user = dao.findFirstByQuery(query);
 ```
 
-
-## NopORM
-```javascript
-QueryBean query = new QueryBean();
-query.addFilter(eq("product.productType.name","abc"));
-dao.findFirstByQuery(query);
-```
-
-
-## 2. Equal Conditions Only
+## 2. Query by equality conditions only
 
 ```javascript
 User example = new User();
-example.setStatus(10);
+user.setStatus(10);
 
 IEntityDao<User> dao = daoProvider.daoFor(User.class);
 List<User> userList = dao.findAllByExample(example);
@@ -62,8 +48,7 @@ User user = dao.findFirstbyExample(example);
 long count = dao.countByExample(example);
 ```
 
-
-## 3. Embedded Subqueries
+## 3. Embedding subqueries
 
 ```javascript
 QueryBean query = new QueryBean();
@@ -71,187 +56,99 @@ query.addFilter(SQL.begin("o.id in (select y.xx from tbl y where y.id=?", 3).end
 dao.findPageByQuery(query);
 ```
 
+## 4. Join queries
 
+If you query based on fields on the main table, you can directly use composite properties. In the NopORM engine, a composite property like o.product.productType.name will automatically generate a join query based on the primary/foreign key association configuration.
 
-If querying based on fields in the main table, you can directly use composite properties in NopORM. For example, `o.product.productType.name` will automatically generate an associated query.
-
-```javascript
+```
 QueryBean query = new QueryBean();
-query.addFilter(eq("product.productType.name","abc"));
+query.addFiler(eq("product.productType.name","abc"));
 dao.findFirstByQuery(query);
 ```
 
-If needing to query based on fields in the subtable, you can use the methods described in the previous section or directly use EQL.
+If you need to find main-table objects by attributes in a child table, you can use the subquery filter introduced in the previous section, or directly use the EQL query language:
 
-```sql
+```
 select distinct o.book from BookAuthor o where o.author.name like '张%'
 ```
 
-This query finds books written by "张三" through the author table. The `BookAuthor` is a related table, and `o.author.name` performs an association query on the `author` table. The result will be a list of books associated with "张三".
+The above statement searches for books written by authors whose names match the condition. BookAuthor is an association table. The author table is joined through o.author.name, and o.book returns the associated book objects.
 
-If "distinct" is not used, duplicate entries may appear in the results due to the multi-to-many relationship.
+If you omit the distinct keyword, because it is a many-to-many relationship, the returned collection may contain duplicates.
 
+## 5. Query conditions in sql-lib and other tag libraries
 
+The Nop platform emphasizes that the same model information can have multiple representations that are freely convertible. As a typical use case, Filter provides a standard representation for complex predicate conditions. Its information structure is defined by the [filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef) metamodel.
 
+1. In Java, we can use helper functions like and/or/eq/gt on FilterBeans to build TreeBean objects.
+2. In XML and the Xpl template language, we can express the same condition using XML syntax such as `<eq name="status" value="1" />`.
+3. The FilterBeanToSQLTransformer class can convert Filter information into SQL query statements, e.g., `o.status = 1`.
+4. The FilterBeanToPredicateTransformer class can convert Filter information into Java’s Predicate interface to evaluate in memory.
 
-The Nop platform emphasizes that a single model can have multiple expression forms, which can be freely converted into each other. As a typical example, the **Filter** component provides a standard complex condition expression form.
+In the rule engine, the predicate conditions we use are also defined by the Filter model.
+![rule-model.png](../rule/images/rule-model.png)
 
+We can use Filter more freely in the xpl template language.
 
-The information structure of the model is defined by `[filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef)` meta-model.
-
----
-
-
-In **Java**, you can use helper functions such as `and`, `or`, `eq`, `gt` available in the `FilterBeans` class to construct a `TreeBean` object.
-- Example: 
-```java
-FilterBeans.create()
-    .and("status", "active")
-    .get();
-```
-
-
-In **XML** and **Xpl** template language, the same condition can be expressed using:
-```xml
-<eq name="status" value="1"/>
-```
-- Example in Xpl:
-```xpl
-<bo:FindPage>
-    <filter>
-        <eq name="status" value="1"/>
-    </filter>
-</bo:FindPage>
-```
-
-
-The **FilterBeanToSQLTransformer** class converts filter information into SQL queries, such as:
-- Example:
-```sql
-o.status = 1
-```
-
-
-The **FilterBeanToPredicateTransformer** class converts filter information into Java's `Predicate` interface and executes the condition in memory.
-
----
-
-
-In the rule engine, the conditions used are defined by the **Filter** model.
-
-![rule-model](../rule/images/rule-model.png)
-
----
-
-
-In the **Xpl** template language, you can use filters with greater freedom:
-- Example:
-```xpl
-<eql name="active_findPage">
-    <source>
-        <bo:FindPage>
-            <filter>
-                <eq name="status" value="1"/>
-            </filter>
-        </bo:FindPage>
-    </source>
-</eql>
-```
-
----
-
-
-The **Xbiz** model implements query functions.
+* Implement a query function in the xbiz model
 
 ```xml
+
 <query name="active_findPage">
-    <source>
-        <bo:FindPage>
-            <filter>
-                <eq name="status" value="1"/>
-            </filter>
-        </bo:FindPage>
-    </source>
+  <source>
+    <bo:FindPage>
+      <filter>
+        <eq name="status" value="1"/>
+      </filter>
+    </bo:FindPage>
+  </source>
 </query>
 ```
 
----
+bo.xlib provides wrappers for functions such as doFindPage in CrudBizModel.
 
-
-The **bo.xlib** class provides encapsulation for functions like `doFindPage` in the **CrudBizModel**.
-
----
-
-
-The **sql-lib** framework allows you to define and manage SQL statements. It supports similar functionality to MyBatis, where you can use the `SqlMapper` interface or directly call methods via `SqlLibManager`.
+* Define SQL statements in sql-lib  
+  sql-lib provides SQL management functionality similar to MyBatis. You can invoke SQL statements managed in sql-lib via the SqlMapper interface, or call them directly via SqlLibManager.
 
 ```java
+
 @SqlLibMapper("/app/mall/sql/LitemallGoods.sql-lib.xml")
 public interface LitemallGoodsMapper {
-    void syncCartProduct(@Name("product") LitemallGoodsProduct product);
+  void syncCartProduct(@Name("product") LitemallGoodsProduct product);
 }
 ```
 
----
-
-
-The **LitmallGoods.sql-lib.xml** file defines SQL queries using EQL syntax.
+In LitmallGoods.sql-lib.xml
 
 ```xml
+
 <sql-lib>
-    <sqls>
-        <eql name="syncCartProduct" sqlMethod="execute">
-            <arg name="product"/>
-            
-            <source>
-                update LitemallCart o
-                    set o.price = ${product.price},
-                        o.goodsName = ${product.goods.name},
-                        o.picUrl = ${product.url},
-                        o.goodsSn = ${product.goods.goodsSn}
-                    where o.productId = ${product.id}
-            </source>
-        </eql>
-    </sqls>
+  <sqls>
+    <eql name="syncCartProduct" sqlMethod="execute">
+      <arg name="product"/>
+
+      <source>
+        update LitemallCart o
+        set o.price = ${product.price},
+        o.goodsName = ${product.goods.name},
+        o.picUrl = ${product.url},
+        o.goodsSn = ${product.goods.goodsSn}
+        where o.productId = ${product.id}
+      </source>
+    </eql>
+  </sqls>
 </sql-lib>
 ```
 
----
+Here, eql indicates the use of EQL object query syntax. It accesses data via entity names and property names. Its syntax is similar to SQL but supports composite properties. For example, o.product.type will automatically recognize foreign key associations and convert them into join conditions.
 
+If you use the sql tag, it represents the native SQL syntax. That is, sql-lib manages both SQL and EQL statements.
 
-EQL (Entity Query Language) is used to query data. It supports composite properties, such as `o.product.type`, and automatically handles foreign key relationships.
-
----
-
-
-If you use `<sql>` tags, it indicates the use of native SQL syntax. This means that **sql-lib** manages both SQL and EQL queries simultaneously.
-
----
-
-
-For data permission configuration:
-- File location: `/nop/main/auth/app.data-auth.xml`
-- Example:
-```xml
-<auth>
-    <dataPermission>
-        <resource name="LitemallGoods">
-            <action name="read">true</action>
-            <action name="update">false</action>
-        </resource>
-    </dataPermission>
-</auth>
-```
-
----
-
-```markdown
-
-## Data Authorization Configuration
-
-The following XML configuration snippet demonstrates how to set up data authorization rules:
+* Use in data access control configuration  
+  Configure data permissions in /nop/main/auth/app.data-auth.xml
 
 ```xml
+
 <data-auth>
   <objs>
     <obj name="MyEntity">
@@ -267,158 +164,151 @@ The following XML configuration snippet demonstrates how to set up data authoriz
 </data-auth>
 ```
 
-In the XPL template language, custom tags are used to simplify the creation of filters. For example:
+In the xpl template language, we introduce custom tags to simplify writing Filters, for example:
 
 ```xml
+
 <and>
   <eq name="status" value="1"/>
   <app:FilterByTask/>
 </and>
 ```
 
-`<app:FilterByTask>` is a custom tag that can output an XML node of the required format (it's actually of type XNode and implements ITreeBean interface).
+`<app:FilterByTask>` is a custom tag. As long as it can output an XML node that meets the required format (actually of type XNode, which implements the ITreeBean interface), it will work.
 
-Dynamic conditions can also be added:
+You can also add dynamic conditions:
 
-```xml
+```
 <bo:FindPage>
   <filter>
-    <c:if test="${request.status}">
-      <eq name="status" value="${request.status}" />
-    </c:if>
+     <c:if test="${request.status}">
+        <eq name="status" value="${request.status}" />
+     </c:if>
   </filter>
 </bo:FindPage>
 ```
 
-Additionally, meta-programming capabilities allow for simplified tag creation. For example, `<sql:filter>` is a macro tag that executes at compile-time and modifies the code structure:
+You can also leverage metaprogramming to simplify tag authoring. For example, `<sql:filter>` is a macro tag executed at compile time, essentially transforming the source structure:
 
 ```xml
+
 <sql:filter>and o.classId = :myVar</sql:filter>
 ```
 
-This is equivalent to manually writing:
+Equivalent to writing the following by hand:
 
 ```xml
+
 <c:if test="${!_.isEmpty(myVar)}">
   and o.classId = ${myVar}
 </c:if>
 ```
 
+## SingleSession Support
 
+Methods on IEntityDao delegate to the underlying ormTemplate. OrmTemplate adopts a Spring-like template pattern: each function will automatically open a session for use, and if there is already a session object in the context, it will be reused.
 
-Methods on `IEntityDao` are implemented by calling the underlying `ormTemplate`. The `OrmTemplate` follows a similar pattern to Spring's template, with each method automatically starting a session if one doesn't already exist in the context. 
+The NopGraphQL engine automatically opens an OrmSession during execution, so in general business code you do not need to manually open a session.
 
-When using NopGraphQL, the engine automatically handles `OrmSession`, so typical business code does not need to manually open sessions.
-
-If you want to use ORM outside of the GraphQL engine, you can annotate methods with `@SingleSession` and `@Transactional` (using Nop's own `Transactional` annotation). These annotations will automatically manage `OrmSession` and transaction management.
+If you want to use the ORM outside the GraphQL engine, annotate the function with `@SingleSession` and `@Transactional` (note: use the Transactional defined within the Nop platform). They will automatically open the OrmSession and the transaction manager.
 
 ```java
 public class TccRecordRepository implements ITccRecordRepository {
-  // Forcefully start a new transaction with propagation
+  // Here we force a new transaction. In general, by setting propagation, it will automatically inherit the transaction from the context.
   @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
   @Override
   public CompletionStage<Void> saveTccRecordAsync(ITccRecord record, TccStatus initStatus) {
     return FutureHelper.futureCall(() -> {
       NopTccRecord tccRecord = (NopTccRecord) record;
       tccRecord.setStatus(initStatus.getCode());
-      return recordDao().saveEntityDirectly(tccRecord);
+      recordDao().saveEntityDirectly(tccRecord);
+      return tccRecord;
     });
   }
   // ...
 }
 ```
 
-All methods annotated with `@Transactional` require registration in NopIoC's `beans.xml`. This is because AOP in NopIoC is handled through its built-in configuration, not through Spring's AOP. Refer to [aop.md](../ioc/aop.md) for more details.
+All beans that use annotations like `@Transctional` need to be registered in the NopIoC `beans.xml` file, because AOP is implemented using NopIoC’s built-in capabilities. See [aop.md](../ioc/aop.md)
 
 ```xml
+
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
   <bean id="nopTccRecordRepository" class="io.nop.tcc.dao.store.TccRecordRepository"/>
 </beans>
 ```
 
-### If you want to manually open a session, here's how to do it:
+### If you need to open a session manually, you can use the following approach
 
 ```javascript
+
 @Inject
 IOrmTemplate ormTemplate;
 
-ormTemplate.runInSession(session => {
-  // Session operations can be performed here
-});
+ormTemplate.runInSession(session->{
+  ...
+})
 ```
 
-
-## Transaction Management is similar:
+Transaction management is similar:
 
 ```javascript
+
 @Inject
 ITransactionTemplate transactionTemplate;
 
-transactionTemplate.runInTransaction(txn => {
-  // Transaction operations can be performed here
-});
+transactionTemplate.runInTransaction(txn->{
+   ...
+})
 ```
 
+## OrmEntity entity properties
+All entity classes in NopORM inherit from OrmEntity. OrmEntity does not support JSON serialization, but provides helper functions to access field values on the entity.
 
-## OrmEntity Entity Properties
+The current field values on the entity are `entity.orm_initedValues()`, and the pre-modification values are `orm_dirtyOldValues()`.
 
-All entities in NopORM inherit from the `OrmEntity` class. The `OrmEntity` does not support JSON serialization but provides helper functions to retrieve field values of entities.
+## Differences from MyBatis
 
-The current field values of an entity are obtained via `entity.orm_initedValues()`, while the previous field values are obtained via `orm_dirtyOldValues()`.
+NopORM is a full-fledged ORM engine similar to JPA, so it uses OrmSession to manage all entities loaded into memory. Overall usage is similar to JPA and Hibernate, and compared to MyBatis it requires far fewer manual invocation steps.
 
+### 1. No need to call update when modifying.
 
-### Differences from MyBatis
+In general, we use the IEntityDao interface to perform CRUD on entities. Internally, it uses OrmTemplate to invoke the underlying NopORM engine. OrmTemplate is similar to Spring’s HibernateTemplate: when calling its methods, it automatically opens an OrmSession and, after the operation completes, calls `session.flush()` to flush in-memory modifications to the database.
 
-NopORM is a full ORM engine similar to JPA and Hibernate. It uses `OrmSession` to manage all entities loaded into memory, similar to how JPA and Hibernate work. Compared to MyBatis, NopORM requires fewer manual call steps.
-
-
-### 1. No need to manually call the update method
-
-In general, we use the `IEntityDao` interface to implement CRUD operations for entities. It internally uses `OrmTemplate` to interact with the underlying NopORM engine.
-The `OrmTemplate` is similar to Spring's `HibernateTemplate`. When you call its methods, it automatically opens an `OrmSession` and calls `session.flush()` after the operation to flush any changes to the database.
-
-After loading entities from the database into memory, we only need to call the set method. We do not need to manually call any update method; the engine will check if the entity has been modified and update the database accordingly.
-
-When updating the database compared to MyBatis, NopORM automatically generates the appropriate `update` statements based on the modified fields. Therefore, even if you call the set method but the actual fields of the entity have not been modified, the engine will not update the database.
-
-
-### Example:
+Therefore, after loading an entity from the database, we only need to call setter methods; there is no need to call any update method. The engine will detect whether the entity has been modified, and if so, it will automatically update the database. When updating the database, unlike MyBatis, NopORM automatically generates the update statement based on the fields that have changed. Thus, even if a setter is called, if the property value has not actually changed, the entity’s state will not become dirty and the database will not be updated.
 
 ```javascript
 @SingleSession
 @Transactional
-public void changeEntityStatus(String id, int status) {
+public void changeEntityStatus(String id, int status){
   IEntityDao<MyEntity> dao = daoProvider.daoFor(MyEntity.class);
   MyEntity entity = dao.requireEntity(id);
   entity.setStatus(3);
 
-  // Here, you do not need to call dao.updateEntity(entity);
+  // No need to call dao.updateEntity(entity) here.
 }
 ```
 
-If you call this function within a business model function (e.g., `BizModel`), you do not need to use the `@SingleSession` and `@Transactional` annotations. The NopGraphQL engine will handle it automatically.
+If called within a BizModel function, you do not need to use the @SingleSession and @Transactional annotations; the NopGraphQL engine handles it uniformly.
 
-
-### 2. No need to manually call the save method
-
-Just link the new entity with existing entities in the `OrmSession`, and when the session is flushed, the engine will automatically traverse through the object relationships to generate an `insert` statement if the entity has not been saved yet.
+### 2. When inserting, you also don’t necessarily need to call save
+As long as you associate the new entity with other entities already present in the OrmSession, when NopORM flushes, it will automatically traverse along object associations to that entity. If it finds that the entity has not yet been saved, it will automatically generate an insert statement.
 
 ```javascript
-MyEntity entity = dao.newEntity();
-entity.setName("ssS");
-parent.getChildren().add(entity);
+ MyEntity entity = dao.newEntity();
+ entity.setName("ssS");
+ parent.getChildren().add(entity);
 ```
 
+### 3. Generally avoid methods like updateDirectly
+To maximize performance, NopORM also provides updateDirectly and other approaches that bypass OrmSession and generate SQL updates directly. However, this is essentially a performance backdoor and should generally be avoided.
 
+### 4. Prefer EQL over SQL
+NopORM provides an SQL statement management mechanism similar to MyBatis XML. In `sql-lib.xml` you can use multiple query syntaxes including EQL, SQL, and DQL.
 
-To maximize performance, NopORM also provides methods like `updateDirectly` to bypass the `OrmSession` and directly generate SQL updates. However, this is considered a performance vulnerability in most cases and should generally be avoided.
+EQL is similar to Hibernate’s HQL and allows expressions like `entity.parent.name` for property association syntax, but EQL is much more powerful. In EQL you can freely use various join syntaxes, WITH clauses, LIMIT clauses, UPDATE RETURNING clauses, etc.
 
-
-
-NopORM provides a similar XML configuration for managing SQL statements as MyBatis does, using the `sql-lib.xml` file to support multiple query languages like EQL, SQL, and DQL.
-
-EQL is similar to Hibernate's HQL but far more powerful. It supports joins, subqueries, limits, with clauses, update returning clauses, etc.
-From a design perspective, **EQL = SQL + AutoJoin**. EQL supports all the syntax that standard SQL does while adding additional features like auto-joining related entities.
-
-* In the actual implementation, the EQL syntax supports most standard SQL-92 syntax. However, it is designed for database compatibility by supporting only the common syntax features among multiple mainstream databases, excluding database-specific extensions. For SQL functions, compatibility translation has been implemented through `dialect` configuration.
-* EQL supports GIS-related functions such as `st_contains`
+* From a design perspective, `EQL = SQL + AutoJoin`. In principle, all syntax that SQL has is supported by EQL. On top of that, EQL adds the feature of automatically inferring table joins based on property associations.
+* In actual implementation, EQL supports most of the standard SQL-92 syntax. For database compatibility, it only supports features common to multiple mainstream databases and does not support syntax proprietary to a particular database. For SQL functions, compatibility conversions are implemented via dialect configurations.
+* EQL supports GIS-related functions such as `st_contains`.
+<!-- SOURCE_MD5:8be09ad034f3221930d6b590b7069a07-->

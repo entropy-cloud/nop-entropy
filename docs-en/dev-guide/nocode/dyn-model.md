@@ -1,187 +1,117 @@
 # Online Dynamic Modeling
 
-The **NoCode** development mode requires users to adjust data models, process models, and other model objects online without going through the compilation, packaging, or deployment process. Immediately after adjustments, users can see the updated runtime results.
+The No-code (NoCode) development paradigm requires that users be able to adjust data models, process models, and other model objects online, without going through compilation, packaging, and deployment, and immediately see the runtime results after model adjustments.
 
-The Nop platform's current demonstration is primarily conducted during the design phase, where models are designed and then generated into program source code via code generation. As a result, many people mistakenly believe that the Nop platform's technical solution does not apply to online dynamic modeling.
+Most Nop Platform demos currently design models during the development phase and then generate program source code via code generation. Many therefore mistakenly assume that Nop's technical approach is not suited for online dynamic modeling.
 
-In this document, I will discuss the dynamic model management aspects of the Nop platform by combining its **NopDyn** module implementation.
+In this article, I will introduce dynamic model management in the Nop Platform, drawing on the implementation of the NopDyn module.
 
-## 1. Achieving Decoupling via DSL
+## I. Decoupling via DSL
 
-To support dynamic design during runtime, traditional solutions tightly couple design tools with runtime engines, leading to intertwined logic that restricts both design and performance improvements. This coupling creates numerous limitations.
+To support runtime model design, traditional solutions tightly couple design tools and runtime engines. This leads to entangled logic between the two, making both design improvements and performance optimizations difficult.
 
-In the Nop platform, we prioritize **DSL** over visualization design. For details, see [Key Points in DSL Design from Reversible Computation](https://zhuanlan.zhihu.com/p/646144092).
+$$
+Design\text{-}time \Longrightarrow Runtime
+$$
 
-The following equation demonstrates this decoupling:
+The Nop Platform emphasizes DSL-first rather than visual-design-first. (See [Design Principles of DSL from the Perspective of Reversible Computation](https://zhuanlan.zhihu.com/p/646144092))
 
-```
-State --> Code Generation --> Virtual File System --> Load --> Runtime State
-```
+$$
+Design\text{-}time \overset {Code\ Generation} \Longrightarrow  Virtual\ File\ System \overset {Universal\ Loading} \Longrightarrow Runtime
+$$
 
-In the Nop platform, design tools and runtime engines are decoupled via DSL. 
+In the Nop Platform, design tools and the runtime engine are decoupled via DSL.
 
-1. Design tool output is a **DSL model file**.
-2. Runtime engine input is a **DSL model file**.
-3. **DSL model files** are managed by the virtual file system.
+1. The output artifact of the design tool is a DSL model file
 
-Thanks to the abstraction provided by the virtual file system, DSL can be stored as files on disk, database records (or groups of related records), or in-memory text caches. The process of saving the model as a DSL file and then parsing it to create runtime models is akin to **non-symmetric extension**: during serialization, the design-time model becomes a DSL text, while deserialization may result in a runtime model that differs from the design-time model.
+2. The input to the runtime engine is a DSL model file
 
-```
-Model --> Serialization --> DSL Text --> Model \\
-DesignModel --> Serialization --> JSON --> Model \\
-DesignModel --> Code Generation --> DSL --> RuntimeModel
-```
+3. **DSL model files are uniformly managed by the Virtual File System**
 
-Furthermore, **the process of generating the DSL from the DesignModel is not unique**. We can propose multiple forms of design models depending on the specific business scenario. For example, in the Nop platform's underlying workflow engine, there is no built-in approval concept, but we can provide a customizable, DingDing-like workflow designer that generates tree-shaped model objects.
+With the abstraction of the Virtual File System, the actual storage of DSL can be files on disk, a record in a database (or a set of associated records), or a text buffer in memory. The process of saving a model as a DSL file and then parsing it to obtain runtime model objects can be regarded as **an asymmetric extension of the JSON serialization process**: the text produced by serializing the design-time model is DSL, and **the deserialized runtime model need not match the design-time model**; it can be a model structure optimized for runtime.
 
-This means that from **DesignModel** to **DSL**, the generation process can be code generation. While many associate code generation with the development phase and thus assume it's not suitable for dynamic modeling, combining virtual file system abstraction, code generation, and JSON serialization results in processes that are essentially memory-text transformations: both generate text representations of runtime models.
+$$
+Model \Longrightarrow  JSON  \Longrightarrow Model \\
+DesignModel \Longrightarrow DSL \Longrightarrow RuntimeModel
+$$
 
-The Nop platform is equipped with a powerful template-driven code generator that supports **NoCode** and **ProCode** development by sharing parts of the code templates. For details, see [Delta Mechanism for Code Generation](https://zhuanlan.zhihu.com/p/540022264).
+Furthermore, **the process from design-time model to DSL is not unique**. We can propose multiple forms of design-time models tailored to different business scenarios as long as they can generate the required DSL text via a code generation process. For example, the underlying workflow engine in the Nop Platform is not customized for approval scenarios—it does not have built-in concepts like parallel or serial approvals. However, we can provide a customized visual designer similar to DingTalk’s workflow that produces a tree-structured model object, and then automatically compile-time transform it to generate the underlying graph-structured workflow DSL.
 
-From another perspective, **the parsing of DSL into model objects is standardized** in the Nop platform: define XDef meta-models and automatically parse them. For details, see [Replacement of XSD with XDef Meta-Modeling](https://zhuanlan.zhihu.com/p/652191061).
+In other words, moving from DesignModel to DSL can be a code generation process implemented via a code generator. Mentioning code generation often gives the impression that it exists only in the development phase and is unsuitable for dynamic model design. But combined with the Virtual File System abstraction, code generation is essentially no different from JSON serialization: both generate a segment of text in memory.
 
-In the Nop platform, you can load any model object using the following method:
+The Nop Platform comes with a powerful template-driven code generator, enabling NoCode and ProCode to share part of the code generation templates. See [Data-driven Delta Code Generator](https://zhuanlan.zhihu.com/p/540022264).
+
+In another direction, **the process of parsing DSL into model objects is standardized in the Nop Platform**: just define the XDef meta-model corresponding to the DSL to automatically implement model object parsing. See [A Unified Meta-model Definition Language as a Replacement for XSD: XDef](https://zhuanlan.zhihu.com/p/652191061).
+
+In the Nop Platform, you can load any model object by virtual file path as follows:
 
 ```javascript
 DslModel = ResourceComponentManager.instance().loadComponentModel(modelPath)
 ```
 
-During loading, the system automatically implements model caching and tracks dependencies between model files. When a model file is modified, all dependent cached models are invalidated. This behavior is similar to tools like webpack or vite, which track dependencies. For a detailed video explanation, see [Unified Model Loader in Low-Code Platforms](https://www.bilibili.com/video/BV1rH4y117hd/).
+The loading process automatically implements model caching and tracks dependencies between model files: when a model file is modified, all model caches that depend on it are automatically invalidated. What the unified model loader does is essentially similar to frontend bundlers like webpack or vite that support dependency tracking. For a detailed introduction, see the video [Unified Model Loader in Low-Code Platforms](https://www.bilibili.com/video/BV1rH4y117hd/).
 
-## 2. General Delta Mechanism
+## II. Universal Delta Mechanism
 
-Any dynamic update (extension) technology fundamentally defines a delta space and enables structural composition operations within this space.
+**Any dynamic update (extension) technology is essentially defining a Delta space and feasible structural composition operations within that space.** Upon reflection, what most people perceive as dynamic updates is just defining extension points on an already constructed structure and then inserting structures that conform to interface specifications into those extension points. The complexity of implementing dynamic, Delta-based updates lies in the following three points:
 
-Carefully thinking about this, general people understand dynamic updates as modifying existing structures by defining extension points and inserting compliant structures into these points. This process is akin to **delta computation**: extending existing systems without fully reconstructing them each time.
+1. How should extension points be designed to satisfy unknown Delta update requirements?
 
-The complexity of delta-based updates lies in three key aspects:
+2. How can externally introduced Delta structures be seamlessly integrated with the original structure?
 
-1. **Delta Space Definition**: Defining what constitutes a "change" (delta) in the system.
-2. **Compositional Updates**: Applying changes through modular extensions rather than full system rebuilds.
-3. **Incremental Validity**: Ensuring that incremental updates maintain system integrity.
+3. How can we ensure runtime state consistency before and after Delta-based updates?
 
-The following equation illustrates this:
+Beyond the above three points, we can ask ourselves: Since all business logic structures have potential dynamic update needs, **why should every specific structure customize its own Delta update scheme?** Can we resolve the above three technical challenges once and for all with a unified technical approach?
 
-```
-State --> Delta Space --> Extension Operation --> New State
-```
+## Lessons from the Relational Model
 
-In the Nop platform, we have successfully implemented a delta-based approach for managing dynamic models. This solution avoids the limitations of traditional approaches where runtime and design-time tools are tightly coupled. For more details, see [Delta Mechanism in Model Management](https://zhuanlan.zhihu.com/p/540022264).
+To answer the above question, we can look at the rise of the relational model. Before relational databases dominated, data storage approaches were diverse and ad hoc. The reason the relational database model could standardize storage mechanisms is that it chose to step back and broaden the perspective. In the relational model, we abandon various natural associations between data and **focus entirely on atomic, non-redundant data**. After normalizing them, we then dynamically compute the final required data via various derived operations. In particular, all original strong pointer-based associations between data are broken; all relations are decomposed (hence **“no relations” in a relational database**), retaining only association fields like id and ref_id. At runtime (when data is actually needed), we use JOIN statements, **compute on-the-fly** (via index lookups or table scans), and **reconstruct relationships between data** in memory. To emphasize again, the power of the relational model lies in introducing just-in-time computation into the standardized structured data access process—reconstructing relations at runtime; and the ORM engine’s role is to pull back the relations decomposed by the relational model, embedding them in the object model to avoid repeatedly expressing primary–foreign key associations in business logic.
 
+To achieve unambiguous, standardized Delta updates, Reversible Computation makes the same choice as the relational model: step back and operate at the standardized, non-redundant structural layer, rather than the type-differentiated object layer. The Nop Platform’s Delta merge mechanism is uniformly defined at the XDSL layer. It is a standardized information structure expressible in XML or JSON and constrained by the XDefinition meta-model.
 
-1. How can extension points be designed to ensure that unknown incremental update requirements are met?
-2. How can external introduced incremental structures be seamlessly integrated with existing structures?
-3. How can incremental updates maintain consistency between the state before and after the update?
+|Relational Model Theory|Reversible Computation Theory|
+|---|---|
+|Schema Definition|XDefinition Meta-model Specification|
+|Non-redundant tabular data|Non-redundant tree-structured information: XDSL|
+|On standardized data structures, just-in-time computation: SQL|Compile-time computation on the generic XNode data structure: XLang|
 
-Additionally, we can ask ourselves another question: Since all business logic structures inherently have potential dynamic update requirements, **why do each specific structure require its own tailored incremental update solution**? Can a unified technical solution address the aforementioned three technical challenges simultaneously?
+Nop’s XLang develops a comprehensive toolset for defining, parsing, transforming, and analyzing tree structures. The reason Nop can implement standardized, business-agnostic Delta merge operations is that it defines Delta operations at the generic XDSL structural layer rather than at the model object layer produced by parsing XDSL.
 
----
-
-
-## Relationship Model's Success Stories
-
-To address the above questions, we can look at the history of the relationship model. Before the rise of relational databases, data storage methods were as diverse as they come—from flat files to hierarchical databases and everything in between. However, it was the advent of the relational database model that standardized data storage mechanisms. In the relational model, we abandoned naturally occurring relationships between data entities and instead focused on atomic, non-redundant data. Through standard operations and derived functions, we derive the required data dynamically. Notably, all relationships were severed (known as **"relationships in a relational database are non-existent"**), leaving only identifiers like `id` and `ref_id` to maintain associations. At runtime, joins (`JOIN` statements) are used to re-establish these relationships through either index lookups or table scans, which perform immediate computations (indexed searches or full-table scans). Relationships are then rebuilt in memory.
-
-The relationship model's strength lies in its ability to rely on immediate computations (index-based lookups or table scans) for data retrieval and re-relationships. ORMs (Object-Relational Mappings) play a crucial role here by translating the relational model back into objects, effectively managing the separation of concerns between the domain model and the storage layer.
-
-To enable non-ambiguous, standardized incremental updates and reversible computations, the relationship model follows the same principles: it opts for operations on standardized, non-redundant data layers rather than divergent object layers. This avoids the pitfalls of object encapsulation, where objects often end up tightly coupled, making partial updates or decoupled reasoning difficult.
-
-The relational approach achieves this by standardizing data storage and retrieval through a common set of operations (e.g., `SELECT`, `INSERT`, `UPDATE`, `DELETE`), eliminating unnecessary complexity. It's worth noting that while some relationships are lost in translation, modern databases and ORMs reconstruct them dynamically using index-based lookups or table scans.
-
----
-
-
-## Tables Comparison
-
-| **Relationship Model Theory** | **Reversible Computation Theory** |
-|---------------------------------|---------------------------------|
-| Schema Definition                | XDefinition Meta-model           |
-| Non-redundant Table Data       | No Information Redundancy: XDSL |
-| Standardized Data Structure    | Standardized Data Structure: XDSL |
-| Immediate Computation (e.g., SQL)| Immediate Computation (e.g., SQL) |
-
----
-
-
+Recall the model loading process in the Nop Platform:
 
 ```javascript
-DslModel = ResourceComponentManager.instance().loadComponentModel(modelPath);
+DslModel = ResourceComponentManager.instance().loadComponentModel(modelPath)
 ```
 
-If we adopt a functional programming language's abstract representation, it corresponds to:
+In a functional abstraction, it corresponds to:
 
-```plaintext
-modelPath => XDSL => DslModel
+```
+   modelPath => XDSL => DslModel 
 ```
 
-Here, **XDSL** is a redundant-free, standardized, data storage and transmission-oriented structured information representation. In contrast, **DslModel** is an optimized, derived-data-focused, externally usable information representation. These two are interconnected through dynamic, responsive computations: once the DSL file is modified, the DslModel automatically re-parses and recompiles.
+XDSL is a non-redundant, standardized, structured information format oriented toward storage and transmission, whereas DslModel is a compiled, optimized format rich in derived data and oriented toward external consumption. They are linked via a dynamic, reactive computation: once a DSL file is modified, DslModel is automatically re-parsed.
 
----
+## Lessons from Microservice Architecture
 
+How do we ensure runtime state consistency before and after Delta-based updates? For this, we can look at solutions from microservice architecture.
 
+Microservices achieve dynamic rolling updates by relying on stateless design. Traditional object-oriented practice encapsulates functions and the data they operate on into objects. Functions and data then get entangled, forming spaghetti-like, intertwined structures that are hard to decompose and thus hard to update locally. Ideally, we want a layered slice structure that can be stacked or trimmed one layer at a time.
+The essence of stateless design is to decouple logic processing from the runtime state space. Runtime dynamic state data is pushed out of the static pure logic structure—part becomes passed parameters, and part becomes persisted data in shared storage. As a result, the microservice’s runtime structure no longer explicitly contains state data, so its dynamic updates do not get entangled with state migration and become an independently solvable problem.
 
-When it comes to incremental updates ensuring runtime state consistency, microservices architecture offers a solution. Unlike traditional monolithic architectures, where partial updates often lead to tight coupling and state management complexities, microservices decouple the runtime state from the application logic.
+When accessing a microservice, we first talk to the service registry, dynamically find the service instance by service name, then send input parameters. The service instance loads the persistent state data based on the inputs. In a functional abstraction, the process corresponds to:
 
-In a microservices setup:
-
-1. **Stateless by Design**: Microservices are designed to be stateless, storing all persistent data outside the service. This avoids the need for complex synchronization mechanisms.
-2. **Dynamic Rollbacks**: If a service fails, only its output is affected, not the entire system's state.
-3. **Independent Services**: Each service operates independently, making it easier to roll out updates without affecting the overall system.
-
-When updating a microservice:
-
-1. **Input/Output Coupling**: Microservices receive inputs, process them, and produce outputs. The internal implementation remains hidden, simplifying partial updates.
-2. **Event Driven**: Updates can be triggered by events, allowing services to respond without direct communication dependencies.
-3. **Shared Data through Events**: Persistent data is stored outside the service, so state consistency is maintained through event handling.
-
-The key advantage lies in the decoupling of runtime state from business logic. Microservices are like a "black box" that transforms inputs into outputs, making it easier to manage updates and maintain system-wide consistency.
-
----
-
-
-
-```javascript
-DslModel = ResourceComponentManager.instance().loadComponentModel(modelPath);
+```
+  serviceName => Service => input => state => Result
 ```
 
-If we use a functional programming language's abstract representation, this corresponds to:
+Similarly, in the Nop Platform, all model processing adopts the same logical structure:
 
-```plaintext
-modelPath => XDSL => DslModel
+```
+  modelPath => XDSL => DslModel => arguments => scope => Result
 ```
 
-Here, **XDSL** is a redundant-free, standardized, data storage and transmission-oriented structured information representation. In contrast, **DslModel** is an optimized, derived-data-focused, externally usable information representation. These two are interconnected through dynamic, responsive computations: once the DSL file is modified, the DslModel automatically re-parses and recompiles.
+Like microservices, dynamic updates to DSL models can be independent of structural migrations in the state space.
 
----
+## III. DSL
 
-
-
-Incremental updates without runtime state inconsistencies are a hallmark of microservices architecture. Unlike traditional approaches where partial updates often lead to tightly coupled systems and complex state management, microservices decouple runtime states from business logic.
-
-Key points:
-
-1. **Stateless by Design**: Services store no state; data persistence is handled externally.
-2. **Dynamic Rollbacks**: Failures in one service do not affect others.
-3. **Independent Operations**: Services operate independently, simplifying updates and fault isolation.
-
-When updating a microservice:
-- Inputs are processed into outputs.
-- Internal implementations remain hidden.
-- Updates are event-driven, allowing services to respond without direct communication dependencies.
-
-The decoupling of runtime state from business logic is the architecture's greatest strength. Microservices function like black boxes that transform inputs into outputs, facilitating consistent system-wide updates and maintaining state integrity through event handling.
-
----
-
-
-
-| Relationship Model Theory | Reversible Computation Theory |
-|---------------------------|-------------------------------|
-| Schema Definition          | XDefinition Meta-model         |
-| Non-redundant Table Data  | No Information Redundancy: XDSL |
-| Standardized Data Structure| Standardized Data Structure: XDSL |
-| Immediate Computation (e.g., SQL)| Immediate Computation (e.g., SQL) |
-
----
-
-
+<!-- SOURCE_MD5:a8d345002083cf873da65c7a4dcda88c-->

@@ -1,16 +1,17 @@
-# Flow Editor Generator
+
+# Flow Editor
 
 ```
 FlowEditor(flowData)
+
+FlowEditor = FlowEditorGenerator<flowEditorComponents, flowEditorStore, flowEditorSchema>
 ```
 
-```python
-FlowEditor = FlowEditorGenerator<FlowEditorComponents, FlowEditorStore, FlowEditorSchema>
-```
+* flowEditorComponents provide atomic UI components; in principle they are business-agnostic and only involve local information.
+* flowEditorStore provides business logic encapsulation. Events on UI components will trigger methods in the Store. Shared state and behaviors that span multiple atomic components are aggregated in the store.
+* flowEditorSchema is responsible for organizing atomic components and providing the form definition
+ 
+* Components and function objects can be passed directly, or loaded dynamically as modules
+* The render function is responsible for converting the schema into a virtual DOM
 
-* FlowEditorComponents provides atomic UI components. These components are business-agnostic and only handle local data.
-* FlowEditorStore encapsulates business logic. Events from UI components trigger methods in the store. Shared state and behavior across multiple atomic components are managed within the store.
-* FlowEditorSchema is responsible for organizing atomic components and defining form structures.
-
-* The component and function objects can be directly passed, or alternatively used as dynamic modules.
-* The render function converts the schema into a virtual DOM.
+<!-- SOURCE_MD5:2dbf759df2f22b974ca8c3333f15e334-->

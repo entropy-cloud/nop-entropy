@@ -1,24 +1,21 @@
-# Suit
+# Overlay Printing (套打)
 
-Suit practices are as follows:
+The approach for overlay printing is as follows:
+1. Insert the pre-printed form as an image into the report.
+2. Set the image to not print (hide it in the print output).
 
-1. Inserting images into the report
-2. Setting image visibility during printing
+![](form-printing/form-printing.png)
 
-![form-printing/form-printing.png](form-printing/form-printing.png)
+## Dynamically Generate Images
 
-## Dynamic Image Generation
+If the image is not static and must be generated dynamically based on conditions, configure a data generation expression.
 
-If the image is not static, it must be dynamically generated based on conditions. This requires configuring a data generation expression.
+Right-click the image and select "View Alt Text". In the "Alt Text" pane, use a dataExpr expression to generate the image data; the expression must return a byte[] or an IResource.
 
-Right-click on the image and select "View Selected Text" in the "Replace Text" section to generate image data using the `dataExpr` expression. The returned format should be either `byte[]` or `IResource`.
+Note: Insert a separate line containing only "-----" to indicate that the following is the expression section.
 
-Note: Insert a single row of `-----` to indicate that the following is the expression part.
+![](form-printing/data-expr.png)
 
-![form-printing/data-expr.png](form-printing/data-expr.png)
+The application must implement the actual image loading; "myHelper" is only a sample object. You can use inject during the "Before Expand" phase to obtain your helper object from the bean container, or use the import syntax to bring in external helper classes.
 
-## Loading Images
-
-To load images, you need to write custom code in the application. Here, `myHelper` is just an example object. You can use it in two ways:
-1. In the "Expanded" section using `inject` to get the helper object from the bean container.
-2. Using the `import` statement to import the external helper class.
+<!-- SOURCE_MD5:3f64369281184aacb71c6cf8d691b18b-->

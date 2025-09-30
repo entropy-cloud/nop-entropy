@@ -1,3 +1,4 @@
 # SQL Editor
 
-* In the Supersonic project, Ace Editor is used to edit SQL statements, supporting syntax highlighting.
+* The supersonic project uses ace-editor to edit SQL statements and supports syntax hints.
+<!-- SOURCE_MD5:b8f7d96c651d0a2321146540ff09e102-->

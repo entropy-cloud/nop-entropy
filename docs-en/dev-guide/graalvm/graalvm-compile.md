@@ -1,7 +1,7 @@
 # Native Compilation
 
 ## Debug Configuration
-The debug phase is configured in `bootstrap.yaml`.
+Configure the debug phase in bootstrap.yaml
 
 ```yaml
 nop:
@@ -10,28 +10,33 @@ nop:
 "%dev":
   nop.codegen.trace.enabled: true
 ```
-In the debug phase, the application is launched, and reflection classes are output to the `reflect-config.json` file during application shutdown.
-Additionally, a `nop-vfs-index.txt` file will be generated in the virtual file system, containing all file paths. GraalVM does not support class scanning or resource scanning if there is no index file available.
+Enable the application during the debug phase and perform business operations; classes used via reflection will be output to the `reflect-config.json` file when the application is shut down.
+In addition, a `nop-vfs-index.txt` file will be generated automatically, which contains all file paths in the virtual file system. GraalVM does not support classpath scanning or resource scanning; without the help of index files, file traversal and lookup cannot be implemented.
 
-## Third-party Library Adaptation
-In modules like `nop-commons`, `nop-auth-core`, etc., configurations for third-party libraries such as caffeine and jsonwebtoken are added to the `reflect-config.json` file.
+## Third-Party Library Adaptation
+
+In modules such as nop-commons and nop-auth-core, `reflect-config.json` configurations have been added for third-party libraries used, such as caffeine and jsonwebtoken.
 
 ## Version Compatibility
-- [GraalVM JDK 21.0.2 Release Notes](https://www.graalvm.org/release-notes/JDK_21/)
-- Download GraalVM 21.0.2 from [GraalVM CE Builds](https://github.com/graalvm/graalvm-ce-builds/releases)
+https://www.graalvm.org/release-notes/JDK_21/
 
-The `quarkus-bom` module's pom file defines the version of GraalVM JS used by Quarkus, and then searches for the corresponding GraalVM version in the releases page.
+https://github.com/graalvm/graalvm-ce-builds/releases Download GraalVM 21.0.2
 
-## Truffle Languages and Components
-- Truffle languages and other components (version 23.1.2) are designed for use with GraalVM for JDK 21.0.2.
-- GraalJS version 24.0.2 is designed for use with Oracle GraalVM for JDK 22.0.2 or GraalVM Community Edition for JDK 22.0.2.
-- GraalJS version 23.1.2 is designed for use with Oracle GraalVM for JDK 21.0.2 or GraalVM Community Edition for JDK 21.0.2.
+The pom file in the `quarkus-bom` module defines the version of GraalVM JS that Quarkus depends on; then find the corresponding GraalVM version on the releases page above.
+
+Truffle languages and other components version 23.1.2 are designed for use with GraalVM for JDK 21.0.2
+
+GraalJS version 24.0.2 is designed for use with Oracle GraalVM for JDK 22.0.2 or GraalVM Community Edition for JDK 22.0.2,
+
+GraalJS version 23.1.2 is designed for use with Oracle GraalVM for JDK 21.0.2 or GraalVM Community Edition for JDK 21.0.2,
 
 ## Class Initialization
-The `reflect-config.json` file automatically collects configurations from the following directory:
-`src/main/resources/META-INF/native-image/<group-id>/<artifact-id>`
 
-```json
+
+## reflect-config.json
+Configurations under the following directory will be collected automatically: `src/main/resources/META-INF/native-image/<group-id>/<artifact-id>`
+
+```
 [
   {
     "name" : "com.acme.MyClass",
@@ -45,18 +50,17 @@ The `reflect-config.json` file automatically collects configurations from the fo
 ]
 ```
 
-## Configuration Explanation
-The following options are specified to enable debuggers such as Chrome DevTools:
-- `--inspect`
-- `--cpusampler`
-- `--cputracer`
-- `--memsampler`
+## Configuration Notes
+Specify the following options to enable the debugger based on Chrome DevTools, the sampling profiler, the tracing profiler, and the memory profiler, respectively:
+
+--inspect
+--cpusampler
+--cputracer
+--memsampler
 
 ## Solon Framework
 
-### 1. Include AOT Support in the POM File
-Add AOT support to the POM file and include dependencies like `solon-logging-logback`.
-
+### 1. Add AOT support in the pom file and include the solon-logging-logback dependency,
 
 ```xml
 <project>
@@ -120,11 +124,14 @@ Add AOT support to the POM file and include dependencies like `solon-logging-log
             <groupId>org.graalvm.buildtools</groupId>
             <artifactId>native-maven-plugin</artifactId>
             <version>0.9.28</version>
-            <!-- Using graalvm's reachability metadata, many third-party libraries can be built into executable files -->
+            <!-- Use reachability metadata provided by GraalVM so many third-party libraries can be built directly into executables -->
             <configuration>
               <metadataRepository>
                 <enabled>true</enabled>
               </metadataRepository>
+              <!--                            <buildArgs combine.children="append">-->
+              <!--                                <buildArg>-H:+AddAllCharsets</buildArg>-->
+              <!--                            </buildArgs>-->
             </configuration>
             <executions>
               <execution>
@@ -140,44 +147,42 @@ Add AOT support to the POM file and include dependencies like `solon-logging-log
     </profile>
   </profiles>
 </project>
+```
 
-### 2. Configure Logback in app.yml
-
-When using `logback.xml`, reflection support is missing, preventing normal logging input.
+### 2. Configure logback in app.yml. When using a logback.xml configuration, reflection support is missing and logs cannot be output properly.
 
 ```yaml
 solon.logging.appender:
   console:
-    level: DEBUG # Adjust based on need
-    enable: true # Whether to enable
+    level: DEBUG # adjust level as needed
+    enable: true # whether to enable
   cloud:
     level: INFO
     enable: true
 
-# Logging Level Configuration Example
+# Example of logger-level configuration
 solon.logging.logger:
-  "root": # Default logger configuration
+  "root": # default logger configuration
     level: DEBUG
   "com.zaxxer.hikari":
     level: WARN
 ```
 
-Since additional information has been added to `reflect-config.json` for GraalVM compilation, the Solon-provided RuntimeNativeRegistrar mechanism is generally unnecessary.
+Since the information required for GraalVM compilation has already been supplied in files such as `reflect-config.json`, in general you do not need to use Solon's RuntimeNativeRegistrar mechanism.
 
-### 3. Compile
+### 3. Compilation
+Remove the nop.profile configuration from bootstrap.yaml, then run the following command
 
-Remove `nop.profile` from `bootstrap.yaml` and execute the following command:
-
-```bash
+```
 mvn native:compile -DskipTests -Pnative
 ```
 
 ## Issue Diagnosis
-1. Error: Cannot find `/nop/schema/register-model.xdef`
-   - Start the application in debug mode.
-   - Configure `"nop.codegen.trace.enabled": true` and `nop.debug:true` in `bootstrap.yaml`.
-   - This will generate `nop-vfs-index.txt`, resolving native compilation issues after class scanning.
-   - In IDEA, disable the application when debugging to allow automatic generation of GraalVM configuration files in the `src/main/resources` directory.
+1. Error: cannot find `/nop/schema/register-model.xdef`
+You must first start the application in debug mode and configure `"nop.codegen.trace.enabled: true` and `nop.debug:true`" in `bootstrap.yaml`, which will automatically generate `nop-vfs-index.txt` to solve the problem where class scanning cannot be performed after native compilation.
+* As long as you start in IDEA's debug mode, Quarkus will automatically set `quarkus.profile=dev`, and QuarkusIntegration in the Nop platform will automatically force `nop.debug=true`.
+* After starting the program, you should exercise the application via the UI so that the reflective calls that need to be recorded are actually invoked. When you stop the app in IDEA, GraalVM configuration files will be automatically generated in the `src/main/resources` directory.
 
-2. Graalm Compilation Error
-   - Ensure the GraalVM version matches the Quarkus version used by the project (e.g., Quarkus 3.14.4 uses GraalVM JS 23.1.2, corresponding to GraalVM CE 21.0.2+13.1 (build 21.0.2+13-jvmci-23.1-b30)).
+2. GraalVM compilation error
+Ensure that the GraalVM version matches the Quarkus version referenced by the program. Currently, Quarkus 3.14.4 uses GraalVM JS 23.1.2, which corresponds to `GraalVM CE 21.0.2+13.1 (build 21.0.2+13-jvmci-23.1-b30)`
+<!-- SOURCE_MD5:a48ddd75b6eb87bc9671c29f294ecfdf-->

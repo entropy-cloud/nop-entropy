@@ -1,46 +1,55 @@
-# According to control.xlib dynamically derived frontend controls
+
+# Deriving Front-End Controls Dynamically from control.xlib
 
 ## XView Model
-The XView model provides a blueprint of the visual structure that is independent of the implementation technology. In the final `page.yaml` file, we use the following tags based on the XView model to dynamically generate JSON files.
+The XView model provides a technology-agnostic definition of view outlines. In the final `page.yaml` file we use the following tag to dynamically generate a JSON file based on the XView model
 
 ```yaml
+
 x:gen-extends: |
     <web:GenPage view="NopDynFile.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
-title: This configuration will override the dynamically generated title configuration
+
+title: The configuration here will override the dynamically generated title configuration
 ```
 
-* The `page.yaml` file can be manually written. The XView model only provides a dynamic generation aid.
-* Dynamic generation occurs in the `x:gen-extends` stage, where it generates a base class for the current page, which can then be modified using Delta correction techniques.
+* `page.yaml` can be authored manually; the XView model merely provides an auxiliary means for dynamic generation.
+* Dynamic generation occurs at the `x:gen-extends` stage. It produces a base class for the current page, upon which we can fine-tune the generated details using the Delta adjustment technique.
 
 ## Control Mapping
-The `<web:GenPage>` tag converts the XView model into specific frontend code when generating the page. Additional information from the `control.xlib` tag library is required at this stage to map logical fields to specific frontend controls. By using different `control.xlib` libraries for the same `xview.xml` model, we can produce different results, such as using different control mappings for mobile and web versions.
+When the `<web:GenPage>` tag converts the XView model into concrete front-end code, it requires additional `control.xlib` tag library information, which is responsible for mapping logical field structures to specific front-end controls.
+Using this mechanism, for the same `xview.xml` model, different `control.xlib` libraries can yield different generation results; for example, we can use different control-mapping libraries for mobile and web.
 
-If the `controlLib` attribute is not configured in the XView model, it defaults to `/nop/web/xlib/control.xlib`.
+In the XView model we can configure the controlLib attribute; if not specified, `/nop/web/xlib/control.xlib` is used by default.
 
-In `control.xlib`, we can define three types of controls: `edit-userId`, `<view-userId>`, and `<query-userId>` for the userId type. These correspond to different controls depending on whether the user is in edit, view, or query mode.
+In `control.xlib` we can define three kinds of controls—edit, view, and query—for each type. For example, `<edit-userId>`, `<view-userId>`, and `<query-userId>` specify which controls to use to render the userId type in edit, view, and query states, respectively.
 
-When searching for a corresponding control for a specific field:
-1. Check if the XView model's `form` or `grid` has a configured `control`.
-2. Look up `ui:control` in XMeta.
-3. Check if the XView model's `form` or `grid` has a configured `domain`.
-4. Look up `domain` in XMeta.
-5. Check if the XView model's `form` or `grid` has a configured `stdDomain`.
-6. Look up `stdDomain` in XMeta.
-7. Based on XMeta's configuration, follow the `ext:kind` relationship.
-8. Finally, based on XMeta's data type configuration, follow the `stdDataType`.
+The following order is used to resolve the control for a field:
 
-The `stdDomain` is defined in the `StdDomainRegistry`, which includes types like xpl, xml, csv-set, prop-name, etc.
+1. The control configured on a form cell or grid column in XView—this is equivalent to explicitly specifying the control type
+2. The `ui:control` configured on the prop in XMeta
+3. The domain configured on a form cell or grid column in XView
+4. The domain configured on the prop in XMeta
+5. The stdDomain configured on a form cell or grid column in XView
+6. The stdDomain configured on the prop in XMeta
+7. Associations inferred from `ext:kind` configured in XMeta
+8. The StdDataType inferred from the field type configured in XMeta
 
-## Edit Mode
-In addition to the above, the XView model allows for configuring an `editMode` on its `form` or `grid`. Different `editMode` values correspond to different controls. The `editMode` can also be extended as needed. For example, when editing a list in the list page, we might want to enable a special edit mode called `list-edit`.
+* stdDomain refers to standard data domains defined in the StdDomainRegistry, including extension types such as xpl, xml, csv-set, prop-name, etc.
 
-```yaml
+## Edit Modes
+You can also configure editMode on a form cell or grid column in XView; different editModes correspond to different controls. The three controls listed above—edit, view, and query—actually correspond to three different editModes.
+Edit modes can also be extended as needed. For example, when editing on a list page, we may want to enable a special edit mode list-edit. We can configure
+
+```
 <grid editMode="list-edit">
 </grid>
 ```
 
-For all controls, it will first look for `<list-edit-xx>` controls. If not found, it will fall back to standard `<edit-xx>` controls.
+Then all controls will first attempt to resolve to `<list-edit-xx>` controls; if not found, they fall back to the standard `<edit-xx>` controls.
 
-Using this field mapping mechanism, we can abstract the data at the field level. For example, many fields are of type `String`, but `userId` and `roleId` have different business meanings and should correspond to different controls. We can choose the appropriate domain for them in the Excel data model using `control.xlib`.
+With this field-mapping mechanism, we achieve field-level abstraction. For example, many fields are of type String, but userId and roleId have different business semantics and should map to different controls; you can assign different domains to them in the Excel data model.
+When generating code, `control.xlib` maps them to different controls.
 
-> In the backend processing, we can further abstract the fields based on `domain` or `stdDomain`.
+> In backend service processing, we can also implement field-level domain abstraction based on the domain or stdDomain configuration.
+
+<!-- SOURCE_MD5:bf20f1d46cd85bb08338ca93bb365003-->

@@ -1,16 +1,19 @@
-# Bulk Loading
 
-## GraphQL Loader Mechanism for Dynamic Bulk Data Loading
+# Batch Loading
+
+## Applying GraphQL's Loader mechanism to invocation results to implement dynamic batch data loading
 
 ```javascript
     IEntityDao<NopAuthUser> user = daoProvider.daoFor(NopAuthUser.class);
     List<NopAuthUser> list = user.findAll();
-    IServiceContext svcCtx = null; // Service context typically exists in the backend template runtime context
+    IServiceContext svcCtx = null; // The svcCtx is generally present in the backend template runtime context
     CompletionStage<Object> future = graphQLEngine.fetchResult(list,
             "NopAuthUser", "...F_defaults,status_label,relatedRoleList", svcCtx);
     output("result.json5", FutureHelper.syncGet(future));
 ```
 
-The `graphQLEngine.fetchResult` method can dynamically create a GraphQL field selection based on the input object and GraphQL type. This method then executes the GraphQL data loader logic.
+IGraphQLEngine.fetchResult can dynamically create a GraphQLFieldSelection based on the supplied objects, GraphQL type, and field selection set, and then execute GraphQL's DataLoader data loading logic.
 
-By default, the `NopGraphQL` query for entity data will automatically implement bulk loading logic, which corresponds to the code in `OrmEntityRefFetcher` and `OrmEntitySetFetcher`. These classes handle ORM-level relationships and collections by processing associated entities.
+By default, when NopGraphQL accesses entity data, it automatically performs batch loading. The corresponding code resides in OrmEntityRefFetcher and OrmEntitySetFetcher, which automatically handle ORM-level association properties and associated collections.
+
+<!-- SOURCE_MD5:8759b08ba2cbff925d2486e6b7ee0b31-->

@@ -1,56 +1,58 @@
-Here is the translation of the Chinese technical document into English, preserving the original Markdown format including headers, lists, and code blocks:
-
-
-# Understanding Metamodels
-You are a computer expert who understands the role of metamodels. Below is a definition of a metamodel.
-
-
-# Example Metamodel Definition
+You are a computer expert who understands the role of meta-models. Below is a meta-model definition.
 
 ```xml
 <prompt displayName="string">
+
     <description>string</description>
+
     <defaultChatOptions xdef:ref="chat-options.xdef"/>
+
     <vars>
-        <!-- Variable declaration for template usage -->
-        <var name="!var-name" displayName="string" xdef:name="PromptVarModel">
+        <!--
+        声明模板中使用的变量信息。主要用于模板管理
+        -->
+        <var name="var-name" displayName="string" xdef:name="PromptVarModel">
             <schema xdef:ref="../schema/schema.xdef"/>
             <description>string</description>
         </var>
     </vars>
-    
-    <!-- Template generation using XPL template language -->
-    <template>xpl-text</template>
 
-    <!-- Post-processing of AI results -->
-    <processResultMessage>JS function, use resultMessage variable</processResultMessage>
+    <!--
+    通过xpl模板语言生成prompt，可以利用xpl的扩展能力实现Prompt的结构化抽象
+    -->
+    <template>生成的Prompt提示词</template>
+
+    <!--
+    执行完AI模型调用后得到AiResultMessage对象，可以通过模板内置的后处理器对返回结果进行再加工。
+    这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
+    比如Prompt中可以额外增加一些特殊的标记提示，用于简化结果解析，在processResultMessage中自动识别这些标记并做处理。
+    -->
+    <processResultMessage>JS函数，可以使用resultMessage变量</processResultMessage>
 </prompt>
 ```
 
-
-# Chat Options Definition
-
+The definition of chat-options.xdef is as follows:
 ```xml
 <options model="string" seed="string"
          temperature="float"
          topP="float" topK="int"
-         maxTokens="int" contextLength="int"
-         stop="comma separated string"/>
+         maxTokens="int" contextLength="int" stop="comma seperated string"
+/>
 ```
 
+Requirements: Analyze the above meta-model definition and automatically generate a sample Prompt that conforms to the meta-model. It describes a prompt sent to ChatGPT and functions to translate Chinese into English.
 
-# Analysis of the Metamodel
-Analyze the above metamodel definition and generate an example prompt that complies with the metamodel requirements, which will be sent to ChatGPT for translation into English.
+1. In the meta-model, the body of a node indicates the data type for that section.
+2. In !string, the exclamation mark indicates that the attribute is non-null; the “!” character should not appear in the final result.
+3. The xpl template language is similar to JavaScript template strings.
+4. Attributes in the xdef namespace are meta-model attributes and must not appear in the final XML.
+5. The output must be in XML format that conforms to the meta-model, and only include the XML—do not add extra explanations.
+6. Tag and attribute names must match the case used in the meta-model.
+7. xdef:ref indicates a reference to an existing meta-model definition; the format of the current node is defined by the referenced meta-model.
 
-1. The `body` node in the metamodel represents the data type of the part.
-2. The `!string` indicates a non-empty attribute, and this character should not appear in the final result.
-3. The `xpl` template language is similar to JavaScript's template string.
-4. `xdef` refers to the namespace attribute in the metamodel, which should not appear in the final XML.
-5. The output should be in XML format that meets the metamodel requirements and should only contain XML content without additional explanations.
-6. The case of XML tags and attributes must match the metamodel's specifications.
-7. `xdef:ref` indicates a reference to an existing metamodel definition, which defines the node's structure in the final XML.
 
-The following example prompt complies with the metamodel requirements:
+==========================
+You are a computer expert who understands the role of meta-models. Below is a meta-model definition.
 
 ```yaml
 displayName: string
@@ -59,6 +61,7 @@ defaultChatOptions:
   xdef:ref: chat-options.xdef
 
 vars:
+  # 声明模板中使用的变量信息。主要用于模板管理
   - name: !var-name
     displayName: string
     xdef:name: PromptVarModel
@@ -66,13 +69,17 @@ vars:
       xdef:ref: ../schema/schema.xdef
     description: string
 
+# 通过xpl模板语言生成prompt，可以利用xpl的扩展能力实现Prompt的结构化抽象
 template: xpl-text
 
-processResultMessage: xpl-fn: (resultMessage) => void
+# 执行完AI模型调用后得到AiResultMessage对象，可以通过模板内置的后处理器对返回结果进行再加工。
+# 这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
+# 比如Prompt中可以额外增加一些特殊的标记提示，用于简化结果解析，在processResultMessage中自动识别这些标记并做处理。
+processResultMessage: xpl-fn:(resultMessage)=>void
 ```
 
-```markdown
-# Model Parameters
+The definition of chat-options.xdef is as follows:
+
 ```xml
 model: string
 seed: string
@@ -81,34 +88,37 @@ topP: float
 topK: int
 maxTokens: int
 contextLength: int
-stop: comma separated string
+stop: comma seperated string
 ```
 
-## Requirements:
-1. Analyze the above meta-model definition and generate an example Prompt that meets the meta-model requirements, which will be sent to chatgpt for translation into English.
-2. The meta-model defines that the body part represents the data type.
-3. The `!string` in `!string` indicates that this attribute is non-empty, and the `!` character should not appear in the final result.
-4. `xpl` template language is similar to JavaScript's template strings.
-5. `xdef` refers to namespace attributes in the meta-model, which should not appear in the final YAML.
-6. The output should be in YAML format that meets the meta-model requirements and only contain YAML, without additional explanations.
-7. Node names and attribute names should match the case of the meta-model.
+Requirements: Analyze the above meta-model definition and automatically generate a sample Prompt that conforms to the meta-model. It describes a prompt sent to ChatGPT and functions to translate Chinese into English.
 
-### Example Prompt for Translation:
-```json
+1. In the meta-model, the body of a node indicates the data type for that section.
+2. In !string, the exclamation mark indicates that the attribute is non-null; the “!” character should not appear in the final result.
+3. The xpl template language is similar to JavaScript template strings.
+4. Attributes in the xdef namespace are meta-model attributes and must not appear in the final YAML.
+5. The output must be in YAML format that conforms to the meta-model, and only include the YAML—do not add extra explanations.
+6. Node and attribute names must match the case used in the meta-model.
+
+
+==========================
+You are a computer expert who understands the role of meta-models. Below is a meta-model definition.
+
+```json5
 {
-  // Basic information
+  // 基本信息
   displayName: "string",
   description: "string",
 
-  // Chat options defined (linked to XML schema)
+  // 聊天选项定义（关联 XML schema）
   defaultChatOptions: {
-    "xdef:ref": "chat-options.xdef"
+    "xdef:ref": "chat-options.xdef"  // 对应 XML 定义:
   },
 
-  // Variable declaration configuration
+  // 变量声明配置
   vars: [
     {
-      // Declares variables used in the template, mainly for template management
+      // 声明模板中使用的变量信息。主要用于模板管理
       name: "!string",
       displayName: "string",
       schema: {
@@ -118,38 +128,71 @@ stop: comma separated string
     }
   ],
 
-  // Using xpl template language to generate prompt
-  template: "Here is an example using the xpl template language",
+  // 通过xpl模板语言生成prompt，可以利用xpl的扩展能力实现Prompt的结构化抽象
+  template: "这里使用xpl模板语言",
 
-  // Post-processing configuration
+  // 后处理配置
+  /*
+  执行完AI模型调用后得到AiResultMessage对象，可以通过模板内置的后处理器对返回结果进行再加工。
+  这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
+  比如Prompt中可以额外增加一些特殊的标记提示，用于简化结果解析，在processResultMessage中自动识别这些标记并做处理。
+  */
   processResultMessage: "xpl-fn:(resultMessage)=>void"
 }
 ```
 
-### Chat-Options.xdef Definition:
-```json
+The definition of chat-options.xdef is as follows:
+
+```json5
 {
-  model: "string"
+	model: "string"
+	seed: "string"
+	temperature: "float"
+	topP: "float"
+	topK: "int"
+	maxTokens: "int"
+	contextLength: "int"
+	stop: "comma seperated string"
 }
 ```
-9. 7B will be confused between `xdef:name` and `name`, it is unclear which one is the actual name attribute.
-10. 32B can identify the YAML format's meta-model, but sometimes `template` is not generated correctly.
-11. The model `deepseek-r1:8b-32k` can run on a local machine and recognize JSON's meta-model while generating it correctly.
-12. 7B has difficulty understanding `var-name`.
-13. The 14B model occupies 13G of GPU memory, and 14B-4K consumes 10.7G of memory, while 14B-32K uses 16G of memory. 8B-32k also uses 10G of memory, and 8B is around 8G.
-14. The 14B model can generate `template` correctly and identify `var-name`, but it cannot reliably recognize `xdef:ref` definitions.
-15. The 14B model runs translation functionality on my machine with a temperature setting of 0.6. For a long content, the `think` section becomes empty, and the output is truncated.
+
+Requirements: Analyze the above meta-model definition and automatically generate a sample Prompt that conforms to the meta-model. It describes a prompt sent to ChatGPT and functions to translate Chinese into English.
+
+1. In the meta-model, the body of a node indicates the data type for that section.
+2. In !string, the exclamation mark indicates that the attribute is non-null; the “!” character should not appear in the final result.
+3. The xpl template language is similar to JavaScript template strings.
+4. Attributes in the xdef namespace are meta-model attributes and must not appear in the final YAML.
+5. The output must be in JSON format that conforms to the meta-model, and only include the JSON—do not add extra explanations.
+6. Node and attribute names must match the case used in the meta-model.
+
+==============
+1. xdef:name="PromptModel" can mislead the model into thinking this is the name of the output XML node.
+2. xdef:value is used to indicate that the content of the body segment is difficult for the model to understand; 32B models also often output it as an attribute.
+3. xdef:body-type and xdef:key-attr are not important for code generation and can be removed.
+4. A 32B model can understand the meaning of <template>xpl-text</template>, but a 7B model cannot.
+5. A 32B model can understand xdef:ref and generate a correct model, but a 7B model cannot.
+6. Understanding the exclamation mark in !string requires detailed explanation; even 32B models often get it wrong.
+7. The 7B model’s think segment appears to understand some content, but the generation is still incorrect.
+8. The 32B model can recognize the YAML-formatted meta-model, but sometimes the output format becomes messy.
+9. The 7B model gets confused between xdef:name and name and is unsure which is the actual name attribute.
+10. The 32B model can recognize the YAML-formatted meta-model, but sometimes the template is not generated correctly.
+11. deepseek-r1:8b-32k running locally can recognize the JSON-formatted meta-model and generate it correctly.
+12. The 7B model has difficulty understanding var-name.
+13. The 14B model uses 13G of GPU memory; 14B-4K uses 10.7G; 14B-32K uses 16G. The 8B-32k uses 10G, while 8B uses about 8G.
+14. The 14B model can correctly generate the template and recognize var-name, but cannot reliably recognize xdef:ref definitions.
+15. On my machine, when running the 14B model with temperature=0.6 for translation of a relatively long content, the think segment becomes empty and the output is truncated.
 
 ```
-You are a professional translator.
-Translate the following Chinese text to natural English while:
-1. Maintaining original terminology
-2. Preserving contextual nuances
-3. Using appropriate idioms where applicable
+ You are a professional translator.
+	Translate the following Chinese text to natural English while:
+	1. Maintaining original terminology
+	2. Preserving contextual nuances
+	3. Using appropriate idioms where applicable
 
-Chinese Input:
-${inputText}
+	Chinese Input:
+	${inputText}
 
-Respond ONLY with the translated text without additional commentary.
+	Respond ONLY with the translated text without additional commentary.
+
 ```
-
+<!-- SOURCE_MD5:24ab7f87559c73d6c1bb296c1f1f8213-->

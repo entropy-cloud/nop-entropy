@@ -1,44 +1,43 @@
 # Coding Rules
 
-In business systems, it's common to generate business codes automatically according to certain coding rules, such as generating order numbers or card numbers.
+Business systems often need to automatically generate business codes according to certain coding rules, such as automatically generating order numbers, card numbers, etc.
 
-## Built-In CodeRule
+## Built-in CodeRule
 
-1. Add a `code` tag to fields in the model
-2. During code generation, the system will automatically add a `biz:codeRule="objectName@attributeName"` configuration to the field's metadata. This can be overridden in the derived metadata.
-3. Use the `nop-sys-dao` module to add corresponding records to the `nop_sys_code_rule` table and configure the coding template
-4. When saving or modifying an entity, it will trigger `autoExpr` in the metadata based on the `biz:codeRule` configuration
+1. Add a code tag to the field in the model.
+2. During code generation, a configuration like biz:codeRule="ObjectName@PropertyName" will be automatically added to the field in meta. This code rule name can be overridden in derived meta.
+3. Include the nop-sys-dao module, add the corresponding record in the nop_sys_code_rule table, and configure the coding template.
+4. When saving or modifying an entity, meta's autoExpr will be triggered (automatically generated according to the biz:codeRule configuration).
 
-## Built-In CodeTemplate
+## Coding Template
 
-The `ICodeRule` interface supports defining a set of variable patterns for encoding templates, then parsing the coding template and replacing variables to generate encoded strings.
+The ICodeRule interface supports defining a set of variable patterns, then parsing the coding template and replacing the variables to generate the code string.
 
-The coding template uses the format `{@type:options}` to represent variables. For example, `D{@year}{@month}{@seq:5}` represents:
+Variables in the coding template are represented in the form {@type:options}, for example D{@year}{@month}{@seq:5} means:
 
-- Prefix: D
-- 4-digit year
-- 2-digit month
-- 5-digit incremental sequence number
+* Prefix is D
+* 4-digit year
+* 2-digit month
+* A 5-digit sequentially increasing sequence number; when it reaches the maximum, it wraps around
 
-If the maximum value is reached, it will roll over.
+|name|pattern|description|
+|---|---|---|
+|year|{@year}|Year|
+|month|{@month}|Month, fixed two digits|
+|dayOfMonth|{@dayOfMonth}|Day of month, 1 to 31|
+|hour|{@hour}|Hour, fixed two digits|
+|minute|{@minute}|Minute, fixed two digits|
+|second|{@second}|Second, fixed two digits|
+|randNumber|{@randNumber:3}|Random number; declare the number of digits via options|
+|seq|{@seq:3}|Sequential counter, fixed 3 digits|
+|prop|{@prop:entity.type,3}|Fetch the variable value from a property of the context object; an optional length field can constrain the returned string length|
 
-| Field | Pattern | Description |
-|-------|---------|-------------|
-| Year | `{@year}` | Year |
-| Month | `{@month}` | Month (fixed 2 digits) |
-| DayOfMonth | `{@dayOfMonth}` | Day of month (1-31) |
-| Hour | `{@hour}` | Hour (fixed 2 digits) |
-| Minute | `{@minute}` | Minute (fixed 2 digits) |
-| Second | `{@second}` | Second (fixed 2 digits) |
-| RandNumber | `{@randNumber:3}` | Random number generated based on options, e.g., 3 digits |
-| Seq | `{@seq:3}` | Incrementing sequence number, fixed to 3 digits |
-| Prop | `{@prop:entity.type,3}` | Represents a variable value from the context object's property. The length can be specified in the options.
+## Examples
+If you set NopSysCodeRule’s 【Code Pattern codePattern】 to `D{@year}{@month}{@seq:5}`, it may generate D20240912345, where 09 corresponds to September, and 12345 is a sequentially generated serial number with a length of 5.
 
-## Example
-When configuring `NopSysCodeRule` with the coding pattern `{@type:options}` as `D{@year}{@month}{@seq:5}`, it may generate a string like "D20240912345", where "09" corresponds to September and "12345" is a 5-digit incremental sequence number.
+In the NopSysCodeRule object’s 【Sequence Name seqName】 field, configure the name of the sequence object used by the `{@seq:5}` pattern; it corresponds to the configuration item in NopSysSequence.
 
-For the `NopSysCodeRule` object's `seqName` field, configure `{@seq:5}` as the pattern for the sequence name, which refers to the configuration in `NopSysSequence`.
+## Register Extension Variables
 
-## Register Extended Variables
-
-Extended coding rule variables can be defined in `beans.xml`. The bean's name should follow the format `nopCodeRuleVariable_{xxx}`.
+You can define extended coding rule variables in beans.xml. The bean name convention is nopCodeRuleVariable_xxx
+<!-- SOURCE_MD5:993678306350dd03222d237c6d96950f-->

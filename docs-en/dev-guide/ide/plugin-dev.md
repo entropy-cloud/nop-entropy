@@ -1,53 +1,46 @@
-# Linking Gradle Project
+# Link a Gradle Project
 
-The `nop-idea-plugin` project is a Gradle project within IDEA. You can right-click on the file `build.gradle.kts` and select the "Link Gradle Project" menu option.
+The nop-idea-plugin project is a Gradle project. In IntelliJ IDEA, right-click the build.gradle.kts file and choose the Link Gradle Project menu.
 
 ![idea-link-gradle](idea-link-gradle.png)
 
-
 ## Debugging
 
-After linking the Gradle project, you can debug it by selecting the appropriate tasks in the Gradle task manager. Right-click on the `Tasks > intellij > runIde` task and select the "Debug" plugin.
-IDEA will then launch a new instance to perform debugging.
+After importing the Gradle project, in the Gradle tasks tool window select the Tasks/intellij/runIde task, then right-click to debug the plugin.
+IDEA will launch a new application instance for debugging.
 
 ![idea-plugin-runIde](idea-plugin-runIde.png)
 
-
 ## Plugin Features
 
+## Syntax Validation
 
-## Syntax Checking
+XLangAnnotator checks whether XML files conform to the xdef meta-model definitions.
 
-The `XLangAnnotator` responsible for checking whether an XML file adheres to the `xdef` schema definition.
+## Code Completion
 
-
-## Code Suggestions
-
-The `XLangCompletionContributor` provides code suggestions based on the `xdef` schema definition, including labels, property names, and values.
-
+XLangCompletionContributor suggests tag names, attribute names, attribute values, etc., based on the xdef meta-model definitions.
 
 ## Quick Documentation
 
-When you hover over labels, property names, or values in the schema, IDEA will display a pop-up with information from the `xdef` schema. This is implemented by the `XLangDocumentationProvider`.
+When you hover over tag names, attribute names, or attribute values, the descriptions defined in the xdef meta-model are shown. Implemented by XLangDocumentationProvider.
 
+## Navigation
 
-## Linking
+When you hold CTRL and hover, a prompt appears to navigate to the related location. XLangFileDeclarationHandler identifies virtual file paths and XPL tag definitions and performs the navigation.
 
-When you press `Ctrl +` while hovering over an element, IDEA will navigate to the corresponding linked location. The `XLangFileDeclarationHandler` identifies virtual file paths and XPL labels, then performs the navigation.
+## Breakpoint Debugging
 
-
-## Breakpoints
-
-The `XLangDebugExecutor` adds breakpoints for debugging purposes. It is implemented by extending the `Debug/Run` level and adding a debug button.
+XLangDebugExecutor adds a debug execution button alongside Debug/Run.
 
 ![idea-xlang-executor](idea-executor.png)
 
-The `XLangDebuggerRunner` initializes the debugger. It starts an RPC service within the target program, exposing the `io.nop.api.debugger.IDebugger` interface via remote calls.
-
+XLangDebuggerRunner is responsible for launching the debugger. Concretely, the debugged program starts an RPC service exposing the io.nop.api.debugger.IDebugger interface; the IDEA plugin invokes this interface via a remote RPC mechanism and receives returned messages.
 
 ## Virtual File System
 
-In IDEA, the virtual file system is managed by the singleton `VirtualFileSystem`. The `ResourceComponentManager` also acts as a singleton to load and cache model files. Since multiple projects can be opened simultaneously, each project must have its own cache. Therefore, in the `NopAppListener`, we register custom implementations for `VirtualFileSystem`, `ResourceComponentManager`, and `DictProvider`. These are then used by the `ProjectEnv` class to access context-specific information.
+In the Nop platform, the virtual file system is accessed through the singleton VirtualFileSystem, and model files are loaded and cached via the singleton ResourceComponentManager.
 
-The `ProjectEnv` retrieves the `Project` object from the context and uses the cached services (`NopProjectService`) to perform operations. This ensures that each project's cache is independent, maintaining performance and data integrity.
-
+Because multiple Projects may be open at runtime in IDEA, the nop-idea-plugin must maintain a separate cache for each Project.
+Therefore, NopAppListener registers special implementations for the singleton objects VirtualFileSystem/ResourceComponentManager/DictProvider, etc. These implementations query the Project object from the context environment via the ProjectEnv class, obtain the NopProjectService from it, and then use the cache within that service to provide functionality.
+<!-- SOURCE_MD5:8433d938e2e81cb70f8ac80ae6ec7589-->

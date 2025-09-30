@@ -1,6 +1,6 @@
-# Debug Error
+# Debugging Errors
 
-## 1. BizModel Layer Type Conversion Error
+## 1. Type Casting Error in the BizModel Layer
 
 ```
 2024-01-13 22:34:08 [http-nio-8000-exec-7] ERROR io.nop.core.exceptions.ErrorMessageManager - nop.build-error-message
@@ -10,11 +10,13 @@ java.lang.ClassCastException: class com.ly.ale.pojo.AleYearPlanPO cannot be cast
 	at io.nop.graphql.core.engine.GraphQLExecutor.fetchSelection(GraphQLExecutor.java:356)
 ```
 
-This error occurs because the method in BizModel is annotated with `@GraphQLReturn(bizObjName=BIZ_OBJ_NAME_THIS_OBJ)`, which enforces that the returned type must match the current entity type. Therefore, when attempting to return a different DTO (Data Transfer Object), a `ClassCastException` is thrown.
+This occurs because the method on the BizModel is annotated with `@GraphQLReturn(bizObjName=BIZ_OBJ_NAME_THIS_OBJ)`, which enforces that the return type must be the current entity object. Therefore, when
+a different DTO object is actually returned, a casting error occurs.
 
 ```
-@GraphQLReturn(bizObjName = BIZ_OBJECT_NAME_THIS_OBJECT)
-public List<T> myMethod() {
-    return List<PO> object;
-}
+    @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
+    public List<T> myMethod() {
+        return List<PO> objects
+    }
 ```
+<!-- SOURCE_MD5:41bf9800fd97f43cc29637edc5164271-->

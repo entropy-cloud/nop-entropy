@@ -6,4 +6,5 @@
 
 ## AMIS Framework Extensions: [amis.md](amis.md)
 
-## Practices for Page Development: [xpage.md](xpage.md)
+## Specific Practices for Page Development: [xpage.md](xpage.md)
+<!-- SOURCE_MD5:24124981a84d75dac334d5a6fdeeb49e-->

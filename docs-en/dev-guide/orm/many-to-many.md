@@ -1,23 +1,23 @@
-# Many-to-Many Relationship
+# Many-to-Many Associations
 
-[Video Demonstration](https://www.bilibili.com/video/BV1Ks4y1E7pw/)
+[Video Demo](https://www.bilibili.com/video/BV1Ks4y1E7pw/)
 
-In the database layer, a many-to-many relationship is typically implemented by introducing an intermediate association table, such as `nop_auth_user_role`, which establishes a connection between `user_id` and `role_id`.
+At the database level, many-to-many associations are typically implemented by introducing an intermediate association table. For example, the `nop_auth_user_role` table implements a many-to-many association between `user_id` and `role_id`.
 
-The NopOrm engine does not natively support built-in many-to-many relationships. Instead, it only supports `to-one` and `to-many` relationship types.
-
-Nop's approach is to generate some helper functions at the application level and decompose the many-to-many relationship into a one-to-many structure. The specific implementation is as follows:
+Internally, the NopOrm engine does not have built-in support for many-to-many associations; it only supports `to-one` and `to-many` association forms.
+The Nop platform’s approach is to generate some helper functions at the application layer and then decompose many-to-many associations into
+one-to-many forms. The specific approach is as follows:
 
 ```java
 import java.util.List;
 
 class NopAuthUser extends OrmEntity {
   public IOrmEntitySet<NopAuthUserRole> getUserRoles() {
-    return new OrmEntitySet<>(NopAuthUserRole.class);
+    Returns the collection object pointing to the intermediate table entity
   }
 
   public List<NopAuthRole> getRelatedRoleList() {
-    // getRefProps is a helper function that retrieves properties from the entity set
+    // getRefProps is a helper function that iterates the collection and returns the specified property on each element
     return (List<NopAuthRole>) OrmEntityHelper.getRefProps(getUserRoles(), "role");
   }
 
@@ -26,54 +26,47 @@ class NopAuthUser extends OrmEntity {
   }
 
   public void setRelatedRoleIdList(List<String> roleIds) {
-    // setRefProps internally checks if roleId exists, whether to create a new NopAuthUserRole,
-    // and whether to delete any unused entities
+    // setRefProps internally recognizes whether roleId already exists, whether a new NopAuthUserRole object needs to be created, and whether objects no longer used need to be removed from the collection
     OrmEntityHelper.setRefProps(getUserRoles(), "roleId", roleIds);
   }
 }
 ```
 
-The `OrmEntityHelper` only provides some helper functions at the Java entity level to simplify the process of retrieving related properties from the association set.
+OrmEntityHelper only provides some helper functions at the Java entity layer to simplify the process of getting/setting related properties from associated entity collections.
 
-> By leveraging the object relationships provided by the ORM engine, we can expose numerous helpful `get/set` methods on aggregated entities through GraphQL services, thereby simplifying the external interface.
-
+> Leveraging the object associations provided by the ORM engine, we can offer many helpful get/set methods on aggregate entities and expose them as GraphQL services accessible externally, thereby simplifying external interfaces.
 
 ## Excel Model Configuration
 
-In the Excel data model, you only need to add a many-to-many tag to the intermediate entity. This will automatically generate the corresponding methods.
-
-![Many-to-Many](many-to-many.png)
-
+In the Excel data model, you only need to add a many-to-many tag to the intermediate table entity, and the above methods will be generated automatically.
+![](many-to-many.png)
 
 ## UI Controls
 
-By default, many-to-many properties are displayed as dropdowns. For example, `relatedRoleIdList` can be displayed using a picker control.
+By default, many-to-many association properties—such as the relatedRoleIdList above—will use a picker control to pop up for selection.
 
+## Using a Many-to-Many Association Table as a One-to-One Association
 
-## Using Many-to-Many Tables as One-to-One
+Although an intermediate table is generally used to express many-to-many associations, sometimes there is temporarily only a one-to-one association. In that case, you can mark one-to-one in the Excel model, and a single-object association property will be generated automatically.
 
-Although intermediate tables are generally used for many-to-many relationships, sometimes we only have one-to-one relationships. In such cases, you can mark it as one-to-one in the Excel model and it will generate the corresponding properties.
+## Attribute Configuration Related to Many-to-Many
 
-
-## Many-to-Many Related Attribute Configuration
-
-In a relational database, many-to-many relationships are implemented by adding an intermediate table. The structure of a typical many-to-many relationship is as follows:
+Relational databases implement many-to-many associations by adding an intermediate table. In general, the structure of a many-to-many association is as follows:
 
 ```
-MiddleTable(sid, refId1, refId2) 
-refId1 corresponds to the association property refProp1, and refId2 corresponds to the association property refProp2
+MiddelTable(sid, refId1, refId2) refId1 corresponds to relation property refProp1, refId2 corresponds to relation property refProp2
 ```
-
-* MiddleTable must have the `many-to-many` tag and must also have two `to-one` relationships.
+* The MiddleTable entity must have the `many-to-many` tag and must have two `to-one` relations.
 * refProp1 points to the first associated entity, and refProp2 points to the second associated entity.
-* The table can have its own sid field or use refId1 and refId2 as composite keys without adding additional intermediate table primary keys.
-* In MiddleTable, you can use `orm:manyToManyRefSetName1` to represent the property name for the first associated entity. If not specified, it defaults to `related{refProp2}List`.
-* Similarly, `orm:manyToManyRefSetName2` is used for the second associated entity.
-* `orm:manyToManyRefSetDisplayName1` represents the display name corresponding to `orm:manyToManyRefSetName1`.
+* The intermediate table can have its own sid, or use refId1 and refId2 to form a composite primary key without introducing an additional primary key field for the intermediate table.
+* On the MiddleTable intermediate entity, use `orm:manyToManyRefSetName1`
+  to indicate the name of the collection property on the first entity that references the second entity. If not specified, the default is `related{refProp2}List`.
+* Similarly, on MiddleTable use `orm:manyToManyRefSetName2` to indicate the name of the collection property on the second entity that references the first entity.
+* `orm:manyToManyRefSetDisplayName1` is the display name corresponding to `orm:manyToManyRefSetName1`.
 
-These extended properties are part of the ORM model and will be used in the generated XMeta metadata.
+These extended attributes are extensions on the ORM model and will be used when generating the XMeta metadata model.
 
-The generated XMeta in the first entity contains the following configuration:
+The configuration generated in XMeta for the first entity is as follows:
 
 ```xml
 <meta>
@@ -91,21 +84,20 @@ The generated XMeta in the first entity contains the following configuration:
       </schema>
     </prop>
 
-    <prop name="relatedRefProp1List_label">
-      <schema type="String"/>
+    <prop name="relatedRefProp1List_label" >
+      <schema type="String" />
     </prop>
 
     <prop name="relatedRefProp1List_ids" graphql:labelProp="relatedGroupList_label">
-      <schema type="List&lt;String&gt;">
-        <item bizObjName="EntityName2"/>
-      </schema>
+        <schema type="List&lt;String>" />
     </prop>
 
   </props>
 </meta>
 ```
 
-* In the association properties pointing to the middle table, `orm:leftJoinProp` refers to the property on the current entity, typically set to `id`, while `orm:rightJoinProp` refers to the corresponding field in the middle table.
-* The `orm:manyToManyRefProp` corresponds to the reference property for a many-to-many relationship on the other side.
-* A many-to-many relationship will automatically generate an associated object collection, such as `relatedRefProp1List`.
-* The `graphql:labelProp` refers to the display name, which is derived from the properties read from each entity and concatenated into `relatedRefProp1List_label`.
+* On the association property pointing to the intermediate table, `orm:leftJoinProp` is the property on this entity, typically id, while `orm:rightJoinProp` is the corresponding association field on the intermediate table.
+* `orm:manyToManyRefProp` corresponds to the associated field on the other side of the many-to-many association.
+* A collection of associated objects is automatically generated for a many-to-many association, such as relatedRefProp1List.
+* `graphql:labelProp` corresponds to the display name, for example reading the display attribute from each entity and concatenating it into `relatedRefProp1List_label`.
+<!-- SOURCE_MD5:5e6c4e415fa77359020389b3780a4cd0-->

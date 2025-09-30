@@ -1,122 +1,72 @@
+I briefly introduced an intuitive way to understand the Paxos algorithm in my previous article [Even Elementary School Students Can Easily Master the Secrets of the Paxos/Raft Algorithm](https://mp.weixin.qq.com/s/LD8fDbyPohJkA9sbWGjXkQ). However, some readers said the content was still a bit hard to grasp—perhaps only genius elementary school students could understand it. This might be because the article covered a lot and explained various aspects of distributed consensus algorithms. To ensure that students of ordinary aptitude can understand it, I further simplify the discussion in this article, focusing only on the basics of the Paxos algorithm.
 
-In my previous article, [A Simple Introduction to the Paxos/Raft Algorithm](https://mp.weixin.qq.com/s/LD8fDbyPohJkA9sbWGjXkQ), I briefly introduced a visual way to understand the Paxos algorithm. However, some readers have mentioned that even with this simplified explanation, the content still feels overwhelming. This might be because the article covered various aspects of distributed consensus algorithms, which can be complex. Therefore, in this text, I will focus on the core concepts and simplify the explanation further.
+Paxos is a simulated implementation of the ninth-level magic spell of time stop. Once you understand this, the rest is just mundane technical details. Many details in Paxos are essentially safeguards and fault-tolerance mechanisms for when the simulation fails; its core logic is:
 
+1. If the time-stop simulation succeeds, we can be 100% certain that consensus has been reached.
 
+2. If we are unsure whether the time-stop simulation succeeded, retry the next round of simulation.
 
-The Paxos algorithm is a simulation of a **static nine-level hierarchy**. Once you understand this hierarchy, the rest of the algorithm boils down to some plain technical details. The key idea behind the algorithm is that it allows multiple instances (or nodes) to agree on the same value, even in a distributed system.
+3. When retrying, to prevent already-achieved consensus from being overturned, we need to look at the results of the previous round of simulation and avoid choosing a value that conflicts with the agreed value.
 
+4. To allow a degree of fault tolerance, majority success counts as success.
 
+Once you establish the mental image of time stop, understanding the Paxos algorithm requires no reasoning beyond the cognitive level of an elementary school student. The following is a detailed step-by-step reasoning process. If any step contains a logical leap, feel free to comment, and I will revise it.
 
-Here’s a step-by-step breakdown of how the Paxos algorithm works:
+1. The problem we aim to solve is the simplest form of consensus: how to get people in multiple places to jointly choose the same value. For example, how do we get A, B, and C to all agree on value X? The difficulty lies in scenarios like this: you send letters to A, B, and C asking them to choose value 1; while their replies are on the way, someone else reaches A and tells him the value should be 2, causing A to change his decision to 2. Because A, B, and C are not in the same place, you can only write to them one by one; but each time they receive a letter and reply, unexpected things can happen, and others may also try to persuade A, B, and C to choose different values. Since A, B, and C are impartial to everyone, if they can accept your opinion, they can also accept the later opinions of others, causing their decisions to keep changing and never converge.
+   (Understanding what the consensus problem is and why it’s difficult should require only elementary-level knowledge.)
 
-1. **First Step: Check if the first round was successful**  
-   If the first round is successful and all instances agree on the same value, we can be 100% sure that consensus has been reached.
+2. If you wield magic, avoiding interference from others is simple. Cast a time-stop spell to freeze everyone’s time at moment t0; then you go directly to A and tell him the value is 1, and then to B and tell him the value is 1. During the time stop, only you can move freely, while everyone else is frozen, so there is no interference. After you have spoken to A, B, and C, resume time; A, B, and C will then have unified their views at t0 and believe the value is 1.
+   (Understanding that time stop can help achieve consensus also only requires elementary-level knowledge; watching magic-themed cartoons may help.)
 
-2. **Second Step: Retrying if unsure**  
-   If there's any doubt about whether the first round was successful, the algorithm will retry the entire process from scratch.
+3. Although our world has no magic, we can simulate its effects. You can write letters to A, B, and C (Phase 1). The letter says: please pretend that time is stopped at 9:00. After receiving the letter, A, B, and C reply: agreed. Then they move their clock hands to 9:00. After receiving their replies, you send the Phase 2 letters: if time is still stopped at 9:00, set the value to 1, and advance time to 9:00:01. If A, B, and C all reply to your Phase 2 letters, confirming that at 9:00 the value was set to 1 successfully, you know the time-stop simulation succeeded, and A, B, and C all set the value to 1.
+   (Simulating the time-stop spell requires two steps: request time stop, and then verify that time is indeed stopped. Only after time is stopped can we do work; after the work is done, we verify the results. This logic is very simple—elementary students can understand it.)
 
-3. **Third Step: Avoiding conflicts in subsequent rounds**  
-   Before choosing a new value in the next round, we need to ensure that it doesn’t conflict with the value already agreed upon by other instances.
+4. To ensure the authenticity of the simulation, A, B, and C need to actively maintain the concept of time and avoid breaking its inherent properties. First, time flows in one direction; if time has reached 9:00, everything that happened before 9:00 should have already occurred. It’s impossible for events at 8:00 to occur after 9:00; therefore, if A, B, and C have already agreed to stop time at 9:00, they cannot agree to stop time at any moment earlier than 9:00, such as 8:00. Second, if time is stopped, only the initiator of the time-stop spell can act, and everyone else’s actions are frozen. So if A, B, and C have already agreed to your request to stop time at 9:00, they will not agree to another identical time-stop request at the same time; otherwise, that would imply two actors during a time stop, which contradicts the definition of time stop. A, B, and C proactively ignore facts that violate the properties of time, thus realizing an imagined unidirectional flow of time, helping us eliminate many chaotic situations.
+   (Each letter received by A, B, and C causes time to advance; therefore, if they receive the Phase 2 letter and find time unchanged, it means that nothing happened during the transition from requesting time stop to setting the value, and thus no one else requested to set a value. This property of time should be understandable to elementary students.)
 
-4. **Fourth Step: Finalizing the decision**  
-   If the majority of instances agree on the same value, then this value is accepted as the final result.
+5. After A, B, and C agree to stop time at 9:00, if someone sends a letter requesting a time stop at 10:00, A, B, and C will also agree to that request, because they are impartial to everyone; they only maintain the unidirectionality of time and do not specifically favor your choice. If A, B, and C make such a choice, it means the previous round of time-stop simulation has been automatically ended without completing the value-setting process; and since time has moved to 10:00, the 9:00 value-setting request will be rejected. Why don’t A, B, and C, after receiving your time-stop request, insist on waiting for your second letter? This is for fault tolerance. If your letter is lost in transit or you get distracted after writing half of it, wouldn’t A, B, and C be unfairly stuck waiting for your second letter? To avoid getting stuck when intermediate steps fail, the best choice for A, B, and C is to accept another person’s Phase 1 letter and start a new round of attempts. Note that if A, B, and C have ever agreed to a time stop, that means a time stop has occurred at 9:00; even if it is unexpectedly terminated later, it only means this time stop did not successfully set a value. The previous time stop is automatically terminated to ensure that time stops do not overlap and only execute one after the other.
+   (Since it’s a simulation of magic, we must consider simulation failures; as long as failures don’t cause contradictions and don’t allow two people to achieve time stop simultaneously, we’re fine. After a failed simulation, you can try again; elementary students can understand the difference between real magic and simulated magic.)
 
+6. If you successfully simulate the time stop at 9:00 and tell A, B, and C to set the value to 1, could someone later successfully simulate a time stop at 10:00 and change the value to 2? Because we aim for a basic consensus algorithm, it has an additional technical requirement: once a value reaches consensus, it must not be modified (if modification were allowed, considering majority responses would lead to undecidable situations). Therefore, we need an additional mechanism to avoid the scenario above. The method is simple: when receiving the first letter requesting a time stop, if A, B, and C find they have previously accepted a value, then besides agreeing, they also include that value and the time at which they accepted it in their response to the new time-stop initiator. If the initiator finds that A, B, and C have already accepted the value 1, he cannot change this value and must proceed with Phase 2 of the time-stop simulation using value 1. Repeatedly setting the same value at different times for A, B, and C does not cause any contradiction.
+   (Two time-stop spells T1 and T2 will never overlap; they must execute sequentially. When T2 executes, simply check the result of T1: if T1 successfully set the value to 1, then T2 must also adopt value 1, preventing T2 from overwriting T1’s result. Checking the previous read before writing is a conflict-avoidance strategy that even elementary students can understand.)
 
+7. If A, B, and C all successfully agree to stop time at t, and then successfully set the same value at t, and we receive replies from all three stating they set the same value at t, we can easily judge that consensus has been reached. The complicated case is: what if letters are lost in transit? What if A is traveling or replies very slowly? To improve fault tolerance, we can change the strategy to require responses from a majority (any two out of the three) instead of all three each time. We can verify that the above execution strategy still ensures consensus. First, when a majority agrees to accept value 1 at time t, it is impossible for another value to gain majority approval at time t. Any two majorities must intersect—for example, AB and BC both include B; because writing only succeeds under time stop, B cannot accept value 1 and value 2 both at time t (though B may accept different values at different times). Therefore, any value successfully set by a majority must be a value that can be acknowledged at time t. Once A and B both agree the value is 1, even if letters are lost or C has made a choice opposite to AB, C’s actions cannot overturn the result at time t (the majority recognizing value 1); you only need some method to inform C of the majority’s decision. In other words, when A, B, and C all recognize the majority’s decision, their final view can be unified to value 1.
+   (Once a majority accepts value X at time t, X becomes the consensus value at time t. Redefining consensus as majority recognition may seem a bit roundabout, but it should still be understandable to most elementary students.)
 
-The main challenge in distributed systems is ensuring that all nodes reach agreement despite potential delays, failures, or discrepancies in their data.
+8. During Phase 1 when initiating the time-stop simulation, we can also require only a majority response. If AB successfully reply agreeing to stop time at 9:00, then by analogy to the previous reasoning, it is clear that no other majority will also reply agreeing to stop time at 9:00. At this point, if A and B both reply that they have not accepted any value, we can choose any value to set in Phase 2. But if either A or B replies that someone set value 2 at 8:00, we need to analyze carefully: First possibility is that both reply that value 2 was set at 8:00; in this case the majority criterion has already been satisfied and consensus reached, but we can still choose value 2 and continue with Phase 2—repeatedly setting the consensus value 2 poses no problem. Second possibility is that their replies are inconsistent; since we haven’t read C’s result, a majority may already agree or may not have yet, and with only A and B’s replies, we cannot determine it (precisely because such indeterminate scenarios may exist, we require that once consensus is reached, it must not be changed). Note that values are always accepted under time-stop conditions; that is, if A accepted that the value is 1 at 8:00, then there must have been a majority committing to a time stop at 8:00. Because all time-stop instants agreed by a majority can be ordered sequentially by time, and each instant has at most one value, for the case where A and B return inconsistent results, we only need to choose the value associated with the largest timestamp. This ensures that if consensus was reached at an earlier instant, the later instant will choose the same value.
+   (Once you realize that the majority’s handling results over all time-stop instants form a unidirectional progression—starting with the majority having no value, then potentially a consensus value, and finally a definite consensus value—choosing the value corresponding to the largest instant is not hard to understand.)
 
-1. **Understanding the Problem: How to Make Everyone Agree**  
-   Imagine three people—A, B, and C—trying to agree on a value. Each person sends their decision to the others. If A says "X," B says "Y," and C says "Z," it’s clear that they’re not in agreement. This is the problem that distributed consensus algorithms like Paxos aim to solve.
+The overall reasoning strategy is: first, ignore exceptions and assume responses from everyone can be received; in this case, as long as the time-stop simulation succeeds, we can determine the consensus value. Then consider fault tolerance: after analysis, we find that as long as a majority accepts the value, we can determine whether the time stop succeeded and the consensus value was set. When we are uncertain whether the time-stop simulation has succeeded, we can retry until success. Finally, we observe that the time-stop simulations at the majority level form a unidirectional sequence; during retries, choosing the value with the largest timestamp will not break already-achieved consensus.
 
-2. **The Complexity of Distributed Systems**  
-   In a real-world scenario, things get much more complicated. Nodes can be slow, lose messages, or even crash. This adds layers of complexity because the algorithm must account for these uncertainties.
+## Comparison
 
-3. **Simplifying the Problem**  
-   The Paxos algorithm simplifies this by assuming that most nodes work correctly and only a few might fail. This assumption allows the algorithm to focus on handling failures without needing to consider an endless number of possible scenarios.
+Lastly, let’s compare the Paxos algorithm described via the magic image of time stop with the traditional Paxos description:
 
+1. Prepare Phase:
 
+(1) The proposer selects a proposal number N and sends a prepare request (Prepare(N)) to a majority of acceptors.
 
-1. **The Algorithm in Practice**  
-   In practice, the algorithm is implemented with additional steps to ensure that it works even when some nodes are slow or have lost messages. For example:
-   - If a node has not received a message by a certain timeout, it assumes the value has already been agreed upon.
-   - Nodes can also "guess" which round they are in and use this information to synchronize their behavior.
+Comparison: The proposer selects a time instant t and sends a time-stop simulation request to a majority of acceptors.
 
-2. **Why It’s Important**  
-   While the algorithm is complex, its simplicity makes it one of the most studied and implemented distributed consensus algorithms. It’s widely used in systems like Google’s ChubbyStornage (a distributed file system) and Apache Kafka (a distributed streaming platform).
+(2) When an acceptor receives a prepare request, if proposal number N is greater than any proposal number previously seen by that acceptor, the acceptor promises not to accept proposals with numbers less than N and sends the proposer, as a response, the highest-numbered proposal it has previously accepted.
 
-3. **For Beginners**  
-   If you’re just starting with distributed systems, don’t worry—this is exactly why we have tools like Paxos to help us manage complexity.
+Comparison: When an acceptor receives a time-stop request, if it finds that instant t is in the future, it moves its clock to that instant, promises a time stop at that instant, and sends the proposer, as a response, the proposal previously accepted at the largest instant.
 
+2. Accept Phase:
 
+(1) When the proposer receives prepare-phase responses from a majority of acceptors, it sends the proposal content (value) to a majority of acceptors. The proposal content is the content of the highest-numbered proposal in the prepare-phase responses; if there is no such response, the value can be arbitrary.
 
-Understanding the core concepts of the Paxos algorithm is a great first step toward grasping distributed consensus. Once you get the basics down, the rest is just technical details and edge cases. If you have any questions or feel like something was missing in my explanation, feel free to comment below!
+Comparison: When the proposer receives responses to the time-stop request phase from a majority of acceptors, it sends the proposal content to a majority of acceptors. The content is the value set at the most recent time stop in the request-phase responses (a value that may have achieved consensus); if there is no such response, the value can be arbitrary.
 
-If someone sends a request to stop at 10 AM, ABC will also approve the request because ABC treats everyone equally. This is because ABC only enforces the one-way nature of time concepts and does not specially support your preferences.
-If ABC makes such a choice, it means that the previous round's time stopping simulation has been automatically terminated without completing the setting process. Additionally, since the time has moved to 10 AM, the request to stop at 9 AM will be denied.
+(2) After receiving Propose(N, value), if proposal number N is greater than or equal to the proposal number the acceptor has promised, the acceptor accepts the proposal and records it as an accepted proposal.
 
-Why does ABC not persist in waiting for your second message after receiving your time stopping request? This is to ensure system fault tolerance.
-If your message gets lost along the way or you write a partial message about something else, ABC will wait indefinitely for your second message. To prevent intermediate processes from failing and allowing the system to continue operating, ABC's best choice is to accept the first message from others and restart the simulation round.
+Comparison: After receiving the proposal, if the proposal’s instant is greater than or equal to the acceptor’s promised time-stop instant, this indicates that from the promised instant to the proposal’s instant, the acceptor’s local time has remained stopped; the acceptor accepts the proposal. (However, this does not guarantee that a majority has all achieved local time stop; it may only be possible. At this point, the proposal accepted by the acceptor is a proposal that may have achieved consensus.)
 
-Note that if ABC has previously agreed to stop in the past, it means that at 9 AM, a stopping occurred, even if it was unexpectedly terminated. This implies that the previous time stopping did not successfully set the value.
-The previous time stopping was automatically terminated to ensure that stopping does not interfere with each other and can only be executed one after another.
+## Some Details
 
-(Indeed, it's magic simulation, so we must consider failure cases. If a simulation fails, as long as no conflicts arise, it can still proceed. Once a simulation fails, it can be retried even by a student. The difference between real magic and simulation magic is clear.)
+Proposal number uniqueness and monotonic increase: In Paxos, each proposal must have a unique, monotonically increasing number to ensure progress. A common practice is for each proposer to have a distinct identifier k and maintain an ever-increasing sequence number seq, then use (seq, k) as the unique, increasing proposal number. Compare seq first; when seq is equal, compare k to determine relative order. In the time-stop simulation, this number can be viewed as an expression of the instant. The same instant should not have two people initiating time-stop simulation requests. Moreover, even if two people initiate time-stop simulations simultaneously, it does not affect correctness: the algorithm requires that after an acceptor promises a time stop at some instant, it rejects subsequent time-stop requests for that same instant. Thus, at the majority level, there won’t be two people simultaneously succeeding in initiating a time stop at instant t. The uniqueness requirement for proposal numbers serves to reduce conflicts and improve performance. Even if proposal numbers are not unique or not increasing, correctness is preserved; such proposals will simply be rejected or ignored.
 
+Multiple proposers: In distributed systems, there may be multiple proposers, which can lead to “proposal conflicts.” Using the time-stop image, acceptors first discard all proposals with instants earlier than the committed time stop, thereby avoiding part of the conflict. Then, at each instant where a majority agrees to stop time, the majority will accept at most one value, simplifying the picture of conflicts at the majority level. Because each proposer’s time-stop instants are unique and monotonically increasing, they won’t repeat; and in each proposal, only one value is proposed. Therefore, at any time stop, at most one value will be set. If that time stop is interrupted mid-process by an updated time-stop instant, the earlier time stop may not have set a value or may have set a value locally at some acceptors; but as long as the majority does not set the same value at the specified instant, consensus has not yet been reached.
 
-Will others later successfully simulate stopping at 10 AM again, changing the value back to 2? Because we are implementing a basic consensus algorithm, **there's an additional technical requirement**: once a value is agreed upon, it should not be modified. (If modification is allowed, consider majority response which can lead to undecided cases). Therefore, we need an additional mechanism to prevent such scenarios.
-
-To avoid this situation, the simplest solution is to inform ABC immediately after receiving the first request to stop at 10 AM. This way, if ABC discovers that it has already accepted a value of 1, it will not allow further modifications.
-At the time of setting, if ABC finds that a previous value of 1 was set by others, it will communicate this information to the next round's initiator. The initiator then continues the simulation with the value 1.
-
-(Indeed, T1 and T2 are two stopping magics. They cannot interfere with each other and must be executed in sequence.)
-
-
-The complexity arises when considering cases like message loss or slow responses. To improve fault tolerance, we can modify the strategy so that not all nodes need to respond every time. Instead, allow any two nodes (out of three) to reach consensus.
-
-Let's test this strategy:
-- At t time, if node A and B agree on value 1, then node C will follow.
-- If node A and C agree, node B will follow.
-- If node B and C agree, node A will follow.
-
-This ensures that as long as two nodes agree, the third will follow. The strategy is simple but effective for the given scenario.
-
-(Indeed, it's magic simulation. We must consider cases like simultaneous failures. If both A and B fail simultaneously, C can still continue.)
-
-
-When performing the initialization and time stabilization simulation of the first phase, we can also require majority response from the network. If AB successfully responds to the Prepare(N) request with a time stabilization at 9:00, then as per the previous section's reasoning, it is clear that no other node in the majority will respond to the Prepare(N) request with a time stabilization at 9:00.
-
-At this point, if both A and B have not received any value, we can arbitrarily choose a value for the second phase. However, if either A or B has already reported having set a value at 8:00, we need to carefully analyze the following two scenarios:
-1. Both A and B have responded with a value of 2 at 8:00. In this case, the majority has already accepted the requirement for setting a value, and consensus has been achieved. We can then proceed by selecting a value of 2 for the second phase.
-2. A and B have provided conflicting responses. At this point, since no C has reported back, there is a possibility that either the majority has reached a consensus or it hasn't. In such cases, we cannot determine the outcome definitively without further information.
-
-We observe that values are always accepted in the time stabilization state, meaning:
-- If A accepts the value at 8:00 (i.e., A has set its local time to 8:00 and committed to stabilizing it), then the majority will also stabilize their times at 8:00.
-
-Because of this, when handling conflicting responses from A and B, we can simply select the largest timestamp value. This ensures that if a previous timestamp was already stabilized by the majority, the same choice will be made in subsequent steps.
-
-This leads to a situation where:
-- Initially, no node has any values.
-- Then, there might be a value being set by the majority.
-- Finally, the majority has definitely agreed on a value.
-
-Selecting the largest timestamp value is not something that is difficult to understand in this context.
-
-
-## Overall Strategy
-The overall strategy is based on the following assumptions:
-1. No exceptional conditions are considered during normal operation.
-2. The time stabilization simulation is assumed to have successfully completed.
-3. We can definitively determine whether consensus has been reached based on the responses from the majority nodes.
-
-In cases where no exceptional conditions are encountered, and the time stabilization simulation is successful, we can conclude that a value has been determined for the consensus. If we encounter an error during this process, we should repeat the simulation until it succeeds.
-
-Finally, after careful analysis:
-- The sequence of timestamps forms a strictly increasing order.
-- Each timestamp corresponds to a unique value.
-- For cases where A and B provide inconsistent responses, selecting the largest timestamp ensures that once a value is chosen by the majority, it will not be changed in subsequent steps.
-
-This means that if at any point a timestamp has been agreed upon by the majority, all subsequent timestamps will follow this decision without any possibility of reversal.
-
-**Multiple Proposals Issue**：In a distributed system, there may be multiple proposers, which can lead to "proposal conflicts". By using a timestamp-based approach, the acceptor will discard all proposals that were made before the current timestamp, thereby reducing some of the conflicts. Then, at each timestamp where a majority of the nodes agree, the majority will only accept one value, simplifying the conflict graph on the majority level. Since each proposer's timestamp is unique and increasing, there will be no duplicates in a single proposal. Therefore, at each timestamp, the latest proposal will be set as the current value if it hasn't been updated yet, or it may have already been set by a local acceptor. However, as long as the majority does not agree on the same value at the same timestamp, consensus has not been reached.
-
-**Failure and Recovery Handling**：In a distributed system, nodes may fail and then recover. Previous analysis shows that if the majority agrees on starting the timestamp-based approach, it can be considered as having started. If the majority considers the timestamp approach successful, it can be considered as successful. Therefore, regardless of when a node fails or recovers, only the majority's aggregated opinion needs to be considered. Additionally, an implicit assumption is that nodes have memory; if a node fails and then recovers, it should not lose its previous memories, i.e., accepted values and committed values.
+Handling failures and recoveries: In distributed systems, nodes may fail and later recover. The preceding analysis shows that as long as a majority agrees that the time stop has begun, we can consider the time stop to have begun; and when a majority believes the time stop succeeded, we can consider it succeeded. Therefore, regardless of when nodes fail or recover, we only need to consider the majority’s aggregated opinion. Another implicit assumption is that nodes have memory: if a node fails and recovers, it should not lose previous memory—namely, the values it has accepted and the promises it has made.
+<!-- SOURCE_MD5:8143498cb163846ee04f5e84e70bf74c-->

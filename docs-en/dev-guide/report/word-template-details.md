@@ -1,4 +1,4 @@
-# Hyperlink
+# Hyperlinks
 
 ```xml
 <w:p>
@@ -16,15 +16,16 @@
 </w:p>
 ```
 
-NopReport Engine identifies xpl expressions and performs the following actions:
+After the NopReport engine recognizes an xpl expression, it performs the following processing:
 
-1. If it is xpl-begin or xpl-end, pair them and insert them into their common parent node's external children. This allows inserting `begin` in the first table cell and `end` in the last table cell to achieve row-wise iteration.
-2. If it is tpl-expr or expr, replace the `<w:hyperlink>` tag with `<w:r>` tags (using sourceNode to replace linkNode). The current linkNode is derived from `<w:hyperlink>`'s child `<w:r>`, ensuring style settings are preserved.
-3. If it is xpl, check whether the parsed node is `<w:p>`. If so, replace the entire `<w:hyperlink>` tag within `<w:p>` with the xpl tag's content; otherwise, only replace the linkNode.
+1. If it is xpl-begin or xpl-end, pair them and insert them outside their common parent node. In this way, by inserting begin in the first cell of a table and end in the last cell, you can achieve a whole-row loop effect.
+2. If it is tpl-expr or expr, replace the `w:hyperlink` tag with a `w:r` tag (replace linkNode with sourceNode). At this point, linkNode is actually derived from the `w:r` tag inside `w:hyperlink`, which preserves the styling.
+3. If it is xpl, check whether the node parsed from the xpl source code is `w:p`. If so, replace the entire `w:p` tag containing `w:hyperlink` with the content of the xpl tag; otherwise, replace only linkNode.
 
-Another Hyperlink Form
+Another form of hyperlink
 
 ```xml
+
 <w:p>
     <w:pPr>
         <w:rPr>
@@ -38,7 +39,7 @@ Another Hyperlink Form
         <w:fldChar w:fldCharType="begin"/>
     </w:r>
     <w:r>
-        <w:instrText xml:space="preserve"> HYPERLINK "xpl:%3cc:for%20var=%22project%22%20items=%22%7bentity.projectList%7d%22%3e" </w:instrText>
+        <w:instrText xml:space="preserve"> HYPERLINK "xpl:%3cc:for%20var=%22project%22%20items=%22$%7bentity.projectList%7d%22%3e" </w:instrText>
     </w:r>
     <w:r>
         <w:fldChar w:fldCharType="separate"/>
@@ -51,7 +52,9 @@ Another Hyperlink Form
             <w:sz w:val="20"/>
             <w:szCs w:val="20"/>
         </w:rPr>
-        <w:t>&lt;c:for&gt;</w:t>
+        <w:t>
+            &lt;c:for&gt;
+        </w:t>
     </w:r>
     <w:r>
         <w:rPr>
@@ -65,3 +68,4 @@ Another Hyperlink Form
     </w:r>
 </w:p>
 ```
+<!-- SOURCE_MD5:f29f5422bd9fceeb8fd66b405c1287ec-->

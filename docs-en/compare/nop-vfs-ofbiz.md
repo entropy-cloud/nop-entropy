@@ -1,11 +1,12 @@
-# Why OFBiz is considered a deprecated technology
+# Why OFBiz Is Already an Outdated Technology
 
-Apache OFBiz（Open For Business）is an open-source enterprise resource planning (ERP) system.
-
+Apache OFBiz (Open For Business) is an open-source Enterprise Resource Planning (ERP) system
 
 ## Field Type Definitions
 
-Nop platform's approach is to distinguish between the concepts of `domain` and `stdSqlType`, mapping only to different databases when introducing more domains. In contrast, OFBiz defines its data types in the `/framework/entity/fieldtype` directory:
+The Nop platform distinguishes between the concepts of domain and stdSqlType. Only stdSqlType is mapped to different databases; when more domains are introduced, there is no need to map them separately to different databases.
+
+OFBiz’s data types are located under `/framework/entity/fieldtype`,
 
 ```xml
 <!-- fieldtypepostgre.xml -->
@@ -20,9 +21,10 @@ Nop platform's approach is to distinguish between the concepts of `domain` and `
 </fieldtypemodel>
 ```
 
-The Nop platform, however, is more flexible. Its current approach defines domains in `/nop/ofbiz/base/ofbiz-base.orm.xml`:
+Whereas the Nop platform’s approach is more flexible. Currently, domains are defined in `/nop/ofbiz/base/ofbiz-base.orm.xml`
 
 ```xml
+
 <orm>
   <domains>
     <domain name="blob" stdSqlType="VARBINARY" precision="100000000"/>
@@ -34,95 +36,85 @@ The Nop platform, however, is more flexible. Its current approach defines domain
 </orm>
 ```
 
-
 ## Data Source Definitions
 
-The Nop platform allows data sources to be defined using the NopIoC container, without needing a dedicated `datasource` definition file. It can also utilize data sources defined by the underlying Quarkus or Spring frameworks, implementing multiple data sources through bean conventions.
+The Nop platform’s data sources can be defined using the NopIoC container, without introducing a dedicated datasource definition file. You can also directly leverage data sources defined by the underlying Quarkus or Spring frameworks, implementing multiple data sources by convention on bean names.
 
-For example:
-- `nopDataSource_dev` corresponds to a data source with `querySpace=dev`.
-- `nopDataSource` corresponds to a data source with `querySpace=default`.
+For example, `nopDataSource_dev` corresponds to the data source with `querySpace=dev`, whereas `nopDataSource` corresponds to the data source with `querySpace=default`.
 
-This approach highlights Nop's flexibility: it uses generic mechanisms to organize data sources, avoiding the need for specialized, narrow-purposed configuration files. Defining such files requires additional parsing, assembly, and application steps, whereas using an IoC container's standard features requires no extra work.
-
+This reflects the Nop platform’s approach: when organization can be achieved through general mechanisms, it will never introduce a specialized configuration file with a narrow purpose. Introducing such a configuration file would require implementing parsing, wiring, and application functions, whereas using the standard capabilities of the IoC container requires no additional work at all.
 
 ## MVC Framework
 
+## Entity Engine
 
-## Entity Engine (Entity Engine)
+OFBiz’s `entitymodel.xml` definitions can be directly converted into the Nop platform’s `orm.xml` model files.
 
-The `entitymodel.xml` defined in OFBiz can be directly converted into the Nop platform's `orm.xml` model file.
+## Meta-Model Definition
 
+The XSD syntax used by OFBiz is very bloated and introduces completely unnecessary order dependencies.
 
-## Meta Model Definition
+## Service Engine
 
-OFBiz's XSD schema is overly verbose and introduces unnecessary order dependencies.
+Language-agnostic. Input is a Map, and output is also a Map
 
+You can also override a service by using the same name down in the deployment context (which is first framework, then themes, then applications, then specialpurpose, then hot-deploy)
 
-## Service Engine (Service Engine)
-
-Service inputs and outputs are both Maps, regardless of programming language. You can also override services by using the same name within the deployment context (which follows the order: framework, themes, applications, specialpurposes, hot-deploy).
-
-ECA (Event Condition Action) is similar to triggers. When a service is called, it performs a lookup to determine if any ECAs are defined for the given event.
-
-
-## Widget System (Widget System)
-
-Similar to the Report Engine, it can produce various output formats such as CSV, HTML, PDF, etc.
+ECA (Event Condition Action) is much like a trigger. When a service is called, a lookup is performed to see if any ECAs are defined for this event.
 
 
-## Data Model (Data Model)
+## Widget System
 
-Can be directly reused.
+Similar to a reporting engine, it can produce multiple output formats: CSV, HTML, PDF, etc.
 
+## Data Model
 
-## Service Library (Service Library)
+Can be directly reused
 
-Not entirely declarative in nature.
+## Service Library
 
+Not fully declarative
 
-## Plugins (Plugins)
+## Plugins
 
+## Component
 
-## Components (Components)
-
-In OFBiz, a Component is structured as follows:
+A Component in OFBiz includes the following directory structure
 
 ```
 component-name-here/
 ├── config/ - Properties and translation labels (i18n)
-├── data/ - XML data to be loaded into the database
+├── data/ - XML data to load into the database
 ├── entitydef/ - Defined database entities
 ├── minilang/ - A collection of scripts written in minilang (deprecated)
-├── ofbiz-component.xml - The main OFBiz component configuration file
+├── ofbiz-component.xml - The OFBiz main component configuration file
 ├── servicedef - Defined services.
 ├── src/
-    ├── docs/ - Component documentation source
-    └── main/groovy/ - A collection of Groovy scripts
-    └── main/java/ - Java source code
-    └── test/groovy/ - A collection of Groovy scripts
-    └── test/java/ - Java unit-tests
+     ├── docs/ - component documentation source
+     └── main/groovy/ - A collection of scripts written in Groovy
+     └── main/java/ - java source code
+     └── test/groovy/ - A collection of scripts written in Groovy
+     └── test/java/ - java unit-tests
 ├── testdef - Defined integration-tests
 ├── webapp - One or more Java webapps including the control servlet
-└── widget - Screens, forms, menus, and other widgets
+└── widget - Screens, forms, menus and other widgets
 ```
 
-The Nop platform's module concept mirrors OFBiz's Component but uses Maven's multi-module approach. Front-end pages and back-office services are each stored in separate Maven modules. During startup, it scans through Maven modules' vfs directories to collect relevant files.
-
+The Nop platform’s module concept is similar to OFBiz’s Component, but it adopts Maven’s multi-module mechanism. Front-end web pages and back-end services are stored in different Maven modules; at startup, the class scanning mechanism collects files under the vfs directories of different Maven modules together.
 
 ```
 module-name/
 ├── deploy  Deployment scripts and initialization data
 ├── model   Excel model definitions
-├── module-name-api/ - API definition module
-├── module-name-codegen/ - Code generation helper module
+├── module-name-api/ - Interface definition module
+├── module-name-codegen/ - Code generation support module
 ├── module-name-dao/ - Entity definitions
      └── src/
        └── main/resources/vfs
-            └── module-name/orm/app.orm.xml  Entity model definitions, equivalent to OFBiz's entitydef
-├── module-name-meta/ - Metadata definitions, used to generate GraphQL query message types
-├── module-name-service/ - Service definitions. xbiz files similar to OFBiz's servicedef
-├── module-name-web/ - Frontend page definitions
+            └── module-name/orm/app.orm.xml  Entity model definitions, equivalent to OFBiz’s entitydef
+├── module-name-meta/  Metadata definitions; GraphQL interface message types are automatically generated based on these
+├── module-name-service/  Service definitions. xbiz files are similar to OFBiz’s servicedef
+├── module-name-web/  Front-end page definitions
      └── src/
        └── main/resources/vfs
             └── module-name/pages/{bizObjName}/xxx.page.yaml  Page files
@@ -131,7 +123,7 @@ module-name/
 
 ## Theme
 
-Can choose to inherit existing theme files
+You can choose to inherit existing theme files
 
 ```
 <extends location="component://common-theme/widget/Theme.xml" />
@@ -140,7 +132,8 @@ Can choose to inherit existing theme files
 Dynamic templates
 
 ```xml
-<templates><!-- Freemarker template used by this theme to render widget models -->
+
+<templates><!-- Freemarker template use by this theme to render widget model-->
   <template name="screen" type="html" content-type="UTF-8" encoding="none"
             encoder="html" compress="false">
     <template-file widget="screen" location="component://common-
@@ -157,9 +150,10 @@ theme/template/macro/HtmlMenuMacroLibrary.ftl"/>
 ```
 
 ## MiniLang
-XML syntax is very verbose and has been deprecated. Now using Groovy
+The XML syntax is extremely verbose and has been deprecated; Groovy is now used instead.
 
 ```xml
+
 <if>
   <condition>
     <or>
@@ -175,8 +169,7 @@ XML syntax is very verbose and has been deprecated. Now using Groovy
   </else>
 </if>
 ```
-
-Clearly better
+Obviously not as good as
 ```groovy
 if (!field1 || !field2) {
 // code in if
@@ -185,4 +178,6 @@ if (!field1 || !field2) {
 }
 ```
 
-## Unit Tests
+## Unit Testing
+
+<!-- SOURCE_MD5:377e1a4049b31e69947a522d4365c21f-->

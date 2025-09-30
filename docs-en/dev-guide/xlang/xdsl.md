@@ -1,33 +1,28 @@
-# XDSL: A General Domain-Specific Language Design
+# XDSL: General-Purpose Domain-Specific Language Design
 
-The Nop platform provides a programming paradigm oriented toward language-based programming. When solving problems, we tend to first design a domain-specific language (DSL) tailored to the specific domain and then use that DSL to describe the business logic in detail. The Nop platform significantly simplifies the process of creating custom DSLs.
+The Nop platform offers a language-oriented programming paradigm: when solving problems, we tend to first design a Domain-Specific Language (DSL), and then use that DSL to describe business logic. The Nop platform greatly simplifies the process of creating custom DSLs.
 
-## 1. Using XML or JSON Syntax
+## I. Using XML or JSON Syntax
 
-The value of a domain-specific language lies in its ability to distill domain-specific logic, defining atomic semantic concepts unique to the domain, while abstracting away specifics of the syntax. The actual syntax form is not as critical as the semantic concepts it represents. After passing through a `Lexer` and `Parser`, program code is converted into an Abstract Syntax Tree (AST), which carries all semantic principles in the AST. Both XML and JSON are tree structures and can directly express the AST, thus eliminating the need to write specialized `Lexer` and `Parser`.
+The value of a DSL lies in distilling domain-specific logical relationships and defining atomic semantic concepts unique to that domain. The concrete syntax is not the key. After code is parsed by a Lexer and Parser, it yields an Abstract Syntax Tree (AST), and all program semantics are, in principle, carried by the AST. Both XML and JSON are tree structures and can directly represent an AST, thus completely avoiding the need to implement a special Lexer and Parser.
 
-> Lisp's approach is to use the general `S-Expr` to represent the AST, making it easy to define custom DSLs using macro mechanisms. With XML syntax, we can achieve similar results, especially since XML tags can represent template functions that dynamically generate new XML nodes, mimicking Lisp macros (both the code and its generated structure are XML nodes, corresponding to [Lisp's concept of similarity](https://zhuanlan.zhihu.com/p/34063805)).
+> Lisp does exactly this by directly using a general S-Expr to represent the AST, making it easy to define custom DSLs via macros. A similar effect can be achieved based on XML syntax, especially since XML tags can represent template functions that dynamically generate new XML nodes, serving a role similar to Lisp macros (both the code and the generated result are XML nodes, corresponding to what Lisp calls homoiconicity: https://zhuanlan.zhihu.com/p/34063805).
 
-We use XDef meta-modeling language to constrain the syntax structure of the DSL, such as `[beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)`. Compared to XML Schema or JSON Schema, XDef is simpler and more intuitive while allowing for more complex constraints. For details on the XDef language, refer to `[xdef.md](xdef.md)`.
+We use the XDef meta-model definition language to constrain the syntax structure of a DSL, for example [beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef). Compared with XML Schema or JSON Schema, XDef definitions are simpler and more intuitive, while expressing more complex constraints. For details on the XDef language, see [xdef.md](xdef.md)
 
-> All DSLs in the Nop platform are defined using the XDef language, including workflows, reports, IoC, ORM, etc., with definition files unified in the `[nop-xdefs module](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-xdefs/src/main/resources/_vfs/nop/schema)`.
+> All DSLs in the Nop platform are defined using the XDef language, including workflow, reporting, IoC, ORM, etc. The definition files are uniformly stored in the [nop-xdefs module](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-xdefs/src/main/resources/_vfs/nop/schema).
 
-XDef not only defines XML syntax for DSL but also establishes rules for bidirectional conversion between XML and JSON. Therefore, defining an XDef meta-model allows automatic generation of JSON representations and facilitates input/output in front-end visualization editors.
+![](xml-to-json.png)
 
-Without an XDef meta-model, the Nop platform also provides a compact convention-based transformation rule to enable XML and JSON conversion even without Schema constraints. For details, refer to the front-end AMIS page's XML representation: `[amis.md](../xui/amis.md)`.
+XDef not only defines the XML-format DSL syntax, but also specifies a bidirectional conversion rule between XML and JSON. Therefore, once an XDef meta-model is defined, a JSON representation is obtained automatically and can be used directly as the input/output of a front-end visual editor.
 
-## 2. General XDSL Syntax
+In the absence of an XDef meta-model, the Nop platform also defines a compact, convention-based conversion rule that enables bidirectional conversion between XML and JSON without schema constraints. See the XML representation of front-end AMIS pages: [amis.md](../xui/amis.md)
 
-After normalizing all DSLs into XML format, we can uniformly provide mechanisms for module decomposition, difference merging, and meta-programming, among other advanced features. The Nop platform defines a unified XDSL extension syntax, automatically extending the syntax for all DSLs defined using the XDef meta-model. The specific content of the XDSL syntax is defined by `[xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)`.
+## II. XDSL Common Syntax
 
-XDSL's key elements are defined by its primary meta-model, such as:
+After unifying all DSLs to XML format, we can uniformly provide advanced mechanisms such as module decomposition, Delta merging, and metaprogramming. The Nop platform defines a unified XDSL extension syntax that automatically adds Reversible Computation extension syntax to all DSLs defined via XDef meta-models. The specific XDSL syntax is defined by the meta-model [xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef).
 
-```
-<list>
-  <item>Item 1</item>
-  <item>Item 2</item>
-</list>
-```
+The main syntactic elements of XDSL are exemplified as follows:
 
 ```xml
 <orm x:schema="/nop/schema/orm/orm.xdef"
@@ -52,28 +47,21 @@ XDSL's key elements are defined by its primary meta-model, such as:
 </orm>
 ```
 
-1. All XDSL files require the root node to use the `x:schema` attribute to specify the used xdef definition file.
-2. The root node can set the `x:dump="true"` attribute to print the differences in the merge process, including intermediate and final results. In Quarkus' debug mode, these results are output to the project's `_dump` directory.
-3. The `x:extends` attribute introduces the base model being inherited. The current model and base model will be merged hierarchically.
-4. `x:gen-extends` and `x:post-extends` provide built-in meta-programming mechanisms. They allow dynamically generating model objects, which are then merged with the current model.
-5. The `x:override` attribute controls details during node merging. For example:
-   - `x:override="remove"` removes the base model's corresponding node.
-   - `x:override="replace"` replaces the base model's corresponding node with the current node.
-   - By default, `x:override="merge"` merges nodes level by level, performing a deep merge of child nodes.
+1. All XDSL files require the root node to specify the xdef definition file via the x:schema attribute.
+2. On the root node, set x:dump="true" to print intermediate results of the Delta merge as well as the final merged result. In the Quarkus framework’s debug mode, the final merged result will be output to the current project’s \_dump directory.
+3. The x:extends attribute introduces the base model being inherited; the current model and the base model will be merged hierarchically along the tree structure.
+4. x:gen-extends and x:post-extends provide built-in metaprogramming mechanisms. They can dynamically generate model objects and then merge them with the current model.
+5. The x:override attribute controls the details of merging two nodes. For example, x:override="remove" means to delete the corresponding node from the base model, while x:override="replace" means the current node fully overrides the corresponding node in the base model. By default, x:override="merge", which means child nodes are merged hierarchically. For a detailed introduction to the merge rules, see [x-override.md](x-override.md)
 
 ### Merge Order of x-extends
 
-The `x-extends` mechanism implements reversible computing theory requirements through a delta merging approach:
+The x-extends Delta merge mechanism implements the technical pattern required by the theory of Reversible Computation:
 
 > App = Delta x-extends Generator<DSL>
 
-Specifically:
-- `x:gen-extends` and `x:post-extends` are compiled-time Generators<DSL>.
-- They use XPL template language to dynamically generate model nodes, allowing for bulk generation followed by sequential merging based on the defined order.
+Specifically, x:gen-extends and x:post-extends are compile-time Generators. They use the XPL template language to dynamically generate model nodes, allowing multiple nodes to be generated at once and merged sequentially. The merge order is defined as follows:
 
-The merging process is as follows:
-
-```xml
+```
 <model x:extends="A,B">
     <x:gen-extends>
         <C/>
@@ -87,30 +75,30 @@ The merging process is as follows:
 </model>
 ```
 
-The final merged result is:
+The merge result is
 
-```xml
-<F x-extends=E x-extends=D x-extends=C x-extends=B x-extends=A>
+```
+F x-extends E x-extends model x-extends D x-extends C x-extends B x-extends A
 ```
 
-The current model will override the results of `x:gen-extends` and `x:extends`. Conversely, `x:post-extends` overrides the current model.
+The current model overrides the results of x:gen-extends and x:extends, while x:post-extends overrides the current model.
 
-Using `x:extends` and `x:gen-extends`, we can effectively implement the decomposition and combination of DSL.
+By leveraging x:extends and x:gen-extends we can effectively achieve the decomposition and composition of DSLs.
 
-### Significance of x:post-extends
+### The Significance of x:post-extends
 
-If you've already created an XDSL domain-specific language and want to introduce additional extensions for specific scenarios without modifying the underlying runtime engine, `x:post-extends` is your tool.
+If we have created an XDSL for a domain and now want to introduce additional extensions for special scenarios without modifying the underlying runtime engine, we can use x:post-extends.
 
-Based on reversible computing theory, for existing DSLs, we can further decompose them into a new DSLx.
+Based on the theory of Reversible Computation, for an existing DSL, we can further perform a reversible decomposition to obtain a new DSLx.
 
 ```java
 App = Delta x-extends Generator<DSL>
 DSL = Delta x-extends Generator<DSLx>
 ```
 
-When describing business logic, we can utilize the DSLx extended syntax. This extended syntax can then be converted into existing DSL syntax using the `x:post-extends` mechanism. **The `x-extends` merging algorithm will automatically remove all namespace-related properties and child nodes after execution**, so the underlying parsing and runtime engines need not know anything about these extended syntaxes. They only need to handle the original DSL semantic concepts, as the extension mechanisms are abstracted away by the `x:post-extends` mechanism.
+When describing business logic, we can use the extended DSLx syntax and then transform it into the existing DSL syntax via x:post-extends. After the x-extends merge algorithm finishes, it will automatically remove all attributes and child nodes in the x namespace, so the lowest-level parsing and runtime engines do not need to know anything about these extension syntaxes. They only need to be written for the original DSL semantic concepts, while all general extension mechanisms are implemented at the XDSL syntax layer via compile-time metaprogramming.
 
-For example, in an ORM engine, for a JSON text field, we want it to correspond to two entity properties: one for storing raw JSON text (`jsonText`) and another for parsing JSON text into structured objects (`jsonComponent`). By adding a `json` tag to the field, we can mark it as containing JSON data. This will automatically generate corresponding `component` properties. This is a special convention that we do not want to bake into the ORM engine itself. Instead, we can utilize the `x:post-extends` mechanism to abstract this behavior.
+Here is a concrete example. In the ORM engine, for a JSON text field we want it to correspond to two entity properties: one jsonText that stores the JSON text, and another jsonComponent that maps the JSON text to an object structure. Modifying the object properties would ultimately modify the jsonText stored text. We want to mark a field as JSON by adding a json tag, and then automatically generate the corresponding component property for that field. This is a special convention that we do not want to hardcode into the ORM engine. In this case, we can implement this abstraction using x:post-extends.
 
 ```xml
 <orm x:schema="/nop/schema/orm/orm.xdef"
@@ -120,29 +108,31 @@ For example, in an ORM engine, for a JSON text field, we want it to correspond t
     </x:post-extends>
     <entities>
       <entity name="xxx.MyEntity">
-        <columns>
-          <column name="jsonExt" code="JSON_EXT" propId="101" tagSet="json"
-                  stdSqlType="VARCHAR"
-                  precision="4000"/>
-        </columns>
-        <!-- Automatically generated component configurations -->
-        <components>
-          <component name="jsonExtComponent"
-                     class="io.nop.orm.component.JsonOrmComponent">
-            <prop name="jsonText" column="jsonExt"/>
-          </component>
-        </components>
+            <columns>
+                <column name="jsonExt" code="JSON_EXT" propId="101" tagSet="json"
+                        stdSqlType="VARCHAR"
+                        precision="4000"/>
+            </columns>
+        <!-- Will eventually auto-generate the component configuration
+           <components>
+              <component name="jsonExtComponent"
+                         class="io.nop.orm.component.JsonOrmComponent">
+                 <prop name="jsonText" column="jsonExt" />
+              </component>
+           </components>
+         -->
       </entity>
     </entities>
 </orm>
 ```
 
-If we have many custom extensions, they can be further encapsulated into a base model, such as:
+If we have many custom extensions, we can further encapsulate them into a base model, for example:
 
 ```xml
 <!-- std.orm.xml -->
 <orm x:schema="/nop/schema/orm/orm.xdef"
      x:extends="base.orm.xml">
+
     <x:post-extends>
         <orm-gen:JsonComponentSupport xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
     </x:post-extends>
@@ -153,73 +143,63 @@ If we have many custom extensions, they can be further encapsulated into a base 
 </orm>
 ```
 
-Common extensions can be encapsulated into a `std.pom.xml` model, and existing models can simply inherit from this base model by specifying `x:extends="std.orm.xml"`.
+Common extensions can be encapsulated into a std.pom.xml model, and then you only need to inherit this model to obtain the corresponding extension support.
 
-> The `x:extends` mechanism supports multiple schema paths separated by commas. This allows for inheriting multiple base models in a single declaration.
+> x:extends supports multiple comma-separated model paths, allowing you to inherit multiple base models at once. These models are merged in sequence from front to back.
 
-Furthermore, **the `x:post-extends` mechanism enables custom visualization through specialized designer tools**. The `x-extends` merging algorithm can be configured to merge at specific stages (e.g., `mergeBase`). If we only merge at the `mergeBase` stage, we will get the current model merged with the result of `x:gen-extends`, but `x:post-extends` will not have been applied yet. Visualization tools can then be designed to work directly with the `mergeBase` output, while still allowing for abstracted extensions through `x:post-extends`.
+Furthermore, x:post-extends paves the way for building customized visual designers. When executing the x-extends merge algorithm, you can specify the merge stage. If you only merge to the mergeBase stage, you obtain the result of merging the current model with x:gen-extends, but x:post-extends has not yet been applied. A visual designer can target the output at the mergeBase stage, providing abundant business-specific configuration options, while the underlying runtime engine requires no changes.
 
-
-In the Nop platform, OA approval is typically implemented using the `x:post-extends` mechanism. The underlying workflow engine is designed for general scenarios. Since the join functionality can be achieved by combining a simple step node with a Join merge node, there is no need to embed join-related knowledge into the lower-level engine. In the workflow designer, we provide various OA-related simplifications, and in the meta-programming phase, the `x:post-extends` mechanism is responsible for expanding these OA-related configurations into model nodes and properties that the lower-level engine can recognize.
-
+In the Nop platform, countersignature nodes commonly seen in OA approvals are implemented using x:post-extends. The underlying workflow engine is designed for general-purpose scenarios. Since the countersignature function can be achieved via “a normal step node + a Join merge node,” there is no need to embed countersignature knowledge into the engine. In the workflow designer, we provide countersignature nodes and a wealth of OA-related simplified operations, and at the metaprogramming stage, the x:post-extends mechanism expands these OA-related configurations into model nodes and attributes recognizable by the underlying engine.
 
 ### Executable Semantics
 
-In XDSL, executable semantics are implemented using the XLang language. If an attribute is marked as an EL expression in the xdef meta-model or if a node's content is set to XPL template language, then this attribute will be automatically resolved into an `IEvalAction` executable function interface. Specific examples can be found in `[wf.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef)`.
+XDSL uses the XLang language to implement executable semantics. As long as an attribute is annotated as an EL expression in the xdef meta-model, or a node’s content is annotated as the XPL template language, the attribute will be automatically parsed into the IEvalAction executable function interface. For a specific example, see [wf.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef)
 
 ```xml
-<action name="!string">
+ <action name="!string" >
     <when xdef:value="xpl-predicate"/>
 
     <arg name="!var-name" xdef:ref="WfArgVarModel" xdef:unique-attr="name"/>
 
     <source xdef:value="xpl"/>
-</action>
+ </action>
 ```
 
-The Nop platform provides various features such as document hints, auto-completion, syntax checking, and debug points through the `nop-idea-plugin` plugin for the XLang language. For more details, refer to `[idea-plugin.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/user-guide/idea/idea-plugin.md)`.
+The Nop platform provides documentation hints, auto-completion, syntax checking, and breakpoint debugging for the XLang language via the nop-idea-plugin. See [idea-plugin.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/user-guide/idea/idea-plugin.md)
 
-![Nop Workflow Executor UI](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/xlang-debugger.png)
+![](../../user-guide/idea/idea-executor.png)
 
+![](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/xlang-debugger.png)
 
-### Beyond Interfaces and Components: Delta Customization
+### Delta Customization Beyond Interfaces and Components
 
-Based on reversible computing theory, the Nop platform's XDSL layer incorporates a generic Delta customization mechanism. Compared to traditional interface abstraction and component assembly methods, this approach is more straightforward and flexible.
+Based on the theory of Reversible Computation, XDSL in the Nop platform has a built-in, general Delta customization mechanism that is simpler and more flexible than traditional approaches using interface abstraction and component assembly.
 
-All XDSL model files are stored in the `src/resources/_vfs` directory, forming a virtual file system. This virtual file system supports Delta layered merging (similar to Docker's `overlay-fs`), with a default layered path of `/_delta/default`. If both `/_vfs/_delta/default/nop/app.orm.xml` and `/nop/app.orm.xml` exist, the Delta directory version is used. In Delta customization files, you can inherit the specified base model using `x:extends="raw:/nop/app.orm.xml"` or `x:extends="super"` to refer to the parent model.
+All XDSL model files are stored in the src/resources/_vfs directory, forming a virtual file system. This virtual file system supports the concept of Delta layered overlays (similar to the overlay-fs layered file system in Docker). By default it has a layer /_delta/default (more layers can be added via configuration). In other words, if both /_vfs/_delta/default/nop/app.orm.xml and /nop/app.orm.xml exist, the version under the delta directory is used. In a delta customization file, you can inherit a specified base model with x:extends="raw:/nop/app.orm.xml", or inherit the base model of the upper layer with x:extends="super".
 
-Delta customization is highly flexible, both in granularity and depth. From a high level, it allows customization of the entire model file. At a fine level, individual attributes or nodes can be customized. Unlike interface customization, Delta customization supports **deletion** functionality, allowing specific parts of the model to be marked for deletion in the customization file, ensuring true deletion without impacting runtime performance.
+Delta customization is extremely flexible, with adjustable granularity. It can be as coarse as customizing an entire model file, or as fine as customizing a single attribute or node. Unlike interface-based customization, Delta customization supports deletion—that is, the customization file can mark a portion of a model for deletion, and it is truly removed rather than simulated with a no-op, which does not impact runtime performance.
 
-Compared to traditional programming language customization mechanisms, **Delta customization rules are highly generic and intuitive**, making them independent of specific implementation details. For example, when extending Hibernate's built-in `MySQLDialect`, you need to understand Hibernate's framework if using Spring integration. In Nop, however, you only need to add the `/_vfs/default/nop/dao/dialect/mysql.dialect.xml` file to ensure that all MySQL-related usages are updated to use the new Dialect model.
+Compared with customization mechanisms provided by traditional programming languages, Delta customization rules are highly general and intuitive, and independent of specific application implementations. Take database Dialect customization used by the ORM engine as an example: if you want to extend Hibernate’s built-in MySQLDialect, you need some knowledge of the Hibernate framework, and if Spring integration is used, you also need to understand how Spring wraps Hibernate and where to find and configure the Dialect for the current SessionFactory. In the Nop platform, you only need to add the file /_vfs/default/nop/dao/dialect/mysql.dialect.xml to ensure that all places using the MySQL dialect are updated to use the new Dialect model.
 
-Here is the translated English version of the provided Chinese technical documentation, maintaining the original Markdown format, including headers, lists, and code blocks.
+Delta customization code is stored in a separate directory and can be separated from the main application code. For example, you can package delta customization files into a module named nop-platform-delta; to use this customization, simply import the corresponding module. You can also introduce multiple delta directories and control the order of delta layers via the nop.core.vfs.delta-layer-ids parameter. For example, configuring nop.core.vfs.delta-layer-ids=base,hunan enables two delta layers: a base product layer with a specific deployment’s delta layer on top. In this way, we can productize software at extremely low cost: a functionally complete base product can be implemented at different customers without altering the base product’s code, only by adding Delta customization code.
 
-1. **Delta Custom Code**
-   - Delta custom code is stored in a separate directory and can be kept independent from the main application code.
-   - For example, delta customization files should be packaged into the `nop-platform-delta` module. When this module is required, it can automatically load the corresponding module without any additional setup.
-   - Multiple delta directories can also be imported simultaneously. The order of delta layers can be controlled using the `nop.core.vfs.delta-layer-ids` parameter. For instance, a configuration like `nop.core.vfs.delta-layer-ids=base,hunan` enables two delta layers: the base layer and the Hunan-specific layer.
-   - This approach allows for low-cost productization: while maintaining functionality in the core product, only delta customization is added without modifying the original code. **A well-established core product can be extended with minimal changes by simply adding Delta custom code**.
+### III. Antlr Extensions
 
-2. **Antlr Extensions**
-   - The Nop platform provides support for custom program syntax DSL development to some extent.
-   - Based on Antlr4's g4 files, it is possible to directly generate an AST parser (Antlr itself only supports parsing up to `ParseTree`, requiring manual conversion from `ParseTree` to AST).
-   - For more details, refer to [antlr.md](antlr.md).
+The Nop platform also provides support for DSLs with custom program syntaxes. Based on Antlr4 g4 definitions, it can directly generate an AST parser (Antlr natively only supports parsing to a ParseTree, and you would otherwise need to write the transformation from ParseTree to AST manually). See [antlr.md](antlr.md)
 
-3. **Support for Xdsl**
-   - XML/JSON can be automatically converted into XDSL.
-   - For example, the frontend AMIS framework uses JSON format inherently. Without any modifications to the AMIS engine, the DeltaJsonLoader can be used to introduce a reversible decomposition and merging mechanism for AMIS.
+## Add XDSL Support on Top of Any XML/JSON
+Any XML or JSON can be automatically adapted into XDSL. For example, since the front-end AMIS framework uses JSON, we do not need to modify the AMIS engine. By using a unified DeltaJsonLoader, we can introduce reversible decomposition-merge mechanisms for AMIS.
 
-### Example of Xdsl Configuration
 ```json
 {
-  "x:extends": "Extends existing AMIS files for decomposition, such as page decomposition in AMIS which lacks built-in decomposition capabilities",
-  "title": "Page Decomposition through Delta Customization",
-  "x:override": "Merge operations are handled using `merge` methods like `/api/merge/bounded-merge`, and can be customized via `x:override`.",
-  "x:gen-extends": "Dynamic generation of xpl templates for object structure construction is possible here",
-  "feature:on": "Node existence check is triggered by a feature being enabled; non-existing nodes are automatically deleted"
+  "x:extends": "Inherit other existing AMIS files to achieve page decomposition; AMIS does not have a built-in decomposition mechanism",
+  "title": "On top of the inherited page, you can customize and adjust via Delta",
+  "x:override": "The default merge operation is merge; you can change it to remove/replace/bounded-merge via x:override",
+  "x:gen-extends": "You can write XPL template code here to dynamically generate base object structures",
+  "feature:on": "This feature expression must return true for this node to exist; otherwise the node is automatically removed"
 }
 ```
 
-The Xdsl configuration uses specific syntax properties, which can be further explored in the `xdsl.xdef` model definition at [https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef).
-
-For override mechanisms, refer to [x-override.md](x-override.md).<br>
+For which syntactic attributes XDSL uses specifically, see the [xdsl.xdef meta-model definition](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef).
+For an introduction to the x:override merge operator, see [x-override.md](x-override.md)
+<!-- SOURCE_MD5:39fa9181a168b1caca0aedc675674d99-->

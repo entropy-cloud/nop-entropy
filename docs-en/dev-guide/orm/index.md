@@ -1,33 +1,34 @@
-# [Database Dialect](dialect.md)
+# [Database Dialects](dialect.md)
 
 ## [DAO Encapsulation](dao.md)
 
-For single entity operations such as insert, update, delete, we provide DAO encapsulation. It supports complex query conditions and pagination. When writing business code, we generally only need to use the IEntityDao interface, not the IOrmTemplate interface.
+Encapsulation for CRUD operations on a single entity, supporting complex query conditions and pagination. In general business code, we only need to use the IEntityDao interface, without the need to use the IOrmTemplate interface.
 
 ## [ORM Engine](orm.md)
 
-Similar to a full JPA-based ORM implementation, it supports EQL object query language, including tenant filtering, cascading delete, logical delete, and field auto-encryption capabilities.
+A full ORM engine implementation similar to JPA; it supports the EQL object query language, tenant filtering, cascading deletes, logical deletes, and automatic field encryption/decryption.
 
 ## [Transaction Management](transaction.md)
 
-## [Multi Data Source](multi-datasource.md)
+## [Multiple Data Sources](multi-datasource.md)
 
-## [Data Change Log](data-change-log.md)
+## [Data Change History](data-change-log.md)
 
 ## [Many-to-Many Configuration](many-to-many.md)
 
 ## [SQL Management](sql-lib.md)
 
-Similar to MyBatis's dynamic SQL management framework.
+A dynamic SQL management framework similar to MyBatis.
 
-## [Add Extended Fields](ext-field.md)
+## [Adding Extension Fields](ext-field.md)
 
-Without modifying the database, we use a vertical table to store extended field names and values. It supports querying and sorting of extended fields. When using XPL template language, the usage of extended fields is completely consistent with that of regular fields, all using the entity.fld attribute syntax.
+Without modifying the database, extension field names and values are stored via a vertical table, supporting queries and sorting on extension fields. When used in the XPL template language, extension fields are used in exactly the same way as regular fields, both following the entity.fld property access syntax.
 
 ## [DQL Query Language](dql.md)
 
-Similar to RuanQuan's DQL query mechanism, which simplifies BI system data retrieval. In Java, see [mdx-query.md](mdx-query.md).
+A query mechanism similar to the Runqian DQL query language that can simplify data retrieval for BI systems. For usage in Java, see [mdx-query.md](mdx-query.md)
 
 ## [Field Masking](field-masking.md)
 
-When displaying credit card numbers or logging them, masking is required.
+Sensitive data such as credit card numbers needs to be masked when displayed on the UI or printed in logs.
+<!-- SOURCE_MD5:086d16c9abae1b0e051f7954492544c9-->

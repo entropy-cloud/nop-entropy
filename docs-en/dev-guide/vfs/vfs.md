@@ -1,49 +1,59 @@
+
 # Virtual File System
 
-The Nop platform uses the **VirtualFileSystem** to uniformly manage resource files within the system. During startup, it automatically scans all files under the `_vfs` directory in the classpath and aggregates them into the virtual file system.
+The Nop platform uses the VirtualFileSystem to centrally manage resource files in the system. At startup, it automatically scans all file paths under the \_vfs directory on the classpath and aggregates them into a virtual file system.
 
-1. If files are added or deleted after startup, the **VirtualFileSystem** will not automatically detect these changes and will need to be explicitly refreshed by calling `VirtualFileSystem.instance().refresh(true)` to update the file cache.
+1. If files are created or deleted after startup, the VirtualFileSystem will not automatically detect them; you need to call VirtualFileSystem.instance().refresh(true) to update the file cache.
 
-2. At startup, the current working directory's `_vfs` directory is also added to the virtual file system, potentially overriding files with the same path in the classpath.
+2. At startup, the \_vfs directory under the current working directory is also added to the virtual file system, and it will override the **files with the same path name under the classpath**.
 
-3. It is not allowed for multiple jar files to have the same virtual path. However, the current working directory's `_vfs` directory can override a jar file's virtual path.
+3. Multiple JAR packages are not allowed to contain files with the same virtual path, but the \_vfs directory under the current working directory can override same-path files inside JAR packages.
 
-## Delta Path
+## Delta Paths
 
-The **VirtualFileSystem** defines a special path pattern `/_delta/{deltaName}/`, such as `/_vfs/_delta/default/xxx`. If a delta directory exists, it will be configured based on the specified `nop.core.vfs.delta-layer-ids` property (default if not set), creating multiple layers of deltas. Higher-level deltas will automatically override lower-level deltas.
+In the virtual file system, a special path pattern /\_delta/{deltaName}/ is defined, for example /\_vfs/\_delta/default/xxx.
+If a delta directory exists, multiple delta layers will be formed according to the configured nop.core.vfs.delta-layer-ids (default is default). Higher delta layers automatically override lower ones.
 
-For example, setting `nop.core.vfs.delta-layer-ids=product,default` will create a delta structure like:
+For example, with nop.core.vfs.delta-layer-ids=product,default, for the following virtual file layout
 
 ```
 /_vfs/_delta
-        /product
-            /nop
-            ...
-        /default
-            /nop
-            ...
-    /nop
-    ...
+         /product
+             /nop
+             ...
+         /default
+             /nop
+             ...
+     /nop
+        ...
 ```
 
-When retrieving files via `VirtualFileSystem.instance().getResource("/nop/auth/xxx")`, it first checks `/_vfs/product/nop/auth/xxx`. If not found, it continues to check `/_vfs/default/nop/auth/xxx`. If still not found, it finally accesses the base file at `/nop/auth/xxx`.
+* When fetching a file via VirtualFileSystem.instance().getResource("/nop/auth/xxx"), it will first look for /\_vfs/product/nop/auth/xxx. If it does not exist, it will continue to look for
+  /\_vfs/default/nop/auth/xxx. If it still does not exist, it will then access the base /nop/auth/xxx file.
 
-When calling `VirtualFileSystem.instance().getChildren("/nop/auth/xxx")`, it merges all files from multiple delta layers into a single collection and returns the combined result.
+* VirtualFileSystem.instance().getChildren("/nop/auth/xxx") merges all files obtained from multiple delta layers and returns the merged collection.
+
+* Under a delta directory, model files can set x:extends="super" on the root node to indicate inheriting the file from the next lower delta layer; this avoids writing the full path and facilitates mixing multiple delta layers.
 
 ## Module System
 
-The **VirtualFileSystem** identifies the first two directories as module IDs, such as `/_vfs/nop/auth` corresponding to the module `nop/auth`. By default, when defining an Excel model, we also use the module name as the base, e.g., `nop-auth.orm.xlsx`.
+The virtual file system recognizes the first two path segments as the module ID. For example, /\_vfs/nop/auth corresponds to the module
+nop/auth. In general, when we define Excel model files we also base them on the module name, e.g., nop-auth.orm.xlsx.
 
-However, not all two-level directories are identified as modules. A `_module` file must be present in the directory to mark it as a module. For example, `/_vfs/nop/auth/_module`. The **ModuleManager** is responsible for finding all modules.
+However, not all two-level directories are recognized as modules. You need to add a \_module file under the directory; this is an empty file used only as a placeholder. For example, /_vfs/nop/auth/_ module.
 
-## Data Name Space
+* ModuleManager is responsible for discovering all modules.
 
-The data name space resolves paths based on the `nop.core.resource.store.data-root-dir` configuration (default `/data`). For example, `data:/a/b.txt` maps to `./data/a/b.txt`.
+## Data Namespace
+Paths under the data namespace are resolved according to the nop.core.resource.store.data-root-dir configuration; the root path defaults to `/data`.
+For example, `data:/a/b.txt` actually corresponds to the file path `./data/a/b.txt`.
 
 ## Related Configuration Items
 
-| Parameter       | Default Value | Description                                                                 |
-|-----------------|---------------|-----------------------------------------------------------------------------|
-| nop.core.vfs.delta-layer-ids | default      | Specifies the delta layer configuration, e.g., `_delta/product, _delta/default`. Corresponds to paths like `/_delta/product` and `/_delta/default`. |
+|Name|Default Value|Description|
+|---|---|---|
+|nop.core.vfs.delta-layer-ids|default|Specifies the Delta layers of the delta file system, e.g., \_platform,product,app. Corresponds to virtual paths such as /\_delta/product|
 ||||
-||||
+|||| 
+
+<!-- SOURCE_MD5:341736408b86ca4c019407701372915c-->

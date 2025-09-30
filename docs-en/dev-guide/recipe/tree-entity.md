@@ -1,9 +1,10 @@
-# 1. How to retrieve the current node's siblings and all parent nodes
+# 1. How to retrieve all sibling nodes of the current node and all parent nodes
 
 ```
-dao.batchLoadPropsForEntity(entity,"parent.parent.parent.parent","parent.children")
+  dao.batchLoadPropsForEntity(entity,"parent.parent.parent.parent","parent.children")
 ```
 
-The `batchLoadPropsForEntity` method of the `IEntityDao` interface can be used to retrieve several levels of parent nodes along with the sibling nodes of the current entity.
+You can use the batchLoadPropsForEntity function on the IEntityDao interface to fetch the parent nodes several levels up, as well as the sibling nodes under those parent nodes.
 
-To obtain the associated properties, such as `entity.getParent()` and `entity.getChildren()`, you can use these methods to access all entities.
+Then, through the associated properties on the entity, such as `entity.getParent()` and `entity.getChildren()`, you can obtain all entity objects.
+<!-- SOURCE_MD5:f2c63883d6ff5eca96c0e189fbd81d75-->

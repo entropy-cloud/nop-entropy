@@ -1,42 +1,37 @@
-# NopORM vs MyBatis Differences
+# Differences Between NopORM and MyBatis
 
-## Declarative vs Imperative Styles
+## Declarative vs. Imperative
 
-In ORM, the abstract model is
-Entities are data themselves. Modifying entity attributes means modifying data directly, without calling `dao.update`. Since MyBatis is half-functional as an ORM, it requires using actions to express save semantics. Calling `save` twice results in two database accesses.  
-In declarative style, you call `saveOrUpdate` once to indicate that the entity needs to be saved. In reality, only during `session.flush()` will the database be updated.
+The abstract model of an ORM is
+an entity is the data itself; modifying an entity’s properties means modifying the data, and you do not need to call dao.update. Because MyBatis is a half-baked ORM, it forces you to express the save semantics via explicit actions. Calling save twice will trigger two database accesses. An ORM is declarative: calling saveOrUpdate 100 times merely marks the entity as needing to be saved; the database is actually updated only once when session.flush occurs.
 
-MyBatis is not beneficial for encapsulation. For example:
-- If `methodA` modifies some data that needs saving and `methodB` also modifies the same data, calling `save` in `methodA` alone would suffice.
-- Calling `saveOrUpdate` separately for both methods results in two separate database updates. However, if called simultaneously, it should be merged into a single update. But MyBatis cannot achieve this, leading to loss of save semantics' compositeness.
+MyBatis’s style of ORM works against encapsulation. For example, methodA modifies some data that needs to be saved, and methodB modifies the same data that also needs to be saved. When you call methodA alone, exactly one save should be performed,
+and calling methodB alone should update the database once. However, if both methodA and methodB are invoked together, their database modifications should be merged so that only one database update occurs. MyBatis cannot achieve this, ultimately breaking the composability of the save semantics.
 
-## Automatic Dependency Sorting During Updates
+## Automatic Dependency Ordering When Updating the Database
 
-Using MyBatis often leads to database lock conflicts in complex scenarios. For example:
-- Thread A updates A then B.
-- Thread B updates B then A.
+With MyBatis, database lock conflicts often occur in complex scenarios. For example, one thread updates A then B, while another updates B then A. In contrast, NopORM, at session.flush time, checks which in-memory entities have been modified, computes the modification Delta, and generates SQL for database changes based on the Delta. During this computation it sorts all entities according to table dependency relationships and primary key values, and executes SQL in that prescribed order, ensuring that updates are always applied A before B.
 
-NopORM, however, checks all entities in memory during `session.flush()`, calculates the difference set, generates update SQL based on dependencies and primary key order, ensuring updates are always applied in the correct sequence: A first, then B.
+## Reduce Database Connection Hold Time
 
-## Minimizing Database Connection Usage
+NopORM has built-in optimistic locking, so executing reads outside a transaction will not affect database consistency. We can open a transaction only during OrmSession.flush, without holding a database connection throughout the entire read phase.
 
-NopORM supports optimistic concurrency, so read operations can be performed without transactions. Transactions should only be started during `OrmSession.flush()`, minimizing database connection holding time.
-
-Additionally, NopORM's `ITransactionTemplate` helper class provides lazy initialization for connections, opening them only when needed. Background operations not involving the database can be performed while the connection is unused, further reducing its占用。
+The ITransactionTemplate helper provided by NopORM also implements lazy connection acquisition: a transaction is started only when we first actually need a database connection. While a backend service function is running, we can first perform work unrelated to database access, further reducing how long a database connection is held.
 
 ## JDBC Batch Optimization
 
-During `OrmSession.flush()`, NopORM automatically utilizes JDBC's built-in batch mechanism to execute multiple updates in one call, significantly improving performance.
+OrmSession.flush automatically leverages JDBC’s built-in batch mechanism to execute operations in bulk, greatly improving performance.
 
-## Primary Key Modification Prohibition
+## Primary Keys Are Immutable
 
-Once an entity is saved in NopORM, its primary key cannot be modified. In standard relational database design, primary key changes are generally highly discouraged as well.
+Once an entity has been saved in NopORM, its primary key cannot be modified. In typical relational database design, changing primary keys is also strongly discouraged.
 
 ```javascript
 var entity = dao.newEntity();
 entity.setId("1");
 entity.setName("test");
 dao.saveEntity(entity);
-entity.setId("33"); // This modification is incorrect and will have no effect
+entity.setId("33"); // This kind of modification is incorrect and will not actually take effect
 dao.saveOrUpdateEntity("33");
 ```
+<!-- SOURCE_MD5:8f48bde70c9aeb429ef904f3924b7c0f-->

@@ -1,41 +1,28 @@
 # XLang
 
-
 ## [XLang: Quick Overview](xlang.md)
 
+## [XDef: Metamodel definition language](xdef.md)
 
-## [XDef: Model Definition Language](xdef.md)
+## [XDSL: A general design approach for domain-specific languages](xdsl.md)
 
+## [XOverride: Delta merge operator](x-override.md)
 
-## [X DSL: Domain-Specific Language Design](xdsl.md)
+## [XMeta: Object structure definition language](xmeta.md)
 
+## [Xpl: Template language for metaprogramming](xpl.md)
 
-## [XOverride: Merge Operator](x-override.md)
+## [XScript: A scripting language that supports macro functions](xscript.md)
 
+## [Antlr: AST definition and parsing description language](antlr.md)
 
-## [XMeta: Object Structure Definition Language](xmeta.md)
+## [XPath: Path query language for Tree structures](xpath.md)
 
+## [XTransform: Transformation language for Tree structures](xtransform.md)
 
-## [Xpl: Template Programming Language](xpl.md)
+## [Comprehensive example](xlang-demo.md)
 
+Using the orm.imp.xml model as an example to explain the specific usage of the xdef, xdsl, xpl, and xscript syntaxes
 
-## [XScript: Script Language with Macro Functions](xscript.md)
-
-
-## [ANTLR: Abstract Syntax Tree Definition and Parsing Language](antlr.md)
-
-
-## [XPath: XPath Query Language](xpath.md)
-
-
-## [XTransform: Transformation Language for Trees](xtransform.md)
-
-
-## [Examples in XLang](xlang-demo.md)
-
-
-## Example Using ORM.ORM XML Model
-For example, using `orm.imp.xml` model, explain the specific usage of `xdef`, `xdsl`, `xpl`, `xscript`, etc.
-
-
-
+## Metaprogramming: [meta-programming.md](meta-programming.md)
+<!-- SOURCE_MD5:c7e315dbed6b1744df7719f522a053d9-->

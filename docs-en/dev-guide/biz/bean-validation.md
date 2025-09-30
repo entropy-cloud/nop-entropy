@@ -1,16 +1,17 @@
-# Similar to JSR-303 Validation Mechanism
+# JSR303-like Validation Mechanism
 
-The Nop platform does not directly support annotations like `@NotEmpty` from JSR-303. Instead, it uses a more robust Schema model internally.
+The Nop platform does not directly support annotations such as `@NotEmpty` from JSR303. Internally, it uses a more powerful Schema model.
 
-1. All entity objects have corresponding ObjMeta, and the Nop platform leverages the Schema metadata within ObjMeta to perform validation. This mechanism is significantly more powerful than JSR-303's approach. For example, it identifies `dictName` configurations and validates dictionary tables automatically.
-2. For JavaBeans that are not entities, you can introduce metadata using the `@PropMeta` annotation. This will be automatically converted into an ISchema metadata object.
+1. Every entity object has a corresponding ObjMeta. The Nop platform leverages the Schema metadata in ObjMeta to perform validation, which is a far more powerful mechanism than JSR303. For example, it recognizes the dictName configuration and will automatically validate against dictionary tables.
+2. For JavaBeans that are not entities, you can introduce metadata via the `@PropMeta` annotation; it will be automatically converted into an ISchema metadata object.
 
-```markdown
+```
 @DataBean
-public class MyBean {
-    @PropMeta(domain="email")
-    public String getEmail() {
-        return ...
-    }
+public class MyBean{
+   @PropMeta(domain="email")
+   public String getEmail(){
+     return ...
+   }
 }
 ```
+<!-- SOURCE_MD5:773500a046e413c28cb3d25f72a4c293-->

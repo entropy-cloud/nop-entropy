@@ -1,63 +1,56 @@
-# Adding Fields in the Backend Graph
+# Adding Fields to the Backend Graph
 
-## 1. All fields returned by GraphQL need to be defined in the xmeta file
+## 1. All fields returned in GraphQL must be defined in xmeta files
 
-The code generation will automatically map database model fields to generated properties based on `published=true`. These auto-generated xmeta definitions are stored in files with a prefix of an underscore, e.g., `_NopAuthUser.xmeta`. Additional fields can be added to these files without the underscore.
+During code generation, based on the database model, prop definitions are automatically generated for each field with published=true. The auto-generated xmeta definitions are stored in files prefixed with an underscore.
+For example, NopAuthUser.xmeta extends \_NopAuthUser.xmeta. We can enhance the auto-generated xmeta in the file without the underscore.
+You can add fields, add attributes to fields, or delete auto-generated field definitions.
 
-For example:
-- `NopAuthUser.xmeta` inherits from `_NopAuthUser.xmeta`.
-- Fields can be enhanced in the non-underscore file for auto-generated xmeta definitions.
-- You can add, modify, or delete auto-generated field definitions.
+## 2. Provide Loaders for props defined in xmeta
 
-## 2. Providing Loader for xmeta-defined Props
+xmeta definitions are automatically converted into GraphQL type definitions, and the backend also needs to add the Fetcher definitions required by GraphQL to actually return data.
 
-xmeta definitions are automatically converted into GraphQL type definitions. However, additional GraphQL Fetcher definitions are required in the backend to actually return data.
+### 2.1 Add getter methods on the Java entity
 
-### 2.1 Adding Get Methods on Java Entities
+Simply add the corresponding get/set methods in the NopAuthUser.java class to achieve data access. xmeta only concerns the interface layer and makes no assumptions about the underlying storage mechanism.
 
-To implement data retrieval, simply add corresponding `get/set` methods directly in the `NopAuthUser.java` class. The xmeta only deals with interface-level definitions and makes no assumptions about underlying storage mechanisms.
+### 2.2 Add methods on the BizModel and annotate with @BizLoader
 
-### 2.2 Adding Methods to BizModel and Applying @BizLoader Annotation
+For example, add a fetcher for the roleUsers property of NopAuthUser
 
-For example:
-- Add a `roleUsers` property with corresponding fetcher to `NopAuthUser`.
-
-```java
+```
 @BizModel("NopAuthRole")
 public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
 
     @BizLoader
     @GraphQLReturn(bizObjName = "NopAuthUser")
     public List<NopAuthUser> roleUsers(@ContextSource NopAuthRole role) {
-        return role.getUserMappings().stream()
-                .map(NopAuthUserRole::getUser)
-                .sorted(comparing(NopAuthUser::getUserName))
-                .collect(Collectors.toList());
+        return role.getUserMappings().stream().map(NopAuthUserRole::getUser)
+                .sorted(comparing(NopAuthUser::getUserName)).collect(Collectors.toList());
     }
-}
+}   
 ```
 
-### 2.3 Defining Loader in XBiz Model
+### 2.3 Define loaders in the XBiz model
 
-### 2.4 Defining Getters/Setters Directly in XMeta Model
+### 2.4 Define getters/setters directly in the XMeta model
 
-For simpler cases, no changes are needed to BizModel or entity classes. Instead, define the getters/setters directly in the backend interface's xmeta model.
+For relatively simple cases, we don't need to modify the BizModel or entity classes; we can define accessors directly in the xmeta model at the backend interface layer.
 
-```xml
+```
 <meta>
   <props>
-    <prop name="createDate">
-      <getter>
-        entity.createTime.$toLocalDate()
-      </getter>
-    </prop>
+     <prop name="createDate">
+        <getter>
+           entity.createTime.$toLocalDate()
+        </getter>
+     </prop>
   </props>
 </meta>
 ```
 
-$toLocalDate is an extended type conversion function. All expressions can be invoked via $toLocalDate/toInt() etc., using ConvertHelper.
+$toLocalDate is an extended type conversion function. All expressions can ultimately invoke type conversion functions on ConvertHelper via $toLocalDate, toInt(), and similar methods.
 
-For common reusable transformations, utilize Nop's built-in meta programming features such as `x:gen-extends` or `x:post-extends`.
-
-Reference:
-- [biz-gen.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/nop/core/xlib/biz-gen.xlib)
+For common, reusable conversion functions and the like, we can leverage the Nop platform’s built-in metaprogramming mechanisms, such as `x:gen-extends` and `x:post-extends`, to automatically generate property definitions.
+See [biz-gen.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/nop/core/xlib/biz-gen.xlib)
+<!-- SOURCE_MD5:b7d9d7d18ff8d1ebfbb19b6b6359d7fa-->

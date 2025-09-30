@@ -1,539 +1,643 @@
+Explainer video: https://www.bilibili.com/video/BV1F52aY2EXz/
 
-The Paxos algorithm is one of the most fundamental algorithms in distributed systems, known for its complexity and intellectual challenge. However, its design choices can feel elusive because we often struggle to intuitively understand why it takes such an approach. While specific examples can validate its correctness and even rigorous mathematical proofs can convince us of its validity, we still find it difficult to answer why this particular method was chosen. Is there no other viable alternative? Can we find an explanation that makes the Paxos algorithm seem almost self-evident without relying solely on mathematical derivations?
+The Paxos algorithm is a very fundamental algorithm in distributed systems and has long been known for its obscurity and brain-bending nature. However, the reason it feels bewildering is mainly because it’s not easy to intuitively grasp why it’s designed as it is. While we can verify its correctness via concrete examples, and even use rigorous mathematical proofs to convince ourselves it’s right, we still struggle to answer: why must we choose this approach? Is it the only possible method? Is there a way to find an explanation that makes Paxos feel self-evident on an intuitive level, without relying on mathematical derivations?
 
-In my article "[A Research Report on Paxos' Magical Theory](https://mp.weixin.qq.com/s/CVa_gUdCtdMEURs40CiXsA)", I attempted to build a conceptual image of the Paxos algorithm from the perspective of dimensional magic, aiming to provide a "Why" explanation rather than just a "How-to." This supplement serves as an elaboration on that article.
+In my article “[A Magical Research Report on Paxos](https://mp.weixin.qq.com/s/CVa_gUdCtdMEURs40CiXsA),” I built a magical image of the Paxos algorithm from the perspective of extra-dimensional magic, attempting to provide a “Why” answer, rather than just introducing how to do Paxos. This article is a supplemental explanation to the above.
 
-For foundational knowledge about the Paxos algorithm, refer to xp's articles on Zhihu: [200-line implementation of a key-value store based on Paxos](https://zhuanlan.zhihu.com/p/275710507) and [A Clear Explanation of Reliable Distributed Systems - The Paxos Algorithm](https://zhuanlan.zhihu.com/p/145044486).
+For the basic knowledge of the Paxos algorithm, you can refer to xp’s articles on Zhihu: [200 lines of code to implement a Paxos-based KV store](https://zhuanlan.zhihu.com/p/275710507), [Reliable distributed systems—an intuitive explanation of Paxos](https://zhuanlan.zhihu.com/p/145044486)
 
+## I. Why learn the Paxos algorithm?
 
-## Why Learn the Paxos Algorithm?
+Some may doubt: my work doesn’t involve distributed systems much, so is it necessary to learn Paxos? The answer is yes. As long as your problem involves multiple state spaces, or coordinating multiple independently acting entities, you’ll encounter similar problems, and the solutions provided by Paxos can offer insights.
 
-Perhaps someone will ask, if my work doesn't involve distributed systems, why bother learning the Paxos algorithm? The answer is yes. Any problem you face that involves multiple state spaces or requires coordinating multiple independent entities will lead you to similar challenges, and the solutions provided by the Paxos algorithm can offer valuable insights.
+Some may argue Raft is now more popular and Paxos seems less common. We can understand it this way: Raft is essentially a variant of Paxos, choosing specific implementation strategies guided by Paxos’s basic principles.
 
-Some might argue that the Raft algorithm is more popular these days, making the Paxos algorithm seem less common. This perspective can be understood as follows: The Raft algorithm is essentially a variation of the Paxos algorithm, choosing specific implementation strategies under the basic principles of the Paxos algorithm.
+More precisely, you can view Paxos as a general framework in the domain of distributed consensus, defining the core mechanisms needed to achieve consensus. Raft can be seen as a concrete implementation within this framework, introducing additional rules and steps to implement consensus. These rules provide convenience but are not strictly necessary to achieve consensus. Once you understand Paxos, you’ll find it easier to understand Raft and the principles behind other consensus algorithms.
 
-In fact, the Paxos algorithm can be viewed as a general framework in the field of distributed consensus, defining the core mechanisms required for achieving agreement. On the other hand, the Raft algorithm is a concrete implementation within this framework, introducing additional rules and steps to achieve consensus. While these rules provide convenience, they are not essential conditions for achieving consensus. Understanding the Paxos algorithm will make it easier to grasp the underlying principles of the Raft algorithm and other consensus algorithms.
+## II. What is the Paxos algorithm?
 
-
-## What Is the Paxos Algorithm?
-
-The Paxos algorithm solves the simplest problem of reaching consensus in distributed systems: how multiple nodes can agree on a single value even when failures occur.
+Paxos solves the simplest consensus problem in distributed systems: how multiple nodes can agree on a single value in the presence of possible failures.
 
 A correct consensus algorithm must satisfy the following properties:
 
-**Agreement (Agreement):** All nodes must agree on the same value, and once agreed upon, it will not change.
+**Agreement**: All nodes must agree on the same value, and once consensus is reached, it will not change.
 
-**Validity (Validity):** The value that reaches agreement must originate from a specific node's proposal.
+**Validity**: The value agreed upon must originate from some node’s proposal.
 
-**Termination (Termination):** Eventually, all nodes will reach an agreement.
+**Termination**: Eventually, all nodes reach agreement.
 
-These conditions are collectively referred to as "Safety + Liveness," which are the typical requirements for algorithms that need to be both correct and operational. Agreement embodies the basic meaning of consensus, while validity excludes trivial cases, such as all nodes agreeing on a fixed value regardless of external proposals, thus forming a consensus without dynamicity.
+The above conditions are also known as Safety + Liveness. This is the typical “have your cake and eat it too”: both correctness and feasibility. Agreement reflects the basic meaning of consensus, while Validity excludes trivial cases—for example, all nodes agree that regardless of the external proposals, we always choose the value 3. That would indeed form a “consensus,” but it lacks dynamism and is not useful.
 
-The scenario depicted by consensus algorithms: Initially, the system is in an uncertain state, allowing multiple possibilities (e.g., values x and y). **After executing a critical action, the entire system transitions (like water freezing into ice in physics) into a deterministic global coordinated state (freezing on a specific chosen value)**. Following the algorithm's operational rules, all nodes will eventually acknowledge that the value must be x, not y.
+The scenario depicted by a consensus algorithm is: initially, the entire system is in an uncertain state, with many possibilities allowed—for example, values x and y are both possible. However, after executing a critical action, the entire system suddenly transitions (similar to a phase transition in physics, like water freezing into ice) into a deterministic, globally coordinated state (frozen on a selected value). Continuing to execute the algorithm’s rules will ultimately lead all nodes to acknowledge that the value can only be x and cannot be y.
 
-> If we sequence all actions of nodes involved in the consensus algorithm in a predetermined order, there will inevitably be a critical action that solidifies the value before and after its execution. For example, if an Acceptor records a value, it forms a majority; if it fails, the majority is still pending, allowing new possibilities.
+> If we organize the actions of all nodes participating in the consensus algorithm into a single sequence, then there must exist a critical action such that multiple possibilities are allowed before this action, and the results become fixed after this action. For example, if an Acceptor records a value and forms a majority, the value becomes fixed. If it fails to record, no majority is formed yet, and new possibilities are still allowed.
 > 
-> Although all nodes operate concurrently, we can later sequence their actions into a single action list and identify the critical transition actions.
+> Although all nodes in the consensus algorithm run in parallel, in hindsight we can always organize all actions into a sequence and identify the critical transition action within it.
 
-Interestingly, could the system enter a state akin to Schrödinger's cat, where it has chosen a value but hasn't actually chosen one? From an observer's perspective, such a state does exist. However, the Paxos algorithm resolves this by incorporating an observation mechanism that ensures ultimate collapse into a deterministic outcome.
+Curiously, is it possible for the system to enter a Schrödinger’s cat-like state, simultaneously both having selected a value and not having selected a value? From the observer’s perspective, such a state can indeed exist. However, the Paxos algorithm addresses this problem by embedding an observation mechanism that ensures an eventual wavefunction collapse, yielding a definite result.
 
+### The FLP Theorem
 
-### FLP Theorem
+Unfortunately, a consensus algorithm that satisfies the above three conditions does not exist in the absolute sense! The FLP theorem (Fischer, Lynch, and Paterson) states that in a completely asynchronous distributed system, there is no consensus algorithm that can simultaneously guarantee Agreement, Validity (often discussed as Reliability) and Termination.
 
-Unfortunately, **no consensus algorithm can simultaneously satisfy all three conditions (Agreement, Validity, and Termination) in an asynchronous distributed system**! The FLP theorem (Fischer, Lynch, and Paterson theorem) states that no consensus algorithm can achieve Agreement, Validity, and Termination in a completely asynchronous environment.
+An asynchronous model means there is no global clock, processes can proceed at arbitrary speeds, messages can arrive at arbitrary times, but messages are guaranteed to be eventually delivered.
 
-The asynchronous model refers to the absence of a global clock, where processes can execute at any speed, and messages can arrive arbitrarily late but are eventually guaranteed delivery.
+FLP essentially says: if an omniscient, omnipotent deity maliciously disrupts the progress of consensus and, each time consensus is about to be achieved (at the moment a critical transition is about to occur), indefinitely suspends a critical node, then no algorithm can ensure consensus is reached. Fortunately, in our world, such a bored deity has not been discovered. Try enough times, and you’ll eventually get lucky.
 
-  
+### Paxos Algorithm at a Glance
+
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos-diagram.webp)
+
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/phase1.png)
+
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/phase2.png)
+
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos-algorithm.png)
+
+The above images are from the Alibaba Infrastructure Division’s presentation by Hedengcheng: [PaxosRaft Distributed Consistency Algorithm Principles and Their Practical Applications.pdf](https://github.com/hedengcheng/tech/blob/master/distributed/PaxosRaft%20%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E5%8F%8A%E5%85%B6%E5%9C%A8%E5%AE%9E%E6%88%98%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8.pdf)
+
+Definition of a value being chosen: A value is chosen if it is accepted by a majority (more than half) of acceptors.
+
+### Relativity, Time, and Distributed Systems
+
+[Time, Clocks and the Ordering of Events in a Distributed System (1978)](https://dl.acm.org/doi/pdf/10.1145/359545.359563)
+
+This is Lamport’s most-cited paper and is reputed to be the most important article in distributed systems. In his retrospective, Lamport wrote:
+
+> The origin of this paper was the note [The Maintenance of Duplicate Databases](http://www.rfc-archive.org/getrfc.php?rfc=677) by Paul Johnson and Bob Thomas. I believe their note introduced the
+> idea of using message timestamps in a distributed algorithm. I happen to
+>  have a solid, visceral understanding of special relativity .
+>  This enabled me to grasp immediately the essence of what they were
+> trying to do. Special relativity teaches us that there is no invariant
+> total ordering of events in space-time; different observers can disagree
+>  about which of two events happened first. There is only a partial order
+>  in which an event e1 precedes an event e2 iff e1 can causally affect
+> e2. I realized that the essence of Johnson and Thomas’s algorithm was
+> the use of timestamps to provide a total ordering of events that was
+> consistent with the causal order. This realization may have been
 > brilliant. Having realized it, everything else was trivial. **Because
-> Thomas and Johnson didn’t understand exactly what they were doing**, their algorithm permitted
+> Thomas and Johnson didn’t understand exactly what they were doing**, they didn’t get the algorithm quite right; their algorithm permitted
 > anomalous behavior that essentially violated causality. I quickly wrote a
-> short note pointing this out and correcting the algorithm.
+>  short note pointing this out and correcting the algorithm.
 
-Lamport holds a B.S. in mathematics from MIT (1960) and a Ph.D. in mathematics from Brandeis University (1972). He has systematically studied strict causality. Lamport's self-proclamation fully demonstrates that **mastering computer science requires some understanding of physics**!
+Lamport holds a B.S. in Mathematics from MIT (1960) and a Ph.D. in Mathematics from Brandeis University (1972), and studied special relativity systematically. His account fully illustrates that to master computer science, you must understand some physics!
 
-Einstein imagined sending a photon to explore the surrounding world and discovered a shocking secret: **different places' time is only correlated due to causal order, and event sequences can be different from observers' perspectives**! After reading others' articles describing message sending and timestamps, Lamport immediately realized that message transmission and photon propagation are the same thing. The underlying physical image here is strict causality. Once he understood this, the subsequent logical derivations became trivial! However, **Thomas and Johnson missed out because they didn't fully understand physics. They had no idea of what their own algorithm was really doing**, leading to subtle flaws in their algorithm. Without the guidance of physical imagery, they inevitably stumbled at critical moments.
+Einstein imagined sending out a photon to probe the world and discovered an earth-shattering secret: time in different places only has a partial order induced by causal relationships; the order of events can be observed differently by different observers! When Lamport saw others discuss message sending and message timestamps, he immediately realized that message propagation and photon propagation are the same thing, and the underlying physical image is special relativity. Once you realize this, the subsequent logical derivation becomes completely trivial! Thomas and Johnson suffered because they hadn’t learned physics well; they fundamentally didn’t understand what their algorithm was doing, leading to subtle errors. Without the guidance of a physical image, it’s easy to get confused at critical moments.
 
-Interestingly, despite being guided by strict causality, Lamport's article discusses logical clocks extensively but never mentions strict causality, making some people think that his insights were merely the result of a sudden inspiration.
+Interestingly, although Lamport was guided by special relativity, in the paper itself he only discussed logical clocks and never mentioned special relativity, leading some to mistakenly believe it was a stroke of genius out of thin air.
 
-Lamport's original paper on Paxos, *The Part-Time Parliament* (1998), was finally published after a long wait. When it came out, many people claimed they couldn't understand it. In 2001, Lamport wrote *Paxos Made Simple*, opening with the statement: "The Paxos algorithm, when presented in plain English, is very simple." In this article, Lamport provides a rationale for why Poxos was designed that way, but his explanation relies on step-by-step mathematical reasoning. It's like forcing others to accept the algorithm's validity through sheer logic, resulting in people thinking they understand it initially but getting confused later.
+Lamport’s original paper on Paxos [The Part-Time Parliament](https://ying-zhang.github.io/dist/1989-paxos-cn/) was finally formally published in 1998, after which many people exclaimed that they couldn’t understand it. So in 2001, Lamport wrote [Paxos Made Simple](https://www.jianshu.com/p/1bbbfbe300d1), beginning with the sentence: “The Paxos algorithm, when presented in plain English, is very simple.” In this article, Lamport provides a “Why” for the design of Paxos, but this explanation is based on step-by-step mathematical reasoning—effectively forcing others to accept the rationality of the algorithm. The inevitable result is that many people think they understand it at first glance, but are confused again in the next moment.
 
-Physical education and research place great emphasis on physical imagery; physics students never mechanically apply mathematical rules. They believe in a result because it aligns with reasonable physical explanations. So, for Poxos, we must ask: What is its underlying physical imagery? Does Lamport secretly hold an non-mathematical understanding of Poxos' inevitability, similar to how he kept silent about relativity for those computer scientists?
+Physics emphasizes physical imagery in learning and research. Physicists never obediently follow mathematical rules step by step; they believe a derivation because it corresponds to a reasonable physical explanation. So for the Paxos algorithm, we can’t help but ask: what is its underlying physical image? In Lamport’s heart, is there still a hidden, non-mathematical understanding of the inevitability of Paxos—like when he quietly concealed relativity from that group of computer folks?
 
-## 3. Paxos的魔法学图像
+## III. A Magical Imagery of Paxos
 
-The foundation of distributed systems is a chaotic world where entities are born free and die randomly. Conflicts and contradictions are everywhere, yet the Paxos algorithm somehow creates a consistent consensus world within this chaos, resembling a miracle. However, humans are limited by their finite experience and can only speculate about the intentions behind such a phenomenon, inevitably leading to confusion.
+The backdrop of distributed systems is a chaos of life’s freedom and death’s randomness, where contradictions and conflicts are everywhere. Yet, Paxos establishes a unified, consistent consensus world atop this chaos—it appears miraculous. However, mortals find miracles hard to understand; they cannot stand at the height of gods and survey all beings, and can only use limited life experience to guess divine intent, inevitably generating confusion unique to mortals.
 
-The divide between human and divine lies in the divine realm. In that realm, actions follow rules. Rules are established by gods, while people humbly accept them and cleverly exploit them. The so-called "heavenly chasm" is essentially about this. But if humans dare to challenge authority and imagine themselves as rule-breakers, can they truly comprehend the unimaginable in this mortal world? Such presumption leads to a sudden awakening: gods, as the ultimate existence above all finite entities, solve consensus problems in just three steps:
+The distinction between gods and mortals lies in the divine realm. In the divine realm, words enforce reality. Setting rules is a god’s starting point, whereas humbly accepting rules—and cunningly exploiting them—is the essence of being human. Between heaven and man lies the chasm. But if humans develop a rebellious heart and fancy themselves as rulers of rules, can they grasp the unbelievable in the mortal world? A single thought of transgression, and the world expands in an instant. We suddenly realize that a god, as the most perfect existence above all finite objects, needs only three steps to solve consensus:
 
-1. God says: There must be time.
-2. God says: Time is static.
-3. God says: The value should be X.
-* Time being static requires that time already exists.
+1. God said: Let there be time.
 
-* When time is static, no observable changes occur (e.g., paused gameplay). However, this doesn't mean no changes happen at all—NPCs in a paused game don't notice the pause, for instance.
+2. God said: Time freezes.
 
+3. God said: The value shall be X.
+* A prerequisite for freezing time is that time must first exist.
 
-After time stands still, the divine specifies the same value directly in multiple places. When time flows again, people in different locations will notice this same value suddenly appearing before them, and consensus is thus established.
+* Once time exists, if all time in the universe freezes, then no unexpected events can occur. At this point, a god can calmly do anything he wishes. Note that we always recognize time through observing change, such as comparing the oscillation of a pendulum with other changes. If time freezes, it means no observable changes occur. But this doesn’t mean absolutely no changes happen. For example, when you pause a game and later resume, the NPCs in the game don’t perceive any change.
 
-Our world is now in the Final Epoch, where spiritual energy in heaven and earth has been depleted, magic has dissipated, and true magic no longer exists in this world. However, we still possess a computer. If the underlying foundation of our world is a supercomputer, it is entirely possible that all physical laws in this world are simulated by this machine. Therefore, can we use the computer in our current low-magic world to simulate the high-magic world's magic?
+* After freezing time, the god directly sets the same value in multiple places. When time resumes, people at different locations will find the same value suddenly appearing before them—consensus has been reached.
 
-> The essence of a computer is the Turing machine, and the essence of the Turing machine is its ability to simulate any computational process—this is what is referred to as "Turing completeness."
+Our world is now in a low-magic era. Spiritual energy is depleted; magic has dissipated; true magic no longer exists here. Yet we still have a computer at hand. If the world’s substrate were a supercomputer, all physical laws could be simulated by this machine. So in this low-magic world, can we use our computers to simulate the magic of a high-magic world?
 
-**Paxos Algorithm is an implementation of the ninth-level magic: time stopped.**
+> A computer’s essence is the Turing machine, and the Turing machine’s essence is that it’s a universal simulator—it can simulate any computation. This is Turing completeness.
 
-Once the true secret of Paxos is understood—which it originates from dimensional magic—the rest merely involves some mundane technical details.
+Paxos is a simulated implementation of the ninth-level magic of time-freezing.
 
-> What we need here is a shift in worldview or cognitive framework: We first design a set of natural laws to achieve our goal and then think about how to implement those laws. It's akin to programming, where we first design an interface before implementing it.
+Once you realize Paxos’s true secret lies in extra-dimensional magic, the rest are just mundane technical details.
 
-Reflecting on the **Paxos Algorithm**, the series of actions by the Proposer and Acceptor are fundamentally designed to ensure the unidirectional flow of time.
+> What’s needed here is a shift in worldview or cognitive paradigm: we design a law of nature to achieve a goal, then think about how to implement that law. It’s like designing a set of interfaces first in programming, and then implementing them.
 
-1. The Proposer generates a globally unique and incrementally increasing Proposal ID. This Proposal ID acts as a timestamp, with each ID corresponding to a specific moment in time.
+Recall that the series of actions by Proposers and Acceptors in Paxos fundamentally ensure that time flows in one direction.
 
-2. The Acceptor receives a Proposal and does not respond with a Proposal ID less than or equal to the current request's Proposal because time flows unidirectionally. A successful Proposal indicates the start of time stopping at moment t. Once time has stopped at t, it cannot stop again at an earlier moment t'. Additionally, since time is already stopped at t, no other Proposer should attempt to stop time at the same moment t; hence, the Acceptor does not respond.
+1. The Proposer generates a globally unique, monotonically increasing Proposal ID. This Proposal ID is a marker of time; each ID corresponds to a unique moment.
 
-3. The Acceptor receives a Proposal and does not respond with a Proposal ID less than the current request's Accept because the period from Proposal to Accept represents the duration during which time is stopped. Therefore, the Acceptor accepts the Accept corresponding to time t but rejects those for moments before t.
+2. Why does an Acceptor, after receiving Propose, refuse to respond to Propose with Proposal IDs less than or equal to the current request? Because time flows one way, a successful Propose indicates the start of a time freeze. If time freezes at moment t, it cannot freeze again at any moment less than t. Likewise, since time is already frozen, another Proposer should not freeze the same moment t again, so no response should be given for Proposal ID equal to the current Propose.
 
-In our low-magic world, simulating magic relies on **cognitive deletion**—removing everything that contradicts magical principles from our awareness. **What you cannot see does not exist!** The Acceptor's peculiar behaviors are merely a matter of ignoring facts that would expose the stopping of time through magic.
+3. Why does an Acceptor, after receiving Propose, refuse to respond to Accept requests with Proposal IDs less than the current Propose? From Propose to Accept is the time-freeze phase, so we can accept Accept at the start time t of the freeze, but cannot accept Accept with Proposal ID less than t.
 
-![Time Arrow](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/time_arrow.png)
+In our low-magic world, the most basic method to simulate magic is cognitive deletion—that is, delete from our cognition all facts that don’t conform to magical principles. If you can’t see it, it doesn’t exist! The Acceptor’s seemingly odd behaviors simply ignore facts that would cause the time-freezing magic to be exposed.
 
-Each Acceptor maintains an ever-increasing Proposal ID, akin to establishing a local timeline. The system aligns these Proposal IDs across all Acceptors, effectively bundling multiple localized timelines into a single coarse-grained, unified timeline. Time's progression resembles waves sweeping across the entire system.
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/time_arrow.png)
 
-From the divine perspective, the Paxos Algorithm is but a trivial technique: forcibly aligning multiple timelines into a single master timeline using the magic of time stopped.
+Each Acceptor records a Proposal ID that only increases and never decreases, establishing a local arrow of time. The entire system aligns Proposal IDs to the same point, effectively tying multiple local time arrows together into a coarse-grained, unified arrow of time. The flow of time resembles a wavefront sweeping across the system.
 
-> Note: Here, "time" refers to our defined logical time, not physical time.
+Thus, from a god’s perspective, Paxos merely uses the time-freezing magic to forcibly align multiple timelines into a single primary timeline—nothing but a minor trick.
 
+> Note that the “time” here refers to logical time we define ourselves, not physical time.
 
-### Interesting Application: Stop Alignment and Optimistic Locking
+### An interesting application: stop-and-align and optimistic locking
 
-This "stop-alignment" technique is a fundamental strategy for achieving consensus in distributed systems. For example, in Kafka's message queue, consumers within the same consumer group operate independently but must reach agreement on how to assign work. When the consumer group's membership changes or the topic structure changes, a rebalancing process is triggered. During this process, the Coordinator instructs all workers to stop their current work, migrate to the next generation (epoch), and then receive a new assignment scheme. Each scheme is valid within a single epoch.
+This “stop-and-align” technique is a basic strategy for achieving consensus in distributed systems. For example, in Kafka, multiple consumers in the same group act independently but must agree on how to divide work. Therefore, when the group’s membership changes or the topic structure changes, a rebalance is triggered. During rebalance, the Coordinator first asks all workers to stop their current work, collectively switch to the next generation (epoch), and then distribute a new assignment plan. A plan is valid only within a single epoch.
 
-The optimistic locking mechanism commonly used in databases employs the same strategy. When entering a processing program, read the version number of MainRecord, then modify MainRecord and its associated SubRecords in a transaction. Finally, attempt to update MainRecord's version number.
+Optimistic locking in databases uses the same strategy. At the start of a handler, we read the MainRecord’s version, then modify the MainRecord and associated SubRecords. Finally, in a single transaction, we commit the changes while attempting to update the main record’s version.
 
-```sql
-update MainRecord
-set version = version + 1
-where version = :record_version
+```
+ update MainRecord
+ set version = version + 1
+ where version = :record_version
 ```
 
-If the update is successful, it indicates that time stopping occurred during processing, meaning no other users executed conflicting actions.
+If the update succeeds, it indicates that throughout the entire processing window, time was frozen—no one else executed conflicting actions.
 
+### Micro vs Macro
 
-### Microscopic and Macroscopic Perspectives
+A local arrow of time can be interrupted at any time due to various anomalies. This requires some broader perspective—distinguishing between micro and macro. At the micro level, some may succeed and others fail, but as long as the majority succeeds, we define the operation as having succeeded at the macro level. A set cannot simultaneously have two majorities, and a majority cannot choose both value X and value Y. Hence, the path from micro to macro is clear.
 
-Local timelines can be disrupted by various anomalies. In such cases, we need a broader view to distinguish between microscopic and macroscopic perspectives. At the microscopic level, some proposals may succeed while others fail, but as long as the majority (Majority) are successful, we define it as successful at the macroscopic level. A set cannot simultaneously have two Majorities, and a Majority cannot choose both values X and Y; thus, the transition from microscopic to macroscopic is clear.
+A key to understanding Paxos is that we only need to focus on events that ascend to the macro world—i.e., what happens on the primary timeline of the primary world. Each time point on the primary timeline corresponds to a process in the small world: time-freeze start to time-freeze end. At each time point, a value may be set (if the setting succeeds, consensus is reached). The effect of time freezing eventually manifests fully in the primary world: on the primary timeline, it appears as isolated time points that do not overlap, corresponding to process intervals in the small world that do not interleave.
 
-Understanding the Paxos algorithm starts with focusing on events that rise to the macroscopic world, i.e., those occurring on the main world timeline. Each point in time on the main timeline corresponds to a process of "time halt" in the micro-world—specifically, from a start of time halt to an end of time halt. At each such point in time, there may be an attempt to set a value (if successful, consensus is reached). **The ultimate effect of time halt is fully manifested in the macro world**: on the main timeline, this appears as isolated time points that do not overlap, corresponding to non-intersecting process intervals in the micro-world.
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_phase2.png)
 
-![Paxos Phase 2](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_phase2.png)
+Only events that occur in most small worlds ascend to the primary world and become events in the primary world. The first step in Paxos is to obtain promises from a majority of Acceptors. If successful, the majority of Acceptors’ times are aligned as one, creating a new time point on the primary timeline. In other words, only time points recognized by a majority of Acceptors appear on the primary timeline, and they record the start of time freezing on that timeline. If multiple Proposers compete concurrently, multiple Proposers may access different Acceptors with the same Proposal ID; if none obtains majority recognition, that time is automatically discarded and will not be observed on the primary timeline. There can be many competition processes at the micro level; what we observe on the primary timeline is the macro result of successful competition that obtains majority recognition. In analyzing the algorithm, we only need to consider results on the primary timeline.
 
-**Only events that occur in most small-worlds can ascend to the macro world and become events in the macro world.** The first step of the Paxos algorithm is to obtain commitments from a majority of Acceptors. If successful, the time of these Acceptors aligns, creating a new time point on the main timeline. In other words, **only time points recognized by a majority of Acceptors will appear on the main timeline**, and they also record the start of time halt on the main timeline. If multiple Proposer compete simultaneously, it is possible for different Acceptors to be accessed under the same ProposalID, resulting in no successful commitments. In such cases, this moment is automatically discarded and does not appear on the main timeline. **On a micro-level, multiple competition processes may occur, but what we observe on the main timeline is only the successful competition and the macro-level result of obtaining majority acceptance. During algorithm analysis, we only need to consider the outcomes visible on the main timeline.
+Because competition may fail and each Proposer independently chooses Proposal IDs, visible Proposal IDs on the primary timeline are not continuous. However, the absolute value of logical time is not important; we only need their relative order. In addition, if needed, once the primary timeline is established, we can renumber time points consecutively starting from 0.
 
-Due to the possibility of failure in competition and the independent selection of ProposalIDs by each Proposer, the ProposalIDs visible on the main timeline are not continuous. However, the absolute value of logical time is irrelevant; only their relative ordering matters. Additionally, if necessary, we can renumber the time points on the main timeline after it has been established, starting from 0 and incrementing sequentially.
+The mutual exclusion property—if a majority chooses A at one time, there can be no other majority choosing B at the same time—ensures uniqueness and determinism at the macro level. When most small worlds write value A at time t, this fact will not be changed or obscured by subsequent changes; no second voice can offer a valid objection. Only then does the write of value A happen in the primary world.
 
-The mutual exclusivity inherent in a Proposer and Acceptors choosing the same ProposalID at the same time ensures uniqueness and determinism at the macro level. When most small-worlds have written a value A at time t, this fact remains unaltered and undiminished by any subsequent changes or challenges, leading to the event of writing value A being recorded in the macro world.
-
-> Proposer sends a message to multiple Acceptors: "I want time halt at time t3."
+> The Proposer sends a message to a majority of Acceptors: I want time to freeze at t3.
 > 
-> Multiple Acceptors successfully reply: "Agreed. Time has reached t3. The last value set at time t was X."
+> A majority of Acceptors successfully replies: Agreed. Time is now at t3, and the previously set value at time t is X.
 > 
-> Proposer: "At time t3, I will set the value to X."
+> Proposer: At freeze time t3 I want to set the value to X.
 > 
-> Multiple Acceptors successfully process: "Value X has been set at t3."
+> A majority of Acceptors successfully processes: The value at t3 has been set to X.
 > 
-> Note: Consensus is achieved as long as the Acceptors successfully process; no reply is required.
+> Note that once the majority successfully processes, a reply is not required; consensus is already achieved.
 
-### Interesting Application: Avoiding Split-Brain
+### An interesting application: avoiding split brain
 
-In leader election algorithms, a classic issue is **how to avoid split-brain scenarios**. If a new leader has already been accepted by the majority while an old leader refuses to step down and continues to meddle, what can be done? A general solution is to **treat the old leader as a zombie and ignore all requests from older epochs** (e.g., reject requests based on smaller epoch values). In reality, we do not restrict the behavior of the old leader in its own micro-world; it can delusionally act as it wishes. However, its actions will never rise to the collective intention or influence the macro world. The new leader must **act proactively** by first writing its epoch number to the macro world (similar to modifying a global shared variable), ensuring that any submission from the old leader is automatically rejected via optimistic locking once the new leader has established its position.
+In algorithms requiring leader election, a classic problem is how to avoid split brain. What if a newly elected leader gains popular support while the old leader refuses to step down and keeps interfering? A general solution is to directly define the old leader as a zombie and completely ignore all information from the previous epoch (e.g., reject all requests with smaller epochs). In practice, we do not restrict the old leader’s behavior; in its small world, it can do whatever it thinks is right. But its actions cannot ascend to the collective will and cannot affect the primary world. When a new leader takes office, it must write-before-read: first mark its epoch in the primary world (similar to updating a global shared variable). Then, when the old leader tries to commit its results, it discovers via optimistic locking that it has lost authority and must abandon its processing result.
 
-In our quantum mechanics-based physics analogy, as quantum theory evolves, observation itself assumes unique theoretical significance. According to quantum field theory's depiction, only certain aggregated outcomes from the virtual time realm reach our visible world. Through the strange phenomenon of quantum tunneling, we can also catch a glimpse of the chaotic processes hidden behind. 
+In our physical plane, as quantum mechanics has developed, observation or measurement has acquired profound theoretical meaning. In the view presented by quantum field theory, in unseen imaginary time, countless wild entities compete and annihilate each other; what reflects in the real world is merely the outcome of some aggregate computation. Through the eerie quantum tunneling effect, we can glimpse the surging waves behind the scenes.
 
-## Four. Monotonicity: From Schrödinger Cat Superposition
+## IV. Monotonicity: From the Schrödinger cat state collapse
 
-In the second phase of Paxos, there is an particularly enigmatic operation: after collecting responses from a majority of Acceptors, if any value is present in the responses, the Proposer selects the Proposal ID with the largest value and proposes it for acceptance. Why would the Proposer discard its original proposal and instead choose another's value? Why specifically the one with the largest Proposal ID?
+Phase 2 of Paxos has a particularly puzzling operation: after the Proposer collects Phase 1 responses from a majority, if any response contains a value, it chooses the value of the proposal with the largest Proposal ID among the responses as the value for the Phase 2 Accept. Why does the Proposer abandon its original proposal and choose someone else’s value? Why must it choose the value of the proposal with the largest Proposal ID?
 
-These questions essentially arise from human limitations.
+These questions exist essentially due to the limitations of mortals.
 
-![Paxos Consensus](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_consensus.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_consensus.png)
 
-Consider the case with 5 Acceptor nodes and multiple Proposer nodes. At ProposalID=t1, proposal P1 is accepted by A1 and A2 but does not reach a majority, so no value is determined in this round. Similarly, at ProposalID=t2, proposal P2 also fails to reach a majority. At ProposalID=t3, proposal P3 is accepted by the majority nodes A2, A3, and A4, thus reaching consensus.
+Consider 5 Acceptors and multiple Proposers. At ProposalID=t1, proposal P1 was accepted by A1 and A2, but did not reach a majority, so no value was determined in that round. ProposalID=t2 (P2) likewise failed to reach a majority. ProposalID=t3 (P3) was accepted by the majority A2, A3, A4, thus reaching consensus.
 
-**Once consensus is reached at t3, is it possible for us to reach a new consensus P4 at t4?** In this scenario, t3's consensus is P3, while t4's consensus would be P4, with no consensus at t1 and t2. For the almighty God, it is perfectly acceptable to have different values at different times—no problem, because God is all-knowing and all-powerful. However, **for imperfect human beings with limited cognitive abilities, allowing different times to have different consensuses would lead to a conflict of awareness**.
+Once consensus is reached at t3, is it possible to reach a new consensus P4 at t4? In that case, the consensus at t3 is P3, and at t4 it is P4, with no consensus at t1 and t2. For a god, choosing different values at different moments is perfectly fine—no problem—because the god is omniscient and omnipotent. But for dull mortals, if different moments can have different consensuses, they will experience cognitive overload.
 
-If we allow consensus to be overturned by a being with finite cognitive capacity, how can such a being know which value to use? In many cases (e.g., t1 and t2), no consensus is reached. Would it mean that the being has to traverse from t1 to tn to learn all the values of the consensuses? This would render any foundational consensus algorithm inherently unstable.
+If consensus can be overturned, how does a mortal with limited cognition know which value to use? Many moments simply may not have reached consensus (e.g., t1 and t2). Must one traverse all moments from t1 to tn to learn all consensus values? Therefore, fundamental consensus algorithms directly require that once consensus is reached, it remains unchanged.
 
-> In fact, the definition of consensus explicitly rules out the possibility of a reached consensus being overturned.
+> In fact, the definition of consensus already excludes the possibility of overturning consensus after it is reached.
 
-![Paxos consensus failure](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_consensus_fail.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_consensus_fail.png)
 
-Considering the scenario depicted in the image above, assume A3 crashes while handling P3. From an external perspective, two possibilities exist:
+Now consider the case in the figure above. Suppose A3 crashed while processing P3. From the outside, there are two possibilities:
 
-1. A3 has already accepted P3, thus achieving consensus.
-2. A3 has not yet accepted P3, meaning consensus has not been reached.
+1. A3 has already accepted P3, so consensus is reached.
+2. A3 has not yet accepted P3, so consensus is not yet reached.
 
-**Except for A3 itself, no other node knows its operational status. However, since A3 has crashed, it cannot respond to any queries!** This creates a potential quandary: if different times can have different consensuses, the system's history could be in a quantum state of uncertainty, making it impossible to definitively answer whether a consensus was reached or not.
+Except for A3 itself, no one knows its processing status. But A3 is down—it cannot answer any questions! So if different moments can have different consensuses, we may end up in an awkward situation where the historical outcome is entirely in a quantum-undetermined state, with no simple yes-or-no answer.
 
-For human beings, the most ideal scenario is for the system to exhibit **monotonicity**: it continually progresses in one direction and, once it reaches the target state, remains perpetually confined within that state. This ensures that at any point, we can extract information by advancing the system further. If the system has reached a consensus, continuing the process will yield the same consensual value. If no consensus exists, we effectively select a value to resolve the uncertainty—e.g., in the example above, running one more step of the Paxos algorithm ensures that regardless of A3's decision at t3, by t4, **the system's uncertainty is eliminated**. This principle is also referred to as the maximum commit rule.
+For mortals, the ideal choice is for the system to have a certain monotonicity: it only moves forward in one direction, and once it reaches the target state, it remains there forever. Then whenever we want to extract information from the system, we can move the system forward one step. If consensus has been reached, moving forward still yields the consensus value; if not, we actually choose a value and escape the uncertainty. For example, in the above case, continuing to run Paxos one more step will ensure that regardless of what A3 did at t3, we will obtain P3 at t4, thereby eliminating uncertainty in the system after t4. In Yu Bai’s article, this is also called the “max-commit principle.”
 
-From the macroscopic perspective analyzed earlier, the microscopic world's inherent randomness (constant fluctuations in quantum mechanics) implies that our perceived macroscopic facts may exist in a Schrödinger cat-like state of uncertainty. When a Proposer successfully obtains responses from a majority of Acceptor nodes, it is akin to performing a read operation on the main timeline—but with a side effect.
+Using the macro-world analysis from the previous section, we find that because the micro-world is full of spontaneous birth-and-death fluctuations, facts we perceive in the macro world may be in a Schrödinger cat state. When the Proposer obtains responses from a majority of Acceptors, it effectively completes a read on the primary timeline, albeit with some side effects.
 
-1. We know that all events on the main timeline can be ordered by their "time points." The consensus occurs at some specific time point on this timeline. The simplest way to maintain consensus consistency is **read before write**—peeking at the current state before performing the write operation.
+1. We know all facts on the primary timeline must be ordered by “time points,” and consensus is a write occurring at some time point. The simplest way to maintain consensus consistency is read-before-write—peek at the previous situation before writing.
 
-2. If the read operation returns a value and/or time point t that matches those of the majority, it indicates that time point t's value has been determined. Essentially, consensus has already been reached on the main timeline, and no further action is necessary—simply return the result.
+2. If the majority’s read of values and moment t are identical, then t’s value is already determined; essentially, consensus on the primary timeline has been reached. There’s no need to continue—just return the result.
 
-3. However, if the read operation returns values or time points different from those of the majority, it suggests that either one previous time point has achieved consensus or none has. In this ambiguous state, we must ensure that if a consensus exists at t-1, our subsequent actions do not undermine it. Specifically, **if a consensus has been reached, its value is guaranteed to be the ProposalID with the highest value**. Because if t3 achieved a consensus, t4 will necessarily observe that result, and the consensus cannot be overturned. Therefore, if the highest ProposalID does not correspond to the consensual value, it implies that no consensus could have occurred before that time. **The Paxos algorithm's development is monotonic along the main timeline, moving from having no value to uncertainty about a value and finally to a confirmed value**. Thus, we only need to examine the last step's outcome because each ProposalID can correspond to at most one value.
+3. But if the majority’s read returns differing values or moments t, then the previous moment may or may not have achieved consensus, and the system is uncertain. In this case, we must ensure that if consensus has been reached, our subsequent behavior won’t break it. That is, if a majority at time t-1 has accepted value X, we cannot propose a different value Y at time t. If consensus is reached, the consensus value must be the value with the largest Proposal ID. Because if consensus is reached at t3, then the immediately following t4 must see t3’s result; irreversibility of consensus implies t4’s value must be the consensus value. So if the largest Proposal ID’s value is not the consensus, then consensus could not have been reached before it. Paxos evolves monotonically on the primary timeline: from no value, to uncertain whether there is a value, to a definite value. Therefore, we need only inspect the final step’s result. Since a given Proposal ID is used by at most one Proposer, a Proposal ID maps to at most one value.
 
-4. In the second phase of the Paxos algorithm, after reading values from a majority of Acceptor nodes, the write operation effectively becomes a purely observational action. This observation has a side effect: the system's state on the main timeline transitions from possibly having set a value (reached consensus) to a deterministic state with a definite value. **In essence, no new value is written; instead, a value is selected from those that were potentially available**—a process analogous to quantum measurement.
+4. In Phase 2 of Paxos, once a value is read from a majority, the Proposer essentially abandons its own write; it degenerates into a pure observation action with a side effect: the state at the current time point on the primary timeline collapses from “maybe set (consensus achieved) or maybe not” to a definitive “has a value.” In essence, no new value is written; we choose one from the current possible values—consistent with the role of observation in quantum mechanics.
+   
+   $$
+   |X\rangle + |0\rangle \longrightarrow |X\rangle
+   $$
+
+5. If Phase 2 succeeds, Paxos completes an atomic read+write after time freezing.
+
+> A Schrödinger cat state means the system is in a quantum superposition: if you don’t observe it, the cat is neither dead nor alive—a superposition of both possibilities. Upon observation, the system collapses to either dead or alive.
+
+Returning to the example above, there is a subtle case. At t1 only two P1 are set—no consensus. At t2, only two P2—no consensus. But at t3, the majority will certainly see P1 or P2, so in fact P3 can only be P1 or P2 and not an arbitrary value. If the majority responses are all empty, we can safely determine that no consensus has been reached. If there are values, for safety, Paxos rules require choosing from existing values. If we explicitly receive five responses for the previous moment and know that consensus has not been reached, then not following Paxos’s selection and choosing another value won’t cause a conflict. Paxos’s choice is not strictly necessary, but it is simpler and can accelerate convergence to some extent.
+
+For example: at t3, five nodes return values 1, 2, 3, 4, 5. According to Paxos, we may only return one of these five values, and it must be the one with the largest Proposal ID. Now suppose we ignore Paxos rules and return 6—would that cause a contradiction? If you learned Paxos in the traditional way, this deviation from the original analysis would confuse you. But with the time-freeze magic + primary timeline imagery, the answer is easy: it won’t cause a contradiction. Values are updated on each time point via time-freezing, so they are isolated and executed in order. A primary time point’s value may be “not written” (if three nodes return “not written,” it’s certainly not written), “unknown whether written” (but known that an attempt was made), or “written” (three nodes return the same value for the same time point), and the conversion between these three is one-way. Only the “written” state affects correctness—writing a different value after a write causes a conflict. But if we know it’s “not written,” there’s no conflict.
+
+### When is consensus reached?
+
+When consensus is determined, do participants in the system instantly realize it has been achieved? Interestingly, the instant consensus is reached, no participants—Acceptors nor Proposers—know that consensus has been reached! However, over time, the algorithm’s execution gradually reveals the fact that consensus has been reached.
+
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_consensus.png)
+
+First, note that before consensus is reached, an Acceptor may change the value it has accepted—for example, A3 first accepted P2, then accepted P3. Because a Proposer may become unreachable at any time, Acceptors can only choose to accept newer values. Therefore, when A3 accepts P3, it cannot know that consensus has been reached and that P3 is the final chosen value. By the same token, A2 and A4 only know their local states and cannot judge whether the system as a whole has reached consensus. On the Proposer side, it cannot know whether P3 will be accepted by a majority or become the final consensus until it has received successful responses from a majority of Acceptors. Consensus belongs to the whole; a single participant needs a process of understanding whether consensus has been reached. This is the key to the Learner role. The Learner first recognizes that consensus has been reached and then disseminates this information, avoiding the need for each participant to independently collect and reason.
+
+There’s another interesting detail. At t2, if the Phase 1 majority responses came from A3, A4, A5, we can propose any value P2 (if A1 and A2 were in the majority, then per Paxos rules P2 must equal P1). However, writing to the majority does not require writing to A3, A4, A5; we may choose any majority. Thus we can write P2 (different from P1) to A1. (Being able to write at t implicitly means no changes occurred after t.) To emphasize this, Lamport wrote: “This need not be the same set of acceptors that responded to the initial requests.” Without the primary timeline imagery, it’s easy to get confused about this point.
+
+## V. Leader-based: Copy and paste
+
+Casting ninth-level magic consumes immense magical power. A thrifty, socialist-value-aligned god would never waste magic. Once time is frozen, to maintain consistent behavior of nodes across locations, the god’s best choice is to cast an eighth-level magic “Grand Puppetry,” replicating a leader node’s behavior to all other nodes.
+
+This replication originates from divine power. Once the leader initiates a new action, it traverses mountains and seas, ignores physical barriers, and directly descends upon remote followers. Followers have no right to object—only the freedom to execute. However, as the saying goes: “The top moves mouth; the bottom runs legs.” In our low-magic world, implementing Grand Puppetry is not easy and typically done by adding a log file at the sender and the receiver.
+
+The sender writes decisions into the log, making them immutable oracles. The sending component scans the log and ensures it is delivered to the remote side entry by entry. If the receiver cannot be reached, or sending fails, or the expected response is not received, the sender cannot complain or give up; it must work hard and keep retrying until a successful response is received. This guarantees at least once delivery. The receiver must unconditionally accept all messages, neither refusing nor tampering. Because duplicate messages may arrive, it must perform idempotence checks via local logs, filtering duplicates and achieving at most once processing. If messages need to be relayed through a streaming system, to avoid replaying from the source each time, intermediate nodes must record results via a snapshot mechanism.
+
+> End-to-end exactly-once = at-least-once at the initiator + at-most-once at the processor
+
+Without doubt, MultiPaxos and Raft implement this replication strategy. Once a leader is elected, the Term number representing the tenure can be reused multiple times. Multiple commands can be issued under the same Term, as long as they are distinguished by log index.
+
+If we analyze carefully, messages received over the network fall into two categories: a Request, for which the receiver can freely choose processing and the result is uncertain (it may succeed or throw an exception), and a Notice, whose handling is fixed and the receiver cannot object.
+
+A good example is Two-Phase Commit (2PC). In Prepare, the Participant receives a request message and may choose to commit or roll back according to its own will. Once the Participant returns its possible choice to the Coordinator, it surrenders its autonomy to the Coordinator, promising to accept only notice messages thereafter and to keep its behavior aligned with the Coordinator. If the Coordinator decides to commit, the Participant never chooses rollback. Similarly, if the Participant rolls back, we know the Coordinator can only roll back. Their choices are no longer made independently; they are entangled.
+
+### 2PC and quantum entanglement
+
+2PC can be seen as the Coordinator providing a source of consistency, with Participants gradually becoming entangled with the Coordinator. Paxos gradually builds a Quorum, with participants in the Quorum entangled together.
+
+Before 2PC runs, each Participant can independently choose success or failure; outcomes are random. After Phase 1, if you observe each Participant individually, it still could succeed or fail—outcomes remain random. But if you observe the entire state space, you find the feasible states shrink—only part of the entangled states remain.
 
 $$
-|X\rangle + |0\rangle \longrightarrow |X\rangle
+
+|success, success\rangle + |failure, failure\rangle
 $$
 
+On quantum entangled states, here is an introduction returned by Zhipu Qingyan AI:
 
-The second phase of the Paxos algorithm performs a non-blocking read and write operation atomically once it successfully completes.
+Quantum entangled states are a special, non-classical phenomenon in quantum mechanics, describing a strong correlation between two or more particles. Even if these particles are separated extremely far, their states can instantly affect each other.
 
-> Schrödinger's cat state represents a quantum superposition where the system is in a state of death or alive simultaneously, but not yet observed. Until an observer measures it, the system remains in a state of uncertainty. Upon measurement, the system collapses to either a dead or alive state, and this fact becomes known.
-
-Returning to our earlier example, there's a subtle situation here. At time t1, only two instances of P1 were set, but consensus wasn't reached. At time t2, similarly, only two instances of P2 were set, but no consensus was reached. However, at time t3, in the majority view, either P1 or P2 will be observed, so P3 can only be either P1 or P2 and cannot be any arbitrary value. In the majority view, if all responses are empty, it's safe to conclude that consensus hasn't been achieved yet. If there are already values present, for safety reasons, according to Paxos' rules, the algorithm will select one of these existing values. **Even if we don't follow Paxos' selection rule and directly choose a different value, no conflict will arise**. While Paxos' selection isn't strictly necessary, it's simpler and can help speed up the convergence of the algorithm.
-
-For example, suppose at time t3, all five nodes return values 1, 2, 3, 4, and 5. According to Paxos' rules, we must return one of these values, specifically the one with the largest ProposalID. The question arises: what happens if we choose value 6 instead? If you're following a traditional learning of the Paxos algorithm, this will leave you confused because it deviates from the original analysis. However, using the concept of frozen time and the main timeline, the answer becomes clear: no conflict will arise. Each write operation on the main timeline is performed in isolation, meaning they occur sequentially. The value at a particular point in time can be:
-
-- Not written (if three nodes return empty for that time point),
-- Unknown but previously attempted to be written (if it was ever written before),
-- Written (if all three nodes returned the same value for that time point).
-
-These states are unidirectional, meaning they transition in only one direction. The only state that affects the correctness of the algorithm is the "written" state. Once a value is written, any subsequent writes to other values would cause conflicts. However, if we explicitly know that no write has occurred, we can safely conclude that consensus hasn't been achieved yet.
-
-
-### When Consensus Is Reached?
-
-When consensus is reached, does every participant in the system immediately realize that consensus has been achieved? Interestingly, at the exact moment when consensus is reached, **no one, including the Acceptor and Proposer nodes, knows that consensus has been achieved**. However, over time, the algorithm's operation will **gradually reveal this fact to all participants**.
-
-![Paxos Consensus Image](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_consensus.png)
-
-Firstly, we note that before consensus is reached, **Acceptors can change their accepted values**, such as A3 accepting P2 and then accepting P3. This is because the Proposer may become disconnected at any time, so Acceptors must be able to accept new values. When A3 accepts P3, it cannot know whether consensus has been achieved; P3 will become the final chosen value. The same logic applies to A2 and A4, which only know their local situations and cannot determine if the entire system has reached consensus. From the Proposer's perspective, before receiving majority acceptance for its proposal, it also doesn't know if its submitted P3 will be accepted by the majority as the final consensus.
-
-Therefore, **consensus belongs to the system as a whole**, and individual participants need a process to understand whether it has been achieved. This is where the Learner (Learner) role comes into play. The learner first identifies that consensus has been reached and then propagates this information, avoiding the need for each participant to independently collect and reason about information.
-
-There's also an interesting detail here: at time t2, if the majority response comes from A3, A4, and A5, we can propose any value P2 (if the majority includes A1 and A2, then P2 must equal P1 according to Paxos' rules). However, when writing into the majority, it doesn't require writing into A3, A4, or A5; instead, it allows choosing any one of them. This means we can write a different value P2 into A1 (implying no changes occur after that time). To emphasize this point, Lamport explicitly states in his paper: "This need not be the same set of acceptors that responded to the initial requests."
-
-If you haven't established the timeline image, this is an easy point to confuse.
-
-
-## Five. Leader Based: Copy and Paste
-
-Once time has been frozen, it's wasteful to spend divine power on such unnecessary behavior. A deity with socialist core values and a commitment to frugality wouldn't engage in wanton misuse of divine power. Therefore, once time is frozen, the best course of action for maintaining consistent behavior across dispersed nodes is to use an eight-level magic called "Big Puppeteering," which copies the behavior of one node (referred to as the Leader) onto all other nodes.
-
-### Two-Phase Commit (2PC) and Quantum Entanglement
-
-Two-Phase Commit (2PC) can be viewed as a consistency source provided by the Coordinator, with each Participant gradually becoming entangled with the Coordinator. On the other hand, Paxos establishes a Quorum incrementally, where participants become entangled within the Quorum.
-
-Before 2PC runs, each Participant can independently choose to succeed or fail, meaning the outcome is random. After the first phase completes, if we examine each Participant individually, it can still either succeed or fail, and the outcome remains random. However, when examining the entire state space, only certain entangled states survive.
-
-$$
-|成功, 成功\rangle + |失败, 失败\rangle
-$$
-
-Regarding quantum entanglement states, here's an introduction from IQ:
-
-Quantum entanglement is one of the most special and non-classical phenomena in quantum mechanics. It describes a situation where two or more particles exhibit strong correlations, even when separated by large distances, with their states influencing each other instantaneously.
-
-Consider two particles, A and B, prepared in a special quantum state, such as a Bell state. One common Bell state example is:
+Suppose we have two particles A and B prepared in a special quantum state—an entangled state. A simple example is one of the Bell states:
 
 $$
 \frac{1}{\sqrt{2}} (|00\rangle + |11\rangle)
 $$
 
-In this state, "0" and "1" represent the possible quantum properties of each particle (e.g., spin direction), while $|00\rangle$ denotes particle A in state "0" and particle B in state "0", and $|11\rangle$ denotes particle A in state "1" and particle B in state "1".
+Here “0” and “1” represent two possible states of a quantum property (e.g., spin direction), and $|00\rangle$ means particle A is in state “0” and particle B is in state “0,” while $|11\rangle$ means A and B are both in “1.”
 
-#### Behavior of Entangled Particles
+#### Behavior of entangled particles
 
-When particles A and B are in the above entangled state:
+When A and B are in the above entangled state, regardless of how far apart they are, the following happens:
 
-- **Consistency Check**: If we measure particle A's state and find it to be "0", particle B's state will immediately collapse to "0", regardless of the distance between them. Conversely, if we measure particle B and find it to be "1", particle A's state will immediately collapse to "1". This immediate state correlation is a key feature of quantum entanglement.
+- Measurement consistency: Suppose we measure A’s state and find it is “0.” Because A and B are entangled, B’s state instantly becomes “0,” even if far away. If we measure B and find “1,” then A’s state instantly becomes “1.” This immediate correlation is a key feature of entanglement.
+- Randomness: In the entangled state, when we measure A or B, we cannot predict whether we will get “0” or “1,” since the entangled state is a superposition of these outcomes. However, once we measure one, the other’s state becomes determined and correlated with the first measurement.
+- Non-locality: Quantum entanglement exhibits non-locality, meaning A’s state can instantly influence B’s state without any signal traveling between them. This violates classical physics’ local realism, which says physical effects cannot be transmitted instantaneously.
 
-- **Randomness**: In the entangled state, when measuring particle A or B, we cannot predict whether we will obtain "0" or "1" specifically because the entangled state is a superposition of these two outcomes. However, once we measure one particle, the state of the other particle will immediately be determined and correlated with the result of the first measurement.
-- **Non-Locality**: Quantum entanglement exhibits non-locality, meaning that the state of particle A can instantaneously influence the state of particle B without any signal being transmitted between them. This contradicts the local realism of classical physics, which states that physical effects cannot propagate instantaneously.
+===========Zhipu Qingyan AI creation completed========
 
-===========智谱清言AI创作完毕========
+### The most fundamental difficulty in distributed systems: Not knowing
 
-### The Most Fundamental Challenge: Uncertainty
+In mortal eyes, the world is full of annoying uncertainty. Every action has three possible outcomes: 1) success, 2) failure, 3) unknown. Once upon a time, isolated single-machine systems offered a utopia—binary worlds of good and bad, success and failure, light and darkness. But the real world sobers us: in a world ruled by contingency, inherent uncertainty creates the essential difficulty of distributed systems.
 
-In the eyes of ordinary people, this world is filled with uncertainties that cause frustration and anxiety, as every action leads to three possible outcomes: **1. Success, 2. Failure, 3. Uncertainty about the outcome**. Once upon a time, isolated single-machine systems provided an illusion of utopia, making the world a binary place of good and evil, success and failure, light and darkness. However, the real world awakens us from this illusion. In a world dominated by chance, the inherent uncertainty creates the fundamental challenges of distributed systems.
+When the outcome of an action is unknown, what can we do? The answer: we can only wait for feedback—either passively wait for the executing entity to return a result or actively probe and wait for the outcome. For example, to determine whether a data export task successfully produced an output file, the only method is to check whether the file exists and the data is complete after executing the generation task. If probing fails, we can only retry repeatedly.
 
-When the outcome of an action is unknown, what can we do? The answer is that we must wait for feedback. This could mean either passive waiting for the entity responsible for executing the action to return its result or active exploration to determine the execution outcome. For example, after completing a data generation task, the only way to verify whether the derived file has been successfully generated and is complete is to check for its existence and integrity after the task has been executed. If an exploration fails, what then? We must simply repeat the attempt.
-
-## Six. Variants of the Paxos Algorithm
+## VI. Variants of Paxos
 
 See [SoK: A Generalized Multi-Leader State Machine Replication Tutorial](https://escholarship.org/uc/item/9w79h2jg)
 
 ### Fast Paxos
 
-If you are certain that you are the first to propose a value, you can safely skip the first phase and proceed directly to the second phase for submission. Fast Paxos uses rnd=0 to attempt writing in phase 2 once but requires the quorum size to be `n*3/4`.
+If you are very confident you’re the first to propose a value, you can safely skip Phase 1 and go straight to Phase 2 commit. Fast Paxos uses rnd=0 to immediately attempt a Phase 2 write, but requires the quorum size to be `n*3/4`.
 
-> In the first round, the Proposer skips the Leader and connects directly with Acceptors to attempt writing.
-**To have a value quickly submitted, it must receive majority approval from most members and also meet the requirement of a majority of majorities to ensure safe submission.**
+> In round one, Proposers bypass the Leader and connect directly to Acceptors, attempting to write.
 
-At time t=0, there may be multiple parallel Proposers attempting to write. If the first round fails, the second round begins using the standard Paxos algorithm. However, at t=0, if multiple values have been written, we cannot select the value corresponding to the maximum timestamp from Acceptors as in normal Paxos because t=0 may have multiple values. Fortunately, we can still safely choose the majority-picked value because if fast round successfully wrote into `n*3/4`, then the majority of majorities will have agreed on a shared value.
+If a value wants to be committed quickly, it must not only be recognized by a majority, but also by the majority of the majority to be safely committed.
+
+At `t=0` multiple Proposers may run concurrently and attempt to write multiple values. If round one fails, round two uses normal Paxos. But at the start of round two, we cannot, as in normal Paxos, choose the value of the largest time because at `t=0` there might be multiple values. Fortunately, we can still choose the value of the majority of the majority. If the fast round wrote `n*3/4`, then the majority-of-majority’s value must be the consensus value.
 
 $$
-\left\lfloor \frac{n}{2} \right\rfloor = \left\lfloor \frac{n}{4} \right\rfloor + \left\lfloor \frac{n}{4} \right\rfloor
+[\frac n 2] = (\frac n 4) + [\frac n 4]
 $$
 
-> At most, less than 1/4 of the values differ from the consensus value. Therefore, among the majority (more than half), there must be more than 1/4 values that match the consensus value.
+> If at most less than 1/4 of values differ from consensus, then in the majority (1/2+), more than 1/4 of values must be the consensus value.
 
-Of course, it's also possible that rnd=0 failed to write into the quorum. In such cases, selecting the majority-picked value is still a safe choice. If no majority-picked value exists, we can freely choose any value as long as it hasn't been reached yet.
+Of course, the rnd=0 phase may have failed to write a fast quorum; choosing a majority-of-majority is still safe. If no majority-of-majority exists, consensus has definitely not been reached, and you may choose freely.
 
 ### Flexible Paxos
 
-To survive in an unpredictable world filled with uncertainty and chance, we must collaborate closely and form a collective consciousness that transcends individuality. While individuals may perish, the collective can perpetuate itself through metabolism. An interesting question arises: is the majority (Majority) the sole choice for forming collective consciousness? Clearly not. The propagation of consciousness only requires the existence of seeds.
+To strive for survival in a world of chance and uncertainty, we can only cooperate sincerely to form a collective consciousness that transcends the individual. Individuals can perish, while the collective achieves eternal life via metabolism. An interesting question is: is a Majority the only means to form collective consciousness? Clearly not. Spiritual inheritance only needs seeds to exist.
 
-Consider the example of a Grid Quorum:
+Consider a Grid Quorum example:
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_grid_quorum.png)
 
-In this example, with `3*6` Acceptors forming a Grid, we can define that **writing into any column** constitutes a quorum for reaching consensus. Obviously, any two columns are disjoint. To avoid making contradictory choices, we need to establish a bridge horizontally, requiring that in the first phase of Paxos, at least one row must be read. If consensus has already been reached at some moment, the next consensus will necessarily go through one row read followed by a column write. Since any row and any column are intersecting, reading a row will inevitably capture the consensus value, ensuring that the new write is consistent with the previous consensus. Note that in this example, neither the row quorum nor the intersecting column quorum constitutes a majority, and their total element count is 3+6-1=8, which also does not form a majority. Therefore, the quorum used for reading and writing does not need to be identical or occupy a majority; as long as they are intersecting, they can adequately transmit information.
+For the `3*6` Acceptors composing this grid, we can stipulate that writing any single column’s quorum suffices to achieve consensus. Clearly, any two columns are disjoint. To avoid contradictions, we must build a horizontal bridge: require Phase 1 reads to read at least one row. Suppose a consensus has emerged at some time; then the next consensus must read a row and then write a column. Because any row and any column intersect, a row read must see the consensus value; thus the newly written value must remain consistent with the previous consensus. Note that the row quorum and the intersecting column quorum in this example do not reach a majority, and their total size is 3+6-1=8, still not a majority. So the read and write quorums need not be identical nor be a majority; as long as they intersect, information can be transmitted.
 
-Flexible Paxos indicates that the first stage and second stage quorums must intersect, but quorums within the same phase do not need to intersect. This means any system with such properties can be used, not just those relying on majority-based quorums. **The combination of the first stage (read) and the second stage (write) forms an atomic operation in a time-stopped process (with a fixed logical time), so it is sufficient for the results of the first stage Quorum and the second stage Quorum to be mutually exclusive**, ensuring that the timestamps on the two primary timelines do not overlap, and subsequent timestamps can observe the values from previous timestamps.
+Flexible Paxos points out that Phase 1 and Phase 2 quorums must intersect, but quorums within the same phase need not intersect. This means any quorum system with this property can be used, not just majority quorums. Phase 1 (read) + Phase 2 (write) is an atomic operation during time freezing (logical time fixed), so only the results of Phase 1 Quorum + Phase 2 Quorum need be mutually exclusive. Then two time points on the primary timeline won’t overlap, and a later time point can see the value at an earlier one.
 
-Define $Q_{2c}$ as the collection of quorums used in the second phase of the classical Paxos algorithm:
-
-$$
-\forall Q \in Q_1, \forall Q' \in Q_{2c}: Q \cap Q' \ne \emptyset
-$$
-
-> The original requirement of Paxos is that all used Quorums must intersect.
-
-Flexible Paxos improves performance. For example, in the upcoming section on Multi-Paxos, its first phase has a significantly lower execution frequency compared to the second phase, allowing us to minimize the size of the second phase Quorum as much as possible.
-
-If applied to Fast Paxos, we also need to consider the Quorum requirements for the fast round stage:
+Define $Q_{2c}$ as the set of Phase 2 quorums in classic Paxos:
 
 $$
-\forall Q \in Q_1, \forall Q', Q'' \in Q_{2f}: Q \cap Q' \cap Q'' \ne \emptyset
+\forall Q\in Q_1,\forall Q' \in Q_{2c}: Q\cap Q' \ne \emptyset
 $$
 
-The condition $Q \cap Q' \cap Q'' \ne \emptyset$ helps avoid situations where $Q \cap Q'$ selects a value X and $Q \cap Q''$ selects a value Y, leading to conflicts.
+> Original Paxos requires all quorums used to intersect.
 
-When converted into inequalities regarding the number of members in each Quorum:
+Flexible Paxos helps performance. For example, in Multi-Paxos, Phase 1 runs far less often than Phase 2, so we can minimize Phase 2’s quorum size.
 
-$$
-q_1 + q_{2c} > n \\
-q_1 + 2q_{2f} > 2n
-$$
-
-The overlapping elements between two $Q_{2f}$ Quorums is $2q_{2f} - n$, and the condition for intersection with Q₁ is:
+If applied to Fast Paxos, we must also consider the fast round quorum requirement:
 
 $$
-q_1 + (2q_{2f} - n) > n
+\forall Q\in Q_1, \forall Q',Q''\in Q_{2f} : Q\cap Q'\cap Q'' \ne \emptyset
 $$
 
+$Q\cap Q' \cap Q''$ being non-empty excludes the conflict where $Q\cap Q'$ selects X and $Q\cap Q''$ selects Y.
 
-### Quorum Does Not Need to Be a Majority
-A Quorum's requirement is that any two Quorums must intersect. For example, all Quorums could include a specific element 'a', making it a valid Quorum without fault-tolerance requirements: {{a, d}, {a, b}, {a, c}}.
-
-Additionally, we note that $A \cap B \ne \emptyset$ and $A \not\subseteq B$ imply that the intersection of their complements is also non-empty:
+Translating to inequalities over quorum sizes:
 
 $$
-A \cap B \ne \emptyset \implies A \cap \overline{B} \ne \emptyset
+q_1 + q_{2c} \gt n\\
+q_1 + 2q_{2f} \gt 2n
 $$
 
-This means that for any set of Quorums, if you choose one $Q_j$, its complement will intersect with all other Quorums. In other words, a group of Quorums where any two have non-empty intersections inherently satisfies the condition that their complements also have non-empty intersections.
+Two $Q_{2f}$ overlap in $2q_{2f}-n$ elements; the condition that this overlap intersects $Q_1$ is:
 
+$$
+q_1 + (2q_{2f} -n) > n
+$$
 
-### Handling Even-Numbered Node Clusters
-Typically, clusters have an odd number of nodes, such as 5. However, if the total number of nodes is even (e.g., 4), the system may face issues during network partitions. For instance, consider a cluster with four nodes: a and b in Data Center 1, and c and d in Data Center 2. The majority Quorum requires at least three nodes. If both Data Centers experience a partition, each will have only two nodes, failing to meet the majority requirement and causing the Paxos algorithm to halt.
+### Quorums need not be majorities
 
-One solution is to expand the Quorum set by including additional Quorums, such as {a, b}, {b, c}, and {a, c} (effectively maximizing the Quorum collection to ensure Paxos can run as long as at least one Quorum remains valid). Originally, the majority Quorum for a 4-node cluster is {a, b, c}, {b, c, d}, {a, c, d}, and {a, b, d}. Since {a, b} overlaps with each of these, it can also be included in the Quorum set. By adding some non-majority-based Quorums, we can overcome the partition issue while maintaining Paxos functionality.
+The only requirement for a Quorum is: quorums must intersect. For example, requiring all quorums to include a designated element a is legal, though not fault tolerant: `{{a,d},{a,b},{a,c}}`.
 
-This is a general strategy for even-numbered node clusters and can be seen as expanding the Quorum collection to $Major(D) \cup Major(D \setminus \{d\})$, where 'd' is an arbitrarily chosen node. This approach uses the majority of the remaining odd-numbered nodes from the original cluster, ensuring that any partition will leave at least one valid Quorum.
+Also note: if $A \cap B \ne \emptyset$ and A is not contained in B, then the intersection of A with B’s complement is also non-empty, i.e., $A\cap \bar B \ne \emptyset$. This implies for a set of intersecting, mutually non-containing quorums:
 
-> For a cluster with 2n nodes, $Major(2n) = n + 1$, and for 2n - 1 nodes, $Major(2n - 1) = n$. Thus, $Major(2n) + Major(2n - 1) = 2n + 1$, which exceeds the total number of nodes (2n). Every Quorum in $Major(D)$ will intersect with every Quorum in $Major(D \setminus \{d\})$.
+$$
+Q_i \cap Q_j \ne \emptyset \Longrightarrow Q_i \cap \bar {Q_j} \ne \emptyset
+$$
 
+That is, in a set of quorums, if we pick any $Q_j$ and take its complement, that complement intersects every other quorum.
+
+### Even-numbered node clusters
+
+Typically, a cluster has an odd number of nodes (e.g., 5). If it has 4 nodes, network partitions can cause insufficient fault tolerance. Suppose the cluster’s nodes {a,b} are in datacenter 1 and {c,d} are in datacenter 2. A majority requires at least 3 nodes. If the two datacenters partition, each side has only 2 nodes—not enough for a majority—so Paxos cannot proceed.
+
+One solution is to expand the quorum composition: add `{a,b},{b,c},{a,c}` into the quorum set (i.e., maximize the quorum set so Paxos can proceed by satisfying any one quorum; the more quorums available, the better). Originally, the 4-node majority quorums are `{a,b,c},{b,c,d},{a,c,d},{a,b,d}`. Clearly, `{a,b}` overlaps with each majority quorum, so it can be added to the quorum set. By adding some non-3-node quorums, we can overcome the network partition difficulty and still run Paxos during partitions.
+
+This is a general strategy for even-node clusters: the expanded quorum set is $Major(D)\cup Major(D \backslash \{d\})$—take the even-node majority quorums as the base, then remove any one node d (choose arbitrarily based on needs), consider the majority quorums over the remaining odd-node set, and merge results.
+
+> If the even-node count is 2n, then M(2n) = n+1, and M(2n-1) = n, so M(2n)+M(2n-1) = 2n+1, exceeding the total 2n. Every quorum in $Major(D)$ intersects every quorum in $Major(D \backslash \{d\})$.
 
 ### Multi-Paxos and Raft
 
-The unification of Raft and Paxos can be found in XP's article [Combining Paxos and Raft into a Single Protocol: abstract-paxos](https://zhuanlan.zhihu.com/p/488629044), while the translation of the Raft paper is available in [raft-zh_cn.md](https://github.com/maemual/raft-zh_cn/blob/master/raft-zh_cn.md).
+For a unifying view of Raft and Paxos, see xp’s article [Unifying Paxos and Raft into one protocol: abstract-paxos](https://zhuanlan.zhihu.com/p/488629044). For Raft’s paper translation, see [raft-zh_cn.md](https://github.com/maemual/raft-zh_cn/blob/master/raft-zh_cn.md)
 
-Paxos algorithm addresses the problem of single decision-making, i.e., how to achieve consensus on a single value in a distributed system. However, in practical applications, we always need to make consecutive decisions.
+Paxos solves a single-decision problem—how to agree on a single value in a distributed system. In practice, we need to make decisions continuously.
 
-Multi-Paxos is an application of the Paxos algorithm to the Replicated State Machine (RSM) problem. In RSM, each state change is logged as an entry. Multi-Paxos ensures that these log entries are consistent in order and value across all replicas. This is achieved by running the Paxos algorithm during the submission of each entry, meaning each log entry corresponds to a specific Paxos instance.
+Multi-Paxos applies Paxos to the Replicated State Machine problem. In RSM, each state change is recorded as a log entry. Multi-Paxos ensures that the order and values of these entries are consistent across replicas. This is achieved by running Paxos per-entry—i.e., each log entry corresponds to a Paxos instance.
 
-To ensure sequential submission of log entries, Multi-Paxos introduces an incremental `logIndex` and enforces that `logIndex` must be consecutive (no gaps, as this would make it difficult to determine if all valid log entries have been recorded). This implicitly links subsequent log entries together.
+To ensure in-order commit of log entries, Multi-Paxos assigns an increasing logIndex to each entry, requiring logIndex to be continuous with no holes (otherwise it’s hard to determine whether all valid entries exist). This implicitly correlates adjacent entries.
 
-Essentially, the Multi-Paxos algorithm supports a certain degree of parallel processing for multiple log entries. While the determination of each entry's value can be done out of order, their submission (allowing them to be applied to the state machine) must follow a strict sequence. For example, we can propose a log entry with `logIndex=100`, but this entry cannot be directly applied to the state machine until all entries from `logIndex=1` to `logIndex=99` have been determined. Therefore, the proposal of log entries can be done out of order, but their application must follow a strict sequence to ensure consistency and correctness in the state machine.
+Essentially, Multi-Paxos supports some parallelism across multiple log entries. Determining each entry’s value can be out of order, but commit (applying to the state machine) must be strictly ordered. For example, we can determine the value for `logIndex=100` first, but that entry’s action cannot be applied to the state machine directly; only when entries for logIndex=1..99 are all determined can we apply from 1 onward. So proposals can be out of order while application must be strictly ordered.
 
-Multi-Paxos improves the performance of Paxos' continuous application by introducing the Leader role and state sharing. First, all proposals are handled by the Leader, reducing conflicts and simplifying interaction logic. Second, once a Promise is obtained, the Leader can reuse previous Proposal IDs (distinguished by `logIndex`) without reprocessing the first phase of Paxos, effectively increasing the number of log entries submitted during a single period of stability.
+Multi-Paxos optimizes the continuous application of Paxos by introducing a Leader role and state sharing. First, all proposals are handled by the leader, reducing conflicts and simplifying interactions. Second, once the leader has obtained a Promise, it can reuse the Proposal ID repeatedly (distinguished with logIndex), skipping Phase 1—equivalent to adding multiple log entries during a single time-freeze.
 
-Raft can be viewed as an improvement or complement to Multi-Paxos, addressing many technical details in Multi-Paxos with specific solutions while introducing additional restrictions. Below are key points from智谱清言AI's analysis of Raft compared to Multi-Paxos:
+Raft can be considered an improvement or supplement to Multi-Paxos. It provides clear solutions for many technical details that Multi-Paxos glosses over (but also introduces more constraints). Below are key points relative to Multi-Paxos returned by Zhipu Qingyan AI:
 
-1. **Clarity**: Raft provides clear solutions for many technical details in Multi-Paxos that were not well-defined. For example, Raft explicitly defines the process of copying log entries, the mechanism for leader election, and log consistency checks.
+1. Clarity: Raft provides explicit solutions for many technical details not clearly specified in Multi-Paxos—e.g., log replication, leader election mechanisms, log consistency checks.
+2. Understandability: Raft’s design goal includes improving understandability. It reduces the number of states and simplifies state transitions.
+3. Restrictions: While Raft simplifies things, it introduces constraints—e.g., requiring in-order commit of entries, whereas Multi-Paxos allows out-of-order proposal (even though application must still be ordered).
 
-2. **Understandability**: One of Raft's design goals is to improve the algorithm's understandability. It achieves this by reducing the number of states and simplifying state transition logic.
+Specific improvements and constraints:
 
-3. **Limitations**: While Raft simplifies the algorithm, it also introduces certain restrictions. For instance, Raft requires that log entries must be submitted in order, whereas Multi-Paxos allows log entries to be proposed out of sequence (though their application still needs to follow a strict sequence).
+- Leader election: Raft uses randomized timers to elect leaders, reducing conflicts and making the election process clearer.
+- Log replication: In Raft, the leader directly replicates log entries to followers, whereas Multi-Paxos may need to handle more out-of-order cases.
+- Safety: Raft includes mechanisms (e.g., pre-vote and log matching properties) to enhance safety.
+- Cluster membership changes: Raft provides explicit joint consensus for membership changes; Multi-Paxos usually needs extra logic.
 
-Below are specific improvements and limitations of Raft compared to Multi-Paxos:
+==========Zhipu Qingyan AI creation completed=========
 
-- **Leader Election**: Raft uses a random timer for leader election, which helps reduce election conflicts and makes the process more explicit.
-- **Log Replication**: Raft's log replication is straightforward, with the Leader directly copying log entries to followers. In contrast, Multi-Paxos may require handling more out-of-order scenarios during log replication.
-- **Safety**: Raft enhances system safety through mechanisms such as pre-voting stages and log matching properties.
-- **Cluster Membership Changes**: Raft provides a clear mechanism for cluster membership changes (joint consensus), which typically requires additional logic in Multi-Paxos.
+Raft’s leader election uses local timers—effectively introducing comparable local time as new knowledge. Whereas Paxos only needs a logical clock induced by causality, Raft uses some form of physical clock. Note that time is our world’s intrinsic source of consistency; introducing a physical clock simplifies consistency handling. For example, Google’s TrueTime uses precisely timed atomic clocks—introducing a bounded-precision absolute clock—and simplifies distributed transactions.
 
-==========智谱清言AI完成了创作========
+Below is supplementary explanation from Zhipu Qingyan AI:
 
-Raft's leader election uses a local timer, effectively introducing a comparable local time, whereas the original Paxos algorithm only relies on causal ordering through logical clocks. Thus, Raft essentially uses a physical clock. It is important to note that time is our world's inherent source of consistency, and the introduction of a physical clock simplifies consistency handling. For example, Google's TrueTime technology uses precise atomic clock timing, which is akin to introducing an absolute clock with specific precision in the system, allowing for simplified distributed transaction handling.
+Physical vs logical clocks:
 
-Below are智谱清言AI补充的一些解释：
+- Physical clocks are based on real time, while logical clocks (e.g., Lamport clocks) capture event ordering without relying on real time.
+- Introducing physical clocks can simplify consistency because they provide a globally consistent time reference, allowing comparison of timestamps or intervals across nodes.
 
-**Physical Clocks vs. Logical Clocks**
+Google’s TrueTime:
 
-- A physical clock is based on actual time, while a logical clock (such as the Lamport clock) is used to capture the order of events and does not rely on actual physical time.
-- Introducing a physical clock simplifies consistency handling, as it provides a global reference time that allows timestamp comparison or interval length assessment across different nodes.
+- Spanner uses TrueTime, which combines atomic clocks and GPS clocks to provide very precise time. TrueTime offers a time interval ensuring bounded synchronization error across nodes.
+- TrueTime simplifies distributed transactions because it allows higher certainty in transaction timestamps, supporting external consistency (ordering consistent with global time).
 
-**Google's TrueTime Technology**:
+======Zhipu Qingyan AI creation completed=======
 
-- Google's Spanner database system utilizes the TrueTime technology, which combines atomic clocks and GPS clocks to deliver extremely precise timing services. TrueTime offers a timeframe to ensure bounded synchronization errors across different nodes.
-- The introduction of TrueTime simplifies distributed transaction handling by enabling higher determinism in timestamp ordering, thereby supporting external consistency (external consistency refers to the order of transactions matching their global timeline order).
+### Membership changes
 
-======智谱清言AI创作完毕=======
+See xp’s article [Pitfalls TiDB encountered in Raft membership changes](https://zhuanlan.zhihu.com/p/342319702)
 
-### Member Changes
+Raft’s original paper proposed single-step changes (one member at a time) and joint consensus (changing multiple members at once), advocating single-step changes. Later, problems were found and there were flaws in the original algorithm; ultimately, joint consensus became best practice both in theory and in practice.
 
-See xp's article [TiDB 在 Raft 成员变更上踩的坑](https://zhuanlan.zhihu.com/p/342319702)
-
-The original Raft paper proposed two methods: single-step changes (individual member changes) and Join Consensus (simultaneous multiple-member changes), advocating for single-step changes but later found to have issues. The Join Consensus algorithm became the best choice both theoretically and practically, despite vulnerabilities in the original Raft paper's algorithms.
-
-Considering a cluster C1 composed of members abc migrating to a cluster C2 composed of members def
+Consider migrating from cluster C1 (abc) to cluster C2 (def):
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/join-consensus.png)
 
-**In the Paxos algorithm series, we only need to consider events occurring on the global timeline, not micro-level details. This includes when a Leader changes, as the safety of the Paxos algorithm fundamentally relies on a specific time t where only one Quorum performs write operations (the mutual exclusivity of Quorums). The identity of the Leader initiating the write is irrelevant. The Paxos algorithm does not depend on leader election; a Leader's existence is merely an optimization for performance.
+In the Paxos family, we only need to consider what happens on the primary world’s timeline, ignoring micro-level details—this includes when the leader switches. Paxos’s safety essentially derives from the fact that at a designated moment t only one quorum performs writes (mutual exclusion of quorums). Whether the write is initiated by a leader is irrelevant. Paxos does not depend on leader election; the leader exists solely for performance optimization.
 
-Member changes essentially involve switching from C1's timeline to C2's timeline. At time t1 (C1's logical time), the cluster configuration is C1, and at time t2, we initiate the switch, effectively preparing to align the two timelines. Thus, t2 must be recorded in both C1 and C2 timelines, meaning that from t2 onwards, both timelines synchronize, with all events occurring simultaneously in C1's Quorum and C2's Quorum. Therefore, t2 is the commit time when Major(C1) and Major(C2) are submitted as cluster configurations. At time t3, we switch to C2 configuration, which takes effect from Major(C1) and Major(C2)'s successful writes in C2. After t3, only C2 remains active, allowing unused nodes in C1 to exit.
+Membership change is essentially switching from C1’s timeline to C2’s. At t1 (C1’s logical time), the cluster config is C1. At t2, we initiate the switch—aligning the two timelines: at t2 we must write the joint cluster config on both C1’s and C2’s timelines. From t2 onward, the two timelines are synchronized; anything must happen simultaneously on C1’s quorum and C2’s quorum. That means t2 is the commit moment where Major(C1) + Major(C2) contains the configuration. At t3, we switch to C2’s configuration—its effect begins when the C2 config is successfully written in Major(C1) and Major(C2). After t3, only C2 remains alive; unneeded nodes in C1 can exit.
 
-From t2 to t3, all proposals must be simultaneously approved by Major(C1) and Major(C2), effectively transitioning from a broader timeline to a finer one. Directly switching from C1's timeline to C2's is impossible due to overlapping Quorums at the intersection point, leading to potential split-brain scenarios. The interval between t2 and t3 ensures both timelines are glued together.
+From t2 to t3, all proposals must pass Major(C1) and Major(C2) simultaneously. We first switch to a coarser timeline, then to a finer one. Directly switching from C1’s timeline to C2’s can cause split brain if both have majorities at the crossover. We need the interval t2..t3 to glue the two timelines together.
 
-The Join Consensus algorithm becomes highly intuitive when examining the main timeline: a consistent Quorum exists only on the global timeline, with the joining phase requiring consensus in Major(C1) + Major(C2).
+From the primary timeline imagery, joint consensus is intuitive: the primary timeline exists only with quorum agreement. If timelines need to be glued, the gluing segment must achieve agreement on Major(C1)+Major(C2).
 
-### Ghost Replication Issue
+### Ghost reappearance
 
-See [How to solve "Ghost Replication" in distributed systems](https://www.infoq.cn/article/YH6UVyFLyN3oOOk1Ag7B), [Consensus Protocol: The Dilemma After Leader Election - Log Recovery and Ghost Replication](https://zhuanlan.zhihu.com/p/652849109)
+See [How to solve “ghost reappearance” in distributed systems](https://www.infoq.cn/article/YH6UVyFLyN3oOOk1Ag7B), [Consensus protocols: post-leader-switch predicament—log recovery and ghost reappearance](https://zhuanlan.zhihu.com/p/652849109)
 
-The Multi-Paxos protocol may encounter a so-called "Ghost Replication" issue, which occurs when unconfirmed logs from previous rounds reappear in subsequent operations, leading to inconsistencies or duplicate processing. This means that logs not confirmed by a majority during the previous Leader's term can later be confirmed by a new Leader, transitioning from an unknown state to a committed state.
+Multi-Paxos can encounter “ghost reappearance,” where logs not previously confirmed by a majority reappear in later operations, causing inconsistency or duplicate processing. That is, entries not committed under the previous leader may be committed by the next leader—transitioning from unknown to committed.
 
 ![](https://pic3.zhimg.com/80/v2-5035bf2fa2a2fdceabe67334d5517834_1440w.webp)
 
-Round 1: A is selected as Leader and writes logs 1-10. Logs 1-5 form a majority and are acknowledged by clients, while logs 6-10 receive no acknowledgment due to client timeouts.
-Round 2: A fails, B becomes Leader. B's largest log ID is 5, so it does not reconfirm logs 6-10 but starts writing new logs from 6 onwards. Clients querying at this stage will find logs 6-10 missing. Subsequent writes enter logs 6-20, with only logs 6 and 20 successfully persisted in the majority.
-Round 3, A is again selected as the Leader, allowing it to obtain the maximum logID of 20. This requires executing a reconfirmation for logs numbered from 7 to 20, which includes A's logs 7-10. Subsequent queries from the client will reveal that these 7-10 logs have reappeared like ghosts.
+Round 1: A is elected leader and writes logs 1–10. Logs 1–5 form a majority and are acknowledged to clients; clients time out on 6–10.
 
-To prevent this issue, the new Leader must first write a `StartWorking` log upon assuming leadership, initiating a new epoch and ignoring any incomplete work from previous epochs.
+Round 2: A crashes; B becomes leader. Since B and C’s largest logID is 5, B does not re-confirm 6–10 and writes new logs starting at 6. Clients cannot query 6–10 then. Logs 6–20 are written in round 2, but only 6 and 20 persist on a majority.
+
+Round 3: A is elected leader again. From the majority it sees max logID=20 and re-confirms logs 7–20, including A’s 7–10. Now clients querying see 7–10 reappear like ghosts.
+
+To avoid this, a new leader should first write a StartWorking log—a new epoch—and ignore all unfinished work from prior epochs.
 
 ## Generalized Paxos
 
-Refer to [SoK: A Generalized Multi-Leader State Machine Replication Tutorial](https://mwhittaker.github.io/publications/bipartisan_paxos.pdf)
+See [SoK: A Generalized Multi-Leader State Machine Replication Tutorial](https://mwhittaker.github.io/publications/bipartisan_paxos.pdf)
 
-Both Multi-Paxos and Raft algorithms assume a linear log where the entries form a total order (total ordering): any log entry that comes before another must be executed first. However, in practice, certain log entries may have their execution order reversed without causing conflicts, such as `a=1` and `b=2`, which are independent operations and can be executed in either order. Generalized Paxos addresses this by using dependency services to compute partial ordering relationships between log entries and constructing a conflict graph.
+Multi-Paxos and Raft consider linear logs: entries form a total order, where earlier entries must execute first. In reality, some entries’ execution order can be swapped, as long as there are no conflicts (e.g., read-after-write, write-after-read). For example, commands `a=1` and `b=2` are independent and can swap order. Generalized Paxos computes a partial order of dependencies between log entries using a dependency service, forming a conflict graph.
 
-> Partial Order (Partial Ordering) is a mathematical concept used to describe "part of an ordering" within a collection. In a partial order, certain elements can be compared, while others cannot be directly compared.
+> Partial order is a mathematical concept describing a “partial” ordering among elements of a set. In a partial order, some elements can be compared, others cannot.
 
-1. **Dependency Service**: This service is responsible for computing dependencies between log entries. These dependencies can be data dependencies (e.g., one operation writes to a data item that another operation reads) or control dependencies (e.g., certain operations must be executed in a specific order).
+1. Dependency service: This service computes dependencies between entries. Dependencies can be data (e.g., one operation writes a value that another reads) or control (e.g., specific sequence requirements).
 
-2. **Conflict Graph**: Based on these dependencies, a conflict graph is constructed where nodes represent log entries and edges represent dependency relationships. In this graph, if two nodes are not connected by a path, they can be considered interchangeable, meaning their execution order can be swapped.
+2. Conflict graph: Based on dependencies, build a graph whose nodes are log entries and edges represent dependencies. If there is no path between two nodes, they are considered swappable—their execution order can be reversed.
 
-Deployment configuration for Generalized Paxos:
+Generalized Paxos deployment:
 
-proposers: At least f+1 nodes
+proposers: at least f+1 nodes
 
-dependency service nodes: 2f + 1 nodes
+dependency service nodes: 2f+1 nodes
 
-acceptors: 2f+1 nodes
+acceptors: 2f+1
 
-replicas: At least f+1 nodes
+replicas: at least f+1
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/BPaxos.png)
 
-$deps(v_x)$ represents the set of dependencies computed by at least f+1 dependency service nodes.
+$deps(v_x)$ is the union of dependency sets returned by at least f+1 dependency service nodes.
 
-When the dependency service receives x and a conflicting y, it adds a node $v_y$ to the arrow pointing to $v_x$, where $v_x \in deps(v_y)$.
+If the dependency service receives x, then receives y conflicting with x, it adds an arrow from $v_y$ to $v_x$, and $v_x \in deps(v_y)$.
 
-The algorithm maintains two invariants during its execution:
+Two invariants are maintained:
 
-Consensus Invariant: For every vertex v, at most one value $(x, deps(v))$ can exist, meaning the value and its dependencies are submitted together.
+Consensus invariant: For each vertex v, at most one value `(x,deps(v))` can exist—i.e., submit the value together with its dependencies.
 
-Dependency Invariant: This formally describes the conflict relationships in the dependency graph. If x and y conflict, then either $v_i \in deps(v_y)$, or $v_y \in deps(v_x)$, or both must be satisfied.
+Dependency invariant: A formal description of conflicts in the dependency graph. If x and y conflict, then either $v_x \in deps(v_y)$ or $v_y\in deps(v_x)$ (or both).
 
 ![](https://picx.zhimg.com/80/v2-e367275aa567652df6bbc7d3ff79aab1_1440w.webp)
 
-Two conflicting operations can be initiated simultaneously, and the order in which their messages reach different dependency service nodes may differ, leading to potentially differing dependency relationships across service nodes. Even if the conflict graph maintained by the dependency services is acyclic, the replica's conflict graph may still contain cycles.
+Two conflicting operations may be initiated simultaneously; messages may arrive at different dependency service nodes in different orders, producing different dependencies across nodes. Even if the service’s conflict graph is acyclic, the replicas’ conflict graph can still have cycles.
 
-Once a log entry and its dependencies achieve consensus, each replica can apply a deterministic sorting algorithm to order the log entries. Since all replicas produce consistent ordering results, these entries can be applied in the same sequence to the state machine.
+Once a log item and its dependencies reach consensus, each replica uses a deterministic sorting algorithm to order log items. The sorted results are consistent across replicas, so they can be applied in the same order to the state machine.
 
-## Other Time-Related Technologies
+## VII. Other timeline techniques
 
-For mere mortals, time is a magical pre-existing entity. Our coordinating work essentially leverages the direction provided by time arrows. On this plane, Newton, the first of the greats, discovered that time splits causality, with cause on one side and effect on the other, leading to his famous Second Law:
+For mortals, time is a magical prior. It seems that all our coordination essentially exploits the direction provided by the arrow of time. In our plane, Sir Isaac Newton first discovered that time splits cause and effect—cause on the left, effect on the right—writing the immortal “Newton’s 2nd law”:
 
-> F = m * a, where force (F) is proportional to linear acceleration (a), cause (m) multiplied by effect.
+> F = m* a, cause = linear coefficient * effect
 
-Later, the unparalleled genius Albert Einstein broke free from centuries of thought constraints and first proposed that **time lines are not unique**!
+Later, the unparalleled genius Albert Einstein broke centuries of mental shackles by pointing out: the timeline is not unique!
 
-If time lines are not unique, how do we avoid getting lost? One approach is to **remember all time lines**, forming what is known as **Vector Clock (Vector Clock) technology**. Alternatively, if we choose to align all **time lines into a single one**, this becomes the **Paxos algorithm**.
-  We have other options? Imagine if we could completely break free from the chains of causality and freely navigate through timelines, neither caring about the past nor the future. What a breeze that would be! On one hand, cause; on the other, effect. Why not flip them? Essentially, this is because the system does not satisfy the exchange law. When you reverse left and right, you don't get the same result. Only in a world with high entropy can we not distinguish between left and right, nor past and future. There, we can truly wield **Level 10 Magic: Reverse Causality**. Ever heard of CRDT data structures?
+If the timeline is not unique, how do we avoid losing direction? One choice is to remember all timelines—this forms “vector clocks.” If we choose to align all timelines into a single one, that becomes the Paxos algorithm.
 
-### Vector Clock
+Do we have other choices? Imagine if we could completely free ourselves from the shackles of causality, traversing the timeline freely, with no past or future—how cool would that be. Cause on the left, effect on the right; why not invert them? Essentially, systems are non-commutative: swapping left-right does not yield the same result. Only in a high-magic world—no left/right, no front/back—can we cast true tenth-level magic: reversing causality. Consider CRDT data structures?
 
-Paxos essentially merges multiple local timelines into a coarse-grained timeline, while a vector clock simultaneously records multiple timelines, preserving the partial order dependency between causally related events.
+### Vector clocks
 
-In a vector clock, each node maintains a vector containing its own logic clock value and those of all other nodes. Below is an example provided by Zhiyu AI.
+Paxos fuses multiple local timelines into a single coarse timeline, while vector clocks record multiple timelines simultaneously, preserving partial-order causal dependencies.
+
+In a vector clock, each node maintains a vector with logical clock values for itself and all others. Below is an example from Zhipu Qingyan AI.
 
 ### Assumptions
 
 Assume a distributed system with three nodes: A, B, and C.
-    - The merge operations of CRDT must be commutative (order-independent) and idempotent (group-independent), which aligns with the properties of linear algebra operations.
-    - This means that regardless of the order in which merge operations are performed or how they are grouped, the final result will always be the same.
 
-    =====智谱清言AI创作完毕====
+### Initial state
 
-In the application of CRDT data structures, each edit is treated as a Delta. The key property of CRDT is that the combination operation for Deltas satisfies commutativity, ensuring that the collection of all Deltas, regardless of the order in which they are received or processed, results in a consistent final state.
+Each node’s vector clock starts as:
+
+- A: [0, 0, 0]
+
+- B: [0, 0, 0]
+
+- C: [0, 0, 0]
+  Each number in the vector represents the logical clock value of the corresponding node.
+  
+  ### Event sequence
+1. Event 1: A experiences an event, updating A’s clock:
+   
+   - A: [1, 0, 0]
+
+2. Event 2: A sends a message to B; upon receipt, B updates its clock:
+   
+   - B: [1, 1, 0] (A’s clock value does not change; B’s clock increases by 1)
+
+3. Event 3: B experiences an event, updating B’s clock:
+   
+   - B: [1, 2, 0]
+
+4. Event 4: B sends a message to C; upon receipt, C updates its clock:
+   
+   - C: [1, 2, 1] (A and B’s values obtained from B; C’s clock increases by 1)
+
+5. Event 5: C experiences an event, updating C’s clock:
+   
+   - C: [1, 2, 2]
+     
+     ### Analysis
+     
+     By comparing vector clocks:
+- Event 1 happened before Event 2, since A’s clock was already updated in Event 2.
+- Events 2 and 3 are concurrent? (Note: the original explains 2 and 3 both happen at B with B’s clock increasing in 3; typically 3 happens after 2 at B. If treated as concurrent events across nodes, concurrency analysis relies on vector comparisons.)
+- Event 4 happened before Event 5, since C’s clock increases after receiving B’s message.
+  This simple example shows how vector clocks record event order and causal relationships in distributed systems.
+
+======Zhipu Qingyan AI creation completed=====
+
+### CRDT data structures
+
+See [How to design CRDT algorithms](https://www.zxch3n.com/crdt-intro/design-crdt/)
+
+CRDT (Conflict-free Replicated Data Type) is a specially designed data type for achieving eventual consistency in distributed systems. CRDT’s core is allowing replicas to update independently without a central coordinator; when replicas eventually merge, the merge is conflict-free and ensures consistency. CRDT’s mathematical foundation is Semi-Lattice theory.
+
+Below are key relationships between CRDTs and Semi-Lattices, from Zhipu Qingyan AI:
+
+1. Partially Ordered Set (POS):
+   
+   - Mathematically, a POS is a set with a partial order satisfying reflexivity, antisymmetry, and transitivity.
+   - CRDT states form a POS, where the merge operation defines the partial order. If state A can become state B via merges, then A ≤ B.
+
+2. Lattice:
+   
+   - A lattice is a POS in which any two elements have a least upper bound (join) and a greatest lower bound (meet).
+   - In CRDTs, any two states can be merged to a new state, which is their join. The merge must be associative and commutative—consistent with lattice definitions.
+
+3. Joins and meets:
+   
+   - In CRDTs, the merge corresponds to the lattice’s join. For example, G-Counter merges by taking the per-position maximum across arrays—i.e., the join.
+   - CRDTs often don’t need meets because they are usually designed to change monotonically in one direction (e.g., counters only increase). If needed, meets can be defined by taking minima.
+
+4. Consistency guarantees:
+   
+   - Lattice theory provides CRDT consistency proofs. Since merges always produce the join, even if replicas undergo updates in different orders, merging yields the same final state.
+   - This is because lattice properties guarantee that, regardless of merge order, the final result is the same.
+
+5. Commutativity and associativity:
+   
+   - CRDT merges must be commutative and associative, matching lattice operation properties.
+   - This ensures the final result is invariant to merge order and grouping.
+   
+   =====Zhipu Qingyan AI creation completed====
+
+In applying CRDTs, if we regard each edit as a Delta, the key is that the Delta composition operation satisfies commutativity. Then as long as we collect all Deltas, regardless of arrival order or composition order, we obtain a consistent final result.
 
 ## Summary
 
-The magic image described in this paper is not merely an inspirational analogy but can be strictly defined at the mathematical level: local timelines → global timelines → global timeline's static point. This allows the description of magic images to be translated into a strict mathematical proof.
+The magical imagery presented is not merely a heuristic analogy. It can be formally defined at the mathematical level: local timelines -> primary world timeline -> time freezing on the primary timeline, translating the magical description into a rigorous proof.
 
-Below is a more rigorous formulation generated by智谱清言AI based on the text description and some hint information:
+Below is a more formal statement organized by Zhipu Qingyan AI based on this article and hints:
 
-1. **Definition and Properties of Logical Timestamps**:
+1. Definition and properties of logical timestamps:
    
-   - Each Acceptor maintains a logical timestamp t, which strictly increases throughout the execution of the algorithm.
-   - At any logical timestamp t, at most one event can be recorded, such as writing a specific value. Any attempt to record an event with an earlier timestamp (such as Promise and Accept messages) will be ignored to maintain the monotonic increase of the timestamp.
-   - The increasing nature of logical timestamps reflects changes in system state. No change indicates no important events have occurred, and each timestamp corresponds to a unique and important change in the system's state.
+   - Each Acceptor maintains a logical timestamp t that strictly monotonically increases throughout the algorithm.
+   - At any logical timestamp t, at most one event (e.g., writing a value) can be recorded. Any attempt to occur at earlier timestamps (Promise or Accept messages) is ignored to maintain monotonicity.
+   - Logical timestamp increments reflect system state changes. No change indicates no significant event; each timestamp corresponds to a unique, significant change.
 
-2. **Concept and Maintenance of the Global Timeline**:
+2. The concept and maintenance of the primary timeline:
    
-   - The global timeline is formed by aligning the logical timestamps of the majority of Acceptors, ensuring continuity and consistency.
-   - When a majority of Acceptors accept a Promise request, they update their local timestamps to the timestamp t provided in the request, creating a moment on the global timeline at time t.
-   - If all accepting Acceptors write the same value X at time t, then X is considered determined on the global timeline.
-   - If writes are inconsistent or only a minority of Acceptors have written, then time t is considered undecided. If a majority of Acceptors do not write, then time t is marked as unwritten.
-   - In a system with 2f+1 Acceptors, at most f Acceptors can fail, ensuring that the majority of Acceptors are always alive and share some common state, maintaining continuity of the global timeline. Each logical timestamp can record at most one determined value, provided the majority of Acceptors are still active. Once consensus is reached on a value, it will not be lost. Even if some Acceptors write values before failing, as long as the majority has written, their undetermined state does not affect the final determination of consensus on the global timeline. We focus on values that have been determined or may have been determined on the global timeline.
+   - The primary timeline is formed by aligning the logical timestamps of a majority of Acceptors, ensuring continuity and consistency.
+   - When a majority accepts a Promise request, they update local timestamps to the request’s t, achieving alignment and creating a moment t on the primary timeline.
+   - If a majority of Acceptors, at timestamp t, accept and write the same value X, the value X is determined on the primary timeline.
+   - If writes are inconsistent or some Acceptors don’t write, time t is in an uncertain state. If a majority did not write, time t is considered “not written.”
+   - In a system with 2f+1 Acceptors, at most f can fail. This ensures that at any moment, a majority is alive and intersects, maintaining the primary timeline’s continuity. Each logical timestamp records at most one determinate value; as long as a majority is alive, the value is not lost. If consensus wasn’t achieved at t, even if some Acceptors wrote and then failed, this uncertainty does not affect eventual consensus. We focus on values on the primary timeline that are determined or potentially determined.
 
-3. **Function and Handling of Promise Requests**：
+3. Role and handling of Promise requests:
    
-   - The Proposer sends a Promise request to the majority of Acceptors, carrying a logical timestamp t aimed at synchronizing their timelines.
-   - Upon receiving a Promise response, if it contains a value that has already reached consensus, the Proposer must adopt this value as its proposal to prevent an already determined consensus from being overturned. If the response contains a value that is not yet determined, the Proposer can choose any value as its proposal. In either case, adopting the maximum timestamp t corresponding to the response as the new proposal is always a safe choice.
+   - The Proposer attempts a proposal by sending Promise requests to a majority, carrying a logical timestamp t to unify timelines.
+   - Upon receiving Promise responses, if any response contains a consensus-reached value, the Proposer must adopt it to prevent overturning consensus. If the value isn’t yet consensus, the Proposer may choose any value. In any case, adopting the value corresponding to the largest timestamp t among responses is safe.
 
-4. **Sending Accept Requests and Logical Time Stabilization**：
+4. Accept requests and time freeze:
    
-   - After receiving responses from the majority of Promise requests, the Proposer sends an Accept request.
-   - If the majority of Acceptors accept the Accept request, it indicates that the logical timestamp t remains static during communication, ensuring the algorithm's consistency and correctness.
-   - Acceptors ignore Promise requests with timestamps less than or equal to the largest timestamp they have already accepted, ensuring the logical timestamp t increases monotonically.
-   - In cases of multiple Proposer competition, at most one Proposer can successfully write to the global timeline at any given logical timestamp t, preventing concurrency issues and ensuring operations are executed in sequence.
+   - After obtaining majority Promise responses, the Proposer sends Accept requests.
+   - If a majority accepts an Accept request, the logical timestamp t remained frozen throughout communication—ensuring consistency and correctness.
+   - Acceptors ignore Promise requests with t less than or equal to their max accepted t, ensuring t increases monotonically.
+   - With multiple competing Proposers, at most one can write successfully at any logical time t on the primary timeline, preventing concurrency issues and ensuring sequentiality.
 
-=======智谱清言AI创作完毕======
-Basic Image: Ensuring consistency through time freezing at a single write + analysis on the global timeline
+=======Zhipu Qingyan AI creation completed======   
+Basic imagery: ensure single-write consistency via time freezing + analyze on the primary timeline
 
-At any logical timestamp t, once a majority of Acceptors have accepted writes of the same value X, that value X is written to the global timeline, consensus is reached, and the algorithm can successfully terminate. Otherwise, the logical timestamp is incremented, and the process repeats. The micro conditions for successful writing on the global timeline are: freezing time t among the majority of Acceptors, followed by a write. If any other events occur during this frozen-to-write process, the write fails, and the process must be retried.
+For any logical time t, once a majority of Acceptors accept the same value X, a write of X appears on the primary timeline—consensus is reached—and the algorithm can end. Otherwise, keep increasing logical time and retry. The micro condition for a successful write on the primary timeline is: freeze time t on a majority of Acceptors, then write the value. If any other event happens during the micro freeze-to-write window, the write fails and you retry.
 
-To ensure that once consensus is reached, it will not be overturned, the global timeline requires read before write. If the previous timestamp has already written a value X, subsequent timestamps can only write X. Consensus cannot be overturned, meaning the timeline's development is monotonic: unwritten -> written (but undetermined) -> determined value. Therefore, checking the result at the latest timestamp t will provide the most up-to-date information.
-Analysis of the correctness of the Paxos algorithm only needs to consider what happens on the primary timeline, without needing to worry about whether a Leader exists, when the Leader changes, or whether the underlying Acceptors might fail randomly. Regardless of how fine-grained details change at a microscopic level, the macroscopic timeline yields deterministic and unique knowledge, much like how observing each individual molecule in the microscopic world may seem chaotic, but a large collection of molecules can lead to stable macroscopic phenomena such as temperature.
+To ensure consensus, once reached, cannot be overturned, the primary timeline must read-before-write. If the previous time point already wrote X, the subsequent time point must also write X. Irreversibility implies monotonic development on the timeline: not written -> written but value uncertain -> definite value. Therefore, we only need to inspect the latest time t to obtain the newest knowledge.
+
+Analyzing Paxos correctness requires considering only the primary timeline, not whether there’s a leader, when the leader switches, nor micro-level random failures of Acceptors. Regardless of micro details, knowledge obtained on the primary timeline is deterministic and unique. It’s like the chaotic motion of individual molecules at the micro level—yet the collective exhibits stable macro phenomena like temperature.
+<!-- SOURCE_MD5:0a9ae27ca650815a50e7723e35919a33-->

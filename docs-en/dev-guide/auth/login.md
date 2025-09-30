@@ -2,46 +2,76 @@
 
 ## External Public Links
 
-The login logic is defined in the `[auth-service.beans.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/main/resources/_vfs/nop/auth/beans/auth-service.beans.xml)` file, which contains `nopAuthHttpServerFilter` and `nopAuthFilterConfig`. The `AuthHttpServerFilter` handles all user login checks. If no login is detected, it returns a HTTP 401 error or redirects to the login page.
+In [auth-service.beans.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/main/resources/_vfs/nop/auth/beans/auth-service.beans.xml), nopAuthHttpServerFilter and nopAuthFilterConfig are defined. AuthHttpServerFilter is responsible for performing all user login checks; if it detects that the user is not logged in, it returns an HTTP 401 error or redirects to the login page.
 
 ## Public Links
 
-The `authFilter` uses the configurations from `AuthFilterConfig` to determine which paths are public.
+authFilter uses the configuration in AuthFilterConfig to determine which paths are public.
 
-By default, the following paths are opened:
+By default, the following paths are open:
 
-1. `/r/LoginApi_*` - Related to login
-2. `/q/health*` - Health check interfaces
-3. `/q/metrics*` - Internal metrics interfaces
+1. /r/LoginApi\_\* and other login-related endpoints
+2. /q/health\* and other health check endpoints
+3. /q/metrics\* and other internal metrics endpoints
 
-## Custom Login Logic
+```xml
+ <bean id="nopAuthFilterConfig" class="io.nop.auth.core.filter.AuthFilterConfig">
+        <!-- When unspecified, pages are public by default, mainly js/css/images, etc. -->
+        <property name="defaultPublic" value="true"/>
 
-There are two ways to customize the login logic:
+        <property name="publicPaths">
+            <list>
+                <value>/r/LoginApi_*</value>
+                <value>/q/health*</value>
+                <value>/q/metrics*</value>
+            </list>
+        </property>
 
-### 1. Customize `AuthHttpServerFilter`
+        <property name="authPaths">
+            <list>
+                <value>/graphql*</value>
+                <!-- REST requests -->
+                <value>/r/*</value>
+                <!-- Quarkus built-in management pages -->
+                <value>/q/*</value>
+                <!-- Return content with a specified contentType -->
+                <value>/p/*</value>
+                <!-- File upload/download -->
+                <value>/f/*</value>
+            </list>
+        </property>
+    </bean>
+```
 
-You can inherit from `AuthHttpServerFilter` and define a bean with the same ID (`nopAuthHttpServerFilter`). This will override the default authentication filter.
+## Customize Login Logic
+
+There are two ways to customize the login logic.
+
+### 1. Customize AuthHttpServerFilter
+
+If you need to customize the login logic, you can extend AuthHttpServerFilter, then define a bean with the id nopAuthHttpServerFilter to override the platform’s built-in authFilter.
 
 ```xml
 <bean id="nopAuthServerFilter" class="xxx.MyFilter" />
 ```
 
-> Note: The built-in `nopAuthServerFilter` has the property `ioc:default=true`. If another bean with the same ID is defined, it will automatically replace the default `authFilter`.
+> Because the built-in nopAuthServerFilter in the platform is marked with `ioc:default=true`, as long as another bean with the same name is found, it will automatically override the platform’s built-in authFilter.
 
-### 2. Customize `ILoginService`
+### 2. Customize ILoginService
 
-The `authFilter` uses the `ILoginService` interface for login verification. You can provide your own implementation of this interface to override the default login logic. This method is preferred if you need to handle cookie binding or other web-related logic, as it cannot be done directly with `AuthHttpServerFilter`.
+During actual login verification, authFilter uses the ILoginService interface. You can provide an implementation of ILoginService to override the system’s built-in login logic. Unlike AuthFilter, the Web environment is not accessible here, so logic involving Web environment handling can only be implemented by extending AuthHttpServerFilter (for example, modifying cookie-binding logic, etc.).
 
-To implement custom login logic using `ILoginService`, see [sso.md](sso.md).
+Currently, integration with Keycloak single sign-on is implemented by adding the OAuthLoginServiceImpl class; see [sso.md](sso.md).
 
-## Configuration Items
+## Configuration Options
 
-1. `nop.auth.login.use-dao-user-context-cache`  
-   Setting this to `true` enables `DaoUserContextCache`. This cache stores user context data in the `NopAuthSession` table, which is derived from `IUserContext`.
-
+1. nop.auth.login.use-dao-user-context-cache
+   When set to true, enables DaoUserContextCache, saving the information from IUserContext into the NopAuthSession table.
 
 2. nop.auth.access-token-expire-seconds
-   Access token expiration time, default to 30\*60, which is 30 minutes.
+   Access token expiration time in seconds; defaults to 30\*60, i.e., 30 minutes.
 
 3. nop.auth.refresh-token-expire-seconds
-   Refresh token expiration time, default to 300\*60, which is 5 hours.
+   Refresh token expiration time in seconds; defaults to 300\*60, i.e., 5 hours.
+
+<!-- SOURCE_MD5:525bacb5974244c2b0c11f735249725a-->

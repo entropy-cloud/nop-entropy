@@ -1,16 +1,21 @@
-# Microservices Framework
+# Microservice Framework
 
 ## Distributed RPC
-Integration with Nacos for distributed RPC. See [rpc.md](rpc.md).
+Integrate Nacos to implement distributed RPC, see [rpc.md](rpc.md)
 
-Explanation of the RPC framework's design principles. See [rpc-design.md](rpc-design.md)
+For the design principles of the RPC framework, see [rpc-design.md](rpc-design.md)
 
-## Filter
+## Filters
 
-The Nop platform provides a filter-based interception mechanism. The filter can be used to intercept and process requests before and after handling. For details on using filters, see [web-filter.md](web-filter.md).
+The Nop platform provides a filter-based interception mechanism that can intercept processing before and after request handling. For the usage of filters, see [web-filter.md](web-filter.md)
+
+## Authentication
+
+When invoking RPC services via HttpClient, you need to set the accessToken, see [rpc-auth.md](rpc-auth.md)
 
 ## Feign Integration
-Integration of NopRPC with Spring's Feign framework. See [feign.md](feign.md).
+Integrate NopRPC with Spring's Feign framework for combined use, see [feign.md](feign.md)
 
 ## gRPC Integration
-Easy configuration allows exposing NopGraphQL service functions as gRPC services. See [grpc.md](grpc.md)
+With simple configuration, you can expose service functions in NopGraphQL as gRPC services, see [grpc.md](grpc.md)
+<!-- SOURCE_MD5:7c2c48a11424d7e51561566218733269-->

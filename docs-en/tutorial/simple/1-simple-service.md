@@ -1,19 +1,16 @@
-# Introduction to Nop: Minimalist Service Layer Development
+# Getting Started with Nop: Minimalist Service Layer Development
 
-The backend services of the Nop platform utilize the NopGraphQL engine, which is designed with a more refined and generic approach compared to traditional Web frameworks like SpringMVC. It incorporates only **the minimal assumptions necessary on a mathematical level** and leverages a mechanism akin to automatic reasoning to achieve a level of composability and reusability that SpringMVC cannot attain.
+The backend services of the Nop platform are implemented using the NopGraphQL engine. Compared to traditional web frameworks like SpringMVC, its design is more concise and general, containing only mathematically minimal assumptions. Through an automatic reasoning mechanism akin to mathematics, it achieves a level of composability and reusability that SpringMVC cannot reach.
 
-The implementation principles of the NopGraphQL engine can be referenced in the following articles:
-- [Why is GraphQL strictly superior to REST from a mathematical perspective?](https://zhuanlan.zhihu.com/p/678597287)
-- [GraphQL engines in low-code platforms](https://zhuanlan.zhihu.com/p/589565334)
+For the implementation principles of the NopGraphQL engine, see: [Why is GraphQL strictly superior to REST in the mathematical sense?](https://zhuanlan.zhihu.com/p/678597287) and [GraphQL Engine in Low-Code Platforms](https://zhuanlan.zhihu.com/p/589565334)
 
-For further details, you can refer to the following video:
-- [Introduction to Nop and Spring Integration](https://www.bilibili.com/video/BV1EC4y1k7s2/)
+Tutorial video: https://www.bilibili.com/video/BV1EC4y1k7s2/
 
-The following section will guide you through integrating the Spring framework and implementing a simple backend service function.
+The following describes how to integrate the Spring framework and implement the simplest backend service function.
 
-## I. Integrating nop-spring-web-starter Dependency
+## I. Add the nop-spring-web-starter dependency
 
-Typically, you can set the parent pom of your project's pom file to the nop-entropy module, which will automatically include the default Maven configurations.
+Typically, you can set the parent of the pom file to the nop-entropy module to automatically inherit the default Maven configuration:
 
 ```xml
 <pom>
@@ -32,11 +29,11 @@ Typically, you can set the parent pom of your project's pom file to the nop-entr
 </pom>
 ```
 
-If you require ORM support, you will need to include the nop-spring-web-orm-starter dependency.
+If you need ORM support, include nop-spring-web-orm-starter.
 
-## II. Implementing BizModel
+## II. Implement BizModel
 
-In NopGraphQL, the BizModel class is analogous to the Controller in SpringMVC, with the distinction that it has fewer assumptions and is defined on a mathematical level for minimalization.
+In NopGraphQL, a BizModel is similar to a Controller in SpringMVC, but it makes fewer special assumptions—it's a mathematically minimal definition.
 
 ```java
 @BizModel("Demo")
@@ -56,24 +53,21 @@ public class DemoBizModel {
 }
 ```
 
-1. **Class-level Annotation**: Add the `@BizModel` annotation to specify the service object name.
-2. **Method-level Annotations**:
-   - Use `@BizQuery` for non-side-effecting query operations.
-   - Use `@BizMutation` for mutating operations, which will automatically initiate database transactions via NopGraphQL.
-3. **Parameter Annotation**: Use `@Name` to specify parameter names. If the parameter type is a JavaBean, Nop will automatically deserialize frontend parameters into the corresponding type.
+1. Add the `@BizModel` annotation to the class to specify the backend service object name.
+2. Use `@BizQuery` or `@BizMutation` on service functions to denote side-effect-free queries and side-effecting mutations, respectively. `@BizMutation` instructs the NopGraphQL engine to automatically open a database transaction, ensuring the service function executes within a transactional context.
+3. Use the `@Name` annotation to specify parameter names for service functions. If a parameter is a JavaBean type, the framework will automatically parse JSON to convert the frontend parameters into the corresponding type.
 
-Compared to SpringMVC's Controller:
-- **URL Generation**: URLs for services are automatically generated based on object name and method, following the format `/r/{bizObjName}__{bizMethod}`. Note that there are two underscores.
-- **HTTP Method Support**: `@BizQuery` supports both GET and POST methods, while `@BizMutation` only allows POST.
-- **Parameter Transmission**: GET parameters can be passed via URL, while POST allows both URL and JSON body transmission.
-- **Parameter Handling**: Parameters can be individually specified using `@Name`, or all incoming parameters can be wrapped into a `@RequestBean`.
-- **Return Value**: Service methods always return POJO objects serialized as JSON.
+Compared with SpringMVC Controllers, NopGraphQL automatically infers many things, greatly reducing system uncertainty:
 
+1. The frontend REST endpoint is inferred from the object name and method name without manual configuration, with the fixed format `/r/{bizObjName}__{bizMethod}`. Note there are two underscores.
+2. `@BizQuery` can be invoked via both GET and POST HTTP methods, whereas `@BizMutation` only allows POST.
+3. When using GET, parameters can be passed via the URL, e.g., `/r/Demo__hello?message=abc`. When using POST, parameters can be passed via the URL or via JSON in the HTTP body.
+4. You can specify frontend parameters one by one using `@Name`, or you can use `@RequestBean` to wrap all incoming parameters into a specified JavaBean type.
+5. Service functions always return POJO objects, encoded in JSON.
 
-  
-> If the parameter is optional, you can use `@io.nop.api.core.annotations.core.Optional` to mark it, otherwise, the framework will automatically validate that parameters are not empty.
+> If a parameter is optional, use the @io.nop.api.core.annotations.core.Optional annotation; otherwise, the framework will automatically validate that parameters are not null.
 
-Unlike Spring Boot, the Nop platform does not discover beans via class scanning, so you need to add an IOC configuration file in the module's beans directory.
+Unlike Spring Boot, the Nop platform does not discover beans via classpath scanning, so you must add IOC configuration files under the module’s beans directory.
 
 ```xml
 <!-- _vfs/nop/demo/beans/app-simple-demo.beans.xml -->
@@ -83,14 +77,14 @@ Unlike Spring Boot, the Nop platform does not discover beans via class scanning,
 </beans>
 ```
 
-There is an empty file `_module` in the `_vfs/nop/demo` directory, which indicates that `nop/demo` is a Nop module. The Nop platform will automatically load all modules' beans directories under files named `app-*.beans.xml`. Note that not all configuration files in the beans directory are loaded—only those with filenames prefixed by `app-` are automatically loaded.
+There is an empty file `_module` under the `_vfs/nop/demo` directory, indicating that `nop/demo` is a Nop module. When the Nop platform starts, it automatically loads beans XML configuration files under the beans directory of all modules that are prefixed with `app-`. Note that not every configuration file under the beans directory is loaded—only those beans.xml files whose names start with `app-` are automatically loaded.
 
-## 3. General Error Handling
+## III. Common Error Handling
 
-The results returned to the frontend by NopGraphQL are always of type `ApiResponse<T>`, but backend service functions do not need to manually wrap responses like SpringMVC does.
+NopGraphQL always returns an `ApiResponse<T>` object to the frontend, but backend service functions do not need to manually wrap results like in SpringMVC.
 
 ```java
-class ApiResponse<T> {
+class ApiResponse<T>{
     int status;
     String code;
     String msg;
@@ -98,12 +92,12 @@ class ApiResponse<T> {
 }
 ```
 
-* `status=0` indicates successful execution; non-zero values indicate failure.
-* On failure, errors are transmitted via the `code` field (error code) and `msg` field (localized error message).
-* On success, results are returned via the `data` field, which corresponds to the return value of backend service functions.
-* The standard response format defined by Nop matches the required format by the frontend AMIS framework.
+* `status=0` indicates success; non-zero indicates failure.
+* On failure, `code` carries the error code and `msg` carries the localized error message.
+* On success, `data` contains the result data—i.e., the return value of the backend service function.
+* This standard response format of the Nop platform matches the service response format expected by the AMIS frontend framework.
 
-To return error information to the frontend from the backend, simply throw an exception:
+When the backend needs to return error information to the frontend, simply throw an exception:
 
 ```java
 @BizModel("Demo")
@@ -117,54 +111,53 @@ public class DemoBizModel {
 
 @Locale("zh-CN")
 public interface DemoErrors {
-    String ARG_NAME = "name";
+   String ARG_NAME = "name";
 
-    ErrorCode ERR_DEMO_NOT_FOUND =
-            define("nop.err.demo.not-found", "指定数据不存在: {name}", ARG_NAME);
+   ErrorCode ERR_DEMO_NOT_FOUND =
+           define("nop.err.demo.not-found", "指定数据不存在: {name}", ARG_NAME);
 }
 ```
 
-For details on error code definitions and usage, refer to [error-code.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/error-code.md).
+For the definition and usage of error codes, see [error-code.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/error-code.md)
 
-## 4. Framework Neutrality
+## IV. Framework Neutrality
 
-SpringMVC, as a Web framework, inherently introduces dependencies on specific runtime environments when used, such as `HttpServletRequest` and `HttpServletResponse`. NopGraphQL emphasizes framework neutrality by encapsulating business logic without relying on any specific runtime environment. Even file downloads are handled via the `WebContentBean` POJO, rather than using `HttpServletResponse`.
+SpringMVC is essentially a web framework, and many users inadvertently introduce dependencies on a specific web runtime—for example, using HttpServletRequest and HttpServletResponse objects.
 
-NopGraphQL only uses a minimal set of HTTP endpoints like `/graphql` and `/r/{operationName}`, making it easy to run in any Web runtime environment, even with a simple custom HTTP server implemented using Netty. No complex Web standards are required. Currently, NopGraphQL integrates with Spring using SpringMVC for URL routing, while integrating with Quarkus uses JAXRS standard annotations.
+NopGraphQL emphasizes technical neutrality. It expresses only business logic and does not depend on any specific runtime. Even for file download functionality, results are returned via the WebContentBean POJO rather than using the output stream obtained from HttpServletResponse.
 
-Some may find GraphQL unfamiliar, and concerns about migrating the entire frontend to a GraphQL-based calling pattern may arise. The framework's emphasis on neutral information representation provides a perfect solution for this issue:
+NopGraphQL uses only a few HTTP endpoints such as `/graphql` and `/r/{operationName}`, making it easy to run in any web runtime environment—you can even implement a simple HttpServer with Netty without needing support for complex web standards. Currently, when integrated with the Spring framework, NopGraphQL uses SpringMVC for URL routing, while integration with Quarkus uses JAXRS standard annotations.
 
+Some may be unfamiliar with GraphQL and hesitant to migrate the entire frontend to the GraphQL invocation model. The concept of information-neutral expression emphasized by NopGraphQL provides a perfect solution: what we express in code should be technology-neutral business information, and based on this information the framework can automatically derive various technology-specific interface forms. At present, business functions implemented on NopGraphQL can be automatically published as REST services, GraphQL services, gRPC services, message queue services, batch services, etc. For example:
 
-We should express some technology-agnostic business information through code, and the framework can automatically infer various technical-related interface forms based on these technology-agnostic pieces of information. Currently, using the NopGraphQL framework to implement business functions allows automatic publication as REST services, GraphQL services, Grpc services, message queue services, batch processing services, etc.
-
-For example:
-
-1. We can call the `hello` method in the `DemoBizModel` class via the REST interface using `/r/Demo__hello?message=abc`.
-2. We can access the same service function via GraphQL with a query such as `query{ Demo__hello(message:'abc') }`.
-3. If the `nop-rpc-grpc` module is imported, the NopGraphQL engine will automatically generate the following proto service definition upon startup, allowing us to access this service function using gRPC:
-4. When calling a service function using `/r/{bizObjName}_{bizAction}`, the server's response type is fixed as ApiResponse. If you want to have the raw type returned directly without being wrapped in ApiResponse, you can use `/p/{bizObjName}_{bizAction}`.
+1. You can call the hello method in DemoBizModel via the REST interface `/r/Demo__hello?message=abc`.
+2. You can also access the same service function via a GraphQL request: `query{ Demo__hello(message:'abc') }`.
+3. If you include the `nop-rpc-grpc` module dependency, the NopGraphQL engine will automatically generate the following proto service definition at startup, allowing you to access this service function via gRPC.
+4. When invoking service functions via `/r/{bizObjName}_{bizAction}`, the server's return type is fixed to ApiResponse. If you want to return the raw type directly without ApiResponse wrapping, call via `/p/{bizObjName}_{bizAction}`.
 
 ```protobuf
 syntax = "proto3";
 
 package graphql.api;
 
-message Demo__hello_request {
+message Demo__hello_request{
    optional string value = 1;
 }
 
-message Demo__hello_response {
+message Demo__hello_response{
   optional string value = 1;
 }
 
-service Demo {
+service Demo{
   rpc hello(Demo__hello_request) returns (Demo__hello_response);
 }
 ```
 
-## Viewing Service Definitions
+## V. Inspect Service Definitions
 
-When `nop.debug` is set to true, the Nop platform starts in debug mode. At this point, you can access the following links to obtain all service definitions:
+When `nop.debug=true` is set, the Nop platform starts in debug mode. You can then visit the following links to retrieve all service definitions:
 
 1. `/p/DevDoc__graphql`
 2. `/p/DevDoc__beans`
+
+<!-- SOURCE_MD5:a2c52daaa801003d281d5735395b5ce9-->

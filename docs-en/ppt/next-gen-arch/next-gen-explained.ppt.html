@@ -1,0 +1,1785 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>可逆计算：一种基于坐标系与变化代数的软件构造范式</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/all.min.css">
+    <script src="../assets/js/html2pdf.bundle.min.js"></script>
+	<script src="../assets/js/mermaid.min.js"></script>
+	<script src="../assets/js/lightbox.js"></script>
+
+    <style>
+        :root {
+            --color-primary: #2563eb;
+            --color-primary-dark: #1e40af;
+            --color-secondary: #059669;
+            --color-warning: #d97706;
+            --color-danger: #dc2626;
+            --color-text-dark: #1f2937;
+            --color-text-light: #4b5563;
+            --color-bg-main: #f8fafc;
+            --color-bg-slide: #ffffff;
+            --color-border: #e5e7eb;
+            --color-code-bg: #f8fafc;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-code: 'Fira Code', 'Cascadia Code', 'SF Mono', monospace;
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --font-size-base: 1.6rem;
+            --line-height-base: 1.7;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-main);
+            background: linear-gradient(135deg, #f4f6f9 0%, #eef2f7 100%);
+            color: var(--color-text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            line-height: var(--line-height-base);
+        }
+
+        #presentation-container {
+            width: 95vw; height: 95vh; max-width: 1400px;
+            background: var(--color-bg-slide); border-radius: 20px; box-shadow: var(--shadow-lg);
+            display: flex; flex-direction: column; overflow: hidden; position: relative;
+            padding-bottom: 70px; border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .slides-viewport { flex-grow: 1; position: relative; overflow: hidden; }
+
+        .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            padding: 50px 70px;
+            opacity: 0; visibility: hidden;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(15px) scale(0.99);
+            display: flex; flex-direction: column; justify-content: flex-start;
+            overflow-y: auto; background-color: var(--color-bg-slide);
+        }
+        .slide.center-content { justify-content: center; text-align: center; }
+        .slide.active { opacity: 1; visibility: visible; transform: translateY(0) scale(1); z-index: 1; }
+
+        h1, h2, h3 { font-weight: 700; line-height: 1.3; }
+        h1 { font-size: 3.2rem; margin-bottom: 1.5rem; text-align: center; color: var(--color-text-dark); }
+        h2 { font-size: 2.8rem; color: var(--color-text-dark); border-bottom: 4px solid var(--color-primary); padding-bottom: 1rem; margin-bottom: 2rem; font-weight: 600; }
+        h3 { font-size: 2rem; color: var(--color-primary); margin-bottom: 1.5rem; }
+        h3 .subtitle { font-size: 1.5rem; color: var(--color-text-light); font-weight: 400; display: block; margin-top: 0.5rem; }
+        p, li { font-size: var(--font-size-base); color: var(--color-text-light); margin-bottom: 1.5rem; }
+        strong { color: var(--color-primary); font-weight: 600; }
+        ul { padding-left: 2rem; }
+        
+        .four-column { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 2rem; }
+        .four-column .item { background: #f9fafb; padding: 25px; border-radius: 15px; text-align: center; border: 2px solid var(--color-border); }
+        .four-column .item i { font-size: 2.5rem; color: var(--color-primary); margin-bottom: 1rem; }
+        .four-column .item h4 { font-size: 1.4rem; margin-bottom: 1rem; color: var(--color-text-dark); }
+        .four-column .item p { font-size: 1.1rem; line-height: 1.6; }
+
+        #progress-bar { position: absolute; top: 0; left: 0; height: 5px; background: linear-gradient(90deg, var(--color-primary), var(--color-secondary)); width: 0%; transition: width 0.4s ease; z-index: 10; }
+        .controls { position: absolute; bottom: 20px; right: 25px; display: flex; gap: 12px; z-index: 10; }
+        .btn { background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); color: white; border: none; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; box-shadow: var(--shadow-md); font-size: 0.9rem; }
+        .btn:hover:not(:disabled) { transform: translateY(-3px) scale(1.05); box-shadow: var(--shadow-lg); }
+        .btn:disabled { background: linear-gradient(135deg, #9ca3af, #6b7280); cursor: not-allowed; }
+        #pdf-btn { background: linear-gradient(135deg, var(--color-secondary), #047857); }
+        #slide-counter { position: absolute; bottom: 25px; left: 25px; background: rgba(255, 255, 255, 0.9); padding: 12px 18px; border-radius: 12px; font-size: 1rem; font-weight: 600; z-index: 10; box-shadow: var(--shadow-md); }
+        
+        .title-slide .subtitle { font-size: 1.6rem; color: var(--color-text-light); font-weight: 400; max-width: 80%; margin: 1rem auto 0; }
+        .title-slide .eng-subtitle { font-size: 1.2rem; color: #9ca3af; font-family: var(--font-code); margin-top: 2rem; }
+        
+        .comparison-layout { display: grid; grid-template-columns: 1fr auto 1fr; gap: 2rem; align-items: stretch; margin: 2rem 0; }
+        .comparison-left, .comparison-right { padding: 2rem; border-radius: 16px; border: 3px solid; display: flex; flex-direction: column; }
+        .comparison-left { background: #fef2f2; border-color: var(--color-danger); }
+        .comparison-right { background: #f0fdf4; border-color: var(--color-secondary); }
+        .comparison-divider { display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 900; color: var(--color-primary); }
+        .comparison-left h4, .comparison-right h4 { text-align:center; font-size: 1.6rem; margin-bottom: 1.5rem; display:flex; align-items:center; justify-content:center; gap: 10px; }
+        .comparison-left h4 { color: var(--color-danger); }
+        .comparison-right h4 { color: var(--color-secondary); }
+        .comparison-left p, .comparison-right p, .comparison-left li, .comparison-right li { font-size: 1.3rem; }
+
+        .three-column { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-top: 2rem; }
+        .three-column .item { background: #f9fafb; padding: 30px; border-radius: 15px; text-align: center; border: 2px solid var(--color-border); }
+        .three-column .item i { font-size: 2.5rem; color: var(--color-primary); margin-bottom: 1rem; }
+        .three-column .item h4 { font-size: 1.5rem; margin-bottom: 1rem; color: var(--color-text-dark); }
+        .three-column .item p { font-size: 1.2rem; line-height: 1.6; }
+
+        .icon-list { list-style: none; padding: 0; margin: 2rem 0; }
+        .icon-list li { display: flex; align-items: flex-start; gap: 20px; font-size: 1.5rem; margin-bottom: 1.5rem; }
+        .icon-list i { font-size: 1.8rem; color: var(--color-primary); margin-top: 5px; }
+
+        .code-block { background-color: var(--color-code-bg); padding: 1.2em; border-radius: 8px; font-family: var(--font-code); font-size: 1rem; border: 1px solid var(--color-border); margin: 1rem 0; }
+        
+        .highlight-box { background: #eff6ff; border-left: 6px solid var(--color-primary); padding: 1.5rem 2rem; margin: 2rem 0; border-radius: 0 12px 12px 0; }
+        .highlight-box p { font-size: 1.6rem; margin: 0; font-weight: 500; }
+        .warning-box { background: #fffbeb; border-left: 6px solid var(--color-warning); padding: 1.5rem 2rem; margin: 2rem 0; border-radius: 0 12px 12px 0; }
+        .warning-box p, .warning-box h4 { margin: 0; color: #92400e; }
+        .warning-box h4 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .warning-box p { font-size: 1.3rem; }
+        .quote { background: #faf5ff; border-left: 6px solid #a855f7; padding: 30px; margin: 2.5rem auto; border-radius: 0 12px 12px 0; font-style: italic; color: #581c87; max-width: 85%; text-align: center; }
+        .quote p { font-size: 1.8rem; margin: 0; }
+        .formula { background: var(--color-code-bg); padding: 25px; border-radius: 15px; text-align: center; font-family: var(--font-code); font-size: 2.2rem; font-weight: bold; color: var(--color-primary); margin: 2.5rem auto; border: 2px solid var(--color-border); }
+        .formula .note { font-size: 1rem; color: var(--color-text-light); margin-top: 1rem; font-weight: normal; font-family: var(--font-main); }
+        .formula .note strong { color: var(--color-primary-dark); }
+
+        .detail-note { background: #f8f9fa; border: 1px solid #e9ecef; padding: 1rem 1.5rem; border-radius: 8px; margin-top: 1.5rem; font-size: 1.2rem; line-height: 1.6; color: var(--color-text-light); }
+        .detail-note strong { color: var(--color-text-dark); }
+        .detail-note code { font-family: var(--font-code); background: #e9ecef; padding: 2px 6px; border-radius: 4px; font-size: 1.1rem;}
+
+        .mermaid-container { background-color: #fff; padding: 1.5rem; border-radius: 12px; border: 1px solid var(--color-border); margin: 2rem 0; overflow: auto; display: flex; justify-content: center; }
+		
+		.mermaid { display: flex; justify-content: center; width: 100%; }
+
+        .comparison-table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 2rem 0; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-md); border: 1px solid var(--color-border); }
+        .comparison-table th, .comparison-table td { padding: 1.2rem; text-align: left; border-bottom: 1px solid var(--color-border); }
+        .comparison-table th { background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); color: white; font-weight: 700; font-size: 1.1rem; }
+        .comparison-table tr:last-child td { border-bottom: none; }
+        .comparison-table tr:nth-child(even) { background-color: #f9fafb; }
+        .comparison-table td:nth-child(2) { font-weight: 600; color: var(--color-primary); }
+
+        .debug-flow { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-top: 1rem; width: 100%; }
+        .debug-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+        .debug-col.output { flex: 1.3; }
+        .debug-col h4 { margin-bottom: 1rem; text-align: center; color: var(--color-text-dark); font-size: 1.2rem; border: none; padding: 0; }
+        .source-file { background-color: var(--color-bg-slide); border: 1px solid var(--color-border); padding: 0.8em 1em; border-radius: 6px; font-family: var(--font-code); font-size: 0.9rem; width: 100%; margin-bottom: 1rem; box-shadow: var(--shadow-md); }
+        .source-file .path { font-weight: 600; color: var(--color-secondary); margin-bottom: 0.5rem; display: block; }
+        .process-arrow { font-size: 4rem; color: var(--color-primary); text-align: center; margin-top: 5rem; }
+        .process-arrow p { font-size: 1rem; font-weight: 600; margin-top: 0.5rem; color: var(--color-primary-dark); }
+        .dump-comment-v3 { color: #64748b; font-style: normal; }
+		
+		@media print {
+            body { background: #fff !important; height: auto; overflow: visible; display: block; }
+            .controls, #progress-bar, #slide-counter { display: none !important; }
+            #presentation-container { display: block; width: 100%; height: auto; box-shadow: none; border: none; padding: 0; }
+            .slides-viewport { overflow: visible; height: auto; }
+            .slide { display: flex !important; opacity: 1 !important; visibility: visible !important; transform: none !important; position: relative; page-break-after: always; page-break-inside: avoid; width: 100%; height: auto; aspect-ratio: 16 / 9; border: 1px solid #ddd; margin-bottom: 20px; box-shadow: none; border-radius: 0; overflow: hidden; }
+            .slide:last-of-type { page-break-after: avoid; }
+            svg * { animation-play-state: paused !important; }
+        }
+        
+        .pdf-page-container { width: 100%; height: auto; background: white; color: black; box-shadow: none; }
+        .pdf-slide { position: relative !important; opacity: 1 !important; visibility: visible !important; transform: none !important; height: auto !important; width: 100%; background: white; border: 1px solid #eeeeee; padding: 40px 50px; box-shadow: none; margin-bottom: 0; overflow: hidden; page-break-after: always; break-inside: avoid; aspect-ratio: 16 / 12; }
+        .pdf-slide:last-of-type { page-break-after: avoid; }
+    </style>
+</head>
+<body>
+
+<div id="presentation-container">
+    <div id="progress-bar"></div>
+    <div id="slide-counter">1 / 37</div>
+
+    <div class="slides-viewport">
+
+<!-- 1. Title -->
+<section class="slide active title-slide center-content">
+    <h1>可逆计算的理论内核</h1>
+    <p class="subtitle">不止是"更好的差量合并"：深入坐标系与变化代数</p>
+    <p class="eng-subtitle">Beyond "Better Diff/Merge": A Deep Dive into Coordinates and an Algebra of Change</p>
+</section>
+
+<!-- 2. Why -->
+<section class="slide">
+    <h2>🤔 为什么需要这次讨论？</h2>
+    <div class="warning-box">
+        <h4>认知锚定：我们习惯用旧地图理解新大陆</h4>
+        <p>在接触可逆计算范式时，我们常无意识地将其等同于已知的技术，从而错失其真正的创新之处。</p>
+    </div>
+    <div class="detail-note">
+        <strong>常见的认知锚定点：</strong>
+        <ul>
+            <li style="font-size:1.2rem; margin-bottom:0.5rem">这不就是 Git / Kustomize / Docker Overlay 吗？</li>
+            <li style="font-size:1.2rem; margin-bottom:0.5rem">这不就是 GraphQL extend / Spring 扩展点机制吗？</li>
+            <li style="font-size:1.2rem; margin-bottom:0.5rem">“可逆”不就是指“可逆运行”吗？那种理论没什么实用价值。</li>
+        </ul>
+        <p style="font-size:1.2rem; margin-top:1rem;">本次解析的目标：系统性地澄清这些误解，直达理论内核。</p>
+    </div>
+</section>
+
+<!-- 3. LowCode -->
+<section class="slide">
+    <h2>🧩 LowCode的本质与可逆计算的回答</h2>
+    
+    <div class="comparison-layout" style="margin-top:1.5rem; margin-bottom: 2rem; align-items: stretch;">
+        <div class="comparison-left" style="padding: 2rem; display: flex; flex-direction: column; justify-content: center;">
+            <h4><i class="fa-solid fa-barcode"></i> LowCode的朴素愿望</h4>
+            <p style="font-size:1.3rem; line-height:1.6; margin-bottom:0;">降低编码量，更快交付，更稳系统。<strong>但它缺乏统一的理论内核</strong>，易沦为工具拼盘。</p>
+        </div>
+        <div class="comparison-divider" style="font-size: 3rem;">→</div>
+        <div class="comparison-right" style="padding: 2rem; display: flex; flex-direction: column; justify-content: center;">
+            <h4><i class="fa-solid fa-calculator"></i> 可逆计算的理论回答</h4>
+            <p style="font-size:1.3rem; line-height:1.6; margin-bottom:0;">为LowCode提供<strong>代数基础</strong>和<strong>范式革命</strong>：从"手工拼装对象"到"代数化组合变化"。</p>
+        </div>
+    </div>
+
+    <div class="highlight-box" style="margin: 0; padding: 1.5rem 2rem; border-left-color: #9333ea; background: #faf5ff;">
+        <p style="font-size:1.4rem; margin:0; line-height:1.5;">
+            <i class="fa-solid fa-lightbulb" style="color: #9333ea; margin-right: 10px;"></i>
+            <strong>核心洞察：</strong>LowCode的终极形态是<strong>描述优先 (Description First)</strong>，将逻辑从代码中分离，用差量(Δ)代数进行组合与演化。
+        </p>
+    </div>
+
+    <div class="detail-note" style="margin-top:2rem;">
+        <strong>可逆计算如何赋能LowCode？</strong>
+        <ul style="margin-bottom:0; padding-left: 1.5rem;">
+            <li style="font-size:1.2rem; margin-bottom:0.8rem; line-height:1.5;"><strong>系统性复用：</strong>基于差量⊕的复用，超越组件的、粗粒度的、系统级的复用。</li>
+            <li style="font-size:1.2rem; margin-bottom:0.8rem; line-height:1.5;"><strong>真·模型驱动：</strong>模型不再是一次性的代码生成器，而是可通过差量持续定制和演化的“活”资产。</li>
+            <li style="font-size:1.2rem; margin-bottom:0; line-height:1.5;"><strong>技术中立：</strong>DSL作为"坐标无关量"，通过可逆变换在不同技术栈间无损传递。</li>
+        </ul>
+    </div>
+</section>
+
+<!-- 4. Definition & Origin -->
+<section class="slide">
+    <h2>🎯 定义、渊源与背景</h2>
+    <div class="highlight-box">
+        <p><strong>定义</strong>：可逆计算 (Reversible Computation)，是一套关于“变化”的软件构造理论，其两大基石是<strong>可逆差量 (Reversible Delta)</strong> 与 <strong>可逆变换 (Reversible Transformation)</strong>。</p>
+    </div>
+	
+    <div class="warning-box" style="margin-top:1rem;">
+        <h4><i class="fa-solid fa-triangle-exclamation"></i> 术语澄清</h4>
+        <p>它与物理学中的“热力学可逆计算(Thermodynamic Reversible Computing)”在语义上完全不同。</p>
+    </div>
+    <div class="detail-note" style="margin-top:1rem;">
+        <strong>理论渊源</strong>
+        <ul>
+            <li style="font-size:1.2rem; margin-bottom:0.5rem"><strong>独立原创</strong>：核心思想诞生于 <strong>2007 年</strong>，是一次基于物理/几何世界观的跨界、独立探索，早于后来在业界广泛传播的 DOP/FOP 实践。</li>
+            <li style="font-size:1.2rem; margin-bottom:0.5rem"><strong>殊途同归</strong>：它并非派生自 DOP、BX 等国际前沿研究，但与它们在目标上高度一致，形成了并行的探索路线，共同指向“变化组合”这一核心问题。</li>
+        </ul>
+    </div>
+</section>
+
+<!-- 5. What is Reversible -->
+<section class="slide">
+    <h2>“可逆”到底是什么？三大核心内涵</h2>
+    <p style="text-align:center; margin-top: -1rem; margin-bottom: 2rem;">
+        它不是指程序的“逆向执行”，而是贯穿代数、变换和构造过程的系统性能力。
+    </p>
+
+    <div class="three-column" style="margin-top:1rem;">
+         <div class="item">
+            <i class="fa-solid fa-calculator"></i>
+            <h4 style="text-align: left;font-size: 1.6rem; margin-bottom: 1.2rem;">1. 代数可逆性(Algebraic)</h4>
+            <p style="text-align: left; font-size: 1.2rem; line-height: 1.6;"><strong>核心 (可求解):</strong> 引入“逆元”和“减法”，使构造方程 <code>App = Base ⊕ Δ</code> 能自由移项求解差量(Δ)或基底(Base)。</p>
+            <p style="text-align: left; font-size: 1.2rem; line-height: 1.6; margin-bottom: 0;"><strong>效果:</strong> 既能计算版本差异，也能从最终结果中安全地“撤销”某个变更。</p>
+        </div>
+        <div class="item">
+            <i class="fa-solid fa-right-left"></i>
+            <h4 style="text-align: left;font-size: 1.6rem; margin-bottom: 1.2rem;">2. 变换可逆性(Transformational)</h4>
+           <p style="text-align: left; font-size: 1.2rem; line-height: 1.6;"><strong>核心 (可往返):</strong> 建立高保真的“往返(Round-trip)”变换，确保信息在不同表示（如DSL, Excel, UI）之间不失真。</p>
+           <p style="text-align: left; font-size: 1.2rem; line-height: 1.6; margin-bottom: 0;"><strong>效果:</strong> 实现跨形态的无缝、双向编辑和变化传递。</p>
+        </div>
+        <div class="item">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <h4 style="text-align: left;font-size: 1.6rem; margin-bottom: 1.2rem;">3. 过程可逆性(Procedural)</h4>
+            <p style="text-align: left; font-size: 1.2rem; line-height: 1.6;"><strong>核心 (可修正):</strong> 打破线性的构造时间轴，允许用一个“未来”的差量Δ，去修正一个“过去”已发布的系统。</p>
+            <p style="text-align: left; font-size: 1.2rem; line-height: 1.6; margin-bottom: 0;"><strong>效果:</strong> 无需重编译上游，即可通过“热补丁”精准修正其内部任意部分。</p>
+        </div>
+    </div>
+</section>
+
+<!-- 6. Core Value: Reuse -->
+<section class="slide">
+    <h2>范式革命：复用原理的根本转变</h2>
+    <p style="text-align:center; margin-top: -1rem; margin-bottom: 2.5rem; font-size: 1.5rem;">
+        复用的焦点：从 <strong>寻找共同点</strong>，转变为 <strong>描述不同点</strong>。
+    </p>
+
+    <div class="comparison-layout" style="gap: 1.5rem; margin: 0; align-items: stretch;">
+        <div class="comparison-left" style="padding: 2rem;">
+            <h4><i class="fa-solid fa-object-group"></i> 传统复用：求交集(∩)</h4>
+            <p style="font-size: 1.3rem; line-height: 1.6; margin-bottom: 1.5rem; flex-grow: 1;">
+                通过继承、组合、扩展点等方式，复用各方共同的部分。这种复用是 <strong>细粒度</strong> 的，且方向是 <strong>自上而下</strong> 的分解。
+            </p>
+            <pre class="code-block" style="font-size: 1rem; padding: 1em; margin: 0; text-align:center;">// X 和 Y 只能复用 A 和 B
+X = A ⊕ B ⊕ C
+Y = A ⊕ B ⊕ D</pre>
+        </div>
+        <div class="comparison-divider">
+            VS
+        </div>
+        <div class="comparison-right" style="padding: 2rem;">
+            <h4><i class="fa-solid fa-calculator"></i> 可逆复用：求差量(Δ)</h4>
+            <p style="font-size: 1.3rem; line-height: 1.6; margin-bottom: 1.5rem; flex-grow: 1;">
+                将任一已有成果视作整体，通过描述新旧系统的差异(Δ)来复用。这种复用是 <strong>粗粒度</strong> 的，且方向可以是 <strong>横向或向上</strong> 的演化。
+            </p>
+            <pre class="code-block" style="font-size: 1rem; padding: 1em; margin: 0; text-align:center;">// Y 复用了完整的 X
+Y = X ⊕ (-C ⊕ D)</pre>
+        </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top: 3rem; border-left-color: var(--color-primary-dark);">
+        <p style="font-size: 1.8rem; text-align: center; font-weight: 600; margin: 0;">
+            <i class="fa-solid fa-rocket" style="color: var(--color-primary-dark);"></i>
+            实现了复用粒度从“组件”到“系统”的飞跃
+        </p>
+    </div>
+</section>
+
+<!-- 7. Four Principles Summary -->
+<section class="slide">
+    <h2>理论蓝图：四大核心原则</h2>
+    <p style="text-align:center; margin-top: -1rem; font-size: 1.4rem;">
+        这四大原则的核心在于：首先<strong>精确“定位”</strong>，然后在定位处提供一组<strong>完备的“变化操作”</strong>。
+    </p>
+    <!-- 核心修改在这里 -->
+    <div class="four-column" style="grid-template-columns: repeat(4, 1fr); margin-top:2.5rem; gap: 20px;">
+        <div class="item" style="padding: 20px;">
+            <i class="fa-solid fa-location-crosshairs"></i>
+            <h4>坐标系原则 (定位)</h4>
+            <p style="font-size: 1.1rem; line-height: 1.5;">
+                为模型各部分提供唯一的、可演化的“身份证”(坐标)，让变化可以被精确地定位、寻址和应用。
+            </p>
+        </div>
+        <div class="item" style="padding: 20px;">
+            <i class="fa-solid fa-layer-group"></i>
+            <h4>叠加运算原则 (变化的代数)</h4>
+            <p style="font-size: 1.1rem; line-height: 1.5;">
+                定义一套代数运算规则(⊕)，将“变化(Δ)”作为独立图层进行组合与叠加，使构造过程确定化。
+            </p>
+        </div>
+        <div class="item" style="padding: 20px;">
+            <i class="fa-solid fa-shield-halved"></i>
+            <h4>S-N-V分层准则 (鲁棒的组合)</h4>
+            <p style="font-size: 1.1rem; line-height: 1.5;">
+                通过“结构-规范-验证”三阶段分离，解耦结构合并与语义约束，确保组合过程的健壮性与可预测性。
+            </p>
+        </div>
+        <div class="item" style="padding: 20px;">
+            <i class="fa-solid fa-shuffle"></i>
+            <h4>同态传递原则 (跨模型的协同)</h4>
+            <p style="font-size: 1.1rem; line-height: 1.5;">
+                保证“变化”可以在不同模型/表示（DSL之间）进行自动投影和传递，实现多模协同演化。
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- 8. Principle 1: Coordinate -->
+<section class="slide">
+    <h2>原则一：坐标系原则 (定位)</h2>
+
+    <p style="font-size: 1.2rem; font-style: italic; text-align: center; margin: 0.5rem 0 1.5rem 0;">
+        "语言的边界就是我们世界的边界。" — 维特根斯坦
+    </p>
+
+    <p style="text-align:center; margin: 0 0 1.5rem 0; font-size: 1.3rem;">
+        一个定义良好的语言，其<strong>结构树（AST/模型树）</strong>天然形成一个内禀的、具有明确语义的坐标系。
+    </p>
+
+    <div class="comparison-layout" style="margin: 1.5rem 0; align-items: stretch; gap: 1.2rem;">
+        <div class="comparison-left" style="padding: 1.5rem;">
+            <h4 style="margin-bottom: 1rem;"><i class="fa-solid fa-compass"></i> 固化坐标 (如行号)</h4>
+            <p style="margin-bottom: 0; line-height: 1.5;">当代码重构时，坐标易失效，导致基于它的修改（如<code>patch</code>）变得脆弱。</p>
+        </div>
+        <div class="comparison-divider" style="font-size: 2rem;">→</div>
+        <div class="comparison-right" style="padding: 1.5rem;">
+            <h4 style="margin-bottom: 1rem;"><i class="fa-solid fa-location-crosshairs"></i> 活动坐标 (内禀于结构树)</h4>
+            <p style="margin-bottom: 0; line-height: 1.5;">坐标随结构演化而平滑调整，使得<strong>精确、可定位的"点-扰动"式修改</strong>具备鲁棒性。</p>
+        </div>
+    </div>
+    
+    <div class="highlight-box" style="margin: 1.5rem auto 0 auto; padding: 1.2rem; max-width: 90%;">
+        <p style="font-size: 1.3rem; font-weight: 600; margin: 0; text-align: center; line-height: 1.5;">
+            <i class="fa-solid fa-lightbulb" style="color: var(--color-primary); margin-right: 8px;"></i>
+            结论：统一且可演化的坐标系，是可逆计算能够成立的关键前提之一，是理论公理而非实现细节。
+        </p>
+    </div>
+</section>
+
+<!-- 9. Why Domain Model Space -->
+<section class="slide">
+    <h2>坐标系优劣之辩：为何需要领域模型空间？</h2>
+    <p style="text-align:center; margin-top:-1.5rem; margin-bottom: 1.5rem;">
+        同一个“变化”，在不同的“坐标系”（表示空间）中观察，会得到性质迥异的“差量(Δ)”。
+    </p>
+
+    <div class="three-column" style="margin-top:0; gap: 1.5rem;">
+        <div class="item" style="text-align:left;">
+            <h4 style="font-size: 1.4rem;"><i class="fa-solid fa-microchip"></i> 1. 比特空间</h4>
+            <p style="font-size:1.1rem;"><strong>数学性质</strong>：完美（封闭、结合、有逆元）。差量运算总可进行。</p>
+            <p style="font-size:1.1rem;"><strong>工程价值</strong>：<strong style="color:var(--color-danger);">极低</strong>。差量完全丧失业务语义，无法被理解或独立操作。</p>
+        </div>
+        <div class="item" style="text-align:left;">
+            <h4 style="font-size: 1.4rem;"><i class="fa-solid fa-file-lines"></i> 2. 行文本空间</h4>
+            <p style="font-size:1.1rem;"><strong>数学性质</strong>：糟糕（不封闭、无结合律）。坐标系不稳定，合并常失败。</p>
+            <p style="font-size:1.1rem;"><strong>工程价值</strong>：<strong style="color:var(--color-warning);">有限</strong>。差量可读，但因性质差，自动化和组合能力受限。</p>
+        </div>
+        <div class="item" style="text-align:left; border-color:var(--color-secondary); background:#f0fdf4;">
+            <h4 style="font-size: 1.4rem; color:var(--color-secondary);"><i class="fa-solid fa-sitemap"></i> 3. 领域模型空间</h4>
+            <p style="font-size:1.1rem;"><strong>数学性质</strong>：优良（可设计为封闭、结合）。拥有稳定的领域坐标系。</p>
+            <p style="font-size:1.1rem;"><strong>工程价值</strong>：<strong style="color:var(--color-secondary);">极高</strong>。差量表达最简洁且语义最丰富，是自动化和演化的理想载体。</p>
+        </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top: 2rem;">
+        <p style="font-size: 1.5rem;">
+            <i class="fa-solid fa-bullseye" style="color: var(--color-primary); margin-right: 10px;"></i>
+            <strong>结论：</strong> 可逆计算的核心主张，就是为特定业务领域构建专用的、数学性质优良的 <strong>“内禀坐标系”（DSL）</strong>，从而实现对“变化”本身最精准、最鲁棒的建模与操控。
+        </p>
+    </div>
+</section>
+
+<!-- 10. Function Delta Example -->
+<section class="slide">
+    <h2>示例：函数差量化的多空间表示</h2>
+    <p style="text-align:center; margin-top:-1.5rem; margin-bottom: 1.5rem;">
+        以一个“业务流程函数”为例，看它在不同表示空间中的差量化体现。
+    </p>
+
+    <div class="three-column" style="margin-top:0; gap: 1.5rem;">
+        <div class="item" style="text-align:left;">
+            <h4 style="font-size: 1.4rem;"><i class="fa-solid fa-microchip"></i> 比特空间</h4>
+            <p style="font-size:1.1rem;">二进制差异工具（如rsync、xdelta）</p>
+            <div class="detail-note" style="margin-top:0.5rem; font-size:1rem;">
+                适用于高效数据同步，但完全丧失业务语义，无法被人类理解或独立操作。
+            </div>
+        </div>
+        <div class="item" style="text-align:left;">
+            <h4 style="font-size: 1.4rem;"><i class="fa-solid fa-file-lines"></i> 文本行空间</h4>
+            <p style="font-size:1.1rem;">版本控制系统（Git diff）</p>
+            <div class="detail-note" style="margin-top:0.5rem; font-size:1rem;">
+                人类可读，但坐标系脆弱，代码格式调整就可能导致差量失效。
+            </div>
+        </div>
+        <div class="item" style="text-align:left; border-color:var(--color-secondary); background:#f0fdf4;">
+            <h4 style="font-size: 1.4rem; color:var(--color-secondary);"><i class="fa-solid fa-sitemap"></i> 业务语义空间</h4>
+            <p style="font-size:1.1rem;">Nop平台TaskFlow/Workflow</p>
+            <div class="detail-note" style="margin-top:0.5rem; font-size:1rem;">
+                坐标系稳定 (基于步骤ID)，差量操作对代码重构免疫，且具备业务含义
+            </div>
+        </div>
+    </div>
+
+    <div class="formula" style="font-size:1.2rem; margin:1.5rem auto; padding:15px;">
+        <code>业务流程 = BaseFlow ⊕ [在save-order后插入send-email]</code>
+        <div class="note">基于语义标识符而非行号或偏移量的差量操作</div>
+    </div>
+
+    <div class="highlight-box" style="margin-top:1rem;">
+        <p style="font-size:1.3rem;">
+            <i class="fa-solid fa-location-dot" style="color: var(--color-primary); margin-right: 10px;"></i>
+            <strong>结论：</strong>通过在业务语义空间中建模，我们获得了<strong>既可被机器精确执行，又可被人类轻松理解</strong>的差量。
+        </p>
+    </div>
+</section>
+
+
+<!-- 11. Principle 2: Algebra -->
+<section class="slide">
+    <h2>原则二：叠加运算原则 (变化的代数)</h2>
+    <p style="text-align:center; margin-top:-1.5rem; margin-bottom: 0.5rem; font-size: 1.3rem;">
+        群公理并非空洞的数学约束，而是衡量差量系统“品质”的工程标尺，每条公理都对应一项关键能力。
+    </p>
+
+    <style>
+        /* 减小内边距和调整字体 */
+        .compact-table td { padding: 0.6rem 1rem; vertical-align: middle; }
+        .compact-table .axiom-name { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .compact-table .axiom-value { font-size: 1rem; line-height: 1.45; }
+        .compact-table .axiom-consequence { font-size: 0.95rem; color: var(--color-danger); line-height: 1.4; }
+    </style>
+
+    <table class="comparison-table compact-table" style="margin-top:0.5rem;">
+        <thead>
+            <tr>
+                <th style="width: 25%; padding: 0.5rem 1rem;">公理 (Axiom)</th>
+                <th style="width: 40%; padding: 0.5rem 1rem;">工程价值 (Engineering Value)</th>
+                <th style="width: 35%; padding: 0.5rem 1rem;">缺失的后果 / 实践考量</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><div class="axiom-name"><i class="fa-solid fa-lock fa-fw"></i>封闭性</div></td>
+                <td class="axiom-value"><strong>可预测性</strong>：保证差量组合结果仍是合法同类，自动化流程永不中断。</td>
+                <td class="axiom-consequence"><i class="fa-solid fa-triangle-exclamation"></i> <strong>Git 冲突</strong>：合并结果非法，需人工干预。</td>
+            </tr>
+            <tr>
+                <td><div class="axiom-name"><i class="fa-solid fa-layer-group fa-fw"></i>结合律</div></td>
+                <td class="axiom-value"><strong>可组合性</strong>：差量可独立打包、分发和预合并 <code>(Δ₁ ⊕ Δ₂)</code>，不依赖基座。</td>
+                <td class="axiom-consequence"><i class="fa-solid fa-link-slash"></i> <strong>JSON Patch</strong>：强依赖Base，无法脱离上下文独立组合。</td>
+            </tr>
+            <tr>
+                <td><div class="axiom-name"><i class="fa-solid fa-circle-dot fa-fw"></i>单位元</div></td>
+                <td class="axiom-value"><strong>统一性</strong>：全量是差量的特例，全量与差量模型同构，可被同套工具处理。</td>
+                <td class="axiom-consequence"><strong>载体分裂</strong>：JSON Patch(指令)与JSON(数据)结构各异。</td>
+            </tr>
+            <tr>
+                <td><div class="axiom-name"><i class="fa-solid fa-rotate-left fa-fw"></i>逆元</div></td>
+                <td class="axiom-value"><strong>可逆性</strong>：支持安全撤销变更，实现“求异”式复用。</td>
+                <td style="color:var(--color-secondary); font-size: 0.95rem; line-height: 1.4;">
+                    <i class="fa-solid fa-star"></i> <strong>实践权衡</strong>：为保证幂等性，常用“幂等删除”代替严格逆元，这足以支撑核心场景。
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="highlight-box" style="margin-top: 1rem; padding: 1rem 1.5rem;">
+        <p style="font-size: 1.25rem; line-height: 1.5;">
+            <i class="fa-solid fa-balance-scale" style="color: var(--color-primary); margin-right: 10px;"></i>
+            <strong>洞察：</strong> 对“封闭性”和“结合律”满足得越好，差量系统的<strong>自动化组合</strong>与<strong>规模化复用</strong>能力就越强。Docker的差量机制相比Git更好。
+        </p>
+    </div>
+</section>
+
+<!-- 12. Principle 3: SNV -->
+<section class="slide">
+    <h2>原则三：S-N-V分层准则 (鲁棒的组合)</h2>
+    <p style="text-align:center; margin-top:-1.5rem; margin-bottom: 2rem;">
+        通过过程分层，巧妙地解决了通用合并中的核心矛盾：<strong>结构操作</strong> vs. <strong>语义约束</strong>。
+    </p>
+    
+    <!-- 核心修改在这里 -->
+    <div class="three-column" style="grid-template-columns: repeat(3, 1fr); margin-top:1.5rem; gap: 1.5rem;">
+        <div class="item" style="border: 3px solid var(--color-primary); background: #eff6ff; padding: 20px;">
+            <i class="fa-solid fa-layer-group"></i>
+            <h4 style="color: var(--color-primary);">S: 结构合并 (Structure)</h4>
+            <p style="font-size: 1.05rem; line-height: 1.5; margin-bottom:0;">
+                在通用的、不关心语义的结构树层面进行合并。此过程保证幂等且有序，为后续处理提供确定性的输入。
+            </p>
+        </div>
+        <div class="item" style="padding: 20px;">
+            <i class="fa-solid fa-gears"></i>
+            <h4>N: 规范化 (Normalize)</h4>
+            <p style="font-size: 1.05rem; line-height: 1.5; margin-bottom:0;">
+                进行领域特定的语义转换，如解糖、补充默认值、计算派生值等。此阶段会保留溯源信息，便于调试。
+            </p>
+        </div>
+        <div class="item" style="border: 3px solid var(--color-secondary); background: #f0fdf4; padding: 20px;">
+            <i class="fa-solid fa-circle-check" style="color: var(--color-secondary);"></i>
+            <h4 style="color: var(--color-secondary);">V: 验证 (Validate)</h4>
+            <p style="font-size: 1.05rem; line-height: 1.5; margin-bottom:0;">
+                在所有结构和语义都稳定后，进行全局的类型和业务约束检查，确保最终模型的完全合法性。
+            </p>
+        </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top:2rem; border-left-color: #d97706; background: #fffbeb; padding: 1.2rem 2rem;">
+        <p style="font-size: 1.5rem; color: #92400e; line-height: 1.5;">
+            <i class="fa-solid fa-hourglass-half" style="color: #b45309; margin-right: 10px;"></i>
+            <strong>核心洞察：“虚时间”的存在。</strong><br>
+            <span style="font-size: 1.25rem; font-weight: 400; line-height: 1.45;">在最终“观测”（验证）之前，模型被允许存在临时的、语义不一致的中间状态。这彻底解耦了“结构摆放”与“意义检查”，实现了通用且可预测的合并算法。</span>
+        </p>
+    </div>
+</section>
+
+<!-- 13. Principle 4: Homomorphic -->
+<section class="slide">
+    <h2>原则四：同态传递原则 (跨模型的协同)</h2>
+    <p style="text-align:center;">Generator (G) 是不同坐标系(DSL)间的“表象变换”。</p>
+    
+    <div class="formula" style="margin-top:2.5rem;">
+        G(X ⊕ ΔX) ≡ G(X) ⊕ ΔY
+        <div class="note">其中 <strong>ΔY</strong> 是由G根据源差量 <strong>ΔX</strong> 导出的目标差量</div>
+    </div>
+
+    <p style="font-size:1.6rem; max-width:85%; margin: 2rem auto; text-align:center;">
+        这意味着，<strong>变化(Δ)</strong>可以在不同的语言/模型之间自动传递和投影。这是实现跨DSL协同的数学基石。
+    </p>
+
+    <div class="detail-note" style="margin-top:2rem; text-align: left;">
+        <strong>举例：</strong>在数据模型(X)中为一个字段增加“显示名”的差量(ΔX)，经生成器(G)投影后，会自动在界面模型(G(X))中产生一个更新表格列标题的目标差量(ΔY)。
+    </div>
+</section>
+
+<!-- 14. DSL Atlas -->
+<section class="slide">
+    <h2>推论：从“单一模型”到“DSL图册 (Atlas)”</h2>
+    <p style="text-align:center;">我们不追求一个无所不包的“超级语言”，而是构建一个多DSL协同的、可演化的生态系统。</p>
+
+    <div class="comparison-layout" style="align-items:center; margin-top:0; gap:1.5rem;">
+        <div class="comparison-left" style="padding: 1.5rem 2rem;">
+            <h4 style="margin-bottom:1rem;"><i class="fa-solid fa-cube"></i> 传统MDD</h4>
+            <div class="mermaid-container" style="padding:0.8rem; margin:0;">
+                <div class="mermaid">graph TD; A["庞大的Super-DSL"] --> B["信息过载<br/>难以演化"];</div>
+            </div>
+        </div>
+        <div class="comparison-divider">→</div>
+        <div class="comparison-right" style="padding: 1.5rem 2rem;">
+            <h4 style="margin-bottom:1rem;"><i class="fa-solid fa-sitemap"></i> DSL图册</h4>
+            <div class="mermaid-container" style="padding:0.8rem; margin:0;">
+                <div class="mermaid">
+ graph LR
+                    D1["DSL1 数据<br/>(XORM)"]
+                    D2["DSL2 服务<br/>(GraphQL)"]
+                    D3["DSL3 界面<br/>(XView)"]
+                    D1 <-- "G12/G21" --> D2
+                    D2 <-- "G23/G32" --> D3
+                </div>
+            </div>
+            <p style="margin-top:0.8rem; margin-bottom:0; font-size:1.1rem;">通过生成器(G)连接多个专注的DSL，实现变化在不同“图表”间传递。</p>
+        </div>
+    </div>
+    
+    <div class="detail-note" style="margin-top:0rem; padding: 1.2rem 1.5rem;">
+        <div style="display: flex; align-items: flex-start; gap: 1rem;">
+            <i class="fa-solid fa-book-atlas" style="color:var(--color-primary); font-size: 2.2rem; margin-top: 5px;"></i>
+            <div>
+                <strong>类比：</strong>这与微分几何中的“图册(Atlas)”思想类似，它由多个“图表(Chart)”通过“变换映射(Transition Map)”粘合而成。<br>
+				<strong>原则：</strong>一域一DSL，重叠处有映射契约，数量宜少不宜多。<br>
+				     </div>
+        </div>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>推论：普适分解原理</h2>
+    <p style="text-align:center">任何复杂的软件构造问题 Y = G(X) 都可以被分解。</p>
+    <div class="formula" style="font-size:1.5rem;margin-top:0">Y = G(X)  ≡ G0(X0) ⊕ ΔY </div>
+    <div class="comparison-layout" style="margin-top:0rem;">
+        <div class="comparison-left" style="background:#eef2ff; border-color:#6366f1; text-align:center;">
+            <h4 style="color:#4338ca;"><i class="fa-solid fa-arrows-left-right"></i> 横向分解 (多视角投影)</h4>
+            <p>将一个复杂模型，分解为多个简单领域（数据、业务、界面）的<strong>并列组合</strong>。</p>
+        </div>
+        <div class="comparison-divider">⊕</div>
+        <div class="comparison-right" style="background:#f0f9ff; border-color:#3b82f6; text-align:center;">
+            <h4 style="color:#1d4ed8;"><i class="fa-solid fa-layer-group"></i> 纵向分解 (递归抽象)</h4>
+            <p>将一个底层模型，通过层层生成和差量修正，<strong>递归地构建</strong>出高层模型。</p>
+        </div>
+    </div>
+     <div class="detail-note">例如：一个“用户查询页面”可被<strong>横向分解</strong>为数据(ORM)、API(GraphQL)、视图(View)三个模型。同时，视图模型又是由API模型<strong>纵向分解</strong>(生成)而来。</div>
+</section>
+
+<!-- Slide 16: Self-Consistency (Loader as Generator) -->
+<section class="slide">
+    <h2>推论：自洽性 (Loader as Generator)</h2>
+    
+    <p style="text-align:center; font-size: 1.5rem; margin-bottom: 1.5rem;">
+        一个"可能世界"的模型由一组分散的路径定义： <strong> Possible Path = BasePath + DeltaPath </strong>
+    </p>
+
+    <div class="comparison-layout" style="align-items:stretch;margin-top:0; grid-template-columns: 1.2fr 0.3fr 1.5fr;">
+        <div class="comparison-left" style="min-width: 0;">
+            <h4><i class="fa-solid fa-box"></i> 传统: L(A + B)</h4>
+            <p>先组合路径，再送入黑盒加载器，规则不透明。</p>
+            <pre class="code-block" style="text-align:center; font-size:1.1rem; margin-top: auto; white-space: pre-wrap; word-break: break-all;">Loader(BasePath + DeltaPath)</pre>
+        </div>
+        <div class="comparison-divider" style="padding: 0 0.5rem;">→</div>
+        <div class="comparison-right" style="min-width: 0;">
+            <h4><i class="fa-solid fa-shapes"></i> 可逆计算: L(A) ⊕ L(B)</h4>
+            <p>先独立加载为模型，再通过统一的代数运算(⊕)组合。</p>
+            <pre class="code-block" style="text-align:center; font-size:1.1rem; margin-top: auto; white-space: pre-wrap; word-break: break-all;">Loader(BasePath) ⊕ Loader(DeltaPath)</pre>
+        </div>
+    </div>
+        
+    <div class="detail-note" style="margin-top:0rem;">
+        <strong>同态的必然性：</strong> 加载器(L)被定义为一个<strong>同态生成器(G)</strong>，负责将"路径空间(+, ∅)"映射至"模型空间(⊕, 0)"。
+        <br>
+        这一映射确保了平台自身的构造过程也严格遵循核心代数法则，实现理论自洽。
+    </div>
+</section>
+
+
+<!-- 15. vs Git -->
+<section class="slide">
+    <style>
+        .comparison-list { list-style: none; padding: 0; margin: 1.5rem 0 0 0; }
+        .comparison-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 1.2rem; margin-bottom: 1rem; }
+        .comparison-list i { font-size: 1.3rem; margin-top: 5px; }
+        .comparison-left .comparison-list i { color: var(--color-danger); }
+        .comparison-right .comparison-list i { color: var(--color-secondary); }
+    </style>
+    <h2>对比(一)：这与Git Diff/JSON Patch有何不同？</h2>
+    <p style="text-align:center; margin-top:-1.5rem; margin-bottom: 1.5rem;">
+        可逆计算不是一种新的“补丁语言”，而是对“变化”本身进行了代数化的重构。
+    </p>
+
+    <div class="comparison-layout" style="grid-template-columns: 1fr auto 1fr; gap: 1.5rem; margin: 0;">
+        <div class="comparison-left" style="padding: 1.5rem;">
+            <h4><i class="fa-solid fa-list-ol"></i> 动作指令 (Git, JSON Patch)</h4>
+            <pre class="code-block" style="font-size:0.9rem; white-space: pre-wrap; word-break: break-all;">// op-based patch
+[
+  { "op": "replace", "path": "/a/b/c", "value": 42 }
+]</pre>
+            <ul class="comparison-list">
+                <li><i class="fa-solid fa-tags fa-fw"></i><div><strong>载体分裂：</strong>“变化”(指令列表) 与 “对象”(JSON) 是两种完全不同的数据结构。</div></li>
+                <li><i class="fa-solid fa-layer-group fa-fw"></i><div><strong>高阶困难：</strong>对“变化本身”再应用变化（即差量的差量）非常复杂，甚至不可能。</div></li>
+            </ul>
+        </div>
+        <div class="comparison-divider">VS</div>
+        <div class="comparison-right" style="padding: 1.5rem;">
+            <h4><i class="fa-solid fa-tree"></i> 统一代数 (可逆计算)</h4>
+            <pre class="code-block" style="font-size:0.9rem; white-space: pre-wrap; word-break: break-all;">&lt;!-- state-based delta --&gt;
+  &lt;a&gt;&lt;b&gt;&lt;c x:override="replace"&gt;42&lt;/c&gt;&lt;/b&gt;&lt;/a&gt;</pre>
+            <ul class="comparison-list">
+                <li><i class="fa-solid fa-tag fa-fw"></i><div><strong>统一载体：</strong>“变化”(差量模型) 与 “对象”(全量模型) 共享同一种树状结构。</div></li>
+                <li><i class="fa-solid fa-infinity fa-fw"></i><div><strong>自然闭包：</strong>高阶组合（差量的差量）自然成立，因为万物皆为同一种可合并的结构。</div></li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- 16. vs Template -->
+<section class="slide">
+    <style>
+        .comparison-points { list-style: none; padding: 0; margin-top: 1.5rem; }
+        .comparison-points li { display: flex; align-items: flex-start; gap: 12px; font-size: 1.15rem; line-height: 1.5; margin-bottom: 1rem; }
+        .comparison-points i { font-size: 1.3rem; margin-top: 5px; }
+        .comparison-left .comparison-points i { color: var(--color-danger); }
+        .comparison-right .comparison-points i { color: var(--color-secondary); }
+        .mini-code { font-family: var(--font-code); background: rgba(0,0,0,0.03); padding: 0.8rem; border-radius: 6px; font-size: 0.9rem; margin-top: 1rem; border: 1px solid rgba(0,0,0,0.05); }
+    </style>
+    <h2>对比(二)：Generator是模板引擎吗？</h2>
+     <p style="text-align:center; margin-top:-1.5rem; margin-bottom: 1.5rem;">
+        生成器(Generator)是结构化的“坐标系变换”，而非简单的“字符串拼接”。
+    </p>
+
+    <div class="comparison-layout" style="gap: 1.5rem; margin: 0;">
+        <div class="comparison-left" style="padding: 1.5rem;">
+            <h4><i class="fa-solid fa-code"></i> 模板引擎 (文本替换)</h4>
+            <div class="mini-code"><code>&lt;h1&gt;{{ model.title }}&lt;/h1&gt;</code><br> ↓ (单向生成)<br><code>&lt;h1&gt;Hello&lt;/h1&gt;</code></div>
+            <ul class="comparison-points">
+                <li><i class="fa-solid fa-arrow-right fa-fw"></i><div><strong>单向生成</strong>：模型 → 文本，无法回溯。</div></li>
+                <li><i class="fa-solid fa-eye-slash fa-fw"></i><div><strong>过程黑盒</strong>：生成逻辑与结果混杂，不可追溯。</div></li>
+                <li><i class="fa-solid fa-person-falling-burst fa-fw"></i><div><strong>高度脆弱</strong>：基于文本匹配，重构即失效。</div></li>
+            </ul>
+        </div>
+        <div class="comparison-divider">VS</div>
+        <div class="comparison-right" style="padding: 1.5rem;">
+            <h4><i class="fa-solid fa-arrows-rotate"></i> 表象变换 (结构映射)</h4>
+            <div class="mini-code"><code>&lt;FormModel title="Hello" /&gt;</code><br> ⇅ (双向变换)<br><code>&lt;ViewModel title="Hello" /&gt;</code></div>
+            <ul class="comparison-points">
+                <li><i class="fa-solid fa-right-left fa-fw"></i><div><strong>双向可逆</strong>：支持高保真往返 (Round-trip)。</div></li>
+                <li><i class="fa-solid fa-eye fa-fw"></i><div><strong>过程白盒</strong>：生成过程可追溯、可调试 (via _dump)。</div></li>
+                <li><i class="fa-solid fa-shield-halved fa-fw"></i><div><strong>结构鲁棒</strong>：基于稳定坐标系，不受格式变动影响。</div></li>
+            </ul>
+        </div>
+    </div>
+    <div class="highlight-box" style="margin-top: 1rem;"><p>将Generator视为模板引擎是典型的“认知锚定”，会错失其<strong>可往返(变换可逆性)</strong>和<strong>变化传递(同态)</strong>的核心本质。</p></div>
+</section>
+
+<!-- 17. Engineering Cornerstone -->
+<section class="slide">
+    <style>
+        .cornerstone-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        .cornerstone-item {
+            background: #f8fafc;
+            border: 1px solid var(--color-border);
+            border-left: 5px solid var(--color-primary);
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+        .cornerstone-item h4 {
+            font-size: 1.4rem;
+            margin: 0 0 0.8rem 0;
+            color: var(--color-text-dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .cornerstone-item h4 i {
+            color: var(--color-primary);
+            font-size: 1.5rem;
+        }
+        .cornerstone-item p {
+            font-size: 1.1rem;
+            line-height: 1.5;
+            margin: 0;
+        }
+    </style>
+    <h2>从理论到现实：工程化基石</h2>
+    <p style="text-align:center; margin-top:-1.5rem;">
+        可逆计算不是空中楼阁，它依赖于一套严谨、完备的工程体系支撑。
+    </p>
+
+    <div class="cornerstone-grid">
+        <div class="cornerstone-item">
+            <h4><i class="fa-solid fa-crosshairs fa-fw"></i> 统一坐标系</h4>
+            <p>通过为模型元素提供唯一、稳定的“身份证”(ID)，并定义其演化规则，确保所有“变化”都能精确命中目标。</p>
+        </div>
+        <div class="cornerstone-item">
+            <h4><i class="fa-solid fa-layer-group fa-fw"></i> 确定性叠加运算</h4>
+            <p>定义非交换的合并顺序规则与冲突解算策略 (如 `x:override`)，保证 `Base ⊕ Δ` 的结果是唯一且可预测的。</p>
+        </div>
+        <div class="cornerstone-item">
+            <h4><i class="fa-solid fa-rocket fa-fw"></i> AOT预合并</h4>
+            <p>在构建期（Ahead-of-Time）完成所有差量合并，生成最终模型。这保证了运行时的高性能，无任何额外开销。</p>
+        </div>
+        <div class="cornerstone-item">
+            <h4><i class="fa-solid fa-magnifying-glass-location fa-fw"></i> 全链路溯源</h4>
+            <p>通过 `_dump` 机制，最终模型的每个部分都能精确追溯其来源文件和合并历史，极大提升了调试效率和系统透明度。</p>
+        </div>
+        <div class="cornerstone-item">
+            <h4><i class="fa-solid fa-plug-circle-bolt fa-fw"></i> 渐进式采纳</h4>
+            <p>可通过自定义 `Loader` 非侵入式地与现有技术栈（如Spring XML）集成，允许项目逐步、平滑地迁移到可逆计算范式。</p>
+        </div>
+    </div>
+</section>
+
+<!-- 18. XNode -->
+<section class="slide">
+    <h2>核心数据结构：XNode与局域化元信息</h2>
+    <p style="text-align:center; margin-top:-1.5rem; margin-bottom: 1.5rem; font-size: 1.3rem;">
+        XNode是Nop平台统一的内存模型，它是一种自带“背包”的树状结构，能就地携带元信息。
+    </p>
+
+    <div class="three-column" style="margin-top:0.5rem; gap: 1rem;">
+        <div class="item" style="padding: 15px 20px;">
+            <i class="fa-solid fa-paperclip"></i>
+            <h4 style="font-size: 1.3rem; margin-bottom: 0.5rem;">命名空间即扩展</h4>
+            <p style="font-size: 1rem; line-height: 1.45; margin-bottom:0;">
+                通过XML命名空间（如<code>meta:</code>），任何节点都可“就地携带”不属于其核心模型的扩展属性。
+            </p>
+        </div>
+        <div class="item" style="padding: 15px 20px;">
+            <i class="fa-solid fa-box-open"></i>
+            <h4 style="font-size: 1.3rem; margin-bottom: 0.5rem;">信息自包含</h4>
+            <p style="font-size: 1rem; line-height: 1.45; margin-bottom:0;">
+                 溯源、合并决策等元数据与差量(Δ)一同参与运算，无需外部<code>sourcemap</code>，实现全链路信息自闭环。
+            </p>
+        </div>
+        <div class="item" style="padding: 15px 20px;">
+            <i class="fa-solid fa-shield-halved"></i>
+            <h4 style="font-size: 1.3rem; margin-bottom: 0.5rem;">安全可治理</h4>
+            <p style="font-size: 1rem; line-height: 1.45; margin-bottom:0;">
+                通过命名空间注册表和编译期剥离策略，管理元数据生命周期，确保核心模型的纯净与安全。
+            </p>
+        </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top: 1.5rem; padding: 0.8rem 1.2rem;">
+        <p style="font-size: 1.2rem; margin: 0; text-align: center; line-height: 1.4;">
+            <strong>核心范式革命：</strong> 合并操作从 <strong>类型特定的对象层</strong> (为N种模型写N个算法) <br>下沉到 <strong>通用的结构层</strong> (只需1个通用算法)。
+        </p>
+    </div>
+
+    <div class="comparison-layout" style="margin: 1rem 0; align-items: center; gap: 1rem;">
+        <div class="comparison-left" style="padding: 0.8rem; text-align: center;">
+            <h4 style="font-size: 1.1rem; margin-bottom: 0.5rem;">传统合并: O(N)</h4>
+            <code style="font-family: var(--font-code); font-size: 1.3rem;">Model = Model ⊕ Δ</code>
+        </div>
+        <div class="comparison-divider" style="font-size: 2rem;">→</div>
+        <div class="comparison-right" style="padding: 0.8rem; text-align: center;">
+            <h4 style="font-size: 1.1rem; margin-bottom: 0.5rem;">可逆计算: O(1)</h4>
+            <code style="font-family: var(--font-code); font-size: 1.6rem; font-weight: bold;">XNode = XNode ⊕ Δ</code>
+        </div>
+    </div>
+</section>
+
+<!-- 19. XDef -->
+<section class="slide">
+    <h2 style="font-size: 2.4rem;">XDef: 面向演化的统一元模型</h2>
+    <p style="text-align:center; margin-top:-1.5rem; margin-bottom: 1.5rem; font-size: 1.3rem;">
+        XDef是一种用于定义DSL的DSL，它通过三大支柱，将DSL工具链开发从O(N)降维至O(1)。
+    </p>
+
+    <div class="three-column" style="align-items: stretch; gap: 1.2rem; margin-top:0;">
+        <div class="item" style="text-align:left; border: 2px solid var(--color-primary); background: #eff6ff; display: flex; flex-direction: column; padding: 20px;">
+            <h4 style="font-size: 1.3rem; display:flex; align-items:center; gap:8px; margin-bottom: 0.8rem;"><i class="fa-solid fa-cube fa-fw" style="color:var(--color-primary);"></i>1. 统一设计 (基础)</h4>
+            <p style="font-size:1rem; line-height: 1.5;">
+                所有DSL共享统一的元模型(XDef)和实例结构(XNode)。这种<strong>元模型与实例的同态</strong>，带来了两大核心优势：
+            </p>
+            <ul style="font-size: 1rem; padding-left: 1.2rem; margin: 0.5rem 0; flex-grow: 1;">
+                <li style="margin-bottom:0.3rem;"><strong>AI友好：</strong>将生成任务从“语言映射”降维为“模式填空”。</li>
+                <li style="margin-bottom:0;"><strong>工具复用：</strong>为格式转换、IDE支持等提供了坚实基础。</li>
+            </ul>
+            <div class="detail-note" style="background:#fff; font-size:0.9rem; padding:0.6rem; margin-top: auto;">
+                <strong>元模型:</strong> <code>&lt;task name="!string"/&gt;</code><br>
+                <strong>实例:</strong> &nbsp;&nbsp;&nbsp;<code>&lt;task name="processOrder"/&gt;</code>
+            </div>
+        </div>
+        <div class="item" style="text-align:left; border: 2px solid var(--color-secondary); background: #f0fdf4; display: flex; flex-direction: column; padding: 20px;">
+             <h4 style="font-size: 1.3rem; display:flex; align-items:center; gap:8px; margin-bottom: 0.8rem;"><i class="fa-solid fa-code-merge fa-fw" style="color:var(--color-secondary);"></i>2. 差量演化 (核心)</h4>
+            <p style="font-size:1rem; line-height: 1.5; flex-grow: 1;">
+                基于可逆计算的差量代数，任何模型乃至元模型自身，都可通过<code>x:extends</code>进行非侵入式的叠加与覆盖，赋予系统<strong>持续演化</strong>的能力。
+            </p>
+            <pre class="code-block" style="font-size:0.75rem; padding: 0.6em 1em; margin-top: auto;"><code>&lt;!-- 扩展并覆盖(override)基础模型 --&gt;
+&lt;greeting x:extends="base.greeting.xml"&gt;
+  &lt;from x:override="replace"&gt;CEO&lt;/from&gt;
+&lt;/greeting&gt;</code></pre>
+        </div>
+        <div class="item" style="text-align:left; border: 2px solid var(--color-warning); background: #fffbeb; display: flex; flex-direction: column; padding: 20px;">
+             <h4 style="font-size: 1.3rem; display:flex; align-items:center; gap:8px; margin-bottom: 0.8rem;"><i class="fa-solid fa-gears fa-fw" style="color:var(--color-warning);"></i>3. 工具链派生 (价值)</h4>
+            <p style="font-size:1rem; line-height: 1.5; flex-grow: 1;">
+                基于统一设计和差量演化，平台只需一套理解XDef的<strong>通用引擎</strong>，即可为所有DSL自动派生出全套工具，实现<strong>一次投入，处处复用</strong>。
+            </p>
+            <ul style="list-style: none; padding: 0; font-size: 0.9rem; margin-top: auto; column-count: 2; column-gap: 0.8rem;">
+                <li style="margin-bottom:0.2rem;"><i class="fa-solid fa-check fa-fw" style="color:var(--color-secondary);"></i> 代码生成</li>
+                <li style="margin-bottom:0.2rem;"><i class="fa-solid fa-check fa-fw" style="color:var(--color-secondary);"></i> IDE智能提示</li>
+                <li style="margin-bottom:0.2rem;"><i class="fa-solid fa-check fa-fw" style="color:var(--color-secondary);"></i> 自动可视化</li>
+                <li style="margin-bottom:0.2rem;"><i class="fa-solid fa-check fa-fw" style="color:var(--color-secondary);"></i> _dump可追溯</li>
+                <li style="margin-bottom:0.2rem;"><i class="fa-solid fa-check fa-fw" style="color:var(--color-secondary);"></i> 格式转换</li>
+                <li style="margin-bottom:0.2rem;"><i class="fa-solid fa-check fa-fw" style="color:var(--color-secondary);"></i> 统一验证</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- 20. Eng Value 1: Traceable -->
+<section class="slide">
+    <style>
+        .trace-comment {
+            display: block; /* 让注释独占一行 */
+            background-color: #fffbeb;
+            color: #b45309;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-style: normal;
+            border: 1px solid #fde68a;
+            white-space: pre-wrap; /* 允许长内容换行 */
+            word-break: break-all; /* 在任意字符处换行 */
+            margin-bottom: 0.5rem; /* 与下方元素增加间距 */
+        }
+        .trace-comment strong { color: #92400e; }
+    </style>
+    <h2>工程价值(一)：告别猜谜的可追溯性</h2>
+    <p style="text-align:center; font-size:1.4rem; color:var(--color-text-light); margin-top:-1.5rem; margin-bottom: 2rem;">
+        合并结果的每个属性值，都能精确追溯其来源文件与位置。将原本黑盒的构造过程完全“白盒化”，让每一个结果都有迹可循。
+    </p>
+    <div class="debug-flow" style="margin-top:0">
+        <div class="debug-col">
+            <h4 style="font-size: 1.3rem;">1. 输入源 (分散定义)</h4>
+            <div class="source-file">
+                <span class="path">/app/config.xml</span>
+                <code>&lt;bean id="svc" class="app.MySvc"&gt;
+  &lt;prop name="timeout" value="<strong style="color:var(--color-danger);">3000</strong>"/&gt;
+&lt;/bean&gt;</code>
+            </div>
+            <div class="source-file">
+                <span class="path">/_delta/default/config.xml</span>
+                <code>&lt;bean id="svc"&gt;
+  &lt;prop name="timeout" value="<strong style="color:var(--color-secondary);">5000</strong>"/&gt;
+&lt;/bean&gt;</code>
+            </div>
+        </div>
+        <div class="debug-col" style="flex: 0.4;">
+            <div class="process-arrow" style="margin-top: 5rem;">
+                <i class="fa-solid fa-arrow-right-long"></i>
+                <p>确定性合并 (⊕)</p>
+            </div>
+        </div>
+        <div class="debug-col output">
+            <h4 style="font-size: 1.3rem;">2. 可追溯的输出 (_dump)</h4>
+            <pre class="code-block" style="margin:0; width:100%; font-size: 0.85rem; line-height:1.6;"><code>&lt;beans&gt;
+  &lt;bean id="svc" class="app.MySvc"&gt;
+    <span class="trace-comment">&lt;!-- @value <strong>LOC:[2:3:0]@/_delta/default/config.xml</strong>--&gt;</span>
+    &lt;prop name="timeout" value="<strong style="color:var(--color-secondary);">5000</strong>"/&gt;
+  &lt;/bean&gt;
+&lt;/beans&gt;</code></pre>
+        </div>
+    </div>
+    <div class="highlight-box" style="margin-top:2.5rem;">
+       <p style="font-size: 1.4rem; line-height: 1.6;">
+           <i class="fa-solid fa-map-location-dot" style="margin-right: 10px;"></i>
+           <strong>调试不再靠猜：</strong> 面对异常的<code>timeout</code>值，根源定位不再是“大海捞针”。<code>_dump</code>信息就是一张精准的地图，直接将问题锁定在 <code>/_delta/default/config.xml</code>。
+       </p>
+    </div>
+</section>
+
+<!-- 21. Eng Value 2: Excel -->
+<section class="slide">
+    <h2>工程价值(二)：赋能存量资产 (以Excel为例)</h2>
+    <p style="text-align:center; font-size:1.3rem; color:var(--color-text-light); margin-top:-1.5rem; margin-bottom: 1.5rem;">
+        借助现有资产（如Excel）的开放性，可逆计算通过<strong>附加一个独立的差量(Δ)</strong>，就能将其非侵入式地“升维”成一个可演化的专业模型。
+    </p>
+    <div class="comparison-layout" style="margin: 0 0 2rem 0; gap: 1.5rem;">
+        <div class="comparison-left" style="padding: 1.5rem;">
+            <h4><i class="fa-solid fa-puzzle-piece"></i> 传统方案</h4>
+            <p style="font-size:1.2rem;">破坏性的“导入/导出”模式。存量资产无法直接利旧，需按新工具的规范重做，学习和迁移成本高。</p>
+        </div>
+        <div class="comparison-divider">VS</div>
+        <div class="comparison-right" style="padding: 1.5rem;">
+            <h4><i class="fa-solid fa-wand-magic-sparkles"></i> 可逆计算方案</h4>
+            <p style="font-size:1.2rem;">非侵入式的“差量增强”模式。任何现有Excel都能直接成为专业报表模板，保留用户原有习惯。</p>
+        </div>
+    </div>
+    
+    <div style="background: #f0f9ff; border: 2px solid var(--color-primary); padding: 20px; border-radius: 16px;">
+        <div class="comparison-layout" style="gap: 1.5rem; margin:0; align-items:flex-start;">
+            <div style="text-align:center; flex:1;">
+                <h4 style="font-size:1.3rem; color:var(--color-text-dark); margin-bottom:1rem; border:none; padding:0;">1. 模型的可组合性</h4>
+                <code style="font-size:1.2rem; color:var(--color-primary-dark); display:block;">ReportTemplate = Excel ⊕ ReportDelta</code>
+            </div>
+            <div class="comparison-divider" style="font-size: 2rem;">
+                <i class="fa-solid fa-plus"></i>
+            </div>
+            <div style="text-align:center; flex:1.3;">
+                <h4 style="font-size:1.3rem; color:var(--color-text-dark); margin-bottom:1rem; border:none; padding:0;">2. 编辑器的可组合性</h4>
+                <code style="font-size:1.2rem; color:var(--color-primary-dark); display:block;">Editor(Excel ⊕ ReportDelta) = Editor(Excel) ⊕ Editor(ReportDelta)</code>
+            </div>
+        </div>
+    </div>
+    
+    <div class="highlight-box" style="margin-top:2rem; padding: 1.2rem 1.5rem; border-left-color: var(--color-warning); background: #fffbeb;">
+        <p style="font-size: 1.3rem; color: #92400e; line-height: 1.5;">
+            <i class="fa-solid fa-cogs" style="color:var(--color-warning); margin-right: 10px;"></i>
+            <strong>架构前提：主动的线性化设计。</strong>编辑器的可组合性并非天然成立，它要求我们主动设计和规范变化(Δ)的“跨界”传播机制，通过严格的<strong>局域化</strong>使其变得线性、可预测。
+        </p>
+    </div>
+</section>
+
+<!-- 22. Runtime Evolution -->
+<section class="slide">
+    <h2>运行时演化：Delta的动态应用</h2>
+    <p style="text-align:center; margin-top:-1.5rem; margin-bottom: 1.5rem; font-size: 1.3rem;">
+        差量(Δ)不仅可在构建期(AOT)应用，也能在运行时(Runtime)动态加载，实现系统的不停机演化。
+    </p>
+
+    <div class="comparison-layout" style="margin: 0.5rem 0; align-items: stretch; gap: 1.5rem;">
+        <div class="comparison-left" style="padding: 1.2rem 1.5rem;">
+            <h4 style="color: var(--color-danger); font-size: 1.3rem;"><i class="fa-solid fa-gears"></i> 前提条件</h4>
+            <ul style="font-size:1.1rem; padding-left: 1.2rem; margin:0; line-height: 1.5;">
+                <li style="margin-bottom: 0.8rem;"><strong>无状态内核：</strong> 核心合并与生成引擎自身无状态，业务状态外置。</li>
+                <li style="margin-bottom: 0;"><strong>模型与实例分离：</strong> 运行时的对象实例，与其可动态更新的定义模型相分离。</li>
+            </ul>
+        </div>
+        <div class="comparison-divider" style="font-size: 2rem;"><i class="fa-solid fa-arrow-right-arrow-left"></i></div>
+        <div class="comparison-right" style="padding: 1.2rem 1.5rem;">
+            <h4 style="color: var(--color-secondary); font-size: 1.3rem;"><i class="fa-solid fa-cogs"></i> 核心机制</h4>
+            <ul style="font-size:1.1rem; padding-left: 1.2rem; margin:0; line-height: 1.5;">
+                 <li style="margin-bottom: 0.8rem;"><strong>依赖追踪缓存：</strong> 自动记录模型间依赖。底层模型修改，上层自动失效。</li>
+                 <li style="margin-bottom: 0;"><strong>延迟/即时编译(JIT)：</strong> 失效模型在下次被请求时，触发重新加载与合并。</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top:1.5rem; padding: 1rem 1.5rem;">
+        <p style="font-size: 1.4rem; margin: 0; line-height: 1.5;">
+            <i class="fa-solid fa-bolt" style="margin-right: 10px;"></i>
+            <strong>最终效果：实现模型的热更新(Hot Reload)。</strong><br>
+            <span style="font-size: 1.1rem; font-weight: 400;">修改DSL后无需重启服务即可自动更新。这对需要7x24小时持续演化的SaaS平台等场景至关重要。</span>
+        </p>
+    </div>
+</section>
+
+<!-- 23. Cognitive Reshape 1: DDD -->
+<section class="slide">
+    <h2>认知重塑(一)：以变化代数重解DDD</h2>
+    
+    <div class="comparison-layout" style="margin-top:1.5rem; gap: 1rem;">
+        <div class="comparison-left" style="padding: 1.5rem;">
+            <h4 style="font-size: 1.4rem; margin-bottom: 1rem;"><i class="fa-solid fa-bullseye"></i> DDD传统理解</h4>
+            <ul style="padding-left: 1.5rem;">
+                <li style="font-size: 1.1rem; margin-bottom: 0.7rem;">以业务领域为核心构建领域模型</li>
+                <li style="font-size: 1.1rem; margin-bottom: 0.7rem;">统一技术与业务的心智模型</li>
+                <li style="font-size: 1.1rem; margin-bottom: 0.7rem;">通过限界上下文划分领域边界</li>
+                <li style="font-size: 1.1rem;">强调聚合根、实体、值对象等模式</li>
+            </ul>
+        </div>
+        
+        <div class="comparison-divider" style="font-size: 2rem;">→</div>
+        
+        <div class="comparison-right" style="padding: 1.5rem;">
+            <h4 style="font-size: 1.4rem; margin-bottom: 1rem;"><i class="fa-solid fa-calculator"></i> 可逆计算视角</h4>
+            <ul style="padding-left: 1.5rem;">
+                <li style="font-size: 1.1rem; margin-bottom: 0.7rem;"><strong>领域语言即坐标系</strong>：DSL定义语义空间</li>
+                <li style="font-size: 1.1rem; margin-bottom: 0.7rem;"><strong>聚合即差量组合</strong>：BizModel差量构造</li>
+                <li style="font-size: 1.1rem; margin-bottom: 0.7rem;"><strong>领域事件即状态Δ</strong>：状态变化作为差量</li>
+                <li style="font-size: 1.1rem;"><strong>CQRS即读写分离</strong>：查询与命令差量处理</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top:1.5rem; padding: 1rem 1.5rem;">
+        <p style="font-size: 1.2rem; margin: 0;"><strong>核心洞察：</strong>DDD提供领域语义结构（坐标系），可逆计算提供变化操作的代数规则（⊕运算）。</p>
+    </div>
+
+    <div class="detail-note" style="margin-top:1rem; padding: 1rem; font-size: 1rem;">
+        <strong>GraphQL的协同价值：</strong>GraphQL的声明式查询与聚合根设计互补——聚合根维护一致性边界，GraphQL提供灵活查询视图，共同解决数据加载与使用效率问题。
+    </div>
+</section>
+
+<!-- 24. Cognitive Reshape 2: Decoupling -->
+<section class="slide">
+    <h2>认知重塑(二)：解耦的再思考</h2>
+    <p style="text-align:center; margin-top:-1.5rem; margin-bottom: 1.5rem;">
+        从“减少依赖”的防御性解耦，到“正交投影”的建构性解耦。
+    </p>
+
+    <div class="comparison-layout" style="margin-top:1rem;gap:1.5rem;">
+<div class="comparison-left" style="padding:1.5rem; display: flex; flex-direction: column;">
+    <h4 style="margin-bottom:1rem;"><i class="fa-solid fa-plug"></i> 传统解耦 (依赖注入)</h4>
+    <p style="font-size: 1.2rem; line-height: 1.6; flex-grow: 1;">
+        业务代码依赖于抽象的<strong>接口</strong>，而非具体的<strong>实现</strong>。其理论基石，是一种数学上的“同态”关系：
+    </p>
+    <div class="highlight-box" style="margin: 0; padding: 1rem 1.2rem; background: #faf5ff; border-left-color: #a855f7;">
+        <p style="font-size: 1.2rem; color: #581c87; margin:0; text-align: left; line-height: 1.5;">
+            接口是实现类的一个“<strong>同态像</strong>”(Homomorphic Image)，它在隐藏实现细节的同时，<strong>保持了核心的“可调用”结构</strong>。
+        </p>
+    </div>
+    <p style="font-size: 1.0rem; color: var(--color-text-light); text-align: center; margin-top: 0.8rem; margin-bottom: 0;">
+        (This structural preservation is the essence of LSP)
+    </p>
+</div>
+        <div class="comparison-divider" style="font-size:2rem;">→</div>
+        <div class="comparison-right" style="padding:1.5rem;">
+            <h4 style="margin-bottom:0.8rem;"><i class="fa-solid fa-arrows-rotate"></i> 可逆计算解耦 (正交投影)</h4>
+            <ul style="font-size:1.05rem;margin-bottom:0.8rem; line-height: 1.5; flex-grow:1;">
+                <li><strong>目标：</strong> 将系统信息分解到理想模型(DSL)和无法规约的残差(Δ)中。</li>
+                <li><strong>本质：</strong> 构造过程(App=...)本身被定义为一个信息无损的**可逆变换**。</li>
+            </ul>
+            <pre class="code-block" style="font-size:0.8rem;margin:0;padding:0.8em;">// App由DSL经变换G生成,再叠加上无法被G表达的Δ
+// App = 投影(G(DSL)) + 残差(Δ)
+App = G(DSL) ⊕ Δ
+</pre>
+        </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top:1.5rem;padding:1rem 1.5rem;">
+        <p style="font-size:1.2rem;margin:0; line-height: 1.5;">
+            <i class="fa-solid fa-wave-square" style="color:var(--color-primary); margin-right: 10px;"></i>
+            <strong>核心洞察：软件构造即正交投影。</strong>
+            如同傅里叶变换，可逆计算将复杂的应用(App)投影到由DSL定义的“理想模型”子空间上，得到可自动生成的部分<code>G(DSL)</code>；所有无法被模型解释的“特例”和“噪声”，则被分离到与之正交的“残差”<code>Δ</code>中。
+        </p>
+    </div>
+</section>
+
+<!-- 25. Cognitive Reshape 3: Declarative -->
+<section class="slide">
+    <h2 style="font-size: 2.4rem; margin-bottom: 1rem;">认知重塑(三)：声明式编程的代数基石</h2>
+    
+    <div class="highlight-box" style="margin-bottom: 1rem; padding: 1rem;">
+        <p style="font-size: 1.3rem; margin: 0; line-height: 1.4;">
+            <strong>可逆计算为声明式编程提供系统化工程实现：</strong>
+            通过DSL虚拟化、差量修订和同构转化，将"描述what而非how"的理念转化为可实践的架构方法
+        </p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin: 1rem 0;">
+        <div style="background: #f0f9ff; padding: 1rem; border-radius: 10px; border-left: 4px solid #3b82f6;">
+            <h4 style="font-size: 1.3rem; color: #1d4ed8; margin-bottom: 0.8rem;">
+                <i class="fa-solid fa-cube"></i> 虚拟化执行环境
+            </h4>
+            <p style="font-size: 1.1rem; margin: 0; line-height: 1.4;">
+                DSL在领域特定虚拟机中解释执行，底层提供稳定原语，上层支持灵活的业务逻辑表达，实现关注点分离
+            </p>
+            <div style="font-size: 0.9rem; color: #64748b; margin-top: 0.5rem;">
+                <i class="fa-solid fa-code"></i> 实例：Slate编辑器通过schema配置支持多种富文本类型
+            </div>
+        </div>
+        
+        <div style="background: #f0fdf4; padding: 1rem; border-radius: 10px; border-left: 4px solid #059669;">
+            <h4 style="font-size: 1.3rem; color: #065f46; margin-bottom: 0.8rem;">
+                <i class="fa-solid fa-arrows-rotate"></i> 同构多重诠释
+            </h4>
+            <p style="font-size: 1.1rem; margin: 0; line-height: 1.4;">
+                同一DSL声明可逆转化为多种运行时形态，实现真正的"一次定义，多处使用"，极大减少重复表达
+            </p>
+            <div style="font-size: 0.9rem; color: #64748b; margin-top: 0.5rem;">
+                <i class="fa-solid fa-filter"></i> 实例：业务规则DSL同时生成前端表单和后端验证
+            </div>
+        </div>
+        
+        <div style="background: #fef2f2; padding: 1rem; border-radius: 10px; border-left: 4px solid #dc2626;">
+            <h4 style="font-size: 1.3rem; color: #b91c1c; margin-bottom: 0.8rem;">
+                <i class="fa-solid fa-code-branch"></i> 差量修订机制
+            </h4>
+            <p style="font-size: 1.1rem; margin: 0; line-height: 1.4;">
+                DSL支持import语法和规则重写，处理逻辑可通过Visitor模式继承扩展，实现非侵入式演进
+            </p>
+            <div style="font-size: 0.9rem; color: #64748b; margin-top: 0.5rem;">
+                <i class="fa-solid fa-sitemap"></i> 实例：Antlr4语法继承和重写机制
+            </div>
+        </div>
+        
+        <div style="background: #fffbeb; padding: 1rem; border-radius: 10px; border-left: 4px solid #d97706;">
+            <h4 style="font-size: 1.3rem; color: #92400e; margin-bottom: 0.8rem;">
+                <i class="fa-solid fa-gears"></i> 状态驱动自动化
+            </h4>
+            <p style="font-size: 1.1rem; margin: 0; line-height: 1.4;">
+                基于势函数概念，系统自动感知状态差异并推导修复动作，实现声明式运维和自愈能力
+            </p>
+            <div style="font-size: 0.9rem; color: #64748b; margin-top: 0.5rem;">
+                <i class="fa-brands fa-kubernetes"></i> 实例：K8s状态驱动运维范式
+            </div>
+        </div>
+    </div>
+
+    <div class="warning-box" style="margin-top: 1rem; padding: 1rem;">
+        <p style="font-size: 1.2rem; margin: 0; line-height: 1.4;">
+            <i class="fa-solid fa-lightbulb"></i> 
+            <strong>理论价值：</strong>为声明式编程建立代数学基础和系统化工程路径，使其从理念宣言转化为可大规模应用的工程实践
+        </p>
+    </div>
+</section>
+
+<!-- NEW Slide: How to Evaluate the Value of Reversible Computation -->
+<section class="slide">
+<style>
+.compact-eval .item {
+    min-height: auto;
+    padding: 1rem;
+}
+.compact-eval .item h4 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+.compact-eval .item p {
+    font-size: 1rem;
+    line-height: 1.4;
+    margin-bottom: 0;
+}
+.compact-eval .item i {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+</style>
+
+    <h2>超越主观：技术框架的客观评价体系</h2>
+    <p style="text-align:center; margin-top:-1rem; margin-bottom: 1rem; font-size:1.4rem;">基于信息论与软件工程原理的评判体系</p>
+
+    <div class="three-column compact-eval" style="margin-top:0; gap: 1rem;">
+        <div class="item" style="padding: 1rem;">
+            <i class="fa-solid fa-unlink fa-fw"></i>
+            <h4>1. 解耦度</h4>
+            <p style="font-size:1.1rem;">业务代码是否框架无感知(POJO)？技术环境迁移成本？</p>
+        </div>
+        <div class="item" style="padding: 1rem;">
+            <i class="fa-solid fa-brain fa-fw"></i>
+            <h4>2. 推导力</h4>
+            <p style="font-size:1.1rem;">基于已有信息自动完成工作的程度（如ORM自动生成SQL）</p>
+        </div>
+        <div class="item" style="padding: 1rem;">
+            <i class="fa-solid fa-bridge fa-fw"></i>
+            <h4>3. 转换力</h4>
+            <p style="font-size:1.1rem;">通用双向转换能力(XML/JSON/Excel/POJO)与链条完整性</p>
+        </div>
+        <div class="item" style="padding: 1rem;">
+            <i class="fa-solid fa-plug fa-fw"></i>
+            <h4>4. 开放性</h4>
+            <p style="font-size:1.1rem;">模型信息独立程度，外部系统复用难度，调试支持程度</p>
+        </div>
+        <div class="item" style="padding: 1rem;">
+            <i class="fa-solid fa-puzzle-piece fa-fw"></i>
+            <h4>5. 差量化</h4>
+            <p style="font-size:1.1rem;">差量定制统一性，非侵入式修改能力，扩展机制性能损耗</p>
+        </div>
+        <div class="item" style="padding: 1rem;">
+            <i class="fa-solid fa-sitemap fa-fw"></i>
+            <h4>6. 完备性</h4>
+            <p style="font-size:1.1rem;">层次抽象合理性，异步支持，元编程能力，渐进演化路径</p>
+        </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top:1.5rem; padding: 1rem;">
+        <p style="text-align:center; font-size:1.3rem; margin:0;">
+            <i class="fa-solid fa-check-double"></i>
+            可逆计算通过 ⊕代数、同态传递、S-N-V分层 在这些维度上提供系统化解决方案
+        </p>
+    </div>
+</section>
+
+
+<!-- 26. Worldview Shift -->
+<section class="slide">
+    <h2>世界观的转换：从“拼装对象”到“叠加变化”</h2>
+    <p style="text-align:center; font-size:1.4rem; color:var(--color-text-light); margin-top:-1.5rem; margin-bottom: 1.5rem;">
+        我们思考软件构造的出发点发生了根本性转变。
+    </p>
+    
+    <div class="comparison-layout" style="margin-top:0; margin-bottom: 1rem;">
+        <div class="comparison-left">
+            <h4><i class="fa-solid fa-cubes-stacked"></i> 传统世界观：对象本体论</h4>
+            <ul class="icon-list" style="margin-top:0.5rem; padding-left:0;">
+                <li style="font-size: 1.2rem; margin-bottom: 0.8rem; gap:15px;">
+                    <i class="fa-solid fa-atom fa-fw"></i>
+                    <div><strong>基本单元</strong>：对象、组件、模块是世界的基本“粒子”。</div>
+                </li>
+                <li style="font-size: 1.2rem; margin-bottom: 0.8rem; gap:15px;">
+                    <i class="fa-solid fa-gears fa-fw"></i>
+                    <div><strong>构造方式</strong>：通过“组装”和“侵入式修改”来构建系统。</div>
+                </li>
+                <li style="font-size: 1.2rem; margin-bottom: 0.8rem; gap:15px;">
+                    <i class="fa-solid fa-magnifying-glass fa-fw"></i>
+                    <div><strong>关注焦点</strong>：单个组件的内部状态及其之间的显式交互。</div>
+                </li>
+            </ul>
+        </div>
+        <div class="comparison-divider">→</div>
+        <div class="comparison-right">
+            <h4><i class="fa-solid fa-map-location-dot"></i> 新世界观：结构-变化二元论</h4>
+            <ul class="icon-list" style="margin-top:0.5rem; padding-left:0;">
+                <li style="font-size: 1.2rem; margin-bottom: 0.8rem; gap:15px;">
+                    <i class="fa-solid fa-crosshairs fa-fw"></i>
+                    <div><strong>基本单元</strong>：一个稳定的“结构坐标系”和作用于其上的“变化(Δ)”。</div>
+                </li>
+                <li style="font-size: 1.2rem; margin-bottom: 0.8rem; gap:15px;">
+                    <i class="fa-solid fa-layer-group fa-fw"></i>
+                    <div><strong>构造方式</strong>：通过“叠加”和“非侵入式投影”来生成系统。</div>
+                </li>
+                <li style="font-size: 1.2rem; margin-bottom: 0.8rem; gap:15px;">
+                    <i class="fa-solid fa-wave-square fa-fw"></i>
+                    <div><strong>关注焦点</strong>：作为背景的坐标系如何演化，以及变化(Δ)如何组合与传递。</div>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="highlight-box" style="margin-top:0rem;">
+       <p style="text-align:center; font-size: 1.6rem; font-weight:600;">核心转变：思考的起点从“世界由什么构成？” 转变 为“在哪个坐标系下，发生了什么变化？”</p>
+    </div>
+</section>
+
+<!-- 27. Applicability -->
+<section class="slide">
+    <style>
+        .two-col-applicability { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1.5rem; }
+        .applicability-col { background-color: #f8fafc; border-top: 4px solid var(--color-primary); border-radius: 12px; padding: 1.5rem 2rem; box-shadow: var(--shadow-md); }
+        .applicability-col h4 { font-size: 1.5rem; border-bottom: 2px solid var(--color-border); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+        .applicability-col .icon-list { margin-top: 0; }
+        .applicability-col .icon-list li { font-size: 1.2rem; gap: 15px; margin-bottom: 1.2rem; align-items: center; }
+        .applicability-col .icon-list i { font-size: 1.5rem; }
+        .applicability-col .formula-tag { 
+            font-family: var(--font-code); 
+            color: var(--color-secondary); 
+            font-size: 1rem; 
+            display: inline-block; 
+            margin-top: 0.5rem;
+            background-color: #f0fdf4;
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--color-secondary);
+        }
+    </style>
+    <h2>广泛适用性：从应用领域到统一范式</h2>
+    <p style="text-align:center; margin-top:-1.5rem; margin-bottom: 1.5rem;">
+        可逆计算不仅是Nop平台的构建理论，更能为业界已有的“差量化”实践提供统一的数学解释。
+    </p>
+
+    <div class="two-col-applicability">
+        <div class="applicability-col">
+            <h4><i class="fa-solid fa-rocket"></i> 作为构建理论：Nop平台应用</h4>
+            <ul class="icon-list">
+                <li>
+                    <i class="fa-solid fa-cubes-stacked fa-fw"></i>
+                    <div>
+                        <p style="margin-bottom:0;"><strong>软件产品线 (SPL)</strong></p>
+                        <span class="formula-tag">Base ⊕ Δ_Industry ⊕ Δ_Customer</span>
+                    </div>
+                </li>
+                <li>
+                    <i class="fa-solid fa-server fa-fw"></i>
+                    <div>
+                        <p style="margin-bottom:0;"><strong>IaC与云原生配置</strong></p>
+                        <span class="formula-tag">BaseYAML ⊕ Δ_Env ⊕ Δ_App</span>
+                    </div>
+                </li>
+                <li>
+                    <i class="fa-solid fa-table-list fa-fw"></i>
+                    <div>
+                        <p style="margin-bottom:0;"><strong>数据/报表流水线</strong></p>
+                        <span class="formula-tag">StdModel ⊕ Δ_Source ⊕ Δ_Rule</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="applicability-col" style="border-top-color: var(--color-secondary);">
+            <h4 style="border-bottom-color: #d1fae5;"><i class="fa-solid fa-magnifying-glass-chart"></i> 作为解释框架：统一现有实践</h4>
+             <ul class="icon-list">
+                <li>
+                    <i class="fa-brands fa-docker fa-fw"></i>
+                    <div>
+                        <p style="margin-bottom:0;"><strong>Docker 镜像分层</strong></p>
+                        <span class="formula-tag">BaseImage ⊕ Layer₁ ⊕ Layer₂</span>
+                    </div>
+                </li>
+                <li>
+                    <i class="fa-solid fa-code-merge fa-fw"></i>
+                    <div>
+                        <p style="margin-bottom:0;"><strong>Kustomize Overlays</strong></p>
+                        <span class="formula-tag">BaseManifest ⊕ Overlay</span>
+                    </div>
+                </li>
+                <li>
+                    <i class="fa-brands fa-react fa-fw"></i>
+                    <div>
+                        <p style="margin-bottom:0;"><strong>React 虚拟DOM Diff</strong></p>
+                        <span class="formula-tag">NewVNode = OldVNode ⊕ PatchΔ</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- 28. Quantitative Validation -->
+<section class="slide">
+    <style>
+        .metrics-table {
+            width: 100%; border-collapse: separate; border-spacing: 0; margin: 2rem 0; 
+            border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-md); 
+            border: 1px solid var(--color-border);
+        }
+        .metrics-table th, .metrics-table td { 
+            padding: 1rem 1.2rem; text-align: left; border-bottom: 1px solid var(--color-border);
+            vertical-align: middle;
+        }
+        .metrics-table th { 
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); 
+            color: white; font-weight: 600; font-size: 1.1rem;
+        }
+        .metrics-table tr:last-child td { border-bottom: none; }
+        .metrics-table tr:nth-child(even) { background-color: #f9fafc; }
+        .metrics-table td:first-child { font-weight: 600; color: var(--color-text-dark); }
+        .metrics-table .dim-icon { margin-right: 10px; color: var(--color-primary); }
+    </style>
+    <h2>如何衡量成功？量化验证指标</h2>
+    <p style="text-align:center; margin-top:-1.5rem; margin-bottom: 1rem;">
+        理论的价值最终需要通过可度量的工程效果来验证，而非主观感受。
+    </p>
+
+    <table class="metrics-table">
+        <thead>
+            <tr>
+                <th style="width: 25%;">验证维度</th>
+                <th style="width: 25%;">核心指标</th>
+                <th style="width: 25%;">建议目标 / 验收阈值*</th>
+                <th style="width: 25%;">对照基线</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><i class="dim-icon fa-solid fa-right-left"></i> 表象可逆性</td>
+                <td>往返保真度 (Round-trip Fidelity)</td>
+                <td>&gt; 95% 语义等价</td>
+                <td>传统的导入/导出功能</td>
+            </tr>
+            <tr>
+                <td><i class="dim-icon fa-solid fa-shuffle"></i> 变化传递</td>
+                <td>同态投影成功率</td>
+                <td>&gt; 90% 自动映射</td>
+                <td>人工手写代码同步</td>
+            </tr>
+            <tr>
+                <td><i class="dim-icon fa-solid fa-code-merge"></i> 差量组合鲁棒性</td>
+                <td>自动化合并冲突率</td>
+                <td>&lt; 10% (需人工干预)</td>
+                <td>Git 分支合并冲突率</td>
+            </tr>
+            <tr>
+                <td><i class="dim-icon fa-solid fa-crosshairs"></i> 坐标系稳定性</td>
+                <td>重构后坐标命中率</td>
+                <td>&gt; 98% 自动定位</td>
+                <td>基于文本的重构工具</td>
+            </tr>
+            <tr style="background: #eff6ff;">
+                <td style="color: var(--color-primary-dark);"><i class="dim-icon fa-solid fa-gauge-high"></i> <strong>工程效率</strong></td>
+                <td><strong>定制开发/二次开发效率</strong></td>
+                <td><strong>提升 50% ~ 200%</strong></td>
+                <td>基于传统框架的开发模式</td>
+            </tr>
+        </tbody>
+    </table>
+    <div class="detail-note" style="font-size:1rem; margin-top:0.5rem;">*具体数值依赖于基准场景和对照方法的选择，需通过实际PoC项目进行验证和校准。</div>
+</section>
+<!-- 29. Common Objections -->
+<section class="slide" style="overflow-y: auto; padding-bottom: 30px;">
+    <h2>常见疑虑与回应</h2>
+    <div class="three-column" style="margin-top:2rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+        <div class="item" style="min-height: 320px;">
+            <i class="fa-solid fa-box-archive"></i>
+            <h4>"只是营销包装"</h4>
+            <p><strong>回应：</strong>核心创新在于将软件构造抽象到<strong>多DSL的结构空间</strong>，并以<strong>统一坐标系</strong>与<strong>叠加运算(⊕)</strong>为基础，配合<strong>同态传递</strong>与<strong>S-N-V</strong>分层，形成一整套自洽的<strong>工程化实现</strong>，而非对现有工具的拼装。</p>
+        </div>
+        <div class="item" style="min-height: 320px;">
+            <i class="fa-solid fa-brain"></i>
+            <h4>"过于复杂，学习成本高"</h4>
+            <p><strong>回应：</strong>复杂性被框架内化。使用者可通过具体实践（如Excel模型和报表）无感地获得其收益，并通过<strong>渐进式采纳</strong>（模型化改造）逐步深化应用，而非要求一次性全盘掌握。</p>
+        </div>
+        <div class="item" style="border-color:var(--color-primary); background: #eff6ff; min-height: 320px;">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <h4>"是银弹吗？边界何在？"</h4>
+            <p><strong>回应：</strong>它不是银弹，而是为"可扩展性"问题提供了<strong>通用解</strong>。其边界在于<strong>选择</strong>：我们多大程度上愿意将逻辑"升维"到描述式的模型中，决定了我们能多大程度上享受其红利。</p>
+        </div>
+    </div>
+    <div class="highlight-box" style="margin-top:2rem; margin-bottom: 10px;">
+        <p style="text-align:center;"><i class="fa-solid fa-map-location-dot" style="margin-right:10px;"></i>可逆计算提供了一张更强大的"地图"。能否到达目的地，取决于我们是否选择并坚持走"模型驱动"这条路。</p>
+    </div>
+</section>
+
+
+<!-- 30. Conclusion -->
+<section class="slide">
+    <h2 style="text-align:center;">总结：可逆计算的系统性蓝图</h2>
+    <p style="text-align:center; font-size: 2rem; margin-bottom: 1.5rem;">可逆计算 = 变化的代数学 + 软件的几何学</p>
+    <ul class="icon-list" style="margin-top:0rem; max-width: 95%; margin-left: auto; margin-right: auto;">
+        <li style="margin-bottom: 1rem; align-items: flex-start;">
+            <i class="fa-solid fa-crosshairs fa-fw" style="margin-top: 2px;"></i>
+            <div style="font-size: 1.3rem; line-height: 1.6;"><strong>坐标系原则（几何）：</strong>为模型元素提供稳定、可演化的唯一坐标，是变化可定位与可传递的前提。</div>
+        </li>
+        <li style="margin-bottom: 1rem; align-items: flex-start;">
+            <i class="fa-solid fa-calculator fa-fw" style="margin-top: 2px;"></i>
+            <div style="font-size: 1.3rem; line-height: 1.6;"><strong>叠加运算原则（代数）：</strong>在同一坐标系下定义 ⊕（结合、一般不交换），并引入逆元，使“复用从求交集转为求差量”，支持撤销与迁移。</div>
+        </li>
+        <li style="margin-bottom: 1rem; align-items: flex-start;">
+            <i class="fa-solid fa-sitemap fa-fw" style="margin-top: 2px;"></i>
+            <div style="font-size: 1.3rem; line-height: 1.6;"><strong>DSL 图册（协同）：</strong>以生成器 G 作为“表象变换”，满足同态传递，令变化在多 DSL 之间自动投影与对齐。</div>
+        </li>
+        <li style="margin-bottom: 1rem; align-items: flex-start;">
+            <i class="fa-solid fa-layer-group fa-fw" style="margin-top: 2px;"></i>
+            <div style="font-size: 1.3rem; line-height: 1.6;"><strong>S-N-V 分层（过程）：</strong>S 结构合并、N 规范化、V 验证，解耦结构与语义，确保可调试、可回放、可验证。</div>
+        </li>
+        <li style="margin-bottom: 1rem; align-items: flex-start;">
+            <i class="fa-solid fa-infinity fa-fw" style="margin-top: 2px;"></i>
+            <div style="font-size: 1.3rem; line-height: 1.6;"><strong>自洽性（自反）：</strong>平台自身各环节（Loader/Generator/Editor）均遵循同态与 ⊕ 法则，实现从加载到编辑到生成的一致性。</div>
+        </li>
+    </ul>
+    <div class="formula" style="font-size:1rem; margin: 0rem auto 0; padding: 10px 20px; width: fit-content;">
+        <code>G(X ⊕ ΔX) ≡ G(X) ⊕ ΔY</code>
+        <span style="margin: 0 1.5rem; font-weight: 100; color: var(--color-border);">|</span>
+        <code>L(A + B) ≡ L(A) ⊕ L(B)</code>
+        <div class="note" style="margin-top: 1rem;">同态小结：变化在跨 DSL（G）与平台加载（L）两层均可传递与复合，形成可验证的一致性。</div>
+    </div>
+</section>
+
+<!-- 31. CTA -->
+<section class="slide center-content">
+    <div class="quote" style="max-width:90%; padding: 40px;">
+        <p style="font-size:2rem; line-height:1.6;">
+            <strong>下一代低代码/无代码平台的架构基石</strong><br><br>
+            将软件工程从“手工组合对象”的时代，<br>带向“代数化组合变化”的时代。
+        </p>
+    </div>
+    <div class="warning-box" style="margin-top:2rem; text-align:left;">
+        <h4><i class="fa-solid fa-bullhorn"></i> 行动号召 (Call to Action)</h4>
+        <p>理论的价值在于实践。建议从一个具体场景（如Excel报表）开始PoC，用量化指标证明其价值，让可逆计算从概念走向现实。</p>
+    </div>
+</section>
+
+<!-- 32. Q&A -->
+<section class="slide center-content">
+    <h1>Q & A</h1>
+    <p class="subtitle">感谢聆听！</p>
+</section>
+
+<!-- 33. Appendix 1: Inspirations -->
+<section class="slide">
+    <h2>附录1：理论的灵感来源</h2>
+    <p style="text-align:center; font-size:1.4rem; color:var(--color-text-light); margin-top:-1.5rem; margin-bottom: 2rem;">
+        可逆计算并非源于计算机科学，而是将物理学与现代数学中成熟的思维范式应用于软件构造。
+    </p>
+    
+    <div class="three-column" style="gap: 2rem; align-items: stretch;">
+        <div class="item" style="text-align: left; background: #fffbeb; border-color: var(--color-warning);">
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.2rem;">
+                <i class="fa-solid fa-fire" style="font-size: 2rem; margin: 0; color: var(--color-warning);"></i>
+                <h4 style="margin: 0;">1. 熵增原理与熵控制</h4>
+            </div>
+            <p style="font-size:1.2rem; line-height: 1.6;">
+                <strong>热力学第二定律</strong>指出孤立系统会自发走向混乱(熵增)。可逆计算通过将随机变化隔离到可抛弃的<strong>差量(Δ)</strong>中，实现了对<strong>熵的局域化控制</strong>，从而保护核心架构的低熵状态。
+            </p>
+        </div>
+        <div class="item" style="text-align: left; background: #faf5ff; border-color:#a855f7;">
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.2rem;">
+                <i class="fa-solid fa-atom" style="font-size: 2rem; margin: 0; color: #9333ea;"></i>
+                <h4 style="margin: 0;">2. 微扰论与相互作用绘景</h4>
+            </div>
+            <p style="font-size:1.2rem; line-height: 1.6;">
+                借鉴数学物理中的<strong>微扰论</strong>，将系统分解为“已知模型 + 微小扰动(Δ)”。这对应于量子力学的<strong>相互作用绘景</strong>：焦点从“演化的状态”转移到研究<strong>扰动(Δ)</strong>本身如何驱动系统。
+            </p>
+        </div>
+        <div class="item" style="text-align: left; background: #eff6ff; border-color:var(--color-primary);">
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.2rem;">
+                <i class="fa-solid fa-globe" style="font-size: 2rem; margin: 0;"></i>
+                <h4 style="margin: 0;">3. 群表示论与微分几何</h4>
+            </div>
+           <p style="font-size:1.2rem; line-height: 1.6;">
+                <strong>群表示论</strong>的思想启发了单一DSL的多<strong>表象</strong>设计(XML/Excel/UI)；而<strong>微分几何</strong>中用“坐标卡”和“图册”描述复杂空间的思想，则为我们用多个不同DSL协同构建整个系统提供了<strong>方法论来源</strong>。
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- 34. Appendix 2: Relationship with Existing Theories -->
+<section class="slide" >
+    <h2>附录2：与既有理论的关系定位</h2>
+    <div class="mermaid-container" style="margin-top:0">
+        <div class="mermaid">
+graph TD
+    subgraph framework [可逆计算统一框架]
+        RC[可逆差量计算]
+    end
+    subgraph practices [既有分散实践]
+        DOP[Delta-Oriented<br/>Programming]
+        FOP[Feature-Oriented<br/>Programming]
+        BX[Bidirectional<br/>Transformations]
+        SPL[Software Product<br/>Lines]
+        MDD[Model-Driven<br/>Development]
+        Overlay[Overlay<br/>Technologies]
+    end
+    RC -->|统一结构层代数| DOP
+    RC -->|统一结构层代数| FOP
+    RC -->|统一结构层代数| SPL
+    RC -->|统一结构层代数| Overlay
+    RC -->|形式化定律| BX
+    RC -->|变化代数协同| MDD
+    style RC fill:#e1f5fe,stroke:#1976d2,stroke-width:4px
+        </div>
+    </div>
+    <div class="detail-note" style="margin-top:0rem;">
+    <strong>核心区别：</strong>可逆计算并非技术包装，而是将分散的“差量思想”公理化，为模型驱动开发(MDD)补上了最关键的“变化代数”与“多模型协同”的缺失维度。
+    </div>
+</section>
+
+<!-- Original slides that were not used in the main flow can be placed here as additional appendix items if needed, e.g., 19, 20, 30. For now, they are considered integrated or superseded. -->
+
+    </div>
+
+    <div class="controls">
+        <button class="btn" id="home-btn" title="First Slide"><i class="fa-solid fa-home"></i></button>
+        <button class="btn" id="prev-btn" title="Previous"><i class="fa-solid fa-arrow-left"></i></button>
+        <button class="btn" id="next-btn" title="Next"><i class="fa-solid fa-arrow-right"></i></button>
+        <button class="btn" id="fullscreen-btn" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+        <button class="btn" id="print-btn" title="Print"><i class="fa-solid fa-print"></i></button>
+        <button class="btn" id="pdf-btn" title="Export to PDF"><i class="fa-solid fa-file-pdf"></i></button>
+    </div>
+</div>
+
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'default',
+        securityLevel: 'loose',
+        fontFamily: 'var(--font-main)',
+        flowchart: { useMaxWidth: false, htmlLabels: true, curve: 'basis' }
+    });
+	
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('presentation-container');
+        const allSlides = document.querySelectorAll('.slide');
+        const homeBtn = document.getElementById('home-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const printBtn = document.getElementById('print-btn');
+        const pdfBtn = document.getElementById('pdf-btn');
+        const slideCounter = document.getElementById('slide-counter');
+        const progressBar = document.getElementById('progress-bar');
+        
+        let currentSlide = 0;
+        const totalSlides = allSlides.length;
+        
+        // Update total slides count
+        slideCounter.textContent = `1 / ${totalSlides}`;
+
+        function showSlide(index, skipHashUpdate = false) {
+            if (index < 0 || index >= totalSlides) return;
+            allSlides.forEach((slide, i) => slide.classList.toggle('active', i === index));
+            currentSlide = index;
+            updateControls();
+            if (!skipHashUpdate) updateHash(index);
+        }
+        function updateControls() {
+            slideCounter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+            progressBar.style.width = `${((currentSlide + 1) / totalSlides) * 100}%`;
+            prevBtn.disabled = currentSlide === 0;
+            nextBtn.disabled = currentSlide === totalSlides - 1;
+        }
+        function nextSlide() { showSlide(currentSlide + 1); }
+        function prevSlide() { showSlide(currentSlide - 1); }
+        function goToFirstSlide() { showSlide(0); }
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => alert(`Cannot enter fullscreen mode: ${err.message}`));
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        function updateHash(index) {
+            const hash = `#slide-${index + 1}`;
+            if (location.hash !== hash) history.pushState(null, null, hash);
+        }
+        function parseHashToIndex() {
+            const h = location.hash;
+            const m = h.match(/slide-(\d+)/i);
+            if (m) {
+                const idx = parseInt(m[1], 10) - 1;
+                if (!isNaN(idx) && idx >= 0 && idx < totalSlides) return idx;
+            }
+            return null;
+        }
+        function printPresentation() { window.print(); }
+
+        async function prepareForPdf() {
+            const pdfContainer = document.createElement('div');
+            pdfContainer.className = 'pdf-page-container';
+            allSlides.forEach(slide => {
+                const clone = slide.cloneNode(true);
+                clone.classList.remove('active');
+                clone.classList.add('pdf-slide');
+                const images = clone.querySelectorAll('img');
+                images.forEach(img => img.remove());
+                pdfContainer.appendChild(clone);
+            });
+            document.body.appendChild(pdfContainer);
+            return pdfContainer;
+        }
+        
+        function exportToPDF() {
+            const originalButtonContent = pdfBtn.innerHTML;
+            pdfBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+            pdfBtn.disabled = true;
+            
+            prepareForPdf().then(pdfContainer => {
+                const options = {
+                    margin: 0,
+                    filename: 'nop-platform-presentation.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, allowTaint:true, letterRendering: true },
+                    jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+                    pagebreak: { mode: ['css'] }
+                };
+
+                html2pdf().set(options).from(pdfContainer).save().then(() => {
+                    document.body.removeChild(pdfContainer);
+                    pdfBtn.innerHTML = originalButtonContent;
+                    pdfBtn.disabled = false;
+                }).catch(err => {
+                    console.error('PDF export failed:', err);
+                    document.body.removeChild(pdfContainer);
+                    pdfBtn.innerHTML = originalButtonContent;
+                    pdfBtn.disabled = false;
+                    alert('PDF export failed. Check the console for details.');
+                });
+            });
+        }
+
+        homeBtn.addEventListener('click', goToFirstSlide);
+        nextBtn.addEventListener('click', nextSlide);
+        prevBtn.addEventListener('click', prevSlide);
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+        printBtn.addEventListener('click', printPresentation);
+        pdfBtn.addEventListener('click', exportToPDF);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); nextSlide(); }
+            if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prevSlide(); }
+            if (e.key === 'Home') { e.preventDefault(); goToFirstSlide(); }
+            if (e.key === 'End') { e.preventDefault(); showSlide(totalSlides - 1); }
+        });
+
+        let touchStartX = 0;
+        container.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+        container.addEventListener('touchend', e => {
+            const touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 50) nextSlide();
+            if (touchEndX - touchStartX > 50) prevSlide();
+        });
+
+        window.addEventListener('popstate', () => {
+            const idx = parseHashToIndex();
+            if (idx !== null && idx !== currentSlide) showSlide(idx, true);
+        });
+
+        const initialIndexFromHash = parseHashToIndex();
+        if (initialIndexFromHash !== null) showSlide(initialIndexFromHash, true);
+        else showSlide(0);
+		
+		setTimeout(()=>{
+		  window.enableContentLightboxForSelector && window.enableContentLightboxForSelector('.mermaid svg, .column img,.slide svg')
+		}, 1000);
+    });
+</script>
+
+</body>
+</html>

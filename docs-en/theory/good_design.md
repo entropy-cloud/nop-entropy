@@ -1,31 +1,34 @@
-What Makes a Good Model?
 
-Yesterday, while introducing model-driven development, a peer asked me how to design a good model. This is a difficult question to answer because defining what constitutes a "good" model is inherently challenging.
+What makes a good model?
 
-First, a good definition often depends on the context. What was once considered optimal may no longer be suitable as the scenario evolves. Even something like Einstein's general relativity versus Newton's classical mechanics: while general relativity may provide a more accurate description of spacetime, for many practical purposes, Newtonian mechanics is still more useful.
+Yesterday, when introducing model-driven approaches, a student asked me how to design a good model. That’s a difficult question to answer, because “good” is hard to define, and there is no fixed recipe for achieving what is considered “good.”
 
-Second, if we can create a model with a broad scope and the ability to handle various changes, its intrinsic logic likely follows certain inherent patterns. Software design is not yet a precise or complex scientific field; however, by observing others' successes and failures, one can generally achieve an acceptable level of performance.
+First, the definition of “good” is often context-dependent; a currently optimal choice may cease to be good as the context changes. Even where there is a universally “better” theory—say, general relativity vs. Newtonian mechanics—the simpler Newtonian mechanics can be more practical for solving specific problems.
 
-Third, creative solutions at the outset may seem unconventional and may not fit well within existing frameworks. Such approaches might even be perceived as unfavorable.
+Second, if we can design a model with broad applicability that accommodates many variations, the fundamental reason is that the domain logic has certain inherent regularities; the model is merely a natural reflection of those regularities. Software design is still far from being a precise, intricate science; even without formal design theory, by observing others’ successes and failures, one can typically reach a reasonably adequate level.
 
-Although it's difficult to define precisely what constitutes a "good" model, we can still apply some heuristic criteria to filter out suboptimal options.
+Third, creative problem-solving approaches may initially appear heretical and out of step with the current ecosystem, making them seem “not good.”
 
-1. **Multi-objective Optimization**: Break the problem into multiple dimensions, evaluate each individually, and then assess them comprehensively.
-2. **Multi-level Architecture**: Avoid trying to create a single, all-encompassing model. For example, separate storage and application layers; they don't need to be unified. Similarly, using DDD (Domain-Driven Design) doesn't exclude physical models for generating entity storage layer code. Different abstraction levels should remain distinct. Reverse engineering is unnecessary.
-3. **Time-aware Evolution**: A good model should not lock in design decisions too early. Allow room for incremental changes and adjustments based on future needs. Using a differential approach ensures fine-grained flexibility and fusion of multiple models.
+Although it is hard to define a “good” model in a definitive way, we can still filter out some suboptimal choices based on observable criteria.
 
-4. **Balanced Complexity**: The complexity of the solution should align with the problem's complexity. Simple problems shouldn't require overly complex solutions. Even if a model technically outperforms others in terms of complexity, it may not be worth the effort if execution becomes too cumbersome or error-prone.
+1. Design involves multi-objective optimization. We can decompose the problem into multiple dimensions, evaluate each dimension independently, and then synthesize the assessment.
 
-5. **External Dependency Minimization**: Define the model's dependencies on external systems clearly and minimize them. A good model should be understandable and manageable independently.
+2. Design is multi-layered (spatial); do not attempt to design a single best, universal model. For example, the storage layer and the application layer can have different object structures—there is no need to enforce a unified object structure across the board. Using a DDD domain-model-driven approach does not require rejecting code generation for the entity persistence layer based on a physical model. Elements at different abstraction levels, serving different usage intents, should not be mixed within the same model. Based on Reversible Computation theory, incremental code generation can be used to share some foundational information among models with different structures.
 
-6. **Internal Concept Completeness and Consistency**: Internal concept completeness and consistency are crucial. Using reversible computation ensures that each change can be reversed, maintaining the ability to return to previous states. Inconsistencies often lead to missing information and incomplete designs, making them difficult to handle when exceptions occur.
+3. A model should be evolution-oriented (temporal), and should not prematurely introduce design decisions that constrain future choices. Based on Reversible Computation theory, the Delta mechanism can always preserve the model’s finest-grained extensibility and its ability for multi-model integration; metaprogramming can compensate for the limitations of component and plugin mechanisms.
 
-7. **Modular Mechanisms for Complex Models**: Any sufficiently complex model should have decomposition, composition, and double abstraction mechanisms. For example, encapsulating components with support for import of sub-models ensures modularity. Reversible computation provides a comprehensive solution without unnecessary customization for each model.
+4. The model’s complexity should be moderate. The complexity of the solution should match the problem’s complexity, as well as the level of complexity the implementers can handle. Simple problems should not adopt evidently overcomplicated solutions. If the implementers’ capability is limited, even a technically superior solution may be more prone to misuse and harder to troubleshoot independently; in such cases, it may be preferable to use a solution that implementers can fully understand and control autonomously. Conversely, a complex problem may have no simple solution; blunt simplification will mean robbing Peter to pay Paul and constant firefighting.
 
-8. **Multi-stage Processing**: Handle information through multiple stages—generation, compilation, preprocessing—to ensure each part is processed appropriately. Avoid intermingling runtime logic with parts irrelevant to the execution phase.
+5. A model needs to clearly define its dependencies on the external environment and minimize its external dependency points. A model’s value lies primarily in its ability to be interpreted and understood independently.
 
-9. **Formality vs. Expressiveness Balance**: While content should be primarily about substance, formal representations are necessary for documentation and communication. However, over-reliance on formal methods can hinder long-term maintainability and evolution.
+6. Internal conceptual completeness and consistency are crucial. Based on Reversible Computation theory, for the computations a model participates in, we need paired design: every state-changing action (Delta) should correspond to a reverse action (Delta), so that the system can, in some sense, be restored to a previous state. The inability to reverse often implies missing information records and an incomplete design space, leaving exceptional situations unhandled.
 
-10. **Meta-modeling**: A model should be defined by a meta-model. This allows maximum exploration of the relationships between different models, their semantics, and structures. It also facilitates plug-in development of parsers, IDEs, and serializers without deep customization.
+7. Any model with non-trivial complexity should provide mechanisms for decomposition, merging, and secondary abstraction. For example, support component encapsulation and importing submodels. Reversible Computation theory provides a comprehensive set of general solutions for this, without the need to redesign and reimplement separately for each kind of model.
 
-11. **Automatic Model Generation**: Use meta-modeling to automatically generate parsers, IDEs, and serializers, enabling seamless communication across various models.
+8. Processing and utilization of model information can be multi-stage. Whenever possible, handle it during code generation, compile time, preprocessing, etc., and avoid entangling logic unrelated to runtime state with runtime logic.
+
+9. The content of a model matters more than its form, but the form should allow reverse extraction. Heavy use of a particular language’s or framework’s built-in mechanisms to express the model may reduce one-off authoring costs, but is not conducive to long-term model evolution. To maximize a model’s value, the model—as descriptive information—should be multipurpose, not serving only a single intent, and should support further processing and transformation of form.
+
+10. A model should be defined by a metamodel. Through the metamodel, we can maximally uncover semantic and structural commonalities across different models, facilitating their interconnection and interoperability. A metamodel can automatically generate model parsers, IDE plugins, designers, etc.
+
+<!-- SOURCE_MD5:55ad53091b9c04c829db7b3398128ba8-->

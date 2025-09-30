@@ -1,85 +1,84 @@
-# How to Add Extended Fields Without Modifying Tables
 
-[Video Demonstration](https://www.bilibili.com/video/BV1wL411D7g7)
+# How to add extension fields to an entity without altering the table
 
-In the Excel data model, adding the `use-ext-field` tag to a data table enables global extended field support. The extended fields will be stored in the `nop_sys_ext_field` table.
+[Video demo](https://www.bilibili.com/video/BV1wL411D7g7)
 
-![use-ext-field.png](use-ext-field.png)
+In the Excel data model, add the `use-ext-field` tag to a data table to enable global extension field support. Extension fields will be stored in the `nop_sys_ext_field` table.
+
+![](use-ext-field.png)
 
 The structure of the `nop_sys_ext_field` table is as follows:
 
-| Column Name | Type |
-|--------------|------|
-| entity_name   | VARCHAR |
-| entity_id     | VARCHAR |
-| field_name    | VARCHAR |
-| field_type    | INTEGER |
-| decimal_value | DECIMAL |
-| date_value    | DATE |
-| timestamp_value | TIMESTAMP |
-| string_value  | VARCHAR |
+|Column Name|Type|
+|---|---|
+|entity\_name|VARCHAR|
+|entity\_id|VARCHAR|
+|field\_name|VARCHAR|
+|field\_type|INTEGER|
+|decimal\_value|DECIMAL|
+|date\_value|DATE|
+|timestamp\_value|TIMESTAMP|
+|string\_value|VARCHAR|
 
-Based on the `field_type` setting, the specific field values are stored in corresponding columns such as `decimal_value`.
+Depending on the setting of the `field_type` field, the actual value is stored in different columns such as `decimal_value`.
 
 ## ORM Configuration
 
-At compile time, the `<orm-gen:ExtFieldsSupport>` tag identifies the `use-ext-field` configuration and generates associated properties.
+At compile time, the [`<orm-gen:ExtFieldsSupport>`](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/orm-gen.xlib) tag recognizes the `use-ext-field` configuration and automatically generates an association property:
 
 ```xml
 <entity name="xxx.MyEntity">
-  <relations>
-    <to-many name="extFields" refEntityName="io.nop.sys.dao.entity.NopSysExtField" keyProp="fieldName">
-      <join>
-        <on leftProp="id" rightProp="entityId"/>
-        <on leftValue="xxx.MyEntity" rightProp="entityName"/>
-      </join>
-    </to-many>
-  </relations>
+    <relations>
+        <to-many name="extFields" refEntityName="io.nop.sys.dao.entity.NopSysExtField" keyProp="fieldName">
+            <join>
+                <on leftProp="id" rightProp="entityId"/>
+                <on leftValue="xxx.MyEntity" rightProp="entityName"/>
+            </join>
+        </to-many>
+    </relations>
 </entity>
 ```
 
-> In a one-to-many relationship, if `keyProp` is set, it indicates that this property is the unique identifier. The `IOrmEntitySet` collection provides methods like `prop_get/prop_set` to access and modify corresponding entries based on this property.
+> If `keyProp` is set in the one-to-many association configuration, it indicates that this property is a unique identifier. The `IOrmEntitySet` collection provides extended methods such as `prop_get/prop_set`, allowing you to directly access collection entries by this property.
 
-For usage of extended fields in Java, refer to [TestExtFields.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/test/java/io/nop/orm/dao/TestExtFields.java).
+For how to use extension fields, see [TestExtFields.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/test/java/io/nop/orm/dao/TestExtFields.java)
 
-In a Java program, extended fields can be accessed through the following configuration:
+In Java, we can access extension fields with the following configuration:
 
 ```java
-IOrmKeyValueTable field = (IOrmKeyValueTable) entity.getExtFields().prop_get("fldA");
-entity.getExtFields().prop_set("fldA", value);
+IOrmKeyValueTable field = (IOrmKeyValueTable)entity.getExtFields().prop_get("fldA");
+entity.getExtFields().prop_set("fldA",value);
 ```
 
-In XScript and EQL languages, `extFields.fldA.string` is equivalent to `entity.getExtFields().prop_get("fldA").getString()`. The `fldA` effectively retrieves the unique record from the one-to-many relationship using the `keyProp`.
+In the XScript scripting language and in the EQL query language, `extFields.fldA.string` is equivalent to `entity.getExtFields().prop_get("fldA").getString()`.
 
-### Alias for Extended Fields
+`fldA` is essentially the unique record retrieved from a one-to-many collection according to `keyProp`.
 
-To simplify access, extended fields can be assigned aliases:
+### Extension field aliases
+
+To simplify access, we can add aliases for extension fields:
 
 ```xml
 <entity>
-  <relations>
-    <to-many name="extFields" ... />
-  </relations>
+    <relations>
+        <to-many name="extFields" ... />
+    </relations>
 
-  <aliases>
-    <alias name="extFldA" propPath="extFields.fldA.string" type="String"/>
-    <alias name="extFldB" propPath="extFields.fldB.int" type="Integer"/>
-  </aliases>
+    <aliases>
+        <alias name="extFldA" propPath="extFields.fldA.string" type="String"/>
+        <alias name="extFldB" propPath="extFields.fldB.int" type="Integer" />
+    </aliases>
 </entity>
 ```
 
-Adding the `alias` configuration allows `extFldA` and `extFldB` to become properties of the entity. In Java, these can be accessed via `entity.prop_get("fldA")`.
+After adding the `alias` configuration, `extFldA` and `extFldB` become properties on the entity. In Java, you can get extension properties via `entity.prop_get(fieldName)`.
+In XScript, you can access them via `entity.extFldA` just like ordinary entity properties.
 
-
-In XScript, you can access extended fields using the `entity.extFldA` property style, which is consistent with standard entity properties.
-
-> If the ORM model file defines an alias (`alias`), it will generate corresponding getter/setter methods. This allows you to access extended fields via `entity.getExtFldA()` and `entity.setExtFldA(value)` in Java.
+> If code is generated from an ORM model file that defines `alias`, corresponding get/set methods will be generated, so in Java you can access extension properties via `entity.getExtFldA()` and `entity.setExtFldA(value)`.
 > 
-> Once a getter/setter method is generated, you cannot use `entity.prop_get` to retrieve the value anymore. The `prop_get` method is intended for accessing non-existent extended properties on the entity. If you want to uniformly access both built-in and extended fields of an entity, you can use either:
-> - `entity.orm_propValueByName(name)` method
-> - Or the reflection-based `BeanTool.getProperty(entity, propName)` method.
+> If get/set methods are generated, you can no longer use `entity.prop_get` to get the property value, because `prop_get` is for retrieving extension properties that do not physically exist on the entity. If you want a unified way to access both built-in and extension fields, use `entity.orm_propValueByName(name)` or reflection via `BeanTool.getProperty(entity, propName)`.
 
-Not only that, but in EQL syntax, you can directly use extended fields for filtering and sorting. The usage of extended fields is consistent with built-in entity fields.
+Moreover, in EQL query syntax, you can directly use extension fields for filtering and sorting; extension fields behave exactly the same as built-in fields on the entity:
 
 ```sql
 select o.extFldA
@@ -88,81 +87,97 @@ where o.extFldA = '123'
 order by o.extFldA
 ```
 
-Using the alias mechanism allows for a smooth transition between extended and built-in fields: initially, use extended fields, and later add basic fields to the entity when performance bottlenecks occur.
-
+By leveraging aliases, we can achieve a smooth transition between extension fields and built-in fields: during initial development, you can first use extension fields; when performance becomes a bottleneck, add base fields to the entity—while keeping the property names unchanged in Java code.
 
 ## GraphQL Access
 
-Adding `extFldA` and `extFldB` properties in the xmeta file enables GraphQL access to these extended fields.
+Add configurations for properties such as `extFldA` and `extFldB` in the xmeta file to access extension properties via GraphQL.
 
 ```xml
-<prop name="extFldA" displayName="Extended Field A" queryable="true" sortable="true" insertable="true" updatable="true">
-    <schema type="String" domain="email" />
-</prop>
+    <prop name="extFldA" displayName="Extension Field A" queryable="true" sortable="true" insertable="true" updatable="true">
+        <schema type="String" domain="email" />
+    </prop>
 ```
 
+## Dedicated extension field tables
 
-## Dedicated Extended Fields Table
+By default, all extension fields in the system are stored in the `nop_sys_ext_field` table, which may lead to an excessive data volume for a single table and poor performance. To mitigate this, you can add the
+`local-ext` tag for the entity table, and the system will automatically generate a paired extension field table for the current entity. The extension table name is usually `original_table_name+'_ext'`, for example `nop_sys_notice_template_ext`.
 
-By default, all extended fields are stored in the `nop_sys_ext_field` table. This can lead to a single table becoming too large and performing poorly. To address this, you can add a `local-ext` tag to the entity table, which will generate a corresponding extended field table automatically. The name of the extended field table typically follows the pattern `original_table_name + '_ext'`, such as `nop_sys_notice_template_ext`.
+The structure of the extension table is similar to `nop_sys_ext_field`, except it lacks the `entityName` field, so it does not need to be filtered by entity name.
 
-The structure of the extended field table resembles `nop_sys_ext_field`, but it lacks the `entityName` field, so no filtering by entity name is required.
+## Vertical-to-horizontal table transformation
 
+Many low-code platforms store all data in a vertical table to enable dynamic schema changes, and their vertical-to-horizontal transformation is a hardcoded special case. The Nop platform is different:
+its built-in horizontal/vertical transformation is a standard mathematical transformation. Not only ordinary vertical tables—any one-to-many association can be converted into a one-to-one association, and one-to-one or many-to-one properties behave in EQL exactly the same as native table columns.
 
-## Cross-Table Transformation
-
-Many low-code platforms dynamically modify the database structure by using a vertical table approach. However, this "write-dead" approach is not suitable for dynamic schema changes. The Nop platform differs in that its built-in horizontal table transformation is a standard mathematical transformation, not limited to simple vertical tables. Any one-to-many or many-to-one relationships can be transformed into a one-to-one mapping using the EQL layer and the appropriate table structure.
-
-
+In the [TestExtFields](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/test/java/io/nop/orm/dao/TestExtFields.java) unit test:
 
 ```xml
-<entity name="io.nop.app.SimsExam">
-    <aliases>
-        <alias name="extFldA" propPath="ext.fldA.string" type="String"/>
-        <alias name="extFldB" propPath="ext.fldB.boolean" type="Boolean" notGenCode="true"/>
-    </aliases>
+ <entity name="io.nop.app.SimsExam">
 
-    <relations>
-        <to-many name="ext" refEntityName="io.nop.app.SimsExtField" keyProp="fieldName">
-            <join>
-                <on leftProp="id" rightProp="entityId"/>
-                <on leftValue="io.nop.app.SimsExam" rightProp="entityName"/>
-            </join>
-        </to-many>
-    </relations>
-</entity>
+            <aliases>
+                <alias name="extFldA" propPath="ext.fldA.string" type="String"/>
+                <alias name="extFldB" propPath="ext.fldB.boolean" type="Boolean" notGenCode="true"/>
+            </aliases>
 
-* Any `to-many` relationship can configure the `keyProp` property to distinguish a single record in the collection.
-* `ext.fldA.string` is equivalent to `((IOrmEntitySet) entity.getExt()).prop_get("fldA").getString()`
-* Using an alias mechanism, we can assign an alias for complex property paths. For example, `extFldA` corresponds to `ext.fldA.string`.
-* If `notGenCode` is marked, the corresponding getter and setter methods will not be generated in the Java code. Instead, you should use `entity.prop_get("extFldB")` to retrieve the value.
-* In XScript or XPL template languages, extended properties are accessed using the same syntax as regular properties. For example, `entity.extFldB = true`.
-* In EQL query language, it will automatically recognize `keyProp` and perform structural transformations based on that.
+            <relations>
+                <to-many name="ext" refEntityName="io.nop.app.SimsExtField" keyProp="fieldName">
+                    <join>
+                        <on leftProp="id" rightProp="entityId"/>
+                        <on leftValue="io.nop.app.SimsExam" rightProp="entityName"/>
+                    </join>
+                </to-many>
+
+            </relations>
+        </entity>
+```
+
+* You can configure the `keyProp` attribute on any `to-many` association to distinguish a unique record within the collection.
+* `ext.fldA.string` is equivalent to `((IOrmEntitySet)entity.getExt()).prop_get("fldA").getString()`.
+* Through the alias mechanism, we can create a shortcut for complex paths used to access extension fields. For example, in the configuration above, `extFldA` is equivalent to `ext.fldA.string`.
+* If `notGenCode` is marked, no Java get/set methods will be generated for that property during code generation; you will need to get values via `entity.prop_get("extFldB")`.
+
+In XScript or the XPL template language, the access syntax for extension properties and ordinary properties is exactly the same; you can directly use `entity.extFldB = true`.
+
+In the EQL query language, `keyProp` is also automatically recognized and a structural transformation is performed.
 
 ```sql
 select o.children.myKey.value from MyEntity o
-// Will be converted to:
-select u.value from MyEntity o left join Children u on o.id = u.parent_id and u.key = 'myKey'
+// Will be transformed into:
+select u.value from MyEntity o  left join Children u on o.id = u.parent_id and u.key = 'myKey'
 ```
 
-A collection will only be able to map a unique record if it has some kind of unique identifier. In an ORM using EQL, this is exactly what `o.a.b.c` represents as an associated property. The ORM will handle the transformation of this path into a join-based query.
+That is, as long as a collection has some unique identifier, it can be mathematically flattened into an associated property with a unique access path. The ORM engine’s EQL query language is responsible for converting associated properties like `o.a.b.c` into join queries.
 
 ```sql
 select o.name from MyEntity o
 where o.children.myKey1.intValue = 3 and o.children.myKey2.strValue like 'a%'
-// Will be converted to:
-select o.name from MyEntity o left join Children u1 on o.sid = u1.parent_id and u1.key = 'myKey1'
-left join Children u2 on o.sid = u2.parent_id and u2.key = 'myKey2'
-where u1.intValue = 3 and u2.strValue like 'a%'
+
+-- Will be transformed into:
+
+select o.name from MyEntity o left join Children u1
+on o.sid = u1.parent_id and u1.key = 'myKey1'
+left join Children u2
+on o.sid = u2.parent_id and u2.key = 'myKey2'
+where u1.intValue = 3
+and u2.strValue like 'a%'
 ```
 
-A one-to-many relationship table will become a one-to-one relationship if a `key` filter condition is added.
+A one-to-many association table naturally becomes a one-to-one association table if you add a `key` filter condition:
 
 ```sql
-select o.key1, o.children.myKey1.value, o.children.myKey2.value from MyEntity o
-// Will be converted to:
-select o.key1, u1.value, u2.value from MyEntity o left join Children u1 on o.sid = u1.parent_id and u1.key = 'myKey1'
-left join Children u2 on o.sid = u2.parent_id and u2.key = 'myKey2'
+select o.key1,o.children.myKey1.value,o.children.myKey2.value
+from MyEntity o
+
+-- Will be transformed into:
+select o.key1, u1.value, u2.value
+from MyEntity o left join Children u1 on
+on o.sid = u1.parent_id and u1.key = 'myKey1'
+left join Children u2
+on o.sid = u2.parent_id and u2.key = 'myKey2'
 ```
 
-According to the rules, we extract the relation table from `o.children.myKey`. On the mathematical level, this is a deterministic local transformation rule.
+According to the rules, extracting the associated table from `o.children.myKey` is, at the mathematical level, a deterministic local transformation rule.
+
+<!-- SOURCE_MD5:82ca4a7f6145a6b74804d4d17cd06c27-->

@@ -1,83 +1,73 @@
-  # Why Spring Batch is a Bad Design?
+# Why is SpringBatch a poor design?
 
-  Explained in the video: [https://www.bilibili.com/video/BV1TgBEYYETK/](https://www.bilibili.com/video/BV1TgBEYYETK/)
+Explainer video: [https://www.bilibili.com/video/BV1TgBEYYETK/](https://www.bilibili.com/video/BV1TgBEYYETK/)
 
-  Spring Batch is currently one of the most commonly used batch processing frameworks in the Java ecosystem. It is frequently employed in banking applications to handle end-of-day settlement and report generation, among other functionalities. The origins of Spring Batch date back to 2006, when Accenture (a major IT services company) open-sourced its proprietary batch processing framework and collaborated with SpringSource (the company behind the Spring Framework) to release Spring Batch 1.0.
+SpringBatch is currently the most commonly used batch processing framework in the Java ecosystem. In banking, it is frequently used to implement end-of-day settlements and report outputs. SpringBatch originated in 2006 when Accenture open-sourced its proprietary batch processing framework and collaborated with SpringSource (the company behind Spring Framework) to release Spring Batch 1.0. Although SpringBatch’s design has undergone multiple refactorings since then, it exhibits severe design issues today and is unfriendly to performance optimization and code reuse. This article analyzes SpringBatch’s design problems and introduces the design philosophy of next-generation batch frameworks based on the implementation of NopBatch.
 
-  Subsequent updates to Spring Batch have undergone numerous refactorings, but as it stands today, the framework is plagued by significant design flaws, particularly in terms of performance optimization and code reuse. This article will analyze the design issues of Spring Batch and introduce the implementation approach of NopBatch, a new batch processing framework, to discuss the design principles of the next-generation batch processing framework.
+## I. SpringBatch Overview
 
-  ## 1. Introduction to Spring Batch
+Below is an introduction to Spring Batch by Zhipu Qingyan AI:
 
-  Here is the summary provided by智谱清言AI regarding Spring Batch:
+Spring Batch is a lightweight, comprehensive framework for batch processing. It aims to support enterprise-scale batch processing needs such as large-scale data import, transformation, and migration. Built on the Spring framework, Spring Batch lets developers leverage Spring’s core features, such as dependency injection and declarative transaction management, to create robust batch applications.
 
-  Spring Batch is a lightweight and comprehensive batch processing framework designed to support enterprise-level bulk data operations such as large-scale data import, transformation, and migration. Built on top of the Spring Framework, it allows developers to leverage core Spring features like dependency injection and declarative transaction management to create robust batch processing applications.
+Key features of Spring Batch include:
 
-  Key characteristics of Spring Batch include:
+1. Reusability: Spring Batch provides many reusable components such as ItemReaders, ItemWriters, and ItemProcessors, which can be easily customized and extended.
 
-  1. **Reusability**: The framework provides numerous reusable components such as item readers (ItemReaders), writers (ItemWriters), and processors (ItemProcessors) that can be easily customized and extended.
+2. Extensibility: The framework is designed with extensibility in mind, allowing developers to add custom components through a plugin mechanism.
 
-  2. **Extensibility**: The framework's design is structured to allow for extensibility, enabling developers to add custom components through plug-in mechanisms.
+3. Robustness: Spring Batch supports transaction management to ensure the atomicity and consistency of batch jobs. It also provides skip and retry mechanisms to handle data errors and failures.
 
-  3. **Robustness**: Spring Batch supports transaction management to ensure the atomicity and consistency of batch jobs. It also provides mechanisms for skipping and retrying items to handle data errors and failures.
+4. Declarative development: Complex batch job flows can be defined through configuration and minimal code.
 
-  4. **Declarative Development**: Through configuration and minimal code, developers can define complex batch processing workflows.
+5. Parallel processing: Spring Batch supports parallel processing and can accelerate large-scale data processing through partitioning.
 
-  5. **Parallel Processing**: Spring Batch supports parallel processing, which can be optimized using partitions.
+6. Launching and scheduling: Spring Batch jobs can be easily integrated into Spring’s task scheduling frameworks (such as Quartz) or launched via the command line.
 
-  6. **Launch and Scheduling**: Batch jobs can be easily integrated with Spring's task scheduling framework (e.g., Quartz) or launched via command line.
+7. Monitoring and management: The framework provides tools to monitor and manage job execution, including job status tracking and statistics collection.
 
-  7. **Monitoring and Management**: The framework provides tools for monitoring and managing the execution of batch jobs, including tracking job states and collecting statistical information.
+Main components include:
 
-  Major components include:
+- JobRepository: Used to store data during job execution, including job execution state.
+- JobLauncher: Used to launch job runs.
+- Job: Represents a complete batch job consisting of a series of steps.
+- Step: A single step in a job, which can include read, process, and write operations.
+- ItemReader: Responsible for reading data.
+- ItemProcessor: Responsible for processing the read data.
+- ItemWriter: Responsible for writing processed data to the destination.
 
-  - **JobRepository**: Used to store data during job execution, including the job's execution state.
-  - **JobLauncher**: Responsible for launching the execution of jobs.
-  - **Job**: Represents a complete batch job consisting of a series of steps (Steps).
-  - **Step**: A single step within a job, which can include read, process, and write operations.
-  - **ItemReader**: Manages the reading of data items.
-  - **ItemProcessor**: Manages the processing of read data items.
-  - **ItemWriter**: Manages the writing of processed data to the target destination.
+![](batch/spring-batch.png)
 
-  ![spring-batch.png](https://i.gyazo.com/630b8c1a6f74e69d565a76dffe935233.png)
+Spring Batch’s use cases are widespread, including but not limited to:
 
-  Spring Batch is applicable in a wide range of scenarios, including but not limited to:
+- Data synchronization
+- Financial and report generation
+- Data transformation and migration
+- File processing
 
-  - Data synchronization
-  - Financial and reporting generation
-  - Data transformation and migration
-  - File processing
+By using Spring Batch, enterprises can efficiently handle batch operations, improve data processing efficiency, and ensure system stability and data accuracy.
+==========Zhipu Qingyan AI content completed=====================
 
-  By leveraging Spring Batch, organizations can effectively handle bulk operations, enhancing data processing efficiency while maintaining system stability and data accuracy.
+### Core interfaces of SpringBatch
 
-  ==================== 智谱清言AI 创作完毕 ======================
+SpringBatch’s built-in core logic is the standard read-process-write three-step flow, with corresponding interfaces as follows:
 
-  ### Core Interfaces of SpringBatch
+```java
+interface ItemReader<T> {
+    T read();
+}
 
-  SpringBatch's built-in core logic follows the standard read-process-write workflow, with corresponding interfaces as follows:
+interface ItemProcessor<I, O> {
+    O process(@NonNull I item);
+}
 
-  ```java
-  interface ItemReader<T> {
-      T read();
-  }
+interface ItemWriter<T> {
+    void write(Chunk<? extends T> chunk);
+}
+```
 
-  interface ItemProcessor<I, O> {
-      O process(@NonNull I item);
-  }
-
-  interface ItemWriter<T> {
-      void write(Chunk<? extends T> chunk);
-  }
-  ```
-
-  To manage resource consumption during processing, SpringBatch introduces the concept of Chunk, which represents a batch of data to be processed. The commit-interval configuration determines how many items are processed before committing.
-
-  For example:
-
-  ```java
-  <property name="commitInterval">100</property>
-  ```
-
-  This configuration means that every 100 items will be processed as a single Chunk, with each Chunk corresponding to a read-process-write cycle.
+To control resource consumption during processing, SpringBatch introduces the concept of Chunk—a unit of data processed at once, controlled via the commit-interval configuration.
+For example, the configuration below indicates that every 100 records are processed as one chunk, and each chunk goes through a read-process-write cycle:
 
 ```xml
 <batch:job id="firstBatchJob">
@@ -91,13 +81,13 @@
 </batch:job>
 ```
 
-### Chunk Processing Logic
+### Chunk processing logic
 
-The processing logic of the Chunk is implemented using pseudocode and involves reading and processing items one by one, collecting all results, and writing them in a single batch. The logic is as follows:
+The chunk processing logic in pseudocode roughly reads and processes items one-by-one, collects all returned results, and writes them in a single batch.
 
-```pseudocode
+```
 doInTransaction:
-  beforeChunk() // Executed within a transaction
+  beforeChunk() // Execute within the transaction
   repeat:
       item = reader.read();
       result = processor.process(item);
@@ -112,18 +102,18 @@ doInTransaction:
     onWriteError(e,outputs);
   }
 
-afterChunk()  // Executed outside of a transaction
+afterChunk()  // Execute outside the transaction
 ```
 
-The Writer is responsible for writing a batch of objects in a way that's optimized at the architectural level. For example, using JDBC's `batch insert` can be significantly faster than inserting individual records.
+A Writer that writes a batch of objects enables write optimization at the architectural level, e.g., JDBC batch insert is much faster than single-row inserts.
 
-## II. Design Issues with SpringBatch
+## II. Design issues of SpringBatch
 
-### 2.1 Reader Should Not Return One Record Per Call
+### 2.1 A Reader call should not return only one record
 
-In SpringBatch's design, each call to `ItemReader.read()` returns only one record. This design makes it difficult to optimize bulk reading. Most implementations achieve this by reading in batches (e.g., using a `pageSize`) and then returning individual records.
+In SpringBatch, a call to ItemReader’s read returns only a single record, making batch read optimizations difficult. Many readers implement bulk reading internally by pages and then return records one-by-one.
 
-A common implementation example is:
+A common implementation looks like this:
 
 ```java
 class JdbcPagingItemReader<T> implements ItemReader<T> {
@@ -146,44 +136,44 @@ class JdbcPagingItemReader<T> implements ItemReader<T> {
 }
 ```
 
-This design not only requires the Reader to maintain temporary state variables but also complicates bulk optimization. If the Reader reads complex business objects instead of simple flat records, optimizing attribute loading would require modifying the Reader's implementation, increasing code coupling.
+This design not only forces the Reader to hold temporary state variables, but also makes external batch optimizations difficult. If the Reader returns not simple flat records but complex domain objects, implementing batch loading of attributes requires modifying Reader implementation code, increasing coupling.
 
-NopBatch uses the `IBatchLoader` interface for batch loading, which better supports bulk reading optimization.
+NopBatch uses the IBatchLoader interface for bulk loading, allowing better support for batch read optimizations.
 
 ```java
 public interface IBatchLoader<S> {
     /**
-     * Loads data
+     * Load data
      *
-     * @param batchSize The maximum number of data items to load
-     * @return Returns an empty collection if all data has been loaded
+     * @param batchSize The maximum number of records to load
+     * @return Returning an empty collection indicates all data has been loaded
      */
     List<S> load(int batchSize, IBatchChunkContext context);
 }
 ```
 
-* Provides `batchSize` as a parameter to inform the loader how many data items it needs to load, enabling optimization at the lower level.
-* Passes `context` as a parameter. In SpringBatch, obtaining `context` requires implementing `ChunkListener.beforeChunk(ChunkContext context)` and saving it as a class member variable before using it in the `load` function. This design is overly cumbersome. The `IBatchLoader` interface's parameters are comprehensive, allowing direct implementation via lambda functions.
-* Instead of returning data one record at a time, we return all the necessary data for a Chunk in one go, which means the Reader doesn't need to maintain complex state variables.
+* Adds a batchSize parameter to explicitly tell the loader how much data is needed, facilitating optimizations by lower layers
+* Passes context as a parameter. In SpringBatch, to obtain the context you need to implement interfaces like `ChunkListener.beforeChunk(ChunkContext context)`, save the context as a member field, and then access it in the load function—this is overly cumbersome. The IBatchLoader function has complete parameter information and is convenient to implement directly via lambda functions.
+* Returns all data required for one Chunk at once, rather than record-by-record, so the Reader no longer needs to maintain complex state variables
 
-Using the list returned by the Loader, we can naturally and simply batch load related data.
+Based on list data returned by the Loader, we can naturally and simply batch load related data:
 
 ```javascript
 List<T> data = loader.load(batchSize, context);
 
-// Batch load other related data. The loaded data can be placed in the context or added as an extension field within the data elements.
+// Batch load other related data. Loaded data can be stored in context,
+// or as extended fields in elements of data
 batchLoadRelatedData(data, context);
 ```
 
-When processing data that requires mutual exclusion locks, SpringBatch's design seems particularly unfavorable. This is because SpringBatch's ItemReader reads data one record at a time, preventing batch optimization when acquiring locks and making it difficult to control the order of lock acquisition, which can lead to deadlocks.
+When processing requires acquiring mutex locks, SpringBatch’s design is also unfriendly. Because ItemReader reads one-by-one, locks cannot be acquired in batches, and the lock acquisition order is hard to control, creating deadlock risks.
+In NopBatch, records can first be sorted by a rule (reader is not required to return globally sorted data), and then all required locks can be acquired at once, avoiding deadlocks.
 
-In contrast, NopBatch's design first sorts records according to certain rules (without requiring the Reader to perform sorting during read operations) and then acquires all necessary locks in one go. This avoids the risk of deadlocks.
+In summary, SpringBatch’s design carries remnants of Item Orientation, making chunk-level processing feel unnatural.
 
-In summary, SpringBatch's design reflects its legacy as an Item-oriented framework, making Chunk-level processing unnatural.
+> The concept of Chunk was introduced in Spring 2.0; originally SpringBatch only had the concept of Item.
 
-> The concept of **Chunk** was introduced in Spring 2.0. Initially, SpringBatch only had the Item concept.
-
-The interface definition for `ItemWriter` in SpringBatch 1.0 is as follows:
+The ItemWriter interface in SpringBatch 1.0 was defined as:
 
 ```java
 public interface ItemWriter {
@@ -196,33 +186,33 @@ public interface ItemWriter {
 }
 ```
 
-### 2.2 Processor's processing should not only return a single record each time
+### 2.2 A Processor call should not return only one record
 
-In SpringBatch, the processing logic of `Processor` resembles function-style programming with map functions, such as `data.map(a->b)`, where each input record is processed and a single output record is returned. This naturally leads to a question: why can't a single processing step produce multiple outputs?
+SpringBatch’s Processor logic is similar to the map function in functional programming, `data.map(a->b)`, which processes each input record and returns one output record. A natural question arises: why can there be at most one output per processing? Can’t a single processing generate multiple outputs?
 
-Modern stream processing frameworks align more closely with the `flatMap` function in functional programming, `data.flatMap(a->[b])`. This means that for each input, there are three possible outcomes: A. No output B. One output C. Multiple outputs.
+Modern stream processing frameworks have semantics more akin to flatMap in functional programming, `data.flatMap(a->[b])`. That is, processing may yield three results: A. No output B. One output C. Multiple outputs.
 
-The stream-style processing pattern suggests that each generated output should be passed immediately to the downstream without waiting for all outputs to be produced before transmission.
+Streaming mode: If one processing can produce multiple outputs, can each output be passed downstream immediately without waiting for all outputs to be generated?
 
-NopBatch mimics this behavior by defining the following processing interface:
+Inspired by stream processing frameworks, NopBatch defines the following processing interface:
 
 ```java
 public interface IBatchProcessor<S, R> {
     /**
-     * Executes an operation similar to `flatMap`.
+     * Perform a flatMap-like operation
      *
-     * @param item      The input data object
-     * @param consumer  A consumer that can receive one or multiple results. It may not be called if no data is produced.
-     * @param context   Context information
+     * @param item     The input data object
+     * @param consumer Receives results; may be one or many. It may also not be called if no data is generated.
+     * @param context  Context information
      */
     void process(S item, Consumer<R> consumer, IBatchChunkContext context);
 
     /**
-     * Combines two processors into one processor.
+     * Compose two processors into one
      *
-     * @param processor The other processor
-     * @param <T>      The type parameter for the combined processor
-     * @return A new IBatchProcessor that combines this processor with the given one
+     * @param processor
+     * @param <T>
+     * @return
      */
     default <T> IBatchProcessor<S, T> then(IBatchProcessor<R, T> processor) {
         return new CompositeBatchProcessor<>(this, processor);
@@ -230,55 +220,54 @@ public interface IBatchProcessor<S, R> {
 }
 ```
 
-* **IBatchProcessor** uses a callback function (`consumer`) to receive processed results. Once output elements are generated, they can be immediately consumed.
+* IBatchProcessor uses a consumer callback to receive processing results, enabling immediate consumption as outputs are produced
 
-* The `IBatchProcessor` interface also provides a `then()` method to combine two processors into one, creating a chain-like invocation similar to functional programming's Monad concept.
+* IBatchProcessor also provides a then function to combine two IBatchProcessors into a single processor, forming a chained style of invocation. This is essentially an application of the Monad concept from functional programming.
 
-### 2.3 Writer can accept Collection-type data
+### 2.3 Writer should accept Collection-type data
 
-First, the naming of ItemWriter in SpringBatch is somewhat inappropriate. From a naming perspective, ItemWriter appears to be designed for consuming data produced by Processor, which has concretized the Read-Process-Write processing flow at the conceptual level. However, there are many scenarios where we do not need to write out results; we only require consumption of input data.
+First, the naming ItemWriter in SpringBatch is not ideal. From its name, ItemWriter is used to consume the results produced by the Processor, which conceptually hard-codes the read-process-write pipeline. However, in many scenarios we don’t need to write out results—we only need to consume the input data.
 
-NopBatch introduced a generic BatchConsumer concept, enabling BatchConsumer and BatchLoader to form a pair of dual interfaces. The data loaded by BatchLoader is directly passed to BatchConsumer for consumption.
+NopBatch introduces a general BatchConsumer concept, pairing BatchConsumer and BatchLoader as duals; data loaded by BatchLoader is passed directly to BatchConsumer for consumption.
 
 ```java
 public interface IBatchConsumer<R> {
     /**
-     * @param items   Collection of objects to be processed
-     * @param context Context object
+     * @param items   The collection of objects to process
+     * @param context The context object
      */
     void consume(Collection<R> items, IBatchChunkContext context);
 }
 ```
 
-Based on the Consumer interface, the processing flow for a Chunk becomes very straightforward:
+With the Consumer interface, the chunk processing flow becomes very simple:
 
 ```javascript
-List<T> items = loader.load(batchSize, context);
-if (items == null || items.isEmpty()) {
+List<T> items = loader.load(batchSize,context);
+if(items == null || items.isEmpty())
    return ProcessingResult.STOP;
-}
-consumer.consume(items, context);
+consumer.consume(items,context);
 ```
 
-Processor can be considered as an optional implementation of the Consumer interface:
+A Processor can be viewed as an optional Consumer implementation:
 
 ```java
 public class BatchProcessorConsumer<S, R>
-    implements IBatchConsumer<S> {
+   implements IBatchConsumer<S> {
     @Override
     public void consume(Collection<S> items, IBatchChunkContext context) {
         Collection<R> outputs = new ArrayList<>();
-        for (S item : items) {
+        for(S item: items){
             processor.process(item, outputs::add, context);
         }
         consumer.consume(outputs, context);
     }
 }
-
-> When Processor is asynchronously executed, a ConcurrentLinkedQueue is used to store outputs.
 ```
 
-In contrast to NopBatch's Consumer, which directly receives Collection-type data, SpringBatch's Writer accepts Chunk-type data. Its structure is defined as follows:
+> When the Processor runs asynchronously, a ConcurrentLinkedQueue is used to store outputs.
+
+Unlike NopBatch’s Consumer which accepts Collection-typed data directly, SpringBatch’s Writer accepts a Chunk-typed data structure, defined as:
 
 ```java
 class Chunk<W> implements Iterable<W>, Serializable {
@@ -297,60 +286,67 @@ class Chunk<W> implements Iterable<W>, Serializable {
 }
 ```
 
-The Chunk structure contains various pieces of information, but in Processor and Reader implementations, it cannot be directly accessed, leading to unnecessary complexity.
+Chunk includes multiple fields, but neither the Processor nor the Reader has direct access to the Chunk structure, causing unnecessary complexity.
 
-In the NopBatch architecture, Loader/Processor/Consumer interfaces all accept the same IBatchChunkContext parameter, enabling mutual coordination through it. Additionally, within the IBatchConsumer interface, items are passed as a Collection type without requiring explicit List-type usage.
+In NopBatch, Loader/Processor/Consumer interfaces all accept the same IBatchChunkContext parameter, enabling coordination among them. Also, items in IBatchConsumer are passed as a Collection; there is no need to enforce List specifically.
+
+Compare NopBatch’s core interfaces:
+
 ```java
-interface IBatchLoader<S> {
+interface IBatchLoader<S>{
     List<S> load(int batchSize, IBatchChunkContext chunkCtx);
 }
 
-interface IBatchProcessor<S, R> {
+interface IBatchProcessor<S,R>{
     void process(S item, Consumer<R> consumer,
           IBatchChunkContext chunkCtx);
 }
 
-interface IBatchConsumer<R> {
+interface IBatchConsumer<R>{
      void consume(Collection<R> items, IBatchChunkContext chunkCtx);
 }
 ```
 
-Clearly, NopBatch's three core interfaces are more intuitive. The type loaded by the loader can directly match the input type of the consumer, and all three interfaces share the IBatchChunkContext context environment, allowing for coordination through it.
+Clearly, NopBatch’s three core interfaces are more intuitive; the type returned by the loader directly matches the input type of the consumer, and all three share the IBatchChunkContext context for coordination.
 
-**A good architectural design should be able to reveal its internal organization through its function signatures (type definitions).**
+A good architectural design should reveal its internal organization through its function signatures (type definitions).
 
-### 2.4 Lack of Flexible Transaction Handling
+### 2.4 Inflexible transaction handling
 
-SpringBatch enforces that a Chunk's Read-Process-Write operations must be executed within a single transaction. However, in the Nop platform, business entities generally have an optimistic lock version field, and all entity objects are cached within an OrmSession. This allows us to choose to open a transaction only during the Write phase, thereby reducing the scope of transaction impact and minimizing database connection pool usage.
+SpringBatch forces the Read-Process-Write of a chunk to be executed within a single transaction. In the Nop platform, domain entities typically have optimistic lock version fields, and OrmSession caches all entity objects. This allows us to open transactions only during the Write phase, narrowing the transactional scope and reducing the time database connections are held.
 
-For example, the Processor can operate outside of transactions. If business processing fails, it does not result in rollbacks at the database level, thereby reducing database pressure and minimizing lock contention at the database level. When `OrmSession.flush()` is called, data modifications stored in memory are actually written to the database at this point. If an optimistic lock version conflict is detected, a database rollback can be triggered to prevent conflicts from occurring due to concurrent access of the same business data.
+For example, the Processor can run outside a transaction; business failures won’t cause database rollbacks, reducing database load and lock contention. The actual update to the database only happens when `OrmSession.flush()` is called. If the optimistic lock version changes at that time, the database rollback can be triggered to avoid conflicts when multiple threads concurrently access the same business data.
 
-In NopBatch, we can create consumers that support different transaction scopes based on `transactionScope` configuration.
+In NopBatch, we can create Consumers that support different transaction scopes based on the transactionScope configuration.
 
 ```javascript
  if (batchTransactionScope == BatchTransactionScope.consume
                 && transactionalInvoker != null) {
-    // Only open a transaction during the consume phase. The process stage is purely logical processing without involving database modifications, while reading data typically does not require opening a transaction.
+    // Open a transaction only during the consume phase.
+    // process can be pure logic without database modifications,
+    // and reading typically does not need a transaction.
     consumer = new InvokerBatchConsumer(transactionalInvoker, consumer);
 }
 
 if (this.processor != null) {
-    // If a processor is set, execute it first before calling the consumer; otherwise, directly call the consumer.
+    // If a processor is set, run it first and then call the consumer;
+    // otherwise call the consumer directly.
     IBatchProcessor<S, R> processor = this.processor.setup(context);
     consumer = new BatchProcessorConsumer<>(processor, (IBatchConsumer<R>) consumer);
 }
 
-// Open a transaction during both the process and consume phases
+// Open a transaction during process and consume phases
 if (batchTransactionScope == BatchTransactionScope.process && transactionalInvoker != null) {
     consumer = new InvokerBatchConsumer(transactionalInvoker, consumer);
 }
 ```
 
-### 2.5 Inflexibility of Failure Retry Logic
+### 2.5 Inflexible failure retry logic
 
-SpringBatch provides built-in failure retry logic: if a Processor fails, it can automatically retry multiple times according to the RetryPolicy settings. However, in many cases, the Processor may not contain all necessary business logic for individual records. For example, the Processor might defer data saving until the entire chunk is processed and then use Jdbc Batch to save all records at once. In such cases, retries for individual records are ineffective.
+SpringBatch has built-in retry logic: when Processor execution fails, it automatically retries multiple times based on RetryPolicy. However, the Processor often does not complete all per-record business logic. For instance, the Processor may not actually save data, deferring saving until the entire chunk is processed and using JDBC batch writes. In such cases, per-record retry is ineffective.
 
-In NopBatch, we provide a retry mechanism that operates on the entire chunk level. If a chunk fails, we automatically retry it as a whole. Additionally, we support per-item retries, where each item is treated as an independent chunk for retrying. This approach sacrifices the optimization of batch saves but isolates errors in individual items, making it easier to debug and fix specific issues.
+In NopBatch, we provide retry at the chunk level. When a chunk fails, we automatically retry the entire chunk, and can optionally retry one-by-one—i.e., treat each item as a separate chunk to retry. Although this loses batch write optimization, it isolates erroneous records.
+
 ```java
 public class RetryBatchConsumer<R>
     implements IBatchConsumer<R, IBatchChunkContext> {
@@ -363,7 +359,7 @@ public class RetryBatchConsumer<R>
         } catch (BatchCancelException e) {
             throw e;
         } catch (Exception e) {
-            // 有可能部分记录已经被处理，不需要被重试
+            // Some records may already have been processed and need not be retried
             if (context.getCompletedItemCount() > 0) {
                 items = new ArrayList<>(items);
                 items.removeAll(context.getCompletedItems());
@@ -387,7 +383,7 @@ public class RetryBatchConsumer<R>
             Throwable consumeError = null;
 
             try {
-                // 将每条输入数据做成一个小的批次单独执行一次
+                // Execute each input record as a small batch exactly once
                 consumer.consume(single, context);
                 context.addCompletedItem(item);
             } catch (BatchCancelException e) {
@@ -397,7 +393,7 @@ public class RetryBatchConsumer<R>
                 consumeError = e;
 
                 if (retryPolicy.getRetryDelay(e, retryCount + 1, context) >= 0) {
-                    // 如果item可重试
+                    // If the item is retryable
                     retryItems.add(item);
                     retryException = e;
                 }
@@ -408,17 +404,18 @@ public class RetryBatchConsumer<R>
 }
 ```
 
-* The ability to implement the entire chunk's retry is due to the Loader being able to fetch all input data for a Chunk in one go. Once this data is cached, the Consumer can be called multiple times. The processing logic of the Processor has been encapsulated within the BatchProcessorConsumer, so during retries, only the consume method needs to be invoked again.
+* The reason chunk-level retries are possible is that the Loader can retrieve all of a chunk’s input data at once. As long as this data is cached, we can invoke the Consumer multiple times. The processing logic of the Processor is encapsulated by BatchProcessorConsumer, so during retry we only need to repeat the consume.
 
-* If some records have already been successfully processed and do not need to be retried, they can be added to the IBatchChunkContext context object's completedItems collection after being successfully consumed by the Consumer. When retrying the entire chunk, these already completed records will be automatically skipped.
-## 3. NopBatch Architecture Changes
+* If some records already finished successfully and should not be processed again, the consumer can add them into the completedItems collection in the BatchChunkContext after successful processing. When retrying the entire chunk, completed records will be automatically skipped.
 
-### 3.1 Using Context to Dynamically Register Listeners
+## III. Architectural changes in NopBatch
 
-In SpringBatch, if a reader/writer/processor needs to listen for step start, end, etc., the standard approach is to implement the `StepExecutionListener` interface.
+### 3.1 Dynamic listener registration via context
+
+In SpringBatch, if readers/writers/processors need to listen to events like step start/end, the standard approach is to implement the StepExecutionListener interface.
 
 ```java
-class MyProcessor implements ItemProcessor, StepExecutionListener {
+class MyProcessor implements ItemProcessor, StepExecutionListener{
 
     @Override
     public void beforeStep(StepExecution stepExecution) {
@@ -434,11 +431,11 @@ class MyProcessor implements ItemProcessor, StepExecutionListener {
 }
 ```
 
-This approach presents two problems:
+This causes two problems:
 
-1. If using Spring container to manage these beans, consider concurrency scenarios, the beans need to be scoped as `step` rather than global Singleton. The implementation of SpringBatch's StepScope is highly complex, requiring a global flag `spring.main.allow-bean-definition-overriding` to be enabled. However, Spring defaults disallow bean redefinition and strongly recommends disabling this flag. For reference, see [Issue: StepScope not working when XML namespace activated](https://github.com/spring-projects/spring-batch/issues/3936).
+1. If these beans are managed by the Spring container, considering concurrency, they need `scope=step` instead of global Singleton. SpringBatch’s StepScope implementation is very tricky, requiring the global switch `spring.main.allow-bean-definition-overriding`. Meanwhile, Spring disables bean redefinition by default and strongly recommends keeping this switch off. See [@StepScope not working when XML namespace activated](https://github.com/spring-projects/spring-batch/issues/3936).
 
-2. If we wrap Reader/Processor/Writer, the listeners cannot be automatically detected by the SpringBatch framework. Additional registration of listeners is required. Ideally, the listener should be registered automatically when a Writer is defined without needing extra configuration in XML files.
+2. If we wrap Reader/Processor/Writer, these listeners may not be automatically discovered by the SpringBatch framework. We must register listeners explicitly. Ideally, registering a Writer should automatically register the listeners it needs, without additional listener configuration in the file.
 
 ```xml
     <step id="step1">
@@ -462,31 +459,32 @@ This approach presents two problems:
     </beans:bean>
 ```
 
-For example, in the configuration above, a CompositeWriter is used which delegates to two Writers. However, SpringBatch does not recognize this setup as the compositeWriter does not implement the `ItemStream` callback interface. To enable proper callbacks, additional streams configuration is needed to specify which Writers should be called at appropriate times.
-If we compare the evolution of front-end frameworks, an interesting observation can be made: SpringBatch's approach resembles traditional Class Components in a way that's strikingly similar.
+In the configuration above, we use a CompositeWriter that internally uses two Writers. But SpringBatch doesn’t know this; the compositeWriter doesn’t implement the ItemStream callback interface. To call correctly, we need an extra streams configuration to specify those Writers that implement ItemStream and need to be invoked at appropriate times.
+
+Compared to front-end framework evolution, SpringBatch’s approach is strikingly similar to traditional front-end Class Components.
 
 ```javascript
 class MyComponent extends Vue {
-    // Logic executed after the component is mounted
+    // Logic executed when component is mounted
     mounted() {
         console.log('Component mounted');
     }
 
-    // Logic executed after the component is updated
+    // Logic executed after component updates
     updated() {
         console.log('Component updated');
     }
 
-    // Logic executed before the component is destroyed
+    // Logic executed before component is destroyed
     beforeDestroy() {
         console.log('Component will be destroyed');
     }
 
-    // Rendering function
+    // Render function
     render(h) {
         return (
             <div>
-                {/* Rendering logic for the component */}
+                {/* Component render logic */}
                 Hello, Vue Class Component!
             </div>
         );
@@ -494,11 +492,11 @@ class MyComponent extends Vue {
 }
 ```
 
-The core design philosophy revolves around implementing lifecycle hooks as functions within components. The framework registers corresponding event listeners when these components are created and uses the component's object properties to manage communication and organization between multiple callback functions.
+The core idea in both is implementing lifecycle listeners on the component; the framework registers event listeners when creating components, and uses member variables to pass information between callbacks.
 
-A revolutionary advancement in the front-end field introduced what is known as the Hooks mechanism, moving away from the traditional Class-Based component approach. See my WeChat public article [Understanding React's Essence through React Hooks](https://mp.weixin.qq.com/s/-n5On67e3_46zH6ppPlkTA)
+The front-end later made a revolutionary advance by introducing Hooks, abandoning class-based components. See my WeChat article [Understanding React’s essence through React Hooks](https://mp.weixin.qq.com/s/-n5On67e3_46zH6ppPlkTA)
 
-Under the Hooks system, front-end components are reduced to a single render function that considers the one-time initialization process. Vue opts to abstract components into render function constructors.
+Under the Hooks approach, a front-end component degenerates into a reactive render function. Considering one-time initialization, Vue abstracts a component as a constructor for the render function.
 
 ```javascript
 defineComponent({
@@ -517,25 +515,24 @@ defineComponent({
 
         return () => (
             <div>
-                {/* Rendering logic for the component */}
+                {/* Component render logic */}
                 Hello, Vue Composition API!
             </div>
         );
     }
-})
 ```
 
-The Hooks mechanism offers several advantages over traditional Class Components:
+Hooks have the following advantages over traditional class components:
 
-1. Event listener functions can be defined independently of the class structure and easily encapsulated into reusable `useXXX` functions, such as wrapping `onMounted` and `onUpdated` into a reusable function.
+1. Event listener functions can be defined independent of a class structure, making secondary encapsulation easy. For example, onMounted + onUpdated can be wrapped as a reusable useXXX function.
 
-2. Multiple event listener functions can communicate via closures without relying on the `this` pointer to navigate through object properties.
+2. Multiple event listeners can pass information via closures, rather than round-tripping through the this pointer.
 
-3. Event listeners can be dynamically registered based on input parameters.
+3. Event listeners can be registered dynamically based on input parameters.
 
-The key architectural change here is the introduction of a global, dynamic event registration mechanism instead of binding event listeners to specific object properties as members of an object.
+The key architectural shift here is providing a global, dynamic event registration mechanism, rather than binding event listeners to a specific object pointer as member functions.
 
-Similar to the Hooks system, NopBatch abstracts the core functionality from `IBatchLoader` (a component runner) to `IBatchLoaderProvider` (a factory component), which provides a `setup` method to create `IBatchLoader`.
+Similar to the Hooks approach, NopBatch changes the core abstraction from a runtime component like IBatchLoader to a factory component IBatchLoaderProvider, which provides a setup method to create an IBatchLoader.
 
 ```java
 public interface IBatchLoaderProvider<S> {
@@ -547,10 +544,10 @@ public interface IBatchLoaderProvider<S> {
 }
 ```
 
-The `setup` function returns a loader akin to Vue's component `setup` function returning a renderer. In Vue, the component calls the returned renderer once and then repeatedly invokes it.
-The same applies to the `setup` method of `IBatchLoaderProvider`, which is called once to return `IBatchLoader`, which is then invoked multiple times.
+Here, setup returns a Loader similar to how Vue’s setup returns a renderer. Vue calls setup once to get a renderer function, which is then invoked multiple times.
+Likewise, IBatchLoaderProvider’s setup is called once to return an IBatchLoader, and the loader is invoked multiple times.
 
-The context object provides methods for registering callback functions such as `onTaskBegin` and `onTaskEnd`.
+The context object provides methods like onTaskBegin/onTaskEnd to register callbacks.
 
 ```java
 class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandler
@@ -559,7 +556,7 @@ class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandler
     public IBatchLoader<S> setup(IBatchTaskContext context) {
         LoaderState<S> state = newLoaderState(context);
         return (batchSize, batchChunkCtx) ->{
-            // Execute callback function after each chunk is completed
+            // Register a callback to run after a chunk finishes
             batchChunkCtx.onAfterComplete(err -> onChunkEnd(err, batchChunkCtx, state));
             return load(batchSize, state);
         };
@@ -577,7 +574,7 @@ class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandler
 
         state.input = input;
 
-        // Register callback function to close resources after task completion
+        // Register a callback to close resources when the task finishes
         context.onAfterComplete(err -> {
             IoHelper.safeCloseObject(state.input);
         });
@@ -587,7 +584,7 @@ class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandler
 }
 ```
 
-In the above example, we explicitly pass the context object to register callback functions like `onAfterComplete`. If further encapsulation is performed using a `ThreadLocal` to store the context object, the invocation pattern can resemble hooks more closely.
+In the example above, we register callbacks via explicitly passed context object functions like onAfterComplete. If we further encapsulate and store the context object in ThreadLocal, the calling style becomes closer to Hooks.
 
 ```java
 public class BatchTaskGlobals {
@@ -611,37 +608,39 @@ public class BatchTaskGlobals {
         ctx.onBeforeComplete(()-> action(ctx));
     }
 }
-Importing static methods from BatchTaskGlobals allows the following usage format:
+```
+
+With BatchTaskGlobals static methods imported, you can write:
 
 ```java
 IBatchLoader setup(ITaskContext context){
-    init();
-    ...
+   init();
+   ...
+}
+
+void init(){
+   onBeforeTaskEnd(taskCtx ->{
+      ...
+   });
+
+   onChunkBegin(batchChunkCtx ->{
+     ...
+   });
 }
 ```
 
-void init(){
-    onBeforeTaskEnd(taskCtx ->{
-        ...
-    });
+Similarly, IBatchProcessor and IBatchConsumer are replaced by IBatchProcessorProvider and IBatchConsumerProvider, with setup returning the actual objects.
 
-    onChunkBegin(batchChunkCtx ->{
-        ...
-    });
-}
+Provider is now a singleton and can be configured via an IoC container without dynamic scopes. No matter how many layers of wrapping there are, you can directly access IBatchTaskContext and dynamically register various event listeners through it.
 
-Similarly, IBatchProcessor and IBatchConsumer objects are changed to return the result of the setup function for IBatchProcessorProvider and IBatchConsumerProvider respectively.
+> Interestingly, although Hooks were invented by React, Vue’s choice to split logic into setup and render phases is more natural. Otherwise, every invocation site would have to distinguish initialization-time actions from subsequent actions,
+> which is detrimental to performance optimization and conceptually confusing.
 
-The Provider is now a singleton object, which can be configured using an IoC container without requiring dynamic Scope support. Additionally, regardless of how many layers of encapsulation are used, the IBatchTaskContext object can be directly accessed, allowing dynamic registration of various event listener functions through it.
+### 3.2 Organize control flow using a general TaskFlow
 
-> Interestingly, while Hooks were invented by React, Vue chooses to divide logic into setup and render phases as a more natural approach. Otherwise, it would be necessary to distinguish at every detail whether an initialization action needs to be performed on the first call.
-> This is highly unfavorable for performance optimization and can easily introduce confusion at the conceptual level.
+SpringBatch provides a simple control flow model; you can configure multiple steps and transitions in XML, including parallel execution and conditional jumps.
 
-### 3.2 Organizing Logic Flow with General TaskFlow
-
-SpringBatch provides a simple logic flow model that can be configured in XML, defining multiple steps and their transition relationships, while also supporting parallel execution and conditional transitions.
-
-For example, the following code generated by Wuli Qianshui AI demonstrates how it starts two parallel sub-flows using split, then serializes the steps within each sub-flow:
+For example, the following AI-generated configuration uses split to start two parallel sub-flows, each then executing steps sequentially:
 
 ```xml
 <job id="exampleJob" xmlns="http://www.springframework.org/schema/batch">
@@ -670,10 +669,11 @@ For example, the following code generated by Wuli Qianshui AI demonstrates how i
 </job>
 ```
 
-In SpringBatch, the task units correspond to the Tasklet interface, with chunk processing being a specific implementation of Tasklet.
+In SpringBatch, the schedulable unit corresponds to the Tasklet interface; chunk processing is a concrete implementation of Tasklet.
+
 ```java
-public class ChunkOrientedTasklet<I> implements Tasklet {
-    public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+public class ChunkOrientedTasklet<I> implements Tasklet{
+   public RepeatStatus execute(StepContribution contribution, ChunkContext                   chunkContext) throws Exception {
 
         Chunk<I> inputs = (Chunk<I>) chunkContext.getAttribute(INPUTS_KEY);
         if (inputs == null) {
@@ -693,9 +693,9 @@ public class ChunkOrientedTasklet<I> implements Tasklet {
 }
 ```
 
-Interestingly, Spring Batch's early design lacked a general-purpose Tasklet interface, which reflects the inherent limitations in its abstract level of design.
+Interestingly, early SpringBatch designs only had chunk processing and did not introduce a general Tasklet interface, reflecting a fundamentally insufficient level of abstraction.
 
-> The Tasklet interface was introduced in Spring Batch 2.0, see [Spring Batch 2.0 Highlights](https://docs.spring.io/spring-batch/docs/2.2.x/migration/2.0-highlights.html)
+> Tasklet was introduced in SpringBatch 2.0. See [Spring Batch 2.0 Highlights](https://docs.spring.io/spring-batch/docs/2.2.x/migration/2.0-highlights.html)
 
 ```java
 public interface Tasklet {
@@ -718,14 +718,15 @@ public interface Tasklet {
 }
 ```
 
-The Tasklet interface essentially serves as a general-purpose function interface, with its primary purpose being to support retry capabilities on failure through the use of StepContribution for persistent storage.
-The key characteristics of SpringBatch emphasize reusability and scalability, but in practice, both are significantly lacking. The core interfaces and workflow orchestration provided by SpringBatch are specific to its own implementation and cannot be used across broader scenarios. For example, if we extend SpringBatch's built-in FlatFileItemReader to support parsing of a specific data file format, the resulting extension can only be used in the context of SpringBatch's batch processing for that specific scenario and must be utilized through the SpringBatch framework. Any attempt to reuse or leverage SpringBatch-related components outside of the framework becomes highly cumbersome.
+Tasklet is essentially a generic functional interface; to support retry after failure, it uses StepContribution for persistent state storage.
 
-SpringBatch's job configuration can be viewed as a simplistic and non-generic workflow orchestration mechanism, capable only of orchestrating batch tasks and not serving as a generic orchestration engine for broader use cases. In the NopBatch framework, we explicitly isolate workflow orchestration from the batch processing engine by using a generic NopTaskFlow for logic workflows, while NopBatch is responsible only for handling the Chunk processing step in a workflow. This simplifies the design of both NopTaskFlow and NopBatch, making their implementation significantly more straightforward (with only a few thousand lines of code) and highly scalable. The work done by NopTaskFlow and NopBatch can be applied to more general scenarios.
+SpringBatch’s key features emphasize reusability and extensibility, but in practice both are poor. Typically, SpringBatch’s core interfaces and flow orchestration are specific to SpringBatch itself and not applicable to wider scenarios. For example, if we extend SpringBatch’s built-in FlatFileItemReader to parse some data file format, this extension can only be used in that specific SpringBatch context and only through SpringBatch. Attempting to reuse any SpringBatch-related artifacts outside the framework is extremely difficult.
 
-NopTaskFlow is built from scratch based on the reversible computation principle, representing the next-generation logic workflow framework. Its core abstraction centers around supporting RichFunction with decorators and persistent states. It exhibits high performance and lightweight characteristics (with approximately 3,000 lines of core code), making it suitable for use in any scenario requiring function configuration-based decomposition. Detailed information can be found in [A Next-Generation Logic Engine Built from Scratch: NopTaskFlow](https://mp.weixin.qq.com/s/2mFC0nQon_l2M82tOlJVhg).
+SpringBatch job configuration can be seen as a very simple and non-general control flow orchestration mechanism; it can only orchestrate batch tasks and cannot serve as a general-purpose control flow engine. In NopBatch, we explicitly separate logic flow orchestration from the batch engine, using the general-purpose NopTaskFlow for orchestration, while NopBatch handles chunk processing within a flow step. This makes both NopTaskFlow and NopBatch designs very straightforward; their implementations are far simpler than SpringBatch (only a few thousand lines of code) and have powerful extensibility. The work done in NopTaskFlow and NopBatch applies to broader contexts.
 
-Implementation of equivalent configurations to SpringBatch's Job in NopTaskFlow is illustrated below:
+NopTaskFlow is a next-generation control flow orchestration framework built from scratch based on Reversible Computation, with a core abstraction of RichFunction supporting Decorator and state persistence. It is high-performance and lightweight (the core is around 3000 lines) and can be used wherever function configuration and decomposition are needed. See [A next-generation orchestration engine written from scratch: NopTaskFlow](https://mp.weixin.qq.com/s/2mFC0nQon_l2M82tOlJVhg)
+
+An equivalent configuration in NopTaskFlow to the SpringBatch job above:
 
 ```xml
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
@@ -748,7 +749,7 @@ Implementation of equivalent configurations to SpringBatch's Job in NopTaskFlow 
 </task>
 ```
 
-NopTaskFlow provides rich step types such as parallel, sequential, loop, choose, and fork, each supporting configurations like timeout, retry, decorator, catch, when, and validator. For instance, the following configuration indicates that if execution exceeds 3 seconds, a timeout exception is thrown; otherwise, if it fails, it is retried up to 5 times, with each attempt executed within a transaction.
+NopTaskFlow provides rich step types such as parallel, sequential, loop, choose, fork, and each step supports common enhancements like timeout, retry, decorator, catch, when, validator. For example, the configuration below throws a timeout exception if not finished within 3 seconds; if it fails without timing out, it retries 5 times, with each execution wrapped in a transaction.
 
 ```xml
  <sequential timeout="3000">
@@ -762,9 +763,78 @@ NopTaskFlow provides rich step types such as parallel, sequential, loop, choose,
  </sequential>
 ```
 
-The 'sequential' step executes tasks in order, eliminating the need to explicitly define the flow between steps. Once a task completes without errors, it automatically proceeds to the next one. This execution model closely resembles typical programming languages, making it easier to map to programmatic logic. Notably, unlike SpringBatch where all steps share a global variable space and each step has its own persistent variable space, NopTaskFlow allows nested function calls that create a stack-like structure for variable scoping. Variables in the parent scope are accessible within nested functions.
+sequential means execute in order, so there is no need to specify the next step on each step. If step1 finishes without error, step2 runs automatically. This model is very similar to general programming languages and maps more easily to code. Notably, SpringBatch lets all steps share a global variable space plus each step’s persistent variable space, whereas in NopTaskFlow, nested calls form a stack and variable visibility during execution resembles general function calls; nested inner functions can see variables in the parent scope.
 
-NopTaskFlow also supports direct embedding of Xpl template language and XScript scripts.
+NopTaskFlow also supports directly nesting Xpl template language and XScript scripts.
+
+```xml
+<steps>
+   <xpl name="step1">
+     <source>
+       <c:script>
+         const isAdmin = svcCtx.userContext.hasRole('admin');
+       </c:script>
+
+       <c:choose>
+         <when test="${isAdmin}">
+           <app:AdminService arg1="3" />
+         </when>
+         <otherwise>
+            <app:UserService arg1="4" />
+         </otherwise>
+       </c:choose>
+     </source>
+   </xpl>
+
+  <script name="step2" lang="java">
+    <source>
+     import app.MyBuilder;
+
+     const tool = new MyBuilder().build();
+     tool.run(arg1);
+    </source>
+  </script>
+</steps>
+```
+
+The core step abstraction in NopTaskFlow corresponds to the following interface:
+
+```java
+public interface ITaskStep extends ISourceLocationGetter {
+    /**
+     * Step type
+     */
+    String getStepType();
+
+    Set<String> getPersistVars();
+
+    boolean isConcurrent();
+
+    /**
+     * Input variables required for step execution
+     */
+    List<? extends ITaskInputModel> getInputs();
+
+    /**
+     * Step execution returns a Map; this corresponds to the data types in the Map
+     */
+    List<? extends ITaskOutputModel> getOutputs();
+
+    /**
+     * Concrete execution action
+     *
+     * @param stepRt All internal state during step execution is saved in stepState,
+     *               based on which breakpoint restart can be implemented.
+     * @return May return synchronous or asynchronous objects, and dynamically decide the next step.
+     *         If the return value is CompletionStage, the caller waits for async completion,
+     *         during which execution can be canceled via cancelToken.
+     */
+    TaskStepReturn execute(ITaskStepRuntime stepRt);
+}
+```
+
+ITaskStep provides a far more complete abstraction than SpringBatch’s Tasklet. For instance, ITaskStep has built-in cancel capability; you can call `taskRuntime.cancel` or `stepRt.cancel` to cancel the current flow at any time. Each step’s inputs configure the names and types of input parameters, and outputs configure the names and types of results, making TaskStep directly map to function declarations in general programming languages.
+
 ```xml
 <xpl name="step1">
   <input name="a" type="int">
@@ -778,36 +848,39 @@ NopTaskFlow also supports direct embedding of Xpl template language and XScript 
     return a + b
   </source>
 </xpl>
-
-The above XML code is equivalent to the following function call:
-
-```javascript
-function step1(a: int, b: int) {
-   return { RESULT: a + b };
-}
-
-const { RESULT } = step1(x + 1, y + 2);
 ```
 
-### 3.3 Supporting Distributed Parallel Execution
+The above is equivalent to the following function call:
 
-Spring Batch provides a mechanism to split data into multiple partitions and assign them to multiple slave steps (slave steps) for parallel execution. The main steps and components involved in distributed parallel processing are as follows:
+```javascript
+function step1(a:int, b:int){
+   return { RESULT: a + b};
+}
 
-1. **Defining the Partitioner**:
-   - The partitioner is responsible for dividing the data into multiple partitions. Each partition contains a portion of the data, which is then stored in the `ExecutionContext`.
-2. **Master Step Configuration**:
+const {RESULT} = step1(x+1,y+2)
+```
 
-   - The master step is responsible for managing partitions and allocating tasks. It generates partitions using a partitioner and assigns each partition to an associated slave step for processing.
+### 3.3 Partitioned parallel processing with work sharing
 
-3. **Slave Step Configuration**:
+SpringBatch provides a mechanism to split data into partitions and assign them to slave steps for parallel processing. The main steps and components are:
 
-   - The slave step is responsible for handling the data assigned to it. Each slave step can execute concurrently, improving processing efficiency.
+1. Define a Partitioner:
 
-4. **Task Executor**:
+   - The Partitioner divides the data into multiple partitions. Each partition contains part of the data, and stores this partition information in the ExecutionContext.
 
-   - The task executor is used to perform parallel execution of slave steps. It can be configured with different types of executors, such as `SimpleAsyncTaskExecutor` or `ThreadPoolTaskExecutor`, to achieve parallel processing.
+2. Configure the Master Step:
 
-Through these steps, Spring Batch effectively decomposes large tasks into multiple smaller tasks for parallel processing, thereby improving efficiency and performance.
+   - The Master Step manages partitions and assignments. It uses the Partitioner to generate partitions and assigns each partition to slave steps.
+
+3. Configure Slave Steps:
+
+   - Slave steps handle the partitioned data assigned to them. Each slave step can run in parallel, improving efficiency.
+
+4. Task Executor:
+
+   - The task executor runs slave steps in parallel. Different executors such as SimpleAsyncTaskExecutor or ThreadPoolTaskExecutor can be configured to achieve parallelism.
+
+With these steps, Spring Batch can split large tasks into small tasks and process them in parallel, improving efficiency and performance.
 
 ```xml
 <batch:job id="partitionedJob">
@@ -827,39 +900,39 @@ Through these steps, Spring Batch effectively decomposes large tasks into multip
 </batch:step>
 ```
 
-SpringBatch's partitioning parallel design essentially implements partitioned reading from the Reader, with each slave step using its own dedicated Reader to read data before processing. If a particular partition has an exceptionally large amount of data, other partitions' threads will become idle once all available threads are occupied and cannot assist in handling it.
+SpringBatch’s partitioning design effectively partitions reading from the Reader onward, with each slave step using its dedicated Reader. If one partition has a particularly large amount of data, threads in other partitions cannot help once they finish and go idle.
+In real-world business, finer-grained partitioning is often possible. For example, in banking you typically only need to ensure ordering for a single account’s data, while different accounts can be processed in parallel. NopBatch provides a more flexible partitioned parallel processing strategy.
 
-In real-world business scenarios, there often exists a need for finer-grained partitioning. For example, in banking applications, it is typically sufficient to ensure that individual account data is processed in order, while data for different accounts can be handled concurrently. NopBatch provides a more flexible partitioning and parallel processing strategy.
+First, BatchTask in NopBatch has a concurrency parameter specifying the number of parallel threads. IBatchChunkContext stores concurrency and current thread index, so during processing we know how many threads are in total and which index the current thread has, enabling internal partitioning operations.
 
-Firstly, NopBatch's `BatchTask` has a `concurrency` parameter that allows specifying the number of parallel threads to use for processing. Additionally, the `IBatchChunkContext` stores both the `concurrency` parameter and the current thread index parameter, enabling direct determination during processing of how many handling threads are available and which thread is currently executing, facilitating internal partitioning operations.
 ```java
-interface IBatchChunkContext {
-    int getConcurrency();
-    int getThreadIndex();
-    ...
+interface IBatchChunkContext{
+  int getConcurrency();
+  int getThreadIndex();
+  ...
 }
 
-class BatchTask implements IBatchTask {
-    public CompletableFuture<Void> executeAsync(IBatchTaskContext context) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
+class BatchTask implements IBatchTask{
+   public CompletableFuture<Void> executeAsync(IBatchTaskContext context){
+      CompletableFuture<Void> future = new CompletableFuture<>();
 
-        context.fireTaskBegin();
+      context.fireTaskBegin();
 
-        // Multiple threads can be executed concurrently. loader/processor/consumer all need to be thread-safe
-        CompletableFuture<?>[] futures = new CompletableFuture[concurrency];
-        for (int i = 0; i < concurrency; i++) {
-            futures[i] = executeChunkLoop(context, i);
-        }
+      // Multiple threads can execute concurrently. loader/processor/consumer must be thread-safe
+      CompletableFuture<?>[] futures = new CompletableFuture[concurrency];
+      for (int i = 0; i < concurrency; i++) {
+           futures[i] = executeChunkLoop(context, i);
+      }
 
-        CompletableFuture.allOf(futures).whenComplete((ret, err) -> {
-            onTaskComplete(future, meter, err, context);
-        });
+      CompletableFuture.allOf(futures).whenComplete((ret, err) -> {
+           onTaskComplete(future, meter, err, context);
+      });
 
-        return future;
-    }
+      return future;
+   }
 
-    CompletableFuture<Void> executeChunkLoop(IBatchTaskContext context,
-                                             int threadIndex) {
+   CompletableFuture<Void> executeChunkLoop(IBatchTaskContext context,
+                                            int threadIndex) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         executor.execute(() -> {
@@ -873,7 +946,7 @@ class BatchTask implements IBatchTask {
                     chunkContext.setConcurrency(concurrency);
                     chunkContext.setThreadIndex(threadIndex);
 
-                    if (processChunk(chunkContext) != ProcessResult.CONTINUE)
+                    if (processChunk(chunkContext)!= ProcessResult.CONTINUE)
                         break;
                 } while (true);
 
@@ -887,43 +960,46 @@ class BatchTask implements IBatchTask {
         return future;
     }
 }
+```
 
-The step-level parallel processing in NopBatch differs from Spring Batch's grid partition. In NopBatch, the loader, processor, and consumer are shared during step-level parallel execution, but it achieves this by passing concurrency and threadIndex parameters through IBatchChunkContext.
-NopBatch has built-in **PartitionDispatchLoaderProvider**, which provides flexible partition loading capabilities. When setting up, this provider starts several loading threads to actually load the data. It then generates a hash value between 0 and 32767 in memory using a hashing function based on business critical information. Each hash value corresponds to a micro-queue, and each record in a queue must be processed in order. All micro-queues are managed centrally in **PartitionDispatchQueue**.
+Unlike SpringBatch’s grid partitions, NopBatch’s parallel step processing shares the Loader, Processor, and Consumer, passing concurrency and threadIndex via IBatchChunkContext.
 
-When loading chunk data, each processing thread can retrieve data from the micro-queue within the **PartitionDispatchQueue**. Once data is retrieved, it marks the corresponding micro-queue as used, preventing other threads from processing the same micro-queue. After chunk processing is complete, the micro-queue is released in the `onChunkEnd` callback function.
+NopBatch includes a PartitionDispatchLoaderProvider that provides flexible partitioned loading. During setup, it starts several loading threads to actually read data, and in memory it computes a hash value (0–32767) based on business key information. Each hash corresponds to a micro-queue whose records must be processed in order. All micro-queues are managed uniformly in a PartitionDispatchQueue.
+
+When a processing thread loads chunk data, it can fetch from micro-queues in the PartitionDispatchQueue. After fetching data, it marks the corresponding micro-queue as in use to prevent other threads from processing the same queue. After the chunk finishes, the onChunkEnd callback releases the micro-queue.
 
 ```xml
 <batch>
     <loader>
-        <!-- First, use OrmReader to read data and then call dispatcher to dispatch to partition task queues, with each partitionIndex corresponding to one queue -->
+        <!-- First use OrmReader to read data, then dispatcher distributes to partition task queues,
+             one queue per partitionIndex -->
         <orm-reader entityName="DemoIncomingTxn">
 
         </orm-reader>
 
-        <!-- After loading items into a collection, the afterLoad callback function is called to process the results -->
+        <!-- After the reader obtains items, it calls the afterLoad callback to post-process the result -->
         <afterLoad>
             for(let item of items){
-                // Dynamically compute partitionIndex and assign it to the item
-                item.make_t().partitionIndex = ...;
+                item.make_t().partitionIndex = ...; // Dynamically compute partitionIndex
             }
         </afterLoad>
 
-        <!-- The partitionIndex is dynamically computed in afterLoad, as it does not exist in the original data -->
-        <!-- Therefore, SpringBatch's grid configuration cannot handle this scenario -->
+        <!-- partitionIndex is computed in afterLoad and does not exist in the raw data.
+             Therefore SpringBatch’s grid configuration cannot handle this case
+         -->
        <dispatcher loadBatchSize="100" partitionIndexField="_t.partitionIndex">
        </dispatcher>
     </loader>
 </batch>
 ```
 
-> In the Nop platform, all entities provide a `make_t()` method that returns a Map for storing temporary custom attributes. This design aligns with the philosophy of enabling extensible capabilities for each local computation.
+> All entities in the Nop platform provide a make_t() function that returns a Map for storing custom temporary attributes. This design also aligns with Reversible Computation’s principle that each local unit has extensibility.
 
-The above configuration is an example of a NopBatch DSL configuration. It uses OrmReader to read data from the **DemoIncomingTxn** table and sends it to different queues based on `"_t.partitionIndex"` as defined in the entity.
+The NopBatch DSL snippet above reads data from the DemoIncomingTxn table via OrmReader, then dispatches items to different queues based on the entity attribute `_t.partitionIndex`.
 
-In SpringBatch, each thread corresponds to a partition, with the number of partitions equaling the number of threads. However, in NopBatch, the maximum number of partitions is 32768, which is much greater than the number of parallel processing threads in typical batch jobs while still being far less than the actual number of business entities. This ensures balanced partitioning without requiring excessive memory to maintain multiple queues.
+In SpringBatch, each thread corresponds to one partition, and the number of partitions equals the number of threads. In NopBatch, the actual maximum number of partitions is 32768, which is far greater than the number of parallel threads and far fewer than the number of domain entities, ensuring balanced partitions without maintaining excessive queues in memory.
 
-If you indeed need similar step-level parallel processing capabilities like SpringBatch, you can directly use **NopTaskFlow**'s `fork` or `fork-n` step configuration.
+If you need parallel step-level processing similar to SpringBatch, you can use fork or fork-n step configurations in NopTaskFlow.
 
 ```xml
 <fork name="processFile" var="fileName" aggregateVarName="results"
@@ -933,18 +1009,19 @@ If you indeed need similar step-level parallel processing capabilities like Spri
      </producer>
 
      <steps>
-        <!-- The context environment contains a variable named fileName -->
+        <!-- The context contains a variable named fileName -->
      </steps>
 
      <aggregator>
-       <!-- This can be an optional aggregation action to perform after all fork steps are executed -->
+       <!-- An optional aggregation action executed after all forked steps finish -->
      </aggregator>
 </fork>
 ```
 
-The producer in the `fork` step can dynamically compute a list and start a separate step instance for each element in the list.
+The producer in a fork step computes a list dynamically, and a separate step instance is started for each element.
 
-Both **OrmReader** and **JdbcReader** in NopBatch DSL support `partitionIndexField` configuration. If this field is specified along with the `partitionRange` parameter, it will automatically generate partition filtering conditions.
+OrmReader and JdbcReader in NopBatch DSL both support partitionIndexField; if specified along with a partitionRange parameter, a partition filter condition is automatically added.
+
 ```xml
 <batch>
     <loader>
@@ -957,13 +1034,13 @@ Both **OrmReader** and **JdbcReader** in NopBatch DSL support `partitionIndexFie
 </batch>
 ```
 
-When invoking a batch task, the `partitionRange` configuration is passed.
+Pass partitionRange when invoking the batch task:
 
 ```javascript
-batchTaskContext.setPartitionRange(IntRangeBean.of(1000, 100));
+batchTaskContext.setPartitionRange(IntRangeBean.of(1000,100));
 ```
 
-The above configuration will automatically append partition filter conditions during execution, generating the following SQL statement:
+The above configuration automatically adds a partition filter condition, producing the following SQL at runtime:
 
 ```sql
 select o from MyEntity o
@@ -971,13 +1048,14 @@ where o.status = '1'
 and o.partitionIndex between 1000 and (1000 + 100 - 1)
 ```
 
-## Three. DSL Forest: NopTaskFlow + NopBatch + NopRecord + NopORM
+## IV. The DSL Forest: NopTaskFlow + NopBatch + NopRecord + NopORM
 
-While Spring Batch is touted as a declarative development approach, its declarative model relies heavily on the limited capabilities of Spring IoC for bean assembly, leaving much of the business-related logic still embedded within Java code. It does not establish a comprehensive framework for fine-grained declarative batch processing. On the other hand, if Spring Batch were to introduce a domain-specific model specifically for batch processing, it might lack flexibility and could restrict its applicability.
+Although SpringBatch claims declarative development, its declarative approach relies on Spring IoC’s limited bean-wiring descriptions; a large amount of business-specific logic still must be coded in Java, and there is no complete fine-grained declarative batch model. Conversely, if SpringBatch were to propose a domain-specific model dedicated to batch processing, it would be hard to ensure extensibility and could constrain applicability.
 
-NopBatch's solution represents a highly distinctive approach characteristic of the Nop platform: the use of a "DSL Forest" to resolve issues by reusing a set of seamlessly nested DSLs tailored for different domain layers, rather than relying on a single monolithic DSL designed specifically for batch processing. For batch processing, we establish a minimalistic NopBatch model that abstracts batch-specific chunk processing logic and provides a series of auxiliary implementation classes, such as `PartitionDispatcherQueue`. At a higher level of task orchestration, we leverage existing `NopTaskFlow`, which is entirely unrelated to batch processing. It requires no internal engine modifications for integration with `NopBatch` and achieves seamless fusion through meta-programming, smoothing over any gaps between the two.
+NopBatch’s solution is characteristic of the Nop platform—a DSL forest: solve problems by reusing a set of seamlessly nested DSLs designed for different local domains, rather than relying on a single, monolithic, batch-specific DSL. For batch processing, we define a minimal NopBatch batch model that abstracts the domain-specific chunk processing logic and provides supporting utility classes like PartitionDispatcherQueue. At a broader orchestration level, we reuse NopTaskFlow. NopTaskFlow has no batch-specific knowledge, nor does its engine require any internal changes to integrate with NopBatch; metaprogramming eliminates friction between the two.
 
-For example, in the file parsing layer, Spring Batch provides a `FlatFileItemReader` that enables configuration for parsing simple data files with structured formats.
+For example, in file parsing, SpringBatch provides a FlatFileItemReader that can be configured to parse simple-structured data files.
+
 ```xml
 <bean id="flatFileItemReader" class="org.springframework.batch.item.file.FlatFileItemReader">
     <property name="resource" value="classpath:data/input.dat" />
@@ -1016,9 +1094,12 @@ For example, in the file parsing layer, Spring Batch provides a `FlatFileItemRea
         </bean>
     </property>
 </bean>
-Clearly, this configuration is highly inefficient and is specifically designed for SpringBatch's fileReader. Outside of SpringBatch, it is generally difficult to directly reuse the same configuration information for parsing similar data files.
+```
 
-In the Nop platform, we define a specialized model called Record, which is intended for data message format analysis and generation. However, this model is not specifically tailored for batch processing file parsing; instead, it can be used in any context where message parsing and generation are required. It represents a general-purpose declarative development mechanism and offers significantly greater capabilities compared to SpringBatch's FlatFile configuration.
+Clearly, this configuration is very verbose, and it is specific to Spring Batch’s file Reader. Outside of Spring Batch, if we want to parse the same data file, it’s generally hard to directly reuse the configuration information from Spring Batch.
+
+On the Nop platform, we define a Record model dedicated to parsing and generating data message formats. It is not designed exclusively for batch file parsing; rather, it can be used anywhere message parsing and generation are needed. It is a general declarative development mechanism and far more powerful than Spring Batch’s FlatFile configuration.
+
 ```xml
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
       x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-common.task.xml"
@@ -1049,7 +1130,7 @@ In the Nop platform, we define a specialized model called Record, which is inten
                         fileModelPath="simple.record-file.xlsx" />
                 </loader>
 
-                <!-- Can define multiple processors to be executed in sequence -->
+                <!-- Multiple processors can be defined; they run in sequence -->
                 <processor name="processor1">
                     <source>
                         consume(item);
@@ -1064,7 +1145,7 @@ In the Nop platform, we define a specialized model called Record, which is inten
                       record:file-model="SimpleFile"/>
                 </consumer>
 
-                <!-- Can define multiple consumers, then use filter to control consumption of a subset of output data -->
+                <!-- Multiple consumers can be defined; use the filter section to consume only a subset of output data -->
                 <consumer name="selected">
                     <filter>
                         return item.quantity > 500;
@@ -1080,13 +1161,13 @@ In the Nop platform, we define a specialized model called Record, which is inten
 </task>
 ```
 
-In the above example, it demonstrates how to seamlessly integrate a Batch bulk processing model and Record message format definition within NopTaskFlow.
+The example above demonstrates how to seamlessly embed the Batch processing model and the Record message format definition within NopTaskFlow.
 
-1. The NopTaskFlow logic orchestration engine was designed without any knowledge of batch processing tasks or built-in Record models.
-2. **Extending NopTaskFlow does not require implementing any specific extension interfaces of the NopTaskFlow engine nor using an internal registration mechanism to register extended steps**. This contrasts sharply with typical framework designs.
-3. You only need to examine the `task.xdef` meta-model to understand the node structure of the NopTaskFlow logic orchestration model and then use XLang's built-in metaprogramming mechanisms to implement extensions.
-4. The line `x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-common.task.xml"` introduces basic models, which are processed through meta-programming mechanisms like `x:post-extends` into the XNode structure of the current model. **We can optionally introduce compile-time structural transformation rules**.
-5. The `<step name="test" customType="batch:Execute" xmlns:batch="xxx.xlib">` element's `customType` will be automatically recognized as an Xpl tag function and transform the `custom` node into a call to the `<batch:Execute>` tag function.
+1. The NopTaskFlow logic orchestration engine was designed without any built-in knowledge of batch tasks and does not include the Record model.
+2. Extending NopTaskFlow does not require implementing any extension interfaces inside the NopTaskFlow engine, nor using an internal registration mechanism to register extension steps. This stands in sharp contrast to typical framework designs.
+3. You only need to inspect the task.xdef metamodel to understand the node structure of the NopTaskFlow logic orchestration model, then use the metaprogramming mechanisms built into the XLang language to implement the extension.
+4. x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-common.task.xml" introduces base model support. These base models use metaprogramming mechanisms such as x:post-extends to transform the current model structurally at the XNode level. We can introduce compile-time structural transformation rules as needed.
+5. <step name="test" customType="batch:Execute" xmlns:batch="xxx.xlib"> The customType of an extension node is automatically recognized as an Xpl tag function, and the custom node is transformed into a call to the <batch:Execute> tag function.
 
 ```xml
 <step customType="ns:TagName" xmlns:ns="libPath" ns:argName="argValue">
@@ -1094,29 +1175,29 @@ In the above example, it demonstrates how to seamlessly integrate a Batch bulk p
 </step>
 will be automatically transformed into
 
-<step>
+<xpl>
     <source>
         <ns:TagName xpl:lib="libPath" argName="argValue">
             <slotName>...</ns:slotName>
         </ns:TagName>
     </source>
-</step>
+</xpl>
 ```
 
-This means that `customType` is a tag function name with a namespace. All attributes and child nodes sharing the same namespace will be treated as properties and child nodes of this tag function. While directly using Xpl steps is not very complex, metaprogramming transformations based on `customType` can further reduce information expression complexity, ensuring that only the minimal amount of information is expressed, with all derivable information automatically deduced.
+In other words, customType is a namespaced tag function name. All attributes and child nodes sharing the same namespace become attributes and child nodes of that tag. Although directly using an xpl step is not complex, metaprogramming transformation based on customType can further compress the amount of information expressed, ensuring only the minimal necessary information is specified, and anything derivable is derived automatically.
 
-7. The `<batch:Execute>` tag will be parsed at compile time to resolve its task node and construct an IBatchTask object, which can then be directly accessed at runtime without re-parsing.
-8. All XDSL are automatically capable of handling extension attributes and extension nodes. By default, attributes and nodes with namespaces do not participate in XDef meta-model checks. Therefore, custom `<record:file-model>` models can be introduced within task nodes, and they will be automatically parsed by the `batch-common.task.xml` metaprogramming processor into RecordFileMeta objects and stored as compile-time variables.
-9. The `file-reader` and `file-writer` nodes' `record:file-model` attributes will be recognized and automatically transformed.
+7. The <batch:Execute> tag parses its task node at compile time and constructs an IBatchTask object. At runtime, compile-time variables can be accessed directly without re-parsing.
+8. All XDSLs automatically support extension attributes and extension nodes. By default, namespaced attributes and nodes do not participate in XDef metamodel validation. Therefore, under the task node you can introduce a custom <record:file-model> definition. It will be automatically parsed into a RecordFileMeta model object by the metaprogramming processor brought in via batch-common.task.xml and stored as a compile-time variable.
+9. The record:file-model attribute on file-reader and file-writer nodes will be recognized and automatically transformed.
 
 ```xml
 <file-writer record:file-model="SimpleFile">
 </file-writer>
-will be transformed into
+is transformed into
 
 <file-writer>
     <newRecordOutputProvider>
-      <!-- Xpl模板语言中#{xx}表示访问编译期定义的变量 -->
+      <!-- In the Xpl template language, #{xx} accesses a compile-time variable -->
        <batch-record:BuildRecordOutputProviderFromFileModel
               fileModel="#{SimpleFile}"
                 xpl:lib="/nop/batch/xlib/batch-record.xlib"/>
@@ -1124,10 +1205,14 @@ will be transformed into
 </file-writer>
 ```
 
-* `#{}` is the syntax defined in XLang for compile-time expressions, allowing access to compile-time variables.
-10. In a specific step of NopTaskFlow, BatchTask is called, and within the Processor of BatchTask, the same method can be used to call NopTaskFlow to implement per-record processing logic.
+* #{} is the compile-time expression syntax defined by the XLang language, which lets you access variables set at compile time.
+10. NopTaskFlow can invoke a BatchTask within a step, and inside the BatchTask’s Processor, we can use the same approach to invoke NopTaskFlow for per-record processing logic.
 
 ```xml
+<processor name="processor2" task:taskModelPath="process-item.task.xml">
+</processor>
+
+is transformed into
 <processor name="processor2">
     <source>
         <task:Execute taskModelPath="process-item.task.xml"
@@ -1135,9 +1220,10 @@ will be transformed into
                  xpl:lib="/nop/task/xlib/task.xlib"/>
     </source>
 </processor>
+```
 
-* The task model can be embedded with the `customType="batch:Execute"` attribute. In the batch processor configuration, another task model can be embedded using the `task:taskModelPath` attribute.
-11. Regarding database access, NopORM provides a complete ORM model supporting multi-tenanting, logical deletion, field encryption and decryption, flexible transaction handling, associated query optimization, batch loading, and batch saving. The orm-reader and orm-writer components enable database reading and writing.
+* A task model can embed the batch model via customType="batch:Execute", and within the batch model’s processor configuration you can embed another task model via task:taskModelPath.
+11. For database access, NopORM provides a complete ORM model with built-in support for multi-tenancy, soft deletion, field encryption/decryption, flexible transaction handling, relational queries, batch loading, and batch save optimizations. Database read/write can be performed via orm-reader and orm-writer.
 
 ```xml
 <batch>
@@ -1155,34 +1241,33 @@ will be transformed into
 </batch>
 ```
 
-**By combining NopTaskFlow, NopBatch, NopRecord, and NopORM with multiple domain models, the Nop platform can achieve complete task orchestration through declarative programming during general business development, without requiring Java code writing.**
+Combining multiple domain models such as NopTaskFlow, NopBatch, NopRecord, and NopORM, the Nop platform enables batch jobs to be implemented entirely declaratively during typical business development, without writing Java code.
 
-You can stop here to carefully think about it: in a single DSL, how is it possible to simultaneously include definitions for task types, batch tasks, and record types, while ensuring seamless integration between them? It appears that the platform provides a complete unified DSL.
+Pause here to think: within a single DSL, definitions for tasks, batch tasks, and records all coexist and are seamlessly fused, appearing as one coherent, unified DSL.
 
-1. How would you implement this without the Nop platform?
-2. Can the ability to define multiple DSLs and combine them be abstracted into a general capability?
-3. Does this abstracted capability impact runtime performance?
-4. How is mixed DSL debugging handled? Can errors be accurately pinpointed to their DSL source code origins?
-5. How can a rapid visual designer be developed for this mixed DSL? Is it possible to use Excel for DSL configuration?
+1. How would you achieve this without the Nop platform?
+2. Can the capability to define DSLs and glue multiple DSLs together be abstracted into a general-purpose capability?
+3. Does this abstraction impact runtime performance?
+4. How do you perform breakpoint debugging when multiple DSLs are mixed? Can errors be precisely located in the DSL source?
+5. How can we rapidly develop a visual designer for such a mixed DSL? Can Excel be used for DSL configuration?
 
-### Command Line Execution
+### Command-line Execution
 
-The nop-cli tool provided by the Nop platform allows direct execution of orchestration tasks.
+The nop-cli tool provided by the Nop platform can execute logic orchestration tasks directly.
 
-1. In the _vfs directory, introduce files like `app.orm.xml` and `batch-demo.task.xml`, and the nop-cli tool will automatically load all model files from the virtual file system within the working directory.
-2. Execute orchestration tasks using the command: `java -Dnop.config.location=application.yaml -jar nop-cli.jar run-task v:/batch/batch-demo.task.xml -i="{bizDate:'2024-12-08'}"`.
-* The first argument to `run-task` specifies the path to the orchestration model file. The `v:` indicates it is within the `_vfs` virtual file system. You can also specify a direct file path.
-* The `-i` parameter provides input parameters for the orchestration task in JSON format. Alternatively, you can use `-if=filePath` to specify an input data file containing a JSON object.
-* Use `-Dnop.config.location` to specify configuration files, which can include database connection passwords.
+1. Place DSL files such as app.orm.xml and batch-demo.task.xml under the _vfs directory, and the nop-cli tool will automatically load all model files in the working directory’s virtual file system.
+2. Execute the logic orchestration task via: java -Dnop.config.location=application.yaml -jar nop-cli.jar run-task v:/batch/batch-demo.task.xml -i="{bizDate:'2024-12-08'}"
+* The first argument of run-task is the path to the logic orchestration model file. v: indicates a path under the _vfs virtual file system. You can also pass an OS file path directly.
+* The -i argument specifies the input parameters for the orchestration task in JSON format. You can also specify an input data file via -if=filePath, where the file contains a JSON payload.
+* Use -Dnop.config.location to specify the configuration file, where database connection passwords and other settings can be configured.
 
-The TestNopCli test suite provides functions like `testBatchGenDemo`, allowing you to familiarize yourself with the NopBatch engine through debugging these test cases.
+The TestNopCli unit test suite provides test cases such as testBatchGenDemo. You can debug these cases to familiarize yourself with the NopBatch engine.
 
-## Four. Multiple Facets of DSL
+## IV. Multiple Representations of DSLs
 
-A fundamental difference between Nop platform and other platforms is that Nop not only includes some common DSLs but also provides a comprehensive Language-Oriented Programming (LOP) infrastructure. This infrastructure is designed for rapid development or extension of existing DSLs. Each DSL does not merely have a unique expression form but can be represented in multiple forms, including Excel, visual editing, JSON, and XML, with seamless conversion between these formats.
+A fundamental difference between the Nop platform and others is that Nop does not merely embed a few common DSLs. It provides a full set of Language Oriented Programming infrastructure for rapidly building or extending DSLs. Each DSL is not limited to a single form; it can be expressed as Excel, visual editing, JSON, or XML, with free conversion among these forms.
 
-
-In the `record-file.register-model.xml` file, multiple loaders are defined for the message model.
+For example, record-file.register-model.xml defines multiple loaders for the message model:
 
 ```xml
 <model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
@@ -1196,13 +1281,13 @@ In the `record-file.register-model.xml` file, multiple loaders are defined for t
 </model>
 ```
 
-The configuration above indicates that files of type `xxx.record-file.xml` can be parsed into a `RecordFileMeta` object, following the `record-file.xdef` meta-model for parsing. Simultaneously, files of type `xxx.record-file.xlsx` require an `XlsxObjectLoader` to parse them, adhering to the structure defined in `record-file.imp.xml`.
+The configuration above indicates that files of type xxx.record-file.xml can be parsed into a RecordFileMeta object using the record-file.xdef metamodel. Files of type xxx.record-file.xlsx must be parsed using XlsxObjectLoader according to the structure rules defined in record-file.imp.xml.
 
-In `txn.record-file.xlsx`, a fixed-length data file format is defined, comprising file header, body, and trailer.
+In txn.record-file.xlsx, a fixed-length data file format is defined, including file header, body, and trailer.
 
 ![](batch/record-file.png)
 
-This configuration is equivalent to:
+It is equivalent to the following configuration:
 
 ```xml
 <file x:schema="/nop/schema/record/record-file.xdef" xmlns:x="/nop/schema/xdsl.xdef" binary="true">
@@ -1210,7 +1295,7 @@ This configuration is equivalent to:
     <body typeRef="BodyObject" />
     <trailer typeRef="TrailerObject" />
     <aggregates>
-        <!-- Aggregates the `txnAmount` property across each record into a `totalAmount` variable, used in the trailer -->
+        <!-- Aggregate the txnAmount property of each record to obtain the totoalAmount variable, used in the trailer -->
         <aggregate name="totalAmount" aggFunc="sum" prop="txnAmount" />
     </aggregates>
 
@@ -1228,17 +1313,16 @@ This configuration is equivalent to:
 </file>
 ```
 
-
 ### ORM Model
 
-In the `/nop-cli/demo/_vfs/app/demo/orm` directory, a demonstration `app.orm.xml` model file is provided, illustrating an interesting NopORM model configuration.
+In the /nop-cli/demo/_vfs/app/demo/orm directory, there is a demo app.orm.xml model file showcasing a very interesting NopORM configuration.
 
 ```xml
 <orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
      orm:forceDynamicEntity="true" x:dump="true"
      xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:orm="orm">
     <x:gen-extends>
-        <!-- Generates NopORM model from Excel files (`demo.orm.xlsx` and `demo-delta.orm.xlsx`) -->
+        <!-- Automatically generate orm.xml from orm.xlsx; you can edit visually and see changes take effect immediately -->
         <orm-gen:GenModelFromExcel path="demo.orm.xlsx" xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
         <orm-gen:GenModelFromExcel path="demo-delta.orm.xlsx" xpl:lib="/nop/orm/xlib/orm-gen.xlib" />
     </x:gen-extends>
@@ -1248,14 +1332,15 @@ In the `/nop-cli/demo/_vfs/app/demo/orm` directory, a demonstration `app.orm.xml
 ![](batch/orm-model.png)
 ![](batch/demo-orm-model.png)
 
-1. Here, `orm:forceDynamicEntity=true` is set to indicate that no entity class code needs to be generated; instead, dynamic entities are used for ORM mapping directly. This allows for direct use of ORM entity relationships in batch models without prior code generation. In the XLang language, dynamic entities can just like regular Java classes utilize property access syntax, making them fully compatible with standard entities.
+1. First, orm:forceDynamicEntity=true indicates that no entity class code needs to be generated—use dynamic entities directly for ORM mapping. This enables immediate use of ORM entity association queries in batch models without pre-generating code. In the XLang language, dynamic entities can be accessed via property syntax just like regular Java classes, and are used exactly like ordinary entities.
+2. The second interesting point is that the x:gen-extends section demonstrates metaprogramming-based model generation and a way to implement Delta model merging. This approach is completely generic and requires no extra effort—it is part of the Nop platform’s core capabilities.
+   * orm-gen:GenModelFromExcel reads the Excel-format orm.xlsx model file, automatically parses it into an OrmModel object according to the orm.imp.xml import configuration, and then converts the OrmModel object into XNode nodes using the orm.xdef metamodel definition.
+   * demo-delta.orm.xlsx defines a Delta model. When customizing the demo.orm.xlsx model file, you don’t need to modify the original; simply add a new Delta model file with exactly the same structure (a full model is a special case of the Delta, so no special design is needed for Delta expression).
+   * The two orm-gen:GenModelFromExcel tag invocations generate two XNode nodes. Per the XLang language specification, multiple nodes generated in the x:gen-extends section are automatically merged using a Delta merge into a single, complete XNode node. x:dump=true causes the runtime to print a detailed merge process and the final merged result to the log.
 
-2. The second interesting aspect is demonstrated by the `x:gen-extends` section, which shows an implementation for model generation and difference model merging. This approach is a completely generalizable method requiring no additional effort and is part of the underlying capabilities of the Nop platform.
-   * The `orm-gen:GenModelFromExcel` tag reads from the Excel format model file (`orm.xlsx`) and parses it into an OrmModel object based on the import configuration specified in `orm.imp.xml`. It then converts this OrmModel object into an XNode node using the meta-model definition provided by `orm.xdef`.
-   * The difference model is defined in `demo-delta.orm.xlsx`. When customizing the demo.orm.xlsx model file, you can avoid modifying the original file by simply adding a new Delta model file that has the exact same structure as the original (with the full model being a special case of the delta, requiring no separate design for delta-specific expressions).
-   * The two `orm-gen:GenModelFromExcel` tags generate two XNode nodes. According to the XLang language specifications, multiple nodes generated by the `x:gen-extends` section are automatically merged into a single complete XNode node through difference merging. The `x:dump=true` setting causes the detailed merging process and final result to be printed in the log file during runtime.
+With the configuration above, you can define both the data model and its Delta in Excel. Modifications to the Excel model are applied to the system immediately. If the system is running online, refreshing the page after modifying the Excel model will reload the ORM model. This is because the Nop platform implements dependency tracking of model resource files at the core: the parsing result of a model depends on all resource files accessed at compile time, and any change in those resources invalidates the model cache.
 
-With the above configuration, Excel can be used to define data models and model differences. Any changes made to an Excel model are immediately reflected in the system. In online systems, refreshing the page after modifying the Excel model will reload the ORM model. This is because the Nop platform implements resource file dependency tracking at the bottom layer, ensuring that model cache invalidation occurs whenever any of the referenced resource files change during compilation.
+Again, think carefully: without the Nop platform, how would you implement similar visual model design and Delta-based model definition?
 
-Here's also a detailed consideration: if not using the Nop platform, how would one implement similar visual model design and difference-based model definition?
-* The use of Excel for visualization is not a necessity. For example, tools like [PowerDesigner](https://www.oracle.com/technologies/products/pd-doorstep/) or [PDManer](https://my.oschina.net/skymozn/blog/10858773) can be used to design ORM models. All that's needed is a tag function to implement the model conversion. The Nop platform natively supports `pdman.xlib` and PdmModelParser for adapting these two types of models.
+* You don’t have to use Excel for the visual designer. For example, you could use the PDManer visual design tool (https://my.oschina.net/skymozn/blog/10858773) or PowerDesigner to design ORM models; you only need to implement a tag function to convert those models. The Nop platform includes pdman.xlib and PdmModelParser to adapt these two model formats.
+<!-- SOURCE_MD5:2e2b9a3bcd57d344e978a3fb72d24719-->

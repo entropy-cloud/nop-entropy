@@ -1,23 +1,20 @@
 # Leader Election
 
-
-## Database Storage Based
-
+## Based on Database Storage
 
 ### Follower
 
-1. Check if the Cluster already has a Leader Record. The leader in the Leader Record should not be the current node. If it is, then an unknown error occurs, delete the Leader Record and retry.
-2. If there exists a Leader Record but it is not yet timeout, schedule the next check task.
-3. If there exists a Leader Record and it has become timeout, attempt to renew it using epoch. If renewal fails, schedule the next check task.
-4. If no Leader Record exists, attempt to insert a new one. If insertion fails, schedule the next check task.
+1. Check whether the Cluster already has a Leader record. The leader in the Leader record should not be the current node; if it is, an unknown error has occurred—delete the Leader record and retry.
+2. If it exists and has not timed out, schedule the next check.
+3. If it exists and has timed out, attempt to update and increment the epoch. If the update fails, schedule the next check.
+4. If it does not exist, attempt to insert; if the insert fails, schedule the next check.
 
-For follower, if the database time exceeds expireAt, consider the leader as having expired.
-
+For a follower, when the database time exceeds expireAt, the Leader lease is considered expired.
 
 ### Leader
 
-1. Check if the Cluster already has a Leader Record. The leader in the Leader Record should be the current node.
-2. If no Leader Record exists or the leaderId does not match the current node, then an unknown error occurs, transition to follower mode and retry.
-3. If `currentTime < expireAt - leaseSafeGap`, consider the leader as not yet timeout.
-4. Otherwise, attempt to renew the lease. If renewal fails, transition back to election flow
-
+1. Check whether the Cluster already has a Leader record. The leader in the Leader record should be the current node.
+2. If the Leader record does not exist, or the leaderId is not the current node, an unknown error has occurred; switch to follower mode, then retry.
+3. If `currentTime < expireAt - leaseSafeGap`, it is safe to assume no timeout.
+4. Otherwise, first attempt to renew the lease; if renewal fails, re-enter the election process.
+<!-- SOURCE_MD5:78621df8b54fa03b682618a1f0c75176-->

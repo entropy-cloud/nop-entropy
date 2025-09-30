@@ -1,14 +1,12 @@
-# How to Integrate Nop Platform with Solon Framework
+# How to Integrate the Nop Platform with the Solon Framework
 
-Solon is a lightweight, domestically produced microservices framework based on Java. For detailed information, please visit its official website at [https://solon.noear.org/](https://solon.noear.org/) . Solon has a fast startup time and occupies minimal memory, making it an alternative to Spring Boot. The Nop platform is developed from scratch based on reversible computation principles, utilizing a language-oriented programming paradigm for domain-specific languages (DSL) design and application.
+Solon is a lightweight Java microservice framework. For detailed information, see the official site [https://solon.noear.org/](https://solon.noear.org/). Solon starts quickly and uses very little memory, making it a potential alternative to SpringBoot. The Nop platform is a next-generation low-code platform developed from scratch based on the principles of Reversible Computation. At its core, it adopts a language-oriented programming paradigm, providing infrastructure to support the design and application of domain-specific languages (DSLs). As an upper-layer architectural platform, the Nop platform can run on various underlying technology frameworks. It has already been adapted to Quarkus and Spring; in this article, I will use Solon as an example to introduce how the Nop platform integrates with third-party frameworks.
 
-The Nop platform operates as a higher-level architectural platform capable of running on multiple underlying frameworks. Previously, it has been adapted to Quarkus and Spring Frameworks. In this document, we will use Solon Framework as an example to describe the specific methods for integrating Nop with third-party frameworks.
+* The concrete implementation code is in the nop-solon project [nop-extensions/nop-solon](https://gitee.com/canonical-entropy/nop-extensions/tree/master/nop-solon)
 
-* The specific implementation code resides in the nop-solon project at [nop-extensions/nop-solon](https://gitee.com/canonical-entropy/nop-extensions/tree/master/nop-solon).
+## I. Framework Initialization
 
-## 1. Framework Initialization
-
-Solon framework is equipped with a lightweight IOC container. You can leverage its lifecycle management to trigger Nop platform initialization.
+The Solon framework has a built-in lightweight IoC container, and we can leverage its lifecycle management to trigger Nop platform initialization.
 
 ```java
 @Component(index = -1)
@@ -29,35 +27,31 @@ public class SolonInitializer implements LifecycleBean {
 }
 ```
 
-The `SolonBeanContainer` can be adapted to Nop's required `IBeanContainer` interface. This allows direct usage of Solon-managed beans within the Nop platform.
+You can adapt Solon’s bean container to the Nop platform’s required IBeanContainer interface via SolonBeanContainer. This allows Nop’s bean creation process to directly use beans managed by Solon.
 
-> The Nop platform provides an IOC container compatible with Spring 1.0 configuration syntax, namely `NopIoc`, and includes dynamic condition matching similar to Spring Boot. To ensure compatibility with underlying frameworks' IOC containers, it actually uses the parent container provided by the underlying framework for beans that are not found in `NopIoc`.
+> Nop provides an IoC container, NopIoc, which is compatible with Spring 1.0 configuration syntax and adds a SpringBoot-like dynamic conditional matching mechanism. To be compatible with the underlying framework’s IoC container, it actually uses the underlying IoC as its parent, meaning that beans not found in NopIoc will be looked up in the parent container.
 
-For detailed information about `NopIoc`, please refer to [If we rewrite Spring Boot, what changes would we make?](https://zhuanlan.zhihu.com/p/579847124).
+For more details about NopIoc, see [If we rewrote SpringBoot, what different choices would we make?](https://zhuanlan.zhihu.com/p/579847124)
 
-### CoreInitialization Initialization
+### CoreInitialization phased initialization
 
-The Nop platform uses `CoreInitialization.initialize()` to perform platform initialization. Its implementation leverages the Java ServiceLoader mechanism to load the `ICoreInitializer` interface.
+The Nop platform uses the `CoreInitialization.initialize()` call to perform platform initialization. It uses Java’s ServiceLoader mechanism to load the `ICoreInitializer` interface.
+Built-in common initializers execute in the following order:
 
-The built-in initializers follow this order of execution:
+1. ReflectionHelperMethodInitializer: registers extension functions with the reflection system
+2. XLangCoreInitializer: registers global functions and global objects used in XLang expressions
+3. XLangDebuggerInitializer: starts the XLang debugger
+4. ConfigInitializer: reads configuration files such as application.yaml and loads from remote configuration services
+5. VirtualFileSystemInitializer: initializes the virtual file system
+6. RegisterModelCoreInitializer: loads the `register-model.xml` model registration file and registers DSL models
+7. DaoDialectInitializer: scans and reads dialect model files
+8. IocCoreInitializer: initializes the NopIoc container
 
-1. **ReflectionHelperMethodInitializer**: Registers extension functions in the reflection system.
-2. **XLangCoreInitializer**: Registers global functions and objects used within XLang expressions.
-3. **XLangDebuggerInitializer**: Initializes the XLang debugger.
-4. **ConfigInitializer**: Reads configuration files like `application.yaml` and loads them from remote configuration services.
-5. **VirtualFileSystemInitializer**: Initializes the virtual file system.
-6. **RegisterModelCoreInitializer**: Loads `register-model.xml` to register DSL models.
-7. **DaoDialectInitializer**: Scans and registers dialect models.
-8. **IocCoreInitializer**: Initializes the NopIoc container.
+`ICoreInitializer` provides staged loading capabilities. Each initializer has a corresponding initialization level, allowing you to explicitly specify execution up to a certain level. For example, in the code generator, we can clearly specify the execution level as `INITIALIZER_PRIORITY_PRECOMPILE`, which will not trigger NopIoc initialization.
 
-The `ICoreInitializer` interface provides stage-wise loading capabilities, allowing each initializer to specify a particular initialization level. For example, in the code generator, you can explicitly set the execution level to `INITIALIZER_PRIORITY_PRECOMPILE`, which will not trigger NopIoc initialization.
+## II. Adapting Web Services
 
-## 2. Web Service Adaptation
-
-
-**Unlike typical GraphQL engines, NopGraphQL not only implements the GraphQL protocol but also provides a universal service decomposition and composition mechanism. With just one function written, you can automatically expose it as REST, GraphQL, or gRPC services.**
-
-NopGraphQL employs a minimal information expression design. Writing code with it is significantly simpler compared to other service frameworks.
+The Nop platform uses the NopGraphQL engine to expose external Web services and RPC services. Unlike typical GraphQL engines, NopGraphQL not only implements the GraphQL invocation protocol; it also provides a general mechanism for service decomposition and composition. With a single implementation of the function code, it can automatically be exposed as REST, GraphQL, gRPC, and other service forms. NopGraphQL adopts a minimum-information expression design, making it simpler to write code with it than with other service frameworks.
 
 ```java
 @BizModel("Demo")
@@ -72,7 +66,7 @@ public class DemoBizModel {
 }
 ```
 
-The service function can be called via the GraphQL protocol:
+The above service function can be called via the GraphQL protocol:
 
 ```graphql
 query{
@@ -83,13 +77,13 @@ query{
 }
 ```
 
-Or via a REST request:
+It can also be called via a REST request:
 
 ```
 /r/Demo__testOk?name=sss
 ```
 
-Additionally, it can be invoked via gRPC:
+And it can be called through a gRPC interface:
 
 ```proto3
 service Demo{
@@ -97,9 +91,9 @@ service Demo{
 }
 ```
 
-For detailed information about NopGraphQL, please refer to [Why does GraphQL strictly surpass REST in mathematical terms?](https://zhuanlan.zhihu.com/p/678597287).
+For a detailed introduction to NopGraphQL, see [Why is GraphQL strictly superior to REST in the mathematical sense?](https://zhuanlan.zhihu.com/p/678597287)
 
-With the underlying Web framework providing only a few routes (`/graphql` and `/r/{operationName}`), NopGraphQL can be set up with minimal configuration. When adapting to the Solon framework, you only need to implement the SolonGraphQLWebService class.
+NopGraphQL only requires the underlying web framework to provide route mappings for a small set of endpoints such as `/graphql` and `/r/{operationName}`. To adapt the Solon framework, we only need to implement the SolonGraphQLWebService class.
 
 ```java
 @Controller
@@ -121,7 +115,7 @@ public class SolonGraphQLWebService extends GraphQLWebService {
         String body = "GET".equalsIgnoreCase(context.method()) ? null : context.body();
         return FutureHelper.syncGet(runRest(null, operationName, () -> {
             return buildRequest(body, selection, true);
-        }), this::transformRestResponse);
+        }, this::transformRestResponse));
     }
 
     protected String transformRestResponse(ApiResponse<?> response, IGraphQLExecutionContext gqlContext) {
@@ -129,36 +123,61 @@ public class SolonGraphQLWebService extends GraphQLWebService {
 
         String str = JSON.stringify(response.cloneInstance(false));
         int status = response.getHttpStatus();
-        if (status == 0) {
+        if (status == 0)
             status = 200;
-        }
+
         Context.current().status(status);
         return str;
+    }
+    ...
+}
+```
+
+* The Solon framework also places variables defined in the REST path into the params collection. To avoid confusion with other parameters, SolonGraphQLWebService chooses to use the `@` prefix for distinction; thus the REST path is mapped as `/r/{@operationName}`.
+* The built-in GraphQLWebService provides a basic framework to expose GraphQL services based on the JAX-RS standard. We only need to apply some custom adjustments to it.
+* In its internal implementation, NopGraphQL uses generic functions such as `getRequestHeader()` and `setResponseHeader()` and does not rely on specific web framework object classes. Other input/output parameters are pure POJOs, so adaptation can be done automatically through JSON conversion.
+
+If you use Nop platform’s security authentication and other mechanisms, you also need to adapt `HttpServerFilter`. Since the Nop platform does not directly use runtime framework-specific objects such as HttpServletRequest, but defines its own `IHttpServerContext` interface, we only need to add SolonServerContext to adapt to this interface.
+
+```java
+@Component
+public class SolonHttpServerFilter implements Filter {
+    ...
+    @Override
+    public void doFilter(Context context, FilterChain chain) throws Throwable {
+        List<IHttpServerFilter> serverFilters = getFilters(false);
+
+        if (serverFilters.isEmpty()) {
+            chain.doFilter(context);
+        } else {
+            IHttpServerContext ctx = new SolonServerContext(context);
+            HttpServerHelper.runWithFilters(serverFilters, ctx, () -> {
+                return FutureHelper.futureCall(() -> {
+                    try {
+                        chain.doFilter(context);
+                        return null;
+                    } catch (Error e) {
+                        throw e;
+                    } catch (Throwable e) {
+                        throw NopException.adapt(e);
+                    }
+                });
+            });
+        }
     }
 }
 ```
 
-* The Solon framework also unifies variables defined in the REST Path into the `param` collection to avoid confusion with other parameters. Therefore, the REST path is mapped as `/r/{@operationName}`.
-* The built-in `GraphQLWebService` provides a basic framework for exposing GraphQL services based on the JAXRS standard. Only minor customizations are needed.
-* The NoOP implementation used in the transformation only relies on generic `getRequestHeader()` and `setResponseHeader()` functions, as well as pure POJOs for input/output parameters. This allows for seamless JSON conversion using a standard JSON library.
+* In the Nop platform, an implementation of IHttpServerFilter named AuthHttpServerFilter handles user access token validation.
+* Similar to Spring Security, the Nop platform wraps all its filters together and executes them within a single Solon Filter.
 
-# Security Authentication Mechanisms in Nop Platform
+## III. Customizing the Static Resource Loader
 
-If you are using the security authentication mechanisms in the Nop platform, you will also need to adapt `HttpServerFilter`. The Nop platform does not directly use `HttpServletRequest` and its related runtime framework classes but instead uses a custom-defined interface called `IHttpServerContext`. Therefore, adapting `SolonServerContext` to this interface is sufficient.
+When managing static resources such as JavaScript, the Solon framework can enable gzip compression support. Its approach is to check whether a `js.gz` file exists in the same directory as the JavaScript file. If it exists and the browser’s accept header supports gzip, it returns the content of the `js.gz` file. In other words, when the frontend requests `app.js`, if `app.js.gz` exists, the actual content returned is from the compressed `app.js.gz` file.
 
-# Customizing Static Resource Loader
+For the Nop platform, Solon’s logic requires the server to provide both `js` and `js.gz` files, which significantly increases the package size. The Nop platform’s frontend uses the AMIS low-code framework, which is feature-rich. Even after compression, all frontend JavaScript code is still around 10 MB in size (the designer is over 4 MB; with on-demand loading on the frontend, the split bundle is typically around 1 MB). For intranet applications, all browsers effectively support gzip decoding, so there is no need to keep both formats. We generally keep only the `js.gz` files.
 
-The Solon framework allows for customization of static resource loading. When enabling gzip compression support for JavaScript resources, the framework checks if a `js.gz` file exists in the same directory as the `js` file. If it does and the browser supports gzip compression, the `js.gz` file is returned instead. This means that when a request is made for `app.js`, if a `app.js.gz` file exists, the compressed version of the resource will be served.
-
-# Challenges with Compression
-
-In the context of the Nop platform, the Solon framework's logic requires both the original `js` and compressed `js.gz` files to be present on the server side. This significantly increases the size of the delivered package. The Nop platform's frontend uses a low-code framework, which is feature-rich, and the frontend code still amounts to around 10MB (excluding additional assets) even after compression. Since most modern browsers support gzip compression out of the box, there is no need to maintain both formats simultaneously. Therefore, it is common practice to only retain the `js.gz` files.
-
-# Customizing Resource Mapping
-
-The Solon framework allows for customization of resource mapping by defining your own static asset handlers. This can be particularly useful when working with internal or proprietary web frameworks that require specific handling of resources.
-
-For example, you can create a custom resource loader class:
+Solon allows customization of the mapping between static resource files and web request paths. We can leverage this to bypass the original logic.
 
 ```java
 @Component
@@ -166,12 +185,13 @@ public class SolonStaticResourceRegistrar implements LifecycleBean {
     @Override
     public void start() throws Throwable {
         NopResourceRepository repository = new NopResourceRepository();
+        //StaticMappings.add("/js/", repository);
         StaticMappings.add("/", repository);
     }
 }
 ```
 
-This class registers a global mapping that ensures all frontend paths are processed through the `NopResourceRepository`. This allows for consistent handling of static resources across the application.
+First, we register a global mapping so that all frontend paths are processed by NopResourceRepository.
 
 ```java
 public class NopResourceRepository implements StaticRepository {
@@ -193,32 +213,32 @@ public class NopResourceRepository implements StaticRepository {
 }
 ```
 
-## Four. Packaging as a Starter Module
+In NopResourceRespository, if a corresponding `js.gz` or `css.gz` file exists, we directly return the corresponding URL, thereby skipping checks on the original files.
 
-The Nop platform integrates the Solon framework by encapsulating its code into the `nop-solon-starter` module. To use this module in a Solon project, simply add the following dependency:
+## IV. Packaging as a Starter Module
+
+The code for integrating the Nop platform with the Solon framework is encapsulated in the `nop-solon-starter` module. In a Solon project, you can use it simply by adding the following:
 
 ```xml
-<dependency>
-    <groupId>io.github.entropy-cloud.extensions</groupId>
-    <artifactId>nop-solon-starter</artifactId>
-    <version>1.0-SNAPSHOT</version>
-</dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud.extensions</groupId>
+            <artifactId>nop-solon-starter</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
 ```
 
-* Note: The `nop-solon-starter` has not been uploaded to the Maven central repository and must be downloaded from a private Maven repository (https://nop.repo.crazydan.io/) during compilation.
+* Currently, `nop-solon-starter` has not been uploaded to Maven Central; you need to download the project and build it yourself.
 
-* The repository compiles and releases new versions of the Nop platform's packages every morning at 2 AM.
+* The Nop platform packages required at build time are currently downloaded from a community-provided private Maven repository (https://nop.repo.crazydan.io/), which publishes daily builds at 2 AM.
 
-## Five. Integration Effects
+## V. Integration Results
 
-The Solon framework starts significantly faster than SpringBoot, and the packaged size is also reduced by a significant amount (approximately 10-20 MB). If you don't use AMIS (a front-end tool), the `nop-solon-service-demo` package will be around 21 MB after compilation, including components such as XLang language support, GraphQL engine, ORM, report engine, workflow engine, logic processing engine, rule engine, distributed RPC calls, code generator, backend permissions management, dynamic model management, and more.
+The Solon framework starts significantly faster than SpringBoot, and the packaged size is much smaller (roughly reduces by over 10 MB). If you do not use the AMIS frontend, the `nop-solon-service-demo` package is about 21 MB, which includes a complete low-code backend service: XLang language, GraphQL engine, ORM engine, reporting engine, workflow engine, logic orchestration engine, rules engine, distributed RPC, code generator, admin authorization management, dynamic model management, etc.
 
-## Six. Open Source
+The low-code platform NopPlatform, designed based on Reversible Computation theory, is open-sourced:
 
-The Nop platform's backend service is built on Solon, a low-code framework based on reversible computation theory. The following open-source resources are available:
-
-- Gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
-- GitHub: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- Documentation: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- Video tutorials on Bilibili: [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV14u411T715/)
-
+- gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+- github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+- Development examples: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [Principles of Reversible Computation and Nop Platform Introduction and Q&A_bilibili](https://www.bilibili.com/video/BV14u411T715/)
+<!-- SOURCE_MD5:fb704f82897eb20b0aee863616814f43-->

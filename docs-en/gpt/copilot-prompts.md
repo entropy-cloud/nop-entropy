@@ -1,49 +1,41 @@
-1. Variable Naming, Provide 10 Candidate Answers and Explanation
+1. Variable naming: provide ten candidate options and explain them
 
-2. Code Reading
+2. Rapid code reading
 
-   - From an architectural design perspective, analyze the design ideas of this code, and explain the pros and cons of this approach.
-   - Analyze the detailed logic of the XXX function and its role in the entire file.
-   - Add comments to each line of the XXX function to thoroughly analyze it.
-   - Modify the file to implement the XXX functionality, how to modify?
-   - Rewrite the Python code using TypeScript to analyze the design logic of this Python code.
-   - Explain how to implement the XXX functionality in TypeScript.
-   - Analyze the potential risks in this code.
-   - Explain the differences between the run and test methods in this code.
+“From an architectural design perspective, analyze the design approach of this code and explain the pros and cons of this approach.”
+“Analyze the detailed logic of the xxx function and its role within the entire file.”
+“Add comments to every line of the xxx function to provide a detailed breakdown of the function.”
+“I need to modify this file to implement the xxx feature; how should I change it?”
+“I need to rewrite this Python code in TypeScript; provide a detailed analysis of the design logic of this Python code and explain how to implement it in TypeScript.”
+“Identify the potential risks in this code.”
+“In this code, what is the difference between the run and test methods?”
 
-3. Code Rewriting, Implement the Overall Logic Using XX Library
+3. Code rewrite: implement the overall logic using the xx library
 
-   - This is the documentation for the XXX function in the XX library. Help rewrite the logic of this part using the XX library.
-   - This is an official example of the XX library. I want to implement the XXX functionality using the XX library, help me achieve that.
+“Here is the documentation for this function from the b library; help me rewrite this part that was implemented with the a library.”
+“Here is an official example from the b library. I want to use b to implement the xx feature; please implement it for me.”
 
-4. Development Template
+4. Development templates
 
-   - I need a TypeScript class. Its usage and invocation method is: `<pseudo-code>`, help me create a basic version.
-   - Inside this class, I want to record a step-by-step production of XXX data. What structure should I use? Explain your thoughts.
-   - This is the class I designed for data structure. Its purpose is XXX. From its pros and cons, give five reasons why it's good or bad, and explain the reasons.
-   - This is the data structure I designed: class/架构/数据结构. Explain its purpose and give five reasons why it's good or bad.
+“I need a TypeScript class; its usage and invocation are: \<pseudocode\>; please implement a minimal version.”
+“Inside this class, I want to record xxx data produced incrementally. What structure best fits TypeScript’s programming model? Please design it and explain your reasoning.”
+“This is the class/architecture/data structure I designed for xxx. Provide five pros and five cons, and explain each in detail.”
 
-5. Error Analysis
+5. Error analysis
+   “Explain this error and analyze the possible causes and how to fix it.”
+   “I don’t think this is the root cause of the error. Based on your knowledge, provide three possible root causes.”
 
-   - Explain this error and analyze possible causes and solutions.
-   - I don't think this is the root cause of the error. Based on your knowledge, provide three possible root causes.
+6. Design optimization
+   “These are my senior’s comments on my PR. Help me analyze their meaning and propose appropriate solutions.”
 
-6. Design Optimization
+“Does the design of this class account for the xxx issue?”
+“Analyze whether this class has any security risks.”
+“… in which scenarios might there be leakage risks?”
+“How can this class be optimized for xxx?”
 
-   - From my ancestor's comments, help me understand the pr comments. Provide an explanation and suggest appropriate solutions.
-   - Does this class design consider the XXX issue? Analyze this and propose a solution.
-   - Is there a security risk in this class? Explain and provide recommendations.
-   - In which scenarios might data leakage occur?
-   - How to optimize this class for XXX.
-
-7. Basic Configuration
-
-   - I want to write a Node.js library, help me create a basic rollup configuration, tsconfig, and package.json settings.
-   - Help me write a React library from scratch, including rollup, tsconfig, and package.json configurations.
+7. Basic setup
+   “I’m going to write a Node.js library. Help me create a basic Rollup configuration, tsconfig, and package.json configuration.” “Help me write a basic xxx component using React.”
 
 8. Learning
-
-   - Provide some good magic words: examples and detailed explanations.
-   - Compare the pros and cons of these two tools in practical scenarios.
-   - Explain the differences between these two tools in actual use cases.
-   - Use the XXX function to write a simple demo, explain its advantages.
+   A few very useful magic words: “Explain in detail with examples,” “Compare these two in detail, listing pros and cons,” “Provide real-world scenarios to contrast the differences between these two,” “Using the xxx function, write a simple demo and introduce its advantages.”
+<!-- SOURCE_MD5:8dca4e34e52dc5d5016064d4cc55aabb-->

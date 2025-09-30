@@ -1,132 +1,86 @@
-# From Reversible Computation to DSL Design Points
 
-The visualization editor for low-code platforms is essentially a structured editor for Domain Specific Language (DSL). When the results of the editing process are serialized into text format, the standard used is a specific syntax defined by the DSL.
+# DSL Design Essentials from the Perspective of Reversible Computation
 
-The Nop platform is based on the principles of reversible computation and provides a comprehensive mechanism for constructing and simplifying DSL design and implementation. This allows for easy addition of custom DSLs tailored to specific business domains, as well as seamless extension of existing DSLs. Specifically, the DSLs defined within the Nop platform typically use XML syntax, conforming to XDSL standards.
+Low-code platforms’ visual designers are essentially structured editors for a DSL (Domain Specific Language). The specification used by a visual designer to serialize editing results into a textual format is a DSL grammar definition.
 
-## 1. DSL Before Visualization
+Based on the principles of Reversible Computation, the Nop platform proposes a systematic construction mechanism to simplify the design and implementation of DSLs, making it easy to add DSLs for your own business domain and to extend existing DSLs. Specifically, DSLs defined in the Nop platform generally adopt an XML syntax format and conform to the so-called XDSL specification requirements. The key design points of XDSL are as follows:
 
-Many low-code platforms prioritize the simplicity and usability of their visualization tools, leading to inconsistent and overly complex DSL design. In contrast, XDSL emphasizes a concise and intuitive text-based DSL for programmers, combining manual editing with automated processing. Visualization alone can be seen as a form of text-based DSL, separate from but complementary to programmatic DSLs.
+## I. DSL-first rather than visual-design-first
 
-Under this design philosophy, a single DSL can support multiple visualization tools, such as NopORM's DSL (app.orm.xml), which can be visualized using tools like Excel, PowerDesigner, or PDMiner. Additional visualization tools can be added as long as their design files enable bidirectional conversion with orm.xml.
+Many low-code platforms focus on making the visual designer easy to use, which leads to DSL formats that are arbitrary, cluttered, and verbose, and not suitable for programmers to read or write manually. XDSL emphasizes that the textual form of the DSL should be concise and intuitive, suitable for manual authoring and easy for automated processing. The visual presentation can be regarded as another representation of the textual DSL; the visual and textual forms can be reversibly transformed according to standardized rules.
 
-In specific business applications, custom visualization tools, such as localized detail editors for specific model parts, can be implemented. These editors use difference merge operations to integrate localized designs into the overall model.
+Under this design philosophy, the same DSL can have multiple visual designers. For example, the DSL corresponding to the NopORM model is the model file app.orm.xml, and its visual designers can be Excel, PowerDesigner, or PDMiner. We can add more visual designers as long as their design files can be bidirectionally converted with orm.xml model files.
 
-## 2. DSL Syntax Defined by Meta-Models
+In specific business applications, we can introduce customized visual designers—for instance, a local detail designer that designs only part of the model file—and then merge the local design results into the overall model via Delta merge operations.
 
-The value of DSL lies in its abstraction of domain semantics, abstracted further through meta-models. The choice of syntax is secondary; what matters is that a unified XDefinition meta-language can standardize DSL syntax for specific domains.
+## II. Define DSL syntax via a metamodel, and let all DSLs share the same metamodel definition language.
 
-A meta-model is essentially a model of models, akin to metadata describing data. Just as metadata structures data, a meta-model defines the structure of models.
+The value of a DSL lies in the domain semantic space it abstracts with business value; what syntax form it adopts is essentially secondary. XDSL uniformly adopts an XML syntax form, which allows the introduction of a unified XDefinition metamodel language to standardize the specific DSL grammar.
 
-### Example Meta-Model Structure
+> A metamodel is a model that describes models, similar to how metadata describes data.
 
 ```xml
-<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl/xdsl.xdef">
-    ...
+<orm x:schema="/nop/schema/orm/orm.xdef"  xmlns:x="/nop/schema/xdsl.xdef">
+	...
 </orm>
 ```
 
-- The root element represents the model file.
-- `x:schema` specifies the meta-model definition.
-- `[orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef)` is the meta-model defined using `[xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef/xdsl.xdef)`.
-- This meta-model defines the structure of the DSL syntax.
+* On the root node of the model file, we use `x:schema` to specify the metamodel definition file.
 
-### Defining Meta-Models
+* [orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef) uses [xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef), a meta-metamodel, to define itself.
 
-The meta-model is defined by `[orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef)` and `[xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef/xdsl.xdef)`, both of which are defined using `[schema.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/xdsl.xdef)`.
+* xdef.xdef is defined using xdef.xdef itself, so we do not need a higher-level meta-meta-metamodel.
 
-These meta-models ensure that all DSLs share the same definition language, enabling seamless nesting and integration of different DSLs within the Nop platform.
+### A unified metamodel language facilitates seamless nesting among DSLs
 
-### Unified Meta-Language for DSLs
+In the Nop platform, many DSL metamodel definitions reference other already-defined DSL models. For example, both [api.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/api.xdef) and [xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef) reference the already defined [schema.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/schema.xdef).
 
-In the Nop platform, numerous DSL meta-models are defined, such as `[api.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/api/xdsl.xdef)` and `[xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta/xdsl.xdef)`, which in turn reference already defined meta-models like `[schema.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/xdsl.xdef)`.
+Different DSLs using the same type definitions also makes it easy to reuse the same visual design components, conversion tools, validation rules, etc.
 
-This mutual referencing ensures that all DSLs share a consistent definition framework, enabling bidirectional conversion and seamless integration across different domains.
+### Automatically provide IDE plugins based on the metamodel
 
-### Benefits of Unified Meta-Language
+The Nop platform provides an IDEA plugin [nop-idea-plugin](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-idea-plugin). It automatically validates DSL syntax based on the metamodel specified by `x:schema`, and provides auto-completion, link navigation, and other features. For function-type DSL nodes, it can even provide breakpoint debugging. When we add a new DSL language, we do not need to develop a separate IDEA plugin; IDEA support is available out of the box.
 
-The power of a unified meta-language lies in its ability to abstract domain-specific complexities into a standard structure. This abstraction allows for:
-- Consistent definition of DSL syntax across domains.
-- Automatic generation of tools tailored to specific domains.
-- Easy extension and customization of existing DSLs.
+Based on the metamodel, we can also automatically derive visual designers, without introducing separate visual designers for each DSL.
 
-This approach minimizes the need for custom code, reducing development complexity while maintaining flexibility.
+## III. All DSLs must provide decomposition and merging mechanisms
 
-## 3. Custom Visualization Tools
-
-In addition to standard visualization tools like Excel or PowerDesigner, custom visualization tools can be developed for specific use cases. For example, a localized editor for model details might focus on a subset of the model, using difference merge operations to synchronize changes across localized versions.
-
-Such tools are not limited to XML-based representations; they can utilize other formats as long as they support bidirectional conversion with the central meta-model.
-
-### Example of Custom Visualization
-
-A custom visualization tool for a specific business domain might use XSLT transformations to convert the underlying XML representation into a more user-friendly format, while maintaining referential integrity through difference tracking.
-
-This approach ensures that changes in one localized model are reflected across all connected models, minimizing data fragmentation and ensuring consistency.
-
-### Integration with Existing Systems
-
-Existing systems can be integrated by defining appropriate mappings between their data models and the Nop platform's meta-model. This allows for seamless data exchange while preserving the integrity of both systems.
-
-## 4. Conclusion
-
-The design of DSLs is a critical aspect of platform development, particularly in low-code environments where flexibility and extensibility are key. By focusing on meta-models and unified definition languages like XDSL, platforms can achieve greater consistency, reduce development complexity, and provide users with powerful tools for domain-specific modeling.
-
-
-The Nop platform provides an IDEA plugin called **[nop-idea-plugin](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-idea-plugin)**. This plugin automatically validates the syntax of your DSL based on the schema defined by `x:schema`, and it provides auto-completion, link navigation, and debugging capabilities for function types of DSL nodes. You don't need to develop a separate IDEA plugin for each new DSL language; instead, you can directly obtain IDEA support.
-
-Based on the meta-model, we can automatically derive a visualization designer. You don't need to manually import a visualization designer for each individual DSL.
-
-
-## Three. All DSLs Need to Provide Decomposition and Merging Mechanisms
-
-When a DSL file becomes sufficiently complex, it is necessary to introduce decomposition, merging, and library abstraction mechanisms to manage complexity. XDSL defines a standardized Delta difference syntax, as specified in **[xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef)**.
-
-
-## Three. Decomposition and Merging Mechanisms for All DSLs
-
-For a complex DSL file, decomposition, merging, and library abstraction mechanisms are essential to manage complexity. XDSL defines a standardized Delta difference syntax, as specified in **[xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef)**.
+Once a DSL file becomes sufficiently complex, you inevitably need mechanisms like decomposition, merging, and library abstraction to manage complexity. XDSL defines a standardized Delta syntax; see [xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef).
 
 ```xml
 <meta x:extends="_NopAuthUser.xmeta"
-      x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" >
+	  x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" >
 
-    <x:post-extends>
-        <biz-gen:GenDictLabelFields xpl:lib="/nop/core/xlib/biz-gen.xlib"/>
-    </x:post-extends>
+	<x:post-extends>
+		<biz-gen:GenDictLabelFields xpl:lib="/nop/core/xlib/biz-gen.xlib"/>
+	</x:post-extends>
 </meta>
 ```
 
-The `x:extends` attribute is used to inherit existing meta-models, while `x:gen-extends` and `x:post-extends` are built-in meta-programming mechanisms. These are used to implement the Generator part of Reversible Computing Theory, dynamically generating DSL model objects, and then performing Delta merging.
+`x:extends` is used to inherit an existing model file, while `x:gen-extends` and `x:post-extends` are built-in metaprogramming mechanisms. They implement the Generator part in Reversible Computation theory: dynamically generating DSL model objects and then performing Delta merging.
 
-The `x:override` attribute specifies the merging strategy when nodes are merged. For detailed information, refer to **[Delta Merging Algorithm in Reversible Computing](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/xlang/x-override.md)**.
+`x:override` specifies the merging strategy for nodes during merge. For details, see the [Delta merge algorithm in Reversible Computation theory](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/xlang/x-override.md).
 
+## IV. Manage all DSL files through a unified Delta file system
 
-## Four. Managing All DSL Files with a Delta File System
+The Nop platform manages all model files under a unified virtual file system. This virtual file system provides functionality similar to UnionFS in Docker technology: different internal directories constitute different layers; files in higher-layer directories automatically override files at the same virtual path in lower-layer directories.
+Specifically, `/_vfs/_delta/default/a.xml` automatically overrides the file `/_vfs/a.xml`. In code, anywhere using the virtual path `/a.xml` will actually load `/_vfs/_delta/default/a.xml` at runtime. In other words, we do not need to modify the original source code; by simply adding a file with the same name under the delta directory, we can automatically change the actual model that is loaded.
 
-The Nop platform consolidates all model files into a unified virtual file system for management. This virtual file system resembles the UnionFS file system used in Docker, organizing files into layers. Higher-level directories automatically override lower-level files with the same virtual path.
+* You can specify multiple delta layers via the configuration item nop.core.vfs.delta-layer-ids (by default there is only one delta layer named default).
+* An XDSL file under the delta directory can use `x:extends="super"` to indicate inheritance from the model file in the previous layer.
+* Model files stored in database tables can also be mapped to a virtual file path; for example, wf:MyWf/1.0 indicates loading the model file from the NopWfDefinition table in the database.
 
-For example:
-- `_/vfs/_delta/default/a.xml` automatically overrides `_/vfs/a.xml`.
-- In code, any reference to `/a.xml` will load `_/vfs/_delta/default/a.xml` at runtime.
-- You don't need to modify existing source code; simply add files to the delta directory.
+With the Delta file system and XDSL’s built-in Delta merge algorithm, we can implement a system-level Delta customization mechanism. Without modifying the base product source code at all, we can add Delta modules to deeply customize the system’s data models, business logic, frontend UI, etc. See [How to achieve customized development without modifying the base product’s source code](https://zhuanlan.zhihu.com/p/628770810).
 
-Key configuration options include:
-- `nop.core.vfs.delta-layer-ids`: Specify multiple Delta layers (default is one).
-- In the delta directory, XDSL files can use `x:extends="super"` to inherit from the previous layer's model file.
-- Map database table files to virtual paths, such as `wf:MyWf/1.0` for files stored in the NopWfDefinition table.
+## V. Load DSL models through a unified Loader
 
-With the help of the Delta File System and XDSL's built-in Delta merging algorithm, you can implement system-level Delta customization without modifying the base product source code. For example, see **[How to Implement Customization Without Modifying Base Product Source Code](https://zhuanlan.zhihu.com/p/628770810)**.
+The Nop platform uses a unified ResourceComponentManager to load all DSL models.
 
-
-
-The Nop platform uses `ResourceComponentManager` to load all DSL models uniformly.
-
-```java
-OrmModel model = (OrmModel) ResourceComponentManager.instance().loadComponentModel("/nop/auth/orm/app.orm.xml");
+```
+OrmModel model = (OrmModel)ResourceComponentManager.instance().loadComponentModel("/nop/auth/orm/app.orm.xml");
 ```
 
-When adding a new DSL model, you can create a registration file, such as `orm.register-model.xml`.
+When we add a new DSL model, we can introduce a registration file, for example orm.register-model.xml:
 
 ```xml
 <model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
@@ -138,59 +92,62 @@ When adding a new DSL model, you can create a registration file, such as `orm.re
 </model>
 ```
 
-Through this registration of the model, we can specify how to perform the resolution based on the given file type.
+Through this registration model, we can specify how to parse a given file type into a model object.
 
-* **xlsx-loader**: Specifies how to import model configurations from Excel files.
-* **xdsl-loader**: Specifies how to resolve XML-based DSL files and their corresponding meta-models. The schemaPath must match the schema defined in the xdef file or be extended from it.
+* xlsx-loader specifies how to parse an Excel model file according to the Excel import model configuration.
+* xdsl-loader specifies the metamodel that a DSL file must have and parses it according to the metamodel (the metamodel specified by the model file’s x:schema must be the schemaPath value, or an extension based on it).
 
-Based on a unified loader, we can implement code generation tools for any given model.
+With a unified model loader, we can implement code generation tools for arbitrary models:
 
-```bash
+```
 java -jar nop-cli.jar gen abc.model.xlsx -t=/nop/templats/my-model
 ```
 
-The `gen` command accepts a model file parameter and uses the `-t` parameter to specify the template path. This allows automatic resolution of the model and injection into the template file. For detailed documentation, refer to [The Differential Code Generator](https://zhuanlan.zhihu.com/p/540022264).
+The gen command accepts a model file parameter; then specify the code generation template path via the -t parameter. It will automatically parse the model file to obtain the model object and pass it to the template to generate code. See [Data-driven Delta code generator](https://zhuanlan.zhihu.com/p/540022264).
 
-### Parsing Cache and Dependency Tracking
+### Parsing cache and dependency tracking
 
-The `ResourceComponentManager` internally manages all DSL models' parse caches as well as their interdependencies. Its dependency tracking mechanism is similar to that used by the Vue frontend framework, dynamically recording all DSL models loaded or used during resolution, with any changes to model files automatically invalidating all dependent caches.
+ResourceComponentManager internally manages the parsing cache for all DSL models and the dependencies between DSL model files. Its dependency tracking mechanism is similar to that used in the Vue frontend framework: the system dynamically records DSL models loaded or used during model parsing; when a model file’s modification time changes, all caches that depend on it are automatically marked invalid.
 
-Additionally, the **nop-cli** tool provides a `watch` feature, enabling monitoring of specific directories for model file changes. When a change is detected, the code generator automatically re-runs to generate derived code based on the updated model.
+The nop-cli tool also provides a watch feature to monitor model files in a specified directory. When model files change, it automatically re-runs the code generator to produce derived code.
 
-### Reverse Calculation Entry Point
+### Entry points to Reversible Computation
 
-The core implementation of reverse calculation is encapsulated within the `ResourceComponentManager`. To integrate reversible calculations into third-party applications, simply replace your model loading function with `ResourceComponentManager.loadComponentModel`.
+The core implementation of the principles of Reversible Computation is fully encapsulated in the ResourceComponentManager abstraction. The simplest way to introduce Reversible Computation into third-party applications is to replace your model loading function with ResourceComponentManager.loadComponentModel. For example, to bring Delta customization for model files into the Spring and MyBatis frameworks, we reimplemented the scanning of beans.xml and mapper.xml, used ResourceComponentManager to dynamically generate DOM objects, and then invoked Spring and MyBatis parsers to parse and register them into their respective engines.
 
-For example, to implement custom Delta functionality for Spring and MyBatis frameworks, we redefined the scanning logic for `beans.xml` and `mapper.xml`, using `ResourceComponentManager` to dynamically generate DOM objects and then registering them with Spring and MyBatis parsers.
+For a theoretical analysis, see [Designing low-code platforms from the perspective of tensor products](https://zhuanlan.zhihu.com/p/531474176).
 
-For theoretical analysis, refer to [The Design of Low-Code Platforms](https://zhuanlan.zhihu.com/p/531474176).
+## VI. All DSL model objects support extension properties
 
-## All DSL Models Support Extension
+XDSL model object properties are not fixed at development time; they generally inherit from the AbstractComponentModel base class and support the addition of arbitrary extension properties. In specific business applications, we can choose to inherit from existing metamodels and add business-specific extension properties.
 
-XDSL models are not fixed in their properties during development. They generally inherit from the `AbstractComponentModel` base class and support arbitrary extensions. In specific business applications, you can choose to inherit from existing meta-models and add business-specific extensions.
+For example, the platform has a built-in metamodel [xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef).
 
-For example, the platform includes a built-in [xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef) meta-model. You can define `xmeta-ext.xdef` to extend this meta-model by adding custom extension fields.
+We can define a xmeta-ext.xdef metamodel that inherits from xmeta.xdef and adds some extension fields:
 
 ```xml
 <meta x:extends="/nop/schema/xmeta.xdef" xmlns:ui="ui" xmlns:graphql="graphql"
       x:schema="/nop/schema/xdef.xdef"
       xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef">
 
-    <props>
-        <prop ui:show="true" graphql:type="true"/>
-    </props>
+	<props>
+		<prop ui:show="string" graphql:type="string" />
+	</props>
 
 </meta>
 ```
 
-This meta-model defines `ui:show` and `graphql:type` properties for the `prop` nodes.
+The above metamodel indicates adding the ui:show attribute and graphql:type attribute to the prop node of the xmeta model.
 
-In specific `meta` files, you can replace `xmeta.xdef` with `xmeta-ext.xdef` to override or extend the default meta-model.
+Then in the concrete meta file, we can use xmeta-ext.xdef to replace the original xmeta.xdef:
+
 ```xml
 <meta x:schema="/my/schema/xmeta-ext.xdef">...</meta>
 ```
 
-* IDEA plugin will automatically identify and use an extended meta-model definition to validate Meta files.
-* The ResourceComponentManager.loadComponentModel method loads model objects that include extended properties.
+* The IDEA plugin will automatically recognize and use the extended metamodel definition to validate the Meta file.
+* Models loaded via ResourceComponentManager.loadComponentModel will include the extension properties.
 
-In other words, without modifying the built-in meta-model definitions, we can extend existing model objects at any time by adding extended properties, just like built-in properties are used in programming.  
+In other words, without modifying the platform’s built-in metamodel definitions, we can add extension properties to existing model objects at any time and use them programmatically just like built-in properties.
+
+<!-- SOURCE_MD5:604233b0420346186d5e066eee419592-->

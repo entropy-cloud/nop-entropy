@@ -1,146 +1,150 @@
 # Dynamic Configuration Management
 
-## Configuration Specification
+## Configuration Conventions
 
-* Configuration variables are in lowercase letters, separated by `.` and `-`, unlike Spring's conventions. NopConfig does not support mixed-case naming.
-* If configuration variables are passed via environment variables, the dot `.` is replaced with `_`, and the hyphen `-` is replaced with `__`. For example, `nop.auth.sso.server-url` becomes `NOP_AUTH_SSO_SERVER_URL`.
-* This convention ensures an unambiguous bi-directional mapping between environment variables and configuration variables.
-
-* Configuration variables used within a module are defined in the XXXConfigs constant class of that module.
+* Configuration variables use all lowercase letters, with `.` and `-` as separators. Unlike Spring’s convention, NopConfig does not actually support mixed-case naming.
+* When passing configuration variables via environment variables, `.` is replaced by `_`, `-` is replaced by `__`, and `_` is replaced by `___`. For example, nop.auth.sso.server-url becomes `NOP_AUTH_SSO_SERVER__URL`. (This convention is different from Spring, but it guarantees a bidirectional, unambiguous mapping between environment variables and configuration variables.)
+* Typically, configuration variables explicitly used within a module are defined in the module’s XXXConfigs constants class.
 
 ## Configuration Load Order
 
-The order in which configurations are loaded determines their priority, with earlier loads taking higher precedence.
+Configurations loaded earlier have higher priority and will be used first.
 
-1. `java System.getenv(): StringHelper.envToConfigVar(envName)` - Converts environment variable names to configuration item names.
-2. `java System.getProperties()` - Returns system properties.
-3. `classpath:bootstrap.yaml` - The application's bootstrap configuration can be specified using `nop.config.bootstrap-location`.
-4. `{nop.application.name}-{nop.profile}.yaml`
-5. `{nop.application.name}.yaml`
-6. `{nop.product.name}.yaml`
-7. `nop.config.key-config-source.paths` - Specifies the paths for key configurations, using k8s SecretMap.
-8. `nop.config.props-config-source.paths` - Specifies the paths for props configurations, using k8s ConfigMap.
-9. If `nop.config.jdbc.jdbc-url` is set, it will load from a database configuration table.
-10. `nop.config.additional-location` - Specifies additional extended configuration files.
-11. `nop.config.location` - Specifies the main configuration file, with a default of `classpath:application.yaml`.
-12. `nop.profile` and `nop.profile.parent` - Specify profiles, with parent profiles taking precedence over application.yaml.
-13. Quarkus-specific configurations use `%dev.` prefixes for profile-specific configurations.
+1. Java’s System.getenv(): StringHelper.envToConfigVar(envName) is responsible for converting environment variable names to configuration item names
+2. Java’s System.getProperties()
+3. classpath:bootstrap.yaml Startup configuration for the application; you can specify the location via `nop.config.bootstrap-location`
+4. Configuration center `{nop.application.name}-{nop.profile}.yaml`
+5. Configuration center `{nop.application.name}.yaml`
+6. Configuration center `{nop.product.name}.yaml`
+7. `nop.config.key-config-source.paths` parameter to specify k8s SecretMap mapping files; periodically scanned to detect updates
+8. `nop.config.props-config-source.paths` parameter to specify k8s ConfigMap mapping files; periodically scanned to detect updates
+9. If parameters such as `nop.config.jdbc.jdbc-url` are configured, configuration will be loaded from the database configuration table; periodically scanned to detect updates
+10. Extended configuration files specified by the `nop.config.additional-location` parameter
+11. Configuration file specified by the `nop.config.location` parameter; its default value is `classpath:application.yaml`
+12. Profile configurations specified by `nop.profile` and `nop.profile.parent`, which have higher priority than application.yaml
+13. Recognize profile configuration prefixes as defined by the Quarkus configuration specification, such as `'%dev.'`; adjust the access order of profile-specific items according to the current profile. For example, in dev mode, the value of `%dev.a.b.c` will override the value of `a.b.c`.
 
-The loading logic is entirely contained within `[ConfigStarter.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-config/src/main/java/io/nop/config/starter/ConfigStarter.java)` in the ConfigStarter class.
+> The specific configuration loading logic is centralized in the [ConfigStarter.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-config/src/main/java/io/nop/config/starter/ConfigStarter.java) class.
 
-## Remote Configuration
+* **You can configure `nop.profile=dev` in bootstrap.yaml or application.yaml to enable application-dev.yaml, similar to Spring’s profile concept.** You can also configure the profile via Java properties or environment variables, e.g. `-Dnop.profile=dev` or set the environment variable `NOP_PROFILE=dev`.
+* Configuration files with the `.yaml` suffix are preferred. If not found, files with the same name but `.yml` suffix will be tried. In other words, if both `application.yaml` and `application.yml` exist, the former will be used preferentially.
+* You can use `nop.profile.parent` to specify multiple active profiles; their priority is from left to right. For example `nop.profile=dev`, `nop.profile.parent=mysql,nacos` corresponds to the following load order: `application-dev.yaml -> application-mysql.yaml -> application-nacos.yaml -> application.yaml`.
 
-The `nop-config` module only provides basic configuration framework and interfaces. For remote configurations, specific implementations like Nacos are required, which need to be integrated by adding the corresponding implementation package (`nop-cluster-nacos`).
+## Extend ConfigStarter
+* `ConfigStarter.registerInstance` can register a derived class of ConfigStarter; extended ConfigStarters can be registered before CoreInitialization executes.
+* You can also avoid extending ConfigStarter and instead add an implementation of IConfigSourceLoader to achieve extension. ConfigStarter loads all IConfigSourceLoader implementations via JDK’s ServiceLoader mechanism.
 
-* `nop.config.nacos.server-addr=localhost`
-* `nop.config.nacos.username`
-* `nop.config.nacos.password`
+## Remote Configuration Center
+The `nop-config` module only provides the foundational framework and interfaces for configuration; specific remote configuration center support requires adding the corresponding implementation package. For example, to use Nacos, include the `nop-cluster-nacos` package.
 
+* nop.config.nacos.server-addr=localhost
+* nop.config.nacos.username
+* nop.config.nacos.password
 * nop.config.nacos.timeout
 * nop.config.nacos.group=public
 * nop.config.nacos.namespace=DEFAULT
 
-Note: The namespace requires the configuration of the namespace ID, not the name.
+Note that namespace must be configured with the namespace id, not the name.
 
-## Automatic Update
+## Automatic Updates
 
-After the configuration is pushed to the configuration center, the application's configuration items will automatically update. The update process is executed in a single thread to ensure sequential execution of updates.
+After the configuration center distributes configuration, configuration items in the application will be updated automatically. The update process is executed by a single thread to ensure sequential execution.
 
-* The application uses the `IConfigReference` interface to dynamically retrieve parameters. When parameters are updated, the latest values can be obtained.
+* Use the IConfigReference interface in the application to dynamically obtain parameters and get the latest value when the parameter is updated.
 
 ```javascript
-static final IConfigReference<Boolean> CFG_USE_CACHE = AppConfig.varRef("global.use_cache", true);
+  static final IConfigReference<Boolean> CFG_USE_CACHE = AppConfig.varRef("global.use_cache",true);
 
-public void myFunc() {
-    if (CFG_USE_CACHE.get()) {
-        // ...
-    }
-}
+  public void myFunc(){
+     if(CFG_USE_CACHE.get()){
+       // ...
+     }
+  }
 ```
 
-* In the IoC container, the `ioc:config` object is automatically updated. All beans referencing this config object will trigger configuration updates. For detailed information, refer to the IoC container's configuration documentation.
+* The ioc:config object configured in the IoC container will be automatically updated, and all beans referencing that config object will re-trigger their configuration update functions. See the IoC container configuration documentation for details.
 
 ```xml
 <beans>
-    <ioc:config id="myConfig" class="xxx.MyConfig" prefix="app.xxx" />
+  <ioc:config id="myConfig" class="xxx.MyConfig" prefix="app.xxx" />
 
-    <bean id="myBean" class="xxx.MyBean">
-        <property name="config" ref="myConfig" />
-    </bean>
+  <bean id="myBean" class="xxx.MyBean">
+    <property name="config" ref="myConfig" />
+  </bean>
 </beans>
 ```
 
-When `myConfig` changes, it will trigger the configuration update function of `myBean`. If `myBean` implements the `IConfigRefreshable` interface, it will call `IConfigRefreshable#refreshConfig`.
+When myConfig changes, it will trigger myBean’s configuration update function. If myBean implements the IConfigRefreshable interface, the IConfigRefreshable#refreshConfig method will be invoked.
 
-* In the IoC container, `@r-cfg` is used to mark configuration values that need dynamic updates. When the value of these configuration items changes, `myBean.setPropA` will be called to update the attribute.
+* Mark configuration values that need dynamic updates in the IoC container via @r-cfg
 
 ```xml
-<bean id="myBean" class="xxx.MyBean">
+  <bean id="myBean" class="xxx.MyBean">
     <property name="propA" value="@r-cfg: app.xxx.yyy" />
     <property name="propB" value="@cfg: app.xxx.zzz" />
-</bean>
+  </bean>
 ```
 
-`@cfg` prefix indicates the retrieval of configuration variable values, but it only occurs once during bean initialization. `@r-cfg:` indicates reactive config, which will trigger updates when the configuration item's value changes.
+The `@cfg` prefix means to retrieve the configuration variable’s value, but only once at bean initialization. `@r-cfg:` indicates reactive config; when the configuration item’s value changes, myBean.setPropA will be invoked again to update the property value.
 
 ## Initialization Process
 
-1. Load the startup configuration specified by `nop.config.bootstrap-location`.
-2. Use the ServiceLoader mechanism to load `IConfigService` and start it.
-3. Create `IConfigExecutor`. This executor is responsible for executing all configuration change operations in a single thread.
-4. Pull dynamic configurations from the remote configuration center using `IConfigService`.
-5. Load application-specific configurations specified by `nop.config.location` and `nop.config.additional-location`.
-6. Instantiate `DefaultConfigProvider` and `AppConfig`.
-7. Initialize `VirtualFileSystem`.
-8. Load `ConfigModel` and standardize the configuration item data types.
-9. Use ServiceLoader to load `IConfigPlugin` and start it in order of priority. The IoC module provides `IocConfigPlugin`, which initializes and starts the IoC container. Additionally, the IoC container manages the `ClassLoader`.
+1. Load the startup configuration specified by `nop.config.bootstrap-location`
+2. Load IConfigService via the ServiceLoader mechanism and start IConfigService
+3. Create an IConfigExecutor. This executor is responsible for executing all configuration change operations, ensuring single-threaded updates.
+4. Pull dynamic configuration from the remote configuration center via IConfigService
+5. Load the application configuration specified by `nop.config.location` and `nop.config.additional-location`
+6. Construct a DefaultConfigProvider and initialize the AppConfig object
+7. Initialize the VirtualFileSystem
+8. Load the ConfigModel and normalize configuration item data types
+9. Load IConfigPlugin plugins via the ServiceLoader mechanism and start them in order of priority. The IoC module provides IocConfigPlugin, which initializes and starts the IoC container. Meanwhile, the IoC container also manages the ClassLoader.
 
-## Sharing Configuration with Spring and Quarkus
+## Sharing Configuration with Spring and Quarkus Frameworks
 
-The default configuration file for Nop is `application.yaml`, which shares the same name as the configurations for both Spring and Quarkus frameworks. Therefore, configurations set in this file can be read by both Spring/Quarkus and Nop platforms.
+The default configuration file name for the Nop platform is application.yaml, which is the same as the configuration file name used by the Quarkus and Spring frameworks. Therefore, the content configured in this file can be read by Spring/Quarkus as well as by the Nop platform. However, note that Spring performs a naming normalization process: it automatically normalizes mixed-case variable names to hyphen-separated names, e.g., spring.datasource.jdbcUrl is normalized to spring.datasource.jdbc-url. The Nop platform, in the interest of consistency, does not introduce this normalization process, so configuration behavior will differ. Additionally, when passing configuration parameters via environment variables, the Spring framework uses a heuristic approach that reads multiple times, which has some performance impact, whereas the Nop platform applies deterministic rules to normalize environment variable names. For example, nop.datasource.jdbc\_url corresponds to the fixed environment variable name NOP\_DATASOURCE\_JDBC\_\_URL; this normalization differs from Spring. See the syntax rules in `StringHelper.envToConfigVar(envName)` for details.
 
-However, note that Spring has a naming convention standard where properties like `spring.datasource.jdbcUrl` are standardized using hyphens. Nop platform does not introduce such standardization to maintain consistency, so configuration behaviors may differ between Spring and Nop. Additionally, when configurations are passed via environment variables, Spring might guess-read them multiple times, which can affect performance.
+## Common Configuration Parameters
 
+* nop.debug: true
+  Enable debugging to output more logs. Enables /p/DevDoc__graphql and various other debug output links.
 
-- `nop.debug: true`
-  Enable debug functionality, which outputs more detailed logs.
+* nop.profile
+  Enable additional configuration files such as application-{profile}.yaml
 
-- `nop.profile`
-  Enable profile-specific configuration files like `application-{profile}.yaml`.
+* nop.application.name
+  Application name, also used when registering with the service center
 
-- `nop.application.name`
-  Application name used for registration in the service center, same as the example provided.
+* nop.orm.init-database-schema: true
+  If the database is empty, automatically create all tables
 
-- `nop.orm.init-database-schema: true`
-  Initialize database schema if empty.
+* nop.auth.login.allow-create-default-user
+  If the user table is empty, automatically create the default account nop with password 123
 
-- `nop.auth.login.allow-create-default-user`
-  Allow creation of a default user if the users table is empty. Default user will have credentials like "nop, password123".
+* nop.auth.sso.enabled
+  Enable SSO login. If set to true, parameters such as nop.auth.sso.url need to be configured
 
-- `nop.auth.sso.enabled`
-  Enable Single Sign-On (SSO). If set to true, additional parameters like `nop.auth.sso.url` must be configured.
+* nop.auth.sso.server-url
+  Address of single sign-on servers such as Keycloak
 
-- `nop.auth.sso.server-url`
-  URL of the Single Sign-On server, e.g., Keycloak.
+* nop.auth.sso.realm
+  Realm configuration required by single sign-on servers such as Keycloak
 
-- `nop.auth.sso.realm`
-  Realm configuration for the Single Sign-On server.
+* nop.auth.sso.client-id
+  client-id setting required by single sign-on servers such as Keycloak
 
-- `nop.auth.sso.client-id`
-  Client ID required by the Single Sign-On server.
+* nop.auth.sso.client-secret
+  client-secret setting required by single sign-on servers such as Keycloak
 
-- `nop.auth.sso.client-secret`
-  Client secret required by the Single Sign-On server.
+* nop.auth.jwt.enc-key
+  Key used when JWT uses the AES encryption algorithm.
 
-- `nop.auth.jwt.enc-key`
-  Encryption key used by JWT when using AES algorithm.
+* nop.datasource.jdbc-url
+  JDBC configuration
 
-- `nop.datasource.jdbc-url`
-  JDBC connection URL for database access.
+* nop.web.validate-page-model
+  Whether to automatically check at system startup that all page.yaml files can be parsed and loaded correctly.
 
-- `nop.web.validate-page-model`
-  Whether to automatically validate all `page.yaml` files during system startup.
+* quarkus.log.level
+  Log level setting for the Quarkus framework
 
-- `quarkus.log.level`
-  Log level settings for the Quarkus framework.
-
+<!-- SOURCE_MD5:d3c51bf09c9aec372487e5f6f00f243c-->

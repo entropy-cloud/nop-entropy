@@ -1,10 +1,10 @@
-# Dictionary Translation
+# Dictionary Table Translation
 
-In the ORM model, dictionary tables can be defined directly and fields can have associated dictionary tables. In the GraphQL layer, corresponding label fields are automatically generated for these fields, such as generating `status_label` from `status`. For reference, see the implementation of `GenDictLabelFields` in [meta-gen.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/nop/core/xlib/meta-gen.xlib).
+In the ORM model, you can define dictionary tables directly and associate fields with a dictionary table. The GraphQL layer will then automatically generate the corresponding label fields for those fields, for example, status produces status\_label. See the implementation of the GenDictLabelFields tag in [meta-gen.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/nop/core/xlib/meta-gen.xlib).
 
-## Specifying Dictionary for Fields
+## Assign a dictionary table to a field
 
-If manually added, dictionary associations can be specified using the `prop` schema configuration.
+If added manually, you can specify the dictionary table via the prop's schema configuration.
 
 ```xml
 <meta>
@@ -16,14 +16,14 @@ If manually added, dictionary associations can be specified using the `prop` sch
 </meta>
 ```
 
-## Dictionary Files
+## Dictionary table files
 
-Dictionary files should be stored in the `_vfs/dict` directory, such as `wf/wf-step-status` corresponding to `_vfs/dict/core/wf/wf-step-status.dict.yaml`.
+You can store dictionary table files under the `_vfs/dict` directory. For example, `wf/wf-step-status` corresponds to `_vfs/dict/core/wf/wf-step-status.dict.yaml`.
 
-The YAML file stores objects of type `DictBean`, for example:
+This YAML file stores a Java object of type DictBean, for example:
 
 ```yaml
-label: Step State
+label: Step Status
 locale: zh-CN
 valueType: int
 description:
@@ -39,54 +39,57 @@ options:
 
 ## Internationalization
 
-`DictProvider` checks if the locale in the dictionary definition matches the external request locale. If not, it performs I18n translation.
+When loading dictionary tables, DictProvider checks whether the locale defined in the dictionary matches the externally requested locale. If they differ, it will automatically perform I18n translation.
 
-Translation rules are as follows:
-1. `dict.label.{dictName}`
-2. `dict.option.label.{dictName}.{option.value}`
+The translation rules are:
 
-## Dictionary Tables in Databases
+1. dict.label.{dictName}
+2. dict.option.label.{dictName}.{option.value}
 
-When importing `nop-sys-dao`, it automatically identifies dictionary definitions in the format `sys/xxx` and stores them in `nop_sys_dict` and `nop_sys_dict_option` tables.
+## Dictionary tables maintained in the database
 
-## Java Enumerations
+If you include the nop-sys-dao module, it will automatically recognize dictionary table definitions in the form `sys/xxx`. They are stored in the tables nop\_sys\_dict and nop\_sys\_dict\_option.
 
-Dictionaries can be directly specified as Java Enum names, such as `dict="io.nop.xlang.xdef.XDefOverride"`. For those without `/`, they are treated as class names. `DictProvider` will attempt to load based on the class name.
+## Java enum classes
+
+A dict can directly specify a Java Enum class name, for example, `dict="io.nop.xlang.xdef.XDefOverride"`. For a dictName that does not contain `/` and can be treated as a class name, DictProvider will attempt to load it as a class.
 
 ```java
+
 @Locale("zh-CN")
 public enum XDefOverride {
     @Option("remove")
-    @Description("Delete nodes in the base class")
+    @Description("Remove nodes from the base class")
     REMOVE("remove"),
 
     @Option("replace")
-    @Description("Fully override existing nodes")
+    @Description("Completely override the original node")
     REPLACE("replace")
 }
 ```
 
-In Java classes, field properties can be specified using `@Option`, `@Label`, and `@Description`.
+In Java classes, you can use `@Option`, `@Label`, and `@Description` to specify option attributes.
 
-## Using Business Tables as Dictionaries
+## Use a business table as a dictionary table
 
-In Excel models, if a table has been added with a `dict` label, it can be used as a dictionary via `obj/{bizObjName}`. This usage requires one column to have a `disp` label, which will be used as the display name, while the dictionary value is the record's primary key.
+In the Excel data model, if you add the dict tag to a table, you can use `obj/{bizObjName}` to treat the business table as a dictionary table. This requires one column to have the disp tag; it will be used as the display name, and the dictionary item's value is the record's primary key.
 
-## Using SQL Statements as Dictionaries
+## Use an SQL statement as a dictionary table
 
-In `sql-lib.xml`, SQL statements ending with `_dict` can be used as dictionaries. For example, `sql/test.my_dict` corresponds to `/_vfs/{moduleId}/sql/test.sql-lib.xml`.
+In sql-lib.xml, SQL statements whose names end with `_dict` can be used as dictionary tables. For example, `sql/test.my_dict` corresponds to the SQL statement named my\_dict in `/_vfs/{moduleId}/sql/test.sql-lib.xml`.
 
-```eql
-<eql name="my_dict">
+```
+  <eql name="my_dict">
     select o.fldA as label, o.fldB as value
     from MyEntity o
-</eql>
+  </eql>
 ```
 
-The SQL query returns field names that must match `DictOptionBean` properties in the Java class. These will be automatically wrapped into `DictOptionBean` objects.
+The field names returned by the dictionary table SQL must match the property names of the Java class DictOptionBean; they will be automatically wrapped as DictOptionBean objects.
 
-## Configuration Options
+## Configuration options
 
-* nop.core.dict.return-normalized-label
-- Default: true
-- Will concatenate the value and label of the dictionary together for display.
+- nop.core.dict.return-normalized-label  
+Default is true; it will display the dictionary's value and label concatenated together.
+
+<!-- SOURCE_MD5:110c0d2d10d64ad5267c42f2050f005f-->

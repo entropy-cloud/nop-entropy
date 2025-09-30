@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extensibility based on the Delta‑Oriented Framework</title>
+    <!-- External Libraries: Font Awesome & html2pdf.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <style>
+        /* --- 1. Global Styles & Variables --- */
+        :root {
+            --color-primary: #2563eb;
+            --color-primary-dark: #1d4ed8;
+            --color-secondary: #059669;
+            --color-warning: #d97706;
+            --color-text-dark: #1f2937;
+            --color-text-light: #4b5563;
+            --color-bg-main: #f4f6f9;
+            --color-bg-slide: #ffffff;
+            --color-border: #e5e7eb;
+            --color-code-bg: #f8fafc;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-code: 'Fira Code', monospace;
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --font-size-base: 1.25rem;
+            --line-height-base: 1.7;
+            --controls-area-height: 40px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--color-bg-main);
+            color: var(--color-text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            line-height: var(--line-height-base);
+        }
+
+        /* --- 2. Core Layout & Container --- */
+        #presentation-container {
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            background: var(--color-bg-slide);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            padding-bottom: var(--controls-area-height);
+        }
+
+        .slides-viewport { flex-grow: 1; position: relative; overflow: hidden; }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 50px 60px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            transform: translateY(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow-y: auto;
+            background-color: var(--color-bg-slide);
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            z-index: 1;
+        }
+
+        /* --- 3. Typography --- */
+        h1, h2, h3 { font-weight: 700; line-height: 1.2; }
+        h1 { font-size: 3rem; margin-bottom: 1rem; }
+        h2 { font-size: 2.2rem; color: var(--color-text-dark); border-bottom: 3px solid var(--color-primary); padding-bottom: 0.75rem; margin-bottom: 2.2rem; font-weight: 600; }
+        h3 { font-size: 1.5rem; color: var(--color-primary); margin-bottom: 1rem; }
+        h4 { font-size: 1.25rem; font-weight: 600; color: var(--color-text-dark); margin-bottom: 0.5rem; }
+        p, li { font-size: var(--font-size-base); color: var(--color-text-light); margin-bottom: 1rem; }
+        strong { color: var(--color-primary); font-weight: 600; }
+        ul { list-style: none; padding-left: 0; }
+        li p { margin-bottom: 0.25rem; }
+
+        /* --- 4. UI Components --- */
+        #progress-bar { position: absolute; top: 0; left: 0; height: 4px; background-color: var(--color-primary); width: 0%; transition: width 0.4s ease; z-index: 10; }
+        .controls { position: absolute; bottom: 20px; right: 20px; display: flex; gap: 10px; z-index: 10; }
+        .btn { background-color: var(--color-primary); color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.2s ease; box-shadow: var(--shadow-md); }
+        .btn:hover:not(:disabled) { background-color: var(--color-primary-dark); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+        .btn:disabled { background-color: #9ca3af; cursor: not-allowed; transform: none; box-shadow: var(--shadow-md); }
+        #pdf-btn { background-color: var(--color-secondary); }
+        #pdf-btn:hover:not(:disabled) { background-color: #047857; }
+        #print-btn { background-color: #6366f1; }
+        #print-btn:hover:not(:disabled) { background-color: #4f46e5; }
+        #slide-counter { position: absolute; bottom: 20px; left: 20px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(5px); padding: 8px 14px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; color: var(--color-text-dark); box-shadow: var(--shadow-md); z-index: 10; }
+
+        /* --- 5. Content Modules --- */
+        .title-slide { text-align: center; align-items: center; }
+        .title-slide h1 { font-size: 3.5rem; color: var(--color-text-dark); }
+        .title-slide .subtitle { font-size: 1.5rem; color: var(--color-text-light); font-weight: 400; }
+        .icon-list { list-style: none; padding: 0; margin: 1.5rem 0; }
+        .icon-bullet { display: flex; gap: 16px; background-color: var(--color-code-bg); padding: 16px; border-radius: 10px; margin-bottom: 12px; border: 1px solid var(--color-border); transition: all 0.3s ease; }
+        .icon-bullet:hover { transform: translateX(5px); box-shadow: var(--shadow-md); }
+        .icon-bullet i { font-size: 1.25rem; color: var(--color-primary); margin-top: 5px; flex-shrink: 0; width: 24px; text-align: center; }
+        .icon-bullet div { flex-grow: 1; }
+        .icon-bullet p { margin-bottom: 0.25rem; color: var(--color-text-dark); font-weight: 500; }
+        .icon-bullet .details { font-size: calc(var(--font-size-base) - 0.2rem); color: var(--color-text-light); font-weight: 400; }
+        .sub-items { margin-top: 0.5rem; margin-left: 1rem; }
+        .sub-item { font-size: calc(var(--font-size-base) - 0.1rem); color: var(--color-text-light); margin-bottom: 0.25rem; position: relative; padding-left: 1rem; }
+        .sub-item::before { content: "•"; color: var(--color-secondary); position: absolute; left: 0; }
+        .two-column { display: flex; gap: 40px; align-items: flex-start; width: 100%; }
+        .column { flex: 1; }
+        .column-narrow { flex: 0.7; }
+        .column-wide { flex: 1.3; }
+        .code-block { background-color: var(--color-code-bg); color: var(--color-text-dark); padding: 1em 1.5em; border-radius: 8px; overflow-x: auto; font-family: var(--font-code); font-size: 0.95rem; line-height: 1.6; border: 1px solid var(--color-border); margin: 1.5rem 0; }
+        .code-block > code { font-size: inherit; background: transparent; padding: 0; border-radius: 0; }
+        .code-block.is-centered { display: flex; justify-content: center; align-items: center; }
+        
+        .code-comment {
+            color: #64748b;
+            font-style: normal;
+        }
+
+        .code-keyword {
+            color: #be185d;
+            font-weight: 600;
+        }
+
+        .code-string {
+            color: #057a55;
+        }
+
+        .code-attr {
+            color: #9333ea;
+        }
+        
+        .img-placeholder { width: 100%; min-height: 250px; background-color: var(--color-code-bg); border: 2px dashed var(--color-border); border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--color-text-light); margin: 1.5rem 0; }
+        .img-placeholder i { font-size: 3rem; margin-bottom: 1rem; }
+        .highlight-box { background-color: #eff6ff; border-left: 4px solid var(--color-primary); padding: 20px; margin: 1.5rem 0; border-radius: 0 8px 8px 0; }
+        .quote { background: #fffbeb; border-left: 4px solid var(--color-warning); padding: 20px; margin: 1.5rem 0; border-radius: 0 8px 8px 0; font-style: italic; color: #92400e; }
+        .quote p { font-size: calc(var(--font-size-base) + 0.1rem); }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin: 2rem 0; }
+        .stat-card { background: var(--color-code-bg); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid var(--color-border); transition: all 0.3s ease; }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); }
+        .stat-number { font-size: 2.5rem; font-weight: 700; color: var(--color-primary); display: block; }
+        .stat-label { font-size: 0.9rem; color: var(--color-text-light); margin-top: 0.25rem; }
+        
+        .mermaid { 
+            width: 100%; 
+            margin: 1.5rem 0; 
+            display: flex; 
+            justify-content: center; 
+            background-color: var(--color-code-bg); 
+            padding: 1rem; 
+            border-radius: 8px; 
+            border: 1px solid var(--color-border);
+            overflow: auto;
+        }
+
+        /* --- 6. Responsive & Print Styles --- */
+        @media (max-width: 768px) {
+            .slide { padding: 30px; }
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.5rem; }
+            .two-column, .stat-grid { flex-direction: column; grid-template-columns: 1fr; }
+            .controls { right: auto; left: 50%; transform: translateX(-50%); }
+            #slide-counter { display: none; }
+        }
+
+        @media print {
+            body { background: #fff !important; height: auto; overflow: visible; display: block; }
+            .controls, #progress-bar, #slide-counter { display: none !important; }
+            #presentation-container { display: block; width: 100%; height: auto; box-shadow: none; border: none; padding: 0; }
+            .slides-viewport { overflow: visible; height: auto; }
+            .slide { display: flex !important; opacity: 1 !important; visibility: visible !important; transform: none !important; position: relative; page-break-after: always; page-break-inside: avoid; width: 100%; height: auto; aspect-ratio: 16 / 9; border: 1px solid #ddd; margin-bottom: 20px; box-shadow: none; border-radius: 0; overflow: hidden; }
+            .slide:last-of-type { page-break-after: avoid; }
+            svg * { animation-play-state: paused !important; }
+        }
+        
+        .pdf-page-container { width: 100%; height: auto; background: white; color: black; box-shadow: none; }
+        .pdf-slide { position: relative !important; opacity: 1 !important; visibility: visible !important; transform: none !important; height: auto !important; width: 100%; background: white; border: 1px solid #eeeeee; padding: 40px 50px; box-shadow: none; margin-bottom: 0; overflow: hidden; page-break-after: always; break-inside: avoid; aspect-ratio: 16 / 9; }
+        .pdf-slide:last-of-type { page-break-after: avoid; }
+    </style>
+</head>
+<body>
+    <div id="presentation-container">
+        <!-- UI Elements -->
+        <div id="progress-bar"></div>
+        <div id="slide-counter">1 / 18</div>
+
+        <!-- Slides Viewport -->
+        <div class="slides-viewport">
+            
+            <!-- Slide 1: Title Slide -->
+            <section class="slide active title-slide">
+                <h1>Extensibility based on the Delta‑Oriented Framework</h1>
+                <p class="subtitle">September 2025</p>
+            </section>
+
+            <!-- Slide 2: The Customization Trap -->
+            <section class="slide">
+                <h2>The Customization Trap</h2>
+                <div class="mermaid">
+flowchart TD
+    A[Product v1.0] --> B[Fork for Customer A]
+    B --> C[Heavy Customization<br>Tightly Coupled Code]
+    A --> D[Product v2.0<br>New Features + Fixes]
+    
+    C -.->|Merge: Complex, Costly|D
+    D -.->|Upgrade: High Effort|C
+    
+    C --> E[**Branch Stuck at v1.0**<br>Maintained at High Cost]
+                </div>
+                <p><strong>The Vicious Cycle:</strong></p>
+                <ul>
+                    <li>Copy & Modify: The deceptively easy start</li>
+                    <li>Diverging Paths: Custom & core code evolve separately</li>
+                    <li>Technical Debt: Stagnation, conflicts, and high-cost maintenance</li>
+                </ul>
+            </section>
+
+            <!-- Slide 3: Software Product Lines -->
+            <section class="slide">
+                <h2>Software Product Lines: From Ad Hoc to Systematic Reuse</h2>
+                <div class="mermaid">
+flowchart TD
+    subgraph Domain [Domain Engineering]
+        A[Build Core Assets]
+        A --> P[Product Line v2.0.1]
+    end
+
+    subgraph App [Application Engineering]
+        S[Select Variants]
+        E[Add Custom Features]
+    end
+    
+    P --> S
+    S --> E
+    
+    E --> D1[Customer A<br>v2.0.1 + Custom]
+    E --> D2[Customer B<br>v2.0.1 + Custom]
+                </div>
+                <p><strong>Key Process:</strong></p>
+                <ul>
+                    <li>Build Core: Develop reusable product line components</li>
+                    <li>Select: Choose from pre-built variants</li>
+                    <li>Extend: Add customer-specific features</li>
+                    <li>Deploy: Deliver customized products</li>
+                </ul>
+            </section>
+
+            <!-- Slide 4: Promise vs. Reality -->
+            <section class="slide">
+                <h2>Promise vs. Reality</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <h3>The Promise (CMU SEI 2008):</h3>
+                        <ul class="icon-list">
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-arrow-up"></i>
+                                <div>
+                                    <p>up to 10× productivity</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-arrow-down"></i>
+                                <div>
+                                    <p>up to 60% cost reduction</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-gauge-high"></i>
+                                <div>
+                                    <p>up to 90% faster time-to-market</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="column">
+                        <h3>The Reality:</h3>
+                        <div class="highlight-box">
+                            <p>One Core Challenge – Effective Variability Management.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 5: The Prescribed Approach -->
+            <section class="slide">
+                <h2>The Prescribed Approach: Adapt, Replace, Extend</h2>
+                <div class="mermaid">
+flowchart TD
+    subgraph VP[Variation Point]
+        Core[Core Assets]
+    end
+
+    Core --> A[Adaptation]
+    Core --> R[Replacement]
+    Core --> E[Extension]
+
+    subgraph A_Mechanisms[ ]
+        direction LR
+        A1[Change Degree/Parameter<br>e.g., Log Level]
+        A2[Modify Internal Behavior<br>e.g., Algorithm Strategy]
+    end
+    A --> A_Mechanisms
+
+    subgraph R_Mechanisms[ ]
+        direction LR
+        R1[Mutually Exclusive Choice<br>Choose One]
+        R2[Implement Same Interface<br>e.g., Payment Gateway]
+    end
+    R --> R_Mechanisms
+
+    subgraph E_Mechanisms[ ]
+        direction LR
+        E1[Stackable Features<br>Zero to Many]
+        E2[Provide New Capabilities<br>e.g., Plugin]
+    end
+    E --> E_Mechanisms
+                </div>
+                <p>Avoid direct edits to core assets during product derivation.<br>Derive variants by ACTIVATE · SELECT · PROVIDE pre-defined variations.</p>
+            </section>
+
+            <!-- Slide 6: The Dilemmas of Component-Based Reuse -->
+            <section class="slide">
+                <h2>The Dilemmas of Component-Based Reuse</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <h3>1. The Granularity Paradox</h3>
+                        <ul>
+                            <li>Component reuse is achieved by factoring out the common core.</li>
+                            <li>Dilemma: This core, by definition, is smaller than any individual product, conflicting with the goal of a large, reusable core.</li>
+                        </ul>
+                    </div>
+                    <div class="column">
+                        <h3>2. The Prediction Paradox</h3>
+                        <ul>
+                            <li>Requires a stable core with predefined extension points.</li>
+                            <li>Dilemma:
+                                <ul>
+                                    <li>Too few points: Architecture is rigid.</li>
+                                    <li>Too many points: Architecture is destroyed.</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="highlight-box">
+                    <p>These are fundamental limits of the additive approach.</p>
+                </div>
+            </section>
+
+            <!-- Slide 7: Inspiration from Physics -->
+            <section class="slide">
+                <h2>Inspiration from Physics: A New Duality for Software</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <h3>Particle View (Current): Reductionism.</h3>
+                        <ul>
+                            <li>Decompose systems into atoms (objects, components).</li>
+                            <li>Assemble parts to build wholes.</li>
+                        </ul>
+                    </div>
+                    <div class="column">
+                        <h3>Wave View (New): Superposition.</h3>
+                        <ul>
+                            <li>Think of features as waves to be overlaid and combined.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="highlight-box">
+                    <p>The Question: Can we build software via non-invasive superposition, not assembly?</p>
+                </div>
+            </section>
+
+            <!-- Slide 8: An Algebraic View -->
+            <section class="slide">
+                <h2>An Algebraic View of Software Evolution</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <h3>Object-Oriented: Implicit Delta (A > B)</h3>
+                        <p>Reuse constrained by hierarchy.</p>
+                    </div>
+                    <div class="column">
+                        <h3>Component-Oriented: Explicit Addition (A = B + C)</h3>
+                        <p>Delta C becomes a reusable component.</p>
+                    </div>
+                </div>
+                <div class="highlight-box">
+                    <h3>Reversible Computation: Algebraic Manipulation (B = A + (-C))</h3>
+                    <p>The Leap: Introduce a formal inverse element.</p>
+                    <p>Unlocks: Reuse by transforming anything related, not just identical.</p>
+                </div>
+            </section>
+
+            <!-- Slide 9: Reversible Computation -->
+            <section class="slide">
+                <h2>Reversible Computation: A Next-Gen Construction Theory</h2>
+                <pre class="code-block is-centered" style="font-size: 2rem;"><code>App = Delta x-extends Generator&lt;DSL&gt;</code></pre>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-gear"></i>
+                        <div>
+                            <p>Generator&lt;DSL&gt;: unfolds a dense kernel of truth into an executable base</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-delta"></i>
+                        <div>
+                            <p>Delta: A reversible and stand-alone unit of change, designed to be both composable and non-invasive.</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                        <div>
+                            <p>x-extends: deterministic merge of deltas in a well-defined order.</p>
+                        </div>
+                    </li>
+                </ul>
+                <p>(Ultimately, the Base itself is just the first Delta applied to a void.)</p>
+            </section>
+
+            <!-- Slide 10: From Theory to Practice -->
+            <section class="slide">
+                <h2>From Theory to Practice: Docker as Reversible Computation</h2>
+                <pre class="code-block is-centered" style="font-size: 1.5rem;"><code>App = DockerBuild&lt;Dockerfile&gt; overlay-fs BaseImage</code></pre>
+                <div class="two-column">
+                    <div class="column">
+                        <h3>Docker's Formula:</h3>
+                        <ul>
+                            <li>DockerBuild&lt;Dockerfile&gt; -> Generator&lt;DSL&gt;</li>
+                            <li>overlay-fs -> x-extends</li>
+                        </ul>
+                    </div>
+                    <div class="column">
+                        <h3>The Mapping:</h3>
+                        <p>Docker demonstrates how reversible computation principles can be applied in practice.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 11: The Inevitability of Deltas -->
+            <section class="slide">
+                <h2>The Inevitability of Deltas: A Universal Pattern</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <h3>Computation:</h3>
+                        <pre class="code-block"><code>Result = Function(Data)</code></pre>
+                    </div>
+                    <div class="column">
+                        <h3>Decomposition of Change:</h3>
+                        <pre class="code-block"><code>New_Function = Base_Function ⊕ Δ_Function
+New_Data = Base_Data  ⊕ Δ_Data</code></pre>
+                    </div>
+                </div>
+                <div class="highlight-box">
+                    <h3>The Resulting "Delta Form":</h3>
+                    <pre class="code-block"><code>New_Result = BaseFunction(BaseData)  ⊕ Δ_Total</code></pre>
+                    <p>(analogous to a Taylor Expansion)</p>
+                </div>
+                <p><strong>The Paradigm Shift:</strong> treats change itself as a first-class citizen.</p>
+            </section>
+
+            <!-- Slide 12: Delta Customization (1) -->
+            <section class="slide">
+                <h2>Delta Customization (1): File-Level Overlay</h2>
+                <ul>
+                    <li>Foundation: A Virtual File System (VFS) with delta layers.</li>
+                    <li>Mechanism: Files in a delta layer (/_delta/customer-a/...) override base files.</li>
+                    <li>Activation: Switch behavior globally with a parameter (e.g., deltaId=customer-a).</li>
+                </ul>
+                <h3>Example Directory Structure:</h3>
+                <pre class="code-block"><code>/_delta/customer-a/beans/job.xml       // Customization for Customer A
+/_delta/customer-b/config/auth.json    // Customization for Customer B
+/beans/job.xml                         // Base product file
+/config/auth.json                      // Base product file</code></pre>
+            </section>
+
+            <!-- Slide 13: Delta Customization (2) -->
+            <section class="slide">
+                <h2>Delta Customization (2): Intra-File Surgical Scalpel</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <h3>Base Definition (/beans/core.xml)</h3>
+                        <pre class="code-block"><code>&lt;beans&gt;
+    &lt;bean id="securityManager" class="com.mycorp.StandardSecurityManager"/&gt;
+    &lt;bean id="dataService" class="com.mycorp.DefaultDataService"/&gt;
+&lt;/beans&gt;</code></pre>
+                    </div>
+                    <div class="column">
+                        <h3>Customer-A Delta (/_delta/customer-a/beans/core.xml)</h3>
+                        <pre class="code-block"><code>&lt;beans x:extends="super"&gt;
+    &lt;!-- 1. Modify Class --&gt;
+    &lt;bean id="securityManager" class="com.customer.AdvancedSecurityManager"/&gt;
+
+    &lt;!-- 2. Remove Bean --&gt;
+    &lt;bean id="dataService" x:override="remove"/&gt;
+    
+    &lt;!-- 3. Add Conditionally --&gt;
+    &lt;bean id="auditLogger" class="com.customer.AuditLogger"
+          feature:on="auditing.enabled"/&gt;
+
+&lt;/beans&gt;</code></pre>
+                    </div>
+                </div>
+                <p>Precisely modify tree-structured files (XML, JSON, YAML) without touching the original.</p>
+            </section>
+
+            <!-- Slide 14: Delta Oriented Framework -->
+            <section class="slide">
+                <h2>Delta Oriented Framework: The Core Principle</h2>
+                <h3>Unified, DSL-Agnostic Customization</h3>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-lightbulb"></i>
+                        <div>
+                            <p>Philosophy: One mechanism to customize any DSL.</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-gears"></i>
+                        <div>
+                            <p>Mechanism: "Loader as Generator"</p>
+                            <span class="details">Swap native loader for DeltaFileSystem loader.</span>
+                            <span class="details">Non-intrusively finds, merges, and generates the final model.</span>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-rocket"></i>
+                        <div>
+                            <p>Impact:</p>
+                            <span class="details">One mental model across the stack (data → engine → UI)</span>
+                            <span class="details">Zero changes to base engines and code</span>
+                            <span class="details">Seamless full‑stack customization via smart loaders</span>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Slide 15: From Model to Code -->
+            <section class="slide">
+                <h2>From Model to Code: Delta-Driven Generation</h2>
+                <ul>
+                    <li>Unified Source:
+                        <ul>
+                            <li>effective model = base ⊕ deltas → generate DAO/services, API/SQL, UI/i18n</li>
+                        </ul>
+                    </li>
+                    <li>Generation Gap Pattern:
+                        <ul>
+                            <li>`_Account.java` (Generated Base): Always safe to overwrite.</li>
+                            <li>`Account.java` (Manual Extension): Never touched by generator.</li>
+                        </ul>
+                    </li>
+                </ul>
+                <div class="highlight-box">
+                    <h3>Core Advantage: Fearless Regeneration.</h3>
+                    <p>Evolve base. Regenerate constantly. Extensions remain untouched.</p>
+                </div>
+            </section>
+
+            <!-- Slide 16: Delta Oriented Architecture -->
+            <section class="slide">
+                <h2>Delta Oriented Architecture: A Cohesive Blueprint</h2>
+                <div style="display: flex; justify-content: center; margin: 1.5rem 0;">
+                    <img 
+                        src="delta-oriented-arch.svg" 
+                        alt="Delta Oriented Architecture Diagram" 
+                        style="width: 400px; height: auto; border-radius: 8px; border: 1px solid var(--color-border);"
+                    >
+                </div>
+                <ul>
+                    <li>Foundation: Universal Delta capabilities & code generation.</li>
+                    <li>Development: Reusable core engines for complex business logic.</li>
+                    <li>Synergy: Delta Customization balances platform stability with agile customization.</li>
+                </ul>
+            </section>
+
+            <!-- Slide 17: Reversible Computation × AI -->
+            <section class="slide">
+                <h2>Reversible Computation × AI: Cohesive Models, Cleaner Signals, Better Co‑pilots</h2>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-database"></i>
+                        <div>
+                            <p>Single cohesive truth: effective model = base ⊕ deltas (complete, schema‑typed, noise‑free)</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <div>
+                            <p>Reversible deltas: safe explore/undo → faster, risk‑free AI iteration</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-link"></i>
+                        <div>
+                            <p>Deterministic composition: reproducible grounding with full provenance</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-file-export"></i>
+                        <div>
+                            <p>Output discipline: AI emits deltas (not core edits), schema/contract‑validated</p>
+                        </div>
+                    </li>
+                </ul>
+                <p>(This presentation and its graphics were AI-generated.)</p>
+            </section>
+
+            <!-- Slide 18: Summary -->
+            <section class="slide">
+                <h2>Summary: Extensibility Through Reversible Computation</h2>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <div>
+                            <p>The Problem: Traditional component-based reuse hits fundamental limits (Granularity & Prediction Paradoxes).</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-lightbulb"></i>
+                        <div>
+                            <p>The Insight: Draw inspiration from physics and mathematics - treat features as superposable transformations.</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-puzzle-piece"></i>
+                        <div>
+                            <p>The Solution: The Delta-Oriented Framework, enabled by Reversible Computation theory.</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-brain"></i>
+                        <div>
+                            <p>Key Understanding: Reversible Computation expands the solution space significantly</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <div>
+                            <p>The Result:</p>
+                            <span class="details">From "Extension Points Everywhere" to "Overlays Above Everything"</span>
+                            <span class="details">From "1 core + N forks" to "1 base + N deltas"</span>
+                            <span class="details">Effective System = Base ⊕ ΔIndustry ⊕ ΔRegion ⊕ ΔCustomer</span>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn" id="home-btn" title="First Slide"><i class="fa-solid fa-home"></i></button>
+            <button class="btn" id="prev-btn" title="Previous"><i class="fa-solid fa-arrow-left"></i></button>
+            <button class="btn" id="next-btn" title="Next"><i class="fa-solid fa-arrow-right"></i></button>
+            <button class="btn" id="fullscreen-btn" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+            <button class="btn" id="print-btn" title="Print"><i class="fa-solid fa-print"></i></button>
+            <button class="btn" id="pdf-btn" title="Export to PDF"><i class="fa-solid fa-file-pdf"></i></button>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initialize Mermaid
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            fontFamily: 'var(--font-main)'
+        });
+        
+        const container = document.getElementById('presentation-container');
+        const allSlides = document.querySelectorAll('.slide');
+        const homeBtn = document.getElementById('home-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const printBtn = document.getElementById('print-btn');
+        const pdfBtn = document.getElementById('pdf-btn');
+        const slideCounter = document.getElementById('slide-counter');
+        const progressBar = document.getElementById('progress-bar');
+        
+        let currentSlide = 0;
+        const totalSlides = allSlides.length;
+
+        function showSlide(index, skipHashUpdate = false) {
+            if (index < 0 || index >= totalSlides) return;
+            allSlides.forEach((slide, i) => slide.classList.toggle('active', i === index));
+            currentSlide = index;
+            updateControls();
+            if (!skipHashUpdate) {
+                updateHash(index);
+            }
+        }
+        function updateControls() {
+            slideCounter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+            progressBar.style.width = `${((currentSlide + 1) / totalSlides) * 100}%`;
+            prevBtn.disabled = currentSlide === 0;
+            nextBtn.disabled = currentSlide === totalSlides - 1;
+        }
+        function nextSlide() { showSlide(currentSlide + 1); }
+        function prevSlide() { showSlide(currentSlide - 1); }
+        function goToFirstSlide() { showSlide(0); }
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => alert(`Cannot enter fullscreen mode: ${err.message}`));
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        function updateHash(index) {
+            const hash = `#slide-${index + 1}`;
+            if (location.hash !== hash) {
+                history.pushState(null, null, hash);
+            }
+        }
+        function parseHashToIndex() {
+            const h = location.hash;
+            const m = h.match(/slide-(\d+)/i);
+            if (m) {
+                const idx = parseInt(m[1], 10) - 1;
+                if (!isNaN(idx) && idx >= 0 && idx < totalSlides) {
+                    return idx;
+                }
+            }
+            return null;
+        }
+
+        function printPresentation() {
+            window.print();
+        }
+
+        async function prepareForPdf() {
+            const pdfContainer = document.createElement('div');
+            pdfContainer.className = 'pdf-page-container';
+            allSlides.forEach(slide => {
+                const clone = slide.cloneNode(true);
+                clone.classList.remove('active');
+                clone.classList.add('pdf-slide');
+                pdfContainer.appendChild(clone);
+            });
+            document.body.appendChild(pdfContainer);
+            return pdfContainer;
+        }
+        
+        function exportToPDF() {
+            console.log('Starting PDF export...');
+            const originalButtonContent = pdfBtn.innerHTML;
+            pdfBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+            pdfBtn.disabled = true;
+            
+            prepareForPdf().then(pdfContainer => {
+                const options = {
+                    margin: 0,
+                    filename: 'delta-oriented-framework-presentation.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, allowTaint:true, letterRendering: true },
+                    jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+                    pagebreak: { mode: ['css'] }
+                };
+
+                html2pdf().set(options).from(pdfContainer).save().then(() => {
+                    console.log('PDF export successful!');
+                    document.body.removeChild(pdfContainer);
+                    pdfBtn.innerHTML = originalButtonContent;
+                    pdfBtn.disabled = false;
+                }).catch(err => {
+                    console.error('PDF export failed:', err);
+                    document.body.removeChild(pdfContainer);
+                    pdfBtn.innerHTML = originalButtonContent;
+                    pdfBtn.disabled = false;
+                    alert('PDF export failed. Check the console for details.');
+                });
+            });
+        }
+
+        homeBtn.addEventListener('click', goToFirstSlide);
+        nextBtn.addEventListener('click', nextSlide);
+        prevBtn.addEventListener('click', prevSlide);
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+        printBtn.addEventListener('click', printPresentation);
+        pdfBtn.addEventListener('click', exportToPDF);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); nextSlide(); }
+            if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prevSlide(); }
+            if (e.key === 'Home') { e.preventDefault(); goToFirstSlide(); }
+            if (e.key === 'End') { e.preventDefault(); showSlide(totalSlides - 1); }
+        });
+
+        let touchStartX = 0;
+        container.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+        container.addEventListener('touchend', e => {
+            const touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 50) nextSlide();
+            if (touchEndX - touchStartX > 50) prevSlide();
+        });
+
+        window.addEventListener('popstate', () => {
+            const idx = parseHashToIndex();
+            if (idx !== null && idx !== currentSlide) {
+                showSlide(idx, true);
+            }
+        });
+
+        const initialIndexFromHash = parseHashToIndex();
+        if (initialIndexFromHash !== null) {
+            showSlide(initialIndexFromHash, true);
+        } else {
+            showSlide(0);
+        }
+    });
+    </script>
+</body>
+</html>

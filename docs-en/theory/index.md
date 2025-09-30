@@ -1,133 +1,124 @@
-  
-  # Reversible Computation Theory
-  
-  ## Zhihu Column
-  [Reversible Computing](https://www.zhihu.com/column/reversible-computation)
-  
-  This column collects the author's related discussions on reversible computation theory and the implementation principles of the Nop platform.
-  
-  ## Three-Sentence Explanation of What Reversible Computing Is
-  
-  1. In object-oriented programming, inheritance in class-based languages like Java and trait systems in Rust do not include deletion semantics and only express a one-level relationship between objects and methods. The structure corresponds to Map at the layer.
-  2. The strongest form of object-oriented programming is generic objects with template metaprogramming capabilities, which can be viewed as `Map extends Map<Map>` at the structural level.
-  3. If Map is extended into a Tree structure and the extends operator includes subtraction, then Tree becomes a DeltaTree with inverses, and the overall structure upgrades to `Tree x-extends Tree<Tree>`. This abstraction can naturally include abstract syntax trees and file systems, becoming a widely applicable general computing pattern that goes beyond specific programming languages. In concrete terms, this becomes the core software construction formula defined by reversible computation theory.
-  
-  ```
-  App = Delta x-extends Generator<DSL>
-  ```
-  
-  > Docker and k8s's kustomize can be viewed as examples of reversible computing in practice.
-  
-  ## [Reversible Computing: The Next Generation Software Construction Theory](reversible-computation.md)
-  
-  An overview of the principles of reversible computation theory.
-  
-  ## [Reversible Computing Explained for Programmers](reversible-computation-for-programmers.md)
-  
-  From a programmer's perspective, this document details the specific forms and practices of delta and delta merging in practical programming, while analyzing common misunderstandings of reversible computing.
-  
-  ## [Supplement to Reversible Computing Explained for Programmers](reversible-computation-for-programmers2.md)
-  
-  Additional clarifications on concepts related to reversible computation theory, addressing common misconceptions.
-  
-  ## [What Does "Reversible" Mean in Reversible Computing?](what-does-reversible-mean.md)
-  
-  The term "reversible" is closely tied to the concept of entropy in physics. While entropy increase determines the direction of time evolution in the physical world, reversible computing theory studies the patterns of constructing coarse-grained software structures that evolve over time. Therefore, "reversible" is a key concept in this theory. For classmates without background in thermodynamics and statistical mechanics, the term may be confusing. Is "reversible" important? How can software be made reversible? Does it mean executing code in reverse? What does this imply? This article provides a simple explanation of what "reversible" means in the context of reversible computing theory.
-  
-  ## [Delta-Oriented Programming from the Perspective of Reversible Computing](delta-oriented-programming.md)
-  
-  This paper compares reversible computing theory with relevant work in software engineering, such as feature-oriented programming (FOP) and delta-oriented programming (DOP), and identifies shortcomings in these theories when viewed through the lens of reversible computation.
-  
-  ## [Design of Low-Code Platforms from a Tensor Product Perspective](tensor-product-lowcode.md)
-  
-  Framework design's multi-dimensional expansion can be viewed as linear mapping functions in tensor product space. This paper explains, at a theoretical level, how the principles of reversible computing relate to the Loader abstract concept.
-  
-  ## [Explanation of Delta Concept with Git and Docker as Examples](explanation-of-delta.md)
-  
-  While both are referred to as "deltas," there is a profound difference between delta and delta. In essence, git and docker both involve delta computation, but their deltas have fundamentally different characteristics, which can only be understood from a mathematical perspective. Common misunderstandings of delta concepts often stem from vague definitions rather than inherent contradictions.
-  
-  ## [Difference Between Extension and Delta in Gold Wing Cloud's Extension and Nop Platform](delta-vs-extension.md)
-  
-  ## [DeepSeek AI's Understanding of Delta Concept - Beyond Ordinary Programmers](deepseek-understanding-of-delta.md)
-  
-  ## [Generic Delta Quantization Mechanism](generic-delta-composition.md)
-  
-  ## [Design Points of DSL from the Perspective of Reversible Computing](xdsl-design.md)
-  
-  Based on reversible computation principles, the Nop platform proposes a comprehensive set of mechanisms to simplify DSL design and implementation. This allows for easy addition of domain-specific languages tailored to specific business areas and easy extension of existing DSLs.
-  
-  ## [Conditions Needed for GPT to Generate Complex Code](nop-for-gpt.md)
-  
+# Reversible Computation Theory
 
-Now, many people are trying to use GPT directly to generate code, aiming to guide GPT in completing traditional coding tasks through natural language. However, very few have seriously considered the long-term maintenance challenges of the generated code. This paper analyzed the necessary conditions for using GPT to produce complex code from a theoretical perspective and proposed specific strategies for combining Nop platform with GPT.
+## Zhihu Column
+[Reversible Computation](https://www.zhihu.com/column/reversible-computation)
 
-## [How to evaluate a framework technology (e.g., ORM framework)](props-and-cons-of-orm-framework.md)
+A centralized collection of the author's discussions on the theory of Reversible Computation and the implementation principles of the Nop platform.
 
-For a new framework technology, evaluations such as "very convenient, very easy to use" only represent subjective feelings. Can we define some objective standards that are not influenced by personal biases on the objective level?
-[What is a good design?](good_design.md)
-[How can business development be independent of the framework?](framework-agnostic.md)
+## Explaining Reversible Computation in three sentences
 
-## [How does Nop overcome the restriction that DSL can only be applied to specific domains?](nop-for-dsl.md)
-The Nop platform can be considered as a language workbench (Language Workbench), providing comprehensive theoretical support and underlying tools for the design and development of DSLs. Using the Nop platform primarily involves expressing business logic using DSL rather than general programming languages. Some may wonder: Since DSL is called a domain-specific language, does that mean it's only applicable to a specific domain? Would this not inherently limit its use in describing business scenarios? During the popularity of the ROR (Ruby On Rails) framework, DSL concepts were briefly popularized, but they have since faded from view. What sets Nop apart? The answer is straightforward: Nop is built from scratch based on reversible computing theory to create the next-generation low-code platform, and reversible computing theory is a systematic approach to DSL design and construction at the theoretical level, addressing the issues inherent in traditional DSL design and application.
+1. Inheritance in object-oriented programming and traits in Rust do not include deletion semantics, and they only express the object–method single-level relationship; structurally they correspond only to a Map.
+2. The strongest form of object-oriented programming is a generic object with template metaprogramming capabilities; at the structural level it can be viewed as `Map extends Map<Map>`.
+3. If we extend Map into a Tree structure and extend the extends operator to include subtraction, then the Tree becomes a DeltaTree with inverse elements, and the overall structure upgrades to `Tree x-extends Tree<Tree>`.
+   This abstraction can naturally bring abstract syntax trees and file systems into its category, becoming a general computation pattern with broad application domains that is not confined to any single programming language; when implemented concretely, it becomes the core software construction formula defined by the theory of Reversible Computation.
 
-[How to develop a platform capable of developing a low-code platform](meta-platform.md)
-[From reversible computation to DSL design points](xdsl-design.md)
+```
+App = Delta x-extends Generator<DSL>
+```
 
-## [Why is Nop a unique open-source software development platform?](technical-strategy.md)
-The essential difference between the Nop platform and other open-source software development platforms lies in that Nop platform **starts from first principles based on mathematical origins and uses rigorous mathematical derivations to gradually develop detailed designs for each layer**. Its components are consistent with mathematical principles internally, leading to significantly shorter and more efficient implementation code compared to other platforms. Additionally, **in terms of flexibility and scalability, the Nop platform surpasses all known open technologies and achieves system-level coarse-grained software reuse**. Mainstream technologies are primarily designed using a component-based approach, whose theoretical foundation limits the overall reusability of software.
+> Docker and k8s’s kustomize can both be regarded as concrete instances of Reversible Computation.
 
-## [Why is XLang considered an innovative programming language?](why-xlang-is-innovative.md)
-XLang is deemed innovative because it creates a new structural space for programming where the `Y = F(X) + Delta` computational paradigm proposed by reversible computing theory can be conveniently implemented.
+## [Reversible Computation: The Next-Generation Theory of Software Construction](reversible-computation.md)
 
-[DeepSeek's simplified explanation: Why is XLang considered an innovative programming language?](deepseek-understanding-of-xlang.md)
+An overview of the theory of Reversible Computation.
 
-For answers to this article, see [Answer 1](xlang-explained.md), [Answer 2](xlang-explained2.md)
+## [A Programmer’s Clarification of Reversible Computation Theory](reversible-computation-for-programmers.md)
 
-## [If we were to rewrite SpringBoot, what would be our different choices?](lowcode-ioc.md)
-If we were to completely re-implement SpringBoot from scratch, we would explicitly define which core problems the underlying framework should address. What solutions would we propose for these problems? How do these solutions differ fundamentally from SpringBoot's current approaches? The Nop platform's dependency injection container, NopIoC, is implemented based on reversible computing principles and approximately 5000 lines of code to replicate all dynamic auto-deployment mechanisms and AOP interception used in SpringBoot. It also integrates seamlessly with GraalVM for easy native image compilation. In this paper, I will analyze the design principles of the IoC container from the perspective of reversible computation theory, using NopIoC's implementation code as a basis.
+Starting from concepts familiar to programmers, this article explains the concrete forms and practices of Delta and Delta merging in programming, and analyzes why some common understandings of Reversible Computation are incorrect.
+
+## [Addendum to “A Programmer’s Clarification of Reversible Computation Theory”](reversible-computation-for-programmers2.md)
+
+Further supplements on conceptual clarifications for Reversible Computation theory, addressing and dispelling common misconceptions.
+
+## [What exactly does “Reversible” mean in Reversible Computation Theory?](what-does-reversible-mean.md)
+The term “reversible” is closely related to the concept of entropy in physics. The direction of entropy increase determines the evolution direction of the arrow of time in the physical world. Reversible Computation theory studies the laws for constructing coarse-grained software structures oriented toward evolution, so “reversible” is the linchpin of this theory. For readers unfamiliar with thermodynamics and statistical physics, entropy may be an unknown, and the term “reversible” might be puzzling. Is reversibility important? How can software be reversible? Does it mean reverse execution? What is the significance? In this article, I briefly explain what “reversible” exactly refers to within Reversible Computation theory.
+
+## [Delta Oriented Programming from the perspective of Reversible Computation](delta-oriented-programming.md)
+
+This article compares Reversible Computation theory with related work in software engineering, such as Feature-Oriented Programming (FOP) and Delta-Oriented Programming (DOP), and points out where these theories remain insufficient from the Reversible Computation perspective.
+
+## [Low-Code Platform Design through the lens of Tensor Products](tensor-product-lowcode.md)
+
+Multi-dimensional extension in framework design can be viewed mathematically as linear mapping functions over tensor product spaces. This article explains at a theoretical level how the principles of Reversible Computation combine with the Loader abstraction.
+
+## [Clarifying the concept of Delta for programmers, using Git and Docker as examples](explanation-of-delta.md)
+Although both are called “Delta,” there are profound differences between one Delta and another. Broadly speaking, Git and Docker both fundamentally involve Delta computation, but the Deltas they correspond to are essentially different; the fine distinctions here require mathematical analysis to clarify. The common understanding of Delta tends to be superficial and ambiguous, so many debates stem from unclear definitions rather than inherent contradictions in the problem itself.
+[Differences between “Extension” in Kingdee Cloud Galaxy and “Delta” in the Nop platform](delta-vs-extension.md)
+[DeepSeek AI’s understanding of Delta customization—far beyond ordinary programmers](deepseek-understanding-of-delta.md)
+[A general Delta composition mechanism](generic-delta-composition.md)
+
+## [Design essentials of DSLs from the perspective of Reversible Computation](xdsl-design.md)
+
+Based on the principles of Reversible Computation, the Nop platform proposes a systematic construction mechanism that simplifies DSL design and implementation, making it easy to add DSLs for your own business domain and to extend existing DSLs.
+
+## [Necessary conditions for using GPT to produce complex code](nop-for-gpt.md)
+
+Many people are attempting to generate code directly with GPT, trying to use natural language to guide GPT in completing traditional coding tasks. However, almost no one seriously considers how the generated code will be maintained over the long term. This article analyzes, at a theoretical level, the necessary conditions for using GPT to produce complex code and proposes a concrete strategy for combining the Nop platform with GPT.
+
+## [How to evaluate the quality of a framework technology (e.g., an ORM framework)](props-and-cons-of-orm-framework.md)
+
+For a new framework technology, statements like “it’s convenient and easy to use” express only a subjective feeling. Can we define objective standards that are not influenced by personal preferences?
+[What is a good model?](good_design.md)
+[How can business development become framework-agnostic](framework-agnostic.md)
+
+## [How does Nop overcome the limitation that DSLs only apply to specific domains?](nop-for-dsl.md)
+The Nop platform can be viewed as a Language Workbench. It provides complete theoretical support and underlying toolsets for the design and development of DSLs (Domain-Specific Languages). Using the Nop platform for development primarily means expressing business logic with DSLs rather than with general-purpose programming languages. Some may wonder: since DSLs are so-called domain-specific languages, doesn’t that imply they can only apply to a specific domain? Wouldn’t there be fundamental limitations in describing business? Back when the ROR (Ruby On Rails) framework was popular, the concept of DSLs was hyped for a while, but now it’s quiet—what makes Nop special? The answer is simple: the Nop platform is a next-generation low-code platform built from scratch on the theory of Reversible Computation, and Reversible Computation is a systematic theory for DSL design and construction that addresses the problems inherent in traditional DSL design and application at the theoretical level.
+[How to build a platform that itself can build low-code platforms](meta-platform.md)
+[Design essentials of DSLs from the perspective of Reversible Computation](xdsl-design.md)
+
+## [Why is the Nop platform a unique open-source software development platform](technical-strategy.md)
+The most fundamental difference between the Nop platform and other open-source software development platforms is that Nop starts from first principles in mathematics, deriving detailed designs at each level through rigorous mathematical reasoning. Its components exhibit intrinsic consistency in the mathematical sense. This directly results in Nop’s implementation being much more concise than other platforms and reaching a level of flexibility and extensibility unmatched by any known public technology, enabling system-level coarse-grained software reuse. Mainstream technologies are primarily designed around component assembly, and their theoretical foundations inherently impose an upper bound on overall software reuse.
+
+## [Why is XLang an innovative programming language?](why-xlang-is-innovative.md)
+XLang is an innovative programming language because it creates a new program-structure space in which the computation paradigm `Y = F(X) + Delta` proposed by Reversible Computation theory can be easily implemented.
+[DeepSeek’s plain-language explanation: Why is XLang an innovative programming language?](deepseek-understanding-of-xlang.md)
+
+For clarifications on this article, see [Q&A 1](xlang-explained.md), [Q&A 2](xlang-explained2.md)
+
+## [If we rewrote SpringBoot from scratch, what different choices would we make?](lowcode-ioc.md)
+If we were to rewrite SpringBoot entirely from scratch, which core problems would we clearly assign to the underlying framework to solve? What solutions would we propose? How do these solutions fundamentally differ from SpringBoot’s current approach? The dependency injection container in the Nop platform, NopIoC, is a model-driven DI container implemented from the ground up based on the principles of Reversible Computation. With roughly 5,000 lines of code, it implements all the dynamic auto-wiring and AOP interception mechanisms we use in SpringBoot, and integrates with GraalVM, making it easy to compile to native images. In this article, I will discuss analyses of IoC container design principles from the perspective of Reversible Computation, in conjunction with NopIoC’s implementation.
 
 ## [What kind of ORM engine does a low-code platform need?](lowcode-orm-1.md)
-What is ORM? Why can ORM simplify data access layer coding? Which common business semantics can be unified under ORM? In the context of low-code platforms, how can data structures support user-defined adjustments? What logical path between front-end UI display and back-end storage should be minimized as much as possible? How can an ORM engine support this? If we are not satisfied with predefined low-code application scenarios but aim for a smooth upgrade path from LowCode to ProCode, what requirements would we have for the ORM engine?
+What is ORM? Why does ORM simplify writing code for the data access layer? Which common business semantics can be uniformly delegated to the ORM layer for expression? In the context of a low-code platform, data structures need to support user-defined adjustments, and the logical path from front-end presentation to back-end data storage should be minimized. What support can an ORM engine provide for this? If we are not satisfied with predefined low-code application scenarios but instead want a smooth upgrade path from low-code to pro-code, what requirements would we place on the ORM engine?
+[What kind of ORM engine does a low-code platform need? (2)](lowcode-orm-2.md)
 
-[Low-code platforms need what kind of ORM engine? (2)](lowcode-orm-2.md)
+## [Why is GraphQL strictly superior to REST in the mathematical sense?](graphql-vs-rest.md)
+Through rigorous mathematical reasoning, the Nop platform reinterprets the positioning of GraphQL, leading to new design ideas and technical implementations. Under this interpretation, the NopGraphQL engine achieves a comprehensive surpassing of REST—GraphQL is strictly superior to REST in the mathematical sense.
 
-  ## [Why GraphQL is Strictly Superior to REST in the Mathematical Sense?](graphql-vs-rest.md)
-Nop platform has reinterpreted the positioning of GraphQL through rigorous mathematical reasoning, deriving new design ideas and technical implementation schemes. Under this reinterpretation, the NopGraphQL engine achieves full dominance over REST,
-in a mathematical sense, GraphQL is strictly superior to REST.
+## [NopTaskFlow: a next-generation logic orchestration engine written from scratch](lowcode-task-flow.md)
+NopTaskFlow is a logic orchestration engine implemented based on Reversible Computation theory.
+[Why NopTaskFlow is a unique logic orchestration engine](why-nop-taskflow-is-special.md)
 
-## [The Next Generation Logic Arrangement Engine Starting from Scratch: NopTaskFlow](lowcode-task-flow.md)
-NopTaskFlow is a logic arrangement engine implemented based on reversible computation theory.
-[Why NopTaskFlow is a Unique Logic Arrangement Engine](why-nop-taskflow-is-special.md)
+## [Why is NopReport a very unique reporting engine?](why-nop-report-is-special.md)
+Unlike typical reporting engines, NopReport can use Excel and Word directly as templates and does not necessarily require a dedicated visual designer.
 
-## [Why NopReport is Such a Unique Report Engine?](why-nop-report-is-special.md)
-NopReport differs from general report engines in that it can directly use Excel and Word as templates, without needing to rely on specialized visual designers for design.
+## [Why is SpringBatch a flawed design?](why-springbatch-is-bad.md)
+SpringBatch’s design exhibits serious issues today. It is highly unfriendly to performance optimization and code reuse. This article analyzes SpringBatch’s design problems and introduces the design ideas of a next-generation batch processing framework by presenting the implementation of NopBatch.
 
-## [Why SpringBatch is a Bad Design?](why-springbatch-is-bad.md)
-SpringBatch's design, when viewed today, has serious flaws in terms of performance optimization and code reuse. This article analyzes the design issues of SpringBatch and introduces the design ideas of NopBatch, a new batch processing framework, along with its implementation scheme.
+## [Why does the Nop platform insist on XML rather than JSON or YAML](why-xml.md)
+In the Nop platform, XML and JSON support automatic bidirectional conversion; essentially, the choice of notation does not affect the model’s semantics.
 
-## [Why Does Nop Platform Stick to XML Instead of JSON or YAML?](why-xml.md)
-In the Nop platform, XML and JSON are automatically supported for bidirectional conversion. The choice of which format to use doesn't affect the semantic meaning of the model.
+## [Low-code from the perspective of Reversible Computation](lowcode-explained.md)
+[Reuse in the AI era from the perspective of Reversible Computation](reuse.md)
 
-## [Understanding Lowcode from Reversible Computation](lowcode-explained.md)
-[Reversible Computation and AI Era CodeReuse](reuse.md)
+## [Q&A on the underlying theory of the Nop platform](faq-about-theory-of-nop.md)
+[Discussion about Reversible Computation—reply to Rounded-Corner Knight Marisa](discussion-about-reversible-computation.md)
 
-## [FAQ About the Theory Behind Nop Platform](faq-about-theory-of-nop.md)
-[Discussion on Reversible Computation—The Round Knight's Magic Logic](discussion-about-reversible-computation.md)
+## [What is data-driven? How does it differ from model-driven, domain-driven, metadata-driven, and DSL-driven?](what-is-data-driven.md)
+“XX Driven” is one of the common jargons in software engineering—it translates to “X-driven.” By substituting XX we get data-driven, model-driven, domain-driven, metadata-driven, DSL-driven, and a whole bunch of “driven.” A natural question is: what are the differences among these “driven” approaches? Is there really a need to manufacture so many concepts?
 
-## [What is Data-Driven? How Does It Differ from Model-Driven, Domain-Driven, Metadata-Driven, and DSL-Driven?](what-is-data-driven.md)
-"XX-Driven" is one of the most common buzzwords in software engineering. Translating it literally gives us data-driven, model-driven, domain-driven, metadata-driven, and DSL-driven, among others. A natural question arises: What's the difference between these various concepts? Why do we artificially create so many different ideas?
+## [The arcana of the Paxos algorithm that even elementary schoolers can easily grasp](paxos-explained.md)
+The Paxos algorithm is a fundamental algorithm in distributed systems, long known for being abstruse and brain-burning. The main reason it feels unintuitive is that it’s hard to grasp why it is designed that way. Although we can verify its correctness through concrete examples and even convince ourselves with rigorous mathematical proofs, we still struggle to answer: Why this choice? Is it the only feasible approach? Is there a way to find an explanation that makes Paxos intuitively self-evident without relying on mathematical derivations?
+[A magical study report on Paxos](paxos.md), [Paxos explained for ordinary elementary school students](paxos-for-kids.md)
 
-## [The Secret Behind Paxos Algorithm Easy for Primary Students](paxos-explained.md)
-Paxos algorithm is one of the most fundamental algorithms in distributed systems, notoriously known for its complexity. Its design remains puzzling because it's difficult to intuitively understand why it was built that way. While we can verify its correctness through examples and even use mathematical proofs to convince ourselves it's correct, we still struggle to answer why this specific approach was chosen. Is there a possibility of finding an alternative explanation without relying on mathematical derivations? Could there be a more intuitive way to grasp Paxos algorithm?
-[Paxos' Magical Research Report](paxos.md), [Paxos Algorithm Explained for Primary Students](paxos-for-kids.md)
+## [Why functional programming facilitates decoupling (Decouple)](functional-programming-for-decouple.md)
+The ideas of functional programming, how to apply FP in daily programming to achieve logical decoupling, and in what respects functional programming provides a beneficial complement to object-oriented programming.
 
-## [Why Functional Programming Facilitates Decoupling](functional-programming-for-decouple.md)
-Functional programming's ideas and how to apply functional programming in our daily coding to achieve logical decoupling. How does functional programming complement object-oriented programming in various aspects?
-
-## [The Essence of React from React Hooks](essence-of-react.md)
+## [Understanding the essence of React through React Hooks](essence-of-react.md)
 
 ```
 (props, @reactive state) => vdom
 ```
 
-The render function is a hard-wired information pipeline. If we establish it once and discard it immediately, that's a huge waste. Why not reuse it? By introducing reactive state variables and establishing a global responsive rule: "No matter what causes the state to change, it will automatically trigger the local render function to execute," we can elevate the render function to its full potential, **perfectly embedding microscopic interactivity into the broader information flow scenario**.
+The render function is a hard-won information pipeline; using it once and discarding it is wasteful—why not reuse it repeatedly? By introducing state variables with reactivity and stipulating a global reactive rule: “whatever causes state to change, automatically trigger the local render function to re-execute,” the render function is successfully elevated, perfectly embedding microscopic interactivity into the macroscopic information-flow context.
+<!-- SOURCE_MD5:0a94349017f723df9decaf43fb6309f5-->

@@ -1,63 +1,41 @@
-# Understanding the Difference Concepts for Programmers: Git and Docker as Examples
 
-The reversible computation theory introduces a general software construction formula:
+# A Clarification of the Delta Concept for Programmers, Using Git and Docker as Examples
+
+The theory of Reversible Computation proposes a general formula for software construction
 
 ```
 App = Delta x-extends Generator<DSL>
 ```
 
-The Nop platform's implementation can be seen as a concrete realization of this formula. Here, we focus on the difference concept (Delta) within the context of Git and Docker.
+The entire implementation of the Nop platform can be viewed as a concrete realization of this formula. Among the elements, the most critical—and also the most easily misunderstood—is the Delta concept in the theory of Reversible Computation, namely the Delta in the formula above.
 
-> For detailed information, refer to [Reversible Computing: The Next Generation Software Construction Theory](https://mp.weixin.qq.com/s/CwCQgYqQZxYmlZcfXEWlgA).
+> For a detailed introduction, see [Reversible Computation: The Next-Generation Theory of Software Construction](https://mp.weixin.qq.com/s/CwCQgYqQZxYmlZcfXEWlgA)
 
-Reversible computing can be viewed as a systematic theory for the difference concept. In this theory, all practices based on the difference concept in various domains can be explained within its framework.
+Reversible Computation can be regarded as a comprehensive and systematic theory targeting the Delta concept. Therefore, common industry practices based on Delta can be interpreted within the framework of Reversible Computation. I often cite git and docker as examples, such as:
 
-> **Question:** What is Delta? Is each commit of Git considered a delta?
+> Q: What is Delta? Is each git commit a delta?
 > 
-> **Answer:** Git operates on the vector space of rows, making it unsuitable for domain-specific problems. Adjustments in the row space lead to merge conflicts, which are inherent to Git's design. Docker, on the other hand, operates on a structured file space.
+> A: git is defined over a general line space, so it is unstable for domain problems—domain-level equivalent adjustments will lead to merge conflicts in the line space. Docker technology is similar in this regard. Many years ago, Python tools could manage dependencies and dynamically generate virtual machines. The essential difference is that a VM’s delta is defined over an unstructured byte space, whereas docker’s delta is defined over a structured file space.
 
-The statement "similarly, there is Docker technology" seems confusing. Is there a fundamental difference between Git and Docker?
+Some readers feel confused after reading the above. Does the sentence “Docker technology is similar in this regard” mean that the two are essentially the same, or that they are essentially different?
 
-> **Question:** What is Delta? Is each commit of Git considered a delta?
-> 
-> **Answer:** Git defines Delta as changes in the row space, which can lead to instability in domain-specific applications. In contrast, Docker operates on a structured file space.
+Indeed, this requires more detailed explanation. Although both are called Delta, there are profound differences between one Delta and another. In general, both git and docker essentially involve delta computation, but the Deltas they correspond to are fundamentally different; these fine-grained distinctions need to be explained from a mathematical perspective. Most people’s understanding of Delta is based on superficial impressions, and there are many ambiguities. Many debates are essentially due to unclear definitions, not inherent contradictions in the matter.
 
-The confusion arises from the difference concept itself. While both Git and Docker involve Delta (difference) calculations, their implementations differ fundamentally. The fine distinction between these tools requires mathematical analysis.
+> The mathematical understanding and use of Delta in Reversible Computation are actually very simple; it’s just that its objects are not the numbers or data most people are used to. Those without specialized abstraction training may find it hard to shift gears at first.
 
-> **Understanding Reversible Computing:**  
-> - Reversible computing is a theoretical framework for the difference concept.
-> - It applies to domain-specific problems but not directly to general data management.
+Since some readers reported feeling confused by the mathematical terms mentioned in earlier articles, I will attempt to add more detailed concept definitions and case analyses here. If anything remains unclear, feel free to join the Nop platform discussion group and continue asking questions—the QR code for the discussion group can be found in the WeChat public account’s menu.
 
-For programmers unfamiliar with mathematical concepts, this can be challenging. However, many terms are misunderstood due to vague definitions rather than inherent complexity.
+## I. Universality and Existence of Delta
 
-> **Join our discussion group** to ask questions and share insights. The QR code for our WeChat public account provides more details.
-
----
-
-## 1. Universality and Existence of Difference
-
-In mathematics and physics, when introducing a new concept, the first step is to prove its universality and existence.
-
-For reversible computing, the first principle is:
-**Difference is universally existent.**
+In mathematics and physics, when we propose a new concept, the first step is to argue for its universality and existence. The first key understanding of Delta in Reversible Computation is: Delta is ubiquitous.
 
 ```
 A = 0 + A
 ```
 
-Any system with a unit element can naturally define a difference. For example, in an empty operation scenario, the delta is equivalent to the identity operation. Combining with other operations results in the same operation.
+Any system with an identity element can naturally define a Delta: any total quantity is equivalent to the identity element + itself; in other words, any total quantity is a special case of Delta. The identity element exists naturally in most cases—for example, inaction corresponds to a no-op, and the no-op combined with any other operation is equivalent to that operation; thus, the no-op is a naturally existing identity element.
 
----
-
-## 2. Example: Delta in Git and Docker
-
-### **Git's Delta**
-- Defined over row vectors.
-- Not suitable for domain-specific problems due to instability.
-
-### **Docker's Delta**
-- Defined over structured file metadata.
-- Designed for virtual machine management.
+Many people might be puzzled by “the total is a special case of Delta.” It seems obvious, but what’s the point? People often fail to connect mathematical principles to the real physical world, leading them to think precise mathematical definitions are useless. A key corollary here is: Since a total is a special case of Delta, in principle the total can adopt exactly the same form as Delta; there’s no need to design a separate Delta form just to express Delta. For example, a Delta for JSON can be expressed using JSON Patch syntax, but JSON Patch’s format is very different from the original JSON format; it is a custom delta form, not consistent with the full format.
 
 ```
 [
@@ -66,138 +44,134 @@ Any system with a unit element can naturally define a difference. For example, i
     "path": "/columns/-",
     "value": {
       "name": "newColumn",
-      "type": "string",
-      "primary": false
+      "type": "string", // or other data types
+      "primary": false // whether it's the primary key
     }
   },
   {
-    "op": "remove",
-    "path": "/columns/2"
-  }
+     "op": "remove",
+     "path": "/columns/2"
+   }
 ]
 ```
 
-This JSON structure is used to define differences in Docker, ensuring clear and efficient operations.
-
----
-
-## 3. XML Example for Nop Platform
-
-The Nop platform implements differences using XML:
+The approach in the Nop platform is:
 
 ```xml
 <table name="my_table">
-  <columns>
-    <column name="newColumn" type="string" primary="false"/>
-    <column name="column2" x:override="remove"/>
-  </columns>
+   <columns>
+     <column name="newColumn" type="string" primary="false" />
+     <column name="column2" x:override="remove" />
+   </columns>
 </table>
 ```
 
-```markdown
+Or using JSON format
 
-## JSON Patch Example
-
+```
 {
     "type": "table",
     "name": "my_table",
     "columns": [
-        {
-            "type": "column",
-            "name": "newColumn", 
-            "type": "string",
-            "primary": false
-        },
-        {
-            "name": "column2",
-            "x:override": "remove"
-        }
+       {
+          "type": "column",
+          "name": "newColumn",
+          "type": "string",
+          "primary": false
+       },
+       {
+         "name": "column2",
+         "x:override": "remove"
+       }
     ]
 }
 ```
 
-The format of JSON Patch differs significantly from standard JSON and only allows marking list elements with indexes. In the Nop platform, rows are defined using unique attributes like `name` or `x:override`, ensuring semantic stability (inserting a row does not affect subsequent row positioning). Additionally, JSON Patch introduces an extra attribute (`x:override`) alongside standard JSON structure.
+JSON Patch’s format is entirely different from original JSON, and it can only use indexes to mark list rows, whereas Delta merges in Nop are defined by unique properties like name, which is more stable semantically (inserting a row does not affect the positioning of all subsequent rows). Moreover, the Delta format is exactly the same as the original format—it merely introduces an extra `x:override` attribute.
 
-In the Nop platform, we have systematically implemented **quantity is a particular case of difference**. For areas like frontend modifications to backend data submissions or backend data changes to database updates, we consistently apply structured design. We use the term "convergence" for this approach, where submissions are treated similarly to standard domain structures with minimal extensions for add/update/delete operations.
+In the Nop platform we systematically implement the mathematical idea that “the total is a special case of Delta.” In all places that require expressing Delta—such as modification data submitted from the frontend to the backend, or change data submitted from the backend to the database—we adopt an isomorphic design: the submitted Delta data structures are basically consistent with ordinary domain object structures, and a few extra fields express additions, deletions, etc.
 
-However, recognizing **quantity is a particular case of difference** also allows us to dispel a common misconception: that differences are only minor adjustments. In reality, differences can encompass substantial changes within the system. When inverses exist, differences can even surpass the overall magnitude (**difference exceeds whole**).
+Recognizing that the total is a special case of Delta also dispels a common misunderstanding: Delta consists of small local changes. In reality, a Delta can be as large as the entire system. When inverses exist, a Delta can even be larger than the whole!
 
+## II. Different Spaces Have Different Delta Definitions
 
+A key insight from modern abstract mathematics is: Operation rules are bound to a particular space. Because the math rules learned in middle school are applied to familiar number spaces—natural numbers, rational numbers, real numbers—most people don’t realize that operation rules are valid only in their corresponding spaces, and that when defined, the operation rules and the spaces they act upon are defined as a whole. In mathematics, the minimal structure that includes identity and inverse concepts is a group (Group). Let’s examine the group definition. The standard definition provided by Zhipu Qingyan AI is as follows:
+A group (G, *) consists of a set G and a binary operation *: G × G → G such that the following four conditions hold:
 
-Modern abstract mathematics introduces a critical realization: **operations are tied to specific spaces**. While most people learn math operations (like addition or multiplication) in number systems (integers, rationals, reals), they remain unaware that these operations only function effectively within their respective domains. This leads to a misunderstanding: operators like "+" and "*" are not universally applicable across mathematical structures.
+1. Closure: For all a, b ∈ G, a * b is also in G.
+2. Associativity: For all a, b, c ∈ G, (a * b) * c = a * (b * c).
+3. Identity Element: There exists e ∈ G such that for all a ∈ G, e * a = a * e = a. This element e is the identity of the group.
+4. Inverse Elements: For each a ∈ G, there exists a−1 ∈ G such that a * a−1 = a−1 * a = e. This element a−1 is the inverse of a.
 
+Note first that in the group definition, the base set G and its operation * are a whole; neither G nor the operation alone can form a group. But in everyday communication we abbreviate the group (G, *) as group G, which can mislead some people.
 
+In the definition, * is merely an abstract symbol; it does not mean multiplication. We can define different operations in different spaces, and identities and inverses differ under different operations. For example, both addition and multiplication on the real number space ℝ form groups, but they are not operations of the same group. Below is the detailed definition provided by Zhipu Qingyan AI,
 
-- **Closure**: For all $a, b \in \mathbb{R}$, $a + b$ is also in $\mathbb{R}$.
-- **Associativity**: For all $a, b, c \in \mathbb{R}$, $(a + b) + c = a + (b + c)$.
-- **Identity Element**: There exists an element $0 \in \mathbb{R}$ such that for all $a \in \mathbb{R}$, $0 + a = a + 0 = a$.
-- **Inverse Elements**: For every $a \in \mathbb{R}$, there exists an element $(-a) \in \mathbb{R}$ satisfying $a + (-a) = (-a) + a = 0$.
-
-Thus, the real number system $\mathbb{R}$ forms a group under addition, known as the **addition group**.
-
-
-
-> Note: The multiplicative group does not include zero because zero does not have a multiplicative inverse. Therefore, we are considering the set of non-zero real numbers $\mathbb{R}^*$.
+1. Additive group (ℝ, +):
    
-   - **Closure**: For all $a, b \in \mathbb{R}^*$, the product $a \cdot b$ is also in $\mathbb{R}^*$.
-   - **Associativity**: For all $a, b, c \in \mathbb{R}^*$, $(a \cdot b) \cdot c = a \cdot (b \cdot c)$.
-   - **Identity Element**: There exists an element $1 \in \mathbb{R}^*$ such that for all $a \in \mathbb{R}^*$, $1 \cdot a = a \cdot 1 = a$. This element $1$ is the multiplicative identity.
-   - **Inverse Element**: For each $a \in \mathbb{R}^*$, there exists an element $a^{-1} \in \mathbb{R}^*$ such that $a \cdot a^{-1} = a^{-1} \cdot a = 1$. This element $a^{-1}$ is the multiplicative inverse of $a$.
-     Therefore, the set of non-zero real numbers $\mathbb{R}^*$ forms a group under multiplication, known as the multiplicative group.
+   - Closure: For all a, b ∈ ℝ, a + b is in ℝ.
+   - Associativity: For all a, b, c ∈ ℝ, (a + b) + c = a + (b + c).
+   - Identity: There exists 0 ∈ ℝ such that for all a ∈ ℝ, 0 + a = a + 0 = a. The element 0 is the identity for addition.
+   - Inverse: For each a ∈ ℝ, there exists −a ∈ ℝ such that a + (−a) = (−a) + a = 0. The element −a is the additive inverse of a.
+     Therefore, ℝ under addition forms a group, called the additive group.
 
-The concept of difference in reversible computation is fundamentally inspired by the idea of groups. For every difference, we can always mimic the definition of a group from the following aspects:
+2. Multiplicative group (ℝ*, ·):
+   
+   > Note, the multiplicative group excludes zero because zero has no multiplicative inverse. So we consider the set ℝ* of nonzero real numbers.
+   
+   - Closure: For all a, b ∈ ℝ*, a · b is in ℝ*.
+   - Associativity: For all a, b, c ∈ ℝ*, (a · b) · c = a · (b · c).
+   - Identity: There exists 1 ∈ ℝ* such that for all a ∈ ℝ*, 1 · a = a · 1 = a. The element 1 is the identity for multiplication.
+   - Inverse: For each a ∈ ℝ*, there exists a−1 ∈ ℝ* such that a · a−1 = a−1 · a = 1. The element a−1 is the multiplicative inverse of a.
+     Therefore, ℝ* under multiplication forms a group, called the multiplicative group.
 
-1. In which space is the difference operation defined?
-2. Is the result of the difference operation still within this space?
-3. Does the difference operation satisfy associativity? Can we perform local operations first and then combine them into a global operation?
-4. What is the identity element for the difference operation?
-5. Does the difference operation support inverse operations? What is the form of the inverse?
+The Delta concept in Reversible Computation is inspired by the group idea; thus for every kind of Delta, we can analyze it by analogy to the group definition, from the following aspects:
 
-## Group Structure in Git
+1. In which space is the Delta operation defined?
 
-### 1. Where is the difference operation defined in Git?
+2. Does the result of the Delta operation remain in this space?
 
-Git's `diff` functionality first splits the text file into lines and then compares these lines. Therefore, Git's difference structure space can be considered as the line-based text space. This is a general difference structure space. Each text file can be mapped to this line-based text space as a list of lines, meaning each text file has its own representation within this space.
+3. Does the Delta operation satisfy associativity? Can we perform local operations first and then combine with the whole?
 
-### 2. Does the result of Git's difference operation remain within the line-based text space?
+4. What is the identity element of the Delta operation?
 
-Git's `apply` functionality applies a patch file to the current text file and produces another "valid" text file. However, upon closer examination, this validity is not entirely reliable.
+5. Does the Delta operation support inverse operations? What is the form of the inverse?
 
-First, Git's patch has strong specificity; it is tightly coupled with its target context, such as from project A to project B. For example, a patch generated from project A cannot be directly applied to an unrelated project B. A patch is specifically tied to a particular version (state) of a base file. In this sense, we can hardly consider the patch as an independent entity in terms of concept.
+## III. Delta Operations in Git
 
-Second, applying multiple patches to the same base file may result in conflicts. In such cases, the original structure of the source file will be altered by inserting specific markers:
+### 1. In which space is Git’s Delta operation defined?
 
-- `<<<<<<< HEAD`: Marks the start of the current branch (usually your target branch, i.e., where HEAD points to).
-- `=======`: Separates the current branch's content from the merged branch's content.
-- `>>>>>>> [branch-name]`: Marks the start of the merged branch (usually the branch you are merging into).
+Git’s diff splits a text file into lines and compares lists of text lines. Therefore, Git’s Delta structure space can be viewed as a line-text space. This is a general-purpose Delta structure space. Every text file can be mapped into the line-text space as a list of lines; in other words, every text file has a representation in the line-text space.
 
-**The fundamental cause of conflicts is that the difference operation in Git exceeds the defined structure space, resulting in an abnormal structure.**
+### 2. Does Git’s Delta operation result remain in the line-text space?
 
-Even if multiple patches do not conflict, the merged result may disrupt the syntax of the source file. To ensure that the merged result maintains valid syntax, we must perform the merge within the abstract syntax tree's structure space.
+Git’s apply feature can apply a patch delta file to the current text file, yielding a “legal” text file. But if we scrutinize it, that legality is not very robust.
 
-In the definition of a group, closure is undoubtedly the most fundamental property. While it might seem trivial to those without an abstract mathematics background, closure is crucial for maintaining the integrity of mathematical operations. If closure were not satisfied, the entire group structure would collapse like a house of cards, leaving us with nothing but empty set.
+First, Git patches are highly specific—they are tightly bound to their application targets. For instance, a patch constructed from project A cannot be directly applied to an unrelated project B. A patch targets a specified base file version (state). In this situation, it’s hard to regard a patch as a conceptually independent entity with standalone value.
 
-Associativity is next in importance. While addition and multiplication are commutative, they are also associative. However, not all operations are commutative or associative. For example, matrix multiplication is neither commutative nor fully associative. This is where the abstract syntax tree comes into play, allowing for structured and predictable parsing.
+Second, applying multiple patches to the same base file may produce conflicts; in conflicting files we change the file’s original structure by inserting the following markers:
 
-### 3. Does Git's difference operation satisfy associativity?
+- `<<<<<<< HEAD`: Marks the beginning of content from the current branch (usually your target branch, i.e., the branch HEAD points to).
+- `=======`: Separates content from the current branch and the merged branch.
+- `>>>>>>> [branch name]`: Marks the beginning of content from the merged branch (usually the branch you’re merging).
 
-If we have multiple patches: patch1, patch2, patch3, ..., can these smaller patches be merged into a single larger patch? If they can be merged, does the order of merging matter? Is $(patch1 + patch2) + patch3$ equal to $patch1 + (patch2 + patch3)$?
+The essence of conflicts is that Delta operations have exceeded the original structural space, producing some abnormal structure. This structure lies outside the original definition of legal structures.
 
-If Git's difference operation satisfies associativity, it implies that we can perform local operations first and then combine them into a global operation. This is essential for maintaining consistency across the entire structure.
+Third, even if multiple patches do not conflict, the merged result may break the source file’s expected syntax structure. The merge may yield a “legal” line-text file, but it might not be a legal source code file. To guarantee that the merge result has a valid syntax structure, we must perform the merge in the abstract syntax tree (AST) structure space.
 
-### 4. What is the identity element for Git's difference operation?
+In the four “commandments” of group definition, closure comes first, underscoring its indisputable importance. Yet those without abstract math training often overlook it. Is closure important? Will we fail without closure? The power of mathematics comes from continuous automated reasoning. If the reasoning process can at any time break out of the known space into some unknown state, then the edifice of mathematical reasoning may collapse at any time; the only hope is the favor of Lady Luck and the salvation of God (a programmer manually editing conflict content is akin to the intervention of the hand of God).
 
-In Git, the `diff` command compares two versions of a file and shows the differences between them. The identity element in this context can be considered as the state before any changes are applied, which is typically represented by `<<<<<<< HEAD`.
+### 3. Does Git’s Delta operation satisfy associativity?
 
-### 5. Does Git's difference operation support inverse operations? What is the form of the inverse?
+Suppose we have multiple patch files: patch1, patch2, patch3... Can these small patches be merged into one large patch? If they can be merged, does the order matter? Are (patch1 + patch2) + patch3 and patch1 + (patch2 + patch3) equivalent?
 
-In Git, if you have applied a patch using `git apply`, you can remove it using `git reset`. This effectively undoes the difference operation. The inverse operation in this case would be to revert back to the previous state, which is represented by `>>>>>>> [branch-name]`.
+If Git’s Delta satisfied associativity, it would mean we could merge patch files independently of the base file, e.g., via a command like:
 
 ```
 git merge-diff patch1.patch,patch2.patch > combined.patch
 ```
 
-But unfortunately, the above command does not exist. When merging multiple patches in Git, you must apply each patch individually to the base file and then generate a diff.
+Unfortunately, this command does not exist. To merge multiple patches in Git, you must apply them one by one to the base file, and then generate the diff in reverse.
 
 ```
 git apply --3way patch1.patch
@@ -205,20 +179,20 @@ git apply --3way patch2.patch
 git diff > combined.patch
 ```
 
-Associativity is one of the fundamental mathematical principles that applies universally. Most major mathematical theories inherently assume the existence of associativity (including the so-called most pure and generalized abstract algebra). In the world of mathematics, without associativity, progress would be nearly impossible.
+Associativity is a particularly fundamental universal law in mathematics; all major existing mathematical theories presuppose it (including category theory, which is hailed as the most pure and generalized). In the mathematical world, it’s almost impossible to proceed without associativity.
 
-> The only mathematical object I know of that does not satisfy associativity is the octonion (oceanion in some languages). The octonion is an extension of the quaternion (which is itself an extension of the complex number). The octonion currently has very few applications.
+> The only mathematical object I know that does not satisfy associativity is octonions—an extension of quaternions, which themselves are an extension of complex numbers. Octonions currently have only niche applications.
 
-Why is associativity important? First, **associativity allows for localized understanding**. When associativity exists, we don't need to worry about the actual existence of the object's body, **we only need to focus on the objects that directly interact with it**, ensuring that the order in which they operate does not affect the final result. Once we understand how an object can combine with others, we effectively master its properties (as interpreted in Marxist philosophy, this corresponds to understanding all production relationships that the object is involved in).
+Why is associativity important? First, associativity enables localized cognition. Where associativity exists, we do not need to consider the existence of a “substrate,” nor do we need to worry about what happens far away along the chain of reasoning—we need only focus our attention on objects that interact with us directly. As long as we understand which elements a given object can combine with, and what results the combinational operations yield, then in the sense of category theory we have thoroughly mastered all knowledge about that object (in Marxist philosophy, this corresponds to “man is the sum of all his social relations”).
 
-Second, **associativity makes commutativity possible**. We can freely choose whether to associate neighboring objects from left or right, forming a complete and meaningful new element.
+Second, associativity makes reuse possible. We can pre-combine adjacent objects to form a complete new element with independent semantics.
 
 ```
-x = x + b + c = x + (b + c) = x + bc
-y = y + b + c = y + bc
+x = a + b + c = a + (b+c) = a + bc
+y = m + b + c = m + bc
 ```
 
-In the above example, during the construction of `x` and `y`, we can use commutativity to freely combine neighboring elements. However, **in Git's diff operations, patches lack this freedom**; you can only apply a patch to a specific version of the base file, making true associativity impossible.
+In the example above, we can reuse the pre-combined object bc when constructing x and y. Interestingly, if reuse is to be effective, the same object should be able to combine with many other objects—for example, a+bc and m+bc. However, in Git’s Delta operations, patches lack this freedom of combinability: a patch can only be applied to a fixed version of a base file, so it is essentially non-reusable.
 
 ```
 ... + a + b + c + ...
@@ -226,63 +200,62 @@ In the above example, during the construction of `x` and `y`, we can use commuta
     == ... + ((a + b) + c) + ...
 ```
 
-If a set of operations satisfies associativity, we can freely insert or delete parentheses in the sequence without changing the final result. This allows for significant performance improvements through parallel processing.
+Satisfying associativity means you may freely choose whether to combine with an adjacent object, decide to combine left first or right first, or not combine and wait for others to combine with you. Formally, this means we can insert or remove parentheses in computation sequences at any time, and the computation order does not affect the final result. Therefore, the third role of associativity is that it creates possibilities for performance optimization.
 
-```function f(x){
+```
+function f(x){
     return g(h(x))
 }
 ```
 
-Function operations typically satisfy associativity, allowing compilers to directly analyze the code of `g` and `h` separately. This enables optimizations that can significantly improve performance.
+Function operations satisfy associativity; thus, at compile time, the compiler can directly analyze g and h, extract their implementation instructions, and merge-optimize g and h’s instructions without any knowledge of f’s call environment. Associativity also enables parallel optimization.
 
-```a + b + c + d = (a + b) + (c + d) = ab + cd
+```
+a + b + c + d = (a + b) + (c + d) = ab + cd
 ```
 
-In the above example, we can simultaneously compute `a + b` and `c + d`, which is essential for many optimization algorithms.
+In the example above, we can compute a+b and c+d simultaneously. Many fast algorithms rely on optimization possibilities afforded by associativity.
 
-### 4. What is the unitary and inverse in Git's diff operations?
+### 4. What are the identity and inverse elements of Git’s Delta operation?
 
-The unitary in Git's diff operations is clearly an empty patch file; it represents no changes. Some may wonder why a unitary exists if it does nothing. First, understanding the uniqueness of the unitary: **once a unitary exists, it becomes omnipresent**.
-
-$$
-a \cdot b = e \cdot e \cdot a \cdot e \cdot b = a \cdot b
-$$
-
-Any object can be multiplied by any number of unitaries on either side. This seems to suggest that the unitary operates indirectly through multiplication.
+The identity element of Git’s Delta operation is clearly an empty patch file—it represents doing nothing. Some might wonder: If the identity does nothing, is it even necessary? First, we should understand the identity’s peculiarity: Once an identity exists, it is everywhere.
 
 $$
-e = e \cdot a \cdot a^{-1} = a^{-1} \cdot a
+a*b = e*e*e*a*e*e*b*e*e*e
 $$
 
-Once the unitary exists, it no longer represents an empty set but rather a space for indirect operations. The unitary's inverse is itself:
+You can insert any number of identities before and after any object. This means that although a and b appear to interact directly, they actually interact indirectly, immersed in an ocean of identity elements. So what—can this ocean of identities stir any trouble? To truly understand the identity’s importance, we must consider it together with the existence of inverses.
 
 $$
-e = e \cdot e^{-1} = e^{-1} \cdot e
+e = a*a^{-1} = a^{-1}*a
 $$
 
-With the unitary in place, we move from an empty space to a universe of intermediate operations. The result is that most meaningful operations can now be represented through combinations of unitaries and other elements.
+Now the ocean of identities is not empty; it provides infinitely many intermediate computational processes whose result ultimately returns to nothing.
 
-```acd \cdot d^{-1} \cdot c^{-1} \cdot b = ab
-```
+$$
+a*b = a *e * b = a * c*d * d^{-1} * c^{-1} * b
+$$
 
-By applying the unitary appropriately, even complex expressions like `acd` can be simplified to something as simple as `ab`. This ability to transform arbitrary operations into simpler forms is a direct result of associativity.
+Suppose we have already constructed a*c*d; then we can reuse this construction to form a*b:
 
-The unitary's role in performance optimization cannot be overstated. By allowing operations to be reordered or grouped in ways that optimize cache utilization, associativity enables significant speed improvements.
+$$
+acd * d^{-1} * c^{-1} * b = ab
+$$
 
-> In the physical world we live in, within the quantum vacuum that human ingenuity can't even begin to fathom, everything appears empty and serene. Yet, beneath this calm surface lies a dynamic equilibrium between particles and antiparticles. If there's precisely one black hole nearby, its strong gravitational pull could lead to a random expansion and creation of particle-antiparticle pairs. Ultimately, one of them falls into the black hole's event horizon, while the other escapes from it. This is the famous Hawking radiation, or black hole evaporation.
+> In our physical world, in the quantum vacuum beyond human reach, while it appears empty, it is actually a dynamic balance of positive and negative particles repeatedly arising and annihilating. If a black hole is nearby, its strong gravitational field can separate the spontaneously fluctuated particle-antiparticle pair, with one falling into the event horizon and the other escaping. This is the famed Hawking radiation and black hole evaporation.
 
-In reversible computation theory, the introduction of inverse elements is key to achieving coarse-grained reversibility.
+In Reversible Computation, the introduction of inverses is precisely the key to achieving coarse-grained reuse.
 
 ```
 X = A + B + C
 Y = A + B + D
   = A + B + C + (-C) + D
-  = X + (-C + D) = X + Delta
+  = X + (-C+D) = X + Delta
 ```
 
-Assuming \( X \) is composed of \( A + B + C \), we now want to produce \( Y \) composed of \( A + B + D \). If inverse elements and unitary elements exist, we can start from \( X \) under the condition that \( X \) is not decomposed. Through a series of differential operations, \( X \) can be transformed into \( Y \). By leveraging associativity, we can combine \( -C \) and \( D \) together to form a complete and independent Delta difference. From the perspective of reversible computation, the fundamental principle undergoes a significant transformation: from component-wise reversibility (same reusable components) to system-level reversibility (related but reusable components), enabling a transformation relationship between any \( Y \) and \( X \) through Delta, thus achieving reversibility while avoiding traditional composite relationships.
+Suppose X consists of A+B+C and we want to produce Y = A + B + D. If identities and inverses exist, we can start from X and, without disassembling X at all, transform X into Y through a sequence of Delta operations. Using associativity, we can cluster −C and D together to form a complete, independent Delta. Under the perspective of Reversible Computation, the principle of software reuse undergoes a fundamental shift: from “identical reusable” component reuse to “related reusable” in Reversible Computation—any Y and any X can be transformed via a Delta, thereby achieving reuse without requiring traditional part-whole composition relationships (Composition).
 
-Inverse elements and unitary elements are essential for solving equations of this complexity.
+Inverses and identities are also indispensable for solving equations—this more complex mode of reasoning.
 
 ```
 A = B + C
@@ -290,9 +263,9 @@ A = B + C
 C = -B + A
 ```
 
-Solving equations allows for such reordering, which essentially means adding the inverse to both sides and then omitting the generated unitary elements.
+When solving equations, moving terms across the equality essentially adds inverse elements to both sides and then omits the generated identity.
 
-Git can apply reverse operations, and it can also use patch commands in reverse order:
+Git can apply patches in reverse and can use the patch command to produce reversed patches
 
 ```
 git apply -R original.diff
@@ -300,38 +273,33 @@ git apply -R original.diff
 patch -R -o reversed.diff < original.diff
 ```
 
-However, without associativity, Git's application of reverse patches becomes somewhat lacking in structure.
+But due to the lack of associativity, applications of reversed patches in Git are rather limited.
 
-Based on this analysis, **while Git provides some form of differential operations, its mathematical properties make it unsatisfactory for large-scale automated handling, often requiring manual intervention.** In comparison, Docker's delta operations are perfect.
+Based on the analysis in this section, although Git provides a kind of Delta operation, its mathematical properties are not satisfactory. That implies Git-based Deltas are difficult to process at scale automatically; operations can fail at any time, requiring human intervention. By contrast, Docker fares much better—its Delta operations are exemplary.
 
-## Four. Docker's Differential Operations
+## IV. Delta Operations in Docker
 
-### 1. Where is Docker's differential operation defined?
+### 1. In which space is Docker’s Delta operation defined?
 
-Docker relies on the OverlayFS filesystem as its core technology, which in turn depends on other underlying file systems (like ext4fs and xfs). OverlayFS does not directly partition the disk structure but instead **merges directories from different layers into a single unified view** for the user. This is achieved through union mounting, which first looks at the top layer before checking lower layers.
+One of Docker’s core underlying technologies is the stacked file system OverlayFS. It relies on other file systems (e.g., ext4fs and xfs) and does not participate directly in the partitioning of disk space; it merely “merges” different directories from underlying file systems and presents them to the user—this is the union mount technique. When OverlayFS looks up a file, it searches the upper layer first; if not found, it then searches the lower layer. If it needs to list all files in a folder, it merges all files from the upper and lower directories and returns them together.
 
-Docker images' Delta differences are defined in the file system space. The smallest unit of Delta is not a byte but a file. For example, if you have a 10M-byte file and add one byte to it, the Docker image increases by 10M bytes because OverlayFS undergoes a [copy up](https://blog.csdn.net/qq_15770331/article/details/96702613) operation: it copies the entire lower layer file (10M bytes) into the upper layer before making changes.
+Docker image Delta is defined in the file system space; the minimal unit of Delta is not a byte but a file. For example, suppose we have a 10 MB file and we add a single byte to it. The image increases by 10 MB because OverlayFS undergoes a [copy up](https://blog.csdn.net/qq_15770331/article/details/96702613) process—copying the entire lower-layer file up to the upper layer, and then modifying it there.
 
-Some may think Git and Docker differ in that one uses linear lists while the other uses tree structures. However, this is not their fundamental difference. The real distinction lies in **Docker's Delta structure maintaining stable coordinates**: each file's full path is treated as a unique coordinate within the file system space. This stability ensures that local changes (like adding or removing a file) do not affect other files' coordinates. In contrast, Git uses line numbers as coordinates, so any added or removed lines will disrupt many other coordinates.
+Some might think the difference between Git and Docker Deltas is that one is a linear list and the other a tree structure. But that is not their essential difference. The truly important distinction is that Docker’s Delta structure space has stable coordinates for unique positioning: each file’s full path is a unique coordinate in the file structure space. This coordinate system is stable because local changes to the file system—such as adding or removing a file—do not affect other files’ coordinates. In Git, however, line numbers are used as positioning coordinates; adding or deleting lines causes massive coordinate shifts in subsequent lines. Therefore, Git’s coordinate system is unstable.
 
-> From a philosophical perspective, Docker's structure is composed of two aspects: name and reality. Each file has its own name, represented by its full path, which can be used for unique positioning within the Delta structure. The actual meaning of this `name` lies in how it's combined with `real` elements during Delta operations. This `name` doesn't particularly matter to users; simply covering existing files with new ones suffices. From Git's perspective, line numbers are merely temporary names because they're constantly being added or removed, affecting the coordinates of adjacent lines. Thus, Git's coordinates are inherently unstable.
+> From a philosophical angle, Docker’s structure design consists of both “name” and “reality”: every file has its own name—its path—which uniquely locates it within the Delta structure. The “reality” corresponding to this “name” is irrelevant to Delta merging and nobody cares—just overwrite it. In Git’s design, line numbers are merely temporary names susceptible to other lines. To precisely locate a line, a patch also includes the content of adjacent lines, effectively using “reality” as an auxiliary means of positioning. Using “reality” as “name” directly limits a patch’s independence.
 
-> In Docker's design, filenames can be used as unique identifiers within the Delta structure because each file's path is a stable coordinate. This ensures that operations like adding or removing a file won't destabilize other files' coordinates. However, in Git, line numbers serve as temporary identifiers because they're frequently changed, leading to frequent coordinate shifts among adjacent lines.
+Docker’s coordinate system only controls down to the file level. If we want to uniquely locate and perform Delta computation inside a file, what should we do? The Nop platform builds a domain coordinate system inside DSL domain model files via the XDef metamodel, allowing precise location of any node in XML or JSON files. In addition, Nop includes a virtual file system similar to OverlayFS that stacks multiple Delta layers into a unified DeltaFileSystem.
 
-**Docker's coordinate system only handles files at the file level. If we want to perform unique identification and implement incremental updates within a file, how should we proceed?** The Nop platform uses an XDef meta-model in its domain model files, enabling precise location of any node within XML or JSON files. Additionally, the Nop platform includes an embedded virtual file system resembling OverlayFS, stacking multiple Delta layers into a unified DeltaFileSystem.
+One might ask: Must the structure space be a tree? Not necessarily. For example, AOP operates in a fixed three-layer structure space of package-class-method rather than a tree with arbitrary depth. Similarly, in the relational database domain, we use table-row-column, another three-layer structure space. As long as positioning coordinates are stable, we can develop systematic Delta operation mechanisms on top of them.
 
-Some may wonder if a tree structure is necessarily the right choice. Not necessarily. For example, AOP technology uses a `package-class-method` three-tier structure rather than supporting arbitrary nesting in a tree structure. Similarly, in relational databases, we use a `table-row-column` three-tier structure. As long as the coordinate system remains stable, we can develop incremental update mechanisms based on it.
-
->**Tree Structure Advantages:**
-> 1. **Unification of Relative and Absolute Coordinates:** Starting from the root node, any node has a unique path, which can be treated as its absolute coordinate. Within a subtree, each node also has a relative coordinate representing its position within that subtree. By combining the relative coordinates of a node with the absolute coordinates of the subtree's root, we can easily determine the node's absolute coordinate (just concatenate them).
+> Trees have many advantages. First, they unify relative and absolute coordinates: from the root to any node there is a unique path, which can be used as the node’s absolute coordinate; meanwhile, within any subtree, each node has a unique path relative to that subtree, its relative coordinate. From the node’s relative coordinate and the subtree root’s absolute coordinate, it is easy to compute the node’s absolute coordinate (just concatenate them).
 > 
-> 2. **Ease of Control:** Each parent node can act as a control node. It can propagate shared attributes and operations to its children, ensuring consistency across the subtree.
+> Another advantage of trees is ease of governance: every parent node can act as a control node, automatically propagating shared attributes and operations down to each child.
 
-**Another key point about incremental structures:**
-When an inverse exists, the incremental structure must be a combination of positive and negative elements, creating an expanded space rather than just a positive space. When we say "Docker's incremental operations are defined within the file system space," this implies that the file system must support negative files. Docker achieves this using a special convention with Whiteout files to represent deletions. Essentially, we transform transient actions like deletions into static, persistent, and manipulable objects (files or directories). In mathematical terms, it's akin to converting `A - B` into `A + (-B)`, a crucial yet often overlooked concept.
+Another detail about Delta structure spaces: when inverses exist, the space must be an extended space composed of positive and negative elements, not just the positive elements we are used to. When we say “Docker’s Delta operation is defined in the file system space,” that file system must support “negative files.” Docker’s specific approach is to use a special Whiteout file to indicate deletion of a file or directory. In other words, we convert the ephemeral action of deletion into a static, persistent, operable object (file or directory). Mathematically, this is equivalent to converting A − B into A + (−B)—a seemingly trivial but crucial conceptual shift.
 
-**"Incremental structure space is inherently an expanded space composed of positive and negative elements."**
-This statement might sound abstract, but let’s illustrate it with an example. Suppose we're dealing with a multi-dimensional space:
+“Delta structure spaces must be extended spaces composed of positive and negative elements”—this may sound puzzling, so here is an example. Suppose we are dealing with a somewhat complex multidimensional space,
 
 ```
 X = [A, 0],
@@ -339,75 +307,53 @@ Y = [0, -B],
 X + Y = [A, -B]
 ```
 
-Here, X increases A in the first dimension and leaves the second unchanged, while Y decreases B in the second dimension. If we allow operations between X and Y, the result is a combination of `+A` and `-B`. If we only permit positive values in each dimension, this combination becomes an illegal operation. To ensure that incremental operations always succeed, we must extend the positive space to include both positive and negative elements.
-
-For instance, in Nop's ORM model, the incremental structure is defined as a DSL (Domain Specific Language) within its metadata files:
+If X represents increasing A in the first dimension and Y represents decreasing B in the second, and if we allow combining X and Y, the result is a mixture containing +A and −B simultaneously. If each dimension were only allowed to hold positive objects, this mixture would be illegal. To ensure Delta merges can always succeed, our only choice is to extend the original positive-object space to allow simultaneous presence of positive and negative objects. For another example, in the Nop platform’s ORM model definition, we stipulate that the Delta structure space is a DSL syntax space, where we can express the following Deltas:
 
 ```
-X = increase table A(+字段1,+字段2)
-Y = modify table A(+字段3)
-Z = modify table A(-字段3,+字段4)
-X + Y = increase table A(+字段1,+字段2,+字段3)
-X + Y + Z = increase table A(+字段1,+字段2,+字段3,+字段4)
+X = add table A(+field C1, +field C2)
+Y = modify table A(+field C3)
+Z = modify table A(-field C3, +field C4)
+X + Y = add table A(+field C1, +field C2, +field C3)
+X + Y + Z = add table A(+field C1, +field C2, +field C4)
 X + Z = ?
 ```
 
-In this example:
-- X represents an increase operation on table A, adding fields 1 and 2.
-- Y adds field 3 to table A.
-- Z decreases field 3 while adding field 4.
-- Combining X and Y results in a table A with fields 1, 2, and 3 added.
-- Combining X and Z results in fields 1, 2, 3 (added), and 4 (added). However, the exact behavior of Z depends on how negative operations are handled.
-
-The final result of X + Y + Z is:
+In the example above, X represents adding a table A with two fields C1 and C2. Y represents modifying table A by adding field C3. Combining X and Y yields: add table A with fields C1, C2, and C3. Combining further with Z yields: add table A with fields C1, C2, and C4. Here, field C3 is added in Y and reduced (removed) in Z; the end result is that C3 has been deleted. Now here’s the problem: What is the result of combining X and Z? According to X, table A has no field C3 at that point. Then Z requires deleting a nonexistent field from table A—how can that be executed? If we attempt this in a database, it will fail. To ensure Delta operations are always executable, we choose to accept the following as a legal Delta:
 
 ```
-X + Y + Z = increase table A(+字段1,+字段2,+字段3,+字段4)
+U = add table A(+field 1, +field 2, -field 3, +field 4)
 ```
 
-If we only allow positive fields in our database, combining X and Z would attempt to delete a field that wasn't added by X. This could lead to errors. To avoid this, we define the incremental structure as a DSL within Nop's metadata:
-
-```
-U = increase table A(+字段1,+字段2,-字段3,+字段4)
-```
-
-This allows us to express operations like `X + Z` as `U`, where:
-- U increases fields 1 and 2.
-- It decreases field 3.
-- It increases field 4.
-
-Thus, the result of `X + Z` is:
+Thus we can express the result of combining X and Z:
 
 ```
 X + Z = U
 ```
 
-If our database doesn't allow negative fields, we can project this abstract space back into a physical space using a projection operation:
+One might ask: When we ultimately generate create-table statements, negative fields are not allowed—what should we do? It’s simple: the extended space is a feasible abstract mathematical space that allows computations to occur; it contains all potential operations, but these happen in the abstract space and do not affect our physical world. When we really need to generate SQL from the result, to create actual database tables, we can add a projection operation to project objects from the feasible extended space into the physical space that contains only positive objects.
 
 ```
-P(U) = increase table A(+字段1,+字段2,+字段4)
+P(U) = add table A(+field 1, +field 2, +field 4)
 ```
 
-This projection removes all negative operations, ensuring that only positive changes are reflected in the final database table.
+This projection operation removes all negative objects and retains all positive ones.
 
-
-In mathematics, this is a standard approach: adding illegal operations to the original space to form an extended space, making the operations legal within the extended space. For example, we must add complex numbers to the solution space so that quadratic equations have general solutions in the extended space, whereas they may have no real solutions in the original space.
+> This is a standard mathematical routine: add illegal results to the original space to form an extended space, making operations in the extended space legal. For example, we must add complex numbers to the solution space for quadratic equations to have general solutions; otherwise, some are unsolvable in the real number space.
 
 $$
-x^2 + 1 = 0 \implies x = ?
+x^2 + 1= 0 \Longrightarrow x = ?
 $$
 
+### 2. Does Docker’s Delta operation result remain in the file system space?
 
-### 2. Docker's Delta Operations and File System
-
-Does Docker's delta operation still reside within the file system?
-
- Unlike Git, Docker's delta operations always produce valid merge results. First, **any two Delta layers can be freely merged**, unlike Git, which has strong restrictions on allowed deltas.
+Unlike Git, Docker’s Delta operations always produce legal merge results. First, any two Delta layers can be freely merged, unlike Git’s strict constraints.
 
 ```
 FROM registry.access.redhat.com/ubi8/ubi-minimal:8.8
 WORKDIR /work/
-RUN chown 1001 /work && chmod "g+rwX" /work && chown 1001:root /work
+RUN chown 1001 /work \
+    && chmod "g+rwX" /work \
+    && chown 1001:root /work
 COPY --chown=1001:root target/*-runner /work/application
 
 EXPOSE 8080
@@ -416,284 +362,183 @@ USER 1001
 ENTRYPOINT ["./application", "-Dquarkus.http.host=0.0.0.0"]
 ```
 
+We can freely change the FROM configuration in the Dockerfile. When upgrading the OS image layer, we do not need to modify the application layer’s Dockerfile or any application files; we can simply rebuild the image. In Git, if we change the original base file directly, all patches built against that original base will fail.
 
+> After packaging into an image, Docker’s upper-layer image is bound to its dependent lower-layer images via unique hash codes, which can be viewed as a practical security measure. Conceptually, upper and lower images are independent—when the lower image changes, the upper image’s content (including the Dockerfile) need not change; we simply rebuild.
 
-You can freely modify the FROM configuration in Dockerfile. When upgrading the system image, you do not need to modify the application's Dockerfile or any files; simply rebuild the image is sufficient. However, if you directly modify the Base image in Git, all patches based on the original Base image will become invalid.
+Second, Docker’s Delta merges never produce conflicts. This greatly boosts the automation of image construction. Combined with the prior section, this implies that in Docker’s Delta structure space, any two Deltas can interact.
 
+> The core rule of Docker image merging is name-based overwrite, with a deterministic direction from top to bottom; conflicts clearly never occur.
 
+If some Deltas already exist, Delta operations produce more new Deltas. Naturally we ask: where do these base Deltas come from? We hope to have as many available Deltas as possible. In mathematics, a standard routine is to first prove a certain mathematical object has many excellent properties, and then find ways to construct large numbers of them. In software, this corresponds to using generators to create Deltas.
 
-After building the image into a container, the upper layer image binds to the lower layer image using a unique Hash code. This is a practical security measure in real-world applications. Conceptually, upper and lower images are independent. If the lower image changes, only the lower image needs to be rebuilt; the upper image remains unchanged.
+Docker’s masterstroke is the introduction of Dockerfiles and the Docker Build tool. It leverages Linux’s decades of heritage—every command-line tool for file manipulation immediately becomes a valid Generator in Docker’s Delta structure space. Each Generator has clear business meaning, can be understood and used independently, and can be chained together into more complex Generators. From a mathematical perspective, Docker’s Delta structure space defines basic addition and subtraction; can we further define functions in this space to map one structure to another? Generators can be viewed as mapping functions in the Delta structure space, and they can indeed be expressed as functions in programming languages.
 
+By contrast, Git’s Delta structure space lacks a meaningful Generator mapping mechanism. Since the underlying Deltas lack independent significance, building a meaningful function mapping mechanism atop them is even harder. Although patches are textual, and in any programming language we can write text-processing functions to generate patches, due to the lack of generality, we typically only write custom Generators or Transformers for specific scenarios rather than combining large numbers of pre-built Generators as in Docker.
 
+> A good mathematical space needs solid basic units and operational properties, and it should support rich dynamics. Introducing Generators ensures we can continuously produce new Delta structures and adapt Deltas at different abstraction levels.
 
-The core rule for merging Docker images is to merge by name, which ensures deterministic, conflict-free merging. For example:
+Reversible Computation summarizes the construction rules of Generators and Deltas into a general formula for software construction, and provides a standard technical route for its realization
 
-- If image A depends on image B, and both are available, Docker will automatically pull B when building A.
-- If you modify image B, Docker will cache the changes so that building A remains efficient.
-
-
-
-Docker's delta mechanism allows for efficient image construction by only fetching necessary changes from the source image. This is achieved through a unique Hash code system that tracks all dependencies and ensures consistency.
-
-
-
-In mathematics, this is akin to defining a Generator function that maps one space to another. In programming terms, it's like having a function that transforms one data structure into another, ensuring compatibility and maintainability.
-
-
-
-While Git relies on a diff-based approach, Docker uses a delta-based mechanism. This means:
-
-- **Docker**: Any two Delta layers can be merged directly without complex conflict resolution.
-- **Git**: Merging requires understanding the diff context and potentially resolving conflicts.
-
-
-
-In mathematics, defining a Generator function allows for the creation of an extended space from any input. This is analogous to how Docker constructs images by applying deltas on top of base images.
-
-
-
-Here, DSL refers to a Domain-Specific Language used to define how deltas are applied. In programming terms, this could be a domain-specific tool or framework that abstracts the delta application process.
-
-
-
+```
 App = Delta x-extends Generator<DSL>
+```
 
-Where:
-- **App**: Application layer
-- **Delta**: Delta operation
-- **x-extends**: Extension mechanism
-- **Generator<DSL>**: Domain-specific language generator
+DSL here stands for Domain Specific Language, and it implicitly defines a Delta structure space. All structures describable by a programming language collectively form a Delta structure space (the AST space). Unlike the file system space, there is no unified AST space; we must study each language’s AST space separately. However, in the Nop platform we do not directly use general-purpose languages to write business logic; we extensively use DSLs. For example, the IoC container uses beans.xml, the ORM engine uses app.orm.xml, and the logic orchestration engine uses task.xml—each specialized for its domain. In Nop, all XDSLs use the XDef metamodel language in XLang to define language syntax structures. These share the general Delta merge rules defined in XLang, ensuring all DSLs defined via XDef support Delta merge operations and automatically define a Delta structure space. That is, although there is no unified AST space, we can define unified Delta merge operations and implement them uniformly.
 
-
-
-### 1. Domain-specific language (DSL) and Abstract Syntax Tree (AST)
-
-The domain-specific language (DSL) implicitly defines a delta structure space. A programming language can describe all structures, forming an abstract syntax tree (AST). Unlike the file system, there is no unified AST across different programming languages. However, in the Nop platform, we do not directly use general-purpose languages to write business logic; instead, we heavily rely on DSLs.
-
-For example:
-- IoC containers use `beans.xml`
-- ORM engines use `app.orm.xml`
-- Logic engines use `task.xml`
-
-These are all specialized DSLs for specific domains. In the Nop platform, all XDSLs (eXtended Domain Languages) use the XLang language's XDef meta-model to define syntax structures. This ensures that all DSLs using XDef support delta merging operations and automatically define a delta structure space.
-
-In other words, while there is no unified AST across different languages, on the delta operation level, we can define a unified delta merge operation and implement it uniformly.
-
-
-
-The Generator in reversible computing theory represents all possible structures within the delta structure space. It can be an independent code generator or a built-in compiler mechanism (e.g., macros). The Nop platform standardizes the compilation process for all DSLs with standardized syntax.
-
-This means that we do not need to define meta-modeling syntax for each DSL; instead, we can reuse XLang's standardized syntax and libraries.
-
-
+Generators in Reversible Computation broadly refer to all structure generation and transformation functions executed within the Delta structure space, be they standalone code generation tools or language-embedded compile-time metaprogramming mechanisms such as macros. Nop adds standardized compile-time metaprogramming syntax to all DSLs. This means DSLs need not define their own metaprogramming syntax; they can reuse the standard syntax and libraries defined by XLang.
 
 ```xml
 <workflow>
-    <x:gen-extends>
-        <oa:GenWorkflowFromDingFlow xpl:lib="/nop/wf/xlib/oa.xlib">
-            {
-                // Generated JSON by NopWorkflowDesigner
-            }
-        </oa:GenWorkflowFromDingFlow>
-    </x:gen-extends>
-    <!-- This comment will be merged with x:gen-extends-generated content -->
+   <x:gen-extends>
+      <oa:GenWorkflowFromDingFlow xpl:lib="/nop/wf/xlib/oa.xlib">
+        {
+          // JSON similar to what the DingTalk-like workflow designer generates
+        }
+      </oa:GenWorkflowFromDingFlow>
+   </x:gen-extends>
+   <!-- The content here will be Delta-merged with what x:gen-extends generates -->
 </workflow>
 ```
 
+* You can use XLang’s built-in x:gen-extends syntax to convert the DingTalk-like workflow JSON format into the NopWorkflow DSL format.
+* On top of what x:gen-extends generates, you can make local modifications.
 
+After a Generator acts on a DSL, the result may be a new DSL; then we can continue using XLang’s mechanisms to perform Delta processing. But it might also leave Nop and generate code in general-purpose languages like Java or Vue; in that case, we can only leverage the language’s built-in extends and similar mechanisms to implement partial Delta merge capabilities. Although general-purpose languages’ AST spaces can define Delta merges, their mathematical properties are not as favorable as those of XDSLs. For more on XDSL, see [XDSL: General-Purpose Design of Domain-Specific Languages](https://mp.weixin.qq.com/s/usInt7_odzvFzuiIUPw4iQ).
 
 ```java
-// Automatically generated part by NopCodeGenerator
-class NopAuthUser extends _NopAuthUser {
-    // Manually added methods and properties mimic a Delta in the base class
-    public boolean isAdminUser() {
-        return getRoles().contains("admin");
-    }
+// _NopAuthUser is the auto-generated part; handwritten code and generated code are isolated via extends
+class NopAuthUser extends _NopAuthUser{
+   // In handwritten code you can add new functions and properties; they are Deltas on top of the base class
+   public boolean isAdminUser(){
+      return getRoles().contains("admin");
+   }
 }
 ```
 
+* Java’s extends syntax does not support deletion semantics, nor does it support deep nested merges akin to trees.
 
+Git and Docker can both be seen as leveraging familiar, existing Delta structure spaces (line-text space and file system space). Reversible Computation summarizes the related laws and supports systematically constructing specialized Delta structure spaces. The Nop platform provides a series of reusable foundational architectural tools for this. Docker can be regarded as a concrete application of Reversible Computation.
 
-
-Git uses a layered structure similar to OverlayFS, combining multiple layers (branches, commits) into a single view.
-
-
-Docker uses OverlayFS to merge multiple layers (base image, diffs), creating a unified filesystem.
-
-
-
-In OverlayFS:
-- `A ⊕ B = B`
-- `(A ⊕ B) ⊕ C = C`
-
-OverlayFS's delta operation is essentially a simple overlay operation that satisfies the associative property.
-
-```plaintext
-A ⊕ B = B
-(A ⊕ B) ⊕ C = A ⊕ (B ⊕ C) = C
+```
+App = DockerBuild<DockerFile> overlay-fs BaseImage
 ```
 
+### 3. Does Docker’s Delta operation satisfy associativity?
 
-A Docker image is essentially a compressed tar archive. When you unpack it, it becomes a few directories and files within your filesystem. With just a handful of rules, you can skip over the `docker` application entirely and directly use the `tar` command to create a Docker image.
+Docker uses OverlayFS to divide the file system into multiple layers; upper-layer files automatically overwrite lower-layer files. Deleting a file in Docker actually adds a special Whiteout file in the upper layer to mask the lower-layer file. This allows the container to appear as if the file has been deleted, even though it still exists in the lower layer.
+Mathematically, Docker’s Delta operation is a simple overwrite that automatically satisfies associativity.
 
-The independence of Docker images on the underlying OS allows for centralized management and distribution via tools like **Docker Hub**. This central repository hosts and manages these Delta snapshots, ensuring consistency across environments.
+```
+  A ⊕ B = B
+  (A ⊕ B) ⊕ C = A ⊕ (B ⊕ C) = C
+```
 
+With associativity, Docker image construction can, to some extent, be divorced from the base image. In fact, a Docker image is just a tarball which, once unpacked, becomes directories and files in the file system. Knowing a few rules, you can bypass the docker application entirely and build Docker images directly using tar.
 
-### 4. What is the Identity and Inverse Elements in Docker's Delta Operations?
+Docker images gain conceptual independence; thus they can be managed and distributed centrally via DockerHub. All Delta structures satisfying associativity can establish similar independent management and distribution mechanisms.
 
+### 4. What are the identity and inverse elements of Docker’s Delta operation?
 
-#### 4.1 What is the Identity Element in Docker's Delta Space?
+Clearly, doing nothing is the identity element in Docker’s Delta space. The Whiteout file can be regarded as an inverse. But there is a subtlety: In the group definition, inverses are defined per element—each a has its own a−1, and these inverses are different (equal inverses imply equal elements). That is, inverses in a group have a certain specificity: a−1 is dedicated to canceling a’s effect. However, Docker’s Whiteout file is only for placement; its content is empty. Once a Whiteout exists, it automatically indicates deletion of the lower-level file with the same path, no matter what the file contents are. Therefore, when used as an inverse, the Whiteout lacks specificity—it can cancel a lower-level file of the same path regardless of its content.
 
-The identity element in Docker's delta space is what does nothing when you apply it to a file or directory. This is represented by `Delete` operation.
-
-
-
-In group theory, each element has an inverse that "undoes" its effect. In Docker's delta space, this concept translates to having a way to revert changes made by a delta snapshot.
-
-However, there's a subtle difference here. While every element in a group has an inverse (by definition), the `Delete` operation in Docker's delta space is designed to be idempotent:
+Mathematically, this lack of specificity appears as the idempotence of deletion:
 
 $$
-\text{Delete} \times \text{Delete} = \text{Delete}
+Delete * Delete = Delete
 $$
 
-This means that applying `Delete` twice on the same file or directory is the same as applying it once.
+Deleting a file twice is equivalent to deleting it once.
 
+Mathematically, idempotence conflicts with group structure. If an idempotent element exists, the structure cannot be a group.
 
-
-Mathematically, idempotent elements (elements where \( a \times a = a \)) conflict with the group structure because groups require closure under multiplication. If an element is idempotent, it breaks the fundamental property of groups.
-
-
-
-Let's assume we have an element \( a \) in our group that satisfies:
+Assume idempotence: a*a = a, then
 
 $$
-a \times a = a
+\begin{aligned}
+a     &= a*e = a * (a*a^{-1}) \\
+      &= a* a * a^{-1} = (a* a) * a^{-1} \\
+      &= a* a^{-1} \\
+      &= e
+\end{aligned}
 $$
 
-This means applying \( a \) twice has no additional effect beyond the first application. If such an element exists, it violates the group axioms because groups require every element to be invertible and non-idempotent.
+The above derivation shows that if a group structure contains an idempotent element, it must be the identity. By contraposition, if there exists a non-identity idempotent element, the structure cannot be a group. Because in implementing inverse operations we often adopt idempotent deletions to minimize recorded information, the mathematical structure we define is not truly a group—only some kind of structure that supports reversible operations.
 
+#### Monad and Adjoint Functors
 
+One might ask: What if there are no inverses? Then you get the Monad so beloved in functional programming. The group definition has four “commandments”: closure, associativity, identity, and inverses. Satisfying the first two yields a semigroup; satisfying the first three yields a monoid (the identity is also called the unit), which is the Monad. Thus, Monad is a relatively impoverished structure mathematically and not so remarkable. Even in category theory, the truly core concept is the adjoint functor, which is a generalization of reversible operations.
 
-In practice, this means that if you have an operation in Docker's delta space that is idempotent, it cannot belong to a group structure. This limitation is by design, as groups are not naturally suited to handle such operations.
+> For an introduction to Monad, see my article [A Beginner’s Guide to Monad](https://zhuanlan.zhihu.com/p/65449477)
 
+The following is the definition of adjoint functors provided by Zhipu Qingyan AI:
 
+The definition of adjoint functors involves a pair of functors and a special relationship between them. Specifically, given two categories C and D, if there is a pair of functors:
 
-A **monoid** is the simplest non-trivial algebraic structure, consisting of a set with an associative binary operation and an identity element. While monoids are more general than groups (groups require inverses), they still lack the ability to handle idempotent operations.
+$$
+L: \mathcal{C} \rightarrow \mathcal{D}
+$$
 
-The concept of **adjoint functors** extends this idea further, allowing for a more flexible relationship between two categories in category theory.
+$$
+R: \mathcal{D} \rightarrow \mathcal{C}
+$$
 
+and for all objects c in C and d in D there exists a natural bijection
 
+$$
+\text{Hom}_{\mathcal{D}}(L(c), d) \cong \text{Hom}_{\mathcal{C}}(c, R(d))
+$$
 
-Take the `nop` platform as an example. Its report generator uses monoids to manage data transformations. Despite its name, it's not just about "no operations" but rather about a specific type of transformation that lacks inverses.
+then L and R are adjoint functors, with L the left adjoint of R and R the right adjoint of L.
 
+For example, the Nop platform’s report engine generates Excel from object data, while the import engine parses Excel into object data; they can be viewed as an adjoint pair between the Excel category and the object category.
 
+Given any legal Excel in the Excel category (meeting certain specifications, but not fixed format), the import engine can automatically parse it into object data. That is, we do not write a special parser for each Excel; instead we implement a general Excel parser that can automatically parse every Excel in the Excel category. Thus, the import engine is not a mere function; it is a functor acting on every Excel file (object) in the Excel category. Similarly, for each object in the object category, we can automatically export an Excel file based on certain rules. Like exporting an object to JSON, the report engine does not require any extra information to export object data to Excel.
 
-Adjoint functors are like a bridge between two worlds in category theory. They allow for the exchange of information between different structures, enabling complex interactions that would be impossible otherwise.
+> - In the category of sets, functions are mappings from one set to another, and these mappings are morphisms in category theory. Each set is an object in this category. Thus, functions are morphisms from one object to another in the category of sets.
+> - A functor is a mapping from one category to another; it maps objects to objects and morphisms to morphisms, preserving composition and the category’s structure. That is, given two composable morphisms f: A → B and g: B → C, in the target category F(g ∘ f) = F(g) ∘ F(f).
+> - A functor’s action is global; it involves all objects and morphisms in the category, not just a single object or morphism. In other words, a functor is a higher-order description, while a function is lower-order; a single point and arrow in the higher-order description corresponds to a whole set of processing rules in the lower-order description.
 
+An Excel parsed into object data by the import engine, and then exported back to Excel by the report engine, does not necessarily yield an Excel identical to the original—it is an Excel equivalent to the original in some sense (e.g., style information or business-irrelevant layout adjustments may have changed). In other words, the input Excel and output Excel satisfy a form of equivalence relation: Excel ≃ Export * Import(Excel).
 
+Similarly, a JSON object exported to Excel by the report engine and then re-parsed by the import engine might have slight changes in some property values—for example, some values initially empty strings may become null after round-tripping, or some fields with default values may be missing in the result. But in some sense the object still satisfies an equivalence relation: Obj ≃ Import * Export (Obj)
 
-In the `nop` platform, data transformations are managed using monoids. This allows for consistent and predictable outcomes when applying these transformations, even in distributed systems.
+Adjoint functors can be seen as a generalization of reversible operations, but this generalization is within the abstract framework of category theory, involving functors and morphism composition rather than the reversibility of a single operation. In the context of adjoint functors, L and R are not directly inverses of each other; instead, they “reverse” each other via natural isomorphisms. Specifically, L and R are, in some sense, mutual inverses: R maps images of L back to objects in C and L maps images of R back to D, but these mappings are “corrected” via natural isomorphisms.
 
+## V. The Same Physical Change Can Correspond to Multiple Deltas
 
+A Delta is a change defined in a model space that supports some Delta merge operation; different model spaces have different Delta forms. Corresponding to the same change in the physical world, the Delta definition is not unique. Projected into different representation spaces, we obtain different Delta operation results.
 
-While monoids provide a useful abstraction for certain types of operations, their limitations in handling inverses make them unsuitable for scenarios requiring full group structure. However, they still find applications in specific contexts like data transformation and management.
-
-Remember, the key takeaway is that while groups are powerful, they have strict requirements that not all operations can satisfy. Monoids offer a middle ground but still lack some of the flexibility needed for complex real-world systems.
-
-Given an arbitrary legal Excel（satisfying certain requirements but not fixed format），the import engine can automatically parse this Excel to obtain object data. In other words, instead of writing a specialized parser for each individual Excel, we developed a general-purpose Excel parser that can automatically parse any Excel within the Excel domain. Therefore, this import engine is not just an ordinary function; it is a functor operating on every specific Excel file within the Excel domain.
-
-Similarly, for any object within the object domain, we can automatically generate an Excel file based on certain rules, analogous to exporting an object as JSON. When exporting object data to an Excel file via the report engine, no additional information is required.
-
-> - In the set domain, a function is a mapping from one set to another. These mappings are referred to as homomorphisms in category theory. Each set within this domain is treated as an object.
-> - A functor is a mapping from one category to another. It not only maps objects between categories but also preserves the structure of the categories, including the composition of morphisms. For example, if there are two consecutive homomorphisms f: A → B and g: B → C, then in the target category, F(g∘f) = F(g)∘F(f).
-> - The role of a functor is global; it involves all objects and all morphisms within a category, not just individual objects or morphisms. In other words, functors are higher-order descriptions, while functions are first-order descriptions. Functors define relationships between categories at a higher level, mapping entire structures (including their morphisms) to corresponding structures in another category.
-> - For example, if we have two consecutive homomorphisms f: A → B and g: B → C, then F(g∘f) = F(g)∘F(f).
-
-An Excel file is imported into the import engine, which parses it into object data. The parsed Excel is then exported back to an Excel file via the report engine. The resulting Excel may not be identical to the original one because some style information or cell positions might have changed, depending on the business requirements.
-
-Similarly, a JSON object is exported to Excel via the report engine and then imported back into another JSON object. Some property values might change slightly during this process (e.g., empty strings become null, or fields with default values might be lost). However, in general, there is an equivalence relation between the input Excel and output Excel: $Excel \simeq Export * Export(Excel)$.
-
-Just like functors, morphisms can be extended to entire categories. For instance, a morphism L: C → D can not only map objects but also preserve the category structure, including the composition of morphisms. This is different from simple invertible operations; instead, it involves natural transformations that "reverse engineer" the original structure.
-
-## Five. One physical change can correspond to multiple differences
-
-A difference is defined on a model space that supports some kind of difference operation. Different model spaces may have different forms of differences.
-
-> - In the set domain, functions are mappings between sets. These mappings are known as morphisms in category theory.
-> - A difference operation $\oplus$ is defined on a vector space such that $a \oplus b = c$, where $c$ is the result of applying the operation to $a$ and $b$. The operation must satisfy certain properties, such as idempotence: $a \oplus a = 0$.
-> - For example, in binary spaces, the difference operation $\oplus$ corresponds to the bitwise XOR operation.
-
-First, all structures can be represented in a universal bit vector space. For instance, if function A is stored in file A, its corresponding binary representation might be 1011... While we want to transform it into function B's binary representation, which could be 0100.... In mathematical terms, we are solving the equation $A \oplus X = B$.
+First, all structures can be represented in a general binary bit space—for example, function A stored in a file corresponds to binary data 10111..., while function B corresponds to 010010.... Abstractly, finding a Delta X that transforms function A into function B corresponds to solving A ⊕ X = B. Clearly, if ⊕ is defined as bitwise XOR, we can solve X = A ⊕ B.
 
 ```
-A ⊕ X = A ⊕ (A ⊕ X) = (A ⊕ A) ⊕ X = 0 ⊕ X = X
+ A ⊕ B = A ⊕ (A ⊕ X) = (A ⊕ A) ⊕ X = 0 ⊕ X = X
 ```
 
-In the proof, we used properties of the XOR operation, including its commutativity and associativity.
+> In the proof we used the [zeroing law, associativity, and identity law](https://baike.baidu.com/item/%E5%BC%82%E6%88%96/10993677) of XOR.
 
-Although in binary spaces we can always solve $A \oplus X = B$, the resulting difference $X$ may not have any business value. We cannot easily manipulate or visualize it like typical compression software might allow. We lack intuitive understanding and practical tools to work with it directly.
+Although we can always solve for function Delta in the bit space, that Delta has little business value (though it is valuable for binary-level compression software). We cannot intuitively understand it and we lack convenient means to manipulate it intuitively.
 
-For functions, if we project them into a text space, their differences become meaningful. For example, two functions A and B can be compared as strings of text:
+For the same function projected into the line-text space, the function’s Delta corresponds to the line-text diff result.
 
-```
-A = "functionA"
-B = "functionB"
-```
+Since there are many candidate Delta structure spaces, which one is optimal? The answer can be analogized to coordinate system selection. The same physical reality can be described using innumerable coordinate systems, but for a particular problem there may be a special, tailored coordinate system—the intrinsic coordinate system in physics. In such a system, the description highlights the core physical meaning and simplifies related expressions. For example, phenomena on a sphere can be described in the general three-dimensional Cartesian coordinate system, but spherical coordinates often simplify matters.
 
-Their difference is $A \oplus B = ""$ in this case.
+Reversible Computation indicates that for a specific business domain, we can establish a dedicated DSL and use it to naturally build a domain coordinate system, then express Delta within the Delta structure space defined by that domain coordinate system. Because this coordinate system is tailored to the domain problem, it often achieves minimal Delta expression. For instance, a business-level change that adds a field would require many adjustments in a general-purpose language—frontend, backend, and database all modified. In a domain model description, the change may manifest as a local field-level change, and then the underlying engine framework automatically translates the domain description into executable logic.
 
-> - In the set domain, functions are mappings from one set to another. These mappings are known as morphisms in category theory.
-> - A difference operation $\oplus$ is defined on a vector space such that $a \oplus b = c$, where $c$ is the result of applying the operation to $a$ and $b$. The operation must satisfy certain properties, such as idempotence: $a \oplus a = 0$.
-> - For example, in binary spaces, the difference operation $\oplus$ corresponds to the bitwise XOR operation.
+## VI. Summary
 
-First, all structures can be represented in a universal bit vector space. For instance, if function A is stored in file A, its corresponding binary representation might be 1011... While we want to transform it into function B's binary representation, which could be 0100.... In mathematical terms, we are solving the equation $A \oplus X = B$.
+The ontology of the world is unobservable. Physics seeks knowledge through the investigation of things; what we can perceive is only a ripple (Delta) excited upon the unfathomable world-ontology.
 
-```
-A ⊕ X = A ⊕ (A ⊕ X) = (A ⊕ A) ⊕ X = 0 ⊕ X = X
-```
+To understand the Delta concept deeply, start from the group definition in mathematics: closure, associativity, identity, and inverses. Among these, the inverse is particularly crucial. In software, functional programming has popularized the term Monad, which basically satisfies the first three “commandments” of the group structure (it’s a monoid), but lacks inverses.
 
-In the proof, we used properties of the XOR operation, including its commutativity and associativity.
+> Satisfying closure and associativity yields a semigroup; adding an identity yields a monoid.
 
-Although in binary spaces we can always solve $A \oplus X = B$, the resulting difference $X$ may not have any business value. We cannot easily manipulate or visualize it like typical compression software might allow. We lack intuitive understanding and practical tools to work with it directly.
-
-For functions, if we project them into a text space, their differences become meaningful. For example, two functions A and B can be compared as strings of text:
-
-```
-A = "functionA"
-B = "functionB"
-```
-
-Their difference is $A \oplus B = ""$ in this case.
-
-**Since there are so many options for the difference structure space, which one is the optimal choice?** This question can be compared to the coordinate system selection problem. The same physical phenomenon can be described using numerous coordinate systems, but there may be a special, tailored coordinate system in physics called the intrinsic coordinate system that is custom-made for a specific problem. Descriptions established within this coordinate system can better highlight the core physical meaning and simplify related descriptions. For example, physical phenomena occurring on a sphere can indeed be described in a general three-dimensional Cartesian coordinate system, but using spherical coordinates often leads to simplification.
-
-The reversible computation theory states that a specialized DSL (Domain-Specific Language) can be developed for specific business domains. Using this DSL naturally establishes a domain-specific coordinate system, which is tailored to address the specifics of the domain. This coordinate system is designed to minimize the expression of differences because it is specialized for domain-specific issues. For instance, if a change occurs at the business level and requires adding a new field, using a general language may necessitate adjustments across multiple areas, including frontend, backend, and database. However, employing a domain model can limit such changes to a local field-level modification, which can then be automatically translated by the underlying engine framework into executable logical functions.
-
-## Summary
-
-The ultimate reality of the world is unobservable. Physics seeks understanding through observation—only ripples on the surface of the deep, unknowable world. To deeply understand the concept of difference, one must start from mathematics and group theory: closure, associativity, identity, and inverse elements. Among these, the inverse element is a crucial concept. In software development, particularly in functional programming, the term Monad has been popularized. While it may satisfy some aspects of group theory (such as closure and associativity), it lacks the identity element.
-
-A set that satisfies closure and associativity is called a semigroup. Adding an identity element to this makes it a monoid. However, the concept of inverse elements is missing here.
-
-## Six. Conclusion
-
-The essence of the world is unobservable. Physics seeks knowledge by observing ripples on the surface of an unknown, incomprehensible world.
-
-To deeply understand the difference concept, one must delve into mathematics and group theory: closure, associativity, identity, and inverse elements. In the software realm, functional programming has popularized the Monad concept. While it may satisfy some aspects of group theory (closure and associativity), it lacks the identity element.
-
-A set that satisfies closure and associativity is called a semigroup. Adding an identity element makes it a monoid. However, the concept of inverse elements is missing here.
-
-## Six. Conclusion
-
-The ultimate reality of the world is unobservable. Physics seeks understanding through observation—only ripples on the surface of the deep, unknowable world.
-
-Reversible computation theory explicitly highlights the importance of the inverse concept in software construction and functional programming. It proposes a systematic approach to difference calculation:
+Reversible Computation explicitly points out the importance of the inverse concept in software construction. Combined with generative programming, it proposes a systematic technical route for implementing Delta computation:
 
 ```
 App = Delta x-extends Generator<DSL>
 ```
 
-Under the guidance of reversible computation theory, we must rethink the foundation of software construction, reconstructing our understanding of lower-level software structures based on the difference concept.
+Guided by Reversible Computation, we need to rethink the foundations of software construction and rebuild our understanding of underlying software structures based on the Delta concept. Within 5 to 10 years, we can expect a paradigm shift across the industry from totals to Deltas—I call it the Delta Revolution in intelligent software production.
 
-In the next five to ten years, we can expect the entire industry to undergo a paradigm shift from holistic to differential thinking. This represents a significant evolution in software intelligence, characterized by a focus on differences rather than similarities. The differential revolution in software development will likely dominate the industry landscape over the coming decade.
-
+<!-- SOURCE_MD5:4a5fa11b93db187fef4d00af9d41e036-->

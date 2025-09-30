@@ -1,34 +1,38 @@
+
 ```
-Let us go through the process step by step, reviewing the content I provide, and performing the following actions:
-Step 1: Extract metadata from the article
+Let’s think step by step, read the content I provide, and perform the following actions:
+ Step 1, extract the article’s metadata
  - Title:
  - Author:
- - Tags: (Assign tags to the article based on its content, typically in the domain, discipline, or specific terms)
-Step 2: Summarize the article in one sentence
-Step 3: Create a summary of the article's content
-Step 4: Outline the structure of the article in detail, more the better
-
-{{ Article Link }}
+ - Tags: (after reading the article content, assign tags; tags are usually fields, disciplines, or proper nouns)
+ Step 2, summarize this article in one sentence;
+ Step 3, summarize the article’s content and write an abstract;
+ Step 4, list the article’s outline in as much detail as possible; the more detailed, the better;
+ 
+ {{Article Link}}
 ```
 
 ```
-Summary:
-Step 1: Please describe the structure of the article in detail.
-Step 2: Summarize the main conclusion of the article.
-Step 3: List any questions a reader might have while reading this article.
-Step 4: Return all content in markdown format.
+Nice summary,
+ Step 1, please describe each part of the outline in detail,
+ Step 2, summarize the article’s conclusions;
+ Step 3, list what knowledge I can learn from reading this article?
+ Step 4, based on the article’s content, propose three questions that users might have while reading.
+ Please return everything in markdown format;
 ```
 
 ```
-Proceeding further
-Step 1: Extract key sentences from the article
-Step 2: Write a recommendation for the article
+Alright, next
+Step 1, extract the golden quotes from the article
+Step 2, write a recommendation blurb for this article
 ```
 
 ```
-What unique insights does the author bring to this topic?
+In this article, what unique insights does the author offer?
 ```
 
 ```
-What is the original viewpoint of the author as presented in the original text? Please print it out.
+What are the author’s exact words for this viewpoint in the original text? Please print them out
 ```
+
+<!-- SOURCE_MD5:43c261e379ee0a94f09f59a41d3a40a2-->

@@ -1,93 +1,71 @@
-# null
-Spring Cloud Functionality Comparison
+# Feature Comparison Between the Nop Platform and SpringCloud
 
-The Nop platform is a new generation of low-code platforms designed from scratch based on reversible computation principles. Its goal is not to provide pre-built development frameworks and visualization design tools for specific scenarios, but to break down the barriers between descriptive programming and traditional imperative programming, establishing a new programming paradigm that seamlessly integrates both. This paradigm aims to continuously expand the semantic space covered by descriptive programming.
+The Nop Platform is a next-generation low-code platform designed and implemented from scratch based on the principles of Reversible Computation. Its goal is not to provide preset development scaffolding and visual design tools targeting a few fixed scenarios, but to break down the man-made barriers between declarative programming and traditional imperative programming, establishing a new programming paradigm that makes the two seamlessly compatible and continuously expands the semantic space covered by declarative programming. To achieve this goal at the lowest technical cost, the Nop Platform does not adopt the industry’s mainstream foundational open-source frameworks; instead, it reshapes the entire technical stack based on the principles of Reversible Computation. This article briefly lists the “wheels” the Nop Platform has built and compares them to the existing “wheels” in the SpringCloud technology stack.
 
-To achieve this goal with minimal technical cost, the Nop platform did not adopt the mainstream open-source frameworks used in the industry, instead choosing to rebuild its entire technology stack based on reversible computation principles. This document will briefly outline the components of the Nop platform and compare them with those found in the Spring Cloud ecosystem.
+|Component|Nop stack|Spring stack|
+|---|---|---|
+|Web Framework|NopGraphQL|SpringMVC|
+|Expression Engine|XLang XScript|SpringEL|
+|Template Engine|XLang Xpl|Velocity/Freemarker|
+|ORM Engine|NopORM|JPA/Mybatis|
+|IoC Container|NopIoC|SpringIoC|
+|Dynamic Configuration|NopConfig|SpringConfig|
+|Distributed Transaction|NopTcc|Alibaba Seata|
+|Automated Testing|NopAutoTest|SpringBootTest|
+|Distributed RPC|NopRPC|Feign RPC|
+|Reporting Engine|NopReport|JasperReport|
+|Rule Engine|NopRule|Drools|
+|Batch Engine|NopBatch|SpringBatch|
+|Workflow Engine|NopWorkflow|Flowable/BPM|
+|Task Scheduling|NopJob|Quartz|
+|XML/JSON Parsing|NopCore|Jaxb/Jackson|
+|Resource Abstraction|NopResource|Spring Resource|
+|Code Generator|NopCodeGen|Various custom generators|
+|IDE Plugin|NopIdeaPlugin|Mybatis plugin/Spring plugin, etc.|
 
+The Nop Platform can be used directly as a foundational development framework similar to SpringCloud. At the ProCode level it can greatly simplify the software development process and significantly improve software extensibility.
 
-## Components Comparison
+## I. IoC Container
 
-| Component | Nop Platform | Spring Cloud |
-| --- | --- | --- |
-| Web Framework | Nop GraphQL | Spring MVC |
-| Expression Engine | XLang XScript | Spring EL |
-| Template Engine | XLang Xpl | Velocity/Freemarker |
-| ORM Engine | Nop ORM | JPA/Mybatis |
-| IoC Container | Nop IoC | Spring IoC |
-| Dynamic Configuration | Nop Config | Spring Config |
-| Distributed Transactions | Nop TCC | Alibaba Seata |
-| Automated Testing | Nop AutoTest | Spring Boot Test |
-| Distributed RPC | Nop RPC | Feign RPC |
-| Report Engine | Nop Report | JasperReport |
-| Rule Engine | Nop Rule | Drools |
-| Batch Processing Engine | Nop Batch | Spring Batch |
-| Workflow Engine | Nop Workflow | Flowable/BPM |
-| Job Scheduling | Nop Job | Quartz |
-| XML/JSON Parsing | Nop Core | Jaxb/Jackson |
-| Resource Abstraction | Nop Resource | Spring Resource |
-| Code Generation | NopCodeGen | Various code generators |
-| IDE Plugins | Nop IdeaPlugin | Mybatis/Spring plugins |
+A declarative IoC container was the core capability that helped Spring rise to prominence. However, since Spring 2.0, SpringIoC has gradually lost its declarative nature, resulting in the runtime being mixed with a lot of imperative logic. A typical symptom is: changing the package scan order in Spring will subtly alter the bean wiring results.
 
-The Nop platform can directly serve as a foundation for building applications similar to those in the Spring Cloud ecosystem, significantly simplifying and improving the development process while enhancing scalability.
+NopIoC builds upon the Spring 1.0 wiring syntax and adds conditional wiring logic similar to SpringBoot, and at runtime it fully reduces to the Spring 1.0 syntax to execute. The loading order of beans files and the declaration order of beans do not affect the final wiring result.
 
-
-### 1. IoC Container
-
-Descriptive IoC containers are essential skills for any developer who has worked with frameworks like Spring since its inception. However, as of Spring 2.0, the descriptive nature of Spring IoC began to diminish, leading to a mix of imperative and declarative logic in its operation. This shift is exemplified by changes in how beans are scanned and managed.
-
-The Nop IoC container builds upon the principles established by Spring 1.0's IoC syntax, incorporating similar conditional configuration logic found in Spring Boot. It offers a more refined and expressive way of managing dependencies between components, allowing for a clearer separation of concerns and easier maintenance of complex applications.
-
-
-
-```java
+```xml
 @ConditionOnMissingBean
 @ConditionOnProperty("test.my-bean.enabled")
 @Component
-public class MyBean {
+public class MyBean{
     @Inject
-    private OtherBean other;
+    OtherBean other;
 }
 ```
 
-Corresponding configuration in Nop IoC:
+Corresponding NopIoC configuration:
 
 ```xml
 <bean id="myBean" ioc:default="true" class="test.MyBean">
   <ioc:condition>
-     <if-property name="test.my-bean.enabled"/>
+     <if-property name="test.my-bean.enabled" />
   </ioc:condition>
 </bean>
 ```
 
-The Nop IoC container supports various annotations like `@Inject`, `@PostConstruct`, and `@PreDestroy`, mirroring Spring's annotation-based configuration. Unlike Spring, it does not rely on package scanning but instead requires explicit bean declarations in a configuration file.
+NopIoC supports standardized annotations such as `@Inject`, `@PostConstruct`, `@PreDestroy`, and it is compatible with Spring-specific `@Autowired`. However, it does not use package scanning to discover bean definitions; instead, beans must be declared in a beans.xml file.
 
-Because the Nop platform heavily leverages model-driven development to dynamically generate code, there is a significant amount of boilerplate code that needs to be written for each application. This can be mitigated by writing plugins or extending the existing IoC container to automate these tasks further.
+Because the Nop Platform extensively adopts model-driven mechanisms to generate code dynamically, many bean definitions are automatically generated into configuration files, and there is actually very little that needs to be written by hand. You can also write an extension scanning function to use NopIoC’s metaprogramming capabilities to dynamically generate bean definitions. For example:
 
-
-
-To extend the functionality of the Nop IoC container and better align it with specific project requirements, developers can write custom plugins or extend its configuration logic. This can include adding new annotations for dependency injection, implementing custom scanning mechanisms, or integrating third-party libraries that offer additional functionality.
-
-The following code snippet demonstrates how to create a simple plugin for the Nop IoC container:
-
-```java
-public class CustomIoCPlugin implements Plugin {
-    @Override
-    public void configure(IoCContainer ioc) {
-        // Add new dependencies or modify existing ones
-    }
-}
+```xml
+<beans>
+   <x:gen-extends>
+      <ioc-gen:scan packages="test.my,test.other" />
+   </x:gen-extends>
+</beans>
 ```
 
-Registering this plugin within the application's configuration will enable its features and extend the capabilities of the Nop IoC container.
+### Bean Customization
 
-
-
-The comparison between the components of the Nop platform and those found in Spring Cloud highlights the innovative approach taken by the Nop platform to address the limitations of traditional frameworks. By integrating reversible computation principles, it offers a more flexible and expressive way to manage dependencies and configure applications. The ability to extend its IoC container through plugins or custom configuration logic further enhances its adaptability.
-
-The use of model-driven development for code generation simplifies the development process but requires careful planning and management to avoid unnecessary complexity. Overall, the Nop platform presents a compelling alternative for building scalable and maintainable applications, especially in scenarios where traditional frameworks fall short.
-
-Configuration
+What makes NopIoC unique is that you can customize wiring logic via standard Delta customization. For example, you can remove an existing bean definition using the following:
 
 ```xml
 <beans x:extends="super">
@@ -95,10 +73,9 @@ Configuration
 </beans>
 ```
 
-
 ### Dynamic Configuration
 
-NopIoC's design includes dynamic configuration. In the `beans.xml` file, you can use a special prefix to indicate dynamic configurations.
+NopIoC is designed with unified integration with the NopConfig configuration center. In beans.xml you can denote dynamic configuration items via special prefixes:
 
 ```xml
 <bean id="xx">
@@ -106,35 +83,37 @@ NopIoC's design includes dynamic configuration. In the `beans.xml` file, you can
 </bean>
 ```
 
-The `@r-cfg:` prefix indicates that this configuration is dynamic and will be updated automatically when the underlying configuration changes.
+The `@r-cfg:` prefix indicates a dynamic configuration item. When the configuration center changes the configuration, the bean property will be automatically updated.
 
-
-### IoC Container Configuration Prefix
+Additionally, the beans syntax defines a dedicated ioc:config node:
 
 ```xml
-<ioc:config id="nopOrmGlobalCacheConfig" class="io.nop.commons.cache.CacheConfig"
+  <ioc:config id="nopOrmGlobalCacheConfig" class="io.nop.commons.cache.CacheConfig"
     ioc:config-prefix="nop.orm.global-cache"  ioc:default="true"/>
 ```
 
-The `ioc:config-prefix` attribute is similar to Spring's `@ConfigurationProperties` annotation, used to specify the configuration prefix.
+The NopIoC container automatically tracks all references to `ioc:config`. Once the configuration changes, it will automatically trigger the refresh-config method defined on those beans that use the config.
 
+The ioc:config-prefix serves a role similar to Spring’s `@ConfigurationProperties`, used to specify the prefix of configuration items in the configuration file.
 
-## Interaction with Spring IoC
+### Interoperability with SpringIoC
 
-NopIoC can work together with Spring IoC. In general, NopIoC will be initialized after Spring IoC has been initialized. You can use `BeanContainer` to get beans managed by NopIoC or Spring IoC.
+NopIoC and the Spring container can be used together. Generally, NopIoC starts after SpringIoC has initialized, and it can obtain beans managed by Spring through the parentContainer. Therefore, in NopIoC you can directly inject Spring-managed beans via `@Inject`. In beans managed by Spring, you can use beanContainer to retrieve beans managed by NopIoC by name or by type.
 
 ```java
 BeanContainer.intance().getBean(beanName)
 BeanContainer.intance().getBeanByType(beanType)
 ```
 
-NopIoC's design goal is to provide a better alternative to Spring IoC, with strict declarative programming and easy integration into the Spring ecosystem.
+NopIoC aims to be a better SpringIoC. It adheres to a strictly declarative design, can be integrated within the Spring ecosystem, and its entire codebase is under 5,000 lines. For more detailed design, see: [If We Were to Rewrite SpringBoot, What Different Choices Would We Make?](https://zhuanlan.zhihu.com/p/579847124)
 
+## II. Web Framework
 
+In the SpringCloud technology stack, we typically call Service from Controller to implement specific business logic, and in the Controller we handle structure transformation or composition work, such as converting entity objects to DTOs. To implement GraphQL service interfaces, we need to use the graphql-java package to rewrite the interface layer code and cannot directly reuse Controllers to expose services.
 
-In the context of Spring Cloud, we typically use Controller to call Service to complete specific business logic. In the Controller, you will handle some object structure transformation or composition work. To implement GraphQL service interface, we need to use graphql-java package to rewrite the interface code.
+The NopGraphQL engine greatly simplifies the design of the service interface layer. In general, we can directly expose domain model objects as external service interfaces, implement permission control and structural adaptation at the metadata layer, and avoid adaptation and transformation in the Controller layer.
 
-NopGraphQL engine greatly simplifies service interface design. Generally, we can directly expose domain model objects as external services without going through Controllers. For simple Web services, we only need to specify the URL pattern and parameter passing method (using `param` or `path`).
+For example, even for the simplest web service, we still need to specify URL patterns and parameter passing (query params, path params, or body). Many times we inadvertently introduce dependencies on HttpServlet interfaces, binding the entire service to a specific web runtime environment.
 
 ```java
 @RestController
@@ -147,103 +126,102 @@ public class MyController{
 }
 ```
 
-In the Nop platform, we only need to add `@BizModel` annotation on the domain model object and mark the service method with the corresponding configuration prefix.
+In the Nop Platform, we only need to add the `@BizModel` annotation on the domain model object, then mark the service method and parameter names.
 
-roduction
+```xml
+@BizModel("MyObject")
+public class MyObjectBizModel{
+    @BizQuery
+    public PageBean<MyEntity> findPage(@Name("id") id,
+             FieldSelection selection, IServiceContext ctx){
+       return ....
+    }
+}
+```
 
+1. NopGraphQL can provide REST services, but it enforces a fixed URL pattern: `/r/{bizObjName}__{bizAction}`, so you don’t have to design link patterns for each request.
 
-### Overview
+2. Methods marked with @BizQuery can be accessed via POST and GET, while methods marked with @BizMutation support only POST. This automatic inference also helps prevent misuse.
 
-NopGraphQL is a powerful and flexible GraphQL engine that provides a unified interface for interacting with multiple data sources. It supports both RESTful and GraphQL protocols, allowing developers to choose the best approach for their specific use case.
+3. For parameters, you only need to mark the parameter names with @Name; there’s no need to specify the passing mode.
 
+4. Methods marked @BizMutation will automatically enable transaction management, so there’s no need for additional @Transactional annotations.
 
-### Key Features
+### GraphQL as a General Decomposition and Composition Solution
 
-1. **Unified Interface**: NopGraphQL provides a single interface for querying and manipulating data across multiple data sources.
-2. **Flexible Protocols**: Supports both RESTful and GraphQL protocols, allowing developers to choose the best approach for their use case.
-3. **Automatic Data Binding**: Automatically binds data from multiple sources into a single, unified schema.
-4. **Transaction Management**: Provides automatic transaction management for concurrent operations.
-5. **Service Mesh Integration**: Seamlessly integrates with service mesh technologies like Istio and Linkerd.
+![](graphql-engine.png)
 
+NopGraphQL not only simultaneously provides GraphQL and REST service modes, but its role in the Nop Platform is to serve as a general-purpose decomposition and composition solution. In the Nop Platform, all message services, batch services, RPC services, etc., upon receiving a request message, deliver it to the GraphQLEngine for processing.
 
+Ordinary web framework service methods generally do not support directly returning entity objects because entity objects typically contain too much information and are not suitable for direct serialization to the frontend. However, under the coordination of the GraphQL engine, the return value of the service method is not returned directly to the frontend; it is enhanced by selection and the Data Loader. Given this, NopGraphQL completely delegates the result conversion and adaptation work to the GraphQL engine (based on metadata provided by XMeta). That is, you can implement an adaptation layer through configuration without a separately designed Controller adaptation layer.
 
-1. **Simplified Development**: Reduces complexity by providing a unified interface for interacting with multiple data sources.
-2. **Improved Performance**: Optimizes performance by leveraging the strengths of both RESTful and GraphQL protocols.
-3. **Enhanced Security**: Provides automatic transaction management and service mesh integration for enhanced security.
+The NopGraphQL engine can be used outside a web environment, in any scenario requiring work decomposition and result selection/adaptation. It provides an IServiceContext context object that is runtime-independent (essentially equivalent to a Map). You can use it to cache and share data across multiple service calls to optimize batch processing performance.
 
+### Distributed RPC
 
+In the SpringCloud technology stack, the server automatically registers itself with the service registry on startup, and then the client adds a Feign interface to achieve load-balanced calls. Canary releases, A/B testing, etc., can leverage the service routing mechanism here.
 
-1. **Hybrid Architecture**: Combine RESTful APIs with GraphQL endpoints to create a hybrid architecture that leverages the strengths of both approaches.
-2. **Microservices**: Integrate NopGraphQL into microservices-based architectures to simplify data exchange between services.
-3. **Real-time Data Processing**: Utilize NopGraphQL's transaction management and service mesh integration features for real-time data processing and analytics.
+In NopGraphQL, we also add a service invocation interface:
 
+```java
+    public interface RuleService{
 
+        CompletionStage<ApiResponse<RuleResultBean>> executeRuleAsync(ApiRequest<RuleRequestBean> request);
 
+        default ApiResponse<RuleResultBean> executeRule(ApiRequest<RuleRequestBean> request){
+            return FutureHelper.syncGet(executeRuleAsync(request));
+        }
+    }
+```
 
+1. Service interfaces support both asynchronous and synchronous invocation modes; asynchronous methods conventionally return CompletionStage and have the Async suffix in their method names.
 
-The NopGraphQL engine is the core component of the NopGraphQL framework, responsible for parsing GraphQL queries, resolving data sources, and executing transactions.
+2. It is stipulated that request parameters be of type ApiRequest and return results of type ApiResponse, enabling direct setting and reading of headers at the message object layer without relying on underlying runtime interfaces.
 
+3. No additional annotations are required on the service interface—e.g., no need to add @Path for REST path declarations.
 
+Create a distributed RPC client via beans.xml configuration:
 
-1. **Query Parser**: Parses incoming GraphQL queries into an abstract syntax tree (AST) for efficient execution.
-2. **Data Source Resolver**: Resolves data sources based on the parsed query AST, enabling automatic binding of data from multiple sources.
-3. **Transaction Manager**: Manages concurrent operations using automatic transaction management.
+```xml
+    <bean id="testGraphQLRpc" parent="AbstractRpcProxyFactoryBean"
+          ioc:type="io.nop.rpc.client.TestRpc">
+        <property name="serviceName" value="rpc-demo-consumer"/>
+    </bean>
+```
 
+By setting nop.rpc.service-mesh.enabled=true, you can enable service mesh mode and bypass client-side load-balancing proxies.
 
+For detailed introductions, see:
 
-1. **Scalability**: Optimized for high-performance and scalability in distributed systems.
-2. **Flexibility**: Supports multiple data sources and protocols, making it adaptable to various use cases.
+1. [GraphQL Engine in a Low-Code Platform](https://zhuanlan.zhihu.com/p/589565334)
 
+2. [Distributed RPC Framework in a Low-Code Platform (about 3,000 lines of code)](https://zhuanlan.zhihu.com/p/631686718)
 
+## III. Storage Layer
 
+The NopORM engine includes most of the features of SpringData, JPA, and MyBatis, and adds a large number of commonly used capabilities in business development, such as field encryption, logical deletion, change history tracking, extension fields, multi-tenancy, etc.
 
-
-The NopGraphQL client is a lightweight library that enables developers to interact with the NopGraphQL engine from their applications.
-
-
-
-1. **Automatic Query Generation**: Automatically generates GraphQL queries based on the client's requirements.
-2. **Data Binding**: Binds data from multiple sources into a single, unified schema.
-3. **Transaction Management**: Integrates seamlessly with transaction management features of the NopGraphQL engine.
-
-
-
-1. **Simplified Development**: Reduces complexity by providing an easy-to-use API for interacting with the NopGraphQL engine.
-2. **Improved Performance**: Optimizes performance by leveraging the strengths of both RESTful and GraphQL protocols.
-
-
-
-NopGraphQL is a powerful and flexible GraphQL engine that provides a unified interface for interacting with multiple data sources. Its key features, including automatic data binding, transaction management, and service mesh integration, make it an ideal choice for developers seeking to simplify their development workflow while improving performance and security.
-
-orm's GraphQL engine](https://zhuanlan.zhihu.com/p/589565334)
-
-2. [Low-code platform's distributed RPC framework (approx. 3000 lines of code)](https://zhuanlan.zhihu.com/p/631686718)
-
-## Three. Storage Layer
-
-NopORM engine includes most of the features from Spring Data, JPA and MyBatis, while supplementing a large number of business development common functions, such as field encryption, logical deletion, modification history tracking, extended fields, multi-tenancy, etc.
-
-In terms of interface layer, NopORM's usage pattern is very similar to that of Spring, except it always uses XML model files instead of JPA annotations.
+At the API level, NopORM usage is very similar to Spring, except it always uses XML model files instead of JPA annotations.
 
 ```java
 IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
 
+
 MyEntity example = dao.newEntity();
 example.setMyField("a");
-
-// Find the first one that meets the conditions
+// Find the first matching record
 MyEntity entity = dao.findFirstByExample(example);
 
 QueryBean query = new QueryBean();
-query.setFilter(and(eq(MyEntity.PROP_NAME_myField, "a"), gt(MyEntity.PROP_NAME_myStatus, 3)));
+query.setFilter(and(eq(MyEntity.PROP_NAME_myField,"a"), gt(MyEntity.PROP_NAME_myStatus,3)));
 query.setLimit(5);
 
 List<MyEntity> list = dao.findPageByQuery(query);
 ```
 
-Generally speaking, the IEntityDao provided by NopORM is already sufficient and rich in methods, allowing for very complex queries. Therefore, it's not necessary to create a separate Dao interface for each entity.
+Generally, methods provided on the built-in IEntityDao are already sufficiently rich. They support very complex query conditions, so there is no need to generate a separate DAO interface for each entity. You typically obtain the corresponding IEntityDao via the DaoProvider.
 
-For complex queries, you can directly use a mechanism similar to MyBatis' sql-lib, using XML models to manage dynamic SQL.
+For complex queries, you can directly use a MyBatis-like sql-lib mechanism and manage complex dynamic SQL via XML models.
 
 ```java
 @SqlLibMapper("/app/mall/sql/LitemallGoods.sql-lib.xml")
@@ -252,129 +230,169 @@ public interface LitemallGoodsMapper {
 }
 ```
 
-In the Mapper interface, you can add a @SqlLibMapper annotation to define the sql-lib model and its mapping relationship with the Java interface.
+Add the @SqlLibMapper annotation on the Mapper interface to define the mapping between the sql-lib model and the Java interface.
+
+In a sql-lib model, you can generate SQL statements via the Xpl template language:
 
 ```xml
-<eql name="syncCartProduct" sqlMethod="execute">
-    <arg name="product"/>
+        <eql name="syncCartProduct" sqlMethod="execute">
+            <arg name="product"/>
 
-    <source>
-        update LitemallCart o
-        set o.price = ${product.price},
-          o.goodsName = ${product.goods.name},
-          o.picUrl = ${product.url},
-          o.goodsSn = ${product.goods.goodsSn}
-        where o.productId = ${product.id}
-    </source>
-</eql>
+            <source>
+                update LitemallCart o
+                set o.price = ${product.price},
+                  o.goodsName = ${product.goods.name},
+                  o.picUrl = ${product.url},
+                  o.goodsSn = ${product.goods.goodsSn}
+                where o.productId = ${product.id}
+            </source>
+        </eql>
 ```
 
-### Excel Model Driver
+### Excel Model-Driven
 
-Nop platform provides a very powerful model driver development pattern, which can parse Excel data models to automatically generate entity definitions, Mapper interfaces, and metadata. It even supports backend GraphQL services and frontend page generation.
+The Nop Platform provides a very powerful model-driven development model. It can parse Excel data model files to automatically generate entity definitions, Mapper interface definitions, metadata definitions, backend GraphQL services, and even frontend add/update/query pages.
 
 ![](../tutorial/excel-model.png)
 
-For more detailed design and implementation, please refer to the following articles:
+For detailed designs, see:
 
-1. [Low-code platform needs what kind of ORM engine? (2)](https://zhuanlan.zhihu.com/p/545063021)
-2. [Data-driven code generators](https://zhuanlan.zhihu.com/p/540022264)
-3. [Nop Platform: An Open-source Low-code Platform](https://zhuanlan.zhihu.com/p/612433693)
-4. [Low-code platform how to add extended fields for entities in non-table scenarios](https://zhuanlan.zhihu.com/p/618851796)
+1. [What Kind of ORM Engine Does a Low-Code Platform Need? (2)](https://zhuanlan.zhihu.com/p/545063021)
 
-erview
-### Introduction
-Nop platform provides a specialized language, XLang, which includes multiple sub-languages such as XScript, Xpl, XTransform, and XDef. These languages are designed for Domain-Specific Language (DSL) development.
+2. [Data-Driven Delta Code Generator](https://zhuanlan.zhihu.com/p/540022264)
 
-### Languages Supported by Nop Platform
+3. [Nop Platform: An Open-Source Low-Code Platform Based on the Theory of Reversible Computation](https://zhuanlan.zhihu.com/p/612433693)
 
-#### 1. XScript Language
-XScript is similar to JavaScript in syntax and supports similar types and expressions.
+4. [How a Low-Code Platform Adds Extension Fields to Entities Without Altering Tables](https://zhuanlan.zhihu.com/p/618851796)
 
-```java
-// Example usage of XScript language
-XNode node = XNodeParser.instance().parseFromText(loc, text);
-node.getTagName(); // Get the tag name
-node.getAttr(name); // Get an attribute value
-node.setAttr(name, value); // Set an attribute value
-```
+## IV. Underlying Language
 
-#### 2. Xpl Template Language
-Xpl is similar to FreeMarker in syntax and supports custom tags and macro expansion.
+The Nop Platform provides the XLang language designed specifically for DSL development, which includes multiple sub-languages: XScript scripting language, Xpl template language, XTransform structure transformation language, and XDef meta-model definition language. Among them:
 
-```java
-// Example usage of Xpl template language
-XNode node = XNodeParser.instance().parseFromText(loc, text);
-node.attrText(name); // Get the text value of an attribute
-node.attrInt(name); // Get the integer value of an attribute
-```
+1. The XScript scripting language has a syntax similar to JavaScript and supports a Java-like type system; it can be used as a general-purpose expression language.
 
-#### 3. XDef Meta Language
-XDef is similar to XML Schema in syntax and supports meta-modeling.
+2. The Xpl template language is similar to FreeMarker, supports custom tag libraries, and supports compile-time macro processing.
+
+3. The XDef meta-model definition language is similar to XML Schema; it is a very simple and intuitive meta-model definition language.
+
+4. XTransform is a general tree structure transformation language similar to XSLT.
+
+![](XLang.png)
+
+At the bottom layer, the Nop Platform has substantially transformed XML handling. It merely uses the basic XML syntax form and does not use the JAXB standard or the commonly used XML parsers in Java. Instead, XML and JSON parsers were written entirely from scratch. Compared to commonly used XML parsers and DOM models, the Nop Platform’s XNode structure is simpler and more intuitive. It has a built-in SourceLocation tracking mechanism and can be directly used as a generic AST node.
 
 ```java
-// Example usage of XDef meta language
 XNode node = XNodeParser.instance().parseFromText(loc, text);
-node.getTagName(); // Get the tag name
-node.getChildren(); // Get a list of child nodes
+
+node.getTagName() // Read the tag name
+node.getAttr(name) // Read an attribute
+node.setAttr(name,value) // Set an attribute
+
+node.attrText(name) // Get a text attribute; returns null if the text value is empty rather than an empty string
+node.attrTextOrEmpty(name) // Returns empty string if the attribute value is empty; returns null if the attribute does not exist
+node.attrInt(name) // Get the attribute value and convert it to Integer
+node.attrInt(name, defaultValue) // Return the default value if the attribute value is empty
+node.attrBoolean(name) // Read the attribute value and convert it to Boolean
+node.attrLong(name) // Read the attribute value and convert it to Long
+node.attrCsvSet(name) // Read a string attribute and convert it to a set by splitting on commas
+
+node.getAttrs() // Get the attribute map
+node.getChildren() // Get child nodes
+node.childByTag(tagName) // Find a child node by tag name
+node.childByAttr(attrName, attrValue) // Find a child node by attribute value
+node.getContentValue() // Read the node’s content value
+
+node.hasChild() // Whether there are child nodes
+node.hasAttr() // Whether there are attributes
+node.hasContent() // Whether the direct content is non-empty
+node.hasBody()  // Whether there are child nodes or direct content
+
+node.getParent() // Get the parent node
+
+node.cloneInstance() // Clone the node
+
+list = node.cloneChildren() // Clone all child nodes
+
+node.detach() // Detach from the parent
+
+node.remove() // Remove from the parent
+
+node.replaceBy(newNode) // Replace this node with newNode in the parent’s children list
+
+node.xml() // Get the node’s XML text
+node.innerXml() // Get the node’s inner XML text
+
+node.toTreeBean() // Convert to a TreeBean object
+
+XNode.fromTreeBean(treeBean) // Convert from a TreeBean to XNode
 ```
 
-#### 4. XTransform Transformation Language
-XTransform is similar to XSLT in syntax and supports tree transformations.
+Compared to expression and template languages in the Spring ecosystem, the Nop Platform’s XLang language has stronger design consistency:
 
-```java
-// Example usage of XTransform transformation language
-XNode node = XNodeParser.instance().parseFromText(loc, text);
-node.transform(); // Apply a transformation to the node
-```
+1. Multiple sub-languages share many syntax features.
 
-### Key Features of Nop Platform
+2. Multiple sub-languages share a global function library.
 
-*   Supports multiple sub-languages for DSL development.
-*   Provides a specialized XML parser and JSON parser.
-*   Offers a simple and intuitive API for working with nodes and attributes.
+3. General Java functions can be registered as global functions.
 
-### Comparison with Other Technologies
+4. The syntax resembles JavaScript and supports object function calls.
 
-*   Compared to Spring, Nop platform provides a more consistent and robust set of features for DSL development.
-*   Unlike JAXB, Nop platform does not rely on external libraries or standards.
+5. A highly customizable expression parser, SimpleExprParser, is provided. ReportExprParser (used in the reporting engine) and RuleExprParser (used in the rule engine) are both customized on top of this expression engine.
 
-del Definition Language: XDef
+6. Systematic support for compile-time metaprogramming, such as macro functions and macro tags.
 
-## Overview
+For further details, see:
 
-XDef is a unified meta model definition language for defining and describing data models, business rules, and workflow processes.
+1. [Metaprogramming in a Low-Code Platform](https://zhuanlan.zhihu.com/p/652413095),
 
+2. [XDef: A Unified Meta-Model Definition Language to Replace XSD](https://zhuanlan.zhihu.com/p/652191061),
 
-## Key Features
+3. [Design Essentials of DSLs from the Perspective of Reversible Computation](https://zhuanlan.zhihu.com/p/646144092)
 
-1. [Replace XSD with XDef](https://zhuanlan.zhihu.com/p/652191061)
-2. [From Inverse Computation to DSL Design Points](https://zhuanlan.zhihu.com/p/646144092)
+## V. Import/Export
 
+NopReport is an open-source, from-scratch implementation of a Chinese-style reporting engine based on the theory of Reversible Computation. Its core codebase is short—just over 3,000 lines (see the [nop-report-core](https://link.zhihu.com/?target=https%3A//gitee.com/canonical-entropy/nop-entropy/tree/master/nop-report/nop-report-core) module)—with high performance (performance test code at [TestReportSpeed.java](https://link.zhihu.com/?target=https%3A//gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-demo/src/test/java/io/nop/report/demo/TestReportSpeed.java)), and a level of flexibility and extensibility difficult for other reporting engines to match.
 
-## Import/Export
-NopReport is a report engine based on reversible computation theory, starting from scratch and independently implemented. Its core code is concise, with only 3000+ lines of code (see [nop-report-core](https://link.zhihu.com/?target=https%3A//gitee.com/canonical-entropy/nop-entropy/tree/master/nop-report/nop-report-core)).
-
-NopReport has high performance, with performance testing codes available (see [TestReportSpeed.java](https://link.zhihu.com/?target=https%3A//gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-demo/src/test/java/io/nop/report/demo/TestReportSpeed.java)).
-
-NopReport is located in the Nop platform ([https://link.zhihu.com/?target=https%3A//gitee.com/canonical-entropy/nop-entropy](https://link.zhihu.com/?target=https%3A//gitee.com/canonical-entropy/nop-entropy)) and is a general modeling tool for table-form data structures. All functions that need to generate table-form data can be converted into NopReport.
-
-For example, NopCli is a command-line tool provided by Nop that can reverse-engineer database tables and generate Excel model files. This Excel model file is generated through **importing templates** and converting them into report models.
+Within the [Nop Platform](https://link.zhihu.com/?target=https%3A//gitee.com/canonical-entropy/nop-entropy), NopReport is positioned as a general modeling tool for tabular data structures. Any functionality that needs to generate tabular data can be converted into a NopReport report model object. For example, the database reverse-engineering command provided by the NopCli command-line tool analyzes database schemas and generates an Excel model file. This Excel model is produced by converting an import template into a report output model.
 
 ![](../user-guide/report/cross-table-report-result.png)
 
-![](../user-guide/report/cross-table-report.png)
+<img title="" src="../user-guide/report/cross-table-report.png" alt="" width="499">
 
+Compared with other reporting engines, NopReport has the following distinctive characteristics:
 
+1. Uses Excel as the template designer.
 
-Compared to other report engines, NopReport has the following distinct characteristics:
+2. Can directly use domain model objects as data objects; DataSet is only an optional form of data object. (Typical reporting engines only support tabular data.)
 
-1. Using Excel as a template designer
-2. Directly using domain models as data objects, and DataSet only as an optional data object (general report engines can only use table data)
-3. Extending expression syntax based on general expressions, rather than specialized report expressions
-4. Supporting multiple sheets and cyclic generation
+3. Extends the concept of hierarchical coordinates on top of a general expression syntax rather than using a specially designed reporting expression syntax.
 
-Config(localDb = true, initDatabaseSchema = true)
+4. Supports multiple sheets and loop generation.
+
+Beyond data export, NopReport also supports importing custom data structures. No coding is required—only minimal configuration is needed to import Excel data models. All Excel model files used in the Nop Platform, such as ORM entity models and API interface models, are imported via the reporting import mechanism.
+
+For detailed introductions, see:
+
+1. [An Open-Source Chinese-Style Reporting Engine Using Excel as the Designer: NopReport](https://zhuanlan.zhihu.com/p/620250740)
+
+2. [How to Implement a Visual Word Template Like poi-tl in 800 Lines of Code](https://zhuanlan.zhihu.com/p/537439335)
+
+3. [How to Support Dynamic Columns and Styles When Importing/Exporting Excel](https://www.bilibili.com/video/BV1M14y1271a/)
+
+## VI. Logical Orchestration
+
+The Nop Platform provides engines for business rules, workflow, batch processing, and task scheduling—covering the full description of general business logic.
+
+![](../dev-guide/rule/decision-matrix.png)
+
+See: [NopRule: A Rule Engine Using Excel as the Visual Designer](https://zhuanlan.zhihu.com/p/655192140)
+
+## VII. Automated Testing
+
+SpringBootTest provides integration between the Spring framework and test frameworks such as JUnit. In the Nop Platform, you can use dependency injection to obtain beans under test simply by extending the JunitAutoTest base class.
+
+```java
+@NopTestConfig(localDb = true,initDatabaseSchema = true)
 public class TestGraphQLTransaction extends JunitAutoTestCase {
     @Inject
     IDaoProvider daoProvider;
@@ -389,39 +407,45 @@ public class TestGraphQLTransaction extends JunitAutoTestCase {
         request.setQuery("mutation { DemoAuth__testFlushError }");
         IGraphQLExecutionContext context = graphQLEngine.newGraphQLContext(request);
         GraphQLResponseBean response = graphQLEngine.executeGraphQL(context);
+        output("response.json5", response);
         assertTrue(response.hasError());
         assertTrue(daoProvider.daoFor(NopAuthRole.class).getEntityById("test123") == null);
     }
 }
 ```
 
-The Nop Test Configuration annotation allows for simple control over automated testing.
+Through the @NopTestConfig annotation, you can easily control certain configuration switches related to automated testing.
 
-Nop AutoTest is a unique aspect of the framework, providing model-driven automation capabilities through recording and playback mechanisms. This enables complex business logic to be automatically tested without manual code writing.
+What makes the NopAutoTest framework unique is that it provides model-driven automated testing. It can implement automated testing of complex business functions via recording and replay mechanisms—no test code needs to be written by hand.
 
-For more information on how this works, see [Low-Code Platform Automated Testing](https://zhuanlan.zhihu.com/p/569315603).
+See: [Automated Testing in a Low-Code Platform](https://zhuanlan.zhihu.com/p/569315603)
 
-## External Tools
+## VIII. Tooling
 
-Nop provides integration with Maven for a code generator that can be used independently of the Nop platform. This allows for incremental generation of specified code.
+The Nop Platform provides a code generator integrated with Maven that can be used independently outside the Nop Platform. Based on user-defined model files and user-defined code templates, it generates specified code in a delta-based incremental manner. Typical code generators, whether for models or templates, find it difficult to support fine-grained customization.
 
-For more information on how to use this feature, see [Data-Driven Code Generation](https://zhuanlan.zhihu.com/p/540022264).
+See: [Data-Driven Delta Code Generator](https://zhuanlan.zhihu.com/p/540022264)
 
-## IDEA Plugin
+NopIdeaPlugin provides a general IntelliJ IDEA plugin. It automatically recognizes the meta-model specified by the x:schema attribute on an XML root node and implements attribute hints, link navigation, and format validation according to the meta-model. For code snippets, it also provides breakpoint debugging.
 
-Nop IdeaPlugin provides a general-purpose IDEA plugin that automatically recognizes XML root nodes and schema attributes. This enables property hints, link navigation, and format validation.
+![](../user-guide/idea/idea-completion.jpg)
 
-For more information on how to use this feature, see [IDEA Plugin Documentation](../user-guide/idea/plugin-documentation.md).
+![](../user-guide/idea/xlang-debugger.png)
 
 ## Conclusion
 
-Nop's implementation is simpler than Spring Cloud, with a smaller codebase. However, Nop provides more features and capabilities, including:
+Compared to SpringCloud, the Nop Platform has the following characteristics:
 
-1.  Simplified implementation principles
-2.  Support for differential customization
-3.  Automatic generation of models and templates
-4.  Unified use of XDSL to implement DSLs
-5.  Integration with DevOps tools
+1. Simple and direct implementation principles. The code size is generally an order of magnitude smaller than Spring components, yet the core functionality is richer.
 
-Nop can be used as a drop-in replacement for Spring Cloud, providing a more streamlined development experience.
+2. Supports Delta-based customization. You can add Delta model files under the Delta directory to customize all existing features (including built-in platform features). For example, all data models and all designer pages can be freely customized.
 
+3. Leverages code generation and metaprogramming for automatic inference, greatly reducing the amount of code that must be written by hand and ensuring a high level of internal structural consistency.
+
+4. Uniformly uses the XDSL specification to implement DSL models. You can add new DSL models at any time or add new extension attributes to existing DSLs. The IDE plugin automatically recognizes and supports new DSL models without writing specialized support plugins.
+
+5. Model-driven processes are integrated into DevOps. Code generation and model transformation are performed during the Maven packaging process, eliminating the need to deploy a separate model management platform.
+
+The Nop Platform can serve as an extension component running atop SpringCloud. It does not conflict with SpringCloud’s built-in mechanisms. Its internal components can be replaced with SpringCloud implementations—but doing so will lose many advanced features, reduce performance and extensibility, and undermine the inferability of the program’s structure.
+
+<!-- SOURCE_MD5:79cb16f1ebb21473e4d86ec93a90d9d2-->

@@ -1,59 +1,43 @@
-# Why XML Schema Is a Bad Design?
 
-1. xsd and the xml it defines are not in a schema-conformant relationship, making it very non-intuitive and directly violating the assertion in the theory of reversible computing that total is delta is a special case of this principle.
-2. xsd implicitly enforces an ordered hierarchy on its child elements, which is unnecessary and restrictive.
-3. Both xsd and json schema fail to introduce the concept of keyAttr, making it impossible to establish unique identification for elements in a list, thus preventing the introduction of delta computation.
-4. xsd and xml are both designed for text content only, which makes them incapable of storing Number, Boolean, or more complex data types at runtime.
-5. xsd lacks support for x:post-extends, x:post-parse, and x:gen-extends, which would enable meta-programming capabilities.
-6. xsd also lacks delta customization capabilities. Placing files with the same name in a delta directory automatically overwrites the standard path's files, merging them via x:extends.
-7. The structure defined by xdef allows for the extension of attributes and nodes, but during parsing, these extended attributes are automatically resolved. All attributes with namespaces are not subject to xdef model constraints unless explicitly specified with xdef:check-ns="c".
+# Why Is XML Schema a Poor Design?
 
-Comparison between beans.xdef and Spring 1.0 xsd:
+1. xsd and the xml it defines are not isomorphic, making it highly unintuitive and directly violating the assertion in the theory of Reversible Computation that the full form is a special case of Delta.
+2. xsd by default forcibly requires child nodes to be ordered, which is an unnecessary constraint.
+3. Neither xsd nor json schema introduces the concept of keyAttr for list structures, making unique positioning within lists impossible, and thus preventing the introduction of Delta computation.
+4. xsd and xml are defined for text structures and cannot store Number, Boolean, or more complex data types at runtime.
+5. xsd lacks metaprogramming capabilities such as x:post-extends, x:post-parse, and x:gen-extends.
+6. xsd has no Delta customization capability. Placing a file with the same name under the delta directory will automatically override the file with the same name under the standard path, and merge the two via x:extends.
+7. xdef-defined structures allow the presence of extended attributes and extended nodes, and these attributes are automatically parsed during processing. All attributes with namespaces are, by default, not constrained by the xdef meta-model unless explicitly specified by a strict requirement like xdef:check-ns="c".
 
-The definition of delta relies on the existence of a coordinate system, which in turn depends on the stable existence of unique coordinates. Since xsd does not provide keyAttr for list elements, there is no stable coordinate.
+Compare beans.xdef and spring 1.0 xsd
 
-While defining an entire concept can be very attractive, it often leads to the need to split and extract parts of the definition after implementation.
+The definition of Delta depends on the existence of a coordinate system, and a coordinate system depends on the stable existence of uniquely locatable coordinates. Since xsd does not assign a keyAttr to elements in lists, there are no unique, stable coordinates.
 
-In xdef, you can reference existing definitions when defining sub-structures, but this still represents a continuation of nesting, with coordinates extending downward.
+Defining a complete conceptual entity in one shot is indeed appealing; however, sometimes after defining it, you need to extract parts of it for separate use...?
 
-Both object-oriented programming and Lisp fundamentally operate on short-term relationships. Object-attribute, list-element, and Tree-long-term relationship. While Tree represents a long-term relationship, the definition of delta requires maintaining these relationships over time.
+In xdef, when defining a child structure you can reference existing definitions, but it still denotes continued nesting; coordinates extend downward.
 
-Java's pojo=属性 类型 标签 方法
+Object orientation and Lisp are essentially short-range relations—object–property, list–element—whereas Tree is a long-range association: define a complete conceptual entity in one go while introducing the concept of domain coordinates in the process.
 
-Extensions, inheritance, and exclusion.
+Java POJO = attributes, types, annotations, methods
+extension, inheritance, deletion
 
-Object-oriented programming is fundamentally about Map structures at the structural level. Map = Map extends Map<Map>, while the software structure space is expanded to Tree by pushing Map down to Tree. If you've studied some abstract mathematics, you'll understand why this expansion is fundamentally different.
+At the structural level, object orientation is essentially a Map structure: Map = Map extends Map<Map>, whereas the software-structure space studied in Reversible Computation generalizes the underlying Map to a Tree: Tree = Tree x-extends Tree<Tree>. If you have studied some abstract mathematics, you will understand why this generalization is fundamentally different.
 
-Just as vector structures are extended to tensor structures in mathematical terms:
-- Vector mathematics is extended to tensor mathematics.
-- Vector-based math is expanded to tensor-based math.
-- Modern mathematics relies heavily on tensor mathematics for many fundamental principles, which are best expressed using tensor language.
+It is akin to generalizing vector structures to tensor structures:
+mathematics on vectors is generalized to mathematics on tensors,
+and many fundamental principles in modern mathematics essentially require tensor language for expression.
 
-For example:
-属性里怎么保存object的？能举个例子吗？
+> How do you store an object inside an attribute? Can you give an example?
 
-Map<String, ValueWithLocation> attributes;  
-class ValueWIthLocation {  
-    Object value;  
-    SourceLocation loc;  
-}  
+Map<String, ValueWithLocation> attributes;  class ValueWIthLocation{  Object value; SourceLocation loc; }  Attributes hold the ValueWithLocation type, which records the Location; this is critical for tracking the Delta merge process and ultimately clarifying the original source of each attribute. A large number of designs currently based on JSON structures fundamentally fail to understand this point.
 
-This Map<String, ValueWithLocation> type holds the ValueWithLocation type, which records the Location information. This is crucial for tracking delta merging processes over time.
+xsd+xmlpatch
 
-### xdef与xsd的对比
+jsonpatch is an incorrect design within the theory of Reversible Computation. A = 0 + A; the full form is a special case of Delta. Delta should adopt the same form as the full form so that the Delta of a Delta remains a simple Delta of the same form, enabling more complex metaprogramming. These involve a series of constructions grounded in basic mathematical principles; relying on mere experience, some link in the reasoning chain will break, making it impossible to achieve the broad structural transformations of Reversible Computation.
 
-- xsd+xmlpatch:  
-  In the context of reversible computing theory, this combination is incorrect because it represents A = 0 + A, where total is delta is a special case. To correctly represent delta as a difference that maintains the same form as total, we must have A = A + delta, which is not the case here.
+The JSON structure currently has a problem: list structures cannot be augmented with metadata. <children x:key-attr="id"> can be easily achieved via node form. But with children: [] this cannot be handled.
 
-- jsonpatch:  
-  JSON Patch (jsonpatch) also fails in this context because it does not support the necessary operations to maintain the reversible relationship between total and delta. The current implementation only allows additive changes, not the subtraction required for true delta computation.
+The full form is a special case of Delta. If we want to express both full and Delta using the same JSON, extended metadata becomes indispensable. In fact, modern programming languages have introduced ubiquitous annotation mechanisms, allowing every syntactic structure to introduce local metadata. In the YAML format, there are indeed extended designs attempting to provide metadata for lists.
 
-### json结构的局限性
-
-The current JSON structure lacks the ability to add metadata to lists, which is essential for implementing delta computation:
-- <children x:key-attr="id">  
-  Through this mechanism, each child element can be uniquely identified by an "id" attribute. However, children: [] syntax cannot handle this because it doesn't support individual identification.
-
-### YAML的扩展设计
-
-Modern programming languages have introduced metadata annotations in YAML format to address these limitations. This allows for the addition of metadata to lists and structures during serialization, enabling proper delta computation.
+<!-- SOURCE_MD5:e453369af27e15365f6a0a73bb26ed6c-->

@@ -1,59 +1,52 @@
-# Functionality Comparison Between Nop Platform and APIJSON
 
-[APIJSON](http://apijson.cn/) is a widely used zero-code interface and document ORM library developed by Tencent engineers with over 16.8K stars on GitHub. This library implements a lightweight JSON-based data exchange format, offering versatile interfaces without requiring manual coding for CRUD operations, database connections, or nested queries. The APIJSON ecosystem is highly comprehensive, supporting various backend databases, multiple client languages, auto-documentation, and automated API testing.
+# Feature Comparison: Nop Platform vs. APIJSON
 
-The Nop platform integrates a next-generation GraphQL engine, NopGraphQL, and an advanced ORM engine, NopORM, designed from scratch based on reversible computation principles. Together, these engines provide functionality similar to APIJSON but with greater flexibility and scalability. In this document, we will compare the differences in features between Nop platform and APIJSON based on APIJSON's documentation structure.
+[APIJSON](http://apijson.cn/) is a widely adopted zero-code interface and documentation ORM library developed by Tencent engineers, with as many as 16.8K stars on GitHub. This library implements a lightweight data exchange format based on JSON, providing universal generic interfaces that enable CRUD, cross-database joins, nested subqueries, and more without coding. APIJSON’s ecosystem is quite complete: it supports various backend databases, offers clients in multiple languages, and provides a series of peripheral features such as automatic documentation generation and automated API testing.
 
-> The Nop platform is a versatile next-generation low-code platform with a broader scope than APIJSON. It adheres to a programming paradigm oriented around language-specific DSL development: first enabling users to develop their own DSL tailored to their business needs, then using that DSL to build specific applications. In contrast, APIJSON provides functionality akin to a data access DSL but offers a lower-level support framework with NopGraphQL and NopORM, along with various mature DSLs for easy combination and usage by developers.
+The Nop Platform comes with next-generation engines NopGraphQL and NopORM, designed from scratch based on the principles of reversible computing. Together, they can easily implement features similar to APIJSON while offering better extensibility. In this article, using APIJSON’s documentation outline as a basis, I will compare item by item the differences in functionality when the Nop Platform is used as a low-code data service engine.
 
-## Example
+> As a general next-generation low-code platform, the Nop Platform has a much more ambitious goal than APIJSON. Nop promotes the so-called language-oriented programming paradigm: first, enable users to quickly develop their own DSL (domain-specific language), and then use that DSL to build specific business logic. The functionality provided by APIJSON can be seen as a data-access-oriented DSL, while the Nop Platform provides the underlying tools for developing similar DSLs and already includes a series of mature DSLs such as NopGraphQL and NopORM, making it easy for users to combine them.
 
-In the Nop platform:
-- REST requests are handled by the NopGraphQL engine.
-- NopGraphQL supports multiple query protocols, including GraphQL, gRPC, and REST.
+## I. Examples
 
-For REST request types:
-- NopGraphQL supports two connection modes: `/r/{bizObjName}__{bizAction}` and `/p/{bizObjName}__{bizAction}`.
+In the Nop Platform, REST requests are executed by the NopGraphQL engine. NopGraphQL supports multiple access protocols including GraphQL, gRPC, and REST, allowing multiple ways to invoke the same backend service function.
+For REST, NopGraphQL supports two URL access patterns: `/r/{bizObjName}__{bizAction}` and `/p/{bizObjName}__{bizAction}`.
 
-The `/r/` endpoint returns a `ApiResponse<T>` structure containing headers, data, statistics, code, and messages.
-If the status is 0, it indicates success. In case of failure, the system returns an error code via the `code` property and an error message through the `message` field.
+A `/r/` request returns an `ApiResponse<T>` structure, which includes properties such as headers, data, stats, code, and msg. If status equals 0, the request is successful. On failure, code returns the error code, and msg returns the exception message.
 
 ```java
-class ApiResponse<T> {
-    Map<String, Object> headers;
-    T data;
-    int status;
-    String code;
-    String message;
+class ApiResponse<T>{
+  Map<String,Object> headers;
+  T data;
+  int status;
+  String code;
+  String message;
 }
 ```
 
-The `/p/` endpoint directly returns the `T` structure without wrapping it in `ApiResponse<T>`. Additionally, it sets the `Content-Type` header, enabling functionalities such as downloading binary files or returning XML data.
+A `/p/` request returns `T` directly without wrapping it in `ApiResponse<T>`. In addition, `/p/` requests set contentType, so downloading binary files or returning XML formats should also use `/p/`.
+For example, the platform’s built-in `/p/DevDoc__beans` returns the configuration of all enabled beans in NopIoC in XML format.
 
-For example, Nop's `/p/DevDoc__beans` endpoint returns configuration data from NopIoC in XML format.
+When using the REST request mode, HTTP GET can call GraphQL query methods, and HTTP POST can call either GraphQL query or mutation methods.
 
-When using REST request patterns:
-- HTTP GET can invoke GraphQL query methods.
-- HTTP POST can invoke either GraphQL query or mutation methods.
+### Get User
 
-### User Retrieval Example
-
-APIJSON Request:
+APIJSON request:
 
 ```json
 {
-  "User": {
-    "id": 38710
+  "User":{
+    "id":38710
   }
 }
 ```
 
-Nop Query:
+Nop request:
 
-```graphql
-query {
-  User__get(id: "38710") {
-    id, sex, name, tag, head, data, pictureList
+```
+query{
+  User__get(id: "38710"){
+     id,sex, name, tag, head, data, pictureList
   }
 }
 ```
@@ -62,132 +55,156 @@ Response:
 
 ```json
 {
-  "data": {
+  "data":{
     "User__get": {
-      "id": 38710,
-      "sex": 0,
-      "name": "TommyLemon",
-      "tag": "Android&Java",
-      "head": "http://static.oschina.net/uploads/user/1218/2437072_100.jpg?t=1461076033000",
-      "date": 1485948110000,
-      "pictureList": [
-        "http://static.oschina.net/uploads/user/1218/2437072_100.jpg?t=1461076033000",
-        "http://common.cnblogs.com/images/icon_weibo_24.png"
-      ]
+        "id":38710,
+        "sex":0,
+        "name":"TommyLemon",
+        "tag":"Android&Java",
+        "head":"http://static.oschina.net/uploads/user/1218/2437072_100.jpg?t=1461076033000",
+        "date":1485948110000,
+        "pictureList":[
+          "http://static.oschina.net/uploads/user/1218/2437072_100.jpg?t=1461076033000",
+          "http://common.cnblogs.com/images/icon_weibo_24.png"
+        ]
     }
   }
 }
 ```
 
-Alternatively, using the `/r/` request pattern:
+Or using the `/r/` request mode:
 
-```graphql
+```
 /r/User__get?id=38710
 ```
- 
- ### Getting User List
- 
- APIJSON request:
 
- ```json
+Response:
+
+```json
 {
-  "data":[
-    {
-      "id":38710,
-      "sex":0,
-      "name":"TommyLemon",
-      "tag":"Android&Java",
-      "head":"http://static.oschina.net/uploads/user/1218/2437072_100.jpg?t=1461076033000",
-      "date":1485948110000,
-      "pictureList":[
-        "http://static.oschina.net/uploads/user/1218/2437072_100.jpg?t=1461076033000",
-        "http://common.cnblogs.com/images/icon_weibo_24.png"
-      ]
-    },
-    {
-      "id":70793,
-      "name":"Strong"
-    },
-    {
-      "id":82001,
-      "name":"Android"
-    }
-  ],
-  "status":0
+  "data":{
+    "id":38710,
+    "sex":0,
+    "name":"TommyLemon",
+    "tag":"Android&Java",
+    "head":"http://static.oschina.net/uploads/user/1218/2437072_100.jpg?t=1461076033000",
+    "date":1485948110000,
+    "pictureList":[
+      "http://static.oschina.net/uploads/user/1218/2437072_100.jpg?t=1461076033000",
+      "http://common.cnblogs.com/images/icon_weibo_24.png"
+    ]
+  },
+  "status": 0
 }
 ```
 
- Nop request:
+A third approach is to use `/p/`:
 
- ```bash
-/r/User__findList?@selection=id,name,status:userStatus,roles:rolesList(limit:5){roleId, roleName}
+```
+/p/User__get?id=38710
 ```
 
- Returns:
+Response:
 
- ```json
+```json
 {
-  "data":[
-    {
-      "id":38710,
-      "sex":0,
-      "name":"TommyLemon",
-      "tag":"Android&Java",
-      "head":"http://static.oschina.net/uploads/user/1218/2437072_100.jpg?t=1461076033000",
-      "date":1485948110000,
-      "pictureList":[
-        "http://static.oschina.net/uploads/user/1218/2437072_100.jpg?t=1461076033000",
-        "http://common.cnblogs.com/images/icon_weibo_24.png"
-      ]
-    },
-    {
-      "id":70793,
-      "name":"Strong"
-    },
-    {
-      "id":82001,
-      "name":"Android"
-    }
-  ],
-  "status":0
+    "id":38710,
+    "sex":0,
+    "name":"TommyLemon",
+    "tag":"Android&Java",
+    "head":"http://static.oschina.net/uploads/user/1218/2437072_100.jpg?t=1461076033000",
+    "date":1485948110000,
+    "pictureList":[
+      "http://static.oschina.net/uploads/user/1218/2437072_100.jpg?t=1461076033000",
+      "http://common.cnblogs.com/images/icon_weibo_24.png"
+    ]
 }
 ```
 
- * CrudBizModel provides the `findList` method, which performs complex pagination queries and returns list data.
- * The `findPage` method can perform complex pagination queries and return a `PageBean<T>` object. PageBean includes total pages, current page, and list data.
- * NopGraphQL offers field selection capabilities that comply with GraphQL specifications, enabling nested structure selection, field renaming, and additional parameters.
+### Get User List
 
- Query example:
+APIJSON request:
 
- ```bash
-/r/User__findList?@selection=id,name,status:userStatus,roles:rolesList(limit:5){roleId, roleName}
+```json
+{
+  "[]":{
+    "count":3,               // only 3 items
+    "User":{
+      "@column":"id,name"    // only return fields id and name
+    }
+  }
+}
 ```
 
- This query calls the backend to fetch user data with specified filters, limiting roles list results to 5 items. Special characters in URLs such as `{` and `}` need URL encoding, converting them to `%7B` and `%7D`.
+Nop request:
 
- Dynamic & Publisher Users
+```
+/r/User__findList?limit=3&@selection=id,name
+```
 
- APIJSON request:
+Response:
 
- ```json
+```json
+{
+  "data": [
+    {
+      "User":{
+        "id":38710,
+        "name":"TommyLemon"
+      }
+    },
+    {
+      "User":{
+        "id":70793,
+        "name":"Strong"
+      }
+    },
+    {
+      "User":{
+        "id":82001,
+        "name":"Android"
+      }
+    }
+  ],
+  "status": 0
+}
+```
+
+- CrudBizModel provides a findList function that can execute complex paginated queries and return a list of data.
+- The findPage function can execute complex paginated queries and returns a `PageBean<T>` object. PageBean includes total pages, current page, current page data, and more.
+- NopGraphQL provides field selection capabilities compliant with the GraphQL specification, allowing complex nested selections with support for field renaming and additional parameters.
+
+```
+/r/User__findList?@selection=id,name,status:userStatus,
+     roles:rolesList(limit:5)%7BroleId, roleName%7D
+```
+
+- `roles:rolesList(limit:5)` calls the backend User object’s rolesList loading method, limits the returned items to a maximum of 5, and renames the corresponding property to roles.
+- `{` and `}` are special characters in URLs and must be URL-encoded: `{` corresponds to `%7B`, and `}` corresponds to `%7D`.
+
+### Get a Moment and Its Publisher User
+
+APIJSON request:
+
+```json
 {
   "Moment":{
   },
   "User":{
-    "id@":"Moment/userId" // User.id = Moment.userId
+    "id@":"Moment/userId"  // User.id = Moment.userId
   }
 }
 ```
 
- Nop request:
+Nop request:
 
- ```bash
+```
 /r/Moment__findFirst?@selection=...F_defaults,user
 ```
 
- Returns:
-  
-  ```json
+Nop response:
+
+```json
 {
   "status": 0,
   "data": {
@@ -195,105 +212,74 @@ Alternatively, using the `/r/` request pattern:
     "userId":70793,
     "date":"2017-02-08 16:06:11.0",
     "content":"1111534034",
-    "user"： {
-      "id":70793,
-      "sex":0,
-      "name":"Strong",
-      "tag":"djdj",
-      "head":"http://static.oschina.net/uploads/user/585/1170143_50.jpg?t=1390226446000",
-      "contactIdList":[
-        38710,
-        82002
-      ],
-      "date":"2017-02-01 19:21:50.0"
+    "user": {
+        "id":70793,
+        "sex":0,
+        "name":"Strong",
+        "tag":"djdj",
+        "head":"http://static.oschina.net/uploads/user/585/1170143_50.jpg?t=1390226446000",
+        "contactIdList":[
+          38710,
+          82002
+        ],
+        "date":"2017-02-01 19:21:50.0"
     }
   }
 }
 ```
 
-* **Due to security considerations, NopGraphQL does not support directly passing table association conditions in the frontend** because it's difficult to control data accessibility and dataset size.
-* **In the backend ORM model, you can configure moment with user associations on the Moment object.** By default, associated objects are marked for lazy loading, so if the frontend doesn't explicitly fetch this property, it won't be returned.
-* **In the frontend selection definition, `...F_defaults` uses GraphQL fragment syntax to reference all non-lazy fields.** Based on this, you can request the user association object.
-* **The `findFirst` method will return the first record that meets the complex query conditions.** If no sorting conditions are specified, records will be sorted by primary key.
-* **If there's no ORM-level association setup in XMeta metadata files, you can still define association conditions there.**
+- For security reasons, NopGraphQL does not support passing table association conditions directly from the frontend, as it is hard to control data access scope and the size of intermediate datasets.
+- On the backend ORM model, you can configure the association between Moment and User by adding a user association property on the Moment object. By default, associated objects are marked lazy-loaded, so if the frontend does not explicitly request the property, it will not be returned.
+- In the frontend selection definition, `...F_defaults` uses GraphQL’s fragment syntax to reference the set of all non-lazy fields, on top of which we can request the associated user object.
+- findFirst returns the first record that matches complex query conditions. If no sort condition is specified, it sorts by primary key.
+- If no association is established at the ORM level, you can still define association conditions in an XMeta metadata file:
 
 ```xml
 <meta>
   <props>
-    <prop name="user" graphql:queryMethod="findFirst">
-      <graphql:filter>
-        <eq name="id" value="@prop-ref:userId" />
-      </graphql:filter>
-    </prop>
+     <prop name="user" graphql:queryMethod="findFirst">
+       <graphql:filter>
+         <eq name="id" value="@prop-ref:userId" />
+       </graphql:filter>
+     </prop>
   </props>
 </meta>
 ```
 
-For more detailed information, see [Nop Introduction: How to Implement Complex Queries].
+For more details, see [Nop Getting Started: How to Implement Complex Queries]()
 
-* Here, `graphql:queryMethod` indicates that when fetching the user attribute in the frontend, the `findFirst` method is used with `graphql:filter` conditions to retrieve data.
-* In principle, additional query and sorting conditions can be passed. These conditions combined with `graphql:filter` define the final conditions.
+- Here `graphql:queryMethod` indicates that when the frontend requests the user property, the findFirst method will be used with the `graphql:filter` condition to fetch the data.
+- In principle, additional query and sorting conditions can be passed in. These conditions combine with the `graphql:filter` configuration to form the final condition.
 
-### Getting Similar to WeChat Moments' Dynamic List
+### Fetch a WeChat Moments-like Timeline
 
-APIJSON Request:
+APIJSON request:
 
 ```json5
 {
-  "[]":{                             // Request an array
-    "page":0,                           // Array condition
+  "[]":{                             // request an array
+    "page":0,                        // array-level condition
     "count":2,
-    "Moment":{                             // Request a named object
-      "content$":"%a%",                   // Object condition, searching for 'a' in content
+    "Moment":{                       // request an object named Moment
+      "content$":"%a%"               // object-level condition: search moments where content contains 'a'
     },
     "User":{
-      "id@":"/Moment/userId",             // User.id = Moment.userId; default reference path
-      "@column":"id,name,head"           // Specify returned fields
+      "id@":"/Moment/userId",        // User.id = Moment.userId; default reference assignment path starts from the parent container of the current context
+      "@column":"id,name,head"       // specify return fields
     },
-    "Comment[]":{                          // Request an array of Comment objects
+    "Comment[]":{                    // request an array named Comment, and strip the Comment wrapper
       "count":2,
       "Comment":{
-        "momentId@":"[]/Moment/id"       // Comment.momentId = Moment.id; complete reference path
+        "momentId@":"[]/Moment/id"   // Comment.momentId = Moment.id; full reference assignment path
       }
     }
   }
 }
 ```
 
-APIJSON Return Data:
+APIJSON response:
 
-```json5
-{
-  "status": 0,
-  "data": {
-    "id":12,
-    "userId":70793,
-    "date":"2017-02-08 16:06:11.0",
-    "content":"1111534034",
-    "user"： {
-      "id":70793,
-      "sex":0,
-      "name":"Strong",
-      "tag":"djdj",
-      "head":"http://static.oschina.net/uploads/user/585/1170143_50.jpg?t=1390226446000",
-      "contactIdList":[
-        38710,
-        82002
-      ],
-      "date":"2017-02-01 19:21:50.0"
-    },
-    "Comment[]":{
-      "count":2,
-      "Comment":{
-        "momentId@":"[]/Moment/id"
-      }
-    }
-  }
-}
-```
-
-  
-  ```json
+```json
 {
   "[]":[
     {
@@ -383,220 +369,242 @@ APIJSON Return Data:
   "code":200,
   "msg":"success"
 }
- 
- Nop request:
- 
- `/Moment__findList?offset=0&limit=2&filter_content__contains=a&@selection=...F_defaults,user%7Bid,name,head%7D,comments(limit:2)`
- 
- Nop返回结果：
- 
+```
+
+Nop request:
+
+```
+/r/Moment__findList?offset=0&limit=2&filter_content__contains=a
+&@selection=...F_defaults,user%7Bid,name,head%7D,comments(limit:2)
+```
+
+Nop response:
+
 ```json
 {
   "status": 0,
-  "data": [
+  "data":[
     {
-      "id": 15,
-      "userId": 70793,
-      "date": 1486541171000,
-      "content": "APIJSON is a JSON Transmission Structure Protocol…",
-      "praiseUserIdList": [
-        82055,
-        82002,
-        82001
-      ],
-      "pictureList": [
-        "http://static.oschina.net/uploads/user/1218/2437072_100.jpg?t=1461076033000",
-        "http://common.cnblogs.com/images/icon_weibo_24.png"
-      ],
-      "user": {
-        "id": 70793,
-        "name": "Strong",
-        "head": "http://static.oschina.net/uploads/user/585/1170143_50.jpg?t=1390226446000"
-      },
-      "comments": [
-        {
-          "id": 176,
-          "toId": 166,
-          "userId": 38710,
-          "momentId": 15,
-          "date": 1490444883000,
-          "content": "thank you"
+        "id":15,
+        "userId":70793,
+        "date":1486541171000,
+        "content":"APIJSON is a JSON Transmission Structure Protocol…",
+        "praiseUserIdList":[
+          82055,
+          82002,
+          82001
+        ],
+        "pictureList":[
+          "http://static.oschina.net/uploads/user/1218/2437072_100.jpg?t=1461076033000",
+          "http://common.cnblogs.com/images/icon_weibo_24.png"
+        ],
+        "user": {
+            "id":70793,
+            "name":"Strong",
+            "head":"http://static.oschina.net/uploads/user/585/1170143_50.jpg?t=1390226446000"
         },
-        {
-          "id": 1490863469638,
-          "toId": 0,
-          "userId": 82002,
-          "momentId": 15,
-          "date": 1490863469000,
-          "content": "Just do it"
-        }
-      ]
+        "comments": [
+            {
+              "id":176,
+              "toId":166,
+              "userId":38710,
+              "momentId":15,
+              "date":1490444883000,
+              "content":"thank you"
+            },
+            {
+              "id":1490863469638,
+              "toId":0,
+              "userId":82002,
+              "momentId":15,
+              "date":1490863469000,
+              "content":"Just do it"
+            }
+        ]
     },
     {
-      "id": 58,
-      "userId": 90814,
-      "date": 1485947671000,
-      "content": "This is a Content...-435",
-      "praiseUserIdList": [
-        38710,
-        82003,
-        82005,
-        93793,
-        82006,
-        82044,
-        82001
-      ],
-      "pictureList": [
-        "http://static.oschina.net/uploads/img/201604/22172507_aMmH.jpg"
-      ],
-      "user": {
-        "id": 90814,
-        "name": 7,
-        "head": "http://static.oschina.net/uploads/user/51/102723_50.jpg?t=1449212504000"
-      },
-      "comments": [
-        {
-          "id": 13,
-          "toId": 0,
-          "userId": 82005,
-          "momentId": 58,
-          "date": 1485948050000,
-          "content": "This is a Content...-13"
+        "id":58,
+        "userId":90814,
+        "date":1485947671000,
+        "content":"This is a Content...-435",
+        "praiseUserIdList":[
+          38710,
+          82003,
+          82005,
+          93793,
+          82006,
+          82044,
+          82001
+        ],
+        "pictureList":[
+          "http://static.oschina.net/uploads/img/201604/22172507_aMmH.jpg"
+        ],
+        "user":{
+            "id":90814,
+            "name":7,
+            "head":"http://static.oschina.net/uploads/user/51/102723_50.jpg?t=1449212504000"
         },
-        {
-          "id": 77,
-          "toId": 13,
-          "userId": 93793,
-          "momentId": 58,
-          "date": 1485948050000,
-          "content": "This is a Content...-77"
-        }
-      ]
+        "comments":[
+            {
+              "id":13,
+              "toId":0,
+              "userId":82005,
+              "momentId":58,
+              "date":1485948050000,
+              "content":"This is a Content...-13"
+            },
+            {
+              "id":77,
+              "toId":13,
+              "userId":93793,
+              "momentId":58,
+              "date":1485948050000,
+              "content":"This is a Content...-77"
+            }
+        ]
     }
   ]
 }
 ```
-## Comparison with APIJSON
 
-* Compared to APIJSON, NopGraphQL returns data in standard JSON object structure with natural nested property names. In contrast, APIJSON uses a flat structure and employs the special `Comment[]` format convention for properties.
-* NopGraphQL supports various query types: one-to-one, one-to-many, many-to-one, and many-to-many relationships, provided that association conditions are configured in the backend's XMeta or ORM model for safety reasons.
-* NopORM supports various JOIN operations: LEFT JOIN, INNER JOIN, and FULL JOIN. Additionally, it supports multiple SQL functions through Dialect, enabling database migration capabilities.
+- Compared with APIJSON, NopGraphQL returns standard JSON object structures with naturally nested property names, while APIJSON uses a flattened object structure and special conventions like `Comment[]`, which may require extra structural conversion on the frontend before passing to components.
+- NopGraphQL supports many multi-table association queries: one-to-one, one-to-many, many-to-one, with various conditions. However, for security reasons, association conditions must be configured in backend XMeta or ORM models.
+- NopORM supports various JOINs: LEFT JOIN, INNER JOIN, FULL JOIN, etc. Via Dialect, it supports various SQL functions and can migrate across databases.
+- `filter_content__contains=a` requires the backend XMeta file to specify `allowFilterOps="in,eq,contains"` for the prop; you must enable the contains operator to use it.
 
-### Required Configuration for Filter Operations:
-- The `filter_content__contains=a` parameter requires specifying `allowFilterOps="in,eq,contains"` in the backend's XMeta file for property `prop`.
+## II. Comparison with Traditional RESTful Style
 
-## Comparison with Traditional RESTful Methods
+### 2.1 Development Workflow
 
-### Traditional RESTful Development Process vs. NopGraphQL+NopORM
+| Development Workflow | Traditional Approach                                                                 | APIJSON                                                                                                                                                                    |
+| ---- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Interface exchange | Wait for the backend to edit the interface, then update the docs; the frontend edits requests and parsing code according to the docs | The frontend edits requests and parsing code according to its own needs.<br />There is no interface, nor any need for docs! The frontend no longer has to coordinate about interfaces or docs! |
+| Backward compatibility | The backend adds a new interface and marks it as v2 for the second version, then updates the docs                    | Do nothing!                                                                                                                                                                |
 
-| Development Process | Traditional Method                     | APIJSON
-|---------------------|--------------------------------------|---------|
-| Interface Transmission | Implement interface on the backend, update documentation, and let the frontend handle request parsing and code execution. | Frontend handles everything without interfaces or documentation.<br/>No need to communicate with the backend about interfaces or documentation.
-| Compatibility with Old Versions | Extend the backend with new interfaces using v2 notation, then update documentation.  | No action required for compatibility.<br/>APIJSON automatically handles backwards compatibility.
+**Nop Development Workflow:**
 
-### Nop Development Process:
-- APIJSON's claimed advantages are fully supported by combining NopGraphQL and NopORM engines.
-- GraphQL protocol allows organizing returned data, supporting field selection capabilities while maintaining backward compatibility without versioning. This is achieved through custom xmeta and orm models without modifying existing service code.
-- Nop platform's unique Delta customization capability enables providing default fields and extending relationships in different deployment environments without altering pre-packaged service code.
+- The advantages claimed by APIJSON are all provided natively when NopGraphQL and NopORM are combined.
+- Using the GraphQL protocol, you can reorganize returned data and maintain backward compatibility automatically through field selection, without adding API version numbers. By customizing xmeta and orm models, you can extend returned fields without writing server-side code.
+- The Nop Platform’s unique Delta customization capability enables the same service to provide different default returned fields and different associations with data entities under different deployment environments, without modifying already packaged server-side code.
 
-### Frontend Request Handling
-| Frontend Request | Traditional Method                                                                                     | API JSON                                                                                                                                                                                                                                      |
-|------------------|-----------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Requirements     | Frontend according to the document appends key-value pairs after the corresponding URL.                                     | Frontend appends JSON according to its own requirements after a fixed URL.                                                                                                                                                                      |
-| URL              | Different requests correspond to different URLs, with generally as many URLs as there are distinct requests.                       | The same method (for CRUD operations) uses the same URL, with<br />most requests using one of seven generic endpoint URLs.                                                                                                                                                                      |
-| Key-Value Pair   | key=value                                                                                 | key:value                                                                                                                                          |
-| Structure        | A single table_name exists within a single URL: <br /><br />base_url/get/table_name?<br />key0=value0&key1=value1...         | Multiple table names can exist within the same URL:<br /><br />base_url/get/<br />{<br />    TableName0:{<br />        key0:value0,<br />        key1:value1,<br />        ...<br />    },<br />    TableName1:{<br />        key0:value0,<br />        key1:value1,<br />        ...<br />    }<br />...<br />}</br >}</br >...</br ></br >
-### Nop Frontend Request
+### 2.2 Frontend Requests
 
-* **Leveraging the selection mechanism in the GraphQL protocol**, the Nop platform can achieve an effect equivalent to APIJSON while returning nested data structures that are more natural and intuitive.  
-* **Built-in GraphQL tools** such as those provided by the quarkus framework's graphql-ui can be used for debugging and testing purposes.  
-* The CrudBizModel provides a series of service functions for CRUD operations, enabling complex parent-child table relationships to be managed without extensive code changes.  
-* Beyond basic CRUD operations, NopGraphQL supports business entities that are not tied to any database tables.  
-* **Graphql query examples**:  
+| Frontend Requests | Traditional Approach                                                                                                                    | APIJSON                                                                                                                                                                                                                                                                                                                                 |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Requirements | The frontend assembles key-value pairs onto the corresponding URL according to the docs                                                                             | The frontend assembles JSON onto a fixed URL according to its own needs                                                                                                                                                                                                                                                                 |
+| URL | Different requests correspond to different URLs; basically, the number of distinct requests equals the number of interface URLs                                               | The same operation methods (CRUD) all use the same URL. <br />Most requests use one of 7 generic interface URLs                                                                                                                                                                                                                         |
+| Key-value pairs | key=value                                                                                                                                      | key:value                                                                                                                                                                                                                                                                                                                                |
+| Structure | Within the same URL, table_name can only be one. <br /><br /> base_url/get/table_name?<br />key0=value0&key1=value1...                           | Any number of TableName objects can be passed after the same URL. <br /><br /> base_url/get/<br />{<br /> &nbsp;&nbsp; TableName0:{<br /> &nbsp;&nbsp;&nbsp;&nbsp; key0:value0,<br /> &nbsp;&nbsp;&nbsp;&nbsp; key1:value1,<br /> &nbsp;&nbsp;&nbsp;&nbsp; ...<br /> &nbsp;&nbsp; },<br /> &nbsp;&nbsp; TableName1:{<br /> &nbsp;&nbsp;&nbsp;&nbsp; ...<br /> &nbsp;&nbsp; }<br /> &nbsp;&nbsp; ...<br /> } |
 
-```graphql
-query {
-  Entity1__findPage {
-    items: field1, field2
+**Nop Frontend Requests:**
+
+- Leveraging the selection mechanism in the GraphQL protocol, the Nop Platform can achieve effects equivalent to APIJSON, while returning a more natural and intuitive nested data structure. You can also use standard third-party GraphQL tools for debugging, such as the graphql-ui tool integrated in the Quarkus framework.
+
+- The built-in CrudBizModel provides a series of CRUD-related service functions to implement complex master-detail structures for create, read, update, and delete. Common data maintenance tasks either require no code or only small amounts of logic deviating from CRUD.
+
+- Beyond CRUD operations, NopGraphQL also supports business entity objects and their methods that have no backing database tables.
+
+- The GraphQL protocol natively supports invoking multiple backend service functions in one shot. For example:
+
+  ```graphql
+  query{
+      Entity1__findPage{
+         items: { fld1, fld2}
+      },
+      Entity2__get(id:"333") { name, status}
   }
-  Entity2__get(id: "333") {
-    name, status
-  }
-}
-```
+  ```
 
 ### 2.3 Backend Operations
 
-| Operation Type          | Traditional Method               | APIJSON Equivalent       |
-|-----------------------|---------------------------------|--------------------------|
-| Parsing and Returning   | Querying the database with key-value pairs, then encapsulating the results in JSON format for frontend delivery | Using a parser method to process data and return it in JSON format directly. |
-| Setting the JSON Structure for Return | Defined on the backend; frontend cannot modify this setting | Defined on the frontend; backend cannot alter this structure |
+| Backend Operations | Traditional Approach                                                                                    | APIJSON                                  |
+| ------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| Parsing and returning | Extract key-value pairs, use them as conditions to query the database in preset ways, and finally wrap JSON and return to the frontend | Just return the result of Parser#parse   |
+| How the JSON response structure is defined | Defined by the backend; the frontend cannot modify                                                           | Defined by the frontend; the backend cannot modify |
 
-### Nop Platform Backend Operations
+**Backend Operations in Nop Platform:**
 
-* The underlying implementation of the Nop platform's backend uses NopORM, which supports EQL (Extended Query Language), multi-tenant capabilities, extended fields, and logical deletion.  
-* Compared to JPA+MyBatis, NopORM offers a more comprehensive and scalable ORM solution with built-in support for complex business requirements.  
-* For detailed information on ORM engines suitable for low-code platforms, refer to:  
-  [Low-Code Platforms and Their Required ORM Engines (1)](https://mp.weixin.qq.com/s/biBdNaQV98uaxdpVKndwwg)  
-  [Low-Code Platforms and Their Required ORM Engines (2)](https://mp.weixin.qq.com/s/Nv9Z23rv0ijwJ34PPH-uyw)
+- The Nop Platform’s backend uses NopORM, which includes a complete EQL object query language and built-in support for multi-tenancy, extended fields, logical deletion, and other common business needs. The overall design is more complete, powerful, and extensible than JPA+MyBatis.
+
+For details, see [What Kind of ORM Engine Does a Low-Code Platform Need? (1)](https://mp.weixin.qq.com/s/biBdNaQV98uaxdpVKndwwg), [What Kind of ORM Engine Does a Low-Code Platform Need? (2)](https://mp.weixin.qq.com/s/Nv9Z23rv0ijwJ34PPH-uyw)
 
 ### 2.4 Frontend Parsing
 
-| Parsing Type | Traditional Method               | APIJSON Equivalent       |
-|--------------|---------------------------------|--------------------------|
-| Viewing Data   | Browsing documentation, querying the backend, or examining logs after a successful request | Simply query and receive data directly through requests; no need to manually parse logs. |
-| Parsing Methods | Using JSON parsers for specific data types like JSONObject | Automatically parsing JSON responses using built-in JSONResponse tools or traditional methods |
+| Frontend Parsing | Traditional Approach                                            | APIJSON                                                                       |
+| ---- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| How to view | Check docs or ask the backend, or wait for the request to succeed and check the logs | Just look at the request; what you ask is what you get—no checking, asking, or waiting. You can also check logs after success |
+| Parsing method | Use a JSON parser to parse JSONObject                        | Use JSONResponse to parse JSONObject, or use the traditional method           |
 
-### Nop Platform Frontend Parsing
+**Frontend Parsing in Nop Platform:**
 
-* **Quarkus framework** provides robust debugging tools such as graphql-ui for efficient query execution and result analysis.  
-* The Nop platform logs detailed information at every critical point, including input/output data, SQL statements executed, and execution times.  
-* In debug mode, the `/p/DevDoc__graphql` endpoint allows access to all backend service functions and data definitions.  
-* Sensitive data such as passwords and card numbers are automatically masked in logs before being printed.  
-* General responses are structured in JSON format, which can be parsed using JSON tools. Binary file downloads are also supported through the `/p/` endpoint.
+- The Quarkus framework provides robust development and debugging tools, such as graphql-ui and online log viewing.
+- The Nop Platform logs at all key points, e.g., input/output JSON data, the actual SQL statements executed, parameters and execution times for each SQL, etc.
+- In debug mode, `/p/DevDoc__graphql` lets you view GraphQL definitions for all backend service functions and data objects.
+- The Nop Platform considers field masking when outputting logs; sensitive data such as passwords and card numbers are automatically masked before being logged.
+- Results are generally JSON structures and can be parsed with JSON parsers. `/p/` requests can return other formats to support binary file downloads, etc.
 
-### 2.5 Handling Different Frontend Requests
+### 2.5 Frontend Requests for Different Needs
 
-The Nop platform allows flexibility in choosing between standard GraphQL, gRPC, or REST protocols to interact with backend services.  
-Compared to APIJSON, Nop's approach is more intuitive and lightweight while still incorporating all APIJSON capabilities.  
-Additionally, Nop offers unique customization capabilities through its Delta and Meta programming features.
+The Nop Platform can freely use the standard GraphQL protocol, gRPC protocol, or REST protocol to access backend service objects. The overall usage is more intuitive and simpler than APIJSON and includes all capabilities of APIJSON.
+In addition, the Nop Platform offers unique Delta customization and metaprogramming capabilities.
 
-#### 1. Retrieving Single User Data
+#### 1. Fetch a single user
 
-```graphql
+```
 /r/User__get?id=38710
 ```
 
-#### 2. Moment and Corresponding User
+#### 2. Moment and its corresponding User
 
-```graphql
+```
 /r/Moment__findFirst?filter_userId=38710&@selection=...F_defaults,user
 ```
 
-#### 3. User List
-```markdown
+#### 3. User list
 
-#### Translate Result
+```
+/r/User__findList?offset=0&limit=3&filter_sex=0
+```
 
+#### 4. Moment list, each Moment includes 1. Publisher User 2. Top 3 Comments
 
-#### Design Specifications
+```
+/r/Moment__findList?@selection=...F_defaults,user,comments(limit:3)
+```
 
+#### 5. List of Moments published by a User, each Moment includes 1. Publisher User 2. Top 3 Comments
 
-### Operation Methods
+```
+/r/Moment__findList?filter_userId=38710&@selection=...F_defaults,user,comments(limit:3)
+```
 
-1. Similar to the GraphQL specification, Nop platform's service side only uses GET and POST methods, does not use PUT, DELETE, PATCH, etc., simplifying front-end and back-end processing.
-2. The GET method can only call idempotent GraphQL queries, while POST can call either GraphQL queries or mutations.
-3. Mutation operations automatically start database transactions (optimizations have been implemented internally; if no actual database access occurs, no real database connection is used).
-4. CrudBizModel provides methods such as findList, findPage, findFirst for list, page, and single data retrieval.
-5. All findXX methods accept filter and orderBy parameters and support complex combination queries using and/or.
-6. Queries can directly use properties like moment.user.dept (composite properties), which will be automatically recognized at the ORM level and translated into multi-table associations. This leverages NopORM's underlying EQL association query capabilities.
-7. Global parameters such as tenantId, authToken, traceId can be transmitted via HTTP headers.
-8. Each database entity has a corresponding service object, which can be called using `/r/{bizObjName}__{bizAction}`. Sub-table structures that do not need to be directly exposed can be marked as no-web in the data model, preventing separate endpoints from being generated for them.
+### 2.6 Backend Return Formats for Different Requests
 
+The Nop Platform supports multiple ways to invoke the same backend service function, returning different result formats. Whether using the standard GraphQL protocol or REST, you call the same service function, making integration with various frontends easy.
 
-## Function Symbols
+1. Requests prefixed with `/r/` return an `ApiResponse<T>` structure.
+2. Requests prefixed with `/p/` return only the data part, without wrapping it in ApiResponse.
+3. Via the `@selection` parameter, you can specify the returned data fields. Unselected fields are skipped by the backend, reducing data loaded and computation performed.
+4. For queries, the built-in CrudBizModel provides `findList/findPage/findFirst`, which return list data, paginated list data with item counts, and the first matching record, respectively.
 
-The Nop platform uses QueryBean models to express complex query conditions. This is a general Predicate model automatically converted into SQL queries or executed as in-memory Predicate interfaces and supports conversion between XML and JSON formats. For example:
+For more on NopGraphQL, see [Why, Mathematically, GraphQL Is Strictly Superior to REST](https://mp.weixin.qq.com/s/7Ou1h7NwyI4eAX4m_Zbftw)
+
+## III. Design Guidelines
+
+### 3.1 Operation Methods
+
+1. In line with the GraphQL specification, the Nop Platform’s server uses only GET and POST methods, not PUT, DELETE, PATCH, etc., simplifying frontend and backend handling.
+2. GET can only call idempotent GraphQL query operations, while POST can call GraphQL query or mutation operations.
+3. Mutation operations automatically open a database transaction (with internal optimizations—if the database is not actually accessed, no connection is held).
+4. CrudBizModel provides `findList/findPage/findFirst/get/delete/update/save/batchDelete/batchModify` and more for CRUD operations, supports batch processing, and supports submitting master-detail data in one shot.
+5. All findXX methods accept filter query conditions and orderBy sorting conditions, supporting complex combinations with `and/or`.
+6. During queries, you can directly use composite properties like `moment.user.dept`; at the ORM level, they are automatically recognized and expanded into multi-table association queries. This leverages NopORM’s underlying EQL, an object query language with association capabilities.
+7. You can pass global parameters via HTTP headers, such as tenantId, authToken, traceId, etc.
+8. Each database entity has a corresponding service object by default. You can call service methods via `/r/{bizObjName}__{bizAction}`. For subtable structures that should not be exposed directly, you can mark the data model as no-web so that no separate service endpoint is generated.
+
+### 3.2 Operators
+
+The Nop Platform expresses complex query conditions using the QueryBean model. This is a general-purpose Predicate definition model that is automatically converted into SQL queries or in-memory Predicate interfaces and can freely convert among formats like XML and JSON. For example, to express `status=1 and type in(1,2)`, the QueryBean XML looks like:
 
 ```xml
 <and>
@@ -605,359 +613,259 @@ The Nop platform uses QueryBean models to express complex query conditions. This
 </and>
 ```
 
-The `@:` symbol is an extension added by Nop for XML format, indicating that the following values should be encoded in JSON format. Alternatively:
+- `@:` is an XML extension in the Nop Platform indicating the subsequent value is JSON-encoded.
 
-```xml
-<and>
-  <eq name="status" value="1" />
-  <in name="type" value="1,2" />
-</and>
+- You can also use `<in name="type" value="1,2" />`; comma-separated strings are automatically split into string lists.
+
+- `value="1"` is parsed as the string "1". The Nop Platform automatically converts types during queries based on the ORM field type definitions, so status is converted to an integer. If you must indicate the condition value as an integer, use the `@:` prefix, e.g., `value="@:1"`.
+
+- and/or can be nested and combined with not.
+
+- The Nop Platform provides many built-in operators, such as gt for greater than and ge for greater than or equal. See FilterOp.java for the specific built-in op definitions.
+
+If using JSON, the equivalent is:
+
+```json
+{
+    "$type": "and",
+    "$body":[
+       {
+          "$type": "eq",
+          "name": 1,
+       },
+       {
+           "$type": "in",
+           "value": [1,2]
+       }
+    ]
+}
 ```
 
-The `value="1"` translates to the string "1" on the server side. If you specifically need to indicate that the condition value is an integer, use `@:` and `value="@:1"`.
+For `/r/User__get?id=123` fetching a single entity, the Nop Platform applies data authorization rules. In this case, filter is automatically translated into an in-memory Predicate interface, equivalent to:
 
+```java
+class MyDataAuthFilter implements Predicate<IEvalScope>{
+   public boolean accept(IEvalScope scope){
+      User user = (User)scope.getLocalValue("entity");
+      if(user.getStatus() != 1)
+         return false;
 
-### Crud Operations
+      if(!Arrays.asList(1,2).contains(user.getType()))
+         return false;
+      return true;
+   }
+}
+```
 
-CrudBizModel provides methods like findList, findPage, findFirst, get, delete, update, save, batchDelete, and batchModify for CRUD operations, supporting bulk processing and single-table data submission. All findXX methods accept filter and orderBy parameters and support complex combination queries using `and/or`.
+Compared with APIJSON, NopGraphQL’s operator capabilities are stronger, more intuitive, and simpler to use.
 
-Queries can directly use composite properties such as `moment.user.dept` in the ORM layer, which will be automatically recognized and translated into multi-table associations. This leverages NopORM's underlying EQL association query capabilities.
+#### 1. Set-membership query
 
-Global parameters like tenantId, authToken, traceId can be transmitted via HTTP headers. Each database entity has a corresponding service object accessible via `/r/{bizObjName}__{bizAction}`. Sub-table structures that do not need direct exposure can be marked as no-web in the data model, preventing separate endpoints from being generated.
+```
+POST /r/User__findList
 
+{
+  "filter": {
+    "$type": "in",
+    "name": "id",
+    "value": [38710,82001,70793]
+  }
+}
+```
 
-### Links
+This queries a User array whose id is any of 38710, 82001, or 70793.
 
-For further details on NopGraphQL versus REST, please refer to [Why does GraphQL strictly outperform REST in mathematical terms?](https://mp.weixin.qq.com/s/7Ou1h7NwyI4eAX4m_Zbftw).
+For batch fetching by id, the Nop Platform also provides a simplified method, batchGet:
 
-  
-  # Query Logic and Filters
-  
-  * The `and/or` operators can be nested and support negation with `not`.
-  
-  * The Nop platform provides a range of query operators, such as `gt` for greater than and `ge` for greater than or equal to. For specific details, refer to the definitions in `FilterOp.java`.
-  
-  * When using JSON format, the following structure is used:
-  
-  ```json
-  {
-    "$type": "and",
+```
+/r/User__batchGet?ids=38710,82001,70793
+```
+
+#### 2. Range-matching conditions
+
+```
+POST /r/User__findList
+
+{
+  "filter": {
+    "$type": "or",
     "$body": [
       {
-        "$type": "eq",
-        "name": 1,
+        "$type": "le",
+        "name": "id",
+        "value": 80000
       },
       {
-        "$type": "in",
-        "value": [1, 2]
+        "$type": "gt",
+        "name": "id",
+        "value": 90000
       }
     ]
   }
-  ```
-  
-  * In the `/r/User__get?id=123` endpoint for single entity retrieval, data access policies are applied. At this stage, any provided `filter` is converted into a memory-executed `Predicate` interface, effectively translating to:
-  
-  ```java
-  class MyDataAuthFilter implements Predicate<IEvalScope> {
-    public boolean accept(IEvalScope scope) {
-      User user = (User) scope.getLocalValue("entity");
-      if (user.getStatus() != 1)
-        return false;
+}
+```
 
-      if (!Arrays.asList(1, 2).contains(user.getType()))
-        return false;
-      
-      return true;
-    }
-  }
-  ```
-  
-  * Compared to APIJSON, NopGraphQL offers more powerful and intuitive functionality.
-  
-  # Query Scopes
-  
-  ## 1. Query Range by ID
-  
-  ```http
-  POST /r/User__findList
-  {
-    "filter": {
-      "$type": "in",
-      "name": "id",
-      "value": [38710, 82001, 70793]
-    }
-  }
-  ```
-  
-  * This query retrieves a `User` array matching any of the specified IDs.
-  
-  ## 2. Matching Conditions by ID
-  
-  ```http
-  POST /r/User__findList
-  {
-    "filter": {
-      "$type": "or",
-      "$body": [
-        {
-          "$type": "le",
-          "name": "id", 
-          "value": 80000
-        },
-        {
-          "$type": "gt",
-          "name": "id",
-          "value": 90000
-        }
-      ]
-    }
-  }
-  ```
-  
-  * This query fetches a `User` array where IDs satisfy either `id <= 80000` or `id > 90000`.
-  
-  ## 3. Containment by ID
-  
-  ```http
-  POST /r/User__findList
-  {
-    "filter": {
-      "$type": "in",
-      "name": "contactIdList",
-      "value": [38710]
-    }
-  }
-  ```
-  
-  * This query retrieves a `User` array where their `contactIdList` contains the value 38710.
+This queries a User array where `id<=80000 || id>90000`.
 
-  However, due to security considerations:
-  
-  * The Nop platform does not directly execute SQL snippets or functions passed from the frontend.
-  * All function calls must be encapsulated via backend operations, such as using operation symbols or fields, rather than exposing raw SQL.
-  
-  * For specific configurations requiring safe evaluation, a metadata model like `XMeta` can be introduced in the backend to handle transformations without direct exposure.
+#### 3. Containment on options
 
-  ```xml
-  <meta>
-    <props>
-      <prop name="contactIdList" queryable="true">
-        <graphql:transFilter>
+In APIJSON, `["contactIdList<>":38710]` is equivalent to the SQL filter `json_contains(contactIdList,38710)`, i.e., query for a User array whose contactIdList contains 38710.
+
+However, for security reasons, the Nop Platform does not support executing SQL fragments or SQL function calls passed from the frontend; all function calls must be wrapped as operators or data fields on the backend and not exposed directly to the frontend.
+
+For this requirement, we introduce a transformation in the backend XMeta metadata model:
+
+```xml
+<meta>
+   <props>
+     <prop name="contactIdList" queryable="true"
+          allowFilterOp="contains,eq">
+       <graphql:transFilter>
           <filter:sql>
-            json_contains(o.contactIdList, ${value})
+             json_contains( o.contactIdList, ${value} )
           </filter:sql>
-        </graphql:transFilter>
-      </prop>
-    </props>
-  </meta>
-  ```
-  
-  * This configuration ensures that `contactIdList` is queried safely without exposing the underlying SQL structure to the frontend.
+      </graphql:transFilter>
+     </prop>
+   </props>
+</meta>
+```
 
-  * By default, only `in` and `eq` operators are allowed for queries. For other operators like `not`, `and`, or `or`, they must be explicitly configured using the `allowFilterOp` attribute.
-  
-# 4. 判断是否存在
-
-In APIJSON, you can use the `transFilter` configuration to execute transformation logic. For example, in the example, the `<filter:sql>` tag is used to dynamically generate SQL fragments.
-
-* If the above configuration feels cumbersome, you can leverage Nop's built-in meta-programming mechanism during compilation to automatically generate `transFilter` configurations for JSON type fields. This resembles native support for the `json_contains` operator.
+- For security, by default only in or eq operators are allowed. To use other operators, you must configure them via allowFilterOp.
+- You can configure `<graphql:transFilter>` to perform transformation logic. In the example, `<filter:sql>` from the `filter.xlib` tag library is used to dynamically generate an SQL fragment.
+- If the above configuration feels verbose, leverage the Nop Platform’s built-in metaprogramming to generate transFilter configurations uniformly at compile time for JSON-type fields. This makes it feel like json_contains is natively supported.
 
 ```xml
 <prop name="contactIdList" allowFilterOp="json_contains"/>
 ```
 
-* After detecting `json_contains` during compilation, you can automatically generate `<graphql:transFilter>` configurations.
+- After recognizing the json_contains operator at compile time, the system can automatically generate the `<graphql:transFilter>` configuration.
 
-For complex query conditions, refer to [Nop Basics: How to Implement Complex Queries](https://mp.weixin.qq.com/s/5PVIrgqjlPQ549V9RZbDdg).
+For complex query condition configurations, see [Nop Getting Started: How to Implement Complex Queries](https://mp.weixin.qq.com/s/5PVIrgqjlPQ549V9RZbDdg)
 
-#### 4. Existence Check
+#### 4. Existence checks
 
-In APIJSON, the following call can be used:
+In APIJSON, the following call:
 
 ```json
-["id}{@ [{
+["id}{@":{
   "from":"Comment",
   "Comment":{
-    "momentId":15
-  }
+   "momentId":15
+ }
 }]
 ```
 
-This can be interpreted as a subquery filter.
-
-The SQL fragment for this would look like:
+represents a subquery filter:
 
 ```sql
-WHERE EXISTS(SELECT * FROM Comment WHERE momentId=15)
+ WHERE EXISTS(SELECT * FROM Comment WHERE momentId=15)
 ```
 
-In the Nop platform, you can also use `transFilter` to configure this.
+In the Nop Platform, we can also use transFilter configurations:
 
 ```xml
 <prop name="existsComment" allowFilterOp="exists">
-  <graphql:transFilter>
-    <filter:sql>
-      EXISTS(
-        SELECT * FROM Comment o2 WHERE o2.momentId= ${ filter.getAttr('momentId') }
-      )
-    </filter:sql>
-  </graphql:transFilter>
+   <graphql:transFilter>
+      <filter:sql>
+          EXISTS(
+            SELECT * FROM Comment o2 WHERE o2.momentId= ${ filter.getAttr('momentId') }
+          )
+      </filter:sql>
+   </graphql:transFilter>
 </prop>
 ```
 
-#### 5. Remote Function Calls
+#### 5. Remote function invocation
 
-In APIJSON, you can call remote functions using function expressions. For example:
+In APIJSON, you can use function expressions to call remote functions. For example:
 
 ```json
 {
-  "isPraised()": "isContain(praiseUserIdList, userId)"
+  "isPraised()": "isContain(praiseUserIdList,userId)"
 }
 ```
 
-This corresponds to the boolean function `boolean isContain(JSONObject request, String array, String value)`.
+This calls the remote function `boolean isContain(JSONObject request, String array, String value)`.
 
-In the Nop platform, the GraphQL protocol inherently supports attribute function calls. Similar considerations apply for security: calling a specific attribute's function requires prior declaration in either XMeta or XBiz models, and cannot be directly passed from the frontend.
+In the Nop Platform, property function calls are supported by the GraphQL protocol itself. Again, for security, which function a property calls must be declared beforehand in XMeta or XBiz models and cannot be passed directly from the frontend.
 
 ```xml
-<!-- Adding isPraised property to User.xmeta -->
+<!-- Add an isPraised computed property in User.xmeta -->
 <prop name="isPraised">
   <arg name="praiseUserIdList" type="List<String>" />
 
   <getter>
     const api = inject("service_isContains");
-    return api.invoke({ praiseUserIdList: praiseUserIdList, userId: entityId });
+    return api.invoke({praiseUserIdList,userId:entity.id});
   </getter>
 </prop>
 ```
 
-* In the getter configuration, you can use `entity` to access the current entity.
-* You can use the `inject` function to retrieve beans from the IOC container or use the `import` syntax to import Java classes.
-* Nop's XPL template language simplifies attribute calls. For example:
+- In the getter configuration, you can access the current entity via entity.
+- Use inject to obtain beans from the IoC container, or use import syntax to import Java classes.
+- You can leverage the XPL templating language’s tag abstraction to simplify calls. For example:
 
 ```xml
 <prop name="isPraised">
+   <getter>
+      <api:invoke name="isContains" args="${{praiseUserIdList, userId:entityId}}" />
+   </getter>
+</prop>
+```
+
+#### 6. Stored procedures
+
+Following the previous approach, you can call stored procedures in the getter via the Xpl templating language. The IJdbcTemplate interface in the NopDao module has a callProc function to invoke stored procedures.
+
+#### 7. Reference assignment
+
+Leveraging NopORM’s association query capabilities, we can use composite property expressions like `user.dept.manager` to access associated properties in an object tree. In Java code and the EQL object query syntax, you can use the same composite property expression.
+
+For example, in a getter configuration, you can use a composite property expression to get an associated property from the current entity:
+
+```xml
+<prop name="managerName">
   <getter>
-    <api:invoke name="isContains" args="${praiseUserIdList, userId: entityId}" />
+    return entity.dept.manager.name
   </getter>
 </prop>
 ```
 
-#### 6. Stored Procedures
+#### 8. Subqueries
 
-You can follow the approach from the previous section by using Xpl templates in getters to call stored procedures. The NopDao module includes an IJdbcTemplate interface with a `callProc` method for calling stored procedures.
-
-#### 7. Assignment by Reference
-
-Using NopORM's association query capabilities, you can use composite attribute expressions like `user.dept.manager` to access associated properties within the object tree. In Java code and EQL query syntax, the same composite expression can be used.
-
-For example, in getter configuration:
-
-```json
-{
-  "isPraised": {
-    "from": "Comment",
-    "momentId": 15
-  }
-}
-```
-
-This can be interpreted as a subquery filter.
-
-The corresponding SQL fragment would be:
-
-```sql
-WHERE EXISTS(SELECT * FROM Comment WHERE momentId=15)
-```
-
-In the Nop platform, you can use `transFilter` to configure this:
-
-```xml
-<prop name="existsComment" allowFilterOp="exists">
-  <graphql:transFilter>
-    <filter:sql>
-      EXISTS(
-        SELECT * FROM Comment o2 WHERE o2.momentId= ${ filter.getAttr('momentId') }
-      )
-    </filter:sql>
-  </graphql:transFilter>
-</prop>
-```
-
-#### 6. Stored Procedures
-
-You can follow the approach from the previous section by using Xpl templates in getters to call stored procedures. The NopDao module includes an IJdbcTemplate interface with a `callProc` method for calling stored procedures.
-
-#### 7. Assignment by Reference
-
-Using NopORM's association query capabilities, you can use composite attribute expressions like `user.dept.manager` to access associated properties within the object tree. In Java code and EQL query syntax, the same composite expression can be used.
-
-For example, in getter configuration:
-
-```xml
-<!-- Adding isPraised property to User.xmeta -->
-<prop name="isPraised">
-  <arg name="praiseUserIdList" type="List<String>" />
-
-  <getter>
-    const api = inject("service_isContains");
-    return api.invoke({ praiseUserIdList: praiseUserIdList, userId: entityId });
-  </getter>
-</prop>
-```
-
-* In the getter configuration, you can use `entity` to access the current entity.
-* You can use the `inject` function to retrieve beans from the IOC container or use the `import` syntax to import Java classes.
-* Nop's XPL template language simplifies attribute calls. For example:
-
-```xml
-<prop name="isPraised">
-  <getter>
-    <api:invoke name="isContains" args="${praiseUserIdList, userId: entityId}" />
-  </getter>
-</prop>
-```
-
-
-Using the `graphql:transFilter` configuration, we can encapsulate subquery conditions.
+You can use the `graphql:transFilter` configuration to encapsulate subquery conditions:
 
 ```xml
 <prop name="minUser">
-  <graphql:transFilter>
-    <filter:sql>
-      o.id in (select min(o2.userId)) from Comment o2
-    </filter:sql>
-  </graphql:transFilter>
+   <graphql:transFilter>
+     <filter:sql>
+       o.id in (select min(o2.userId)) from Comment o2
+     </filter:sql>
+   </graphql:transFilter>
 </prop>
 ```
 
+Frontend request:
 
-#### Front-end Query Conditions
-
-The query condition can be directly passed to the URL.
-
-```url
+```
 /r/User__findFirst?filter_minUser=1
 ```
 
+#### 9. Fuzzy search
 
-#### Fuzzy Search
+The Nop Platform’s QueryBean model supports contains, startsWith, endsWith, like, and other partial string match operators, which can be used directly in URLs:
 
-Nop's QueryBean model supports contains, startsWith, endsWith, and like string partial match operators, which can be used directly in URLs.
-
-```url
+```
 /r/User__findList?filter_userName__startsWith=a
 ```
 
+#### 10. Regex matching
 
-#### Regular Matching
+Use the regex operator to express regular expression matches.
 
-Regular expressions can be used with the regex operator to enable regular matching.
+#### 11. Continuous ranges
 
-
-#### Date Range
-
-Date range queries can be implemented using between, dateBetween, etc., to reflect SQL-like semantics.
+Use between and dateBetween operators to implement SQL between semantics.
 
 ```json
 {
@@ -968,52 +876,43 @@ Date range queries can be implemented using between, dateBetween, etc., to refle
 }
 ```
 
-If simplified filter parameters are used, it corresponds to:
+Using the simplified filter parameter:
 
-```url
+```
 /r/User__findList?filter_date__between=2017-10-01,2018-10-01
 ```
 
+#### 12. Aliasing
 
-#### Alias Creation
+GraphQL provides a built-in alias mechanism to specify an alias for each property in returned data. At the ORM level, NopORM can select the mapped entity property name for a database field, and also provides alias configuration so that fields on associated entity tables can be mapped onto the current entity. When modifying and querying, fields corresponding to alias behave exactly like native entity fields.
 
-GraphQL supports an alias mechanism built-in.Aliases can be specified for each attribute when returning data. On the ORM level,NopORM automatically maps database fields to entity attributes during mapping, and it also supports alias configuration at the ORM level. By using aliases, related fields from associated tables can be mapped to the current entity. When modifying or querying, aliases help in referencing original field names.
+With ORM-level alias, we can map extended fields stored in vertical tables (EAV) onto the current entity as properties identical to ordinary fields, simplifying extended field usage.
 
-Using the ORM's alias mechanism allows us to map database fields from associated tables to the current entity's attributes. This simplifies the use of extended fields, making them behave like regular fields.
+For extended field configuration, see [Bilibili Video: How to Add Extended Properties to an Entity Without Changing the Database](https://www.bilibili.com/video/BV1wL411D7g7/)
 
-For extended field configurations, refer to [Bilibili Video: How to Add Extended Attributes Without Modifying the Database](https://www.bilibili.com/video/BV1wL411D7g7/).
+#### 13. Increment or extend
 
+In APIJSON, the `"key+"` syntax indicates increment on the original basis, e.g., `"praiseUserIdList+":[82001]`, which corresponds to `json_insert(praiseUserIdList,82001)`, adding a like user id to denote that the user liked the post.
 
-#### Adding or Extending
+The Nop Platform uses standard ORM design. Generally, you first load data into Java memory, modify the corresponding fields, then generate an update statement upon detecting differences. Therefore, the Nop Platform does not use `json_insert`; instead, the JSON field is mapped to a Java list, and you simply call add in Java.
 
-In APIJSON, `"key+"` syntax can be used to add to existing data, such as `"praiseUserIdList+"`: [82001].
+For subtable structures, you can submit delta updates to the backend using `_chgType=A`, `_chgType=D`, `_chgType=U` to distinguish add, update, delete, etc.
 
-This corresponds to SQL's `json_insert(praiseUserIdList, 82001)`.
+Currently, the Nop Platform does not provide a list delta update mechanism similar to APIJSON. Typically, similar requirements can be implemented via xbiz models. If such a feature is necessary, the Nop Platform would not introduce special conventions at the key level but would use prefix-guided syntax and operate on the value structure.
+For instance, we could define `@delta: +82001, -32001` to indicate adding element 82001 and removing element 32001 from the collection. Compared with APIJSON’s `key+` syntax, this value-level prefix is more flexible and does not affect the overall object structure (the key remains the same). It is purely a local enhancement.
+Moreover, APIJSON’s syntax cannot express hybrid changes such as adding several elements while removing others at the same time.
 
-Nop platforms follow standard ORM design. Typically, data is loaded into Java memory before modification, and any discrepancies are resolved with an update statement. Therefore, Nop does not use `json_insert` calls but instead maps directly to Java lists using standard add methods.
+> Adding prefixes at the value level affects only the value for a single key. If conventions are introduced at the key level, they affect not the current key but the parent object one level up. In handling, you cannot easily leverage mapping mechanisms to quickly determine whether a key exists or is unique. The root cause is that changing keys breaks the original structure.
 
-For child table structures, differences can be submitted to the backend via `_chgType` parameters like A, D, or U to represent add, delete, or update operations.
+For details on prefix-guided syntax, see [Layered DSL Syntax Design and Prefix-Guided Syntax](https://zhuanlan.zhihu.com/p/548314138)
 
-Currently, Nop does not provide a mechanism similar to APIJSON's list differential updates. For similar requirements, we recommend using Nop's built-in models and configurations rather than introducing special key conventions.
+#### 14. Decrement or removal
 
-If forced to implement such behavior, Nop platforms would opt for prefix-based syntax in URLs rather than modifying key structures.
+In APIJSON, `key-:` indicates decrement on the original basis, e.g., `"balance-":100.00` corresponds to `balance = balance - 100.00`, i.e., the balance decreases by 100.00.
 
-For example:
-- `@delta: +82001` or `-32001` can be used to add or remove elements from a collection.
-- This approach is more flexible than APIJSON's `key+` syntax and affects only the value, not the key structure.
+Similarly, the Nop Platform uses the standard ORM view: you typically load data into memory first, then call `setBalance(entity.getBalance()-100)` on the entity. Entities generally have optimistic locking to ensure consistency.
 
-APIJSON's syntax cannot handle simultaneous additions and deletions of multiple elements in a single operation. Using prefix-based syntax allows for localized updates without disrupting overall data integrity.
-
-For detailed information on prefix guidance syntax, please refer to [DSL Layered Design and Prefix Guidance](https://zhuanlan.zhihu.com/p/548314138)
-
-
-#### 14. Reduce or Remove
-
-In APIJSON, the `key-:` syntax can be used to indicate a reduction in existing values, such as `"balance-": 100.00`, which translates to SQL `balance = balance - 100.00`. This reduces the balance by 100.00, equivalent to spending 100.00.
-
-Similar to the previous section, Nop platform uses an ORM perspective and generally requires fetching data into memory before performing operations. Thus, you can directly call `setBalance(entity.getBalance() - 100)` on the entity. The entity typically has optimistic locking to ensure data consistency during updates.
-
-For rare cases requiring direct database increment or decrement operations, you can handle them using XBiz models by executing SQL statements directly.
+For cases where you must directly execute increment/decrement in the database, you can perform SQL in an XBiz model:
 
 ```xml
 <action name="changeAmount">
@@ -1028,17 +927,15 @@ For rare cases requiring direct database increment or decrement operations, you 
 </action>
 ```
 
-Similarly, if you need to implement a delta update mechanism similar to APIJSON, you can use the `@delta:` prefix guidance syntax.
+As in the previous section, if you must introduce a delta update mechanism similar to APIJSON, use the `@delta:` prefix-guided syntax.
 
+#### 15. Comparison operators
 
-#### 15. Comparison Operations
+The Nop Platform provides gt, ge, eq, lt, le, and ne (not equal). It also provides isEmpty, notEmpty, isNull, notNull, isBlank, notBlank for convenient null/empty checks.
 
-The Nop platform includes comparison operators such as gt, ge, eq, lt, le, and provides an ne operator for not equal comparisons. Additionally, it offers isEmpty, notEmpty, isNull, notNull, isBlank, and notBlank for convenient null checks.
+#### 16. Logical operators
 
-
-#### 16. Logical Operations
-
-Nop platform includes logical operators like and, or, and not, which can be freely nested and combined.
+The Nop Platform provides and, or, not operators that can be freely nested and combined.
 
 ```json
 {
@@ -1047,7 +944,7 @@ Nop platform includes logical operators like and, or, and not, which can be free
     {
       "$type": "notIn",
       "name": "id",
-      "value": [1, 2]
+      "value": [1,2]
     },
     {
       "$type": "gt",
@@ -1058,57 +955,47 @@ Nop platform includes logical operators like and, or, and not, which can be free
 }
 ```
 
-The query condition above translates to `(id not in [1,2]) or (status > 1)`.
+The above condition means `(id not in [1,2] or status > 1)`.
 
+#### 17. Array-related keywords, customizable
 
-#### 17. Array Keywords and Customization
-
-The CrudBizModel in Nop platform provides functions like findPage and findList for collection queries. For example, findPage returns a PageBean object containing total, page, cursor, etc., along with items.
+The Nop Platform’s CrudBizModel provides findPage and findList for querying collections. findPage returns a PageBean object, which offers total, page, cursor, and other fields:
 
 ```java
-class PageBean<T> {
+class PageBean<T>{
 
-  List<T> items;
+    List<T> items;
 
-  long total;
-  long offset;
-  int limit;
-  Boolean hasPrev;
-  Boolean hasNext;
-  String prevCursor;
-  String nextCursor;
+    long total;
+    long offset;
+    int limit;
+    Boolean hasPrev;
+    Boolean hasNext;
+    String prevCursor;
+    String nextCursor;
 }
 ```
 
-It supports `offset/limit` pagination by position and also supports `id > :cursor limit 100` value-based sorting.
+It supports offset/limit (index-based pagination) and value-based cursor pagination (e.g., `id > :cursor limit 100`).
 
-For sub-collections, Nop supports a mechanism similar to React Relay's Connection pagination and QueryBean pagination. Unlike APIJSON, Nop platform prioritizes security over flexibility, disallowing direct association specifications in the frontend. Instead, associations are defined in the backend through xmeta or orm models. This reduces repetitive data association expressions in multiple frontend requests.
+For subtable collections, it supports a Connection-style pagination mechanism similar to React Relay and also supports QueryBean-style pagination. Unlike APIJSON, for security reasons, the Nop Platform does not allow the frontend to specify table associations; they must be specified in backend xmeta or orm models.
+Specifying in the backend has the benefit of automatic reuse, eliminating the need to repeatedly express data associations across multiple frontend requests. For example, after defining associations from table A to B and from B to C at the ORM level, the composite property expression `a.b.c` can automatically infer the association path from A to B to C, greatly reducing redundant repetition.
 
-By defining associations for Account and Business in the ORM layer, you can directly use `a.b.c` composite expressions, which automatically resolve to the full association path (Account -> Business -> Contact), significantly reducing repetitive queries.
+The Nop Platform also supports a Dimensional Query Language (DQL) proposed by Runqian Software, which can significantly reduce the complexity of statistical queries over master-detail data.
 
-Nop platform also supports DQL (Dimensional Query Language) as proposed by Ruin Zhang of Ruinsoft. This mechanism greatly simplifies sub-cube querying and reduces query complexity for multi-dimensional data.
+By leveraging GraphQL’s DataLoader mechanism, we can add extra returned properties to a backend findPage service via DataLoader without modifying the PageBean class definition. For details, see [Nop Getting Started: How to Extend Existing Services](https://mp.weixin.qq.com/s/H3SxiFAsqVJz0PR15tWkww)
 
+#### 18. Object-related keywords, customizable
 
-Using the DataLoader mechanism provided by GraphQL, we can extend the backend's `findPage` service without modifying the `PageBean` class definition. Specifically, we can add additional return properties to the DataLoader.
-
-
-#### 18. Customizable Object Keywords
-
-The Nop platform does not require introducing a large number of special keywords at the syntax level like APIJSON does. Instead, it uses traditional method parameters for filtering and ordering.
-
-Here's an example of a POST request:
+The Nop Platform does not need to introduce a large number of keyword conventions at the syntax level like APIJSON; traditional method parameters suffice.
 
 ```
 POST /r/User__findList?@selection=id,sex,name
-```
 
-And here's the request body in JSON format:
-
-```json
 {
   "filter": {
     "$type": "and",
-    "$body": [
+    "$body":[
       {
         "$type": "contains",
         "name": "name",
@@ -1124,7 +1011,7 @@ And here's the request body in JSON format:
   "orderBy": [
     {
       "field": "name",
-      "desc": true
+      "desc": true,
     },
     {
       "field": "id",
@@ -1134,54 +1021,48 @@ And here's the request body in JSON format:
 }
 ```
 
-This query is equivalent to the following SQL statement:
+The above is equivalent to:
 
 ```sql
-select id, sex, name
+select id,sex,name
 from User
 where name like '%a%' and tag like '%a%'
 order by name desc, id asc
 ```
 
-For more complex queries, we can utilize the `dao.xlib` library within the Nop platform's xbiz model. EQL (Extended Query Language) provides a syntax similar to SQL, supporting various functions and nested queries, making it much simpler than using JSON for such tasks.
-
-Here's an example of a complex query using EQL:
+More complex queries can be implemented directly in backend xbiz models using tags from the `dao.xlib` tag library. You can use the EQL object query syntax, which is very similar to SQL, supports various SQL functions and complex nested subqueries, and is much simpler than using JSON syntax:
 
 ```sql
 <dao:FindPage offset="0" limit="100">
-  with SectionCount as (
+   with SectionCount as
+    (
     select t.section, count(t.studentId) as studentCount
     from Taking t
     where t.section.year = 2017 and t.section.semester = 'Fall'
     group by t.section
-  )
-  select o.section, o.studentCount
-  from SectionCount o
-  where o.studentCount = (
-    select max(sc.studentCount) 
-    from SectionCount sc
-  )
+    )
+    select o.section, o.studentCount
+    from SectionCount o
+    where o.studentCount = (
+    select max(sc.studentCount) from SectionCount sc
+    )
 </dao:FindPage>
 ```
 
-In the xbiz model, we can further abstract the SQL construction process using `xpl` templates. EQL syntax allows for handling even the most complex SQL statements, whereas APIJSON's design often falls short when dealing with dynamic SQL, especially without a straightforward abstraction mechanism for such logic.
+In xbiz models, we can further abstract the SQL construction process using xpl template tags to simplify writing complex SQL. EQL can support the most complex SQL statements, while in APIJSON many complex SQL statements are difficult to express directly, especially lacking a simple abstraction mechanism to encapsulate dynamic SQL construction into a localized concept.
 
-For more details on managing complex SQL queries, refer to [Nop Basics: Dynamic SQL Management](https://mp.weixin.qq.com/s/_5-CSfY5SXquknvdINemNA).
-
+For more on complex SQL, see [Nop Getting Started: Dynamic SQL Management](https://mp.weixin.qq.com/s/_5-CSfY5SXquknvdINemNA)
 
 ### 19. Global Keywords
 
-The Nop platform is not designed specifically for database access but rather as a generic helper class framework. The `CrudBizModel` is just one of the many utility classes it provides. NopGraphQL is a general-purpose GraphQL engine, while NopORM is similar to Hibernate in its functionality as an ORM (Object-Relational Mapping) tool.
+The Nop Platform is not designed specifically for database access; CrudBizModel is just an ordinary helper. NopGraphQL is a general-purpose GraphQL engine, and NopORM is a general-purpose ORM engine comparable in scope to Hibernate. With these foundational engines, combined with BizModel and other orchestration models, we can deliver a more complex and general-purpose low-code processing platform.
 
-By leveraging these foundational engines alongside BizModels (business models), we can build more complex and versatile low-code platforms.
-
-For instance, [NopTaskFlow](https://mp.weixin.qq.com/s/2mFC0nQon_l2M82tOlJVhg), the next-generation logic engine, enables backend service automation without manual coding.
-
+See [A Next-Generation Logic Orchestration Engine Built from Scratch: NopTaskFlow](https://mp.weixin.qq.com/s/2mFC0nQon_l2M82tOlJVhg), [Implement Backend Service Functions via Logic Orchestration Using NopTaskFlow](https://mp.weixin.qq.com/s/CMBcV9Riehlf4_Ds_BmyEw)
 
 ## Summary
 
-1. Nop platform supports configuration-based APIJSON functionality and standard GraphQL protocol without requiring special conventions.
-2. The platform enforces strict security measures, including role-based access control for fields and data permissions.
-3. It balances rapid prototyping with meticulous project requirements, supporting both small-scale proofs of concept and large-scale, long-term projects.
+1. The Nop Platform can implement all features provided by APIJSON through configuration and uses the standard GraphQL protocol with minimal special conventions.
+2. The Nop Platform enforces stricter security with robust operation permissions, field permissions, and data permissions, supporting both small rapid prototypes and rigorous large projects that evolve persistently.
+3. The Nop Platform offers unique extensibility in the industry. See [Why the Nop Platform Is a Unique Open-Source Software Development Platform](https://mp.weixin.qq.com/s/vCPpnE-VMF7GW7yCOGWKxw)
 
-3. The Nop platform offers industrially unique expandability. For details, please refer to [Why is the Nop platform an industry-leading open-source software development platform?](https://mp.weixin.qq.com/s/vCPpnE-VMF7GW7yCOGWKxw)
+<!-- SOURCE_MD5:187b988ffc99e85fa47d708a120d4b8f-->

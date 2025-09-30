@@ -1,35 +1,32 @@
+
 # Tree Structure Related
 
-## findTreeEntityPage and findTreeEntityList Provided Tree Structure Query Functionality
-They generated recursive SQL queries based on XMeta's tree configuration to implement tree structure query functionality.
+## findTreeEntityPage and findTreeEntityList provide query capabilities for tree structures
+
+They automatically generate recursive SQL query statements based on the tree configuration in XMeta to implement tree-structured queries.
 
 ```sql
-WITH recursive tree_page AS (
-    SELECT b.deptId AS id,
-           b.deptName AS displayName,
-           b.parentId AS parentId,
-           NULL AS level,
-           b.deptId AS joinId
-    FROM NopAuthDept b
-    WHERE OTHER_QUERY_CONDITIONS AND
-           b.parentId IS NULL
-    UNION ALL
-    SELECT o.deptId AS id,
-           o.deptName AS displayName,
-           o.parentId AS parentId,
-           NULL AS level,
-           o.deptId AS joinId
-    FROM NopAuthDept o
-    INNER JOIN tree_page p ON o.parentId = p.joinId
-    WHERE OTHER_QUERY_CONDITIONS
+with recursive tree_page as (
+  select b.deptId as id,b.deptName as displayName,b.parentId as parentId,null as level,b.deptId as joinId
+  from NopAuthDept b
+  where other query conditions and
+    b.parentId is null
+ union all
+  select o.deptId as id,o.deptName as displayName,o.parentId as parentId,null as level,o.deptId as joinId
+  from NopAuthDept o
+      inner join tree_page p on o.parentId = p.joinId
+  where other query conditions
 )
-SELECT t.id, t.displayName, t.parentId, t.level, t.joinId
-FROM tree_page t
-ORDER BY t.id
+select t.id, t.displayName, t.parentId, t.level, t.joinId
+from tree_page t
+order by t.id
 ```
 
-* The tree model has configured properties such as parentProp, levelProp, and sortProp.
-* The root node is determined by `o.parentProp IS NULL`.
-* If the rootParentValue or rootLevelValue is specified, it will be used to determine `o.parentProp = ${rootParentValue}` or `o.levelProp = ${rootLevelValue}`.
-* The result set returns a standard StdTreeEntity object of type `PageBean<StdTreeEntity>` or `List<StdTreeEntity>`.
-* Since some users do not use the primary key directly for tree structure ID, an additional joinId is introduced to link parentId and joinId, which typically maps to id.
+* On the tree model, properties such as parentProp, levelProp, and sortProp are configured, and the EQL query is generated based on them.
+* By default, root nodes are determined by `o.parentProp is null`
+  to determine. If rootParentValue or rootLevelValue is specified, then determine by `o.parentProp = ${rootParentValue}`
+  or `o.levelProp = ${rootLevelValue}`
+* The returned object is a standard StdTreeEntity `PageBean<StdTreeEntity>` or `List<StdTreeEntity>`.
+* Because some users do not directly use the primary key as the tree node id when building tree structures, but instead use another unique key field, a concept called joinId is introduced to associate with parentId; typically, it is the same as id.
+
+<!-- SOURCE_MD5:85968c75ae60130ebfc5e9b9c2c89ba0-->

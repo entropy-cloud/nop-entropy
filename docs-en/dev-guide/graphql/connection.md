@@ -1,12 +1,14 @@
-# connection Configuration
+# connection configuration
 
-In the Excel model's foreign key object, annotate `ref-connection`. This will generate a one-to-many relationship attribute and automatically create a `connection` label in the corresponding `resources` property of the `NopAuthSite` object. For example, if the `site` property of `NopAuthResource` is annotated with `ref-connection`, it will add a `connection` label to the `resources` property of `NopAuthSite`.
+Annotate the foreign-key key object in the Excel model with ref-connection; this will cause a connection tag to be generated on the produced one-to-many association property and automatically generate the corresponding Connection property.
+For example, if the site property of NopAuthResource is annotated with ref-connection, a connection tag will automatically be added to the resources property of the NopAuthSite object.
 
 ![](ref-connection.png)
 
-Using meta programming, the `Connection` attribute will be added to the compiled `.meta` file. For example, `resourcesConnection` in the `_dump` directory shows the generated attribute definition.
+Through metaprogramming, the corresponding Connection property (e.g., resourcesConnection) will be added to the meta file at compile time. You can see the final generated property definition under the `_dump` directory
 
 ```xml
+
 <meta>
     <props>
         <prop name="resources" displayName="资源列表" i18n-en:displayName="Resources" tagSet="pub,connection"
@@ -25,77 +27,77 @@ Using meta programming, the `Connection` attribute will be added to the compiled
 </meta>
 ```
 
-The `resourcesConnection` node in the generated graph uses the `graphql:connectionProp` attribute to reference a one-to-many relationship on the entity. This will automatically apply the corresponding connection logic for filtering.
+The generated resourcesConnection node references a one-to-many association property on the entity via the graphql:connectionProp attribute, and the association’s join conditions will automatically be used for filtering.
 
-For specific test cases, refer to `TestConnectionProp`.
+For concrete test cases, see TestConnectionProp
 
-The `resourcesConnection` parameter accepts a `GraphQLConnectionInput` type.
+resourcesConnection accepts parameters of type GraphQLConnectionInput
 
 ```java
 public class GraphQLConnectionInput {
-    /**
-     * first indicates the number of items to fetch starting from afterCursor
-     */
-    int first;
-    int last;
-    String after;
-    String before;
+  /**
+   * first表示从afterCursor开始向后取n条数据
+   */
+  int first;
+  int last;
+  String after;
+  String before;
 
-    /**
-     * If cursor is not set, pagination can be handled using offset/limit
-     */
-    long offset;
-    TreeBean filter;
-    List<OrderFieldBean> orderBy;
+  /**
+   * 如果没有设置cursor，则也可以使用offset/limit机制进行分页
+   */
+  long offset;
+  TreeBean filter;
+  List<OrderFieldBean> orderBy;
 }
 ```
 
-The result type of the query is `GraphQLConnection`.
+The returned result type is GraphQLConnection
 
 ```java
 class GraphQLConnection<T> {
-    long total;
-    List<GraphQLEdgeBean> edges;
 
-    List<T> items;
+  long total;
+  List<GraphQLEdgeBean> edges;
 
-    GraphQLPageInfo pageInfo;
+  List<T> items;
+
+  GraphQLPageInfo pageInfo;
 }
 
 class GraphQLPageInfo {
-    String startCursor;
-    String endCursor;
-    Boolean hasNextPage;
-    Boolean hasPreviousPage;
+  String startCursor;
+  String endCursor;
+  Boolean hasNextPage;
+  Boolean hasPreviousPage;
 }
 ```
 
-
-## Applying Different Query Conditions to the Same Subtable
+## Apply different query conditions to the same child table to return multiple sub-collections
 
 ```graphql
-query($filter1: Map, $filter2: Map) {
-  MyObject__get(id: 3) {
-    activeRecords: mySubObjectConnection(filter: $filter1, limit: 5) {
-      total
-      items {
-        id
-      }
-    }
+query($filter1:Map, $filter2:Map){
+   MyObject__get(id:3){
+     activeRecords: mySubObjectConnection(filter:$filter1,limit:5){
+       total
+       items{
+         id
+       }
+     }
 
-    inactiveRecords: mySubObjectConnection(filter: $filter2, limit: 5) {
-      total
-      items {
-        id
-      }
-    }
-  }
+     inactiveRecords: mySubObjectConnection(filter:$filter2, limit:5){
+       total
+       items{
+         id
+       }
+     }
+   }
 }
 ```
 
-Here, `filter1` and `filter2` are two different query conditions that can be passed from the frontend with different criteria, both targeting the same subtable object `mySubObject`. However, the results returned will differ based on the applied filters.
+Here, filter1 and filter2 are two different query conditions. The frontend can pass different query conditions; both query the same child-table object `mySubObject`, but the returned results differ.
 
-## Simplifying Parameter Transmission in REST Requests Using `_subArgs`
+## Simplify parameter passing in REST requests via `_subArgs`
 
 ```json
 /r/MyObject__get?id=3&@selection=activeRecords:mySubObjectConnection,inactiveRecords:mySubObjectConnection
@@ -108,25 +110,27 @@ Here, `filter1` and `filter2` are two different query conditions that can be pas
 }
 ```
 
-In the backend, the `GraphQLWebService` receives parameters prefixed with `_subArgs` and converts them into function parameters for the corresponding sub-properties. It also identifies parameters prefixed with `filter_` and aggregates them into a `FilterBean` object.
+After the backend GraphQLWebService receives parameters prefixed with `_subArgs.`, it converts them into function arguments targeting sub-properties, recognizes the `filter_` prefix, aggregates such specially prefixed variables, and transforms them into a FilterBean object.
 
-## Adding a `ref-query` Label to Associative Properties in Excel Models
 
-If a `ref-query` label is set on a `to-one` association, it will automatically generate a query label for parent-to-child one-to-many relationships. In `meta-gen.xlib`, for properties with such labels, the system will add a `graphql:findMethod="findList"` configuration, enabling pagination support.
+## Set the `ref-query` tag for association properties in the Excel model
+If the `ref-query` tag is set on a `to-one` association, then when generating the one-to-many collection property from the parent table to the child table, a `query` tag will be added. In `meta-gen.xlib`, a one-to-many property with a query tag will automatically get the configuration `graphql:findMethod="findList"`, thereby enabling pagination support for that property.
 
 ```xml
 <prop name="children" graphql:findMethod="findList">
+
 </prop>
 ```
 
-Frontend developers can pass filter conditions and pagination parameters (`offset/limit`) to the service for fetching specific records.
+On the frontend, you can pass the filter criteria and offset/limit pagination parameters
 
-```xml
-<MyEntity__get(id:3) {
-  children(filter: {...}, limit:10){
-    name, status
-  }
-}>
+```
+MyEntity__get(id:3) {
+   children(filter: {...}, limit:10){
+     name, status
+   }
+}
 ```
 
-Additionally, in the `meta` section's `prop` node, you can configure `graphql:maxFetchSize` to limit the number of records fetched. If not specified, it will default to `maxPageSize`.
+On the prop node in the meta, you can configure `graphql:maxFetchSize` to automatically cap the number of fetched records at maxFetchSize. If unspecified, it is constrained by the global maxPageSize.
+<!-- SOURCE_MD5:ad0408cadd2087ee6788f82c9801d640-->

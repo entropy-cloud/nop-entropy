@@ -1,18 +1,19 @@
+
 # Vite
 
-## Multi-Module
+## Multiple Modules
 
-Multiple modules should have consistent AMIS versions; otherwise, multiple package versions may be loaded during debugging.
+The amis versions referenced across multiple modules must be consistent; otherwise, during debugging and development, multiple versions of the package may be loaded.
 
-## Turbo
+## turbo
 
-1. Add a postinstall configuration in the root project's package.json. Using `pnpm i` will automatically execute the postinstall script.
+1. Add a postinstall configuration to the root project's package.json. pnpm i will automatically execute the postinstall script.
 
-```json
+```
 "postinstall": "turbo run stub",
 ```
 
-2. Add a stub configuration to the pipeline definition in `turbo.json`. An empty object is sufficient for the stub.
+2. In the pipeline definition of turbo.json, add a stub configuration. The stub can be an empty object.
 
 ```json
 {
@@ -23,10 +24,12 @@ Multiple modules should have consistent AMIS versions; otherwise, multiple packa
 }
 ```
 
-3. Configure stubs in the `internal/vite-config` project. The following script should be added:
+3. Configure stub in projects such as internal/vite-config.
 
-```json
-"scripts": {
-  "stub": "pnpm unbuild --stub"
-},
 ```
+  "scripts": {
+    "stub": "pnpm unbuild --stub"
+  },
+```
+
+<!-- SOURCE_MD5:8bafd65971338625e404395fb1df1daa-->

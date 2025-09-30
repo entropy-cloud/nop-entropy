@@ -2,12 +2,12 @@
 
 ## Client Configuration
 
-When calling a remote service using an HTTP client, the access token can be transmitted via the Authorization header.
+When invoking remote services using an HTTP client, you can pass the access token via the Authorization header.
 
-AddAccessTokenHttpClientEnhancer automatically adds the access token to all HTTP requests that match a specific URL pattern.
+AddAccessTokenHttpClientEnhancer automatically adds the access token to all HTTP requests that match specific URL patterns.
 
 ```yaml
-none:
+nop:
   http:
     client:
       auth-configs:
@@ -25,16 +25,19 @@ none:
                clientSecret: 123
 ```
 
-HttpClientAuthConfigs supports multiple authentication configurations.
+HttpClientAuthConfigs contains multiple authentication configurations.
 
-1. For each URL, match the first service configuration.
-2. If useContextAccessToken is set, retrieve the Access Token from the IContext context.
-3. If an oauthProvider is configured, use OAuth2Client to obtain an access token and add it to the Authorization header.
-4. If neither is configured, skip access token processing.
-5. Configure OAuth authentication service endpoints using oauthProviders.
+1. For each URL, the first matching service configuration is used
+2. If useContextAccessToken is set, read the accessToken from the IContext
+3. If oauthProvider is set, use OAuth2Client to obtain the access token and add it to the Authorization header
+4. If neither is configured, accessToken handling is skipped
+5. Configure the OAuth authorization server URLs via oauthProviders
 
-## Server Configuration
 
-Generally, the server does not require special configuration. By default, it will enforce login authentication.
+## Server-Side Configuration
 
-* AuthHttpServerFilter checks for the Access Token. It uses the ILoginService.parseAccessToken function to parse the Access Token.
+In most cases, the server does not require special configuration; by default, login authentication is required.
+
+* In AuthHttpServerFilter, the accessToken is checked. The access token is parsed via the `ILoginService.parseAccessToken` function.
+
+<!-- SOURCE_MD5:72e6a35ae7a0cf76e960dc1ddb431369-->

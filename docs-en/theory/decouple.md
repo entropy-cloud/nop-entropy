@@ -1,93 +1,82 @@
-# Decoupling is More Than Just Dependency Injection
+# Decoupling Is Far More Than Dependency Injection
 
-What is coupling? How to decouple? In today's world, where object-oriented technology dominates, interaction is expressed as the mutual connection between objects. The external manifestation of coupling is holding references to related objects. Therefore, the problem of coupling seems to be about minimizing the information needed for object composition and eventually forming a solution that becomes dependency injection. For specific details, please refer to the answers provided in the invalid s thread.
+What is coupling? How do we decouple? In today’s world where object-oriented techniques prevail, interactions are expressed as associations between objects; the outward manifestation of coupling is holding pointers to related objects. Thus, the decoupling problem appears to be about minimizing the amount of information required for object assembly, with the resulting solution crystallizing into the concept of dependency injection. For a detailed introduction, see invalid s’s answer
 
-[What is decoupling](https://www.zhihu.com/question/20821697/answer/2608624207)
+[What Is Decoupling](https://www.zhihu.com/question/20821697/answer/2608624207)
 
-> **Inversion of Control** principle (Dependence Inversion Principle, DIP) refers to designing a code structure where higher-level modules should not **depend** on lower-level modules. Instead, both should **depend** on abstractions.
+> <b>Dependency Inversion</b> Principle (Dependency Inversion Principle, DIP) states that when designing code structure, high-level modules should not <b>depend</b> on low-level modules; both should <b>depend</b> on their abstractions.
 
-However, dependency injection is often misunderstood as the primary method for decoupling. While it indeed provides a useful mechanism: **no dependency on objects as a whole, only dependency on minimal abstract interfaces. Different objects can implement the same interface. Using a container for deferred composition (e.g., configuration files for delayed loading) is a common approach. However, it is not the sole means for achieving decoupling, nor should it be considered the primary method in all cases.
+However, the understanding that dependency injection is the key to decoupling is merely a past trend. On the one hand, it indeed provides a practical means of decoupling: **do not depend on the whole object; only depend on a minimized abstract interface. Different objects can implement the same interface. Use a declarative assembly container to defer assembly choices.** On the other hand, it is not the entirety of decoupling techniques in software, and we might even say it should not be the primary means of decoupling.
 
-## 1. What is dependency injection? Phenomenal transformation
+## I. What Does Dependency Injection Inject? Homomorphic Image
 
-Dependency injection means relying on abstracts rather than specifics. At its core, it states: **No dependency on objects as a whole, only dependency on their interface.** This ensures that any object implementing the interface can be used without knowing its specific type.
+To depend on abstractions rather than concrete details essentially means we **do not depend on the whole object but only on its homomorphic image**.
 
-Mathematically, this is akin to a morphism in the object space. It maps objects from one space (O) to another space (P), transforming O's elements (a, b) into P's corresponding elements (Pa, Pb). This transformation preserves certain operations defined in O, allowing natural translation of functions from O to P.
-
-```java
-P(f(a, b)) = f(P(a), P(b))
-```
-
-Objects can implement multiple interfaces. For example, an object may be an instance of interface A and another of interface B. The relationship "is a" is crucial at the conceptual level to ensure that methods written for interface A also apply to derived objects.
+In mathematics, a homomorphism is a transformation in the object space that maps objects a and b in the original space O to P(a) and P(b) in the image space, while preserving certain operations f in the original space so that functions defined in the original space can naturally translate to functions in the image space.
 
 ```java
-f(interfaceA, interfaceB) = f(objA, objB)
+ P(f(a,b)) = f(P(a), P(b))
 ```
 
-Most objects have numerous functions, but only a few are essential for business operations. These are typically the interface-related functions. Other functions are auxiliary, supporting dynamic configuration, lifecycle management, and other operational aspects. By adhering to this principle, we minimize unnecessary object creation order dependencies (only those with global knowledge can achieve global optimization). If the system is relatively simple, it can be modularized into a few well-defined lifecycle stages. In such cases, dependency injection containers can weaken their influence.
+Objects implement interfaces; an object is an instance of an interface—obj is an instance of interfaceA. In design, we need to maintain the conceptual “is a” relationship between objects and base classes, as well as between objects and interfaces, to ensure that code written against interfaces can operate on derived objects, i.e.,
 
-## 2. From morphism to transformation
+```java
+f(interfaceA,interfaceB) == f(objA, objB)
+```
 
-In mathematics and physics, particularly in Fourier analysis, coupling and decoupling are fundamental concepts. Signals with different frequencies are combined in the time domain, appearing as a single composite signal. Using Fourier transform techniques, these signals can be separated in the frequency domain. Thus, **the essential method for achieving decoupling is transformation (phenomenal transformation)**.
+An object can have many functions, but typically only a small subset is strictly required to execute business functionality—the functional interface methods—while a large number of other functions serve as auxiliary methods for dynamic configuration, lifecycle support, etc. If we insist that objects only depend on the functional interface, we effectively map the problem homomorphically into a smaller semantic space, thereby simplifying it.
 
-The goal of coupling is to create a system where components are highly interdependent. The limit of tight coupling is reached when components cannot be altered without affecting others—reaching an "atom" state. Conversely, the aim of decoupling is to achieve maximum independence, minimizing side effects. The extreme form of decoupling would be having completely unrelated components.
+A declarative dependency injection container knows the dependency relationships among all objects, so it can impose a global ordering on their construction sequence; it can also implement deferred assembly via configuration files and lazy-loading semantics via caching, effectively **decoupling unnecessary dependencies on object creation order (only global knowledge enables global optimization)**. Of course, if the system’s structure is relatively simple and can be extracted into a few clear lifecycle phases, the role of a dependency injection container in this respect may be diminished.
 
-In linear algebra terms, this can be visualized using orthogonal bases. By rotating the coordinate system (through transformation), complex relationships in one basis become simple and manageable in another. Thus, **transformation is the most powerful tool for achieving decoupling**.
+Interfaces can be seen as a local representation of an object. To maximize the usefulness of such a representation, **an essential requirement is that operations in the representation space exhibit some degree of completeness**—that is, the functions defined over the representation space should be sufficient to accomplish the primary business functions. Functions defined on the interface should be business-level self-consistent; otherwise, you will face the problem of leaky abstractions.
 
-The criterion for evaluating coupling vs. decoupling lies in the balance between tight coupling and loose coupling. The ideal is a system where components are neither overly dependent nor completely independent. In linear systems, this translates to having a basis that can express any vector using a minimal number of basis vectors (i.e., being orthogonal).
+## II. From Homomorphic Mapping to Representation Transformation
 
-Finally, remember that **transformation is not just about code; it's about rethinking your entire approach**.
+Tracing back, concepts like coupling and decoupling originate from mathematics and physics, where the means to achieve decoupling are far richer and more powerful.
 
-[From coupling to transformation](https://zhuanlan.zhihu.com/p/531474176)  
+Recall the fundamental theory of the Fourier transform in mathematical physics: multiple signals of different frequencies superimpose in the time domain, looking completely intertwined—at every instant, multiple signals exert influence. Yet via the Fourier transform, we obtain completely separated signals in the frequency domain! Therefore, **the most essential and powerful means to achieve decoupling should be representation transformation; interfaces are merely the simplest form of such transformations.**
 
+A criterion for evaluating decoupling quality is “high cohesion, low coupling.” The extreme of high cohesion is indivisibility (atomicity), while the extreme of low coupling is independence. In linear systems, there are infinitely many optimal decouplings: **you only need to find any orthonormal set of basis vectors** (rotating an orthogonal coordinate system by any angle preserves orthogonality), and then all quantities in the entire space can be obtained via linear combinations of the action on the basis vectors.
 
+Representation transformation, simply put, can be seen as a coordinate transformation. The essence of a thing does not change, but when examined under different coordinate systems, we might mistakenly perceive changes in complexity and intense shifts in interrelationships. Conversely, when designing a system, we can choose a linear model with orthogonal dimensions as our target and strive to maintain linearity across layers, thereby simplifying the system structure. See
 
-A **Domain-Specific Language (DSL)** can be viewed as a global representation of a domain if we consider it in the context of **reversible computation**. This global representation allows us to express transformations using an interpreter or code generator that operates on the DSL, denoted as `F(DSL)`.
+[Designing Low-Code Platforms from the Perspective of Tensor Products](https://zhuanlan.zhihu.com/p/531474176)
 
+If we regard a DSL (Domain Specific Language) as a global representation, then representation transformation can be expressed as `F(DSL)`, namely an interpreter or code generator for the DSL. However, DSLs generally summarize known domain requirements, and their capabilities are limited. Therefore, we must supplement with additional Delta information to produce the target system. Thus we obtain
 
-However, a DSL is typically designed for known domain requirements and has inherent limitations in its capabilities. To construct a target system, we must augment the DSL with additional information, denoted as `Delta`, to address these limitations.
+```java
+App = F(DSL) + Delta
+```
 
+That is, we need to merge externally provided Delta information with the results of the representation transformation. But merging implies mixing, and mixing generally leads to entropy increase (a rise in system disorder). Entropy increase is essentially due to information loss. **To avoid entropy increase, we must preserve information integrity and ensure no loss; in thermodynamics, this means the system evolution is reversible.**
 
-The combination of `F(DSL)` and `Delta` allows us to merge external delta information with domain-specific transformations. This merging process can lead to **entropy increase** due to information loss. To minimize entropy increase, we must ensure that the information remains intact and does not suffer loss.
-
-
-In reversible computation theory, operations are designed to be invertible. This means that changes (denoted as `Delta`) can be decoupled from the system's intrinsic properties. Changes can exist independently of the system, carrying their own significance.
+**Reversible operations imply decoupling between the Delta and the original entity.** The Delta can exist independently of the entity; it has meaning of its own.
 
 ```java
 Delta = App - F(DSL)
 ```
 
+> In Reversible Computation theory, a Docker image can be viewed as a Delta structure: an application image can be stored, transmitted, and managed independently of the underlying operating system image.
 
-
-
-In reversible computation theory, a **Docker image** can be seen as a difference structure. It isolates the operating system layer from the application layer, enabling independent management, transmission, and storage.
-
-
-The introduction of reversible computation leads to interesting phenomena. In general, decoupling (or reducing interactions) is achieved by minimizing mutual dependencies. This can be done by reducing the number of objects involved in interactions. However, with reversible computation, we can achieve this by introducing new objects, such as `Delta`.
+With the introduction of Reversible Computation, interesting phenomena emerge. Conventionally, decoupling means reducing interactions, which should first reduce the number of interacting objects. However, if Reversible Computation exists, we can achieve decoupling by introducing a new object, Delta. For example, Object A and Object B have conflicting designs for the same functionality. They can be designed in ways best suited to their internal structures, without worrying about coupling introduced by trying to avoid conflicts. When used together, we can add a Delta to resolve their conceptual conflicts.
 
 ```java
-App = A + B + (-C - D + E) = A + B + Delta
+ App = A + B + (-C - D + E) = A + B + Delta
 ```
 
+For A and B, Delta is a completely external entity.
 
-The **object-oriented** and **component-oriented** paradigms aim to extract knowledge from the physical world of material production. However, as software development progresses, we must recognize the **abstract nature** of software. Software exists in an abstract logical space, not as a physical entity.
+Object-oriented and component theories essentially attempt to draw on experience from production activities in the material world. But as software production deepens, we **must reexamine the abstract essence of software.** Software is an information product existing in an abstract logical world, and information is not matter. **The construction and production laws of the abstract world differ fundamentally from those of the material world.** The production of material goods always has costs, yet the marginal cost of copying software can be zero. To move a table out of a room in the material world, you must pass through a door or window; in the abstract information space, you simply change the table’s coordinate from x to -x. The operational relationships among abstract elements are not constrained by numerous physical limitations. Therefore, the most effective mode of production in the information space is not assembly but the mastery and formulation of operational rules.
 
+For a complete theoretical exposition of Reversible Computation, see my article
 
-In the physical world, objects and their interactions are constrained by physical laws. In the abstract world of information, objects like `Delta` can exist independently without such constraints. Thus, constructing software becomes more efficient in an abstract space.
+[Reversible Computation: The Next-Generation Theory of Software Construction](https://zhuanlan.zhihu.com/p/64004026)
 
+For concrete implementations, refer to
 
+[Technical Implementation of Reversible Computation](https://zhuanlan.zhihu.com/p/163852896)
 
+[What Kind of ORM Engine Does a Low-Code Platform Need? (1)](https://zhuanlan.zhihu.com/p/543252423)
 
-Software is an abstract product created from logical operations. Unlike physical products, which have production costs that decrease with mass production (e.g., the marginal cost of producing additional copies approaches zero), software's marginal cost remains high.
-
-
-In reversible computation theory, `Delta` represents changes that can exist independently of the system. It allows us to isolate and manage modifications without affecting the intrinsic properties of the system.
-
-
-
-- [Reversible Computation: The Next Generation Software Construction Theory](https://zhuanlan.zhihu.com/p/64004026)
-- [Technological Implementation of Reversible Computation](https://zhuanlan.zhihu.com/p/163852896)
-
-- [What ORM Should a Low-Code Platform Use? (1)](https://zhuanlan.zhihu.com/p/543252423)
-- [What ORM Should a Low-Code Platform Use? (2)](https://zhuanlan.zhihu.com/p/545063021)
-
+[What Kind of ORM Engine Does a Low-Code Platform Need? (2)](https://zhuanlan.zhihu.com/p/545063021)
+<!-- SOURCE_MD5:d0a3efb5640613028040f0ff495bb6f9-->

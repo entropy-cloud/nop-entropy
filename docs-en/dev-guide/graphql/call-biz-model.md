@@ -1,22 +1,21 @@
-# Skip GraphQL Engine and Directly Call BizModel Methods
+# Bypass the GraphQL Engine to Directly Call Methods in BizModel
 
-BizModel service methods can be exposed as service functions via the NopGraphQL engine. These methods can be called using various protocols such as GraphQL, REST, or gRPC.
+Service methods in BizModel can be exposed as service functions via the NopGraphQL engine, and the methods on BizModel can be invoked through GraphQL, REST, gRPC, and other means.
 
-Sometimes, when integrating in the backend, you might want to skip the NopGraphQL engine and directly trigger methods on BizModel. For example, in a Spring workflow step.
+Sometimes, during backend integrations, you may want to bypass the NopGraphQL engine and directly trigger methods on BizModel, for example within a step of a Spring workflow.
 
-The Nop platform provides a helper class called `BizActionInvoker`, which can be used to directly call methods on BizModel.
-
+The Nop platform provides the helper class BizActionInvoker, which lets you directly invoke BizModel via its methods.
 
 ```java
 public class BizActionInvoker {
   /**
-   * Synchronously calls methods on BizModel
-   * @param bizObjName business object name
-   * @param bizAction method name of the service method on the business object
-   * @param request request object, usually a Map structure containing all parameters sent to the service method. It can also be a RequestBean object
-   * @param selection GraphQL execution time optional result field selection mechanism. If not needed, set to null
-   * @param context context object. Can directly instantiate ServiceContextImpl()
-   * @return directly returns the result of the BizAction method, without going through GraphQL dataLoader processing
+   * Synchronously invoke a method on BizModel
+   * @param bizObjName Business object name
+   * @param bizAction  Service method name of the business object
+   * @param request    Request object, typically a Map containing all parameters sent to the service method. It can also be a RequestBean object
+   * @param selection  Optional GraphQL result field selection. Set to null if no selection is needed
+   * @param context    Context object. You can directly new ServiceContextImpl()
+   * @return Directly returns the result from the BizAction method; the result is not processed by GraphQL's dataLoader
    */
   public static Object invokeActionSync(String bizObjName, String bizAction, Object request,
                                         FieldSelectionBean selection, IServiceContext context) {
@@ -31,7 +30,7 @@ public class BizActionInvoker {
         Object ret = bizObject.invoke(bizAction, request, selection, context);
         return FutureHelper.getResult(ret);
       } else {
-        // Other cases assume transaction handling is required
+        // For other cases, assume a transaction is required
         return txnTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn -> {
           Object ret = bizObject.invoke(bizAction, request, selection, context);
           return FutureHelper.getResult(ret);
@@ -41,7 +40,7 @@ public class BizActionInvoker {
   }
 
   /**
-   * Calls methods on BizModel using GraphQLEngine. It captures all exceptions and returns an ApiResponse object. Internally, it opens transaction contexts and automatically rolls back in case of errors
+   * Invoke a method on BizModel via GraphQLEngine. It captures all exceptions and returns an ApiResponse. Internally it will automatically open a transaction environment and an OrmSession environment, and perform automatic transaction rollback
    */
   public static ApiResponse<?> invokeGraphQLSync(String bizObjName, String bizAction,
                                                  ApiRequest<?> request) {
@@ -50,5 +49,8 @@ public class BizActionInvoker {
     return graphQLEngine.executeRpc(gqlCtx);
   }
 }
+```
 
-* invokeActionSync调用会直接触发BizObject上的action，它会转化为对BizModel上方法的调用。这种调用方式与GraphQL调用的区别在于不会对返回结果执行GraphQL Selection处理。
+* The invokeActionSync call directly triggers an action on the BizObject, which translates into invoking a method on BizModel. Unlike a GraphQL call, this approach does not perform GraphQL Selection on the returned result.
+
+<!-- SOURCE_MD5:6fe7b1e5eb19a4a21d06ecf790e5276f-->

@@ -1,160 +1,109 @@
-# About "Why XLang is an Innovative Programming Language" - Q&A
 
-In my previous article [Why XLang is an Innovative Programming Language](https://mp.weixin.qq.com/s/O4VeA7Dw8cRF7HTHxi6pNw), I introduced the design philosophy of the XLang language and explained why it qualifies as a innovative programming language. The reason is that it creates a new structural space in which invertible computation theory's proposed formula `Y = F(X) + Delta` can be easily implemented.
+# Q&A on "Why XLang Is an Innovative Programming Language"
 
-This article serves as further clarification on some feedback received after the initial publication.
+In my previous article [Why XLang Is an Innovative Programming Language](https://mp.weixin.qq.com/s/O4VeA7Dw8cRF7HTHxi6pNw), I introduced the design philosophy of XLang and explained that XLang is innovative because it creates a new program structure space where it is convenient to implement the computation paradigm proposed by Reversible Computation theory: `Y = F(X) + Delta`. This article provides further explanations addressing feedback and questions.
 
----
+## 1. How can Delta computation be compressed to compile-time execution based on XLang?
 
-## 1. How to Compress Delta Calculation into Compilation with XLang?
+> To implement property inheritance, UIOTOS made a lot of special designs and introduced a significant amount of code related to property inheritance in its runtime engine. However, based on the XLang language, Delta computation can be completely compressed to compile-time; the runtime engine only needs to understand ordinary component structures and does not need any knowledge of Delta decomposition or merging.
 
-### Question:
-To achieve property inheritance, UIOTOS made a lot of special designs and introduced a lot of related code into the runtime engine for property inheritance. However, if we base our implementation on the XLang language, can we compress delta calculation entirely into the compilation phase? If so, will the runtime engine still need to know about component structures?
+![](nop/uiotos.webp)
 
-### Answer:
-Yes, by leveraging the XLang language, we can compress all delta calculations into the compilation phase. The runtime engine only needs to be aware of the component hierarchy structure and does not require any knowledge of delta decomposition or merging techniques.
+UIOTOS is a no-code platform for the IoT domain. It introduces a container component that can embed an existing page and then use a property mechanism to override properties of objects within the page. This achieves flexible customization of the page content without reimplementing the page.
 
----
-
-## 2. Key Features of UIOTOS
-
-UIOTOS is a no-code platform specifically designed for the IoT domain. It introduces a container component within this framework, allowing existing pages to be applied in this container. By utilizing the property mechanism, it can overlay properties of an inherited page without re-implementing the entire page. This allows for flexible customization while maintaining the original structure.
-
-### Code Example:
 ```json
 {
-  "type": "container",
-  "baseUrl": "a.page.json",
-  "overrideProps": {
+  type: "container",
+  baseUrl: "a.page.json",
+  overrideProps: {
     "form/title": "sss",
     "actions/0/label": "vvv"
   }
 }
 ```
 
-This code snippet demonstrates how to override specific properties of a base page using the `overrideProps` mechanism. By following this structure, developers can easily customize any nested content within the page using a syntax similar to JsonPath.
+The general approach is as shown above: essentially, the page object is brought in via baseUrl, and then multiple inherited properties are used to override content within the page object. With a syntax similar to JsonPath, you can modify any nested content within the page object, so it differs from conventional component frameworks where you call a component and pass parameters to it.
 
----
+UIOTOS writes considerable code in the frontend runtime framework specifically for property inheritance and needs to introduce a special container control. A limitation of the UIOTOS approach is that it can only override property values in existing pages and cannot change the structure of the inherited page. Another low-code platform uses a similar approach without introducing a special container component; it allows Delta customization for any component. Concretely, it introduces a special overwrite property within the component.
 
-## 3. Difference Between UIOTOS and Traditional Component Frameworks
-
-In traditional component frameworks, property inheritance is typically handled by introducing a special container (`container`) component. While this approach allows for some level of customization, it often requires developers to manually manage how properties are inherited and applied across components.
-
-UIOTES, on the other hand, takes this a step further by fully encapsulating the property inheritance mechanism within its core framework. This means that:
-
-1. UIOTOS can override any property of an inherited page without altering its structure.
-2. Customization is more flexible due to built-in property management.
-3. The difference between a base component and its child becomes less relevant in terms of implementation.
-
----
-
-## 4. How Overwrite Mechanism Works
-
-The overwrite mechanism in UIOTES allows for arbitrary property adjustments at the component level without requiring any changes to the base page's structure. This is achieved by recording each adjustment within the `overwrite` section of a component's configuration.
-
-### Code Example:
 ```json
 {
   "component": "MyComponent",
-  "version": "1.0",
+  "version" : "1.0",
   "properties": {
-    "a": 1 // Direct property setting
-  },
-  "overwrite": [
-    "Actions to modify the component in the visualization editor"
-  ]
+     "a": 1, // Set component property directly
+   },
+   "overwrite": [
+    "Here we record the visual editor’s edit actions on the component"
+ ]
 }
 ```
 
-In this example, developers can adjust any number of properties for a specific component by specifying them within the `properties` section. For more complex adjustments that require dynamic behavior or conditional logic, they can utilize the `overwrite` mechanism.
+The basic operation pattern is: after dragging a component in the editor, if some details need adjustment, you can enter a component customization mode to fine-tune the component in the visual designer. The adjustment steps are automatically recorded as overwrite and saved in the page file. This approach can arbitrarily adjust component structure and is more adaptable than UIOTOS’s approach. However, recording operation actions is verbose, and multiple actions are hard to compress into a concise final result (i.e., it does not leverage the associative law for simplification).
 
----
+> According to Reversible Computation theory, A = 0 + A; full content is a special case of Delta. We can define full content and Delta in a unified form, so the Delta of a Delta is also just another normal Delta, enabling more complex logical reasoning. Using action-based overwrite to represent a Delta is not suitable.
 
-## Summary
-
-UIOTES's property inheritance mechanism provides a powerful way to handle delta calculations during compilation rather than runtime. By encapsulating all necessary logic within its framework, UIOTES simplifies property management while maintaining full flexibility for developers.
-
-```markdown
-
-### Component Definition
+Regardless of which approach is used above, the editor and frontend runtime framework both need to incorporate handling code related to the Delta concept. However, if XLang is used as the underlying model expression language, Delta computation can be completely compressed to compile-time; the runtime engine only needs to understand ordinary component structures with no knowledge of Delta decomposition or merging. The specific method uses `x:extends` for component inheritance.
 
 ```xml
 <component x:schema="component.xdef">
   <import from="comp:MyComponent/1.0.0"/>
-</component>
 
-<component name="MyComponentEx" x:extends="comp:MyComponent/1.0.0">
-  <props>
-    <prop name="a" x:override="remove"/>
-    <prop name="b"/>
-  </props>
+  <component name="MyComponentEx" x:extends="comp:MyComponent/1.0.0">
+    <props>
+      <prop name="a" x:override="remove"/>
+      <prop name="b"/>
+    </props>
 
-  <template x:override="merge">
-    Here can only show Delta correction part
+    <template x:override="merge">
+      Only show the Delta-corrected portion here
 
-    <form x:extends="a.form.xml">
-      <actions>
-        <action name="ss" x:id="ss"/>
-      </actions>
-    </form>
+      <form x:extends="a.form.xml">
+        <actions>
+          <action name="ss" x:id="ss"/>
+        </actions>
+      </form>
+    </template>
+  </component>
+
+  <template>
+    <MyComponent/>
+    <MyComponentEx/>
   </template>
 </component>
-
-<template>
-  <MyComponent/>
-  <MyComponentEx/>
-</template>
 ```
 
-
+If no customization is needed, you can import the component directly. If customization is needed, enable local component definitions and use `x:extends` to inherit existing components. XLang defines a Delta merge algorithm between Tree structures. Through the unified DslNodeLoader, the algorithm is automatically executed when loading model files. Pseudocode is as follows:
 
 ```javascript
-function loadDeltaModel(path) {
-  rootNode = VirtualFileSystem.loadXml(path);
-  for each node with x:extends attribute  // Recursively traverse rootNode and its child nodes
-    baseNode = loadDeltaNode(node.removeAttr('x:extends'));
-    genNodes = processGenExtends(node);
+ function loadDeltaModel(path){
+    rootNode = VirtualFileSystem.loadXml(path);
+    for each node with x:extends attribute  // Recursively traverse rootNode and its children
+        baseNode = loadDeltaNode(node.removeAttr('x:extends'));
+        genNodes = processGenExtends(node);
 
-    for each genNode in genNodes
-      baseNode = new DeltaMerger().merge(baseNode, genNode);
-    node = new DeltaMerger().merge(baseNode, node);
+        for each genNode in genNodes
+            baseNode = new DeltaMerger().merge(baseNode, genNode);
+        node = new DeltaMerger().merge(baseNode,node);
 
-  processPostExtends(node);
-  return node;
-}
+    processPostExtends(node);
+    return node;
+ }
 ```
 
+`DslNodeLoader.loadDeltaModel("comp:MyComponent/1.0.0")` returns an XNode representing the final merged node, which no longer contains any attributes or child nodes in the x namespace.
 
+Loader can be regarded as a kind of just-in-time compiler; the structural transformation performed while loading model files can be considered part of the compilation process.
 
-```javascript
-DslNodeLoader.loadDeltaModel("comp:MyComponent/1.0.0") returns XNode which is the final merged node containing no x name space attributes and child nodes.
-```
+### Delta operations defined at the structural layer rather than the object layer
 
+> Wittgenstein said that the limits of my language mean the limits of my world. Reversible Computation theory further interprets this as: a programming language defines a software structural space, and various reuse mechanisms that produce new structures from existing ones are transformation rules within this structural space.
 
+A truly practical DSL must consider extensibility and needs to embed decomposition, merging, and reuse mechanisms. However, most DSL designers habitually introduce these structural operations at the semantic object layer, which results in ad hoc designs lacking generality and internal consistency.
 
-The Loader can be seen as a just-in-time compiler that performs structural transformations when loading model files. This transformation is considered part of the compilation process.
+XLang offers a standardized approach that once and for all solves extensibility for all DSLs. A DSL engine only needs to consider minimal runtime concerns. XLang operates entirely at compile time (model parsing and loading); there is no XLang-specific content at runtime. The key is that XLang performs Delta merging at the structural layer beneath objects—the XNode layer—akin to S-expressions in Lisp, which themselves have no semantics. Detaching from semantics is precisely what gives Delta merging its generality.
 
-
-
-In the structure layer, not the object layer, Delta operations are defined.
-
-> "Language boundaries define our world's boundaries." Reverse computation theory further explains: **A programming language defines a software structure space, and various mechanisms based on existing structures to produce new structures for reuse resemble this structural transformation.**
-
-
-
-A practical DSL must address scalability concerns by incorporating decomposition, merging, and reuse mechanisms. However, most current DSL developers are accustomed to defining Delta operations within the object layer, resulting in isolated, ad-hoc designs lacking generality and internal consistency.
-
-XLang offers a comprehensive, standardized approach to address all scalability issues. The DSL engine only needs to handle minimal runtime concerns. XLang operates entirely during compilation (model analysis and loading), not at runtime.
-
-The key lies in **XLang implementing Delta merging operations within the object layer's structure layer**. The structure layer refers to the XNode level, similar to Lisp's S-expressions, which inherently lack meaning on their own. This meaninglessness is what enables **XLang's Delta merging operations to demonstrate their generality and internal consistency.
-
-For example:
-- Spring's `beans.xml` serves as a DSL in the component deployment domain.
-- Spring 1.0 introduced the `parent` attribute for inheritance, along with an `Import` syntax for file decomposition and reuse.
-- Spring 2.0 introduced custom nodes to streamline complex configuration of structure beans.
-- Spring Boot introduced `@ConditionalOnProperty`, enabling selective enablement of beans via configuration.
-
-To implement these functionalities, Spring's core framework requires specialized handling through dedicated code.
+For example, Spring’s `beans.xml` can be regarded as a DSL in the component assembly domain. Spring 1.0 introduced the parent attribute to implement a kind of inheritance, and the import syntax for complex file decomposition and reuse. Spring 2.0 introduced custom elements to simplify configuration of complex structured beans. Spring Boot introduced the @ConditionalOnProperty annotation, allowing bean activation to be controlled via configuration switches. To implement these features, Spring’s core had to include specific handling code.
 
 ```xml
 <beans xmlns="http://www.springframework.org/schema/beans"
@@ -172,12 +121,12 @@ To implement these functionalities, Spring's core framework requires specialized
         <property name="commonProperty" value="commonValue"/>
     </bean>
 
-    <!-- Child Bean, inherits configuration from parent bean -->
+    <!-- Child Bean inheriting from the parent -->
     <bean id="childBean" parent="parentBean">
         <property name="extProp" value="extValue"/>
     </bean>
 
-    <!-- Custom namespace configuration for beans -->
+     <!-- Configure a Bean using a custom namespace -->
     <myns:customBean id="customBean" customProperty="customValue"/>
 </beans>
 ```
@@ -197,21 +146,49 @@ public class MyComponent {
 }
 ```
 
-* First, we notice that without introducing any extensible mechanisms, Spring 1.0 treats the definition of a bean as a comprehensive component packaging model. This means that any bean that can be configured using `get/set` methods and constructors can be described using the `beans.xml` DSL for its packing logic. In mathematical terms, Spring 1.0 defines a complete set of packing operations.
-
-* XLang's approach is to introduce a set of Delta difference operations on top of an existing DSL. However, these **Delta operations** result in merging the `DSL + Delta` structure back into the original DSL structure. The interesting part is that Spring 2.0's custom namespace approach cannot be mapped back to Spring 1.0's syntax, meaning that a bean configured with Spring 2.0 syntax may not always work with Spring 1.0 syntax, even though Spring 1.0's syntax forms a complete set of operations. For instance, the custom namespace `<myns:customBean>` in Spring 2.0 triggers a NamespaceHandler in Java, whose logic can be arbitrarily complex and might even implicitly introduce order dependencies (bean declaration order could affect packing results), effectively breaking Spring 1.0's POJO-based packing design.
-
-* The `<x:extends>` element can inherit existing DSL files, similar to Spring 1.0's `import` syntax.
-
-* The `<x:gen-extends>` element uses Xpl template language to dynamically generate bean definitions. Here, the `<c:include>` element within Xpl can include external XNode nodes, serving as an alternative to Spring 1.0's `import` syntax.
-
-* The `<x:gen-extends>` segment leverages Xpl custom tags to simulate Spring 2.0's custom namespace mechanism. However, Xpl tags function through code generation, regardless of how complex the logic may seem. As long as they can generate the expected bean configuration definitions, it works. For example, the `<myns:customBean>` tag might generate multiple bean definitions. The actual effectiveness depends on the tag function's output during runtime. The `<x:gen-extends>` element itself is executed at compile time.
+With XLang, none of these features need to be implemented within the framework itself.
 
 ```xml
-<myns:customBean id="customBean" customProperty="customValue"
-                  xpl:lib="/example/myns.xlib" />
+<beans x:extends="config/base.beans.ml">
+   <x:gen-extends>
+     <c:include src="config/services.beans.xml" />
 
-This expands into:
+     <beans>
+        <myns:customBean id="customBean" customProperty="customValue"
+                      xpl:lib="/example/myns.xlib" />
+     </beans>
+   </x:gen-extends>
+
+   <bean id="parentBean" class="com.example.ParentClass">
+        <property name="commonProperty" value="commonValue"/>
+   </bean>
+
+   <bean id="childBean" x:prototype="parentBean">
+        <property name="extProp" value="extValue"/>
+   </bean>
+
+   <bean id="myComponent" class="com.example.MyComponent"
+         feature:on="mycomponent.enabled">
+       <property name="propA" ref="xxx" feature:on="mycomponent.xxx.enabled" />
+   </bean>
+</beans>
+```
+
+* First, notice that without any additional extensibility mechanisms, bean definitions in Spring 1.0 already constitute a complete component assembly model. That is, any bean that can be assembled via `get/set` methods and constructors can be declaratively defined using the `beans.xml` DSL. Mathematically, we can say Spring 1.0 defines a complete set of assembly operations.
+
+* XLang’s approach is to introduce a set of Delta operations atop the existing DSL, but the result of these Delta operations is to reduce `DSL + Delta` back to the original DSL structure. Interestingly, the custom namespace approach introduced in Spring 2.0 cannot be reduced back to the 1.0 syntax. In other words, beans configured with Spring 2.0 syntax are not guaranteed to be configurable using Spring 1.0 syntax, even though Spring 1.0 provides a complete operation set. Spring 2.0’s custom namespaces, such as `<myns:customBean>`, trigger a NamespaceHandler in Java whose execution logic can be arbitrarily complex and may implicitly introduce order dependencies (declaration order could affect assembly results), thereby undermining Spring 1.0’s POJO declarative assembly design.
+
+* `x:extends` can inherit existing DSL files, similar in function to Spring 1.0’s import syntax.
+
+* `x:gen-extends` executes the Xpl template language to dynamically generate bean definitions. The Xpl built-in `c:include` can include external XNode nodes, again replacing Spring 1.0’s import syntax.
+
+* The Xpl custom tag capability used within `x:gen-extends` can emulate Spring 2.0’s custom namespace mechanism. However, Xpl tags perform code generation: no matter how complex the tag function’s logic is, as long as it produces the desired bean configuration definitions, that is sufficient. For example, the `<myns:customBean>` above might actually generate multiple bean definitions. What matters at runtime is the generated result of the tag function. `x:gen-extends` itself executes at compile time.
+
+```xml
+ <myns:customBean id="customBean" customProperty="customValue"
+                      xpl:lib="/example/myns.xlib" />
+
+Actually expands into the following two bean definitions:
 
 <bean id="customBean" class="com.example.CustomBean">
     <property name="customProperty" value="customValue" />
@@ -221,48 +198,15 @@ This expands into:
 <bean id="otherBean" class="com.example.OtherBean" />
 ```
 
-* In XLang, sibling nodes can use the `<x:prototype>` attribute to define inheritance relationships. This replaces Spring 1.0's `parent` attribute for bean definitions. Additionally, during node merging in XLang, you can fine-tune the merging logic using `<x:override>`, determining whether to override, merge, or delete attributes. Importantly, XLang's mechanism allows this kind of control on any node, such as within a `<property>` node where you can specify `<x:prototype>` to inherit other property configurations. However, Spring's `parent` attribute is limited to bean definitions.
+* In XLang, sibling nodes at the same level can specify inheritance via the `x:prototype` attribute. This replaces the parent attribute’s role in Spring 1.0 syntax. Meanwhile, when nodes are merged in XLang, `x:override` can precisely control the merging logic: whether to overwrite, merge, or delete, etc. Importantly, XLang’s mechanism applies to any node—e.g., you can also specify `x:prototype` on a property to inherit another property’s configuration. In contrast, Spring’s parent attribute can only be used for bean definition inheritance.
 
-* The `<feature:on>` and `<feature:off>` attributes in XLang allow conditional loading of nodes. If the feature switch doesn't meet its conditions, the corresponding node is automatically deleted, effectively avoiding runtime execution. This mechanism replaces Spring Boot's conditional beans. Similarly, the `<feature:on>` attribute can be applied to any node, such as within a `<property>` node to conditionally configure an attribute. However, in Spring Boot, conditional switches only affect bean creation, without any declarative mechanism for runtime configuration.
+* In XLang, every node can use feature switches like `feature:on` and `feature:off` to control conditional loading. When a feature switch does not match, the corresponding node is automatically removed and never enters runtime. This replaces Spring Boot’s conditional beans. Likewise, feature switches can be used on any node; for example, you can control whether to configure a particular `<property>`. In Spring Boot, conditional switches only control bean creation; there is no declarative mechanism for conditionally configuring a property.
 
-* The `<x:extends>` element can inherit existing DSL files, mimicking Spring 1.0's `import` syntax.
+In summary, the Spring framework embeds many mechanisms to enhance extensibility, each specifically written for the component assembly domain and for the Spring framework itself. If you migrate to another runtime engine, these mechanisms all need to be re-implemented. For example, the Quarkus framework also supports bean assembly definitions and has to implement all these extensions on its own. Even after Spring implements them, frameworks like Hibernate cannot leverage these mechanisms for their own extensions.
 
-* The `<x:gen-extends>` segment uses Xpl template language to dynamically generate bean definitions. Here, the `<c:include>` element within Xpl can include external XNode nodes, serving as an alternative to Spring 1.0's `import` syntax.
+The key for XLang is that, after parsing XML or JSON into XNodes, it performs Delta operations at the XNode layer, rather than converting XNodes into strongly-typed BeanDefinitions and then doing Delta operations. Therefore, these capabilities can automatically apply to other DSLs, such as MyBatis mapper files, Hibernate hbm files, and more.
 
-* The `<x:gen-extends>` segment leverages Xpl custom tags to simulate Spring 2.0's custom namespace mechanism. However, Xpl tags function through code generation, regardless of how complex the logic may seem. As long as they can generate the expected bean configuration definitions, it works. For example, the `<myns:customBean>` tag might generate multiple bean definitions. The actual effectiveness depends on the tag function's output during runtime. The `<x:gen-extends>` element itself is executed at compile time.
-
-```xml
-<myns:customBean id="customBean" customProperty="customValue"
-                  xpl:lib="/example/myns.xlib" />
-
-This expands into:
-
-<bean id="customBean" class="com.example.CustomBean">
-    <property name="customProperty" value="customValue" />
-    <property name="otherProperty" ref="otherBean" />
-</bean>
-
-<bean id="otherBean" class="com.example.OtherBean" />
-```
-
-* In XLang, sibling nodes can use the `<x:prototype>` attribute to define inheritance relationships. This replaces Spring 1.0's `parent` attribute for bean definitions. Additionally, during node merging in XLang, you can fine-tune the merging logic using `<x:override>`, determining whether to override, merge, or delete attributes. Importantly, XLang's mechanism allows this kind of control on any node, such as within a `<property>` node where you can specify `<x:prototype>` to inherit other property configurations. However, Spring's `parent` attribute is limited to bean definitions.
-
-* The `<feature:on>` and `<feature:off>` attributes in XLang allow conditional loading of nodes. If the feature switch doesn't meet its conditions, the corresponding node is automatically deleted, effectively avoiding runtime execution. This mechanism replaces Spring Boot's conditional beans. Similarly, the `<feature:on>` attribute can be applied to any node, such as within a `<property>` node to conditionally configure an attribute. However, in Spring Boot, conditional switches only affect bean creation, without any declarative mechanism for runtime configuration.
-
-* XLang introduces a comprehensive set of mechanisms for extending and customizing the packing logic, all of which require specialized knowledge specific to component packaging in Spring frameworks. Once migrated to another runtime engine like Quarkus, these mechanisms must be reimplemented accordingly. For instance, Quarkus supports bean definitions similar to Spring's, but its extension system differs significantly from Spring's. As a result, after migrating away from Spring, you would need to recreate these extensions using Quarkus-specific APIs.
-
-* In conclusion, Spring frameworks come with built-in mechanisms for increasing extensibility, all of which are tailored specifically for component packaging in the context of Spring. Migrating to another runtime engine like Quarkus requires reimplementing these mechanisms, as they are fundamentally different from Spring's. For example, after moving to Quarkus, you would need to redefine how components are packaged and managed using Quarkus-specific APIs.
-
-
-The core of XLang is the ability to perform **delta computation** on either XML or JSON data. Instead of converting an XNode into a strong-typed BeanDefinition and then performing delta operations, it directly operates on XNodes at the node level. This capability makes it highly applicable to other DSLs like MyBatis's mapper files and Hibernate's hbm files.
-
-
-### Similar Extendable Systems
-
-Many domains face similar extensibility challenges. For instance, GraphQL introduced type extension syntax by Facebook.
-
-
-## Example of GraphQL Extension Syntax
+Similar extensibility issues exist in many domains. For instance, Facebook’s GraphQL protocol introduced type extension syntax:
 
 ```graphql
 type User {
@@ -278,61 +222,45 @@ extend type User {
 }
 ```
 
-In the `graphql-java` package, this process involves parsing GraphQL into TypeDefinition and TypeExtensionDefinition before merging types at the object level.
+In the `graphql-java` implementation, GraphQL definitions are first parsed into TypeDefinition and TypeExtensionDefinition, and type merging is implemented at the object layer.
 
+Within XLang’s technology stack, the NopGraphQL framework defines types using the XMeta metadata model, so it can directly use XLang’s built-in Delta mechanisms at the XNode layer to implement extensions, without designing a separate TypeExtension syntax. At runtime in NopGraphQL, there is no need to understand any type extension concept. For the runtime framework, a type is just a type—there is no “type + type extension”.
 
+### Loader as Generator
 
-The NopGraphQL framework leverages XMeta metadata modeling to define types. Unlike other systems that require manual type extension definitions, XLang's built-in difference mechanism allows for seamless type extensions without additional syntax. At runtime, no knowledge of type extensions is required; the system just works with the defined types.
+Within XLang’s technology stack, the Loader abstraction has a special status. Since all content related to Reversible Computation is, in principle, implemented within the Loader abstraction, integrating XLang into third-party frameworks is very simple: directly replace the DSL’s Loader with XLang’s Delta Loader.
 
-
-
-In XLang's ecosystem, the **Loader** abstract class holds significant importance because it handles the conversion from various DSLs to XLang, enabling Delta operations on XNodes. This abstraction allows third-party frameworks like MyBatis and Hibernate to integrate effortlessly by providing their own specific Loader implementations.
-
-
-
-A typical model loader might look like this:
+A generic model loader can be seen as having the following type definition:
 
 ```
 Loader :: Path -> Model
 ```
 
-
-
-When designing for universality, it's essential to consider not just immediate needs but also future evolution. Programming is no longer limited to addressing only current requirements; it must encompass all possible scenarios. This is where **universal applicability** comes into play.
-
-
-
-The Loader can be seen as a generator that transforms input into output. For example:
+For a general design, we must recognize that coding is not only for current needs; it must also consider future changes and the system’s evolution across space and time. In other words, programming does not target a single, current world but all possible worlds. Formally, we can introduce a Possible operator to describe this:
 
 ```
 Loader :: Possible Path -> Possible Model
 Possible Path = deltaPath + stdPath
 ```
 
-Here, `stdPath` refers to the standard path (e.g., `main.wf.xml`), while `deltaPath` is the customized path (e.g., `/_delta/a/main.wf.xml`). The Loader automatically identifies and uses these paths without modifying existing business logic.
+stdPath refers to the standard path corresponding to the model file, while deltaPath refers to the path used for Delta customization of an existing model file. For example, in a base product we have a built-in business workflow main.wf.xml. When customizing for Customer A, we need a different workflow but do not want to modify the base product’s code. In this case, we can add a Delta model file `/_delta/a/main.wf.xml`, which represents Customer A’s customized main.wf.xml. The Loader will automatically recognize the existence of this file and use it, without any changes to existing business code.
 
-
-
-The Loader's role extends beyond mere data handling. It abstracts the complexity of managing Delta operations, allowing for a clear separation between what needs to be customized and what can remain unchanged. This abstraction also makes it easier to integrate with other systems, ensuring scalability and adaptability.
-
-
-
-Programming should not confine itself to current requirements but must account for future developments. By designing with the entire universe of possibilities in mind, we ensure that our solutions remain relevant and adaptable over time. The goal is no longer about addressing specific needs but about creating a foundation that can accommodate all future challenges.
-
-
+If we only want to fine-tune the original model rather than completely replace it, we can use `x:extends` inheritance. The execution logic of XLang’s DeltaLoader is described mathematically by:
 
 ```
 Loader<Possible Path> = Loader<deltaPath + stdPath>
-                          = Loader<deltaPath> x-extends Loader<stdPath>
-                          = DeltaModel x-extends Model
-                          = Possible Model
+                      = Loader<deltaPath> x-extends Loader<stdPath>
+                      = DeltaModel x-extends Model
+                      = Possible Model
 ```
 
-Here, the Loader composes multiple models (DeltaModel and Model) to create a unified model (Possible Model). This demonstrates how **extensible programming** allows for dynamic adjustments while maintaining core functionalities.
+It is important to emphasize that the Loader abstraction has very broad application scenarios. Many functionalities related to extensibility can be pushed down to the Loader layer for unified implementation. For example, multi-tenant customization can be handled by a Loader that recognizes tenant parameters. For further details, see [Designing Low-Code Platforms Through Tensor Product](https://mp.weixin.qq.com/s/BFCTN73pH8ZZID3Dukhx3Q).
 
+## 2. How to understand the analogy between Delta superposition and waves in XLang?
 
+> In the physical world, there is another way of construction: waves. Waves are continuously existing patterns that construct the world through interference and superposition. XLang’s distinctiveness lies in its support for continuous constructive superposition via Delta operations.
 
-Loaders are particularly useful in managing multi-tenant systems. They can dynamically adjust configurations based on tenant-specific parameters, ensuring that each tenant's data is isolated and managed separately without altering the core system.
+Traditionally, after constructing X, any modification must change X itself. In contrast, with a superpositional approach, you can obtain a new Y without directly changing X by adding an extra Delta.
 
 ```
 X = A + B + C
@@ -341,39 +269,40 @@ Y = A + B + D
   = X + Delta
 ```
 
-In the traditional software engineering framework, even if some form of incremental development is achievable, it often still requires special design of many extension points. Not all modifications can be handled through Delta methods, especially in traditional software engineering where incremental generally implies adding new functionality rather than reducing existing features. Delta customization allows us to **add while subtracting**.
+In traditional software engineering, even if incremental development is achievable, many specialized extension points are often needed, and not all modifications can be done via Delta-style customization. In particular, traditional incremental approaches generally imply adding new features and rarely include a design for reducing existing features. Delta customization allows us to achieve reduction by addition.
 
-Systems developed with XLang require no additional effort to support Delta customization. This significantly reduces productization development costs. For example, a core banking system can be packaged into a jar without modifying its underlying code. All custom modifications and incremental developments can be stored as separate Delta differences in the `resources/_vfs` directory. By switching between Deltas, multiple customized versions can be managed. The same mechanism applies to multi-tenant customization.
+Systems developed with XLang require no extra work to automatically support Delta customization. This drastically reduces the development cost of productized software products. For example, after packaging a banking core system into a JAR, there is no need to modify the base product’s code. All user-specific customizations and secondary development can be stored separately as Deltas. By switching Deltas, multiple different customized versions can be realized. The same mechanism can be used for multi-tenant customization.
 
-Delta customization enables precise attribute-level customization. Traditional software engineering typically provides only a limited number of pre-defined extension points, making fine-grained customization difficult. For example, if I want to define a specific attribute of a button, I often have to add an entirely new component or page. **Continuous customization** across all business aspects is challenging.
+Delta customization enables precise customization down to individual properties. Traditional software engineering offers only a few pre-defined extension points and finds it difficult to support fine-grained customization everywhere. For example, if you only want to define a single property of a button, you often have to add a new component or page. All business-level concepts of interest can be customized individually—this is a manifestation of continuity.
 
-## Can XLang be introduced into existing standard systems?
+## 3. Can XLang be introduced into already developed standard systems?
 
-> XLang is an innovative technology. Can it be applied to existing systems? When encountering customization requirements, we can use XLang to express differences and generate customized versions based on standard systems and Delta differences.
+> XLang is an innovative technology. Can it be applied to existing systems? This way, when customization needs arise, one can express the Delta using XLang and then generate a customized version based on the standard system plus the Delta.
 
-First, it must be clarified that differences need to be expressed in a Delta-aware structure. Traditional software uses general-purpose languages for expression, which defines its structural space. Languages like `Java` or `C#` are limited when expressing differences because they rely on general-purpose programming paradigms.
+First, it must be clear that Deltas need to be expressed within a Delta-ized structural space. Traditional software uses general-purpose languages, and its structural space is defined by such languages. General-purpose languages like Java and C# are very limited in expressing Deltas and cannot achieve fine-grained Delta definitions.
 
-In object-oriented programming languages, the only difference mechanism available is inheritance. The Nop platform employs a "three-layer" architecture for its code generation, using the following approach:
+In object-oriented languages, the only Delta mechanism that can be directly leveraged is inheritance. The Nop platform uses a “sandwich” architecture, with code generation following the pattern:
 
 ```java
-class NopAuthUser extends _NopAuthUser {
+class NopAuthUser extends _NopAuthUser{
 
-    // Additional methods can be added here, inheriting from base classes.
+    // You can add extra methods here, inheriting code generated from the base class.
 }
 
-class _NopAuthUser extends OrmEntity {
+class _NopAuthUser extends OrmEntity{
 }
 ```
 
-This means that model-driven classes inherit from system-defined base classes. The outermost class is generated based on the code generation logic, while inner classes are derived directly from system-provided classes. This allows manually modified code to remain isolated from automatically generated code. During code generation, we follow these rules: **Files with underscores as prefixes and `_gen` directory files will be automatically overwritten only if they don't exist**. Other files are only generated if they don't already exist. When the model changes, we can regenerate without risking manual modifications being lost.
+That is, code-generated classes inherit from system-built base classes to automatically obtain built-in properties and methods, while an outermost class inherits from the generated class to isolate hand-written code from auto-generated code. During code generation, we follow this rule: files with an underscore prefix and all files under the `_gen` directory are automatically overwritten; other files are only created if they do not exist. Thus, when the model changes, you can regenerate without losing manual changes, enabling model-driven incremental development.
 
-While object-oriented languages do not inherently support extensive difference mechanisms beyond inheritance, architectural layers allow for more flexible Delta implementation at the structural level. The simplest approach is to use XML/JSON/YAML configuration or model files wherever differences need to be managed. This is where XLang shines.
+Although more Delta support cannot be obtained directly from object-oriented languages, more Delta mechanisms can be constructed at the architectural level. The most basic approach is to introduce XLang wherever XML/JSON/YAML configuration or model files are used.
 
-For example, in the provided image (`../tutorial/simple/images/solon-chain.png`), the Chain model is defined using a JSON file. Using XLang, we can replace `Chain.parseByUrl` with `ResourceComponentManager.loadComponentModel(path)` and store the JSON file in the `resources/_vfs` directory. The XLang Delta syntax (`x:extends`, `x:post-extends`, `x:override`) allows precise customization.
+![](../tutorial/simple/images/solon-chain.png)
 
-The Nop platform provides a `nop-spring-delta` module that extends Spring's `beans.xml` and MyBatis' `mapper.xml` with Delta customization support. These XML files can be stored in the `resources/_vfs` directory for Delta-based customization.
+In the example above, Chain is a model object that can be defined via a JSON file, and it can be parsed and loaded using the `Chain.parseByUrl` function. If refactoring with XLang, you can replace `Chain.parseByUrl` with `ResourceComponentManager.loadComponentModel(path)` and then move the JSON file to the `resources/_vfs` directory. In this JSON, you can use XLang’s Delta syntax such as `x:extends`, `x:post-extends`, and `x:override`.
 
-Specific implementation steps are as follows:
+The Nop platform provides a `nop-spring-delta` module that adds Delta customization support for Spring’s `beans.xml` and MyBatis’s `mapper.xml` files. You can place these XML files under `resources/_vfs`. The specific approach is as follows:
+
 ```java
 @Service
 @ConditionalOnProperty(name = "nop.spring.delta.mybatis.enabled", matchIfMissing = true)
@@ -386,7 +315,7 @@ public class NopMybatisSessionFactoryCustomizer implements SqlSessionFactoryBean
         if (!resources.isEmpty()) {
             List<Resource> locations = new ArrayList<>(resources.size());
             for (IResource resource : resources) {
-                // Ignore auto-generated mapper files, they should exist as base classes only
+                // Ignore auto-generated mapper files; they can only serve as base classes
                 if (resource.getName().startsWith("_"))
                     continue;
 
@@ -394,11 +323,11 @@ public class NopMybatisSessionFactoryCustomizer implements SqlSessionFactoryBean
                 XNode node = result.getNode();
                 node.removeAttr("xmlns:x");
 
-                String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\\n" +
+                String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n" +
                         "<!DOCTYPE mapper\n" +
                         "        PUBLIC \"-//mybatis.org//DTD Mapper 3.0//EN\"\n" +
                         "        \"http://mybatis.org/dtd/mybatis-3-mapper.dtd\">\n" + node.xml();
-                locations.add(new ByteArrayResource(xml.getBytes(StandardCharsets.UTF_8)), resource.getPath());
+                locations.add(new ByteArrayResource(xml.getBytes(StandardCharsets.UTF_8), resource.getPath()));
             }
             factoryBean.addMapperLocations(locations.toArray(new Resource[0]));
         }
@@ -406,59 +335,35 @@ public class NopMybatisSessionFactoryCustomizer implements SqlSessionFactoryBean
 }
 ```
 
-* `ModuleManager.instance().findModuleResources(false, "/mapper", ".mapper.xml")` will search for `mapper.xml` files in the mapper directories across modules. This process automatically considers Delta directories. If a file with the same name exists in the `_delta/{deltaId}` directory within the VirtualFileSystem, it will be used instead. The Nop platform uses a VirtualFileSystem similar to Docker's layering, where parent layers can override child layers' files.
+* `ModuleManager.instance().findModuleResources(false, "/mapper", ".mapper.xml")` searches for `mapper.xml` files under each module’s mapper directory. This process automatically considers files under Delta directories. If a file with the same name exists under `_vfs/_delta/{deltaId}/`, the Delta version will be selected automatically. The Nop platform’s built-in VirtualFileSystem is similar to Docker’s layered filesystem: a file in an upper layer overrides the same-named file in a lower layer. Each Delta directory forms an independent layer, and multiple Delta layers can be specified via `nop.core.vfs.delta-layer-ids`.
 
-* When loading XML files using XLang's `DslNodeLoader`, the root node's `x:schema` attribute is read to retrieve the corresponding XDef definition. This allows for Delta merging based on the defined schema.
+* When loading XML files through XLang’s DslNodeLoader, the `x:schema` attribute on the root node is used to read the corresponding XDef meta-model, and Delta merging is performed according to the meta-model specification.
 
-* After merging, the resulting XNode is serialized back into XML format and added to MyBatis' factory bean. MyBatis itself does not require any modification; this extension only adds a new way to load mapper files.
+* After merging, you obtain an XNode, which can be converted to an XML DOM node; here we serialize it to XML and feed it into MyBatis’s factory bean. MyBatis itself requires no modifications; we simply add a new way for it to obtain mapper files.
 
-## 4. Delta Mechanism in XLang
+## 4. Does XLang’s Delta computation and mechanism introduce extra performance overhead while improving extensibility and customization?
 
-While using XLang's Delta mechanism can enhance flexibility and customization, it may introduce additional overhead due to the nature of Delta merging and versioning.
+Primarily, XLang performs DSL Delta merging and Delta customization at model load time via the unified `ResourceComponentManager.loadComponentModel` function, implementing model caching and model compilation dependency tracking (automatically invalidating model caches when dependent files change).
 
+During development, technologies like lazy loading, just-in-time compilation, and parallel loading can reduce system initialization time.
 
+For releases, you can use Maven packaging to execute merges at compile time, generating the merged model files under the `_delta` directory and marking the model root node with `x:validated="true"`. At runtime, the system will prioritize loading the model files under `_delta` (which are already the final merged results). Since they are marked as validated, the merge process is automatically skipped, so even complex Delta merges will not impact runtime performance.
 
-## 1. Introduction to XLang Implementation
-The XLang implementation supports delta merging and customization during model loading, primarily through the `ResourceComponentManager.loadComponentModel` function. This process includes:
-- **Model Caching**: Models are cached for efficient reuse.
-- **Model Compilation Tracking**: Dependencies are tracked so that the cache is invalidated when changes occur.
+## 5. Is XLang essentially a set of annotations that the underlying engine understands and, after parsing, performs Delta merging?
 
+You can think of it as introducing new Delta operation syntax rules on top of general XNode nodes (akin to a general AST), i.e., the `x:extends`, `x:override` annotations you mentioned.
 
-## 2. Optimization in Development Phase
-In the development phase, techniques such as lazy loading, immediate compilation, and parallel loading can reduce system initialization time.
+* If we package these annotations and the parsing engine into a general XML input/output system, can we achieve Delta-ization of everything? Regardless of whether it’s program logic, workflows, forms, or any other content, as long as it can be defined in XML, it can be Delta-merged; after merging, pass it to the execution engine, and how to parse that DSL is up to the engine and unrelated to XLang.
+Yes, but this understanding is partial and contains misunderstandings. For example, it ties the concept to XML specifically, whereas XLang is fundamentally agnostic to concrete forms; it is about operations on general Tree structures.
 
+* So is XLang a standard set of attributes to describe additions, deletions, or modifications of node definitions, where Delta merging combines a main file and a delta according to XLang’s defined rules, producing a new DSL description (XML, JSON, or any tree structure), and then the execution engine takes over to parse it independently of XLang?
+Broadly yes. But you also need to understand the roles of `x:gen-extends` and `x:post-extends`, and ultimately recognize the complete computation pattern: `App = Delta x-extends Generator<DSL>`.
 
-For production releases:
-- Use Maven or similar packaging tools to bundle components during compilation.
-- The resulting merged model is placed in the `_delta` directory.
-- Mark the root node with `x:validated="true"`.
+## 6. Does XLang’s model pose challenges for secondary development and an ISV ecosystem? If debugging bugs without access to others’ Deltas, how can we diagnose where a logic changed the data?
 
-At runtime, the system prioritizes loading from the `_delta` directory, ensuring efficient delta merging. This process skips redundant merges when models are already validated.
+First, all model files are managed under the unified `_vfs` virtual file directory and all have XDef meta-model definitions. Generally, you only need to inspect the meta-model definition to understand the DSL’s specific syntax structure, and the IntelliJ IDEA plugin provides syntax hints and supports breakpoints, etc.
 
+At system startup, all Delta merge results are output to the dump directory, where you can see the final merged result of each model file and the origin of each property and node. To further trace the merge process, mark the root node with `x:dump="true"`.
+For detailed debugging methods, see [debug.md](../dev-guide/debug.md)
 
-Even complex delta merging logic does not impact runtime performance due to efficient validation and merging mechanisms.
-
-
-XLang is essentially a set of annotations that the underlying engine understands. These annotations enable:
-- **Delta Operations**: Defined using `x:extends` and `x:override`.
-- **Customizable Syntax Rules**: Such as `x:extends` for extending existing models and `x:override` for customizing specific nodes.
-
-
-In second-generation development:
-- Models are managed in the `_vfs` virtual file system.
-- XDef metadata ensures consistent DSL syntax representation.
-- Tools like IDEA with dedicated plugins provide integrated support, including syntax highlighting and debugging capabilities.
-
-
-During runtime:
-- Delta changes are stored in the `_delta` directory.
-- The final merged model is placed at the root level, marked with `x:validated="true"`.
-- This ensures efficient delta merging without redundant operations.
-
-
-For detailed debugging:
-- Review the contents of the `_delta` directory for merged results.
-- Use `x:dump="true"` to log full details of delta operations and node origins.
-
-Refer to [debug.md](../dev-guide/debug.md) for comprehensive debugging information.
-
+<!-- SOURCE_MD5:43a64ae5416616da16c828121e1b5851-->

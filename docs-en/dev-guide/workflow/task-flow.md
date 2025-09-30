@@ -1,57 +1,52 @@
-# Logic Arrangement
 
-Unit tests can be found in [TestTaskManager.java](), and test files are located at [/nop/task/test](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-task/nop-task-core/src/test/resources/_vfs/nop/task/test).
+# Logical Orchestration
 
-The explanation of the design principles is provided in [lowcode-task-flow.md](../../theory/lowcode-task-flow.md).
+For unit tests, see [TestTaskManager.java]()
+, and for test files, see [/nop/task/test](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-task/nop-task-core/src/test/resources/_vfs/nop/task/test)
 
-The rationale behind implementing backend service functions using NopTaskFlow is explained in [task-flow-for-biz.md](task-flow-for-biz.md).
+For an introduction to the design principles, see [lowcode-task-flow.md](../../theory/lowcode-task-flow.md)
+
+For an explanation of using NopTaskFlow to implement backend service functions, see [task-flow-for-biz.md](task-flow-for-biz.md)
 
 ## Basic Concepts
 
-1. **TaskFlow**: The logic flow model is stored in the `task.xml` or `task-lib.xml` files, where it can be reused as a reusable step library.
-2. **Step**: The logic flow is decomposed into multiple sub-steps, each of which can call and nest other sub-steps.
-3. **Input/Output**: Each step behaves like a multi-input, multi-output function, obtaining data via Input and outputting data via Output.
-4. **Scope**: Each step has an independent variable scope. The Input retrieves variable values from the parent step's scope, while the Output updates the parent step's scope.
-5. **Async**: Steps can be executed synchronously or asynchronously. Generally, the framework automatically waits for the previous asynchronous step to complete before executing the next one.
-6. **TaskRuntime/TaskStepRuntime**: The context object for tasks and sub-steps, supporting asynchronous cancellation.
+1. TaskFlow: A logical flow model stored in a task.xml model file; it can also be stored in task-lib.xml as a reusable step library.
+2. Step: The logical flow is decomposed into multiple sub-steps, and each step can recursively invoke other sub-steps.
+3. Input/Output: A step is like a multi-input, multi-output function. It obtains data via Input and outputs data via Output.
+4. Scope: Each step has an independent variable scope. Input reads variable values from the parent step’s scope, while Output updates the parent step’s scope.
+5. Async: Steps can run synchronously or asynchronously. In general, the framework automatically waits for the previous step to complete its asynchronous processing before executing the next step.
+6. TaskRuntime/TaskStepRuntime: Context objects for task and task-step execution, supporting asynchronous cancellation.
 
 The basic execution structure is as follows:
 
 ```javascript
-parentScope = parentStepRuntime.scope;
-```
+parentScope = parentStepRuntime.scope
 
-For each `inputModel`:
-```javascript
-inputs[inputModel.name] = inputModel.source.evaluate(parentScope);
-```
+for each inputModel
+   inputs[inputModel.name] = inputModel.source.evaluate(parentScope)
 
-Then, execute the step asynchronously:
-```javascript
 outputs = await step.execute(inputs);
+
+for each outputModel
+   parentScope[outputModel.exportAs] = outputs[outputModel.name]
 ```
 
-For each `outputModel`:
-```javascript
-parentScope[outputModel.exportAs] = outputs[outputModel.name];
-```
-
-The conceptual structure is very similar to function calls in general programming languages:
+Conceptually, this is very similar to function calls in general programming languages:
 
 ```javascript
-var { a: aName, b: bName } = await fn({ x: exprInput1, y: exprInput2 });
+var { a: aName, b: bName} = await fn( {x: exprInput1, y: exprInput1} )
 ```
 
-The `Step` in TaskFlow is an enhanced version of traditional functions, supporting asynchronous execution, timeout handling, and retry functionality.
+A TaskFlow Step can be seen as an enhanced version of a traditional function object, with built-in support for asynchronous execution, timeout handling, automatic retries, and more.
 
-## Step Configuration
+## Common Step Configuration
 
-The meta-model for TaskFlow is defined in [task.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef).
+For the TaskFlow meta-model definition, see [task.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)
 
-TaskFlow supports built-in sequential, parallel, loop, and choose configurations. All these configurations come with some common settings.
-
+TaskFlow comes with generic syntactic steps such as sequential/parallel/loop/choose. All of these steps share some common configuration.
 
 ```xml
+
 <xdef:define xdef:name="TaskStepModel" executor="bean-name" timeout="!long=0"
              name="var-name" runOnContext="!boolean=false" ignoreResult="!boolean=false"
              next="string" nextOnError="string">
@@ -78,33 +73,34 @@ TaskFlow supports built-in sequential, parallel, loop, and choose configurations
 </xdef:define>
 ```
 
-*If input is not specified, variables are retrieved from the parent scope by default. If a source is specified, expressions are dynamically evaluated to retrieve variables; otherwise, variables are retrieved based on their name. If `fromTaskScope=true` is set, variables are retrieved from the global task context instead of the parent scope.*
-
-*When the step successfully executes, it updates the parent scope based on the output configuration. If a source is specified, the return value is dynamically calculated using expressions; otherwise, it is obtained based on the step's TaskStepReturn.outputs collection. If `toTaskScope=true` is set, the global task context is updated instead of the parent scope.*
-
-*Through the output's exportAs configuration, you can change the variable name during updates to the scope. For example:*
+*
+By default, input reads variables from parentScope. If source is specified, the expression is evaluated dynamically; otherwise, the variable is obtained by name. If you set fromTaskScope=true, it reads from the global task context.
+* After a step executes successfully, parentScope is updated according to the output configuration. If source is specified, the return value is computed dynamically via the expression. If source is not specified, the value is retrieved by name from the TaskStepReturn.outputs collection of the step. If toTaskScope=true is set, it updates the global task context instead of parentScope.
+* The exportAs attribute in output allows you to change the variable name used when updating the scope. For example:
 
 ```xml
+
 <output name="result" exportAs="a"/>
 ```
 
-*this indicates that the result variable from the data is updated to the parent scope with the variable name changed to "a".*
+This means the result variable in the return data is written back to the parent scope under the name a.
 
 ## Built-in Steps
 
 ## Xpl Script
 
 ```xml
-<xpl name="test">
+
+<step name="test">
   <input name="sum"/>
   <source>return sum + 1</source>
   <output name="sum"/>
-</xpl>
+</step>
 ```
 
-The xpl step is used to execute the Xpl template language. In the example above, it is equivalent to:
+The xpl step is used to execute the XPL template language. The example above is equivalent to
 
-```xml
+```
 sum = function(sum){
   return sum + 1
 }(sum)
@@ -113,27 +109,28 @@ sum = function(sum){
 ## Sequential Execution
 
 ```xml
+
 <sequential name="test">
   <steps>
-    <xpl name="step1">
+    <step name="step1">
       <source>
         return 1
       </source>
-    </xpl>
+    </step>
 
-    <xpl name="step2">
+    <step name="step2">
       <input name="RESULT"/>
       <source>
         return RESULT + 2
       </source>
-    </xpl>
+    </step>
   </steps>
 </sequential>
 ```
 
-In sequential steps, the system specially identifies each sub-step's return value by its name (e.g., RESULT) and automatically updates the scope. The example above is equivalent to:
+When a sequential step runs, it pays special attention to a variable named RESULT returned by each sub-step and automatically updates it in the scope. The code above is equivalent to
 
-```xml
+```
 RESULT = function(){
   return 1
 }();
@@ -143,35 +140,38 @@ RESULT = function(RESULT){
 }(RESULT)
 ```
 
-## Step Decorator
+## Step Decorators
 
-Using step decorators allows you to introduce transaction, ORM session, etc., which depend on more advanced AOP support. For details, see [task-step-decorator.md](task-step-decorator.md).
+Step decorators can introduce transaction, ormSession and other AOP-like supports. See [task-step-decorator.md](task-step-decorator.md)
 
-## Output Variable Renaming
+## Renaming Output Variables
 
-You can change the name of the output variable by using the exportAs property.
+You can change the name of the output variable as follows.
 
-### 1. Using exportAs will change the variable name when returned to the parent scope
+### 1. Using exportAs changes the variable name written back to the parent scope
 
 ```xml
+
 <output name="RESULT" exportAs="value"/>
 ```
 
-### 2. Execute Expression to Generate New Return Variable
+### 2. Evaluate an expression to produce a new return variable
 
 ```xml
+
 <output name="value">
   <source>RESULT</source>
 </output>
 ```
 
-Based on the current environment values, execute a `source` expression dynamically to calculate a return value.
+This dynamically computes a return value by evaluating a source expression against the current context.
 
-## Expand Node Types
+## Extending Node Types
 
-NopTaskFlow has built-in support for a special step type called `custom`. This can be specified using the `customType` attribute and `xmlns` namespace. It will automatically be translated into a tag implementation.
+The step node in NopTaskFlow has a special customType attribute. Using it together with xmlns to specify an xpl tag will cause the step to be automatically translated into that tag implementation.
 
 ```xml
+
 <task xmlns:test="/nop/test/test.xlib" x:extends="/nop/task/lib/common.task.xml">
   <steps>
     <step name="step1" customType="test:MyFunc" test:a="${1}">
@@ -186,13 +186,13 @@ NopTaskFlow has built-in support for a special step type called `custom`. This c
 </task>
 ```
 
-* `common.task.xml` introduces custom type translation support via `<x:post-extends>`, which actually invokes `<task-gen:TransformCustomType>` for implementation
-Translation results in:
+* common.task.xml introduces translation support for customType via <x:post-extends>, which internally invokes <task-gen:TransformCustomType> to perform the translation. After translation, the content actually compiled is:
 
 ```xml
+
 <task xmlns:test="/nop/test/test.xlib" x:extends="/nop/task/lib/common.task.xml">
   <steps>
-    <xpl name="step1">
+    <step name="step1">
       <input name="b"/>
       <source>
         <test:MyFunc xpl:lib="/nop/test/test.xlib" a="${1}" b="${b}">
@@ -203,43 +203,41 @@ Translation results in:
           </exec>
         </test:MyFunc>
       </source>
-    </xpl>
+    </step>
   </steps>
 </task>
 ```
 
-This means `customType` is translated into an `XPL tag`, which then implements custom logic. The `customType` specifies a namespace, and all attributes and child nodes with this namespace become properties of the `XPL tag`.
+That is, customType is translated into an xpl tag, and the custom logic is implemented through that xpl tag. customType specifies a namespace; all attributes and child nodes in that namespace become attributes and child nodes of the tag function. In addition, all input parameters are also automatically added as attributes of the tag.
 
-Additionally, all input parameters are automatically converted into tag properties.
+This transformation mechanism minimizes the formal differences between custom extended steps and built-in steps. Other than having an extra namespace, it is essentially identical to the built-in tag form.
 
-Through this conversion mechanism, we aim to minimize differences between custom extension steps and built-in steps. Except for the additional namespace, the structure is almost identical to built-in tags.
+## `in/out` namespace
+The meta-model definition in task.xdef introduces xdef:transformer-class, which can automatically transform the structure after loading an XNode. This mechanism can be used to normalize multiple different structures into a unified structure.
 
-## `in/out` Namespace
-
-The `task.xdef` metadata model introduces `<xdef:transformer-class`, which can automatically convert structures after loading XNode. This mechanism allows us to normalize different structures into a unified format.
-
-`InOutNodeTransformer` automatically identifies `in:` and `out:` prefixes and converts them into `input` and `output` child nodes.
+InOutNodeTransformer automatically recognizes the in: and out: prefixes and converts them into input and output child nodes.
 
 ```xml
 <xpl in:x="1" out:RESULT="x+y">
-  <in:y mandatory="true">2</in:y>
+   <in:y mandatory="true">2</in:y>
 </xpl>
 ```
 
-This is equivalent to:
-
+Equivalent to
 ```xml
-<xpl>
+<step>
   <input name="x">
-    <source>1</source>
+     <source>1</source>
   </input>
 
   <input name="y" mandatory="true">
-    <source>2</source>
+     <source>2</source>
   </input>
 
   <output name="RESULT">
-    <source>x + y</source>
+     <source> x + y</source>
   </output>
-</xpl>
+</step>
 ```
+
+<!-- SOURCE_MD5:a8d124a13d63f80eaea13c6d0643944c-->

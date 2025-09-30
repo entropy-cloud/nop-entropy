@@ -1,128 +1,149 @@
-# 1. Parsing XML Text
+# 1. Parse XML text
 
-```xml
+```
 XNode node = XNodeParser.instance().parseFromText(loc, text);
 ```
 
-XNode parsing results in a different structure compared to DOM parsing. While DOM always retains whitespace nodes, XNode ignores whitespace between nodes. For example:
+The XNode parsing result differs from DOM parsing. DOM always preserves whitespace nodes between elements. When XNode parses, if there is only whitespace text between two nodes, that whitespace text is ignored. For example
 
 ```xml
+
 <root>
   <child1/>
   <child2/>
-</root>    
+</root>
 ```
 
-The root node parsed by XNode contains two child nodes: child1 and child2.
+The root node parsed by XNode has two child nodes: child1 and child2.
 
-## 2. Parsing XML Files
+## 2. Parse XML files
 
-```xml
+```
 XNode node = XNodeParser.instance().parseFromReource(resource);
-或者
+or
 
 XNode node = ResourceHelper.readXml(resource);
 ```
 
-## 3. Serializing XNode to XML and Saving to File
+## 3. Serialize XNode to XML and save it to a file
 
-```xml
-ResourceHelper.writeXml(resource, node);e
+```
+ResourceHelper.writeXml(resource,node);e
 ```
 
-## 4. Parsing XML into Java Objects Based on XDef Schema
+## 4. Parse an XML file into Java objects according to the XDef meta-model definition
 
-```java
+```javascript
 new DslModelParser(xdefPath).parseFromResource(resource);
 ```
 
-## 5. Recursively Traversing Each Node in XNode
+## 5. Recursively traverse each node of an XNode
 
-```java
-node.forEachNode(n -> process(n));
+```
+node.forEachNode(n-> process(n));
 ```
 
-## 6. Common Functions
+## 6. Common functions
 
-```java
+```javascript
 
-node.getTagName() // Get tag name
-node.getAttr(name) // Get attribute
-node.setAttr(name, value) // Set attribute
+node.getTagName() // Read the tag name
+node.getAttr(name) // Read an attribute
+node.setAttr(name,value) // Set an attribute
 
-node.attrText(name) // Get text attribute; returns null if text is empty
-node.attrTextOrEmpty(name) // Returns null if attribute is missing
-node.attrInt(name) // Get integer attribute; returns default value if not present
-node.attrInt(name, defaultValue) // Get integer attribute with default value
-node.attrBoolean(name) // Get boolean attribute
-node.attrLong(name) // Get long attribute
-node.attrCsvSet(name) // Get comma-separated string
+node.attrText(name) // Get a text attribute; if the text value is empty, return null instead of an empty string
+node.attrTextOrEmpty(name) // If the attribute value is empty, return null. If the attribute does not exist, return null
+node.attrInt(name) // Get the attribute value and convert it to Integer
+node.attrInt(name, defaultValue) // If the attribute value is empty, return the default value
+node.attrBoolean(name) // Read the attribute value and convert it to Boolean
+node.attrLong(name) // Read the attribute value and convert it to Long
+node.attrCsvSet(name) // Read the attribute value; if it is a string, split by commas into a set of strings
 
-node.getAttrs() // Get all attributes
-node.getChildren() // Get child nodes
-node.childByTag(tagName) // Find child node by tag name
-node.childByAttr(attrName, attrValue) // Find child node by attribute value
-node.getContentValue() // Get content value
 
-node.hasChild() // Check if node has children
-node.hasAttr() // Check if node has attributes
-node.hasContent() // Check if node has direct content
-node.hasBody() // Check if node has children or direct content
+node.getAttrs() // Get the attribute collection
+node.getChildren() // Get the children collection
+node.childByTag(tagName) // Find a child node by its tag name
+node.childByAttr(attrName, attrValue) // Find a child node by attribute value
+node.getContentValue() // Read the node value
 
-node.getParent() // Get parent node
-node.cloneInstance() // Clone node
+node.hasChild() // Whether it has child nodes
+node.hasAttr() // Whether it has attributes
+node.hasContent() // Whether the direct content is not empty
+node.hasBody()  // Whether it has children or direct content
+
+node.getParent() // Get the parent node
+
+node.cloneInstance() // Clone the node
+
 list = node.cloneChildren() // Clone all child nodes
-node.detach() // Detach node from parent
-node.remove() // Remove node from parent
-node.replaceBy(newNode) // Replace node in parent's children with newNode
-node.xml() // Get XML text content
-node.innerXml() // Get inner XML content
 
-node.toTreeBean() // Convert to TreeBean object
-XNode.fromTreeBean(treeBean) // Convert TreeBean to XNode
+node.detach() // Detach from its parent-child relationship
 
-## 7. Conversion Between XML and JSON
+node.remove() // Remove from the parent node
 
-```java
+node.replaceBy(newNode) // Replace this node with newNode in the parent's children collection
 
-node.toXJson() // Convert to XJson format
-node.toJsonObject() // Convert to standard JSON object
+
+node.xml() // Get the node's XML text
+node.innerXml() // Get the XML text corresponding to the node's inner content
+
+node.toTreeBean() // Convert to a TreeBean object
+
+XNode.fromTreeBean(treeBean) // Convert from a TreeBean to XNode
+
 ```
 
-Standard format specifies:
+## 7. Conversion between XML and JSON
+
+```javascript
+
+node.toXJson() // Convert to a JSON object in XJson format
+
+node.toJsonObject() // Convert to JSON in the standard format
+```
+
+The standard format is defined as follows:
 
 1. tagName corresponds to $type
 2. children and content correspond to $body
-3. Attributes directly correspond to object attributes
+3. Attributes map directly to object properties.
 
-Example:
+For example:
 
 ```xml
+
 <div class='a'>
-  <span />
-</div>    
+  <span/>
+</div>
 ```
 
+Converted to
 
-```markdown
-# XJson Specification
+```json
+{
+  "$type": "div",
+  "class": "a",
+  "$body": [
+    {
+      "$type": "span"
+    }
+  ]
+}
+```
 
-1. **General Rules**:
-   - Properties and child nodes are typically mapped to object properties.
-   - If a node is marked with `j:list='true'`, it corresponds to a list object.
-   - If a node's name is `_`, it is ignored.
-   - If a node has no properties and no children, its content is treated as its value.
-   - If a node has the `j:key` property, it replaces the node's name with the property's name.
+XJson is defined as follows:
 
-2. **List Nodes**:
-   - Child nodes' tag names are mapped to the `type` property of the list object.
-   - However, if a child node's name is `_`, it is ignored.
+1. In general, both attributes and child nodes map to object properties.
+2. If a node is marked with j:list='true', the current node corresponds to a list object.
+3. If the node name is `_`, the node name is ignored.
+4. If a node has no attributes and no child nodes, its text content is used as its value.
+5. If a node has a `j:key` attribute, it replaces the node name as the property name.
+6. The tagName of a child node under a list node corresponds to the type property. Exception: if the node name is `_`, the node name is ignored.
 
-## Example
-
-### XML Example:
+For example:
 
 ```xml
+
 <root a="1">
   <buttons j:list="true">
     <button id="a">
@@ -137,7 +158,7 @@ Example:
 </root>
 ```
 
-### Corresponding JSON:
+Corresponds to
 
 ```json
 {
@@ -150,6 +171,19 @@ Example:
       "description": "aa"
     }
   ],
-  "options": ["A", "B"]
+  "options": [
+    "A",
+    "B"
+  ]
 }
 ```
+
+### Frequently Asked Questions
+
+1. How to output `{"&":"$$"}`
+   Use `j:key` to specify a key that contains special characters
+
+```xml
+<_ j:key="&amp;">$$</_>
+```
+<!-- SOURCE_MD5:925458aa35891b279c5d9ebcaa27aded-->

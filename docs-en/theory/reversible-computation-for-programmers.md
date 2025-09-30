@@ -1,16 +1,16 @@
-# Analysis of Reverse Computing Theory for Programmers
 
-Reverse computing theory is the underlying software construction rule behind a series of incremental-based technologies such as Docker, React, and Kustomize. Its theoretical content is relatively abstract, leading some programmers to have many misunderstandings about how this theory relates to programming in practice and what problems it can solve.
+# A Theoretical Analysis of Reversible Computation for Programmers
 
-In this article, I will attempt to use concepts familiar to programmers to explain the concept of delta and delta merging, and analyze some common misunderstandings.
+The theory of Reversible Computation is the unifying software construction principle behind a series of Delta-based technical practices such as Docker, React, and Kustomize. Its content is relatively abstract, which leads to many misunderstandings among programmers, making it hard to grasp how this theory relates to software development and which practical problems it can solve.
+In this article, I will explain the concepts of Delta and Delta merging using terms familiar to programmers and analyze why some common understandings are incorrect.
 
-If you are not familiar with reverse computing theory, please first read the article
+If you are unfamiliar with the theory of Reversible Computation, please read
 
-[Reverse Computing: The Next Generation Software Construction Theory](https://zhuanlan.zhihu.com/p/64004026)
+[Reversible Computation: The Next-Generation Software Construction Theory](https://zhuanlan.zhihu.com/p/64004026)
 
-## 一. Understanding Class Inheritance from Delta Perspective
+## I. Understanding Class Inheritance from the Perspective of Delta
 
-First, Java's class inheritance mechanism is a built-in technical means in Java language for modifying existing logic through delta changes. For example:
+First, Java’s class inheritance mechanism is a built-in technical means in the language for applying Delta corrections to existing logic. For example:
 
 ```java
 public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
@@ -24,64 +24,64 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
 }
 ```
 
-Many people find it difficult to understand the concept of reverse computing. What is a delta? How can we reverse it? Does it mean reversing execution at runtime? **Here, "reverse" does not refer to runtime reversal of execution but rather structural transformations performed during compilation**. For example, using class inheritance allows us to modify a class's behavior without modifying the base class's source code.
+Many people find the concept of “reversible” hard to grasp—what is Delta, how exactly is it “reversed,” does it mean reverse execution? Here, “reversible” does not refer to runtime reverse execution; rather, it is a structural transformation performed at compile time. For instance, we can change a class’s behavior through inheritance without modifying the base class’s source code.
 
 ```javascript
 CrudBizModel<?> crud = loadBizModel("NopAuthUser");
 crud.save(entityData);
 ```
 
-The same CrudBizModel type can correspond to different Java classes, resulting in different business logic executions. Inheritance can be seen as补充Delta信息到现有的基类中。
+With the same CrudBizModel type, if the actual corresponding Java class differs, the business logic executed will also differ. Inheritance can be seen as supplementing Delta information to an existing base class.
 
-1. **B = A + Delta**: The delta refers to adding information to A without modifying it, transforming it into B.
+1. B = A + Delta. Delta means adding information to A without modifying A itself, thereby transforming it into B.
 
-2. **Reverse refers to using delta to delete existing structures in the base class**.
+2. “Reversible” means we can use Delta to delete structures that already exist in the base class.
 
-Of course, Java itself does not support deleting methods from the base class via inheritance, but we can hope that the JIT compiler can identify such situations during runtime compilation and remove calls to empty functions in the compiled output, thus achieving complete deletion of the base class structure.
+Of course, Java itself does not support deleting methods from a base class via inheritance, but we can override such a method to an empty function and rely on the runtime JIT compiler to recognize this case and eliminate the call in the JIT-compiled result, ultimately achieving the effect of completely removing the base-class structure.
 
-Another example: suppose you have a bank core system and a client wants customized development. The client may want to remove certain redundant fields from the account while adding some inline business-related custom fields. If modifying the foundation product's code is not allowed, we can adopt the following approach:
+Another example: suppose we have already developed a bank core system, and during deployment at a particular bank the client demands customization—deleting some redundant fields on accounts while adding some custom fields needed by that bank’s business. If modifying the base product’s code is not allowed, we can adopt the following approach:
 
 ```Java
-class BankAccountEx extends BankAccount {
-    String refAccountId;
+class BankAccountEx extends BankAccount{
+   String refAccountId;
 
-    public String getRefAccountId() {
-        return refAccountId;
-    }
+   public String getRefAccountId(){
+      return refAccountId;
+   }
 
-    public void setRefAccountId(String refAccountId) {
-        this.refAccountId = refAccountId;
-    }
+   public void setRefAccountId(String refAccountId){
+      this.refAccountId = refAccountId;
+   }
 }
 ```
 
-We can create an extended account object that inherits from the original account object, thus retaining all fields of the original account. Then, we can add extension fields to the extended object and use it in ORM configurations:
+We can add an extended account object that inherits from the original account object, thus gaining all the original account’s fields, and then introduce extended fields on the extended object. We then use the extended object in the ORM configuration:
 
 ```xml
   <entity name="bank.BankAccount" className="mybank.BankAccountEx">...</entity>
 ```
 
-This configuration maintains the original entity name while changing the corresponding Java entity class to BankAccountExt. Thus, if you previously used methods like:
+The above configuration keeps the original entity name unchanged while changing the Java entity class corresponding to the entity to BankAccountEx. If we previously created entity objects using:
 
 ```javascript
  BankAccount account = dao.newEntity();
- 或者
+ or
  BankAccount acount = ormTemplate.newEntity(BankAccount.class.getName());
 ```
 
-Then, the actual objects we create are instances of extended class objects. Moreover, since the ORM engine internally knows the specific implementation class corresponding to each entity class name, all Account objects loaded via association object syntax are also of the extended type.
+then the actual entity object created is an instance of the extended class. Moreover, since the ORM engine knows the concrete implementation class corresponding to each entity name, all Account objects loaded via association syntax are also of the extended type.
 
 ```javascript
-BankAccount parentAccount = account.getParent(); // parent returns BankAccountEx type
+BankAccount parentAccount = account.getParent(); // parent returns a BankAccountEx type
 ```
 
-The original code does not need to be modified if it uses the BankAccount type. However, new code that uses extended fields can cast the account object to BankAccountEx for usage purposes.
+Existing code that uses the BankAccount type does not need to change, while new code that uses the extended fields can cast account to BankAccountEx.
 
-Regarding the deletion of a field in Java, since Java does not support deleting fields from the base class, how can we achieve this? In fact, we can implement a form of field deletion through a custom ORM model.
+As for the requirement to delete fields, Java does not support deleting fields from a base class—so what do we do? In practice, we can achieve a “delete field” effect by customizing the ORM model.
 
 ```xml
 <orm x:extends="super">
-  <entity name="bank.BankAccount" className="mybank.BankAccountEx">
+  <entity name="bank.BankAccount" className="mybank.BankAccountEx"  >
     <columns>
        <column name="refAccountId" code="REF_ACCOUNT_ID" sqlType="VARCHAR" length="20" />
        <column name="phone3" code="PHONE3" x:override="remove" />
@@ -90,67 +90,71 @@ Regarding the deletion of a field in Java, since Java does not support deleting 
 </orm>
 ```
 
-The `x:extends="super"` at the root node indicates inheritance from the base product's ORM model file (if not specified, it creates a new model that discards previous configurations). The `phone3` field is marked with `x:override="remove"`, indicating the deletion of this field from the base model.
+The root attribute `x:extends="super"` indicates that this file inherits from the ORM model file in the base product (omitting it would mean creating a new model and completely discarding the previous configuration). The field phone3 is marked with `x:override="remove"`, which means it is deleted from the base model.
 
-If a field is deleted in the ORM model, the ORM engine will ignore the corresponding field in the Java entity class and will not generate table creation statements, insert statements, update statements, etc., for it. In practical terms, this achieves the effect of deleting the field.
+If a field is deleted in the ORM model, the ORM engine will ignore the corresponding field on the Java entity class and will not generate create-table statements, insert statements, update statements, etc. Thus, in effect, the field is deleted.
 
-> Regardless of how phone3 is operated after deletion, we observe no changes in the system, and since this quantity cannot be observed or affect external interactions, we can consider it non-existent.
+> No matter how you operate on the deleted field phone3, you will not observe any change in the system. A quantity that cannot be observed and has no effect on the outside world can be considered nonexistent.
 
-Furthermore, the Nop platform's GraphQL engine will automatically generate the base class for GraphQL types based on the ORM model. Therefore, if a field is deleted from the ORM model, it will also be automatically deleted in the GraphQL service, and no DataLoader will be generated for it.
+Furthermore, the GraphQL engine in the Nop platform automatically generates GraphQL type base classes from the ORM model. If a field is deleted in the ORM model, it is also automatically deleted in the GraphQL service, and no DataLoader is generated for it.
 
-## Trait: Independently Existing Delta Difference
+## Trait: Delta That Exists Independently
 
-`class B extends A` adds Delta information to class A, but this Delta is tied to A's existence. In other words, the Delta defined in B is only applicable to A, and without A, the Delta has no meaning. This raises questions among some programmers about "reversible computation theory," as the Delta seems to modify the base rather than existing independently.
+`class B extends A` supplements Delta information based on class A, but this Delta is attached to A—i.e., the Delta defined in B is implemented only for A and has no meaning if detached from A. Given this, some programmers may question the Reversible Computation theory’s requirement that Delta “exists independently.” Since Delta modifies the base, how can it possibly exist independently of the base?
 
-With this question in mind, let's examine one of Scala's core innovations: the Trait mechanism. For example, see [Scala Trait Explanation with Examples](https://blog.csdn.net/Godfrey1/article/details/70316850).
+With this question in mind, let’s look at one of Scala’s core innovations: the trait mechanism. An introduction can be found online, for example [Scala Trait Explained (Examples)](https://blog.csdn.net/Godfrey1/article/details/70316850).
 
 ```scala
-trait HasRefId {
-  var refAccountId: String = null;
+trait HasRefId{
+  var refAccountId:String = null;
 
-  def getRefAccountId(): RefAccountId = refAccountId;
+  def getRefAccountId() = refAccountId;
 
-  def setRefAccountId(accountId: String): Unit = {
+  def setRefAccountId(accountId: String): Unit ={
     this.refAccountId = accountId;
   }
 }
 
-class BankAccountEx extends BankAccount with HasRefId {}
-class BankCardEx extends BankCard with HasRefId {}
-```
+class BankAccountEx extends BankAccount with HasRefId{
+}
 
-The `HasRefId` trait acts as a Delta, adding a `refAccountId` property to the base object. When declaring the `BankAccountEx` class, it only needs to mix in this trait to automatically add the property to the `BankAccount` base class.
-
-It is important to note that **`HasRefId` is independently compilable and managed**. This means that even if the BankAccount object is not present during compilation, the `HasRefId` trait still has its own business meaning and can be analyzed or stored. Moreover, the same trait can be applied to multiple different base objects and is not tied to a specific base class. For example, the `BankCardEx` class also mixes in the same `HasRefId`.
-
-In programming, we can also perform operations based on the trait type without relying on any base object information.
-```scala
-def myFunc(acc: HasRefId with HasUserId): Unit = {
-    print(acc.getRefAccountId());
+class BankCardEx extends BankCard with HasRefId{
 }
 ```
 
-The above function takes a parameter `acc` that must satisfy the requirements of two traits.
+The trait HasRefId is essentially a Delta: it adds a refAccountId property to a base object. When declaring the BankAccountEx class, we only need to mix in this trait to automatically add the property on top of BankAccount.
 
-From a mathematical perspective, one can observe that class inheritance corresponds to `B > A`, indicating that B has more but the extra features cannot be independently extracted. However, Scala's trait mechanism effectively represents this as `B = A with C`, where the explicitly abstracted `C` can be applied to multiple base classes like `D = E with C`. In this sense, we can indeed state that `C` exists independently of `A` or `E`.
+It is particularly worth noting that HasRefId is independently compiled and managed. That is, even if BankAccount does not exist at compile time, the trait HasRefId still has its own business meaning and can be analyzed and stored. Moreover, the same trait can be applied to multiple different base objects and is not bound to any one base class. For example, BankCardEx mixes in the same HasRefId.
 
-The trait mechanism in Scala later inspired Rust language and was further developed as a key component of so-called "zero-cost abstraction."
+When programming, we can also write code against trait types without using any base-object information:
 
-## DeltaJ: A Delta Difference with Deletion Semantics
+```scala
+def myFunc(acc: HasRefId with HasUserId): Unit = {
+    print(acc.getRefAccountId());
+  }
+```
 
-From the perspective of Delta difference, Scala's trait functionality is incomplete because it cannot implement deletion of fields or functions. German professor Shaefer noticed the lack of deletion semantics in software engineering and proposed a Delta definition that includes deletion operations: [DeltaJ语言](https://deltaj.sourceforge.net/), along with the concept of Delta Oriented Programming.
+The above function accepts a parameter acc that only needs to satisfy the structural requirements of two traits.
+
+From a mathematical perspective, class inheritance corresponds to B > A, meaning B contains more than A, but the extra cannot be separated out. Scala traits correspond to B = A with C, where C is explicitly abstracted and can be applied to multiple base classes—for example, D = E with C. In this sense, we can certainly say that C exists independently of A or E.
+
+Scala’s trait mechanism was later adopted and expanded by Rust, becoming one of the secret weapons behind its so-called zero-cost abstractions.
+
+## DeltaJ: Delta with Deletion Semantics
+
+From the perspective of Delta, Scala’s trait is functionally incomplete—it cannot implement the deletion of fields or functions. A German professor, Schaefer, realized the lack of deletion semantics in software engineering and proposed a Delta definition that includes deletion operations: the [DeltaJ language](https://deltaj.sourceforge.net/), along with the concept of Delta Oriented Programming.
 
 ![deltaj](https://pic1.zhimg.com/80/v2-0f302d143afd51877e4080a8dcd21480_720w.webp)
 
-For detailed information, please refer to [Delta Oriented Programming from Reversible Computing Perspective](https://zhuanlan.zhihu.com/p/377740576).
+A detailed introduction can be found in [Delta Oriented Programming Through the Lens of Reversible Computation](https://zhuanlan.zhihu.com/p/377740576)
 
-## Differences Between Delta Merge and Inheritance
+## Differences Between Delta Merging and Inheritance
 
-The Delta merge operator introduced by reversible computing theory resembles the concept of inheritance but has some fundamental differences.
+The Reversible Computation theory introduces a Delta merge operator similar to inheritance but with essential differences.
 
-Traditional programming theory emphasizes encapsulation, while reversible computing is designed for evolution. **Evolution necessarily breaks encapsulation**. In reversible computing theory, encapsulation is not as important, allowing Delta merge to have deletion semantics and treating the base model as a white-box structure rather than an impenetrable black box. The extent to which Delta merge destroys encapsulation is constrained by the XDef meta-model, preventing it from exceeding final form constraints.
+Traditional programming theory emphasizes encapsulation, but Reversible Computation is evolution-oriented, and evolution inevitably breaks encapsulation. In Reversible Computation, encapsulation is less important, so Delta merging can include deletion semantics and treat the base model as a white-box structure rather than an unanalyzable black-box object. The degree to which Delta merging ultimately breaks encapsulation is constrained by the XDef metamodel, preventing it from exceeding the final formal constraints.
 
-Inheritance creates new class names while leaving the original type references unchanged. However, based on reversible computing theory, the Delta customization mechanism effectively modifies the model structure corresponding to the model path without creating new paths. For example, for a file at `/model/bank/orm/app.orm.xml`, we can add a file with the same subpath in the `delta` directory and use `x:extends="super"` within that file to inherit the original model. All references to `/model/bank/orm/app.orm.xml` will instead load the customized model.
+Inheritance yields a new class name, while the object structure associated with the original type does not change. In contrast, Delta customization designed under Reversible Computation directly modifies the model structure addressed by the model path and does not produce new model paths. For example, for the model file /bank/orm/app.orm.xml, we can add a file with the same subpath under the delta directory to override it and then use `x:extends="super"` within that file to inherit the original model. Everywhere that loads /bank/orm/app.orm.xml will, in fact, load the customized model.
 
 ```xml
 <!-- /_delta/default/bank/orm/app.orm.xml -->
@@ -159,109 +163,114 @@ Inheritance creates new class names while leaving the original type references u
 </orm>
 ```
 
-Since Delta customization does not alter model paths, all concept networks established based on model paths and object names remain unaltered. This ensures **customization is a completely localized operation**. It's evident that without modifying the original code, traditional object-oriented inheritance cannot locally replace the hard-coded base class name with a derived class name, leading to scenarios like function overloading or replacing entire pages. Many times, it's difficult to effectively control the impact range of local requirements changes, a phenomenon we've termed "abstract leakage." Once abstract leakage occurs, the impact range may expand indefinitely, potentially even causing architectural collapse.
+Since Delta customization does not change the model path, the conceptual networks built on model paths and object names do not get distorted or shifted by customization. This ensures customization is a completely localized operation. By contrast, with general object-oriented inheritance, if we cannot modify source code, it is impossible to locally replace a hardcoded base class name with a derived class name. This forces us to widen the override scope, such as overriding an entire function or replacing an entire page. In many cases, we cannot effectively control the impact scope of local requirement changes. We call this phenomenon “abstraction leakage.” Once abstraction leaks, the impact scope can keep expanding and may even lead to architectural collapse.
 
-The third difference between Delta customization and inheritance lies in **the fact that inheritance is defined on short-term associations**. Object-oriented inheritance can be viewed as a mapping at the structural level: each class is akin to a map where keys are property names and method names. A map is a typical short-term association with only container-element relationships at one level. However, **Delta customization is defined on tree-shaped structures**, which are a typical long-term association: parent nodes control all recursively included child nodes, and deleting a parent node deletes all its recursively included children. From a structural perspective, Delta customization can be viewed as a tree structure coverage: `Tree = Tree x-extends Tree`. In subsequent chapters, I will elaborate on the theoretical advantages of tree-shaped structures compared to map structures.
+A third difference is that inheritance is defined on short-range associations. Structurally, object-oriented inheritance can be viewed as an override among Maps: each class is akin to a Map whose keys are property and method names. A Map is a typical short-range association with only one level of container-element relationship. Delta customization, however, is defined on tree structures, a typical long-range association: a parent node controls all recursively contained child nodes; if the parent is deleted, all recursively contained child nodes are deleted. Structurally, Delta customization can be seen as an override among trees: Tree = Tree x-extends Tree. In later sections, I will theoretically explain why tree structures have advantages over Map structures.
 
-## II. Docker as an Example of Reversible Computing Theory
+## II. Docker as an Instance of Reversible Computation
 
-Reversible computing theory states that besides Turing machines and lambda calculus, there exists a third path leading to Turing completeness, which can be expressed with a formula:
+Reversible Computation points out that beyond Turing machine theory and lambda calculus, there exists a third intermediate path to Turing completeness, expressed by the formula:
 
 ```
 App = Delta x-extends Generator<DSL>
 ```
 
-* **x-extends** is a term that extends the traditional `extends` mechanism in object-oriented programming. Some might misinterpret it as "x minus extends," leading to considerable confusion.
-* `Generator<DSL>` is a syntax similar to generic programming in C++ metaprogramming, which processes the DSL as a data object at compile time and dynamically generates Delta to cover the base class.
+- x-extends is a coined word that represents an extension of object-oriented extends. Some people mistakenly read it as “x minus extends,” which leads to confusion.
 
-> A complex type declaration that introduces an execution semantics will automatically become a DSL (Domain Specific Language). Thus, Generator can be seen as a template macro function that accepts a type-like definition of the DSL and dynamically generates a base class at compile time.
+- `Generator<DSL>` uses a generic-like syntax to indicate that the Generator adopts techniques akin to [C++ template metaprogramming](https://zhuanlan.zhihu.com/p/137853957), treating the DSL as a data object at compile time, and dynamically generating the base class that Delta will override.
 
-The overall structure pattern of Docker images can be viewed as
+  > A complex, structured type declaration automatically becomes a DSL (Domain Specific Language) if execution semantics are further introduced. The Generator is like a template macro function: it accepts a DSL resembling a type definition and dynamically generates a base class at compile time.
+
+The overall construction pattern of Docker images can be viewed as:
 
 ```
 App = DockerBuild<DockerFile> overlay-fs BaseImage
 ```
 
-Here, `DockerFile` is a DSL language, while the Docker build tool acts as a generator that interprets the `apt install` and other DSL statements in `DockerFile`, dynamically expanding them into modifications to the file system (e.g., creating, modifying, or deleting files). 
+DockerFile is a DSL, and the Docker image build tool is akin to a Generator. It interprets DSL statements such as apt install in DockerFile and dynamically expands them into a delta-like modification of the filesystem (creating, modifying, deleting files, etc.).
 
-[OverlayFS](https://blog.csdn.net/qq_15770331/article/details/96702613) is a **layered filesystem** that depends on and builds upon other file systems (such as `ext4fs` and `xfs`). It does not directly partition disk space but instead merges different directories from the underlying file system, presenting them to users as a union mount. When searching for files, OverlayFS first looks in the upper layer and only falls back to the lower layer if the file is not found. For directory listing, it combines both layers' directories into a unified result. Implementing a similar OverlayFS virtual file system in Java would resemble the `DeltaResourceStore` from the [Nop platform](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/resource/store/DeltaResourceStore.java). The merging process in OverlayFS is a standard tree-based delta merge, especially since it supports deletion by introducing a "whiteout" file, aligning with the `x-extends` operator.
+[OverlayFS](https://blog.csdn.net/qq_15770331/article/details/96702613) is a stacked filesystem. It depends on and is built on other filesystems (such as ext4fs and xfs). It does not directly participate in the partitioning of disk space; it simply “merges” different directories from underlying filesystems and presents them to the user—this is the union mount technique. OverlayFS searches for files first in the upper layer, then in the lower layer if not found. When listing all files in a directory, it merges files from both upper and lower directories to return a unified list. If we implemented a virtual filesystem similar to OverlayFS in Java, the code would resemble [DeltaResourceStore in the Nop platform](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/resource/store/DeltaResourceStore.java). OverlayFS’s merging process is a standard tree-structured Delta merge. In particular, we can represent deleting a file or directory by adding a Whiteout file, so it meets the `x-extends` operator’s requirements.
 
-## Comparison of Docker Images and Virtual Machine Incremental Backups
+## Docker Images vs Virtual Machine Incremental Backups
 
-Some developers misunderstand Docker as merely a lightweight virtualization wrapper or an application packaging tool. How does Delta differ? From a usage perspective, Docker behaves like a lightweight virtual machine. However, what technology enables this lightweight implementation? And how does Docker as a packaging tool differ fundamentally from others?
+Some programmers misunderstand Docker as merely a lightweight virtualization packaging technology or a convenient application packaging tool—what does it have to do with Delta? Of course, from a usage perspective Docker indeed acts like a lightweight virtual machine—but the key question is: what technology enables it to be lightweight? And what fundamental advantages does Docker provide as a packaging tool compared to others?
 
-Before Docker, virtual machines could already implement incremental backups. However, these increments were defined in terms of byte-level changes. Incremental files lose context once separated from the base image and cannot be managed or constructed independently. In contrast, Docker defines Delta differences at the file system level, with the smallest unit of change being a file rather than individual bytes.
+Before Docker, virtual machine technology could implement incremental backups, but VM increments are defined in byte space. VM delta files, when detached from their base images, have no business meaning; they cannot be independently constructed or independently managed. Docker differs in that Docker images’ Delta is defined in filesystem space, where the minimal unit of Delta is a file, not a byte. For example, if we have a 10MB file and we add one byte to it, the image grows by 10MB because OverlayFS goes through a [copy up](https://blog.csdn.net/qq_15770331/article/details/96702613) process, copying the entire file from the lower layer to the upper layer before modifying it in the upper layer.
 
-For example, if you have a 10M file and add a single byte, the resulting image increases by 10M because OverlayFS performs a [copy up](https://blog.csdn.net/qq_15770331/article/details/96702613) operation: it copies the entire lower layer file to the upper layer before making modifications.
+In the Delta space defined by Docker, “half of file A + half of file B” is not a valid Delta definition, and there is no Docker tool to construct such a delta image. All images contain complete files; their specialty is that they can include “negative files.” For example, an image can represent `(+A, -B)`, adding file A while deleting file B. The concept of modifying part of a file cannot be directly expressed; it is replaced with adding file A2, where A2 is the result file after modification.
 
-> In Docker's delta space, half of file A plus half of file B is not a valid delta definition. Nor can such a difference be constructed using Docker tools. All images contain complete files, with their uniqueness lying in certain **negative files**. For instance, an image might represent `(+A,-B)`, indicating the addition of file A and deletion of file B. However, modifying specific parts of a file is not directly expressible; instead, it results in a new file (e.g., A2), which reflects the modified outcome.
+Docker images are Deltas that exist independently of the base image. We can make an application image without downloading the base image at all. In fact, a Docker image is a tar file; if we open it with a zip tool, we see each layer corresponds to a directory. We can simply copy files into the respective directories, compute the hash, generate metadata, and then call tar to package it into an image file. In contrast, for VM byte-space incremental backup files, we lack suitable, stable, and reliable technical operational means targeting the VM’s byte space. But in filesystem space, all command-line programs that generate, transform, and delete files automatically become operators in this Delta space.
 
-> Docker deltas are independent of base images, allowing you to create application images without downloading the base image. In reality, Docker images are tar files. Unzipping them reveals each layer as a directory. By copying files into their corresponding directories and computing hash codes, you can generate metadata, then use `tar` to create a new image file. Compared to virtual machine byte-level incrementals, we lack suitable, reliable tools for the file system space.
+> In mathematics, different structural spaces permit different levels of operator richness. In a barren structural space like byte space, we lack powerful structural transformation tools.
 
-In contrast, all operations (file creation, modification, deletion) are automatic Delta transformations in the file system space.
-## Docker镜像与Git版本的对比
+## Docker Images vs Git Versions
 
-Some classmates may wonder if Docker's approach is similar to Git? Indeed, **Git is also a kind of incremental management technology**, but it manages differences at the line level within text files. From the perspective of reversible computing, these two technologies differ only in terms of their corresponding incremental spaces, which in turn lead to different operators (Operators) existing within each space. Docker corresponds to a file system space that has an abundance of available operators. Each command-line tool automatically becomes a legitimate operation within this incremental space. In contrast, if we perform random operations within the text line space, it's easy to result in source code files with mixed-up syntax structures, making them unable to be compiled successfully.
+Some may wonder whether Docker’s Delta is similar to Git’s. Indeed, Git is also a Delta management technology, but it manages Delta defined in the text-line space. From the perspective of Reversible Computation, the difference lies only in the Delta space they correspond to, which leads to different operators available in those spaces. The filesystem space corresponding to Docker has many available operators—every command-line tool automatically becomes a valid operator on this Delta space. In text-line space, arbitrary operations can easily ruin the source file’s syntax structure, failing compilation. Therefore, in Docker’s Delta space, we have many Generators that can produce Delta, while in Git’s Delta space all changes are made manually and not automatically generated by a program. For example, to add field A to a table, we manually modify source files instead of hoping for a Git-integrated tool to automatically modify the source. Interestingly, if we equip Git with a structured diff and merge tool—for instance, integrating the Nop platform’s Delta merging tooling—then Git’s target Delta space can be changed to the domain model space for DSL, rather than the text-line space. In the domain model space, transformations via the Delta merge operator ensure the resulting format is valid XML, and all attribute and node names are valid names defined in the XDef metamodel.
 
-In Docker's incremental space, we have many generators that can generate Delta changes. However, all change operations in Git's incremental space are manually performed by humans, rather than being automatically generated by a program. For example, adding a field A to a table would require manual modifications to the source code files, not relying on tools integrated with Git for automatic modifications. An interesting point is that if we equip Git with a structured comparison and merging tool, such as integrating Nop's Delta merge tools, then Git's Delta space can be transformed into a domain model space instead of remaining within the text line space. **In the domain model space, Delta merge operations ensure that the resulting format is always valid XML, and all property names and node names are defined as legitimate names in the XDef meta-model files**.
+Let me emphasize again: whether the Delta concept is useful depends on which Delta model space it is defined in and how many useful Delta operations we can establish within that space. Deltas defined in a barren structural space have limited value; not all Deltas are born equal.
 
-Once again, it's crucial to emphasize that **the utility of the difference concept hinges on which incremental model space it is defined within and how many useful incremental operation relationships can be established in that space**. Defining differences within a sparse structure space offers limited value; the concept of difference does not inherently arise equal.
+Some people suspect Delta is just adding a version number to a JSON and replacing the old version with the new one. The problem is not that simple. Delta processing must first define the space in which Delta exists. In the Nop platform, Delta is defined in the domain model space, not the file space. It is not about versioning the entire JSON file and replacing it wholesale; rather, within the file, we can customize each node and each attribute individually. That is, in the Nop platform’s Delta space, every smallest element is a concept stable at the business layer with domain semantics. Another difference is that, according to the XDSL specification, all domain models in the Nop platform support the compile-time metaprogramming mechanisms `x:gen-extends` and `x:post-extends`, allowing domain models to be generated at compile time and then Delta merged. Overall, this satisfies the computational paradigm `DSL = Delta x-extends Generator<DSL0>`. Clearly, general JSON-related technologies, including JSON Patch, do not have a built-in concept of Generators.
 
-Some people may wonder if Delta difference simply involves adding a version number to a JSON file and replacing the old version with the new one? The question is more complex than that. Incremental processing first requires defining where the Delta resides. In the Nop platform, differences are defined within the domain model space, not within the file space. This means **we can perform individual Delta customization for each node and attribute within a JSON file**, i.e., in the Nop platform's incremental space, every minimal element is a conceptually stable business-level idea on the domain semantics level. Another key difference is that according to XDSL specifications, all domain models in the Nop platform support `x:gen-extends` and `x:post-extends` compile-time meta-programming mechanisms. These mechanisms allow dynamic generation of domain models during compilation and subsequent Delta merging. This overall satisfies the computational paradigm requirement of `DSL = Delta x-extends Generator<DSL0>`. Clearly, general JSON-related technologies, including JSON Patch, do not natively support the concept of generators.
+## III. Theoretical and Practical Significance of Delta Customization
 
-## Three. The theoretical and practical significance of Delta customization
+Guided by the theory of Reversible Computation, the Nop platform achieves the following in practice: a complex banking core application can be customized for a specific bank without modifying the base product’s source code, by applying Delta customization to implement fully customized data structures, backend logic, and frontend interfaces.
 
-Guided by reversible computing theory, the Nop platform achieves the following in practice: **A complex core banking application can be customized without modifying the source code of the underlying product, enabling tailored development for specific banks to implement fully customized data structures, backend logic, and frontend interfaces**.
+From a software engineering perspective, Reversible Computation solves the coarse-grained, system-level software reuse problem—that is, we can reuse entire software systems without decomposing them into separate modules or components. Component technology has theoretical deficiencies: in “component reuse,” we reuse what’s identical, i.e., the common part between A and B, but the common part is smaller than either A or B, which directly prevents reuse granularity from scaling to macro levels. The larger a thing is, the harder it is to find something exactly identical to it.
 
-From a software engineering perspective, **reversible computing theory addresses the issue of coarse-grained system-level software reuse**, allowing entire software systems to be reused without decomposing them into separate modules or components. Component technology has theoretical shortcomings, as so-called component reuse is based on the idea that only identical components can be reused. However, we actually reuse the common parts between A and B, which are smaller than A and B themselves. This limits the granularity of component reuse to a relatively narrow scope. Reversible computing theory states X = A + B + C, Y = A + B + D = X + (-C + D) = X + Delta. By introducing inverses, any X and Y can establish an operation relationship without modifying X, enabling reuse of X by supplementing Delta information. In other words, **reversible computing extends the software reuse principle from "identical reuse" to "related reuse"**. Component reuse is based on the combination relationship between wholes and parts, while reversible computing indicates that more flexible transformation relationships can be established beyond mere combinations.
+Reversible Computation points out that X = A + B + C, Y = A + B + D = X + (-C + D) = X + Delta. With inverse elements introduced, any X and any Y can establish an operational relationship. Thus, without modifying X, we can reuse X by supplementing Delta. In other words, Reversible Computation extends the principle of software reuse from “reuse identical” to “reuse related.” Component reuse is based on whole-part composition. Reversible Computation further points out that, beyond composition, objects can establish more flexible transformation relationships.
 
-Y = X + Delta, viewed through the lens of reversible computing, **means Y is derived by supplementing Delta information to X**, but Y may be smaller than X rather than merely larger. This perspective differs fundamentally from component theory. Imagine Y = X + (-C), which represents removing C from X to get Y. The resulting Y is a smaller structure than X.
+Y = X + Delta. From the perspective of Reversible Computation, Y is obtained by supplementing Delta to X, and it may be smaller than X; it is not necessarily larger than X. For instance, Y = X + (-C) means deleting a C from X to obtain Y, which is strictly smaller than X.
 
-The Software Engineering Institute at Carnegie Mellon University is a reputable authority in the software engineering field. They introduced what is known as [Software Product Line Engineering Theory](https://resources.sei.cmu.edu/library/asset-view.cfm?assetid=513819), which outlines the evolution of software engineering as an incremental improvement in software reuse, starting from function-level reuse, moving through object-level, component-level, module-level reuse, and ultimately achieving system-level reuse. The Software Product Line Theory aims to establish a theoretical foundation for software industrialization, enabling the continuous generation of software products similar to how assembly lines operate in manufacturing. However, it has not yet found an effective technical approach to achieve system-level reuse at a low cost.
+The Software Engineering Institute at Carnegie Mellon University is a leading authority in software engineering. It proposed the [Software Product Line Engineering theory](https://resources.sei.cmu.edu/library/asset-view.cfm?assetid=513819), which states that the development of software engineering is a journey of increasing the degree of software reuse: from function-level reuse, object-level reuse, component-level reuse, and module-level reuse, ultimately achieving system-level reuse. Software product lines attempt to build a theoretical foundation for the industrialized production of software, enabling software products to be built as on production lines. However, they have not found a good technological approach to achieve system-level reuse at low cost. Traditional software product line construction uses mechanisms like C-language macro switches, which are costly to maintain. The theory of Reversible Computation provides a feasible technical route to implement software product line engineering goals. For a detailed analysis, see [Delta Oriented Programming Through the Lens of Reversible Computation](https://zhuanlan.zhihu.com/p/377740576)
 
-The traditional method of constructing software product lines requires mechanisms similar to those in C-language macros, resulting in high maintenance costs. The invertible computing theory essentially provides a feasible technical path for realizing the technical objectives of software product line engineering. For specific details, please refer to [From Invertible Computing to Delta-Oriented Programming](https://zhuanlan.zhihu.com/p/377740576).
+To illustrate Delta customization specifically, I provide a sample project [nop-app-mall](https://gitee.com/canonical-entropy/nop-app-mall),
+an introductory article [How to Implement Custom Development Without Modifying Base Product Source Code](https://zhuanlan.zhihu.com/p/628770810)
+and a demo video on [Bilibili](https://www.bilibili.com/video/BV16L411z7cH/)
 
-To illustrate how Delta customization is implemented, I provided an example project, [nop-app-mall](https://gitee.com/canonical-entropy/nop-app-mall), along with an explanatory article [How to Implement Customized Development Without Modifying the Source Code of the Base Product](https://zhuanlan.zhihu.com/p/628770810) and a demo video on Bilibili ([https://www.bilibili.com/video/BV16L411z7cH/](https://www.bilibili.com/video/BV16L411z7cH/)).
+## Differences Between Delta Customization and Pluginization
 
-## The Difference Between Delta Customization and Pluginization
+Some programmers wonder: with traditional “orthogonal decomposition,” “modularization,” and “plugin systems” clustering related functionality into libraries or packages, can’t we also achieve reuse? What is special about Reversible Computation’s reuse? The difference lies in reuse granularity. Traditional reuse cannot achieve system-level reuse. Imagine a system with over 1,000 pages. A client asks to add button B and delete button C on page A. How would traditional reuse handle this? Add a runtime control switch for each button? Can we achieve the client’s requirement without modifying the page’s source code? If the base product later upgrades and adds a new shortcut interaction to the frontend, will our customized code automatically inherit the base product’s functionality, or must the programmer manually merge code?
 
-Some programmers have wondered whether traditional "orthogonal decomposition," "modularity," and "plugin systems," which group related functionalities into a library or package, can also achieve reuse. What is the special significance of reuse in invertible computing? **The key difference lies in the granularity of reuse**. Traditional reuse methods cannot achieve system-level reuse. Imagine a system with over 1,000 pages. If a customer requests adding button B to page A and removing button C, how would traditional reuse techniques handle this? Would they require writing runtime controls for each button? And without modifying the source code of the corresponding base product page, can the customer's requirements be met? Furthermore, if the base product later undergoes an upgrade that adds a new shortcut operation in the front-end, would our customized code automatically inherit the functionality already implemented by the base product, or would it require manual code merging by developers?
+Traditional extensibility depends on a reliable prediction of future change points. For example, in a plugin system, we must define where plugins are attached to extension points. But in reality, it is impossible to design every potentially extensible area into extension points. For instance, it is difficult to design a control variable switch for every property of every button. The lack of fine-grained switches easily enlarges the extensibility granularity. For example, a client only wants to change the display widget of a particular field on a certain page, yet we have to customize the entire page. A field-level customization becomes a page-level one due to the system’s lack of flexible customization capabilities.
 
-**Traditional scalable technologies rely on our ability to predict future change points, such as defining where plugins can be attached in plugin systems.** However, in reality, we cannot design every possible extension point in a system. For example, it's difficult to create a control variable for each attribute of every button. The lack of fine-grained controls often forces the granularity of scalability to expand due to technical limitations, such that even a simple field-level customization requirement becomes a page-level customization problem.
+After Kubernetes v1.14, Kustomize declarative configuration management was promoted to address similar extensibility issues. It can be viewed as an application instance of Reversible Computation. Based on Reversible Computation, we can easily see where Kustomize may be improved in the future. For details, see [Reversible Computation and Kustomize](https://zhuanlan.zhihu.com/p/64153956)
 
-K8s introduced a declarative configuration management feature called [Kustomize](https://kubernetes.io/docs/concepts/cluster-configuration/kustomize/) in version 1.14, aimed at addressing similar scalability issues. This technology can be viewed as an application of invertible computing theory and provides a clear direction for future improvements in Kustomize technology. For detailed analysis, please refer to [From Invertible Computing to Kustomize](https://zhuanlan.zhihu.com/p/64153956).
+## The Relationship Between Delta and Data Delta Processing
 
-## The Relationship Between Delta Differences and Data Differences
+The idea of Delta is not uncommon in data processing. For example:
 
-The Delta difference concept is not uncommon in data processing domains.
+1. The [LSM tree (Log-Structured-Merge-Tree)](https://zhuanlan.zhihu.com/p/181498475) uses hierarchical Delta management. Each query checks all levels and returns the aggregated Delta results. Compaction can be viewed as a Delta merge process.
 
-1. **In the Data Storage Domain**: The [LSM-tree](https://zhuanlan.zhihu.com/p/181498475) uses a layered approach for delta management, where each query checks all layers and returns merged delta results to the caller. The LSM-tree's compression operation can be seen as a process of merging Delta data.
+2. The [Map-side Combiner optimization in MapReduce](https://blog.csdn.net/heiren_a/article/details/115480053) uses the associativity of operations to pre-merge Deltas, reducing the burden on the Reduce phase.
 
-2. **In MapReduce Algorithm**: The [Map-side Combiner optimization](https://blog.csdn.net/heiren_a/article/details/115480053) leverages the associativity of operations to pre-merge Delta differences, reducing the load on the Reduce phase.
+3. In [Event Sourcing](https://zhuanlan.zhihu.com/p/38968012), we record an object’s modification history and aggregate all Delta records to obtain the current state.
 
-3. **Event Sourc ing Architecture**: This pattern records modification histories for specific objects and uses Aggregate aggregation operations to merge all Delta modification records when querying the current state data, producing the final result.
+4. Today’s hot trend of streaming-batch unification, the [Stream Table Duality](https://developer.aliyun.com/article/667566), transforms table modifications into a Delta change data stream via binlog, while aggregating these Deltas yields the snapshot known as a dynamic table.
 
-4. **In the Big Data Domain**: The currently popular [Stream Table Duality](https://developer.aliyun.com/article/667566) concept involves using binlogs to track table modifications as Delta change streams and then merging these Deltas to create dynamic tables that represent the current state.
-5. The Apache Doris system for data warehouses implements what is known as the [Aggregate Data Model](https://doris.apache.org/zh-CN/docs/dev/data-table/data-model/). During data import, it performs delta incremental merging calculations to pre-consolidate the data, thereby significantly reducing the computational load during queries. In contrast, DataBricks company directly named its core data lake technology as [Delta Lake](https://learn.microsoft.com/zh-cn/azure/databricks/delta/), supporting incremental data processing natively in the storage layer.
+5. In data warehousing, Apache Doris has a built-in [Aggregate data model](https://doris.apache.org/zh-CN/docs/dev/data-table/data-model/) that performs Delta pre-merge during data import, greatly reducing computation during queries. Databricks even names its data lake technology [Delta Lake](https://learn.microsoft.com/zh-cn/azure/databricks/delta/), with storage-level support for incremental data processing.
 
-6. Even in the frontend programming domain, the Redux framework treats each action as an incremental change to the state. By recording all these deltas, it enables time travel functionality.
+6. Even in frontend programming, the Redux framework treats each action as a Delta change to the State and implements time travel by recording all these Deltas.
 
-Since programmers have become accustomed to the concept of immutable data, any changes made to immutable data naturally become deltas. However, as I mentioned in a previous article, data and functions are inversely related—data can be seen as a higher-order function acting on functions. **We similarly need to establish the concept of immutable logic**. If we view code as a resourceized representation of logic, then we should also be able to perform delta corrections on logical structures. **Most programmers today are unaware that logic structures, just like data, can be manipulated by programs and adjusted using deltas**. While Lisp language established the "code as data" design principle decades ago, it has not yet proposed a systematic approach to support reversible incremental operations.
+Programmers are now accustomed to the concept of immutable data, so changes on immutable data naturally become Deltas. But as I have pointed out before, data and functions are dual. Data can be seen as functionals (functions of functions) acting on functions. We likewise need to establish the concept of immutable logic. If we view code as a resource representation of logic, then we should also be able to apply Delta corrections to logical structures. Most programmers are not yet aware that logical structures, like data, can be manipulated by programs and adjusted via Delta. Although Lisp established the “code-as-data” design philosophy early on, it did not propose a systematic technical solution supporting reversible Delta operations.
 
-In software practice, concepts such as Delta, incremental changes, and reversibility are increasingly being applied. **Within the next 5 to 10 years, we can expect the industry to undergo a paradigm shift from full data to delta-based approaches, which I would refer to as the Delta Revolution**.
+In software practice, the concepts of Delta and Reversible Computation are increasingly applied. In 5 to 10 years, we can expect an industry-wide paradigm shift from full to Delta—I call it the Delta Revolution.
 
-> Interestingly, in the deep learning field, concepts like reversibility and residual connections have become standard theoretical components. Each layer of neural networks can be viewed as follows: Y = F(X) + Delta.
+> Interestingly, in deep learning, concepts like reversible and residual connections are already standard theory, and each layer of a neural network can be viewed as a computation pattern of Y = F(X) + Delta.
 
-## Four. Analysis of the Concept of Domain Model Coordinate System
+## IV. Conceptual Clarifications in Reversible Computation
 
-When introducing the concept of reversible computing theory, I repeatedly mention the domain model coordinate system. This implies an implicit requirement for the stable existence of domain coordinates. What exactly is a domain coordinate? Programmers typically encounter only plane coordinates and three-dimensional coordinates in their work. They may find it challenging to understand the abstract, mathematical concept of coordinates. In the following sections, I will provide a detailed explanation of what domain coordinates entail in reversible computing theory and the impact this concept has on our worldview.
+## What Is a Domain Model Coordinate System
 
-First, within reversible computing theory, when we refer to "coordinates," we are talking about a unique identifier used during value access operations:
+When introducing Reversible Computation, I repeatedly mention the concept of a domain model coordinate system. The independent existence of Deltas implicitly requires the stable existence of domain coordinates. So what are domain coordinates? Programmers are familiar only with planar or three-dimensional coordinates and may find an abstract, mathematical notion of coordinates hard to understand. Below, I will explain in detail what the domain coordinates in Reversible Computation consist of and how their introduction changes our worldview.
+
+First, in Reversible Computation, by “coordinates” we refer to the unique identifier used to access values. Any unique identifier that supports the following two operations can be considered a coordinate:
 
 1. value = get(path)
 2. set(path, value)
 
-A **coordinate system** is defined as a system where every value in the system is assigned a unique coordinate. Specifically, for the following XML structure:
+A coordinate system is one that assigns a unique coordinate to every value involved in the system.
+
+Concretely, for the following XML structure, we can flatten it into a Map:
 
 ```xml
 <entity name="MyEntity" table="MY_ENTITY">
@@ -271,125 +280,124 @@ A **coordinate system** is defined as a system where every value in the system i
 </entity>
 ```
 
-This can be expanded into a map-like structure:
+Corresponding to:
 
-```json
+```
 {
-  "/@name": "MyEntity",
+  "/@name"： "MyEntity",
   "/@table": "MY_ENTITY",
   "/columns/column[@name='status']/@name": "status",
-  "/columns/column[@name='status']/@sqlType": "VARCHAR",
+  "/columns/column[@name='status']/@sqlType": "VARCHAR"
   "/columns/column[@name='status']/@length": 10
 }
 ```
 
-Each attribute value has a unique XPath that directly locates it. By calling `get(rootNode, xpath)`, we can retrieve the corresponding attribute value. In databases like MangoDB that support JSON format fields, JSON objects are stored as expanded map structures to allow indexing of JSON values. The difference lies in that JSON Path is used for indexing instead of XPath here. Here's what we mean by XPath: it is capable of matching multiple nodes according to XPath specifications, but in the Nop platform, we only use XPath expressions with unique identification capabilities, and for elements within collections, we support locating sub-elements based on unique key fields.
+Each attribute value has a unique XPath that can directly locate it. By calling get(rootNode, xpath) we can read the corresponding attribute’s value.
+In databases like MongoDB that support JSON fields, a JSON object is essentially flattened into a similar Map structure for storage, enabling indexes on values within the JSON object. JSON uses JSON Path rather than XPath. Here, XPath is what we call the domain coordinate.
 
-The above map structure can also be simplified into a multi-dimensional vector form:
+> The XPath specification allows matching multiple nodes, but in the Nop platform we only use XPath with unique locating functionality; for collection elements we only support locating children by unique key fields.
 
-```json
-['MyEntity', 'MY_ENTITY', 'status', 'VARCHAR', 10]
+For the Map structure above, we can also write it as a multi-dimensional vector in shorthand:
+
+```
+['MyEntity','MY_ENTITY', 'status','VARCHAR',10]
 ```
 
-We simply need to remember that the first dimension corresponds to the value at `/@name`, the second dimension corresponds to `/@table`, and so on.
-# Delta合并满足结合律的证明
+We only need to remember that the first dimension of this vector corresponds to the value at `/@name`, the second dimension corresponds to the value at `/@table`, and so on.
 
-In functional programming languages, there's a concept as noble as a Duke: **Monad**. Whether you understand this concept marks the transition from a casual enthusiast to a true functional programmer.
+> You can imagine that the coordinate system for all possible DSLs is an infinite-dimensional vector space. For example, a list can have arbitrarily many child elements added, which corresponds to infinitely many varying dimensions in the vector representation of the domain coordinate system.
 
-From an abstract mathematical perspective, Monad corresponds to the algebraic structure known as a **semigroup**, which possesses both a unit element and satisfies the **associativity property** (结合律). The associativity property is defined as follows:
+If the DSL model object defines a domain semantic space, then each value in the DSL description is the value at some position in this semantic space, and the coordinate for that position is the XPath. Every part of the XPath is a concept meaningful within the domain. Since the entire XPath has explicit business meaning in the domain semantic space, we call it a domain coordinate, emphasizing that it is a coordinate representation with domain significance. In contrast, Git diff locates differences by “which file and which line,” a coordinate representation that has nothing to do with domain concepts; therefore, Git’s Delta space is not a domain semantic space, and its locator is not a domain coordinate.
+
+In physics, when we assign a coordinate to every point in a phase space, we move from Newtonian particle-based worldview to a field-theory worldview. Subsequent developments in electrodynamics, relativity, and quantum mechanics all adopt the field-theory worldview. Simply put, under a field-theory worldview, the focus shifts from how individual objects interact to how the attributes of objects change at given coordinate points within an omnipresent coordinate system.
+
+Based on the domain coordinate system concept, regardless of how business logic evolves, the DSL object that describes the business has a unique representation in the domain coordinate system. For example, suppose the initial representation is \['MyEntity','MY\_ENTITY', 'status','VARCHAR',10\], and it later evolves into \['MyEntity','MY\_ENTITY', 'status','VARCHAR',20\]. The coordinate corresponding to 20 is "/columns/column\[@name='status'\]/@length", indicating that the length value of the status field has been adjusted to 20.
+
+When we need to customize an existing system, we only have to find the corresponding position in the domain model vector and directly modify its value. This is like finding a point on a plane by x-y coordinates and changing the value at that position. This customization does not depend on whether the system already has built-in extension interfaces or plugin systems. Since all business logic is defined in the domain coordinate system, all business logic changes are a Delta established on domain coordinates.
+
+## Proof That Delta Merging Satisfies the Associative Law
+
+In functional programming, there is a concept with a lofty origin: Monad. Understanding it is a hallmark of entering the realm of functional programming enthusiasts. From abstract mathematics, a Monad essentially corresponds to a monoid: a structure with an identity element that satisfies the associative law. The associative law means the grouping of operations does not affect the result:
 
 ```
   a + b + c = (a + b) + c = a + (b + c)
 ```
 
-The use of addition in this example might be misleading because addition itself satisfies commutativity (a + b = b + a), but the general concept of combining two quantities doesn't require commutativity. For instance, function composition satisfies associativity but not necessarily commutativity (f(g(x)) is not always equal to g(f(x))). To avoid confusion, I'll use the symbol `⊕` to represent the combination operation.
+Using a plus sign to denote the operation is somewhat misleading because addition also satisfies commutativity (a + b = b + a), while general associative operations do not require commutativity. For example, function composition satisfies associativity, but f(g(x)) does not generally equal g(f(x)). To avoid misunderstanding, I will use the symbol ⊕ to denote the combining operation between two quantities.
 
-> For a deeper understanding of Monads, refer to my article [《写给小白的Monad指北》](https://zhuanlan.zhihu.com/p/65449477). Some readers have reported that this article provides one of the most straightforward introductions to the **State Monad** online.
+> For more on Monad, see my article [A Beginner’s Guide to Monad](https://zhuanlan.zhihu.com/p/65449477). Some readers have commented that it is the most accessible introduction to the State Monad on the web.
 
-### Proof of Associativity
-
-First, let's prove that if each dimension of a vector satisfies associativity, then the entire vector operation also satisfies it:
+First, we can prove: if each dimension of a vector satisfies associativity, then operations between entire vectors also satisfy associativity.
 
 ```
-([A1, A2] ⊕ [B1,B2]) ⊕ [C1,C2]
-                            = [A1 ⊕  B1, A2 ⊕ B2] ⊕ [C1,C2]
-                            = [(A1 ⊕ B1) ⊕ C1, (A2 ⊕ B2) ⊕ C2]
-                            = [A1 ⊕ (B1 ⊕ C1), A2 ⊕ (B2 ⊕ C2)]
-                            = [A1, A2] ⊕ ([B1, B2] ⊕ [C1,C2])
+([A1, A2] ⊕ [B1,B2]) ⊕ [C1,C2] = [A1 ⊕  B1, A2 ⊕ B2] ⊕ [C1,C2]
+                                = [(A1 ⊕ B1) ⊕ C1, (A2 ⊕ B2) ⊕ C2]
+                                = [A1 ⊕ (B1 ⊕ C1), A2 ⊕ (B2 ⊕ C2)]
+                                = [A1, A2] ⊕ ([B1, B2] ⊕ [C1,C2])
 ```
 
-### Special Case: Overwrite Update
+In light of the domain coordinate system defined in the previous section, to prove that Delta merging satisfies associativity, we only need to show that merging at a single coordinate satisfies associativity.
 
-The most common type of update is the **overwrite update**, where each operation overwrites the previous value with the new one. To handle deletions, we can represent them using a special value. If the new value represents a deletion, it will override any existing value, effectively deleting it. This approach is exemplified by the **Binary Log (BinLog)** mechanism in databases, where each modification of a database row generates an event record containing the row's most recent value. Once this record is received, the previous value can be discarded. Mathematically, this corresponds to:
-
-```
-A ⊕ B = B
-```
-
-This operation clearly satisfies the associativity property:
-```
-(A ⊕ B) ⊕ C = B ⊕ C = B (since C overwrites B)
-A ⊕ (B ⊕ C) = A ⊕ B = B
-```
-Thus, both operations yield **B**, satisfying the associativity property.
-```
-(A ⊕ B) ⊕ C = B ⊕ C = C = B ⊕ C = A ⊕ (B ⊕ C)
-```
-
-The coverage operation satisfies the associativity property.
-
-Another slightly more complex form of associative operation is similar to AOP operations. We can prepend and append additional content around the base structure.
+The simplest case is the commonly seen “overwrite update”: each operation uses the later value to overwrite the earlier one. We can choose a special value to represent deletion, thereby including deletion in overwrite updates. In databases, the BinLog mechanism uses this approach: each row modification produces a change record with the row’s latest values. Upon receiving the change record, we can discard the earlier values. Mathematically, this corresponds to A ⊕ B = B. Clearly:
 
 ```
-B = a super b,  C = c super d
+ (A ⊕ B) ⊕ C  = B ⊕ C = C = B ⊕ C = A ⊕ (B ⊕ C)
 ```
 
-B references the base structure via `super`, prepending `a` before it and appending `b` after it.
+Overwrite operations satisfy associativity.
+
+Another slightly more complex combining operation resembles AOP: we can prepend and append content around a base structure.
 
 ```
-(A ⊕ B) ⊕ C = (a A b) ⊕ C = c a A b d = A ⊕ ( c a super b d ) = A ⊕ (B ⊕ C)
+ B = a super b,  C = c super d
 ```
 
-This demonstrates that the Delta merge operation satisfies the associativity property.
+B references the base structure via super, adding a before and b after.
 
-## Understanding the Independence of Delta
+ ```
+  (A ⊕ B) ⊕ C = (a A b) ⊕ C = c a A b d = A ⊕ ( c a super b d) = A ⊕ (B ⊕ C)
+ ```
 
-Some developers are perpetually puzzled by the concept of Delta differences being independent. Is it possible for an operation to exist independently from the base structure? If the base table doesn't even have this field, deleting a non-existent field won't cause an error. If a Delta represents a modification to a specific field's type in the base table, can it exist independently? Applying such a Delta to a table that doesn't have this field would result in an error.
+This proves that Delta merge operations satisfy the associative law.
 
-These questions are normal because, as inverses, negative Deltas are difficult to grasp. In the scientific world, even the understanding of negative numbers was a late development. Leibniz himself complained about the shaky logical foundation of negative numbers in his letters. See [A Brief History of Negatives: Acknowledging Negative Numbers Was a Leap of Thought](https://mp.weixin.qq.com/s?__biz=MzU0NDQzNDU1NQ==&mid=2247491026&idx=1&sn=59f777aaabb8a242cac192d4e914b058&chksm=fb7d6dc6cc0ae4d0d7d79282226b7aaac1466e9ff4b43ed45f3e51704e131a1eff94343de8a6&scene=27).
+## How to Understand That Delta Is Independent
 
-To understand this concept, we must distinguish between the abstract logical world and our physical reality. In the abstract logical world, the following definition is legally permissible:
+Some programmers struggle with the idea that Delta exists independently: can deletion operate independently of the base structure? If the base table lacks a certain field, wouldn’t deletion fail? If a Delta modifies a field type in a base table, can it exist independently of the base table? If applied to a table that doesn’t even have that field, wouldn’t it fail?
 
-```
-Table A (add field A, modify field B's type to VARCHAR, delete field C)
-```
+Such questions are normal because negative Deltas as inverse elements are hard to grasp. Even in science, negative numbers were recognized late. Leibniz, the inventor of calculus, complained in letters that the logical foundation of negative numbers was shaky. See [A Short History of Negative Numbers: Recognizing Negatives Was an Intellectual Leap](https://mp.weixin.qq.com/s?__biz=MzU0NDQzNDU1NQ==&mid=2247491026&idx=1&sn=59f777aaabb8a242cac192d4e914b058&chksm=fb7d6dc6cc0ae4d0d7d79282226b7aaac1466e9ff4b43ed45f3e51704e131a1eff94343de8a6&scene=27)
 
-Even if Table A doesn't have fields B and C, this definition remains valid. If we accept this, we can prove that applying any Delta operation on Table A will result in a valid element within this space (a property known as closure).
-
-Under the condition of not considering what fields Table A actually has, we can merge multiple Deltas that operate on Table A, such as:
+To understand this concept, we must first distinguish the abstract logical world from our real physical world. In the abstract logical world, we can accept the following definition as valid:
 
 ```
-Table A (add field A, modify field B's type to VARCHAR, delete field C) + Table A (_, modify field B's type to INTEGER, _) =
-    Table A (add field A, modify field B's type to INTEGER, delete field C)
+Table A (add field A, modify type of field B to VARCHAR, delete field C)
 ```
 
-> This approach is somewhat similar to lazy evaluation in functional programming languages. In such languages, `range(0, Infinity).take(5).take(2)` would immediately fail the first step, but in reality, `take(5)` and `take(2)` can be composed first, then applied to `range(0, Infinity)` to produce a finite result.
+Even if Table A does not have field B or C, the definition remains valid. If we accept this, we can prove that applying any Delta to Table A yields a legitimate element in this space (in mathematics, this is called closure).
 
-In a Delta space that has an identity element, the entire set can be viewed as a special case of Deltas, such as:
+Without considering what fields Table A has, we can logically merge multiple Deltas that operate on Table A, for example:
+
+```
+Table A (add field A, modify type of field B to VARCHAR, delete field C) + Table A (_, modify type of field B to INTEGER, _) =
+    Table A (add field A, modify type of field B to INTEGER, delete field C)
+```
+
+> This is somewhat akin to lazy evaluation in functional languages. In a functional language, range(0, Infinity).take(5).take(2) cannot execute the first step, but take(5) and take(2) can compose first and then apply to range(0, Infinity) to yield a finite result.
+
+In a Delta space with an identity element, a full state can be viewed as a special case of Delta, e.g.:
 
 ```
 Table A (field A, field B) = empty + Table A (add field A, add field B)
 ```
 
-How do we solve the problem in practice where we cannot delete a non-existent field C from a table that doesn't have it? The answer is straightforward: introduce an observation projection operator. When projecting from the logical space to the physical space, automatically delete all non-existent fields. For example:
+How do we resolve the practical difficulty that in reality we cannot delete field C from a table that does not have it? The answer is simple: we introduce an observation projection operator, stipulating that, when projecting from logical space to physical space, all non-existent fields are automatically removed. For example:
 
 ```
-Table A (add field A, modify field B's type to VARCHAR, delete field C) → Table A (field A)
+Table A (add field A, modify type of field B to VARCHAR, delete field C) ->  Table A (field A)
 ```
 
-This means that if the operation is a modification or deletion but the corresponding field doesn't exist in Table A, it can be directly ignored.
+That is, if the operation is modify or delete but Table A lacks the corresponding field, the operation can be ignored.
 
-This explanation may seem abstract. Here's how it is implemented in the Nop platform:
+This may sound abstract. In the Nop platform, the concrete approach is as follows:
 
 ```xml
 <entity name="test.MyEntity">
@@ -400,14 +408,15 @@ This explanation may seem abstract. Here's how it is implemented in the Nop plat
 </entity>
 ```
 
-The Delta merge algorithm in the Nop platform specifies that after all Deltas are merged, it automatically deletes any nodes with the `x:override="remove"` attribute. Additionally, it checks for any nodes with `x:virtual="true"` because during the merge process, if a base node is covered, the `x:virtual` attribute will be automatically deleted. If there are still `x:virtual` attributes remaining after the merge, it indicates that no corresponding node was found in the base model, and these nodes are also automatically deleted.
+The Nop platform’s Delta merge algorithm stipulates: after all Deltas are merged, inspect all nodes with `x:override="remove"` and automatically delete these nodes. Also inspect all nodes with `x:virtual="true"`; since merging automatically deletes the x:virtual attribute as soon as coverage onto a base node occurs, if `x:virtual` remains at the end, it indicates the merge never found a corresponding node in the base model, and these nodes are also automatically deleted.
 
-The space spanned by the results of differential operations is vast, and we can consider it as the result space produced by all feasible operations. However, the physical world we observe is merely a projection of this feasible space. This perspective resembles the concept of wave packet collapse in quantum mechanics: while quantum states evolve in an abstract mathematical space, all physical observations are results of wave packets collapsing into definite states. Thus, Schrödinger's cat can exist in a superposition of live and dead states within the abstract quantum space, but our physical observations only yield either the cat being dead or alive.
+> The space spanned by Delta operation results is very large—we can think of it as the space of all feasible operation outcomes. But the physical world we actually observe is only a projection of this feasible space. This perspective resembles the notion of wavefunction collapse in quantum mechanics: quantum state evolution happens in an abstract mathematical space, but physical facts we observe are post-collapse results. In mathematical space, Schrödinger’s cat can be in a superposition of dead and alive, but we observe only that the cat is either dead or alive.
 
-Based on the design of the reversible computing theory, the low-code platform **NopPlatform** has been open-sourced:
+The low-code platform NopPlatform, designed based on the theory of Reversible Computation, is open source:
 
-- [Gitee: canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
-- [GitHub: entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- [Development Example: docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- [Reversible Computing Principles and Nop Platform Introduction & Q&A on Bilibili](https://www.bilibili.com/video/BV14u411T715/)
+- gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+- github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+- Development example: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [Principles of Reversible Computation and Introduction/Q&A for the Nop Platform on Bilibili](https://www.bilibili.com/video/BV14u411T715/)
 
+<!-- SOURCE_MD5:70d93cbfc6fcd6223f5db5c6eba657a2-->

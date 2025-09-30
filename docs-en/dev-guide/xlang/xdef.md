@@ -1,12 +1,13 @@
-# XDef Model Definition Language
 
-In the Nop platform, all DSL languages use a unified XML format instead of custom syntax. This simplifies DSL design and provides a unified IDE development tool. Specifically, all DSLs use a single XDef model to define their specific syntax (XML structure), and then built-in mechanisms in the Nop platform are used to generate code, enabling the parsing and validation of DSLs.
+# XDef Meta-Model Definition Language
 
-XDef model files function similarly to XSD (XML Schema Definition) files, as both add syntactic constraints to XML formats. However, XDef is more straightforward and offers greater constraint capabilities compared to XSD.
+All DSLs in the Nop platform uniformly adopt the XML format rather than custom surface syntaxes, which simplifies DSL design and provides a unified IDE development toolset. Specifically, every DSL uses a unified XDef meta-model to define the concrete syntax of the DSL (the XML structure), and then leverages a series of built-in mechanisms in the Nop platform to automatically generate code, implementing DSL parsing, validation, and other functions.
+
+The role of an XDef meta-model file is similar to an XSD (XML Schema Definition) file: both add syntactic constraints to XML. However, XDef is simpler and easier to use compared to XSD, while also offering more powerful constraint capabilities.
 
 ## XDef Syntax Example
 
-Let's examine a simple workflow DSL definition: a workflow consists of multiple steps, each defining the next executable step.
+Let's look at a simple workflow DSL definition: a workflow contains multiple steps, and each step, upon completion, specifies the next executable step.
 
 ```xml
 <workflow name="Test" x:schema="/nop/schema/my-wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
@@ -25,9 +26,10 @@ Let's examine a simple workflow DSL definition: a workflow consists of multiple 
 </workflow>
 ```
 
-The corresponding model is:
+The corresponding meta-model is
 
 ```xml
+
 <workflow name="!string" x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <steps xdef:body-type="list" xdef:key-attr="id">
         <step id="!string" displayName="string" internal="!boolean=false"
@@ -38,37 +40,32 @@ The corresponding model is:
 </workflow>
 ```
 
-From this, we can see that the XDef model has a special relationship with the model it describes. Essentially, by replacing values in the XML model with descriptors, we obtain the XDef model.
+First, we can see that the XDef meta-model and the model it describes are in a homomorphic relationship; put simply, by replacing values in the model's XML with type descriptors, you obtain the XDef meta-model.
 
-- `name="!string"` indicates that the `name` property is of type `string`, and the `!` symbol denotes that this property cannot be empty.
-- `xdef:body-type="list"` means that the node resolves to a list type in the XML structure, and `xdef:key-attr="id"` means each element in the list must have an `id` attribute for differentiation.
-- `internal="!boolean=false"` indicates that the `internal` property is non-empty and of type `boolean`, with a default value of `false`.
-- `joinType="enum:io.nop.wf.core.model.WfJoinType"` means the `joinType` property resolves to an enum value from the `WfJoinType` type.
-- `xdef:value="xpl"` indicates that the `source` node contains a code snippet in Xpl template language, which can be directly evaluated to an `IEvalAction` object (similar to JavaScript's `Function` object).
+* `name="!string"` indicates that the `name` attribute is of type `string`; the character `!` means the attribute value cannot be null.
+* `xdef:body-type="list"` means the node, after parsing, corresponds to a list type; `xdef:key-attr="id"` means each element in the list must have an `id` attribute, which distinguishes different elements.
+* `internal="!boolean=false"` means the `internal` attribute is non-null, of type `boolean`, with a default value of `false`.
+* `joinType="enum:io.nop.wf.core.model.WfJoinType"` means the value of the `joinType` attribute is of type `WfJoinType`, which is an enum.
+* `xdef:value="xpl"` indicates the content of the `source` node (including its direct text content and all child nodes) is a snippet of Xpl template language code, which after parsing yields an `IEvalAction` object (similar to a `Function` object in JavaScript).
 
-In Xdef files, all attributes (excluding those in the `xdef` and `x` namespaces) are of type `def-type`, following the format `(!~#)?{stdDomain}:{options}={defaultValue}`.
+All attributes in xdef files (excluding built-in attributes in the `xdef` and `x` namespaces) have values of type `def-type`. Its format is `(!~#)?{stdDomain}:{options}={defaultValue}`.
 
-- `!` denotes required attributes.
-- `~` indicates internal properties or deprecated attributes.
-- `#` allows for compile-time expressions.
-- `stdDomain` represents a stricter data type with more specific constraints, such as `stdDomain=email`.
+* `!` indicates a required attribute, `~` indicates an internal or deprecated attribute, and `#` indicates a compile-time expression can be used.
+* `stdDomain` is a constraint stricter than a data type, e.g., `stdDomain=email`. See the dictionary definition [core/std-domain](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/dict/core/std-domain.dict.yaml).
+* Some `def-type` definitions require `options` parameters, e.g., `enum:xxx.yyy`, where `options` sets the specific dictionary name.
+* A default value can be specified for attributes.
 
-For detailed information on the values and definitions of these types, refer to the dictionary definition at [core/std-domain](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/dict/core/std-domain.dict.yaml).
+## Common XDSL Syntax
 
+The meta-model must be introduced via the `x:schema` attribute on the XML root node. For example, `x:schema="/nop/schema/my-wf.xdef"` indicates the model is constrained by the `my-wf.xdef` meta-model.
 
-* Some `def-type` definitions require an `options` parameter, e.g., `enum:xxx.yyy`, which sets the specific dictionary name using `options`.  
-* Properties can have default values.
+All DSL languages in the Nop platform share some common attributes and child nodes, effectively introducing a common syntax for all DSLs; the `x:schema` attribute is part of this common syntax. These common syntaxes are defined in the `xdsl.xdef` meta-model, so we specify on the root node `xmlns:x="/nop/schema/xdsl.xdef"` to indicate that the `x` namespace corresponds to the DSL common syntax space. For details, see
+[xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef) and
+[XDSL: General-Purpose Domain-Specific Language Design](https://zhuanlan.zhihu.com/p/612512300).
 
+The XDef meta-model definition language is powerful enough to describe the XDef meta-model itself; see [xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef).
 
-## XDSL Public Schema
-
-In the XML root node, the `x:schema` attribute is used to introduce the meta-model definition. For example, `x:schema="/nop/schema/my-wf.xdef"` indicates that the model is constrained by the `my-wf.xdef` meta-model.  
-Nop platform's DSL languages have common properties and child nodes, similar to introducing some public syntax for all DSLs. The `x:schema` attribute is a part of this public syntax. These public syntactic elements are defined in the `xdsl.xdef` meta-model, so we need to declare `xmlns:x="/nop/schema/xdsl.xdef"` at the root node to represent the correspondence between the `x` namespace and the DSL public syntax space. For detailed explanations, refer to  
-[ xDSL: Common Domain Specific Language Design](https://zhuanlan.zhihu.com/p/612512300) and [ xdsl.xdef ](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef).
-
-The XDef meta-model definition language is very powerful. It can be used to describe the XDef meta-model itself. For detailed explanations, refer to [xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef).
-
-In the `xdef.xdef` meta-meta-model definition file, the `xdef` namespace is treated as a regular namespace and should not be interpreted as an XDef meta-property. Therefore, we add the `xmlns:meta="/nop/schema/xdef.xdef"` attribute to the root node to express meta-properties using the `meta` namespace.
+In the meta-meta model definition file `xdef.xdef`, the `xdef` namespace must be treated as an ordinary attribute namespace and cannot be interpreted as XDef meta attributes, so we add the attribute definition `xmlns:meta="/nop/schema/xdef.xdef"` on the root node and use the `meta` namespace to express meta attributes.
 
 ```xml
 <workflow xmlns:meta="/nop/schema/xdef.xdef">
@@ -78,49 +75,47 @@ In the `xdef.xdef` meta-meta-model definition file, the `xdef` namespace is trea
 </workflow>
 ```
 
-This is equivalent to:
+Equivalent to
 
 ```xml
-<workflow xmlns:x="/nop/schema/xdef.xdef">
+<workflow xmlns:xdef="/nop/schema/xdef.xdef">
     <steps xdef:body-type="list" xdef:key-attr="id">
         ...
     </steps>
 </workflow>
 ```
 
+## Reusing Node Definitions
 
-## Reusable Node Definitions
+In xdef files, you can reference existing meta-model definitions via `xdef:ref`.
 
-In the `xdef` file, nodes can reference existing meta-model definitions using the `xdef:ref` attribute.
+1. Import an external xdef file
 
-1. Importing external `xdef` files  
-   Example:  
-   ```xml
-   <form id="!string" xdef:ref="form.xdef" />
-   ```
+```xml
+<form id="!string" xdef:ref="form.xdef" />
+```
 
-2. Referencing internal nodes  
-   Nodes can have a `xdef:name` attribute to mark them as named nodes. Then, `xdef:ref` can be used to reference them.  
-   Example:  
-   ```xml
-   <steps>
-       <step id="!string" xdef:name="WorkflowStepModel">
-           ...
-       </step>
+2. Reference an internal node  
+   You can add the `xdef:name` attribute to any node to mark it as a named node, then reference it via `xdef:ref`.
 
-       <join id="!string" xdef:ref="WorkflowStepModel" xdef:name="WfJoinStepModel">
-       </join>
-   </steps>
-   ```
+```xml
+<steps>
+    <step id="!string" xdef:name="WorkflowStepModel">
+        ...
+    </step>
 
-> Note: Currently, due to implementation reasons, `id` attributes need to be duplicated as unique identifiers for collection elements, while other attributes can be directly referenced from other nodes without being duplicated.
+    <join id="!string" xdef:ref="WorkflowStepModel" xdef:name="WfJoinStepModel">
+    </join>
+</steps>
+```
 
-During code generation, `xdef:name` is interpreted as the Java class name corresponding to the node, and `xdef:ref` is interpreted as the base class of the current node class.  
-For example,  
-`xdef:ref="WorkflowStepModel" xdef:name="WfJoinStepModel"` corresponds to  
-`class WfJoinStepModel extends WorkflowStepModel`.
+> Note: Due to current implementation reasons, attributes such as `id` that uniquely distinguish collection elements need to be repeated; other attributes can be directly referenced from other nodes without redefining them.
 
-To simplify node reuse, the XDef language defines a special `xdef:define` attribute for reusable nodes, which is used only for reuse purposes. For example,
+During code generation, `xdef:name` is treated as the Java class name corresponding to the node, and `xdef:ref` is treated as the base class of the current node class.
+
+`xdef:ref="WorkflowStepModel" xdef:name="WfJoinStepModel"` corresponds to generated code `class WfJoinStepModel extends WorkflowStepModel`.
+
+To simplify node reuse, XDef also defines a special node solely for reuse, `xdef:define`, for example
 
 ```xml
 <workflow>
@@ -134,21 +129,21 @@ To simplify node reuse, the XDef language defines a special `xdef:define` attrib
 </workflow>
 ```
 
-`xdef:define` is used to define a reusable component, equivalent to defining a base class. Child nodes can inherit this base class using `xdef:ref`. `xdef:name` serves as the class name of the base class.
+`xdef:define` defines a reusable part, equivalent to defining a base class, and nodes can inherit this base class via `xdef:ref`. `xdef:name` serves as the base class's class name.
 
-## Collection Node Definition
+## Collection Node Definitions
 
-In addition to the `xdef:body-type="list"` for defining collection nodes, xdef language provides an alternative simplified way to define collection nodes: using `xdef:unique-attr` to represent the uniqueness attribute of collection elements.
+In addition to using `xdef:body-type="list"` to denote a collection node, xdef also provides a simplified way to define collection nodes: use `xdef:unique-attr` to denote the unique identifying attribute of collection elements.
 
 ```xml
 <arg name="!string" xdef:unique-attr="name" value="any" />
 ```
 
-Nodes with the `xdef:unique-attr` attribute will be parsed as unique attributes. The attribute names typically follow camelCase convention, such as `task-step` corresponding to `taskSteps`. The `xdef:bean-prop` attribute can also be used to specify the property name, for example `xdef:bean-prop="taskStepList"`.
+A node with `xdef:unique-attr` will be parsed as a collection property; the property name is generally the camelCase form of the node name plus 's', e.g., `<task-step xdef:unique-attr="id">` corresponds to `taskSteps`. You can also specify the property name via `xdef:bean-prop`, e.g., `xdef:bean-prop="taskStepList"`.
 
 ```xml
 <!--
-  Below DSL is equivalent to the code:
+  The following DSL definition is equivalent to the code:
   bp.taskSteps.add({id: 'a', displayName: 'A'})
   bp.taskSteps.add({id: 'b', displayName: 'B'})
 -->
@@ -156,9 +151,10 @@ Nodes with the `xdef:unique-attr` attribute will be parsed as unique attributes.
 <task-step id="b" displayName="B"></task-step>
 ```
 
-Using `xdef:body-type="list"` allows the collection to contain nodes of different types, such as:
+The advantage of defining collection properties via `xdef:body-type="list"` is that it allows the collection to contain different types of child nodes, for example
 
 ```xml
+
 <steps xdef:body-type="list" xdef:key-attr="name" xdef:bean-sub-type-prop="type" xdef:bean-child-name="step"
        xdef:bean-body-type="List&lt;io.nop.wf.core.model.WfStepModel>">
     <step name="!string" xdef:bean-tag-prop="type" />
@@ -166,14 +162,14 @@ Using `xdef:body-type="list"` allows the collection to contain nodes of differen
 </steps>
 ```
 
-* `xdef:bean-body-type` is used to specify the type of the collection's child elements.
-* `xdef:bean-child-name="step"` automatically adds a method `getStep(String name)` to retrieve child nodes based on their unique identifier.
-* `xdef:bean-tag-prop="type"` translates the tag names (`step`, `join`) into the `type` property during JSON serialization.
-* `xdef:bean-sub-type-prop="type"` determines the type of child nodes during JSON deserialization based on the `type` attribute.
+* `xdef:bean-body-type` specifies the type name of the generated collection property.
+* `xdef:bean-child-name="step"` means the model object will automatically have a `getStep(String name)` method to retrieve a child node by its unique identifier attribute.
+* `xdef:bean-tag-prop="type"` means the node's tag name (`step`, `join`) will be parsed as the value of the `type` attribute during JSON serialization.
+* `xdef:bean-sub-type-prop="type"` indicates that during JSON deserialization, the `type` attribute determines the child node type.
 
 ```xml
 <!--
-  Below DSL is converted to JSON as:
+  After conversion to JSON, the structure of the following DSL definition is:
   {
     "steps": [{
       "type": "step",
@@ -190,40 +186,12 @@ Using `xdef:body-type="list"` allows the collection to contain nodes of differen
 </steps>
 ```
 
-## Common Questions
+## Frequently Asked Questions
 
-1. What is the difference between `<parent> <item xdef:value="string"> </parent>` and `<parent item="string">` in terms of XML structure?  
-   There is no difference in the XML structure; only the DSL representation differs.
+1. What's the difference between defining with `<parent> <item xdef:value="string"> </parent>` and defining with `<parent item="string">`? There's no difference in the generated Java; it's only a difference in the XML form.
 
-2. If you specify `xdef:body-type="list"`, does it mean that its child nodes must be object types? How should basic data types like int or string be handled?  
-   Child nodes can be of any type, including primitive types like int or string.
-# Handling List Data
+2. If `xdef:body-type="list"` is specified, must its child nodes be object types? How should basic types like int or string be written? I haven't handled this case; if it must be handled, the current approach is something like `<list xdef:body-type="list"> <_ xdef:value="int" />`. Additionally, for common comma-separated list values, you can directly write `<list xdef:value="csv-list" />`.
 
-## Common Cases
+3. If a node has already set `xdef:body-type="list"` but also has other attributes, e.g., `<row name="string" xdef:body-type="list" height="string">`, what structure will be generated? By default the body content corresponds to the `body` property. This aligns with AMIS's conventions: tagName corresponds to `type`, and the body content corresponds to `body`.
 
-I have not dealt with this situation before, but if I must handle it. The current approach is similar to the following:
-
-```markdown
-- For `<list xdef:body-type="list">`, the value can be set as `<_ xdef:value="int" />`
-```
-
-## CSV List Handling
-
-For commonly used comma-separated list values, you can directly use:
-
-```markdown
-<list xdef:value="csv-list" />
-```
-
-## Node with Body Type Set
-
-3. If a node already has `xdef:body-type="list"`, but also has other attributes, for example:
-
-```markdown
-<row name="string" xdef:body-type="list" height="string">
-```
-
-What structure will this generate?
-
-In the default case, body content will correspond to the body attribute. This follows AMIS conventions, where `tagName` corresponds to `type`, and `bodyContent` corresponds to `body`.
-
+<!-- SOURCE_MD5:dc7688c36d2caedc1e2064e377e42dfb-->

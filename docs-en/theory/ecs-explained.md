@@ -1,12 +1,4 @@
-# The ECS Architecture from Reversible Computation Perspective
+# ECS Architecture from the Perspective of Reversible Computation
 
-## Game Development with ECS Framework  
-The Entity-Component-System (ECS) architecture has become a popular choice in game development due to its efficient data management and scalability. Below is a brief overview of the ECS framework:
-
-```ecs
-def initialize_entity():
-    entity = world.create_entity()
-    return entity
-```
-
-This code snippet demonstrates the basic initialization of an entity within the ECS framework, where `world` represents the game world or context.
+[ECS Framework in Game Development](https://zhuanlan.zhihu.com/p/20056728243)
+<!-- SOURCE_MD5:c00e7db17e9bcfa24bd374a63e0a6670-->

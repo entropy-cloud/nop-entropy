@@ -1,40 +1,32 @@
 # Dynamic Model Code Generation
 
+## Dynamic Models
 
-## Dynamic Model
+The nop-dyn module provides online model definitions. In the DynCodeGen class, during initialization it automatically reads the dyn configuration and generates meta and biz definitions in memory.
 
-The `nop-dyn` module provides online model definition. In the `DynCodeGen` class, during initialization, it automatically reads `dyn` configurations and generates `meta` and `biz` definitions in memory.
+If you want to skip model generation at startup, set `nop.dyn.gen-code-when-init` to false.
 
-If you want to skip model generation when initializing, you can configure `nop.dyn.gen-code-when-init` to `false`.
+If dynamic models also support multi-tenancy, the same entity name may correspond to different database structures.
 
-If the system supports multi-tenancy, the same entity name may correspond to different database structures.
+## Dynamic Updates
 
+Dynamic models allow modifications and updates at runtime; after a model is updated, all information automatically derived from the model must be updated accordingly. Therefore, it is necessary to precisely define the scope affected by model changes.
 
-## Dynamic Update
-
-Dynamic models allow dynamic modification and updates. After a model is updated, all information derived from the model should also be updated accordingly. Therefore, it's essential to precisely define the scope of model changes.
-
-The model loading uses a responsive dynamic loading generator: when loaded by name, it dynamically generates and parses the model file and caches the result in memory.
-
+Model loading uses a reactive dynamic-generation loader: when loading by name, the model file is generated on the fly and then parsed; the parsed result is cached in memory.
 
 ### Tenants and Modules
 
-- Each tenant has its own independent model cache managed by `TenantAwareResourceLoadingCache`.
-- Each tenant corresponds to a Delta file stored in `ResourceStore`, which is then split by module prefix. Each module's file can be loaded and updated individually.
+* Each tenant has its own independently managed model cache, implemented by TenantAwareResourceLoadingCache.
+* Each tenant corresponds to a Delta file store, which is further partitioned by module prefixes within this ResourceStore; files for each module can be loaded and updated independently.
 
+### Object Partitioning
 
-### Object Splitting
+* The object structure is a business-meaningful decomposition; various models related to a single object often reference each other closely. The object can be used as the smallest update granularity.
+* meta, view, and page, etc., can be cached and managed per single entity; each modification only needs to update the files related to that individual object.
+* ORM models allow entity references; however, in consideration of dynamic updates, cross-module references are, in principle, avoided.
 
-- The object structure is a clear decomposition of business semantics.
-- Related models often have tight coupling, so the smallest granularity for updates should be at the object level.
-- `meta`, `view`, and `page` are all cacheable for individual entities. Each modification to a single entity's file can be updated accordingly.
-- The ORM allows entity referencing, but due to dynamic updates, cross-module references are generally not allowed.
+## Publishing
 
-
-## Publication
-
-- Clicking the "Publish" button invokes `DynCodeGen` in memory to generate the model file.
-- The model and its associated files can be exported for module management and usage.
-- Before a module is published, you can design and test the model. Publishing only makes it visible externally.
-- Distinguish between states: "未部署", "已部署", and "已发布".
-
+* Clicking the 【Publish】 button invokes DynCodeGen to generate model files in memory. Models and model files can be exported and managed and used as regular modules.
+* Before a module is published, you can design and test the model; publishing merely makes it externally visible. Distinguish statuses such as 【Not Deployed】, 【Deployed】, and 【Published】.
+<!-- SOURCE_MD5:38f8bcd06eaf2d43d96a767e335e9525-->

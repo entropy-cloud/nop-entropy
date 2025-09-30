@@ -1,29 +1,30 @@
+
 # React
 
-## useEffect Usage
+## Using useEffect
 
-Generally, useEffect should not be used unless you are triggering remote calls or actions when the component leaves the React tree. Calculations based on props or state variables do not require the use of useEffect.
+Typically use it only when you need to step outside React and initiate remote calls. You don’t need it for computations derived from variables in props or state.
 
-1. Use `useMemo` for caching expensive calculations.
-2. Use the `key` property to mark fundamentally different data records to avoid unintended data sharing, thus avoiding the need to reset data.
+1. Use useMemo to cache the results of expensive, complex computations.
+2. Use the key prop to mark fundamentally different data records to avoid unintentionally sharing data, so you don’t need to reset data.
 
-```xml
+```
 <Profile userId={userId} key={profileId} />
 ```
 
-3. When a component mounts, you can use `useEffect(fn, [])`.
-4. In development environment, useEffect will be triggered twice.
-5. If the state inside the component needs to be synchronized with the parent component, manage it through state lifting to the parent.
+3. To issue a request when a component mounts, use `useEffect(fn, [])`
+4. In the dev environment, useEffect will be triggered twice.
+5. If a component’s internal state needs to be synchronized with its parent, lift the state up and let the parent manage it. For example:
 
-```xml
+```
 <Toggle isOn={isOn} onChange={onChange} />
 ```
 
-6. Use `useSyncExternalStore` when syncing with external storage.
+6. Use useSyncExternalStore when subscribing to external stores.
 
-## State Library
 
-zustand, refer to https://zhuanlan.zhihu.com/p/691233120
+## State Store
+zustand, see https://zhuanlan.zhihu.com/p/691233120
 
 ```javascript
 import { useShallow } from 'zustand/react/shallow';
@@ -32,6 +33,8 @@ import { useShallow } from 'zustand/react/shallow';
     useShallow(state => ({
       theme: state.theme,
       setTheme: state.setTheme,
-    })),
+    }))
   );
 ```
+
+<!-- SOURCE_MD5:dd1d2b2daa6facc636e755499aeabd93-->

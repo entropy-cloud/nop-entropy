@@ -1,36 +1,38 @@
 # Configuration Items
 
-| Name                  | Default Value | Description                                                                 |
-|-----------------------|--------------|-----------------------------------------------------------------------------|
-| nop.web.http-server-filter.enabled | true          | Whether to wrap NopIoC-defined IHttpServerFilter for Spring and Quarkus Filters. |
-| nop.quarkus.http-server-filter.sys-order  | 5             | Default priority level of Quarkus framework's IHttpServerFilter, lower value higher priority. |
-| nop.quarkus.http-server-filter.app-order  | 10            | Default application-level priority of Quarkus framework's IHttpServerFilter, lower value higher priority. |
-| nop.spring.http-server-filter.sys-order   | 0             | Default system-level priority of Spring framework's IHttpServerFilter, lower value higher priority. |
-| nop.spring.http-server-filter.app-order   | 1000          | Default application-level priority of Spring framework's IHttpServerFilter, lower value higher priority. |
+|Name|Default Value|Description|
+|---|---|---|
+|nop.web.http-server-filter.enabled|true|Whether to wrap the IHttpServerFilter defined in NopIoC as the Filter used by Spring and Quarkus|
+|nop.quarkus.http-server-filter.sys-order|5|Default priority of the system-level IHttpServerFilter used by the Quarkus framework; the smaller the value, the higher the priority|
+|nop.quarkus.http-server-filter.app-order|10|Default priority of the application-level IHttpServerFilter used by the Quarkus framework; the smaller the value, the higher the priority|
+|nop.spring.http-server-filter.sys-order|0|Default priority of the system-level IHttpServerFilter used by the Spring framework; the smaller the value, the higher the priority|
+|nop.spring.http-server-filter.app-order|1000|Default priority of the application-level IHttpServerFilter used by the Spring framework; the smaller the value, the higher the priority|
 
 ## Built-in Filters
 
-- **ContextHttpServerFilter**: Initializes the global IContext object. A new IContext is created for each Web request.
-- **AuthHttpServerFilter**: Handles login checks. Can be customized by inheriting this class or replacing the ILoginService implementation.
-  - AuthHttpServerFilter contains knowledge related to Web environment, such as cookies. However, ILoginService does not have Web environment knowledge; it processes requests based on request messages.
+* ContextHttpServerFilter: Initializes the global IContext object. Each web request creates a new IContext.
+* AuthHttpServerFilter: Responsible for login checks. You can customize the login logic by extending this class or by replacing the implementation of ILoginService. AuthHttpServerFilter has knowledge of the web environment, such as cookies, etc. However, ILoginService has no knowledge of the web environment; it can only process based on the request message.
 
-## SpringSecurity Integration
+## Spring Security Integration
 
-SpringSecurity uses a unique HttpServletFilter but creates its own FilterChain internally. The order of this Filter is Integer.MIN_VALUE + 50, so if you want it to execute before Nop-platform-registered filters, its order must be set very low. By default, Nop-platform-registered filters will execute after SpringSecurity filters (since their order defaults to 0, which is lower than SpringSecurity's order).
+The architecture of Spring Security uses a single HttpServletFilter, but builds its own internal FilterChain. The order value of this Spring Security filter is Integer.MIN\_VALUE+50, so if you want code to run before Spring Security's filter, you need to set a very small order. Under the default configuration, filters registered by the Nop platform will run after Spring Security's filter.
 
-Another approach is to insert custom Filters into the SecurityFilterChain, such as:
+Another approach is to insert a custom Filter into Spring Security's SecurityFilterChain, for example as follows:
 
-```java
-@Inject
-SpringHttpServerFilterConfiguration config;
+```
+    @Inject
+    SpringHttpServerFilterConfiguration config;
 
-@Bean
-public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    http
-            .csrf(Customizer.withDefaults())
-            .addFilter(config.registerSysFilter().getFilter());
-    return http.build();
-}
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(Customizer.withDefaults())
+                .addFilter(config.registerSysFilter().getFilter());
+        return http.build();
+    }
 ```
 
-In SpringHttpServerFilterConfiguration, the Nop platform's filter inherits from OncePerRequestFilter, meaning it will only be executed once in the entire FilterChain. If `registerSysFilter()` is added to the SecurityFilterChain, this filter will execute earlier. By default, it should execute after SpringSecurity filters because its order is 0, which is lower than SpringSecurity's order.
+The filter of the Nop platform created in SpringHttpServerFilterConfiguration extends OncePerRequestFilter, so it will execute only once in the entire filterChain.
+If registerSysFilter() is registered in Spring Security's SecurityFilterChain, this filter will execute earlier. By default, it should execute only after Spring Security's
+filter has finished (because its default order is 0, which is greater than Spring Security's order).
+<!-- SOURCE_MD5:db58288b2331a7d4f2525b60c6916bc6-->

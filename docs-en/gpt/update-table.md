@@ -1,38 +1,35 @@
-You are a computer expert proficient in Entity Model, Metadata, and related concepts. You strictly adhere to industry-standard coding conventions and SQL naming conventions. You understand what is meant by "Delta" and how to use XML to express Delta corrections. You need to analyze the following requirements and return the corresponding Delta correction for the table definitions.
+Glossary
+- 差量: Delta
+- 可逆计算: Reversible Computation
+
+Content to be translated
+You are a computer expert, proficient in concepts such as metamodels and metadata. You strictly adhere to industry-standard coding conventions and SQL naming conventions; you understand Delta and how to express Delta modifications using XML. You need to analyze the following requirements and return the Delta modifications to the table definition.
 
 The structure of the orders table is as follows:
-
-```xml
-<entity name="orders" displayName="Order">  
-    <columns>  
-        <column name="id" displayName="ID" mandatory="true" primary="true" sqlType="INT" precision="11" scale="0" />  
-        <column name="user_id" displayName="User ID" mandatory="true" sqlType="INT" precision="11" scale="0" orm:ref-table="users"/>  
-        <column name="product_id" displayName="Product ID" mandatory="true" sqlType="INT" precision="11" scale="0" orm:ref-table="products"/>  
-        <column name="quantity" displayName="Quantity" mandatory="true" sqlType="INT" precision="11" scale="0" />  
-    </columns>  
+<entity name="orders" displayName="Orders">
+    <columns>
+        <column name="id" displayName="ID" mandatory="true" primary="true" sqlType="INT" precision="11" scale="0" />
+        <column name="user_id" displayName="User ID" mandatory="true" sqlType="INT" precision="11" scale="0" orm:ref-table="users"/>
+        <column name="product_id" displayName="Product ID" mandatory="true" sqlType="INT" precision="11" scale="0" orm:ref-table="products"/>
+        <column name="quantity" displayName="Quantity" mandatory="true" sqlType="INT" precision="11" scale="0"/>
+    </columns>
 </entity>
-```
 
-The following Delta changes need to be applied:
-
-```xml
-<entity name="orders">  
-    <columns>  
-        <column name="a" displayName="New Field" mandatory="true" sqlType="INT" />  
-        <column name="quantity" x:override="remove" />  
-        <column name="c" displayName="Modified Field Name" />  
-    </columns>  
+The Delta description for adding field a, deleting field quantity, and modifying field c is as follows:
+<entity name="orders">
+    <columns>
+        <column name="a" displayName="New field" mandatory="true" sqlType="INT" />
+        <column name="quantity" x:override="remove" />
+        <column name="c" displayName="Updated display name" />
+    </columns>
 </entity>
-```
 
-The following requirement needs to be addressed:
+Requirement description:
+Add status-related fields as well as access-control fields; additionally, change the sqlType of the id field to a string type (e.g., VARCHAR), and delete the user_id field.
 
-```xml
-<requirements>  
-    - Increase state-related fields, including permission management fields  
-    - Change the type of the id field to STRING  
-    - Remove the user_id column  
-</requirements>
-```
+Question:
+What is the Delta XML for the newly added and modified field definitions?
 
-Question: What is the corresponding Delta XML for the definitions of the modified fields?
+Return Format
+Wrap your answer in <TRANSLATE_RESULT> ... </TRANSLATE_RESULT> tags only.
+<!-- SOURCE_MD5:7a9da3e3d00611659a8e84ec4f72d19e-->

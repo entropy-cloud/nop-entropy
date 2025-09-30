@@ -1,309 +1,225 @@
-# Functional Programming from a Pragmatic Perspective
+# Functional Programming Thinking from a Pragmatist Perspective
 
-## Video Explanation: [https://www.bilibili.com/video/BV1hrADeZE6v/](https://www.bilibili.com/video/BV1hrADeZE6v/)
+Explainer video: [https://www.bilibili.com/video/BV1hrADeZE6v/](https://www.bilibili.com/video/BV1hrADeZE6v/)
 
-Functional programming ideas have entered the mainstream development field, but many people's understanding of it is still limited to `map`, `flatMap`, and a large number of Lambda expressions. It seems that using Lambda expressions itself equates to functional programming.
+Although functional programming has entered the mainstream of software development, many people still understand it only as collection-processing functions such as map/flatMap with extensive use of lambda expressions, as if using lambdas equals functional programming.
+Some others emphasize functional programming languages like Haskell and Scala that support sophisticated type systems, implying that it’s hard to truly implement so-called functional programming in common imperative languages like Java and reap its benefits.
+But these views are partial. The scope of functional programming is rich; it’s not merely about using higher-order functions.
+Functional programming is a general programming paradigm rather than a single language feature. You can fully apply functional programming ideas in Java.
+This article mainly shares practical experience on applying functional programming ideas in conventional imperative languages from a pragmatist standpoint. The content draws on the following references:
 
-Some people also emphasize languages like Haskell and Scala, which support complex type definitions for functional programming, while in languages like Java, which are generally imperative, it's difficult to truly implement so-called functional programming and gain its benefits.
+* [Why Functional Programming Aids Decoupling (Decouple)](https://mp.weixin.qq.com/s/dWbnBmBLM9LW7hlw8x2jDw)
+* [Monad Guide for Beginners](https://zhuanlan.zhihu.com/p/65449477)
+* [A Heuristic Derivation of the Y Combinator](https://mp.weixin.qq.com/s/ARsrYJpApqB2_72tl-MSQQ)
+* [How to Break Framework Shackles and Achieve True Framework Agnosticism](https://mp.weixin.qq.com/s/v2_x4gre4uMfz3yYNPe9qA)
+* [What Is Declarative Programming](https://zhuanlan.zhihu.com/p/85491177)
 
-However, these views are one-sided. Functional programming encompasses much more than just using higher-order functions. It is a general programming paradigm and not a feature of specific programming languages. In Java, for example, functional programming ideas can still be fully realized.
+## I. Core Ideas of Functional Programming
 
-This article discusses some practical experiences of using conventional imperative languages to practice functional programming ideas under the pragmatic perspective.
+If you ask DeepSeek AI what the core ideas of functional programming are, it will respond as follows:
 
-The following articles are references:
+The core ideas of functional programming can be summarized as:
 
-- [Why is functional programming beneficial for decoupling?](https://mp.weixin.qq.com/s/dWbnBmBLM9LW7hlw8jDw)
-- [Monad Orientation: For Rookies](https://zhuanlan.zhihu.com/p/65449477)
-- [An Inspirational Derivation of Y Combinator](https://mp.weixin.qq.com/s/ARsrYJpApqB2_72tl-MSQQ)
-- [Breaking Free from Frameworks, Achieving True Framework Neutrality](https://mp.weixin.qq.com/s/v2_x4gre4uMfz3yYNPe9qA)
-- [What is declarative programming?](https://zhuanlan.zhihu.com/p/85491177)
+1. **Pure functions**
+   No side effects (no mutation of external state); output is determined solely by input; the same input always yields the same result. This makes code predictable and easy to test.
 
-## 1. Core Ideas of Functional Programming
+2. **Immutable data**
+   Data cannot be modified once created; any change produces new data. This avoids concurrency issues from shared state; typical implementations include persistent data structures.
 
-If you ask DeepSeek AI about the core idea of functional programming, it will respond as follows:
+3. **Functions as first-class citizens**
+   Functions can be passed, composed, and returned like ordinary values, supporting higher-order functions (e.g., `map`/`filter`) and closures.
 
-Functional programming's core idea can be summarized as follows:
+4. **Declarative programming**
+   Focus on “what to do” rather than “how to do it,” describing logic via expressions (e.g., `list.map(f)`) instead of imperative loops and control flow.
 
-### 1.1 Pure Functions
-- A pure function has no side effects (does not modify external state).
-- Its output is solely determined by its input.
-- The same input always produces the same output. This makes code predictable and testable.
+5. **Recursion and lazy evaluation**
+   Use recursion instead of iterative loops, relying on tail-call optimization; laziness (e.g., streams) defers computation to improve efficiency.
 
-### 1.2 Immutable Data
-- Once data is created, it cannot be modified.
-- Sharing state leads to concurrency issues, typical implementations include persistent data structures.
+6. **Function composition and currying**
+   Build complex logic by composing small functions (`f(g(x))`); currying (partial application) enhances reuse.
 
-### 1.3 Functions as First-Class Citizens
-- Functions can be treated like any other variable.
-- They can be passed as arguments and returned as values.
-- Support for higher-order functions (like `map`, `flatMap`) and closures.
+**Key goal**: Elevate modularity, maintainability, and concurrency safety through the rigor of mathematical functions. Typical languages include Haskell and Erlang; modern languages (e.g., JavaScript/Python) have adopted these features as well.
 
-### 1.4 Declarative Programming
-- Focus on "what to do" rather than "how to do it."
-- Describes logic using expressions (e.g., `list.map(f)`), not through imperative control structures.
+=======DeepSeek AI creation completed=======
 
-### 1.5 Recursion and Lazy Evaluation
-- Replace iterative loops with recursion.
-- Tail recursion optimization; lazy evaluation (e.g., stream processing).
+## II. The Essence of Functional Programming
 
-### 1.6 Function Composition and Currying
-- Build complex logic by composing small functions (e.g., `f(g(x))`).
-- Currying: Applying multiple functions step-by-step.
+If you further ask about the essential reasons behind functional programming, DeepSeek AI responds as below:
 
-**Key Goal**: Through mathematical strictness, improve code modularity, maintainability, and concurrency safety. Languages like Haskell and Erlang are typical examples. Modern languages such as JavaScript and Python also incorporate some of their characteristics.
+The essential reasons for functional programming (FP) should be analyzed deeply from three levels: **mathematical logic, the philosophy of computer science**, and **practical engineering problems**:
 
-**Final Note from DeepSeek AI**: Completion of functional programming exploration.
+### A. Mapping in Mathematical Logic: From λ-Calculus to Determinism
 
----
+The roots of FP lie in mathematical **λ-calculus (Lambda Calculus)**, whose core ideas are:
 
-## 2. The Essence of Functional Programming
+1. **Treat computation as mappings of mathematical functions**
+   - A function is a pure mapping from inputs to outputs, not a “process” with side effects (such as variable mutation in imperative programming).
+   - For example: `f(x) = x + 1` is a mathematical function, while `void increment(int& x)` is an imperative process.
+2. **Eliminate interference from “time” and “state”**
+   - The result of a mathematical function depends only on its parameters, not the external environment or execution order (e.g., global variables, IO).
+   - **Determinism (Referential Transparency)**: The same expression evaluates to the same result in any time or context.
 
-If you continue to question the fundamental reasons behind functional programming, DeepSeek AI provides the following response:
+**Essential purpose**: Use mathematical determinism to counter software engineering **uncertainty** (e.g., race conditions, unpredictable side effects).
 
-Functional programming (FP) exists due to three layers of depth: mathematical logic, computer science philosophy, and real engineering challenges.
+### B. Philosophy of Computer Science: From “Machine Model” to “Mathematical Model”
 
-### A. Mapping from Logic to Determinism
-Functional programming originates from mathematical **lambda calculus** (Lambda Calculus), whose core idea is:
-1. Functions are pure mappings from inputs to outputs.
-2. No side effects; results depend solely on inputs.
-3. Example: `f(x) = x + 1` is a mathematical function, while `void increment(int& x)` is an imperative operation.
+Traditional imperative programming (e.g., C, Java) is based on the **von Neumann architecture**, viewing a program as “instruction sequences + memory state,” with a focus on **how to change state**. The philosophy of FP is:
 
-Deterministic nature (Referential Transparency): The result of any expression remains consistent across all contexts and times.
+1. **View programs as constructions of mathematical propositions**
+   - Programs are **expressions** rather than statements, deriving results by composing functions rather than stepwise state mutation.
+   - For example: `map(f, filter(g, list))` is declarative logic, not loops with counters and temporaries.
+2. **Abstract machine complexity**
+   - Through immutable data and higher-order functions, FP hides low-level details of memory management and execution order, focusing on logic itself.
 
-**Core Purpose**: Use mathematical determinism to counter software engineering's uncertainty (e.g., race conditions, unpredictable side effects).
+**Essential contradiction**:
+One root cause of software complexity is **state management** (e.g., multithreaded locks, global-variable pollution). FP simplifies problems to static “input → output” relations by **eliminating mutable state**, reducing cognitive load.
 
-### B. From Machine Models to Mathematical Models
-Traditional imperative programming (like C or Java) follows the **von Neumann architecture**, viewing programs as sequences of operations on memory states. Functional programming, however, treats programs as mathematical constructs.
+### C. Real-World Engineering Pressures
 
-1. **Mathematical Construction**: Programs are built using functions that manipulate data.
-2. **Elimination of State Manipulation**: Focus on function definitions rather than state changes.
+The resurgence of FP (e.g., Scala, React Hooks) is directly related to **modern software complexity**:
 
-Functional programming's philosophical stance is rooted in this shift from machine-centric to math-centric models.
+1. **Concurrency and distributed systems**
+   - Multi-core CPUs and distributed computing call for shared-nothing designs. Pure functions and immutable data naturally avoid lock contention and data pollution.
+   - Example: Erlang achieves telecom-grade reliability with the Actor model and immutable message passing.
+2. **Maintainability**
+   - Pure and declarative code is easier to test, reason about, and refactor (due to the lack of implicit dependencies).
+   - Example: In React, UI = f(state); immutable state updates ensure view consistency.
+3. **Composability in complex systems**
+   - Function composition (e.g., `compose(f, g)`) and type systems (e.g., Haskell’s Monad) enable modular construction of complex logic.
 
----
+**Essential driving force**:
+FP leverages mathematical **rigor** and **composability** to counter the entropy increase (growing disorder) as software scales.
 
-## 2.1 Mathematical Logic: From Lambda to Determinism
-Functional programming's foundation is mathematical lambda calculus, which formalizes functions as pure mappings. This leads to:
+### D. Deeper Philosophy: An Alternative Worldview of Computation
 
-- **Purity of Functions**: No state changes; outputs depend solely on inputs.
-- **Deterministic Evaluation**: Results are consistent across all contexts.
+FP represents an **alternative definition of computation**:
 
-### 2.2 Computer Science Philosophy: From Mechanism to Mathematics
-Functional programming challenges the von Neumann worldview by treating programs as mathematical objects rather than mere sequences of operations:
+- **Imperative programming**: Computation is the stepwise transformation of state (Turing machine model).
+- **Functional programming**: Computation is the reduction of expressions (λ-calculus model).
 
-1. **Programs as Mathematical Objects**: Functions define program behavior, not just data transformations.
-2. **Elimination of Side Effects**: State is an artifact of imperative programming.
+The two models are theoretically equivalent (Church–Turing Thesis), but choose different abstraction levels in practice:
 
-### 2.3 Engineering Reality: From Complexity to Simplicity
-Functional programming's practical benefits:
-- Easier testing and debugging due to predictability.
-- Reduced error-prone complexity in concurrent systems.
-- Higher code reuse through function composition.
+- **Turing machine model**: Closer to physical machine implementation; requires manual state management.
+- **λ-calculus model**: Closer to human logical reasoning; relies on mathematical rules to ensure correctness.
 
----
+### Summary: A Pursuit of “Determinism” and “Composability”
 
-# The Nature of Imperative Programming: A Technical Document
+FP reshapes the software paradigm through:
 
-## The Fundamental Duality
+1. **Eliminating side effects with mathematical functions** → enhances determinism.
+2. **Eliminating temporal coupling with immutable data** → simplifies concurrency.
+3. **Building abstractions with higher-order functions and type systems** → boosts composability.
 
-In programming, **Expression** (Expression) is not the same as **Statement** (Statement). By combining functions to derive results rather than modifying states, **Functionality** (Functional Programming) simplifies the problem into a static "Input→Output" relationship.
+Its ultimate goal is to: **elevate software engineering from “mechanical operations” to “mathematical proof”**, trading formal logical constraints for system reliability and maintainability.
 
-- Example: `map(f, filter(g, list))` represents declarative logic, not a loop with temporary variables.
+========== DeepSeek AI creation completed =======
 
-## The Complexity of Abstract Machines
+DeepSeek’s understanding is indeed quite deep; in fact, I’ve observed that many so-called architects do not reach this depth with these concepts.
 
-The complexity of abstract machines arises from their reliance on mutable data and control flow. By using **Immutable Data** (Immutable Data) and higher-order functions, we hide low-level memory management and execution order details, focusing solely on the logic itself.
+Simply put, we can understand functional programming from the following angles.
 
-## The Fundamental Contradiction
+### 2.1. The universality of the function concept
 
-The root of software complexity lies in **State Management** (State Management), such as multi-threaded locks and global variable pollution. Functional programming resolves this by eliminating mutable state, reducing the problem to a static "Input→Output" relationship, thereby lowering cognitive load.
+Functional programming is a distinctive perspective for observing the world and building abstractions. Object-oriented programming claims that **everything is an object**; similarly, functional programming claims that **everything is a function**.
+From the functional perspective, **a value a can be regarded as equivalent to the lambda expression `()=>a`**.
 
----
+> Some languages like Scala support so-called lazy variables. They are used like values but are essentially lazily-evaluated functions; the first access triggers function execution.
 
-# The Nature of Functional Programming: A Technical Document
+In the functional world, the result of a computation is just another name for the computation process. If needed, we can recompute at any time, and each computation yields the same result.
 
-## The Fundamental Drive
+Relying solely on the concept of functions, we can build the software world and realize all feasible computations. This uniformity at the foundational level carries enormous epistemic value. However, note that uniformity may be insufficient in practical applications. For example, all matter in the physical world is composed of a small number of atomic species, yet actual material properties are highly diverse.
 
-Functional programming's resurgence (e.g., Scala, React Hooks) is directly related to **Modern Software Complexity** (Modern Software Complexity). This is due to:
+#### Values are efficient representations after information compression
 
-1. **Concurrency and Distributed Systems' Challenges**
-   - Multi-core CPUs and distributed computations require no shared state (Shared-Nothing), which pure functions and immutable data naturally avoid.
-   - Example: Erlang uses the Actor model and immutable message passing to build reliable communication systems.
+In Chinese and Arabic numerals, 1 through 9 are represented by single characters; Roman numerals, which originated from ancient Rome and spread widely in the West, differ. Roman numeral I is 1, V is 5, IV represents 4 (5 − 1), and VI represents 6 (5 + 1).
+A similar phenomenon exists in French, e.g., 80 = quatre-vingts (4×20) and 90 = quatre-vingt-dix (4×20+10).
 
-2. **Software Maintainability Needs**
-   - Pure functions and declarative code are more easily testable, reason about, and refactor due to reduced implicit dependencies.
-   - Example: React's UI = f(state) ensures consistent visual updates via immutable state updates.
+Clearly, we could adopt the following notation: 1+1 for 2, 1+1+1 for 3, and so on. There is no logical issue with this notation; it’s just wasteful on paper in practice.
 
-3. **Complex Systems' Composability**
-   - Function composition (e.g., `compose(f, g)`) and type systems (e.g., Haskell's Monad) enable modular construction of complex logic.
+In the lambda calculus (the theoretical foundation of functional programming), the idea that everything is a function is pushed to the extreme: we can totally discard the concept of integers as values and represent integers with functions—at the cost of very verbose representations.
+For example, the integer 3 can be represented by the lambda expression `λf.λx.f (f (f x))`, which essentially expresses 3 as “apply f to x three times.” Clearly, the familiar integer 3 is an efficient representation after information compression. Mathematically, it has infinitely many possible representations, all of which implicitly encode some computation process for 3.
 
----
+In this sense, “everything is a function” is clearly uneconomical at the computation level; we must vigorously develop efficient representations for intermediate results.
 
-## The Fundamental Force
+### 2.2. Functions have favorable mathematical properties
 
-Functional programming's essence is to redefine computation as **Mathematical Rigor** (Mathematical Rigor) and **Composability** (Composability). This opposes the exponential growth in software complexity due to entropy (disorder).
+In mathematics, functions possess the universal determinism characteristic of mathematical truths and satisfy associativity, allowing divide-and-conquer reasoning with limited local knowledge. Fully leveraging the mathematical properties of functions yields scientific benefits.
 
----
+> Associativity means a + (b + c) = (a + b) + c. In a set of computations, we can freely add parentheses to group computations without affecting the final result. Grouped computations can be carried out independently of the outside, implying that local parts have intrinsic value and can be understood independently.
 
-# The Fundamental Philosophy: A Different Worldview
+Interestingly, mathematically-defined functions need not be represented by functions in a specific programming language. For example, when modeling a process in Java, each step of the process can correspond to a mathematical function; however, in Java, we often model that function as a step object and use StepModel to represent the function alongside related metadata.
 
-Functional programming's core is a redefinition of **"Computation"**:
+Conversely, are functions in functional languages necessarily the best carriers of the mathematical concept of functions? Not necessarily. Mathematics derives its power from analyzability and logical derivation, whereas functions in a functional language are black boxes at the application level—the compiler can analyze them, but typical application code cannot.
+In big data processing models, functionality appears to be built by composing functions, but the core is still constructing an analyzable DAG; the framework needs to analyze this graph, reorganize logic, and perform optimizations. Relying only on low-level information exposed at compile time may be insufficient for automated reasoning.
 
-- **Imperative Programming**: Computation is state modification (Turing Machine model).
-- **Functional Programming**: Computation is expression simplification (Lambda Calculus model).
+### 2.3. Functions have no concept of time
 
-Both models are theoretically equivalent under the Church-Turing Thesis, but their practical abstraction levels differ:
+The world of mathematical objects is timeless and free from causal constraints—an entirely free and eternal world. In this world, you always have the right to “regret”; nothing is irreversible.
+Note that it’s not just mathematical functions that have this property—this property holds for all mathematical objects (for example, the Delta concept with an inverse element allows us to keep stacking changes and eventually return to the origin).
 
-- **Turing Machine Model**: Closer to physical machine implementation but requires manual state management.
-- **Lambda Calculus Model**: Aligns more closely with human logical reasoning, ensuring correctness through mathematical rules.
+> Deriving proposition B from proposition A does not mean A is more fundamental than B; you can also derive A in reverse from B.
 
----
+In functional programming, you can treat all functions as executing in parallel; regardless of the order, the final result is the same. Since no values are mutated, there are no races. Thus, FP has unique advantages in distributed and parallel programming.
 
-# Summary: The Essence is "Determinism" and "Composability"
+In imperative programming, we frequently modify state; distinguishing before-change and after-change inevitably introduces time (at time t the value is X; at time t+1 after assignment the value becomes Y—how do you define change without time? Or rather, precisely because we can recognize change, we discover and define time).
+Therefore, imperative computation always unfolds along a timeline, and when multiple timelines intersect (through shared mutable state), unnecessary complexity is often introduced (complexity not inherent to the business itself but to the computation process).
 
-Functional programming redefines software paradigms through:
+In the pure-functions + immutable-data paradigm of FP, akin to the many-worlds interpretation in quantum mechanics, each computation step spawns a new universe. All these universes can proceed in parallel, with the caveat that they may consume substantial resources. Thus, given resource constraints, the benefits promised by mathematical abstraction may not always be realized in practice.
 
-1. **Mathematical Functions Eliminate Side Effects** → Enhances determinism.
-2. **Immutable Data Eradicates Time Coupling** → Simplifies concurrency.
-3. **Higher-Order Functions and Type Systems Build Abstractions** → Boosts composability.
+### III. Functional Programming in Object-Oriented Languages
 
-Its ultimate goal is to elevate software engineering from "Mechanical Operations" to "Mathematical Proof," ensuring reliability and maintainability through formalization.
+For detailed discussion, see [Why Functional Programming Aids Decoupling (Decouple)](https://mp.weixin.qq.com/s/dWbnBmBLM9LW7hlw8x2jDw)
 
----
+1. Functions should have parameters and return values
+2. Minimize mutations to shared data
+3. Use higher-order functions instead of inheritance
+4. The value of function composition stems from associativity
+5. Decouple traversal logic from computation logic
+6. Lazy evaluation reduces unnecessary causal coupling
 
-# DeepSeek's Understanding: A Reflection
+### IV. Minimal Information Expression for Framework Neutrality
 
-DeepSeek's understanding runs far deeper than most architects' grasp of these concepts. Essentially, functional programming can be understood from the following angles:
+For detailed discussion, see [How to Break Framework Shackles and Achieve True Framework Agnosticism](https://mp.weixin.qq.com/s/v2_x4gre4uMfz3yYNPe9qA)
 
-## 2.1. Function Concept's Universality
+> framework agnosticism allows create technology solutions that are independent of any **predefined** frameworks or platforms.
 
-Functional programming offers a unique perspective on observing and abstracting the world. While object-oriented programming declares **"Everything is an Object"**, functional programming asserts **"Everything is a Function"**.
+First, recognize that framework neutrality is an outcome, not necessarily a goal we explicitly pursue. Our primary goal should be: **how to achieve minimal information expression**.
 
-In this paradigm, **"Value a"** can be seen as equivalent to the Lambda expression `()=>a`. Languages like Scala support lazy evaluation, where variables are initially functions that execute upon first use.
+**Minimal expression is necessarily domain-specific**. Essentially, business logic is technology-neutral; it can be expressed and implemented independently of any framework. Therefore, if we strip away all extraneous information, what remains must be concepts internal to the business domain. For example:
 
-Functionality transforms computation into a static process. Results are consistent across repeated computations, allowing for reliable and reproducible outcomes.
-
-The foundation of this world is **Uniformity** (Uniformity), yet its practical application may fall short in real-world complexity. For instance, physical materials exhibit vast structural diversity despite being composed of a limited number of atomic types.
-
----
-
-## Data as Information Compression
-
-In Chinese and Arabic numerals, digits 1-9 are single characters, reflecting their historical evolution. Similarly, Roman numerals use combinations like IV (4) and IX (9), which represent subtractive notation. In French, numbers like **80** (quatre-vingts) and **90** (neuf) employ similar conventions.
-
-Arabic numerals exemplify efficient information storage through compact representation. This efficiency is mirrored in programming languages that use single characters for digits, ensuring concise data transmission.
-
-However, the logical layer in Lambda calculus theory views all constructs as functions, leading to verbose representations like `map(f, filter(g, list))`. While this may seem cumbersome, it ensures mathematical rigor and correctness.
-
----
-
-### 2.2 Functions Have Good Mathematical Properties
-
-Mathematical functions possess a unique certainty inherent in mathematical truths. This certainty allows us to use limited local knowledge for reasoning through division and association. By leveraging the mathematical properties of functions, we can achieve significant benefits in the scientific domain.
-
-> Associativity is the property that allows us to add parentheses without affecting the final result:  
-  \(a + (b + c) = (a + b) + c\).  
-  In a set of calculations, we can freely add parentheses, and the result will remain unchanged. This independence within allows for local value while maintaining overall integrity.
-
-However, this certainty does not necessarily translate to specific programming languages. For example, in Java, modeling a process involves creating a StepModel to represent each step mathematically, whereas in reality, it is modeled as an object. Similarly, the flow of data and operations can be represented using StepModel while preserving the integrity of mathematical functions.
-
-### 2.3 Functions Have No Temporal Concept
-
-In the world of mathematical objects, there exists a realm without time or causality—a completely free and eternal domain where every action carries no consequences. This freedom extends to all mathematical objects, including those with inverses (like differences), allowing us to accumulate changes indefinitely, ultimately returning to the origin.
-
-> From proposition A, we can derive proposition B, but this does not imply that A is more fundamental than B. Instead, B can be derived from A in reverse, demonstrating the interconnected nature of mathematical concepts.
-
-In programming terms, functional programming excels in parallel execution because all functions are inherently concurrent. There is no state modification, so there's no competition or race condition. This advantage holds particularly in distributed and parallel computing environments.
-
-### 2.4 Function Programming in Object-Oriented Languages
-
-Detailed discussion can be found in the article [Why Functional Programming Helps Decouple](https://mp.weixin.qq.com/s/dWbnBmBLM9LW7hlw8x2jDw).
-
-1. Functions should have parameters and return values.
-2. Minimize shared data modifications.
-3. Use higher-order functions instead of inheritance.
-4. The value of function composition stems from the associativity property.
-5. Decouple traversal and computation logic.
-6. Lazy evaluation reduces unnecessary causal coupling.
-
-### 4. Implementing Framework-Neutral Minimal Information Representation
-
-Detailed discussion can be found in the article [Breaking Free from Frameworks: Achieving True Framework Neutrality](https://mp.weixin.qq.com/s/v2_x4gre4uMfz3yYNPe9qA).
-
-> Framework-agnostic minimal information representation allows for independence from any predefined frameworks or platforms. This is achieved by stripping away all additional information, leaving only the core concepts relevant to your domain.
-
-For example:
-```lambda
-<lambda>
-  <lambda>
-    <apply>
-      <function>
-        <variable>f</variable>
-        <lambda>
-          <variable>x
-          <apply>
-            <function>
-              <variable>f
-              <apply>
-                <function>
-                  <variable>f
-                  <variable>x
-                </function>
-                <variable>x
-              </apply>
-            </function>
-            <variable>x
-          </apply>
-        </lambda>
-      </function>
-      <variable>x</variable>
-    </apply>
-  </lambda>
-</lambda>
 ```
-This lambda expression represents applying the function `f` three times to `x`, effectively computing \(f(f(f(x)))\). While our familiar integer `3` is a concise representation, there are infinitely many ways to represent `3` mathematically, each encapsulating some computation process.
-
-From this perspective, everything is a function. On the computational level, adding parentheses seems redundant, but it allows for local computations without affecting the overall result. This independence means functions have intrinsic value and can be reasoned about locally while maintaining global integrity.
-
-However, mathematical functions don't always need to be represented by specific programming language functions. For instance, modeling a process in Java involves creating a `StepModel` object that mathematically represents each step, whereas in reality, it's modeled as an object. Similarly, data flow and operations can be managed using `StepModel`, preserving the integrity of mathematical functions.
-
-void activateCard(HttpServletRequest req) {
+void activateCard(HttpServletRequest req){
     String cardNo = req.getParameter("cardNo");
     ...
 }
 
-void activateCard(CardActivateRequest req) {
+void activateCard(CardActivateRequest req){
     ...
 }
+```
 
-Compare the above two functions, the first function's expression is not minimal because it introduces additional Http context information, while the second function uses only custom business-specific CardActivateRequest object information.
+Comparing the two functions above, the first is not minimally expressed because it introduces extra HTTP context, whereas the second uses only the domain-specific CardActivateRequest tailored to the current business.
 
-Minimizing current information representation can be understood from the opposite direction, which maximizes future possible information representation. If the expression is minimized, we will inevitably describe what we aim to achieve and omit various execution details such as how to reach, in what order, etc. This means we try to defer making specific technical decisions as much as possible, deferring expressing and executing related information.
+Minimizing current expression, viewed conversely, maximizes future possible expressions. If the expression is minimal, we will only describe the goal we want to achieve and omit execution details (e.g., which method to use, in what order to execute). In other words, we defer concrete technical decisions and any execution-related information as much as possible. Thus, minimal information expression is necessarily declarative; execution details should be specified at runtime or inferred automatically by the runtime engine according to some optimization strategy.
 
-To achieve framework neutrality, we need to handle the following in a framework-neutral way:
+To achieve framework neutrality, we need to treat the following in a framework-agnostic way:
 
-1. Data (Data Input Output & Storage)
-2. Control (Commands, Events, etc.)
-3. Side Effect
+1. Data (data input/output and storage)
+2. Control (commands, events, etc.)
+3. Side effects
 4. Context
 
+#### 4.1. Data (data input/output and storage)
 
-#### 4.1. Data (Data Input Output & Storage)
-
-From a mathematical perspective, minimizing information representation leads to all externally related information being concentrated in the boundary layer, which can be expressed as:
-
-output = biz_process(input)
+   In mathematical terms, minimal information expression pushes all externally-related information to the boundary layer, which can be written as:
 
 ```
-output = biz_process(input)
+  output = biz_process(input)
 ```
 
+### 4.2. Control (commands, events, etc.)
 
-### 4.2. Control (Commands, Events, etc.)
-
-The traditional approach to event handling is to pass an event response function to a component and then call this function inside the component. This process is essentially consistent with how asynchronous callback functions are handled. In modern asynchronous processing frameworks, callbacks have been replaced by Promises and async/await syntax, similar to event handling.
-
-For example, both Callback and EventListener can be abstracted into Stream objects:
+Traditionally, events are handled by passing an event-handler function into a component, which is then invoked internally. This is essentially the same as asynchronous callbacks. In modern async frameworks, most have abandoned callbacks in favor of Promises and async/await. Similarly, for events we can abstract event emission as a Stream and return this stream in the output.
 
 ```
 Callback<E> ==> Promise<E>
@@ -311,69 +227,108 @@ Callback<E> ==> Promise<E>
 EventListener<E> ==> Stream<E>
 ```
 
+### 4.3. Side effects
 
-### 4.3. Side Effect
-
-Interpreting business logic as a tug-of-war between input/output needs and external world interactions leads to over-simplification in many cases. A more detailed explanation can be expressed using the following formula:
-
-[output, side_effect] = biz_process(input, context)
+Modeling the entanglement between business logic and the external world purely as input and output is often overly simplistic. A more refined description is:
 
 ```
 [output, side_effect] = biz_process(input, context)
 ```
 
-Side effects are often tied to specific runtime environments and dependencies. For instance, file downloads in standard Web frameworks require HttpServletResponse which tightly couples business code with Servlet interfaces, making it incompatible with Spring and Quarkus.
+The problem with side effects is that they typically carry execution semantics and easily introduce dependencies on a specific runtime environment. For example, to implement file download in a typical web framework:
 
-> Quarkus typically uses RESTEasy for the Web layer, which does not support Servlet interfaces
+```javascript
+ void download(HttpServletResponse response) {
+     OutputStream out = response.getOutputStream();
+     InputStream in = ...
+     IoHelper.copy(in, out);
+     out.flush();
+ }
+```
 
-To address this, a functional programming approach offers a standardized solution: avoid executing side effects directly and encapsulate corresponding information into a descriptive object that is returned as part of the output. For example, in Nop's platform:
+Because we need the runtime-provided response object, our business code is bound to the Servlet API; thus the file-download business code cannot automatically work with both Spring and Quarkus runtimes.
 
-```markdown
-@BizQuery
-public WebContentBean download(@Name("fileId") String fileId,
-                              @Name("contentType") String contentType,
-                              @IServiceContext ctx) {
-    IFileRecord record = loadFileRecord(fileId, ctx);
-    if (StringHelper.isEmpty(contentType)) {
-        contentType = MediaType.APPLICATION_OCTET_STREAM;
+> Quarkus typically uses RESTEasy for the web layer, which does not support the Servlet API.
+
+To solve this, a standard solution from FP is: don’t execute the side effect immediately; instead, wrap the side-effect information into a descriptive object and return it. For example, on the Nop platform, file download is implemented as follows:
+
+```javascript
+    @BizQuery
+    public WebContentBean download(@Name("fileId") String fileId,
+                                   @Name("contentType") String contentType,                                            IServiceContext ctx) {
+        IFileRecord record = loadFileRecord(fileId, ctx);
+        if (StringHelper.isEmpty(contentType))
+            contentType = MediaType.APPLICATION_OCTET_STREAM;
+
+        return new WebContentBean(contentType, record.getResource(),
+                  record.getFileName());
     }
+```
 
-    return new WebContentBean(
-        contentType,
-        record.getResource(),
-        record.getFileName()
-    );
+The Nop platform does not actually perform the download action but returns a WebContentBean that wraps the file to download. The framework recognizes WebContentBean and uses the download mechanism of different runtimes to execute the download. **At the business level, we only need to express the intent “download a file”; there is no need to perform the download ourselves**.
+
+### 4.4. Context
+
+The Nop platform’s approach is to **weaken the behavioral semantics of the context object and degrade it into a general-purpose data container**. Specifically, Nop uses a unified IServiceContext as the service context object (the same context interface across different engines, decoupled from the runtime environment). It has no special execution semantics and is essentially a Map that can be created and destroyed at will.
+
+In front-end development, React Hooks cleverly leverages an implicitly available general context to decouple lifecycle functions from components, expanding the applicability of the function form.
+
+The UI domain has traditionally been the stronghold of OOP. Previously, no UI framework built on FP languages and ideas achieved success comparable to OOP. React Hooks changed that; now front-end components have largely degenerated into functions. Of course, in some sense, Hooks also abandons traditional purity by using implicitly passed context to enable reactive, data-driven behavior.
+(Theoretically, Hooks are similar to so-called algebraic effects.)
+
+In [Why Is SpringBatch a Bad Design?](https://mp.weixin.qq.com/s/1F2Mkz99ihiw3_juYXrTFw), I introduced a design that generalizes a Hooks-like approach to batch-processing frameworks, overcoming many flaws of SpringBatch.
+
+#### Algebraic Effects
+
+Below is DeepSeek’s explanation of algebraic effects:
+
+**Algebraic Effects** are a programming language feature that allows a function to **declare the operations it needs (e.g., state, IO) without handling their concrete implementation**, decoupling side-effect logic from the main flow. Key characteristics include:
+
+1. **Declarative side effects**: Use a `perform`-like keyword to mark operations (e.g., `perform FetchData`), with an external **effect handler** providing the implementation;
+2. **Resumable execution**: The function suspends; the handler completes the operation (e.g., fetching data) and then resumes the original function automatically;
+3. **Implicit context passing**: No need to manually thread dependencies (like monadic chaining); the runtime manages context association.
+
+**Compared with traditional error handling (try/catch)**:
+
+- `try/catch` only handles errors and is not resumable
+- Algebraic effects can handle arbitrary operations (state, async, etc.) and resume execution with values
+
+**Example** (pseudo-code):
+
+```ocaml
+function getUser() {
+  const token = perform GetToken();  // Declare token is needed
+  return fetchUser(token);          // When resumed, token is provided by the handler
+}
+
+// External handler provides the concrete implementation
+handle GetToken {
+  resume with "xxx_token";  // Inject token and resume the original function
 }
 ```
 
-### 4.4 Context
+**Value**: Improves **composability** (freely compose effect handlers) and **maintainability** (separate pure logic from side effects).
+(For example, React Hooks, via the Fiber architecture, simulates a similar pattern to realize a declarative abstraction for state management.)
 
-Nop platform's approach is to **deemphasize the semantic meaning of context** by reducing it to a generic data container. Specifically, Nop uses `IServiceContext` as the uniform context interface (different engines adopt this same interface), making context independent from the specific runtime environment. However, it doesn't have special semantic meaning; it's essentially just a map that can be created and destroyed on demand.
+## V. The Y Combinator
 
-In frontend development, React Hooks elegantly leverage an implicit generic context to decouple lifecycle functions from components, greatly expanding the scope of functional programming.
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/fp/Y-combinator.png)
 
-The UI field has traditionally been the domain of object-oriented programming's strengths. Previous UI frameworks built on functional programming ideas struggled to match object-oriented programming's success. However, React Hooks have introduced a new landscape where most frontend components have been reduced to function-like forms. In a sense, Hooks have abandoned traditional purism by implicitly passing context, enabling data-driven response handling.
-
-[Why is SpringBatch a bad design?](https://mp.weixin.qq.com/s/1F2Mkz99ihiw3_juYXrTFw) discusses how similar approaches to Hooks can be applied to batch processing frameworks to overcome the limitations of SpringBatch.
-
-## 5. Y Combinator
-# The Y Combinator
-
-The **Y-combinator** is a technique used to implement recursive functions. Its definition is as follows:
+The Y combinator is a technique for implementing recursive functions. It is defined as:
 
 ```
 Y = λf.(λx.f (x x)) (λx.f (x x))
 ```
 
-The purpose of the Y-combinator is to transform a non-recursive anonymous function into a recursively callable function. For example, in JavaScript:
+The Y combinator turns a non-recursive anonymous function into a function that can call itself recursively. For example, in JavaScript:
 
 ```javascript
-const Y = f => (x => f(v => v(x)(v))) (x => f(v => v(x)(v)));
-const fact = Y(g => g(n) => n === 0 ? 1 : n * g(n - 1));
-console.log(fact(5)); // Outputs 120
+const Y = f => (x => f(v => x(x)(v)))(x => f(v => x(x)(v)));
+const fact = Y(g => n => n === 0 ? 1 : n * g(n - 1));
+console.log(fact(5)); // Output 120
 ```
 
-The defined `fact` function is equivalent to:
+The fact function above is equivalent to:
 
 ```javascript
 function fact(n){
@@ -383,94 +338,96 @@ function fact(n){
 }
 ```
 
-> The Y-combinator holds significant theoretical importance because it enables recursion in languages that do not inherently support recursive mechanisms. However, in practical terms, its utility is limited since most programming languages directly support named functions and recursive calls.
+> The Y combinator is theoretically significant because it can implement recursion in languages that lack built-in recursion. However, since most languages directly support named function references and recursive calls, it has limited practical use.
 
-The derivations involving the Y-combinator often appear confusing, such as in articles like "[The Y Combinator](https://mp.weixin.qq.com/s/EfGq9pfWXsu3IoHzau0D_Q)" and "[Y Fixed-point Combinator](https://zhuanlan.zhihu.com/p/100533005)", but they essentially verify the correctness of the Y-combinator's definition. While these articles may not fully explain why the Y-combinator takes its specific form, they confirm that its definition is accurate.
+Typical derivations of the Y combinator tend to be obscure, such as [The Y Combinator Explained](https://mp.weixin.qq.com/s/EfGq9pfWXsu3IoHzau0D_Q) and [The Y Fixed-Point Combinator](https://zhuanlan.zhihu.com/p/100533005) https://zhuanlan.zhihu.com/p/100533005
 
-The Y-combinator's form can be intuitively derived by following these steps:
+Most introductions essentially verify that the definition of the Y combinator is correct but don’t explain why it must take that form. For instance, what does `x x` really mean inside—can we change it to `x x x`?
 
-1. **Define the Recursive Function**: Start with a basic recursive function, such as the factorial function:
-   ```javascript
-   let f = n => n < 2 ? 1 : n * f(n - 1);
-   ```
+Below is a heuristic derivation for the shape of the Y combinator that is very intuitive; you can follow the same logic to obtain the Turing combinator and more, and even systematically construct infinitely many combinators.
 
-2. **Identify the Fixed Point**: Recognize that applying the function to itself (i.e., `f(f)`) yields the desired fixed point.
-
-3. **Apply the Y-combinator**: Use the Y-combinator to transform the non-recursive form into a recursive one:
-   ```javascript
-   const g = f => x => f(x)(x);
-   const Y = g => f => g(f)(g(f));
-   ```
-
-4. **Derive the Fixed Point Equation**: Through repeated application, derive that `f(f) = f`.
-
-By following these steps, we can construct a recursive function from its non-recursive counterpart using the Y-combinator.
-
-# Recursive Function Basics
-
-A basic recursive function might look like this:
+First, consider the basic form of a recursive function:
 
 ```javascript
-let f = n => {
-  if(n === 0)
-    return 1;
-  return n * f(n - 1);
-};
+let f = x => in the function body, use f to denote itself for recursive calls
+// Example: factorial
+let fact = n => n < 2 ? 1 : n * fact(n-1)
 ```
 
-This is a first-order recursive function, where each call to `f(n)` depends on `f(n-1)`.
+> The recursive function above is first-order recursion, i.e., in its definition it only references itself to cause recursion.
 
-# Constructing the Y-combinator
-
-To create the Y-combinator, follow these steps:
-
-1. **Define the Auxiliary Function**: Create an auxiliary function `g` that takes a function `f` and returns another function:
-   ```javascript
-   let g = f => x => f(x)(x);
-   ```
-
-2. **Define the Y-combinator**: Use `g` to define `Y`, which takes a function `f` and applies `g(f)` twice:
-   ```javascript
-   const Y = g => f => g(f)(g(f));
-   ```
-
-3. **Use the Y-combinator**: Apply `Y` to your recursive function to turn it into a fully recursive one.
-
-For example, applying `Y` to the factorial function:
+We see that the function body references itself via the name f. If we want to eliminate this self-reference, we **must turn it into a parameter**, yielding:
 
 ```javascript
-const fact = Y(g => g(n) => n === 0 ? 1 : n * g(n - 1));
+let g = f => x => in the function body, use f to denote the original recursive function
 ```
 
-# Deriving the Fixed Point
-
-The Y-combinator effectively solves the fixed point equation:
+Function g adds a layer atop f, making it a higher-order function. Since f is an arbitrary recursive function, the only thing we know about g is that it can act on f:
 
 ```javascript
-f(f) = f
+g(f) = x => within the function body, f is referenced via a closure over the parameter f
 ```
 
-Through repeated application, we see that `f` becomes a fixed point of itself. This property allows us to construct recursive functions from their non-recursive forms.
+Clearly, g(f) returns the target recursive function we need, giving the so-called fixed-point equation:
+
+```javascript
+g(f) = f
+```
+
+Applying g to parameter f returns f itself; in this case, **f is a fixed point of g**.
+
+We can now set up a standard procedure to construct an anonymous recursive function:
+
+1. **Define an auxiliary function g based on the named function f**
+2. **Solve for a fixed point of g**
+
+Assume there **exists a standard method Y to obtain a fixed point of g**:
+
+```javascript
+f = Y g  ==>  Y g = g (Y g)
+```
+
+If Y exists, what does it look like? To solve the fixed-point equation, a common approach is iteration: repeatedly apply the original equation and examine the evolution:
+
+```javascript
+f = g(f) = g(g(g...))
+```
+
+If fully unrolled, f corresponds to an infinite sequence. **Assume we can take the square root of this infinite sequence**:
+
+```javascript
+f = g(g(g...)) = G(G) = g(f) = g(G(G))
+```
+
+If such a function G exists, what is its definition? Fortunately, **G(G) = g(G(G)) can itself be viewed as the definition of G**:
+
+```javascript
+G(G) = g(G(G)) ==> G = λG. g(G(G)) = λx. g(x x)
+```
+
+The last equality uses parameter renaming, i.e., α-conversion in λ-calculus.
+
+Given G, the definition of Y is straightforward:
 
 ```
 Y g = f = G(G) = (λx.g (x x)) (λx.g (x x))   (1)
 Y = λg. (λx.g (x x)) (λx.g (x x))            (2)
 ```
 
-The above (1) directly substitutes the definition of G. While (2) treats Y g as the definition of Y.
+In (1) we directly substitute G’s definition. In (2) we treat Y g as the definition of Y:
 
 ```
-Y g = expr ==> Y = λg. expr
+ Y g = expr ==> Y = λg. expr
 ```
 
-We can continue executing alpha-transformations, changing parameter names to make the Y combination resemble a common form in literature.
+We can continue α-conversion (renaming parameters) to obtain the common form seen in the literature:
 
 ```
 Y = λf. (λx.f (x x)) (λx.f (x x))
 ```
 
-For further details, see [an inspirational derivation of the Y combination](https://mp.weixin.qq.com/s/ARsrYJpApqB2_72tl-MSQQ).
+For more details, see [A Heuristic Derivation of the Y Combinator](https://mp.weixin.qq.com/s/ARsrYJpApqB2_72tl-MSQQ)
 
-Specifically, why does Y combination look so intimidating? How was this complex thing invented? Why choose `f = G(G)` as its decomposition form?
-In reality, there's no deep reason. Choosing to square is just a simple, arbitrary choice (or perhaps the simplest one). If you don't choose to square, you can also cube it: `f=G G G`, or even make a sandwich: `f=G g G`. If you're feeling adventurous, you might even go for something layered like `f=G G G`. The same pattern can be repeated indefinitely, generating an infinite number of fixed points.
-
+As for why the Y combinator looks so daunting—how was such a complex thing conceived? Why choose the form `f = G(G)`?
+The truth is, there’s no deep “why.” The square-root choice is arbitrary (or the simplest choice). If not square root, you could take a cube root `f = G G G`, or make a sandwich `f = G g G`, or even a mille-feuille if you like. The same pattern can be applied repeatedly to produce infinitely many fixed-point combinators.
+<!-- SOURCE_MD5:197d9f82086b918e8b54b3ce151947d8-->

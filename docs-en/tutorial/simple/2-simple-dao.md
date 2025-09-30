@@ -1,19 +1,18 @@
-# Nop Introduction: Simplified Data Access Layer Development
+# Getting Started with Nop: Minimalistic Data Access Layer Development
 
-The data access layer in the Nop platform uses the Nop ORM Engine, which combines the functionality of JPA + MyBatis + SpringData and includes built-in features such as multi-tenant support, logical deletion, dynamic field extensions, and field encryption. The Nop GraphQL service framework automatically identifies ORM entities and utilizes the ORM engine to implement entity relationships for batch loading.
+The Nop platform’s data access layer uses the NopORM engine, which is equivalent to JPA + MyBatis + SpringData, and comes with commonly used business features such as multi-tenancy, logical deletion, dynamic extension fields, and field encryption. The NopGraphQL service framework automatically recognizes ORM entity objects and uses the ORM engine to implement batch loading of associated properties.
 
-The standard development pattern on the Nop platform involves designing the data model first, followed by generating Java entity code based on the data model. However, this is just one way to simplify development. The Nop ORM supports dynamic data models, allowing you to skip the code generation step and manually create data model files instead, thus directly implementing the database access layer.
+The standard development approach on the Nop platform is to design the data model first and then generate Java entity code based on the model; however, this is only a way to simplify development. NopORM supports dynamic data models, so we can skip the code generation step and manually write data model files to build the data access layer.
 
-Video Explanation: [Bilibili Video](https://www.bilibili.com/video/BV1yC4y1r716/)
+Tutorial video: https://www.bilibili.com/video/BV1yC4y1r716/
 
 The simplest steps for data access layer development are as follows:
 
-## 1. Writing app.orm.xml File
+## 1. Write the app.orm.xml file
 
-When the Nop platform starts, it automatically loads all modules by reading the app.orm.xml file located in the orm directory under the nop schema.
+When the Nop platform starts, it automatically loads the app.orm.xml file under the orm directory of all modules.
 
-> Example: `/_vfs/nop/demo/orm/app.orm.xml`  
-> The nop/orm directory contains a file named `_module`, indicating that it is a Nop module.
+> For example `/_vfs/nop/demo/orm/app.orm.xml`. If there is a file \_module under the nop/orm directory, it indicates that this is a Nop module.
 
 ```xml
 <orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
@@ -21,8 +20,9 @@ When the Nop platform starts, it automatically loads all modules by reading the 
         <entity name="app.demo.DemoEntity" tableName="demo_entity"
                 className="io.nop.orm.support.DynamicOrmEntity" registerShortName="true">
             <columns>
-                <column name="sid" code="SID" propId="1" stdSqlType="VARCHAR" precision="32" tagSet="seq" mandatory="true" primary="true"/>
-                <column name="name" code="NAME" propId="2" stdSqlType="VARCHAR" precision="100" tagSet="seq" mandatory="true"/>
+                <column name="sid" code="SID" propId="1" stdSqlType="VARCHAR" precision="32" tagSet="seq" mandatory="true"
+                        primary="true"/>
+                <column name="name" code="NAME" propId="2" stdSqlType="VARCHAR" precision="100" mandatory="true"/>
                 <column name="status" code="STATUS" propId="3" stdSqlType="INTEGER"/>
             </columns>
         </entity>
@@ -30,21 +30,20 @@ When the Nop platform starts, it automatically loads all modules by reading the 
 </orm>
 ```
 
-1. If you do not generate specific Java entity classes, you can use the built-in DynamicEntity.
-2. Each field must have a propId attribute. They do not need to be consecutive but cannot repeat.
-3. Primary key fields require primary="true". Specifying tagSet="seq" adds a sequence tag, which generates random values during insertion.
-4. If `nop.orm.init-database-schema: true` is configured in application.yaml, the system will automatically create database tables at startup based on the model configuration.
+1. If you do not generate a specific Java entity class, you can use the built-in dynamic entity class DynamicEntity.
+2. Each field must specify the propId attribute. It does not have to be consecutive, but it must be unique.
+3. The primary key field must be marked with primary=true. Specifying tagSet=seq adds the seq tag so that a random value is automatically generated when saving.
+4. If `nop.orm.init-database-schema: true` is configured in application.yaml, the system will automatically create database tables based on the model configuration at startup.
 
-## 2. Obtaining IEntityDao
+## 2. Obtain IEntityDao via IDaoProvider
 
-You can add a DemoEntityBizModel to demonstrate functionality. Use `@Inject` to automatically inject IDaoProvider. In most cases, BizModels inherit from CrudBizModel, which already implements standard CRUD operations. For demonstration purposes, we will not inherit from the existing CrudBizModel and manually create the data model instead.
-
+We can add a DemoEntityBizModel and use `@Inject` to automatically inject IDaoProvider. In general, a BizModel implementing create/read/update/delete inherits from CrudBizModel, which already implements a wealth of standard CRUD operations. Here, to demonstrate the functionality, we will not extend the existing CrudBizModel and will write everything manually.
 
 ```java
 @BizModel("DemoEntity")
 public class DemoEntityBizModel {
 
-    // Note that fields cannot be declared as private. Nop IoC cannot inject private member variables.
+    // Note: the field must not be declared private. NopIoC cannot inject private member variables
     @Inject
     IDaoProvider daoProvider;
 
@@ -77,22 +76,17 @@ public class DemoEntityBizModel {
 }
 ```
 
-* Generally, the `@BizModel` annotation specifies the object name, which matches the entity name for easier location.
-* The `daoProvider.dao(entityName)` method retrieves the DAO object corresponding to the specified entity class. In the Nop platform, we only use the built-in `IEntityDao` interface, which provides sufficiently rich methods and requires no additional extensions from developers. If the `IEntityDao` interface does not meet certain requirements, you can use `IOrmTemplate` or `SqlLibMapper` mechanisms to add custom logic.
-* Service methods can return entity objects directly. This is different from Spring MVC controllers, which typically return serialized DTOs unless specified otherwise. When returning a dynamic result instead of a direct field, you need to adapt it using a DTO in Spring frameworks. However, with the Nop GraphQL framework, you can directly return entities and control which fields are returned using metadata.
-* To specify the return type for an entity, you must use the `@GraphQLReturn` annotation. Without this, the system cannot determine which entity type to return based on the class name alone. The `@GraphQLReturn` annotation is essential here.
+* In most cases, the object name specified by the `@BizModel` annotation is the same as the entity object name, making it easier to locate the code.
 
-* In the directory `/_vfs/nop/demo/model/`, you need to add a metadata file named `DemoEntity/DemoEntity.xmeta`. When the GraphQL service function returns a specific type, it loads this metadata file to retrieve object information.
-* This file can also include additional fields not present in the entity itself. For example, using properties like `getter` methods or other configurations allows for dynamic computation of values.
+* You can obtain the Dao object corresponding to a specified entity class via `daoProvider.dao(entityName)`. On the Nop platform we only use the built-in IEntityDao interface, which already provides a sufficiently rich set of methods, so business developers do not need to extend the Dao interface. If some needs are not met by IEntityDao, you can use the `IOrmTemplate` or `SqlLibMapper` mechanisms.
 
-## Adding Custom Fields Using XMeta
+* Service functions can return entity objects. This differs from the Controller in Spring MVC, which generally can only return DTOs that can be automatically serialized to JSON; otherwise, you cannot control which fields are exposed to the frontend. When we are not directly returning fields but some dynamically processed result, the Spring framework also needs DTOs for adaptation. With the NopGraphQL framework, however, we can return entities directly and control returned fields and add extra transformation logic via xmeta metadata. Note that we are using dynamic entity objects now, so we cannot determine which entity type it is based on the class name. Therefore, we need the `@GraphQLReturn` annotation to indicate the type of the returned object.
 
-The Nop GraphQL framework allows you to define custom fields for business objects by leveraging the XMeta model. Through this mechanism, you can control which fields are returned, access rights, and transformation logic. You can also dynamically add fields that are not present in the entity itself using methods like `getter`.
+* You need to add a `DemoEntity/DemoEntity.xmeta` metadata file under the `/_vfs/nop/demo/model/` directory. When a GraphQL service function returns a specified object type, it loads this metadata file to obtain object information. In this file, we can also add fields not present on the entity and implement dynamic computation via the `getter` configuration.
 
-For example:
-- In the metadata file `DemoEntity.xmeta`, you can define custom fields.
-- The system will use this file to determine which fields should be exposed when the service function returns a specific type.
+## 3. Add custom fields via the XMeta model
 
+The properties of the business objects actually returned by the NopGraphQL framework can be controlled by the xmeta model. It can also control access permissions, transformation logic, and more. By using the getter attribute, we can add custom fields to business objects.
 
 ```xml
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef">
@@ -101,15 +95,15 @@ For example:
             <schema type="String"/>
         </prop>
 
-        <prop name="name" displayName="名称" queryable="true" insertable="true" updatable="true">
+        <prop name="name" displayName="Name" queryable="true" insertable="true" updatable="true">
             <schema type="String"/>
         </prop>
 
-        <prop name="status" displayName="状态" queryable="true" insertable="true" updatable="true">
+        <prop name="status" displayName="Status" queryable="true" insertable="true" updatable="true">
             <schema type="Integer"/>
         </prop>
 
-        <prop name="status_label" displayName="状态文本">
+        <prop name="status_label" displayName="Status Text">
             <schema type="String"/>
             <getter>
                 <c:script><![CDATA[
@@ -123,11 +117,11 @@ For example:
 </meta>
 ```
 
-It is evident that the information in `xmeta` overlaps with the information in the `orm` model to some extent. However, they serve different purposes and are generally not fully consistent. The standard practice in the Nop platform is to use compiled-time meta programming to synchronize information between them and leverage Delta merging to introduce differences. This document does not delve into these details, but interested readers can refer to [Nop platform meta programming](../../dev-guide/xlang/meta-programming.md).
+As you can see, some information in xmeta overlaps with the information in the orm model, but they serve different purposes and are generally not completely identical. The standard approach on the Nop platform is to use compile-time metaprogramming to automatically synchronize information between the two and use Delta merging to incorporate differences. We won’t delve into these details here; interested readers can refer to [Nop Platform Meta-Programming](../../dev-guide/xlang/meta-programming.md)
 
-## Four. Calling SQL Statements Using `SqlLibMapper` Interface
+## 4. Execute SQL statements via the SqlLibMapper interface
 
-### 1. Declaring the `DemoMapper` interface using `@SqlLibMapper` annotation and linking it with a SQL file
+### 1. Declare the DemoMapper interface and associate it with the SQL file via `@SqlLibMapper`
 
 ```java
 @SqlLibMapper("/nop/demo/sql/demo.sql-lib.xml")
@@ -136,21 +130,21 @@ public interface DemoMapper {
 }
 ```
 
-### 2. Registering the `Mapper` Interface in `beans.xml`
+### 2. Register the Mapper interface class in beans.xml
 
-Since Nop IoC does not use class scanning, we need to manually register the mapper interface in `app-simple-demo.beans.xml`.
+Because NopIoC does not use a classpath scanning mechanism, we need to manually add the bean definition in app-simple-demo.beans.xml.
 
 ```xml
-<bean id="io.nop.auth.dao.mapper.NopAuthRoleMapper" class="io.nop.orm.sql_lib.proxy.SqlLibProxyFactoryBean"
-      ioc:type="@bean:id" ioc:bean-method="build">
-    <property name="mapperClass" value="@bean:type"/>
-</bean>
+    <bean id="io.nop.auth.dao.mapper.NopAuthRoleMapper" class="io.nop.orm.sql_lib.proxy.SqlLibProxyFactoryBean"
+          ioc:type="@bean:id" ioc:bean-method="build">
+        <property name="mapperClass" value="@bean:type"/>
+    </bean>
 ```
 
-### 3. Adding SQL Statements or EQL Queries in `demo.sql-lib.xml`
+### 3. Add SQL statements or EQL object query statements in demo.sql-lib.xml
 
 ```xml
-<sql-lib x:scheme="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <sqls>
         <eql name="findFirstByName" sqlMethod="findFirst">
             <source>
@@ -161,7 +155,11 @@ Since Nop IoC does not use class scanning, we need to manually register the mapp
 </sql-lib>
 ```
 
-### 4. Calling `SqlLibMapper` in `BizModel`
+The value of sqlMethod corresponds to the `io.nop.orm.sql_lib.SqlMethod` enum, which includes options such as findAll, findFirst, findPage, exists, and execute to indicate how to execute the generated EQL/SQL statement.
+
+In practice, it dynamically constructs an SQL object and then invokes methods such as findFirst(SQL sql) on IOrmTemplate or IJdbcTemplate.
+
+### 4. Invoke SqlLibMapper in the BizModel
 
 ```java
 class DemoEntityBizModel{
@@ -175,3 +173,4 @@ class DemoEntityBizModel{
     }
 }
 ```
+<!-- SOURCE_MD5:bdfa9733cc4673078101ae534f1e5a9b-->

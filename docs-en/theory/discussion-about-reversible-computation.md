@@ -1,217 +1,147 @@
-# Discussion on Reversible Computation—Answered by Qian Qian
 
-In [Why does computer science have two worlds: the Turing machine and Lambda calculus, while quantum mechanics has three?](https://www.zhihu.com/question/614938288/answer/3147722439), I proposed an inspired perspective by mapping the Turing machine, lambda calculus, and reversible computation to the three distinct worlds of quantum mechanics—Schrödinger's picture, Heisenberg's picture, and Dirac's picture. This approach highlights that reversible computation represents a third pathway, inspired by physics, for achieving computational completeness while grounded in physical intuition.
+# A Discussion on Reversible Computation — Response to Rounded-Corner Knight Marisa
 
-For graduate-level students who have studied multiple models of Turing-complete computation, both intellectually and emotionally, it may be challenging to grasp these concepts due to their overwhelming complexity. Some might even joke: "Why does computer science have five letters, while quantum mechanics has four? Is there any relationship between them?"
+In the article [Why do computer science have two worldviews—Turing machines and Lambda calculus—while quantum mechanics has three pictures?](https://www.zhihu.com/question/614938288/answer/3147722439), I put forward a heuristic viewpoint by establishing an interesting correspondence between Turing machines, lambda calculus, Reversible Computation, and the Schrödinger, Heisenberg, and Dirac pictures in quantum mechanics. I pointed out that Reversible Computation is a third, physics-inspired route to Turing completeness. For students who have studied various Turing-complete computational models at the graduate level, this can be hard to accept both intellectually and emotionally; it may be impossible to connect these concepts. Some even jokingly ask: Why does computer science have five Chinese characters while quantum mechanics has four? Is there any correspondence between them?
 
-At its core, reversible computation originates from a distinct set of physical intuitions. To truly understand it, one must break free from conventional computing science paradigms. As for the significance of reversible computation, it primarily lies in deriving concrete solutions—such as introducing specialized syntax into programming languages—to address fine-grained software issues that conventional models cannot resolve.
+Essentially, Reversible Computation arises from a different set of physical intuitions, so one must step outside the conventional computer science mindset to understand it. As for the significance of Reversible Computation, first, concrete technical solutions can be derived from it: one can introduce syntax specific to Reversible Computation into programming languages to address—both theoretically and practically—the coarse-grained software reuse problem that component theory cannot solve. Second, numerous industry practices related to Delta can be unified and studied within the framework of Reversible Computation theory—for example, Docker technology is a standard application instance of Reversible Computation theory.
 
-Secondly, numerous practical examples within the industry can be unified under the framework of reversible computation. For instance, Docker technology serves as a standard application of reversible computation principles.
+In this article, I will address common questions, mainly to explain the intuitions behind Reversible Computation and which problems it solves that current programming languages cannot.
 
-In this text, I aim to address common questions and explain the underlying intuition behind reversible computation theory, particularly focusing on the problems it solves that conventional programming languages cannot.
+## 1. There are many foundational Turing-complete languages; graduate courses teach at least three or four models. Why say there are only two worldviews—Turing machines and Lambda calculus?
 
-## 1. The foundation of Turing-complete programming languages is diverse, yet graduate-level curricula often focus on teaching three or four primary computational models: Why only the Turing machine and Lambda calculus represent two worlds?
+What my article expressed is not that there are only two Turing-complete languages, nor that there are only two styles of Turing-complete languages. In fact, there are many Turing-complete computational models. This raises an interesting question: Are Turing-complete computational models finitely many or infinitely many? If finitely many, which ones, and why does nature allow only those? If infinitely many, how do we understand an infinity of computational models? Do these many models have more fundamental ones such that others are mixtures of these basics?
 
-The text does not claim that there are only two Turing-complete programming languages; nor does it suggest that there are only two styles of Turing-complete programming languages. In reality, there are many varieties of Turing-complete computation models.
+Although many people learned several Turing-complete models in class, they were recognized as isolated models. How should these Turing-complete models be viewed as a whole? Beyond the common property of Turing completeness, what conceptual connections do they share? Are you not curious about this?
 
-This raises an intriguing question: **Are there a finite or infinite number of Turing-complete computational models?** If the former, why do we allow only these specific models to exist in nature? If the latter, how can we possibly understand an infinite number of such models? Are there even more fundamental models that exist beyond these?
+From within computer science it is difficult to see the full picture of the world. Lamport (Turing Award winner, inventor of Paxos) made revolutionary innovations in distributed systems in large part due to his study of relativity. What connections exist between Turing machines and lambda calculus beyond equivalent computational power? Within pure computer science this question may be hard to answer. But by analogy with quantum mechanics, we can not only establish a conceptual connection between these two computational models, we can also naturally derive a new general computational model inspired by physical intuition.
 
-Many students may have learned about numerous Turing-complete models during their academic careers. However, they typically study these models as isolated entities. **How should one view these models collectively as a whole?** Beyond their shared property of being Turing-complete, what other commonalities exist among them?
-
-This question may spark curiosity: **Is it not fascinating?**
-
-From a computer science perspective, standing within its own domain makes it difficult to see the bigger picture. For instance, Lamport, the inventor of the Paxos algorithm and a Turing Award winner, revolutionized distributed systems by drawing parallels between relativity theory and computing science. **What deeper connection exists between the Turing machine and Lambda calculus beyond their computational completeness?** This question is challenging to answer within pure computer science. However, drawing parallels with quantum mechanics provides new insights.
-
-Why does quantum mechanics have only three worlds? Could there be more? Quantum mechanics could, in principle, describe an infinite number of worlds. However, Schrödinger's picture, Heisenberg's picture, and Dirac's picture collectively represent the primary frameworks within which quantum mechanics operates.
-
-Mathematically, this is expressed as:
+Why are there only three pictures in quantum mechanics? Couldn't there be more? There can indeed be infinitely many. But the Schrödinger and Heisenberg pictures provide two basic cognitive perspectives. When the wind moves the banner, is it the wind or the banner that moves? Quantum mechanics studies how quantum operators act on quantum states to drive system evolution. Since we care only about observable results, different interpretations can exist for how operators and states participate in evolution. One approach attributes all evolution to the quantum state’s evolution (Schrödinger picture); another attributes it to the operator’s evolution (Heisenberg picture). These two pictures yield identical predictions for physical observables.
 
 $$
-\langle \psi_S(t) | A_S |\psi_S(t)\rangle = \langle \psi_H | A_H(t) |\psi_H\rangle
+\langle \psi_S(t)|A_S|\psi_S(t)\rangle = \langle \psi_H|A_H(t)|\psi_H\rangle
 $$
 
-This equation indicates that both pictures yield consistent predictions for the final observable state. However, they represent two distinct ways of understanding quantum evolution.
+Clearly, these represent two extreme worldviews. The Dirac picture can be seen as a mixture or compromise of the two, but its focus lies on Delta questions: given a known model, when we add a small perturbation to obtain a new model, how can we fully leverage the solution of the known model to simplify solving the perturbed model?
 
-Clearly, this corresponds to two extreme perspectives within quantum mechanics. Dirac's picture can be seen as a blend of these two frameworks—a compromise between them. Yet, its focus lies on the Delta operator: how an infinitesimally small perturbation to a known state generates a new state, and how we can utilize the solutions of known models to solve for this perturbation.
+Analogous to operators and states in the quantum world, the program world also has two dual basic concepts: functions and data. Faced with a new problem, the Turing machine fixes a small set of operations but accepts unbounded input data, whereas lambda calculus fixes the constant state and expresses everything via new functions. In this sense, we can say that Turing machines (fixed functions + unboundedly varying data) and lambda calculus (fixed data + unboundedly varying functions) are two fundamental worldviews.
 
-Just as quantum mechanics distinguishes between operators (quantum observables) and states (quantum systems), programming languages similarly distinguish between functions and data. Confronting new challenges, the Turing machine chooses fixed operations while accepting infinite inputs; Lambda calculus, on the other hand, fixes data and allows functions to vary. This duality reflects two fundamental concepts in computer science.
+More plainly, in a pair of dual concepts, fixing one side and varying only the other corresponds to two extreme worldviews. Reversible Computation can be seen as exactly the middle ground emphasizing finiteness and layered cognition: when neither side can vary without bound, unknown variation must be captured by an additional Delta, Y = F0(X0) + Delta; hence it is the third worldview. There are certainly infinitely many other options between the three, but they are not the most extreme nor the most representative.
 
-From a quantum mechanics perspective, operators evolve independently of states, whereas from a pure programming perspective, functions and data are fundamentally decoupled. This correspondence provides a fascinating bridge between the two domains.
+> For the concept of duality, see this Zhihu article: [How to intuitively understand the dual vector space](https://www.zhihu.com/question/38464481/answer/2446175090)
 
-The question arises: **Why does quantum mechanics have only three pictures? Could there be more?** In theory, yes—there could be an infinite number. However, Schrödinger's, Heisenberg's, and Dirac's pictures collectively represent the primary frameworks within which quantum mechanics operates.
+## 2. Building a new framework is to discover new things rather than reinterpret the old. Is Reversible Computation just hindsight?
 
-In terms of operators and states:
-
-$$
-Y = F_0(X) + \Delta
-$$
-
-This equation encapsulates the essence of quantum evolution. It suggests that when both sides are known, the change (Delta) can be precisely calculated. This is a cornerstone of quantum mechanics.
-
-From a programming perspective, functions and data remain distinct entities. When faced with new challenges, the Turing machine selects fixed operations while accepting infinite inputs; Lambda calculus fixes data and allows functions to vary. This duality mirrors the two worlds of computer science.
-
-The question remains: **What deeper connection exists between these two worlds beyond their shared property of computational completeness?** This is a profound inquiry that quantum mechanics helps illuminate.
-
-In summary, the Turing machine and Lambda calculus represent two distinct worlds within computer science—beyond mere computational power. Quantum mechanics offers a bridge to understand this duality through its three pictures, each providing unique insights into the nature of computation.
-
-This discussion raises another intriguing question: **Are there more fundamental models beyond these?** And if so, how can we reconcile them?
-
-For the concept of duality, please refer to this article on Zhihu: [How to Imaginatively Understand Dual Vector Space](https://www.zhihu.com/question/38464481/answer/2446175090)
-
-
-## 2. Building a New Framework
-The purpose of building a new framework is to discover new things that were not there before, rather than reinterpreting existing ones. Is reversible computation like a one-liner joke?
-
-Docker technology can be summarized mathematically as follows:
+Docker technology can be summarized mathematically as the following formula:
 
 > `App = DockerBuild<DockerFile> overlay-fs BaseImage`
 
-* DockerFile is equivalent to a DSL for defining the contents of an image.
-* The Docker Build tool acts as a Generator that parses and executes the DSL to generate slices of images.
-* Multiple image slices are then composed using OverlayFS, a delta-based file system.
+* DockerFile is essentially a DSL that defines image contents.
 
-It's evident that Docker demonstrates the computational pattern proposed by reversible computation theory as a specific case of its software construction formula:
+* Docker’s Build tool is a Generator that parses and executes the DSL to produce image slices.
+
+* Multiple image slices are composed via a filesystem that supports Delta, OverlayFS.
+
+It is clear that the computational pattern embodied by Docker is exactly a special case of the software construction formula proposed by Reversible Computation theory:
 
 > `App = Delta x-extends Generator<DSL>`
 
-Reversible computation provides a unified explanation for technologies like Docker, which includes delta-based concepts.
+Reversible Computation theory can provide a unified theoretical explanation for a series of Delta-based technologies including Docker—so is it just hindsight?
 
+1. First, I proposed the idea of Reversible Computation as early as 2007, whereas Docker was publicly released in 2013. Clearly, this can only be seen as theory preceding practice by many years, with the theory precisely predicting the structural requirements of practice.
 
-## 1. Reversible Computation Overview
-I first introduced the concept of reversible computation in 2007, while Docker was released in 2013. Clearly, this is a case where theory precedes practice by many years and accurately predicts the structural needs of practice.
+2. Reversible Computation not only explains an isolated technical phenomenon; it maps it to abstract mathematical concepts, allowing rapid generalization to broader application domains. In particular, Reversible Computation posits that every DSL can define a Delta model space, and within each such space one can define domain-semantic Delta merging mechanisms and Delta generation mechanisms. Docker cleverly chooses a Delta filesystem as the underlying Delta model space, and the many command-line programs accumulated within the Linux ecosystem automatically become Delta generation operators, thereby revitalizing existing technical assets. This idea can be readily extended to any other Delta model space. For example, after k8s 1.14, the Kustomize configuration tool applied similar ideas to YAML configuration to produce new configuration customization schemes. We have long employed similar Delta customization schemes. See [Kustomize through the lens of Reversible Computation](https://zhuanlan.zhihu.com/p/64153956)
 
-Reversible computation is not just about explaining isolated technological phenomena but maps them to abstract mathematical concepts, enabling rapid application across broader domains. Specifically, it points out that each DSL can define a delta model space with semantic-aware merge and generation mechanisms. Docker's approach cleverly selects OverlayFS as the underlying delta model space. Over the years, Linux has accumulated numerous command-line tools that automatically become delta generators, thus activating existing technical assets. This idea is easily extendable to other delta model spaces, such as k8s 1.14's Kustomize tool, which applies similar principles to YAML files, introducing a new customization scheme. Similar Delta schemes have been in use for years; see [From Reversible Computation to Kustomize](https://zhuanlan.zhihu.com/p/64153956).
+Some may believe Docker is merely an application-layer technology unrelated to foundational computation models. But I would point out that anything done automatically by software is a form of computation, and behind it lies a computational model. Docker’s success can be distilled at the theoretical level into an abstract computational model and applied to other scenarios. We are already accustomed in practice to the concept of immutable data; considering the duality between data and functions, how do we define and implement the concept of immutable logic?
 
-Some might think Docker is merely an application-specific technology unrelated to foundational computational models, but I argue that all software-driven operations inherently reflect some form of computation. Docker's success lies in its theoretical abstraction, which can be extracted and applied to other scenarios.
+## 3. Reversible Computation and the so-called pebble game represent only a small part of computer science. Is it wrong to treat it as foundational?
 
+A common misunderstanding of my Reversible Computation theory is to confuse it with the concept of reversible computers in hardware. The notion of reversible computers originates from IBM physicist Rolf Landauer’s 1961 paper, “Irreversibility and Heat Generation in the Computing Process.” His research showed that erasing one bit of information dissipates at least kT*ln 2 of energy as heat into the environment. To minimize energy dissipation, we must use reversible logic gates. The study of reversible computers has always been a niche field; it leans toward hardware implementation and is comparable to research on quantum computers.
 
-Is reversible computation just a joke played on computer scientists? While it is a small part of computer science, it represents the foundation of computational models. Is it a base or a mistake?
+The Reversible Computation theory I propose shares with reversible computers the goal of making computation reversible, but Reversible Computation emphasizes high-level abstract structures rather than low-level physical implementation. To avoid confusion with reversible computers, I use the English term Reversible Computation, whereas reversible computers generally correspond to Reversible Computing.
 
-The most common misunderstanding about my reversible computation theory is conflating it with hardware-related concepts like reversible computers. Reversible computing originates from Rolf Landauer's 1961 IBM paper, "Irreversibility and Heat Generation in the Computing Process." His research showed that erasing one bit of information requires at least kT ln2 energy to be dissipated into the environment. To minimize this energy dissipation, reversible logic gates are used. Reversible computing has always been a niche field focused on hardware implementation, similar to quantum computing research.
+Recently, inspired by the concept of reversible computers and the backpropagation algorithm in deep neural networks, Leo proposed an abstract programming language supporting reversible execution: NiLang. See [NiLang — Reversible Computation, Differentiating Everything](https://zhuanlan.zhihu.com/p/191845544). This reversible language still targets the traditional structure space of computer hardware storage. In contrast, my Reversible Computation emphasizes flexible definition of Delta structure spaces and an explicit notion of structured Delta; reversible Delta operations may exist only at a particular DSL layer and need not be reversible at the level of the entire program.
 
-My reversible computation theory differs from reversible computers in that it focuses on high-level abstraction rather than low-level physical implementation. To avoid confusion with reversible computers, I use "Reversible Computation" in English, while the corresponding term for reversible computers is "Reversible Computing."
+Irreversibility at the physical level implies entropy increase. Reversible Computation theory points out that, with Delta-structured designs, even if we cannot control the system’s overall entropy increase, we can still control where entropy increases, confining it to the Delta, thereby preventing incidental requirements from continually eroding the foundational architecture of a product.
 
-Inspired by both reversible computers and deep neural networks' backpropagation, Leo (a programming language I proposed) incorporates an abstract support structure called NiLang (see [NiLang - Reversible Computing, Differentiating Everything](https://zhuanlan.zhihu.com/p/191845544)). While NiLang's target is traditional computer hardware storage structures, the reversible computation theory emphasizes defining delta model spaces and reversible operations at a flexible level. However, not all programming can be reversed.
+Reversible Computation theory can be seen as a further development of object-orientation and component theory in software engineering. It overcomes the inherent difficulties of component theory at the theoretical level and solves the problem of coarse-grained, system-level software reuse.
 
+1. Inheritance in object orientation can be seen as a partial order A > B: the derived class A has more than the base class B, but what is added is not explicitly expressed.
 
-Some people might think Docker is just an application-level technology with no relation to foundational computational models. But everything driven by software inherently reflects some form of computation. Docker's success lies in its theoretical abstraction, which can be extracted and applied elsewhere.
+2. The component theory dictum “composition over inheritance” amounts to A = B + C, with the same C reused multiple times, e.g., E = D + C.
 
+3. From inequality to addition, the natural next step is to introduce subtraction:
+   
+   ```
+   X = A + B + C
+   Y = A + B + D = X + (-C+D) = X + Delta
+   ```
+   
+   Introducing subtraction is analogous to introducing negative numbers in mathematics, expanding the solution space of the problem; previously unsolvable structural reuse problems now become solvable.
 
-Reversible computing theory can be considered as an advancement in the software engineering domain, building upon traditional object-oriented and component-based theories. It addresses inherent challenges in component theory at a theoretical level and resolves fine-grained software reuse issues.
+The Software Engineering Institute at Carnegie Mellon University traces software engineering as a trajectory of continually increasing reuse granularity. But truly coarse-grained, system-level reuse faces many theoretical challenges. For explorations in software engineering theory, see [Delta Oriented Programming through the lens of Reversible Computation](https://zhuanlan.zhihu.com/p/377740576).
 
+From the perspective of Reversible Computation, the principles of software reuse undergo a fundamental shift: from component reuse’s same-can-be-reused to Reversible Computation’s related-can-be-reused. Arbitrary Y and arbitrary X can be connected via a Delta transformation, achieving reuse without requiring them to form a traditional part–whole composition relationship.
 
-## 1. Inheritance in Object-Oriented Programming
-In object-oriented programming, inheritance is viewed as a partial order relation A > B, where derived class A is richer than base class B. However, the specifics of what is inherited remain ambiguous.
+System-level reuse in practice corresponds to developing product Y incrementally without modifying the source code of the base product X. Translated to the abstract level, this amounts to establishing a transformation from X to Y, Y = X + Delta.
 
-2. Component Theory's Combination Over Inheritance
-Component theory defines combination as A = B + C, where component C can be reused multiple times through E = D + C.
+Thus, research on product extensibility can be transformed into the study of Delta forms and operations among Deltas—precisely the domain of Reversible Computation theory.
 
-3. From Inequality to Addition: The Natural Introduction of Subtraction
+A very practical problem solved by Reversible Computation theory is: When deeply customizing a bank’s core application for different banks, how can we avoid modifying the base product’s source code entirely? That is, can we inherit an entire software product as we inherit a class? Base and customization products evolve in parallel, automatically inheriting new features and bug fixes from the base product without manual code merging.
 
-```
-X = X + Y + Z
-Y = X + Y + D = X + (D - Z) = X + Delta
-```
+To better illustrate Reversible Computation, I open-sourced a reference implementation: the Nop platform https://www.gitee.com/canonical-entropy/nop-entropy.
 
-The introduction of subtraction mirrors the addition of negative values in mathematics, effectively expanding the solution space for previously intractable problems.
+The Nop platform introduces syntax dedicated to reversible Delta merging; see [XDSL: A General Design for Domain-Specific Languages](https://zhuanlan.zhihu.com/p/612512300). It automatically supports coarse-grained software reuse; see [How to achieve customized development without modifying the base product’s source code](https://zhuanlan.zhihu.com/p/628770810).
 
+## Physical intuitions underlying Reversible Computation
 
-Carnegie Mellon University's software engineering lab outlines the evolution of software reuse:
-- Continuous refinement of grain size.
-- Significant challenges remain in achieving true coarse-grained reuse at a theoretical level. For detailed insights, refer to [Reversed Computing: Delta Oriented Programming](https://zhuanlan.zhihu.com/p/377740576).
+Reversible Computation brings a worldview different from traditional computer science. Its methodology is rooted in the second law of thermodynamics (entropy increase) and perturbation theory. With an open mind, it can at least give you different inspirations.
 
-
-From the perspective of reversible computing:
-- The principle shifts from component reuse (**相同可复用**) to related reusable components (**相关可复用**).
-- Any Y and X can be connected via Delta, enabling reuse without traditional part-whole hierarchical relationships.
-
-
-At a practical level, system-level reuse corresponds to incremental development of product Y without modifying the base product X's source code. This translates abstractly to Y = X + Delta.
-
-
-Reversible computing theory specifically addresses:
-- Studies on delta-based operations.
-- Challenges faced by financial institutions in deeply customizing core banking applications without altering the base product's source code. Can we achieve class-like inheritance for software products?
-
-
-To better understand reversible computing, I open-sourced a reversible computing reference implementation: Nop platform (https://www.gitee.com/canonical-entropy/nop-entropy).
-
-The Nop platform introduces a specialized programming syntax for reversible delta operations. For details, refer to [XDSL: Generalized Domain-Specific Language Design](https://zhuanlan.zhihu.com/p/612512300). It enables coarse-grained reuse without modifying the base product's source code (refer to [Incremental Development Without Source Code Modification](https://zhuanlan.zhihu.com/p/628770810)).
-
-
-
-Reversible computing introduces a new paradigm distinct from traditional computer science. Its methodology is rooted in physics' entropy increase principle and perturbation theory.
-
-In calculus, Taylor series expansion is well-known:
+In calculus we all learned Taylor series expansion:
 
 $$
-y = 3(x + dx)^2 + 2(x + dx) = 3x^2 + 2x + (6x + 2)dx + 3dx^2
+y = 3(x+dx)^2 + 2(x+dx) = 3x^2 + 2x + (6x+2)dx + 3dx^2 
 $$
 
-Mathematically, we can collect and assign meaning to scattered delta quantities. Physically, these deltas correspond to meaningful changes, while in software, such mechanisms are absent.
+Mathematically, we can collect Delta small quantities dispersed throughout the system. Physically, aggregated same-order small quantities can be given precise meaning (for example, collecting all first-order terms yields the derivative, corresponding to physical notions like velocity, acceleration, intensity, force). Yet in software there has never been such a systematic, hierarchical Delta decomposition mechanism. Think carefully and you’ll find this is truly odd.
 
+From observing the Taylor series we can draw a series of physical intuitions.
 
+1. Intuition 1: The independent existence of Deltas implicitly requires the original system to have a well-defined coordinate system. In constructing Taylor series, Deltas arise from various parts of the system and are collected. If we can store and manage Deltas separately, when ultimately merging them back into the original system we must know the source location of each local change. Deltas must transparently traverse all structural barriers and be applied at the coordinates where the perturbation actually occurred. Think carefully and you will realize that the first requirement for any Delta-capable design is a systematic, uniqueness-bearing positioning mechanism within the system—for example, the table–row–column coordinate system in databases.
 
-1. **Intuition 1: Delta's Independence**
-   - In the Taylor series construction, deltas originate from all system points.
-   - Independent storage and management of deltas are crucial for merging with the original system.
+2. Intuition 2: The type system is not an appropriate coordinate system. The basic assumption of types is that multiple objects share the same type; using type for positioning causes conceptual ambiguity. A typical scenario: in a list of buttons, we generally position by id rather than by type. If you studied group representation theory, you know the same physical fact can be projected into different spaces to reveal different Delta construction rules. For instance, for a function definition, we can project it to the binary space, using XOR to establish Delta relationships between arbitrary function representations. We can also project functions to the general line-text space and use diff algorithms to establish Delta relationships—git is built on such projections. Projecting functions onto a type system is also a general approach; some people establish Deltas over type systems, e.g., Compositional Programming, https://www.bilibili.com/video/BV1Ph4y1M7aB/. A typical type system merely defines a two-level coordinate system of class (module) and method. Importantly, for the same physical object we can define different Delta forms in different Delta spaces; the definition of Deltas and their operations is not unique.
 
-2. **Intuition 2: System's Response to Deltas**
-   - The system's response to each delta is transparent.
-   - Transparent application of deltas across the entire system hierarchy ensures consistent updates.
+3. Intuition 3: Based on coordinate systems, we shift to the worldview of field theory. The black-box model of components is akin to the worldview of high-school Newtonian mechanics—it is entirely mechanistic: a rigid body’s motion is described by a few parameters (center-of-mass coordinates, size, shape, orientation), its internal structure is unobservable and irrelevant, and rigid bodies interact via direct contact, with shapes requiring precise matching to form seamless wholes. Even in classical mechanics, slightly more advanced viewpoints switch to Lagrangian or Hamiltonian formulations, whose essence is a shift to the worldview of fields. A field is, in essence, a ubiquitous coordinate system where a physical quantity is specified at every point in that system. Fields have infinite degrees of freedom, but via coordinates they are describable, definable, and researchable; at every coordinate point we can precisely measure local changes. In the worldview of fields, the core image is that objects always soak in fields (ubiquitous coordinate systems), rather than isolated pairwise interactions among objects.
 
-3. **Intuition 3: Coordinate System in Databases**
-   - A coordinate system must be established for database rows and columns.
+4. Intuition 4: The same physical fact can be expressed in different coordinate systems, but in specific domains there exist intrinsic coordinate systems best suited to that domain. A programming language can be viewed as defining a semantic space; it provides a coordinate system for expressing physical facts. A domain-specific language (DSL) provides a coordinate system best suited for expressing facts in its domain. Especially as requirements change, a DSL expression will exhibit only a few localized changes, whereas the code implemented in a general-purpose programming language may undergo extensive adjustments. This is akin to describing a circle: in Cartesian coordinates both axes change, whereas in polar coordinates only the angle changes, thereby reducing dimensionality.
 
-2. **Intuition 2: The Type System Is Not a Suitable Coordinate System**  
-   Because the type's basic assumption is that multiple objects share the same type, it leads to ambiguity when used for identification. A typical issue is that we rely on `id` rather than the type for positioning in a list of buttons. If you understand group theory, you can see that the same physical fact can be projected into different spaces for observation, revealing different difference construction patterns. For example, for a function's definition, it can be projected into a binary space, where XOR operations can be applied between any two function representations. Similarly, it can be projected into a common text space using the diff algorithm, and Git's application is based on this difference relation. Projecting a function into a type system is also a universal approach, as some people use the type system to establish differences, such as in Compositional Programming (https://www.bilibili.com/video/BV1Ph4y1M7aB/). Generally, the type system acts like a two-level coordinate system, defining classes (modules) and methods.
+5. Intuition 5: A DSL model is both an entity defined within a coordinate system and a contributor to the coordinate system itself. There is no need to add special descriptor information for extension points; we can use the DSL’s own structural markers. This is similar to the moving frame method in exterior calculus: we describe motion in a coordinate system, and the direction of motion in turn constitutes a naturally generated coordinate system.
 
-3. **Intuition 3: We Turned to Field Theory's Worldview From Coordinate Concepts**  
-   Component black-box models resemble the worldview of high school-level Newtonian mechanics, which is fully mechanized: a solid's motion is entirely described by its center-of-mass coordinates and size, shape, and orientation parameters. The internal structure of a solid cannot be observed or is irrelevant, but solids interact with each other through direct contact. For classical mechanics, even more advanced viewpoints will eventually shift to Lagrangian or Hamiltonian formulations, whose essence lies in field theory's worldview. A field (Field) essentially creates an omnipresent coordinate system, allowing a physical quantity to be defined at every point in the coordinate system. Fields have infinite degrees of freedom but are finite and definable within a coordinate system, enabling precise measurement of local changes at each point.
-
-4. **Intuition 4: The Same Physical Fact Can Be Expressed in Different Coordinate Systems**  
-   In specific domains, there exists an inherent coordinate system that best fits the domain's requirements. Programming languages can be seen as defining a semantic space, providing a coordinate system for expressing physical facts. A domain-specific language (DSL) offers a coordinate system tailored to its domain. For example, when requirements change, DSLs tend to show only localized changes, while general programming languages may reveal extensive code adjustments. This is akin to describing a circle in Cartesian coordinates by changing both x and y coordinates, whereas polar coordinates only alter the radius. In this way, using a suitable coordinate system can reduce dimensions.
-
-5. **Intuition 5: DSL Models Both Define Entities Within a Coordinate System and Comprise the Coordinate System Itself**  
-   There's no need to add extra descriptions to expand points within models; using the DSL's structure for identification suffices. This is similar to differential calculus' approach, where derivatives describe changes without needing additional terms. In the coordinate system, describing movement inherently involves its direction, which in turn defines the coordinate system itself.
-
-6. **Intuition 6: The Same Physical Fact Can Have Multiple Coordinate Representations**  
-   Coordinate transformations can serve as an effective construction method. For example:  
+6. Intuition 6: The same physical fact can have multiple coordinate representations. Coordinate system transformations can be effective structural construction techniques. For example:
+   
    ```
    Excel <==> DomainObject <==> UI
    ```
-   Without programming, meta-models allow automatic derivation of visualization interfaces, enabling form-to-function mapping through meta-model representations. This transformation mirrors category theory's functor mappings, where focus shifts from specific objects to the structure of formal systems.
+   
+   Without programming, the UI for visual editing can be automatically derived from the meta-model, enabling visual editing of model objects. Transforming from one form to another resembles a functor mapping in category theory; what we focus on is not a specific object but the need to define a general transformation strategy for every possible object in the formal system.
 
-7. **Intuition 7: The Total Can Be Seen as a Difference's Special Case**  
-   A = 0 + A, implying that total and difference are isomorphic under the same schema. In this case, differences of differences remain ordinary differences.
+7. Intuition 7: A full model can be viewed as a special case of a Delta. A = 0 + A; hence full and Delta can be isomorphic and should be constrained by the same schema. In this case, the Delta of a Delta is still an ordinary Delta.
 
-8. **Intuition 8: Differences Can Exist Independently of Base**  
-   Many consider differences to be base + patch, emphasizing base's primacy. However, the base can also be seen as a patch, with base and patch forming an inverse relationship. Differences possess inherent value regardless of base considerations.
+8. Intuition 8: A Delta can exist independently of the base. Many people view a Delta as base + patch, considering the base primary and the patch secondary. In fact, the base can be seen as the patch of the patch; base and patch are in a dual relationship, and theoretically there is no need to distinguish them. A Delta has value in its independent existence; it need not attach to a base to be understood.
 
-These intuitions can be summarized by Wittgenstein's words: "Language's boundary is our world's boundary." Reversed computation theory further clarifies this: "A language is a coordinate system; coordinate systems are natural extensions of languages."
+These intuitions can be summarized by Wittgenstein’s dictum: The limits of my language mean the limits of my world. Reversible Computation theory further interprets it as: A language is a coordinate system; Deltas arise naturally from coordinates.
 
-Reversible computation's development of domain-specific coordinate systems, such as the Nop platform, implements these ideas:
+Reversible Computation systematically develops the concept of domain coordinate systems. In concretizing Reversible Computation theory, the Nop platform adopts the following approach:
 
-1. Use DSL for all business logic. DSL employs XML syntax, resulting in a Tree structure for file systems and their Trees.
-2. All DSLs adhere to XDSL standards, utilizing operations like `extends`, `override`, and `gen-extends` to establish difference algorithms essential for reversible computation.
+1. Use DSLs to describe all business logic. DSLs adopt XML syntax, i.e., a Tree structure. The filesystem plus the Tree within files constitute a coordinate system refined down to individual attributes and functions.
 
-3. Type systems, exemplified by Compositional Programming, define two-level coordinate systems, combining classes (modules) and methods.
+2. All DSLs conform to the XDSL specification and share the same Delta merging syntax: x:extends, x:override, x:gen-extends. These implement the computational patterns required by Reversible Computation.
 
-4. Fields define an omnipresent coordinate system, allowing physical quantities to be measured across every point.
+3. A special XDSL called XDef serves as the meta-model defining the syntax for all other DSLs, and XDef itself is constrained by XDef. Its most essential difference from a type system is that list structures must include a unique identifier attribute, such as name or id, thereby ensuring the existence of domain coordinates.
 
-5. Domain-specific languages adapt to their domains, offering tailored coordinate systems for specific requirements.
+4. All systems implemented via XDSL automatically obtain one feature: support for Delta customization. Without modifying the original system’s source code, one can provide additional Delta to deeply customize all logic and data structures. Existing programming languages lack the concept of domain coordinate systems and therefore cannot achieve such system-level, coarse-grained reuse.
 
-6. Differences between forms can be mapped through meta-models, using functors like `Functor` to maintain structure across transformations.
+Reversible Computation operations are entirely implementable at compile time and thus do not affect runtime performance. For the framework-level technical approach, see [Design of Low-Code Platforms from the Perspective of Tensor Product](https://zhuanlan.zhihu.com/p/531474176).
 
-7. Total and difference are isomorphic under the same schema, ensuring consistency in computations.
+For a detailed definition of domain coordinate systems and proofs of associativity, see [An Analysis of Reversible Computation Theory for Programmers](https://zhuanlan.zhihu.com/p/632876361)
 
-8. Differences exist independently of base, emphasizing their inherent value beyond mere summation.
-
-3. There exists a special kind of XDSL called XDef. It serves as a meta-model to define the syntax structure for all other DSLs. Simultaneously, XDef also imposes constraints on itself. The most fundamental difference between XDef and a type system lies in its requirement that list structures must contain some form of unique identification attributes, such as `name`, `id`, etc., ensuring the existence of domain coordinates.
-
-4. All systems implemented using XDSL inherently possess a characteristic: support for Delta customization. This allows for deep customization of both the logic and data structures within a system without altering the original source code. The reason traditional programming languages fail to achieve this is due to their lack of a concept for domain coordinate systems, preventing the implementation of such high-level, granular reuse.
-
-Reversible computation is an operation that can be implemented during compilation, thus not affecting runtime performance. For framework-level solutions, refer to [A Low-Code Platform Design: From Tensor to Low-Code](https://zhuanlan.zhihu.com/p/531474176).
-
-For detailed definitions of domain coordinates and proofs of associativity, refer to [Reversible Computation for Programmers](https://zhuanlan.zhihu.com/p/632876361).
-
+<!-- SOURCE_MD5:b776e522ea39713872cdc6001f8c6273-->

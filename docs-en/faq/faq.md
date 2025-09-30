@@ -1,27 +1,10 @@
-# Common Issues
+# FAQ
 
-## Development Issues
+## Development Questions
 
-### 1. After modifying the column name and saving, the front-end list page does not reflect the changes. However, the back-end has already been modified.
+### 1. After modifying a column name and saving, the change does not appear on the frontend list page after a refresh. However, the designer shows it as modified.
 
-When saved to the back-end, the `page.yaml` file will carry the i18n key for the label. Consequently, the front-end page will be replaced with internationalized text.
-
-```yaml
-x:gen-extends: |
-  <web:GenPage view="NopAuthDept.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
-body:
-  name: crud-grid
-  columns:
-  - name: deptType
-    label: '@i18n:col.NopAuthDept.deptType,prop.label.NopAuthDept.deptType|改变类型'
-    placeholder: '-'
-    x:virtual: true
-  x:virtual: true
-```
-
-In the `@i18n:key|defaultValue` format, the part after the pipe (`|`) represents the default value. This default value will only be returned if the corresponding i18n key does not exist in the design phase.
-
-When viewing in the back-end, since it is still in the design phase, the i18n key will not be replaced. If you absolutely want to use the modified value, you can delete the i18n key.
+After saving to the backend, you may find that page.yaml contains a label with an i18n key. On the frontend, the label is actually replaced by the internationalized text.
 
 ```yaml
 x:gen-extends: |
@@ -29,24 +12,41 @@ x:gen-extends: |
 body:
   name: crud-grid
   columns:
-  - name: deptType
-    label: '改变类型'
-    placeholder: '-'
-    x:virtual: true
+    - name: deptType
+      label: '@i18n:col.NopAuthDept.deptType,prop.label.NopAuthDept.deptType|Change Type'
+      placeholder: '-'
+      x:virtual: true
   x:virtual: true
 ```
 
-In the back-end, you must manually delete it in the JSON view.
+In the `@i18n:key|defaultValue` format, the part after the `|` is the default value. It is returned only when the i18n key has no corresponding internationalized text.
 
-![remove-i18n-key.png](https://via.placeholder.com/10)
+When previewing in the designer, i18n keys are not replaced because it is the design phase. If you want to strictly use the modified value, delete the i18n key.
 
-### 2. How to Construct Query Conditions in GraphQL
+```yaml
+x:gen-extends: |
+  <web:GenPage view="NopAuthDept.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
+body:
+  name: crud-grid
+  columns:
+    - name: deptType
+      label: 'Change Type'
+      placeholder: '-'
+      x:virtual: true
+  x:virtual: true
+```
 
-You can use the simplified query syntax `@query:NopAuthDept__findList/id?filter_deptName=a` in the front-end for simplified querying. When executing `findList` or `findPage`, it will recognize `filter_` as a prefix for parameters and convert it into a `QueryBean` with a tree-like structure for filtering conditions. If you absolutely need to manually construct a `QueryBean`, you can follow the example below:
+If you modify in the designer, you need to manually delete it in the JSON view.
+
+![](remove-i18n-key.png)
+
+### 2. How to construct Query conditions in GraphQL
+
+On the frontend, you can use simplified query syntax like `url："@query:NopAuthDept__findList/id?filter_deptName=a"`. When executing an object's findList or findPage, parameters prefixed with `filter_` are recognized and converted into the QueryBean filter tree structure. If you must manually construct a QueryBean, you can follow the example below:
 
 ```graphql
-query($query: QueryBeanInput, $q2: QueryBeanInput) {
-  NopAuthDept__findList(query: $query) {
+query($query:QueryBeanInput,$q2:QueryBeanInput){
+  NopAuthDept__findList(query:$query) {
     id,
     deptName
     parent {
@@ -54,17 +54,17 @@ query($query: QueryBeanInput, $q2: QueryBeanInput) {
     }
   },
 
-  NopAuthUser__findPage(query: $q2) {
+  NopAuthUser__findPage(query:$q2){
     page
-    items {
-      nickname: nickName
-      username: userName
+    items{
+      nickName
+      userName
     }
   }
 }
 ```
 
-The variables are set as follows:
+Set variables to:
 
 ```json
 {
@@ -90,675 +90,627 @@ The variables are set as follows:
 }
 ```
 
-### 3. Unit Testing Without Using a Local Database
+### 3. How to run unit tests without using a local database
 
-Automated testing documentation can be found in [autotest.md](../dev-guide/autotest.md).
+See [autotest.md](../dev-guide/autotest.md) for an introduction to automated testing.
 
-1. Use an in-memory database based on NopOrm's data layer for recording and replaying mechanisms.
-2. If you do not need an in-memory database, you can inherit from JunitBaseTestCase to implement pure logic testing, which only starts the IoC container. If IoC is also unnecessary, simply inherit from BaseTestCase for some helper functions.
+1. Use an in-memory database with NopOrm’s underlying data-layer record/replay mechanism.
+2. If you don’t need in-memory database support, you can extend JunitBaseTestCase to implement pure logic tests; it only starts the IoC container. If IoC is also not needed, extend BaseTestCase, which only provides some helper functions.
 
-### 4. When models in the virtual file system are updated during application execution, will they automatically refresh? Or do I need to restart the application?
+### 4. When the application is running and model files in the virtual file system are updated, will it auto-refresh? Or do we need to restart the application?
 
-The Nop platform internally uses the `ResourceComponentManager` to load model files. Loaded models are cached in memory within the `ResourceLoadingCache`, which includes dependency tracking. This means that if dependencies change, the cache will automatically be updated and the models will reflect the changes without requiring a restart of the application.
+Nop uses ResourceComponentManager to load model files, and the loaded models are cached in memory. ResourceLoadingCache has built-in dependency tracking: it automatically records all dependent model files used during parsing. If any file changes (timestamp changes), the model cache is invalidated and the model is re-parsed upon next access.
 
-```markdown
-# Model Parsing Process
+For newly generated files, the virtual file system does not automatically scan to detect them. You need to call VirtualFileSystem.instance().refresh(true).
+The virtual file system not only includes the _vfs directory under the classpath, but also automatically includes the _vfs directory under the current working directory at system startup. The _vfs directory under the current working directory has higher priority; its files override the classpath files.
 
-The model parsing process uses all the dependent model files. If any of these files are modified (with a changed timestamp), the model cache will automatically become invalid. The next time the model is accessed, it will be re-parsed.
+On the frontend page, there is a “Refresh Cache” button that clears the global model cache on the backend and automatically refreshes the virtual file system.
 
-If the file is newly generated, the virtual file system will not automatically detect the new file. It is necessary to call `VirtualFileSystem.instance().refresh(true)`.
+### 4. Can we get web environment objects like request and response from IServiceContext?
 
-The virtual file system includes directories such as `_vfs` in the classpath and also automatically includes the `_vfs` directory from the current working directory at startup. The `_vfs` directory in the current working directory has higher priority, where its files can override those in the classpath.
+NopGraphQL is designed to be web-agnostic. It can be used in message queues, batch processing, etc., as a general service dispatch and result aggregation framework, therefore it provides no web-specific methods.
 
-In the front-end interface, there is a "Refresh Cache" button that clears the global model cache and automatically refreshes the virtual file system.
+In IServiceContext, you can store custom objects via setAttribute/getAttribute methods. IServiceContext.getCache() provides a cache object valid within a single request scope, which can be used to cache dictionary data, etc. Business parameters should generally be passed explicitly; IServiceContext is essentially equivalent to a Map used mainly to store shared information within a single request inside the framework.
 
-### 4. Retrieving request, response, etc., from IServiceContext
+### 5. Besides single sign-on, can Nop integrate with Keycloak for authorization features?
 
-The design of NopGraphQL is independent of the Web environment. It can be used in scenarios like messaging queues, batch processing, etc., as a generic service dispatching and result aggregation framework. Therefore, it does not provide any methods related to the Web environment.
+Roles are integrated. You can use roles configured in Keycloak, but role-to-permission associations must be configured in the Nop platform. Keycloak can configure user-to-role associations; see OAuthLoginServiceImpl.java.
 
-In IServiceContext, you can use methods like `setAttribute/getAttribute` to store custom objects. The `IServiceContext.getCache()` method also provides a cache object valid within a single request scope, which can be used for caching dictionary data, etc. Business parameters should generally be explicitly passed; `IServiceContext` is basically equivalent to a Map structure and is mainly used for storing shared information within the framework's internal processing of a single request.
+### 6. When are model classes like `_ExcelWorkbook` generated?
 
-### 5. Integration with Nop and Keycloak (excluding single-point integration), can authorization features also be used?
+Model classes are generated by a code generator during Maven packaging.
 
-Role integration has been done, so you can use roles configured in Keycloak. Role permissions are associated in the Nop platform; user-role relationships should be configured within the Nop platform. Keycloak can configure user and role associations, as seen in `OAuthLoginServiceImpl.java`.
-
-### 6. What is the `_ExcelWorkbook` model class generated for?
-
-The model class is generated by a code generator during Maven packaging.
-
-When `mvn package` is executed, it runs the `exec-maven-plugin` plugin in the `nop-entropy` project's root pom.xml file under `pluginManagement`.
+When executing mvn package, the exec-maven-plugin runs. In the root pom.xml of the nop-entropy project’s pluginManagement, the following config is included:
 
 ```xml
 <plugin>
-    <groupId>org.codehaus.mojo</groupId>
-    <artifactId>exec-maven-plugin</artifactId>
-    <version>3.0.0</version>
-    <executions>
-        <execution>
-            <id>precompile</id>
-            <phase>generate-sources</phase>
-            <goals>
-                <goal>java</goal>
-            </goals>
-            <configuration>
-                <arguments>
-                    <argument>${project.basedir}</argument>
-                    <argument>precompile</argument>
-                </arguments>
+  <groupId>org.codehaus.mojo</groupId>
+  <artifactId>exec-maven-plugin</artifactId>
+  <version>3.0.0</version>
+  <executions>
+    <execution>
+      <id>precompile</id>
+      <phase>generate-sources</phase>
+      <goals>
+        <goal>java</goal>
+      </goals>
+      <configuration>
+        <arguments>
+          <argument>${project.basedir}</argument>
+          <argument>precompile</argument>
+        </arguments>
 
-                <!--
-                Prevents including META-INF directories from loading the ICOREInitializer -->
-                -->
-                <addResourcesToClasspath>false</addResourcesToClasspath>
-                <addOutputToClasspath>false</addOutputToClasspath>
-            </configuration>
-        </execution>
-        ...
-    </executions>
+        <!--
+        Avoid including META-INF which could load uncompiled ICoreInitializer
+        -->
+        <addResourcesToClasspath>false</addResourcesToClasspath>
+        <addOutputToClasspath>false</addOutputToClasspath>
+      </configuration>
+    </execution>
+    ...
+  </executions>
 </plugin>
 ```
 
-In the `nop-excel` project's pom file, adding `exec-maven-plugin` will automatically execute the `precompile` directory's code generation script.
+In the nop-excel project’s pom, including the exec-maven-plugin automatically executes the code generation scripts under the precompile directory:
 
 ```xml
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
+<build>
+  <plugins>
+    <plugin>
+      <groupId>org.codehaus.mojo</groupId>
+      <artifactId>exec-maven-plugin</artifactId>
+    </plugin>
+  </plugins>
+</build>
 ```
 
-In the `precompile` directory, all files with suffixes ending in `xgen` will be automatically executed.
+All files with the xgen suffix under the precompile directory are executed automatically:
 
 ```xml
 <c:script>
-codeGenerator.renderModel('/nop/schema/excel/workbook.xdef','/nop/templates/xdsl', '/',$scope);
-codeGenerator.renderModel('/nop/schema/excel/imp.xdef','/nop/templates/xdsl', '/',$scope);
+  codeGenerator.renderModel('/nop/schema/excel/workbook.xdef','/nop/templates/xdsl', '/',$scope);
+  codeGenerator.renderModel('/nop/schema/excel/imp.xdef','/nop/templates/xdsl', '/',$scope);
 </c:script>
 ```
 
-The `XCodeGenerator`'s `renderModel` function can read model files and execute code generation templates. In the example provided, it reads an `xdef` meta-model definition and calls the `nop-codegen` module's `/nop/templates/xds` template.
+The renderModel function on XCodeGenerator can read model files and execute code generation templates. In the example above, it reads xdef meta-model definitions and invokes templates under /nop/templates/xdsl in the nop-codegen module.
 
 ### 7. When does the system automatically create tables?
 
-After configuring `nop.orm.init-database-schema=true`, the `DatabaseSchemaInitializer` class will handle the automatic creation of database tables. However, if the table creation statement fails, it will be ignored, and subsequent table creation statements will not be executed. This means that if the database is empty, the table will be successfully created. If the database already contains tables, the creation will fail due to duplicate table issues.
+With nop.orm.init-database-schema=true configured, DatabaseSchemaInitializer will auto-create database tables when the application starts.
+If a CREATE TABLE statement fails, errors are ignored and subsequent statements are not executed. In other words, if the database is empty, tables will be created successfully; if tables already exist, CREATE failures will be ignored.
 
-Normally, only individual tables are added during configuration. Currently, the system does not automatically identify or create new tables based on existing configurations. You can set the log level to `TRACE` to see detailed error messages when table creation fails.
+If you only add a few new tables, currently they are not automatically detected and created. You can set the log level to TRACE; table creation failures will print logs.
 
-### 8. When generating code from multiple libraries, should you combine them into a single Excel file?
+### 8. If reverse-engineering multiple databases results in multiple Excels, should we merge them into a single Excel for code generation?
 
-The data model is designed such that each Excel module corresponds to one Excel sheet. It should be a modular system, allowing for either microservices or monolithic application deployment. The `nop-auth`, `nop-wf`, and other internal modules are each separate sub-modules with their own models. Each module can be developed and debugged independently.
+Each Excel corresponds to one module in the data model. It is inherently a multi-module system. It can be deployed as microservices or bundled as a monolithic application.
+Built-in modules like nop-auth and nop-wf are each submodules with their own models. Every module can be developed and debugged independently.
+If tables reference each other across modules, you can add external table references in Excel (set the table label to not-gen).
 
-If there are cross-module references, you can add external table references in the Excel file (tagged with `not-gen`).
+### 9. Can ORM store tables in different databases?
 
-### 9. Can tables in an ORM be stored in different databases?
+If you assign different querySpace values to different entities, they can reside in different databases. Each querySpace can map to a DataSource configuration named nopDataSource_{querySpace}.
 
-If you configure each entity to point to a different query space (`querySpace`), they can be stored in different databases. Each `querySpace` corresponds to a `nopDataSource_{querySpace}` data source configuration.
+Entity loading by primary/foreign keys supports cross-database queries; however, a single EQL query statement can access only one database and will not automatically perform cross-database queries.
 
-However, when loading entities based on their primary and foreign keys, cross-database queries are automatically performed. A single EQL query is only allowed to access one database, so cross-database queries are not supported.
+### 10. Where is the documentation for the expression syntax in report templates?
 
-### 10. Where is the documentation for the expression syntax in report templates located?
+See report usage documentation [report.md](../user-guide/report.md) and [xpt-report.md](../dev-guide/report/index.md).
+Report expressions are similar to ordinary XLang Expressions (JavaScript-like syntax), with the xptRt runtime variable and some extended functions.
 
-Documentation for reporting-related usage can be found in:
-- `[report.md](../user-guide/report.md)` (for general reports)
-- `[xpt-report.md](../dev-guide/report/index.md)` (for XPT-specific reports)
+### 11. After modifying the Excel data model, do we need to run mvn clean install to regenerate code?
 
-The syntax of expressions in report templates is similar to standard XLang expressions, which are based on JavaScript. However, they include `xptRt` environment variables and some extended functions.
-
-### 11. After modifying the Excel data model, do you need to call `mvn clean install` to regenerate code?
-
-Generally, you don't need to run `mvn clean install`. Only when files are deleted does it become necessary. Additionally, during code generation, a new file named `xxx-CodeGen.java` will be created in the `xxx-codegen` sub-project (e.g., `nop-auth/NopAuthCodeGen.java`), which can be directly executed in IDEA.
-
-The effect is equivalent to running `mvn install`.
+Generally, no clean is needed—only if files were deleted.
+Additionally, code generation will create a xxxCodeGen.java in the xxx-codegen subproject (e.g., NopAuthCodeGen.java in nop-auth) that can be run directly in IDEA to generate code, equivalent to running mvn install.
 
 ### 12. Where do variables used in XPL templates come from?
 
-**Question:** Variables used in XPL templates come from where?
-- **Answer:** These variables are set within the `XGenerator` class using `$scope.setLocalValue()`. They can be accessed in the `xrun` file, including both predefined variables and context-scope variables.
-- **Note:** All variables must be passed as parameters to the tag library. The scope variable (`$scope`) cannot be directly accessed from the template; it must be injected using `<x:scope>...</x:scope>`.
+Question: In the codegen module’s ORM template, `@init.xrun` calls the `gen:DefineLoopForOrm` tag. In its definition,
+`<attr name="codeGenModel" implicit="true"/>`,
+the codeGenModel attribute is implicit, and `@init.xrun` does not pass it. Where does its value come from?
 
-**Example:**
-```xml
-<c:script>
-codeGenerator.renderModel('/nop/schema/excel/workbook.xdef','/nop/templates/xdsl', '/',$scope);
-</c:script>
-```
+Answer: This variable is stored via scope.setLocalValue in XGenerator. In xrun files, in addition to defined variables, you can access variables passed via the scope context.
+In tag libraries, all variables must be passed as parameters; tags cannot directly access scope variables. Therefore, implicit=true means the tag captures a variable named codeGenModel from the calling context and uses it as a tag parameter.
 
-In this example, `$scope` is injected into the template and used within the `renderModel` method. The `xrun` file can access variables defined in both the template and the scope context.
-
-### 13. How to Use Query Conditions Similar to "Like" in the Frontend
+### 13. How to use “like”-style query conditions on the frontend
 
 See [xview.md](../dev-guide/xui/xview.md)
 
-* Configuration in meta allows for `contains` filtering operations.
+- Configure allowed filter ops in meta:
 
 ```xml
 <prop name="userName" allowFilterOp="eq,contains" xui:defaultFilterOp="contains"/>
 ```
 
-This condition indicates that `userName` allows filtering using the `eq` and `contains` operators. `eq` represents equality conditions, while `contains` represents containment. Both can be implemented using the `like` operator.
+This means `userName` supports filter operators `eq` (equals) and `contains` (contains, implemented with `like`). `xui:defaultFilterOp` sets the default to `contains`.
 
-* Front-end filter conditions
-  - The condition is constructed as `filter_{propName}_{filterOp}={value}`, e.g., `filter_userName_contains=abc`.
+- Send filter conditions from the frontend:
+  Concatenate conditions as filter_{propName}_{filterOp}={value}, e.g., filter_userName__contains=abc
 
-### 14. Why @Inject Has Not Worked
+### 14. Why did Inject bean fail?
 
 ```javascript
 @Inject
 private MyBean myBean;
 ```
 
-NopIoC does not support injecting private variables. Currently, Spring also does not recommend using `@Inject` for private variables because it complicates compile-time IoC handling and breaks encapsulation. It is better to use `protected` variables or define public `set` methods.
+NopIoC does not support injection into private fields. Spring also no longer recommends this because private fields hinder compile-time IoC processing and break encapsulation.
+Use package-protected or protected fields, or define a public setter.
 
-### 15. Loading Specified beans.xml Files Instead of System-Inbuilt app-xxx.beans.xml
+### 15. Besides the system’s auto-loaded `app-xxx.beans.xml`, how to load a specific beans.xml file?
 
-NopIoC's entry files are designed to automatically discover all dependencies, including those specified in `beans.xml`. You can place other files within the auto-discovery `beans.xml`.
+Entry beans in NopIoC are all auto-discovered. You can import other files in auto-discovered beans.xml.
 
-* Note: In NopIoC, repeatedly importing the same file will automatically deduplicate it, which is an advantage over Spring. In Spring, each import statement adds a new dependency, potentially causing conflicts.
-  - Importing the same package multiple times in multiple files is equivalent to importing it once.
+- Note: NopIoC automatically de-duplicates multiple imports of the same file, which is better than Spring’s handling. In Spring, the import node is include semantics rather than the language-level import semantics. Importing the same package multiple times in different files should be equivalent to importing once; include semantics fully includes the file each time, causing bean definition conflicts.
 
 ```xml
-<import resource="a.beans.xml" />
+<import resource="a.beans.xml"/>
 ```
 
-### 16. Can xdef Be Used Independently?
+### 16. Can xdef be used standalone?
 
-Yes, `xdef` can be used independently. The Nop platform's modules are designed to work with other frameworks due to their low coupling and dependency injection mechanisms. Specific module dependencies are defined in the `module-dependency.md` file.
+Yes. Add nop-xlang. The code generator can also be used independently of the Nop platform. Although the Nop platform has many modules, because the overall design uses dependency injection and dynamic loading, modules are loosely coupled and most can be used standalone and integrated with other frameworks independently of Nop.
 
-### 17. Properties Like "ext:dict" in app.orm.xml
+For module dependency relationships, see [module-dependency.md](../arch/module-dependency.md)
 
-In `app.orm.xml`, properties like `ext:dict="obj/LitemallBrand"` may not be found in `xdef`. Can undefined attributes in `xdef` be added freely?
+### 17. In the generated app.orm.xml, there is a property like ext:dict="obj/LitemallBrand". This ext:dict cannot be found in xdef. Can we arbitrarily add attributes not defined in xdef?
 
-Yes, you can add any attribute with a namespace. According to the reversible design principle, any data definition inherently requires its delta extension definition. Thus, we always leave room for storing extension information locally.
+Yes. You can freely add extension attributes with namespaces. According to Reversible Computation, any data definition necessarily comes with its Delta extension definition. We always reserve a mechanism to store extension information locally; it’s always a paired design of `(data, meta-data)`. Here, meta-data essentially stores extension information.
 
-The `ext` namespace is typically used for temporary or experimental purposes. If an extension is frequently used, define a dedicated namespace in `xdef` and validate it there.
+The ext namespace is generally used for temporary extension attributes. If an extension attribute is frequently used, choose a dedicated namespace and specify validation on the xdef model so that the extension attributes must also satisfy the xdef meta-model requirements.
 
-```xml
+```
 <schema xdef:check-ns="graphql,ui,biz" ...>
   <props>
-    <prop ui:control="xml-name" graphql:connectionProp="prop-name" ...>Value</prop>
+     <prop  ui:control="xml-name" graphql:connectionProp="prop-name" ...> </prop>
   </props>
 </schema>
 ```
 
-### 18. Do We Need Special Configuration for Cascading Insert and Update?
+### 18. Do we need special configuration for cascading insert and update?
 
-No, standard ORM operations handle cascading insert and update automatically. The Hibernate cascade configuration is unnecessary because it uses the `action` concept for updates, which should be replaced with state detection.
+No. ORM operations at the entity level automatically reflect to the database. There should not fundamentally be “cascading update” problems. Hibernate’s cascade configuration misuses the action concept to drive modifications; it should use state detection to drive modifications. As long as it detects that entity-level properties have changed, it automatically converts to Insert/Update/Delete SQL.
 
-For example:
-- `entity.getChildren().addChild(child)` automatically inserts a record in the child table.
-- `entity.relatedTable.setMyProp(3)` updates the `my_prop` field in the related table to 3.
+For example, `entity.getChildren().addChild(child)` implies inserting into the child table.
+`entity.relatedTable.setMyProp(3)` implies setting the my_prop field on the related table to 3.
 
-With an ORM tool, ideal usage is to perform operations directly on entities. The ORM tracks entity attributes and generates corresponding SQL statements for insert, update, or delete when changes are detected.
+If using the ORM engine, ideally you operate only at the entity level. The ORM engine tracks current property values of entities, automatically computes the Delta between those values and the database tables, and converts the Delta into corresponding SQL statements. The entire process is analogous to frontend virtual DOM diff.
 
+### 19. Why is the src directory empty in a newly generated xx-meta module, and meta files were not generated from orm.xml?
 
-The process of converting differences into corresponding SQL statements resembles the virtual DOM diff process.
+Meta files are automatically generated by running postcompile code generation templates via exec-maven-plugin. Therefore, the pom must configure this plugin.
+Typically we inherit from the nop-entropy pom to reduce Maven plugin configuration:
 
----
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
+  <parent>
+    <artifactId>nop-entropy</artifactId>
+    <groupId>io.github.entropy-cloud</groupId>
+    <version>2.0.0-SNAPSHOT</version>
+  </parent>
+  ...
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <configuration>
+          <classpathScope>test</classpathScope>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
+```
 
-### 19. Why is the src directory empty when generating a xx-meta module? Because no meta files are generated based on orm.xml?
+### 20. After adding annotations like `@SingleSession` and `@Transactional` to Java methods, why weren’t corresponding AOP classes generated?
 
-Meta files are generated by the exec-maven-plugin plugin during the postcompile phase using templates. Therefore, the pom file must be configured with this plugin.
-In general, we inherit from nop-entropy's pom file to minimize maven plugin configuration.
+AOP generation is triggered via exec-maven-plugin. Therefore, the pom must configure exec-maven-plugin. If you inherit the root pom of nop-entropy, just include the plugin:
 
----
+```xml
+<build>
+  <plugins>
+    <plugin>
+      <groupId>org.codehaus.mojo</groupId>
+      <artifactId>exec-maven-plugin</artifactId>
+      <configuration>
+        <classpathScope>test</classpathScope>
+      </configuration>
+    </plugin>
+  </plugins>
+</build>
+```
 
+### 21. Does the report engine support nested Excel formula calls? How do I add my own report functions?
 
-### 20. Why are `@SingleSession` and `@Transactional` annotations added to Java classes? Because no AOP classes are automatically generated?
-
-AOP classes are generated by the exec-maven-plugin plugin during the build process. Therefore, the pom file must be configured with this plugin.
-If we inherit from nop-entropy's root pom, we only need to add the exec-maven-plugin plugin.
-
----
-
-
-### 21. Does the Excel engine support nested calls in Excel formulas? How can I add my own report function?
-
-Manually writing a top-down expression parser requires over 1,000 lines of code. The nop-xlang package provides a basic expression parser that can be customized using feature flags.
-The following syntax features are available:
+A hand-written top-down expression parser needs just over 1,000 lines. The SimpleExprParser in nop-xlang provides a basic expression parser customizable via feature flags.
+Optional features:
 
 ```
 public static final int ALL = LAMBDA_FUNCTION | FUNCTION_DEF | STATEMENT | FUNCTION_CALL | OBJECT_CALL | BIT_OP
 | SELF_ASSIGN | CP_EXPR | TAG_FUNC | JSON | OBJECT_PROP | ARRAY_INDEX | SELF_INC | IMPORT | NEW;
 ```
 
-The ExcelFormulaParser class inherits from SimpleExprParser and can be extended to identify expression patterns for coordinate-based calculations.
+ExcelFormulaParser inherits from SimpleExprParser, trims features, and adds recognition for report hierarchical coordinate expressions.
 
+Currently, NopReport has only a few built-in Excel functions, all defined in ReportFunctions.
+If needed, write static functions yourself and register them similarly to ReportFunctions in ReportFunctionProvider.
 
-The NopReport contains a limited number of built-in Excel functions, all defined within the `ReportFunctions` class. If additional functions are needed, they can be manually added as static methods in this class.
+### 22. How to use the RedisDataSource defined in Quarkus
 
-
-### #22. Using RedisDataSource in Quarkus
-
-In the context of dependency injection managed by NopIoC, you can inject `RedisDataSource` into your Quarkus application using the `@Inject` annotation. However, please note that Quarkus handles IoC at compile time through its own scanning and registration mechanisms. For example:
+In beans managed by NopIoC, you can directly inject Quarkus-managed beans with `@Inject RedisDataSource redisDataSource;`.
+Note: Quarkus IoC performs scanning and registration at compile time, so RedisDataSource is auto-discovered and registered only if used in the Quarkus environment. For example, add a QuarkusConfig class:
 
 ```java
 @ApplicationScoped
 public class QuarkusConfig {
-    @Inject
-    RedisDataSource redisDataSource;
+  @Inject
+  RedisDataSource redisDataSource;
 }
 ```
 
+### 23. For dictionary fields, the returned label automatically includes “value - name”. Is there an easy way to remove “value -” and keep only the name?
 
-### #23. Dictionary Fields in Labels
+Set nop.core.dict.return-normalized-label=false.
 
-When a dictionary value-key pair is automatically added to the label, it appears as "Dictionary Value - Dictionary Name". If you want to remove only the key while keeping the name, set `return-normalized-label` to `false`.
+### 24. What is the difference between save and update in CrudBizModel?
 
+update requires an id to indicate a modification, while save is an insertion. `save_update` treats calls with id as update; otherwise, as insert.
 
-### #24. Differences Between save and update Methods in CrudBizModel
+### 25. Can action-auth.xml also control GraphQL action permissions? Auth annotations and xbiz can also control them. How do we choose, and which one wins if they conflict?
 
-- **update**: Requires an `id` attribute to identify a modification operation.
-- **save**: Represents a new insertion operation, which is translated into an `INSERT` statement.
+Nop uses a layered overlay design: `overall logic = base logic + Delta customization`
+More customizable layers override less variable layers. Definitions in xbiz override those in Java. xmeta has the highest priority.
 
-The method `save_update` checks if an `id` exists to determine whether it's an update or insert operation.
+`action-auth.xml` does not control permissions; it defines grouping names for easier permission management. Actual permission names are defined on service methods.
+`action-auth.xml` can configure default bindings between roles and permissions. The backend AuthMeta essentially configures bindings between permissions and service methods; for convenience, you can also bind roles directly to service methods. If both are specified, they are jointly enforced.
 
+### 26. How to handle many-to-many relationships via Delta customization?
 
-### #25. action-auth.xml vs. Graphql and xbiz
+Question: In `delta.orm.xlsx`, we customize NopAuthUser for a many-to-many relationship (e.g., users and merchants). We need to generate Java properties for merchants in NopAuthUser, and for users on the merchant side. Should the intermediate association table be defined in the auth delta Excel or in the application module’s Excel?
 
-When using both `action-auth.xml` and xbiz in NopPlatform, the following rules apply:
-1. **Priority**: xmeta (extensions) have higher priority than xbiz.
-2. **Conflicts**: If both are defined, xmeta takes precedence.
+Answer: It’s recommended to add the many-to-many association table in your own business model and mark the user table as not-gen to reference it as an external table. This avoids auto-generating many-to-many helper functions for NopAuthUserEx; you can add those manually.
 
+### 27. What is the difference between the nop-ooxml-xlsx module and Apache POI?
 
-### #26. Handling Many-to-Many Relationships with Delta Customization
+POI is large (at least a few dozen MB) and slow. `nop-ooxml-xlsx` uses Nop’s own XML parser to parse xlsx; it does not use POI underneath. It is much faster and uses far less memory, but supports fewer features—only those needed in current report development.
 
-In `delta.orm.xlsx`, for a many-to-many relationship between `NopAuthUser` and `Merchant`, you need to:
-1. Add the association table in your business model.
-2. Annotate it as `@NotGen` to prevent automatic generation.
+### 28. Can system-conventional fields in the Excel model (like updateTime) be renamed, e.g., updateTime to updatedAt?
 
-This approach avoids generating helper methods for the association, which can be added manually if needed.
+During code generation, special data domains are recognized: createdBy, updateTime, updatedBy, delFlag, version, createTime, tenantId.
+Fields marked with these data domains are automatically recognized for ORM supported features (e.g., optimistic locking, creation time, etc.)
+The data domain itself cannot be changed; database column names can be changed.
 
+### 29. Does the auth module have a concept similar to Spring Security’s anonymous user and anonymous role?
 
-### #27. Differences Between nop-ooxml-xlsx and Java's POI
+All logged-in users have the role user, but currently there is no built-in anonymous user mechanism. If needed, extend AuthHttpServerFilter.
 
-- **Nop-ooxml-xlsx**: Lightweight XML parser implemented in NopPlatform, optimized for performance and size.
-- **POI**: Full-featured library requiring significant memory (tens of MB) and slower processing.
+### 30. Besides explicitly running gen commands, when else can code be generated?
 
+Every DSL file supports `x:gen-extends` and `x:post-extends` subnodes; these are embedded generators within the DSL.
 
-### #28. Customizing System Fields like updateTime
+- push model: mvn install triggers xgen under the precompile directory to run code generation
+- pull model: `x:gen-extends` triggers code generation when loading the model
 
-You can rename `updateTime` to `updatedAt` by configuring the `return-normalized-label` setting in your ORM configuration.
+### 31. What does the querySpace concept in NopORM mean?
 
+It supports multi-data-source configuration. Each querySpace maps to a different database or storage system. For example, some data in ElasticSearch or another database—each data source is a querySpace.
 
-### #29. Anonymous Users in Auth Module
+### 32. What is the relationship between IContext and IServiceContext, and their usage scenarios?
 
-All authenticated users have a default role (`role.user`). If you need anonymous access, consider extending `AuthHttpServerFilter`.
+IContext mainly provides the async context and includes minimal global info. It is in the api-core package and can exist in various scenarios; it won’t include many other details. Across the Nop platform, ThreadLocal is not directly relied upon; implicit context passing stores objects in IContext, such as the current ITransaction and IOrmSession.
 
+In a service invocation environment, we need to pass more environment info. IServiceContext is an extended service framework context; it includes IEvalScope and IUserContext and must depend on nop-core.
 
-### #30. Customizing DSL with gen and post Commands
+Typically, when a request arrives, an IContext is created and bound to a worker thread; then the GraphQL engine creates IServiceContext referencing the IContext and adds more information. Therefore, for one request, there is one IServiceContext and one IContext.
 
-DSL files support custom extensions using:
-- `x:gen-extends` for pre-processing
-- `x:post-extends` for post-processing
+### 33. EQL does not support `cast(value as date)`. What to do?
 
-These can be nested within the generator to achieve complex customizations.
+Use the `date(field)` function. To see available functions, check `dialect.xml`. You can customize `dialect.xml` to add functions. Use template functions to transform to specific SQL syntax.
 
-# Push Mode
-- **Description**: In the Push Mode, `mvn install` triggers the precompile directory's `xgen`, generating code and compiling it.
+### 34. Must the primary key id have a seq tag? How is continuity guaranteed?
 
-# Pull Mode: x:gen-extends
-- **Description**: In the Pull Mode, when loading models, the `x:gen-extends` script is triggered to generate code and compile it.
+If the primary key id doesn’t have seq, you must set it manually. If seq is set, it can generate sequential ids based on configurations in `nop_sys_sequence`. Each entity corresponds to a record; if not found, a random id is generated.
+If you want a global sequence for all tables, use the `seq-default` tag; it checks whether the entity-specific sequence exists; if not, it uses the default sequence.
 
-# What is querySpace in NopORM?
-- **Definition**: A Query Space in NopORM refers to a configuration for multiple data sources. Each Query Space can correspond to a different database or storage mechanism. For example:
-  - Some data may reside in Elasticsearch,
-  - While other data may be stored in another database.
+Nop does not use database auto-increment to better support distributed databases and multiple database types.
 
-# Relationship Between IContext and IServiceContext
-- **IContext**: This is typically an synchronous context, often found in API Core (`api-core` package). It provides basic global information and is used throughout the system.
+### 35. If no properties are changed on submit, is no database update triggered?
 
-- **IServiceContext**: This is an extension of the context provided by the service framework. It includes more detailed information such as `IEvalScope` (used for evaluating expressions) and `IUserContext` (for user-related data), which are typically handled in the service layer and depend on the `nop-core` module.
+Correct. If a property wasn’t modified, the entity is not marked as dirty, no OrmInterceptor callbacks fire, and the database is not updated.
 
-- **Usage**: When a request comes in, an `IContext` is created, bound to the thread, and passed to the transaction or session. The GraphQL engine then creates an `IServiceContext`, referencing the existing `IContext`, and passing along additional information.
+### 36. After re-running the nop-cli generation tool, why didn’t the xmeta file update?
 
-# How does EQL Support cast(value as date)?
-- ** limitation**: EQL does not support the `cast(value as date)` syntax.
+nop-cli generates the initial project skeleton; it does not generate meta. XMeta is generated based on your manually customized `orm.xml`, not directly from xlsx.
+You can run XXXWebCodeGen.java in IDEA to generate code. After the first generation, you don’t use nop-cli again.
 
-- **Workaround**: Use the `date(field)` function instead. This function is defined in the `dialect.xml` file, allowing you to extend it with additional date-related functions.
+That’s why xlsx models are placed in the model directory: every mvn install runs the code generator to regenerate all code. nop-cli’s precompile directory conventionally includes the model directory and xlsx model file names.
 
-# Do we need a sequence for primary keys?
-- **No Sequence Needed**: If no sequence is set, you must manually assign primary keys.
+### 37. How to implement type conversion in XScript
 
-- **Using Sequences**: By setting a sequence (e.g., using `nop_sys_sequence`), Nop can generate sequential IDs if the corresponding entity record doesn't exist.
+Built-in extension functions like `$toInt`, `$toString`. For example, `a.$toInt()` converts a to Integer. Implementation uses ITypeConverter registered in SysConverterRegistry and eventually calls `ConvertHelper.toInt`, etc.
+Type conversion functions support default values, e.g., `a.$toInt(10)` returns the default when a is empty or null.
 
-# Global Sequence in Nop
-- **Global Sequence Usage**: Using a global sequence (`seq-default`) ensures all entities use the same, shared sequence for ID generation. This avoids conflicts when multiple components try to generate IDs simultaneously.
+### 38. Why does NopGraphQL error when returning `Map<String,MyEntity>`?
 
-# Is it necessary to have a seq label for primary keys?
-- **No**: Nop does not require a sequence for primary keys. The platform supports distributed databases and uses incremental IDs or UUIDs by default.
+GraphQL supports only object and object list structures, not Map<String, Object>. Keys are not predetermined; the GraphQL spec doesn’t support structures with unpredictable keys.
+Map is a NopGraphQL extension intended for one-shot returns to the frontend, without field selection, and it cannot contain entities internally. Entities may form graph structures, making ordinary JSON serialization impossible; entities may fetch too much data through associations—even the entire database unintentionally.
 
-# How to Ensure Consistent Primary Key Assignment
-- **Using Sequences**: If sequences are defined, each entity will use the next available ID in its own sequence if the corresponding record exists. Otherwise, it generates a random ID.
+Fix by returning a normal DataBean, for example:
 
-# Nop and Distributed Databases
-- **Distributed Support**: Nop is designed to work with distributed databases by using sequential IDs or UUIDs for primary keys.
-
-# Does NopORM Track Modified Attributes?
-- **No Tracking by Default**: NopORM does not track modified attributes unless enabled explicitly in the configuration.
-
-# How to Manually Generate IDs
-- **Manual Assignment**: If no sequence is defined, you can manually assign primary keys using the Nop ORM API. For example:
-  ```java
-  repo.save(new Entity()).persist();
-  ```
-
-# Why Doesn't nop-cli Generate xmeta Files?
-- **Reasoning**: `nop-cli` does not automatically generate `xmeta.xml` because XMeta configurations are typically defined in `orm.xml`. The CLI simply provides a starting point for generating these configurations manually.
-
-# Example: Generating Code with XXXWebCodeGen
-```java
-public class XXXWebCodeGen {
-    public static void main(String[] args) {
-        // Code generation logic here
-    }
-}
-```
-
-# How Does XScript Handle Type Conversion?
-- **Built-in Functions**: `XScript` supports built-in functions like `$toInt`, `$toString`, etc. These can be extended by registering custom type converters in the `SysConverterRegistry`.
-
-- **Default Handling**: If no converter is registered, a default implementation will convert strings to appropriate types, using default values if conversion fails.
-
-# Does NopGraphQL Support Map<String, MyEntity>?
-- **No Support for Maps**: NopGraphQL only supports scalar types and objects. It does not support `Map<String, MyEntity>` structures due to the inherent uncertainty in key formatting.
-
-# Why Can't I Use a Map in GraphQL Queries?
-- **Reasoning**: GraphQL schemas typically do not allow for arbitrary or dynamic keys in maps due to their unpredictability and potential impact on performance.
-
-# Ending Notes
 ```java
 @DataBean
 public class MyResponseBean {
-    private MyEntity myEntity;
+  private MyEntity myEntity;
 
-    public MyEntity getMyEntity() {
-        return myEntity;
-    }
+  public MyEntity getMyEntity() {
+    return myEntity;
+  }
 
-    public void setMyEntity(MyEntity myEntity) {
-        this.myEntity = myEntity;
-    }
+  public void setMyEntity(MyEntity myEntity) {
+    this.myEntity = myEntity;
+  }
 }
 ```
 
-Additionally, it can return `List<MyEntity>` such as in GraphQL. GraphQL identifies object types and list types.
+Or return `List<MyEntity>`. GraphQL recognizes object types and object list types.
 
-### 39. Why would NopGraphQL encounter errors when using a custom generic class `MyPageBean<T>`?
-For custom data types, NopGraphQL does not support generics natively. Therefore, you need to create a derived class that returns data. For each type like PageBean or ApiResponse, special handling is required.
+### 39. Why does returning data via a custom generic class `MyPageBean<T>` in NopGraphQL cause errors?
 
-```java
-public MyUserPageBean findAll() {
-    ...
+NopGraphQL currently does not support generics for custom data types, so you need a derived class to return. NopGraphQL must generate a generic type handler for each type; PageBean and ApiResponse have special handling.
+
+```
+public MyUserPageBean findAll(){
+ ...
 }
 
-class MyUserPageBean extends MyPageBean<User> {}
+class MyUserPageBean extends MyPageBean<User>{}
 ```
 
-### 40. Why doesn't `logInfo` print the data?
-The `logInfo` method does not output data because it requires a specific format. For example:
+If you only want to extend info based on an existing PageBean, use `PageBean.setExtData`.
+
+### 40. logInfo did not print data
 
 ```javascript
-logInfo("data: {}", data);
+ logInfo("data",data);
 ```
 
-Here, the first parameter is a template message string, and you need to use `{}` for variable substitution with the slf4j logging framework.
+logInfo’s first parameter is a templated message string using slf4j syntax; use `{}` as placeholders:
 
-### 41. How are existing view files in the `_delta` directory handled? Are they overwritten or merged?
-They are overwritten. To merge, you must explicitly mark them with `x:extends="super"` in the root node. DSL files have self-explanatory nature and their XDef model and inherited base model can be inferred from the file itself.
-
-### 42. How is merging handled when multiple customizations exist? For example:
-- NopAuthUserView
-- Framework customization -> Product customization -> Derived product customization
-
-Nop platform uses a unified virtual file system to manage all DSL files. You can define multiple hierarchical delta directories and configure them using `nop.core.vfs.delta-layer-ids`. For example:
-
-```properties
-nop.core.vfs.delta-layer-ids=deploy,product
+```javascript
+logInfo("data: {}",data);
 ```
 
-This means the `_delta/deploy` directory will override the `_delta/product` directory, which in turn overrides files not in a delta directory.
+### 41. If a view file is defined under the `_delta` directory and already exists, is it overlay or merge?
 
-### Deployment Issues
+Overlay. You need to mark `x:extends="super"` on the root node for merge. DSL files are self-describing: by inspecting a DSL file, you know its XDef meta-model and the base models it extends.
 
-### Design Issues
+### 42. If there are multiple customizations, in what order are they merged? For example, NopAuthUser view files: built-in Nop -> framework customization -> product customization -> derived product customization
 
-### 1. What does "function abstraction" and "function templating" mean in Nop platform documentation?
-Function abstraction refers to abstracting functionality into reusable components or steps. For example:
+Nop manages all DSL files via a unified virtual file system. In the virtual file system, you can define multiple peer delta directories and specify overlay ordering via `nop.core.vfs.delta-layer-ids`.
+For example, `nop.core.vfs.delta-layer-ids=deploy,product` means files under `_delta/deploy` override those under `_delta/product`, and then override files with the same name outside delta.
+
+### 43. Why did x:override not take effect?
+
+```xml
+<pages>
+  <crud name="main">
+    <listActions><action id="stat-button" label="Data Analysis" icon="fa fa-bar-chart pull-left" actionType="drawer"....
+    </listActions>
+  </crud>
+  <crud name="error-tags" grid="simple-list" x:prototype="main" filterForm="false"><table no0perations="true"...>
+    <listActions x:override="bounded-merge">
+      <action id="batch-delete-button"/>
+      <action id="add-button"/>
+    </listActions>
+  </crud>
+</pages>
+```
+
+`x:override` is not used to override what’s inherited via `x:prototype`. Use `x:prototype-override`. `x:override` overrides content inherited via `x:extends`.
+
+### 43. Can GraphQL be used standalone in a Spring Boot project, or must Nop ORM be included?
+
+NopGraphQL can be used standalone. nop-graphql-orm integrates the two. For GraphQL-only integration examples, see the nop-spring-simple-demo module.
+
+### 44. If the user sends an attribute that is not insertable at save time, is it filtered by meta or ignored by ORM?
+
+The meta layer filters it. Many fields are not insertable by the frontend but are insertable by backend logic. At the ORM layer, if a field is configured with insertable=false, it will not appear in the generated insert SQL at all.
+
+### 45. With the current save_update method, nonexistent parts sent from the frontend are deleted. How do we customize different save strategies? For example, I don’t want any delete behavior.
+
+EntityData entityData = new EntityData<>(data, validated, entity, objMeta);
+data retains all frontend input, validated is the result after validation and conversion per configuration. Both exist.
+
+### 46. Y = A + B + D = X + (-C + D) = X + Delta; with many branches/versions, how do we know X=a+b+c? Do we still have to check configs?
+
+When starting in debug mode, the dump directory outputs the merged full result. If node/attribute positions are inconsistent, it is clearly distinguished, and you can see which files each delta consists of.
+
+## Deployment Questions
+
+## Design Questions
+
+### 1. What do “function abstraction” and “function templating” mentioned in Nop documentation mean?
+
+For example, in a workflow that reaches step A, a condition needs to be added. Regardless of how it’s coded, it essentially corresponds to a predicate function. Some workflow engines may do:
 
 ```xml
 <step>
-    <when class="xxx.MyCondition" />
+  <when class="xxx.MyCondition"/>
 </step>
 ```
 
-In workflow engines, some might implement conditional logic with plugins. However, in Nop platform, function abstraction is isolated from the workflow engine's design. You only need to define function abstraction; how it is implemented is a separate concern and does not depend on the workflow engine.
+A Java class provides the predicate. The workflow engine may even provide a plugin mechanism to dynamically load condition plugins. These plugins must meet the workflow interface standard and can be used only in the current engine.
 
-Nop platform uses xpl template language for function templating, which abstracts function structures into templates.
+However, in Nop’s view, what is needed here is merely a function abstraction interface. How it’s implemented is a separate problem and is independent of the workflow engine’s design.
+That is, in the workflow engine design, we only need function abstraction—no additional plugin loading abstraction.
 
-### 2. How is the Nop platform handling workflow steps?
-In Nop platform:
-1. Use `x:extends="super"` in root node to merge.
-2. DSL files are self-explanatory and define their own XDef model and inheritance.
+Nop’s approach is to uniformly use the xpl template language to solve function implementation by templating function structure.
 
-Nop platform does not require plugin architecture for workflow engines. Instead, it uses function abstraction and templating based on xpl.
+In short, when solving problems on Nop, we systematically adopt the following strategy:
 
-### 3. How is conditional logic handled in Nop platform?
-In Java:
+1. Define functions at critical points using the general IEvalFunction or IEvalAction interface.
+2. Provide function implementations via the template language.
 
-```java
+Because the template language is XML (a structured representation), it can be visually edited via a generic TreeEditor.
+
+According to Reversible Computation, any information structure can have multiple representations, and these can be reversibly transformed. Visual editing is merely a bidirectional mapping between visual and textual representations.
+
+This bidirectional mapping capability is compositional. If `a <--> A`, `b <--> B`, we can often automatically obtain `a + b <--> A + B`.
+
+#### Template-based function structuring via XPL template language
+
+Suppose our predicate is implemented like this in Java:
+
+```
 if(user.age < 18)
-    return false;
+  return false
 
 if(user.gender == 1)
-    return false;
+  return false
 
-return true;
+return true
 ```
 
-This logic can be implemented using the Nop platform's XPL template language for function templating.
-
-# Translation of Technical Document
-
-## 1. Converting to Abstract Syntax Tree and XML Format
-We can convert the data into an abstract syntax tree (AST) and then save it in XML format. However, the process is not very intuitive.
-Using the abstraction mechanism provided by the Xpl template language, we encapsulate specific logic into more business-oriented tag functions and provide a visual editor.
-This is similar to how we configure custom components in form editing, rather than working with low-level `div/span` nodes.
+We could convert it to an AST and store as XML, but that’s not intuitive.
+With the tag library abstraction in the Xpl template language, we can encapsulate specific logic into business-semantic tag functions and provide a visual editor. (Similar to configuring custom components rather than raw div/span nodes in a form editor.)
 
 ```xml
 <and>
-    <app:already_adults/>
-    <app:gender_male/>
+  <app:IsAdult/>
+  <app:GenderIsMale/>
 </and>
 ```
 
-## 2. Custom .xlib File Usage
-When would we define our own `.xlib` file? Should the xlib files be placed in a fixed location?
-The `xlib` directory is where custom libraries for the Xpl template language are stored. You can place xlib files anywhere, but it's standard practice to store them in the module's `xlib` directory. When working within an Xpl segment, use `import` statements to access xlib functions.
+### 2. Under what circumstances do we define our own .xlib files, and must xlib be placed in a fixed location?
 
-### Common Intrinsic Tag Libraries
-1. `web.xlib`: Generates pages based on the `xview` model.
-2. `control.xlib`: Handles field derivation for display controls.
+xlib is a function library for the xpl template language. Generally put it under your module’s xlib directory. It can be placed anywhere; it’s just a regular function library. Import the tag library in an xpl block to use it. Common built-ins:
 
-## 3. Defining BizModel Without Entity Definition
-Is it possible to create a BizModel without defining entities?
-Yes, it's possible under Nop's layered architecture. The lower layers are independent of each other. You can write your own BizModel class, as seen in `LoginApiBizModel`.
+1. `web.xlib` generates AMIS pages from xview models.
+2. `control.xlib` infers display controls based on domain, type, etc.
+
+### 3. Can we write BizModel without entity definitions?
+
+Yes. Nop’s design is layered, and a later layer does not depend on an earlier layer. Just write a BizModel class; see LoginApiBizModel.
 
 ```
-Excel --> ORM --> BizModel --> XView --> Page
+  Excel --> ORM --> BizModel --> XView --> Page
 ```
 
-Using the code generator in the Nop platform, we can derive page elements from an Excel data model step by step. Each derivation step is optional and does not depend on previous steps.
+Using Nop’s code generator, we can infer frontend pages from Excel data models step by step, but each step is optional; a previous step is not required.
 
-## 4. Implementation of BizModel
-For example, referencing `LoginApiBizModel`:
-- Write a `BizModel` class directly in Java.
-- Register it in a `beans.xml` file.
-- Use the NopGraphQL engine to query.
+Refer to [LoginApiBizModel](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/biz/LoginApiBizModel.java). We can directly write a BizModel class in Java, register it in a beans.xml, and invoke it via NopGraphQL.
 
-> **Note:** Implementing `ILoginSpi` is optional for code clarity and maintainability. The `BizModel` class doesn't require inheritance or interface implementation, resembling a `Controller` in Spring but independent of any runtime environment.
+> LoginApiBizModel implements ILoginSpi only to improve readability and maintainability; it’s not required. A BizModel class need not extend any base class or implement any interface. Essentially, BizModel is similar to a Spring Controller, but it is independent of any Web runtime and does not require POJOs ready for direct JSON serialization.
+> (A BizModel method’s return value will be processed by NopGraphQL to form the response.)
 
-## 5. Nop Platform Development Direction
-Is the focus on a domain-specific workbench, a low-code platform, or Spring Cloud framework?
-Nop's goal is to become a general-purpose domain language workbench, with other tools and frameworks serving as secondary features. The platform supports rapid development and expansion of domain languages, allowing automatic generation of a designer and parser. This approach leads to a bottom-up implementation based on the reversible computing principle, where code generators create 20,000+ lines of boilerplate code.
+With NopGraphQL, there’s often no need to distinguish Controller and Service. Just add @BizModel to a Service (and register in beans.xml) to publish as a web service. The meta layer can perform response enhancement and post-processing; NopGraphQL provides an elastic adapter layer, often eliminating the need for an extra adapter object.
 
-## 6. Understanding Low-Code Platforms
-How is Nop's low-code platform understood in comparison with domain-specific languages (DSLs)?
-I focus on general-purpose descriptive programming rather than low-code products. From my article on reversible computing and low-code ([From Reversible Computing to LowCode](https://zhuanlan.zhihu.com/p/344845973)), low-code development mirrors model-driven development, where DSL is used for domain-specific modeling.
+### 4. Is Nop’s main development focus a “Domain Language Workbench,” a “Low-Code Development Platform,” or a SpringCloud-style framework?
 
-The Turing machine's ability to simulate all other machines is fundamental. By continually increasing the level of abstraction in a virtual machine, we aim to create a DSL for domain-specific operations. However, this approach leads to differential understanding and potential information overflow, resulting in a Delta item.
+Nop aims to be a general Domain Language Workbench; the rest is incidental. Because we can rapidly develop and extend domain languages and automatically infer designers and parsers, with built-in domain models it can be used as a low-code platform. To simplify implementation and maximize extensibility, we re-implemented a bottom-layer development framework based on Reversible Computation principles—this was a byproduct of R&D. Ultimately, with around 200K lines of hand-written code, all functionality will be completed; other code is generated—kept within one developer’s manageable scope.
 
-### The Evolution of Programming Languages and the Emergence of Domain-Specific Languages (DSLs)
+### 5. How does Nop view low-code products, and what is their relationship to domain languages?
 
-In the development of programming languages from Generation 1 to 3, there has been a continuous progression in abstracting layers. However, they remain general-purpose programming languages. With the advent of Generation 4, we are likely to encounter not another general-purpose programming language but a forest of Domain-Specific Languages (DSLs) constructed from numerous domain-specific languages.
+We focus less on low-code as a product form and more on broadly advancing descriptive programming, expanding its application scope, and achieving seamless fusion of descriptive and imperative programming. How low should low-code be? See my article
+\[From Reversible Computation to LowCode\] (https://zhuanlan.zhihu.com/p/344845973).
+The essence is similar to model-driven approaches. Serializing models into text gives us DSL. Reversible Computation introduces a Delta-based understanding of models and new technical means for model construction and extension.
 
-These DSLs enable us to form a new representation and understanding of existing program structures.
+A Turing machine is complete because it is a virtual machine that can simulate any automatic computing machine. If we keep raising the abstraction level of virtual machines, we can obtain virtual machines that directly “run” domain-specific languages (DSLs). But since DSLs focus on domain concepts, they cannot conveniently express all general computation (otherwise they become general-purpose languages), causing information overflow—becoming the Delta term.
 
----
+In the evolution of programming languages (1st–3rd generation), abstraction increased while remaining general-purpose. By the 4th generation, we likely get not another general language but a forest of DSLs, yielding new representations and cognition of traditional program structures.
 
-### Question on Excel Model's AppName
+### 6. In the Excel model, must appName be two-level? What happens if it’s one- or three-level? Also, it automatically becomes a two-level directory name—does that refer to package directories under src?
 
-Is the appName in the Excel model required to be two-level? If it is one-level or three-level, what issues would that pose? The current restriction seems unusual. Additionally, it automatically becomes a two-level directory name. Here, does this refer to the package directories under `src`, specifically within the virtual file system?
+The two-level directory corresponds to `src/resources/_vfs/xxx/yyy` in the virtual file system.
+Currently limited to two levels because the platform scans modules at startup and limits scan scope. It scans only two levels; if a `/_vfs/xxx/yyy/_module` file is found, it is considered a module, and it auto-loads `app-*.beans.xml` under its beans directory.
 
-The current restriction is set to two levels because during platform initialization, there's a module scanning process. To limit the scope of this module scanning, only two-level directories are scanned. For instance, if `/_vfs/xxx/yyy/_module` files exist, they are considered modules, and their `app-*.beans.xml` files under the `beans` directory are automatically loaded. Similarly, `module:/abc/yy.xml` is used to load all module-related configuration files, such as `/_vfs/xxx/yyy/abc/yy.xml`.
+When loading files via `module:/abc/yy.xml`, it scans all modules for /abc/yy.xml, e.g., `/_vfs/xxx/yyy/abc/yy.xml`.
 
----
+### 7. Can Nop’s GraphQL be used independently of Spring and Quarkus?
 
-### Can Nop Platform's GraphQL Be Used Independently of Spring and Quarkus Frameworks?
+Nop’s GraphQL engine is pure logic, akin to a general request=>response service decomposition mechanism.
+GraphQLWebService provides a jaxrs-based web adapter. QuarkusGraphQLWebService and SpringGraphQLWebService fill in framework-specific details, exposing `/graphql` and `/r/{operationName}` endpoints.
 
-Nop platform's GraphQL engine is a pure logic implementation. It essentially functions as a generic service decomposition mechanism applicable across all `request=>response` processing workflows.
+If you write a simple HTTP adapter based on vertx or netty, you can avoid depending on quarkus or spring.
 
-GraphQLWebService provides a JAX-RS-based integration with the web layer. Specific implementations, such as QuarkusGraphQLWebService and SpringGraphQLWebService, are derived from this base class to handle framework-specific details. This allows for both `/graphql` and `/r/{operationName}` types of external interfaces to be exposed.
+Because NopGraphQL’s inputs and outputs are POJOs, it can be used in batch engines, kafka consumers, and even stream processing frameworks.
 
-If using Vert.x or Netty for HTTP protocol adaptation, the dependency on Quarkus or Spring can be avoided.
+If you want only the backend without AMIS frontend tech, use
+nop-spring-web-orm-starter (GraphQL + ORM) or nop-spring-core-starter (core xlang only),
+or nop-quarkus-web-orm-starter or nop-quarkus-core-starter.
 
-Since NopGraphQL's entry parameters and return values are POJOs, it is directly applicable in scenarios involving batch processing engines and Kafka message queues, even in streaming frameworks. If you only want to use the backend without introducing AMIS (Application Mobility Integrated Services), you can choose between:
-- `nop-spring-web-orm-starter` (includes GraphQL and ORM)
-- `nop-spring-core-starter` (basic XLang support)
-- `nop-quarkus-web-orm-starter` or `nop-quarkus-core-starter`
+Starters provide auto-integration with Spring/Quarkus. Include the dependency, and application startup automatically calls Nop’s initialization (CoreInitialization.initialize()).
 
-The starter provides automatic integration with Spring and Quarkus frameworks. By adding the appropriate dependencies, the platform will automatically invoke `CoreInitialization.initialize()` during startup.
+### 8. Is Nop’s logic orchestration about code logic or service invocation logic, like Zeebe for microservice orchestration?
 
----
+The orchestration engine itself shouldn’t care whether it’s code or a service; that’s purely implementation detail. A microservice call is a function invocation. If you can orchestrate functions, you can orchestrate services in principle. Services have additional management logic unrelated to orchestration and should not pollute the orchestration engine. Nop orchestrates via template language and DSL; the runtime can use XPL to extend infinitely.
+Retries, TCC rollback, etc., can appear as function decorators.
 
-### Is Nop Platform's Logic Arrangement Related to Code Logic or Service Call Logic? Similar to Zeebe for Microservices Orchestration
+### 8. How to implement “light association” mechanisms
 
-Logic arrangement engines should not concern themselves with whether it is code logic or service call logic. That's implementation detail. When a microservice is called, it is essentially represented as a function. As long as you can orchestrate functions, you can orchestrate services. However, services may have additional management logic beyond what is required for orchestration. This logic should not interfere with the orchestration engine.
+Can we implement a light association/fill feature—for example, a field default value can reference another table field or directly use an EL expression to load local methods, just specifying `${user.userId}` to auto-fill, with no relational link between the target table and the expression’s table, and no need to specify complex associations?
 
-Nop platform leverages template languages and DSLs for orchestration. Below the surface lies the infinite extensibility of XPL (eXtensible Process Language). Mechanisms like retries, TCC (Transactional Consistency Control), etc., can be represented as decorators.
+Solution:
 
----
+1. The built-in CrudBizModel already provides many general-purpose service retrieval functions, avoiding manual coding, and GraphQL’s renaming mechanism supports field adaptation. For example `/r/NopAuthUser__get?id=3&@selection=name:userName,status:userStatus` retrieves data by id but returns fields name and status.
+2. In a meta file, add a custom prop, and write an XScript in the prop’s getter to fetch data—no need for xbiz.
+3. Using NopDynEntity, you can define backend service functions online and call them from the frontend to return data.
 
-### Implementing Light Association Mechanism
+Essentially in a frontend-backend separated architecture, frontend “light association” is adding a standardized backend service call in the page config. How the service is implemented (online-defined or otherwise) is an independent issue.
+Nop standardizes backend service naming: /r/{bizObjName}_{bizMethodName}?@selection={selectionSet}
 
-Can we implement light association and light filling functionalities? For example:
-- Field default values can reference other fields or directly use EL expressions like `${user.userId}`. The associated table and field are not inherently linked, nor do they require complex association relationships.
-- No need to define complex associations for simple requirements.
+With the data provider available, the frontend can decide whether to use it as a default value or for fixed linkage.
 
----
+### 9. How does modularity and subsystem concepts manifest in Nop? In enterprise apps, finance, CRM, HR—customers may buy independently; they are separate subsystems.
 
-### Solutions
+In a microservices architecture, modularity is mainly through service boundaries. Nop supports a two-level module system via virtual file system subdirectories. That is, /nop/auth corresponds to {vendor}/{subModule} style module ids.
+By arranging module paths, you can have app/fin, app/crm, app/hr independently for development and management.
+Nop is designed to be composable and separable. Including app/fin automatically adds functionality. Each submodule can be deployed as an exe, or multiple can be bundled as a monolith.
 
-1. **CrudBizModel** provides a comprehensive set of generic CRUD operations without manual coding. It leverages GraphQL's renaming mechanism for field adaptation. For example:
-   - `/r/NopAuthUser__get?id=3&@selection=name:userName,status:userStatus` can query data based on `id`, selecting specific fields.
-2. **Meta** files allow custom props, which can be further configured in getters using XScript without requiring XBiz files.
-3. If using NopDynEntity, you can define backend service functions directly in the configuration, enabling flexible data retrieval from the backend.
+Conceptually Nop is like a micro-kernel that can dynamically load/unload business modules. But currently, if a module contains Java classes, a restart is needed.
+You could load module classes via a Java ClassLoader. If the module has no Java classes, no restart is needed.
+These are detail features; Nop core may not go into such fine granularity.
 
-In a decoupled architecture:
-- Light association is handled on the frontend by configuring services and actions. The backend remains unaware of these associations.
-- Service function definitions are made on the frontend, with no impact on the orchestration engine's functionality.
+During development, Quarkus has hot-load mechanisms. In dev mode, modifying Java auto-reloads. So Nop module development can use Quarkus integration mode.
 
-# Modularization in the Nop Platform
+### 10. Nop’s extensibility is flexible with fine granularity. If others extend on top of it, how do we avoid misconfigurations affecting functionality? For example, disabling a bean at the source impacts features.
 
-The naming convention for backend service functions in the Nop platform is standardized as `/r/{bizObjName}_{bizMethodName}?@selection={selectionSet}`.
+Nop only solves structure space construction and transformation. Constraints in the semantic space must be ensured by yourself—add your own extra validations. The framework performs some semantic checks in various engines.
 
-With a data provider, the frontend can freely decide whether to use it as the default value or fixed binding.
+1. xdef meta-model defines format requirements; after merging, models are validated by the validator.
+2. IoC checks bean dependencies automatically during mvn install packaging and application startup.
+3. ORM checks all table and property references at startup.
+4. XView checks that all referenced fields, if not marked custom, must be defined in XMeta.
+   In short, in each engine, you can add domain-specific checks—akin to enhanced typing. xdef is a stronger validation than language types. Engines can include more domain semantics validation.
 
-### 9. Modularization in the Nop Platform
+In Reversible Computation, Delta merging occurs in the structural layer, where runtime-illegal structures can exist. The structural layer is the feasible space—the largest set of all possible structures.
+Like quantum mechanics, outside observation, energy conservation can be “violated”—quantum tunneling is allowed. But post-merge, when entering the observable, runnable world, constraints must be applied.
+Nop has multi-stage compilation; before actual running, it provides many Turing-complete, application-side validation hooks—even contract-based programming—to insert unit tests,
+and in debug mode the system may require certain sample tests to pass to start.
 
-The concept of sub-systems is implemented in the Nop platform as three independent subsystems: finance, CRM, and HR.
+In traditional programming, the structural space is closed, defined only by compiler vendors. Nop opens the structural space, allowing custom structural rules and exposing compiler capabilities to the application layer.
+In frontend tech, with babel’s popularity, compiler capabilities are partially opened, but few use them at the application level besides some frameworks.
+Nop proposes structural rules and usage patterns to make such capabilities simpler and more intuitive.
 
-After adopting a microservices architecture, modularization is further achieved by service division. The Nop platform internally supports a two-level module system, distinguishing modules via virtual file system subdirectories such as `/nop/auth` corresponding to `{vendor}/{subModule}`.
+### 11. Why doesn’t NopIoC support class scanning?
 
-For rationalizing module paths, the following patterns are implemented: `ap/fin`, `app/crm`, `app/hr`. These represent three independent modules that can be developed and managed separately.
+Built-in scanning harms customizability. Class annotations cannot be easily customized like XML.
+Implementing scanning is simple—write a scan tag function in `x:gen-extends`, similar to Spring 2.0’s named tags. This has performance impacts; Nop won’t include it by default.
 
-The Nop platform follows a modular and composite design. If `app/fin` is introduced as a module, it automatically includes its own functionality. Each sub-module can either be deployed as an individual `.exe` or bundled into a single `.exe`.
+### 12. In the Excel model, a field is labeled not-pub. How does it work? I only found model-level not-pub in BizObjectBuilder, not field-level.
 
-From a conceptual perspective, the Nop platform resembles a micro-nucleus architecture, allowing dynamic loading and unloading of business modules. However, in the current implementation, if a module contains Java classes, a restart is required. This can be avoided by using a separate `Java ClassLoader` for module loading.
+At prop level, during code generation, the `not-pub` tag becomes `published=false`. Meta has an explicit property to record whether to publish—an explicit knowledge layer. At the ORM layer (storage model), it shouldn’t know publish status, so related info is stored in tagSet—an extension description. When generating xmeta from ORM models, it converts this back to explicit knowledge.
 
-In development mode, the Quarkus framework includes a hot load mechanism. Changes to Java code are automatically reloaded without requiring a restart when developed using Nop's standard modules.
+### 13. The core formula of Reversible Computation, `App = Delta x-extends Generator<DSL>`, has Generator as an abstract concept. What does it correspond to in Nop?
 
-### 10. Flexibility and Extensibility of Nop
-
-The Nop platform's flexibility is evident in its fine-grained modularization. When other parties extend the system above, how can we prevent improper configurations from affecting functionality? For example, if a specific bean is removed, it may disrupt overall functionality.
-
-Nop primarily addresses structural and transformational issues. The semantic space must be ensured through constraints and validations. Frameworks like ORM perform field-level validations on data before storage.
-
-### 11. Technical Details
-
-1. xdef: Definition models require standardized formats, which are validated after merging.
-2. IoC Container: Automatically checks dependencies during `mvn install`, including bean relationships.
-3. ORM: Checks all table references and attribute mappings for correctness.
-4. XView: Validates field references; if not marked as custom, they must be defined in XMeta.
-5. In summary, various engines perform semantic checks based on their own requirements, similar to enhanced type checks.
-
-### 12. Excel Model Configuration
-
-In the Excel model, fields are marked with `not-pub`, which affects how they are generated. At the meta level, this is a binary decision: whether to publish or not. While ORM layers generally shouldn't need to know whether to publish, some configurations store this information in `tagSet`.
-
-### 13. Core Formula for Reversible Computation
-
-The core formula is defined as:
-`App = Delta x-extends Generator<DSL>`
-
-In Nop, the `Generator` concept corresponds to a theoretical abstraction that maps to concrete mechanisms in the platform.
-
-Reverse computation involves merging at the structural level. This process occurs within the structure where all possible structures are considered. The structure layer represents the feasible space of all possible structures.
-
-This concept is analogous to quantum mechanics, where phenomena outside observation can violate classical laws but still operate within a self-consistent framework. After merging, true observability requires passing through layers of constraints.
-
-Nop's design includes multi-stage compilation. Before actual execution, the platform provides extensive validation and intermediate checks, including aspects like contract-based programming and unit testing.
-
-In traditional programming, structural encapsulation is rigid, determined solely by the compiler. Nop opens this structure, allowing custom rules at various levels, from data binding to business logic.
-
-Frontend tools like Babel offer limited compiler access, but only a few frameworks fully expose this capability. Nop breaks this limitation by providing a comprehensive framework for defining and applying rules.
-
-### 11. Why Nop Doesn't Support Class Scanning
-
-Built-in scanning disrupts customizability. Implementing a `scan` tag function within the `x:gen-extends` segment, similar to Spring 2.0's conventions, would require significant performance trade-offs. However, Nop does not include this feature natively.
-
-### 12. Excel Model Usage of not-pub Tags
-
-In the Excel model, the `not-pub` tag determines whether a field is generated with `published=false`. At the meta level, this decision must be explicitly defined. While ORM layers typically shouldn't need to know about publishing decisions, some configurations store this information in `tagSet`.
-
-### 13. Core Formula for Reversible Computation
-
-The core formula is defined as:
-`App = Delta x-extends Generator<DSL>`
-
-In Nop, the `Generator` concept corresponds to a theoretical abstraction that maps to concrete mechanisms in the platform.
-
-Reverse computation involves merging at the structural level. This process occurs within the structure where all possible structures are considered. The structure layer represents the feasible space of all possible structures.
-
-This concept is analogous to quantum mechanics, where phenomena outside observation can violate classical laws but still operate within a self-consistent framework. After merging, true observability requires passing through layers of constraints.
-
-Nop's design includes multi-stage compilation. Before actual execution, the platform provides extensive validation and intermediate checks, including aspects like contract-based programming and unit testing.
-
-In traditional programming, structural encapsulation is rigid, determined solely by the compiler. Nop opens this structure, allowing custom rules at various levels, from data binding to business logic.
-
-Frontend tools like Babel offer limited compiler access, but only a few frameworks fully expose this capability. Nop breaks this limitation by providing a comprehensive framework for defining and applying rules.
-
-### 1. XCodeGenerator代码生成工具
-The **XCodeGenerator** code generation tool can generate code based on an Excel model. During generation, it automatically covers all files in the `_gen` directory, including those with names prefixed with underscores. Handwritten code inherits from automatically generated code for differential customization.
-
----
-
-### 2. XDSL文件中的动态代码生成
-All **XDSL** files support `x:gen-extends` and `x:post-extends` dynamic code generation segments. Within these, you can use the `xpl` template language to dynamically generate model nodes and then merge them with external nodes for differential merging.
+1. The XCodeGenerator tool generates code from Excel models, automatically overwriting files under the _gen directory and all files with names starting with underscores. Handwritten code inherits from the generated code for Delta customization.
+2. All XDSL files support dynamic code generation segments: x:gen-extends and x:post-extends. Inside, you can generate model nodes via the xpl template language and then Delta-merge with external nodes.
 
 ```xml
 <model x:extends="A,B">
@@ -773,17 +725,53 @@ All **XDSL** files support `x:gen-extends` and `x:post-extends` dynamic code gen
 </model>
 ```
 
-The merging strategy is **Result = E x-extends Model x-extends D x-extends C x-extends B x-extends A**, where `Axml` refers to the XML format model file, generated code with underscores at the beginning, handwritten code, and the **Generator** tool. The model files correspond to DSL, so the **Generator** tool corresponds to `Genetator`. If not, then `Genetator` in the formula corresponds to which parts of Nop?
+The merge strategy: Result = E x-extends Model x-extends D x-extends C x-extends B x-extends A
 
----
+XML-format model files, underscore-prefixed auto-generated source, handwritten source, and Generator tools—model files correspond to DSL. Does the Generator tool correspond to the formula’s Generator? If not, which parts in Nop correspond to Generator?
 
-### 14. 企业级防御性编程
-In enterprise-level defense programming, like **Nop**, it is essential to design a防腐层 (defense layer). Is a防腐层 specifically for Nop necessary?
+### 14. Enterprise-grade engineering values defensive programming (e.g., anti-corruption layers). Is it necessary to create an anti-corruption layer for Nop?
 
-Nop itself supports differential customization without modifying its source code. This significantly reduces the need for a defense layer. Furthermore, general programming cannot achieve the level of protection that Nop's **NopGraphQL** and **NopORM** provide. Designing a defense layer for Nop is challenging because it offers minimal information leakage. Additionally, Nop's dependency on third-party packages is minimal, so upgrading them does not affect its application side.
+Nop supports Delta customization, enabling deep customization without modifying Nop source. This greatly reduces the need for anti-corruption layers. Most people’s designs cannot approach Nop’s level; NopGraphQL and NopORM already minimize information expression. Designing your own anti-corruption layer rarely provides real change isolation value. Nop has few third-party dependencies, so upgrades rarely impact applications indirectly. We do not recommend building an anti-corruption layer for Nop.
+For example, Nop’s XML parser is not the JDK’s; it’s hand-written, high-performance, and avoids complex feature security holes.
 
-Therefore, designing a defense layer for Nop is generally unnecessary.
-For example, Nop's XML parser does not use the JDK's built-in parser but instead uses a custom one that is high performance and free from vulnerabilities caused by complex features.
+### 15. For the nop-entropy project, is Quarkus or Spring Boot recommended?
 
----
+Either; no preference. The domestic Solon framework is also supported.
 
+### 16. Why does Nop far surpass current tech in strong-type development?
+
+Type systems essentially provide predefined constraint rules. Built-in language rules are limited and general-purpose, so their capabilities are limited. Many lint systems add best-practice constraints—custom enhancements on type systems—but still domain-agnostic. DSL’s unique value lies in rules and constraints tailored to a specific domain, fully exploiting domain information to achieve what general rules cannot.
+For example, a workflow DSL validator can automatically validate unique step ids and whether the graph is a DAG. If DSL is open for user editing, it’s easy to add custom validations outside the engine, such as code segments only using fixed tag functions, or allowing specific expressions only. Because Nop DSLs all use XML, parsed as generic XNode nodes, regardless of DSL, you can insert custom syntactic validations and structure transformations in a unified compile-time meta-programming phase like `x:gen-extends`. In a typical strongly-typed language, you can only use a fixed AST, writing meta-programming for a specific syntax; this is inconvenient and cannot unify runtime and compile-time processing (to unify, we need Lisp-like homoiconicity: the structure of the compile-time code must match the structure it generates. Most strong-typed languages lack such homoiconicity).
+
+More importantly, Nop DSLs uniformly use the XDef meta-model and support the unified paradigm Y=F(X)+Delta, automatically enabling Delta definitions and operations—i.e., Delta customization by default. Most strongly-typed languages do not have fine-grained Delta capabilities.
+
+Strong-typed languages apply compile-time type constraints. Nop can apply any domain-specific constraints via Maven plugins during mvn install—not limited to general type constraints. XDef’s constraint capabilities exceed type systems; for example, at the property level, it recognizes extensible formats like v-path.
+
+Nop’s DSLs serve not only as information carriers, but also as coordinate spaces for Delta operations. Every DSL syntactic property has a unique coordinate; type systems assume different objects can have the same type, making fine-grained Delta definition difficult. Typically, in type systems, we cannot effectively specify Delta enhancements to one particular button in a button list.
+
+Nop emphasizes representation-agnostic information expression—information can be reversibly transformed freely among XML/YAML/Expr representations.
+
+#### I. The intrinsic limits of type systems
+Type systems’ core constraints have three boundaries:
+1. Semantic boundary
+   Can validate `price: number`, but not `price > cost`
+2. Domain boundary
+   Cannot express business rules like `approval flow must include a risk-control node`
+3. Extension boundary
+   Constraints are locked in the compiler; cannot extend domain-specific validations on demand
+
+As if checking only part sizes of a car but not verifying road safety after assembly.
+
+#### Essence of paradigm shift
+Nop’s core innovation is building a domain-aware constraint system:
+
+1. Open extension of constraints
+   XDef meta-model exposes standard extension interfaces to inject domain-specific validation rules
+
+2. Precise localization of modifications
+   Structural coordinate system implements declarative Delta operations
+
+3. Spatial-temporal continuity of processing
+   Homoiconic model unifies compile-time and runtime processing
+
+<!-- SOURCE_MD5:a049506b6787b00aa64b74245680035f-->

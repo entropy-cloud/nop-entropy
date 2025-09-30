@@ -1,12 +1,12 @@
-# Introduction to Nop: Integrating with Spring Security
+# Getting Started with Nop: Integrating with Spring Security
 
-When integrating Spring with SpringSecurity, some users prefer to maintain their previous login authentication mechanism and do not want to introduce user, role tables from the Nop platform. In this case, you can avoid introducing the `nop-auth-service` service and only adapt a few interfaces.
+When integrating with Spring, some people prefer to keep their existing login and authentication mechanisms and do not want to introduce the Nop platform’s user and role tables. In this case, you can omit the `nop-auth-service` and adapt just a few interfaces.
 
-For example, refer to the `nop-spring-security-demo` for sample projects.
+Refer to the sample project nop-spring-security-demo.
 
-## 1. Importing nop-spring-web-starter Dependency
+## 1. Add the nop-spring-web-starter dependency
 
-This package will use SpringBoot's auto-discovery mechanism to start up the Nop platform and register `SpringGraphWebService`.
+This package uses Spring Boot’s auto-configuration discovery mechanism to start the Nop platform and register SpringGraphWebService.
 
 ```xml
 <dependencies>
@@ -22,7 +22,7 @@ This package will use SpringBoot's auto-discovery mechanism to start up the Nop 
 </dependencies>
 ```
 
-Then, enable the following configuration in the `application.yaml` configuration file:
+Then enable the following settings in the application.yaml config file:
 
 ```yaml
 nop:
@@ -33,57 +33,55 @@ nop:
       enabled: false
 ```
 
-This enables data permission and operation permission checks while disabling the built-in `AuthHttpServerFilter`, which was previously responsible for checking login status.
+Here we enable data permission and action permission checks, and disable the built-in `AuthHttpServerFilter`, which originally was responsible for checking the login status.
 
-## 2. Implementing IActionAuthChecker Interface
+## 2. Implement the IActionAuthChecker interface
 
-The Nop platform uses the `IActionAuthChecker` interface to check operation permissions, while SpringSecurity uses the `PermissionEvaluator` interface.
+Within the Nop platform, the IActionAuthChecker interface is used to check action permissions, while Spring Security uses the PermissionEvaluator interface.
 
 ```java
 public class SpringActionAuthChecker implements IActionAuthChecker {
-    private static final Logger LOG = LoggerFactory.getLogger(SpringActionAuthChecker.class);
+  static final Logger LOG = LoggerFactory.getLogger(SpringActionAuthChecker.class);
 
-    @Inject
-    private PermissionEvaluator permissionEvaluator;
+  @Inject
+  PermissionEvaluator permissionEvaluator;
 
-    @Override
-    public boolean isPermitted(String permission, ISecurityContext context) {
-        LOG.info("nop.check-action-auth:permission={},user={}", permission, context.getUserContext());
+  @Override
+  public boolean isPermitted(String permission, ISecurityContext context) {
+    LOG.info("nop.check-action-auth:permission={},user={}", permission, context.getUserContext());
 
-        if (context.getUserContext() == null) {
-            return false;
-        }
-        final IUserContext userContext = context.getUserContext();
+    if (context.getUserContext() == null)
+      return false;
+    IUserContext userContext = context.getUserContext();
 
-        // Token construction needs to be determined based on the specific authorization framework
-        UserIdToken token = new UserIdToken(userContext.getUserId());
-        return permissionEvaluator.hasPermission(token, "BizObject", permission);
-    }
+    // How to construct the token here depends on your specific authorization framework
+    UserIdToken token = new UserIdToken(userContext.getUserId());
+    return permissionEvaluator.hasPermission(token, "BizObject", permission);
+  }
 }
 ```
 
-Generally, the permission format in the Nop platform is `{bizObjName}:{method}`, and when generating code, it will generate permissions like `NopAuthUser:query` and `NopAuthUser:mutation`, corresponding to read operations (GraphQL query) and write operations (GraphQL mutation). Based on specific business requirements, you can further refine by separating upload and download, etc.
+In general, permission strings in the Nop platform follow the format `{bizObjName}:{method}`. During code generation, permission identifiers like `NopAuthUser:query` and `NopAuthUser:mutation` are generated, corresponding to read operations (GraphQL query) and write operations (GraphQL mutation), respectively. You can further refine them based on your business needs, for example, separating upload and download.
 
-Of course, the permission format does not have strict requirements. It is internally agreed upon as needed, as long as the underlying `PermissionEvaluator` can recognize it.
+Of course, there is no hard requirement for the exact permission format—it’s an internal convention—as long as the underlying PermissionEvaluator can recognize it.
 
-## 3. SpringSecurity Login Subsequently Initializes Nop Platform's User Context
-
+## 3. Initialize the Nop platform user context after a successful Spring Security login
 
 ```javascript
  void onLoginSuccess(IContext context, HttpServletRequest request) {
       String userId = "nop";
       String userName = "123";
 
-      // Here should follow framework-specific token setting logic, just example provided
+      // The token should be set according to the specific framework's requirements; this is just an example
       SecurityContext secureContext = SecurityContextHolder.getContext();
       secureContext.setAuthentication(new UserIdToken(userId));
       request.setAttribute(RequestAttributeSecurityContextRepository.DEFAULT_REQUEST_ATTR_NAME, secureContext);
 
-      // context stores basic information, while IUserContext holds more user-related data
+      // The context holds some basic information, while IUserContext contains more user-related information
       context.setUserId(userId);
       context.setUserName(userName);
 
-      // simulate setting user context after login success
+      // Simulate setting the user context after a successful login
       UserContextImpl userContext = new UserContextImpl();
       userContext.setAccessToken("aaa");
       userContext.setLastAccessTime(CoreMetrics.currentTimeMillis());
@@ -95,12 +93,12 @@ Of course, the permission format does not have strict requirements. It is intern
   }
 ```
 
-* SecurityContextHolder is the place in SpringSecurity where the security context is stored after successful login. The UserIdToken used here is just an example; the actual content depends on the specific login framework.
-* To support asynchronous calls, we need to save the security context into the HttpServletRequest. Otherwise, when the controller returns an asynchronous result, the context may be lost.
+- SecurityContextHolder is where Spring Security stores the security context after successful authentication. The UserIdToken used here is only an example; what to store specifically depends on your login framework.
+- To support asynchronous calls, you also need to save the security context on the HttpServletRequest; otherwise, the context may be lost when a Controller returns an asynchronous result.
 
-## Four. Adjust SpringSecurity Configuration
+## 4. Adjust Spring Security configuration
 
-The ContextHttpServerFilter in the Nop platform needs to be executed before the SpringSecurity filter chain. Within the SpringSecurity filter, the onLoginSuccess function will be called to register the user context. At this point, it is assumed that the IContext from the Nop platform has already been initialized.
+The Nop platform’s ContextHttpServerFilter needs to run before Spring Security’s authentication filter. In the authentication filter, you will need to call the onLoginSuccess function above to register the user context, which requires that the Nop platform’s IContext has already been initialized.
 
 ```javascript
 @EnableWebSecurity
@@ -123,40 +121,41 @@ public class SpringSecurityConfig {
         http
                 .csrf(Customizer.withDefaults())
                 .addFilterAfter(authFilter(), CsrfFilter.class)
-                // 将Nop Context的初始化放到authFilter之前
+                // Initialize the Nop Context before authFilter
                 .addFilterBefore(config.registerSysFilter().getFilter(), WebAuthFilter.class);
         return http.build();
     }
 
-    // 其他配置
+    // Other configurations
 }
 ```
 
-## Five. 使用`@Auth`注解
+## 5. Use the `@Auth` annotation
 
-在业务代码中，我们可以使用`@Auth`注解来声明权限约束。
+In business code, you can use the `@Auth` annotation to declare permission constraints.
 
 ```java
 @BizModel("Demo")
 public class DemoBizModel {
-    @BizQuery
-    @Auth(permissions = "Demo:hello")
-    public String hello(@Name("message") String message) {
-        return "hello:" + message;
-    }
+  @BizQuery
+  @Auth(permissions = "Demo:hello")
+  public String hello(@Name("message") String message) {
+    return "hello:" + message;
+  }
 }
 ```
 
-在Spring的Controller中，可以使用`@PreAuthorize`注解
+In Spring Controllers, you can use the `@PreAuthorize` annotation
 
 ```java
 @RestController
 public class DemoController {
 
-    @GetMapping("/hello")
-    @PreAuthorize("hasPermission('Biz','Demo:hello')")
-    public String hello(@RequestParam("message") String message) {
-        return "Hi," + message;
-    }
+  @GetMapping("/hello")
+  @PreAuthorize("hasPermission('Biz','Demo:hello')")
+  public String hello(@RequestParam("message") String message) {
+    return "Hi," + message;
+  }
 }
 ```
+<!-- SOURCE_MD5:95c7baa6d46ab03e215ca9919bdff563-->

@@ -1,526 +1,310 @@
-# Reversible Computation: A New Software Construction Theory
 
-It is well-known that the foundation of computer science lies in two fundamental theories: Turing's theory of the Turing machine, introduced by Alan Turing in 1936, and Church's Lambda calculus, proposed by Alonzo Church around the same time. These two theories established the concept of universal computation (Universal Computation), describing two distinct but equivalent approaches to achieving the same computational capabilities. If we view these two theories as representing opposite extremes of the true nature of the world—much like how light can be seen as both particles and waves—then perhaps there exists a more balanced, flexible approach to realizing universal computation.
+# Reversible Computation: The Next-Generation Theory of Software Construction
 
-Since 1936, software has remained at the core of computer science, continually evolving through various conceptual revolutions. While new programming languages, system architectures, design patterns, and methodologies continue to emerge, the fundamental principles underlying software construction have remained rooted in the original two theories. If we define a new software construction theory, what unique aspects might it introduce? What challenges could it address?
+It is well known that the foundations on which computer science stands are two fundamental theories proposed in 1936: Turing’s theory of the Turing machine and Church’s earlier Lambda calculus in the same year. These two theories established the conceptual basis for so-called Universal Computation, delineating two technical routes that are Turing-complete with the same computational power yet formally poles apart. If we regard these two theories as two extremes of the primordial visage of the world as revealed by God, is there a more moderate and flexible middle path to reach the shores of universal computation?
 
-This paper introduces a new core concept—reversibility—based on the foundations of Turing's machine and Church's Lambda calculus. By doing so, it establishes a new software construction theory—reversible computation (Reversible Computation). Reversible computation offers a higher level of abstraction compared to current mainstream methods, significantly reducing internal complexity while overcoming theoretical limitations.
+Since 1936, software, as the core application of computer science, has undergone continuous conceptual transformations. Various programming languages/system architectures/design patterns/methodologies have emerged in an endless stream. Yet, when it comes to the fundamental principles of software construction, we have not truly escaped the range set by those two basic theories at the outset. If we define a new theory of software construction, what essential novelty could its new concepts bring? What thorny problems could it solve?
 
-The origins of reversible computation are not rooted in computer science itself but rather in theoretical physics. It views software as an evolving abstract entity within the framework of physical laws, addressing complexities at different levels of computational hierarchy through distinct operational rules. This paper explores how these microscopic differences propagate and interact within a structured system.
+In this article, I propose that on the basis of Turing machines and the lambda calculus, a new core concept—reversibility—can be naturally introduced, thereby forming a new theory of software construction: Reversible Computation. Reversible Computation provides a higher level of abstraction distinct from mainstream methods in the industry, significantly reducing the inherent complexity of software and removing theoretical obstacles to coarse-grained software reuse.
 
-The first section introduces the fundamental principles and core formulas underlying reversible computation. The second section examines the differences and connections between reversible computation and traditional software construction theories, including component-based approaches and model-driven development. It also discusses practical applications of reversible computation in resource management and software reuse. The third section delves into specific practices such as Docker and React, analyzing how they align with or diverge from the principles of reversible computation.
+The idea of Reversible Computation does not originate from computer science itself but from theoretical physics. It regards software as an abstract entity in constant evolution, described by different operational rules at different levels of complexity, focusing on how the small Deltas generated during evolution propagate in an orderly manner within the system and interact with each other.
 
-## 1. Fundamental Principles of Reversible Computation
+Section 1 introduces the basic principles and core formulas of the theory of Reversible Computation. Section 2 analyzes its differences and connections with traditional software construction theories such as components and model-driven approaches, and discusses its applications in software reuse. Section 3 deconstructs innovative technologies like Docker and React from the perspective of Reversible Computation.
 
-Reversible computation can be viewed as a natural consequence of finite information systems operating within the constraints of physical reality. It represents an inevitable outcome of applying Turing's machine theory and Lambda calculus to model the world. To grasp its essence, consider simple physical analogies:
+## I. Basic Principles of Reversible Computation
 
-- **Turing Machines**: These are rigid mechanisms with enumerable states and a finite number of operations. They can read and write data from infinitely long paper tapes but can only process a finite amount of information at any given time.
-  
-- **Lambda Calculus**: This is a minimal model of computation where functions are the fundamental building blocks. Function composition remains a function, allowing for recursive definitions that mirror biological processes.
+Reversible Computation can be seen as an inevitable result of modeling the world using Turing computation and the lambda calculus in a real world where information is finite. We can understand this through the following simple physical imagery.
 
-Together, these theories define two extremes in computational methodology. While Turing machines emphasize sequential operations and Church's Lambda calculus focuses on functional programming, both share the same computational power. This duality suggests that there might be a more balanced approach to achieving universal computation—one that doesn't force developers into choosing between two opposing paradigms.
-
-The key insight is that reversible computation provides a framework for bridging these gaps. By introducing reversibility as a core concept, it allows for a more flexible and comprehensive model of software construction. This approach not only addresses theoretical limitations but also simplifies practical implementation by reducing internal complexity.
-
-## 2.1 Basic Principles
-
-Reversible computation can be understood through simple physical analogies:
-
-- **State Machines**: A system with enumerable states and finite transitions.
-  
-- **Information Flow**: Data moves in a specific direction, determined by the system's design.
-
-The core idea is that any process can be reversed if its forward and backward operations are well-defined. This principle applies to both software and hardware levels, enabling more efficient resource management and error correction.
-
-## 2.2 Mathematical Foundations
-
-Mathematically, reversible computation can be expressed as:
+First, a Turing machine is a structurally frozen machine: it has a finite enumerable set of states, can execute only a finite number of instruction types, yet can read and save data on an infinitely long tape. For example, our everyday computers have fixed hardware capabilities at the factory, but by installing different software and passing in different data files, they can automatically produce arbitrarily complex target outputs. Formally, the computation process of a Turing machine can be written as:
 
 $$
-target output = fixed machine (infinite complex input)
+Target\ Output = Fixed\ Machine\ (\text{infinitely complex input})
 $$
 
-This formula highlights the system's ability to process infinite complexity while maintaining finite state integrity. The use of symbols like ⊕ (exclusive OR) and Δ (differential) further illustrates the theory's foundation in both function composition and physical principles.
+In contrast, the core concept of the lambda calculus is the function: a function is a small computational machine, and the composition of functions is still a function. In other words, by recursively composing machines with machines, we can produce more complex machines. The computational power of the lambda calculus is equivalent to that of Turing machines, which means that if we are allowed to continually create ever more complex machines, even when the input is a constant 0, we can obtain arbitrarily complex target outputs. Formally, the computation process of the lambda calculus can be written as:
 
-## 2.3 Applications
+$$
+Target\ Output = Infinitely\ Complex\ Machine\ (\text{fixed input})
+$$
 
-Reversible computation offers significant advantages in practical applications:
+It can be seen that both computation processes above can be expressed in the abstract form Y = F(X). If we interpret Y = F(X) as a modeling process—i.e., we try to understand the structure of the input and the mapping between input and output, and reconstruct the output in the most economical way—we will find that both the Turing machine and the lambda calculus assume conditions that cannot be satisfied in the real world. In the real physical world, human cognition is always limited. All quantities must be distinguished into known parts and unknown parts. Therefore, we need the following decomposition:
 
-- **Error Correction**: By allowing for backward operations, systems can detect and correct errors more effectively.
-  
-- **Resource Management**: Efficient allocation and reuse of resources are facilitated through reversible processes.
+$$
+\begin{aligned}
+ Y &= F(X) \\
+   &= (F_0 + F_1) (X_0+X_1)\\
+   &= F_0(X_0) + \Delta
+\end{aligned}
+$$
 
-The following example demonstrates these benefits:
+Rearranging the symbols, we obtain a computational pattern that adapts to a much broader range:
 
-1. **Data Processing**: A system processes data through a series of steps. Each step can be reversed if needed, ensuring data integrity and allowing for corrections without restarting the entire process.
+$$
+Y = F(X) \oplus \Delta
+$$
 
-2. **Software Reuse**: Modular design becomes more intuitive, as components can be easily removed or replaced without disrupting overall functionality.
+In addition to the functional operation F(X), a new structural operator ⊕ appears here, representing a composition operation between two elements rather than ordinary numerical addition, and introduces a new concept: Delta (Δ). What is special about Δ is that it must inherently contain some inverse element; the result of combining F(X) with Δ is not necessarily an “increase” in output—it could very well be a “decrease”.
 
-3. **System Optimization**: By analyzing how information flows through the system, developers can identify bottlenecks and implement improvements with minimal disruption.
+In physics, the necessity of the existence of Delta and the fact that Δ contains inverse elements are self-evident, because physical modeling must take into account two basic facts:
 
-## 3. Case Studies
+1. The world is “uncertain”; noise is always present.
+2. The complexity of the model must match the inherent complexity of the problem; it captures the stable, invariant trends and laws at the core of the problem.
 
-### 3.1 Docker and React
+For example, for the following data:
+![](https://pic4.zhimg.com/80/v2-91f19a10faa36653267ffbd4eab86b7f_1440w.webp)
 
-Docker and React provide practical examples of reversible computation's principles:
+the model we build can only be a simple curve like in (a). The model in (b) attempts to fit every data point exactly; this is called overfitting in mathematics and is poor at describing new data. Meanwhile, in (c), restricting the Delta to only positive values severely limits the descriptive accuracy of the model.
 
-- **Docker**: This containerization platform allows for easy deployment and management of applications. By encapsulating application code and its dependencies, Docker enables efficient resource utilization and scalability.
-  
-- **React**: A JavaScript library for building user interfaces, React uses a component-based architecture that supports reversible operations. Developers can easily replace or update components without disrupting the overall application.
+The above is a heuristic explanation of the abstract computational pattern Y = F(X) ⊕ Δ. Below, we introduce a concrete technical implementation in the field of software construction that realizes this computational pattern, which I call Reversible Computation.
 
-### 3.2 Reversible Computation in Practice
-
-The principles of reversible computation are evident in these tools:
-
-- **State Management**: Both Docker and React employ mechanisms for tracking and modifying system states, enabling efficient updates and error handling.
-  
-- **Modular Design**: Components can be independently developed and deployed, reducing the impact of changes on the overall system.
-
-## 4. Conclusion
-
-Reversible computation represents a significant advancement in software construction theory. By introducing reversibility as a core concept, it offers a more flexible and comprehensive framework for addressing complex computational challenges. While traditional approaches remain valid, reversible computation provides new tools for overcoming theoretical limitations and simplifying practical implementation.
-
-The future of software development lies in combining the strengths of both paradigms while embracing the principles of reversibility. This approach not only enhances current technologies but also opens new possibilities for innovation.
-
-
-Above is an abstract explanation of the Y=F(X)⊕△ abstraction pattern, which inspires a concrete implementation in software construction. The author names this approach **Reversible Computing**.
-
-
-## Definition of Reversible Computing
-Reversible computing refers to a systematic application of the following formula:
-
-\[ \text{System} = \text{App} + \text{x-extends} + \text{Generator}<\text{DSL}> \]
-
-Where:
-- **App**: The target application
-- **x-extends**: A mechanism for extending applications
-- **Generator<DSL>**: A code generation engine tailored to specific domain requirements
-
-
-## Key Components of Reversible Computing
-
-1. **App (Application)**: 
-   - The concrete software artifact to be constructed.
-
-2. **DSL (Domain Specific Language)**:
-   - A specialized programming language designed for a particular domain.
-   - Example: Domain-specific modeling languages in finite element analysis.
-
-3. **Generator**:
-   - A tool or system that automatically generates code based on a DSL.
-   - Example: Metaprogramming tools like Lisp's macros.
-
-4. **Delta (Change)**:
-   - The core concept of reversible computing, representing the minimal change needed to achieve a specific transformation.
-   - Example: In version control, a delta represents the differences between two versions.
-
-5. **x-extends**:
-   - A mechanism for dynamically extending an application with new features or behaviors.
-   - Example: Aspect-oriented programming's aspect extensions.
-
-
-
-The concept of delta is central to reversible computing. It represents the smallest set of changes required to transform one state into another. In mathematics, this concept aligns with entropy, where the minimal change corresponds to the highest information loss.
-
-The following formula demonstrates how deltas are applied:
-
-\[ \text{App} = \text{Delta} + \text{x-extends} + \text{Generator}<\text{DSL}> \]
-
-Here:
-- **Delta**: The set of changes that can be reversed.
-- **x-extends**: Mechanisms for extending the application while preserving reversibility.
-
-
-
-The x-extends mechanism enables applications to dynamically extend their functionality. This is achieved through a combination of:
-
-1. **Domain-specific extensions** (similar to aspect-oriented programming).
-2. **Meta-programming techniques** to generate these extensions at runtime.
-
-
-
-Reversible computing offers a unique approach to software development by focusing on the reversibility of changes. This is particularly useful in domains where debugging and understanding complex systems are challenging.
-
-The following formula illustrates how reversible changes can be managed:
-
-\[ \text{Change} = \text{Delta} + \text{Generator}<\text{DSL}> \]
-
-Where:
-- **Delta**: The set of changes that can be rolled back.
-- **Generator<DSL>**: A system for generating and managing these changes.
-
-
-
-To implement reversible computing, the following requirements must be met:
-
-1. **Reversibility of Changes**:
-   - Changes must be trackable and reversible.
-   - Example: Undo/redo functionality in text editors.
-
-2. **Minimal Change Principle**:
-   - Only the minimal necessary changes should be made to achieve a desired transformation.
-
-3. **Structure Preservation**:
-   - The structure of the system must remain intact during modifications.
-
-
-
-In the third section, we will demonstrate how reversible computing can be implemented using Docker as an example:
-
-\[ \text{Docker} = \text{Delta} + \text{x-extends} + \text{Generator}<\text{DSL}> \]
-
-Where:
-- **Docker**: A containerization platform.
-- **Delta**: Changes to the base OS layer.
-- **x-extends**: Extensions for resource management.
-
-
-
-Reversible computing represents a groundbreaking approach to software construction. By focusing on the minimal change principle, it offers new possibilities for debugging, optimization, and understanding complex systems. The concept aligns with mathematical principles like entropy, emphasizing the importance of structure preservation in computational processes.
-
-The second section will provide a detailed explanation of these principles and their practical implementation in various domains.
-
-
-In the software development field, concepts such as "framework," "component," "design pattern," and "architecture diagram" are well-known. These ideas originate from the production experience in the construction industry. Component theory inherits the essence of object-oriented thought, utilizing reusable pre-fabricated components to create a vast market for third-party components, achieving unprecedented technical and commercial success. However, component theory is hindered by an inherent flaw that restricts its continued evolution.
-
-
-## The Concept of Reuse
-
-Reuse refers to the repeated use of existing products. To implement component reuse, one must identify common elements between two software systems, isolate them according to component standards, and standardize their structure. However, the granularity level of A and B's common components is finer than either A or B themselves. The common parts of many software systems have a granularity level even smaller than any individual system's components. This restriction makes it increasingly difficult for large-grained software modules to be directly reused. Component reuse is limited by both theoretical and practical constraints.
-
-To overcome the limitations of component theory, one must reevaluate the abstract essence of software. Software exists in an abstract logical world as a product of information, not a material product. The construction and production rules of the abstract world differ fundamentally from those of the material world. While producing physical products involves costs, copying software can have zero marginal costs. In the material world, moving a table out of a room requires passing through doors or windows, but in the abstract world, only coordinates (e.g., x to -x) need be transformed. The relationships between abstract elements are unrestricted by physical constraints, making the most efficient production method in the abstract world not assembly but the mastery and establishment of operational rules.
-
-
-
-From a mathematical perspective, reinterpreting object-oriented and component technologies reveals that reversible computation can be considered a natural extension of component theory.
-
-
-- **Object-Oriented**: Inheritance: Derived classes inherit base class properties. Mathematically, this corresponds to the inequality A > B (A is greater than B).
-- **Component**: Addition (A = B + C)
-- **Reversible Computation**: Difference (Y = X - F + G = X + (-F + G) = X + ΔY)
-
-
-Object-oriented theory is constrained by the limited expressiveness of inequalities. While A > B indicates A has more properties than B, the exact nature of these additional properties cannot be precisely described.
-
-
-The Liscov substitution principle states that any program that can be replaced by another program that preserves the behavior can be substituted. For example, if a program P can be expressed as P(B), and Q is a class that inherits from B without altering its behavior, then P(Q) will behave similarly to P(B).
-
-
-The theoretical problem lies in the limited expressiveness of inequalities. While A > B indicates A has more properties than B, the exact nature of these additional properties cannot be precisely described.
-
-
-- **Inheritance**: Inequality (A > B)
-- **Component Addition**: (A = B + C)
-- **Reversible Computation**: Difference (Y = X - F + G = X + (-F + G) = X + ΔY)
-
-
-To overcome these limitations, subtraction can be introduced. For example:
+Reversible Computation refers to a technical route that systematically applies the following formula to guide software construction:
 
 ```
-B = A - C = A + (-C)
+   App = Delta x-extends Generator<DSL>
 ```
 
-This introduces the concept of negative components, opening new doors for component reuse.
+* App: The target application to be built
+* DSL: Domain Specific Language— a business logic description language tailored to a specific domain; this is the textual representation of the so-called domain model
+* Generator: Based on the information provided by the domain model, repeatedly applying generation rules can derive a large amount of derivative code. Implementations include standalone code generation tools and compile-time template expansion based on metaprogramming
+* Delta: The differences between logic generated by the known model and the target application logic are identified, collected, and organized into an independent Delta description
+* x-extends: The Delta description and the model-generated part are combined using techniques similar to Aspect-Oriented Programming (AOP), involving a series of operations such as addition, modification, replacement, and deletion on the model-generated portion
 
+A DSL is a high-density expression of critical domain information and directly guides the Generator to produce code, similar to how Turing computation drives a machine to execute built-in instructions through input data. If we view the Generator as symbol substitution generation, then its execution and composition rules are essentially a re-enactment of the lambda calculus. Delta merging is, in a sense, a novel operation because it requires a meticulous, ubiquitous capacity to collect changes, able to separate out and aggregate same-order small quantities scattered throughout the system, so that the Delta has an independent meaning and value. At the same time, the system must explicitly establish the concepts of inverse elements and inverse operations; only within such a conceptual system can a Delta, as a mixture of “existence” and “non-existence,” be expressible.
 
-- **System X**: X = D + E + F
-- **System Y**: Y = D + E + G
+Existing software infrastructure, if not thoroughly transformed, cannot effectively implement Reversible Computation. Just as the Turing machine model gave birth to the C language and the lambda calculus gave rise to Lisp, to effectively support Reversible Computation, I propose a new programming language—the X language—which has built-in key features such as Delta definition, generation, merging, and splitting. It can rapidly establish domain models and implement Reversible Computation on top of them.
 
-If a solution exists within component theory:
+To implement Reversible Computation, we must establish the concept of Delta. Change produces Delta; Delta can be positive or negative, and it should satisfy the following three requirements:
+
+1. Deltas exist independently.
+2. Deltas interact with each other.
+3. Deltas have structure.
+
+In Section 3, I will use Docker as an example to illustrate the importance of these three requirements.
+
+The core of Reversible Computation is “reversible,” a concept closely related to entropy in physics. Its importance far exceeds program construction itself. In a separate article on the methodological origins of Reversible Computation, I will elaborate further.
+
+Just as the emergence of complex numbers expanded the solution space of algebraic equations, Reversible Computation supplements the existing software construction system with the key technique of “reversible Delta merging,” thereby greatly expanding the feasible scope of software reuse and making system-level, coarse-grained software reuse possible. Meanwhile, under this new perspective, many previously intractable model abstraction problems can find much simpler solutions, significantly reducing the inherent complexity of software construction. I will detail this in Section 2.
+
+Although software development is reputedly knowledge-intensive, to this day the daily work of many frontline developers still involves large amounts of mechanical manual operations of copying/pasting/modifying code. In the theory of Reversible Computation, structural changes to code are abstracted into automatically executable Delta merging rules. Therefore, through Reversible Computation, we can create the foundational conditions for the automated production of software itself. Based on the theory of Reversible Computation, I propose a new industrialized software production paradigm called NOP (Nop is nOt Programming), to mass-produce software in a non-programming manner. NOP is not programming, but it is not non-programming either; it emphasizes separating logic that business personnel can intuitively understand from pure technical implementation logic, designing them with appropriate languages and tools, and then gluing them together seamlessly. I will introduce NOP in detail in a separate article.
+
+Reversible Computation and reversible computers share the same origin in physics, though their specific technical connotations differ, they are unified in their goals. Just as cloud computing attempts to “cloudify” computation, Reversible Computation and reversible computers attempt to make computation reversible.
+
+## II. The Inheritance and Development of Traditional Theories by Reversible Computation
+
+## (1) Components
+
+Software originated as a byproduct of mathematicians studying Hilbert’s tenth problem, and early software was mainly used for mathematical and physical calculations. At that time, concepts in software were undoubtedly abstract and mathematical. With the popularization of software, the proliferation of application software development gave rise to object-oriented and component-based methodologies. These attempted to downplay abstract thinking in favor of aligning with human common sense: extracting knowledge from daily experience, mapping intuitively perceivable concepts in the business domain to objects in software, and, by analogy with manufacturing in the physical world, constructing the final software product by incrementally assembling from nothingness to something, from small to large.
+
+Familiar concepts in software development—frameworks, components, design patterns, architectural views—all come directly from the production experience of the construction industry. Component theory inherits the essence of object-oriented thinking. Leveraging the concept of reusable prefabricated parts, it has created a massive third-party component market and achieved unprecedented technical and commercial success, remaining the most mainstream guiding philosophy in software development even today. However, a fundamental defect within component theory has prevented it from advancing its success to a new height.
+
+We know that reuse means repeated use of an existing finished product. To achieve component reuse, we need to find the common parts between two pieces of software, separate them, and organize them into a standard form according to component specifications. However, the common part of A and B is of a granularity smaller than both A and B. In many cases, the common part among a multitude of software systems is much smaller in granularity than any one of them. This limitation directly leads to the fact that the larger the granularity of a software functional module, the harder it is to reuse directly. Component reuse has a theoretical limit. One can reuse 60%-70% of the workload through component assembly, but few can exceed 80%, let alone achieve more than 90% reuse at the system level.
+
+To overcome the limitations of component theory, we need to re-examine the abstract nature of software. Software is an information product that exists in an abstract logical world; information is not matter. The rules of construction and production in the abstract world are fundamentally different from those in the material world. The production of physical products always incurs cost, while the marginal cost of copying software can be zero. Removing a table from a room in the physical world requires going through the door or window, but in the abstract information space it only requires changing the table’s coordinate from x to -x. The operational relationships among abstract elements are not constrained by numerous physical limitations. Therefore, the most effective form of production in the information space is not assembly, but the mastery and formulation of operational rules.
+
+If we reinterpret object-oriented and component technology from a mathematical perspective, we find that Reversible Computation can be regarded as a natural extension of component theory.
+
+* Object-Oriented: Inequality A > B
+* Components: Addition A = B + C
+* Reversible Computation: Y = X + ΔY
+
+A core concept in object-oriented design is inheritance: a derived class inherits from a base class and automatically possesses all its functionality. For example, tiger is a derived class of animal. Mathematically, we can say the concept tiger (A) contains more content than the concept animal (B), i.e., tiger > animal (A > B). Hence, any proposition satisfied by animal is naturally satisfied by tiger; for instance, if animals can run, then tigers must also run (P(B) -> P(A)). Anywhere in the program where the concept animal is used can be replaced with tiger (Liskov substitution principle). In this way, inheritance brings automatic reasoning into software. Mathematically, this corresponds to inequalities, i.e., a partial order.
+
+The theoretical dilemma of object-oriented design lies in the limited expressive power of inequalities. For A > B, we know A has more than B, but we cannot explicitly express what that “more” is. Moreover, for A > B and D > E, even if the extra parts are exactly the same, we have no way to reuse that portion. Component technology explicitly states “composition over inheritance,” which is equivalent to introducing addition:
 
 ```
-X = D + E + F
-Y = D + E + G
+  A = B + C
+  D = E + C
 ```
 
-Rebuilding using reversible computation:
+Thus, we can abstract out component C for reuse.
+
+Following this direction, the next step is naturally to introduce “subtraction,” so that A = B + C becomes a true equation, from which we can solve by transposition:
 
 ```
-Y = X - F + G = X + (-F + G) = X + ΔY
+  B = A - C = A + (-C)
 ```
 
-Without decomposing X, simply add a delta (ΔY) to achieve Y.
+The “negative component” introduced by subtraction is an entirely new concept that opens a new door for software reuse.
 
-
-Reuse is conditional. "Same components can be reused" applies, but in the presence of inverse elements, the maximum granularity level of system X allows direct reuse without modification. The relationship between components has evolved from monotonous composition to a more complex transformation.
-
-
-- **Same Components Can Be Reused**: Homogeneous reuse.
-- **Inverse Elements Allow Reuse**: Heterogeneous reuse through delta addition.
-
-
+Suppose we have built a system X = D + E + F, and now we need to build Y = D + E + G. If we follow the component-based approach, we need to decompose X into multiple components, replace component F with G, and reassemble. If we follow the technical route of Reversible Computation and introduce the inverse element -F, we immediately obtain:
 
 ```
-Y = X + ΔY
+Y = X - F + G = X + (-F + G) = X +  DeltaY
 ```
 
-This approach allows system X to be transformed into Y without decomposition, enabling efficient evolution and upgrade.
+Without decomposing X, by directly appending a Delta DeltaY, we can transform system X into system Y.
 
+Component reuse requires “identicality for reuse.” But in the presence of inverse elements, a complete system X with maximum granularity can be reused directly without any change; the scope of software reuse is expanded to “relevant is reusable.” The granularity of reuse is no longer limited. The relationships among components also undergo a profound transformation—from monotonic compositional relationships to richer and more versatile transformational relationships.
 
-The **Model-Driven Architecture (MDA)** is a software architecture design and development methodology proposed by the **Object Management Group (OMG)** in 2001. It is considered a milestone in the evolution of software development patterns, transitioning from code-centric to model-centric development. The theoretical foundations of most modern software development platforms are closely related to MDA.
+The physical imagery Y = X + ΔY has very practical significance for the development of complex software products. X can be the base version, or the mainline version, of our software product. When deployed at different customers, a large number of customization requirements are isolated into an independent Delta ΔY. These customized Delta descriptions are stored separately and merged with the mainline code through compilation techniques. The architecture and code of the mainline need only consider stable, core requirements within the business domain and will not be impacted by contingent, client-specific needs, thereby effectively avoiding architectural decay. Mainline R&D and the implementation of multiple projects can proceed in parallel, with different implementation versions corresponding to different ΔY’s without affecting each other. Meanwhile, the mainline code and all customization code are mutually independent, enabling overall upgrades at any time.
 
-MDA aims to elevate the level of abstraction in software development by using modeling languages such as **Executable UML** as programming languages. It translates high-level models into executable code using techniques similar to compilers. In MDA, the distinction between application architecture and system architecture is clearly defined, with separate representations using platform-independent models (PIM - Platform Independent Model) and platform-specific models (PSM - Platform Specific Model).
+## (2) Model Driven Architecture (MDA)
 
-The PIM reflects the functional model of an application, remaining independent of specific implementation technologies and runtimes, such as J2EE or .NET. It focuses on defining the functionality that needs to be implemented and provides the context for generating the runtime environment.
+Model Driven Architecture (MDA) was proposed by the Object Management Group (OMG) in 2001 as a software architecture design and development methodology. It is regarded as a milestone in the shift from code-centric to model-centric development. The theoretical foundation of most so-called software development platforms today is related to MDA.
 
-The ideal scenario for using MDA is when developers use visualization tools to design PIM, then select a target platform, allowing tools to automatically map platform-specific requirements and programming languages to generate corresponding PSMs and ultimately executable application code. The construction of MDA-based applications can be expressed with the following formula:
+MDA seeks to raise the level of abstraction in software development, using modeling languages (e.g., Executable UML) directly as programming languages, and then translating high-level models into low-level executable code using compiler-like techniques. In MDA, application architecture and system architecture are clearly distinguished and described by a Platform Independent Model (PIM) and a Platform Specific Model (PSM), respectively. PIM reflects the functional model of an application system, independent of specific implementation technologies and runtime frameworks, while PSM focuses on using specific technologies (e.g., J2EE or .NET) to implement the functionalities described by the PIM, providing a runtime environment for the PIM.
+
+The ideal scenario for MDA is that developers use visual tools to design the PIM, then select the target runtime platform. The tool automatically applies mapping rules for the specific platform and implementation language, transforms the PIM into the corresponding PSM, and finally generates executable application code. Program construction based on MDA can be expressed by the following formula:
 
 ```
 App = Transformer(PIM)
 ```
 
-The vision of MDA is akin to how C replaced assembly, aiming to eventually eliminate traditional programming languages. However, after years of development, it has yet to demonstrate a competitive advantage in widespread application domains.
+MDA’s vision is to ultimately eliminate traditional programming languages altogether, just as C replaced assembly. However, after so many years of development, it has not shown an overwhelming competitive advantage over traditional programming in broad application domains.
 
-In reality, modern MDA tools often struggle with changing business requirements due to their inherent limitations. As analyzed in the first section, modeling must account for differences. In the formula of MDA construction, the left side (App) represents various unknown demands, while the right side (Transformer and PIM) is primarily supplied by tool vendors, leading to an unstable equation.
+In fact, current MDA-based development tools always struggle with inherent inflexibility in rapidly evolving business domains. As analyzed in Section 1, modeling must consider Deltas. In MDA’s construction formula, the left side App represents various unknown requirements, while on the right side, the designer of Transformer and PIM is mainly the tool vendor. Such an equation—unknown = known—cannot remain balanced indefinitely.
 
-Current vendor practices typically involve providing comprehensive model sets, attempting to predict all possible business scenarios upfront. However, as the saying goes, "there's no free lunch." Models capture domain constraints but are not optimal across all scenarios. Overpredicting requirements can lead to overgeneration of useful work and unintended errors, while underprediction limits the model's utility. Conversely, models that assume too much become rigid and unable to adapt to new situations.
+At present, tool vendors mostly offer a comprehensive and exhaustive set of models, attempting to predict all possible user scenarios in advance. But as we know, “there is no free lunch.” The value of a model lies in embodying essential constraints in the business domain. No model is optimal in all scenarios. Predicting requirements leads to a paradox: if a model has too few built-in assumptions, it cannot automatically generate a large amount of useful work from minimal user input, nor can it prevent user errors—the model’s value is not obvious. Conversely, if the model has too many assumptions, it becomes rigidified around a specific business scenario and cannot adapt to new situations.
 
-Opening an MDA tool's modeler often reveals a sense of overwhelming options, with many customization choices seeming unnecessary and the actual purpose of each element unclear. Users frequently find themselves struggling to identify which options are relevant for their specific scenario.
+When we open an MDA tool’s designer, the most common feeling is that most options aren’t needed or are inscrutable, while the needed options cannot be found anywhere.
 
+Reversible Computation extends MDA in two ways:
 
-## Reversible Computing
+1. In Reversible Computation, both the Generator and the DSL are encouraged to be extended and adjusted by users, similar to language-oriented programming.
+2. There is an additional Delta customization phase that allows precise local corrections to the overall generated output.
 
-Reversible computing represents two key points:
+In the NOP production paradigm I propose, a new critical component must be included: a “designer of designers.” Ordinary programmers can quickly design and develop their own DSLs and corresponding visual designers using this meta-designer. They can also use it to customize any designer in the system, freely adding or removing elements.
 
-1. **Reversibility in Modeling**: Generators (e.g., Domain-Specific Languages - DSL) and Domain Modelers (e.g., tools like MagicDraw) encourage users to extend and customize models by adding new elements, such as domain-specific concepts or custom diagrams. This encourages users to expand and refine their models, fostering a culture of continuous improvement.
+## (3) Aspect Oriented Programming (AOP)
 
-2. **Reversibility in Transformation**: The ability to make precise, local changes and reverse them if needed is crucial for maintaining model integrity. Tools that allow users to modify specific aspects of their models and revert changes if errors occur are highly valued.
+Aspect-Oriented Programming is a programming paradigm complementary to Object-Oriented Programming (OOP). It enables encapsulation of so-called cross-cutting concerns that span multiple objects. For example, a specification might require that all business operations be logged and that all database modifications occur within transactions. Under traditional OOP, one sentence in the requirements could cause a sudden expansion of redundant code across many classes. With AOP, these common “decorative” operations can be stripped into independent aspect descriptions. This is the orthogonality between vertical and horizontal decomposition.
 
-The essence of reversible computing aligns closely with language-oriented programming (LOP), which emphasizes the importance of modeling languages and tools in software development.
+![](https://pic2.zhimg.com/80/v2-4a0da0bcc0165fb96db9db88d00af979_1440w.webp)
 
+AOP is essentially a combination of two capabilities:
 
+1. Locate target pointcuts in the program’s structural space.
+2. Modify local program structures to weave the extension logic (Advice) into specified locations.
 
-**Aspect-Oriented Programming (AOP)** is a complementary paradigm to Object-Oriented Programming (OOP). It addresses cross-cutting concerns that span multiple classes or modules, such as logging, transaction management, or performance monitoring. For example, if a system requires all business operations to be logged, AOP can encapsulate these concerns in advice that applies uniformly across the system.
+Location depends on a well-defined global structural coordinate system (how can you locate without coordinates?), while modification depends on well-defined local program semantic structures. The limitation of current mainstream AOP technologies is that they are all expressed within the OOP context, whereas domain structure and object implementation structure are not always consistent—or, put differently, expressing domain semantics using the coordinate system of objects is insufficient. For example, “applicant” and “approver” are distinct concepts that must be clearly distinguished in the domain model, but at the object level they might both correspond to the same Person class. Often, AOP cannot directly translate domain descriptions into pointcut definitions and advice implementations. Reflecting this limitation at the application level, we find that beyond a few “classic” cross-domain use cases—logging, transactions, lazy loading, caching—AOP often lacks an obvious fit.
 
-The essence of AOP revolves around two key concepts:
+Reversible Computation requires AOP-like location and structural rectification capabilities, but it defines these in the domain model space, greatly expanding AOP’s application scope. In particular, the structural Deltas generated by the self-evolution of domain models in Reversible Computation can be expressed in a form similar to AOP aspects.
 
-1. **Pointcut**: A specific location in the program structure where advice is applied.
-2. **Advice**: A piece of code that provides additional functionality or modifies the behavior of a program at a pointcut.
+We know that components can identify “identicalities” repeatedly appearing in programs, while Reversible Computation can capture “similarities” in program structure. Identicality is rare and requires keen discrimination, but in any system there is a readily available form of similarity: the similarity between the system at a later time and its own historical snapshots during dynamical evolution. In previous technical systems, this similarity had no dedicated technical expression.
 
-AOP's fundamental nature as a combination of two capabilities can be expressed with the following formula:
+Through vertical and horizontal decomposition, the web of concepts we establish exists in a design plane. As the design plane evolves along the time axis, it naturally produces a “3D” mapping: the design plane at a later time can be seen as obtained by adding a Delta mapping (customization) on the former plane, and the Delta is defined at every point on the plane. This imagery is similar to the concept of a functor in Category Theory, with Delta merging in Reversible Computation playing the role of functor mapping. Therefore, Reversible Computation effectively extends the original design space and finds a concrete technical expression for the concept of evolution.
 
-```
-App = AppTransformer(PIM)
-```
+## (4) Software Product Line (SPL)
 
-The success of AOP hinges on its ability to modularize concerns and enhance maintainability. However, its widespread adoption has been limited by several challenges:
+The theory of Software Product Lines (SPL) originates from the insight that in a business domain, very few software systems are completely unique. Many software products have similarities in form and function and can be organized into a product family. By studying, developing, and evolving all products (existing and not yet existing) in a product family as a whole, and by scientifically extracting their commonalities while managing variability effectively, it becomes possible to realize large-scale, systematic software reuse, thereby industrializing software production.
 
-1. **Location Dependency**: Effective pointcuts require precise definitions based on program structure.
-2. **Tool Support**: Advanced tools are often required for effective AOP implementation.
+SPL engineering adopts a two-phase lifecycle model, distinguishing between domain engineering and application engineering. Domain engineering analyzes the commonalities among software products in a business domain, establishes domain models and a common product-line architecture, and forms reusable core assets—development for reuse. Application engineering essentially uses reuse to develop—development with reuse—i.e., the production activity of building concrete application products using existing core assets such as architecture, requirements, tests, documents, and so on.
 
+In 2008, researchers at CMU-SEI claimed that SPL can deliver the following benefits:
 
+1. More than 10x productivity improvement
+2. More than 10x product quality improvement
+3. More than 60% cost reduction
+4. More than 87% reduction in staffing needs
+5. More than 98% reduction in time-to-market
+6. Months, not years, to enter new markets
 
-While MDA and AOP represent significant advancements in software development, their practical application remains challenging. The promise of eliminating traditional programming languages through model-driven approaches has not yet been fully realized. Instead, these paradigms have exposed new limitations, particularly in handling dynamic business requirements and ensuring tooling support that scales with complexity.
+The ideal painted by SPL is very appealing: product-level reuse above 90%, agile customization on demand, domain architectures insulated from technological churn, and excellent, measurable economic benefits, etc. The only question is how to achieve this. Although SPL engineering attempts to comprehensively leverage all managerial and technical means to strategically reuse every technical asset at the organizational level (including documents, code, specifications, tools, etc.), under the current mainstream technical regime, building a successful SPL still faces numerous difficulties.
 
+The philosophy of Reversible Computation aligns closely with SPL theory. Its technical approach brings new solutions to SPL’s core technical challenge—variability management. In SPL engineering, traditional variability management mainly comprises three approaches: adaptation, replacement, and extension:
 
-Reversible computation requires similar capabilities to AOP in terms of positioning and structural correction, but it defines these capabilities within a domain model space. This significantly expands the scope of AOP applications.
+![](https://pic2.zhimg.com/80/v2-3d835ae5c250e6bfa8744a695c9fdc65_1440w.webp)
 
-Reversal in a program captures the "sameness" of repeated structural patterns, while reversible computation captures the "similarity" between a system and its historical snapshots during dynamic evolution. Such similarity is not well-supported in existing technical frameworks.
+These three can all be seen as adding functionality to the core architecture. However, obstacles to reusability do not always come from the inability to add new functionality; often they arise from the inability to mask existing functionality. Traditional adaptation requires interface-consistent matching, a rigid coupling that, once mismatched, transmits stress upwards and ultimately forces wholesale component replacement. Reversible Computation adds the key mechanism of “elimination” to variability management via Delta merging, enabling the construction of flexible adaptation interfaces in domain model space and effectively controlling the impact scope of variation points.
 
-The design plane evolves over time, leading to a natural "three-dimensional" mapping relationship: the design plane at a later stage can be seen as the previous design plane with an added delta mapping applied to every point. This image resembles the concept of a functor in Category Theory, where reversible computation's delta operations play the role of functors. Therefore, reversible computation extends the original design space and provides a concrete realization for the evolution of this concept.
-
-
-## Software Product Line (SPL)
-
-The software product line theory stems from an important insight: in a given domain, few software systems are truly unique. Instead, many products share structural and functional similarities that can be grouped under a single product family. By treating all existing and potential products within a domain as part of the same whole, we can research, develop, and evolve them systematically while extracting their commonality. This systematic approach enables effective reuse, scalability, and industrialization of software products.
-
-The software product line engineering employs a two-phase lifecycle model, distinguishing between domain engineering and application engineering. Domain engineering involves analyzing the commonalities within a business domain to establish a domain model and a shared software product line architecture. It forms reusable core assets through systematic methods. Application engineering leverages these core assets to develop specific products, combining existing frameworks, tools, and methodologies.
-
-Research conducted by Carnegie Mellon University's Software Engineering Institute (CMU-SEI) in 2008 reported that software product lines can offer the following benefits:
-
-1. Increase productivity by up to 10x
-2. Improve product quality by up to 10x
-3. Reduce costs by over 60%
-4. Reduce personnel requirements by over 87%
-5. Reduce time-to-market for new products by over 98%
-6. Minimize time-to-market for entry into new markets
-
-The ideal scenario for software product lines is a reuse rate of over 90%, agile customization, and minimal impact of technological changes on the domain architecture. The primary challenge remains achieving this vision despite the dominant technical infrastructure.
-
-Reversible computation's concept aligns closely with software product line theory, offering solutions to some of the core challenges in product line engineering—specifically, variability management. Traditional methods like adaptation, replacement, and extension are limited by their rigidity and lack of flexibility in handling changes over time. Reversible computation introduces delta operations that allow for more granular and reversible modifications.
-
-The following table summarizes key concepts:
-
-| Concept               | Description                                                                 |
-|-----------------------|-----------------------------------------------------------------------------|
-| Reversal              | Capturing structural patterns and enabling their reversal                   |
-| Software Product Line | Systematic approach to developing a family of related products                |
-| Domain Model           | Abstract representation of a domain's knowledge                           |
-| Delta Mapping         | Operation that captures changes between versions of a system                 |
-
-The delta mapping operation is similar to the concept of a functor in Category Theory, where it maps from one structure to another. In the context of reversible computation, deltas are defined at every point in the domain model, making them highly flexible.
-
-
-
-The software product line theory originates from an insight: in a specific business domain, most software systems are not truly unique. Instead, many products share structural and functional similarities that can be unified under a single product family. By treating all existing and potential products within a domain as part of the same whole, systematic research, development, and evolution become possible, enabling effective reuse, scalability, and industrialization.
-
-The software product line engineering approach employs a two-phase lifecycle model: domain engineering and application engineering. Domain engineering involves analyzing commonalities within a business domain to establish a domain model and a shared architecture for software products. It forms reusable core assets through systematic methods. Application engineering builds specific products by combining these core assets with existing frameworks, tools, and methodologies.
-
-Research conducted by Carnegie Mellon University's Software Engineering Institute (CMU-SEI) in 2008 highlights the following benefits of software product lines:
-
-1. Increase productivity by up to 10x
-2. Improve product quality by up to 10x
-3. Reduce costs by over 60%
-4. Reduce personnel requirements by over 87%
-5. Reduce time-to-market for new products by over 98%
-6. Minimize time-to-market for entry into new markets
-
-The vision for software product lines is a reuse rate of over 90%, agile customization, and minimal impact of technological changes on the domain architecture. The primary challenge remains translating this vision into practice despite existing technical limitations.
-
-Reversible computation's concept aligns closely with software product line theory, offering solutions to core challenges like variability management. While traditional methods like adaptation, replacement, and extension are limited by their rigidity, reversible computation introduces delta operations that enable more granular and reversible modifications.
-
-The following table summarizes key concepts:
-
-| Concept               | Description                                                                 |
-|-----------------------|-----------------------------------------------------------------------------|
-| Reversal              | Capturing structural patterns and enabling their reversal                   |
-| Software Product Line | Systematic approach to developing a family of related products                |
-| Domain Model           | Abstract representation of a domain's knowledge                           |
-| Delta Mapping         | Operation that captures changes between versions of a system                 |
-
-The delta mapping operation mirrors the concept of a functor in Category Theory, where it maps from one structure to another. In reversible computation, deltas are defined at every point in the domain model, making them highly flexible.
-
-
-
-
-
-1. **Increased Productivity**: Up to 10x improvement
-2. **Improved Product Quality**: Up to 10x enhancement
-3. **Cost Reduction**: Over 60% reduction
-4. **Personnel Requirements Reduction**: Over 87% decrease
-5. **Time-to-Market Reduction**: Over 98% reduction for new products
-6. **Market Entry Time Reduction**: Minimized
-
-
-
-- **High Reuse Rate**: Over 90%
-- **Agile Customization**
-- **Minimal Technological Impact**: On domain architecture
-
-The primary challenge remains achieving this vision within existing technical constraints.
-
-
-
-Reversible computation's concept closely aligns with software product line theory, offering solutions to core challenges like variability management. While traditional methods are limited by their rigidity, reversible computation introduces delta operations for more granular and reversible modifications.
-
-The following mathematical formulation illustrates this concept:
+Although Deltas in Reversible Computation can be interpreted as extensions of the base model, they differ significantly from plugin-extension techniques. In a platform-plugin structure, the platform is the core principal body; plugins attach to the platform like patches and are conceptually secondary. In Reversible Computation, by applying certain formal transformations, we obtain a more symmetric formula:
 
 $$
-A = B \oplus G(D) \equiv (B, D)
+A = B \oplus G(D) \equiv (B,D)
 $$
 
+If we regard G as relatively invariant background knowledge, we can hide it formally and define a more advanced “bracket” operator, similar to the “inner product” in mathematics. In this form, B and D are dual: B complements D, and D complements B. Meanwhile, note that G(D) embodies model-driven architecture. The value of model-driven approaches lies in the fact that small changes in model D can be amplified by G into large derivative changes across the system. Therefore, G(D) is a nonlinear transformation, while B is what remains of the system after removing the nonlinear factors corresponding to D. When all complex nonlinear influencing factors are stripped away, the remaining part B may be simple, and may even form a new, independently understandable domain model structure (analogous to how sound waves are perturbations of air; we can describe sound waves with a sine-wave model without studying air itself).
 
+The form A = (B, D) can be directly generalized to situations with more domain models:
 
-## 1. Understanding the Background Knowledge
+$$
+A = (B,D,E,F,...)
+$$
 
-If we consider \( G \) as invariant background knowledge, then formally we can encapsulate it by defining a more advanced "bracket" operator similar to the inner product in mathematics. In this form, \( B \) and \( D \) are duals of each other, with \( B \) serving as the complement of \( D \), and vice versa. Specifically, \( G(D) \) exemplifies the manifestation of model-driven architecture (MDA), where the value of MDA lies in the minor changes within model \( D \) that \( G \) can amplify across the system. After removing all nonlinear influencing factors through \( G \), the residual part of \( B \) may become simple, potentially forming a new, independently understandable domain model. This is analogous to the relationship between sound and air, where sound is the disturbance of air, but we can describe sound using the sine wave model without needing to study air itself.
+Since B, D, E, etc. are domain models described by some DSL, they can be interpreted as components resulting from projecting A onto specific domain model subspaces. In other words, application A can be expressed as a “Feature Vector,” for example:
 
-The form \( A = (B, D) \) can be directly generalized to more domain models.
+```
+App = (Workflow, Reporting, Permissions, ...)
+```
 
+Compared with Feature-Oriented Programming commonly used in SPL, the feature decomposition scheme of Reversible Computation emphasizes domain-specific descriptions. Feature boundaries are clearer, and conceptual conflicts during feature composition are easier to handle.
 
-## 2. Generalization to More Domain Models
+Feature vectors themselves constitute a higher-dimensional domain model and can be further decomposed, forming a model-level chain. For example, define
 
-\[
-A = (B, D, E, F, \dots)
-\]
+$$
+D' \equiv (B,D) \\G'(D') \equiv B \oplus G(D)
+$$
 
-Since \( B \), \( D \), \( E \), etc., are all concepts described by some domain-specific language (DSL), they can be interpreted as the projection of \( A \) onto specific domain model subspaces. This means that \( A \) can be represented as a "feature vector" (\( Feature Vector \)), such as:
+and suppose D' can be further decomposed:
 
-\[
-App = (Workflow, Report, Permission, \dots)
-\]
+$$
+D' = V\oplus M(U) = M'(U')
+$$
 
-Compared to traditional feature-oriented programming (\(Feature Oriented Programming\)), the reversible computation of feature decomposition emphasizes domain-specific descriptions and clearer boundaries, making concept conflicts during feature integration more manageable. The feature vector itself represents a higher-dimensional domain model, which can be further decomposed into a series of models.
+Then we have
 
-
-
-\[
-D' \equiv (B, D) \\ G'(D') \equiv B \oplus G(D)
-\]
-
-If \( D' \) can continue to be decomposed:
-
-\[
-D' = V \oplus M(U) = M'(U')
-\]
-
-This results in:
-
-\[
+$$
 \begin{aligned}
-A &= B \oplus G(D) \\
-&= G'(D') \\
-&= G'(M'(U')) \\
-&= G''(V, U)
+A &= B \oplus G(D)\\
+  &= G'(D')\\
+  &= G'(M'(U'))\\
+  &= G'M'(V,U)
 \end{aligned}
-\]
 
-Finally, we can describe \( D' \) using the domain feature vector \( U' \), and then describe the original model \( A \) using both \( U' \) and \( D' \). This is similar to how reversible computation constructs a series of models rather than relying on a single adjustable parameter-heavy model.
+$$
 
+Ultimately, we can describe D′ via a domain feature vector U′, and then describe the original model A via the domain feature vector D′.
 
+This construction strategy of Reversible Computation is similar to deep neural networks. It no longer confines itself to a single model with a vast number of tunable parameters but builds a series of models across different abstraction and complexity levels, constructing the final application through progressive refinement.
 
+From the perspective of Reversible Computation, the work of application engineering becomes describing software requirements using feature vectors, while domain engineering is responsible for generating the final software according to the feature vector descriptions.
 
+## III. The Nascent Delta Revolution
 
-Docker, developed by dotCloud and open-sourced in 2013, is an application container engine that packages any application along with its dependencies into lightweight, portable containers (\(Container\)). It has revolutionized software development, deployment, and distribution by establishing containers as the standard unit.
+## (1) Docker
 
-Docker's success can be attributed to its reduction of operational complexity during application execution. As a specific instance of reversible computation (\(Generator\)), Docker exemplifies how simplification through abstraction enables scalable, modular, and efficient application development.
+Docker is an application container engine open-sourced in 2013 by the startup dotCloud. It can package any application and its dependencies into a lightweight, portable, self-contained container, thereby creating a new form of software development, deployment, and delivery using the container as a standardized unit.
 
+Docker burst onto the scene and instantly outcompeted Google’s own container technology lmctfy (Let Me Contain That For You), while also propelling Google’s Go language to instant stardom. Docker’s development has been unstoppable since. Starting in 2014, a Docker storm swept the globe, driving unprecedented transformation in operating system kernels. Under the bandwagoning of numerous giants, it instantly ignited the container cloud market, fundamentally changing the technological form of the entire lifecycle of enterprise applications—from development and build to deployment and runtime.
 
+![](https://pic2.zhimg.com/80/v2-d6ef1c89995987f99c69e2c9f2456985_1440w.webp)
 
-```dockerfile
+Docker’s success stems from its essential reduction of runtime complexity, and its technical solution can be viewed as a special case of the theory of Reversible Computation. Docker’s core technical pattern can be summarized by the following:
+
+Dockerfile is a DSL for building container images, for example:
+
+```
 FROM ubuntu:16.04
-RUN useradd --user-group --create-home /bin/bash work
+RUN useradd --user-group --create-home --shell /bin/bash work
 RUN apt-get update -y && apt-get install -y python3-dev
 COPY . /app
 RUN make /app
 
-ENV PYTHONPATH=/FrameworkBenchmarks
+ENV PYTHONPATH /FrameworkBenchmarks
 CMD python /app/app.py
 
 EXPOSE 8088
 ```
 
-The Dockerfile defines the construction of a container image that includes the necessary software environment and dependencies. It demonstrates how Docker abstracts complex system interactions into a simple, executable format.
+With a Dockerfile, one can accurately and quickly describe the base image, specific build steps, runtime environment variables, and system configuration required by a container.
 
+The Docker application plays the role of the Generator in Reversible Computation: it interprets the Dockerfile and executes corresponding instructions to generate container images.
 
+A particularly creative innovation of Docker is its use of Union FS (Union File System). This file system adopts a layered construction. Once a layer is built, it no longer changes. Any modification in a higher layer is recorded only in that layer. For example, when modifying a file in a lower layer, a copy-on-write action copies it to the current layer; when deleting a file from a lower layer, it is not actually deleted but is marked as deleted in the current layer. Docker uses Union FS to merge multiple container images into a complete application; the essence of this technique is exactly the aop_extends operation in Reversible Computation.
 
-In practice, reversible computation enables:
+Docker is often compared to containers and shipping with standardized units similar to standardized containers: standardized containers allow free transport and composition without considering the internal content. However, this analogy is superficial and even misleading. Shipping containers are static, simple, and have no external interfaces, whereas application containers are dynamic, complex, and have extensive interactions with the external world. Encapsulating such dynamic complexity into so-called standard containers is vastly more challenging than packaging static objects. Without introducing a Delta-supporting file system, it is impossible to construct the flexible boundaries required for logical separation.
 
-- **Feature Vector Description**: Using feature vectors (\(Feature Vector\)) to describe software requirements.
-- **Model Generation**: Automatically generating models through domain-specific decomposition.
-- **Abstraction Layers**: Implementing abstract layers like containers (\(Container\)) and application programming interfaces (\(API\)).
-- **Scalability**: Enabling scalability through modular, composable components.
+Virtual machines can also provide standardized encapsulation, and even Delta storage mechanisms have long been used in VMs to implement incremental backups. How, then, does Docker fundamentally differ from virtual machines? Recalling the three basic requirements for Delta in Section 1, we can clearly see Docker’s uniqueness:
 
-The final result is that the traditional software development lifecycle shifts from "from code to code" to "from requirements to models," emphasizing domain-specific knowledge and systematic design.
+1. Deltas exist independently: Docker’s most important value is that, through container encapsulation, it discards the operating system layer as a background presence (indispensable but generally not requiring comprehension) that accounts for 99% of size and complexity. Application containers become first-class entities that can be independently stored and operated. These lean containers comprehensively outperform bloated VMs in performance, resource usage, and manageability.
 
+2. Deltas interact: Docker containers interact in precisely controlled ways, using the operating system’s namespace mechanism to selectively isolate or share resources. In contrast, there are no isolation mechanisms among Delta slices of VMs.
 
-The **creative use of the Union File System (Union FS)** is one of Docker's unique innovations. This file system employs a layered construction method, where each layer becomes immutable after construction. Any modifications made to a higher layer will only be recorded in that specific layer. For example, when modifying a file in a previous layer, Docker uses **Copy-On-Write (COW)** to create a new copy in the current layer instead of directly modifying the original file. Similarly, deleting files from a previous layer does not involve actually removing them but rather marking them as deleted in the current layer.
+3. Deltas have structure: Although VMs support incremental backups, people lack suitable means to actively construct a specified Delta slice. Ultimately, this is because VMs define Deltas in the binary byte space, which is an impoverished space with few user-controllable construction patterns. Docker, on the other hand, defines Deltas in the Delta file system space, which inherits the richest historical resources from the Linux community. Every shell command’s result is ultimately reflected in the file system as adding/deleting/modifying certain files, so every shell command can be regarded as the definition of a Delta. Thus, Deltas constitute an extraordinarily rich structural space, serving both as transformation operators in this space (shell commands) and as the results of applying those operators. Delta meets Delta to create new Delta. This perpetual generativity is the source of Docker’s vitality.
 
-Docker leverages the Union File System to merge multiple container images into a single complete application. This technology's essence lies in **reversible computation (aop_extend)**.
+## (2) React
 
-
-## Docker vs. Traditional Virtual Machines
-
-The English term "Docker" means "seaman" or "deckhand," referring to those who load and unload cargo on ships. In the context of containers, this name is often compared to **traditional shipping containers**. While both containers and shipping containers are used for transporting goods, their characteristics differ significantly:
-
-1. **Static vs. Dynamic**: Shipping containers are static, simple, and lack external interfaces. Containers, however, are dynamic, complex, and interact extensively with the outside world.
-2. **Union File System**: Without a union file system, virtual machines rely on static copies of files, making incremental updates difficult.
-
-
-
-Docker's standard packaging mirrors the concept used by traditional virtual machines, where the entire OS is bundled with applications. However, Docker takes this further by using **Union FS**, enabling true content layering and allowing for more efficient resource management.
-
-
-
-1. **Union File System (Union FS)**: A file system that allows multiple layers of files to be stacked, with each layer being immutable after creation.
-2. **Copy-On-Write (COW)**: A technique where a new copy of data is created when it is first modified rather than modifying the original data directly.
-3. **Reversible Computation (aop_extend)**: A computational model that allows for incremental changes and efficient resource management.
-
-
-
-
-
-In 2013, Facebook released the **React framework**, marking a revolutionary shift in web development. React is built on functional programming principles and introduces the concept of a **Virtual DOM (VDOM)**. This innovative approach enables developers to manage state and render UI components efficiently.
+In 2013—the same year Docker was released—Facebook open-sourced a revolutionary front-end framework: React. React’s technical philosophy is very distinctive. Based on functional programming ideas and a seemingly fanciful Virtual DOM concept, it introduced a whole new set of design patterns, launching a new age of exploration in front-end development.
 
 ```javascript
 class HelloMessage extends React.Component {
@@ -530,11 +314,11 @@ class HelloMessage extends React.Component {
     this.action = this.action.bind(this);
   }
 
-  action() {
-    this.setState((state) => ({
-      count: state.count + 1,
+  action(){
+    this.setState(state => ({
+      count: state.count + 1
     }));
-  }
+  },
 
   render() {
     return (
@@ -551,9 +335,7 @@ ReactDOM.render(
 );
 ```
 
-The core of React components lies in the `render` function. It uses JSX (JavaScript XML) syntax for rendering, which is then compiled into virtual DOM nodes during runtime. This approach allows for efficient updates and state management, making React a cornerstone of modern web development.
-
-Here is the translated English technical document fragment, maintaining the original Markdown format including headers, lists, and code blocks.
+The core of a React component is the render function, whose design references common back-end template rendering techniques. The main difference is that back-end templates output HTML text, while a React component’s render function uses JSX, an XML-like template syntax, and compiles to produce Virtual DOM node objects at runtime. For example, the render function of the HelloMessage component above translates roughly to:
 
 ```javascript
 render(){
@@ -562,61 +344,47 @@ render(){
 }
 ```
 
-The React component can be described using the following formula:
+A React component can be described by the following formula:
 
 ```
 VDOM = render(state)
 ```
 
-When the state changes, only the `render` function is executed to generate new virtual DOM nodes. These virtual DOM nodes can be translated into actual HTML DOM objects, resulting in interface updates. This strategy of regenerating the complete DOM view based on state changes significantly simplifies frontend development. For example, for a list interface, traditional programming requires multiple DOM manipulation functions for adding, updating, or deleting rows, whereas React only needs state modification followed by a single `render` function call.
+When state changes, re-executing render produces a new Virtual DOM node. Virtual DOM nodes can be translated into real HTML DOM objects to update the UI. This strategy of regenerating the full view based on state greatly simplifies front-end development. For example, for a list view, traditional code requires writing separate DOM operations for adding/updating/deleting rows. In React, changing the state and re-executing the single render function suffices.
 
-The primary issue with this approach is performance, particularly when there are numerous interactive elements and frequent state changes. React addresses this issue by introducing the **diff algorithm**, which compares the virtual DOM tree generated in the current state with that of the previous state and applies only the necessary updates. This ensures that the actual DOM modifications remain efficient, even when dealing with complex UIs.
+The only problem with regenerating the DOM on every change is performance—especially when front-end interactions are numerous and state changes are frequent. React’s masterstroke is the diff algorithm based on the Virtual DOM, which can automatically compute the Delta between two Virtual DOM trees. When state changes, we simply perform the DOM update operations corresponding to the Virtual DOM Delta (updating the real DOM triggers style and layout calculations, which are expensive, whereas manipulating the Virtual DOM in JavaScript is very fast). The overall strategy can be expressed as:
 
-The strategy can be expressed using the following formula:
+$$
+state = state_0 \oplus state_1\\
+\Delta VDom = render(state_1) - render(state_0)\\
+\Delta Dom = Translator(\Delta VDom)
+$$
 
-```
-state = state_0 ⊕ state_1\\
-Δ VDom = render(state_1) - render(state_0)\\
-Δ Dom = Translator(Δ VDom)
-```
+Clearly, this strategy is also a special case of Reversible Computation.
 
-Clearly, this approach is also a special case of reversible computation.
+With just a little attention, one can notice that in recent years, concepts expressing Delta operations such as merge/diff/residual/delta are appearing more and more often in software design. For example, in big data stream processing engines, the relationship between streams and tables can be expressed as:
 
-By paying close attention, one will notice that the **diff** concept has become increasingly popular in software design over recent years. For example, in data processing engines, the relationship between streams and tables can be represented as:
+$$
+Table = \int Stream
+$$
 
-```
-Table = ∫ Stream
-```
+CRUD operations on tables can be encoded as event streams, and accumulating events that represent data changes yields the data tables.
 
-Operations such as insert, delete, and modify on tables can be translated into corresponding events, which are then accumulated to form a comprehensive view of the data.
+Modern science originated with the invention of calculus. The essence of differentiation is the automatic computation of infinitesimal Deltas, while integration is its inverse operation—automatically accumulating and merging infinitesimals. In the 1870s, economics went through the marginal revolution, introducing calculus into economic analysis and reconstructing the entire edifice of economics on the concept of the margin. The theory of software construction has reached a bottleneck. It is time to re-appreciate the concept of Delta.
 
-Modern science originated with the invention of calculus in the 17th century. The essence of differentiation is the automatic computation of infinitesimally small differences, while integration represents the reverse process of summing these differences. This principle has been adapted in various fields, including economics, where marginal analysis revolutionized economic thought by introducing calculus-based methods to study production and consumption.
+## IV. Conclusion
 
-As software development has advanced, we have reached a bottleneck where the **diff** concept has become a limiting factor. The era of "model-driven development" is upon us, aiming to bridge the gap between data and application logic through reversible computing concepts.
+My academic background is in theoretical physics. Reversible Computation stems from my attempt to introduce ideas from physics and mathematics into the software domain, first proposed around 2007. Historically, the application of natural laws in software has generally been limited to “simulation”: for example, computational fluid dynamics software embeds some of the deepest laws of the world known to humankind. But these laws have not been used to guide and define the construction and evolution of the software world itself; their scope points outside the software world, not to the software world itself. In my view, within the software world we can assume the “God’s-eye view,” planning and defining a series of structural construction laws to help us build the software world. To do this, we must first establish a form of “calculus” within the program world.
 
-## Conclusion
+Analogous to calculus, the core of Reversible Computation is to elevate “Delta” to a first-class concept and view the complete whole as a special case of Delta (whole = identity + whole). In the traditional program world, what we express is just “presence,” and indeed “all presence.” Delta can only be indirectly obtained via operations on whole states; its expression and manipulation require special handling. Based on the theory of Reversible Computation, we should first define the expression forms of all Delta concepts, and then build the entire domain conceptual system around them. To ensure the completeness of the mathematical space of Deltas (the result of operations among Deltas must still be a valid Delta), what a Delta expresses cannot be just “presence”; it must be a mixture of “presence” and “absence.” In other words, Delta must be “reversible.” Reversibility has a very profound physical connotation. Building this concept into the basic conceptual system can solve many thorny problems in software construction.
 
-The author's background lies in theoretical physics, and this project represents an attempt to introduce physical and mathematical concepts into software development. It was first conceptualized around 2007. Throughout history, software development has primarily focused on simulating natural phenomena, such as fluid dynamics, often embedding deep-rooted scientific principles. However, these principles have not been systematically applied to the construction and evolution of software systems themselves.
+To handle distributed problems, modern software development has already embraced the concept of immutable data. To solve the problem of coarse-grained software reuse, we must also accept the concept of immutable logic (reuse can be seen as keeping the original logic unchanged and then adding Delta descriptions). At present, the industry has gradually seen creative practices that actively apply the concept of Delta, all of which can be unified and explained within the theoretical framework of Reversible Computation. I have proposed a new programming language—the X language—that can greatly simplify the technical implementation of Reversible Computation. Based on the X language, I have designed and implemented a series of software frameworks and production tools and, building on them, proposed a new software production paradigm (NOP).
 
-In the author's view, we can adopt a "God's perspective" in the software world, defining a set of fundamental rules based on which the entire software system can be constructed. To achieve this, we first need to establish a "mathematical foundation" within programming languages.
+The low-code platform NopPlatform, designed based on the theory of Reversible Computation, is open-sourced:
 
-Just as calculus represents the foundation of modern physics, reversible computing provides a mathematical framework for software development. By treating data as a mathematical entity, we can apply principles such as differentiation and integration to software operations, enabling comprehensive and systematic development.
-
-To build this framework, we first need to establish a "mathematical programming" system. The core idea is to treat "differences" (deltas) as a distinct concept, both in terms of data representation and algorithm design. This involves defining a complete set of delta-related operations, from basic arithmetic to advanced calculus.
-
-For example:
-- In traditional programming, data is represented as "exists" or "not exists."
-- In mathematical programming, data can be expressed as combinations of "exist" and "non-exist," allowing for complex relationships to be defined and manipulated.
-
-The ultimate goal is to create a system where differences can be both computed and reversed. This is akin to having a reversible circuit in electronics, where not only can you compute a value but also its inverse.
-
-To address distributed systems, we need to accept the concept of immutable data. For large-scale reuse of software components, we must also embrace immutable logic. Immutable data ensures that once set, it cannot be altered, while immutable logic guarantees that once written, the logic remains unchanged.
-
-Currently, industry is gradually adopting these concepts through projects like **NopPlatform**, a low-code platform based on reversible computing principles:
-
-- GitHub: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
-
+- gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- development example: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- [Reversible Computation Principle and Introduction of the Nop Platform plus Troubleshooting\_Bilibili](https://www.bilibili.com/video/BV14u411T715/)
+- Example: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [Principles of Reversible Computation and Introduction & Q&A about the Nop Platform_bilibili](https://www.bilibili.com/video/BV14u411T715/)
 
+<!-- SOURCE_MD5:986725760db72e61ec2157d63dfa4558-->

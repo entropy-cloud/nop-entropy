@@ -20,9 +20,7 @@ class NopJobTask {
     int executorPort;
     IntRangeSet partitionSet;
 }
-```
 
-```java
 interface IJobTaskExecutor {
 
     void startTask(JobTaskRequest request);
@@ -33,8 +31,10 @@ interface IJobTaskExecutor {
 }
 ```
 
-* The nop_job_task table stores all asynchronous tasks.
-* Task states: created, pending, running, paused, completed, failed, canceled.
-* Asynchronous tasks require recording the executor's address, port, parameters, and error information.
-* The executor provides start, cancel, getState APIs simultaneously. These should be actively reported to the management endpoint.
-* To support parallel processing, tasks have a partitionSet property for marking the current data partition set being processed.
+* The nop_job_task table stores all asynchronous tasks
+* Task statuses: Created, Pending Execution, Running, Paused, Completed, Failed, Canceled
+* Tasks can be executed in a distributed manner; therefore the executor address, executor port, execution parameters, and error information need to be recorded
+* The task executor provides three APIs: start, cancel, and getState, and should also proactively push execution status to the management service
+* To support parallel processing, a task has the partitionSet attribute, which marks the set of data partitions currently being processed
+
+<!-- SOURCE_MD5:d4bcba3edb3cdd6edcb22dd958a9b3df-->

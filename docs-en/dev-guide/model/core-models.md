@@ -1,31 +1,34 @@
-# Core Model Explanation
+# Core Model Overview
 
-| Suffix | Position | Explanation |
-|--------|----------|-------------|
-| xdef   | /nop/schema/ | Meta model |
-| orm.xml | {moduleId}/orm/app.orm.xml | Entity data model definition for ORM engine |
-| xmeta  | {moduleId}/model/{bizObjName}/ | Meta data model. Used for GraphQL and CrudBizModel, which fields are exposed and whether they can be modified |
-| xbiz   | {moduleId}/model/{bizObjName}/ | Business behavior model. Used for GraphQL engine, defining exposed service functions |
-| xview  | {moduleId}/pages/{bizObjName}/ | View structure model. Used for front-end page generation, specifying form and list contents |
-| page.yaml | {moduleId}/pages/{bizObjName}/ | Page model. Used for front-end rendering |
+|Suffix|Location|Description|
+|---|---|---|
+|xdef|/nop/schema/|Meta-model|
+|orm.xml|/{moduleId}/orm/app.orm.xml|Entity data model definition, used by the ORM engine|
+|xmeta|/{moduleId}/model/{bizObjName}/|Metadata model. Used by GraphQL and CrudBizModel; expresses which fields of the model are exposed externally and whether they can be modified|
+|xbiz|/{moduleId}/model/{bizObjName}/|Business behavior model. Used by the GraphQL engine; defines service functions exposed externally|
+|xview|/{moduleId}/pages/{bizObjName}/|View outline model. Used for front-end page generation; specifies the basic contents of forms and lists|
+|page.yaml|/{moduleId}/pages/{bizObjName}/|Page model. Used for front-end page rendering|
 
 ## Entity Data Model: orm.xml
 
-The NopORM engine generates table creation statements based on the ORM definition and generates corresponding entity class code to implement a bidirectional mapping between database tables and Java entities.
+The NopORM engine automatically generates table creation statements from ORM definitions and produces corresponding entity class code, enabling bidirectional mapping between database tables and Java entities.
 
-## Meta Data Model: xmeta
+## Metadata Model: xmeta
 
-- **Properties Not Exposed to GraphQL Layer**: For example, the `password` property can only be inserted but not queried by external users.
-- **Configurable Properties in XMeta**: These determine which fields are exposed by the GraphQL layer.
-- **CrudBizModel Implementation Utilizes XMeta Configuration**: This is used to check if fields can be modified or queried and to enforce format requirements.
-- **Any metadata related to business objects can be configured in XMeta**, making it easier to extend compared to adding annotations directly in Java classes.
-- **Additional Properties Exposed in XMeta**: For example, for a dictionary table field, a corresponding dictionary text field will be generated.
+* Attributes defined at the ORM layer are not necessarily exposed to the GraphQL layer. For example, a password attribute may be insertable, but external users cannot query the password attribute.
+  XMeta configuration is responsible for specifying which attributes are actually exposed to the GraphQL layer.
 
-> If an entity has a `status` field and is associated with a dictionary configuration, the XMeta will generate a corresponding `status_label` field during compilation.
+* The implementation of CrudBizModel leverages XMeta configuration to determine whether a field can be modified or queried, what format requirements it should satisfy, and more.
+  Any metadata related to business objects can be configured in XMeta; it is more convenient to extend than adding annotations to Java classes.
 
-* Properties Can Be Directly Specified in Prop Configurations**: These are used to define getters for dynamically computed values.
+* In XMeta, we can also expose attributes that do not exist on the entity. For example, for fields associated with a dictionary table, we generate a corresponding dictionary text field.
+
+> Suppose the entity has a status field associated with a dictionary configuration; then XMeta will automatically generate a paired status\_label field at compile time.
+
+* In XMeta, you can also directly specify a getter in the prop configuration to return a dynamically computed value
 
 ```xml
+
 <meta>
     <props>
         <prop name="myField">
@@ -41,12 +44,13 @@ The NopORM engine generates table creation statements based on the ORM definitio
 
 ## Business Behavior Model: xbiz
 
-The XBiz model allows defining business methods that can be executed on backend business objects. These methods can be called via GraphQL or REST protocols.
+The XBiz model can define business methods permitted on backend business objects; these methods can be invoked via GraphQL and REST.
 
-> Example: `/r/NopAuthUser__findPage` will call the `findPage` method of the NopAuthUser object.
+> /r/NopAuthUser\_\_findPage calls the findPage method on the NopAuthUser object
 
-- Business methods can be defined both in XBiz models and Java classes, but XBiz model definitions take priority and will override those in Java classes.
-- If both a method and an XBiz model define `getUserInfo`, the XBiz model's definition will be used.
+Business methods can be defined both in XBiz models and Java classes, but methods defined in XBiz have higher priority and override those defined in Java.
+
+If both the following method and an xbiz model are defined, the call will actually invoke the getUserInfo function defined in the xbiz model.
 
 ```java
 class NopAuthUserBizModel {
@@ -58,6 +62,7 @@ class NopAuthUserBizModel {
 ```
 
 ```xml
+
 <biz>
     <actions>
         <query name="getUserInfo">
@@ -70,22 +75,24 @@ class NopAuthUserBizModel {
 </biz>
 ```
 
-## View Structure Model: xview
+## View Outline Model: xview
 
-The XView model primarily describes the UI core information from a business perspective, such as which fields are present on a page, their layout, and which buttons are present. It also defines which functions are called when certain buttons are clicked.
+XView mainly describes core UI information from a business perspective: which fields are on the page, the approximate layout of fields, which buttons are available, and which backend functions are invoked when buttons are clicked.
 
-- The XView model is independent of specific technical implementations and can be translated into different front-end frameworks using `control.xlib`.
-- By default, `control.xlib` translates the XView model into a corresponding JSON format for.baidu AMIS framework.
+The XView model is independent of specific technical implementations. You can plug in different `control.xlib`
+libraries to translate the XView model into implementations for different front-end frameworks. The default control.xlib translates the XView model into the JSON format corresponding to the Baidu AMIS framework.
 
 ## Page Model: page.yaml
 
-YAML format and JSON format can be converted to each other. In the YAML format, it is easier to embed XML and write meta-programming code. Additionally, YAML allows comments to be added, making it more user-friendly than JSON.
+YAML and JSON formats are mutually convertible. In YAML, it is comparatively convenient to embed XML, which facilitates writing metaprogramming code. Additionally, YAML allows comments, making it more user-friendly than JSON.
 
-The Nop platform has added a Delta differential computation mechanism for arbitrary JSON and YAML formats, enabling dynamic disassembly and merging of JSON objects. Generally, we can utilize the XView model to automatically generate page models, reducing the need for manual coding.
+The Nop platform adds a Delta operation mechanism for arbitrary JSON and YAML formats, supporting dynamic decomposition and merging of JSON objects. Typically, we can use the XView model to automatically generate the page model, avoiding manual authoring.
 
 ```yaml
+
 x:gen-extends: |
   <web:GenPage view="NopWfAction.view.xml" page="picker" xpl:lib="/nop/web/xlib/web.xlib" />
 
-title: Automatically generated content can replace manually written content here.
+title: Automatically generated page content can be overridden by the content manually authored here
 ```
+<!-- SOURCE_MD5:b38373d5762e9c3033807841b2542be9-->

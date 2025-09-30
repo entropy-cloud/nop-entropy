@@ -1,37 +1,36 @@
-# Entity State Tracking
+# Entity Modification State Tracking
 
-All entities inherit from `OrmEntity`, which provides a state tracking mechanism for entities.
+All entities inherit from OrmEntity, which provides a modification state tracking mechanism.
 
-1. `orm_propDirty(propId)` can determine if a specific property has been modified.
-2. `orm_propOldValue(propId)` returns the old value of a property. If the property has not been modified, it returns the current value.
-3. `orm_propValue(propId)` returns the current value of a property.
-4. `orm_dirtyOldValues()` and `orm_dirtyNewValues()` return the modified properties' old and new values respectively, with the keys being the property names.
+1. `orm_propDirty(propId)` can determine whether a field has been modified.
+2. `orm_propOldValue(propId)` returns the pre-modification value. If it has not been modified, it returns the current value.
+3. `orm_propValue(propId)` returns the field's current value.
+4. `orm_dirtyOldValues()` and `orm_dirtyNewValues()` return the pre- and post-modification values for all modified fields; the keys of the returned Map are property names.
 
+## Modification Listeners
 
-## Modification Listener
+By implementing the IOrmInterceptor interface, you can listen to events such as preSave/preUpdate/preDelete and record modification logs within them. The nop-sys module provides a default modification log table and a default implementation.
 
-Implementing `IOrmInterceptor` allows you to listen to events such as `preSave`, `preUpdate`, and `preDelete`. The nop-sys module provides a default log table and a default implementation for logging modifications.
+When NopORM starts, it looks in the IoC container for all implementations of the IOrmInterceptor interface.
 
-When NopORM starts, it searches the IoC container for all implementations of `IOrmInterceptor`.
+As long as the IOrmInterceptor implementation classes are registered in the NopIoC container, they will be automatically collected and applied during OrmSessionFactoryBean initialization.
 
-To register your `IOrmInterceptor` implementation, add it to the NopIoC container. Once registered, during initialization, `OrmSessionFactoryBean` will automatically discover all `IOrmInterceptor` implementations and apply them.
+> For using NopIoC, see [ioc.md](../ioc.md). By default, NopIoC does not use class scanning; to register beans you need to add bean definitions in the beans.xml file.
 
-> For details on using NopIoC, refer to [ioc.md](../ioc.md). NopIoC does not use class scanning by default; you must explicitly define beans in the `beans.xml` file.
+## Configure OrmInterceptor via Xpl
 
+The built-in XplOrmInterceptorFactoryBean in NopOrm provides a flexible mechanism for defining OrmInterceptors. Its role is similar to entity-level triggers.
 
-## Configuring `OrmInterceptor` Using Xpl
-
-The built-in `XplOrmInterceptorFactoryBean` provides a flexible mechanism for defining `OrmInterceptor`. It acts similarly to an entity-level trigger mechanism.
-
-You can configure `OrmInterceptor` by adding an `app.orm-interceptor.xml` file in each module's directory. This allows you to use Xpl scripting to implement custom logic for `OrmInterceptor`.
+You only need to add a `/{moduleId}/orm/app.orm-interceptor.xml` file in each module to implement OrmInterceptors using the Xpl template language.
 
 ```xml
+
 <interceptor>
     <entity name="io.nop.auth.dao.entity.NopAuthUser">
         <post-save id="syncToEs">
-            // Here you can write Xpl scripts, where 'entity' corresponds to the current entity
+            // You can write xpl scripts here; entity corresponds to the current entity
         </post-save>
     </entity>
 </interceptor>
 ```
-
+<!-- SOURCE_MD5:85d97a52eb66a817ec17a9edafec783d-->

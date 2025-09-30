@@ -1,6 +1,7 @@
 # ORM Database Initialization
 
-## Incremental Updates on Startup
+## Automatically apply incremental updates to the database at startup
 
-* The application automatically performs the following changes during initialization: table creation, field redefinition, unique constraint addition, and unique constraint removal. However, it does not perform table or field deletions because field deletion cannot distinguish between renames and deletes, and table deletion could accidentally delete tables outside of the intended scope.
-* Enable automatic upgrades by adding the dependency `io.github.entropy-cloud:nop-dbtool-core` to your project and setting `nop.orm.db-differ.auto-upgrade-database` to `true`.
+* Only automatically performs changes such as adding tables, redefining columns, adding columns, adding unique constraints, removing unique constraints, and redefining unique constraints; it does not delete tables or columns: column deletions cannot be distinguished from renames, and table deletions may lead to accidental deletion of tables outside the comparison scope.
+* To enable automatic upgrade, add the dependency io.github.entropy-cloud:nop-dbtool-core to the project and set nop.orm.db-differ.auto-upgrade-database to true
+<!-- SOURCE_MD5:0ed0080a1c25fceeb279f54a98497b09-->

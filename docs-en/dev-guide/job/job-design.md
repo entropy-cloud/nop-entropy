@@ -1,91 +1,79 @@
 # Distributed Task Scheduling
 
+## Terminology
 
-## Glossary of Terms
+- **Workflow Definition**: A visual DAG formed by dragging task nodes and establishing associations between them.
 
-- **Process Definition**: Created by dragging and linking task nodes to form a visual DAG (Directed Acyclic Graph).
-- **Process Instance**: An instance of a Process Definition that can be manually started or scheduled at a specific time. Each execution of the Process Definition generates one Process Instance.
-- **Task Instance**: The instantiation of a task node within a Process Definition, identifying a specific task.
-- **Task Type**: Currently supports SHELL, SQL, SUB PROCESS (Subprocess), PROCEDURE, MR (MapReduce), SPARK, PYTHON, and DEPENDENT. Additionally, dynamic plugin expansion is planned.
-  - Note: SUB PROCESS type tasks require linking another Process Definition, which can be independently started.
-- **Scheduling Mode**: Supports cron-based scheduling and manual scheduling. The command types include:
-  - Starting the workflow,
-  - Resuming a failed task,
-  - Recovering a suspended workflow,
-  - Restarting a failed workflow,
-  - Suspending a running workflow,
-  - Stopping a running workflow,
-  - Resuming a waiting thread.
-  - Among these, RESUME_FAILED and SUSPEND are controlled internally; external calls cannot directly invoke them.
+- **Workflow Instance**: An instantiation of a workflow definition, which can be created by manual start or scheduled trigger. Each run of a workflow definition produces one workflow instance.
 
-- **Cron Scheduling**: Supports cron expression visualization.
-- **Dependency**: The system supports not only simple DAG dependencies (predecessor-successor relationships) but also custom task dependencies. It allows defining dependencies between tasks and processes.
-- **Priority**: Supports prioritizing Process Instances and Task Instances. If priority is not set, the default behavior is FIFO (First-In-First-Out).
-- **Email Alerts**: Supports sending email notifications for task results and exceptions, including both successful and failed executions.
-- **Failure Strategy**: For parallel tasks, two failure handling strategies are available:
-  - Continue with other running tasks until the workflow completes.
-  - Terminate all running tasks upon encountering a failure.
+- **Task Instance**: An instantiation of a task node within a workflow definition, representing a specific task.
 
-- **Retries**: Supports retries based on time intervals or specific conditions. The system includes both serial and parallel retry modes.
-- **Time Zones**: Supports time zone-aware scheduling via cron expressions.
+- **Task Types**: Currently supports SHELL, SQL, SUB_PROCESS (sub-process), PROCEDURE, MR, SPARK, PYTHON, DEPENDENT (dependency), and plans to support dynamic plugin extensions. Note: SUB_PROCESS-type tasks must be associated with another workflow definition; the associated workflow definition can be started and executed independently.
 
+- **Scheduling Methods**: The system supports scheduled execution based on cron expressions and manual scheduling. Supported command types include: Start workflow, Start from current node, Resume a fault-tolerant workflow, Resume a paused workflow, Start from failed node, Backfill, Schedule, Re-run, Pause, Stop, Resume waiting threads. Among these, Resume a fault-tolerant workflow and Resume waiting threads are controlled internally by the scheduler and cannot be invoked externally.
+
+- **Scheduled Execution**: The system supports visual generation of cron expressions.
+
+- **Dependencies**: The system not only supports simple predecessor/successor dependencies in a DAG, but also provides task dependency nodes, enabling custom task dependencies across workflows.
+
+- **Priority**: Supports priority for workflow instances and task instances. If not set, FIFO is used by default.
+
+- **Email Alerts**: Supports emailing SQL task query results, workflow instance result alerts, and fault-tolerance alert notifications.
+
+- **Failure Strategy**: For tasks running in parallel, if any task fails, two strategies are provided. Continue means regardless of the status of parallel tasks, processing continues until the workflow ends in failure. End means that once a failed task is detected, all running parallel tasks are killed and the workflow ends in failure.
+
+- **Backfill**: Backfill historical data, supporting two modes—parallel and serial backfill within a range. Date selection includes date ranges and date enumeration.
 
 ## Execution Strategies
 
-- **Parallel Execution**: If multiple instances of the same Process Definition are running, tasks are executed in parallel.
-- **Serial Execution with Wait**: If multiple instances of the same Process Definition are running, tasks are executed one after another, waiting for each to complete before moving to the next.
-- **Abandon on Failure**: If a task fails, it is abandoned, and execution continues with the next task or workflow.
-- **Priority-Based Serial Execution**: Tasks are executed in priority order; higher-priority tasks start first.
+* Parallel: If multiple workflow instances exist for the same workflow definition at the same time, execute the instances in parallel.
 
+* Serial Wait: If multiple workflow instances exist for the same workflow definition at the same time, execute the instances serially.
+
+* Serial Drop: If multiple workflow instances exist for the same workflow definition at the same time, discard the later-created workflow instances and kill the instance currently running.
+
+* Serial Priority: If multiple workflow instances exist for the same workflow definition at the same time, execute the instances serially according to priority.
 
 ## Workflow Parameters
 
+Description of workflow runtime parameters:
 
-## Workflow Execution Parameters
+* Failure Strategy: When a task node fails, the strategy for other parallel task nodes. “Continue” means other task nodes continue normally after one task fails; “End” means terminate all running tasks and end the entire workflow.
 
-- **Failure Strategy**: 
-  - If a single task fails, other running parallel tasks continue until the workflow completes.
-  - If all tasks fail, the workflow terminates.
-- **Notification Strategy**: Notifications can be sent for any state change (success, failure, suspension, etc.).
-- **Priority**: Can be set at both Process and Task levels. Default is FIFO.
+* Notification Strategy: When the workflow ends, send notification emails based on the workflow status: send none; send on success; send on failure; send on success or failure.
 
+* Workflow Priority: The runtime priority of the workflow, with five levels: HIGHEST, HIGH, MEDIUM, LOW, LOWEST. When master thread count is insufficient, higher-priority workflows are executed first in the queue; workflows with the same priority execute in FIFO order.
 
-## Worker Parameters
+* Worker Grouping: This workflow can only run on the specified group of worker machines. The default is Default, meaning it can execute on any worker.
 
-- **Worker Group**: A workflow can only run in a specific worker group. Default behavior allows execution on any worker.
-- **Notification Group**: Used to send notifications to all members of the selected group when certain events occur (e.g., cron expiration, task failure).
+* Notification Group: When the chosen notification strategy triggers, on timeout alerts, or when fault tolerance occurs, workflow information or email is sent to all members of the notification group.
 
+* Startup Parameters: Set or override global parameter values when starting a new workflow instance.
 
-## Start Parameters
+* Backfill: Run the workflow definition over a specified date range, generating corresponding workflow instances according to the backfill strategy. Backfill strategies include Serial Backfill and Parallel Backfill.
+  Dates can be selected via the UI or entered manually. The date range is a closed interval (startDate <= N <= endDate).
+  Serial Backfill: Within the specified time range, execute backfill sequentially from the start date to the end date, generating multiple workflow instances in order. Click Run Workflow, select Serial Backfill mode: for example, execute sequentially from July 9 to July 10, generating two workflow instances on the workflow instance page.
+  Degree of Parallelism: In parallel backfill mode, the maximum number of instances to run concurrently.
 
-- **Job Parameters**: These include parameters that affect how tasks are started, such as:
-  - Task parameters,
-  - Time zones,
-  - Maximum retries,
-  - Recovery options.
+## MasterServer
 
+MasterServer is mainly responsible for DAG task partitioning, task submission monitoring, and also monitors the health of other MasterServers and WorkerServers.
 
+Internal functionalities of MasterServer:
 
-- **Cron Expression**: Customizable via the UI or API.
-- **Time Window**: Define a start and end time for task execution.
+1. JobScheduler triggers tasks on schedule
+2. JobWorkflowRunner is responsible for DAG task partitioning and task submission monitoring
 
+## WorkerServer
 
+WorkerServer is mainly responsible for task execution and providing logging services.
 
-MasterServer is responsible for managing DAG tasks, submitting them to WorkerServers, and monitoring their health status. It also listens for health updates from other MasterServers in the system.
+1. JobTaskBizModel provides capabilities to start, stop, and view the status of tasks
+2. LoggerBizModel provides viewing, refreshing, and downloading of log segments
 
+## Backfill Logic
 
+1. Serial Backfill: Within the specified time range, execute backfill sequentially from the start date to the end date, generating only one workflow instance;
+2. Parallel Backfill: Within the specified time range, backfill multiple days concurrently, generating N workflow instances
 
-1. JobScheduler: Triggers jobs at specified times.
-2. JobWorkflowRunner: Manages task execution and workflow orchestration.
-
-
-
-WorkerServer is responsible for executing tasks and providing logging services.
-
-
-
-1. JobTaskBizModel: Handles task execution, stopping, and status queries.
-2. LoggerBizModel: Manages log data collection, refreshing, and retrieval.
-
-1. **Serial Numbering**: Within the specified time range, from the start date to the end date, serially execute numberings, generating only one process instance;
-2. **Parallel Numbering**: Within the specified time range, perform parallel numberings on multiple days, generating N process instances
+<!-- SOURCE_MD5:124dc48aa656ab0c6942158fb6d6c2b8-->

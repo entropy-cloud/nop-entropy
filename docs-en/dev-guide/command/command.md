@@ -1,38 +1,30 @@
-# Command Line Support
+# Command-line Program Support
 
-The Nop platform provides built-in support for command line programs. By registering an implementation of the `ICommand` interface, you can directly invoke command line commands through the command line.
+The Nop platform has built-in support for command-line programs. As long as you register a bean that implements the ICommand interface, you can invoke it directly via command-line instructions. The application will exit immediately after the command finishes.
 
-## 1. Registering [ICommand](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/command/ICommand.java) Interface Implementation
+## 1. Register an implementation class of the [ICommand](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/command/ICommand.java) interface, with the bean name nopCommand\_xxx
 
-The implementation class of the `ICommand` interface should be named as `nopCommand_{XXX}`.
-
-```xml
-<bean id="nopCommand_test" class="test.TestCommand" />
+```
+  <bean id="nopCommand_test" class="test.TestCommand" />
 ```
 
-## 2. Invoking Commands Using `nop-exec`
+## 2. Invoke the corresponding command via the nop-exec command
 
-You can invoke commands using the `nop-exec` command.
-
-```bash
-java -jar app.jar nop-exec --command=test --myArg=a --myArg2=123
+```
+ java -jar app.jar nop-exec --command=test --myArg=a --myArg2=123
 ```
 
 ## Detailed Configuration
 
-### 1. Enabling the Command Handler Switch
+1. Toggle nop.core.nop-command-executor.enabled to control whether the command-line processing feature is enabled; enabled by default.
 
-Enable the command handler by setting `nop.core.nop-command-executor.enabled` to `true`. By default, this is enabled.
+2. Pass more complex commands as files
 
-### 2. Passing Complex Commands as Files
-
-You can pass complex commands as files using:
-
-```bash
-java -jar app.jar nop-exec --command=test.json
+```
+jar -jar app.jar nop-exec --command=test.json
 ```
 
-Here, `test.json` is a JSON file representing the command and its parameters, corresponding to the `CommandBean` object.
+test.json is a JSON-formatted command file corresponding to a CommandBean object.
 
 ```json
 {
@@ -44,10 +36,11 @@ Here, `test.json` is a JSON file representing the command and its parameters, co
 }
 ```
 
-### 3. Executing Multiple Commands Sequentially
+3. Execute multiple commands sequentially
 
-You can execute multiple commands sequentially using:
-
-```bash
+```
 java -jar app.jar nop-exec --command=test1.json --command=test2.json
 ```
+
+Execution will be interrupted if any command returns a non-zero value.
+<!-- SOURCE_MD5:3801a40140a6f5115b3dd4f32210727c-->

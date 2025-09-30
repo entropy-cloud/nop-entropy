@@ -1,7 +1,8 @@
 # Handling Null Values
 
-Different databases handle empty string logic inconsistently. Oracle Database does not support empty strings, so when a field value is set to an empty string, it is actually stored as `null` in the database.
+Different databases handle empty strings inconsistently. Oracle Database does not support empty strings; when a field value is set to an empty string, what is actually stored in the database is a null value.
 
-NopORM ensures portability across different databases by implementing special identification and handling for empty strings. This is handled by the `DialectImpl.getDataParameterBinder` method's implementation.
+To ensure portability across different databases, NopORM performs special detection and handling for empty strings. For details, see the implementation of the DialectImpl.getDataParameterBinder function.
 
-When a field value is set to an empty string, it will be automatically converted to `null` when stored in the database. This behavior can be disabled by setting `nop.orm.auto_convert_empty_string_to_null = false`.
+If a field value is set to an empty string, it will be automatically converted to null when saved to the database. You can disable this behavior by setting nop.orm.auto\_convert\_empty\_string\_to\_null.
+<!-- SOURCE_MD5:b27d94bcc121fd98bbbf037eeb1e3610-->

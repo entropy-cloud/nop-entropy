@@ -1,13 +1,12 @@
 # Custom Models
 
-The Nop platform differs from other platforms in one fundamental aspect: it is based on reversible computation principles to decompose, combine, and derive models. All its components and mechanisms are designed to allow users to extend or customize them as needed. Users can leverage Nop's built-in meta-model and meta-programming mechanisms to develop models tailored to their specific domain.
+Compared with all other public platform technologies, the Nop platform has a fundamental difference: it implements model decomposition, merging, and inference based on Reversible Computation principles. All of its internal components and mechanisms allow users to extend or customize them. Users can also leverage the Nop platform’s built-in meta-model and metaprogramming mechanisms to develop models specific to their own domains.
 
-The following example illustrates the process of introducing a custom model using an API model analysis and code generation as examples.
+The following uses parsing and code generation of the API model as an example to introduce the process of incorporating custom models.
 
+## 1. Register loaders for model file suffixes
 
-## 1. Registering Model Files and Their associated Loaders
-
-Create a file named `api.register-model.xml` in the virtual path `/nop/core/registry`.
+Create the file api.register-model.xml under the virtual path /nop/core/registry.
 
 ```xml
 <model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
@@ -19,41 +18,42 @@ Create a file named `api.register-model.xml` in the virtual path `/nop/core/regi
 </model>
 ```
 
-* xlsx-loader: Parses Excel files into Java objects, typically of type DynamicObject. When used with the Xpl template language, it behaves similarly to a Json object but throws errors if undefined properties are accessed.
-* xdsl-loader: Parses XML files into Java objects, typically of type DynamicObject.
+* xlsx-loader: Parses Excel files according to the imp model definition to obtain a Java object, typically of type DynamicObject. When used in the Xpl templating language, it behaves similarly to a JSON object, but attempting to read properties not defined in the model will throw an exception.
+* xdsl-loader: Parses XML files according to the xdef meta-model definition to obtain a Java object, typically of type DynamicObject.
 
-The `fileType` comparison is more complex and may extract the last two segments of the filename based on delimiters. Since we use file names like `app.orm.xml`, `app.orm.xlsx`, etc., using only `fileExt` would fail to identify ORM-related XML and XLSX files properly.
+fileType is more complex than the file extension (fileExt): it may take the last two segments of the filename separated by dots. Because we extensively use composite filenames like app.orm.xml and app.orm.xlsx, using only fileExt cannot identify XML and XLSX files that are specific to the ORM model.
 
+## 2. Load the model
 
-## 2. Loading Models
+During framework startup, the Nop platform’s RegisterModelCoreInitializer automatically collects all `/_vfs/nop/core/registry/xxx.register-model.xml` files, merges them into a complete registry file, then parses it into configuration objects and registers them with the ResourceComponentManager.
 
-The `RegisterModelCoreInitializer` automatically collects all files in the `/_vfs/nop/core/registry/xxx.register-model.xml` directory during framework startup, consolidates them into a single registry file, and then parses it into configuration objects, which are then registered with `ResourceComponentManager`.
-
-After registration, models can be retrieved using:
+After registration, you can obtain a model object as follows:
 
 ```javascript
 apiModel = ResourceComponentManager.instance().loadComponentModel("/xxx/yyy.api.xlsx");
 ```
 
-The `loadComponentModel` method identifies the appropriate FileLoader based on the file's type and returns the model object. The `ResourceComponentManager` maintains a cache of models and tracks dependencies discovered during parsing. For example, when parsing `yyy.orm.xlsx`, it loads `orm-gen.xlib`. If `orm-gen.xlib` or `yyy.orm.xlsx` changes, the cache is invalidated.
+loadComponentModel looks up the corresponding FileLoader based on the file’s fileType, then parses and returns the model object.
 
-To force a cache refresh, call:
+ResourceComponentManager provides model caching and automatically tracks resource file dependencies discovered during model parsing. For example, when parsing yyy.orm.xlsx and loading the tag library orm-gen.xlib, any change to orm-gen.xlib or to yyy.orm.xlsx itself will invalidate the parsing cache. This mechanism is similar to the source-change watching provided by frontend frameworks like Webpack or Vite.
 
-```javascript
+If you need to force-refresh the model cache, you can call methods on the GlobalCacheRegistry object:
+
+```
 GlobalCacheRegistry.instance().clearAllCache();
 ```
 
-
 ### 3. Code Generation
 
-Nop's built-in code generation tool supports rendering custom models. For example, it can generate service messages and interface classes based on an API model, using `gen-orm.xgen` located at [https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-wf/nop-wf-codegen/precompile/gen-orm.xgen](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-wf/nop-wf-codegen/precompile/gen-orm.xgen).
+The Nop platform’s built-in code generation tools support rendering custom models; see [gen-orm.xgen](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-wf/nop-wf-codegen/precompile/gen-orm.xgen)
 
 ```javascript
-// Generate service messages and interface classes based on API model
-codeGenerator.withTargetDir("../").renderModel('../../model/nop-wf.api.xlsx', '/nop/templates/api', '/', $scope);
+// Generate service messages and interface classes from the API model
+codeGenerator.withTargetDir("../").renderModel('../../model/nop-wf.api.xlsx','/nop/templates/api', '/',$scope);
 ```
 
-The `renderModel` method reads the model from `modelPath`, uses `templatePath` to locate the template files, and renders them into Java classes.
+renderModel(modelPath, templatePath) reads the model object and renders it using the template files in the template directory.
 
-> The Nop platform organizes all resources into a virtual file system under `/resources/_vfs`, so you don't need to specify which module a template belongs to when using the code generator.
+> The Nop platform organizes all files under resources/\_vfs into a unified virtual file system, so you can use template files in the code generator without specifying which module they belong to.
 
+<!-- SOURCE_MD5:bb8926f12407dc10e0025baa8fcf4dbe-->

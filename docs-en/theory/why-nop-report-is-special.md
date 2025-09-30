@@ -1,111 +1,100 @@
-# Why NopReport is a Unique Report Engine?
+# Why Is NopReport a Truly Unique Reporting Engine?
 
-NopReport differs from common report engines because it can directly use Excel and Word as templates, without requiring a dedicated visualization designer.
+Unlike typical reporting engines, NopReport can directly use Excel and Word as templates, without necessarily relying on a dedicated visual designer.
 
-> For more details about NopReport, please refer to [Open-Source China-Style Report Engine: NopReport](https://zhuanlan.zhihu.com/p/620250740) and [How to Implement a POI-like Visual Word Template with Only 800 Lines of Code](https://zhuanlan.zhihu.com/p/537439335).
+> For an introduction to NopReport, see [An open-source, China-style reporting engine that uses Excel as the designer: NopReport](https://zhuanlan.zhihu.com/p/620250740) and [How to implement a visual Word template similar to poi-tl in 800 lines of code](https://zhuanlan.zhihu.com/p/537439335)
 
-However, some people who read the introduction feel that it does not highlight its unique aspects. They may wonder:
+However, some readers still don’t perceive what’s unique about it and raise questions like:
 
-> This method has been around for a while, right? Everyone knows that Word is essentially XML, so we can directly use template engines to fill in data.
-> Is there anything particularly revolutionary about this approach? Jxls also uses Excel's annotations to define template syntax.
+> Hasn't this approach existed for a long time? Everyone knows Word is basically XML and can be filled with a template engine.
+> Is there anything truly paradigm-shifting here? jxls also uses Excel comments to write template syntax.
 
-To truly understand the innovative aspects of NopReport's design, you need to step back from specific functional details and consider it from a more abstract mathematical structure perspective. The core difference between Nop and other open-source frameworks lies in its foundation: Nop's design is based on first-order mathematics, not clever design patterns. Instead, it reflects a certain inevitability rooted in mathematics, which can be rigorously proven.
+To grasp the innovative aspects of NopReport’s design, you need to step out of the weeds of concrete features and think in terms of more abstract mathematical structures.
+The most fundamental difference between the Nop platform and other existing open-source frameworks is that the Nop platform is derived from first-principles mathematical reasoning. Its approach is not just a clever design pattern,
+but a manifestation of mathematical inevitability—an optimal design that can be rigorously proven in a certain mathematical sense.
 
+## A General Visual Template Approach
 
-## General Template Visualization Approach
-
-NopReport's core design philosophy revolves around the following mathematical formula:
+NopReport’s core design idea is based on the following mathematical formula:
 
 ```
 Template = BaseModel + ExtModel
 ```
 
-From a mathematical standpoint, **any raw model can be considered a valid template**. When you need more complex template behavior, simply extend the base information with additional configurations. For example, a regular Word document can be treated as a template. The report engine reads this Word file and converts it into a report template, essentially performing an identity transformation: whatever data you input will directly reflect in the output, which is just the raw content of the Word file.
+In a mathematical sense, any raw model can be regarded as a valid generative template. When richer template behavior is needed, we simply supplement the raw information with additional extension configuration.
+For example, an ordinary Word file can be treated as a Word report template. The reporting engine can read a normal Word file and convert it into a report template; its runtime behavior is essentially an identity transformation:
+no matter what report parameters we input, the output remains the fixed content—the original content of the Word file we read.
 
-When you need a template that includes conditional statements, loops, or complex dynamic content, many people's initial thought is to start from scratch, designing a new template structure. However, based on our earlier mathematical analysis, if a regular Word file qualifies as a valid template, then our template's expressive power should inherently be a superset of the base model's capabilities. In the simplest case, **we should use a linearized design**:
-- Preserve the fundamental elements of the base model.
-- Extend it by adding additional configuration parameters to support dynamic behavior.
+When we need a report template containing complex dynamic content such as conditionals and loops, many people’s first instinct is to design a new report format from scratch to meet dynamic configuration requirements. But per the mathematical analysis above,
+since a plain Word file is already a valid report template, the representational capacity of our report template must be a superset of the raw model’s expressive power. In the simplest case, we should adopt a linear design:
+we fully retain the design elements of the base model and introduce dynamic template capabilities by adding new extension model information. Note that we emphasize not modifying the existing BaseModel at all; the extension model corresponds to an independently existing Delta expression.
 
-When you need a template that includes conditional statements or complex dynamic content, some people might think of starting from scratch, designing a new structure. However, based on our earlier mathematical analysis, if a regular Word file qualifies as a valid template, then our template's expressive power should inherently be a superset of the base model's capabilities.
+When we need visual design, at the mathematical level, we are introducing a bidirectional, reversible transformation:
 
-In terms of visualization design:
-- From a mathematical perspective, **any visualization can be considered a bijective mapping**.
-- When you need to design a visualization, you introduce additional configuration parameters without altering the base model. This is akin to adding delta changes on top of the base model.
-
-For visualization design:
 ```
-VisualView = Editor(Model)
-Model = Serializer(VisualView)
+ VisualView = Editor(Model)
+ Model = Serializer(VisualView)
 ```
 
-The visualization designer's role is to define how raw data should be transformed into visual representations. The editor handles the transformation, while the serializer ensures that the transformation is reversible for further modifications. This approach maintains a bidirectional relationship between the model and the visualization.
+The visual designer presents model information as a visual view and provides corresponding editing capabilities. Conversely, given the visual view, we can serialize the information in it to obtain a model representation that can be persisted in text (or binary) form.
+The visual view and the textual representation of the model are two different manifestations of the same information, between which a bidirectional conversion can be established.
 
-An ideal visualization mapping should satisfy the linearity principle:
-```
-Editor(Template) = Editor(BaseModel + ExtModel)
-= Editor(BaseModel) + Editor(ExtModel)
-```
+An ideal visual mapping should satisfy the principle of linear mapping, namely:
 
-From a mathematical perspective, this is akin to a **linear transformation**. When decomposing the model into base and extension components, the editor's behavior on the composite model is merely the sum of its behaviors on each component.
-
-For example:
 ```
-TemplateEditor = BaseModelEditor + ExtModelEditor
+ Editor(Template) = Editor(BaseModel + ExtModel) 
+                  = Editor(BaseModel) + Editor(ExtModel)
 ```
 
-Translating this into Office software terms:
-- The mathematical formula corresponds to using Excel's formula bar or built-in functions.
-- **Any function (Functor) that can be represented in Excel can be used**.
-- For example, if a function processes `(data, ext_data)`, it can be represented as ` data + ext_data` in the template.
+When a Base+Ext linear decomposition exists at the model level, we want to preserve this relationship at the visual design level as well, yielding a linear decomposition into a base designer plus an extension designer. Mathematically,
+we want the visual mapping to be a homomorphism. In the language of category theory, we can say this is a functor mapping.
 
-However, Office applications are not inherently designed to handle reversible transformations. This limitation means that while you can use formula-based templates for data processing, certain complex requirements may necessitate workarounds or custom implementations.
-
-NopReport's design does not adhere to this limitation because it is grounded in first-order mathematics. It allows for a **bidirectional mapping** between the model and the template:
 ```
-VisualView = Editor(Model)
-Model = Serializer(VisualView)
+ TemplateEditor = BaseModelEditor + ExtModelEditor
 ```
 
-This ensures that changes to the model automatically reflect in the visualization, and vice versa.
+Mapping the mathematical formulas above to concrete Office software, our goal is to leverage some built-in extension mechanism in Office to store extension information and automatically provide a visual design interface for it.
+If a piece of software is built according to the principles of Reversible Computation, it will inevitably adopt a paired design scheme of (data, ext_data), allowing extension data to be introduced at any DSL syntax node.
+With an extended xdef metamodel, we can define the meta semantics of extension data and automatically generate a visual editor based on the xdef model definition.
+However, because Office was not designed according to Reversible Computation theory, we can only reinterpret its built-in features via certain hacks, repurposing some of them into metadata extension mechanisms.
+NopReport’s concrete approach is to use Word’s hyperlink mechanism and interpret hyperlinks of the form `xpl:xxx` as extension information nodes.
 
 ![word-report.png](../dev-guide/report/word-template/word-report.png)
 
-Using hyperlinks is merely a minor technical detail. We can also choose to use Word's comment feature to store additional information.
+Using hyperlinks is just a minor technical detail. We could also choose to use Word’s comment mechanism to store extension information.
 
-> It is important to note that by using the above method, we can implement templateization for any model, requiring only minimal Delta information.
-> For further analysis of the linear mapping principle, please refer to my article [Tensor Tensor: Low-Code Platform Design](https://zhuanlan.zhihu.com/p/531474176).
+> It’s important to emphasize that with the approach above, we can implement templated extensions for any model, requiring only a small amount of Delta information.
+> For further analysis of the linear mapping principle, see my article [Designing Low-Code Platforms Through the Lens of Tensor Products](https://zhuanlan.zhihu.com/p/531474176)
 
-## Common Structural Layer Construction Rules
+## General Structural-Layer Construction Principles
 
-Many people can intuitively feel that since Microsoft Office switched to using OOXML (XML-based) storage formats, handling Office documents has been significantly simplified. Currently, many Office template libraries like jxls and poi-tl operate on top of Apache POI technology, which encapsulates Office documents in a deep way, providing more straightforward template generation solutions. However, NopReport can replace the functionality of these template libraries with minimal code while offering better expandability. Why is this the case?
+It’s intuitive to many that ever since Office adopted OOXML for XML storage, handling Office formats has become much simpler. There are now many Office template libraries like jxls and poi-tl; under the hood they still operate on Office documents via Apache POI,
+and they provide simpler, more intuitive template generation by deeply encapsulating POI. Yet NopReport can replace the functionality of these libraries with very little code while offering better extensibility—why?
 
-The fundamental reason lies in how different libraries handle data. The POI library operates at the object type level, where each object type has its own set of rules for processing. In contrast, NopReport processes data at a normalized XML layer. XML can be considered a more universal way of representing structure.
+Essentially, it’s because the POI library operates at a type-specialized object layer, whereas NopReport operates at a uniform XML layer. XML can be regarded as a general structural representation.
+Reversible Computation emphasizes that before information is transformed into business objects, there exists a unified structural representation layer where many general operations can be performed directly, without pushing processing down to the object layer. At the object layer, each object type differs, leading to differing processing rules.
+Just as the diversity of architectural works is underpinned by unified engineering mechanics, from the perspective of the structural layer, many things that differ at the business level are fundamentally the same, obeying the same structural construction principles and amenable to the same tools and methods.
 
-Reverse engineering emphasizes that before converting information into business objects, there exists a unified structural representation layer. This allows direct manipulation of data in this standardized layer without needing to move it down to the object layer. Each object type has its unique characteristics and corresponding processing rules, which may differ significantly across types.
-
-Just as diverse architectural designs share underlying engineering principles, many seemingly different business aspects at various levels exhibit similar structural patterns. These can be governed using the same construction rules and processed with analogous tools.
-
-In this context, XLang's XPL template language stands out. What is the mathematical positioning of XPL? It excels in **converting any AST (Abstract Syntax Tree) into executable logic** through syntax-directed translation. This is what we mean by syntax-directed translation: when encountering a specific syntactic node, predefined rules automatically trigger to translate it accordingly. Essentially, this is a mechanism for context-free grammar customization.
-
-Here, syntax-directed translation refers to the automatic triggering of corresponding translation rules upon encountering a specific syntactic node. This is akin to a self-contained, context-independent custom component mechanism.
+In this process, the XPL template sublanguage in the XLang language is of particular importance. What is XPL’s mathematical role? It is responsible for transforming arbitrary AST expression trees into executable logic via syntax-directed translation.
+Syntax-directed translation means that when we encounter a particular grammar node, we automatically trigger the corresponding translation rule. This is essentially a custom component mechanism based on context-free grammars.
 
 ```xml
 <doc>
-  <orm:GenPackageDiagram />
-  <orm:ForEachEntity>
-    ...
-  </orm>
+   <orm:GenPackageDiagram />
+   <orm:ForEachEntity>
+      ...
+   </orm>
 </doc>
 ```
 
-Each `<orm:ForEachEntity>` tag triggers corresponding component definitions and executes executable logic within the component.
+Each tag like `<orm:ForEachEntity>` triggers the corresponding component definition and executes the executable logic within that component.
 
-For further analysis of structural construction rules, please refer to my article [Common Delta Mechanism](https://zhuanlan.zhihu.com/p/681801076).
+For further analysis of structural-layer construction principles, see my article [A General Delta Mechanism](https://zhuanlan.zhihu.com/p/681801076)
 
-Based on reversible computing principles, the low-code platform NopPlatform has been open-sourced:
+The low-code platform NopPlatform, designed based on Reversible Computation theory, is open source:
 
-- Gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
-- GitHub: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- Example: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- [Reversible Computing Principles and NopPlatform Introduction (Bilibili)](https://www.bilibili.com/video/BV1u84y1w7kX/)
-
+- gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+- github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+- Development examples: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [Reversible Computation principles and Nop platform introduction and Q&A_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+<!-- SOURCE_MD5:16111c30b9784af88a576dea303212a6-->

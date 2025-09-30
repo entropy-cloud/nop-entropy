@@ -1,55 +1,58 @@
+
 # REST Links
 
-The Nop platform uses a limited set of REST links, as outlined below:
+The Nop platform uses only a few REST endpoints, namely:
 
-* `/graphql`
-* `/r/{bizObjName}\_\_{bizMethod}`
-* `/p/{bizObjName}\_\_{bizMethod}`
-* `/f/download`
-* `/f/upload`
+* /graphql
+* /r/{bizObjName}\_\_{bizMethod}
+* /p/{bizObjName}\_\_{bizMethod}
+* /f/download
+* /f/upload
 
-1. The `/r/` endpoint corresponds to a GET request and can be used for both `Query` and `Mutation` operations.
-2. The `/p/` endpoint automatically checks if the returned result is a `WebContentBean`. If so, it sets the `contentType` based on the one defined in the bean. This is typically used for file preview functionality, especially in debug mode where `/p/DevDoc\_\_beans` displays all registered beans in XML format.
-3. The `/f/download` endpoint is used to download files.
+1. A GET request to /r/ corresponds to a GraphQL Query, while a POST request can invoke either a query or a mutation.
+2. /p/ automatically detects whether the return value is a WebContentBean object. If so, it sets the HTTP Content-Type according to the contentType configured in the WebContentBean. This is typically used for file preview.
+   For example, in debug mode, /p/DevDoc\_\_beans displays all registered beans in the system in XML format.
+3. /f/download is used to download files.
 
-## Backend Implementation Code
+The backend implementation classes are:
 
-The backend implementation corresponds to:
+1. io.nop.quarkus.web.service.QuarkusGraphQLWebService
+2. io.nop.file.quarkus.web.QuarkusFileService
 
-1. `io.nop.quarkus.web.service.QuarkusGraphQLWebService`
-2. `io.nop.file.quarkus.web.QuarkusFileService`
+{bizObjName}\_\_{bizMethod} will invoke the corresponding method on the backend BizModel object. For example, `NopAuthUser__resetUserPassword`
+will call the resetUserPassword method of the NopAuthUserBizModel object.
 
-The URL pattern `{bizObjName}\_\_{bizMethod}` maps to a method on the corresponding business object class, such as `NopAuthUser__resetUserPassword`, which calls the `resetUserPassword` method of the `NopAuthUserBizModel`.
+## Standardization of REST Parameters
 
-## REST Parameter Normalization
-
-Frontend parameters are normalized using `_subArgs.{propName}.filter_xxx` format for child query functions. For example:
+The frontend can pass parameters to child-table query functions using the form `_subArgs.{propName}.filter_xxx`. For example:
 
 ```
 /r/NopAuthUser__findPage?@selection=userRoleMappingsConnection{items}&_subArgs.userRoleMappingsConnection.filter_status=3
 ```
 
 ```graphql
-query {
-  NopAuthUser__findPage {
-    userRoleMappingsConnection(query: $subQuery) {
-      items
-    }
-  }
+query{
+   NopAuthUser__findPage{
+      userRoleMappingsConnection(query: $subQuery){
+        items
+      }
+   }
 }
 
 {
   subQuery: {
     filter: [
-      {
-        "$type": "eq",
-        "name": "status",
-        "value": 3
-      }
+       {
+          "$type":"eq",
+          "name": "status",
+          "value": 3
+       }
     ]
   }
 }
 ```
 
-* `_subArgs.` is a special prefix for parameter normalization.
-* `filter_{xxx}` represents Nop's internal flattening structure for QueryBean objects.
+* `_subArgs.` is a specially reserved parameter prefix.
+* `filter_{xxx}` is the Nop platform’s internal convention for a flattened construction of a QueryBean.
+
+<!-- SOURCE_MD5:2b987f35ccfc25fed06c4ee67853186b-->

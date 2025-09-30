@@ -1,23 +1,18 @@
-# 1. About Delta Pipeline Issues
 
-![Delta Pipeline](../theory/nop/delta-pipeline.png)
+# 1. Questions About the Delta-based Inference Pipeline
 
-**Question:** Why does each layer use information from other layers? Is this related to delta parts?
+![](../theory/nop/delta-pipeline.png)
 
-**Answer:** Each layer only receives derived information from the next lower layer. Each layer has its own unique requirements and abstractions. This ensures that each layer is both independent and interconnected. Independence is reflected in the final control authority residing within each layer, without losing any capability. A layer can completely ignore information derived from higher layers. Each layer may contain information from other layers for two reasons:  
-1. Implicit relationships exist between different layers, such as a data layer handling integer types while a UI layer might have input controls that correspond to these integers.  
-2. For convenience in configuration, certain UI-related information (e.g., `ui:show`) can temporarily reside in the data layer even if it's not directly used there.
+Question: **Why does each layer design information for other layers to use? Is it the Delta part?**
 
-**Question:** Is there documentation or customization options for storing `ui:show` properties? Or is it predefined so that users must define which properties can be placed in higher layers?
+Answer: The information each layer infers for the next layer is merely optional; every layer has its own unique concerns and abstractions, and this information is not required to all exist in the previous layer. This approach ensures that each layer is both independent and interrelated. Independence means final control resides in the current layer, without losing any capability. You can start from the current layer and completely ignore information inferred by the previous layer. There are two reasons for embedding other-layer information in each layer: 1. There are inherent relationships between layers. For example, if a type in the data layer is an integer, the outer UI layer should display an integer input control; this information should be preserved across layers. 2. To simplify unified configuration, some UI-layer information, although not used by the data layer, can be temporarily stored in the data layer. For example, in orm.xml, a field can configure `ui:show` to control on which CRUD pages the field is displayed. `ui:show` is an extension attribute and not part of the ORM model, but it is stored in the ORM model as an extension attribute; during the inference process it is first propagated to the XMeta model as an extension attribute, and only takes effect when inferred to the XView layer. The `ui:show` attribute can be configured in the Excel model.
 
-**Answer:** Users can customize which properties are allowed in higher layers. The Nop platform allows for flexible configuration of which DSL nodes can store extended properties. For example, `ui:show` is an extended property stored in the ORM model's metadata during generation. This allows it to propagate correctly from the XMeta model down to the UI layer.
+Question: Is there documentation for the storage rules of extension attributes like `ui:show`, or is it customizable, meaning users must additionally specify which attributes can be stored at higher layers?
 
-**Question:** Is the flow directional (one-way) or bidirectional? From a theoretical standpoint, does data flow from the DataModel to the UiModel through a one-way pipeline?
+Answer: Users can freely customize and additionally choose which attributes can be placed at higher layers, but how they propagate downward is controlled by their own code generator. All nodes of all DSLs in the Nop platform, by default, allow storing extension attributes. Entity objects in NopORM likewise allow storing arbitrary extension attributes. The Nop platform always adopts a (data, metadata) paired design, ensuring that at the finest granularity, near the information itself, there is always a place to store Delta information.
 
-**Answer:** In theory, the pipeline is unidirectional. Data flows from the DataModel to the UiModel in a specific sequence during generation. However, certain properties like `Delta information` can propagate bi-directionally depending on how they're used.
+Question: The diagram is unidirectional. Is it possible for it to be bidirectional? In theory, some data from front-end interaction experience, such as the configuration of WeChat’s Discover page or keyboard shortcuts, may also need to be saved to the database.
 
-**Question:** Is the flow directional or bidirectional? From an interaction perspective, does data flow back up to the database?
+Answer: We need to distinguish between compile-time and runtime. Essentially, from DataModel to UiModel, this is a compile-time information inference pipeline. At runtime, the runtime information transmission pipeline established after inference is naturally bidirectional. From a broader perspective, compared with the unidirectional data flow (data-driven) in the frontend Redux framework, you can regard this inference pipeline as a compile-time unidirectional model-driven approach. If the UI layer introduces new requirements, it may prompt changes starting from the foundational data model and then propagate to the UI model. If it does not involve storing data, it may also prompt changes in higher-layer models.
 
-**Answer:** The pipeline is directional based on the layer's role in the build process. For example, if a change is made in the DataModel during runtime, it might not affect the UIModel. However, certain interactions (like form submissions) can still require data storage.
-
-**Answer:** Runtime behavior depends on whether changes are tracked as deltas or stored directly in the database. If deltas are used, modifications to lower layers may not propagate to higher ones unless explicitly handled.
+<!-- SOURCE_MD5:97ff6225684ea9d059a4ce0f0b3a0ea2-->

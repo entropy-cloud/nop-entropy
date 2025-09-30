@@ -1,20 +1,20 @@
-# Nonlinear Chinese-style Report Engine: NopReport Source Code Analysis
+# Source Code Analysis of the Nonlinear Chinese-Style Reporting Engine NopReport
 
-In daily development, we often need to import and export Excel data and generate Excel and Word reports. Popular tools like [easyexcel](https://gitee.com/easyexcel/easyexcel) and [poi-tl](https://gitee.com/mirrors/poi-tl) rely on the POI engine at their core, leading to bloated sizes while also complicating the handling of complex structured tables. When creating complex Chinese-style reports, it is still common to use professional report software such as Rundown and Fawnsoft, which provide their own report engines.
+In daily development, we often need to import and export Excel data, generate Excel and Word reports, etc. Common packages like [easyexcel](https://gitee.com/easyexcel/easyexcel) and [poi-tl](https://gitee.com/mirrors/poi-tl) rely on the underlying POI engine, which is bulky and struggles with complex, irregular tables. When creating complex Chinese-style reports, one usually needs to use report engines provided by professional report software companies such as Runqian and FanRuan.
 
-Years ago, Rundown Company pioneered a nonlinear report generation algorithm that supports row-column symmetry expansion. This later developed into a leading commercial reporting software solution, with subsequent report software like Fawnsoft following similar algorithms. NopReport provides an open-source implementation of this algorithm (approximately 3,000 lines of code), making it easy to customize and extend. This article details the basic implementation principles of the NopReport report engine and the technical specifics of the nonlinear report generation algorithm.
+Many years ago, Runqian pioneered a nonlinear report generation algorithm that supports symmetric expansion across rows and columns, which later became a leader in commercial reporting software. Subsequent report software like FanRuan has mimicked similar report generation algorithms. The NopReport reporting engine offers a very lightweight open-source implementation (about 3,000 lines of code) of this algorithm, making it easy to customize and extend. This article introduces the fundamental principles behind the NopReport reporting engine and the technical details of the nonlinear report generation algorithm.
 
-Video explanation of the algorithm: [https://www.bilibili.com/video/BV17g4y1o7wr/](https://www.bilibili.com/video/BV17g4y1o7wr/)
-Usage example video: [https://www.bilibili.com/video/BV1Sa4y1K7tD/](https://www.bilibili.com/video/BV1Sa4y1K7tD/)
-Engine usage documentation: [https://zhuanlan.zhihu.com/p/620250740](https://zhuanlan.zhihu.com/p/620250740)
+Algorithm walkthrough video: https://www.bilibili.com/video/BV17g4y1o7wr/
+Usage example video: https://www.bilibili.com/video/BV1Sa4y1K7tD/
+Engine usage documentation: https://zhuanlan.zhihu.com/p/620250740
 
-## I. Report Model DSL Design
+## I. Design of the Report Model DSL
 
-## Report Model as an Extension of Excel Models
+## The Report Model as an Extension of the Excel Model
 
-Based on reversible computation theory, the template (Template) can be viewed as an abstraction of the original model object at the structural level, effectively enhancing it. This means that any original model object can be considered a legitimate template object. Under this design philosophy, NopReport's report model DSL is designed as an extension of Excel models. It builds upon Excel's DSL by adding `model` nodes.
+According to Reversible Computation theory, a Template can be viewed as an abstraction of the original model object and, at the structural level, as an enhancement of the original model object. In other words, any original model object should be considered a valid template object. Guided by this design philosophy, NopReport designs the DSL of the report model as an extension of the Excel model, adding a model subnode on top of Excel’s DSL.
 
-> Any Excel file can be considered a valid report template. A report template is essentially an enhanced Excel file with additional model information.
+> Any Excel file can be regarded as a valid report template; a report template can be seen as a regular Excel file plus extended model information.
 
 ```mermaid
 graph LR
@@ -32,7 +32,7 @@ graph LR
   style x4 fill:#eecc00
 ```
 
-The corresponding meta-model is defined as:
+The corresponding meta-model definition is:
 
 ```xml
 <workbook>
@@ -57,11 +57,11 @@ The corresponding meta-model is defined as:
 </workbook>
 ```
 
-The DSL's attribute design aligns closely with the attributes in the OOXML standard for Excel, facilitating bidirectional conversion between Excel formats.
+The DSL’s attribute design remains largely consistent with Excel’s settings in the OOXML standard, facilitating bidirectional conversion with the Excel format.
 
-## Leveraging Excel's Built-in Mechanisms for Visualization
+## Leveraging Excel’s Built-in Mechanisms to Achieve Visualization
 
-We can leverage Excel's built-in mechanisms to save extended model information, effectively transforming Excel into a report designer with visualization capabilities.
+We can utilize some of Excel’s built-in extension mechanisms to store extended model information, thereby turning Excel into a visual report designer.
 
 ```mermaid
 graph LR;
@@ -77,170 +77,164 @@ subgraph UI
 end
 
 DSL <-..-> UI
-
-
 ```
 
-1. Utilizing Cell Comments to Store Extended Model Information
+1. Use the cell’s Comment to store extended model information
 
-  
-  ![](xpt-report/cell-model-as-comment.png)
+![](xpt-report/cell-model-as-comment.png)
 
-2. Use separate Sheet pages to save extended model information
+2. Use a dedicated Sheet to store extended model information
    ![](xpt-report/model-as-sheet.png)
 
-**If Excel tools introduce a custom Schema mechanism, it can automatically implement format validation for extended models.**
+**If the Excel tool introduces a custom Schema mechanism, it can automatically perform format validation for the extended model.**
 
-**If all upstream and downstream tools satisfy the reversible computation principle, these tools can automatically achieve seamless integration.**
+**If all upstream and downstream tools adhere to the principles of Reversible Computation, these tools can automatically achieve seamless integration.**
 
-## II. Chinese-style Nonlinear Report Theory
+## II. Theory of Nonlinear Chinese-Style Reports
 
 ![](xpt-report/runqian-report.png)
 
-Mr. Jiang Buqing, founder of Rundu Company, invented the related theory of the nonlinear Chinese-style report model, which is a truly original technology in the report engine field. Subsequent business report companies such as Fansoft Report followed this Excel cell expansion design philosophy.
+Alumnus Jiang Buxing, founder of Runqian, invented the theory behind the nonlinear Chinese-style report model. It is a truly original technology in the field of report engines. Subsequent commercial report companies such as FanRuan have continued this Excel-like cell expansion design philosophy.
 
 ![](xpt-report/chinese-style-report.png)
 ![](xpt-report/nonlinear-report-model.png)
 
-> Nonlinear reports are defined relative to linear reports. Foreign Crystal Reports can only extend in one direction, with fixed columns, so they are classified as linear reports. Nonlinear reports, on the other hand, have complex tree-like nested relationships between rows and columns, no longer a simple linear layout.
+> Nonlinear reports are defined in contrast to linear reports. Foreign tools like Crystal Reports can only expand in a single direction, with the column direction generally fixed, which is why they are categorized as linear reports. In nonlinear reports, both rows and columns form complex, tree-like nested relationships, no longer a linear layout.
 
-NopReport provides an open-source implementation of the nonlinear report expansion algorithm, but its specific implementation details are inferred from the usage documentation of related report tools, not directly related to the original report tool's implementation plan.
+NopReport provides an open-source implementation of the nonlinear report expansion algorithm. However, its specific implementation details are inferred from the user documentation of related report tools and are not directly related to the original report tools’ implementations.
 
-## Execution Logic of Report Engine
+## Execution Logic of the Report Engine
 
-The functionality of NopReport is implemented in the [ReportEngine](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-entropy/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/ReportEngine.java) object. Its main work can be divided into the following three parts:
+NopReport’s functionality is implemented in the [ReportEngine](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/ReportEngine.java) object, and its main tasks can be divided into the following three parts:
 
-1. Parse: Extract the report model from xpt files or xpt.xlsx files
-   * [Parse Excel files to obtain ExcelWorkbook objects](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-ooxml/nop-ooxml-xlsx/src/main/java/io/nop/ooxml/xlsx/parse/ExcelWorkbookParser.java)
-   * [Convert ExcelWorkbook to report models](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/build/ExcelToXptModelTransformer.java)
-   * [Analyze cell parent-child relationships and initialize association information in the report model](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/build/XptModelInitializer.java)
-2. [Generate](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/ExpandedSheetGenerator.java): Dynamically expand the report model to generate ExpandedSheet
-   * [Expand](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/expand/TableExpander.java): Expand based on parent-child relationships first
-   * [Evaluate](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/ExpandedSheetEvaluator.java): Evaluate each cell's valueExpr to generate cell values and display text
-
-
-3. [Rendering](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/renderer/HtmlReportRendererFactory.java): Selects a different Renderer based on renderType to generate output files
+1. Parse: Parse the report model from xpt or xpt.xlsx files
+   - [Parse the Excel file to obtain an ExcelWorkbook object](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-ooxml/nop-ooxml-xlsx/src/main/java/io/nop/ooxml/xlsx/parse/ExcelWorkbookParser.java)
+   - [Convert ExcelWorkbook to the report model](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/build/ExcelToXptModelTransformer.java)
+   - [Analyze parent-child relationships among cells and initialize various relational information in the report model](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/build/XptModelInitializer.java)
+2. [Generate](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/ExpandedSheetGenerator.java): Dynamically expand based on the report model and generate an ExpandedSheet
+   - [Expand](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/expand/TableExpander.java): First perform expansion according to parent-child relationships
+   - [Evaluate](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/ExpandedSheetEvaluator.java): Execute each cell’s valueExpr to produce the cell value and display text
+3. [Render](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/renderer/HtmlReportRendererFactory.java): Choose different renderers based on renderType to generate output files
 
 ```mermaid
 graph LR
-    ReportEngine --> a1[/Parse/]
-    ReportEngine --> a2[/Generate/]
-    ReportEngine --> a3[/Render/]
-    a1 --> ExcelWorkbookParser
-    a1 --> ExcelToXptModelTransformer
-    a1 --> XptModelInitializer
+      ReportEngine --> a1[/Parse/]
+      ReportEngine --> a2[/Generate/]
+      ReportEngine --> a3[/Render/]
+      a1 --> ExcelWorkbookParser
+      a1 --> ExcelToXptModelTransformer
+      a1 --> XptModelInitializer
 
-    a2 --> TableExpander
-    TableExpander --> CellRowExpander
-    TableExpander --> CellColExpander
-    a2 --> ExpandedSheetEvaluator
+      a2 --> TableExpander
+      TableExpander --> CellRowExpander
+      TableExpander --> CellColExpander
+      a2 --> ExpandedSheetEvaluator
 
-    a3 --> HtmlReportRendererFactory
-    a3 --> XlsxReportRendererFactory
+      a3 --> HtmlReportRendererFactory
+      a3 --> XlsxReportRendererFactory
 
-    style a1 fill:#eecc00
-    style a2 fill:#eecc00
-    style a3 fill:#eecc00
+      style a1 fill:#eecc00
+      style a2 fill:#eecc00
+      style a3 fill:#eecc00
 ```
 
 ## Table Expansion
 
-The core technology of the nonlinear report engine lies in its table expansion algorithm. The basic idea is that **during parent cell expansion, all child cells are automatically recursively copied, while during child cell expansion, the parent cell's same row or column is automatically expanded**.
+The key technology of a nonlinear report engine is the expansion algorithm for the report template. The basic idea is: when a parent cell expands, it automatically recursively copies all child cells; when a child cell expands, it automatically extends the parent cells in the same row or the same column.
 
-> If a parent cell and an expanding cell are not in the same row or column, no expansion is needed.
+> If the parent cell and the expanding cell are not in the same row or the same column, the parent cell does not need to be extended.
 
-Detailed process:
+Specific process:
 
-1. Process each cell from top to bottom and left to right
-2. If a parent cell has not been expanded, expand it first
+1. From top to bottom, left to right, execute the expansion logic of cells sequentially.
+2. If the parent cell has not yet expanded, expand the parent cell first.
 
-The implementation code can be found in [TableExpander.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/expand/TableExpander.java)
+The implementation code is in [TableExpander.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/expand/TableExpander.java)
 
 ```java
 public void expand(IXptRuntime xptRt) {
-    do {
-        ExpandedCell cell = processing.poll();
-        if (cell == null)
+   do {
+      ExpandedCell cell = processing.poll();
+      if (cell == null)
             return;
 
-        if (cell.isRemoved() || cell.isExpanded())
+      if (cell.isRemoved() || cell.isExpanded())
             continue;
 
-        if (cell.getColParent() != null && !cell.getColParent().isExpanded()) {
+      if (cell.getColParent() != null && !cell.getColParent().isExpanded()) {
             processing.push(cell);
             processing.push(cell.getColParent());
             continue;
-        }
+      }
 
-        if (cell.getRowParent() != null && !cell.getRowParent().isExpanded()) {
+      if (cell.getRowParent() != null && !cell.getRowParent().isExpanded()) {
             processing.push(cell);
             processing.push(cell.getRowParent());
             continue;
-        }
+      }
 
-        getCellExpander(cell).expand(cell, processing, xptRt);
-    } while (true);
+      getCellExpander(cell).expand(cell, processing, xptRt);
+   } while (true);
 }
 ```
 
 ## Cell Expansion
 
-1. Run expandExpr to obtain expanded objects list
-2. Recycle the current cell as the first cell after expansion
-3. Then create n-1 copies using this cell as a template
-4. Expand the parent cell
+1. Run expandExpr to obtain the list of expansion objects
+2. Reuse the current cell as the first cell after expansion
+3. Then copy it n-1 times using this cell as the template
+4. Extend the parent cells
 
 ```javascript
 // CellRowExpander
-const expandList = runExpandExpr(cell, xptRt);
-cell.expandIndex = 0;
-cell.expandedValue = expandList[0];
+expandList = runExpandExpr(cell, xptRt)
+cell.expandIndex = 0
+cell.expandedValue = expandList[0]
 
-const expandCount = duplicate(expandedList, cell);
-expandCells(cell, expandCount);
+expandCount = duplicate(expandedList, cell)
+expandCells(cell, expandCount)
 ```
 
-Newly inserted cells need to establish parent-child relationships while maintaining all parent cells' rowDescendants collections. We adopted a space-for-time approach here.
+Newly inserted cells need to establish parent-child relationships, and care must be taken to maintain the rowDescendants collection for all parent cells. Here we adopt a space-for-time approach.
 
 ```java
-public void addRowChild(ExpandedCell cell) {
-    if (rowDescendants == null)
-        rowDescendants = new HashMap<>();
+    public void addRowChild(ExpandedCell cell) {
+        if (rowDescendants == null)
+            rowDescendants = new HashMap<>();
 
-    addToList(rowDescendants, cell);
+        addToList(rowDescendants, cell);
 
-    ExpandedCell p = rowParent;
-    while (p != null) {
-        if (p.rowDescendants == null)
-            p.rowDescendants = new HashMap<>();
-        addToList(p.rowDescendants, cell);
-        p = p.getRowParent();
+        ExpandedCell p = rowParent;
+        while (p != null) {
+            if (p.rowDescendants == null)
+                p.rowDescendants = new HashMap<>();
+            addToList(p.rowDescendants, cell);
+            p = p.getRowParent();
+        }
     }
-}
 ```
 
-* A row parent and its children do not necessarily reside in the same row, but a row parent will oversee a contiguous block containing all of its row children. **Children under different parents will never overlap; they will form a strict hierarchical tree structure**.
-* The logic for column parents is analogous.
+- Row parent cells and row child cells are not necessarily in the same row, but a row parent cell governs a contiguous region that contains all its row children. Regions under different parent cells do not intersect; they only nest, forming a strict tree structure.
+- Similarly, the logic for column parent cells is analogous.
 
-![xpt-report/expand-span.png](xpt-report/expand-span.png)
+![](xpt-report/expand-span.png)
 
-## Hierarchy Coordinates
+## Hierarchical Coordinates
 
-The concept of hierarchy coordinates, invented in the nonlinear reporting model theory, provides an efficient and precise way to access expanded cells. Using it can significantly simplify the expression of report computation logic.
-Common calculations like synchronized, gap analysis, etc., can be easily expressed using hierarchy coordinates.
+The concept of hierarchical coordinates, invented in the nonlinear report model theory, provides a precise and efficient way to access expanded cells, greatly simplifying the expression of report calculation logic. Common calculations such as year-over-year and month-over-month can be easily expressed using hierarchical coordinates.
 
 ```mermaid
 graph LR
-hierarchy coordinates --> ExpandedCellSet
+Hierarchical Coordinates --> ExpandedCellSet
 ```
 
-A hierarchy coordinate is equivalent to a selector. Through hierarchy coordinates, you can navigate and select sets of cells that meet conditions within the tree structure formed by parent-child cell groups.
+A hierarchical coordinate is essentially a selector. Through hierarchical coordinates, you can locate and select sets of cells that meet conditions within the tree structure composed of parent and child cells.
 
 ```
-Hierarchy coordinate format: CellName[rowCoordinates ; colCoordinates]
+Hierarchical coordinate format: CellName[rowCoordinates ; colCoordinates]
 ```
 
-![xpt-report/absolute-coord-value.png](xpt-report/absolute-coord-value.png)
+![](xpt-report/absolute-coord-value.png)
 
 ```mermaid
 graph RL
@@ -249,9 +243,9 @@ C1 --> B1
 A1 --> D1
 ```
 
-D1 is the rowParent of A1, so when A1 expands, D1 will automatically expand.
+D1 is A1’s rowParent, so when A1 expands, D1 will automatically extend.
 
-Hierarchy coordinates allow accessing sibling nodes using relative coordinates.
+Hierarchical coordinates can use relative coordinates to access sibling nodes.
 
 ```mermaid
 graph TD
@@ -267,38 +261,38 @@ A-1 --> B-10
 style B-10 fill:#eecc00
 ```
 
-Assuming the structure above, the coordinate `D[A:-1,B:1]` points to D-0:
-1. A:-1 indicates the previous A node, i.e., A-0
-2. B:1 indicates the first B node within the range of A-0, which is B-00
-3. It searches for D nodes within B-00 and finds D-0
+Assuming the parent-child structure above, in node B-10, the coordinate `D[A:-1,B:1]` points to node D-0
 
-## 3. Core Data Structure Explanation
+1. A:-1 indicates the previous A node relative to the current one, i.e., A-0
+2. B:1 indicates the first B node within the A-0 scope, i.e., B-00
+3. Find the D node within the B-00 scope, resulting in D-0
 
-## ExpandedCell: Core Data Structure in Nonlinear Report Expansion
+## III. Explanation of Core Data Structures
 
-In the algorithm for expanding cells in a nonlinear report, the ExpandedCell data structure plays a central role. Its design must support efficient insertion and copying, while ensuring that rows and columns are symmetric (all row-related operations can be directly translated into column operations).
+## Expanded Cell: ExpandedCell
 
+The core data structure in the cell expansion algorithm for nonlinear reports is ExpandedCell. Its design must support fast insertion and copying, and rows and columns occupy symmetric roles (all row-specific operations can be directly translated into column-specific operations).
 
 ```mermaid
 graph TD
 
-ExpandedCell --> a3[/Row and Column Relationship/]
-ExpandedCell --> a2[/Parent and Child Relationship/]
-ExpandedCell --> a1[/Value/]
-ExpandedCell --> a4[/Mergeable Cell/]
+ExpandedCell --> a3[/Row/Column Relations/]
+ExpandedCell --> a2[/Parent/Child Relations/]
+ExpandedCell --> a1[/Values/]
+ExpandedCell --> a4[/Merged Cells/]
 
-a2[/Parent and Child Relationship/] --> rowParent --> rowDescendants
-a2[/Parent and Child Relationship/] --> colParent --> colDescendants
+a2[/Parent/Child Relations/] --> rowParent --> rowDescendants
+a2[/Parent/Child Relations/] --> colParent --> colDescendants
 
-a3[/Row and Column Relationship/] --> right --> row
-a3[/Row and Column Relationship/] --> down --> col
+a3[/Row/Column Relations/] --> right --> row
+a3[/Row/Column Relations/] --> down --> col
 
 
-a1[/Value/] --expandExpr--> expandedValue
-a1[/Value/] --valueExpr--> value
-a1[/Value/] --formatExpr--> formattedValue
+a1[/Values/] --expandExpr--> expandedValue
+a1[/Values/] --valueExpr--> value
+a1[/Values/] --formatExpr--> formattedValue
 
-a4[/Mergeable Cell/] --> realCell
+a4[/Merged Cells/] --> realCell
 
 style a1 fill:#eecc00
 style a2 fill:#eecc00
@@ -308,62 +302,62 @@ style a4 fill:#eecc00
 
 ```java
 public class ExpandedCell implements ICellView {
-    ExpandedRow row;
-    ExpandedCol col;
+   ExpandedRow row;
+   ExpandedCol col;
 
-    ExpandedCell right;
-    ExpandedCell down;
-
-
-    // For mergeable cells, realCell is set to the top-left cell
-    ExpandedCell realCell;
-    int mergeDown;
-    int mergeAcross;
+   ExpandedCell right;
+   ExpandedCell down;
 
 
-    ExpandedCell rowParent;
-    ExpandedCell colParent;
+   // For merged cells, realCell points to the top-left cell
+   ExpandedCell realCell;
+   int mergeDown;
+   int mergeAcross;
 
-    // Recursively includes all child cells
-    Map<String, List<ExpandedCell>> rowDescendants = null;
-    Map<String, List<ExpandedCell>> colDescendants = null;
 
-    // Value calculated from expandExpr
-    Object expandedValue;
-    int expandedIndex;
+   ExpandedCell rowParent;
+   ExpandedCell colParent;
 
-    // Value calculated from valueExpr, executed after parent and child cells are fully expanded
-    Object value;
+   // Recursively contains all descendant cells
+   Map<String, List<ExpandedCell>> rowDescendants = null;
+   Map<String, List<ExpandedCell>> colDescendants = null;
 
-    // Value stored in memory, converted to displayable format using formatExpr when shown on the interface
-    Object formattedValue;
+   // Value computed by expandExpr
+   Object expandedValue;
+   int expandedIndex;
 
-    boolean removed;
+   // Value computed by valueExpr, executed after parent/child cells have been expanded
+   Object value;
 
-    // valueExpr has been evaluated, so value is available
-    boolean evaluated;
+   // value is the in-memory value; when displayed, formatExpr is executed to get the formatted value
+   Object formattedValue;
 
-    // Cache dynamic calculations related to cells
-    Map<String, Object> computedValues;
+   boolean removed;
+
+   // valueExpr has been executed; value is available
+   boolean evaluated;
+
+   // Cache for dynamic computations related to the cell
+   Map<String, Object> computedValues;
 }
 ```
 
-1. ExpandedCell exists simultaneously in Row and Column, maintaining symmetry between row and column
-2. Uses down and right to form two one-way lists
-3. For merged cells, an placeholder cell is inserted, pointing to the top-left cell via realCell
-4. Maintains parent-child relationships for rows and columns separately
+1. ExpandedCell exists simultaneously in Row and Col; rows and columns are symmetrical.
+2. Form two singly linked lists via down and right.
+3. For merged cells, insert cell placeholders and use realCell to point to the top-left cell.
+4. Rows and columns each maintain their own parent-child relationships.
 
-NopReport distinguishes between expandedValue, value, and formattedValue
+NopReport distinguishes between expandedValue, value, and formattedValue:
 
-1. expandedValue is the result of expandExpr, computed during the expansion of parent and child cells. Since the hierarchy is not yet established at this stage, it cannot be used to access other cells via the hierarchy
-2. After parent and child cells are fully expanded, valueExpr can be used to compute the cell's value. During computation, other cells' values can be accessed using the hierarchy. If no valueExpr is provided, value = expandedValue
-3. The cell's value is formatted for display by applying formatExpr if configured, resulting in formattedValue
+1. expandedValue is the result computed by expandExpr, i.e., the value obtained during the expansion of parent-child cells. At the time expandExpr is executed, the hierarchical coordinate system has not yet been established, so you cannot use hierarchical coordinates to access other cells.
+2. After parent and child cells have finished expanding, valueExpr can be used to compute the cell’s value. During computation, other cells’ values can be accessed via hierarchical coordinates. If valueExpr is not specified, then value = expandedValue.
+3. When the cell’s value is displayed as text, formatExpr will be executed if configured, and formattedValue = value.
 
 ## Dynamic Dataset: DynamicReportDataSet
 
-In report engines, the most common data type used by users is the dataset, typically fetched via JDBC as a list of data. NopReport provides the DynamicReportDataSet structure to simplify the report engine's use of table data.
+The data type most commonly used by users in a report engine is the dataset, typically read via JDBC as a list. NopReport provides the DynamicReportDataSet structure to simplify the engine’s use of tabular data.
 
-See code at [DynamicReportDataSet.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/dataset/DynamicReportDataSet.java)
+See [DynamicReportDataSet.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/dataset/DynamicReportDataSet.java)
 
 ```mermaid
 graph LR
@@ -375,26 +369,26 @@ DynamicReportDataSet --> a3[field]
 style a1 fill:#eecc00
 ```
 
-1. DynamicReportDataSet provides numerous collection selection and operation functions such as group/groupBy/where/filter/sort/field/select/sum/max/min等.
-2. Its computation results are closely related to the current cell, and it retrieves the current cell based on xptRt.cell, then obtains the intersection of the expandedValue from its parent cell to get the data set being processed.
-3. The current() function implements dynamic lookup of the available data list.
+1. DynamicReportDataSet offers a large number of collection selection and computation functions such as group/groupBy/where/filter/sort/field/select/sum/max/min.
+2. Its computation results are closely related to the current cell; it retrieves the current cell via xptRt.cell, then intersects with the parent cell’s expandedValue to obtain the data set currently being processed.
+3. The current() function performs dynamic lookup to obtain the currently available data list.
 
-> Configuration like `ds=ds1, expandType=r, field=xxx` is equivalent to `expandType=r, expandExpr=ds1.group("xxx")`, which sets the expandedValue of the expanded cell to the grouped and aggregated sub-data set.
+> A configuration like ds=ds1, expandType=r, field=xxx is effectively equivalent to expandType=r,expandExpr=ds1.group("xxx"), which will set the expandedValue of the expanded cell to the grouped-and-aggregated child dataset.
 >
-> A cell may simultaneously have row parent and column parent. When executing functions like ds1.field(name), it will take the intersection of the sub-data sets from both row parent and column parent, resulting in a list of currently visible data sets before performing any operations.
+> A cell may simultaneously have both a row parent and a column parent. When executing a function like ds1.field(name), it will take the intersection of the child datasets from the row and column parents to obtain the currently visible list, and then perform the corresponding operation.
 
-## Context for Reports: XptRuntime
+## Report Context: XptRuntime
 
 ```mermaid
 graph LR
 
 XptRuntime --> scope
-XptRuntime --> var[/built-in variables/]
+XptRuntime --> var[/Built-in variables/]
 var --> cell
 var --> row
 var --> sheet
 var --> workbook
-XptRuntime --> helpFn[/helper functions/]
+XptRuntime --> helpFn[/Helper Functions/]
 helpFn --> a1[getNamedCell]
 helpFn --> a2[getNamedCellSet]
 helpFn --> a3[incAndGet]
@@ -403,97 +397,98 @@ style var fill:#eecc00
 style helpFn fill:#eecc00
 ```
 
-XptRuntime records the currently processing cell during the expansion algorithm execution, allowing the use of relative hierarchical coordinates in expressions.
+During the execution of the report expansion algorithm, XptRuntime records the cell currently being processed, allowing expressions to use relative hierarchical coordinates to locate cells.
 
-XptRuntime also provides some functions using relative coordinates, such as getNamedCells(cellName), which returns all visible cells generated by the specified template cell in the current cell's context. Here, "visible" refers to belonging to the same nearest parent cell.
+XptRuntime also provides some functions that use relative coordinates, for example, getNamedCells(cellName) returns all cells generated by the specified template cell that are visible to the current cell. Here, “visible” means belonging to the same nearest parent cell.
 
-## Four. Design of Report Expression Engine
+## IV. Design of the Report Expression Engine
 
-The expression engine within the report needs to introduce hierarchical coordinate syntax to simplify data retrieval logic.
+Expressions in the report engine need to incorporate hierarchical coordinate syntax to simplify data access logic.
 
-NopReport's ReportExpr is fully based on the built-in XScript expression engine, retaining the ability to call object methods and define local functions while avoiding the need for special programmatic syntax in the expression language. See [ReportExpressionParser.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/expr/ReportExpressionParser.java)
+NopReport’s ReportExpr is fully based on extensions to the built-in XScript expression engine, thus retaining the capabilities of object method invocation and local function definition. Additionally, by using Lambda expressions, it avoids introducing special programming syntax into the expression language. See [ReportExpressionParser.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/expr/ReportExpressionParser.java)
 
-**Unlike general report engines, NopReport's expression engine does not contain any built-in knowledge about data sets**
+**Unlike typical report engines, NopReport’s expression engine does not embed any knowledge about datasets.**
 
-> In early report engines, function programming concepts were not prevalent during development, so special syntax was often introduced in the expression engine to support data set transformations and filters. However, with the availability of map、filter、flatMap、reduce等 collection functions, similar functionality no longer requires special syntax. This also simplifies the implementation of the expression engine.
+> When earlier report engines were developed, functional programming concepts were not yet widespread, so special syntax was often introduced into the expression engine to support dataset transformation and filtering. Nowadays, similar functionality can be achieved using collection functions such as map, filter, flatMap, and reduce, making special syntax unnecessary and simplifying the implementation of the expression engine.
 
-## Simplified via Interface
+## Simplification via Interfaces
 
 ```mermaid
 graph LR
 
- Hierarchical Coordinate --> a[ExpandedCellSet]
+ Hierarchical Coordinates --> a[ExpandedCellSet]
 
  a[ExpandedCellSet] --> iterator
  a[ExpandedCellSet] --> value
 ```
 
-1. Expressions like `A1`, `A1:B5`, and `A3[A2:-1]` will return an [ExpandedCellSet](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/model/ExpandedCellSet.java) object at runtime.
+1. Hierarchical coordinate expressions like `A1`, `A1:B5`, and `A3[A2:-1]` return an [ExpandedCellSet](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/model/ExpandedCellSet.java) object at runtime.
 
-2. ExpandedCellSet implements the Iterable<Object> interface and can be treated as a value set, allowing it to be uniformly handled like a standard list during programming. See the implementation of Excel functions in [ReportFunctions.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/functions/ReportFunctions.java).
+2. ExpandedCellSet implements the `Iterable<Object>` interface and can be treated as a collection of values. In programming, it can be processed uniformly like a regular list of values. See the Excel function implementations in [ReportFunctions.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/functions/ReportFunctions.java).
 
 ```java
 public static Number SUM(@Name("values") Object values) {
-    if (values == null)
-        return null;
+   if (values == null)
+      return null;
 
-    Iterator<Object> it = CollectionHelper.toIterator(values, true);
-    Number ret = 0;
+   Iterator<Object> it = CollectionHelper.toIterator(values, true);
+   Number ret = 0;
 
-    while (it.hasNext()) {
-        Object value = it.next();
-        if (!(value instanceof Number))
+   while (it.hasNext()) {
+      Object value = it.next();
+      if (!(value instanceof Number))
             continue;
-        ret = MathHelper.add(ret, value);
-    }
-    return ret;
+      ret = MathHelper.add(ret, value);
+   }
+   return ret;
 }
 ```
 
-3. For expressions like `A3 + 2 > B5`, the compiler identifies the hierarchical coordinates and converts them into `A3.value + 2 > B5.value`. The ExpandedCellSet defines a getValue method to retrieve the value of the first cell in the collection.
+3. For an expression like `A3 + 2 > B5`, the compiler will recognize hierarchical coordinates and transform it into `A3.value + 2 > B5.value`. ExpandedCellSet defines the getValue method, which returns the value of the first cell in the set.
 
 ```java
-@Override
-public Object getValue() {
-    if (cells.isEmpty())
-        return null;
-    ExpandedCell cell = cells.get(0);
-    return cell.getValue();
-}
+    @Override
+    public Object getValue() {
+        if (cells.isEmpty())
+            return null;
+        ExpandedCell cell = cells.get(0);
+        return cell.getValue();
+    }
 ```
 
-## Function Definitions
+## Function Definition
 
-* Register global functions with [ReportFunctionProvider](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/functions/ReportFunctionProvider.java) in the report engine.
+- Register global functions in the report engine via [ReportFunctionProvider](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/functions/ReportFunctionProvider.java).
 
-* NopReport does not define any special function interfaces. Any Java static method can be registered as an expression function. However, functions designed for report engines in general cannot be used outside of the report engine. Writing them also requires certain conventions and knowledge of the report engine to ensure compatibility.
+- NopReport does not define any special function interfaces; any Java static function can be registered as an expression function. In contrast, functions defined by typical report engines are designed specifically for the engine, are not reusable outside it, and must be written according to certain conventions, requiring knowledge of the report engine.
 
-* The built-in functions are located in [ReportFunctions.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/functions/ReportFunctions.java).
+- Currently built-in functions can be found in [ReportFunctions.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/functions/ReportFunctions.java)
 
 ## Performance Optimization
 
-* NopReport does not use the POI library, nor does it rely on XML parsers. Instead, it manually implements a set of tools for parsing and generating Excel files in a stream-like manner, avoiding the complexity and performance overhead associated with the POI library. This also significantly reduces runtime code size.
+- NopReport does not use the POI library; even the XML parser is hand-implemented. It provides a custom streaming parsing and generation toolset for Excel files, avoiding the complexity and performance overhead of the POI library and drastically reducing runtime code size.
 
-* Since the report is implemented as pure functional computation, the results of expressions can be cached. The ExpandedCell provides a caching collection that can be used to:
+- Report expansion is purely functional, so expression results can be cached. ExpandedCell provides a cache collection and can be used as follows:
 
 ```java
-ExpandedCell firstCell = xptRt.getNamedCell(cellName);
-// Utilize the computed properties of the first cell to cache summary results
-Number sum = (Number) firstCell.getComputed(XptConstants.KEY_ALL_SUM,
-        c -> SUM(xptRt.getNamedCellSet(cellName)));
+   ExpandedCell firstCell = xptRt.getNamedCell(cellName);
+   // Use the computed attributes of the first cell to cache the aggregation result
+   Number sum = (Number) firstCell.getComputed(XptConstants.KEY_ALL_SUM,
+            c -> SUM(xptRt.getNamedCellSet(cellName)));
+```
 
-Specific examples can be seen in the implementation of the PROPORTION function in [ReportFunctions.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/functions/ReportFunctions.java).
+Concrete examples can be found in the implementation of functions such as PROPORTION in [ReportFunctions.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/functions/ReportFunctions.java).
 
-## Five. Scalable Design
+## V. Extensible Design
 
-Unlike general report engines, NopReport does not introduce any additional plugin mechanisms or SPI service interface mechanisms. Instead, it leverages the built-in Delta customization capabilities of the Nop platform and the XPL template language to achieve a level of scalability that other engines cannot match.
+Unlike typical report engines, NopReport does not introduce any additional plugin mechanism, nor does it design an SPI service provider interface. Leveraging the Nop platform’s built-in Delta customization capability and the XPL template language, it achieves extensibility beyond other engines.
 
-1. The Report DSL design supports XPL template language in numerous configurations, such as `beginLoop` and `beforeExpand`
-2. In the XPL section, you can use the `<c:import>` tag to import external template libraries, which can be customized using the Delta customization mechanism
-3. In the XPL section, you can import Java classes via `import` statements and inject beans from the IoC container using the `inject(beanName)` function
-4. Any static Java functions can be registered as reportable functions through `ReportFunctionProvider`
+1. The report DSL extensively supports the XPL template language in configurations such as beginLoop and beforeExpand.
+2. In xpl sections, you can use the `<c:import>` tag to include external template libraries, which can be customized via the Delta mechanism.
+3. In xpl sections, you can import Java classes via import statements and inject beans from the IoC container using `inject(beanName)`.
+4. Via ReportFunctionProvider, you can register any Java static function as a function usable in report expressions.
 
-For example, you can use the `spl.xlib` tag library to import the Ruanqian SPL calculation engine to compute the dataset.
+For example, you can include the Runqian SPL computation engine via the spl.xlib tag library to obtain datasets.
 
 ```xml
 <beforeExpand>
@@ -508,9 +503,9 @@ For example, you can use the `spl.xlib` tag library to import the Ruanqian SPL c
 </beforeExpand>
 ```
 
-**With the IoC container and template language, additional plugin mechanisms are generally no longer required**. Even complex extension mechanisms like remote loading of Jar packages and dynamic initialization of beans can be handled by importing libraries via Xpl tag libraries and calling them to hide all underlying complexity.
+**With an IoC container and a template language, there is generally no need to design additional plugin mechanisms.** Even complex extension mechanisms such as remotely loading JARs and dynamically initializing beans can be introduced via the Xpl tag library, with tag calls abstracting away all underlying complexity.
 
-## Data Import Modeling
+## Model-based Data Import
 
 ```mermaid
 graph LR
@@ -518,7 +513,7 @@ graph LR
 ImportExcelParser --> TreeTableDataParser --> ImportDataCollector --> DynamicObject
 ```
 
-The `ImportExcelParser` will analyze the layout of cells in an ExcelWorkbook, identify a Tree structure based on common rules, and resolve it into objects.
+ImportExcelParser analyzes the layout of cells within the ExcelWorkbook and identifies tree structures according to general rules, parsing them into objects.
 
 ```mermaid
 graph LR
@@ -526,13 +521,14 @@ graph LR
 ExcelTemplateToXptModelTransformer --> TreeTableDataParser --> BuildXptModelListener --> XptModel
 ```
 
-The `ExcelTemplateToXptModelTransformer` analyzes the structure of an ExcelWorkbook and automatically converts it into a report model.
+ExcelTemplateToXptModelTransformer analyzes the structure of the ExcelWorkbook and automatically converts it into a report model.
 
-Based on reversible computation theory, the low-code platform NopPlatform has been open-sourced:
+The low-code platform NopPlatform, designed based on Reversible Computation theory, is open-sourced:
 
-- GitHub: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- Gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
-- Development Examples: [https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- Documentation Entry: [https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/index.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/index.md)
-- Theory Introduction: [https://zhuanlan.zhihu.com/p/64004026](https://zhuanlan.zhihu.com/p/64004026)
-- Reversible Computation Theory and Nop Platform Introduction & Q&A: [https://www.bilibili.com/video/BV14u411T715/](https://www.bilibili.com/video/BV14u411T715/)
+- gitee: https://gitee.com/canonical-entropy/nop-entropy
+- github: https://github.com/entropy-cloud/nop-entropy
+- Development examples: https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md
+- Documentation index: https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/index.md
+- Theoretical introduction: https://zhuanlan.zhihu.com/p/64004026
+- Reversible Computation principles and Nop Platform introduction and Q&A: https://www.bilibili.com/video/BV14u411T715/
+<!-- SOURCE_MD5:f5dfecebaa7776ac4717b00982efb59c-->

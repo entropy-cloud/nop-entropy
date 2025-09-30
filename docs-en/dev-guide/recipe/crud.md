@@ -1,22 +1,23 @@
-# CRUD Related
 
-## 1. Passing Fields That Do Not Exist on the Entity to the Backend
+# CRUD-related
 
-In the `meta` section, add a `prop` and set its `virtual` attribute to `true`. This indicates that it is a virtual field and will not be automatically copied to the entity.
+## 1. Pass fields not present on the entity to the backend
 
-If reading is not allowed, you need to configure `published="false"` so that queries from the backend will not attempt to read this property.
+Add a prop in meta and set its virtual attribute to true to mark it as a virtual field; it will not be automatically copied onto the entity.
+
+If reading is not allowed, configure published=false; then when querying the backend, this property will not be read from the entity.
 
 ```xml
 <meta>
   <props>
     <prop name="myProp" published="false" virtual="true">
-      <schema stdDomain="string" />
+        <schema stdDomain="string" />
     </prop>
   </props>
 </meta>
 ```
 
-The backend can access `myProp` via `entityData`.
+On the backend, you can read it via entityData
 
 ```java
 class MyEntityBizModel extends CrudBizModel {
@@ -24,82 +25,56 @@ class MyEntityBizModel extends CrudBizModel {
     public MyEntity myMethod(@Name("data") Map<String, Object> data, IServiceContext ctx) {
         return doSave(data, null, (entityData, ctx) -> {
             String myProp = (String) entityData.getData().get("myProp");
-            // ...
+            //...
         }, ctx);
     }
 }
 ```
 
-## 2. Executing an Action After a Transaction is Successfully Committed
+## 2. Execute an operation after a transaction commits successfully
 
-Use the `ITransactionTemplate.afterCommit` method.
+Use the ITransactionTemplate.afterCommit(null, action) function.
 
-The `CrudBizModel` has been injected with `transactionTemplate`, which can be accessed via `this.txn()`. 
+CrudBizModel already has a transactionTemplate injected; you can use it via this.txn().
 
-```java
-class MyEntityBizModel extends CrudBizModel {
-    @BizMutation
-    public MyEntity myMethod(@Name("data") Map<String, Object> data, IServiceContext ctx) {
-        return doSave(data, null, (entityData, ctx) -> {
-            // ...
-        }, ctx);
-    }
-}
-```
+## 3. Extend CrudBizModel's built-in save/update operations to add business-specific handling
 
-## 3. Extending Built-in save/update Operations and Adding Business Logic
-
-For small updates that only affect a few fields:
-- Use a custom `Bean` as the parameter.
-- Call `dao().save(entity)` directly.
-
-However, for handling a large number of fields or future expansions where custom logic is needed:
-- Avoid using custom `JavaBean` as parameters.
-- Instead, use built-in methods like `doSave`.
+If only a small number of fields need to be updated, in principle you can use a custom bean as the parameter and call dao().save(entity) directly.
+However, if you need to accept a large number of fields, anticipate future extensions that need to be saved, and require customized processing logic during saving, then do not use a custom JavaBean as the parameter; instead, use built-in functions such as doSave.
 
 ```javascript
-@BizMutation
-@GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
-@BizMakerChecker(tryMethod = METHOD_TRY_SAVE)
-public MyEntity my_save(@Name("data") Map<String, Object> data, IServiceContext context) {
-    FieldInputSelection inputSelection = getObjMeta().getFieldSelection("my_selectio");
-    return doSave(data, inputSelection, this::myPrepareSave, context);
-}
+    @BizMutation
+    @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
+    @BizMakerChecker(tryMethod = METHOD_TRY_SAVE)
+    public MyEntity my_save(@Name("data") Map<String, Object> data, IServiceContext context) {
+        // If you need to restrict receiving only certain fields, you can configure this in meta. If there is no special restriction, set inputSelection to null.
+        FieldInputSelection inputSelection = getObjMeta().getFieldSelection("my_selectio");
+        return doSave(data, inputSelection, this::myPrepareSave, context);
+    }
 ```
 
-* **`inputSelection` parameter**: Used to limit which fields are accepted from the frontend.
-* **`prepareSave` callback**: Used for custom business logic before saving.
+* The inputSelection parameter can be used to restrict which parameters from the frontend are accepted
+* The prepareSave callback can be used to customize additional business logic executed before the entity is actually saved
 
-## 4. Querying with Required Parameters
 
-Set `queryMandatory` or `queryForm.cell` to `mandatory` in `propMeta`.
+## 4. Require parameters to be mandatory in queries
+You can configure ui:queryMandatory on propMeta, or set mandatory on the cells of the query form.
 
-```xml
-<meta>
-  <props>
-    <prop name="myProp">
-      <ui:queryMandatory />
-    </prop>
-  </props>
-</meta>
-```
+## 5. Automatically set properties on the entity
 
-## 5. Automatically Setting Entity Properties
+### Automatically set default values on ORM save
+1. If defaultValue is set in the Excel data model, when creating a new entity, if the field is not set, it will be automatically populated with the default value.
+2. On save, if a field is required to be non-null but the current value is null, it will also be set to the default value.
+3. On save, if a field's current value is null and it has the seq tag, a sequence number will be automatically generated and set on the entity.
 
-### ORM save with Default Values
-
-1. Set `defaultValue` in the Excel data model. If a field is not set when creating an entity, it will be assigned the default value.
-2. When saving, if a field is required but its value is `null`, it will be set to the default value.
-3. If a field has a `seq` attribute and its value is `null`, a sequence number will be generated and assigned.
-
-### OrmEntityCopier for Copying Data
-
-Use `OrmEntityCopier` from the XMeta layer if you need to copy data from one entity to another automatically.
-
+### OrmEntityCopier executes autoExpr configured in XMeta
+At the XMeta level, if a prop is configured with autoExpr, then when the frontend does not submit this property, autoExpr will be executed automatically to set it.
 ```xml
 <prop name="orderNo">
   <autoExpr when="save">
-    <app:GenOrderNo />
+    <app:GenOrderNo/>
   </autoExpr>
 </prop>
 ```
+
+<!-- SOURCE_MD5:e040ec6c26c5cbc7bfa9b4ad0b96f439-->

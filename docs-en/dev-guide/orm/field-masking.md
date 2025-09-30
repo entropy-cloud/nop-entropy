@@ -1,26 +1,26 @@
 # Field Masking
 
-Due to security considerations, some sensitive user information should not be printed to the log file. When returning data to the frontend, such information also requires masking, as it cannot display all content. Only the first few digits or the last few digits can be shown, depending on the case.
-For example, credit card numbers and phone numbers.
+For security reasons, certain sensitive user information must not be printed to log files. When returned to the front end for display, it also needs to be masked: it should not show the full content, only the first few and last few characters, etc., such as credit card numbers and users’ phone numbers.
 
-## Adding Masked Tags in Excel Models
+## Add the masked tag to columns in the Excel model
 
-In the data model, masked tags are annotated, which will be generated into the app.orm.xml model file. When the ORM engine prints SQL statements, all fields with masked tags are displayed as ***XX instead of their actual values.
+Masked tags annotated in the data model will be generated into the app.orm.xml model file. When the ORM engine prints SQL statements, all fields with the masked tag are shown as \*\*\*XX.
 
-> nop.core.default-masking-keep-chars can be used to control the number of characters displayed in the default masking scenario, with a default value of 2.
+> nop.core.default-masking-keep-chars controls how many trailing characters are shown under the default masking; the default is 2
 
-## Configuring Masked Fields in Meta
+## Configure ui:maskPattern for the prop in meta to control the number of leading and trailing characters displayed
 
-By adding `ui:maskPattern` to the property in meta:
 ```xml
 <prop name="email" ui:maskPattern="3*4">
     
 </prop>
 ```
 
-`ui:maskPattern="3*4"` indicates that the first 3 digits and the last 4 characters should be shown, with other characters replaced by *.
+`ui:maskPattern="3*4"` means keep the first 3 and the last 4 characters, replacing the others with \*.
 
-## Program Control
+## Programmatic control
 
-* In Java code, masking can be performed using `StringHelper.maskPattern(text, "3*4")`.
-* In sql-lib, masking can be represented as `${masked(cardNo)}`. The masked function will wrap the value in a MaskedValue object, and when the framework prints it to the log file, it will automatically apply the masking.
+* In Java code, you can call StringHelper.maskPattern(text,"3\*4") to perform masking.
+* In sql-lib, you can use `${masked(cardNo)}` to indicate an SQL parameter that needs masking. The masked function will wrap the value into the MaskedValue type; with this in place, when the framework prints it to the log file, it will automatically be masked
+
+<!-- SOURCE_MD5:1e86eeefe36f9c33131e20bf65ce05f7-->

@@ -1,14 +1,14 @@
-# From Tensor to Low-Code Platform Design
+# Designing Low-Code Platforms Through the Lens of Tensor Products
 
-In software design, one of the fundamental problems is scalability. A basic strategy for handling scalability is to treat new elements as new dimensions and analyze their interactions with existing dimensions.
+A fundamental problem in software design is scalability. A basic strategy for handling scalability is to treat new sources of variation as new dimensions and then examine the interactions between these dimensions and existing ones.
 
-For example, when dealing with the Order object in the OrderProcess logic, if this is to be released as a SaaS product, a tenant dimension must be added. In the simplest case, the tenant is just an additional filter field at the database level, allowing it to remain relatively independent of the business logic (tenant-related logic remains separate from specific business process handling).
+For example, suppose we have implemented an OrderProcess for the Order object. If we release it as a SaaS product, we need to add a tenant dimension. In the simplest case, the tenant is merely a filter field at the database layer, i.e., the tenant dimension is relatively independent and its introduction does not affect the specific business processing logic (tenant-related logic is independent of specific business processes and can be defined and addressed uniformly at the storage layer).
 
-However, for more complex scalability requirements, each tenant may need its own customized business logic. At this point, the tenant dimension can no longer remain independent; it must interact with other technical dimensions. This document will present an inspired view that compares this type of scalability problem to tensor space through tensor multiplication and combines reversible computation theory to provide a unified solution for such scalability issues.
+However, in more complex scenarios, each tenant may have customized business logic. In this case, the tenant dimension cannot remain independent and must necessarily interact with other business and technical dimensions. This article introduces a heuristic perspective that likens tenant-based extensions—and other common scalability issues—to the expansion of tensor spaces via tensor products. Combined with Reversible Computation theory, it provides a unified technical solution for such extensibility problems.
 
-## 1. Linear Systems and Vector Spaces
+## I. Linear Systems and Vector Spaces
 
-In mathematics, the simplest class of systems is the linear system, which follows the additive rule:
+The simplest systems in mathematics are linear systems, which satisfy the principle of linear superposition:
 
 $$
 f(\lambda_1 v_1 + \lambda_2 v_2) = \lambda_1 f(v_1) + \lambda_2 f(v_2)
@@ -17,216 +17,201 @@ $$
 We know that any vector can be decomposed into a linear combination of basis vectors:
 
 $$
-\mathbf{v} = \sum_i \lambda_i \mathbf{e}_i
+\mathbf v = \sum_i \lambda_i \mathbf e_i
 $$
 
-Therefore, the action of a linear function on a vector space is inherently simple and is entirely determined by its values on the basis vectors:
+Therefore, linear functions acting on vector spaces are fundamentally simple in structure: they are completely determined by the function’s values on the basis vectors.
 
 $$
-f(\mathbf{v}) = \sum_i \lambda_i f(\mathbf{e}_i)
+f(\mathbf v) = \sum_i \lambda_i f(\mathbf e_i)
 $$
 
-Knowing the values of $f$ on all basis vectors allows direct computation of $f$ for any vector in the space spanned by $\{\mathbf{e}_i\}$.
+As long as we know the function f’s values on all basis vectors, $f(\mathbf e_i)$, we can directly compute f’s value at any vector in the span of $\mathbf e_i$.
 
-Following the spirit of mathematics, if a mathematical property is well-defined, we can define the corresponding mathematical object (mathematical properties define objects, not the other way around). In the software framework domain, if we actively require the framework to satisfy the additive rule, its design should reflect that.
+In the spirit of mathematics, if a mathematical property is desirable, we define the objects of study directly under that property as a premise (mathematical properties define mathematical objects, rather than objects merely possessing certain properties). Translating this into software framework design: if we deliberately require a framework to satisfy linear superposition, what should its design look like?
 
-From a less mathematical perspective, let's reconsider the meaning of a linear system:
+First, we need to re-examine the meaning of linear systems from a less mathematical perspective.
 
-1. $f(\mathbf{v})$ can be seen as an operation on a structured object.
-2. $\mathbf{v} = \sum_i \lambda_i \mathbf{e}_i$ decomposes the vector into components.
-3. Some parameters are fixed (like $\mathbf{e}_i$), while others vary with each request ($\lambda_i$).
+1. $f(\mathbf v)$ can be viewed as performing an operation on a parameter object with complex structure.
 
-For example, when processing a specific request:
+2. $\mathbf v = \sum_i$ volatile parameter × identifying parameter. Some parameters are relatively fixed and serve a distinctive identifying role, while others are volatile and vary from request to request.
 
-$$
-request = \{ obj1: data1, obj2: data2, ... \}
-$$
+3. f first acts on the identifying parameters (this action’s result can be predetermined), obtains a computation result, and then combines this result with the other parameters.
 
-Expressed as a vector:
+A concrete example: a frontend submits a request that triggers operations on a set of backend objects.
 
 $$
-request = data1* \mathbf{obj1} + data2* \mathbf{obj2} + ...
+request = \{ obj1：data1, obj2: data2, ... \}
 $$
 
-When studying all possible requests, we observe that all requests form a vector space, with each $objName$ corresponding to a basis vector.
-
-The backend framework's logic corresponds to:
+Rewriting in vector form:
 
 $$
-process(request) = data1* route(\mathbf{obj1}) + data2* route(\mathbf{obj2}) + ...
+request = data1* \mathbf {obj1} + data2* \mathbf {obj2} + ...
 $$
 
-This translates to:
+When we study all possible requests, we find that they form a vector space, and each objName corresponds to a basis vector in that space.
+
+The backend framework’s processing logic corresponds to:
 
 $$
-process(request) = route(\mathbf{obj1}).handle(data1) + route(\mathbf{obj2}).handle(data2) + ...
+\begin{aligned}
+process(request) &= data1* route(\mathbf {obj1}) + data2* route(\mathbf {obj2}) + ...\\
+&= route(\mathbf {obj1}).handle(data1) + route(\mathbf {obj2}).handle(data2) + ...
+\end{aligned}
 $$
 
-Here, we need to note that $\lambda_i f(\mathbf{e}_i)$ essentially becomes $\langle \lambda_i, f(\mathbf{e}_i)\rangle$, meaning the combination of $λ_i$ and $f(𝑒_𝑖)$ is not necessarily simple multiplication but can be seen as an inner product in software terms, leading to a function call.
+The framework ignores the volatile data parameters and first acts on the object-name parameter; it routes to a specific handler based on the object name, then invokes that handler with the data parameter.
 
-## 2. Tensor Product and Tensor Space
+> Note that $\lambda_i f(\mathbf e_i)$ is essentially $\langle \lambda_i, f(\mathbf e_i)\rangle$: the combination of parameters with $f(\mathbf e_i)$ need not be simple scalar multiplication; it can be generalized to the result of an inner product operation. In code, this manifests as a function call.
 
-In mathematics, one basic problem is how to construct complex structures from simpler ones. The tensor product ($\text{Tensor Product}$) provides a natural way to build larger mathematical structures from smaller ones. It is defined as follows:
+## II. Tensor Products and Tensor Spaces
 
-Given two vector spaces $A$ and $B$, their tensor product $A \otimes B$ consists of all bilinear forms $u \otimes v$ where $u \in A$ and $v \in B$. The tensor product is a natural extension of the inner product, providing a way to construct more complex mathematical structures.
+In mathematics, a basic question is how to automatically construct larger, more complex structures from smaller, simpler ones. The concept of the tensor product is a natural result of such automated constructions (this naturality has a precise definition in category theory).
 
-The process begins with smaller vector spaces and builds up through successive tensor products. For example:
+First, consider a generalization of linear functions: multilinear functions.
 
-1. $\mathbb{R} \otimes \mathbb{R}$ is the set of all bilinear forms on $\mathbb{R}^2$.
-2. $\mathbb{R}^2 \otimes \mathbb{R}^2$ consists of all $2 \times 2$ matrices.
-3. $\mathbb{R}^n \otimes \mathbb{R}^m$ corresponds to the space of $n \times m$ matrices.
+$$
+f(\lambda_1 u_1+\lambda_2 u_2,v) = \lambda_1 f(u_1,v) + \lambda_2 f(u_2,v) \\
+f(u,\beta_1 v_1+ \beta_2 v_2) = \beta_1 f(u,v_1) + \beta_2 f(u,v_2)
+$$
 
-The tensor product is perhaps the most natural way to construct composite mathematical structures and has precise definitions in various mathematical theories, ensuring that such constructions are well-defined and valid across different spaces.
+A linear function acting on a vector space can be regarded as a single-argument function: it receives a vector and produces a value. Analogously, multilinear functions have multiple parameters, each corresponding to a vector space (which can be seen as an independent dimension of variation). When fixing one parameter (e.g., fixing u and varying v, or fixing v and varying u), multilinear functions satisfy the linear superposition principle. Like linear functions, the values of multilinear functions are determined by their values on basis vectors:
 
-Mathematically, if we have linear maps between vector spaces, their tensorization provides a way to lift these maps to higher-dimensional spaces. This process is fundamental in many areas of mathematics and theoretical physics, as it allows the construction of more complex structures from simpler ones while preserving certain properties.
+$$
+f(\sum_i \lambda_i \mathbf u_i,\sum_j \beta_j \mathbf v_j)= 
+\sum_{ij} \lambda_i \beta_j f(\mathbf u_i,\mathbf v_j)
+$$
 
-Here’s how the process unfolds:
+$f(\mathbf u_i,\mathbf v_j)$ is essentially equivalent to passing in a tuple:
 
-1. Start with basic spaces like $\mathbb{R}^n$.
-2. Apply tensor products to combine these spaces into higher-dimensional structures.
-3. Define linear maps on these combined spaces by "tensorizing" the original maps.
+$$
+f(\mathbf u_i, \mathbf v_j)\cong f(tuple(\mathbf u_i,\mathbf v_j)) \cong f(\mathbf u_i\otimes  \mathbf v_j )
+$$
 
-This approach is particularly useful in quantum mechanics, where operators and states are represented as tensors, allowing for a consistent framework to describe complex systems.
+That is, we can forget that f is a multi-parameter function and view it as a single-parameter function receiving the complex parameter $\mathbf u_i \otimes \mathbf v_j$. Returning to the original multilinear function $f(\mathbf u,\mathbf v)$, we can now regard it, from a new perspective, as a linear function on a new vector space:
 
-In software implementation, the tensor product translates to function composition and state aggregation. Each step of tensorization corresponds to combining smaller modules into larger ones, ensuring that their interactions are properly captured.
+$$
+f(\mathbf u\otimes \mathbf v)=\sum _{ij} \lambda_i \beta_j f(\mathbf u_i \otimes \mathbf v_j)
+$$
 
-The key insight is that the tensor product provides a systematic way to handle compositions of functions and states, making it a powerful tool for constructing complex systems from simpler components.
+$$
+\mathbf u \otimes \mathbf v = (\sum_i \mathbf \lambda_i \mathbf u_i) 
+\otimes (\sum_j \beta _j \mathbf v_j)  
+= \sum _{ij} \lambda_i \beta_j \mathbf u_i \otimes \mathbf v_j
+$$
 
-## 3. Linear Systems and Tensor Products
+> The f in $f(\mathbf u,\mathbf v)$ and $f(\mathbf u\otimes \mathbf v)$ is not literally the same function; they are only equivalent in a certain sense. We denote both by f for convenience.
 
-A linear system can be seen as a special case of the tensor product where we combine vectors through addition and scalar multiplication. This perspective is particularly useful when dealing with data that can be represented as vectors.
+$\mathbf u \otimes \mathbf v$ is the tensor product of vectors $\mathbf u$ and $\mathbf v$. It can be viewed as a vector in a new vector space—the tensor space—whose basis is $\mathbf u_i \otimes \mathbf v_j$.
 
-For instance, consider a dataset consisting of multiple features (vectors). The goal is to find a function that can represent these features in a compressed form. Using linear systems:
+If $\mathbf u \in U$ is an m-dimensional vector space and $\mathbf v \in V$ is an n-dimensional vector space, then the tensor space $U\otimes V$ contains all vectors of the form \\sum _i T_{ij} \\mathbf u\_i \\otimes \\mathbf v\_j. It corresponds to an $m\\times n$-dimensional vector space (it is also called the tensor product space of $U$ and $V).
 
-1. Each feature vector $\mathbf{x}_i$ is associated with a scalar output $y_i$.
-2. We aim to find coefficients $\lambda_j$ such that:
-   $$
-   y_i = \sum_j \lambda_j f(\mathbf{e}_j) + \epsilon
-   $$
-   where $\epsilon$ is the error term.
-
-This setup mirrors the tensor product structure, allowing us to leverage its properties for efficient computation. Specifically, the coefficients $\lambda_j$ can be seen as weights in a neural network or as coefficients in a regression model.
-
-By treating the problem as a linear system within the tensor product framework, we gain access to powerful optimization techniques and theoretical results that ensure sparsity, interpretability, and generalization.
-
-# Multilinear Functions and Tensor Products
-
-A **multilinear function** is a linear function acting on multiple vector spaces. It can be seen as an extension of a single-parameter (single-vector space) linear function to handle multiple parameters, each associated with its own vector space.
-
-## Definition
-Given two finite-dimensional vector spaces \( U \) and \( V \), a multilinear function \( f: U \times V \rightarrow \mathbb{R} \) is defined by:
-\[ f(\lambda_1 u_1 + \lambda_2 u_2, \beta_1 v_1 + \beta_2 v_2) = \lambda_1 f(u_1, v_1) + \lambda_2 f(u_2, v_2) \]
-\[ f(u, \beta_1 v_1 + \beta_2 v_2) = \beta_1 f(u, v_1) + \beta_2 f(u, v_2) \]
-
-Here, \( \lambda_i \) and \( \beta_j \) are scalars, and the function \( f \) is linear in each of its arguments.
-
-## Tensor Product
-The **tensor product** of two vectors \( u \in U \) and \( v \in V \) is defined as:
-\[ u \otimes v = (\sum_i \lambda_i u_i) \otimes (\sum_j \beta_j v_j) = \sum_{ij} \lambda_i \beta_j (u_i \otimes v_j) \]
-
-The tensor product \( U \otimes V \) is the vector space whose basis consists of all tensors \( u_i \otimes v_j \), where \( u_i \in U \) and \( v_j \in V \). This space has dimension \( |U| \times |V| \).
-
-## Key Properties
-1. **Multilinear Function as Tensor Product**:
-   The value of a multilinear function can be expressed using its tensor product representation:
-   \[ f(u, v) \cong f(\text{tuple}(u, v)) \cong f(u \otimes v) \]
-   Here, \( f(\text{tuple}(u, v)) \) represents the function applied to the concatenated vector or tuple.
-
-2. **Linearity in Each Parameter**:
-   The function \( f \) is linear in each of its arguments when considered separately. For example:
-   \[ f(\sum_i \lambda_i u_i, \sum_j \beta_j v_j) = \sum_{ij} \lambda_i \beta_j f(u_i \otimes v_j) \]
-
-3. **Equivalence**:
-   While \( f(u, v) \) and \( f(u \otimes v) \) may not be the same function in all contexts, they are equivalent in the sense that:
-   \[ f(u, v) = f(\text{tuple}(u, v)) = f(u \otimes v) \]
-   This equivalence allows us to treat \( f \) as a single-parameter function acting on the tensor product space.
-
-## Example
-Consider the vector spaces \( U \) and \( V \) with dimensions \( m \) and \( n \), respectively. The tensor product space \( U \otimes V \) has dimension \( m \times n \). A multilinear function \( f: U \times V \rightarrow \mathbb{R} \) can be represented as:
-\[ f(u, v) = \sum_{ij} a_{ij} (u_i \otimes v_j) \]
-where \( a_{ij} \in \mathbb{R} \).
-
-
-> Programmer asks function: From where do you come, to where are you going?
+> $U\otimes V$ is the space spanned by all tensor products $\mathbf u\otimes \mathbf v$; “spanned” here means linear span—the set of all linear combinations of these vectors. The elements in this space are more general than simple $\mathbf u \otimes \mathbf v$ forms; not every vector in the tensor space can be written as $\mathbf u \otimes \mathbf v$. For example:
 > 
-> Function answers: Born from Loader,归于Data.
-
-In programming, everything is a function. **Everything is a function**. However, considering expandability, this function cannot remain static in different scenarios. In practice, the basic structure of the program is f(data), but we can transform it into loader("f")(data). Many frameworks and plugins can be viewed from this angle.
-
-
-## Three. Ioc Container
-
-> Build asks: How to build a container for managing beans.
+> $$
+> \\begin{aligned}
+> \\mathbf u\_1 \\otimes \\mathbf v\_1 + 4 \\mathbf u\_1 \\otimes \\mathbf v\_2
+>
+>  + 3 \\mathbf u\_2 \\otimes \\mathbf v\_1
+>  + 6 \\mathbf u\_2 \\otimes \\mathbf v\_2
+>    \&= (2\\mathbf u\_1 + 3 \\mathbf u\_2)\\otimes (\\mathbf v\_1
+>  + 2 \\mathbf v\_2) \\
+>    \&=
+>    \\mathbf u \\otimes \\mathbf v
+>    \\end{aligned}
+>
+> $$
 > 
-> Answer: Follow these steps:
-> 1. Use `buildBeanContainer(beansFile)` to create the container.
-> 2. Inject dependencies using `getBean(beanName, beanScope)`.
-> 3. Access methods via `methodA(data)`.
-
-The Ioc container is a core concept in many frameworks. It allows you to manage dependencies and modularize your code. The process can be summarized as:
-
-$$
-process(request) = data * route(objName \otimes tenantId)
-$$
-
-However, introducing the tenant concept may require changes to all business objects' logic within the system. On the framework level, we only need to enhance the `route` function to accept `objName` and `tenantId`, allowing dynamic loading of corresponding handlers.
-
-If you delve deeper into this logic, you'll realize that the core of many frameworks is a **Loader** function that operates on tensor products:
-
-$$
-process(request) = data \otimes data * route(objName \otimes tenantId)
-$$
-
-The Loader concept has revolutionized software development. It allows for dynamic loading of components without hardcoding dependencies. This approach is widely used in Node.js, where modules are loaded using `require(path)`.
-
-In the context of reversible computing, the Loader function gains even more significance. It provides a unified theoretical foundation and brings forth a universal implementation strategy:
-
-> For any multi-linear function $\phi: U \times V \times W \times ... \rightarrow X$, there exists a unique linear function $\psi$ in the tensor space $U \otimes V \otimes W \times ...$ such that:
+> But $2 \mathbf u_1 \otimes \mathbf v_1 + 3 \mathbf u_2 \otimes \mathbf v_2$ cannot be decomposed into the form $\mathbf u \otimes \mathbf v$ and must remain as a linear combination.
 > 
+> In physics, this corresponds to the notion of a quantum entangled state.
+
+The tensor product is a “free” strategy (in the categorical sense) to construct complexity from simplicity. “Free” means the construction adds no new operational rules; it merely forms pairs by taking one element from each set.
+
+> Essentially, in $\mathbf u \otimes \mathbf v$, $\mathbf u$ and $\mathbf v$ do not directly interact; the influence of $\mathbf v$ on $\mathbf u$ only manifests when an external function $f$ acts on $\mathbf u\otimes \mathbf v$. That is, we only detect $\mathbf v$’s effect when $f(\mathbf u \otimes \mathbf v) \ne f(\mathbf u)$.
+
+Using the concept of tensor products, we can say—non-rigorously—that multilinear functions are equivalent to ordinary linear functions on tensor spaces. A slightly more rigorous formulation is:
+
+For every multilinear function $\phi: U\times V\times W ...\rightarrow X$, there exists a unique linear function $\psi$ on the tensor space $U\otimes V\otimes W...$ such that $\phi(\mathbf u, \mathbf v,\mathbf w,...) = \psi(\mathbf u \otimes \mathbf v\otimes \mathbf w...)$.
+
+In other words, any multilinear function acting on the product $U\times V\times W...$ can be factored into two mappings: first map to the tensor product, then apply a linear function on the tensor space.
+
+In the previous section, we introduced linear systems and vector spaces and noted that software frameworks can emulate the operational behavior of linear systems. Combined with the notion of tensor products, we arrive at a general extensibility design: extend from receiving vector parameters to receiving tensor parameters—ever-growing variability can be absorbed via tensor products. For example,
+
 $$
-\phi(\mathbf{u}, \mathbf{v}, \mathbf{w}, ...) = \psi(\mathbf{u} \otimes \mathbf{v} \otimes \mathbf{w}, ...)
+process(request) = data * route(\mathbf {objName} \otimes \mathbf {tenantId})
 $$
 
-This principle simplifies the development of complex systems by allowing for modular construction and efficient composition.
+Introducing the tenant concept may require changing the handling logic for all business objects in the system. But at the framework level, we only need to enhance the route function to accept the tensor product of objName and tenantId, then dynamically load the corresponding handler.
 
+Thinking further, if we implement the software framework as a linear system, at its core it is a Loader function that takes a tensor product as its parameter.
 
-Loader(beansFile\otimes beanName\otimes beanScope \otimes methodName)
+Loader functions are ubiquitous in software systems, yet their significance is often underappreciated. Consider Node.js: every library function is, in form, loaded via require(path). When we call f(a), we essentially execute require("f").call(null, a). If we enhance require to allow dynamic loading based on additional identifying parameters, we can achieve function-level extensibility. The HMR mechanism used in Webpack and Vite can be seen as a reactive Loader: it monitors changes in dependency files, then re-bundles, reloads, and replaces the current function pointers.
+
+Reversible Computation offers a new theoretical interpretation for Loader functions and provides a unified, general technical implementation. Later, I will outline the approach used in Nop Platform 2.0 (an open-source implementation of Reversible Computation) and its basic principles.
+
+## III. Everything is Loader
+
+> Programmer asks the function: Whence do you come, and whither do you go?
+> 
+> The function replies: Born of the Loader, returning to data.
+
+The maxim of functional programming is “everything is a function.” But considering extensibility, that function cannot be immutable; in different scenarios, the actual function applied must differ. If the program’s basic structure is f(data), we can systematically refactor it to
+
+loader("f")(data). Many framework and plugin designs can be re-examined from this perspective.
+
+- IoC container:
+  
+  buildBeanContainer(beansFile).getBean(beanName, beanScope).methodA(data)
+  
+  $$
+  Loader(beansFile\otimes beanName\otimes beanScope \otimes methodName)
 $$
 
-* Plugin System
-
+- Plugin system
+  
   serviceLoader(extensionPoint).methodA(data)
   
   $$
   Loader(extensionPoint \otimes methodName)
-  $$
+$$
 
-* Workflow:
+- Workflow:
   
   getWorkflow(wfName).getStep(stepName).getAction(actionName).invoke(data)
   
   $$
   Loader(wfName\otimes stepName \otimes actionName)
-  $$
+$$
 
-When we identify similar Loader structures across all layers of the system, an interesting question arises: How consistent are the Loaders in terms of their internal consistency? Can we reuse their code? Workflows like workflow engines, IoC engines, report engines, ORM engines... In the end, every engine seems to load its own specific model. Currently, they are mostly isolated from each other. Can we abstract a system-level, unified Loader to handle model loading?
+Once we identify similar Loader structures across system layers, an interesting question arises: how internally consistent are these Loaders? Can they share code? Workflow engines, IoC engines, reporting engines, ORM engines—each needs to load its own model. Most currently operate independently. Can we abstract a system-level, unified Loader to handle model loading? If so, what common logic can this unified Loader implement?
 
-The design goal of a low-code platform is to modelize code logic into models. When these models are serialized and saved, they form model files. Visualization's input and output are essentially model files. Therefore, visualization is merely an additive benefit of modeling. The core work of a unified low-code platform should be to manage all models and resourceize them. The Loader mechanism is a crucial component in this platform.
+A low-code platform’s design goal is to turn code logic into models; when models are stored in serialized form, they become model files. Visual design’s inputs and outputs are model files—visualization is merely a by-product of modeling. The most basic task of a unified low-code platform should be to centrally manage all models and turn all models into resources. The Loader mechanism is inevitably a core component in such a low-code platform.
 
-Let's look at a common function in daily development:
+Consider a commonly used function in daily development:
 
 ```java
 JsonUtils.readJsonObject(String classPath, Class beanClass)
 ```
 
-This is a generic Java configuration object loading function. It reads a JSON file from the classpath and uses JSON deserialization to convert it into a specific Java object. If the configuration file has errors, such as incorrect field names or data formats, they can be detected during the type conversion phase. Some validators like @Max and @NotEmpty can even perform business-related checks during deserialization. Compared to raw JSON parsing, model loaders usually have the following enhancements:
+This is a general Java configuration object loader. It reads a JSON file from the classpath and deserializes it into a Java object of the specified type, after which we can use the object directly in code. If the configuration file format is incorrect—say, a field name is wrong or a data format is invalid—it can be detected during type conversion. With validator annotations such as @Max and @NotEmpty, we can even perform business-related validation during deserialization. Evidently, the loading and parsing of various model files can be viewed as variants of this function. Taking workflow model loading as an example:
 
-1. They can load from a database, not limited to loading from a specific file in the classpath.
-2. They may support formats other than JSON, such as XML.
-3. They can configure executable scripts within model files, rather than just storing strings, booleans, or numbers.
-4. Their format validation is more rigorous, checking if attribute values fall within enumeration ranges, meet specific format requirements, etc.
+```java
+workflowModel = workflowLoader.getWorkflow(wfName);
+```
 
-Nop Platform 2.0 is an open-source implementation of reversible computation theory and can be considered a low-code platform tailored for domain-specific language (DSL) development. It defines a unified model loader in the Nop platform:
+Compared to raw JSON parsing, workflow model loaders generally provide the following enhancements:
+
+1. They may load from a database rather than from a file under the classpath.
+
+2. The model file format may be XML rather than JSON.
+
+3. Model files can include executable script code, not just primitive types like string/boolean/number.
+
+4. Model file validation is more stringent—for example, checking that attribute values fall within an enumerated set or satisfy specific formatting requirements.
+
+Nop Platform 2.0 is an open-source implementation of Reversible Computation. It can be viewed as a low-code platform supporting domain-specific language (DSL) development. In Nop, a unified model loader is defined:
 
 ```java
 interface IResourceComponentManager{
@@ -234,141 +219,130 @@ interface IResourceComponentManager{
 }
 ```
 
-1. Model files' suffixes identify their types, so you don't need to pass componentClass.
-2. Models can reference schema files using x:schema="xxx.xdef", enabling stricter schema validation and semantic checks compared to standard Java types.
-3. By adding field types like expr, you can directly define executable code blocks within model files and automatically resolve them into executable function objects.
-4. A virtual file system supports multiple storage options for model files, such as those stored in a database.
-5. Loaders automatically collect dependencies during model parsing based on the model's structure and update the parsing cache accordingly.
-6. If you have a FileWatcher, changes in model dependencies can trigger automatic updates of the parsed model.
-7. DeltaMerger and DslExtender enable differential analysis and assembly of models. These are covered in detail in Section 5.
+1. The model type can be inferred from the file suffix, so there is no need to pass componentClass-type information.
 
-In Nop Platform, all models are loaded through a unified model loader, and all model objects are generated using a meta-model (Meta Model). This makes it easy to review the workflow model handling process we discussed earlier.
+2. Model files use x:schema="xxx.xdef" to import the schema definitions they must satisfy, enabling more rigorous format and semantic validation than Java type constraints.
+
+3. By adding field types such as expr, model files can directly define executable code blocks, which are automatically parsed into callable function objects.
+
+4. Via a virtual file system, multiple storage options for model files are supported. For example, we can define a path format that points to model files stored in a database.
+
+5. The loader automatically collects dependencies arising during model parsing and updates the parsing cache based on dependency changes.
+
+6. With a FileWatcher, the system can proactively push updates to models when their dependencies change.
+
+7. Delta decomposition and assembly of models are implemented via DeltaMerger and XDslExtender. This will be elaborated in Section V (it’s also a major technical difference between Nop and other platforms).
+
+In Nop, all model files are loaded through the unified model loader, and all model objects are automatically generated from meta-model (Meta Model) definitions. Returning to the workflow example:
 
 ```java
 getWorkflow(wfName).getStep(stepName).getAction(actionName).invoke(data)
 ```
 
-The `getWorkflow` function loads the workflow (`wfName`), and through its component model loader, automatically generates the necessary methods for each step and action without requiring manual coding. Similarly, the `getStep` and `getAction` methods are also generated by the meta-model and do not require special implementation.
+getWorkflow is implemented via the unified component model loader—no custom code is needed. Likewise, getStep/getAction methods are auto-generated from meta-model definitions—again, no custom code is needed. Consequently, the Loader implementation is completely automated:
 
-Thus, the entire loader can be considered fully automated in its functionality.
+$$
+Loader(wfName\otimes stepName \otimes actionName)
+$$
 
-```java
-Loader(wfName ⊗ stepName ⊗ actionName)
+From another angle, Loader parameters can be seen as a multidimensional coordinate (any information that uniquely locates something is a coordinate): each wfName corresponds to a virtual file path, and the path is the coordinate parameter used to locate within the virtual file system, while stepName/actionName are coordinate parameters used for unique location inside the model file. A Loader receives a coordinate and returns a value, so it can also be viewed as defining a coordinate system.
+
+In a sense, Reversible Computation is precisely about establishing and maintaining such a coordinate system and studying the evolution and development of model objects within it.
+
+## IV. Loader as Multiple Dispatch
+
+Functions represent a certain static computation (code itself is deterministic), while a Loader provides a computation mechanism whose result is a returned function. Hence, a Loader is a higher-order function. If a Loader does more than simply locate an existing code block based on parameters—if it can dynamically generate function content based on its inputs—then a Loader can serve as an entry point for metaprogramming.
+
+In programming language theory, multiple dispatch is a language-embedded metaprogramming mechanism widely used in Julia. Multiple dispatch and the Loader mechanism defined here share many similarities; indeed, a Loader can be seen as an extension of multiple dispatch beyond the type system.
+
+Consider a function call f(a,b). In an object-oriented language, we might implement a as an instance of class A, define f as a member function on A, and pass b as its argument. The object-oriented invocation a.f(b) is single dispatch: it selects an implementation based on the run-time type of the first argument a (the this pointer) by consulting A’s virtual function table. That is,
+
+```text
+Under the OO view: f::A->(B->C)
 ```
 
-From another perspective, the parameters passed to the `Loader` can be viewed as a multi-dimensional coordinate (all information that can be uniquely identified is considered a coordinate). For each `wfName`, there is a corresponding virtual file path (`path`), which in turn points to specific coordinates within the virtual file system. The `stepName/actionName` pair also corresponds to specific coordinate parameters within the model files. 
+> At the implementation level, a.f(b) corresponds to a function f(a,b), with a implicitly passed as the this pointer.
 
-The `Loader` receives a coordinate and returns a value, making it essentially a function that defines a coordinate system.
+Multiple dispatch, by contrast, selects the “best-fitting” implementation based on the run-time types of all arguments:
 
-```java
- Loader(wfName ⊗ stepName ⊗ actionName)
+```text
+Under multiple dispatch: f:: A x B -> C, AxB is the tuple of A and B
 ```
 
-In terms of invertible computation theory, the primary goal is to establish and maintain such a coordinate system and study the evolution and development of model objects within it.
+> In Julia, the compiler can generate specialized code versions based on the types of arguments at the call site to optimize performance. For instance, f(int,int) and f(int,double) may result in two different binary versions.
 
-## Four. Loader as Multiple Dispatch
+From a vector-space viewpoint, we can regard different types as different basis vectors. For example, 3 corresponds to 3 int, and "a" corresponds to "a" string (analogous to $\lambda_i \mathbf e_i$). Values of different types are, in principle, disjoint; type mismatches forbid interaction (ignoring implicit conversions), just as different basis vectors are independent. In this sense, multiple dispatch f(3, "a") can be understood as $[3,"a"]\cdot Loader(int \otimes string)$.
 
-A function represents a form of static computation (the code itself is deterministic), and the `Loader` provides a mechanism that returns functions based on its parameters, making it a higher-order function. If the `Loader` simply maps input parameters to existing code blocks, it behaves like a monadic computation. However, if it dynamically generates corresponding function content based on incoming parameters, it serves as an entry point for meta-programming.
+Type information is descriptive metadata attached to data at compile time; fundamentally, it’s nothing special. In this light, a Loader can be viewed as a more general multiple dispatch mechanism acting on tensor products of arbitrary basis vectors.
 
-In programming language theory, there is an inherent meta-programming mechanism called multiple dispatch, which has been extensively utilized in Julia. The `Loader` mechanism shares many similarities with multiple dispatch and can be seen as an extension of the concept beyond Julia's implementation.
+## V. Loader as Generator
 
-Consider a function call `f(a, b)`, if implemented using an object-oriented approach, the first parameter `a` is represented by a `this` pointer (an instance of class `A`). The method `f` is defined in class `A`, and `b` is passed as an argument to this method. Object-oriented function calls like `a.f(b)` are examples of single dispatch, where only the type of `a` is considered at runtime to determine which function to call.
+A general model loader can be given the following type:
 
-In contrast, multiple dispatch allows for multiple methods to be selected based on the types of **all** parameters. This is often implemented using a virtual function table that looks up the most specific function based on the types of the arguments. For example:
-
-```java
-A::A->(B::B->C::C)
+```
+    Loader :: Path -> Model
 ```
 
-This can correspond to method calls in object-oriented programming, where `a.f(b)` maps to a specific implementation based on both the type of `a` and `b`.
+For a general design, we must recognize that coding is not just about current needs; it must also account for future changes and the system’s evolution in time and space. In other words, programming is not aimed at the current, unique world, but at all possible worlds. Formally, we can introduce a Possible operator to describe this:
 
-Julia's multiple dispatch is a prominent example of this concept. It dynamically generates and optimizes code at compile time based on the exact types of function arguments, allowing for efficient execution while maintaining flexibility.
-
-From a vector space perspective, different types can be seen as distinct basis vectors. For instance, type `3` (an integer) corresponds to a basis vector akin to `3 int`, and type `"a"` (a string) corresponds to a basis vector similar to `λ_i e_i`. In this view, incompatible types are like orthogonal vectors that do not interfere with each other. This notion aligns with the idea of multiple dispatch, where functions are dispatched based on all parameter types, ensuring that only compatible implementations are executed.
-
-For example, calling `f(3, "a")` can be seen as `[3, "a"] ⋅ Loader(int ⊗ string)`.
-
-## Five. Loader as Generator
-
-A general model loader can be viewed as follows:
-
-```java
-Loader :: Path -> Model
+```
+    Loader :: Possible Path -> Possible Model
+    Possible Path = stdPath + deltaPath
 ```
 
-A universal design must consider not only current needs but also future changes and the evolution of the system over time. This understanding implies that programming should address all possible scenarios, embracing a universe of possibilities rather than just meeting present requirements.
+stdPath refers to the model file’s standard path, while deltaPath is the Delta customization path used to tailor an existing model file. For example, suppose our base product includes a business process main.wf.xml; when customizing for customer A, we need a different process but do not want to modify the base product’s code. We can add a Delta model file at `/_delta/a/main.wf.xml`, indicating the customer A-specific main.wf.xml. The Loader will automatically detect and use this file, and no changes are needed to existing business code.
 
-Introducing a `Possible` concept allows us to define this broader context:
-
-```java
-Loader :: Possible Path -> Possible Model
-
-Possible Path = stdPath + deltaPath
-```
-
-Here, `stdPath` represents the current path, while `deltaPath` accounts for potential future changes or deviations. The `Loader` is then extended to handle not just existing paths but also all possible variations, effectively becoming a meta-generator capable of adapting to any future development.
-
-
-In the Nop platform, `stdPath` refers to the standard path corresponding to a model file, while `deltaPath` refers to the delta path used when customizing existing models. For example, within the Base product, we have a business processing flow defined in `main.wf.xml`. When customizing for a specific client A, we need a different processing flow without modifying the Base product's code. In this case, we can add a delta model file at `$/_delta/a/main.wf.xml`, which represents the `main.wf.xml` tailored for client A. The Loader will automatically detect this file and use it, leaving existing business code untouched.
-
-If we only need to fine-tune existing models rather than replacing them entirely, we can use the `x:extends` mechanism to inherit from the original model.
+If we merely want minor tweaks rather than a full replacement, we can use the x:extends mechanism to inherit the original model:
 
 ```java
-Loader<Possible Path> = Loader<stdPath + deltaPath>
+Loader<Possible Path> = Loader<stdPath + deltaPath> 
                       = Loader<deltaPath> x-extends Loader<stdPath>
                       = DeltaModel x-extends Model
                       = Possible Model
 ```
 
-In the Nop platform, the model loader is implemented in two steps:
+In Nop, the model loader is implemented in two steps:
 
 ```java
-interface IResource {
-    String getStdPath(); // Standard path
-    String getPath(); // Actual file path
+interface IResource{
+    String getStdPath(); // standard file path
+    String getPath(); // actual file path
 }
 
-interface IVirtualFileSystem {
-    IResource getResource(String stdPath);
+interface IVirtualFileSystem{
+    IResource getResource(Strig stdPath);
 }
 
-interface IResourceParser {
+
+interface IResourceParser{
     IComponentModel parseFromResource(IResource resource);
 }
 ```
 
-`IVirtualFileSystem` provides a delta file system similar to Docker's overlayfs, while `IResourceParser` is responsible for parsing specific model files.
+IVirtualFileSystem provides a Delta file system similar to Docker’s overlayfs, while IResourceParser parses a specific model file.
 
-The reversible computation theory introduces a general software construction formula:
-
-```java
-App = Delta x-extends Generator<DSL>
-```
-
-Based on this theory, the Loader can be seen as a special case of the Generator. The Path is minimized as a DSL. Once a model object is loaded using the path, we can further apply reversible computation to transform and delta-update the model object.
-
-For example:
+Reversible Computation proposes a general software construction formula:
 
 ```java
 App = Delta x-extends Generator<DSL>
 ```
 
-Based on this theory, the Loader can be seen as a special case of the Generator. The Path is minimized as a DSL. Once a model object is loaded using the path, we can further apply reversible computation to transform and delta-update the model object.
+Building on this theory, we can regard the Loader as a special case of a Generator and treat Path as a minimal DSL. After loading a model object via the path, we can continue to apply the reversible construction formula to transform and Delta-revise the model, ultimately yielding the desired model object. For example:
 
-In the Nop platform, we define an ORM entity definition file `orm.xml`, similar to Hibernate's `hbm.xml`. Its structure is as follows:
+Nop defines an ORM entity definition file, orm.xml, similar in role to Hibernate’s hbm files, with the rough format:
 
 ```xml
 <orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
   <entities>
     <entity name="xxx" tableName="xxx">
-      <column name="yyy" code="yyy" stdSqlType="VARCHAR" .../>
-      ...
+       <column name="yyy" code="yyy" stdSqlType="VARCHAR" .../>
+       ...
     </entity>
   </entities>
 </orm>
 ```
 
-To provide a visual designer for this model file, we need to:
+Suppose we want to provide a visual designer for this model file. What needs to be done? In Nop, we merely add the following line:
 
 ```xml
 <orm>
@@ -379,91 +353,69 @@ To provide a visual designer for this model file, we need to:
 </orm>
 ```
 
-The `x:gen-extends` is a built-in meta-programming mechanism in XLang, which is executed at compile time to generate code. It dynamically generates the base class for the model. The `<orm-gen:GenFromExcel>` custom tag reads and parses an Excel file, then generates an ORM definition file according to `orm.xml` format.
+x:gen-extends is XLang’s built-in metaprogramming mechanism, a compile-time code generator that can dynamically generate a model’s base class. `<orm-gen:GenFromExcel>` is a custom tag function that reads and parses an Excel model and generates an orm definition file according to orm.xml’s format. The Excel file format is shown below:
 
-The Excel model file's structure closely resembles everyday documentation formats (e.g., Excel files are often copied and pasted from documentation). By editing the Excel file, you can visually design the ORM entity, and this design is immediately effective (thanks to dependency tracking by `IResourceComponentManager`). If the Excel model file is modified, the ORM model will be recompiled accordingly.
+[excel-orm](excel-orm.png)
 
-# Replacing Excel with a Graphical Design Tool: A Technical Document
+The Excel model file format is very close to the requirement-document formats we use daily (the example Excel file’s format was literally copied from a requirements document). Designing ORM entity models can be done by editing the Excel file, and such design changes take effect immediately! (With IResourceComponentManager’s dependency tracking, any change to the Excel model file triggers a recompilation of the orm model.)
 
-## Problem Statement
-Some users may prefer the Excel editing interface over graphical design tools. However, this can be easily resolved by switching to a tool like **PowerDesigner**. The process is straightforward and only requires a simple change in the modeling engine.
+Some may prefer a graphical designer like PowerDesigner over Excel. No problem! Just swap the metaprogramming generator—it’s literally a one-line change:
 
-## Technical Explanation
+```xml
+<orm>
+   <x:gen-extends>
+      <orm-gen:GenFromPdm path="my.pdm" xpl:lib="/nop/orm/xlib/orm-gen.xlib" />
+   </x:gen-extends>
+    ...
+</orm>
+```
 
-### 1. Understanding Representation Transformation
-The concept of **Representation Transformation** is central here. It involves converting one representation (e.g., Excel) into another (e.g., PowerDesigner). Unlike traditional tools, this transformation allows for a more flexible and scalable design process.
+Now you can happily design entity models in PowerDesigner.
 
-### 2. Key Concepts in ORM Modeling
-- **ORM Model**: The core of any ORM system lies in its ability to map domain concepts to database structures.
-- **Visual Design**: While Excel is functional, a tool like PowerDesigner offers a more intuitive way to design and manage complex relationships.
+This example encapsulates the notion of Representation Transformation in Reversible Computation. The truly important artifact is the core ORM model object; the visual designer merely uses one representation of it, and different representations can be reversibly transformed. Representations are not unique! Note also that representation transformation is entirely independent of runtime (the designer need not know anything about the ORM engine). It is a purely formal transformation (akin to a mathematical change of form). Many low-code platform designers today are inseparable from specific runtime support—this is an unnecessary limitation.
 
-### 3. Code Example: Interface Definition
+One more interesting question: To support `<orm-gen:GenFromExcel>`, do we need a dedicated Excel parser for the example format? In Nop, the answer is: no.
+
+The orm model is essentially a tree-structured object. The constraints that this tree must satisfy are defined in orm.xdef. The Excel model is a visual representation of the orm model; it must also map to a tree structure. If this mapping can be described by deterministic rules, we can use a unified Excel parser to complete the model parsing:
+
 ```java
-interface ExcelModelParser {
+interface ExcelModelParser{
     XNode parseExcelModel(ExcelWorkbook wk, XDefinition xdefModel);
 }
 ```
 
-## Implementation Strategy
+Thus, as long as an xdef meta-model file is defined, we can design model files using Excel. With xdef meta-models, parsing, decomposition, merging, Delta customization, IDE hints, breakpoints, and more are automatic—no extra programming needed.
 
-1. **No Need for Custom Parsers**
-   - In the Nop platform, there is no requirement to develop custom parsers for `GenFromExcel`.
-   - The built-in parser can handle Excel files with the required structure.
+Nop’s fundamental technical strategy is: xdef is the origin of the world. Once you have an xdef meta-model, you automatically gain both frontend and backend capabilities. If you’re not satisfied, Delta customization helps you fine-tune and improve.
 
-2. **Model Structure as a Tree**
-   - The ORM model is essentially a tree structure.
-   - This structure allows for easy manipulation and extension of the model without deep programming knowledge.
+> In the example Excel model file, the format is relatively free-form. You can arbitrarily add or delete rows and columns, as long as they can be converted to a tree structure in a “natural” way. In highbrow categorical terms, ExcelModelParser is not a function that maps a single Excel model object to a single tree model object; rather, it is a functor acting on the entire Excel category, mapping it to the Tree category (a functor acts on every object in a category and maps them to objects in the target category). Category theory solves problems in an “excessive” way: it solves every problem in a category and then declares the specific problem solved. If such an audacious approach succeeds, the only reason is: It’s science.
 
-3. **Differential Customization**
-   - With `xdef` files, you can define custom extensions.
-   - These extensions are automatically applied during the modeling process.
+Finally, let’s re-emphasize the key points of Reversible Computation:
 
-## Example in Excel File
-In an Excel file:
-- The format is largely unrestricted.
-- You can freely add or remove rows and columns as needed.
-- Special formatting (e.g., for relationships) is handled automatically by the parser.
+1. A full model is a special case of a Delta, so existing configuration files are already valid Delta descriptions. A Reversible Computation retrofit requires no changes to existing configuration files. For example, in Baidu’s amis framework, enabling Reversible Computation for amis JSON files in Nop simply switches the loading interface from JsonPageLoader to IResourceComponentManager; there is, in principle, no need to change the original configuration files or any application logic.
 
-## Technical Points to Emphasize
+2. Before entering the strongly typed world, there is a unified weakly typed structural layer. Reversible Computation applies to any tree structure (including, but not limited to, JSON, YAML, XML, Vue). Reversible Computation is essentially a formal transformation problem that can be entirely independent of any runtime framework, serving as the upstream stage in a multi-phase compilation process. It provides foundational infrastructure for constructing, compiling, and transforming domain-specific languages and models. Using built-in merge and dynamic generation operations, domain models can be decomposed, merged, and abstracted in a general way. This mechanism applies to back-end Workflow and BizRule, front-end pages, AI models, distributed computation models, etc. The sole requirement is that these models be expressed in some structured tree form. Applying this to k8s is, in essence, consistent with kustomize. [https://zhuanlan.zhihu.com/p/64153956](https://zhuanlan.zhihu.com/p/64153956)
 
-1. **All Is a Kind of Difference**
-   - The entire model is based on differences.
-   - This starts from configuration files (`xdef`) down to the lowest level of the model structure.
-
-2. **Unified Type System**
-   - A unified type system ensures consistency across all layers.
-   - This includes data types, domain concepts, and mappings.
-
-3. **No Runtime Dependencies**
-   - The transformation process is purely definition-based.
-   - It does not rely on runtime environments or specific tooling.
-
-4. **Reverse Engineering Capabilities**
-   - Tools like PowerDesigner allow for reverse engineering of database schemas.
-   - This capability eliminates the need for manual schema updates.
-
-## Conclusion
-The key takeaway is that **representation transformation** is a powerful concept that enables design flexibility without compromising functionality. By leveraging tools like PowerDesigner, you can achieve a more efficient and user-friendly modeling experience compared to traditional Excel-based approaches.
-
-3. Any function, such as `loader`, `resolver`, or `require`, that loads data, objects, or structures can become an entry point for reversible computation. On the surface, a path name appears to be the simplest and most straightforward concept, but according to reversible computation, it reveals an intrinsic evolutionary force within any quantity. Instead of viewing a path name as a static symbol pointing to a static object, we should see it as a dynamic symbol that points to a computational result, potentially representing the future world.
-
-## Path -\> Possible Path -\> Possible Model
+3. Any interface that loads data, objects, or structures by name—such as loader, resolver, require—can be an entry point for Reversible Computation. Although a path name appears to be the simplest atomic concept with no internal structure, Reversible Computation observes that any quantity is the result of a Delta computation and carries internal evolutionary dynamics. We needn’t treat a path name as a symbol pointing to a static object; we can treat it as a symbol pointing to a computation result—to a possible future world. Path -> Possible Path -> Possible Model
 
 ## Summary
 
-Here is a simple summary of the content introduced in this document:
+A brief summary of the content introduced in this article:
 
-1. Linear systems are good
-2. Non-linear linear systems can be reduced to linear systems
-3. The core of linear systems lies in `Loader::Path -\> Model`
-4. `Loader` can be extended as `Possible Path -\> Possible Model`, where loading = composition
+1. Linear systems are good.
 
-5. Reversible computation theory provides a deeper theoretical explanation.
+2. Multilinear systems can be reduced to linear systems.
 
-Based on reversible computation theory, the low-code platform `NopPlatform` has been open-sourced:
+3. The core of a linear system is Loader:: Path -> Model.
 
-- **Gitee**: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
-- **GitHub**: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- **Development Example**: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- **Reversible computation principles and `Nop` platform introduction on Bilibili**: [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+4. A Loader can be extended to Possible Path -> Possible Model; loading equals composition.
 
+5. Reversible Computation provides a deeper theoretical explanation.
+
+The low-code platform NopPlatform, designed based on Reversible Computation, is open-source:
+
+- gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+- github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+- Development example: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [Principles of Reversible Computation and Introduction/Q&A for the Nop Platform_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+<!-- SOURCE_MD5:7da01370dd075b7ca5387e9aa837917b-->

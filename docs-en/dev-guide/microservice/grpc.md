@@ -1,83 +1,82 @@
-# NopGraphQL Exposed as Grpc
+# NopGraphQL Exposed as gRPC
 
-After introducing the `nop-rpc-grpc` module, the NopGraphQL service will expose gRPC services.
+After introducing the nop-rpc-grpc module, the NopGraphQL service exposes gRPC services externally.
 
-1. Both objects and services are located in the `graphql.api` package, which can be configured using `nop.grpc.graphql-api-package`.
-2. The request message name typically follows the format `{bizObjName}__{bizMethod}_request`, while the response message name corresponds to the GraphQL object type name.
-3. If the GraphQL service function returns a scalar type, the response message name will be `{bizObjName}__{bizMethod}_response`, where scalar fields are returned using the `value` attribute.
-4. In debug mode, accessing `/p/DevDoc/__grpc` will return the gRPC definitions.
+1. Both objects and services are located in the `graphql.api` package and can be configured via nop.grpc.graphql-api-package.
+2. The request message name is generally `{bizObjName}__{bizMethod}_request`, and the response message name is the GraphQL object type name.
+3. If a GraphQL service function returns a scalar type, the response message name is `{bizObjName}__{bizMethod}_response`, where the scalar field is returned via the value property.
+4. In debug mode, visiting /p/DevDoc\_\_grpc returns the gRPC proto definition.
 
-> The current design of gRPC lacks a namespace concept, making it impossible to merge all messages and services from multiple proto files into a single unified output file.
+> gRPC currently lacks the concept of a namespace in its design, which makes it impossible to merge all messages and services declared across multiple proto files into a single unified output file.
 
 ## Result Selection
 
-Due to the adoption of the NopGraphQL engine, the gRPC service also inherits result field selection capability. This can be achieved by using `nop-selection` in the metadata. To match this capability, all fields in response messages are automatically set to `optional`. For example:
+Because it uses the NopGraphQL engine, it automatically brings result field selection capabilities to gRPC as well. You can pass nop-selection via gRPC metadata to enable result selection.
+To support result selection, all fields in response messages are automatically set to optional. For example:
 
-- REST requests can implement result field selection using the `@selection` parameter, such as `/r/NopAuthUser/_findList?@selection=userName,userStatus`.
-- In gRPC, use Metadata to send `nop-selection=userName,userStatus`, which will result in the response data containing only `userName` and `userStatus` fields.
+A REST request can implement result field selection via the @selection parameter: /r/NopAuthUser\_findList?@selection=userName,userStatus.
+When using gRPC, you can pass the header nop-selection=userName,userStatus via Metadata to achieve the same selection functionality, and the returned data will contain only the userName and userStatus fields.
 
 ## propId Configuration
 
-The protobuf protocol used by gRPC requires each field to have a unique `propId`. The Nop platform generates `propId` for database fields based on the API model. Similarly, each field in the JavaBean also receives a corresponding `propId`. However, in other cases, you need to manually add the corresponding `propId`.
+The protobuf encoding used by gRPC requires each field to have a definite unique number, propId. During code generation, the Nop platform generates a propId for each database field in an entity; the JavaBean generated from the API model also generates a corresponding propId for each field. In other cases, you need to add the corresponding propId yourself.
 
-- Manually add attributes in Metadata: `@PropMeta(propId=xx)`
-- In JavaBeans, add `@PropMeta(propId=xx)` to the `get` method.
+* For attributes you add manually in meta, you need to add a propId configuration yourself.
+* In the JavaBean, add `@PropMeta(propId=xx)` to the getter method.
 
-If `nop.grpc.auto-init-prop-id=true` is enabled globally, then fields without a predefined `propId` will be assigned one based on their name in alphabetical order. However, if new fields are added later, this may cause inconsistencies with previously defined orders.
+If nop.grpc.auto-init-prop-id=true is enabled globally, fields without propId will automatically be assigned propIds according to the lexicographical order of their name strings. However, in this case, if fields are added later, the resulting order may differ from the previously established order.
 
-## Grpc Server
+## gRPC Server
 
-The current implementation uses gRPC-java to start a separate gRPC server. Its service implementation is derived from the GraphQL service. The gRPC service's port is distinct from the REST service's port.
+Currently, grpc-java is used to start a standalone gRPC server, and its service implementation classes are transformed from GraphQL services. In the current implementation, the gRPC server port is separate from the REST server port.
 
-- If `nop.cluster.registration.enabled` is configured and the `nop-rpc-cluster` dependency is included, the service will be registered in the service registry with the name `{nop.application.name}-grpc`.
-- The gRPC server port can be configured using `nop.server.grpc-port`, defaulting to 9000.
-- In the configuration file, use `nop.grpc.server.xxx` to configure various properties of the GrpcServerConfig.
+* If `nop.cluster.registration.enabled` is configured and the nop-rpc-cluster dependency is included, the service will be registered with the service registry at startup with the service name `{nop.application.name}-grpc`.
+* Configure the gRPC server port via nop.server.grpc-port; the default is 9000.
+* In the configuration file, configure properties in GrpcServerConfig via nop.grpc.server.xxx.
 
-
-| Configuration Name | Description |
-|-------------------|-------------|
-| nop.grpc.server.cert-chain | TLS certificate chain file |
-| nop.grpc.server.private-key | TLS private key file |
-| nop.grpc.server.handshake-timeout | Handshake timeout, Duration format |
-| nop.grpc.server.keep-alive-timeout | Keep-alive timeout, Duration format |
-| nop.grpc.server.max-connection-idle | Maximum idle connection time, Duration format |
-| nop.grpc.server.max-connection-age | Maximum connection age, Duration format |
-| nop.grpc.server.max-connection-age-grace | Maximum connection grace period, Duration format |
-| nop.grpc.server.permit-keep-alive-time | Allow keep-alive time, Duration format |
-| nop.grpc.server.permit-keep-alive-without-calls | Allow keep-alive without calls |
-| nop.grpc.server.max-inbound-message-size | Maximum inbound message size |
-| nop.grpc.server.max-inbound-metadata-size | Maximum inbound metadata size |
-| nop.grpc.server.thread-pool | ThreadPool configuration, see ThreadPoolConfig |
-
+|配置名|说明|
+|---|---|
+|nop.grpc.server.cert-chain|TLS certificate chain file|
+|nop.grpc.server.private-key|TLS private key file|
+|nop.grpc.server.handshake-timeout|Handshake timeout, Duration format|
+|nop.grpc.server.keep-alive-timeout|Keep-alive timeout, Duration format|
+|nop.grpc.server.max-connection-idle|Maximum connection idle time, Duration format|
+|nop.grpc.server.max-connection-age|Maximum connection lifetime, Duration format|
+|nop.grpc.server.max-connection-age-grace|Grace period for maximum connection lifetime, Duration format|
+|nop.grpc.server.permit-keep-alive-time|Permitted keep-alive time, Duration format|
+|nop.grpc.server.permit-keep-alive-without-calls|Allow keeping idle connections without calls|
+|nop.grpc.server.max-inbound-message-size|Maximum inbound message size|
+|nop.grpc.server.max-inbound-metadata-size|Maximum inbound metadata size|
+|nop.grpc.server.thread-pool|Thread pool configuration; see ThreadPoolConfig|
 
 ## Service Registration
 
-The registration is done via `nopGrpcAutoConfiguration` in `grpc-defaults.beans.xml`. The service name for gRPC is `${nop.application.name}-rpc`, while the REST service name is `${nop.application.name}` without the HTTP suffix, aligning with Spring Cloud conventions.
-
+In grpc-defaults.beans.xml, the nopGrpcAutoConfiguration registration class registers the gRPC service implementation with Nacos.
+Currently, the gRPC server port and the REST server port on the Nop platform are separate, and the registered service names are also different. The gRPC service name is
+`${nop.application.name}-rpc`, while the REST service name is `${nop.application.name}`, without the http suffix, aligning with Spring Cloud conventions.
 
 ## Debugging
 
-In debug mode, logs are generated in the `dump` directory at `/nop/main/graphql/graphql-api.proto`.
+In debug mode, the `/nop/main/graphql/graphql-api.proto` definition file will be generated under the dump directory.
 
+## Service Functions
 
-## Service Functionality
+MethodDescriptor provides the generateFullMethodName method to generate the full method name:
 
-`MethodDescriptor` provides a method `generateFullMethodName` to generate the full method name:
-
-```plaintext
+```
 fullMethodName = packageName + '.' + serviceName + '/' + methodName
 ```
 
-The GET method is accessed via `/fullMethodName?base64_encoded_payload`.
+GET method: /fullMethodName?Base64-encoded payload
 
-The content is set to `application/grpc`.
+Content-Type is set to application/grpc.
 
+## Quarkus
 
-## Quarkus Configuration
+* Configuration class: GrpcServerConfiguration
+* Default server port: 9000
+* By default, useSeparateServer=true
 
-- Configuration Class: GrpcServerConfiguration
-- Default Port: 9000
-- Graceful Shutdown: useSeparateServer=true
-
-The project uses the `nop-quarkus-web-starter` module, with logging enabled by setting `nop.http.netty-server.enable-log=true`, which enables `Http2FrameLogger` for debug logging.
-
+After introducing the nop-quarkus-web-starter module and setting nop.http.netty-server.enable-log=true, HttpServerOptions.logActivity=true will be set,
+and ultimately Http2FrameLogger will be applied to output debug logs.
+<!-- SOURCE_MD5:6261a800f500a1068ddc1dd63cce5629-->

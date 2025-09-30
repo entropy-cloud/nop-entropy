@@ -1,25 +1,26 @@
-# Through NopTaskFlow Logic Orchestration Implement Backend Service Functionality
+
+# Implementing Backend Service Functions via NopTaskFlow Logic Orchestration
 
 [Video Introduction](https://www.bilibili.com/video/BV19J4m1J78t/)
 
-In the microservices architecture, services are coarse-grained and reusable units. In cross-domain collaboration, we can introduce a service orchestration engine to flexibly combine microservice calls. However, when focusing on the internal logic structure of a single service, we need more efficient and concise implementations, which standard service orchestration engines often struggle to provide.
+Under a microservices architecture, a service is a coarse-grained, reusable unit. For cross-domain collaboration, we can introduce a service orchestration engine to flexibly compose microservice invocations. However, when we zoom in to the internal logic of a single service, we need a more efficient and concise implementation—something typical orchestration engines struggle with.
 
-1. Service orchestration often embeds REST calls or assumes some remote call mechanisms. When invoking local functions, it can become overly complex.
-2. Service calls typically involve input and output that are serializable (e.g., JSON), but sharing complex domain model objects directly is not straightforward.
-3. Standard service orchestration engines rarely include native environment abstraction for local execution, making it difficult to specify certain steps within a database transaction or using the same OrmSession.
-4. Service orchestration often enforces the inclusion of heavy infrastructure components like message queues (e.g., Redis), which complicates lightweight operation without third-party dependencies.
+1. Many orchestration tools bake in assumptions about REST or other forms of remote invocation, making local function calls less straightforward.
+2. Service calls usually take and return serializable value objects (e.g., JSON), which prevents sharing complex domain model objects by reference.
+3. Orchestration engines typically lack a local environment abstraction, so you can’t specify that certain steps run within the same database transaction or share the same OrmSession.
+4. Many orchestration frameworks mandate heavyweight infrastructure—such as message queues, Redis, or persistent databases—making it impossible to run in a lightweight mode with no third‑party dependencies and no persistence.
 
-NopTaskFlow adopted the principle of minimizing information expression, abstracting the core logic in logic orchestration, and supporting both heavy distributed service orchestration and lightweight function-level granularity in service internals. It also embeds built-in meta-programming mechanisms via the [XLang language](../xlang/index.md), enabling persistence, transaction handling, and distributed RPC calls to be added as needed.
+NopTaskFlow adopts a design principle of minimal information expression, abstracting the core pure-logic portion of orchestration. It can support both heavyweight distributed service orchestration and lightweight, fine-grained orchestration at the function level within a service. Through the [XLang language](../xlang/index.md)’s built-in metaprogramming mechanisms, we can introduce persistence, transaction handling, distributed RPC calls, and more on demand.
 
-> For minimizing information expression, refer to [Business Development Freedom: Breaking Framework Constraints, Achieving True Framework Independence](https://zhuanlan.zhihu.com/p/682910525)
+> For minimal information expression, see [The Road to Freedom in Business Development: How to Break Framework Constraints and Achieve True Framework Neutrality](https://zhuanlan.zhihu.com/p/682910525)
 
-On the Nop platform, NopTaskFlow essentially provides a generic mechanism for decomposing and organizing functions. Any function that requires function replacement can be implemented by calling NopTaskFlow.
+In the Nop platform, NopTaskFlow provides a general mechanism to structurally decompose and organize functions; anywhere a function is needed, it can be replaced by invoking NopTaskFlow.
 
-> For more information about NopTaskFlow, refer to [Next Generation Logic Orchestration Engine from Scratch: NopTaskFlow](https://zhuanlan.zhihu.com/p/691166138)
+> For an introduction to NopTaskFlow, see [A From-Scratch Next-Generation Logic Orchestration Engine: NopTaskFlow](https://zhuanlan.zhihu.com/p/691166138)
 
-A typical use case for a logic orchestration framework is implementing backend service functions. Originally, we manually wrote backend service functions, but now we can implement them using the NopTask service orchestration model.
+A typical use case for a logic orchestration framework is implementing backend service functions: instead of hand-writing a backend service function, we switch to invoking a NopTask service orchestration model.
 
-On the Nop platform, you can define service functions in xbiz model files.
+In the Nop platform, we can define service functions in xbiz model files.
 
 ```xml
 <!-- /nop/demo/model/Demo/Demo.xbiz -->
@@ -39,30 +40,30 @@ On the Nop platform, you can define service functions in xbiz model files.
       </return>
       <source>
         const taskFlowManager = inject('nopTaskFlowManager');
-        const task = taskFlowManager.getTask('test/DemoTask', 1);
-        const taskRt = taskFlowManager.newTaskRuntime(task, false, svcCtx);
-        taskRt.setInput('a', a);
-        taskRt.setInput('b', b);
-        return task.executeAsync(taskRt, _selection?.sourceFields);
+        const task = taskFlowManager.getTask('test/DemoTask',1);
+        const taskRt = taskFlowManager.newTaskRuntime(task,false,svcCtx);
+        taskRt.setInput('a',a);
+        taskRt.setInput('b',b);
+        return task.executeAsync(taskRt,_selection?.sourceFields);
       </source>
     </mutation>
   </actions>
 </biz>
 ```
 
-> In the `Demo.xbiz` business object model, adding the `callTask` method will expose the `/r/Demo__callTask` REST endpoint.
+> By adding the `callTask` method to the `Demo.xbiz` business object model, it is exposed externally as the `/r/Demo__callTask` REST endpoint.
 
-When manually writing the integration code for `NopTaskFlow`, you will encounter a significant amount of repetitive information. For instance, if you define input variables `a` and `b` within a task, these definitions will still need to be declared separately in the `xbiz` model.
+If we integrate NopTaskFlow manually, we end up with large swaths of boilerplate like the above, inevitably causing duplicated information. For example, even though the task already defines input variables `a` and `b`, we still have to redundantly declare the parameters in the xbiz model.
 
-The Nop platform emphasizes minimal information expression, which means that all information that can be derived automatically should remain unexpressed. Imagine that if the **Web framework** and **logic orchestration engine** are designed as a unified entity, we only need to express the following information:
+The Nop platform emphasizes minimal information expression, meaning anything that can be inferred automatically should be inferred rather than explicitly stated. Imagine that the web framework and the orchestration engine were designed as one: we would only need to express the following:
 
 ```xml
 <mutation name="callTask" task:name="test/DemoTask"/>
 ```
 
-Once you locate `task:name` in `TaskFlowModel`, you can automatically derive the output parameters of the REST service function, including its parameter types and specific implementation code.
+After locating the TaskFlowModel via `task:name`, we can automatically infer the REST service function’s input and output parameter types, as well as the function’s concrete implementation, from the orchestration model.
 
-The **Web framework** and **logic orchestration framework** are designed separately within the Nop platform. While they may not share knowledge about each other, we can seamlessly integrate them using a compile-time meta-programming mechanism.
+In the Nop platform, the web framework and the orchestration framework are designed independently and are unaware of each other, but we can seamlessly glue them together via compile-time metaprogramming.
 
 ```xml
 <biz>
@@ -76,17 +77,11 @@ The **Web framework** and **logic orchestration framework** are designed separat
 </biz>
 ```
 
-The `<x:post-extends>` mechanism is a compile-time post-processing mechanism used across all Domain Specific Languages (DSLs) within the Nop platform. It allows us to execute code that modifies the current model.
+`x:post-extends` is a compile-time post-processing mechanism available to all DSLs in the Nop platform, where we can execute code to amend the current model. The [`<biz-gen:TaskFlowSupport>`](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-task/nop-task-core/src/main/resources/_vfs/nop/task/xlib/task-gen.xlib) tag recognizes the `task:name` attribute and automatically derives the action’s complete definition.
 
-```xml
-<biz-gen:TaskFlowSupport>
-  <x:property name="libPath">/nop/core/xlib/biz-gen.xlib</x:property>
-</biz-gen:TaskFlowSupport>
-```
+> Applying `<biz-gen:TaskFlowSupport>` is akin to introducing a mathematical theorem: using it automatically carries out the derivation. This is a purely formal transformation at the mathematical level and has nothing to do with the framework’s runtime.
 
-The `<biz-gen:TaskFlowSupport>` tag identifies the `task:name` property and automatically defines the `action` in full detail on a mathematical level. This process is entirely separate from the runtime environment.
-
-We can further abstract the `<x:post-extends>` mechanism into a base model.
+We can further simplify the invocation by abstracting `<x:post-extends>` into a base model.
 
 ```xml
 <biz x:extends="/nop/biz/lib/common.xbiz">
@@ -96,7 +91,7 @@ We can further abstract the `<x:post-extends>` mechanism into a base model.
 </biz>
 ```
 
-All `xbiz` models generated from the data model automatically include `<biz-gen:TaskFlowSupport>`, allowing direct configuration using `task:name`.
+Currently, all xbiz models generated from data models automatically include `<biz-gen:TaskFlowSupport>`, so you can use the `task:name` configuration directly.
 
 ```xml
 <biz x:extends="_NopAuthUser.xbiz">
@@ -106,11 +101,10 @@ All `xbiz` models generated from the data model automatically include `<biz-gen:
 </biz>
 ```
 
+**Dynamic Updates:**
 
+The Nop platform’s process of automatically deriving new models via metaprogramming can be viewed as a form of **Reactive Derivation**: when a dependent model changes (is modified), the cache of already-derived models is automatically invalidated. For example, in the case above, when the `test/DemoTask` orchestration task is modified, the action definition of `callTask` is regenerated to ensure it always stays in sync with the task definition.
 
-The Nop platform employs meta-programming to automatically derive new models from existing ones. This process can be viewed as a **reactive derivation**: when dependent models change, the cached model automatically invalidates.
+> The implementation is similar to Vue’s reactive data tracking: when a model is referenced, dependencies between model files are automatically recorded.
 
-For example, if the `test/DemoTask` logic orchestration task is modified, the `callTask` action definition will be regenerated, ensuring that the action and task definitions remain synchronized indefinitely.
-
-> The specific mechanism resembles Vue's reactive data tracking. When a referenced model changes, the dependency relationship between models is automatically recorded.
-
+<!-- SOURCE_MD5:cb9ee98deeb017d8b768ae712a2951fa-->

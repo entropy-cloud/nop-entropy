@@ -1,49 +1,50 @@
 # Layout Language
 
-In the Nop platform, we use NopLayout—a specialized language for form layouts—to separate layout information and (field-level) content information. For example, in the following form layout:
+In the Nop platform, we use NopLayout, a domain-specific language dedicated to form layouts, to separate form layout information from (field-level) content information. For example, for the following form layout
 
 ```xml
-<form id="add" editMode="add" title="Add User" i18n-en:title="Add User">
+ <form id="add" editMode="add" title="新增-用户" i18n-en:title="Add User">
   <layout>
-    ============>baseInfo[Basic Information]=======
-    userName[Username] status[Status]
-    nickName[Nickname] deptId[Department]
+    ============>baseInfo[基本信息]======
+    userName[用户名] status[用户状态]
+    nickName[昵称]
+    deptId[部门]
 
-    ===========^extInfo[Extended Information]=========
-    idType[Document Type] idNbr[Document Number]
-    birthday[Birthday] workNo[Employee Number]
-    positionId[Position]
-    remark[Remarks]
+    ===========^extInfo[扩展信息]=========
+    idType[证件类型] idNbr[证件号]
+    birthday[生日] workNo[工号]
+    positionId[职务]
+    remark[备注]
   </layout>
 </form>
 ```
 
-Layout Display
+This renders as
 
-![layout/group-layout.png](layout/group-layout.png)
+![](layout/group-layout.png)
 
-## 一. Layout Syntax
+## I. Layout Syntax
 
 NopLayout defines the following rules:
 
-1. Specify which fields to display per row, e.g., `a b` displays both `a` and `b` fields in a single row.
+1. Specify fields displayed per line; for example, `a b` means this line displays fields `a` and `b`.
 
-2. Use `fieldName[displayName]` to specify the field name along with its display name.
+2. Use `fieldName[displayName]` to specify the field name and its display label.
 
-3. Use `===groupName[Group Label]===` to mark a group.
+3. Mark a group with `===groupName[groupLabel]===`.
 
-4. If a group has a Label, use the `FieldSet` control to display the group. The symbols `^` and `>` indicate group collapse and expansion, respectively.
+4. If a group is given a label, it is rendered with the `FieldSet` widget; use `^` to indicate a collapsed group and `>` for an expanded group.
 
-5. Prefix a field with `@` to indicate it is a read-only field, which will be displayed using the view mode's controls.
+5. Prefix a field with `@` to mark it as read-only; the frontend will use a view-mode widget.
 
-6. Prefix a field with `!` to indicate that its Label should not be displayed.
+6. Prefix a field with `!` to hide its label.
 
-For example, adding a filter form on the left side of the user list essentially introduces a filter form on the left:
+For example, to add department-based filtering on the left side of the user list, you essentially introduce a filter form in the sidebar
 
 ```xml
 <form id="asideFilter" submitOnChange="true" editMode="query">
   <layout>
-    ==dept[Department]==
+    ==dept[部门]==
     !deptId
   </layout>
   <cells>
@@ -58,84 +59,82 @@ For example, adding a filter form on the left side of the user list essentially 
 </form>
 ```
 
-`deptId` field is prefixed with `!` to indicate that its Label should not be displayed.
+The `deptId` field is prefixed with `!`, meaning its label is hidden, resulting in
 
-![layout/aside-filter.png](layout/aside-filter.png)
+![](layout/aside-filter.png)
 
-## 二. Field Control Determination
+## II. Field Control Inference
 
-Field-level controls are generally determined based on the data model defined in the application. For example, for the `gender` field, we use the dictionary `auth/gender`, limiting the values to those within the dictionary. Similarly, for the `email` field, the domain is set to `email`, requiring the input to conform to email format specifications.
+In most cases, field-level display controls can be inferred from the field type and data domain defined in the data model.
 
-When specific controls are required for a particular field's determination, the process begins by first determining the field's edit mode (usually matching the form's `editMode` setting but can be individually specified). Next, it searches through the `control.xlib` control library in the following order:
+For example, for the `gender` field, we specify that it uses the `auth/gender` dictionary, so its values must come from that dictionary. For the `email` field, its domain is set to `email`, requiring input to conform to the email format.
 
-1. Look for a control with the name `{editMode}-{control}`, where `control` is explicitly defined in the cell configuration's `control` attribute.
+When inferring the control to use, we first determine the field’s editing mode (usually the same as the form’s `editMode`, but it can be specified per field), then search the control tag library `control.xlib` in the following order, taking the first match:
 
-2. Look for a control with the name `{editMode}-{domain}`, such as `<edit-email/>`.
+1. Look for a control named `{editMode}-{control}`, where `control` is explicitly specified via the `control` attribute in the `cell` configuration.
 
-3. If a dictionary entry exists, look for a control with the name `{editMode}-enum`.
+2. Look for `{editMode}-{domain}` controls, e.g., `<edit-email/>`.
 
-4. Look for a control with the name `{editMode}-{stdDomain}`, where `stdDomain` is a globally registered standard domain equivalent to a basic data type, such as `stdDomain=xml` indicating a text field storing XML content.
+3. If a dictionary is configured, look for a control named `{editMode}-enum`.
 
-5. If it's a foreign key relationship, look for a control with the name `{editMode}-to-one`.
+4. Look for `{editMode}-{stdDomain}` controls. `stdDomain` refers to globally registered standard data domains, which refine primitive data types—for example, `stdDomain=xml` denotes a text field whose content is XML.
 
-6. Look for controls with names like `{editMode}-{dataType}`, such as `<edit-string/>` and `<edit-double/>`.
+5. If it’s a foreign-key association, look for a control named `{editMode}-to-one` and try an associated-object picker.
 
-7. If `editMode` is neither `edit` nor `view`, start again from step 1 using `edit` mode.
+6. Look for `{editMode}-{dataType}` controls, such as `<edit-string/>` and `<edit-double/>`.
 
-8. If the mode is `view`, use `<view-any/>`. Otherwise, use `<edit-any/>`.
+7. If `editMode` is neither `edit` nor `view`, restart the search from step 1 using `edit` mode.
 
-```markdown
-## editMode modes
+8. If in `view` mode, use `<view-any/>`; otherwise, use `<edit-any/>`.
 
-`editMode` consists of `add/view/update/edit/query` multiple modes, primarily used to distinguish between different usage scenarios for fields. Depending on the usage scenario, different controls may be used. For example, in editing mode, a single-select control may be used, while in query mode, a multi-select query control may be chosen. In form layout, the same field name can be used to represent the field.
+editMode includes `add/view/update/edit/query`, among others, and is used to distinguish different usage contexts for a field. Different contexts may use different controls—for example, a single-select control in edit mode versus a multi-select query control in query mode—yet the same field name can be used in the form layout.
 
-## Field Control Assignment is an Extensible Mechanism
+**Field control inference is an extensible mechanism.** When recurring field-level semantics emerge in business, we can assign a distinct domain to them in the data model; the frontend will then automatically render all fields marked with that domain using a uniform control. The steps are:
 
-When we encounter repeated semantic meanings at the field level in our business, we can define a unique `domain` for them in the data model. This allows us to use a unified control for all fields marked with this `domain` in the frontend. The work involved is as follows:
+1. Define the `domain` in the data model and assign it to the fields.
 
-1. Define `domain` in the data model and assign it to the field
-2. Add different edit modes to `control.xlib` (e.g., `<edit-roleId/>`, `<view-roleId/>`, `<query-roleId/>`). Alternatively, instead of directly modifying `control.xlib`, we can use the Delta customization mechanism to extend the built-in `control.xlib`.
+2. Add control implementations for different editing modes in `control.xlib` (for example, for `domain=roleId`, you can provide `<edit-roleId/>`, `<view-roleId/>`, and `<query-roleId/>`). Alternatively, without modifying `control.xlib` directly, you can extend the built-in `control.xlib` via the Delta customization mechanism.
 
-The process of handling user-defined `domain` is consistent with the built-in `domain` processing.
+The processing of user-defined domains is identical to that of built-in domains.
 
-If a control is special and does not abstract the value of a unified `domain`, we can also choose to directly specify the display control used in the form, such as:
+If a control is specialized and doesn’t warrant abstraction into a unified domain, you can directly specify the display control used in the form, for example
 
 ```xml
 <form id="edit">
-  <layout>
-    ...
-  </layout>
-  <cells>
-    <cell id="fldA">
-      <gen-control>
-        Here is the specific description of the control in use
-      </gen-control>
-    </cell>
-  </cells>
+   <layout>
+      ...
+   </layout>
+   <cells>
+      <cell id="fldA">
+         <gen-control>
+            这里输出具体使用的控件描述
+         </gen-control>
+      </cell>
+   </cells>
 </form>
 ```
 
-`gen-control` is generated using the XPL template language to produce JSON control descriptions.
+`gen-control` executes the XPL template language to generate a JSON control description.
 
-## Field Interactivity
+## III. Field Interactions
 
-In addition to layout information, interactivity between fields can be specified through additional `cell` configurations. For example:
+Beyond layout information, you can specify inter-field interactions via supplemental `cell` configuration. For example
 
 ```xml
 <form id="default" >
   <layout>
-    sid[Resource ID] siteId[Site ID]
-    displayName[Display Name] orderNo[Sorting]
-    resourceType[Resource Type] parentId[Parent Resource ID]
-    =====menuProps=====
-    icon[Icon] routePath[Front-end Routing]
-    url[URL] component[Component Name]
-    target[Link Target] hidden[Whether Hidden]
-    keepAlive[保持状态时隐藏] noAuth[无权限检查]
+    sid[资源ID] siteId[站点ID]
+    displayName[显示名称] orderNo[排序]
+    resourceType[资源类型] parentId[父资源ID]
+    =====menuProps=============
+    icon[图标] routePath[前端路由]
+    url[链接] component[组件名]
+    target[链接目标] hidden[是否隐藏]
+    keepAlive[隐藏时保持状态] noAuth[不检查权限]
     depends[依赖资源]
-    =====authProps=====
-    permissions[Permission Mark]
-    =====otherProps=====
+    =====authProps============
+    permissions[权限标识]
+    =====otherProps===========
     status[状态] remark[备注]
   </layout>
 
@@ -147,7 +146,7 @@ In addition to layout information, interactivity between fields can be specified
       <visibleOn>${resourceType != 'FNPT'}</visibleOn>
     </cell>
     <!--
-     Field grouping without Label will only serve grouping purpose and not display as FieldSet
+     If a field group has no label, it only acts as a group and will not be displayed as a FieldSet
     -->
     <cell id="authProps">
       <visibleOn>${resourceType == 'FNPT'}</visibleOn>
@@ -156,74 +155,62 @@ In addition to layout information, interactivity between fields can be specified
 </form>
 ```
 
-`cell` can be used not only to specify a single field but also to correspond to field grouping, thereby setting display/hide conditions for a group of fields. For example, `menuProps` corresponds to a group of fields and will only be displayed when `resourceType != 'FNPT'`.
+`cell` can target not only individual fields but also field groups, allowing you to set show/hide conditions for a group. In the example above, `menuProps` corresponds to a group and is shown only when `resourceType != 'FNPT'`.
 
-## Prototype Inheritance
+## IV. Prototype Inheritance
 
-In information systems, a common phenomenon is that forms have similar or identical layouts even when adding, modifying, or querying, but different controls are used for modification and querying. For such scenarios, standardization is difficult to achieve with general-purpose frameworks, but the Nop platform leverages reversible computation principles to provide a standardized solution:
+In information systems, it’s common for the layouts of create, update, and view forms to be largely or even entirely identical, while the controls used for update and view differ. Conventional techniques struggle to achieve reuse in such partially similar scenarios, but in the Nop platform, leveraging the principles of Reversible Computation, we provide a standardized solution:
 
-1. **Abstract information into a DSL node**
-2. **Use the built-in `x:prototype` mechanism in X language to construct the prototype**
+1. **Abstract shared, potentially reusable information into a DSL syntax node**
 
+2. **Use the built-in `x:prototype` mechanism in XLang to construct a node from a sibling node as its template**
 
+3. **Apply Delta customization via `x:prototype-override` to modify the template**
 
-## Customizing Templates with `x:prototype-override`
+Applied to frontend forms, the approach is:
 
+1. Abstract the form layout into a `<form/>` node
 
+2. Define `<form id="default" x:abstract="true"/>` as the template; set `x:prototype` of the view/edit forms to `default`
 
-1. **Define Forms**: Extract the form layout by abstracting it into `<form/>` nodes.
-   
-   ```xml
-   <form id="default" x:abstract="true">
-     <layout>
-       <!-- Layout configuration -->
-     </layout>
-     <cells>
-       <!-- Cell definitions -->
-     </cells>
-   </form>
-   ```
-
-2. **Template Setup**:
-   - Set `x:prototype` for the default view/edit forms to `"default"`。
-   - Use `<cell/>` nodes for displaying specific fields.
-
-3. **Cell Configuration**:
-   
-   ```xml
-   <form id="view" x:prototype="default" editMode="view">
-     <!-- View-specific layout -->
-   </form>
-
-   <form id="edit" x:prototype="default" editMode="edit">
-     <!-- Edit-specific layout -->
-   </form>
-   ```
-
-
-
-The `x:abstract` attribute is a special syntax in XLang. When set to `true`, it marks the node as a template, which will be automatically removed from the final output, similar to Spring's `abstract` property in XML configurations.
-
----
-
-
-
-
-
-The NopLayout system supports complex layout structures through nested groups. Each group can be defined using `#` symbols, similar to Markdown:
+3. Adjust the display of specific fields via `<cell/>` nodes
 
 ```xml
-<form id="default">
+<form id="default" x:abstract="true">
+   <layout>
+      ....
+   </layout>
+   <cells>
+     <cell id="xx" >
+        <visibleOn>yyy</visibleOn>
+     </cell>
+   </cells>
+</form>
+
+<form id="view" x:prototype="default" editMode="view">
+</form>
+
+<form id="edit" x:prototype="default" editMode="edit">
+</form>
+```
+
+`x:abstract` is a special attribute defined by XLang; when set to `true`, the node serves only as a template and will be automatically removed from the final merged output, similar to the `abstract` attribute in Spring XML configuration.
+
+## V. Extended Layouts
+
+The NopLayout language can also support more complex layout structures. For example, it supports multi-level nested layouts
+
+```xml
+<form>
   <layout>
-    ====#sub1===
-    ========##sub1_1###
-    a b
-    ========##sub1_2###
-    c d
-    ====#/sub1===
+      ====#sub1===
+      ====##sub1_1===
+       a b
+      ====##sub1_2===
+       c d
   </layout>
 </form>
 ```
 
-Here, `###` denotes a primary group, and `##` indicates child groups under it. Each `#` increases the nesting level.
-
+In group markers, `#` denotes nesting levels, similar to Markdown; multiple `#` indicate the depth. `##` represents a child of `#`.
+<!-- SOURCE_MD5:e7ca797ac4969c220cfd8cc3c0839d68-->

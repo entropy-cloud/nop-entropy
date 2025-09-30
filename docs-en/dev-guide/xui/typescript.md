@@ -1,27 +1,27 @@
-# Extracting Sub Fields of Entity Types
 
-To declare a type that represents the definitions of fields "a" and "b" from type `A`, and modify the type of field "b" to be nullable, you can use combinations of the built-in types `"Pick"` and `"Partial"`. Below is an example code:
+# Extracting a Subset of Properties from a Type
+
+To declare a type that picks properties "a" and "b" from type A and makes property "b" nullable, use the Pick utility type and override "b" to include null. Here is the sample code:
 
 ```typescript
 type A = { a: number, b: string, c: boolean };
 
-type ExtractAB = Pick<A, 'a' | 'b'> & Partial<Pick<A, 'b>>;
-```
+type ExtractAB = Pick<A, 'a'> & { b: string | null };
 
-## Example Usage
-
-Here's how you can use the defined type `ExtractAB`:
-
-```typescript
+// Example usage
 const obj: ExtractAB = {
   a: 1,
-  b: null // b is now nullable
+  b: null // b can be null
 };
 ```
 
-In the above code:
-1. First, we use the `"Pick"` type to extract fields "a" and "b" from type `A`.
-2. Then, we apply the `"Partial"` type to the extracted result, making field "b" nullable.
-3. Finally, we combine these two types using the ampersand operator `&` to create a new type `ExtractAB`.
+In the code above, we first use Pick to select property "a" from A, then define "b" as string | null. Finally, we combine them to produce a new type, ExtractAB.
 
-The resulting type `ExtractAB` will only contain fields "a" and a nullable field "b". Other fields, such as "c", are excluded from this type.
+Now, ExtractAB includes only property "a" and the nullable property "b". Other properties are omitted.
+
+Note: Partial makes properties optional, not nullable. If you want "b" to be optional instead of nullable, you can write:
+```typescript
+type ExtractABOptional = Pick<A, 'a'> & Partial<Pick<A, 'b'>>;
+```
+
+<!-- SOURCE_MD5:2eff7350e4eee3ae10430fec51042d5f-->

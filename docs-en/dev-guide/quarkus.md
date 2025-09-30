@@ -1,24 +1,25 @@
-# Logging Configuration
+# Log Configuration
 
-## Logging Format
+## Log Format
 
-In Quarkus, the logging format `"%d{yyyy-MM-dd HH:mm:ss,SSS} %h %N[%i] %-5p [%c{3.}] (%t) %s%e%n"` represents the following:
+In Quarkus, the log format `%d{yyyy-MM-dd HH:mm:ss,SSS} %h %N[%i] %-5p [%c{3.}] (%t) %s%e%n` means:
 
-- `%d{yyyy-MM-dd HH:mm:ss,SSS}`: Date and time in the format "YYYY-MM-DD HH:MM:SS.SSS", where SSS represents milliseconds.
-- `%h`: Host name.
-- `%N[%i]`: Thread name and thread ID.
-- `%-5p`: Log level, left-aligned and occupying a minimum width of 5 characters.
-- `[%c{3.}]`: Class name, showing up to 3 characters.
-- `(t)`: Thread context.
-- `%s`: Log message.
-- `%e`: Exception information.
-- `%n`: New line.
+- %d{yyyy-MM-dd HH:mm:ss,SSS} : Date and time format, for example "2022-01-01 12:34:56,789", where SSS denotes milliseconds.
+- %h : Hostname.
+- `%N[%i]` : Thread name and thread ID.
+- %-5p : Log level, left-aligned and occupying at most 5 characters in width.
+- `[%c{3.}]` : Class name, displaying at most 3 characters.
+- (%t) : Thread context.
+- %s : Log message.
+- %e : Exception information.
+- %n : Newline.
 
-This logging format includes date, time, host name, thread name and ID, log level, class name, thread context, log message, and exception information, ending with a new line.
+This log format means each log entry will include the date, time, hostname, thread name and ID, log level, class name, thread context, log message, and exception information, and ends with a newline.
 
 ## Configuration Example
 
 ```yaml
+
 quarkus:
   log:
     level: INFO
@@ -30,21 +31,25 @@ quarkus:
     file:
       enable: true
       path: log/app-demo.log
+      #      # Output format
+      #      format: %d{yyyy-MM-dd HH:mm:ss,SSS} %h %N[%i] %-5p [%c{3.}] (%t) %s%e%n
+      #      # Indicates whether to log asynchronously
       async: true
       rotation:
         max-file-size: 100M
         max-backup-index: 300
         file-suffix: .yyyy-MM-dd
+
 ```
 
-To enable TRACE level logging, the `quarkus.log.min-level` must be set to TRACE; otherwise, only DEBUG level logs will be output.
+To enable TRACE-level logging, you must also configure quarkus.log.min-level=TRACE; otherwise, at most DEBUG-level logs will be emitted.
 
-## Dependency Injection
+## Packaging in Submodules
 
-In Quarkus, when using dependency injection annotations (`@Inject`, etc.), you need to include the Jandex Maven plugin for jar packaging. This ensures that detailed information about your beans is recorded in the jandex index file, allowing Quarkus to scan and use them properly.
+For beans using Quarkus IoC annotations, when packaging them into a JAR, you must include the Jandex plugin to record detailed bean information in the Jandex index file. Otherwise, Quarkus will only scan files in the current project and will not be able to use beans from the JAR.
 
-```xml
-<plugin>
+```
+ <plugin>
     <groupId>org.jboss.jandex</groupId>
     <artifactId>jandex-maven-plugin</artifactId>
     <version>1.2.3</version>
@@ -61,31 +66,20 @@ In Quarkus, when using dependency injection annotations (`@Inject`, etc.), you n
 
 ## Native Compilation
 
-To perform native compilation, you need Maven version 3.9.3 or higher.
+Requires Maven version 3.9.3 or later
 
-```bash
+```
 mvnw install -Dnative -DskipTests -Dquarkus.native.container-build=true
 ```
 
-* On Windows, ChineseVC may encounter issues. Configuring `-DcheckToolchain` can be skipped.
-* Avoid using awt modules and classes related to Font.
-* Do not include the `--report-unsupported-elements-at-runtime` option; otherwise, excluded classes will throw errors.
-* GraalVM 23.1 cannot compile Quarkus 3.3.3 natively; upgrade to 3.4.1.
+- On Windows, the Chinese VC toolchain has issues; configure -H:-CheckToolchain to skip the check.
+- Classes such as Font in the AWT module cannot be used.
+- Do not include the --report-unsupported-elements-at-runtime option; otherwise, classes excluded via the Delete annotation will still report errors.
+- GraalVM 23.1 cannot perform native compilation with Quarkus 3.3.3; you must upgrade to 3.4.1.
 
-## Upload Analysis
+## Upload Parsing
 
-You need to add the following dependencies:
-
-```xml
-<dependency>
-    <groupId>com.sun.mail</groupId>
-    <artifactId>javax.mail</artifactId>
-    <version>1.6.2</version>
-</dependency>
-```
-
-* Disable the built-in `angus-mail` module.
-* Do not exclude `jaxb-provider`.
+You need to add the com.sun.mail dependency, disable the angus-mail module that comes from transitive dependencies, and you must not exclude jaxb-provider.
 
 ```xml
         <dependency>
@@ -105,13 +99,14 @@ You need to add the following dependencies:
         </dependency>
 ```
 
-## Using Only Nok Platform Backend
+## Backend Only with the Nop Platform
 
-If you need to use the Nok GraphQL service, you can include the `nop-quarkus-web-starter` module in your project.
+If you need to use the NopGraphQL service, you can include the nop-quarkus-web-starter module.
+
 ```xml
-<?xml version="1.0" encoding="UTF-8"?>
+
 <pom>
-    <!-- Parent settings for Maven -->
+    <!--  Setting parent to nop-entropy integrates default Maven plugins and default dependency management configuration -->
     <parent>
         <artifactId>nop-entropy</artifactId>
         <groupId>io.github.entropy-cloud</groupId>
@@ -119,25 +114,25 @@ If you need to use the Nok GraphQL service, you can include the `nop-quarkus-web
     </parent>
 
     <dependencies>
-        <!-- Nop platform dependencies -->
+        <!-- Bring in Nop platform dependencies. Because the parent is set to nop-entropy, you don't need to specify explicit version numbers here -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-quarkus-web-orm-starter</artifactId>
         </dependency>
 
-        <!-- Optional: User management -->
+        <!-- User and authorization management; this is an optional dependency -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-auth-service</artifactId>
         </dependency>
 
-        <!-- Optional: Dictionary and encoding tables -->
+        <!-- Optional dependency: dictionary tables, encoding rule table, extended field table, global sequence table, etc. -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-sys-service</artifactId>
         </dependency>
 
-        <!-- Optional: AMIS page generation module -->
+        <!-- Depend on xxx-web modules only if you need to use AMIS pages generated by the Nop platform -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-auth-web</artifactId>
@@ -148,18 +143,20 @@ If you need to use the Nok GraphQL service, you can include the `nop-quarkus-web
             <artifactId>nop-sys-web</artifactId>
         </dependency>
 
-        <!-- Optional: Frontend framework (contains login page, etc.) -->
+        <!-- This contains JS and CSS packaged by the nop-chaos project. It provides the frontend menu framework including login pages, etc. If you implement the frontend yourself, you can omit this module -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-web-site</artifactId>
         </dependency>
+
     </dependencies>
 </pom>
 ```
 
-## Only Using NopReport Engine
+## Using Only the NopReport Reporting Engine
 
 ```xml
+
 <dependencies>
     <dependency>
         <groupId>io.github.entropy-cloud</groupId>
@@ -173,24 +170,21 @@ If you need to use the Nok GraphQL service, you can include the `nop-quarkus-web
 </dependencies>
 ```
 
-## Problem Diagnosis
+## Troubleshooting
 
-### 1. Quarkus Bean Definition Not Found
-If a Quarkus bean is not found, ensure that the `jandex-maven-plugin` is properly configured in the module.
+### 1. Quarkus-defined beans not found
+If Quarkus bean definitions are packaged into a library module, that module must configure the `jandex-maven-plugin`.
 
-### 2. Frontend Service Returns 400 Bad Request
-If the frontend service returns a 400 error, check if it's due to missing authentication headers or invalid request parameters.
-
-URL must not contain special characters and must be encoded using UTF-8. For example, the URL `http://localhost:8080/r/NopAuthUser__findPage?@selection=items{id}` will cause an error because it contains a special character `@`. It is necessary to use the following encoding:
+### 2. Frontend request returns 400 BadRequest
+URLs must not include special characters; they must be UTF-8 encoded. For example, `http://localhost:8080/r/NopAuthUser__findPage?@selection=items{id}` will fail.
+You must use the following encoding:
 ```
 http://localhost:8080/r/NopAuthSite__findPage?%40selection=items%7Bid%7D
 ```
 
+### 3. How to set configuration for dev and prod environments
+Quarkus distinguishes environments via the `quarkus.profile` setting. In `application.yaml`, set `quarkus.profile: dev` or `quarkus.profile: prod` to select the environment.
 
-### 3. Configuration for dev and prod environments
-To differentiate between the `dev` and `prod` environments, Quarkus uses the `quarkus.profile` configuration. In the `application.yaml`, you can set either:
-- `quarkus.profile: dev`
-- or `quarkus.profile: prod`
-
-This setting allows for easy switching between different environments during development and production.
-
+### 4. Failed to start in IDEA with no output
+An invalid application.yaml format can cause this issue. Add a breakpoint in the main function to debug and trace it.
+<!-- SOURCE_MD5:d405b9f7b73e8bc0f59d1577245172d7-->

@@ -1,36 +1,35 @@
-# Step Decorator
 
-You can enhance task steps by using a decorator. This is similar to AOP (Aspect-Oriented Programming) effects.
+# Step Decorators
 
-When implementing a new decorator, you can implement the `ITaskStepDecorator` interface and register it in NopIoC with the name `nopTaskStepDecorator_{decoratorName}`.
+You can introduce decorators via the decorator element to enhance task steps, achieving AOP-like behavior.
+When adding a new decorator implementation, implement the ITaskStepDecorator interface and then register a bean named `nopTaskStepDecorator_{decoratorName}` in NopIoC.
 
-For example, the following decorator is defined in the `nop-task-ext` package:
+For example, the `nop-task-ext` package defines the following decorator
 
 ```xml
 <bean id="nopTaskStepDecorator_transaction" class="io.nop.task.ext.dao.TransactionTaskStepDecorator">
-    <ioc:condition>
-        <on-class>io.nop.dao.txn.ITransactionTemplate</on-class>
-    </ioc:condition>
+     <ioc:condition>
+         <on-class>io.nop.dao.txn.ITransactionTemplate</on-class>
+     </ioc:condition>
 </bean>
 ```
 
-Using `<decorator name="transaction"/>`, you can utilize this decorator.
+This allows us to use the decorator via `<decorator name="transaction"/>`.
 
 ## Transaction Decorator
 
-You need to import the `nop-task-ext` module.
+> Requires the nop-task-ext module
 
-You can control step transaction ranges using the `transaction` decorator.
-
-For example, in the following XML configuration:
+You can use the transaction decorator to control the transactional scope of steps.
 
 ```xml
-<sequential name="parentStep">
-    <decorator name="transaction"/>
 
-    <steps>
-        <xpl name="step1">
-            <source><![CDATA[
+<sequential name="parentStep">
+  <decorator name="transaction"/>
+
+  <steps>
+    <xpl name="step1">
+      <source><![CDATA[
                 import io.nop.sys.dao.entity.NopSysDict;
 
                 const daoProvider = inject("nopDaoProvider");
@@ -41,18 +40,20 @@ For example, in the following XML configuration:
                 dao.saveEntity(dict);
                 dao.flushSession();
             ]]></source>
-        </xpl>
+    </xpl>
 
-        <xpl name="step2">
-            <source>
-                <c:throw errorCode="test-error"/>
-            </source>
-        </xpl>
-    </steps>
+    <xpl name="step2">
+      <source>
+        <c:throw errorCode="test-error"/>
+      </source>
+    </xpl>
+  </steps>
 </sequential>
 ```
 
-The `transaction` decorator can control transaction details using parameters like `txn:txnGroup` and `txn:propagation`.
+The decorator accepts the following parameters to control transaction details
 
-* `txn:txnGroup` - Specify transaction grouping, usually not specified, corresponds to the default value.
-* `txn:propagation` - Specify whether to create a new transaction, corresponds to the `TransactionPropagation` enum's values.
+* `txn:txnGroup` Specifies the transaction group; usually it does not need to be set and corresponds to 'default'.
+* `txn:propagation` Specifies whether to start a new transaction, corresponding to the values of the TransactionPropagation enum.
+
+<!-- SOURCE_MD5:b33c23789b6350313c109de9f7066968-->

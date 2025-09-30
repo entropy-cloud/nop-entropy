@@ -1,30 +1,31 @@
-# Using XML Format to Express JSON Objects
 
-The XLang language defines standard conversion methods between XML and JSON, enabling reversible conversions between XML and JSON.
+# Use XML Format to Express JSON Objects
 
-xjson is a compact mapping method between XML and JSON. It specifies the following rules:
+The XLang language defines a standard method for converting between XML and JSON, enabling reversible conversion between XML and JSON.
 
-1. `tagName` corresponds to the `type` attribute in JSON.
-2. If there are multiple nodes, they automatically correspond to a list object.
-3. `j:list="true"` indicates that this node corresponds to a list object.
-4. The value of an attribute prefixed with `@:` indicates that the following content is in JSON format.
+xjson is a compact mapping between XML and JSON, with the following rules:
+
+1. tagName corresponds to the type property in JSON.
+2. If the body section has multiple nodes, it automatically corresponds to a list object.
+3. j:list="true" indicates that this node corresponds to a list object.
+4. If an attribute value has the `@:` prefix, the remainder is in JSON format.
 
 For example:
 
-```xml
+```
 <form name="a">
   <actions j:list="true">
     <action enabled="@:false" label="ss" />
   </actions>
-  
+     
   <body>
-    <input />
-    <input />
+     <input />
+     <input />
   </body>
 </form>
 ```
 
-When converted to JSON, it corresponds to:
+The corresponding JSON after conversion is
 
 ```json
 {
@@ -50,37 +51,37 @@ When converted to JSON, it corresponds to:
 
 ## xjson in Xpl
 
-The XPL template language supports `outputMode="xjson"`, allowing dynamic construction of JSON objects via the Xpl template language. This method is significantly simpler than directly using JSON format.
-
-For example:
+The XPL template language can set outputMode="xjson", allowing you to dynamically construct JSON objects via Xpl templates. The web.xlib extensively leverages this approach to generate amis pages; it is much simpler and more intuitive than using raw JSON directly.
 
 ```xml
 <actions xpl:if="hasAction">
-  <action enabled="${enabled}" />
+    <action enabled="${enabled}" />
 </actions>
 ```
 
-In the xdef meta-model definition, `xdef:value="xpl-xjson"` indicates that the corresponding Xpl template will output xjson content. If no output is generated, it corresponds to the JSON output result.
+In the xdef meta-model definition, xdef:value="xpl-xjson" indicates that the corresponding Xpl template outputs xjson content. If nothing is output, the return value corresponds to the xjson output result.
 
-For example, in the XView model's cell single cell:
+For example, in the XView model, the gen-control node of a cell is an xjson output node. For its configuration, the following two approaches are equivalent:
 
 ```xml
 <form>
-  <cell>
-    <gen-control>
-      <input type="a" width="${config.width}" />
-    </gen-control>
-  </cell>
+    <cell>
+        <gen-control>
+            <input type="a" width="${config.width}"/>
+        </gen-control>
+    </cell>
 
-  <cell>
-    <gen-control>
-      <c:script>
-        return {
-          type: "a",
-          width: config.width
-        }
-      </c:script>
-    </gen-control>
-  </cell>
+    <cell>
+        <gen-control>
+            <c:script>
+                return {
+                type: "a",
+                width: config.width
+                }
+            </c:script>
+        </gen-control>
+    </cell>
 </form>
 ```
+
+<!-- SOURCE_MD5:57f6420328316aad33c71c405a604c7b-->

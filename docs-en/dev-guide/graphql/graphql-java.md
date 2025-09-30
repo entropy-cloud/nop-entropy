@@ -1,34 +1,33 @@
 # Object-Oriented GraphQL
 
-The Nop platform is built on a data model and automatically generates entity definitions, SQL table definitions, GraphQL types, and front-end pages. For example, if the `Department` table is missing, the platform will generate a GraphQL type `Department`. It will also generate corresponding properties for primary and foreign key associations, such as `parent` and `children`. If a `connection` tag is added, it will generate pagination properties for associated objects, such as users in a specific department, using a mechanism similar to `[Relay Cursor Connection](https://relay.dev/graphql/connections.htm)`.
+The Nop platform is based on a data model and automatically generates entity definitions, SQL table definitions, GraphQL types, front-end pages, and more. Taking the Department table as an example, by default we generate a GraphQL type Department and create properties for primary/foreign key relationships such as parent and children. If the connection tag is added, we also generate properties corresponding to paginated access for related objects. For example, usersConnection returns the users belonging to a specified department via a pagination mechanism similar to [Relay Cursor Connection](https://relay.dev/graphql/connections.htm). By default, business objects automatically inherit CrudBizModel, so GraphQL entry operations are generated automatically.
 
-If business objects are missing, they will automatically inherit from `CrudBizModel`, generating corresponding GraphQL entry operations.
-
-> For details about connections, see [connection.md](connection.md).
+> For a detailed introduction to connections, see [connection.md](connection.md)
 
 ```graphql
-extend type Query {
-  Department_get(id: String!): Department
-  Department_batchGet(ids: [String!]): [Department]
-  Department_findPage(query: QueryBeanInput): PageBean_Department
+extend type Query{
+  Department__get(id:String!): Department
+  Department__batchGet(ids:[String!]): [Department]
+  Department__findPage(query:QueryBeanInput): PageBean_Department
   ...
 }
-extend type Mutation {
-  Department_save(data: DepartmentInput): Department
-  Department_delete(id: String!): Boolean
+extend type Mutation{
+  Department__save(data: DepartmentInput): Department
+  Department__delete(id:String!): Boolean
   ...
 }
 ```
 
-The Nop platform includes an automated backend management software production line. Its input is user requirements (expressed in Excel format), and its output is a runnable application system, implemented through a systematic incremental code generation approach. In this process, the GraphQL Schema is generated as an intermediate product based on Meta metadata and BizModel business models. We do not manually write GraphQL type definitions, and during business code writing, no knowledge of GraphQL is required. No need to implement specific GraphQL DataFetcher or DataLoader interfaces. Detailed technical details are explained in the "Incremental Pipeline" section. Additionally, refer to the following article:
+The Nop platform has a built-in automated back-office software production line whose input is user requirements (expressed in Excel documents) and whose output is a runnable application system. It achieves production line operation mainly through a systematic, incremental code generation scheme. Among these artifacts, the GraphQL Schema is an intermediate product automatically generated from Meta metadata definitions and BizModel business model definitions. We do not write GraphQL type definitions by hand, and while writing business code you do not need any GraphQL-specific knowledge—you do not need to implement GraphQL-specific interfaces such as DataFetcher or DataLoader. Technical details are introduced in more depth in the “Delta pipeline” section. You can also refer to the following article:
 
-[Data-Driven Incremental Code Generator](https://zhuanlan.zhihu.com/p/540022264)
+[Data-driven Delta code generator](https://zhuanlan.zhihu.com/p/540022264)
 
 ## GraphQL Object Definitions
 
-The NopGraphQL engine initializes by leveraging the dynamic scanning ability of the IoC container to discover all beans marked with the `@BizModel` annotation. These are then categorized and merged based on BizObjName configuration, such as:
+When initializing, the NopGraphQL engine uses the IoC container’s dynamic scanning capabilities to discover all beans annotated with `@BizModel` and groups/merges them according to their BizObjName configuration. For example:
 
 ```java
+
 @BizModel("NopAuthUser")
 public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
   @BizMutation
@@ -60,21 +59,23 @@ public class NopAuthUserBizModelEx {
 }
 ```
 
-NopAuthUserBizModel and NopAuthUserBizModelEx both have the same BizObjectName "NopAuthUser". Their methods are combined to generate operations for the NopAuthUser business object. If function names conflict, priority is determined by `@Priority` annotations. If priorities are the same and function names match, an exception will be thrown.
-NopGraphQL Engine constructs BizObject while checking the extended xbiz models. We can extend BizObject by adding methods to the NopAuthUser.xbiz model file. This model file can be updated online, and changes will take effect immediately without requiring reinitialization of GraphQL type definitions. The methods defined in the xbiz file have the highest priority and will automatically override the business methods defined in JavaBean.
+Both NopAuthUserBizModel and NopAuthUserBizModelEx have the BizObjectName NopAuthUser, and their methods are stacked together to collectively form the methods on the NopAuthUser business object. When methods with the same name appear, the `@Priority` configuration determines which implementation takes precedence; the higher priority implementation is chosen. If priorities are the same and function names are identical, an exception is thrown.
 
-If we consider BizModel with the same object name as a slice of the object, then NopGraphQL Engine is equivalent to dynamically collecting these object slices during system initialization, similar to how Docker images are layered. These layers are then combined to form a complete object definition. At runtime, the top-level xbiz slice can be dynamically modified and override the functionality of lower slices.
+When constructing BizObjects, the NopGraphQL engine also checks the xbiz extension model. We can extend a BizObject by adding methods in the NopAuthUser.xbiz model file; this file can be updated online and takes effect immediately without reinitializing GraphQL type definitions. Methods defined in xbiz files have the highest priority and will automatically override business methods defined in JavaBeans.
 
-> The concept of BizModel slices is somewhat analogous to the Entity Component System (ECS) pattern used in game development, except that it accumulates dynamic behavior rather than local state.
+If BizModels with the same object name are viewed as slices of the object, the NopGraphQL engine dynamically gathers these slices during system initialization, and overlays them like Docker images to form a complete object definition. At runtime, the topmost xbiz slice can be modified dynamically and override the functionality of lower slices.
 
-The Scatter capability complements Gather: we often need abstract global rules that automatically push some common knowledge into different business objects. NopGraphQL primarily implements information distribution through AOP mechanisms and metaprogramming:
+> The concept of BizModel slices is somewhat similar to the Entity Component System (ECS) pattern in game development, except it accumulates dynamic behavior rather than localized state.
 
-1. Common mechanisms can be used as AOP interceptors for qualifying business methods  
-2. xbiz files can leverage the x:gen-extends metaprogramming mechanism in XLang to dynamically define method definitions, or use external CodeGenerators to generate code.
+The capability dual to Gather is Scatter: we often need abstractions for global rules, automatically pushing certain shared knowledge into different business objects. NopGraphQL primarily uses AOP and metaprogramming mechanisms to distribute information:
+
+1. Common mechanisms can act as AOP interceptors on business methods that meet certain conditions.
+
+2. In xbiz files, you can dynamically generate method definitions via the generic x:gen-extends metaprogramming mechanism in XLang, or use an external CodeGenerator to generate code.
 
 ## CRUD Model
 
-In general business development, CRUD (Create/Read/Update/Delete) operations are often the most similar parts across different business objects, making it worthwhile to abstract them. NopGraphQL uses the Template Method design pattern to provide a generic CRUD implementation: CrudBizModel. Specific usage involves inheriting from CrudBizModel and implementing custom logic through methods like defaultPrepareSave and afterEntityChange. See the code examples below:
+In typical business development, CRUD (Create/Read/Update/Delete) operations are the most similar parts across different business objects, making it worthwhile to abstract them uniformly. NopGraphQL uses the Template Method design pattern to provide a generic CRUD implementation: CrudBizModel. You inherit from the CrudBizModel class and can add custom logic by implementing methods such as defaultPrepareSave and afterEntityChange. See:
 
 [CrudBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/crud/CrudBizModel.java)
 
@@ -84,25 +85,30 @@ In general business development, CRUD (Create/Read/Update/Delete) operations are
 
 ## 3.1 Metadata-Driven
 
-CrudBizModel uses a metadata-driven implementation that reads from xmeta configuration files. It includes built-in support for data validation, auto-initialization, cascading deletion, logical deletion, and data access control, meaning custom logic is typically unnecessary beyond adjusting xmeta and xbiz configurations.
+CrudBizModel is implemented in a metadata-driven manner. It reads configurations from xmeta files and has built-in support for common requirements such as data validation, auto-initialization, cascade delete, logical delete, and data permissions. In most cases, you only need to adjust xmeta and xbiz configuration files without writing custom logic.
 
-1. Data Validation: Similar to GraphQL's output selection, NopGraphQL can selectively validate and transform input fields, demonstrating **input-output duality**.
-   
+1. Data validation: Similar to GraphQL’s output selection, NopGraphQL can selectively validate and transform input fields, reflecting the duality of input and output.
+
    ```javascript
-   validatedData = new ObjMetaBasedValidator(bizObjManager, bizObjName, objMeta, context, checkWriteAuth)
-                       .validateForSave(input, inputSelection);
+   validatedData = new ObjMetaBasedValidator(bizObjManager,bizObjName,objMeta,context,checkWriteAuth)
+                       .validateForSave(input,inputSelection)
    ```
 
-2. Auto-Initialization: Field values can be automatically initialized based on meta-configured autoExpr expressions during updates or modifications. These expressions are generated based on the data model's domain configuration.
+2. Auto-initialization: In meta, you can configure an autoExpr for fields; during create/update operations, fields can be auto-initialized based on this configuration. The autoExpr can be generated automatically based on domain configurations in the data model.
 
-3. Data Transformation: Input property values are adapted and transformed according to meta-configured transformIn expressions. These expressions are also generated based on the data model's domain configuration.
+3. Auto-transformation: Based on the transformIn expression in meta, input property values are adapted/transformed. transformIn can be generated automatically based on domain configurations in the data model.
 
-4. Cascading Deletion: Sub-table records marked with cascade-delete will be deleted along with the main table record, executing the corresponding BizObject's delete logic for the sub-table.
+4. Cascade delete: Child table data marked as cascade-delete will be deleted along with the main table data and will trigger the delete logic defined on the business object corresponding to the child table.
 
-5. ...
+5.
+
+Logical delete: If a delFlag logical deletion marker field is enabled, the underlying ORM engine will automatically convert delete calls to modifications of delFlag and will automatically apply a delFlag=0 filter to all queries, unless the disableLogicalDelete attribute is explicitly set on the SQL object.
+
+6. Data permissions: All retrieved entity records are automatically validated to ensure they meet data permission requirements.
+
 ## 3.2 Complex Queries
 
-`CrudBizModel` provides three standard interfaces for complex queries:
+CrudBizModel provides three standard interfaces for complex queries:
 
 ```javascript
 PageBean<OrmEntity> findPage(@Name("query") QueryBean query, FieldSelectionBean selection);
@@ -110,88 +116,95 @@ List<OrmEntity> findList(@Name("query") QueryBean query);
 OrmEntity findFirst(@Name("query") QueryBean query);
 ```
 
-1. **findPage** will return paged query results based on the provided conditions. The pagination logic can be implemented using `cursor+next` page or the traditional `offset+limit` approach. The `selection` parameter corresponds to the collection of fields passed in from the frontend during a call.
-   - If the total number of pages is not required, `findPage` will skip the total count query.
-   - If no items are requested, it will adjust the actual pagination query accordingly.
+1. findPage returns paginated results based on query conditions. Pagination can use a cursor+next page approach or traditional offset+limit. selection corresponds to the set of return fields supplied by the frontend call.
+   * If total pages are not requested, findPage will skip querying the total count; if items list is not requested, it will adjust the actual pagination query itself accordingly.
 
-2. **findList** returns a list of records based on the query conditions. If no page size is specified, it will use the configuration from `meta` to determine the maximum number of records per page (e.g., `maxPageSize`).
+2. findList returns a list of data based on query conditions; if no page size is set, it selects maxPageSize records according to the meta configuration.
 
-3. **findFirst** returns the first record that satisfies the conditions.
+3. findFirst returns the first record that meets the conditions.
 
-The `QueryBean` class is analogous to Hibernate's Criteria object and supports complex query conditions with nested `and/or` operations, as well as sorting conditions. A `QueryBean` instance is constructed from the frontend and undergoes the following processing before execution by the DAO:
+QueryBean is similar to Hibernate’s Criteria query object and supports complex nested and/or conditions and sort orders. QueryBean can be constructed directly by the frontend and, before being executed by the DAO, undergoes the following processing:
 
-1. **Validation of Queryable Fields**: Ensures that only fields marked as `queryable="true"` are included in the query. By default, queries are restricted to equality operations unless specified otherwise. For example:
+1. Validate that query conditions only include fields with `queryable=true`, and that filter operators are within each field’s allowFilterOp set. By default, only equality queries are allowed. For example, configure username to support fuzzy search:
+
    ```xml
+   <!-- Support equality or fuzzy matching; by default, the frontend-generated control uses fuzzy search -->
    <prop name="userName" allowFilterOp="eq,contains" queryable="true"
              xui:defaultFilterOp="contains"/>
    ```
-   This configuration allows username fields to be queried using equality or containment operators.
 
-2. **Data Permission Filtering**: Automatically applies filters based on the user's permissions, such as filtering for records where the management unit is the same as the current unit.
+2. Append data permission filter conditions, e.g., only viewing data whose managing unit is the current unit.
 
-3. **Sorting by Primary Key Fields**: To avoid issues related to database concurrency, all pagination queries should include sorting conditions. This ensures consistent ordering of results.
+3. Add sorting conditions by primary key fields. Without sorting, concurrent database execution may return random result sets. Therefore, all paginated queries should have sorting conditions to ensure consistent pagination order.
 
-`QueryBean` leverages the capabilities of the underlying `NopOrm` engine to support object associations, such as:
+Leveraging the underlying NopOrm engine, QueryBean naturally supports queries on associated objects. For example:
+
 ```xml
+
 <eq name="manager.dept.type" value="1"/>
 ```
-This query automatically resolves the association using the `manager_id` link to the corresponding department table.
 
-If the underlying ORM does not support association queries, you can implement a custom `QueryTransformer` interface to modify `QueryBean` instances. For example:
+This indicates filtering by the condition manager.dept.type = 1 and automatically joins the corresponding department table via `manager_id`.
+
+If the underlying ORM engine does not support join queries, you can implement a QueryTransformer interface to transform the QueryBean. For example, transform the equality condition above into a subquery:
+
 ```sql
 o.manager_id in (select user.id from User user, Dept dept
        where user.dept_id = dept.id and dept.type = 1)
 ```
 
-In the AMIS framework, we have established conventions for constructing complex queries from form inputs. The format for filter parameters is:
-```
-字段名格式为: filter_{propName}__{filterOp}
-```
-For example:
-- `filter_userName__contains` applies a containment filter to the `userName` field.
-- For equality filters (`eq`), you can omit the `filterOp` part, as in `filter_userId`.
+On the frontend, to construct complex query conditions in a form-friendly way, we use the following convention in the AMIS framework:
 
-Note: If the filter value is empty, it will be ignored. To explicitly query for null values, use `__null`, and for empty strings, use `__empty`.
+```
+Field name format: filter_{propName}__{filterOp}
+```
 
-When calling methods like `findPage`, `findList`, or `findFirst` via URLs in AMIS, you can use the following format:
+For example, `filter_userName__contains` filters the userName field using the contains operator. For the eq (equals) operator, the filterOp part can be omitted; for instance, filter_userId is equivalent to `filter_userId__eq`.
+
+Note: If the filter condition’s value is empty, that field condition is ignored. If you need to query by null explicitly, use `__null` to indicate null and `__empty` for an empty string.
+
+When invoking methods that end with findPage/findList/findFirst via AMIS URLs, you can use the filter convention:
+
 ```javascript
 {
    url: "@query:NopAuthUser__findPage?filter_userStatus=1"
 }
 ```
+
 ### Constructing Complex Query Conditions
 
-When directly calling the backend's GraphQL service or REST service, you can construct a `QueryBean` object.
+When directly calling backend GraphQL or REST services, you can construct a QueryBean object:
 
-```http
+```
 POST /r/NopAuthUser__findPage
 
 {
-  "query": {
-    "filter": {
-      "$type": "eq",
-      "name" : "userStatus",
-      "value": 1
-    }
-  }
+   "query": {
+      "filter": {
+         "$type": "eq",
+         "name" : "userStatus",
+         "value": 1
+      }
+   }
 }
 ```
 
-The `filter` corresponds to a `TreeBean` type object in the backend, which is a generic Tree structure and can be automatically converted into XML format. The specific conversion rules are defined by the standard conversion mechanism of the Nop platform:
+filter corresponds to a TreeBean-type object in the backend—a general tree structure that can be automatically converted into XML. The conversion rules are defined by a standard mechanism in the Nop platform:
 
-1. The `$type` attribute corresponds to the tag name
-2. The `$body` attribute corresponds to child nodes and node content
-3. Other attributes without a `$` prefix correspond to XML node attributes
-4. Attributes prefixed with `@:` are parsed in JSON format
+1. The $type attribute corresponds to the tag name.
+2. $body corresponds to child nodes and node content.
+3. Other attributes that do not start with $ correspond to XML node attributes.
+4. Values prefixed with `@:` are parsed as JSON.
 
 ```xml
+
 <and>
   <eq name="status" value="@:1"/>
   <gt name="amount" value="@:3"/>
 </and>
 ```
 
-This corresponds to:
+Corresponding JSON:
 
 ```json
 {
@@ -211,47 +224,48 @@ This corresponds to:
 }
 ```
 
-The supported operators such as `eq`, `gt` in the filter are defined in `[FilterOp.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java)`.
+Supported filter operators such as eq and gt are defined in [FilterOp.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java).
+Common operators include:
 
-Reusable operators:
+| Operator      | Description                     |
+|---------------|----------------------------------|
+| eq            | Equal                            |
+| gt            | Greater than                     |
+| ge            | Greater than or equal            |
+| lt            | Less than                        |
+| xe            | Less than or equal               |
+| in            | In a collection                  |
+| between       | Between min and max              |
+| betweenDate   | Date between min and max         |
+| alwaysTrue    | Always true                      |
+| alwaysFalse   | Always false                     |
+| isEmpty       | The value for name is empty      |
+| startsWith    | String starts with the given value |
+| endsWith      | String ends with the given value   |
 
-| Operator | Description |
-|--------|-------------|
-| eq     | Equals       |
-| gt     | Greater than  |
-| ge     | Greater than or equal to |
-| lt     | Less than    |
-| xe     | Less than or equal to |
-| in     | In the collection |
-| between | Between min and max |
-| betweenDate | Date between min and max |
-| alwaysTrue | Always true |
-| alwaysFalse | Always false |
-| isEmpty | The value corresponding to `name` is empty |
-| startsWith | The string starts with the specified value |
-| endsWith | The string ends with the specified value |
+### BizArgsNormalizer: Normalizing Argument Formats
 
-### BizArgsNormalizer Parameter Specification Conversion
-The functions like `findPage/findList` in `CrudBizModel` accept query parameters in `QueryBean` format, but constructing the `QueryBean` structure is complex in the frontend. Therefore, it also supports directly transmitting filter conditions in the format `filter_{propName}`, such as `filter_status=1`.
-
-The backend implementation uses the `@BizArgsNormalizer` annotation to introduce the `IGraphQLArgsNormalizer` interface object for normalizing the parameters passed from the frontend. This converts the frontend-transmitted `filter_xx` conditions into a `QueryBean` object. This is a generic mechanism used not only for converting `QueryBean` structures but also in other contexts.
+CrudBizModel’s `findPage/findList` and similar functions accept a QueryBean-structured query parameter. Since constructing a QueryBean on the frontend can be complex, we also support directly passing `filter_{propName}` format filter conditions such as `filter_status=1`. The backend uses the IGraphQLArgsNormalizer object introduced via the `@BizArgsNormalizer` annotation to normalize frontend parameters, converting `filter_xx` conditions into a QueryBean object. This is a general mechanism, not limited to QueryBean conversions.
 
 ```javascript
     @BizQuery
     @BizArgsNormalizer(BizConstants.BEAN_nopQueryBeanArgsNormalizer)
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
-    public PageBean<T> deleted_findPage(@Optional @Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
+    public PageBean<T> deleted_findPage(@Optional @Name("query") @Description("@i18n:biz.query|Query conditions") QueryBean query,
                                         FieldSelectionBean selection, IServiceContext context) {
       ...
    }
-```markdown
+```
 
-## 3.3 The 'This' Pointer: Relationalizing Knowledge
+The parameter of `@BizArgsNormalizer` is the name of a bean registered in NopIoC. nopQueryBeanArgsNormalizer corresponds to a QueryBeanArgsNormalizer object registered in `biz-defaults.beans.xml`.
 
-In GraphQL, operation names are global and unique, such as `query{ getUser(id:3){ id, userName}}`.  
-The `getUser` method used in queries must be unique across the entire model, which is detrimental to reusable code.
+`IGraphQLEngine.newRpcContext` calls the argsNormalizer, so this logic is invoked when the frontend executes backend services via `/p/{bizObjName}_{bizAction}` or `/r/{bizObjName}_{bizAction}`. See the unit test `TestNopAuthUserBizModel.testQueryBeanNormalizer`.
 
-In NopGraphQL, when implementing CRUD operations, you only need to inherit from the `CrudBizModel` base class. The GraphQL operation names exposed to the frontend are formed by concatenating the object name and method name.
+## 3.3 The this Pointer: Relativization of Knowledge
+
+Operation names defined in GraphQL are global names. For example, in `query{ getUser(id:3){ id, userName}}`, the getUser method needs to be unique across the entire model, which is unfavorable for code reuse.
+
+In NopGraphQL, to implement CRUD you only need to inherit the CrudBizModel base class; the GraphQL operation name exposed externally is formed by concatenating the object name and the method name.
 
 ```java
 class CrudBizModel<T> {
@@ -268,65 +282,67 @@ class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
 }
 ```
 
-In the above example, the NopGraphQL engine will automatically generate a query operation named `NopAuthUser_get`, and its return type will be `THIS_OBJ`. This means it will be replaced with the corresponding BizObjName of the current object, which is `NopAuthUser`.
+In the example above, the NopGraphQL engine automatically generates a query operation `NopAuthUser_get`, and its return type is `THIS_OBJ`, meaning it will be replaced by the BizObjName corresponding to the current object, i.e., NopAuthUser.
 
-Note that by using this implementation approach, we can provide different GraphQL types for the same implementation class. For example:
+Note that with this approach we can provide different GraphQL types for the same implementation class. For example:
 
 ```java
 @BizModel("NopAuthUser_admin")
-public NopAuthUserAdminBizModel extends CrudBizModel<NopAuthUser> {
+public NopAuthUserAdminBizModel extends CrudBizModel
+
+<NopAuthUser> {
 
 }
 ```
 
-The same class inherits from `CrudBizModel<NopAuthUser>`, but because the `BizModel` annotation provides a BizObjName of `NopAuthUser_admin`, the returned field collection can differ from that of a regular `NopAuthUser`, and the backend's permission requirements for calls may also differ.
+Although it still inherits from `CrudBizModel<NopAuthUser>`, since the bizObjName provided in the BizModel annotation is `NopAuthUser_admin`, the returned field set of get can differ from that of the regular NopAuthUser, and the permissions required for backend calls may also differ.
 
-In other words, the method name is a local identifier defined relative to the `this` pointer. Without complete knowledge, we can create complex logic based on relative knowledge and inject different `this` pointers to change the entire set of calls' specific meanings. This is essentially the basic design principle of object-oriented programming.
+In other words, method names on an object are local names whose semantics are defined relative to the this pointer. Without having all knowledge, we can build rather complex logic based on relative knowledge, and by injecting different this pointers, the concrete meaning of a whole set of calls changes. This is essentially the fundamental principle of object-oriented design.
 
-> Object-oriented technology created a special name—the 'this' pointer, which is a conventionally fixed local identifier. Using 'this' allows us to distinguish between domain (domain) and non-domain. In the domain, we directly refer to the current object via 'this'.
+> Object-oriented technology creates a special name—the this pointer—which is an agreed-upon, fixed local name. Using this pointer distinguishes the inside and outside of a domain. Outside the domain, objects can have many names, while inside the domain we directly refer to the current object with this.
 >
-> Code itself is just a formal expression; its specific meaning requires an interpretation process to determine. The call form based on object pointers leads to multiple interpretations: by injecting different 'this' pointers, you can provide different interpretations.
+> Code is merely a formal expression; its specific meaning requires an interpretative process. Invocation forms based on object pointers lead directly to interpretative diversity: injecting different this pointers provides different interpretations.
 
-In the frontend implementation, we used a similar strategy: the frontend script automatically determines the method signature based on the method name's suffix, such as all methods ending with `_findPage` have a default signature of:
+On the frontend, we use a similar strategy: frontend scripts automatically infer method signatures by method suffix. For example, for all methods ending in `_findPage`, the default signature is:
 
 ```java
-XXX_findPage(query: QueryBeanInput): PageBean_XXX
+XXX_findPage(query:QueryBeanInput):PageBean_XXX
 ```
-
 
 ### Return Types
 
-Service methods on BizModel do not need to wrap return values in ApiResponse; the framework itself handles the wrapping. If the return type is String, it will be returned as String without automatic JSON parsing. If it's a Map or other bean objects, attributes will be loaded via DataLoader and returned. If it's a CompletionStage, it indicates asynchronous execution.
+Service methods on BizModel do not need to wrap their return types in ApiResponse; the framework itself will handle ApiResponse wrapping. If the return type is String, it remains a String on the frontend and will not be auto-parsed as JSON. If the return type is Map or another bean object, attributes are loaded according to the DataLoader mechanism before returning. If the method returns CompletionStage, it indicates asynchronous execution.
 
 ```java
 @BizQuery
-public Map<String, Object> myMethod() {
+public Map<String,Object> myMethod(){
    ...
 }
 
 @BizQuery
-public CompletionStage<Map<String, Object>> myMethod2Async() {
-   return ...;
+public CompletionStage<Map<String,Object>> myMethod2Async(){
+   return ...
 }
 
 @BizQuery
-public MyResultBean myMethod3() {
-   return ...;
+public MyResultBean myMethod3(){
+   return ...
 }
 ```
 
 ## 4. Framework-Agnostic Design
 
-When writing business code using traditional Web frameworks, it's inevitable that you'll use framework-specific environment objects like `HttpServletRequest` or `SpringMVC`'s `ModelAndView`. These objects are tightly coupled with the framework's runtime environment, binding your code to a specific runtime context and making it difficult to apply across various scenarios. The most obvious example is a service function designed for online API calls that cannot be directly used as a message queue consumer. We must abstract an additional layer: the Service Layer, and package it separately into Controllers and Message Consumers to handle Web requests and message queue consumption.
+In traditional web frameworks, writing business code inevitably involves framework-specific runtime objects such as HttpServletRequest or SpringMVC’s ModelAndView. These objects are strongly tied to the particular runtime environment, binding your code to that environment and making it difficult to reuse across different scenarios. Most notably, a service function written for online API calls generally cannot be directly used as a message queue consumer. You are forced to abstract an additional layer—the Service layer—then wrap it separately as a Controller and a MessageConsumer to handle web requests and message queues.
 
-NopGraphQL employs a framework-agnostic, non-invasive design in implementing business methods, expanding the use cases for service methods and simplifying service layer implementation. Specifically, NopGraphQL introduces minimal annotations and uses POJO objects as input and output objects, automatically translating business methods into GraphQL-compatible DataFetcher and DataLoader constructs. For example:
+NopGraphQL adopts a framework-agnostic, non-intrusive design for implementing business methods. It expands the usage scenarios of service methods and simplifies service-layer development. Specifically, NopGraphQL introduces a small set of annotations, uses POJO objects as input/output, and automatically translates business methods into the DataFetcher and DataLoader required by the GraphQL engine. For example:
 
 ```java
+
 @BizModel("MyEntity")
 class MyBizModel {
   @BizQuery
   public MyEntity get(@Name("id") String id) {
-    return ...;
+    return ...
   }
 
   @BizLoader
@@ -347,63 +363,67 @@ class MyBizModel {
 }
 ```
 
-1. `@BizQuery` indicates that this method will be mapped to a GraphQL query.
-2. `@BizMutation` indicates that this method will be mapped to a GraphQL mutation.
+1. `@BizQuery` maps the method to a GraphQL query; `@BizMutation` maps it to a GraphQL mutation.
 
-3. If the return type is a `CompletionStage`, it signifies asynchronous execution.
+2. `@BizLoader` provides fetcher and loader definitions for GraphQL type properties. To keep the concepts simple, NopGraphQL requires all properties to be declared in xmeta; BizModel only provides customized loaders for already defined properties.
 
-4. If a method annotated with `@BizLoader` has a `ContextSource` parameter of List type, it indicates a DataLoader implementation for GraphQL, supporting batch loading.
+3. If the return type is CompletionStage, the method executes asynchronously.
 
-![BizModel Diagram](../../arch/BizModel.svg)
+4. If a method annotated with `@BizLoader` has a ContextSource parameter of type List, it corresponds to a GraphQL DataLoader implementation and supports batch loading.
 
-Service methods written with the NopGraphQL engine can be seen as having the following function signature:
+![](../../arch/BizModel.svg)
+
+Service methods written with the NopGraphQL engine can be viewed as having the following function signature:
 
 ```java
 ApiResponse<Object> service(ApiRequest<Map> request);
 
-class ApiRequest<T> {
-    Map<String, Object> headers;
+class ApiRequest<T>{
+    Map<String,Object> headers;
     FieldSelectionBean selection;
     T data;
 }
 ```
 
-Service methods receive a POJO request object and return another POJO response object. Because both input and output are simple objects, no coding is required—just simple configuration to achieve:
+Service methods receive a POJO request object and return a POJO response object. Because both input and output are simple objects, with minimal configuration you can:
 
-1. Publish GraphQL service methods as message queue consumers: they receive a request object from one topic and send the response to another topic. If the header indicates "one-way," the response message is ignored.
+1. Publish GraphQL service methods as message queue consumers: receive a request object from one topic, send a response message to another topic, and if the header marks one-way, ignore the response.
 
-2. Publish GraphQL service methods as RPC functions.
+2. Publish GraphQL service methods as RPC service functions.
 
-3. Read requests from batch files, invoke service methods sequentially, batch submit, retry on failure, and write returned responses to output files.
+3. Read Request objects from batch files, invoke service methods in sequence, submit in batches, retry failures, and write the Response messages to an output file.
 
 ## REST Over GraphQL
-GraphQL Engine can be run on top of REST services, providing the so-called Federation functionality to combine multiple REST services into a single unified GraphQL endpoint. Conversely, can we also decompose the underlying GraphQL service methods and expose them as individual REST resources?
 
-NopGraphQL leverages the lazy field concept by defining sets of eager loading attributes in GraphQL type definitions and converting GraphQL model methods into REST services through normalized means. The specific REST URL format is as follows:
+GraphQL engines can run on top of REST services to provide federation, combining multiple REST services into a unified GraphQL endpoint. Conversely, can we decompose underlying GraphQL service methods and expose them as individual REST resources?
+
+NopGraphQL leverages the concept of lazy fields to define the set of Eager-loaded properties in GraphQL types and systematically transforms methods in the GraphQL model into REST services. The specific REST URL format is:
 
 ```java
-/r/{operationName}?@selection=a,b,c {
+/r/{operationName}?@selection=a,b,
+
+c {
   d, e
 }
 ```
 
-1. Parameters are transmitted via the request body
+1. Pass parameters via the request body.
 
-2. `/r/{operationName}` refers to the service link, and the optional `@selection` parameter specifies the fields to be selected from the returned results. If not specified, the backend will automatically return all attributes that are not marked as lazy. During code generation, associated table data missing will be marked as lazy, so they won't be included in the REST call's response under normal circumstances.
+2. /r/{operationName} is the service link. Use the optional `@selection` parameter to specify the selection of returned fields. If not specified, the backend automatically returns all properties not marked lazy. During code generation, data from associated tables are marked as lazy by default; thus, they are not included by default in REST call return results.
 
-3. A GET request can only invoke GraphQL query operations, while a POST request can invoke either query or mutation operations.
+3. GET requests can only call GraphQL query operations, while POST can call query or mutation operations.
 
-Parameters can be transmitted via URL parameters, for example:
+You can pass call parameters via the URL. For example:
 
-```java
+```
 GET /r/NopAuthUser_get?id=3
 ```
 
-This is equivalent to executing `NopAuthUser_get(id:3)`.
+This is equivalent to executing NopAuthUser_get(id:3).
 
-In POST requests, the parameter can be sent via the HTTP body in JSON format:
+For POST requests, parameters can be sent in the HTTP body as JSON.
 
-Nop platform's frontend framework is built on the Baidu AMIS framework and further simplifies GraphQL calls. On the front end, we can use the following URL format to initiate GraphQL calls:
+The front-end framework in the Nop platform builds on Baidu’s AMIS and further simplifies GraphQL calls. On the frontend, you can use the following URL format to initiate a GraphQL call:
 
 ```js
 api: {
@@ -411,52 +431,52 @@ api: {
 }
 ```
 
-The above URL uses a prefix syntax. The `ajaxFetch` function at the bottom layer will recognize the `@query:` prefix and convert it into a GraphQL request:
+The URL above uses a so-called “prefix guiding syntax,” and the underlying ajaxFetch function recognizes the `@query:` prefix and converts it into a GraphQL request:
 
 ```graphql
-query($id:String) {
-  NopAuthUser_get(id:$id) {
+query($id:String){
+  NopAuthUser_get(id:$id){
     id, userName
   }
 }
 ```
 
-The `ajaxFetch` function recognizes the GraphQL URL format as:
+The format of a GraphQL URL recognized by ajaxFetch is:
 
-```java
-(@query|@mutation):{operationName}/{selection}?参数名=参数值
+```
+(@query|@mutation):{operationName}/{selection}?paramName=paramValue
 ```
 
-When writing loading functions for forms or tables, if there are many fields, manually writing GraphQL requests can easily result in missing fields. Since Nop platform's frontend code is also auto-generated, we can leverage compile-time variables like `formSelection`, `pageSelection`, etc., to auto-generate GraphQL requests so that exactly the data needed for the form or table is selected. For example:
+When writing load functions for forms or tables, if there are many fields, manually writing GraphQL requests can easily lead to missing fields. Since the front-end code in the Nop platform is also auto-generated, we can use compile-time information to auto-generate GraphQL requests so that we select exactly the data used by the form or table. Specifically, introduce compile-time variables such as formSelection and pageSelection. For example:
 
 ```java
 @query:NopAuthUser_get/{@formSelection}?id=$id
 ```
 
-`{@formSelection}` indicates all fields used in the current form.
+`{@formSelection}` indicates selecting all fields used in the current form.
 
 ## GraphQL Extensions
 
 ### Map Type
 
-GraphQL is a strongly typed framework that requires all data to have explicit type definitions, which can be inconvenient in some dynamic scenarios. For example, sometimes we need to return extended collections to the frontend.
+GraphQL is a strongly typed framework that requires explicit type definitions for all data, which can be inconvenient in dynamic scenarios. For example, sometimes we may need to return an extension map to the frontend.
 
-NopGraphQL introduces a special Scalar type: Map, allowing us to describe those dynamic data structures. For instance:
+NopGraphQL introduces a special Scalar type: Map, used to describe those dynamic data structures. For example:
 
 ```graphql
-type QueryBean {
+type QueryBean{
     filter: Map
     orderBy: [OrderFieldBean]
 }
 ```
 
-### Tree Structure
+### Tree Structures
 
-For retrieving tree structures like unit trees or menu trees, NopGraphQL provides an extension syntax using the Directive mechanism to directly express recursive data fetching, such as:
+For retrieving tree structures such as organization trees or menu trees, NopGraphQL provides an extension syntax via Directives to express recursive data retrieval. For example:
 
 ```graphql
 query {
-    NopAuthDept_findList {
+    NopAuthDept_findList{
         value: id
         label: displayName
         children @TreeChildren(max:5)
@@ -464,7 +484,7 @@ query {
 }
 ```
 
-`@TreeChildren(max:5)` indicates that up to 5 levels of nesting will be performed at this level.
+`@TreeChildren(max:5)` indicates nesting up to 5 levels according to the current layer’s structure.
 
 ## File Upload and Download
 
@@ -472,36 +492,35 @@ See [upload.md](upload.md)
 
 ## REST Links
 
-NopGraphQL engine supports calling backend service functions via REST links. In a sense, it unifies GraphQL and REST, allowing them to implement the same functionality while differing only in request and response formats.
+The NopGraphQL engine supports invoking backend service functions via REST links. In a certain sense, it unifies GraphQL and REST so they can achieve the same functionality; the only difference is the format of request and response messages.
 
 See [rest.md](rest.md)
 
-## Combining GraphQL Results
+## GraphQL Result Composition
 
-GraphQL provides result combination capabilities that REST does not have, significantly enhancing system's composability and runtime performance. Below is a brief explanation of its implementation in DevDocBizModel.
-Frontend, we can query the global object definitions from the backend. Each global object has a methods property that returns the methods defined on that global object.
+GraphQL provides result composition capabilities not available in REST, greatly enhancing system composability and runtime performance. Below is a brief description using the implementation in DevDocBizModel.
+
+On the frontend, we can query backend global object definitions, each global object having a methods property that returns the methods defined on that global object:
 
 ```graphql
-query {
-  DevDoc__globalVars {
+query{
+  DevDoc__globalVars{
     name
     methods
   }
 }
 ```
 
-In the implementation of DevDocBizModel, the globalVars method in the GlobalVarDefinition class only initializes simple properties like name and does not load complex methods.
-After returning `List<GlobalVarDefinition>`, the GraphQL engine processes it further. When it detects that the methods property needs to be returned, it calls the corresponding DataLoader for methods,
-which actually constructs a list of `FunctionDefBean` to return.
+In DevDocBizModel’s implementation, the globalVars method initializes only simple properties such as the name of GlobalVarDefinition; it does not load the complex methods property. After globalVars returns `List<GlobalVarDefinition>`, the GraphQL engine processes the result further. Seeing that the methods property is required by the response, it calls the DataLoader corresponding to methods and returns the actual `List<FunctionDefBean>`.
 
-**If the client does not request the methods attribute, the backend can avoid executing method loading functions, thereby improving performance**
+**If the client does not request the methods property, the backend avoids executing the methods loader, thus improving performance.**
 
 ```java
 
 @BizModel("DevDoc")
 public class DevDocBizModel {
   @BizQuery
-  @Description("Global Variables")
+  @Description("Global variables")
   public List<GlobalVariableDefBean> globalVars() {
     return ...
   }
@@ -513,29 +532,29 @@ public class DevDocBizModel {
 }
 ```
 
-For the complete implementation, refer to [DevDocBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/dev/DevDocBizModel.java)
+See the full implementation in [DevDocBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/dev/DevDocBizModel.java)
 
-## Defining Loader in XBiz Model
+## Defining Loaders in XBiz Models
 
-In XBiz, defining queries, mutations, and loaders is equivalent to doing so in Java. For example:
+Defining query, mutation, and loader in xbiz is equivalent to defining them in Java. For example:
 
 ```java
+
 @BizModel("NopAuthRole")
 public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
   @BizLoader
   @GraphQLReturn(bizObjName = "NopAuthUser")
   public List<NopAuthUser> roleUsers(@ContextSource NopAuthRole role) {
-    return role.getUserMappings().stream()
-      .map(NopAuthUserRole::getUser)
-      .sorted(comparing(NopAuthUser::getUserName))
-      .collect(Collectors.toList());
+    return role.getUserMappings().stream().map(NopAuthUserRole::getUser)
+      .sorted(comparing(NopAuthUser::getUserName)).collect(Collectors.toList());
   }
 }
 ```
 
-In XBiz files, this corresponds to:
+If written in an xbiz file, it corresponds to:
 
 ```xml
+
 <loaders>
   <loader name="roleUsers">
     <arg name="role" kind="ContextSource" type="io.nop.auth.dao.entity.NopAuthRole"/>
@@ -543,24 +562,26 @@ In XBiz files, this corresponds to:
 
     <source>
       <c:script>
-        const users = role.userMappings.map(m => m.user);
-        return _.sortBy(users, "userName");
+        const users = role.userMappings.map(m=>m.user);
+        return _.sortBy(users,"userName")
       </c:script>
     </source>
   </loader>
 </loaders>
 ```
 
-Note: All GraphQL attributes that can be used must be configured in meta. Defining a loader alone will not automatically create attribute definitions, which is mainly to ensure the completeness of the meta model's semantic meaning.
+Note: All properties usable in GraphQL must be configured in meta. Defining a loader alone does not automatically generate a property definition; this is primarily to ensure the semantic integrity of the meta model.
 
-## Implementing Custom Attributes via Meta's Getter
+## Implementing Custom Attributes via Meta Getters
 
-Some simple attribute adaptation issues might seem cumbersome if using the XBiz loader mechanism. Instead, you can directly configure attributes through getters in meta.
+For some simple attribute adaptation scenarios, using a loader in xbiz might feel overly complex. You can configure getters directly in meta:
+
 ```xml
+
 <prop name="nameEx">
   <getter>
     <c:script>
-      // Here entity represents the current entity
+      // Here, entity refers to the current entity
       return entity.name + 'M'
     </c:script>
   </getter>
@@ -569,7 +590,7 @@ Some simple attribute adaptation issues might seem cumbersome if using the XBiz 
 
 ## Data Types
 
-GraphQL has a limited set of scalar types by default, and NopGraphQL defines additional scalar types for finer granularity.
+GraphQL has only a small number of scalar types by default. NopGraphQL defines the following scalar types to make types more fine-grained:
 
 ```java
 public enum GraphQLScalarType {
@@ -587,20 +608,21 @@ public enum GraphQLScalarType {
 }
 ```
 
-For the Timestamp type, the default display format is `yyyy-MM-dd HH:mm:ss`. In XMeta configuration, you can set `graphql:datePattern` to another format. If you want the timestamp to return milliseconds, you can configure the pattern as `ms`, which is a special format name recognized and handled in DateHelper.
+For Timestamp types, the default display format is `yyyy-MM-dd HH:mm:ss`. In XMeta, you can configure `graphql:datePattern` on a prop to use other formats. If you want the timestamp to return milliseconds, set the pattern to `ms`. This is a specially agreed format recognized and handled in DateHelper.
 
 ```xml
 <prop name="createTime" graphql:datePattern="ms">
 </prop>
 ```
 
-## Loading Objects Using GraphQL Loader
-For example, after retrieving a User object via dao, you might want to automatically get the `status_label` property based on status.
+## Using GraphQL Loaders to Load Object Attributes
+
+For example, after retrieving User objects via DAO, you may want to automatically load a `status_label` property based on status:
 
 ```javascript
 IEntityDao<NopAuthUser> user = daoProvider.daoFor(NopAuthUser.class);
 List<NopAuthUser> list = user.findAll();
-IServiceContext svcCtx = null; // svcCtx is typically available in the backend template runtime context
+IServiceContext svcCtx = null; // In backend template runtime contexts, svcCtx generally exists
 CompletionStage<Object> future = graphQLEngine.fetchResult(list,
         "NopAuthUser", "...F_defaults,status_label,relatedRoleList", svcCtx);
 output("result.json5", FutureHelper.syncGet(future));
@@ -608,8 +630,8 @@ output("result.json5", FutureHelper.syncGet(future));
 
 ## Publishing the Same Entity Model as Multiple Different GraphQL Objects
 
-* NopGraphQL engine-recognized BizModels need to be registered in `beans.xml`.
-* You can specify `bizObjName` during registration. If not specified, it will attempt to retrieve it from the Java class's `@BizObjName` annotation.
+* BizModels recognized by the NopGraphQL engine must be registered in a `beans.xml` file.
+* You can specify bizObjName at registration; if not specified, it is obtained from the Java class’s `@BizObjName` annotation.
 
 ```xml
 <bean id="MyUserExtBizModel" class="io.nop.graphql.demo.model.MyUserBizModel">
@@ -617,6 +639,18 @@ output("result.json5", FutureHelper.syncGet(future));
 </bean>
 ```
 
-* The format of `bizObjName` is `{BaseName}_{extName}`. If the corresponding Meta does not exist, it will automatically look for the BaseName's Meta.
-* You can choose to add `MyUser_ext.xmeta` and use `x:extends="MyUser.xmeta"` to inherit from the BaseMeta.
+* The format of bizObjName is `{BaseName}_{extName}`. If a corresponding Meta does not exist, the BaseName’s Meta is automatically looked up.
+* You can choose to add `MyUser_ext.xmeta` and use `x:extends="MyUser.xmeta"` so it inherits from the BaseMeta.
 
+## Acting as a Client to Access GraphQL Services on Other Servers
+
+The Nop platform provides a GraphQLApi interface. You can generate a GraphQL client interface via the following configuration to access GraphQL services. See DemoBizModel in nop-quarkus-demo for a concrete example:
+
+```xml
+    <bean id="localGraphQLApi" parent="AbstractHttpRpcProxyFactoryBean">
+        <property name="serviceName" value="nop-graphql"/>
+        <property name="serviceClass" value="io.nop.api.core.graphql.GraphQLApi" />
+        <property name="baseUrl" value="http://localhost:8080" />
+    </bean>
+```
+<!-- SOURCE_MD5:3342cce0a488ed1793473db7891652d4-->

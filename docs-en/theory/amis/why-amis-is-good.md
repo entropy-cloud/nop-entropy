@@ -1,133 +1,141 @@
-# Why the Baidu AMIS Framework is an Excellent Design
 
-[AMIS](https://aisuda.bce.baidu.com/amis/zh-CN/docs/index) is an open-source front-end low-code framework developed by Baidu. To be fair, it is one of the most refined low-code frameworks in the current front-end open-source community and represents the highest level of domestic front-end open-source low-code development. AMIS employs a JSON-based syntax format and incorporates numerous ready-to-use mature components, making it highly extensible and integrable. From a practical usage perspective, AMIS provides relatively comprehensive online documentation and supports online testing. In my observations, typical backend developers can generally learn the basics of AMIS within a short timeframe by means of self-exploration and rapidly construct complex增删改查 pages.
+# Why Baidu's AMIS Framework Is an Excellent Design
 
-The built-in components in AMIS are primarily those commonly used in backend management software, yet its design inherently embodies a universal approach that is not confined to its current supported use cases. In this text, I will analyze certain design aspects of the AMIS framework and introduce improvements made when integrating AMIS into the Nop platform.
+[AMIS](https://aisuda.bce.baidu.com/amis/zh-CN/docs/index) is an open-source front-end low-code framework from Baidu. Fairly speaking, it is currently one of the most exquisitely designed low-code frameworks in the front-end open-source community, representing the highest level of low-code open source in China. AMIS adopts a JSON syntax format, with a large number of mature, out-of-the-box components built in, which can be easily integrated and extended. In practical terms, AMIS provides relatively rich online documentation and supports online testing. Based on my observation, typical back-end developers can, through self-exploration, grasp the basics of AMIS in a short time and quickly build fairly complex CRUD pages.
 
-> While the overall quality of AMIS's code implementation is not particularly high, especially considering its lengthy development history, which has led to a significant amount of redundant code within its internal implementations, there remains substantial room for improvement. In recent years, Baidu has invested resources into AMIS and performed extensive code refactorings, with ongoing improvements still being made. This text primarily focuses on conceptual design-level analysis and does not encompass specific implementation-level code.
+The built-in components of AMIS are mainly those commonly used in back-office management software, but its design itself is generic and not constrained by the scenarios it currently supports. In this article, I will analyze some design highlights of the AMIS framework and introduce the improvements we made when integrating AMIS into the Nop platform.
+
+> The code implementation quality of AMIS is not particularly high; especially because it has evolved over a long period, its internal implementation contains a lot of redundant code, leaving ample room for improvement. Over the past one or two years, Baidu has invested resources to carry out significant code refactoring in AMIS, and the overall situation is still in the process of continuous improvement. This article mainly focuses on analysis at the conceptual design level and does not delve into concrete implementation code.
 
 ## I. Env: Environment Abstraction
 
-The most significant distinction of AMIS compared to other open-source low-code frameworks is its explicit definition of [Environment Abstraction Env](https://aisuda.bce.baidu.com/amis/zh-CN/docs/start/getting-started#%E6%8E%A7%E5%88%B6-amis-%E7%9A%84%E8%A1%8C%E4%B8%BA), which encompasses all execution logic related to input, output, and page transitions. This design significantly reduces the integration difficulty of the AMIS framework, enabling it to be easily integrated into other underlying UI frameworks. For instance, in the Nop platform, we employ Vue 3.0 for the main UI framework with Vue Router implementing single-page transitions. In specific pages or embedded components, however, we can utilize React-based AMIS to achieve the desired functionality.
+A notable difference between AMIS and other open-source low-code frameworks is that it explicitly defines an [environment abstraction Env](https://aisuda.bce.baidu.com/amis/zh-CN/docs/start/getting-started#%E6%8E%A7%E5%88%B6-amis-%E7%9A%84%E8%A1%8C%E4%B8%BA), which includes all execution logic related to input/output and page navigation. This design significantly reduces the difficulty of integrating the AMIS framework, making it easy to plug into other underlying UI frameworks. For example, in the Nop platform, we develop the main UI framework using Vue 3.0 and implement single-page routing via Vue Router. For specific pages or embedded components, we can use AMIS, which is based on React technology.
 
 ```javascript
  const env = {
-      // Execute AJAX requests
+      // Execute ajax requests
      fetcher(options) { ... },
-     // Implement single-page switching via Router
-     updateLocation(location, replace){ ... },
+     // Implement single-page navigation via Router
+     updateLocation(location,replace){ ... },
       // Open a new browser window
-     jumpTo(to, action){ ... },
-      // Similar to window.alert, display alert messages
+     jumpTo(to,action){ ... },
+      // Similar to window.alert, pop up a message
      alert,
-      // Similar to window.confirm, display confirmation messages
+      // Similar to window.confirm, pop up a confirmation dialog
      confirm,
-     // Display notification messages and error prompts
-     notify(type, msg)
+     // Pop up notifications and error prompts
+     notify(type,msg)
  }
- // Render the page based on JSON configuration
+ // Render a page based on a JSON configuration
  renderAmis(
-      // Page schema description in JSON format
+      // JSON-formatted page schema description
       jsonPage,
-      // Additional data to be passed
+      // Pass in additional data
       {
-        data:
+        data:{
           myVar: 123,
+        }
       },
-      // Pass the environment object
+      // Pass in the environment object
       env
     );
 ```
 
-If we treat AMIS's JSON page definition as a domain-specific language (DSL), then **the AMIS framework can be viewed as a virtual machine responsible for executing this DSL**. When AMIS needs to execute AJAX calls or display alerts, pop-ups, or navigate pages, it invokes the corresponding methods from the `env` object. Thus, **Env can be regarded as a virtualized abstraction interface that specifically handles input and output operations**.
+If we regard AMIS’s JSON page definition as a domain-specific language (DSL), then the AMIS framework can be viewed as the virtual machine responsible for interpreting and executing this DSL. When AMIS needs to perform AJAX calls, pop up messages, or navigate pages, it invokes the corresponding methods on env; thus env can be viewed as a virtualized abstraction interface specifically responsible for performing input/output operations.
 
-All input and output actions are virtualized after this process, leading to the equation `output = AmisPage(Input)`. Therefore, AMIS pages can be viewed as localized processing functions within a confined scope, making them easily integrable into external business workflows.
+Once all input/output actions are virtualized, output = AmisPage(Input), the AMIS page can be seen as a local processing function with limited scope, and can be easily woven into the external business processing flow.
 
-## II. Api: Value and Function as a Pair
+## II. Api: Duality of Values and Functions
 
-For encapsulating remote service calls, the AMIS framework provides a descriptive definition method, known as the [Api object](https://aisuda.bce.baidu.com/amis/zh-CN/docs/types/api). This approach allows for a flexible yet precise declaration of API endpoints and their associated operations.
+For wrapping remote service calls, the AMIS framework provides a declarative definition method, the so-called [Api object](https://aisuda.bce.baidu.com/amis/zh-CN/docs/types/api).
+
 ```typescript
-interface ApiObject {
+interface ApiObject{
   /**
-   * API request type
+   * API request method
    */
   method?: 'get' | 'post' | 'put' | 'delete' | 'patch' | 'jsonp';
 
   /**
-   * API target URL
+   * API target address
    */
   url: SchemaUrlPath;
 
   /**
-   * Used to control data carrying. When the key is `&` and the value is `$$`, it will flatten all original data into the `data` property. When the value starts with `$`, variable values are assigned to the corresponding key.
+   * Controls the payload. When key is `&` and the value is `$$`, all raw data is flattened into data.
+   * When the value is $$, assign all raw data to the corresponding key.
+   * When the value starts with $, set the variable value to the key.
    */
   data?: {
     [propName: string]: any;
   };
 
   /**
-   * Data format of the request body
+   * Payload format
    */
   dataType?: 'json' | 'form-data' | 'form';
 
   /**
-   * For file download interfaces, configure this if necessary
+   * If this is a file download interface, configure this.
    */
   responseType?: 'blob';
 
   /**
-   * Headers that can be used similarly to data, supporting variable values
+   * Carry headers. Usage is the same as data and can use variables.
    */
   headers?: {
     [propName: string]: string | number;
   };
 
   /**
-   * Conditions for sending the request
+   * Set send conditions.
    */
   sendOn?: SchemaExpression;
 
   /**
-   * Default is append mode; set to true if you want to completely replace
+   * Default is append mode; set this to true if you want full replacement.
    */
   replaceData?: boolean;
 
   /**
-   * Whether to automatically refresh when URL values change, refreshing data automatically
+   * Whether to auto-refresh. When values in the url change, automatically refresh data.
+   *
+   * @default true
    */
   autoRefresh?: boolean;
 
   /**
-   * When auto-refreshing, the default behavior is to track variable changes in the URL. If you want to monitor variables outside the URL, configure `traceExpression`
+   * When auto-refresh is on, by default variable changes are tracked via the API url.
+   * If you want to monitor variables outside the url, configure traceExpression.
    */
   trackExpression?: string;
 
   /**
-   * If set, the same parameter in a request within the specified time (in ms) will use cached data
+   * If set, the same interface with the same parameters within the specified time (ms) will use cache.
    */
   cache?: number;
 
-  // Data transformation function for request data before submission
+  // Transform request data submitted to the backend
   requestAdaptor?: (api: ApiObject) => ApiObject;
 
-  // Response data transformation function after fetching
+  // Transform response data returned from the backend
   adaptor?: (payload: object, response: fetcherResult, api: ApiObject) => any;
 
   /**
-   * Do not display error messages on failure
+   * Do not pop up prompt on failure
    */
   silent?: boolean
 
-  /**
-   * On successful or failed remote calls, find the corresponding message object via `toast` method for prompting
+   /**
+   * On success or failure, look up the corresponding message object here and prompt via toast
    */
-  messages?: { [name: string]: string }
+   messages?: { [name: string]: string }
 }
 ```
 
-ApiObject is a reactive data structure that automatically triggers remote calls when its parameters change and can transform and cache the returned results.
+The Api object is a reactive data structure: when its parameter data changes, it automatically executes remote calls, and the returned result can be transformed and cached.
 
-Traditionally, front-end development has been function-oriented, where event triggers execute specific functions. For example:
+Traditionally, front-end code is written from the function perspective: when an event is triggered, a handler function executes; if we want to modify a value of an associated component, we call an update function on that component. For example:
 
 ```javascript
 <select id="a" onchange="handleChange">
@@ -136,305 +144,327 @@ Traditionally, front-end development has been function-oriented, where event tri
 </selection>
 
 <script>
-function handleChange(value) {
-    fetchRelatedOptions(value).then(result => {
+function handleChange(value){
+    fetchRelatedOptions(value).then(result=>{
         getComponent('b').setOptions(result)
     })
 }
 </script>
 ```
 
-In modern frameworks like AMIS, we typically use a **data-oriented approach**. Instead of viewing functions as actions triggered by events, we see them as producers of result data that dynamically updates based on conditions. For example, in AMIS, implementing two dropdown lists with interdependence:
+In a more modern front-end framework like AMIS, most of the time we adopt a data perspective: we don’t regard a function as an action executed upon an event; rather, we treat a function as a dynamic producer of result data. When certain conditions occur, the result data is automatically updated; that update process is exactly the function being executed. For example, implementing the linkage of two drop-down lists in AMIS:
+
 ```json
 {
     "type": "form",
-    "body": [
+    "body":[
         {
-            "type": "select",
-            "name": "a",
-            "options": [ ... ]
+           "type": "select",
+           "name": "a",
+           "options" : [ ...]
         },
         {
             "type": "select",
             "name": "b",
             "source": {
-                "method": "post",
-                "url": "/get-related-options",
+                "method" : "post",
+                "url" : "/get-related-options",
                 "data": {
-                    "value": "${a}"
-                }
+                     "value": "${a}"
+                 }
             }
         }
     ]
 }
 ```
 
-The first dropdown select control has the name attribute set to "a", which means its selected value corresponds to a variable named "a" in the context. This dropdown can be seen as both an observer and a modifier of this variable, allowing it to view and modify the value of "a". The second select control's source property is linked to an API type object that uses a data binding expression to observe changes in the "a" variable. When "a" changes, it automatically performs an AJAX call to fetch new dropdown options.
+The name of the first select component is a, indicating its selected value corresponds to a variable named a in the contextual environment; the select component can be viewed as the viewer and modifier of that variable. The source property of the second select corresponds to an Api object; it listens to changes on variable a via data-binding expressions, automatically performing an AJAX call to fetch a new list of options whenever a changes.
 
-If we **do not only focus on the function calls triggered by single events** but instead emphasize the overall structure of the application's operation, we can see its structure as "...data --> function --> data --> function --> data...". **This information flow network has two dual observation perspectives. One is "function --> data --> function", and the other is "data --> function --> data"**. We can interpret the flow of information as either a function calling another function with parameters or data triggering response functions to generate new data after changes.
+If we focus not only on the function call process triggered by a single event but highlight the overall structure—observing the complete runtime process of the application—we find its structure is "... data -> function -> data -> function -> data ...". This information-transmission network has two dual perspectives: one is "function -> data -> function", the other is "data -> function -> data". We can interpret the information flow as functions calling other functions with parameters, or as data changes triggering reactive functions to produce new data.
 
-> Void functions that have side effects are not truly without return values; they simply modify some implicitly unexpressed state variables.
+> A side-effecting void function essentially does have a return value: it changes some state variables that are not explicitly expressed.
 
-When comparing Vue 3.0's reactive design, we can find an interesting connection. AMIS's API object is similar to Vue 3.0's ComputedRef type, but instead of triggering a synchronous frontend function, it activates an asynchronous remote service call. To implement a mechanism similar to the API object in Vue 3.0, we could extend Vue with the following:
+Compared to Vue 3.0’s reactive design, we can find interesting connections. AMIS’s Api object is similar to Vue 3.0’s ComputedRef type, except it triggers not a synchronous front-end function call, but an asynchronous remote service call. If we want to implement a mechanism similar to the Api object in Vue 3.0, we could extend Vue as follows:
 
 ```javascript
-interface Api<T> extends Ref<T> {
+interface Api<T> extends Ref<T>{
   /**
-   * Configuration object used when building the Api.
+   * The config object used when building the Api
    */
-  readonly config: ApiConfig;
+  readonly config: ApiConfig
 
   /**
-   * Current value, equivalent to vue's ref.value.
+   * Current value, fully equivalent to vue's ref.value
    */
-  readonly value: T | undefined;
+  readonly value: T | undefined
 
   /**
-   * Whether input parameters have changed, triggering a remote loading action. If in active state, it will automatically initiate the loading action.
-   * In suspended state, it will record shouldRefresh but not actually perform the request.
+   * Whether input parameters have changed such that remote loading should execute.
+   * If currently active, a load is automatically initiated.
+   * In suspended state, shouldRefresh is recorded but the request is not actually initiated.
    */
-  readonly shouldRefresh: boolean;
+  readonly shouldRefresh: boolean
 
   /**
-   * Whether a remote data loading action is currently in progress.
+   * Whether remote data loading is in progress
    */
-  readonly loading: boolean;
-  readonly loaded: boolean;
+  readonly loading: boolean
+
+  readonly loaded: boolean
 
   /**
-   * Whether the remote load timed out. Setting success to false when it times out.
+   * Whether remote loading has timed out. On timeout, success is set to false.
    */
-  readonly timeouted: boolean;
+  readonly timeouted: boolean
 
   /**
-   * Whether the request was successful. If the request times out, success is set to false.
+   * Whether the value has been successfully obtained. If the request times out, the set value is false.
    */
-  readonly success: boolean | undefined;
+  readonly success: boolean | undefined
 
   /**
-   * The exception object if a remote call fails.
+   * Exception object on remote call failure
    */
-  readonly error: any;
+  readonly error: any
 
-  suspend(): void;
-  resume(): void;
+  suspend(): void
+
+  resume(): void
 
   /**
-   * Cancel the current loading operation.
+   * Cancel the current load operation
    */
-  cancel(): void;
+  cancel(): void
 
   /**
-   * Reload the value, with an optional immediately flag. If in suspended state, calling reload will also execute.
+   * Reload the value. 'immediately' skips debounce.
+   * In a suspended state, calling reload also executes.
    */
-  reload(immediately?: boolean): Promise<T | undefined>;
+  reload(immediately?: boolean): Promise<T|undefined>
 
   /**
-   * Similar to rxjs's interface. Triggers this function whenever the api's value changes.
+   * An rxjs-like interface. Triggers this function each time the api's value changes.
    */
   subscribe(
     next: (value: T) => void,
     error?: (err: any) => void,
     complete?: () => void
-  ): StreamUnsubscribe;
+  ): StreamUnsubscribe
 
   /**
-   * Applies a transformation function to get the result.
+   * Apply a transform function to get the result
    *
    * @param fn
    */
-  transform<R>(fn: (v: T | undefined) => R): Ref<R>;
+  transform<R>(fn: (v: T | undefined) => R): Ref<R>
 
-  /**
-   * Destroys the object, making its value no longer update or valid.
-   */
-  destroy(): void;
+    /**
+     * Destroy this object; its value no longer updates or remains valid
+     */
+    destroy(): void
 }
 
 interface ApiConfig {
-  ... attributes and methods defined in ApiObject;
+  ... Properties and methods defined in ApiObject
 
   /**
-   * Determines how values are merged. If not specified, defaults to replacement; specify 'append' for array merging.
+   * How to merge the newly fetched value with the previous one;
+   * default is replacement; when specified as append, merge as arrays.
    */
-  merger?: (v1: T | undefined, v2: T) => T;
+  merger?: (v1: T | undefined, v2: T) => T
 
   /**
-   * Default value to use if no actual loading is successful.
+   * Default value before any actual successful load
    */
-  defaultValue?: T;
+  defaultValue?: T
 
   /**
-   * Poll interval in milliseconds when specified.
+   * If greater than 0, periodically fetch data (milliseconds)
    */
-  pollInterval?: number;
+  pollInterval?: number
 
   /**
-   * Key used for caching the Api's return results. Can be specified directly or dynamically computed. If not specified, uses JSON.stringify(req) as the key.
+   * Cache key for the API return result; can be a direct value or computed dynamically.
+   * If unspecified, use JSON.stringify(req) as the key.
    */
-  cacheKey?: any | ((req: ApiRequest) => string);
+  cacheKey?: any | ((req: ApiRequest) => string)
 
   /**
-   * Cache timeout in milliseconds if value is greater than 0.
+   * If greater than 0, cache data for a period; thereafter, if parameters remain the same,
+   * do not repeat fetching.
    */
-  cacheTimeout?: number;
+  cacheTimeout?: number
 
-  cacheStorage?: string;
-
-  /**
-   * If value is greater than 0, requests exceeding this timeout will automatically cancel and throw a timeout error.
-   */
-  completeTimeout?: number;
-  connectTimeout?: number;
+  cacheStorage?: string
 
   /**
-   * For stream data, consider it expired if no data is received for a period.
+   * If greater than 0, treat requests exceeding specified time as timeout,
+   * auto-cancel and throw a timeout exception.
    */
-  idleTimeout?: number;
+  completeTimeout?: number
+
+  connectTimeout?: number
 
   /**
-   * Callback function invoked when data is successfully retrieved.
+   * For streaming data, if there's no data for a period, treat as timeout.
    */
-  onSuccess?: (value: T) => void;
+  idleTimeout?: number
 
   /**
-   * Callback function invoked if the request fails for any reason, including timeouts or cancellations.
+   * Callback when value is successfully fetched from the backend
    */
-  onFailure?: (err: any) => void;
+  onSuccess?: (value: T) => void
 
   /**
-   * Invoked during remote data retrieval with progress information.
+   * Whether timeout, backend exception, or manual cancellation, any non-normal fetch
+   * triggers this callback.
    */
-  onProgress?: (progress: any) => void;
-  onStreamComplete?: () => void;
+  onFailure?: (err: any) => void
 
   /**
-   * Delay period in milliseconds for debouncing.
+   * During data fetching, progress information may be returned
    */
-  debounce?: number;
+  onProgress?: (progress: any) => void
+
+  onStreamComplete?: () => void
 
   /**
-   * Throttling wait time in milliseconds. Unlike debounce, the start time of the next operation is continuously pushed forward.
+   * Debounce delay (milliseconds)
    */
-  throttle?: number;
+  debounce?: number
 
   /**
-   * Whether to treat data as a stream, constantly returning values.
+   * Throttle delay (milliseconds). The difference from debounce
+   * is that the start point of debounce keeps being pushed back.
    */
-  stream?: boolean;
+  throttle?: number
 
   /**
-   * Whether the Api should automatically trigger loading upon creation. Defaults to false. When set to false, loading only occurs when explicitly accessed.
+   * Whether data is streaming and keeps returning values
    */
-  eager?: boolean;
+  stream?: boolean
 
   /**
-   * If true, the Api will be in suspended state by default unless manually reloaded.
+   * Whether API performs load eagerly after creation; default false.
+   * When false, the first load is only triggered when the value is actually accessed.
    */
-  suspended?: boolean;
+  eager?: boolean
 
   /**
-   * Optional error handler for remote calls.
+   * If true, the API is created in a suspended state; unless reload() is explicitly called,
+   * data loading will not execute automatically.
    */
-  fallback?: (err: any, api: Api<T>) => any;
+  suspended?: boolean
 
   /**
-   * Number of retries if loading fails. Defaults to 0.
+   * Optional exception handling on remote load errors
    */
-  retries?: number;
-  retryDelay?: number;
-  maxRetryDelay?: number;
+  fallback?: (err: any, api: Api<T>) => any
+
+  /**
+   * Retry count on load error; default 0
+   */
+  retries?: number
+
+  retryDelay?: number
+
+  maxRetryDelay?: number
 }
+```
 
-If we do not treat the API as a function invocation mechanism but instead view it as a reactive data stream object (Stream), then certain program controls can be naturally integrated into this concept, such as debounce delay trigger, retry re-attempt, pollInterval timed refresh, and cancel/suspend controls, etc. As an extension mechanism of Ref, in addition to having a value property, the API object can also possess loading、status、error等 attributes, thereby transforming the entire remote call process into a stateful one. In this case, the function of the API object is essentially similar to the [useSWR mechanism](https://juejin.cn/post/6943397563114455048) in React Hooks.
+If we view Api not as a function call mechanism, but as a reactive data stream object (Stream), then certain control constructs can be naturally incorporated, such as debounce delays, retry, pollInterval periodic refresh, cancel/suspend controls, etc. As an extension of Ref, in addition to the value itself, the Api object can have attributes such as loading, status, error, thereby fully stateful-izing the remote call process. In this case, the role of Api is basically similar to the [useSWR mechanism](https://juejin.cn/post/6943397563114455048) in React Hooks.
 
-The AMIS API object does not directly provide stream data support, but it offers a dedicated [Service container](https://aisuda.bce.baidu.com/amis/zh-CN/components/service), which can serve a similar purpose.
+AMIS’s Api object does not directly provide streaming data support, but it offers a dedicated [Service container](https://aisuda.bce.baidu.com/amis/zh-CN/components/service) that can serve a similar function.
 
 ```javascript
-{
+ {
     "type": "service",
     "api": "/amis/api/mock2/page/initData",
     "body": {
       "type": "panel",
       "title": "$title",
-      "body": "The result returned by the API is a Map, where the value of the date property is ${date}"
+      "body": "The API returns a Map; the value of the 'date' property is ${date}"
     }
   }
 ```
 
-The Service interface is defined as:
+Service interface definition:
 
 ```javascript
-interface ServiceSchema {
+interface ServiceSchema{
   /**
-   * Specifies a service data pull control.
+   * Specifies the Service component for data fetching.
    */
   type: 'service';
 
   /**
-   * When the page initializes, you can set an API to pull data. The sent data will include current data (containing query parameters), and the retrieved data will be merged into the data for component use.
+   * On page initialization, set an API to fetch data.
+   * The sending payload will carry the current data (including querystring params).
+   * The fetched data will be merged into data for components to use.
    */
   api?: SchemaApi;
 
   /**
-   * WebSocket address for real-time data acquisition.
+   * WebSocket address for real-time data
    */
   ws?: string;
 
   /**
-   * Data fetched via external functions.
+   * Fetch data by calling an external function
    */
   dataProvider?: ComposedDataProvider;
 
   /**
-   * Content area.
+   * Content area
    */
   body?: SchemaCollection;
 
   /**
-   * Deprecated: Replace with API's sendOn. From this change, it can be seen that the standardization of the Api object in AMIS is also an ongoing process.
+   * @deprecated Replaced by api's sendOn.
+   * This change shows that normalization of Api in AMIS is ongoing.
    */
   fetchOn?: SchemaExpression;
 
   /**
-   * Whether to pull data by default?
+   * Fetch by default?
    */
   initFetch?: boolean;
 
   /**
-   * Whether to pull data by default through expression.
+   * Fetch by default? Decide via expression.
    *
-   * Deprecated: Replace with API's sendOn.
+   * @deprecated Replaced by api's sendOn.
    */
   initFetchOn?: SchemaExpression;
 
   /**
-   * Remote Schema API configuration.
+   * API to fetch remote schema
    */
   schemaApi?: SchemaApi;
 
   /**
-   * Whether to load schemaApi by default.
+   * Whether to load schemaApi by default
    */
   initFetchSchema?: boolean;
 
   /**
-   * Configuration via expression. Deprecated: Replace with API's sendOn.
+   * Configure via expression.
+   * @deprecated Replaced by api's sendOn.
    */
   initFetchSchemaOn?: SchemaExpression;
 
   /**
-   * Whether to perform auto-refresh.
+   * Whether to poll-fetch
    */
   interval?: number;
 
   /**
-   * Whether to perform silent polling.
+   * Silent polling?
    */
   silentPolling?: boolean;
 
   /**
-   * Condition to stop auto-refresh.
+   * Condition to stop polling.
    */
   stopAutoRefreshWhen?: SchemaExpression;
 
@@ -442,7 +472,7 @@ interface ServiceSchema {
 
   name?: SchemaName;
 }
-// ServiceStore adds fetching, error, etc., state variables.
+// ServiceStore adds status variables like fetching, error, etc.
 const ServiceStore = iRendererStore
   .named('ServiceStore')
   .props({
@@ -458,7 +488,7 @@ const ServiceStore = iRendererStore
   })
 ```
 
-Services support polling for data or receiving stream data via WebSocket.
+Service supports data polling or returning streaming data via websocket.
 
 ```javascript
 {
@@ -477,66 +507,67 @@ Services support polling for data or receiving stream data via WebSocket.
 }
 ```
 
-You can set only the ws to receive all data, or you can set both api and ws, allowing api to fetch complete data while ws handles real-time updates.
+You can set only ws to fetch all data via websocket; or set both api and ws, where api fetches full data and ws fetches real-time updates.
 
-**The data fetched by Service can be accessed by sibling nodes, so from this perspective, viewing Service as a container concept is a historical legacy. Essentially, it's a more flexible and stream-oriented API object.**
+Service-fetched data is readable by sibling nodes. In this sense, viewing Service as a container concept is a historical misnomer; essentially, it is a more flexibly organized Api object that supports streaming data.
 
-> In addition to dynamically fetching data, Services also have the role of dynamically retrieving page fragment definitions using the returned schema to generate pages. However, based on the analysis in this document, the functionality of fetching data and fetching the schema are fundamentally unrelated, and it's better to separate them.
+> Beyond dynamic data fetching, another use of Service is to fetch page fragment definitions dynamically, generating pages from the returned schema. However, according to the analysis in this article, fetching data and fetching schema are inherently orthogonal and should ideally be designed separately.
 
-In addition to the Api object, AMIS provides a lightweight dynamic computation mechanism similar to Vue 3.0's computed property: the formula component.
-```javascript
-{
-  "type": "input-text",
-  "name": "b",
-  "label": "B"
-},
-{
-  "type": "formula",
-  "name": "b", 
-  "formula": "''",
-  "condition": "${radios}",
-  "initSet": false
-}
-```
-
-The example demonstrates an interesting application of the `formula` component. While both components have the same name "b," the `formula` component includes a condition that triggers the formula execution when the `radios` variable changes, resetting the value of variable `b` to an empty string. The `formula` component essentially acts as a reset mechanism triggered by changes in the `radios` options.
-
-The `formula` component is limited to embedded expressions and cannot handle more complex function abstractions. Since the API is fundamentally a higher-order data type compared to `computed`, we can, to some extent, use APIs to simulate the behavior of computed properties. For example:
+Besides Api, AMIS also provides a lightweight dynamic calculation mechanism similar to Vue 3.0’s computed: the formula component.
 
 ```javascript
-{
-  url: "@action:myFunc",
-  data: {
-    a: "${a}" 
-  }
-}
+      {
+        "type": "input-text",
+        "name": "b",
+        "label": "B"
+      },
+      {
+        "type": "formula",
+        "name": "b",
+        "formula": "''",
+        "condition": "${radios}",
+        "initSet": false
+      }
 ```
 
-Here, `@action:myFunc` is an extension function calling mechanism based on AMIS' Env abstraction in the Nop platform. The API definition indicates that when variable `a` changes, it will trigger the `myFunc` function in the context environment, allowing front-end logic to be executed without necessarily initiating a remote call.
+The above example shows an interesting use of formula. Both components share the name b, but the formula component adds a condition: when the radios variable changes, it executes the formula and sets variable b to empty. The formula component acts like a reset of variable b triggered by changes to the radios option.
 
-Starting from version 1.4.0, the Service container can use the `dataProvider` property to set data loading functions, effectively simulating some aspects of Vue's computed properties.
+The formula component can only write embedded expressions and cannot perform more complex function abstractions. Since Api is essentially a higher-order data type than computed, we can, to some extent, use Api to simulate the computed mechanism. For example:
 
 ```javascript
 {
-  "type": "service",
-  "data": {
-    "x": 123
-  },
-  "dataProvider": "const timer = setInterval(() => { setData({ data: { x }, date: new Date().toString() }) }, 1000); return () => { clearInterval(timer) }",
-  "body": {
-    "type": "tpl",
-    "tpl": "Current time: ${date},${x}"
-  }
+    url: "@action:myFunc",
+    data: {
+       a: "${a}" 
+    }
 }
 ```
 
-The `dataProvider` function can access data parameters via the `data` attribute and update store data by calling `setData`.
+@action:myFunc is an extended function call mechanism we added to the AMIS platform based on the Env abstraction in the Nop platform. The above Api definition means that when variable a changes, it triggers the myFunc function in the context environment. In myFunc, we can execute some front-end logic without necessarily initiating a remote call.
 
-In an ideal responsive frontend framework, we might expect binding component attributes to support static values, dynamic expressions, reactive `ref` references, or state-tracking asynchronous API objects (streaming data). However, as currently implemented in AMIS, this is not achievable. Therefore, the `select` component must use the `options` attribute for static configuration and the `source` attribute for dynamically fetching options lists. This implies that support for asynchronous API calls in component properties must be implemented individually for each control.
+Since version 1.4.0, the Service container can set a dataProvider property to specify a data-loading function, which can partially simulate Vue’s computed properties.
 
-## 2. Data Chain: State Trees and Scoping
+```javascript
+{
+    "type": "service",
+    "data": {
+      "x": 123
+    },
+    "dataProvider": "const timer = setInterval(() => { setData({:data.x, date: new Date().toString()}) }, 1000); return () => { clearInterval(timer) }",
+    "body": {
+      "type": "tpl",
+      "tpl": "Current time: ${date}, ${x}"
+    }
+}
+```
 
-In Vue 3.0 and earlier, the Vuex framework provided a global single-state tree management system for entire applications.
+Within the dataProvider function, you can access the data parameter via data and update the store’s data by calling setData.
+
+In an ideal reactive front-end framework, we can expect to bind component properties using static values, dynamic expressions, reactive Ref references, or asynchronous Api objects (stream data) with state tracking. However, this is not currently possible in AMIS’s implementation, so a select component uses the options property to set static option lists, while dynamic option lists require a separate source property. This also implies which component properties support asynchronous Api calls must be implemented individually for each component.
+
+## III. Data Chain: State Tree and Lexical Scope
+
+Before Vue 3.0, the Vuex framework provided single state-tree management for Vue components.
 
 ```javascript
 const Counter = {
@@ -549,26 +580,27 @@ const Counter = {
 }
 ```
 
-From a modern perspective, Vuex's design appears overly complex. Why must we bind store variables into component properties via computed properties and indirect `$store` access? Why not directly use store variables?
+From today’s perspective, Vuex’s design is clearly more convoluted than necessary. When we need to use a variable from the store within a component, why must we detour via the this pointer, pull the variable from the store, and then wrap it as a computed property on the object? Why not directly use the variable from the store?
 
-In Vue 3.0, the [Pinia framework](https://pinia.web3doc.top/introduction.html) replaces Vuex, offering a more intuitive approach.
+In Vue 3.0, the [Pinia framework](https://pinia.web3doc.top/introduction.html) replaces Vuex, with behavior more aligned to intuition.
 
 ```javascript
 const store = useStore();
 const { count } = storeToRefs(store)
-// Can use store variables directly or destructure refs from store and then use them
+// You can directly use store variables, or deconstruct ref variables from the store and then use them
 return () => <div> {mainStore.count} --- {count} </div>
 ```
-Combining JSX syntax, we can directly access the corresponding state variables using JavaScript variable names. **Variables are looked up in a hierarchical manner according to JavaScript's lexical scoping rules**. If there are multiple variables with the same name, the most recently declared variable is found.
 
-In AMIS, so-called [data chain concept](https://aisuda.bce.baidu.com/amis/zh-CN/docs/concepts/datascope-and-datachain), in essence, refers to a set of lexical scoping contexts managed by the AMIS framework. When setting the `name` attribute for components in AMIS DSL syntax, it indicates that this control should be bound to the corresponding variable in the current data domain (two-way data binding). When using expression syntax, variables within expressions are also resolved in the data domain. Therefore, the so-called data domain can be viewed as the lexical scoping context in DSL syntax. AMIS specifies the following lookup rules:
+Combined with JSX syntax, we can access corresponding state variables directly via JavaScript variable names. Variables are looked up one lexical scope at a time according to JavaScript’s lexical scoping rules. If multiple variables share the same name, the nearest one is resolved.
 
-1. First, it attempts to find the variable in the current component's data domain. If found, rendering is completed using data mapping, and the search process stops.
-2. If no variable is found in the current data domain, it searches upwards in the parent component's data domain, repeating steps 1 and 2.
-3. This process continues until the top-level node (the `page` node) is reached, at which point the search ends.
-4. However, if the URL contains parameters, an additional upward search is performed beyond this level, making it common to directly use `${id}` to access URL parameters in configurations.
+AMIS’s so-called [data chain concept](https://aisuda.bce.baidu.com/amis/zh-CN/docs/concepts/datascope-and-datachain) is essentially a set of lexical scopes maintained by the AMIS framework. When we set the name property for a component in AMIS’s DSL, it binds the component to a variable of the same name in the current data domain (two-way data binding). When using expression syntax, variables in the expression are also resolved in the data domain. Therefore, the so-called data domain can be viewed as a lexical scope in the DSL. AMIS establishes the following lookup rules:
 
-Vuex maintains a so-called single state tree, where all application state variables are managed as a single root tree—this concept is inherited from the Redux framework. However, in practical usage, we often fail to effectively utilize the hierarchical structure of the tree. In contrast, AMIS allows only a few container components (excluding the top-level `Page` component and others like CRUD, Dialog, IFrame, Form, Service) to create new data domains. When these container components are nested and combined into a page, their respective Stores are automatically attached to the global StoreTree structure. This naturally forms a StateTree for the entire page. **Using the data chain lookup mechanism**, we can write business logic using only the most relevant local variable names, simplifying the logic expression. For example, in a table control's cell, the data domain first looks within the data row and allows direct access to other columns via variable name.
+1. First attempt to find the variable in the current component’s data domain; when found, complete rendering via data mapping and stop.
+2. If not found in the current data domain, look upward in the parent component’s data domain, repeating steps 1 and 2.
+3. Continue searching up to the top-level node, i.e., the page node, then stop.
+4. If there are parameters in the URL, one more level above is also searched, so you can often directly use ${id} to get querystring parameters.
+
+Vuex maintains a single-state tree, managing the entire application’s state variables as a single-rooted tree, an idea inherited from Redux. In practice, we often do not fully leverage the hierarchical structure of the tree. In AMIS, only a few container components create new data domains (besides the top-level Page, these include CRUD, Dialog, IFrame, Form, Service, etc.). When these container components are nested to produce the page, they automatically mount their own store into a global StoreTree structure, and the entire page naturally forms a StateTree. With the help of the data-chain lookup mechanism, when writing business logic we can use only the most relevant local variable names to simplify logic expressions. For example, in a table component’s cell, the data domain is first the data row, and other columns can be accessed directly via variable names.
 
 ```json
 {
@@ -588,12 +620,13 @@ Vuex maintains a so-called single state tree, where all application state variab
   }
 ```
 
-AMIS provides a dedicated [Combo component](https://aisuda.bce.baidu.com/amis/zh-CN/components/form/combo) to fully leverage object data hierarchies and implement complex object structures in editing and display.
+AMIS provides a dedicated [Combo component](https://aisuda.bce.baidu.com/amis/zh-CN/components/form/combo), which fully leverages hierarchical object data to implement editing and display of complex object structures.
 
-To fine-tune information transmission along the data chain, AMIS provides the following mechanisms:
+For finer control of information transmission on the data chain, AMIS provides the following mechanisms:
 
-1. The `canAccessSuperData` attribute controls whether parent-level data domains can be accessed.
-2. By resetting data values to `__undefined`, we override parent data domain values. For example:
+1. The canAccessSuperData property can be used to prevent accessing data from parent domains.
+
+2. Resetting a data value to __undefined in data overrides the parent domain’s value.
    
    ```javascript
    {
@@ -606,37 +639,38 @@ To fine-tune information transmission along the data chain, AMIS provides the fo
    }
    ```
 
-## Four. Forms: Validation and Interactions
+## IV. Forms: Validation and Interactions
 
-The form field model extends existing business field values by adding:
+A form field model adds extra functionality on top of business field values, such as:
 
-1. Field label (`label`)
-2. Whether the field is valid (`validated`, `validating`)
-3. Whether the field is required (`required`)
-4. Whether the field is visible (`visible`)
-5. Whether focus or blur events occur on input controls (`focus/blur`)
-6. Whether input fields are disabled (`disabled`)
-7. Error messages displayed upon validation failure
-8. Whether the field value has been modified and what the original value was
-9. Auxiliary input prompts such as `remark` and `desc` for form item descriptions
+1. Field label (label)
+2. Whether the field is valid (validated) and whether it is being validated (validating)
+3. Whether the field is required (required)
+4. Whether the field is visible (visible)
+5. Whether the input control has lost focus (focus/blur)
+6. Whether the input is disabled (disabled)
+7. Error message on validation failure (error)
+8. Whether the field value has been modified and what the previous value was
+9. Auxiliary prompts such as remark (hint text) and desc (item description)
 
-Similar to other frontend frameworks, AMIS achieves this by wrapping ordinary controls with a high-order `FormItem` component.
+AMIS is similar to other front-end frameworks: it uses a FormItem higher-order wrapper component to enhance ordinary controls.
+
 ```javascript
 class MyControl extends React.Component {
   render() {
-    const { value, onChange } = this.props;
+    const {value, onChange} = this.props;
 
-    // 可以通过 this.props.data 获取当前数据域中的所有的数据
-    // 通过this.props.onBulkChange({a: 1, b: 2}) 来更新其他字段的值
+    // Access all data in the current domain via this.props.data
+    // Update other fields by calling this.props.onBulkChange({a: 1, b: 2})
     return (
       <div>
-        <p>A custom component</p>
+        <p>This is a custom component</p>
         <p>Current value: {value}</p>
         <a
           className="btn btn-default"
           onClick={() => onChange(Math.round(Math.random() * 10000))}
         >
-          Random modify
+          Modify randomly
         </a>
       </div>
     );
@@ -648,82 +682,93 @@ FormItem({
 })(MyControl)
 ```
 
-After wrapping MyControl with FormItem and registering it with the Renderer factory, this custom control can be used in forms through `type:"my-control"` to access label, remark, etc. additional display features.
+After wrapping with FormItem and registering in the Renderer factory, the control can be used in forms via type:"my-control" and will obtain additional display supports like label and remark.
 
-With AMIS's powerful data chain management and Api object abstraction, form validation and interactivity are highly intuitive and straightforward. For example, for asynchronous validation, simply configure the validateApi property of the control. Through api.sendOn configuration, you can further control the conditions under which validation is initiated.
-
-AMIS has an attribute naming convention: all attributes following the xxxOn pattern (such as visibleOn/requiredOn) will be treated as expressions and executed as such. The result of these expressions is passed to the component as the final visible/required property value.
-
-Using responsive data binding expressions, you can achieve complex form control interactivity without writing event listener functions. For example:
+Leveraging AMIS’s robust data-chain management and Api abstraction, form validation and interactions are very straightforward and simple. For asynchronous validation, just configure the control’s validateApi property, and control the validation trigger conditions via api’s sendOn.
 
 ```javascript
 {
-    "name": "idIsNumber",
-    "type": "switch",
-    "label": "ID 是数字类型"
-},
-{
-    "name": "id",
+    "label": "email",
     "type": "input-text",
-    "label": "ID",
-    "visibleOn": "${!idIsNumber}",
-    "validations": {
-        "isEmail": true
-    }
-},
-{
-    "name": "id",
-    "type": "input-number",
-    "label": "ID",
-    "visibleOn": "${idIsNumber}",
-    "validations": {
-        "isNumeric": true
-    }
+     "name": "email",
+     "validateApi": "/amis/api/mock2/form/formitemSuccess",
+     "required": true
 }
 ```
 
-You can place multiple controls with the same name in a form and use visibleOn expressions to switch their visibility, thereby implementing different validation rules under different conditions. **In a data-driven frontend model, data is managed by stores independent of UI controls, allowing multiple controls to share the same data**.
+AMIS has a built-in naming convention: all properties matching the xxxOn pattern, like visibleOn/requiredOn, are treated as expressions whose results are passed as the final visible/required etc. properties to the component.
 
-AMIS internally recognizes additional suffix conventions, such as `valueExpr`, which indicates that the field is an expression type corresponding to the `value` attribute, etc. However, the `xxExpr` suffix's formatting method has likely been deprecated, and there is no related documentation in the AMIS manual. At present, it seems that AMIS prefers to determine whether a syntax is an expression by checking for the presence of prefix or suffix, such as `value: "${a.b.c}"`, which will be automatically identified as an expression. In the Nop platform, we consistently adhere to [prefix-guided syntax](https://zhuanlan.zhihu.com/p/548314138) design philosophy by adding specific value prefixes to identify different value types while maintaining the overall object structure intact. This allows us to limit changes in value levels to the value's expression range without affecting the object level (no new attributes are needed). Following this design approach, AMIS conventions like `visibleOn`/`disabledOn` are redundant and can be entirely replaced with expression conventions. However, due to compatibility considerations, AMIS is unlikely to make this modification in the future. The AMIS framework currently lacks a unified global handling mechanism in many areas, with expression recognition and processing typically delegated to individual controls. This may lead to subtle inconsistencies in actual usage.
-
-**AMIS inherits and enhances the excellent design of the DOM model: all controls have `name` and `id`, enabling location via `name` or `id`.** AMIS cleverly introduces the concept of `target`, using `name` directly as a descriptive positioning coordinate, thereby maximizing the value of `name`. For example, through `target`, AMIS can implement cross-form interoperations.
+Thanks to reactive data-binding expressions, complex in-form interactions can be achieved without writing event listeners. For example:
 
 ```javascript
-{
-  "title": "Query Conditions",
-  "type": "form",
-  "target": "my_crud",
-  "body": [
+      {
+        "name": "idIsNumber",
+        "type": "switch",
+        "label": "id is numeric type"
+      },
+      {
+        "name": "id",
+        "type": "input-text",
+        "label": "id",
+        "visibleOn": "${!idIsNumber}",
+        "validations": {
+          "isEmail": true
+        }
+      },
+      {
+        "name": "id",
+        "type": "input-number",
+        "label": "id",
+        "visibleOn": "${idIsNumber}",
+        "validations": {
+          "isNumeric": true
+        }
+      }
+```
+
+We can place multiple controls with the same name in a form and then use visibleOn expressions for conditional switching, thereby achieving different validation rules under different conditions. In a data-driven front-end model, data is no longer subordinate to specific controls but managed by a store independent of UI controls, so multiple controls can share the same data.
+
+> AMIS also recognizes other suffix conventions. For example, valueExpr indicates the field is an expression, effectively mapping to value. However, the xxExpr suffix appears to have been deprecated and is not covered in the AMIS docs. The current approach tends to recognize expressions based on their prefix/syntax, e.g., value: "${a.b.c}" is automatically recognized as an expression. In the Nop platform we consistently apply the [prefix-guided syntax](https://zhuanlan.zhihu.com/p/548314138) design philosophy: by adding specific value prefixes to denote different value types, the object’s overall structure can remain unchanged—value-level changes are confined within the value expression scope and do not escalate to the object level (no need to add new properties). According to this design, AMIS’s visibleOn/disabledOn conventions are redundant and could be replaced by using expression conventions everywhere. But considering compatibility concerns, AMIS likely won’t make this change. Currently, the AMIS framework lacks global, unified processing in many places; expression recognition and handling are often delegated to each control, which may lead to subtle inconsistencies in practice.
+
+AMIS inherits and amplifies the excellent design of the DOM model: all controls have name and id and can be located by name or id. AMIS cleverly introduces a target concept, using name as a descriptive locator, further leveraging name’s value. For example, using target, AMIS enables cross-form interactions.
+
+```javascript
+ {
+      "title": "Search Criteria",
+      "type": "form",
+      "target": "my_crud",
+      "body": [
+        {
+          "type": "input-text",
+          "name": "keywords",
+          "label": "Keywords:"
+        }
+      ],
+      "submitText": "Search"
+    },
     {
-      "type": "input-text",
-      "name": "keywords",
-      "label": "Keyword: "
+      "type": "crud",
+      "name": "my_crud",
+      "api": "/amis/api/mock2/sample",
+      ...
     }
-  ],
-  "submitText": "Search"
-},
-{
-  "type": "crud",
-  "name": "my_crud",
-  "api": "/amis/api/mock2/sample",
-  ...
-}
+}    
 ```
 
-By setting the `target` of a form to another control's name, the form's data can be submitted as parameters to the specified control.
+By setting the form’s target to the name of another control, the form data can be submitted as parameters to the specified control.
 
-Another common usage is to trigger the `reload` method on the `target` control, allowing specific parameters to be passed:
+Another common use case is to trigger the reload method on the target control and optionally pass specific parameters:
 
 ```javascript
-{
-  "type": "action",
-  "actionType": "reload",
-  "label": "Send to form2",
-  "target": "form2?name=${name}&email=${email}"
-}
+  {
+          "type": "action",
+          "actionType": "reload",
+          "label": "Send to form2",
+          "target": "form2?name=${name}&email=${email}"
+ }
 ```
 
-Multiple targets can be refreshed in a single action:
+Refresh multiple target controls at once:
 
 ```javascript
 {
@@ -734,57 +779,54 @@ Multiple targets can be refreshed in a single action:
 }
 ```
 
-AMIS standardizes the `reload` semantics for components, so `Formula`, `Service`, and `Select` components all support this operation. For example:
-- Service components will re-execute API calls.
-- Select components will reload their source options.
+AMIS standardizes the reload semantics for components, so Formula, Service, Select, and other components support reload; they perform default refresh behavior (e.g., Service re-executes the Api call; Select reloads its source options list).
 
-A natural extension is to support calling any method on the target component, not just the default `reload`. Starting from version 1.7.0, AMIS supports a more flexible method invocation mechanism:
+A natural extension is to support invoking arbitrary methods on the target component, not just the default reload. Since version 1.7.0, AMIS supports a more flexible component-method invocation mechanism:
 
 ```javascript
 // Set form values
 {
-  "actionType": "setValue",
-  "componentId": "myForm",
-  "args": {
-    "value": "${globalData}"
-  }
-},
-// Switch tab options
+    "actionType": "setValue",
+    "componentId": "myForm",
+    "args": {
+       "value": "${globalData}"
+    }
+ },
+// Switch tab option
 {
-  "actionType": "changeActiveKey",
-  "componentId": "tabs-change-receiver",
-  "args": {
-    "activeKey": 2
-  }
+     "actionType": "changeActiveKey",
+     "componentId": "tabs-change-receiver",
+     "args": {
+        "activeKey": 2
+      }
 }
 ```
 
-If designing a positioning mechanism, the simplest requirements should be:
+If we design a locating mechanism, the simplest requirements should be threefold:
+
 1. Absolute positioning
 2. Relative positioning
-3. Combined relative positioning
+3. Composite relative positioning
 
-  In AMIS, the id is used for absolute positioning. The getComponentById(id) method always starts by locating the root node and then searches recursively within it. The name is used for relative positioning, and getComponentByName(name) searches for a component with the specified name within the current scope. **If no match is found, AMIS will call parent.getComponentByName(name) to continue searching in other branches, potentially finding nodes in different branches**. The getComponentByName method supports compound names, such as a.b.c, where it first finds the component by name 'a' and then searches for 'b' within that component's children, continuing recursively.
+In AMIS, id is the absolute locator; getComponentById(id) always finds the root node first and then searches downward layer by layer. name is the relative locator; getComponentByName(name) finds the component with the specified name in the current scope. When not found, AMIS calls parent.getComponentByName(name) to continue the search, so nodes in other branches may be found. getComponentByName supports composite name properties; a.b.c means finding the component by name=a, then a child by name=b, and so on.
 
-In the latest design of action triggering in AMIS, componentId only supports absolute definitions using id and does not support relative positioning via name. This appears to be a regression in design. Without relative positioning, it becomes easy to encounter conflicts when combining multiple pages. Using meaningless UUIDs would make manual coding infeasible and could lead to the DSL reverting to being an appendage of the visualization editor.
+In AMIS’s latest action-trigger design, componentId only supports absolute id definitions, not relative positioning by name, which is a regression in design. Without relative positioning, combining multiple pages easily leads to conflicts. If we use meaningless UUIDs, it becomes difficult to support hand-written authoring, degrading the DSL to a mere accessory of visual editors.
 
-## 5. Action: Triggering and Configuration of Actions
+## V. Action: Triggering and Orchestration
 
-[Action Button](https://aisuda.bce.baidu.com/amis/zh-CN/components/action) is the most common way to trigger page actions in AMIS. The Action component works alongside external container components, embedding a wealth of frontend page model-related knowledge, significantly reducing the configuration workload for typical application scenarios.
+[Action buttons](https://aisuda.bce.baidu.com/amis/zh-CN/components/action) are the most common way to trigger page behaviors. The Action component in AMIS cooperates with container components and encodes abundant knowledge related to front-end page models, effectively reducing configuration workload in typical application scenarios. First, the Action component has a built-in workflow:
 
-First, the Action component incorporates a standard workflow for handling tasks:
+1. Prompt confirmText to ask whether to proceed
+2. If inside a form, check whether fields specified by required are valid
+3. Check whether batch-operation conditions requiredSelected are satisfied
+4. Execute the operation and start a countDown to disable the button
+5. If messages are configured, display corresponding prompts via toast on success or failure
+6. On success, if a feedback window is configured, pop it up to show returned results
+7. On success, if redirect is configured, navigate to the specified page
+8. On success, refresh specified controls according to reload configuration
+9. If close is configured and the button is inside a dialog, try to close the dialog
 
-1. It prompts with confirmText to ask whether the action should be executed.
-2. If used within a form, it checks if required fields have passed validation based on the required configuration.
-3. It verifies whether bulk operation conditions specified by requiredSelected are met.
-4. The operation is initiated, starting a countdown timer to prevent reverse counting.
-5. If messages are configured, success or failure notifications are displayed using toast prompts.
-6. Upon successful execution, if feedback windows are configured, a feedback window is displayed with the result.
-7. If redirect is configured, the user is navigated to a specified page.
-8. After successful execution, depending on reload configuration, a specific control may be refreshed.
-9. If close is configured and the button is part of a dialog, it attempts to close the dialog.
-
-Actions use an event-bubbling approach: **if the component's handleAction function does not handle the action, it calls the parent component's onAction function instead**. AMIS form controls and dialog controls recognize standard actions such as reset/reload/submit/clear/confirm/cancel/close, so when the event reaches these container components, they execute default behaviors. In the following example, clicking Button A automatically closes the current page's dialog, while clicking Button B resets the form according to the default lookup rules.
+Action triggers use event bubbling-like handling: when a component’s handleAction does not handle the action, it calls the parent component’s onAction to handle it. AMIS’s form and dialog controls recognize standard actions such as reset/reload/submit/clear/confirm/cancel/close; when events propagate to these containers, default behaviors execute automatically. In the example below, clicking Button A automatically closes the dialog containing the current page; clicking Button B resets the form found according to default locating rules on the current page:
 
 ```javascript
 {
@@ -799,7 +841,7 @@ Actions use an event-bubbling approach: **if the component's handleAction functi
 }
 ```
 
-Actions can also be used to trigger dialog pops. The basic call structure is:
+Action can also trigger popping up a dialog; the basic structure is:
 
 ```javascript
 {
@@ -807,17 +849,20 @@ Actions can also be used to trigger dialog pops. The basic call structure is:
     "actionType":"dialog",
     "dialog": {
         "data": {
-          // Initialization data is passed to the form via the data field, and in cases of missing data, the dialog inherits the original page's data chain,
-          // allowing direct access to the original page's components
+          // Pass initialization data to the form via the data section.
+          // By default the dialog inherits the original page’s data chain,
+          // and can directly access data on the original page.
         },
         "body":{
-          // The specific content of the dialog. Within the dialog, components can still be accessed using IDs, etc., as in the original page
+          // Specific content inside the dialog. From within the dialog you
+          // can still access components on the original page via component id, etc.
         }
     }
 }
 ```
 
 For example:
+
 ```javascript
 {
   "type": "page",
@@ -874,123 +919,126 @@ For example:
 }
 ```
 
-The above example demonstrates how to add a "[Set]" button next to an input box. When clicked, it opens a form where information can be entered, and after the user clicks the form's button, the entered information is copied to the input box below and the dialog is automatically closed.
+The example above demonstrates adding an auxiliary [Set] button next to an input field. Clicking it pops up a form; after entering information, clicking the form’s button copies the information to the input below and automatically closes the dialog.
 
-Regardless of how complex the built-in action handling flows are within a framework, they fall short when dealing with unpredictable business requirements. AMIS introduced an **[event action](https://aisuda.bce.baidu.com/amis/zh-CN/docs/concepts/event-action) mechanism** in version 1.7.0 and later, allowing multiple custom actions to be executed during a single event response. These actions can be executed **in parallel, sequentially, or asynchronously**, and can include loops, conditional selections, and have dependencies between them, effectively implementing a small-scale logic flow configuration system.
+No matter how complex a built-in action handling flow is, it will never fully cover all business needs. Since version 1.7.0, AMIS has added an [event action](https://aisuda.bce.baidu.com/amis/zh-CN/docs/concepts/event-action) mechanism, allowing multiple custom actions to be executed during a single event response. These actions can be parallelized, sequenced, executed asynchronously, perform loops and branch selection, and have dependencies, essentially forming a small logic-flow orchestration system.
 
-The basic structure for calling event actions is as follows:
+The basic structure for event actions is:
+
 ```javascript
-"eventListener": {
-    "click": { // Click event listener
-      "actions": [ // List of actions to perform
+ "onEvent": {
+    "click": { // Listen to the event
+      "actions": [ // List of actions to execute
         {
-          "actionType": "toast", // Perform toast notification action
+          "actionType": "toast", // Execute a toast prompt
           "args": { // Action arguments
             "msgType": "info",
             "msg": "${__rendererData|json}"
           },
-          "expression": "expression === 'okk'", // Execute only if condition is met
-          "stopPropagation": false, // Whether to prevent executing the next action
-          "preventDefault": false, // Whether to prevent the default event handling function from being called
-          "outputVar": "" // Variable name for output results of this action, if applicable
+           "expression": "expression === \"okk\"" // Only execute when the condition is satisfied
+           "stopPropagation":false, // Whether to prevent executing the next action
+           "preventDefault":false, // Whether to prevent the control’s default event handler
+           "outputVar": "" // If the action has a return result, specify the output variable name
         },
-        // Additional actions will follow here...
+        // Subsequent actions
       ]
     },
 ```
 
-When performing actions, you can access event data using `${event.data}` and component data domain using `${__rendererData}`.
+When executing an action, you can use ${event.data} to obtain the event object’s data, and ${__rendererData} to obtain the component’s current data domain.
 
-AMIS provides multiple flow control directives such as "loop", "break", "continue", "switch", and "parallel". Subsequent actions will automatically wait for the previous action to complete before executing. After an HTTP request action completes, subsequent actions can access the response result using `${responseResult}` or `${{outputVar}}`.
+AMIS provides many flow-control directives, such as actionType=loop/break/continue/switch/parallel. Subsequent actions automatically wait for the previous action to finish before executing. After an http request action completes, subsequent actions can obtain the response via ${responseResult} or ${{outputVar}}.
 
-## Six. Extensions in the Nop Platform
+## VI. Extensions in the Nop Platform
 
-The Nop platform is built from scratch based on reversible computation principles and is designed for Domain-Specific Language (DSL) development as a new generation of low-code development platforms. Its frontend can use any rendering layer that supports JSON or XML formats. Previously, I examined foreign technologies like Appsmith (https://www.appsmith.com/) and Alibaba's LowCodeEngine (https://lowcode-engine.cn/index/), but ultimately chose AMIS as the example because integrating other technologies requires more work and imposes more restrictions.
+The Nop platform is a next-generation, DSL-oriented low-code development platform built from scratch based on the principles of Reversible Computation. Its front end can use any rendering layer based on JSON or XML. Previously, I investigated overseas [Appsmith](https://www.appsmith.com/) and Alibaba’s [LowCodeEngine](https://lowcode-engine.cn/index), but ultimately chose AMIS for the example because integrating other technologies requires more work and imposes more constraints.
 
 ## 6.1 Automatic Conversion Between XML and JSON
 
-When manually writing and reading data, XML has certain advantages over JSON, particularly when using external template engines for dynamic generation. The Nop platform adds XML syntax support to AMIS, enabling bidirectional conversion between XML and JSON through simple rules. The specific rules are as follows:
+When hand-writing and reading, XML has certain advantages over JSON, especially when integrating external template engines for dynamic generation. The Nop platform adds XML syntax expressions for AMIS, enabling bidirectional conversion between XML and JSON based on a few simple rules:
 
-1. The "type" attribute corresponds to the tag name.
-2. Attributes of simple types correspond to XML attribute names.
-3. Attributes of complex types correspond to XML child nodes.
-4. If it's a list type, mark the node with `j:list=true`.
-5. The "body" attribute is specially identified and does not require explicit marking as `j:list`.
+1. The type property corresponds to the tag name.
+2. Simple-typed properties correspond to XML attributes.
+3. Complex-typed properties correspond to XML child nodes.
+4. For list types, mark j:list=true on the node.
+5. The body property is specially recognized and does not require explicit j:list.
 
 For example:
+
 ```json
 {
-    "type": "operation",
-    "label": "Operation",
-    "buttons": [
-        {
+        "type": "operation",
+        "label": "Operations",
+        "buttons": [
+          {
             "label": "Details",
             "type": "button",
             "level": "link",
             "actionType": "dialog",
             "dialog": {
-                "title": "View Details",
-                "body": {
-                    "type": "form",
-                    "body": [
-                        {
-                            "type": "input-text",
-                            "name": "browser",
-                            "label": "Browser"
-                        },
-                        {
-                            "type": "control",
-                            "label": "grade",
-                            "body": {
-                                "type": "tag",
-                                "label": "${grade}",
-                                "displayMode": "normal",
-                                "color": "active"
-                            }
-                        }
-                    ]
-                }
+              "title": "View Details",
+              "body": {
+                "type": "form",
+                "body": [
+                  {
+                    "type": "input-text",
+                    "name": "browser",
+                    "label": "Browser"
+                  },
+                  {
+                    "type": "control",
+                    "label": "grade",
+                    "body": {
+                      "type": "tag",
+                      "label": "${grade}",
+                      "displayMode": "normal",
+                      "color": "active"
+                    }
+                  }
+                ]
+              }
             }
-        }
+          }
 ```
 
-Its corresponding XML format is:
+Corresponding XML format:
 
 ```xml
-<operation label="Operation">
-    <buttons j:list="true">
-        <button label="Details" level="link" actionType="dialog">
-            <dialog title="View Details">
+<operation label="Operations">
+   <buttons j:list="true">
+     <button label="Details" level="link" actionType="dialog">
+        <dialog titl="View Details">
+            <body>
+              <input-text name="browser" label="Browser" />
+              <control label="grade">
                 <body>
-                    <input-text name="browser" label="Browser" />
-                    <control label="grade">
-                        <body>
-                            <tag label="${grade}" displayMode="normal" color="active" />
-                        </body>
-                    </control>
+                  <tag label="${grade}" displayMode="normal" color="active" />
                 </body>
-            </dialog>
-        </button>
-    </buttons>
+              </control>
+            </body>
+        </dialog>
+     </button>
+   </buttons>
 </operation>
 ```
 
-The Nop platform's XPL template language simplifies dynamic XML generation in several ways, such as:
+The XPL template language in the Nop platform offers many simplifications for dynamically generating XML, e.g.:
 
 ```xml
 <button xpl:if="xxx" label="${'$'}{grade}" icon="${icon}">
 </button>
 ```
 
-Here, `xpl:if` indicates a conditional expression, and only if the expression returns true will the node be generated. Additionally, any attribute with a null value will be automatically ignored during generation. This null attribute filtering mechanism allows for easy control over which attributes are generated.
+At template runtime, xpl:if is a conditional expression; the node is generated only when the expression returns true. When generating all XML attributes, if the attribute value is null, it is automatically ignored and will not appear in the final output. With this null-attribute filtering mechanism, we can easily control which attributes are generated.
 
-The syntax design of AMIS is relatively consistent and closely resembles standard HTML or Vue templates when converted to XML. In contrast, the Low-Code Engine's DSL is more akin to a serialization protocol for domain objects rather than a language designed for manual writing and reading.
+AMIS’s syntax design is relatively regular; when converted to XML, it closely resembles ordinary HTML or Vue templates. In contrast, the DSL of LowCodeEngine feels more like a serialization protocol for domain objects than a DSL that is easy to hand-write and read.
 
-> In early versions of AMIS, there were numerous inconsistencies in its DSL design, such as inconsistencies in how container controls handle their content—sometimes referred to as `children`, other times as `controls`, and sometimes as `content`. This was later standardized with the `body` label in a recent refactor.
+> Early versions of AMIS’s DSL contained many inconsistencies; for example, content areas of container controls were sometimes called children, sometimes controls, and sometimes content. Only recently, after refactoring, were they generally standardized to body.
 
 ## 6.2 Reversible Computation Decomposition
 
-The Nop platform leverages reversible computation theory to implement a generic decomposition and merging mechanism for JSON and XML. It can decompose large JSON files into multiple smaller files based on general rules, effectively complementing AMIS with a module-based organizational syntax. The two most commonly used syntaxes are `x:extends`, which indicates inheritance from an external file, and `x:gen-extends`, which dynamically generates JSON objects that can be inherited.
+Based on Reversible Computation theory, the Nop platform implements a general decomposition/merge mechanism for JSON and XML, enabling large JSON files to be split into multiple smaller files according to general rules—effectively adding a kind of module organization syntax to AMIS. The most commonly used syntaxes are x:extends to inherit from an external file and x:gen-extends to dynamically generate JSON objects that can be inherited.
+
 ```yaml
 x:gen-extends: |
   <web:GenPage view="NopAuthDept.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
@@ -1007,21 +1055,21 @@ body:
             "title": "Test Dialog"
 ```
 
-The above example demonstrates that the system dynamically generates a CRUD page based on NopAuthDept.view.xml configuration and adds a bulk actions zone with a Test button. Clicking this button triggers a dialog, which is implemented by reusing the existing test.page.yaml file. The title attribute overrides the `x:extends` inheritance to set the dialog's title to "Test Dialog".
+In the above example, we first generate a CRUD page dynamically according to the configuration in NopAuthDept.view.xml, then add a Test button to the bulk-action area. Clicking this button pops up a dialog whose implementation reuses the existing test.page.yaml file. The title property overrides what is inherited via x:extends, setting the dialog title to Test Dialog.
 
-The `x:extends` mechanism is similar to a general-purpose operation for tree structure execution, akin to object-oriented inheritance.
+x:extends is essentially a general operator that performs inheritance-like operations on a tree structure, akin to object-oriented inheritance.
 
-For any JSON-formatted external files, we only need to modify the loading function for standard JSON files to use Nop's ResourceLoader, enabling reverse computation of decomposition and merging operations with support for compile-time meta-programming. This allows for complex structure transformations during compilation.
+For any external JSON file, you just need to change the loader for a normal JSON file to the ResourceLoader provided by the Nop platform to automatically obtain the decomposition/merge operations defined by Reversible Computation. It also supports compile-time metaprogramming, allowing a series of complex structural transformations at compile time.
 
-Detailed information is provided in
+For details, see
 
-    [Understanding Low-Code Platforms Through Tensor Products](https://zhuanlan.zhihu.com/p/531474176)
+    [Design of Low-Code Platforms from the Perspective of Tensor Products](https://zhuanlan.zhihu.com/p/531474176)
 
-## 6.4 Action Module
+## 6.4 Action Modularization
 
-The AMIS DSL itself only supports writing embedded JS snippets within pages and does not directly support importing external JS functions. The Nop platform introduces an `xui:import` attribute for AMIS, allowing the integration of external JS libraries and their functions as event response handlers.
+AMIS’s DSL itself only supports embedding JS snippet code within the page and does not directly support importing external JS functions. The Nop platform introduces an xui:import property to AMIS, allowing external JS libraries to be imported and functions within them to be used as event handlers.
 
-> This mechanism is generalizable and can be used to integrate other low-code engines
+> This mechanism is general and can be used to integrate other low-code engines.
 
 ```
 type: page
@@ -1034,30 +1082,30 @@ body:
       a: 1
 ```
 
-The example illustrates importing a demo.lib.js library and referencing its functions via `demo.testAction`.
+The example above shows importing a demo.lib.js library and then referencing functions within it via demo.testAction.
 
-`url: "@action:demo.testAction"` is a syntax provided by Nop's environment abstraction. It intercepts AMIS' fetcher calls, identifies the `@action:` prefix, maps to loaded JS functions, and triggers them with data parameters specified in the request.
+The syntax url: "@action:demo.testAction" is an action-trigger mechanism we provide on top of AMIS’s environment abstraction. It intercepts AMIS’s fetcher calls, recognizes the @action: prefix, maps it to already loaded JS functions, and passes in the parameters specified by data when calling.
 
-The script library (`demo.lib.xjs`, note the `.xjs` suffix instead of `.js`) is stored in demo.lib.js. We use GraalVM-JS to transpile and package it into SystemJS modules via rollup.
+The script library code is stored in demo.lib.xjs (note the suffix is xjs rather than js; we use the graalvm-js script engine to invoke rollup to convert xjs to js and package it as a SystemJs module structure).
 
 ```javascript
 /* @x:gen-extends:
-  <!--Here, XPL template language can be used to generate JS code -->
+  <!--XPL template language can be used here to generate JS code -->
  */
-import { ajaxFetch } from '@nop/utils'
+import { ajaxFetch} from '@nop/utils'
 
-import { myAction } from './sub.lib.js'
+import {myAction} from './sub.lib.js'
 
-import { myAction2 } from './parts/sub2.lib.js'
+import {myAction2} from './parts/sub2.lib.js'
 
-import { ajaxRequest } from '@nop/utils'
+import {ajaxRequest} from '@nop/utils'
 
-export function testAction(options, page) {
+export function testAction(options, page){
     page.env.alert("xx");
     ajaxFetch(options)
     ajaxRequest(options)
-    myAction(options, page)
-    myAction2(options, page)
+    myAction(options,page)
+    myAction2(options,page)
 
     return Promise.resolve({
         status: 200 ,
@@ -1068,65 +1116,82 @@ export function testAction(options, page) {
 }
 ```
 
-xjs files can be written in standard ESM module format. We add compile-time dynamic generation capability to them via annotations (`@x:gen-extends`), which is utilized during the workflow editor's dynamic generation process.
-# 6.5 GraphQL Simplification
+xjs files can be authored in ordinary ESM module format. By adding @x:gen-extends in comments, we endow it with compile-time dynamic generation capabilities (used in dynamic generation of workflow editors).
 
-GraphQL always requires specifying the list of returned fields, but for a low-code platform, the question of which fields are present in a form is something that can be determined by analyzing the model, so we can automatically determine the required fields without manually specifying them.
+export’d functions are interfaces exposed for external calls. import calls are transformed into SystemJs dependencies. There is a special treatment for files under /parts/: we invoke rollup to bundle their code together with the main file’s code—i.e., files under parts are considered internal implementation and will not be exposed as externally accessible JS libraries.
+See the bundled result in [demo.lib.js](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-app/_dump/nop-app/nop/auth/pages/DemoPage/demo.lib.js)
 
-The Nop platform adds an extension to AMIS that allows us to construct GraphQL requests using the following syntax:
+Besides action invocation, external library functions can be used anywhere JS scripts can be embedded. To this end, we provide another prefix @fn:, which requires explicit function arguments (action’s function arguments are already standardized as options, page).
+
+```javascript
+"onClick":"@fn:demo.myListener(event,props)"
+```
+
+Reconsidering the onClick call process, we find that the process of resolving a function implementation by name is very similar to the event bubbling process in DOM components. During event bubbling, the event name is passed upward; once a handler is found at some level, it processes the event. AMIS’s action-response handling checks each component’s handleAction for the specified actionType; if not handled, it calls the parent component’s onAction.
+
+If we directly treat the event name being passed upward as the function name, then event bubbling can be viewed as resolving a function name in a lexical scope. xui:import at different levels is akin to creating distinct lexical scopes; we always look up the function in the nearest scope first, and if not found, continue upward in the parent scope.
+
+Object-oriented technology has long dominated GUI development. Its core essence is the organizational relationship among ComponentTree + StateTree + ActionTree. Components form the component tree—usually a static structure that corresponds one-to-one with source code. Once constructed, it can stably exist in memory and be reused multiple times; events and data flow through this tree. Business state information also forms a state tree, from which components can pull data. The component tree and state tree are not necessarily layer-by-layer aligned, but parent-child relationships remain stable. When an event occurs, it bubbles up along the ActionTree and is handled by some level’s handler. In theory, the Tree structure of ActionTree need not coincide with the ComponentTree; but for ease and stability of reasoning, we generally prefer lexical scopes determined at compile time rather than dynamic scopes affected by runtime state. Thus, actions are associated with a certain level of components, and the parent-child order remains consistent with the component tree (though not necessarily layer-by-layer aligned).
+
+## 6.5 GraphQL Simplification
+
+GraphQL always requires specifying the list of return fields, but for a low-code platform, what fields a form contains can be inferred from the model. Therefore, we can automatically infer the needed fields from the form model instead of manually specifying them.
+
+The Nop platform adds an extension for AMIS so that we can construct GraphQL requests via the following syntax:
 
 ```javascript
 url: "@graphql:NopAuthUser__get/{@formSelection}?id=$id"
 ```
 
-For detailed information, please refer to my previous article [GraphQL Engine in a Low-Code Platform](https://zhuanlan.zhihu.com/p/589565334).
+For a detailed introduction, see my previous article: [GraphQL Engine in a Low-Code Platform](https://zhuanlan.zhihu.com/p/589565334)
 
-## 6.6 Internationalization
+## 6.6 Multilingual Internationalization
 
-AMIS's JSON format can be easily read and processed. Therefore, many structural transformation tasks can be decoupled from the AMIS framework and handled uniformly by the backend.
+AMIS’s JSON format can be easily read and processed. Therefore, many structural transformations can be handled entirely by the backend, independent of the AMIS framework. The Nop platform provides a unified i18n string-replacement mechanism for JSON, stipulating two ways:
 
-The Nop platform provides a unified i18n string replacement mechanism for JSON, which supports two types of usage:
-
-1. Use prefix-based syntax to identify and replace all values with `@i18n:`
-
-2. For each key that needs internationalization, add a corresponding `@i18n:key` attribute
-   For example:
+1. Recognize and replace all values with the @i18n: prefix.
+2. For each key requiring internationalization, add a corresponding @i18n:key property. For example:
+   
    ```javascript
    {
-     label: "@i18n:common.batchDelete|Bulk Delete"
+   label: "@i18n:common.batchDelete|Batch Delete"
    }
-   OR
+   or
    {
-     label: "Bulk Delete"
-     "@i18n:label" : "common.batchDelete"
+   label: "Batch Delete"
+   "@i18n:label" : "common.batchDelete"
    }
    ```
 
-## 6.7 Authorization Control
+## 6.7 Access Control
 
-The Nop platform defines attributes like `xui:roles` and `xui:permissions` for permissions, and automatically validates these properties in the JSON-formatted page data, removing any nodes that do not meet the permission requirements. This process is performed at the JSON level without involving any knowledge of specific frontend frameworks.
+The Nop platform defines permission-related properties such as xui:roles and xui:permissions. After receiving JSON-formatted page data, it automatically validates whether the permission attributes are satisfied and removes all nodes that do not meet permission requirements. This processing is performed on the JSON structure and does not involve any front-end framework-specific knowledge.
 
-## 6.8 Vue Component Integration
-AMIS is built on React technology, while the front-end of the Nop platform is mainly developed using Vue 3.0 technology. To facilitate the integration of third-party Vue components, the Nop platform provides a generic wrapper component. In the AMIS configuration file, you can use it as shown below:
+## 6.7 Vue Component Integration
+
+AMIS is built using React, while the Nop platform’s front end is primarily developed with Vue 3.0. To facilitate the integration of third-party Vue components, the Nop platform provides a generic wrapper component. In AMIS’s configuration file, we can use it like this:
 
 ```javascript
 {
   "type": "vue-form-item",
-  "vueComponent": "Component name of Vue",
+  "vueComponent": "VueComponentName",
   "props": {
-    Properties passed to the Vue component
+    // Props passed to the Vue component
   }
 }
 ```
 
 ## Summary
 
-The Baidu AMIS framework is a sophisticated low-code front-end framework with low integration complexity. The Nop platform has made certain improvements and extensions based on the AMIS framework, providing solutions for some common issues. The encapsulated code for AMIS in the Nop platform has been uploaded to Gitee at [nop-chaos](https://gitee.com/canonical-entropy/nop-chaos.git). For those interested in integrating AMIS, please refer to it.
+Baidu’s AMIS framework is a finely designed, low-integration-cost front-end low-code framework. The Nop platform makes various improvements and extensions on top of AMIS, providing solutions to some common problems. The Nop platform’s wrapper code for AMIS has been uploaded to gitee:
+[nop-chaos](https://gitee.com/canonical-entropy/nop-chaos.git)
+For those interested in integrating AMIS, please refer to it.
 
-The open-source address of the Nop platform is:
+Open-source addresses for the Nop platform:
 
-- Gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
-- GitHub: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- Development example: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- [Inverse Computing Principle and Introduction to Nop Platform plus Q&A\_Bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+- gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+- github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+- Development examples: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [Principles of Reversible Computation and Introduction & Q&A on the Nop Platform — bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
 
+<!-- SOURCE_MD5:e1fe88414a95f5a9863bbd45eb398c4d-->

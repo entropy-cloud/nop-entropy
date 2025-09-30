@@ -1,73 +1,68 @@
 # Delta Customization
 
-The Nop platform distinguishes itself from other development platforms in that it supports deep customization through the Delta customization mechanism without modifying the platform's source code.
+Compared with other development platforms, a distinctive characteristic of the Nop platform is that it supports deep customization of platform capabilities via the Delta customization mechanism without modifying the platform source code at all.
 
-For a detailed explanation of the architecture, refer to [delta-customization.md](delta/delta-customization.md).
+For the overall architecture, see [delta-customization.md](delta/delta-customization.md)
 
+## Customizing beans
 
-## Customizing Beans
+All beans in the Nop platform are uniformly managed by the NopIoC container. It is a fully declarative IoC container whose syntax is similar to Spring 1.0, but it adds conditional wiring and auto-wiring mechanisms similar to Spring Boot.
 
-In the Nop platform, all beans are managed by the NopIoC container. It is syntactically similar to Spring 1.0 but includes features like conditional registration and automatic wiring, similar to SpringBoot.
+**To avoid naming conflicts, built-in beans in the Nop platform typically use the prefix nop for their IDs, such as nopJdbcTemplate, etc.**
 
-To avoid naming conflicts, bean IDs in the Nop platform are typically prefixed with "nop", such as nopJdbcTemplate.
+### Viewing bean definitions
 
-
-### Viewing Bean Definitions
-
-To customize a bean, you can start by examining the configuration files in the `_dump` directory. Specifically, look at the `/nop/main/beans/merged-app.beans.xml` file. When the application runs in debug mode, the NopIoC container automatically logs all active beans and their configurations into this file.
-
-Here is an example of a bean definition in the XML configuration file:
+To customize a bean, first check the /nop/main/beans/merged-app.beans.xml file under the `_dump` directory. When the system starts in debug mode, it automatically outputs the configurations of all activated beans to this debug file. By inspecting this file, you can learn the configuration details of all beans used in the system.
 
 ```xml
+
 <!--LOC:[15:6:0:0]/nop/auth/beans/auth-service.beans.xml-->
-<bean class="io.nop.auth.service.auth.DefaultActionAuthChecker" id="$DEFAULT$nopActionAuthChecker" ioc:aop="false"
-      name="nopActionAuthChecker">
-    <property name="siteMapProvider" ext:autowired="true">
-        <ref bean="nopSiteMapProvider" ext:resolved-loc="[13:6:0:0]/nop/auth/beans/auth-service.beans.xml"
-             ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
-    </property>
-</bean>
-```
-
-This configuration shows that the `nopActionAuthChecker` bean is defined in `auth-service.beans.xml`. The `siteMapProvider` property is automatically injected using the `@Inject` annotation, referencing the `nopSiteMapProvider` bean.
-
-If there are multiple beans with the same name, the last one encountered will override the previous definitions. This behavior is similar to SpringBoot's `ConditionalOnMissingBean`.
-
-
-### Replacing or Removing Bean Definitions
-
-To replace or remove a bean definition, you can create a new configuration file in the `/_vfs/_delta/default` directory. In this file, define the same bean ID with an `x:extends` directive to override the default configuration.
-
-Here is an example of overriding a bean:
-
-```xml
-<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-       x:extends="super">
-    <bean id="nopActionAuthChecker" x:override="remove"/>
-</beans>
-```
-
-This configuration removes the default `nopActionAuthChecker` bean, effectively replacing it with a custom definition.
-
-You can also choose to remove the bean's implementation by defining it in the same file:
-
-```xml
-<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-       x:extends="super">
-    <bean id="nopActionAuthChecker" x:override="remove">
-        <bean class="CustomImplementation" id="nopActionCustomBean"/>
+    <bean class="io.nop.auth.service.auth.DefaultActionAuthChecker" id="$DEFAULT$nopActionAuthChecker" ioc:aop="false"
+          name="nopActionAuthChecker">
+        <property name="siteMapProvider" ext:autowired="true">
+            <ref bean="nopSiteMapProvider" ext:resolved-loc="[13:6:0:0]/nop/auth/beans/auth-service.beans.xml"
+                 ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+        </property>
     </bean>
+```
+
+From this file you can see the source file location of each bean. For example, the above snippet indicates:
+
+1. The bean named nopActionAuthChecker is defined in the auth-service.beans.xml file.
+2. The siteMapProvider property is auto-injected using the @Inject annotation, and the actual injected bean is nopSiteMapProvider.
+3. The source location of nopSiteMapProvider is line 13 of the auth-service.beans.xml file.
+4. `id="$DEFAULT$nopActionAuthChecker"` indicates it defines a default implementation; if there is another bean with the same name, it will automatically replace this implementation.
+
+The original definition of nopActionAuthChecker is as follows, with the node marked ioc:default='true'. If there is another bean whose name is also nopActionAuthChecker, it will automatically override this default definition. The role of ioc:default is similar to Spring Boot's ConditionalOnMissingBean.
+
+```xml
+    <bean id="nopActionAuthChecker" class="io.nop.auth.service.auth.DefaultActionAuthChecker" ioc:default="true"/>
+```
+
+### Replacing or removing bean definitions in the system
+
+If you need to replace a bean definition in the system, simply define a beans.xml file with the same name under the /\_vfs/\_delta/default directory, and then use the x:extends mechanism within it to customize.
+
+```xml
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       x:extends="super">
+    <!-- You can use this approach to remove built-in bean definitions in the system -->
+    <bean id="nopActionAuthChecker" x:override="remove" />
 </beans>
 ```
+
+You can also replace the bean's implementation class, for example:
 
 ```xml
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        x:extends="super">
-    <!-- Merging definitions here -->
+    <!-- The definition here will be merged with the definition node in the platform -->
     <bean id="nopActionAuthChecker" class="xxx.MyActionAuthChecker" />
 </beans>
 ```
 
-## Extended Excel Model
+## Extending the Excel model
 
-Refer to [custom-model.md](model/custom-model.md)
+See [custom-model.md](model/custom-model.md)
+<!-- SOURCE_MD5:8d241f01e839941ffbd1b0264be74490-->

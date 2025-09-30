@@ -1,56 +1,59 @@
-# JSON Processing
+# JSON Handling
 
-## 1. Parsing JSON Text
+## 1. Parse JSON Text
 
 ```javascript
 JsonTool.parseNonStrict(text);
 
-JsonTool.parse(text); // Parsing standard JSON format
+JsonTool.parse(text); // Parse standard JSON format
+
 ```
 
-## 2. Parsing JSON Files
+## 2. Parse JSON Files
 
 ```javascript
 JsonTool.parseBeanFromResource(resource, beanType);
 ```
 
-If based on the file's extension is json、json5或者yaml，use different parsers to parse it. The default result is either a regular Map or List object. If beanType is set to a specific Java type, attempt to convert the Json object into the corresponding strongly typed Java object.
+If the file extension is json, json5, or yaml, different parsers are used accordingly. By default, the result is a plain Map or List object. If beanType is set to a specific Java type, it attempts to convert the JSON object into the corresponding strongly-typed Java object.
 
-For example:
+For example
 
-```javascript
+```
 JsonTool.parseBeanFromResource(resource, Map.class);
 JsonTool.parseBeanFromResource(resource, RuleModel.class);
 ```
 
-## 3. Loading JSON or Yaml Files and Applying Delta Merge Rules
+## 3. Load JSON or YAML files and automatically apply Delta merge rules to process Delta merge operators such as `x:extends` and `x:gen-extends`.
 
-```javascript
+```
 JsonTool.loadDeltaBean(resource, beanType, new DeltaJsonOptions());
 ```
 
-## 4. Converting Java Objects to Regular JSON Objects
+## 4. Convert Java objects to plain JSON objects
 
-```javascript
+```
 json = JsonTool.serializeToJson(bean);
 ```
 
-## 5. Serializing Java Objects to JSON Text
+## 5. Serialize Java objects to JSON text
 
-```javascript
+```
 json = JsonTool.serialize(bean, pretty);
 ```
 
-The `pretty` parameter controls whether the generated text uses indentation.
+The pretty parameter controls whether indentation is used when generating the text.
 
-## 6. Serializing Java Objects to Yaml Text
+## 6. Serialize Java objects to YAML text
 
-```javascript
+```
 json = JsonTool.serializeToYaml(bean);
 ```
 
-## 7. Serializing Java Objects to JSON Text and Saving to File
+## 7. Serialize Java objects to JSON text and save to a file
 
-```javascript
-ResourceHelper.writeJson(resource, obj);
 ```
+ResourceHelper.writeJson(resource,obj);
+```
+
+<!-- SOURCE_MD5:cf7701191ba4f45f98956e84d7d11c92-->

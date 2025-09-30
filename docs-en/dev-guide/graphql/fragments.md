@@ -1,45 +1,41 @@
-# Utilize Fragment to Simplify GraphQL Queries
+# Simplifying GraphQL Queries Using Fragment Definitions
 
-GraphQL requires specifying the returned fields in the frontend. When dealing with a large number of fields, this can become cumbersome. At this point, we can leverage the `Fragment` functionality in GraphQL to define common field sets and then reference these Fragments during queries, thereby simplifying the process.
+GraphQL requires specifying the returned fields in frontend calls, which can be cumbersome when there are many fields. In this case, we can use the Fragment feature of the GraphQL language to define common field sets and then reference these fragments in queries to simplify them.
 
-## 1. Define Selections in XMeta with `F_` Prefix
-
-In XMeta, we can add selection definitions by using the `F_` prefix.
+## 1. Add selection definitions in XMeta with the `F_` prefix
 
 ```xml
 <meta>
   <selections>
     <selection id="F_defaults">
-      userId, userName, status, relatedRoleList{ roleName }
+      userId, userName, status, relatedRoleList{ roleName}
     </selection>
   </selections>
 </meta>
 ```
 
-Here, we have defined a selection with the ID `F_defaults`, which includes fields like `userId`, `userName`, `status`, and `relatedRoleList` with its own subfield `roleName`. The `F_` prefix ensures that only frontend-optimized Fragments are created.
+* Here we stipulate that only fragment definitions with the `F_` prefix are accessible to the frontend. selection also has other uses.
+* If `F_defaults` is not configured, it will be automatically inferred based on all non-lazy fields of the GraphQL type. If explicitly specified, the specified content takes precedence.
 
-This setup enforces the use of `F_` as a prefix for Fragment definitions, making it accessible to the frontend. Selections also have other uses beyond this example.
+## 2. Reference fragments in frontend queries
 
-If `F_defaults` is not configured, GraphQL will automatically infer all non-lazy fields. If explicitly defined, the specified fields take precedence.
-
-## 2. Reference Fragments in Frontend Queries
-
-When querying the backend using GraphQL, we can reference these Fragments.
+Fragments can be used when invoking backend services via GraphQL:
 
 ```graphql
-query {
-  NopAuthUser__findList {
-    ...F_defaults, groupMappings { ...F_defaults }
-  }
+query{
+   NopAuthUser__findList{
+     ...F_defaults, groupMappings{...F_defaults}
+   }
 }
 ```
 
-Alternatively, we can use REST to call the backend service and include `@selection` parameters to utilize Fragments.
+Alternatively, invoke backend services via REST and use fragments through the `@selection` parameter:
 
 ```
 /r/NopAuthUser__findList?@selection=...F_defaults,groupMappings
 ```
 
-If the `@selection` parameter is not provided in a REST call, it defaults to returning `F_defaults`.
+* When calling via REST, if the `@selection` parameter is not provided, it is equivalent to returning `F_defaults`.
 
-In cases where selections are nested within objects (e.g., `groupMappings`), the Fragments will automatically expand accordingly.
+Under REST, if a selection is only expressed at the object level, it will automatically expand downward.
+<!-- SOURCE_MD5:604bf0f126ce3571bde95e61f1f5c8cf-->

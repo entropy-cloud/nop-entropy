@@ -1,20 +1,24 @@
-# Built-in Workflow Support for Dynamic Entities
 
-The NopORM engine is a complete ORM engine, not a narrow-purpose ORM tailored specifically for LowCode development. Based on the general mechanisms of NopORM, some LowCode-specific dynamic models are also built into the platform.
+# Dynamic Entities Supported by Built-in Workflows
 
-The `nop-dyn` module provides a `NopDynEntity` entity that includes a `nopFlowId` field. This field can automatically associate with the workflow engine, allowing the entity to be used as a business entity associated with workflow instances. No table needs to be created; simply adjust the ORM configuration to split the base `NopDynEntity` into new ORM entity objects (with different names and property names), where actual data is stored in the `nop_dyn_entity` table (horizontal) and the extension fields of the `nop_dyn_entity_ext` table.
+The NopORM engine is a full-fledged ORM engine, not a narrowly scoped ORM tailored specifically for Low-Code development. Based on the generic mechanisms of NopORM, the platform also includes several Low-Code-specific dynamic models.
 
-The specific usage method is as follows:
+The nop-dyn module provides a NopDynEntity entity, which includes a nopFlowId field that can automatically associate with the workflow engine, serving as the business entity linked to a workflow instance. No table creation is required—by adjusting the ORM configuration, you can derive new ORM entity objects from the base NopDynEntity (with different entity and property names). Actual data is stored in the nop_dyn_entity table (vertical table) and in the extension fields of the nop_dyn_entity_ext table.
 
-## Add the file `_/_vfs/_delta/default/nop/dyn/orm/app.orm.xml` and include dynamic entity definitions within it.
+Usage details are as follows:
+
+## Add the `/_vfs/_delta/default/nop/dyn/orm/app.orm.xml` file and include the dynamic entity definition in it
 
 ```xml
 <orm x:schema="/nop/schema/orm/orm.xdef" x:extends="super" xmlns:x="/nop/schema/xdsl.xdef" x:dump="false">
+
     <entities>
-        <entity name="dyn.AppDynSalaryAdjustment" displayName="Salary Adjustment Application" x:prototype="NopDynEntityTemplate">
+
+        <entity name="dyn.AppDynSalaryAdjustment" displayName="Salary Adjustment Request" x:prototype="NopDynEntityTemplate">
             <filters>
                 <filter name="nopObjType" value="AppDynSalaryAdjustment"/>
             </filters>
+
             <aliases>
                 <alias name="employeeId" type="String" propPath="extFields.employeeId.string"/>
                 <alias name="salary1" type="Double" propPath="extFields.salary1.double"/>
@@ -25,18 +29,18 @@ The specific usage method is as follows:
 </orm>
 ```
 
-1. `x:prototype="NopDynEntityTemplate"` indicates that the entity inherits from the `NopDynEntityTemplate` template built into the `nop-dyn-dao` module. The `NopDynEntityTemplate` has enabled extension field support, where extension fields are stored in the `nop_dyn_entity_ext` table.
-2. Dynamic entities are actually stored in the base `NopDynEntity` table, with each dynamic entity corresponding to a different `objType` condition. By configuring filters, multiple objects with different attributes can be generated from a single business object.
-3. Aliases allow extension fields to be renamed with more meaningful names in XScript and EQL languages. In these scripts, aliases function as native properties of the entity.
-4. `extFields` stores data horizontally in the `nop_dyn_entity` table. The `NopDynEntity` entity also reserves fields like `stringValue1`, `longValue1`, etc., for extension purposes. For performance optimization, key fields can be mapped to these reserved fields via aliases. Additionally, indexes can be created on these extension fields for improved performance.
+1. `x:prototype="NopDynEntityTemplate"` indicates inheriting certain configurations from the built-in NopDynEntityTemplate in the nop-dyn-dao module. NopDynEntityTemplate has already enabled support for extension fields, which are stored in the nop_dyn_entity_ext table.
+2. Dynamic entities are actually stored in the underlying NopDynEntity table, but each dynamic entity corresponds to a different objType constraint. By configuring filters, multiple objects with different attributes are derived from the same business object.
+3. Through aliases, extension fields can be renamed to concise names with business meaning. In the XScript scripting language and the EQL query language, aliases can be treated as native entity properties.
+4. extFields stores data in a vertical table. The NopDynEntity entity also reserves extension fields like stringValue1 and longValue1. If performance optimization is needed, you can map certain key fields via aliases to these reserved fields. Indexes can be created on reserved fields, providing better performance than the extFields vertical-table extension.
 
 ## Complete Implementation
 
-Inheriting from `NopDynEntityTemplate` is a convenient approach, but it has a limitation: you must customize the `nop-dyn-dao` module's `app.orm.xml` model file, as the `NopDynEntityTemplate` node is defined within this file.
+Inheriting from NopDynEntityTemplate is a convenient approach, but it has the limitation that you must customize the app.orm.xml model file in nop-dyn-dao, as the NopDynEntityTemplate node is defined in that file.
 
 ```xml
 <!--
-    Must set tagSet to empty and remove inherited use-ext-field tags
+    You must set tagSet to empty to remove the inherited use-ext-field tag
 -->
 <entity name="NopDynEntityTemplate" x:abstract="true" registerShortName="true"
         x:prototype="io.nop.dyn.dao.entity.NopDynEntity" tableView="true" tagSet="">
@@ -50,9 +54,11 @@ Inheriting from `NopDynEntityTemplate` is a convenient approach, but it has a li
 </entity>
 ```
 
-If you do not want to customize `app.orm.xml`, you need to copy the definition of `NopDynEntityTemplate` (including its inherited `NopDynEntity`) into other modules for use.
+If you prefer not to customize app.orm.xml, copy the definition of NopDynEntityTemplate (including the definition it inherits from NopDynEntity) into another module for use.
 
-> Copied definitions must set `x:abstract="true"`, indicating they are used as templates and will not be resolved into specific entity models at runtime.
+> All copied definitions must set x:abstract=true, indicating they are used only as templates and will not be resolved into concrete entity models.
 
-1. The `tableView` attribute indicates that this is a view object created based on an existing table, so no CREATE TABLE statement is generated for it.
-2. If you need to restrict the view from being updated, set the `readonly="true"` attribute.
+1. tableView indicates that this entity is a view object built on existing tables; no table creation statements need to be generated for this entity.
+2. If you need to restrict the view from being updatable, you can set the readonly=true property.
+
+<!-- SOURCE_MD5:3edffbbfbd2ef304bb649789df73ec13-->

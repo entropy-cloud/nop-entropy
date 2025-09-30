@@ -1,130 +1,104 @@
-# 1. Is the code generator low-code?
+# 1. Is a code generator low-code?
 
-Traditional code generators are one-time tools that do not support continuous incremental improvement, so they are not truly low-code. Typically, once the code is generated, all customizations require modifications to the generated code, which limits its flexibility and restricts it to specific constraints. When we make incremental adjustments to the model, the regenerated code often overrides manual changes, leading to lost customization.
+Traditional code generators are one-off scaffolding and do not support continuous incremental improvements, so they are not low-code. Typically, once code is generated, all customizations require changing the generated code, thereby departing from the original model constraints. When we make incremental adjustments to the model, regenerating code overwrites everything and loses the manual changes.
 
-In principle, the generated code and JSON-based formats are functionally equivalent. For example, in the Amis framework:
+In principle, generating code is not fundamentally different from interpreting based on JSON. For example, formally, we can view the AMIS framework’s runtime as:
 
-```javascript
-result = renderAmis(json, data);
+```
+result = renderAmis(json, data)
 ```
 
-The `renderAmis` function acts as an interpreter that takes Amis JSON files and external data inputs to produce the final result.
+renderAmis acts as an interpreter that accepts an AMIS JSON file and externally provided data, producing the final result at runtime.
 
-For multi-parameter functions, currying (rendering them as single-parameter functions) is a common approach. This process effectively transforms:
+We know that multi-argument functions can be turned into single-argument functions via currying, so the process is equivalent to
 
-```javascript
-result = renderAmis(json)(data);
+```
+result = (renderAmis(json))(data)
 ```
 
-into
+That is, renderAmis combines with json to produce a function, and then we apply that function to data.
 
-```javascript
-component = renderAmis(json); // Compiled phase
-result = component(data);   // Execution phase
+If the information in renderAmis(json) is already determined at compile time, we can optimize it during compilation to obtain a compiled component.
+
+```
+component = renderAmis(json) // executed at compile-time
+result = component(data)   // executed at runtime
 ```
 
-From a mathematical perspective, the compilation process can be viewed as dividing a previously runtime function into two parts: a compile-time generator and a runtime function. This mirrors how functions are typically split in programming languages.
+Mathematically, compilation can be viewed as splitting a function that originally ran at runtime into two parts: a compile-time function generator plus a runtime function. This process can be regarded as lifting a function to a functional—or, in physics parlance, an operator.
 
-In theory, generating code is not limited to "continuous visual compilation." Modern techniques like on-the-fly compilation and dynamic recompilation allow for incremental updates without restarting the application. These methods enable changes to be applied dynamically while maintaining performance.
+In theory, code generation is capable of “continuous visual compilation.” As long as we leverage Just-In-Time techniques to implement dynamic Delta compilation (Delta-oriented generative programming), anything an interpretive model can do can also be achieved by multi-stage compilation.
 
-To implement incremental code generation, refer to my article:
+For how to implement incremental code generation, see my articles
+[Reversible Computation]!https://zhuanlan.zhihu.com/p/64004026
 
-- [Reversible Computing](https://zhuanlan.zhihu.com/p/64004026)
-- [Implementation of Reversible Computing](https://zhuanlan.zhihu.com/p/163852896)
+[Technical Implementation of Reversible Computation]!https://zhuanlan.zhihu.com/p/163852896
 
-Currently, there is no widely accepted open-source solution for these challenges. The code generation approach still has many engineering issues to resolve.
+Of course, there is currently no publicly available, out-of-the-box solution in the industry; there are many engineering challenges to solve when relying on code generation.
 
-The Nop platform's extensive metadata transformation can be seen as a form of multi-stage compilation. While it may not cover all aspects of traditional compilation, it demonstrates the potential for incremental and modular development approaches.
+The Nop platform’s extensive structural transformations during the metaprogramming stage can be regarded as a compilation process, so overall it is a kind of multi-stage compilation, not just the single stage of generating general-purpose language source code.
 
-In conclusion, code generation is not limited to generating plain source code. It can also produce DSL (Domain-Specific Language) code or even general-purpose language code, depending on the framework's capabilities.
+Code generation may output DSL code rather than general-purpose language code. For example, the Nop platform currently outputs AMIS code on the frontend, where the AMIS engine is responsible for interpretive execution. Essentially, code is merely a carrier of information. Once business information is precisely expressed, it should be able to be carried by multiple forms—especially it should be possible to reverse-extract the original programming intent.
 
+## 2. How should low-code define its core domain model?
 
-## 2. How is the core domain model of low-code defined?
+Some low-code platforms appear very powerful in a small set of hard-coded scenarios and can rapidly implement certain businesses in a fixed pattern. However, we believe true power lies in the genes of inner evolution, not in piled-up features. Dinosaurs were powerful, yet were ruthlessly eliminated as the environment changed. Existing low-code products mainly still use brute-force enumeration, with a large number of built-in features, but technology evolves continuously—can they adapt quickly? Not to mention anything else, migrating to the latest foundational technology stack is a clear challenge. Many features are built with once-popular techniques that may be bound to a specific framework version.
 
-Some low-code platforms excel in a small number of CRUD scenarios, but their domain models are often rigid and cannot handle complex, dynamic business processes. While they may be powerful for simple use cases, they lack the flexibility needed for evolving requirements.
+Low-code’s capability comes from modeling, and a powerful low-code system should support instant creation of new models and free extension of existing ones. This requires the underlying architecture to at least have a metamodel definition.
 
-In contrast, a good low-code platform should enable rapid, flexible development by defining a core domain model that supports:
+All models in the Nop platform are uniformly defined using the xdef metamodel, and the xdef metamodel is constrained by the xdef metamodel itself—i.e., the meta-metamodel is still xdef. The platform’s core is essentially a general Tree transformation and loading mechanism, while a DSL is merely a Tree with semantics.
 
-- [Reversible Computing](https://zhuanlan.zhihu.com/p/64004026)
-- [Implementation of Reversible Computing](https://zhuanlan.zhihu.com/p/163852896)
+Concretely, our approach is to define the xdef metamodel, then immediately derive the designer automatically, and in IDEA provide a unified plugin that, based on the metamodel, automatically implements syntax hints and supports DSL breakpoint debugging, etc. So essentially it’s a language-oriented programming paradigm: before solving a business-domain problem, first establish a domain-specific DSL, then develop the business in that DSL; the platform’s role is to reduce the cost of developing and extending DSLs to something akin to writing a single function.
 
-This means the platform should allow for continuous refinement and iteration without disrupting existing workflows.
+If low-code is to target a broad programming domain, not just a few CRUD scenarios, its core domain model should not be a small set of hard-coded business models, but rather the capability to rapidly create new domain models via a metamodel.
 
-Specifically, the Nop platform's metadata transformation capabilities can be viewed as a form of multi-stage compilation. Its ability to handle various data formats and transformations makes it a valuable tool for complex domain models.
+## 3. Does a DSL need to be Turing-complete?
 
+A DSL can be Turing-complete or not, but for the subset that involves domain knowledge, it should support reverse information extraction; this subset is in principle declarative and not Turing-complete. A language is like a coordinate system; a general-purpose language is a universal coordinate system in which all information is expressed, whereas a DSL is a local coordinate system. Multiple local coordinate systems glued together form the overall coordinate system (akin to the concept of a differentiable manifold). So in practice we solve problems through a forest of DSLs. The fundamental reason a Turing machine achieves Turing-completeness is that it can be viewed as a virtual machine—it can simulate all other automatic computing machines. If we keep raising the abstraction level of the VM, we get a VM that can directly “run” domain-specific languages (DSLs). But because a DSL focuses on domain-specific concepts, it necessarily cannot express all general computation most conveniently (otherwise it becomes a general-purpose language), which inevitably leads to some information spilling over as the so-called Delta term.
 
-## 3. Is DSL Turing complete?
+## 4. Is visual editing indispensable for low-code?
 
-A Domain-Specific Language (DSL) is not inherently more or less "Turing complete" than other programming languages. The real question is how the language is designed and implemented. For example:
+For low-code products alone, visual editing may be essential, because it is a very important selling point. But in the broader sense, visualization should not be mandatory. Visualization means the same piece of information simultaneously has two representations: text and visual; moreover, these two representations can be converted reversibly. Declarative content does not necessarily allow reverse derivation from the rendered result back to source; only a reversible subset of declarative content is reversible.
 
-- [Reversible Computing](https://zhuanlan.zhihu.com/p/64004026)
-- [Implementation of Reversible Computing](https://zhuanlan.zhihu.com/p/163852896)
+Broadly speaking, the true direction is reversible forms of expression: the same information has multiple forms of expression that can be mutually transformed, ultimately freeing information from the constraints of a single form and enabling unobstructed, free flow (the First Industrial Revolution stemmed from the discovery that energy can be converted between different forms). Typically, AMIS’s backward compatibility advantage is unrelated to visualization. It merely means that AMIS’s information expression is, to some extent, self-complete: its semantics depend only on its own structural definition, so it can have multiple interpretations. At different times and in different technical environments, we can provide different execution-layer representations for AMIS’s logical representation.
 
-These concepts highlight that the choice of DSL should be based on specific requirements rather than a one-size-fits-all approach.
+Traditionally, when programming with code, we don’t pay much attention to the completeness of descriptive information. Much information lives in documents, in developers’ minds, or dispersed across external Turing-complete languages and frameworks, making reverse extraction difficult by simple means—and making it even harder to provide logically equivalent alternative forms of expression.
 
-# DSL and Turing Completeness
-A **DSL (Domain Specific Language)** can be **Turing complete**, meaning it can simulate any other Turing-complete language. However, a DSL is not necessarily required to be Turing complete. Its specific subset of knowledge and operations should support **reverse information extraction** while maintaining its descriptive nature.
+For further discussion, see my article
+[LowCode Viewed Through Reversible Computation]!https://zhuanlan.zhihu.com/p/344845973
 
-A language is like a coordinate system, while a universal language is like an omnipotent coordinate system. Everything is expressed in this single coordinate system. A DSL, on the other hand, acts as a local coordinate system within a larger system (analogous to a differential geometry concept). By combining multiple local coordinate systems, we can form the entire coordinate system.
+## 5. Does low-code have inherent limitations?
 
-When solving practical problems, we use **DSL forests** to address them. A **Turing machine** is Turing complete because it can be considered as a virtual machine that can simulate all other automata. By continuously increasing the abstraction layers of this virtual machine, we obtain a **virtual machine** that can "run" a DSL. However, since a DSL focuses on domain-specific concepts, it inherently cannot express all possible universal logic efficiently without causing information overflow (Delta items).
+Is low-code only suitable for specific domains? Do programs built on low-code have a strong dependency on specific domain models, thereby essentially losing flexibility?
 
-# Visualization in Low-Code Development
-## Is Visualization Essential for Low-Code?
-For low-code platforms, **visualization** is often a crucial feature because it enhances the user experience and serves as a key differentiator. However, from a broader perspective, visualization is not inherently required. Visual representation implies that information exists in both textual (text-based) and visual forms, which are mutually convertible. While declarative languages cannot always reverse-engineer their output into source code, only a subset of declarative constructs can be reversed.
+Low-code’s power lies in embedding many domain-related assumptions, thereby reducing unnecessary repeated expressions (the engine’s internal reasoning reduces various manually written association and transformation code). But once local domain assumptions are broken, will the entire program structure be destroyed?
 
-## The Broad Perspective
-From a universal standpoint, the true development direction lies in reversible expressions: information should exist in multiple forms that can be interconverted. This allows information to break free from single-form constraints and facilitates unhindered flow (similar to the first industrial revolution, where energy transformed between different forms).
+For example, if the requirement is at the field level, how do we customize at the field level after low-code wrapping? How do we customize and modify the wrapped components? Or do we have to special-case the entire page, or even abandon the entire framework and start over?
 
-For example, the **AMIS framework** is self-contained and does not rely on visualization for its logic representation. Its meaning is solely based on its own structural definitions, allowing it to maintain multiple interpretations across different contexts and times.
+Looking back at successful experiences in physics, we solve problems progressively: zeroth-order model, first-order model, second-order model... As more specialized information enters our cognition, we don’t overturn models previously built on limited general information; instead, we keep adding higher-order models to describe the differentiated parts.
 
-In traditional text-based programming, we focus less on the completeness of information representation. Information resides in documentation, human brains, or external tools, making reverse extraction challenging without additional effort or specialized tools.
+Reversible Computation provides a complete solution at the theoretical level. It indicates that, in essence, low-code is not subject to these limitations.
 
-## Reverse Extraction
-Further details can be found in my article:
-\[From Reversible Computation to LowCode\]!https://zhuanlan.zhihu.com/p/344845973
+## 6. Graphical expression of logic
 
-# 5. Inherent Limitations of Low-Code?
-Is low-code inherently limited by its nature?
+Graphical approaches are indeed not suitable for expressing detailed logic, because their information density is low. The advantage of graphics is that they can fully leverage the human brain’s parallel pattern-recognition ability to quickly spot certain organizational patterns in two or three dimensions. But overall, human culture is not built around graphical expression; apart from mathematical symbols, graphical expression generally lacks cultural background, resulting in limited information transfer.
 
-Low-code platforms are often criticized for their reliance on domain-specific assumptions, which can restrict flexibility. While these platforms excel at reducing code duplication and leveraging internal engines for automation, they may struggle to adapt when underlying assumptions are challenged.
+When we express logic with code, it implicitly leverages a lot of information:
 
-For example:
-- A field-level requirement in a low-code application may become difficult to implement after encapsulation.
-- Customizing individual components might require extensive manual adjustments or even rebuilding the entire framework from scratch.
+1. Function calls, arithmetic operations, associativity of operators, etc., reuse the mathematical knowledge we spent years learning
+2. Program syntax elements and writing form resemble our habitual natural language
+3. The sequential order of code text implicitly expresses the execution order at runtime
+4. Nesting via parentheses, indentation, and function calls corresponds directly to changes in the program’s runtime stack
 
-## Overcoming Limitations
-From a theoretical perspective, **reversible computation** offers a way forward. By continuously refining abstraction layers, we can develop higher-order models that better accommodate diverse domain requirements without losing the foundational structure.
+Compared to flowcharts, what is actually closer to modern program runtime is some kind of Tree structure that directly supports the stack concept. Through Tree nesting, we can implicitly express the basic runtime structure of “goto” to some state and then necessarily return to the previous state. The behavior tree commonly seen in games can be regarded as an example of expressing logic through a Tree structure.
 
-# 6. Visual Logic Representation
-Visualization in Logic Representation
+https://opsive.com/support/documentation/behavior-designer/what-is-a-behavior-tree/
 
-Visualization is not suitable for detailed logic representation because it inherently limits information density. While visualization excels at leveraging human parallel processing capabilities for pattern recognition and organization, it often lacks the precision needed for intricate logical structures beyond basic flow diagrams.
+## 7. Backend storage for low-code
 
-When using code for logic representation:
-1. Mathematical operations (function calls, arithmetic, operators) leverage deeply learned mathematical knowledge.
-2. Programming constructs (syntax elements, control structures) mirror natural language patterns.
-3. Code's textual structure naturally reflects execution order.
-4. Parentheses, indentation, and function calls establish nested structures that directly correlate with the system's stack behavior.
+Purely from storage needs, the backend storing all data as key-value pairs in K-V format is the most flexible approach. Because that’s logically how the underlying database works! In fact, the distributed database TiDB can be seen as a wrapper layer built on distributed TiKV.
 
-In comparison, flow diagrams like decision trees or state machines better align with current runtime environments. For instance:
-- A decision tree can be visualized as a hierarchical structure, mirroring the program's control flow.
-- Behavior trees, commonly used in gaming and robotics, provide a clear mapping between logic and execution layers.
+Once we store data in KV format, we gain a kind of flexibility: the flexibility to reimplement and customize all database mechanisms. Everything we do on top of KV storage is basically implementing a simplified database.
 
-For example, **behavior trees** are often implemented using tools like Unity or Unreal Engine, as they offer a clear visualization of complex logic while maintaining performance efficiency.
-
-# 7. Backend Storage for Low-Code
-
-From the storage requirements perspective, using a Key-Value (K-V) format to store data as key-value pairs is the most flexible approach. This is because the underlying database operates logically in this manner. In reality, TiDB can be viewed as an abstraction layer built on top of TiKV, a distributed key-value store.
-
-When storing data in a K-V format, we gain flexibility:
-- The ability to reimplement and customize all database mechanisms.
-- All operations are performed on the Key-Value storage layer, which essentially boils down to implementing a simplified database.
-
-In an ideal scenario, we can abstract away the dependency on underlying storage structures using an ORM (Object-Relational Mapping) engine. This abstraction allows us to store data:
-- Directly in database tables,
-- As multiple generic columns, or
-- In a Key-Value manner into a column.
-
-These changes are transparent to the business layer, ensuring that the application logic remains unaffected by the storage mechanism.
-
+Ideally, we can use an ORM engine to shield the dependency on the underlying storage structure. Whether it stores directly as database tables, reserves multiple generic-type columns, or stores key-value pairs in a vertical table, these changes should be imperceptible at the business layer. Conceptually, the ORM engine provides a business-oriented virtual database.
+<!-- SOURCE_MD5:0a87ea73c95dae578127c29ff7538415-->

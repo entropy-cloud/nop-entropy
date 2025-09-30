@@ -1,217 +1,205 @@
-  # Standard CRUD Operations
-  
-  The `CrudBizModel` provides standard CRUD operations using `NopAuthUser` as an example:
-  
-  ## Create
-  
-  ```rest
-  POST /r/NopAuthUser__save?@selection=name,status
-  
-  {
-    "data": {
-      "name": field_value,
-      "status": field_value
-    }
+# Standard CRUD Operations
+
+CrudBizModel provides standard CRUD operations, using NopAuthUser as an example:
+
+## Create
+
+```
+# REST
+POST /r/NopAuthUser__save?@selection=name,status
+
+{
+  "data": {
+     fieldName: fieldValue
   }
-  ```
-  
-  ```graphql
-  mutation {
-    NopAuthUser__save(data: $data) {
+}
+
+# GraphQL
+mutation{
+   NopAuthUser__save(data: $data){
       name
       status
-    }
+   }
+}
+```
+
+## Update
+
+```
+# REST
+POST /r/NopAuthUser__update?@selection=name,status
+
+{
+  "data": {
+     id: primary key value
+     fieldName: fieldValue
   }
-  ```
-  
-  ## Update
-  
-  ```rest
-  POST /r/NopAuthUser__update?@selection=name,status
-  
-  {
-    "data": {
-      "id": primary_key_value,
-      "name": field_value,
-      "status": field_value
-    }
-  }
-  ```
-  
-  ```graphql
-  mutation {
-    NopAuthUser__update(data: $data) {
+}
+
+# GraphQL
+mutation{
+   NopAuthUser__update(data: $data){
       name
       status
-    }
+   }
+}
+```
+
+## Save or Update
+
+If the submitted data contains a primary key, it is considered an update; otherwise, it is a create.
+
+```
+# REST
+POST /r/NopAuthUser__save_update?@selection=name,status
+
+{
+  "data": {
+     id: primary key value
+     fieldName: fieldValue
   }
-  ```
-  
-  ## Save or Update
-  
-  If the submitted data includes a primary key, it is considered an update; otherwise, it is a new record.
-  
-  ```rest
-  POST /r/NopAuthUser__save_update?@selection=name,status
-  
-  {
-    "data": {
-      "id": primary_key_value,
-      "name": field_value,
-      "status": field_value
-    }
-  }
-  ```
-  
-  ```graphql
-  mutation {
-    NopAuthUser__save_update(data: $data) {
+}
+
+# GraphQL
+mutation{
+   NopAuthUser__save_update(data: $data){
       name
       status
-    }
-  }
-  ```
-  
-  ## Delete
-  
-  ```rest
-  POST /r/NopAuthUser__delete?@selection=name,status
-  
-  {
-    "id": "primary_key_value"
-  }
-  ```
-  
-  ```graphql
-  mutation {
-    NopAuthUser__delete(id: "primary_key_value") {
+   }
+}
+```
+
+## Delete
+
+```
+# REST
+POST /r/NopAuthUser__delete?@selection=name,status
+
+{
+  "id": "primary key"
+}
+
+# GraphQL
+mutation{
+   NopAuthUser__delete(id: "primary key"){
       name
       status
-    }
-  }
-  ```
-  
-  ## Bulk Delete
-  
-  ```rest
-  POST /r/NopAuthUser__batchDelete?@selection=name,status
-  
-  {
-    "ids": ["1", "2", "3"]
-  }
-  ```
-  
-  ```graphql
-  mutation {
-    NopAuthUser__batchDelete(ids: $ids) {
+   }
+}
+```
+
+## Batch Delete
+
+```
+# REST
+POST /r/NopAuthUser__bathDelete?@selection=name,status
+
+{
+  "ids”: [ "1","2","3"]
+}
+
+# GraphQL
+mutation{
+   NopAuthUser__batchDelete(ids: $ids){
       name
       status
-    }
+   }
+}
+```
+
+## Batch Update
+
+Batch update specified fields of specified records
+
+```
+# REST
+POST /r/NopAuthUser__batchUpdate
+
+{
+  "ids”: [ "1","2","3"],
+  "data: {
+    fieldName: fieldValue
   }
-  ```
-  
-  ## Bulk Update
-  
-  Bulk update specific fields of specified records.
-  
-  ```rest
-  POST /r/NopAuthUser__batchUpdate
-  
-  {
-    "ids": ["1", "2", "3"],
-    "data": {
-      "name": field_value,
-      "status": field_value
+}
+
+# GraphQL
+mutation{
+   NopAuthUser__batchUpdate(ids: $ids, data:$data)
+}
+```
+
+## Batch Create/Delete/Update
+
+A single request includes multiple operations such as create, delete, and update
+
+```
+# REST
+POST /r/NopAuthUser__batchModify
+
+{
+  "data: [
+    {
+      If id is included and _chgType=D, it represents deletion
+      If id is included and _chgType!=D and A, it represents update
+      If id is not included or _chgType=A, it represents creation
     }
-  }
-  ```
-  
-  ```graphql
-  mutation {
-    NopAuthUser__batchUpdate(ids: $ids, data: $data) {
+  ]
+}
+
+# GraphQL
+mutation{
+   NopAuthUser__batchModify(data:$data)
+}
+```
+
+## Read Single Record
+
+```
+# REST
+GET /r/NopAuthUser__get?id=xxx@selection=name,status
+
+# GraphQL
+query{
+   NopAuthUser__get(id:"xxx"){
       name
       status
-    }
+   }
+}
+```
+
+## Paginated Read
+
+```
+# REST
+POST /r/NopAuthUser__findPage?@selection=total,items{name,status}
+
+{
+  "query": {
+     "offset": 2,
+     "limit": 10,
+
+     "filter": {
+     },
+     "orderBy":[
+     ]
   }
-  ```
-  
-  ## Bulk CRUD
-  
-  A single request can include multiple operations such as create, delete, and update.
-  
-  ```rest
-  POST /r/NopAuthUser__batchModify
-  
-  {
-    "data": [
-      {
-        "id": primary_key_value,
-        "chgType": "D",
-        // Indicates deletion if `chgType` is set to 'D'
-      },
-      {
-        "id": primary_key_value,
-        "chgType": "A", 
-        // Indicates creation if `chgType` is not specified or set to 'A'
-      }
-    ]
-  }
-  ```
-  
-  ```graphql
-  mutation {
-    NopAuthUser__batchModify(data: $data) {
-      name
-      status
-    }
-  }
-  ```
-  
-  ## Single Read
-  
-  ```rest
-  GET /r/NopAuthUser__get?id=xxx@selection=name,status
-  ```
-  
-  ```graphql
-  query {
-    NopAuthUser__get(id: "xxx") {
-      name
-      status
-    }
-  }
-  ```
-  
-  ## Paged Reading
-  
-  ```rest
-  POST /r/NopAuthUser__findPage?@selection=total,items{name,status}
-  
-  {
-    "query": {
-      "offset": 2,
-      "limit": 10,
-      "filter": {},
-      "orderBy": []
-    }
-  }
-  ```
-  
-  ```graphql
-  query {
-    NopAuthUser__findPage(query: $query) {
+}
+
+# GraphQL
+query{
+   NopAuthUser__findPage(query:$query){
       total,
       items {
         name,
         status
       }
-    }
-  }
+   }
+}
+```
 
+The frontend assumes service calls suffixed with findPage, with parameters of type QueryBean and a return type of PageBean.
 
-  The interface assumes that the service calls are suffixed with `findPage`, and all parameters are of type `QueryBean`. The return types are also of type `PageBean`.
-
-## Query List Retrieval
+## Query Returning a List
 
 ```
 # REST
@@ -219,23 +207,26 @@ POST /r/NopAuthUser__findList?@selection=name,status
 
 {
   "query": {
-    "filter": {},
-    "orderBy": []
+
+     "filter": {
+     },
+     "orderBy":[
+     ]
   }
 }
 
 # GraphQL
-query {
-   NopAuthUser__findList(query: $query) {
+query{
+   NopAuthUser__findList(query:$query){
         name,
         status
    }
 }
 ```
 
-## Retrieve First Record
+## Query Returning the First Record
 
-`findFirst` retrieves the first record that meets the conditions.
+findFirst returns the first record that meets the criteria.
 
 ```
 # REST
@@ -243,47 +234,51 @@ POST /r/NopAuthUser__findFirst?@selection=name,status
 
 {
   "query": {
-    "filter": {
-      "$type": "eq",
-      "name": "status",
-      "value": 1
-    },
-    "orderBy": []
+
+     "filter": {
+        "$type": "eq",
+        "name": "status",
+        "value": 1
+     },
+     "orderBy":[
+     ]
   }
 }
 
 # GraphQL
-query {
-   NopAuthUser__findFirst(query: $query) {
+query{
+   NopAuthUser__findFirst(query:$query){
         name,
         status
    }
 }
 ```
 
-## Retrieve List Length
+## Query Returning the List Length
 
-``` 
+```
 # REST
 POST /r/NopAuthUser__findCount
 
 {
   "query": {
-    "filter": {}
+
+     "filter": {
+     }
   }
 }
 
 # GraphQL
-query {
-   NopAuthUser__findCount(query: $query)
+query{
+   NopAuthUser__findCount(query:$query)
 }
 ```
 
-## QueryBean Query Conditions
+## QueryBean Query Criteria
 
-The `QueryBean` filter supports complex nested conditions using `and/or`.
+The filter in QueryBean supports complex nested conditions such as and/or.
 
-``` 
+```
 POST /r/NopAuthUser__findPage
 
 {
@@ -302,21 +297,22 @@ POST /r/NopAuthUser__findPage
 }
 ```
 
-The filter corresponds to a `TreeBean` type in the backend, which is a generic Tree structure and can be automatically converted into XML format. The conversion rules are defined by Nop's standard conversion mechanism:
+filter corresponds to a TreeBean object on the backend. This is a general Tree structure and can be automatically converted to XML format. The conversion rules are a standard mechanism defined by the Nop platform:
 
-1. The `$type` attribute represents the tag name.
-2. The `$body` attribute corresponds to child nodes and node content.
-3. Other attributes not prefixed with `$` correspond to XML node attributes.
-4. Values prefixed with `@:` are parsed as JSON.
+1. The $type attribute corresponds to the tag name
+2. $body corresponds to child nodes and node content
+3. Other attributes not prefixed with $ correspond to XML node attributes
+4. Values prefixed with `@:` are parsed in JSON format
 
 ```xml
+
 <and>
     <eq name="status" value="@:1"/>
     <gt name="amount" value="@:3"/>
 </and>
 ```
 
-This corresponds to:
+Corresponds to
 
 ```json
 {
@@ -336,39 +332,38 @@ This corresponds to:
 }
 ```
 
-The supported operators like `eq`, `gt` etc., are defined in `[FilterOp.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java)`. 
-
+The operators supported in filter conditions, such as eq and gt, are defined in [FilterOp.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java).
 Reusable operators include:
 
-| Operator | Description |
-|---------|-------------|
-| eq      | Equals       |
-| gt      | Greater than  |
-| ge     | Greater than or equal to |
-| lt     | Less than    |
-| xe     | Less than or equal to |
-| in     | In the collection |
-| between | Between min and max |
-| dateBetween | Date between min and max |
-| alwaysTrue | Always true |
-| alwaysFalse | Always false |
-| isEmpty | Name corresponds to an empty value |
-| startsWith | The string starts with the specified value |
-| endsWith | The string ends with the specified value |
+|Operator|Description|
+|---|---|
+|eq|equals|
+|gt|greater than|
+|ge|greater than or equal to|
+|lt|less than|
+|le|less than or equal to|
+|in|in the set|
+|between|between min and max|
+|dateBetween|date between min and max|
+|alwaysTrue|always true|
+|alwaysFalse|always false|
+|isEmpty|the value corresponding to name is empty|
+|startsWith|string prefix is the specified value|
+|endsWith|string suffix is the specified value|
 
-## Simplified Filter Syntax
+## Simplified filter syntax
 
-Now, the backend also supports a simplified filter syntax in REST call mode.
+The backend now also supports a simplified filter concatenation syntax in REST call mode.
 
 /r/NopAuthUser\_\_findPage?filter\_userStatus=3
 
 ```
-The filter field format is: filter_{propName}__{filterOp}
+The format of the filter field name is: filter_{propName}__{filterOp}
 ```
 
-For example, `filter_userName__contains` indicates filtering based on the "contains" operator for the userName field. When the filterOp is "eq" (equality condition), you can omit the filterOp part, such as `filter_userId`, which is equivalent to `filter_userId__eq`.
+For example, `filter_userName__contains` filters the userName field using the contains operator. For the eq (equals) case, the filterOp part can be omitted. For example, filter\_userId is equivalent to `filter_userId__eq`.
 
-## Adding Multiple Relationships
+## Add Many-to-Many Relations
 
 ```
 POST /r/NopAuthUser__addManyToManyRelations
@@ -380,11 +375,11 @@ POST /r/NopAuthUser__addManyToManyRelations
 }
 ```
 
-The "id" parameter specifies the current entity, "propName" indicates the name of the multiple relationship property to operate on, and "relValues" corresponds to the associated attribute values in the multiple relationship table.
+The id parameter specifies the current entity, propName specifies the name of the many-to-many association collection property to operate on, and relValues correspond to the associated property values in the many-to-many association table.
 
-## Updating Multiple Relationships
+## Update Many-to-Many Relations
 
-This function differs from addManyToManyRelations in that it will automatically delete any associations not present in the relValues collection.
+The difference between this function and addManyToManyRelations is that it automatically deletes associated objects not included in the relValues collection.
 
 ```
 POST /r/NopAuthUser__updateManyToManyRelations
@@ -396,9 +391,9 @@ POST /r/NopAuthUser__updateManyToManyRelations
 }
 ```
 
-The "id" parameter specifies the current entity, "propName" indicates the name of the multiple relationship property to operate on, and "relValues" corresponds to the associated attribute values in the multiple relationship table.
+The id parameter specifies the current entity, propName specifies the name of the many-to-many association collection property to operate on, and relValues correspond to the associated property values in the many-to-many association table.
 
-## Deleting Multiple Relationships
+## Remove Many-to-Many Relations
 
 ```
 POST /r/NopAuthUser__removeManyToManyRelations
@@ -410,9 +405,9 @@ POST /r/NopAuthUser__removeManyToManyRelations
 }
 ```
 
-The "id" parameter specifies the current entity, "propName" indicates the name of the multiple relationship property to operate on, and "relValues" corresponds to the associated attribute values in the multiple relationship table.
+The id parameter specifies the current entity, propName specifies the name of the many-to-many association collection property to operate on, and relValues correspond to the associated property values in the many-to-many association table.
 
-## Finding and Updating Multiple Entities Based on Conditions
+## Find a batch of entities based on criteria and update their specified properties
 
 ```
 POST /r/NopAuthUser__updateByQuery
@@ -430,9 +425,8 @@ POST /r/NopAuthUser__updateByQuery
 }
 ```
 
-## Bulk Updating Parent-Child Relationships
-
-Pass nested JSON structure directly:
+## Update master-detail tables in one go
+Pass a nested JSON structure directly
 
 ```
 POST /r/NopAuthUser__save
@@ -450,6 +444,7 @@ POST /r/NopAuthUser__save
 }
 ```
 
-However, to allow child table data updates, the corresponding association's updatable and insertable properties must be configured as true in the meta configuration.
+However, to allow child table data to be updated, you must configure updatable and insertable to true for the corresponding association properties in the meta.
 
-The CrudBizModel uses OrmEntityCopier to update nested JSON structure data into entity objects.
+In CrudBizModel, OrmEntityCopier updates the entity object with data from the nested JSON structure.
+<!-- SOURCE_MD5:9830898d52e177ed611c810ed5145971-->

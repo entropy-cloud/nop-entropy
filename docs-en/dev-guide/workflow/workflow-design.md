@@ -2,18 +2,19 @@
 
 ## Basic Concepts
 
-### Workflow Definition (NopWfDefinition)
-The workflow designer is responsible for designing the workflow definition. After analysis, it generates an IWorkflowModel model object.
+### Workflow Model (NopWfDefinition)
+The workflow designer is responsible for designing the workflow model. After the workflow model is parsed, it yields an IWorkflowModel model object.
 
-The workflow definition consists of multiple components such as Step, Action, Assignment, and Transition.
+The workflow model is composed of multiple parts, including steps (Step), actions (Action), task assignment (Assignment), and transitions (Transition).
 
-* Each Step has an Assignment configuration, which specifies which Actors will participate in handling that step.
-* Each Step has an Action configuration, indicating which Actions can be executed when the Step is reached.
-* After executing an Action, it may cause a change in the Step's state. When the state meets certain conditions, a Transition is triggered.
-* Transitions have multiple branches, each of which can be configured with a condition (Condition). Only when the condition is met will the branch be executed.
-* Each branch can configure the next Step.
+* Each step (Step) has an assignment (Assignment) configuration that specifies which participants (Actors) will take part in processing that step.
+* Each step (Step) has an action (Action) configuration that specifies which actions (Action) can be executed when the workflow reaches that step.
+* Executing an action results in a change in the step's state. When the state satisfies certain conditions, a transition (Transition) is triggered.
+* A transition can have multiple "to" branches. Each branch can be configured with a condition (Condition), and the branch is taken only when its condition is satisfied.
+* A "to" branch can specify the next step (Step).
 
 ```xml
+
 <workflow>
   <actions>
     <action name="xx"/>
@@ -30,7 +31,7 @@ The workflow definition consists of multiple components such as Step, Action, As
       <transition onAppStates="complete">
         <to-step stepName="stepB">
           <when>
-            <eq name="wfVars.argA" value="1"/>
+            <eq name="wfVars.argA" value="1" />
           </when>
         </to-step>
       </transition>
@@ -40,7 +41,9 @@ The workflow definition consists of multiple components such as Step, Action, As
 ```
 
 ### Workflow Instance (NopWfInstance)
-The workflow instance is an execution instance of the workflow model. The workflow instance is represented by the IWorkflow object.
+A workflow instance is a runtime instance of the workflow model and is represented by an IWorkflow object.
 
 ## Step Instance (NopWfStepInstance)
-A step instance is a step within a workflow instance. The step instance is represented by the IWorkflowStep object. When transitioning to a certain workflow step, it retrieves the assignment configuration from the workflow step model, and for each specified Actor, creates a corresponding step instance.
+A step instance is a step within a workflow instance and is represented by an IWorkflowStep object. When transitioning to a particular workflow step, the workflow retrieves the assignment (Assignment) configuration from the step model and creates a step instance for each Actor specified therein.
+
+<!-- SOURCE_MD5:7dbc3c1ea00a4dc13079b41d905c93d0-->

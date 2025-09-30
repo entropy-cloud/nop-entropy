@@ -1,32 +1,33 @@
-# From Reversible Computing to AI Era Reuse
+# Reuse in the AI Era from the Perspective of Reversible Computation
 
-Recent discussions have brought up an interesting viewpoint: perhaps we should abandon the long-preached principle of reuse in software engineering. Some even argue, "Lowering software complexity can only be achieved from the ground up, and reuse is the root of all evil."
+Recently, alongside the explosive popularity of ChatGPT, a view has been gaining traction: we should abandon the concept of reuse that has been repeatedly emphasized in software engineering. Some even claim that "the only way to reduce software complexity is to tackle it at the source; reuse is the root of all evil."
 
-In my view, this is merely a critique of traditional rigid reuse practices. While it's true that conventional reuse based on component composition does have its issues—such as the difficulty of finding reusable contexts as projects grow—the necessity of reuse itself isn't negated.
+In my view, this is merely a critique of rigid, traditional reuse practices. Traditional reuse based on the concept of composition does have issues: only identical things can be reused, but the larger the granularity, the harder it is to find identical reusable scenarios. To make reuse possible, we have to pre-embed various adaptation conditions and selective switches in prefabricated components, which introduces unnecessary complexity, and there is all sorts of glue work during integration. But none of this is a reason to reject reuse itself.
 
-Reuse is absolutely necessary. We need to solidify known logical structures and inference pathways to avoid repeatedly re-expressing the same concepts every time. Technical reuse, which involves using a programming language alongside certain frameworks to implement business logic in its **solidified form**, is a common practice. However, the most valuable form of reuse lies in reusing the business logic itself once it's clearly defined. This allows us to transform it into executable code, either through code generators or even AI tools. The key here is that the business logic should be expressed in an unambiguous and analyzable form for reuse.
+First, reuse is absolutely necessary. We need to solidify known logical structures and logical derivation paths to avoid re-expressing them every time (what is solidified is essentially a prefab). For many people, reuse means technical reuse—i.e., the **codified form** of some business logic implemented using a certain programming language plus certain frameworks. But the most valuable reuse is the reuse of the business logic itself: once the business logic is clearly expressed, how it is finally converted into executable code can be done via code generators, even assisted by AI tools. However, these deal with the implementation layer of the logic, whereas the business logic itself should be reused in an unambiguous, analyzable form. When the underlying technology is upgraded, it can be regenerated entirely based on the description at the business-logic layer.
 
-The known logical structures and inference pathways can indeed be expressed in a neutral technical form. This means business logic itself can be reused as long as its structural patterns remain unchanged. In reversible computing theory, Domain Specific Languages (DSLs) are used to express business logic while also providing tools to simplify the definition, development, and debugging of the DSL.
+Known logical structures and logical derivation paths can be expressed in a technology-neutral form; that is, the expression of business logic itself can be reused. What we reuse are the structural regularities themselves, not a fixed, hardened product. As long as the structural regularities do not change, the underlying generation/derivation process and tools can remain unchanged. In Reversible Computation theory, we use DSLs to express business logic and a series of supporting tools to simplify the definition, development, and debugging of DSLs.
 
-Conventional reuse practices are indeed rigid and "sclerosis": they bind information into fixed technical expression forms. However, if the information can be expressed in a form that satisfies reversible computing principles—allowing it to be extracted and transformed into other forms—reuse becomes a natural and straightforward process: **we don't need to reuse old forms; we should reuse the information itself**.
+Traditional reuse is rigid and hardened—information is bound to a specific technological form of expression. But if information expression adheres to the principles of Reversible Computation, allowing reverse extraction and reversible conversion to other forms, then reuse becomes natural and intuitive: **we do not need to reuse prior forms; what we need to reuse is the information itself**.
 
-For generative programming to endure over the long term, a clear definition of the delta concept is essential. Phodal, in his article ["AI时代的可编程"](https://zhuanlan.zhihu.com/p/614319672), writes:
+For generative programming to evolve in the long run, it must clearly define the concept of Delta. Phodal writes in "AI Programming with a Promising Future" (https://zhuanlan.zhihu.com/p/614319672):
 
-> Generative AI might imply that newly generated code differs fundamentally from the original. For code to be regenerated, we must also record changes made to the original prompt. This raises new challenges in managing the original requirements as they evolve.
+> Generative AI may also mean that the newly generated code is completely different from the original, including line counts and positions, etc. And to be able to regenerate, we need to record the new changes back into the original prompt. So at this point, how to better manage the original requirements becomes a new challenge.
 
-The solution to this problem hinges on the definition of delta space and delta merging rules, which are provided by reversible computing theory.
+The solution to this problem essentially depends on defining a Delta space and Delta merge rules—areas where Reversible Computation theory already provides a systematic solution.
 
-Objective patterns exist independently of human intentions. AI may need to address problems using its own understanding of objective patterns. If AI lacks an understanding of addition's principles, adding 1 to 1000 is straightforward, but adding 1 to 1 billion becomes problematic. Reversible computing theory essentially highlights a structural rule in software construction.
+"Objective laws do not bend to human will"—this effectively says that regardless of whether people are aware of them, objective laws exist. If AI is to solve problems, it must recognize and master the corresponding objective laws. If AI has not mastered the rules of addition, it may easily handle addition from 1 to 1,000, but when it comes to 1 to 100 billion, it will be riddled with errors. Reversible Computation theory essentially points out a structural regularity in software construction:
 
 ```
-App = Delta x-extends Generator<DSL>
+  App = Delta x-extends Generator<DSL>
 ```
 
-As AI becomes increasingly intelligent, we will likely see more frequent mentions of DSL, Delta, reversible, and Generator concepts. The delta nature of these concepts will undoubtedly play a significant role in development practices.
+As intelligence advances further, we will inevitably see DSL, Delta, Reversible, and Generator invoked more frequently. And the delta-ization of DSLs and Generators themselves will inevitably enter developers’ field of view.
 
-The Nop platform has been open-sourced:
+The reference implementation of Reversible Computation, the Nop platform, has been open sourced:
 
-- **Gitee**: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
-- **GitHub**: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- **Example**: [tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- **Introduction and Q&A Video**: [https://www.bilibili.com/video/BV1u84y1w7kX/](https://www.bilibili.com/video/BV1u84y1w7kX/)
+- gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+- github: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+- Development examples: [tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [Introductory and Q&A video](https://www.bilibili.com/video/BV1u84y1w7kX/)
+<!-- SOURCE_MD5:0bc8f8e9c27d3fd4db5d74927d149843-->

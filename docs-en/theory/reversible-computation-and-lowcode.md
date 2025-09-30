@@ -1,310 +1,207 @@
-# From Reversible Computing to Low-Code
+# LowCode Through the Lens of Reversible Computation
 
-In 2020, the term "Low-Code" became a frequent buzzword in mainstream tech media. Behind this trend, major companies like Microsoft/Azure, Amazon, Alibaba, and Huawei have been actively entering the low-code development space, each launching their own products. While smaller players may not be household names, every company with a technical footprint is making moves in this area.
+In 2020, the buzzword LowCode frequently appeared in mainstream tech media, against the backdrop of tech giants such as Microsoft, Amazon, Alibaba, and Huawei entering the arena with their own products. Suddenly, technology factions large and small—whether originally focused on OA/ERP/IoT/AI—felt compelled, if not to change their banners entirely, at least to stitch on a LowCode trim to signal they were keeping up.
 
-According to Gartner's 2019 Low-Code Report, the future looks bright for Low-Code:
+According to Gartner’s 2019 LowCode report, the financial outlook for LowCode is decidedly bright:
 
-> By 2024, 75% of large enterprises will use at least four different low-code development tools for IT application development and citizen development (non-IT backgrounds). By 2024, low-code application development will handle 65%+ of all application development activities.
+> By 2024, three-quarters of large enterprises will use at least four low-code development tools for IT application development and citizen development (citizen development refers to users without an IT background engaging in development, such as business users/product managers/business consultants, etc.). By 2024, low-code application development will account for more than 65% of application development activities.
 
-Transitioning to a Low-Code platform means that software is moving into an industrialized production phase. Since the mid-20th century, attempts at this kind of shift have become increasingly common but also increasingly criticized for their lack of success. Why does the current wave of Low-Code development offer something different? What gives it the ability to achieve what previous generations could not? This article aims to explore these questions from a perspective rooted in Reversible Computing.
+Shifting to LowCode implies software will enter an industrialized production stage. Yet since the 1970s, such shifts have been attempted many times. What is special about this wave of LowCode? Why might it succeed where predecessors fell short? This article attempts to discuss several technical issues within LowCode from the perspective of Reversible Computation theory.
 
-For those unfamiliar, Reversible Computing refers to a theoretical framework that explores the concept of reversibility—operations that can be reversed—in computing processes. For more on this topic, please refer to [Reversible Computing: The Next Generation of Software Construction Theory](https://zhuanlan.zhihu.com/p/64004026).
+For an introduction to Reversible Computation theory, see [Reversible Computation: The Next-Generation Theory of Software Construction](https://zhuanlan.zhihu.com/p/64004026)
 
----
+## I. What is the essence of LowCode?
 
-## 一. What is Low-Code?
+LowCode, literally “Code Low,” seeks to drastically reduce the proportion of code-centric programming activities during software product construction. Clearly, LowCode is more a statement of aspiration: we hope to significantly reduce coding volume, implying less work, faster delivery, more stable systems, and from a business perspective, lower cost, higher profit, and broader markets. As a simple and appealing wish, LowCode’s essence is like FastCode/CleanCode—namely, it doesn’t have a unique essence. Or rather, its essence is a description of an idealized phenomenon. All else being equal, FastCode is surely better than SlowCode; likewise, for equivalent functionality, LowCode is naturally more desirable than HighCode.
 
-Low-Code, at its core, refers to "Low Code" in both name and concept. In the software development process, it significantly reduces the proportion of code-related activities. Clearly, the term "Low-Code" is merely a wishful thinking expression, reflecting our desire to drastically reduce the amount of code involved. This reduction translates into less work, faster delivery, and more stable systems. From the business perspective, it also leads to lower costs, higher profits, and broader market opportunities. As a naive yet beautiful concept, **Low-Code's essence is similar to Fast-Code/Clean-Code**, in that it essentially lacks any real substance—or perhaps its essence is simply a description of an ideal phenomenon. While other indicators may vary, Fast-Code will always outperform Slow-Code, and under the premise of offering identical functionality, Low-Code will always be preferred over High-Code.
+Compared with professional concepts that sound lofty but often prove opaque in practice—like CASE tools, model-driven approaches, and generative programming—LowCode is more concrete and approachable. Especially when paired with commercial claims like replacing programmers with visual drag-and-drop or achieving end-to-end zero-ops, which promise instant economic benefits, it more easily resonates with non-specialists.
 
-Compared to Case tools, model-driven development, and generative programming—terms that may seem grand and complex—the concept of Low-Code is more concrete and approachable. This is especially true when combined with visualization drag-and-drop capabilities for developers, end-to-end automation, and other marketing-driven benefits that emphasize economic efficiency. These aspects are far easier to sell to non-technical stakeholders.
+In reality, LowCode is more like a banner under which all practices and ideas that reduce code can gather. We can almost assert that LowCode is on the right path of technological evolution. Can you imagine people still hand-coding like today 500 years from now? If humanity hasn’t gone extinct by then, we’ll likely not need today’s kind of programmers to write business code. Those convinced that Code won’t be replaced by LowCode are clearly lacking a future perspective. As we move toward an intelligent society, we will inevitably experience a transfer of cognitive work to machines and a gradual reduction in code. Doesn’t that make LowCode a road to the future?
 
-In essence, Low-Code resembles a flag. Everything related to Code—both its practices and its philosophy—can be seen as falling under its influence. We can confidently assert that Low-Code is moving in the right direction along the path of technological advancement. Imagine 500 years into the future: will people still be writing code? Probably not, assuming humanity hasn't gone extinct by then. Moreover, even if they were, they likely wouldn't be writing business logic. Belief in Code being replaced by Low-Code is a clear indicator of someone lacking future vision. In the era of smart societies, intelligence will increasingly shift from human to machine, and Code will gradually cede its role. Is Low-Code then the key to this transformation?
+The concrete connotations and scope of LowCode remain unsettled. It’s difficult to deem current LowCode vendors’ approaches as best practices, and it’s fair to say that with current solutions it’s hard to deliver the miraculous outcomes touted in marketing. If LowCode is to profoundly transform technology and business, more revolutionary exploration is required.
 
-The current state of Low-Code platforms still lacks definitive characteristics. Existing products developed by Low-Code vendors are rarely considered best practices, even by themselves. To a certain extent, the marketing promises of Low-Code may be overblown. If Low-Code truly has the potential to revolutionize both technology and business fields, then we must delve deeper and make more revolutionary explorations.
+## II. Does LowCode necessarily require visual design?
 
----
+LowCode reduces coding work via two basic strategies:
 
-## 二. Does Low-Code Require Visualization?
+1. Substantively reduce the amount of code required for specific business domains.
+2. Transform traditionally code-centric tasks into non-coding activities.
 
-Low-Code reduces coding work in two primary ways:
+Visual design corresponds to the second strategy. Compared to programming, it has two advantages:
 
-1. **Substantially reducing code volume for specific business needs**  
-   By focusing on non-coding tools and environments, the amount of code that needs to be written is minimized.
+1. Visual interactions are more intuitive and concrete, demanding less programming knowledge.
+2. Visual interactions are more constrained and thus less error-prone.
 
-2. **Translating traditional coding tasks into non-coding operations**  
-   For example, transforming repetitive, manual coding tasks into automated workflows or using visual drag-and-drop interfaces for development.
+Visual design is undoubtedly one of the core selling points of today’s LowCode platforms. But if the first kind of abstraction is made sufficiently simple, we may not need a visual designer. Those who can’t afford fancy design can still achieve LowCode. Often, we only need to define a dedicated domain language to address the majority of needs. For example, the Markdown syntax used across content platforms has far fewer features than complex word processors, yet it is “good enough for most everyday scenarios,” and it has an “intrinsic extension mechanism” allowing custom extensions for special cases (such as embedding formulas, charts, or arbitrary HTML). With such deliberate design bias, we can drastically simplify common scenarios, turning visual design into a secondary objective.
 
-Visualization plays a crucial role in Low-Code platforms, particularly in the second aspect mentioned above. Visualization design has two main advantages:
+An interesting question: does visual design yield higher productivity? Many programmers would likely vehemently disagree. Given the state of current visual tools, the output from a designer may be more complex than direct handwritten code. Moreover, designers suffer several drawbacks compared to code:
 
-1. **Reduced programming knowledge required**: Users can design applications without needing deep programming expertise.  
-2. **Stronger constraints and reduced error rates**: Visualization tools inherently impose structure, making it easier to avoid mistakes.
+1. They cannot be freely edited using diverse tools and methods like text code.
+2. They lack simple mechanisms for secondary abstraction akin to function encapsulation; many designers don’t even offer rudimentary component composition or staging.
+3. They cannot achieve local fixes and adjustments akin to inheritance and interface injection in code—either for the design tool or the design artifact.
 
-Visualization is undeniably a key differentiator for Low-Code platforms today. While it may not always be necessary—depending on the simplicity of the task—it provides significant advantages in terms of usability and efficiency. For instance, using specialized domain languages (like Markdown for content creation) can often achieve desired results without traditional coding.
-
-However, this is not to say that visualization is an absolute requirement. If a straightforward abstraction layer suffices, there's no need for full-fledged visualization tools. Non-technical users can still develop basic applications with minimal or even no programming involved.
-
----
-
-## 三. The Current State of Low-Code
-
-The current state of Low-Code development can be summarized as follows:
-
-1. **Lack of clear definition**: While Low-Code platforms are increasingly popular, their exact nature and capabilities remain ambiguous.
-2. **Overly inflated marketing claims**: Many promises made by vendors lack substance or deliver only partial benefits.
-3. **Challenges in implementation**: Even when organizations adopt Low-Code, realizing its potential can be difficult.
-
-The question remains: What sets Low-Code apart from previous attempts at automation and abstraction? What makes it capable of achieving what those efforts could not?
-
-Low-Code's potential lies in its ability to abstract the complexities of software development. It reduces the need for deep technical expertise, enabling non-technical users to build applications while maintaining a degree of control over their functionality.
-
-However, the gap between marketing hype and actual delivery continues to widen. If Low-Code truly wants to revolutionize both technology and business, it needs to move beyond mere abstraction and automation toward a more comprehensive transformation.
-
----
-
-## 四. Revolution or Evolution?
-
-The term "Low-Code" has become synonymous with both revolution and evolution in the software development landscape. On one hand, it represents a radical shift away from traditional coding practices, promising to empower non-technical users and democratize application development.
-
-On the other hand, it is often viewed as an incremental improvement over existing tools, offering visual interfaces and automation without fundamentally changing the way software is built or managed. In this sense, Low-Code may be less about revolution and more about evolution.
-
-The ultimate question is whether Low-Code can deliver on its promises of efficiency, scalability, and innovation while maintaining its core principles of simplicity and usability.
-
----
-
-# 结语
-
-
-3. Cannot fix like code's inheritance and interface injection mechanisms for design tools and products.
-
-Reversible computation theory proposes its own solution to the above issues and points out that visual design is a natural consequence of reversibility:
+Reversible Computation offers its own solutions to these issues, noting that visual design is a natural implication of reversibility:
 
 ```
-DSL <=> Visual Interface
+      DSL <=> Visual interface
 ```
 
-Domain-specific language (DSL) has multiple expression forms (textual and graphical), which can be bidirectionally converted. DSL includes standard encapsulation and delta mechanisms for second-generation encapsulation. The designer itself is not fixed but is dynamically generated by a meta-designer combined with DSL's structural information, enabling co-evolution between the designer and the application description.
+A domain-specific language (DSL) can have multiple forms of expression (textual and graphical), which can be reversibly transformed among each other. The DSL has built-in general mechanisms for secondary encapsulation and Delta-based extension. The designer itself is not a fixed product but is dynamically generated by a meta-designer using the DSL’s structural information, enabling co-evolution between the designer and the application description.
 
+## III. How can LowCode become truly “low”?
 
-## 三. LowCode要怎么Low?
+If we regard software product development as information processing, the strategies mentioned in the previous section translate into:
 
-If we view software production as an information processing task, then the strategy discussed in the previous section for LowCode (Low-code) can be summarized as:
+1. Reduce information expression.
+2. Use forms of expression other than code.
 
-1. Reduce information expression  
-2. Use forms other than Code
+Examining today’s LowCode products reveals intriguing phenomena. Take ivx.cn: it targets non-professional programmers and enables designing interfaces and backend logic with no programming. This so-called NoCode approach indeed lowers technical requirements for users. Beyond the intuitiveness provided by visual designers, it also “actively restricts the design space users face,” discarding many conveniences and flexibilities of programming and “lowering the information density in the design space” to reduce the technical threshold.
 
-By examining existing LowCode products on the market, we can observe several interesting phenomena. For example, take ivx.cn as a case: it targets non-professional programmers and allows them to design interfaces and backend logic without programming. This so-called No-code approach indeed reduces the technical requirements for users, relying not only on the visualization provided by the designer but also on **actively restricting the user's design space** and abandoning many of the conveniences and flexibilities present in traditional programming. This is achieved by **lowering the information density of the design space**, thereby reducing the technical capability required.
+For instance, in general programming, we deal with various variable scopes and their relationships; in ivx, these concepts don’t exist—everything is akin to global variables. In coding, we can write complex chained calls like `a.b(g(3)).f('abc')`; in ivx, no such concept exists—each line in the designer expresses only a single action. When it comes to simply getting the job done, many features programmers are used to aren’t strictly necessary. Constraining things such that “there is only one way to do one thing, and executing one action yields only one consequence” makes onboarding easier.
 
-For instance, in standard programming practices, we deal with various variables' scopes and relationships between them. However, in ivx, none of these concepts exist; it resembles global variables. In programming, we can write complex chained calls like `a.b(g(3)).f('abc')`, but in ivx, each line represents a single action. Traditional programming's numerous features, such as writing complex logic in a single line, are absent in ivx, making each line express a single operation.
+However, this way of “low-ing” also limits the platform’s upper bound of capability, making it hard to engage in more complex, higher-value production.
 
-From this perspective, many of the features we are accustomed to in programming seem unnecessary. The idea that "doing one thing leads to one outcome" simplifies entry but also limits the platform's capabilities, restricting it from participating in more complex and high-value production activities.
+If LowCode is to assist professional development, it must, to some degree, “essentially” reduce information expression. Known strategies include:
 
-However, this LowCode approach also has its limitations. If LowCode is supposed to assist professional development, it must, at some level, **essentially reduce information expression**. To achieve this, several strategies are known:
+1. Systematic component reuse
+2. Model-driven methods based on domain abstractions
+3. Integrated design across all ends, processes, and lifecycle stages
 
-1. Systematic component reuse  
-2. Model-driven approaches based on domain abstraction  
-3. Holistic design from start to end-to-end lifecycle
+## 3.1 Component reuse
 
+Component reuse is a general strategy for reducing system complexity: decompose complex objects and identify repeated parts. LowCode differs in that it advocates systematic component reuse—for example, providing complete ready-to-use component libraries without forcing programmers to gather them themselves, ensuring all components compose correctly, offering appropriate documentation and strong designer support, and including component production and consumption within the platform’s management scope (e.g., public material libraries and component marketplaces). What’s currently lacking in the LowCode field is a widely supported component description standard (akin to JetBrains’ web-types standard https://github.com/JetBrains/web-types), enabling unified management of component libraries from different sources.
 
-## 3.1 Component Reuse
+> Component reuse is an application of philosophical reductionism. The most successful paradigm of reductionism is atomic theory. Beneath the manifold phenomena of the world lie only about a hundred kinds of atoms—an extraordinarily profound insight. But understanding atoms doesn’t mean understanding the world: vast information lives in how atoms combine. We still need multi-level, holistic understanding of the world.
 
-Component reuse is a general strategy for reducing system complexity: decompose complex objects and identify reusable components. LowCode differs in that it advocates for systematic component reuse, such as providing a complete, ready-to-use component library without requiring developers to collect components from various sources. It ensures that all components can be properly combined and provides adequate documentation and support, while also allowing the production and consumption processes of components to be managed within the LowCode platform, such as through component markets like those provided by companies like JetBrains (e.g., web-types standard: [https://github.com/JetBrains/web-types](https://github.com/JetBrains/web-types)).
+Challenges for current component technologies include rising demands for dynamism, composability, and environmental adaptability, necessitating solutions beyond the perspective of single components and more systemic approaches. For example, we may want one component suite to adapt to desktop, mobile, and mini-program environments. A standard LowCode solution is transpilation: translate the same component description into different concrete component implementations for different runtime environments (rather than burying multi-environment details inside components themselves). When transpilation becomes routine, we begin to enter the world of models.
 
-Component reuse is an application of reductionism. Reductionism's most successful example is atomism. The world of atoms, as described by atomism, is composed of countless atoms, each with specific properties that together explain the world. However, knowing atoms doesn't mean we fully understand the world, as much information resides in atomic interactions and combinations.
+## 3.2 Model-driven
 
-The challenge faced by current component technology lies in demands for dynamicity, combinability, and adaptability to environments, which require more advanced solutions than simple static encapsulation. For example, a component library might need to support multiple runtime environments (desktop, mobile, etc.), and LowCode platforms must provide standardization for such component descriptions.
+According to quantum mechanics, information is conserved in our world. If a small amount of input information yields a large amount of valuable output, there are only two possibilities:
 
+1. A simple logical core underlies the apparent diversity of outcomes—the system’s essential complexity is lower than it appears.
+2. The system “automatically derives” many results by leveraging other information sources and global knowledge.
 
-## 3.2 Model-Driven Development
+To build such a “non-linear (input and output are not proportional)” production system, we first need domain abstractions, then a product factory that can be driven by small amounts of information.
 
-Quantum mechanics teaches us that in our universe, information is conserved. If we invest minimal information into a system, it can generate substantial valuable outcomes. For instance:
+Domain abstraction discovers the essential elements and their relationships within a domain—in other words, “trimming unnecessary requirements.” After years immersed in a domain, with ample domain knowledge, we find many requirements are unnecessary details. We can choose to do only the high ROI work. If we distill this domain knowledge into a domain-specific description language, we can dramatically reduce the quantity of information expressed. For example, the Bootstrap CSS framework is essentially a rethinking of front-end structure: colors are limited to a handful like success/info/warning/danger; sizes are constrained to sm/md/lg; and layout is restricted to 12 selectable positions per row. After using Bootstrap, we realize that most of the time we don’t need such rich color palettes or many size options. Through self-imposed constraints, we paradoxically gain a kind of freedom—fewer unnecessary decisions and demands, while achieving stylistic unity.
 
-1. The apparent diversity of results hides a simple logical core, and  
-2. Combining diverse information sources (global knowledge) allows for **automatic derivation** of numerous derived outcomes.
+Model-based simplification of complexity is often multiplicative. Suppose 100 possible scenarios can be described via cross-combination of two basic factors, 100 = 10*10; then we only need to define 20 basic factors and one combination rule. Beyond that, models’ greater value lies in providing “global knowledge” about the system. For instance, in a finite automaton, `a->b->c->a`, after a sequence of state transitions, the system doesn’t diverge; it inevitably “returns to a known state.” In self-similar nested models, the whole is composed of parts, and magnifying part structures returns us to known descriptions.
 
-To construct such a non-linear (input-output ratio not proportional), we first need domain abstraction and then build a system driven by this abstraction. This system can be minimally information-driven, allowing it to produce maximally valuable outputs.
+Global knowledge greatly facilitates information propagation and derivation. For example, if all component instances have unique names and stable locating paths at runtime, we can leverage them for automatic data binding (auto-aligning with items in the Store), click tracking, etc. In traditional programming, we mainly rely on general, domain-agnostic languages and component libraries. Lacking unified global structural constraints, we easily break global assumptions, interrupting automated reasoning chains and forcing manual intervention by programmers. The modern software design paradigm “convention over configuration” emphasizes exactly the use and preservation of global knowledge.
 
-> Component reuse belongs to the application of reductionism. Reductionism's most successful example is atomism. The world of atoms, as described by atomism, is composed of countless atoms, each with specific properties that together explain the world. However, knowing atoms doesn't mean we fully understand the world, as much information resides in atomic interactions and combinations.
+Knowledge provided by model descriptions often has diverse uses and can drive multiple derivations. For example, from a data model, we can automatically generate database definitions, migration scripts, UI descriptions, data access code, and API documentation. In traditional programming, a piece of code typically has a single intended use.
 
-> Component reuse belongs to the application of reductionism. Reductionism's most successful example is atomism. The world of atoms, as described by atomism, is composed of countless atoms, each with specific properties that together explain the world. However, knowing atoms doesn't mean we fully understand the world, as much information resides in atomic interactions and combinations.
+Mainstream LowCode platforms attempt first to provide a “better” programming model, then embed or integrate many domain-specific services or code templates. What counts as “better” is subjective. Some supplement deficiencies in current languages with enhanced syntax—for example, automatically translating certain synchronous operations into asynchronous calls, auto-generating remote call proxies, or even distributed scheduling. Others codify best practices to reduce development difficulty—for example, wrapping React/Redux into a Vue-like reactive data-driven model. Still others introduce stronger assumptions, narrowing the programming model’s applicability while increasing platform control—for example, simplifying front-end template languages, auto-binding templates to frontend/backend model objects, and providing template rendering across multiple platforms.
 
-> Component reuse belongs to the application of reductionism. Reductionism's most successful example is atomism. The world of atoms, as described by atomism, is composed of countless atoms, each with specific properties that together explain the world. However, knowing atoms doesn't mean we fully understand the world, as much information resides in atomic interactions and combinations.
+LowCode platforms generally embed engines for common models in general development domains—form models, rule models, workflow/process models, BI chart models—and may provide rich front-end templates and large-screen display materials. Many also offer domain-specific services, such as streaming data processing for IoT.
 
-# Domain Abstraction
+## 3.3 Integrated design
 
-Domain abstraction is about discovering the essential elements of a domain and their relationships, which essentially means **reducing unnecessary requirements**. After spending many years in a specific domain and accumulating sufficient domain knowledge, we realize that many requirements are unnecessary details. We can then choose to focus on high-value tasks.
+According to thermodynamics, in the world we observe, information tends to dissipate. As information crosses system boundaries, it may be lost, distorted, or conflict. In everyday work, a significant portion of our effort is not creating new things but repeatedly performing format conversions, integrity validations, interface adaptations—tasks that are essentially about bridging and transformation.
 
-By codifying domain knowledge into a domain-specific language, we can significantly reduce the amount of information expressed. For example, the Bootstrap CSS framework essentially reifies the front-end structure by limiting colors to success, info, warning, and danger, sizes to sm, md, lg, and layouts to just 12 possible options. After getting used to Bootstrap, we often find that we don't need as many color combinations or size variations in most cases. By actively restricting our capabilities, we actually gain freedom—reducing unnecessary decisions while achieving style consistency.
+Our technological environment is in constant flux, becoming a persistent source of chaos. Standing up a build environment and ensuring stable CI is no trivial matter. It’s common for newcomers to fail to compile and package the source for half a day. With mobile, cloud, and distributed systems, non-functional requirements are increasingly important, and the required knowledge is ballooning.
 
-# Model Abstraction
+Monitoring/operations and operational analytics have become indispensable for online software, forcing functional development to support instrumentation for ops and data analysis.
 
-Model abstraction typically follows a multiplicative approach for simplifying complexity. For instance, if 100 possible scenarios can be described by combining two basic elements through cross-combination (10x10), defining 20 basic elements and one combination rule is sufficient. The true value of a model lies not only in its ability to simplify but also in the **global knowledge** it provides about the system. For example, in finite state machines, `a->b->c->a` ensures that the system doesn't diverge but inevitably returns to a known state.
+The typical LowCode response to this series of challenges is a grand unified solution covering diverse endpoints for input/output, the full process of development/deployment/testing/release, and the full lifecycle of production/operation/retirement. Integrated design helps reduce information loss, avoid repeated expression, maintain model semantic consistency, and shield teams from the grim reality of bottom-layer tools riddled with pitfalls. Undoubtedly, this is a double-edged sword. Maintaining a stable, self-contained utopia requires enormous investment. Perhaps large companies can use LowCode to output their foundational capabilities—since they already need to reinvent many tools and prefer others to be tied to their ecosystem—while third parties accept dependence on giants as a given.
 
-In self-similar nested models, the whole is composed of parts, and magnifying the structure brings us back to familiar descriptions.
+## IV. Is LowCode different from model-driven approaches?
 
-# Global Knowledge
+In current practice, the strategy and tactics adopted by LowCode platforms are essentially no different from traditional model-driven approaches. It’s simply that in today’s tech context, new technologies make some things easier, and the widespread popularity of open source broadens the range of technologies individuals can wield. Indeed, if stability concerns can be outsourced to cloud infrastructure, small teams armed with suitable tools can tackle development traditionally reserved for large software projects.
 
-Global knowledge significantly facilitates information propagation and deduction. For example, if all component instances at runtime have unique names and stable location paths, we can leverage this for **data auto-binding** (aligning data items with Store's data items), tracking, etc. Traditional programming activities heavily rely on general-purpose, domain-agnostic programming languages and libraries, which lack global consistency. This often leads to broken inference chains, requiring manual intervention by developers.
+New times bring new needs, especially in product application scope. There are some differences between LowCode and model-driven approaches.
 
-Modern software design emphasizes convention over configuration (`convention over configuration`), which essentially means preserving global knowledge while minimizing explicit configurations.
+LowCode can be seen as a grand synthesis of practices aiming for coarse-grained, system-level reuse beyond the granularity of components, following the component era.
 
-# Model Description
+1. From a programming perspective, traditional model-driven approaches largely adapt the overall development logic to object-oriented paradigms, whereas with the rise of functional programming, multi-paradigm development is inevitable.
+2. Traditional reuse, despite lofty goals, often operates crudely—merely simple parameterization.
 
-Model-provided knowledge typically serves a variety of purposes, often involving diverse deduction processes. For example, using data models, we can automatically generate database definitions, migration scripts, interface descriptions, data access code, and API documentation. Traditional programming approaches treat each line of code as isolated, often leading to repetitive, error-prone, and inefficient code.
+From the perspective of Reversible Computation, I believe a key difference is a Delta-model-driven, evolution-embracing design. For any model, we can ask: “Can it be customized, and how?” A follow-up: “How is the model decomposed, and how do we achieve secondary abstraction atop it?” We can add a new metric to models: reversibility. Many problems become clearer when we explicitly recognize the presence and necessity of reversibility.
 
-# LowCode Platforms
+Technically, with the development of transpilation and the spread of compiler technologies, modifying at the language level is no longer unthinkable. In practice, many library authors already operate in the realm of traditional compiler techniques. With this tool in our arsenal—especially when made available at the application level—many wide-ranging information propagation problems that are topologically difficult become easier to solve. Issues of form stability are often resolved once intrinsic representations are used.
 
-LowCode platforms primarily aim to provide a "better" programming model by either embedding or integrating domain-specific services/templates. This so-called "better" approach aligns with the "wise man sees the same in everyone's court" principle. Some LowCode platforms act as supplements to existing programming languages, enhancing syntax features and enabling automatic encapsulation of React/Redux into a class-based Vue-like data-driven model. Others introduce more stringent assumptions, reducing the scope but enhancing control, such as simplifying frontend templating and automatically binding templates with backend models.
-
-LowCode platforms generally include form models, rule models, workflow models, BI chart models, etc., along with common development models. They often provide rich front-end templates and big screen displays for material resources. Many also offer domain-specific service support, such as IoT data processing services.
-
-## 3.3 Domain Integration
-
-From a thermodynamic perspective, information is always dispersed. As information flows through system boundaries, it may be lost, distorted, or conflated. In routine work, a significant portion of our efforts isn't about innovation but rather about formatting, validating completeness, and adapting interfaces—essentially translational or convertive work.
-
-Our technical environment itself is in a state of continuous evolution, making it a persistent source of chaos. Setting up build environments, ensuring continuous integration remains a manual process. New developers often download source code only to find compiling packaging unsuccessful. Complexities like mobile, cloud, and distribution multiply the non-functional requirements, elevating their importance while increasing the required knowledge base.
-
-# Monitoring and Operations
-
-Monitoring and operations have become indispensable components of online software, with data analysis being a core part. The need for monitoring and operations often forces us to bury points in the code (`埋点`) for tracking usage and performance. This is especially true for LowCode platforms trying to provide comprehensive solutions.
-
-Current LowCode platforms typically offer an all-encompassing solution covering input/output points, the entire development and publishing lifecycle, and global knowledge integration. However, this one-size-fits-all approach can be a double-edged sword. While it simplifies implementation and reduces development costs, it may limit flexibility and require significant investment in maintaining a uniform structure.
-
-# LowCode vs Model-Driven
-
-## 四. LowCode与模型驱动有区别吗？
-From the current technological trajectory, the LowCode platform's adopted strategy and principles are fundamentally similar to traditional model-driven approaches. The primary difference lies in the context of modern technological environments, where the emergence of new technologies simplifies certain aspects of development, while the widespread adoption of open-source technologies expands the range of accessible technical elements and positions available for manipulation.
-
-In this new era, new demands have emerged, particularly in terms of application scope. Unlike traditional model-driven systems, LowCode platforms aim to transcend component-level, granular, or systemic reuse capabilities by offering a comprehensive practice that integrates multiple aspects of development.
-
-From a programming paradigm perspective, traditional model-driven approaches generally align their overall development logic with object-oriented programming paradigms, focusing on adapting the entire development process to fit within such frameworks. In contrast, with the rise of functional programming, multi-paradigm programming has become inevitable, making multi-paradigm solutions a natural choice.
-
-While the target vision for reusable components may be broad, the operational approach in traditional model-driven systems often lacks finesse. It tends to offer only rough operational pathways, relying heavily on basic parameterization without delving into more sophisticated parameterization strategies. This simplicity, however, can become a double-edged sword, as it may fail to account for intricate interdependencies between parameters.
-
-From a reversible computation theory perspective, I believe that LowCode platforms differ from traditional model-driven approaches in their reliance on delta-based model driving and an evolutionary embrace of models. For any given model, we can pose simple questions: Can it be customized? How can it be customized? Another critical question is how to decompose the model into its constituent components for secondary abstraction. Furthermore, we must establish criteria for determining whether a model is reversible: Does it allow for inversion?
-
-In terms of applicable methodologies, as translation technologies evolve and compilers become more widespread, performing modifications at the language level is no longer unimaginable. In many cases, developers have already transitioned to using traditional compilation techniques. By incorporating this method into our arsenal, we can address a variety of topological structure challenges related to information dissemination over broad domains.
-
-The cornerstone of abstraction is parameterization. For example:
+The most basic method of abstraction is parameterization. For example:
 
 ```
-F(X1, X2, X3, ....)
+​    F(X1, X2, X3, ....)
 ```
 
-From a rough perspective, the complexity of a model is often measured by the number of parameters required. If parameters are few, the system's complexity is low; if parameters are numerous, complexity increases. For instance, if parameters X1, X2, and X3 are independent, their interaction can be modeled as an exact cross-product corresponding to their count. However, real-world complexities often exceed this, necessitating interdependencies that cannot always be captured by simple parameterization.
+Very roughly, we can gauge a model’s complexity by the number of parameters it requires: fewer parameters, lower complexity; more parameters, higher complexity. If X1, X2, X3 are independent, then the model scenarios correspond to the cardinality of the cross product of X1, X2, X3. However, the real world is more complex: once parameters are numerous enough, they are “not mutually independent”!
 
-A particularly interesting aspect emerges when considering the standardization of constraints for a given model (X1, X2, X3). If parameters become sufficiently complex, they may even form a cohesive whole, allowing us to describe and analyze them using a domain-specific model (M). This enables us to understand M without relying on F.
+To understand F(X1, X2, X3), we must understand F and how X1, X2, X3 propagate and are used within F. If they influence each other, things get worse—we must understand how these interactions occur in subtle ways.
 
-From a foundational logic perspective, our understanding operates at multiple levels. On one level, we can grasp the overall structure; on another, we delve into specific components. An ideal scenario is when these components are independent, forming a complete system that mirrors a domain-specific model (M). This allows us to describe M without F.
+Here’s the interesting part: what if we impose standardized structural constraints on X1, X2, X3? Once parameters become sufficiently complex, they may form an organically evolving whole. We can describe them using a domain model M, allowing us to understand M independently of F.
 
-The ultimate goal of parameterization is `f(DSL)`, where all elements contribute to forming an organic whole, thereby reflecting the overall logic of the domain-specific language (DSL). Of course, an effective DSL can only describe specific business aspects. For example:
+The underlying logic of our world is layered. We can form understanding at different levels based on different structures. Moving from one level to another, our understanding may be independent (a complete parameter system elevates into an independent conceptual space). When we introduce structure and actively manage conceptual structure, the complexity we face changes entirely.
+
+The endpoint of parameterization is `f(DSL)`: all x form an organic whole, achieving a description of the overall domain logic, while f becomes the domain’s supporting capability. Of course, an effective DSL can only describe a specific business slice, so we need `f(DSL1) + g(DSL2）+ ...`, and in summary, `Y = G(DSL) + Delta`.
+
+A common problem with abstraction is leakage. What if our abstracted DSL doesn’t fit reality? From a Reversible Delta perspective, we can solve it like this:
 
 ```
 Biz = App - G(DSL1)
 ```
 
-After abstracting DSL1, Biz becomes an independent research object. This mirrors the physical world, where we can model Gauss's model as a zero-level solution and then rework the original equation into a correction term.
+Treat the remainder Biz after peeling off the domain description DSL1 as an independent subject of study. This is like physics, where we can take a Gaussian model as the system’s zeroth-order solution, then rewrite the original equation as a first-order correction equation.
 
-From a foundational technical logic standpoint, many underlying structural issues resemble familiar challenges in traditional compilation technologies. However, with the advent of cloud-based infrastructure, outsourcing stability has become feasible for small teams. This allows development capabilities to adapt to traditional large-scale software development practices without compromising agility.
+At a foundational technical level, the structures behind many business problems are familiar, but current mainstream techniques are insufficient for migrating implementations from one tech context to another. There’s too much tight coupling between implementations and business content, forcing programmers to copy, paste, and manually trim. Through DSL abstraction and Delta-based processing, we can achieve new splits across different layers of logic—for example, swapping engines without opening the hood.
 
-The new era has not only brought new demands but also introduced new opportunities. Unlike traditional model-driven systems, LowCode platforms aim to transcend component-level, granular, or systemic reuse capabilities by offering a comprehensive practice that integrates multiple aspects of development.
+Programmers view software systems from a god’s-eye perspective; they need not passively accept the facts within the system. “Let there be light,” and there was light. Programmers can design Rules/Laws and constrain all elements’ behavior. Some now believe LowCode can only do 0-to-1 prototyping and eventually requires refactoring with traditional techniques like DDD. This likely presumes LowCode only aligns business to a handful of built-in models and cannot offer the most appropriate logical decomposition for domain realities. Reversible Computation takes a different view: it emphasizes DSLs should be customizable, freely extensible as needs evolve. Similar to JetBrains’ MPS, the supporting technology for Reversible Computation should be a domain language workbench providing a complete solution for developing and running domain languages.
 
-LowCode can be seen as an evolution following component technology, attempting to move beyond component-level, coarse-grained, and systemic reuse toward a holistic approach that encompasses all stages of development.
+## V. Does LowCode need technological neutrality?
 
-1. From a programming perspective, traditional model-driven systems generally align their overall development logic with object-oriented programming paradigms, focusing on adapting the entire development process to fit within such frameworks. In contrast, with the rise of functional programming, multi-paradigm programming has become inevitable, making multi-paradigm solutions a natural choice.
-2. While the target vision for reusable components may be broad, the operational approach in traditional model-driven systems often lacks finesse. It tends to offer only rough operational pathways, relying heavily on basic parameterization without delving into more sophisticated parameterization strategies.
+LowCode strives for higher-order reuse, so it must mask accidental dependencies caused by fragmented tech ecosystems. Why can’t the same logic implemented in Java be directly used in TypeScript?
+Tech neutrality strategies include:
 
-From a reversible computation theory perspective, I believe that LowCode platforms differ from traditional model-driven approaches in their reliance on delta-based model driving and an evolutionary embrace of models. For any given model, we can pose simple questions: Can it be customized? How can it be customized? Another critical question is how to decompose the model into its constituent components for secondary abstraction. Furthermore, we must establish criteria for determining whether a model is reversible: Does it allow for inversion?
+1. Microservices. Achieve separation via tech-neutral communication protocols—mature and standardized. With kernel network stack optimizations (e.g., RDMA and DPDK), sidecar-mode cross-process calls can be extremely optimized and comparable to in-process calls.
+2. Virtual machines. GraalVM enables compilation mixing different stacks—a highly promising direction—with the benefit of cross-boundary co-optimization. In the microservices approach, Java calling JavaScript cannot be uniformly optimized.
+3. Domain languages. A low-cost approach controlled by ordinary programmers. If writing interpreters becomes easier—e.g., mapping an interpretation rule to a simple function call—it can become a routine tool for everyday business problems.
 
-In terms of applicable methodologies, as translation technologies evolve and compilers become more widespread, performing modifications at the language level is no longer unimaginable. In many cases, developers have already transitioned to using traditional compilation techniques. By incorporating this method into our arsenal, we can address a variety of topological structure challenges related to information dissemination over broad domains.
+If each concrete implementation is seen as a different coordinate system, then implementing the same logic in different technologies amounts to representing a fixed logic in different coordinate systems. How does mathematics treat coordinate-free quantities? All principles in physics are reference-frame invariant—coordinate-free—and are represented by tensors. The coordinate invariance of tensors means a physical quantity has different concrete representations under different coordinates, and these are related via reversible structural transformations. Coordinate neutrality doesn’t mean binding to one coordinate system, but allowing reversible conversion among different coordinate systems.
+Therefore, according to Reversible Computation theory, we need not force a grand unified design where information is expressed in only one way everywhere. Multiple expressions can coexist so long as predefined reversible mechanisms exist to reverse-extract information and automatically convert it. For example, existing interface definitions have interface descriptors—whether protobuf, jsonrpc, or grpc—since they are descriptive information. In principle, we can freely convert among these structural descriptions by starting from one descriptor and supplementing some information. If our products can be automatically generated from interface descriptions at any time, they need not be fixed binary code. Deferred generation is essentially multi-stage compilation, which could be a future direction for LowCode.
 
-The cornerstone of abstraction is parameterization. For example:
+Reversibility supports divide-and-conquer. When every part of a large model is reversible, the whole can become reversible. Reversibility can also span systems. The future of LowCode shouldn’t be a single product or single SaaS app, but an ecosystem where information flows freely inside and out, upstream and downstream, breaking bindings to particular technology forms.
 
-```
-F(X1, X2, X3, ....)
-```
+Coordinate-neutral systems have a special case—zero—which brings essential simplification. “A coordinate-neutral zero remains zero in all coordinate systems.” This implies many operations can be performed in a coordinate-neutral, purely formal representation. Numerous judgments and structural conversions/transformations can be executed purely at the formal level, without involving complex runtime dependencies.
+A core viewpoint of Reversible Computation is that coordinate neutrality is a matter of form, entirely discussable independent of runtime. Via compile-time metaprogramming, we can make runtime structures identical to handwritten code. LowCode need not introduce extra layers of indirection at runtime.
 
-From a rough perspective, the complexity of a model is often measured by the number of parameters required. If parameters are few, the system's complexity is low; if parameters are numerous, complexity increases. For instance, if parameters X1, X2, and X3 are independent, their interaction can be modeled as an exact cross-product corresponding to their count. However, real-world complexities often exceed this, necessitating interdependencies that cannot always be captured by simple parameterization.
+## VI. Does LowCode need Turing completeness?
 
-A particularly interesting aspect emerges when considering the standardization of constraints for a given model (X1, X2, X3). If parameters become sufficiently complex, they may even form a cohesive whole, allowing us to describe and analyze them using a domain-specific model (M). This enables us to understand M without relying on F.
+Frankly, Turing completeness is jargon within the computer science community. Regarding models: does a model’s importance or effectiveness have anything to do with Turing completeness? For instance, chemical formulas are an effective DSL for describing molecular structure; chemical reaction equations model reaction processes—do they need to be Turing complete? Newton’s law of universal gravitation connects the stars above and apples below—an extraordinary modeling achievement—and its computation guides seasonal agriculture. Do differential equation models need Turing completeness to be established and solved?
 
-From a foundational logic perspective, our understanding operates at multiple levels. On one level, we can grasp the overall structure; on another, we delve into specific components. An ideal scenario is when these components are independent, forming a complete system that mirrors a domain-specific model (M). This allows us to describe M without F.
+Core knowledge within a domain doesn’t require Turing completeness. We need Turing completeness when doing “general-purpose” computations and processes—when machines must automate mundane actions, or when we need to handle things in unforeseen ways. Once we’ve encountered a situation, we often encapsulate complexity in algorithms so external users need not have Turing completeness.
 
-The ultimate goal of parameterization is `f(DSL)`, where all elements contribute to forming an organic whole, thereby reflecting the overall logic of the domain-specific language (DSL). Of course, an effective DSL can only describe specific business aspects. For example:
+For LowCode to cover a sufficiently broad range of tasks, it must retain Turing-complete capabilities. However, its core domain models need not be Turing complete. Turing completeness can remain a capability used for edge scenarios.
+Turing-complete capability can be provided via embedded DSLs. This is very economical, especially leveraging IDE support for the host language to obtain DSL support “for free.” The issue is that embedded DSLs often focus on the intuitive form of correct expression and lack constraints for deviations in form. That is, users can write DSL code that is semantically equivalent but formally deviates from the original DSL’s requirements. Form-aware structural transformations then become difficult.
+JSX is an interesting extension form. Since we obtain virtual DOM nodes at runtime, we gain considerable control over structure. But TypeScript’s issue is that it lacks an explicit compile phase. JSX’s compile-time processing is complex; at runtime we get concrete VDOM nodes, whereas compile-time requires code structure analysis. Due to the Halting Problem, code structure is generally hard to analyze. Therefore, compile-time analyzable structures like Vue templates are crucial.
 
-```
-Biz = App - G(DSL1)
-```
+Turing completeness is not information completeness. Reverse-parsing to obtain information is lacking in mainstream technologies. Turing completeness is actually detrimental to reverse information analysis. The tradition of handwritten code means programmers haven’t emphasized automatic program structure analysis—historically the compiler writer’s responsibility. If LowCode brings this technology to the application layer at scale, more education is needed. Today’s languages have strong runtime capabilities but weak compile-time reverse capabilities. Many prefer JSON, essentially to keep reverse analysis/conversion capabilities in their own hands.
+DSLs needn’t imply special programming syntax. In our implementation of Reversible Computation, we use XML template technology as a unified structural description for frontend and backend—akin to directly writing the AST (abstract syntax tree). Compared to LISP, the structure is richer. Plainly, HTML formats are more readable for most people than Lisp.
+Reversible Computation provides a method for accumulating extension capabilities atop domain-specific logic.
 
-After abstracting DSL1, Biz becomes an independent research object. This mirrors the physical world, where we can model Gauss's model as a zero-level solution and then rework the original equation into a correction term.
+## VII. What will we lose for LowCode?
 
-From a foundational technical logic standpoint, many underlying structural issues resemble familiar challenges in traditional compilation technologies. However, with the advent of cloud-based infrastructure, outsourcing stability has become feasible for small teams. This allows development capabilities to adapt to traditional large-scale software development practices without compromising agility.
+An interesting question: does LowCode bring us only benefits? What do we lose by using LowCode?
+My answer: LowCode will cause programmers to lose monopolistic control. Traditionally, all software structures originate from programmers’ input, making programmers an unavoidable intermediary between applications and business stakeholders. LowCode transforms this by stratifying logic and enabling multiple information sources to independently participate in system construction. Business stakeholders can bypass programmers to directly instruct business model construction and autonomously complete the design-feedback loop with intelligent system support. Once these stakeholders gain direct control, they likely won’t want to return to the days of passive waiting.
+LowCode’s strategy, albeit not novel, differs in its expression and emphasis. It explicitly highlights citizen programming, whereas model-driven approaches historically remain a matter internal to programmers.
 
-The new era has not only brought new demands but also introduced new opportunities. Unlike traditional model-driven systems, LowCode platforms aim to transcend component-level, granular, or systemic reuse capabilities by offering a comprehensive practice that integrates multiple aspects of development.
+Any genuine technological revolution results in changes to productive forces and production relations. We now stand at the edge of an era where multiple information holders—programmers, business people, AI systems—can collaborate through division of labor to build logical systems in parallel, letting information flow transcend forms, bypass human intermediaries, and cross system boundaries and temporal evolution. LowCode conveys this core idea ambiguously and sometimes misleadingly.
 
-LowCode can be seen as an evolution following component technology, attempting to move beyond component-level, coarse-grained, and systemic reuse toward a holistic approach that encompasses all stages of development.
+Based on Reversible Computation theory, I propose a new concept: [Next-Generation Software Production Paradigm—NOP (Not Programming)](https://zhuanlan.zhihu.com/p/66548896).
 
-# Programmer's Perspective on Software Systems
-A programmer stands in a godlike perspective when viewing software systems. He does not passively receive facts from the system but actively shapes them.
+NOP emphasizes the essential changes brought by this paradigm shift. As desktop internet shifted to mobile internet, a new concept was born—mobile-first. Similarly, in the LowCode era, software production should consider description-first: use domain models to explicitly express the system’s logical structure in a form amenable to Delta corrections, making it an asset that gradually frees our system logic from constraints of specific, ephemeral technical implementations and clearly records our business intent.
 
-## The Light of Knowledge
-The gods said, "Let there be light," and there was light. Programmers can design their own rules (Rule/Law) to govern all elements' behavior.
+The descriptive part should have a clear boundary from conventional code. Consider Antlr4: previously, we added action annotations to descriptive EBNF grammars to control parser behavior. Antlr4 now mandates that grammar files describe only syntax structures; specific processing is centralized in Listener and Visitor handlers. Once descriptive information is fully isolated, Antlr is freed from Java—it can generate parsers for Java/Go/TypeScript from the same grammar, and automatically generate IDE parser plugins, formatters, IDE auto-completion, etc., achieving multiple uses.
 
-## Misconceptions About LowCode
-Some believe that LowCode is limited to prototyping from 0 to 1 and eventually requires traditional refactoring like DDD. This likely stems from the misconception that LowCode can only align business logic to a few built-in models, unable to adapt to domain-specific requirements. From the reversible computation perspective, DSLs should be customizable and extendable. Tools like JetBrains' MPS support this by providing a domain-specific workspace for development and execution.
+In my view, traditional code embodies machine-running logic, adapting all expression to forms suitable for Turing machines or lambda-calculus machines. Domain logic has its own representational forms—its constituent elements act in ways that can be directly understood without reducing them to steps for some Turing machine. A language is a world; different worlds have different worldviews. LowCode isn’t about code being “low,” but about a different direction of expression.
 
-## Neutral Technology?
-LowCode aims for higher-level reuse but inadvertently creates ecological divides through unintended dependencies it attempts to conceal. The same logic applies: after using Java, TypeScript remains unusable as a direct implementation.
+LowCode does not mean letting people who don’t understand logic write code (though many products cultivate that illusion to sell). In fact, many mathematicians don’t write programs, but they understand logic deeply. In 5–10 years, the market will have many former programmers over 40 who may not keep up with the latest dev tech. With higher-level logical descriptions, they can still develop business logic and benefit from cutting-edge advances.
 
-### Strategies for Neutral Technology
+The LowCode platform NopPlatform, designed under Reversible Computation theory, is open-source:
 
-1. **Microservices**  
-   Using neutral communication protocols to isolate components is a mature and standardized approach. With optimizations in the kernel network stack (e.g., RDMA, DPDK), Sidecar patterns enable inter-process communication with extreme performance.
-
-2. **Virtual Machines**  
-   GraalVM excels by compiling diverse tech stacks into a single environment. Its potential lies in bridging across technology boundaries for collaborative optimization. However, in microservices setups, Java and JavaScript remain incompatible for unified optimization.
-
-3. **Domain Languages**  
-   Domain-specific languages (DSLs) offer a cost-effective way for ordinary programmers to control their own development. Lowering the complexity of interpreters, for example, allows function calls to become straightforward implementations of daily operations.
-
-## Reinterpreting Implementation
-If each implementation technique is viewed as a distinct coordinate system, using multiple techniques to implement logic effectively becomes a matter of translating that logic into various systems. Mathematically, tensor representations handle coordinate-independent principles by linking different coordinate systems through reversible transformations.
-
-Thus, neutral technology doesn't imply binding to a specific coordinate system but allows translation between them. Reversible computation ensures this without forcing a single unified design. Predefined reversible mechanisms can extract and transform information from the system as needed, whether using Protobuf, JSON-RPC, or GRPC.
-
-## The Future of LowCode
-Reversibility is the key to solving many challenges. If every part of a large model is locally reversible, the entire system becomes reversible. This aligns with LowCode's future, which shouldn't be limited to a single product or SAAS solution but should enable information exchange across ecosystems.
-
-## Zero as a Coordinate
-In neutral systems, zero remains zero across all coordinate systems. This simplifies operations like filtering and transformations, allowing many algorithms to function independently of the underlying system.
-
-## The Power of Reversibility
-Reversibility is the foundation for solving complex problems. If every local part of a model is reversible, the entire system becomes manageable. This principle extends beyond programming languages, enabling cross-system optimization without runtime dependencies.
-
-## Graph Theory and LowCode
-LowCode's future lies not in single-product solutions but in bridging across ecosystems through information exchange. This approach respects diverse needs while maintaining reversibility.
-
-## Neutral Systems and Zero
-Neutral systems introduce a zero that remains consistent across all coordinate systems. This simplifies operations like filtering and transformations, enabling many algorithms to function seamlessly regardless of the underlying system.
-
-## The Future of Reversibility
-Reversibility is the cornerstone for solving complex problems. If every part of a model is locally reversible, the entire system becomes manageable. This principle applies beyond programming languages, enabling cross-system optimization without runtime dependencies.
-
-# LowCode for Wide-Ranging Work
-
-LowCode is designed to handle a broad range of tasks, and it definitely retains the capability of being Turing complete. However, the core domain models provided by LowCode do not require Turing completeness. In fact, Turing completeness is more suited for edge cases.
-
-Turing completeness can be achieved through embedded DSL languages. While this approach is cost-effective, especially when leveraging IDE support for language-specific enhancements, it often focuses solely on correct expression of ideas without enforcing structure adherence for deviations from the DSL's format. This means users can write DSLs in unconventional ways, leading to semantic consistency but not necessarily syntactic compliance with the original DSL requirements. Consequently, modeling transitions between DSL structures becomes challenging.
-
-JSX presents an interesting extension approach because it allows obtaining virtual DOM nodes during execution, providing significant control over structure. However, TypeScript faces a clear issue: no concrete compilation phase exists. JSX's compilation process is highly complex, resulting in specific VDOM nodes at runtime. During the compilation phase, we need to analyze code structure, but due to the stoppage problem, this analysis is generally difficult. Therefore, Vue templates, which allow for compile-time analysis of code structure, are crucial.
-
-Turing completeness does not equate to information completeness. Reverse analysis of information is lacking across all mainstream technologies. Traditional coding habits have conditioned developers to undervalue automatic analysis of program structures, as such tasks were historically the domain of compilers. However, LowCode's potential in applying this technology at higher levels (e.g., application layer) necessitates broader adoption and education.
-
-In my view, traditional code uses a logic that matches the operation of machines. All logical expressions are adapted to fit either a Turing machine or a lambda calculus execution model. However, domain-specific logic has its own distinct representation. Its components have their own methods of operation, which can be understood directly without being forced to fit into a specific Turing machine's operational steps. A language is a world; different worlds have different worldviews. Low-Code does not mean that people who don't understand logic are writing code (even though many products attempt to create this illusion). In reality, many mathematicians may not write programs, but they are very familiar with logic. In 5–10 years, the market will see several 40+ year-old former programmers who may no longer be proficient in the latest development technologies. Will they still be able to develop business logic using a higher-level logical framework?
-
-Low-Code platforms based on reversible computation theory, such as NopPlatform, have been open-sourced:
-
-- Gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
-- GitHub: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- Development Example: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
-- [Reversible computation principles and Nop platform introduction on Bilibili](https://www.bilibili.com/video/BV14u411T715/)
-
+- gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+- github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+- Development example: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [Principles of Reversible Computation and Introduction & Q&A on the Nop Platform_bilibili](https://www.bilibili.com/video/BV14u411T715/)
+<!-- SOURCE_MD5:827a5110d93129cde84c5ec7a5f5405c-->
