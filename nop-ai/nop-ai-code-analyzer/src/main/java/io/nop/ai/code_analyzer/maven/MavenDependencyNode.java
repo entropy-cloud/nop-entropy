@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class MavenDependencyNode {
     private final MavenDependency dependency;
@@ -15,11 +16,21 @@ public class MavenDependencyNode {
         this.children = new ArrayList<>();
     }
 
+    protected MavenDependencyNode(MavenDependency dependency, List<MavenDependencyNode> children) {
+        this.dependency = dependency;
+        this.children = children;
+    }
+
+    public MavenDependencyNode cloneInstance() {
+        List<MavenDependencyNode> list = children.stream().map(MavenDependencyNode::cloneInstance).collect(Collectors.toList());
+        return new MavenDependencyNode(dependency, list);
+    }
+
     public String getModuleId() {
         return dependency.getModuleId();
     }
 
-    public String getArtifactId(){
+    public String getArtifactId() {
         return dependency.getArtifactId();
     }
 

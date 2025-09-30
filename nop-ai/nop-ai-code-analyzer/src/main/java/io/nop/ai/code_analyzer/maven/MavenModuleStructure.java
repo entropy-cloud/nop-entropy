@@ -21,6 +21,18 @@ public class MavenModuleStructure {
         return sb.toString();
     }
 
+    public MavenModuleStructure cloneInstance() {
+        MavenModuleStructure ret = new MavenModuleStructure();
+        for (Map.Entry<String, MavenModule> entry : modules.entrySet()) {
+            MavenModule copy = entry.getValue().cloneInstance();
+            ret.modules.put(entry.getKey(), copy);
+            if (entry.getValue() == rootModule) {
+                ret.rootModule = copy;
+            }
+        }
+        return ret;
+    }
+
     public Map<String, MavenModule> getModules() {
         return modules;
     }

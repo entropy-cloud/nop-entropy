@@ -4,8 +4,20 @@ public class MavenModule {
     private MavenDependencyNode moduleNode;
     private String modulePath;
 
+    public MavenModule() {
+    }
+
+    public MavenModule(String modulePath, MavenDependencyNode node) {
+        this.modulePath = modulePath;
+        this.moduleNode = node;
+    }
+
     public MavenDependencyNode getModuleNode() {
         return moduleNode;
+    }
+
+    public MavenModule cloneInstance() {
+        return new MavenModule(modulePath, moduleNode.cloneInstance());
     }
 
     public void setModuleNode(MavenDependencyNode moduleNode) {

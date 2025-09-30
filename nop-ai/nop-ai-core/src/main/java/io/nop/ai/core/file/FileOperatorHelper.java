@@ -1,6 +1,9 @@
 package io.nop.ai.core.file;
 
+import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
+
+import java.io.File;
 
 public class FileOperatorHelper {
     public static boolean filterNopProjectFiles(String path) {
@@ -53,5 +56,15 @@ public class FileOperatorHelper {
                 return true;
         }
         return false;
+    }
+
+    public static String normalizedMd5(String text) {
+        text = StringHelper.normalizeCRLF(text, false);
+        return StringHelper.md5Hash(text);
+    }
+
+    public static String fileNormalizedMd5(File file) {
+        String text = FileHelper.readText(file, null);
+        return normalizedMd5(text);
     }
 }
