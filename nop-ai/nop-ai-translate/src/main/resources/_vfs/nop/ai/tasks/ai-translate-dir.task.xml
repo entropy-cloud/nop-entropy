@@ -3,8 +3,8 @@
       xmlns:file-utils="/nop/task/xlib/file-utils.xlib" defaultUseParentScope="true"
       x:extends="/nop/task/lib/common.task.xml">
 
-    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="16000" maxTokens="16000"
-                    temperature="0.6"
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" maxTokens="${aiMaxTokens}"
+                    temperature="${aiTemperature}"
                     sessionId="${sessionId}" enableThinking="false"/>
 
     <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
@@ -18,6 +18,8 @@
 
     <input name="aiProvider" type="String" mandatory="true"/>
     <input name="aiModel" type="String" mandatory="true"/>
+    <input name="aiMaxTokens" type="Integer" optional="true"/>
+    <input name="aiTemperature" type="Float" optional="true"/>
     <input name="sessionId" type="String" optional="true"/>
 
     <steps>
@@ -36,13 +38,23 @@
                 import io.nop.core.resource.VirtualFileSystem;
 
                 return VirtualFileSystem.instance().depthVisitor(dir.stdPath)
-                    .filter(res => res.name.endsWith(".md"));
+                    .filter(res => res.name.endsWith(".md") and res.length() > 0);
             ]]></producer>
 
             <steps>
 
                 <step name="getRelativePath">
                     <output name="relativePath" value="${resource.path.substring(dir.path.length())}"/>
+                    <output name="sourceText" value="${resource.readText()}"/>
+                </step>
+
+                <step name="calcMd5">
+                    <output name="sourceMd5">
+                        <source>
+                            import io.nop.ai.core.file.FileOperatorHelper;
+                            return FileOperatorHelper.normalizedMd5(sourceText);
+                        </source>
+                    </output>
                 </step>
 
                 <exit name="skipExisting">
@@ -50,7 +62,8 @@
                         import io.nop.core.resource.ResourceHelper;
 
                         const outDirResource = ResourceHelper.resolveRelativePathResource(outputDir);
-                        return ResourceHelper.resolveChildResource(outDirResource,relativePath).exists();
+                        const outFile = ResourceHelper.resolveChildResource(outDirResource,relativePath);
+                        return outFile.exists() and outFile.readText().contains(':'+sourceMd5);
                     </when>
                 </exit>
 
@@ -60,9 +73,8 @@
                     <producer><![CDATA[
                         import io.nop.ai.core.commons.splitter.MarkdownTextSplitter;
 
-                        const text = resource.readText();
                         const splitter = new MarkdownTextSplitter();
-                        return splitter.split(null, text, {maxContentSize:chunkSize});
+                        return splitter.split(null, sourceText, {maxContentSize:chunkSize});
                     ]]></producer>
 
                     <steps>
@@ -116,7 +128,7 @@
 
                     <aggregator>
                         const results = aggResults.getSuccessOutputs('RESULT');
-                        return results.join("\n\n");
+                        return results.join("\n\n") + "\n&lt;!-- SOURCE_MD5:"+sourceMd5 +"-->\n";
                     </aggregator>
 
                     <output name="RESULT" exportAs="finalResult"/>
