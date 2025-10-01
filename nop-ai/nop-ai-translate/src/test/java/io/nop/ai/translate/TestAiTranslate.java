@@ -34,8 +34,8 @@ public class TestAiTranslate extends JunitBaseTestCase {
         //taskRt.setInput("aiProvider", "ollama");
         //taskRt.setInput("aiModel", "qwen3:4b");
 
-        taskRt.setInput("aiProvider", "azure");
-        taskRt.setInput("aiModel", "gpt-4");
+        //taskRt.setInput("aiProvider", "azure");
+        //taskRt.setInput("aiModel", "gpt-4");
 
         taskRt.setInput("sessionId", "test");
         task.execute(taskRt).syncGetOutputs();

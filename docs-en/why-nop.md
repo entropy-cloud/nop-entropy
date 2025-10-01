@@ -1,4 +1,3 @@
-
 # Positioning and Development Roadmap of the Nop Platform
 
 The Nop Platform is built from the ground up based on Reversible Computation theory and supports a language-oriented programming paradigm for a next-generation low-code platform. At the level of fundamental software construction principles, it breaks through the limitations of traditional object-oriented and component theories, enabling system-level, coarse-grained software reuse.

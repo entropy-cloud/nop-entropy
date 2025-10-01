@@ -1,4 +1,3 @@
-
 # Nop Platform Core Code Reading Guide
 
 The implementation code of the Nop platform core engine is quite concise. The core code size of a typical module is around 5,000 lines; only the ORM is somewhat more complex, with over 10,000 lines.

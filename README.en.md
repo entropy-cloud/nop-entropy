@@ -1,4 +1,4 @@
-[[中文]](README.md) [[Tutorial]](./docs/tutorial/tutorial_en.md) [[开发示例]](./docs/tutorial/tutorial.md) [[Introduction and Q & A Video]](https://www.bilibili.com/video/BV1u84y1w7kX/)
+[[中文]](README.md) [[Tutorial]](./docs-en/tutorial/tutorial.md) [[Documentation]](./docs-en/index.md) [[Introduction and Q & A Video]](https://www.bilibili.com/video/BV1u84y1w7kX/)
 
 # Nop Platform 2.0
 
@@ -10,7 +10,7 @@
 
 ## Introduction
 
-[Reversible Computing: A Theory of Next Generation Software Construction](https://zhuanlan.zhihu.com/p/64004026)
+[Reversible Computation: A Theory of Next Generation Software Construction](docs-en/theory/reversible-computation.md)
 
 **Nop is nOt Programming (non-programming) **
 
@@ -83,29 +83,29 @@ Development Progress:
 
 ## Source code address
 
--gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
--gitcode:[https://gitcode.com/canonical-entropy/nop-entropy](https://gitcode.com/canonical-entropy/nop-entropy)
--github: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+- gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+- gitcode:[https://gitcode.com/canonical-entropy/nop-entropy](https://gitcode.com/canonical-entropy/nop-entropy)
+- github: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
 
 ## Design principle
 
-[Reversible Computing: A Theory of Next Generation Software Construction](https://zhuanlan.zhihu.com/p/64004026)
+[Reversible Computation: A Theory of Next Generation Software Construction](docs-en/theory/reversible-computation.md)
 
 [NOP: The Next Generation Software Production Paradigm](https://zhuanlan.zhihu.com/p/66548896)
 
-[What kind of ORM engine do low-code platforms need? ](https://zhuanlan.zhihu.com/p/543252423)
+[What kind of ORM engine do low-code platforms need? ](docs-en/theory/lowcode-orm-1.md)
 
-[Analysis of Reversible Calculation Theory Written to Programmers](docs/theory/reversible-computation-for-programmers.md)
+[Analysis of Reversible Calculation Theory Written to Programmers](docs-en/theory/reversible-computation-for-programmers.md)
 
-[Addendum to Reversible Calculation Theory Discrimination for Programmers](docs/theory/reversible-computation-for-programmers2.md)
+[Addendum to Reversible Calculation Theory Discrimination for Programmers](docs-en/theory/reversible-computation-for-programmers2.md)
 
 ## Quick start
 
-[Development Example](./docs/tutorial/tutorial.md)
+[Development Example](./docs-en/tutorial/tutorial.md)
 
 [Introduction and Q & A Video](https://www.bilibili.com/video/BV1u84y1w7kX/)
 
-[Development Documentation Guide](./docs/index.md)
+[Development Documentation Guide](./docs-en/index.md)
 
 [Integration with Ruoyi Framework](https://gitee.com/canonical-entropy/nop-for-ruoyi)
 

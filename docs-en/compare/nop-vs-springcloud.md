@@ -2,26 +2,26 @@
 
 The Nop Platform is a next-generation low-code platform designed and implemented from scratch based on the principles of Reversible Computation. Its goal is not to provide preset development scaffolding and visual design tools targeting a few fixed scenarios, but to break down the man-made barriers between declarative programming and traditional imperative programming, establishing a new programming paradigm that makes the two seamlessly compatible and continuously expands the semantic space covered by declarative programming. To achieve this goal at the lowest technical cost, the Nop Platform does not adopt the industry’s mainstream foundational open-source frameworks; instead, it reshapes the entire technical stack based on the principles of Reversible Computation. This article briefly lists the “wheels” the Nop Platform has built and compares them to the existing “wheels” in the SpringCloud technology stack.
 
-|Component|Nop stack|Spring stack|
-|---|---|---|
-|Web Framework|NopGraphQL|SpringMVC|
-|Expression Engine|XLang XScript|SpringEL|
-|Template Engine|XLang Xpl|Velocity/Freemarker|
-|ORM Engine|NopORM|JPA/Mybatis|
-|IoC Container|NopIoC|SpringIoC|
-|Dynamic Configuration|NopConfig|SpringConfig|
-|Distributed Transaction|NopTcc|Alibaba Seata|
-|Automated Testing|NopAutoTest|SpringBootTest|
-|Distributed RPC|NopRPC|Feign RPC|
-|Reporting Engine|NopReport|JasperReport|
-|Rule Engine|NopRule|Drools|
-|Batch Engine|NopBatch|SpringBatch|
-|Workflow Engine|NopWorkflow|Flowable/BPM|
-|Task Scheduling|NopJob|Quartz|
-|XML/JSON Parsing|NopCore|Jaxb/Jackson|
-|Resource Abstraction|NopResource|Spring Resource|
-|Code Generator|NopCodeGen|Various custom generators|
-|IDE Plugin|NopIdeaPlugin|Mybatis plugin/Spring plugin, etc.|
+| Component               | Nop stack     | Spring stack                       |
+| ----------------------- | ------------- | ---------------------------------- |
+| Web Framework           | NopGraphQL    | SpringMVC                          |
+| Expression Engine       | XLang XScript | SpringEL                           |
+| Template Engine         | XLang Xpl     | Velocity/Freemarker                |
+| ORM Engine              | NopORM        | JPA/Mybatis                        |
+| IoC Container           | NopIoC        | SpringIoC                          |
+| Dynamic Configuration   | NopConfig     | SpringConfig                       |
+| Distributed Transaction | NopTcc        | Alibaba Seata                      |
+| Automated Testing       | NopAutoTest   | SpringBootTest                     |
+| Distributed RPC         | NopRPC        | Feign RPC                          |
+| Reporting Engine        | NopReport     | JasperReport                       |
+| Rule Engine             | NopRule       | Drools                             |
+| Batch Engine            | NopBatch      | SpringBatch                        |
+| Workflow Engine         | NopWorkflow   | Flowable/BPM                       |
+| Task Scheduling         | NopJob        | Quartz                             |
+| XML/JSON Parsing        | NopCore       | Jaxb/Jackson                       |
+| Resource Abstraction    | NopResource   | Spring Resource                    |
+| Code Generator          | NopCodeGen    | Various custom generators          |
+| IDE Plugin              | NopIdeaPlugin | Mybatis plugin/Spring plugin, etc. |
 
 The Nop Platform can be used directly as a foundational development framework similar to SpringCloud. At the ProCode level it can greatly simplify the software development process and significantly improve software extensibility.
 

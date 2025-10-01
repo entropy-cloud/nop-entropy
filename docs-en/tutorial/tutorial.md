@@ -7,7 +7,7 @@ The Nop platform is a concrete implementation of the Reversible Computation theo
 > `nop-app-mall` is a sample e-commerce application. The project is: [nop-app-mall](https://gitee.com/canonical-entropy/nop-app-mall)
 
 > Nop platform open-source repositories:
->
+> 
 > * gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 > * github: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
 
@@ -508,7 +508,7 @@ In debug mode, all front-end AMIS pages have two design buttons in the top-right
 2. Click the JSON Design button to open a YAML editor in the browser, allowing you to edit the JSON and see changes immediately.
 
 3. Click the Visual Design button to open the amis-editor visual designer and adjust the page visually. After saving, the designer computes the Delta against the generated View and saves only the Delta to `page.yaml`.
-
+   
    ![](amis-editor-view.png)
 
 For example, after changing the title of the “Product On-Shelf” page to “Add - Product” in the visual designer and saving, the contents of `add.page.yaml` become:
@@ -660,4 +660,5 @@ Concretely, the back-end to front-end inference chain can be decomposed into fou
 3. XView: Front-end logic understood at the business level, using a small set of UI elements such as forms, tables, and buttons; independent of front-end frameworks.
 
 4. XPage: Page model for a specific front-end framework.
-<!-- SOURCE_MD5:fa7110d46bf0e025020f41c200eed7d0-->
+   
+   <!-- SOURCE_MD5:fa7110d46bf0e025020f41c200eed7d0-->

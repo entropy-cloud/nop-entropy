@@ -217,6 +217,7 @@ When assessing global originality, skepticism often takes the form “isn’t th
 This is not a promotional piece; we must objectively consider limitations. Judging the aforementioned advantages under the boundary conditions below better equips technology managers to make prudent decisions.
 
 Pros:
+
 - Elegant “subtractive” reuse: With structural-layer reversible Delta (including deletion, obeying associativity), subtractive reuse becomes feasible.
 - Open compile time: Multi-stage compilation (`Generator<DSL>`) opens the chain from model to model to final artifacts (pages/services).
 - Non-intrusive engine enhancement: A unified Loader abstraction allows injecting Delta customization into third-party engines like Spring/MyBatis as an “add-on.”
@@ -224,6 +225,7 @@ Pros:
 - Complexity isolation: Reversible customization isolates customer-specific entropy in the Delta layer, keeping the core of base products clean—ideal for B2B scenarios.
 
 Cons and challenges:
+
 - Steep learning curve: The trio `XDef/Xpl/XScript` is an entirely new programming paradigm, challenging existing team skill sets.
 - Developing ecosystem: While core IDE plugins and debugging tools exist, maturity lags mainstream languages (though evolution is possible).
 - Compile-time governance: Structural merging occurs at compile time, so runtime performance is unaffected. However, frequent compilation and many Delta layers demand new governance for caching strategies, invalidation, and compilation time.
@@ -232,6 +234,7 @@ Cons and challenges:
 - XML’s psychological barrier: Although XDef’s homomorphism reduces XML’s cognitive burden, heavy XML usage may be a mental hurdle for some teams.
 
 Adoption Strategy:
+
 1. Start from the Loader, iterate quickly: Replace the resource loading logic of a module in an existing project with `ResourceComponentManager` to experience Delta customization at minimal cost.
 2. Build a segmented pipeline: Following `App = Delta x-extends Generator<DSL>`, split system construction into independent, testable stages (e.g., ORM → XMeta → XView → XPage).
 3. Establish Delta governance: Set and enforce norms for Delta layering, naming, merge order, and conflict resolution. Use tools like dump for review.
@@ -387,6 +390,9 @@ List of articles analyzed by AI
 Nop Platform open-source repositories
 
 - gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+
 - gitcode:[https://gitcode.com/canonical-entropy/nop-entropy](https://gitcode.com/canonical-entropy/nop-entropy)
+
 - github: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-<!-- SOURCE_MD5:7b287469ab5ccb19f432e0811c8660ea-->
+  
+  <!-- SOURCE_MD5:7b287469ab5ccb19f432e0811c8660ea-->

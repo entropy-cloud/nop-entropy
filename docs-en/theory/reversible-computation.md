@@ -1,4 +1,3 @@
-
 # Reversible Computation: The Next-Generation Theory of Software Construction
 
 It is well known that the foundations on which computer science stands are two fundamental theories proposed in 1936: Turing’s theory of the Turing machine and Church’s earlier Lambda calculus in the same year. These two theories established the conceptual basis for so-called Universal Computation, delineating two technical routes that are Turing-complete with the same computational power yet formally poles apart. If we regard these two theories as two extremes of the primordial visage of the world as revealed by God, is there a more moderate and flexible middle path to reach the shores of universal computation?

@@ -1,4 +1,3 @@
-
 # Overview
 
 The Nop platform contains a large number of innovative designs, which may feel overwhelming at first. In reality, all internal designs in Nop strictly follow the principles of Reversible Computation and are highly consistent. Once you grasp the basic theory of Reversible Computation, you can directly consult the XDef meta-model to learn most of what you need about the models.
