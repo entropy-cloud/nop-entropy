@@ -1,0 +1,40 @@
+{
+  "description": "Search for lines matching a regular expression in multiple files",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "projectName": {
+        "type": "string",
+        "description": "Project name, must be a valid file directory name"
+      },
+      "filePaths": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of file paths to search in"
+      },
+      "regex": {
+        "type": "string",
+        "description": "Regular expression pattern to search for"
+      },
+      "ignoreCase": {
+        "type": "boolean",
+        "description": "Whether to perform case-insensitive matching"
+      },
+      "limitPerFile": {
+        "type": "integer",
+        "description": "Maximum number of matching lines to return per file (0 for unlimited)"
+      },
+      "totalLimit": {
+        "type": "integer",
+        "description": "Total maximum number of matching lines across all files (0 for unlimited)"
+      }
+    },
+    "required": [
+      "projectName",
+      "filePaths",
+      "regex"
+    ]
+  }
+}

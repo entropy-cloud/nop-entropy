@@ -53,7 +53,7 @@ public class TestDeepWikiPrompts extends JunitBaseTestCase {
         fileToolBizModel.setBaseDir(FileHelper.getAbsoluteFile(projectDir.getParentFile()));
 
         LocalFileOperator operator = new LocalFileOperator(projectDir);
-        List<String> paths = operator.findFilesByFilter("/", FileOperatorHelper::filterNopProjectFiles);
+        List<String> paths = operator.findFilesByFilter("/", FileOperatorHelper::filterNopProjectFiles,0);
 
         Map<String, Object> vars = new HashMap<>();
         String fileTree = StringHelper.join(paths, "\n");

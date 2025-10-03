@@ -26,9 +26,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import static io.nop.commons.CommonErrors.ARG_FILE;
 import static io.nop.commons.CommonErrors.ARG_PATH;
+import static io.nop.commons.CommonErrors.ARG_REGEX;
 import static io.nop.commons.CommonErrors.ARG_SOURCE_PATH;
 import static io.nop.commons.CommonErrors.ARG_SRC_FILE;
 import static io.nop.commons.CommonErrors.ARG_TARGET_FILE;
@@ -37,6 +39,7 @@ import static io.nop.commons.CommonErrors.ERR_FILE_ALREADY_EXISTS;
 import static io.nop.commons.CommonErrors.ERR_FILE_COPY_FAIL;
 import static io.nop.commons.CommonErrors.ERR_FILE_DELETE_FAIL;
 import static io.nop.commons.CommonErrors.ERR_FILE_INVALID_PATH;
+import static io.nop.commons.CommonErrors.ERR_FILE_INVALID_REGEX_PATTERN;
 import static io.nop.commons.CommonErrors.ERR_FILE_MOVE_FAIL;
 import static io.nop.commons.CommonErrors.ERR_FILE_NOT_FOUND;
 import static io.nop.commons.CommonErrors.ERR_FILE_READ_FAIL;
@@ -156,14 +159,14 @@ public class LocalFileOperator implements IFileOperator {
     }
 
     @Override
-    public List<String> findFilesByAntPath(String directory, String pattern) {
+    public List<String> findFilesByAntPath(String directory, String pattern, int maxFileCount) {
         return findFilesByFilter(directory, path -> {
             return pathMatcher.match(pattern, path);
-        });
+        }, maxFileCount);
     }
 
     @Override
-    public List<String> findFilesByFilter(String directory, Predicate<String> filter) {
+    public List<String> findFilesByFilter(String directory, Predicate<String> filter, int maxFileCount) {
         File dir = resolveFile(directory);
         if (!dir.exists()) {
             throw new NopException(ERR_FILE_NOT_FOUND)
@@ -178,6 +181,8 @@ public class LocalFileOperator implements IFileOperator {
                 String relativePath = getRelativePath(file);
                 if (filter.test(relativePath)) {
                     result.add(relativePath);
+                    if (maxFileCount > 0 && result.size() > maxFileCount)
+                        return FileVisitResult.TERMINATE;
                 }
             }
             return FileVisitResult.CONTINUE;
@@ -348,6 +353,82 @@ public class LocalFileOperator implements IFileOperator {
                 writeFileContent(new FileContent(filePath, baseNode.xml()));
             }
         }
+    }
+
+    @Override
+    public List<String> findFilesByGlob(String directory, String pattern, int maxFileCount) {
+        return this.findFilesByAntPath(directory, pattern, maxFileCount);
+    }
+
+    @Override
+    public List<GrepResult> grepFiles(List<String> filePaths, String regex, boolean ignoreCase, int limitPerFile, int totalLimit) {
+        List<GrepResult> results = new ArrayList<>();
+        if (filePaths == null || filePaths.isEmpty() || regex == null || regex.isEmpty()) {
+            return results;
+        }
+
+        // 编译正则表达式
+        int flags = ignoreCase ? Pattern.CASE_INSENSITIVE : 0;
+        Pattern pattern;
+        try {
+            pattern = Pattern.compile(regex, flags);
+        } catch (Exception e) {
+            throw new NopException(ERR_FILE_INVALID_REGEX_PATTERN, e)
+                    .param(ARG_REGEX, regex);
+        }
+
+        int totalMatches = 0;
+
+        for (String filePath : filePaths) {
+            if (totalLimit > 0 && totalMatches >= totalLimit) {
+                break;
+            }
+
+            File file = resolveFile(filePath);
+            if (!file.exists() || !file.isFile()) {
+                continue;
+            }
+
+            try {
+                List<String> lines = FileHelper.readLines(file, "UTF-8");
+                int fileMatches = 0;
+
+                for (int i = 0; i < lines.size(); i++) {
+                    if (limitPerFile > 0 && fileMatches >= limitPerFile) {
+                        break;
+                    }
+                    if (totalLimit > 0 && totalMatches >= totalLimit) {
+                        break;
+                    }
+
+                    String line = lines.get(i);
+                    java.util.regex.Matcher matcher = pattern.matcher(line);
+
+                    if (matcher.find()) {
+                        // 创建GrepResult对象，每个匹配行一个结果
+                        results.add(new GrepResult(filePath, i + 1, line));
+                        fileMatches++;
+                        totalMatches++;
+                    }
+                }
+
+            } catch (Exception e) {
+                LOG.warn("nop.ai.file.grep-fail:path={},file={}", filePath, file, e);
+                // 继续处理其他文件，不抛出异常
+            }
+        }
+
+        return results;
+    }
+
+    @Override
+    public List<GrepResult> globGrep(String directory, String globPattern, String regex,
+                                     boolean ignoreCase, int limitPerFile, int totalLimit) {
+        // 先通过glob模式查找文件
+        List<String> filePaths = findFilesByGlob(directory, globPattern, 0); // 0表示无限制
+
+        // 然后在匹配的文件中执行grep搜索
+        return grepFiles(filePaths, regex, ignoreCase, limitPerFile, totalLimit);
     }
 
     private String getRelativePath(File file) {

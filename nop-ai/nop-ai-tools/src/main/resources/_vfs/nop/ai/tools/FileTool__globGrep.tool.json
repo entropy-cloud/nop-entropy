@@ -1,0 +1,42 @@
+{
+  "description": "Search for files matching a glob pattern and then search within those files for lines matching a regular expression",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "projectName": {
+        "type": "string",
+        "description": "Project name, must be a valid file directory name"
+      },
+      "directory": {
+        "type": "string",
+        "description": "Directory path to search in"
+      },
+      "globPattern": {
+        "type": "string",
+        "description": "Glob pattern to match files against"
+      },
+      "regex": {
+        "type": "string",
+        "description": "Regular expression pattern to search for within matching files"
+      },
+      "ignoreCase": {
+        "type": "boolean",
+        "description": "Whether to perform case-insensitive matching"
+      },
+      "limitPerFile": {
+        "type": "integer",
+        "description": "Maximum number of matching lines to return per file (0 for unlimited)"
+      },
+      "totalLimit": {
+        "type": "integer",
+        "description": "Maximum total number of matching lines across all files (0 for unlimited)"
+      }
+    },
+    "required": [
+      "projectName",
+      "directory",
+      "globPattern",
+      "regex"
+    ]
+  }
+}

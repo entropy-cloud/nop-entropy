@@ -249,7 +249,7 @@ public class CliFileCommand implements Callable<Integer> {
                 return pathMatcher.match(pattern, path);
             }
             return true;
-        });
+        },0);
 
         String text = StringHelper.join(paths, "\n");
 

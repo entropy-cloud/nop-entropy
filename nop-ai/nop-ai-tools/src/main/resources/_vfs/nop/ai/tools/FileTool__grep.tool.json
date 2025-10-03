@@ -1,0 +1,33 @@
+{
+  "description": "Search for lines matching a regular expression in a single file and return the results as formatted strings",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "projectName": {
+        "type": "string",
+        "description": "Project name, must be a valid file directory name"
+      },
+      "filePath": {
+        "type": "string",
+        "description": "Path of the file to search in"
+      },
+      "regex": {
+        "type": "string",
+        "description": "Regular expression pattern to search for"
+      },
+      "ignoreCase": {
+        "type": "boolean",
+        "description": "Whether to perform case-insensitive matching"
+      },
+      "limitPerFile": {
+        "type": "integer",
+        "description": "Maximum number of matching lines to return per file"
+      }
+    },
+    "required": [
+      "projectName",
+      "filePath",
+      "regex"
+    ]
+  }
+}

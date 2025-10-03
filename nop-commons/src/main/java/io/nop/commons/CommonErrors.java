@@ -65,6 +65,8 @@ public interface CommonErrors {
     String ARG_PATH = "path";
     String ARG_FILE = "file";
 
+    String ARG_REGEX = "regex";
+
     String ARG_CACHE_NAME = "cacheName";
 
     String ARG_QUERY = "query";
@@ -326,6 +328,9 @@ public interface CommonErrors {
 
     ErrorCode ERR_FILE_READ_FAIL = define("nop.err.file.read-fail",
             "读取文件失败: {path}", ARG_PATH);
+
+    ErrorCode ERR_FILE_INVALID_REGEX_PATTERN = define("nop.err.file.invalid-regex-pattern",
+            "文件匹配正则表达式格式不正确：{}", ARG_REGEX);
 
     ErrorCode ERR_FILE_WRITE_FAIL = define("nop.err.file.write-fail",
             "写入文件失败: {path}", ARG_PATH);

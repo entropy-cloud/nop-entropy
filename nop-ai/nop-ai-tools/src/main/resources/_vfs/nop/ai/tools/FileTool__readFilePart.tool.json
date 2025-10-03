@@ -1,0 +1,30 @@
+{
+  "description": "Read a specific part of a file from a specified project and return it in XML format",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "projectName": {
+        "type": "string",
+        "description": "Project name, must be a valid file directory name"
+      },
+      "filePath": {
+        "type": "string",
+        "description": "Path of the file to read"
+      },
+      "offset": {
+        "type": "integer",
+        "description": "Starting position (offset) in the file to begin reading from"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of characters to read from the specified offset"
+      }
+    },
+    "required": [
+      "projectName",
+      "filePath",
+      "offset",
+      "limit"
+    ]
+  }
+}

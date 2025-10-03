@@ -1,0 +1,29 @@
+{
+  "description": "Search for files matching a glob pattern in a specified project directory",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "projectName": {
+        "type": "string",
+        "description": "Project name, must be a valid file directory name"
+      },
+      "directory": {
+        "type": "string",
+        "description": "Directory path to search in"
+      },
+      "pattern": {
+        "type": "string",
+        "description": "Glob pattern to match files against"
+      },
+      "maxFileCount": {
+        "type": "integer",
+        "description": "Maximum number of files to return (0 for unlimited)"
+      }
+    },
+    "required": [
+      "projectName",
+      "directory",
+      "pattern"
+    ]
+  }
+}
