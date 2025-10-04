@@ -1,0 +1,29 @@
+{
+  "description": "Save DSL file with format conversion support",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "projectName": {
+        "type": "string",
+        "description": "Project name, must be a valid file directory name"
+      },
+      "filePath": {
+        "type": "string",
+        "description": "Path where to save the DSL file"
+      },
+      "fromFileType": {
+        "type": "string",
+        "description": "Source format of the content (e.g., orm.xml, task.yaml, page.json)"
+      },
+      "content": {
+        "type": "string",
+        "description": "DSL file content to save"
+      }
+    },
+    "required": [
+      "projectName",
+      "filePath",
+      "content"
+    ]
+  }
+}

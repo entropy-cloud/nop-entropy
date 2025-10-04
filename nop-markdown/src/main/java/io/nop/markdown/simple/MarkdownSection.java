@@ -7,8 +7,10 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ITextSerializable;
 import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.lang.ITagSetSupport;
+import io.nop.commons.util.CharSequenceHelper;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.model.tree.ITreeChildrenStructure;
 import io.nop.markdown.MarkdownConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +33,7 @@ import static io.nop.markdown.MarkdownErrors.ARG_TITLE;
 import static io.nop.markdown.MarkdownErrors.ERR_MARKDOWN_MISSING_SECTION;
 
 @DataBean
-public class MarkdownSection extends MarkdownNode implements ITagSetSupport, ITextSerializable {
+public class MarkdownSection extends MarkdownNode implements ITagSetSupport, ITextSerializable, ITreeChildrenStructure {
     static final Logger LOG = LoggerFactory.getLogger(MarkdownSection.class);
 
     private int level;
@@ -40,6 +42,9 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport, ITe
     private String linkUrl;
 
     private String text;
+    private String summary;
+
+    private int tokenCount;
 
     private List<MarkdownSection> children;
 
@@ -88,6 +93,22 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport, ITe
 
     public void mergeWith(MarkdownSection section) {
         MarkdownSectionMerger.instance().merge(this, section);
+    }
+
+    public String getSummary() {
+        return summary;
+    }
+
+    public void setSummary(String summary) {
+        this.summary = summary;
+    }
+
+    public int getTokenCount() {
+        return tokenCount;
+    }
+
+    public void setTokenCount(int tokenCount) {
+        this.tokenCount = tokenCount;
     }
 
     /**
@@ -205,6 +226,7 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport, ITe
         ret.setText(text);
         ret.setSectionNo(sectionNo);
         ret.setLinkUrl(linkUrl);
+        ret.setSummary(summary);
 
         if (includeChildren && children != null) {
             ret.setChildren(children.stream().map(MarkdownSection::cloneInstance).collect(Collectors.toList()));
@@ -618,11 +640,17 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport, ITe
             sb.append("\n");
         }
 
-        if (getText() != null)
-            sb.append(getText()).append("\n");
+        if (getSummary() != null) {
+            sb.append("<summary>")
+                    .append(StringHelper.escapeXmlValue(getSummary()))
+                    .append("</summary>\n");
+        }
 
-        if (sb.length() > 0)
-            sb.append("\n");
+        if (getText() != null)
+            sb.append(getText());
+
+        if (!CharSequenceHelper.endsWith(sb, "\n\n"))
+            sb.append("\n\n");
     }
 
     public void addChild(MarkdownSection child) {
