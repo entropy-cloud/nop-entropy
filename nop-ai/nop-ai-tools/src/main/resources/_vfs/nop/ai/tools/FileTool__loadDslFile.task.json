@@ -1,0 +1,24 @@
+{
+  "description": "Load DSL file and convert to specified format",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "projectName": {
+        "type": "string",
+        "description": "Project name, must be a valid file directory name"
+      },
+      "filePath": {
+        "type": "string",
+        "description": "Path to the DSL file to load"
+      },
+      "toFileType": {
+        "type": "string",
+        "description": "Target file format for conversion (e.g., orm.xml, task.yaml, page.json)"
+      }
+    },
+    "required": [
+      "projectName",
+      "filePath"
+    ]
+  }
+}

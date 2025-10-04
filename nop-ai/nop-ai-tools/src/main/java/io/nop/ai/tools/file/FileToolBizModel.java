@@ -1,5 +1,7 @@
 package io.nop.ai.tools.file;
 
+import io.nop.ai.coder.xdsl.DslToolImpl;
+import io.nop.ai.coder.xdsl.IDslTool;
 import io.nop.ai.core.file.FileContent;
 import io.nop.ai.core.file.FileContents;
 import io.nop.ai.core.file.IFileOperator;
@@ -148,6 +150,49 @@ public class FileToolBizModel {
 
         List<IFileOperator.GrepResult> results = fileOperator.grepFiles(filePaths, regex, ignoreCase, perFile, ttlLimit);
         return convertToGrepStrings(results);
+    }
+
+    @Description("加载DSL文件的元模型定义")
+    @BizQuery
+    public String loadDslSchema(
+            @Name("projectName") String projectName,
+            @Name("schemaPath") String schemaPath) {
+        IDslTool dslTool = getDslTool(projectName);
+        return dslTool.loadDslSchema(schemaPath);
+    }
+
+    @Description("根据文件类型加载对应的DSL元模型定义")
+    @BizQuery
+    public String loadDslSchemaForFileType(
+            @Name("projectName") String projectName,
+            @Name("fileType") String fileType) {
+        IDslTool dslTool = getDslTool(projectName);
+        return dslTool.loadDslSchemaForFileType(fileType);
+    }
+
+    @Description("加载DSL文件并转换为指定格式")
+    @BizQuery
+    public String loadDslFile(
+            @Name("projectName") String projectName,
+            @Name("filePath") String filePath,
+            @Optional @Name("toFileType") String toFileType) {
+        IDslTool dslTool = getDslTool(projectName);
+        return dslTool.loadDslFile(filePath, toFileType);
+    }
+
+    @Description("保存DSL文件，支持格式转换")
+    @BizMutation
+    public void saveDslFile(
+            @Name("projectName") String projectName,
+            @Name("filePath") String filePath,
+            @Optional @Name("fromFileType") String fromFileType,
+            @Name("content") String content) {
+        IDslTool dslTool = getDslTool(projectName);
+        dslTool.saveDslFile(filePath, fromFileType, content);
+    }
+
+    protected IDslTool getDslTool(String projectName) {
+        return new DslToolImpl(getFileOperator(projectName));
     }
 
     private String convertToGrepStrings(List<IFileOperator.GrepResult> results) {

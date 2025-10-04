@@ -1,0 +1,20 @@
+{
+  "description": "Load DSL schema definition for a specific file type",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "projectName": {
+        "type": "string",
+        "description": "Project name, must be a valid file directory name"
+      },
+      "fileType": {
+        "type": "string",
+        "description": "File type to get schema for (e.g., orm.xml, task.xml, xmeta)"
+      }
+    },
+    "required": [
+      "projectName",
+      "fileType"
+    ]
+  }
+}

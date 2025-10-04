@@ -1,0 +1,20 @@
+{
+  "description": "Load DSL schema definition for a specific schema path",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "projectName": {
+        "type": "string",
+        "description": "Project name, must be a valid file directory name"
+      },
+      "schemaPath": {
+        "type": "string",
+        "description": "Path to the DSL schema definition file"
+      }
+    },
+    "required": [
+      "projectName",
+      "schemaPath"
+    ]
+  }
+}
