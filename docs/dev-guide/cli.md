@@ -168,7 +168,7 @@ java -jar nop-cl.jar import-db test.import-db.xml -i=data -s=import-status.json
 ### 命令格式
 
 ```bash
-java -jar nop-cli.jar transform <inputFile>
+java -jar nop-cli.jar convert <inputFile>
     [-o|--output <outputFile>]
 ```
 

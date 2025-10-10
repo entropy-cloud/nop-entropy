@@ -1,0 +1,132 @@
+<svg width="1000" height="680" viewBox="0 0 1000 680" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" style="width:100%;height:auto">
+  <defs>
+    <!-- 统一品牌渐变 -->
+    <linearGradient id="grad-business" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad-engine" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1e40af;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad-foundation" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1e3a8a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e40af;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad-delta-pillar" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#059669;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad-flow" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="white" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0.1"/>
+    </linearGradient>
+    
+    <!-- 统一阴影效果 -->
+    <filter id="soft-shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#1e3a8a" flood-opacity="0.15"/>
+    </filter>
+    <filter id="delta-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#059669" flood-opacity="0.6"/>
+    </filter>
+    
+    <!-- 统一箭头 -->
+    <marker id="arrow-delta" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#059669"/>
+    </marker>
+  </defs>
+
+  <!-- 统一背景 -->
+  <rect width="100%" height="100%" fill="#f8fafc"/>
+
+  <!-- 统一标题样式 - 向上移动25px -->
+  <g id="title-section">
+    <text x="500" y="35" font-size="26" font-weight="700" text-anchor="middle" fill="#1e3a8a">Delta-Oriented Architecture</text>
+    <text x="500" y="60" font-size="16" font-weight="400" text-anchor="middle" fill="#64748b">基于可逆计算的分层扩展架构</text>
+  </g>
+
+  <!-- 业务应用层 - 向上移动25px -->
+  <g id="layer-3" filter="url(#soft-shadow)">
+    <rect x="120" y="75" width="680" height="140" rx="16" fill="url(#grad-business)"/>
+    <rect x="120" y="75" width="680" height="45" rx="16" ry="16" fill="black" fill-opacity="0.15" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+    <text x="140" y="105" font-size="18" font-weight="600" fill="white">业务应用层 (Business Application Layer)</text>
+    
+    <g transform="translate(140, 135)">
+      <rect width="200" height="50" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="100" y="32" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">发卡业务</text>
+    </g>
+    <g transform="translate(350, 135)">
+      <rect width="200" height="50" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="100" y="32" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">收单业务</text>
+    </g>
+    <g transform="translate(560, 135)">
+      <rect width="220" height="50" rx="12" fill="rgba(255,255,255,0.8)" stroke="#d1d5db" stroke-width="1" stroke-dasharray="6 3"/>
+      <text x="110" y="32" text-anchor="middle" fill="#6b7280" font-size="16" font-weight="500">其他业务模块</text>
+    </g>
+  </g>
+
+  <!-- 核心引擎层 - 向上移动25px -->
+  <g id="layer-2" filter="url(#soft-shadow)">
+    <rect x="120" y="235" width="680" height="140" rx="16" fill="url(#grad-engine)"/>
+    <rect x="120" y="235" width="680" height="45" rx="16" ry="16" fill="black" fill-opacity="0.15" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+    <text x="140" y="265" font-size="18" font-weight="600" fill="white">核心引擎层 (Core Engine Layer)</text>
+    
+    <g transform="translate(140, 295)">
+      <rect width="160" height="50" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="80" y="32" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">规则引擎</text>
+    </g>
+    <g transform="translate(310, 295)">
+      <rect width="160" height="50" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="80" y="32" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">批处理引擎</text>
+    </g>
+    <g transform="translate(480, 295)">
+      <rect width="160" height="50" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="80" y="32" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">工作流引擎</text>
+    </g>
+    <g transform="translate(650, 295)">
+      <rect width="130" height="50" rx="12" fill="rgba(255,255,255,0.8)" stroke="#d1d5db" stroke-width="1" stroke-dasharray="6 3"/>
+      <text x="65" y="32" text-anchor="middle" fill="#6b7280" font-size="16" font-weight="500">扩展组件</text>
+    </g>
+  </g>
+
+  <!-- 基础设施层 - 向上移动25px，高度稍微减少10px -->
+  <g id="layer-1" filter="url(#soft-shadow)">
+    <rect x="120" y="395" width="680" height="170" rx="16" fill="url(#grad-foundation)"/>
+    <rect x="120" y="395" width="680" height="45" rx="16" ry="16" fill="black" fill-opacity="0.15" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+    <text x="140" y="425" font-size="18" font-weight="600" fill="white">基础设施层 (Foundation Layer)</text>
+    
+    <g transform="translate(140, 455)">
+      <rect width="310" height="52" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="155" y="24" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">差量虚拟文件系统</text>
+      <text x="155" y="40" text-anchor="middle" fill="#6b7280" font-size="14">(Delta Virtual FileSystem)</text>
+    </g>
+    <g transform="translate(470, 455)">
+      <rect width="310" height="52" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="155" y="24" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">统一模型与差量合并</text>
+      <text x="155" y="40" text-anchor="middle" fill="#6b7280" font-size="14">(Unified Model &amp; x-extends)</text>
+    </g>
+    <g transform="translate(140, 515)">
+      <rect width="310" height="40" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="155" y="27" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">核心领域模型</text>
+    </g>
+    <g transform="translate(470, 515)">
+      <rect width="310" height="40" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="155" y="27" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">代码生成引擎</text>
+    </g>
+  </g>
+  
+  <!-- 差量定制支柱 - 向上移动25px，高度减少35px -->
+  <g id="delta-pillar">
+    <rect x="820" y="75" width="80" height="490" rx="16" fill="url(#grad-delta-pillar)" filter="url(#soft-shadow)"/>
+    <text x="860" y="335" font-size="20" font-weight="700" fill="white" text-anchor="middle" transform="rotate(-90, 860, 335)">
+      差量定制 (Delta Customization)
+    </text>
+  </g>
+  
+  <!-- 连接箭头 - 相应调整位置 -->
+  <g id="delta-arrows" filter="url(#delta-glow)">
+    <path d="M 820 145 C 810 145, 810 145, 800 145" stroke="#059669" stroke-width="3" fill="none" marker-end="url(#arrow-delta)"/>
+    <path d="M 820 305 C 810 305, 810 305, 800 305" stroke="#059669" stroke-width="3" fill="none" marker-end="url(#arrow-delta)"/>
+    <path d="M 820 480 C 810 480, 810 480, 800 480" stroke="#059669" stroke-width="3" fill="none" marker-end="url(#arrow-delta)"/>
+  </g>
+</svg>
