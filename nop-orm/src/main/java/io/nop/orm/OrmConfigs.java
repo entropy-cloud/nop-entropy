@@ -85,4 +85,8 @@ public interface OrmConfigs {
     IConfigReference<Boolean> CFG_ORM_SESSION_CHECK_CONTEXT = varRef(s_loc, "nop.orm.session-check-context",
             Boolean.class, true);
 
+    @Description("如果主动设置了创建人或修改人，则以设置为准，不再自动设置")
+    IConfigReference<Boolean> CFG_ORM_USE_ASSIGNED_USER_TIMESTAMP =
+            varRef(s_loc, "nop.orm.use-assigned-user-timestamp", Boolean.class, false);
+
 }
