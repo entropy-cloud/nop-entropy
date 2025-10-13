@@ -48,13 +48,13 @@
       fill="url(#cardGradient)" filter="url(#shadow)"/>
     <circle cx="60" cy="65" r="32" fill="#2563eb" opacity="0.12"/>
     <text x="60" y="75" text-anchor="middle" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="30" fill="#2563eb">🗂</text>
-    <text x="110" y="50" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="26" font-weight="700" fill="#1e3a8a">DSL 森林</text>
+    <text x="110" y="50" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="26" font-weight="700" fill="#1e3a8a">DSL 图册</text>
     <text x="110" y="75" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="15" font-weight="500" fill="#64748b">领域坐标系</text>
     <text x="40" y="125" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="17" font-weight="500" fill="#475569">• 统一元模型定义</text>
     <text x="40" y="150" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="17" font-weight="500" fill="#475569">• XPath 稳定路径</text>
     <text x="40" y="175" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="17" font-weight="500" fill="#475569">• 跨 DSL 协同</text>
     <rect x="20" y="195" width="280" height="30" rx="10" fill="#f1f5f9"/>
-    <text x="30" y="215" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="13" fill="#64748b" font-weight="500">/app/entity[@name='User']/column[1]</text>
+    <text x="30" y="215" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="13" fill="#64748b" font-weight="500">/orm/entity[@name='User']/column[@name='id']</text>
   </g>
 
   <!-- Delta 差量卡片 -->

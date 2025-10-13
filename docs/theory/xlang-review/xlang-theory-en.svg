@@ -71,7 +71,7 @@
     <text x="110" y="50" 
           font-family="'SF Pro Display', system-ui, sans-serif" 
           font-size="24" font-weight="700" fill="#1e293b">
-      DSL Forest
+      DSL Atlas
     </text>
     <text x="110" y="75" 
           font-family="'SF Pro Display', system-ui, sans-serif" 
@@ -101,7 +101,7 @@
     <text x="30" y="202" 
           font-family="'JetBrains Mono', monospace" 
           font-size="12" fill="#64748b">
-      /app/entity[@name='User']/column[1]
+      /orm/entity[@name='User']/column[@name='id']
     </text>
   </g>
 
