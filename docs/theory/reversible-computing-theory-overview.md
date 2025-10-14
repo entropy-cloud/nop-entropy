@@ -115,13 +115,13 @@ DDD的传统理解是围绕"**语义、约束、演化**"三类不变性：
 可逆计算的视角将我们从"存在"的本体论，引向了"生成"的演化论。我们对软件的理解，从静态的、孤立的"实体"，转向了动态的、关联的"过程"。这一理论不仅提供了具体的技术解决方案，更重要的是提供了一种理解软件构造和演化的全新思维框架，为应对日益复杂的软件系统提供了理论基础和实践路径。
 
 ## 参考文档
-- [可逆计算:下一代软件构造理论](https://mp.weixin.qq.com/s/CwCQgYqQZxYmlZcfXEWlgA)
-- [DDD本质论之理论篇](https://mp.weixin.qq.com/s/xao9AKlOST0d97ztuU3z9Q)
-- [DDD本质论之实践篇](https://mp.weixin.qq.com/s/FsrWW6kmOWHO0hQOS2Wj8g)
-- [对DDD本质论一文的解读](https://mp.weixin.qq.com/s/6bONsaTE79shhSHfrKiyMw)
-- [广义可逆计算: 一个软件构造范式的正名与阐释](https://mp.weixin.qq.com/s/pNXPEvyVB7ljOhBQVh6c-A)
-- [从可逆计算看Delta Oriented Programming](https://mp.weixin.qq.com/s/XQlzQSGo-gqColvDw7UPyA)
-- [Nop如何克服DSL只能应用于特定领域的限制?](https://mp.weixin.qq.com/s/6TOVbqHFmiFIqoXxQrRkYg)
+- [可逆计算:下一代软件构造理论](https://mp.weixin.qq.com/s/CwCQgYqQZxYmlZcfXEWlgA):对可逆计算理论的概要介绍，阐述了其基本原理、核心公式，以及与图灵机、Lambda演算这两种传统计算世界观的区别，定位为第三条通向图灵完备的技术路线。
+- [DDD本质论之理论篇](https://mp.weixin.qq.com/s/xao9AKlOST0d97ztuU3z9Q): 结合（广义）可逆计算理论，从哲学、数学到工程层面，系统性地剖析了DDD（领域驱动设计）的技术内核，认为其有效性背后存在着数学必然性。
+- [DDD本质论之实践篇](https://mp.weixin.qq.com/s/FsrWW6kmOWHO0hQOS2Wj8g):作为理论篇的续篇，重点介绍了Nop平台如何将可逆计算理论应用于DDD的工程实践，将DDD的战略与战术设计有效地落实到代码和架构中，从而降低实践门槛。
+- [DDD本质认知的演进：从实践框架到构造理论](https://mp.weixin.qq.com/s/6bONsaTE79shhSHfrKiyMw): 通过AI辅助的思想实验，对比了传统的DDD概念框架与《DDD本质论》中从第一性原理（空间、时间、坐标系、差量）出发的推导路径，揭示了后者更深刻的内在逻辑。
+- [广义可逆计算: 一个软件构造范式的正名与阐释](https://mp.weixin.qq.com/s/pNXPEvyVB7ljOhBQVh6c-A):为“广义可逆计算”（GRC）正名，阐释了其核心思想——以“差量”（Delta）为第一类公民，系统性地管理软件构造过程中的可逆性与不可逆性，旨在解决“复杂性”这一核心工程难题。
+- [从可逆计算看Delta Oriented Programming](https://mp.weixin.qq.com/s/XQlzQSGo-gqColvDw7UPyA):对比了可逆计算与学术界的面向特征编程（FOP）和面向差量编程（DOP）等理论，指出可逆计算通过引入“场”和“坐标系”的观念，能更有效地管理“预料之外的变化”。
+- [Nop如何克服DSL只能应用于特定领域的限制?](https://mp.weixin.qq.com/s/6TOVbqHFmiFIqoXxQrRkYg):解释了Nop平台如何通过横向（多DSL组合成特性空间）和纵向（多阶段、多层次生成）的分解，克服传统DSL只能应用于特定领域的限制，实现图灵完备的表达能力。
 
 ## 附录：可逆计算是不是一种典型的霸总思维～既要又要还要～
 
