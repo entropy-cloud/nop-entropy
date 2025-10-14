@@ -204,7 +204,7 @@ public class ByteBufferBinaryDataReader implements IBinaryDataReader {
     @Override
     public int read() throws IOException {
         if (bb.hasRemaining())
-            return bb.get();
+            return bb.get() & 0xFF;
         return -1;
     }
 
