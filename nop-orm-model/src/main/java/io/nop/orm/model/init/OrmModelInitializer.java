@@ -269,7 +269,7 @@ public class OrmModelInitializer {
             ref.setOwnerEntityModel(entityModel);
             checkRefPrimary(entityModel, ref);
 
-            OrmEntityModel refEntityModel = ref.getRefEntityModel();
+            OrmEntityModel refEntityModel = (OrmEntityModel) ref.getRefEntityModel();
 
             if (ref.isToManyRelation())
                 collectionMap.put(ref.getCollectionName(), (OrmToManyReferenceModel) ref);
@@ -411,7 +411,7 @@ public class OrmModelInitializer {
 
     void checkRefProp(OrmToManyReferenceModel ref) {
         String keyProp = ref.getKeyProp();
-        OrmEntityModel refEntityModel = ref.getRefEntityModel();
+        OrmEntityModel refEntityModel = (OrmEntityModel) ref.getRefEntityModel();
         if (keyProp != null) {
             IColumnModel col = refEntityModel.getColumn(keyProp, true);
             if (col == null) {

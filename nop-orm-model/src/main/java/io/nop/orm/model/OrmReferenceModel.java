@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.commons.type.StdDataType;
 import io.nop.orm.model._gen._OrmReferenceModel;
+import io.nop.orm.model.utils.OrmModelHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +33,7 @@ public abstract class OrmReferenceModel extends _OrmReferenceModel implements IE
      */
     private boolean mandatory;
 
-    private boolean joinOnNonPkColumn;
+    private Boolean joinOnNonPkColumn;
 
     private List<OrmColumnModel> columns;
     private int[] propIds;
@@ -40,8 +41,14 @@ public abstract class OrmReferenceModel extends _OrmReferenceModel implements IE
 
     private boolean dynamicRelation;
 
+    private IOrmModel ormModel;
+
     public OrmReferenceModel() {
         setQueryable(true);
+    }
+
+    public void setOrmModel(IOrmModel ormModel) {
+        this.ormModel = ormModel;
     }
 
     @Override
@@ -123,7 +130,26 @@ public abstract class OrmReferenceModel extends _OrmReferenceModel implements IE
 
     @Override
     public final boolean isJoinOnNonPkColumn() {
-        return joinOnNonPkColumn;
+        if (joinOnNonPkColumn != null)
+            return joinOnNonPkColumn;
+
+        if (ormModel != null) {
+            IEntityModel refEntityModel = getRefEntityModel();
+
+            for (OrmJoinOnModel joinOn : getJoin()) {
+                String rightProp = joinOn.getRightProp();
+                if (rightProp != null) {
+                    IColumnModel col = refEntityModel.getColumn(rightProp, false);
+                    if (!col.isPrimary()) {
+                        joinOnNonPkColumn = true;
+                        return true;
+                    }
+
+                }
+            }
+        }
+        joinOnNonPkColumn = false;
+        return false;
     }
 
     public void setJoinOnNonPkColumn(boolean joinOnNonPkColumn) {
@@ -137,6 +163,24 @@ public abstract class OrmReferenceModel extends _OrmReferenceModel implements IE
 
     @Override
     public int[] getRefPropIds() {
+        if (ormModel != null) {
+            if (this.getJoin().size() == 1) {
+                OrmJoinOnModel joinOn = this.getJoin().get(0);
+                if (joinOn.getRightProp() != null) {
+                    IColumnModel propModel = getRefEntityModel().getColumn(joinOn.getRightProp(), false);
+                    return new int[]{propModel.getPropId()};
+                }
+            } else {
+                IEntityModel refEntityModel = getRefEntityModel();
+                List<IColumnModel> cols = new ArrayList<>(getJoin().size());
+                for (OrmJoinOnModel joinOn : this.getJoin()) {
+                    if (joinOn.getRightProp() != null) {
+                        cols.add(refEntityModel.getColumn(joinOn.getRightProp(), false));
+                    }
+                }
+                return OrmModelHelper.getPropIds(cols);
+            }
+        }
         return refPropIds;
     }
 
@@ -160,7 +204,10 @@ public abstract class OrmReferenceModel extends _OrmReferenceModel implements IE
     }
 
     @Override
-    public OrmEntityModel getRefEntityModel() {
+    public IEntityModel getRefEntityModel() {
+        if (ormModel != null) {
+            return ormModel.getEntityModel(getRefEntityName());
+        }
         return refEntityModel;
     }
 
