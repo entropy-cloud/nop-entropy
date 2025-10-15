@@ -116,6 +116,13 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: rawVarName
+     * 解析时将读取到的完整的原始数据暂存到上下文中，如果内部解析报错，则日志信息中原始信息
+     */
+    private java.lang.String _rawVarName ;
+    
+    /**
+     *  
      * xml name: readWhen
      * 
      */
@@ -469,6 +476,25 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: rawVarName
+     *  解析时将读取到的完整的原始数据暂存到上下文中，如果内部解析报错，则日志信息中原始信息
+     */
+    
+    public java.lang.String getRawVarName(){
+      return _rawVarName;
+    }
+
+    
+    public void setRawVarName(java.lang.String value){
+        checkAllowChange();
+        
+        this._rawVarName = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: readWhen
      *  
      */
@@ -595,6 +621,7 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         out.putNotNull("lengthExpr",this.getLengthExpr());
         out.putNotNull("name",this.getName());
         out.putNotNull("params",this.getParams());
+        out.putNotNull("rawVarName",this.getRawVarName());
         out.putNotNull("readWhen",this.getReadWhen());
         out.putNotNull("tagsCodec",this.getTagsCodec());
         out.putNotNull("template",this.getTemplate());
@@ -625,6 +652,7 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         instance.setLengthExpr(this.getLengthExpr());
         instance.setName(this.getName());
         instance.setParams(this.getParams());
+        instance.setRawVarName(this.getRawVarName());
         instance.setReadWhen(this.getReadWhen());
         instance.setTagsCodec(this.getTagsCodec());
         instance.setTemplate(this.getTemplate());

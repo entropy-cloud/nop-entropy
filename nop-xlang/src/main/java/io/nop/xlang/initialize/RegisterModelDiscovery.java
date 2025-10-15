@@ -167,8 +167,7 @@ public class RegisterModelDiscovery {
             for (Object loader : loaders) {
                 String type = (String) BeanTool.getProperty(loader, "type");
                 String fileType = (String) BeanTool.getProperty(loader, "fileType");
-                boolean optional = ConvertHelper.toPrimitiveBoolean(BeanTool.getProperty(loader, "optional"),
-                        false, NopException::new);
+
                 String impPath = null;
                 String schemaPath = null;
 
@@ -190,7 +189,15 @@ public class RegisterModelDiscovery {
                         LOG.warn("nop.registry.ignore-xlsx-loader-since-no-xlsx-parser:fileType={},impPath={}",
                                 fileType, impPath);
                     }
-                } else {
+                }
+            }
+
+            for (Object loader : loaders) {
+                String type = (String) BeanTool.getProperty(loader, "type");
+                String fileType = (String) BeanTool.getProperty(loader, "fileType");
+                boolean optional = ConvertHelper.toPrimitiveBoolean(BeanTool.getProperty(loader, "optional"),
+                        false, NopException::new);
+                if ("loader".equals(type)) {
                     initLoader(config, loader, fileType, optional);
                 }
             }
@@ -212,9 +219,13 @@ public class RegisterModelDiscovery {
 
     private void initLoader(ComponentModelConfig config, Object loader, String fileType, boolean optional) {
         String className = (String) BeanTool.getProperty(loader, "className");
+        boolean returnXNode = ConvertHelper.toPrimitiveBoolean(BeanTool.getProperty(loader, "returnXNode"));
 
         try {
-            config.loader(fileType, makeLoaderConfig(null, null, newLoader(className)));
+            IResourceObjectLoader loaderBean = newLoader(className);
+            if (returnXNode)
+                loaderBean = new XNodeToModelResourceObjectLoader(config.getXdefPath(), config.getResolveInDir(), loaderBean);
+            config.loader(fileType, makeLoaderConfig(null, null, loaderBean));
         } catch (NoClassDefFoundError | NopException e) {
             if (!optional) {
                 throw NopException.adapt(e);
