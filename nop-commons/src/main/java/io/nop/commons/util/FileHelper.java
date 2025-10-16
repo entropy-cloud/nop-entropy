@@ -622,6 +622,8 @@ public class FileHelper {
                 path = path.substring(2);
             return getAbsoluteFile(new File(path));
         }
+        if (path.startsWith("./") || !path.startsWith("/"))
+            return new File(currentDir(), path);
         return new File(path);
     }
 

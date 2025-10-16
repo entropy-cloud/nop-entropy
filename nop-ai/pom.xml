@@ -19,7 +19,6 @@
         <module>nop-ai-core</module>
         <module>nop-ai-llms</module>
         <module>nop-ai-dsl-orm</module>
-        <module>nop-ai-translate</module>
         <module>nop-ai-coder</module>
         <module>nop-ai-api</module>
         <module>nop-ai-dao</module>
@@ -28,9 +27,9 @@
         <module>nop-ai-web</module>
         <module>nop-ai-app</module>
         <module>nop-ai-mcp-server</module>
-        <module>nop-ai-code-analyzer</module>
-        <module>nop-ai-deepwiki</module>
         <module>nop-ai-agent</module>
         <module>nop-ai-tools</module>
+        <module>nop-ai-skills</module>
+        <module>nop-ai-rag</module>
     </modules>
 </project>

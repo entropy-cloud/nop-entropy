@@ -1007,7 +1007,7 @@ public class ResourceHelper {
         }
 
         if (path.startsWith("/")) {
-            File file = new File(path);
+            File file = FileHelper.resolveFile(path);
             if (file.exists())
                 return FileHelper.getFileUrl(file);
             return path;
