@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDD的本质论：从理论到工程科学的完整实践</title>
+    <!-- External Libraries: Font Awesome & html2pdf.js -->
+    <link rel="stylesheet" href="../assets/css/all.min.css">
+    <script src="../assets/js/html2pdf.bundle.min.js"></script>
+	<script src="../assets/js/mermaid.min.js"></script>
+	<script src="../assets/js/lightbox.js"></script>
+    <style>
+        /* --- 1. Global Styles & Variables --- */
+        :root {
+            --color-primary: #2563eb;
+            --color-primary-dark: #1e40af;
+            --color-secondary: #059669;
+            --color-warning: #d97706;
+            --color-text-dark: #1f2937;
+            --color-text-light: #4b5563;
+            --color-bg-main: #f4f6f9;
+            --color-bg-slide: #ffffff;
+            --color-border: #e5e7eb;
+            --color-code-bg: #f8fafc;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-code: 'Fira Code', monospace;
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --font-size-base: 1.25rem;
+            --line-height-base: 1.7;
+            --controls-area-height: 40px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--color-bg-main);
+            color: var(--color-text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            line-height: var(--line-height-base);
+        }
+
+        /* --- 2. Core Layout & Container --- */
+        #presentation-container {
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            background: var(--color-bg-slide);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            padding-bottom: var(--controls-area-height);
+        }
+
+        .slides-viewport { flex-grow: 1; position: relative; overflow: hidden; }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 50px 60px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            transform: translateY(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            overflow-y: auto;
+            background-color: var(--color-bg-slide);
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            z-index: 1;
+        }
+		
+        .title-slide .author {
+            font-size: 1.5rem;
+            color: var(--color-text-light);
+            margin-top: 1rem;
+            font-weight: 400;
+        }		
+
+        /* --- 3. Typography --- */
+        h1, h2, h3 { font-weight: 700; line-height: 1.2; }
+        h1 { font-size: 3rem; margin-bottom: 1rem; }
+        h2 { font-size: 2.2rem; color: var(--color-text-dark); border-bottom: 3px solid var(--color-primary); padding-bottom: 0.75rem; margin-bottom: 2.2rem; font-weight: 600; }
+        h3 { font-size: 1.5rem; color: var(--color-primary); margin-bottom: 1rem; }
+        h4 { font-size: 1.25rem; font-weight: 600; color: var(--color-text-dark); margin-bottom: 0.5rem; }
+        p, li { font-size: var(--font-size-base); color: var(--color-text-light); margin-bottom: 1rem; }
+        strong { color: var(--color-primary); font-weight: 600; }
+        ul { list-style: none; padding-left: 0; }
+        li p { margin-bottom: 0.25rem; }
+
+        .font-bold { font-weight: bold; }
+        
+        /* --- 4. UI Components --- */
+        #progress-bar { position: absolute; top: 0; left: 0; height: 4px; background-color: var(--color-primary); width: 0%; transition: width 0.4s ease; z-index: 10; }
+        .controls { position: absolute; bottom: 20px; right: 20px; display: flex; gap: 10px; z-index: 10; }
+        .btn { background-color: var(--color-primary); color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.2s ease; box-shadow: var(--shadow-md); }
+        .btn:hover:not(:disabled) { background-color: var(--color-primary-dark); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+        .btn:disabled { background-color: #9ca3af; cursor: not-allowed; transform: none; box-shadow: var(--shadow-md); }
+        #pdf-btn { background-color: var(--color-secondary); }
+        #pdf-btn:hover:not(:disabled) { background-color: #047857; }
+        #print-btn { background-color: #6366f1; }
+        #print-btn:hover:not(:disabled) { background-color: #4f46e5; }
+        #slide-counter { position: absolute; bottom: 20px; left: 20px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(5px); padding: 8px 14px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; color: var(--color-text-dark); box-shadow: var(--shadow-md); z-index: 10; }
+        
+        #timer-display { position: absolute; top: 20px; right: 20px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(5px); padding: 8px 14px; border-radius: 8px; font-size: 1.2rem; font-weight: 600; color: var(--color-text-dark); box-shadow: var(--shadow-md); z-index: 10; font-family: var(--font-code); }
+
+        /* --- 5. Content Modules --- */
+        .slide.title-slide { justify-content: center; align-items: center; text-align: center; }
+        .title-slide h1 { font-size: 3.5rem; color: var(--color-text-dark); }
+        .title-slide .subtitle { font-size: 1.5rem; color: var(--color-text-light); font-weight: 400; max-width: 80%; }
+        .icon-list { list-style: none; padding: 0; margin: 1.5rem 0; }
+        .icon-bullet { display: flex; gap: 16px; background-color: var(--color-code-bg); padding: 16px; border-radius: 10px; margin-bottom: 12px; border: 1px solid var(--color-border); transition: all 0.3s ease; }
+        .icon-bullet:hover { transform: translateX(5px); box-shadow: var(--shadow-md); }
+        .icon-bullet i { font-size: 1.25rem; color: var(--color-primary); margin-top: 5px; flex-shrink: 0; width: 24px; text-align: center; }
+        .icon-bullet div { flex-grow: 1; }
+        .icon-bullet p { margin-bottom: 0.25rem; color: var(--color-text-dark); font-weight: 500; }
+        .icon-bullet .details { font-size: calc(var(--font-size-base) - 0.2rem); color: var(--color-text-light); font-weight: 400; }
+        
+        .two-column { display: flex; gap: 40px; align-items: flex-start; width: 100%; margin-top: 1.5rem; }
+        .column { flex: 1; }
+        
+        .code-block { background-color: var(--color-code-bg); color: var(--color-text-dark); padding: 1em 1.5em; border-radius: 8px; overflow-x: auto; font-family: var(--font-code); font-size: 0.95rem; line-height: 1.6; border: 1px solid var(--color-border); margin: 1.5rem 0; }
+        
+        .img-placeholder { width: 100%; height: auto; min-height: 250px; background-color: var(--color-code-bg); border: 2px dashed var(--color-border); border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--color-text-light); margin: 1.5rem 0; padding: 2rem; text-align: center; }
+        .img-placeholder i { font-size: 3rem; margin-bottom: 1rem; }
+        
+        .highlight-box { background-color: #eff6ff; border-left: 4px solid var(--color-primary); padding: 20px; margin: 1.5rem 0; border-radius: 0 8px 8px 0; }
+        .quote { background: #fffbeb; border-left: 4px solid var(--color-warning); padding: 20px; margin: 1.5rem 0; border-radius: 0 8px 8px 0; font-style: italic; color: #92400e; }
+        .quote p { font-size: calc(var(--font-size-base) + 0.1rem); }
+        
+        .mermaid-container { background-color: var(--color-code-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--color-border); margin: 1.5rem 0; overflow: auto; display: flex; justify-content: center; }
+        .mermaid { width: 100%;display:flex;justify-content:center;}
+		
+        .comparison-layout { display: grid; grid-template-columns: 1fr auto 1fr; gap: 2rem; align-items: stretch; margin: 2rem 0; }
+        .comparison-left, .comparison-right { padding: 2rem; border-radius: 16px; border: 3px solid; display: flex; flex-direction: column; }
+        .comparison-left { background: #fef2f2; border-color: var(--color-danger); }
+        .comparison-right { background: #f0fdf4; border-color: var(--color-secondary); }
+        .comparison-divider { display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 900; color: var(--color-primary); }
+        .comparison-left h4, .comparison-right h4 { text-align:center; font-size: 1.8rem; margin-bottom: 1.5rem; display:flex; align-items:center; justify-content:center; gap: 10px; }
+        .comparison-left h4 { color: var(--color-danger); }
+        .comparison-right h4 { color: var(--color-secondary); }
+        .comparison-left p, .comparison-right p, .comparison-left li, .comparison-right li { font-size: 1.5rem; }
+
+        /* --- 6. Responsive & Print Styles --- */
+        @media (max-width: 768px) {
+            .slide { padding: 30px; }
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.5rem; }
+            .two-column { flex-direction: column; }
+            .controls { right: auto; left: 50%; transform: translateX(-50%); }
+            #slide-counter, #timer-display { display: none; }
+        }
+
+        @media print {
+            body { background: #fff !important; height: auto; overflow: visible; display: block; }
+            .controls, #progress-bar, #slide-counter, #timer-display { display: none !important; }
+            #presentation-container { display: block; width: 100%; height: auto; box-shadow: none; border: none; padding: 0; }
+            .slides-viewport { overflow: visible; height: auto; }
+            .slide { display: flex !important; opacity: 1 !important; visibility: visible !important; transform: none !important; position: relative; page-break-after: always; page-break-inside: avoid; width: 100%; height: auto; aspect-ratio: 16 / 12; border: 1px solid #ddd; margin-bottom: 20px; box-shadow: none; border-radius: 0; overflow: hidden; }
+            .slide:last-of-type { page-break-after: avoid; }
+            svg * { animation-play-state: paused !important; }
+        }
+        
+        .pdf-page-container { width: 100%; height: auto; background: white; color: black; box-shadow: none; }
+        .pdf-slide { position: relative !important; opacity: 1 !important; visibility: visible !important; transform: none !important; height: auto !important; width: 100%; background: white; border: 1px solid #eeeeee; padding: 40px 50px; box-shadow: none; margin-bottom: 0; overflow: hidden; page-break-after: always; break-inside: avoid; aspect-ratio: 16 / 12; }
+        .pdf-slide:last-of-type { page-break-after: avoid; }
+    </style>
+</head>
+<body>
+    <div id="presentation-container">
+        <!-- UI Elements -->
+        <div id="progress-bar"></div>
+        <div id="slide-counter">1 / 21</div>
+        <div id="timer-display"></div>
+
+        <!-- Slides Viewport -->
+        <div class="slides-viewport">
+            
+            <!-- Slide 1: Title Slide -->
+            <section class="slide active title-slide">
+                <h1>DDD的本质论：从理论到工程科学的完整实践</h1>
+                <p class="subtitle">基于可逆计算与Nop平台，实现“涌现”的领域驱动设计</p>
+                <p class="author">Canonical</p>
+            </section>
+
+            <!-- Slide 2: Challenge -->
+            <section class="slide">
+                <h2>挑战：从“高手的艺术”到“工程科学”</h2>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-palette"></i>
+                        <div>
+                            <p><strong>当前困境</strong>: DDD理论宏大，但实践中常沦为依赖个人经验和悟性的“高手的艺术”。</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-heart-crack"></i>
+                        <div>
+                            <p><strong>核心痛点</strong>:</p>
+                            <span class="details">架构易腐化 (熵增定律)、理论与代码脱节、团队纪律难以维持。</span>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-bullseye"></i>
+                        <div>
+                            <p><strong>我们的目标</strong>: 将DDD转变为一门<strong>可编排、可验证、可演化</strong>的工程科学。</p>
+                        </div>
+                    </li>
+                </ul>
+                <div class="highlight-box">
+                    <p><strong>解决方案</strong>: 引入<strong>可逆计算</strong>作为DDD的统一技术内核。</p>
+                </div>
+            </section>
+            
+            <!-- Copy Slide 3: 限界上下文的物理化 -->
+            <section class="slide">
+                <h2>限界上下文的物理化：从概念到“DSL图册”</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <h4>传统方式</h4>
+                        <p>限界上下文（BC）是一个模糊的逻辑概念，存在于文档和团队的口头约定中。</p>
+                        <h4>Nop平台实践</h4>
+                        <p>将BC物理化为：</p>
+                        <ul style="padding-left: 20px; list-style-type: decimal;">
+                            <li><p><strong>独立的模块根目录</strong> (如 <code>/nop/iam</code>)。</p></li>
+                            <li><p>一套专属的<strong>DSL图册 (Atlas)</strong>，统一由<code>XDef</code>元模型约束。</p></li>
+                        </ul>
+                    </div>
+                    <div class="column">
+                        <div class="highlight-box">
+                            <p><i class="fa-solid fa-star" style="margin-right: 8px; color: var(--color-warning);"></i><strong>核心价值:</strong> 统一语言（Ubiquitous Language）不再是文档，而是可执行、可验证的<strong>领域坐标系</strong>。</p>
+                        </div>
+                         <div class="highlight-box" style="border-color: var(--color-secondary);">
+                            <p><i class="fa-solid fa-lightbulb" style="margin-right: 8px; color: var(--color-secondary);"></i><strong>亮点:</strong> 所有DSL模型均支持Excel与XML/JSON无损互转，业务人员可直接参与建模。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 4: Context Mapping Engineering -->
+            <section class="slide">
+                <h2>上下文映射的工程化：可执行的协作机制</h2>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <div><p><strong>异步通信</strong>: 统一的 <code>IMessageService</code> 接口，内置可靠事件(Outbox模式)。</p></div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-phone-volume"></i>
+                        <div><p><strong>同步通信</strong>: 统一的 <code>IRpcService</code> 接口，提供类似Feign的强类型调用。</p></div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-right-left"></i>
+                        <div><p><strong>模式转换</strong>: 可在RPC信道上模拟消息，也可在消息总线上模拟RPC，体现设计的对称性。</p></div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-handshake"></i>
+                        <div><p><strong>分布式事务</strong>: 内置<code>NopTcc</code>，支持TCC和Saga模式。</p></div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <div><p><strong>反腐层(ACL)</strong>: 通过<code>Xpl</code>模板或<code>record-mapping</code> DSL实现，逻辑可<code>Delta</code>定制演化。</p></div>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Slide 5: Hexagonal Architecture Guardrails (1/2) -->
+            <section class="slide">
+                <h2>六边形架构的强制护栏 (1/2)</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <h3>端口的纯粹性</h3>
+                        <p><strong>核心原则</strong>: 最小化信息表达（只描述What，不描述How），实现框架中立。</p>
+                        <p><code>@BizModel</code>仅声明业务语义，不含任何HTTP路径等技术细节，从根源上保证领域模型纯洁。</p>
+                    </div>
+                    <div class="column">
+                        <h3>契约由模型唯一派生 (SSOT)</h3>
+                        <div class="mermaid-container">
+                            <div class="mermaid">
+graph TD
+    A[XMeta 元模型] -->|自动生成| B(GraphQL Schema)
+    A -->|自动生成| C(OpenAPI)
+    A -->|自动生成| D(校验逻辑)
+    A -->|自动生成| E(前端表单)
+    style A fill:#1e40af,color:#fff,stroke:#1e3a8a
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Copy Slide 6: Hexagonal Architecture Guardrails (2/2) -->
+<section class="slide">
+    <h2>六边形架构的强制护栏 (2/2)</h2>
+    <div class="highlight-box">
+        <p><i class="fa-solid fa-plus-circle" style="margin-right: 1rem;"></i><strong>实现细节的非侵入式补充:</strong> 通过<code>Delta</code>差量机制，为<code>XMeta</code>补充<code>rest:path</code>等扩展属性。</p>
+    </div>
+    <div class="formula" style="font-size: 1.8rem; margin: 2rem auto;">
+        最终契约 = 纯粹模型 ⊕ 差量配置
+    </div>
+    <div class="highlight-box" style="border-left-color: var(--color-secondary); background: #f0fdf4;">
+        <p style="color: #065f46;"><i class="fa-solid fa-toggle-on" style="margin-right: 1rem;"></i><strong>适配器的可配置替换:</strong> 所有外部交互都通过适配器完成，可在<code>_delta</code>目录下通过配置<strong>无需修改代码</strong>即可替换实现（如切换消息队列）。</p>
+    </div>
+     <div class="quote" style="margin: 2.5rem auto 0;">
+        <p>平台强制的约束，让六边形架构从“设计理念”变为“编译时护栏”。</p>
+    </div>
+</section>
+
+            <!-- Slide 7: Aggregate/Entity/Value Object -->
+            <section class="slide">
+                <h2>聚合/实体/值对象：由NopORM统一承载</h2>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-puzzle-piece"></i>
+                        <div><p><strong>实体</strong>: 采用<code>Generation Gap</code>模式生成，分离机械代码与业务代码。</p></div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-calculator"></i>
+                        <div><p><strong>值对象</strong>: 通过<code>OrmComponent</code>实现，一种建立在实体字段上的<strong>可计算视图</strong>，比JPA的<code>@Embeddable</code>更灵活。</p></div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-circle-nodes"></i>
+                        <div><p><strong>内置差量</strong>: <code>OrmEntity</code>自带状态跟踪(<code>dirtyProps</code>)，实现高性能差量更新与安全的命令合并。</p></div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-plus-square"></i>
+                        <div><p><strong>动态扩展</strong>: 内置扩展字段机制，无需修改DDL即可为实体动态增加字段。</p></div>
+                    </li>
+                </ul>
+            </section>
+
+            <!--Copy Slide 8: Repository & Service Transparency -->
+<section class="slide">
+    <h2>仓储与服务的透明化：告别模板代码</h2>
+    <div class="comparison-layout" style="margin-top: 1.5rem;">
+        <div class="comparison-left" style="background: #eef2ff; border-color: #6366f1;">
+            <h4 style="color: #4338ca;"><i class="fa-solid fa-wave-square"></i> 长波背景 (CRUD)</h4>
+            <p>由统一的<code>IEntityDao</code>和<code>QueryBean</code>自动化处理。</p>
+        </div>
+        <div class="comparison-divider" style="font-size: 3rem;">⊕</div>
+        <div class="comparison-right" style="background: #f0f9ff; border-color: #3b82f6;">
+            <h4 style="color: #1d4ed8;"><i class="fa-solid fa-brain"></i> 短波前景 (领域逻辑)</h4>
+            <p>开发者聚焦于此，在<code>XBiz</code>或`NopTaskFlow`中实现。</p>
+        </div>
+    </div>
+    <div class="detail-note">
+        <strong>统一的工具集:</strong>
+        <ul style="padding-left: 2rem; margin-top: 1rem;">
+            <li style="margin-bottom: 1rem;"><strong>统一仓储:</strong> 完备的<code>IEntityDao</code>，无需为每个实体派生自定义Repository。</li>
+            <li style="margin-bottom: 0;"><strong>统一查询:</strong> 强大的<code>QueryBean</code>和超越MyBatis的<code>sql-lib</code>机制。</li>
+        </ul>
+    </div>
+    <div class="highlight-box" style="margin-top: 2rem;">
+        <p><i class="fa-solid fa-rocket" style="margin-right: 1rem;"></i><strong>结果:</strong> 彻底从增删改查的模板代码中解放。</p>
+    </div>
+</section>
+
+            <!-- Slide 9: Logic Orchestration -->
+            <section class="slide">
+                <h2>逻辑编排：NopTaskFlow与NopRule</h2>
+                 <div class="two-column">
+                    <div class="column">
+                        <h3>NopTaskFlow</h3>
+                        <p>轻量级、细粒度的流程编排引擎。可用于分布式服务编排或服务内函数级逻辑组合，通过<code>XBiz</code>模型无缝集成。</p>
+                    </div>
+                     <div class="column">
+                        <h3>NopRule</h3>
+                        <p>专业的决策引擎，支持决策表、决策树。可通过Excel可视化配置，与TaskFlow无缝集成。</p>
+                    </div>
+                </div>
+                <div class="quote">
+                    <p><strong>清晰分工</strong>: 仓储(<code>IEntityDao</code>) &rarr; 应用服务(<code>XBiz</code>) &rarr; 流程编排(<code>TaskFlow</code>) &rarr; 复杂决策(<code>Rule</code>)。</p>
+                </div>
+            </section>
+
+            <!-- Copy Slide 10: Event-Driven Emergence -->
+            <section class="slide">
+                <h2>事件驱动的自然涌现：从“刻意为之”到“外部挂件”</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <h4>传统问题</h4>
+                        <p>在业务代码中手动发布事件（<code>eventPublisher.publish(...)</code>），具有侵入性，导致业务逻辑与事件耦合。</p>
+                    </div>
+                    <div class="column">
+                        <h4>Nop平台方案</h4>
+                        <ol style="list-style: decimal; padding-left: 20px;">
+                            <li><p><strong>全域可观测性:</strong> 在各层DSL模型（服务、持久化、流程）中预留标准化的<strong>观测点</strong>（如<code>&lt;observe&gt;</code>）。</p></li>
+                            <li><p><strong>声明式事件编织:</strong> 通过<code>Delta</code>差量文件，向观测点<strong>非侵入式地注入</strong>监听逻辑。</p></li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="highlight-box" style="margin-top: 1.5rem;">
+                    <p><i class="fa-solid fa-wand-magic-sparkles" style="margin-right: 8px;"></i><strong>核心价值:</strong> 事件驱动能力从平台中<strong>自然涌现</strong>，而不是在业务代码中“写”出来，实现了业务与事件的彻底解耦。</p>
+                </div>
+            </section>
+
+            <!-- Slide 11: NopGraphQL -->
+            <section class="slide">
+                <h2>查询演进：NopGraphQL，CQRS与N+1的终结者</h2>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-shapes"></i>
+                        <div><p><strong>GraphQL新诠释</strong>: 通用的信息分解与组合引擎 (<code>REST</code>是<code>GraphQL</code>的全选特例)。</p></div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-pen-ruler"></i>
+                        <div><p><strong>内置CQRS</strong>: 两阶段执行模型天然分离了写操作（事务内）和读加工（只读）。</p></div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-bolt"></i>
+                        <div><p><strong>N+1自动解决</strong>: <code>@BizLoader</code> + <code>DataLoader</code>机制，自动批量加载关联数据。</p></div>
+                    </li>
+                </ul>
+                <div class="quote">
+                    <p><strong>聚合根与GraphQL的对偶统一</strong>: 聚合根是<strong>信息构造</strong>，GraphQL是<strong>信息解构</strong>。</p>
+                </div>
+            </section>
+
+            <!-- Slide 12: Terminating Deadlocks -->
+            <section class="slide">
+                <h2>终结顽疾：从根源上解决数据库死锁</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <h3>NopORM写操作流程</h3>
+                        <ol style="padding-left: 20px;">
+                            <li>延迟所有数据库写操作到事务提交前。</li>
+                            <li>在`flush`阶段，对所有INSERT/UPDATE/DELETE操作进行<strong>全局排序</strong>。</li>
+                            <li>排序依据：表依赖和主键。</li>
+                        </ol>
+                        <div class="highlight-box">
+                            <p>确保并发事务对锁的获取顺序确定且一致，从系统层面“设计掉”死锁。</p>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="mermaid-container">
+                            <div class="mermaid">
+sequenceDiagram
+    participant App
+    participant ORM
+    participant DB
+    App->>ORM: update(obj1), update(obj2)
+    note right of ORM: Writes are buffered
+    App->>ORM: flush()
+    ORM->>ORM: Sort writes by table & PK
+    ORM->>DB: Execute sorted writes
+    DB-->>ORM: OK
+    ORM-->>App: OK
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Copy Slide 13: Architecture Panorama -->
+            <section class="slide">
+                <h2>架构全景图：统一技术内核与平台化能力</h2>
+                <div class="two-column">
+                    <div class="column">
+<svg id="SvgjsSvg1006" viewBox="0 0 900 650" style="width: 500px; height: auto; border: 1px solid var(--color-border); border-radius: 8px;" width="500" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs"><defs id="SvgjsDefs1007"><marker id="SvgjsMarker1044" markerWidth="16" markerHeight="12" refX="16" refY="6" viewBox="0 0 16 12" orient="auto" markerUnits="userSpaceOnUse" stroke-dasharray="0,0"><path id="SvgjsPath1045" d="M0,2 L14,6 L0,11 L0,2" fill="#323232" stroke="#323232" stroke-width="2"></path></marker><marker id="SvgjsMarker1058" markerWidth="16" markerHeight="12" refX="16" refY="6" viewBox="0 0 16 12" orient="auto" markerUnits="userSpaceOnUse" stroke-dasharray="0,0"><path id="SvgjsPath1059" d="M0,2 L14,6 L0,11 L0,2" fill="#323232" stroke="#323232" stroke-width="2"></path></marker><marker id="SvgjsMarker1072" markerWidth="16" markerHeight="12" refX="16" refY="6" viewBox="0 0 16 12" orient="auto" markerUnits="userSpaceOnUse" stroke-dasharray="0,0"><path id="SvgjsPath1073" d="M0,2 L14,6 L0,11 L0,2" fill="#323232" stroke="#323232" stroke-width="2"></path></marker><marker id="SvgjsMarker1112" markerWidth="16" markerHeight="12" refX="16" refY="6" viewBox="0 0 16 12" orient="auto" markerUnits="userSpaceOnUse" stroke-dasharray="0,0"><path id="SvgjsPath1113" d="M0,2 L14,6 L0,11 L0,2" fill="#323232" stroke="#323232" stroke-width="2"></path></marker><marker id="SvgjsMarker1144" markerWidth="16" markerHeight="12" refX="16" refY="6" viewBox="0 0 16 12" orient="auto" markerUnits="userSpaceOnUse" stroke-dasharray="0,0"><path id="SvgjsPath1145" d="M0,2 L14,6 L0,11 L0,2" fill="#323232" stroke="#323232" stroke-width="2"></path></marker><marker id="SvgjsMarker1158" markerWidth="16" markerHeight="12" refX="16" refY="6" viewBox="0 0 16 12" orient="auto" markerUnits="userSpaceOnUse" stroke-dasharray="0,0"><path id="SvgjsPath1159" d="M0,2 L14,6 L0,11 L0,2" fill="#323232" stroke="#323232" stroke-width="2"></path></marker><marker id="SvgjsMarker1172" markerWidth="16" markerHeight="12" refX="16" refY="6" viewBox="0 0 16 12" orient="auto" markerUnits="userSpaceOnUse" stroke-dasharray="0,0"><path id="SvgjsPath1173" d="M0,2 L14,6 L0,11 L0,2" fill="#323232" stroke="#323232" stroke-width="2"></path></marker></defs><g id="SvgjsG1008" transform="translate(160.09999084472656,25.00000762939453)"><path id="SvgjsPath1009" d="M 0 4Q 0 0 4 0L 714 0Q 718 0 718 4L 718 602.999993801117Q 718 606.999993801117 714 606.999993801117L 4 606.999993801117Q 0 606.999993801117 0 602.999993801117Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill="none"></path><g id="SvgjsG1010"><text id="SvgjsText1011" font-family="Arial" text-anchor="middle" font-size="13px" width="708px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="34.73214241436549" transform="rotate(0)"></text></g></g><g id="SvgjsG1012" transform="translate(401,148.4000015258789)"><path id="SvgjsPath1013" d="M 0 4Q 0 0 4 0L 423.5 0Q 427.5 0 427.5 4L 427.5 183Q 427.5 187 423.5 187L 4 187Q 0 187 0 183Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1014"><text id="SvgjsText1015" font-family="Arial" text-anchor="middle" font-size="13px" width="418px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="4.732142857142856" transform="rotate(0)"><tspan id="SvgjsTspan1016" dy="16" x="214"><tspan id="SvgjsTspan1017" style="text-decoration:;">BizObject</tspan></tspan></text></g></g><g id="SvgjsG1018" transform="translate(407.09999084472656,396.00000190734863)"><path id="SvgjsPath1019" d="M 0 4Q 0 0 4 0L 424.8000183105469 0Q 428.8000183105469 0 428.8000183105469 4L 428.8000183105469 204Q 428.8000183105469 208 424.8000183105469 208L 4 208Q 0 208 0 204Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1020"><text id="SvgjsText1021" font-family="Arial" text-anchor="middle" font-size="13px" width="419px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="6.232142857142856" transform="rotate(0)"><tspan id="SvgjsTspan1022" dy="16" x="214.5"><tspan id="SvgjsTspan1023" style="text-decoration:;">ORM</tspan></tspan></text></g></g><g id="SvgjsG1024" transform="translate(661.4000091552734,171.9000015258789)"><path id="SvgjsPath1025" d="M 0 0L 117 0L 117 43L 0 43Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1026"><text id="SvgjsText1027" font-family="Arial" text-anchor="middle" font-size="13px" width="97px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="11.875" transform="rotate(0)"><tspan id="SvgjsTspan1028" dy="16" x="58.5"><tspan id="SvgjsTspan1029" style="text-decoration:;">BizModel</tspan></tspan></text></g></g><g id="SvgjsG1030" transform="translate(169.09999084472656,159.9000015258789)"><path id="SvgjsPath1031" d="M 0 0L 90 0L 90 67L 0 67Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1032"><text id="SvgjsText1033" font-family="Arial" text-anchor="middle" font-size="13px" width="70px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="23.875" transform="rotate(0)"><tspan id="SvgjsTspan1034" dy="16" x="45"><tspan id="SvgjsTspan1035" style="text-decoration:;">GQLEngine</tspan></tspan></text></g></g><g id="SvgjsG1036" transform="translate(29,159.9000015258789)"><path id="SvgjsPath1037" d="M 0 22.11L 83.5 22.11L 83.5 0L 117 33.5L 83.5 67L 83.5 44.89L 0 44.89L 0 22.11Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1038"><text id="SvgjsText1039" font-family="Arial" text-anchor="middle" font-size="13px" width="117px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="23.875" transform="rotate(0)"><tspan id="SvgjsTspan1040" dy="16" x="58.5"><tspan id="SvgjsTspan1041" style="text-decoration:;">GraphQL</tspan></tspan></text></g></g><g id="SvgjsG1042"><path id="SvgjsPath1043" d="M259.09999084472656 199.4000015258789L329.84999084472656 199.4000015258789L329.84999084472656 199.4000015258789L400.59999084472656 199.4000015258789" stroke="#323232" stroke-width="2" fill="none" marker-end="url(#SvgjsMarker1044)"></path><rect id="SvgjsRect1046" width="26" height="16" x="316.84999084472656" y="191.4000015258789" fill="#ffffff"></rect><text id="SvgjsText1047" font-family="Arial" text-anchor="middle" font-size="13px" width="26px" fill="#323232" font-weight="400" align="top" lineHeight="16px" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="189.7750015258789" transform="rotate(0)"><tspan id="SvgjsTspan1048" dy="16" x="329.84999084472656"><tspan id="SvgjsTspan1049" style="text-decoration:;">分派</tspan></tspan></text></g><g id="SvgjsG1050" transform="translate(450.40000915527344,171.9000015258789)"><path id="SvgjsPath1051" d="M 0 0L 117 0L 117 43L 0 43Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1052"><text id="SvgjsText1053" font-family="Arial" text-anchor="middle" font-size="13px" width="97px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="11.875" transform="rotate(0)"><tspan id="SvgjsTspan1054" dy="16" x="58.5"><tspan id="SvgjsTspan1055" style="text-decoration:;">CRUD</tspan></tspan></text></g></g><g id="SvgjsG1056"><path id="SvgjsPath1057" d="M661.4000091552734 193.4000015258789L613.9000091552734 193.4000015258789L613.9000091552734 193.4000015258789L567.4000091552734 193.4000015258789" stroke="#323232" stroke-width="2" fill="none" marker-end="url(#SvgjsMarker1058)"></path><rect id="SvgjsRect1060" width="26" height="16" x="601.4000091552734" y="185.4000015258789" fill="#ffffff"></rect><text id="SvgjsText1061" font-family="Arial" text-anchor="middle" font-size="13px" width="26px" fill="#323232" font-weight="400" align="top" lineHeight="16px" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="183.7750015258789" transform="rotate(0)"><tspan id="SvgjsTspan1062" dy="16" x="614.4000091552734"><tspan id="SvgjsTspan1063" style="text-decoration:;">扩展</tspan></tspan></text></g><g id="SvgjsG1064" transform="translate(450.40000915527344,256.9000015258789)"><path id="SvgjsPath1065" d="M 0 0L 117 0L 117 43L 0 43Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1066"><text id="SvgjsText1067" font-family="Arial" text-anchor="middle" font-size="13px" width="97px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="11.875" transform="rotate(0)"><tspan id="SvgjsTspan1068" dy="16" x="58.5"><tspan id="SvgjsTspan1069" style="text-decoration:;">Workflow</tspan></tspan></text></g></g><g id="SvgjsG1070"><path id="SvgjsPath1071" d="M661.4000091552734 193.4000015258789L613.4000091552734 193.4000015258789L613.4000091552734 278.4000015258789L567.4000091552734 278.4000015258789" stroke="#323232" stroke-width="2" fill="none" marker-end="url(#SvgjsMarker1072)"></path></g><g id="SvgjsG1074" transform="translate(433.5,431.4000015258789)"><path id="SvgjsPath1075" d="M 0 0L 98 0L 98 38L 0 38Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1076"><text id="SvgjsText1077" font-family="Arial" text-anchor="middle" font-size="13px" width="78px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="9.375" transform="rotate(0)"><tspan id="SvgjsTspan1078" dy="16" x="49"><tspan id="SvgjsTspan1079" style="text-decoration:;">延迟加载</tspan></tspan></text></g></g><g id="SvgjsG1080" transform="translate(567,431.4000015258789)"><path id="SvgjsPath1081" d="M 0 0L 98 0L 98 38L 0 38Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1082"><text id="SvgjsText1083" font-family="Arial" text-anchor="middle" font-size="13px" width="78px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="9.375" transform="rotate(0)"><tspan id="SvgjsTspan1084" dy="16" x="49"><tspan id="SvgjsTspan1085" style="text-decoration:;">批量加载</tspan></tspan></text></g></g><g id="SvgjsG1086" transform="translate(568,544.4000015258789)"><path id="SvgjsPath1087" d="M 0 0L 98 0L 98 38L 0 38Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1088"><text id="SvgjsText1089" font-family="Arial" text-anchor="middle" font-size="13px" width="78px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="9.375" transform="rotate(0)"><tspan id="SvgjsTspan1090" dy="16" x="49"><tspan id="SvgjsTspan1091" style="text-decoration:;">分库分表</tspan></tspan></text></g></g><g id="SvgjsG1092" transform="translate(695.5,544.4000015258789)"><path id="SvgjsPath1093" d="M 0 0L 98 0L 98 38L 0 38Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1094"><text id="SvgjsText1095" font-family="Arial" text-anchor="middle" font-size="13px" width="78px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="9.375" transform="rotate(0)"><tspan id="SvgjsTspan1096" dy="16" x="49"><tspan id="SvgjsTspan1097" style="text-decoration:;">分布式事务</tspan></tspan></text></g></g><g id="SvgjsG1098" transform="translate(433.5,544.4000015258789)"><path id="SvgjsPath1099" d="M 0 0L 98 0L 98 38L 0 38Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1100"><text id="SvgjsText1101" font-family="Arial" text-anchor="middle" font-size="13px" width="78px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="9.375" transform="rotate(0)"><tspan id="SvgjsTspan1102" dy="16" x="49"><tspan id="SvgjsTspan1103" style="text-decoration:;">异构数据源</tspan></tspan></text></g></g><g id="SvgjsG1104" transform="translate(433.5,489.4000015258789)"><path id="SvgjsPath1105" d="M 0 0L 98 0L 98 38L 0 38Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1106"><text id="SvgjsText1107" font-family="Arial" text-anchor="middle" font-size="13px" width="78px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="9.375" transform="rotate(0)"><tspan id="SvgjsTspan1108" dy="16" x="49"><tspan id="SvgjsTspan1109" style="text-decoration:;">扩展字段</tspan></tspan></text></g></g><g id="SvgjsG1110"><path id="SvgjsPath1111" d="M621.9000091552734 335.4000015258789L621.9000091552734 365.70000171661377L621.5 365.70000171661377L621.5 396.00000190734863" stroke="#323232" stroke-width="2" fill="none" marker-end="url(#SvgjsMarker1112)"></path><rect id="SvgjsRect1114" width="26" height="16" x="608.7000045776367" y="357.70000171661377" fill="#ffffff"></rect><text id="SvgjsText1115" font-family="Arial" text-anchor="middle" font-size="13px" width="26px" fill="#323232" font-weight="400" align="top" lineHeight="16px" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="356.07500171661377" transform="rotate(0)"><tspan id="SvgjsTspan1116" dy="16" x="621.7000045776367"><tspan id="SvgjsTspan1117" style="text-decoration:;">使用</tspan></tspan></text></g><g id="SvgjsG1118" transform="translate(695.5,431.4000015258789)"><path id="SvgjsPath1119" d="M 0 0L 98 0L 98 38L 0 38Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1120"><text id="SvgjsText1121" font-family="Arial" text-anchor="middle" font-size="13px" width="78px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="9.375" transform="rotate(0)"><tspan id="SvgjsTspan1122" dy="16" x="49"><tspan id="SvgjsTspan1123" style="text-decoration:;">数据缓存</tspan></tspan></text></g></g><g id="SvgjsG1124" transform="translate(695.5,486.4000015258789)"><path id="SvgjsPath1125" d="M 0 0L 98 0L 98 38L 0 38Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1126"><text id="SvgjsText1127" font-family="Arial" text-anchor="middle" font-size="13px" width="78px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="9.375" transform="rotate(0)"><tspan id="SvgjsTspan1128" dy="16" x="49"><tspan id="SvgjsTspan1129" style="text-decoration:;">修改跟踪</tspan></tspan></text></g></g><g id="SvgjsG1130" transform="translate(567,486.4000015258789)"><path id="SvgjsPath1131" d="M 0 0L 98 0L 98 38L 0 38Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1132"><text id="SvgjsText1133" font-family="Arial" text-anchor="middle" font-size="13px" width="78px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="9.375" transform="rotate(0)"><tspan id="SvgjsTspan1134" dy="16" x="49"><tspan id="SvgjsTspan1135" style="text-decoration:;">历史版本</tspan></tspan></text></g></g><g id="SvgjsG1136" transform="translate(661.4000091552734,256.9000015258789)"><path id="SvgjsPath1137" d="M 0 0L 117 0L 117 43L 0 43Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1138"><text id="SvgjsText1139" font-family="Arial" text-anchor="middle" font-size="13px" width="97px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="11.875" transform="rotate(0)"><tspan id="SvgjsTspan1140" dy="16" x="58.5"><tspan id="SvgjsTspan1141" style="text-decoration:;">StateMachine</tspan></tspan></text></g></g><g id="SvgjsG1142"><path id="SvgjsPath1143" d="M719.9000091552734 214.9000015258789L719.9000091552734 237.9000015258789L719.9000091552734 237.9000015258789L719.9000091552734 256.9000015258789" stroke="#323232" stroke-width="2" fill="none" marker-end="url(#SvgjsMarker1144)"></path><rect id="SvgjsRect1146" width="26" height="16" x="706.9000091552734" y="227.9000015258789" fill="#ffffff"></rect><text id="SvgjsText1147" font-family="Arial" text-anchor="middle" font-size="13px" width="26px" fill="#323232" font-weight="400" align="top" lineHeight="16px" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="226.2750015258789" transform="rotate(0)"><tspan id="SvgjsTspan1148" dy="16" x="719.9000091552734"><tspan id="SvgjsTspan1149" style="text-decoration:;">驱动</tspan></tspan></text></g><g id="SvgjsG1150" transform="translate(298.5,256.9000015258789)"><path id="SvgjsPath1151" d="M 0 33.5L 40 0L 80 33.5L 40 67Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1152"><text id="SvgjsText1153" font-family="Arial" text-anchor="middle" font-size="13px" width="60px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="24.21" transform="rotate(0)"><tspan id="SvgjsTspan1154" dy="16" x="40"><tspan id="SvgjsTspan1155" style="text-decoration:;">操作权限</tspan></tspan></text></g></g><g id="SvgjsG1156"><path id="SvgjsPath1157" d="M338.09999084472656 256.9000015258789L338.09999084472656 237.95000171661377L338.09999084472656 237.95000171661377L338.09999084472656 219.00000190734863" stroke="#323232" stroke-width="2" fill="none" marker-end="url(#SvgjsMarker1158)"></path><rect id="SvgjsRect1160" width="26" height="16" x="325.09999084472656" y="229.95000171661377" fill="#ffffff"></rect><text id="SvgjsText1161" font-family="Arial" text-anchor="middle" font-size="13px" width="26px" fill="#323232" font-weight="400" align="top" lineHeight="16px" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="228.32500171661377" transform="rotate(0)"><tspan id="SvgjsTspan1162" dy="16" x="338.09999084472656"><tspan id="SvgjsTspan1163" style="text-decoration:;">限制</tspan></tspan></text></g><g id="SvgjsG1164" transform="translate(276,44.400001525878906)"><path id="SvgjsPath1165" d="M 0 40L 62.5 0L 125 40L 62.5 80Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1166"><text id="SvgjsText1167" font-family="Arial" text-anchor="middle" font-size="13px" width="105px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="30.775" transform="rotate(0)"><tspan id="SvgjsTspan1168" dy="16" x="62.5"><tspan id="SvgjsTspan1169" style="text-decoration:;">数据权限</tspan></tspan></text></g></g><g id="SvgjsG1170"><path id="SvgjsPath1171" d="M337.09999084472656 124.4000015258789L337.09999084472656 158.20000076293945L337.09999084472656 158.20000076293945L337.09999084472656 192" stroke="#323232" stroke-width="2" fill="none" marker-end="url(#SvgjsMarker1172)"></path><rect id="SvgjsRect1174" width="26" height="16" x="324.09999084472656" y="150.20000076293945" fill="#ffffff"></rect><text id="SvgjsText1175" font-family="Arial" text-anchor="middle" font-size="13px" width="26px" fill="#323232" font-weight="400" align="top" lineHeight="16px" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="148.57500076293945" transform="rotate(0)"><tspan id="SvgjsTspan1176" dy="16" x="337.09999084472656"><tspan id="SvgjsTspan1177" style="text-decoration:;">过滤</tspan></tspan></text></g><g id="SvgjsG1178" transform="translate(25,268.4000015258789)"><path id="SvgjsPath1179" d="M 0 22.11L 91.5 22.11L 91.5 0L 125 33.5L 91.5 67L 91.5 44.89L 0 44.89L 0 22.11Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1180"><text id="SvgjsText1181" font-family="Arial" text-anchor="middle" font-size="13px" width="125px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="23.875" transform="rotate(0)"><tspan id="SvgjsTspan1182" dy="16" x="62.5"><tspan id="SvgjsTspan1183" style="text-decoration:;">MessageQueue</tspan></tspan></text></g></g><g id="SvgjsG1184" transform="translate(25,360.4000015258789)"><path id="SvgjsPath1185" d="M 0 22.11L 91.5 22.11L 91.5 0L 125 33.5L 91.5 67L 91.5 44.89L 0 44.89L 0 22.11Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1186"><text id="SvgjsText1187" font-family="Arial" text-anchor="middle" font-size="13px" width="125px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="23.875" transform="rotate(0)"><tspan id="SvgjsTspan1188" dy="16" x="62.5"><tspan id="SvgjsTspan1189" style="text-decoration:;">RPC</tspan></tspan></text></g></g><g id="SvgjsG1190" transform="translate(25,454.8000030517578)"><path id="SvgjsPath1191" d="M 0 22.11L 91.5 22.11L 91.5 0L 125 33.5L 91.5 67L 91.5 44.89L 0 44.89L 0 22.11Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1192"><text id="SvgjsText1193" font-family="Arial" text-anchor="middle" font-size="13px" width="125px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="23.875" transform="rotate(0)"><tspan id="SvgjsTspan1194" dy="16" x="62.5"><tspan id="SvgjsTspan1195" style="text-decoration:;">BatchFile</tspan></tspan></text></g></g><g id="SvgjsG1196" transform="translate(762.5,187)"><path id="SvgjsPath1197" d="M 0 21.5C 0 -7.166666666666667 43 -7.166666666666667 43 21.5C 43 50.166666666666664 0 50.166666666666664 0 21.5Z" stroke="rgba(50,50,50,1)" stroke-width="2" fill-opacity="1" fill="#ffffed"></path><g id="SvgjsG1198"><text id="SvgjsText1199" font-family="Arial" text-anchor="middle" font-size="13px" width="23px" fill="#323232" font-weight="400" align="middle" lineHeight="125%" anchor="middle" family="Arial" size="13px" weight="400" font-style="" opacity="1" y="11.875" transform="rotate(0)"><tspan id="SvgjsTspan1200" dy="16" x="21.5"><tspan id="SvgjsTspan1201" style="text-decoration:;">Biz</tspan></tspan></text></g></g></svg>
+                    </div>
+                    <div class="column">
+                        <h4>总结</h4>
+                        <ul class="icon-list" style="margin-top: 0.5rem;">
+                            <li class="icon-bullet" style="padding: 10px;"><i class="fa-solid fa-sitemap"></i><div><p>领域模型为中心</p><span class="details"><code>BizObject</code> + <code>ORM</code></span></div></li>
+                            <li class="icon-bullet" style="padding: 10px;"><i class="fa-solid fa-cogs"></i><div><p>多引擎平台化集成</p><span class="details">GraphQL, Workflow, Rule</span></div></li>
+                            <li class="icon-bullet" style="padding: 10px;"><i class="fa-solid fa-database"></i><div><p>透明的数据访问增强</p><span class="details">延迟/批量加载, 分布式事务</span></div></li>
+                            <li class="icon-bullet" style="padding: 10px;"><i class="fa-solid fa-shield-alt"></i><div><p>正交的安全架构</p></div></li>
+                        </ul>
+                        <p><strong>结论:</strong> 开发者无需刻意遵循DDD，便能自然获得健壮、可演化的系统架构。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 14: Unified Evolution Formula -->
+            <section class="slide">
+                <h2>统一演化公式：Y = F(X) ⊕ Δ</h2>
+                <pre class="code-block" style="text-align: center; font-size: 2rem; font-weight: bold; padding: 2rem;">有效模型 = Generator&lt;基础模型&gt; ⊕ Δ</pre>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-lightbulb"></i>
+                        <div><p><strong>深刻洞察</strong>: 全量是差量的特例 (<code>A = 0 + A</code>)。这统一了“从零构建”和“定制修改”。</p></div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-clone"></i>
+                        <div><p><strong>同构设计</strong>: 差量的表达形式与全量完全一致，仅通过<code>x:override</code>等元数据表达变更意图。</p></div>
+                    </li>
+                </ul>
+                <div class="highlight-box">
+                    <p>统一的差量表达，贯穿前后端、数据库，极大简化系统设计。</p>
+                </div>
+            </section>
+
+            <!-- Slide 15: Deterministic Construction -->
+            <section class="slide">
+                <h2>确定性构造：S-N-V加载与分形生产线</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <h3>S-N-V加载管道</h3>
+                        <p>所有DSL模型都经过三个确定性阶段：</p>
+                        <div class="mermaid-container">
+                            <div class="mermaid">
+graph TD
+    S[S: Structure Merge] --> N[N: Normalization] --> V[V: Validation]
+    style S fill:#eff6ff,stroke:#2563eb
+    style N fill:#f0fdf4,stroke:#059669
+    style V fill:#fefce8,stroke:#d97706
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <h3>分形软件生产线</h3>
+                        <!-- Image placeholder as requested -->
+                        <svg width="700" height="400" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow-final-18" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur in="SourceAlpha" stdDeviation="5"/><feOffset dx="0" dy="4" result="offsetblur"/><feFlood flood-color="rgba(30, 64, 175, 0.15)"/><feComposite in2="offsetblur" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <marker id="arrow-final-18" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#1e3a8a"/></marker>
+    <!-- Arrow Gradient -->
+    <linearGradient id="arrow-grad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#1e3a8a"/></linearGradient>
+    <!-- Module Fills -->
+    <linearGradient id="fill-backend" x1="0" y1="0" x2="0" y2="1"><stop offset="0.5" stop-color="#3b82f6"/><stop offset="0.5" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="fill-frontend" x1="0" y1="0" x2="0" y2="1"><stop offset="0.5" stop-color="#10b981"/><stop offset="0.5" stop-color="#059669"/></linearGradient>
+    <linearGradient id="fill-source" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1e3a8a"/><stop offset="100%" stop-color="#1e40af"/></linearGradient>
+    <linearGradient id="fill-service" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#d97706"/></linearGradient>
+  </defs>
+  
+  <rect x="50" y="90" width="900" height="450" rx="20" fill="#f8fafc" stroke="#e5e7eb"/>
+  <rect x="65" y="105" width="425" height="420" rx="12" fill="rgba(37, 99, 235, 0.03)"/>
+  <rect x="510" y="105" width="425" height="420" rx="12" fill="rgba(5, 150, 105, 0.03)"/>
+  
+  <text x="500" y="60" text-anchor="middle" font-family="'Inter', sans-serif" font-size="32" font-weight="700" fill="#1e3a8a">差量化的软件生产线</text>
+  
+  <text x="280" y="130" text-anchor="middle" font-family="'Inter', sans-serif" font-size="18" font-weight="600" fill="#2563eb">后台 (Backend)</text>
+  <text x="725" y="130" text-anchor="middle" font-family="'Inter', sans-serif" font-size="18" font-weight="600" fill="#059669">前台 (Frontend)</text>
+  
+  <rect x="90" y="280" width="120" height="100" rx="12" fill="url(#fill-backend)" filter="url(#shadow-final-18)"/><text x="150" y="310" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">XORM</text><text x="150" y="355" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">_XORM</text>
+  <ellipse cx="150" cy="450" rx="70" ry="40" fill="url(#fill-source)" filter="url(#shadow-final-18)"/><text x="150" y="455" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">Excel</text>
+  <rect x="290" y="280" width="120" height="100" rx="12" fill="url(#fill-backend)" filter="url(#shadow-final-18)"/><text x="350" y="310" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">XMeta</text><text x="350" y="355" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">_XMeta</text>
+  <rect x="560" y="280" width="120" height="100" rx="12" fill="url(#fill-frontend)" filter="url(#shadow-final-18)"/><text x="620" y="310" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">XView</text><text x="620" y="355" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">_XView</text>
+  <rect x="760" y="280" width="120" height="100" rx="12" fill="url(#fill-frontend)" filter="url(#shadow-final-18)"/><text x="820" y="310" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">XPage</text><text x="820" y="355" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">_XPage</text>
+  <rect x="440" y="160" width="120" height="50" rx="12" fill="url(#fill-service)" filter="url(#shadow-final-18)"/><text x="500" y="190" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">GraphQL</text>
+  <rect x="760" y="160" width="120" height="50" rx="12" fill="url(#fill-source)" filter="url(#shadow-final-18)"/><text x="820" y="190" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">界面</text>
+  
+  <g stroke-width="3.5" fill="none" marker-end="url(#arrow-final-18)" stroke="#3b82f6">
+    <line x1="150" y1="410" x2="150" y2="380"/>
+    <path d="M210,305 L250,305 L250,355 L290,355"/>
+    <path d="M410,305 L500,305 L500,355 L560,355"/>
+    <path d="M680,305 L720,305 L720,355 L760,355"/>
+    <line x1="820" y1="280" x2="820" y2="210"/>
+    <path d="M350,280 L350,185 L440,185"/>
+  </g>
+  
+  <text x="360" y="225" text-anchor="middle" font-family="'Inter', sans-serif" font-size="15" fill="#d97706" font-weight="600">+ BizModel</text>
+  <text x="500" y="130" text-anchor="middle" font-family="'Inter', sans-serif" font-size="18" font-weight="600" fill="#d97706">服务层</text>
+</svg>
+                        <p>每一步都遵循 <code>Y = F(X) ⊕ Δ</code>，生成器和差量本身也可以递归分解。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 16: Full-Stack Delta Customization -->
+            <section class="slide">
+                <h2>全栈差量化定制：不改一行代码的演化之道</h2>
+                <p><strong>差量文件系统</strong>: 类似Docker的UnionFS，通过<code>_delta</code>目录下的分层覆盖实现系统级资源定制。</p>
+                
+                <h3>范式转变</h3>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-code-branch"></i>
+                        <div>
+                            <p>从: <code>1 Core + N Forks</code> (分支地狱)</p>
+                            <p>到: <code>1 Base + N Deltas</code> (可组合的差量宇宙)</p>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="highlight-box">
+                    <p><strong>价值</strong>: 保证基础产品可独立升级，定制逻辑可累积复用。</p>
+                </div>
+            </section>
+            
+            <!-- Copy Slide 17: Contract is Test -->
+            <section class="slide">
+                <h2>契约即测试：全链路溯源与快照测试</h2>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <div><p>活文档</p><span class="details">Excel模型即“可执行合同”，驱动DDL、后端服务、API、前端骨架的自动生成。</span></div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-route"></i>
+                        <div><p>全链路溯源</p><span class="details">任何模型元素都可一键<code>_dump</code>，追溯其完整的“生成+修改”历史。</span></div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-camera"></i>
+                        <div><p>快照测试</p><span class="details">通过<code>@EnableSnapshot</code>自动录制服务调用的输入、输出及<strong>所有副作用</strong>。<strong>完备的可观测性</strong>将不确定的测试恢复为确定性的纯函数，极大降低自动化测试的创建和维护成本。</span></div>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Slide 18: Paradigm Revolution -->
+            <section class="slide">
+                <h2>范式革命：从“应用DDD”到“涌现DDD”</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <h3>传统DDD</h3>
+                        <p>如牛顿力学，需精确分析每个“作用力”（有意识地应用模式）。</p>
+                    </div>
+                    <div class="column">
+                        <h3>Nop平台</h3>
+                        <p>如广义相对论，塑造一个“弯曲时空”，好的设计是沿“测地线”的自然结果。</p>
+                    </div>
+                </div>
+                <div class="quote">
+                    <p>平台<strong>内化</strong>了DDD模式，而非在应用层提供抽象。就像DI框架内化了单例模式，开发者只需声明，无需手动实现。</p>
+                </div>
+                 <div class="highlight-box">
+                    <p><strong>终极目标</strong>: <strong>忘记DDD</strong>。当构造工具源自第一性原理时，合乎领域本质的结构会<strong>自然涌现</strong>。</p>
+                </div>
+            </section>
+            
+            <!-- Slide 19: Case Study & Enlightenment -->
+            <section class="slide">
+                <h2>案例实证与启示：思想重于形式</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <h3>案例</h3>
+                        <p>某大型银行核心系统，在<strong>非Nop平台</strong>技术栈（SpringBoot+MyBatis）上成功实践可逆计算思想。</p>
+                        <h3>关键实践</h3>
+                        <p>开发<code>Delta Aware</code>模型加载器、改造MyBatis引入上下文、将前端JSON配置差量化管理。</p>
+                    </div>
+                    <div class="column">
+                        <h3>启示</h3>
+                        <ul class="icon-list" style="margin-top:0;">
+                            <li class="icon-bullet"><i class="fa-solid fa-brain"></i><div><p>可逆计算是一种<strong>架构思想</strong>。</p></div></li>
+                            <li class="icon-bullet"><i class="fa-solid fa-person-walking-arrow-right"></i><div><p>可以<strong>渐进式演进</strong>。</p></div></li>
+                            <li class="icon-bullet"><i class="fa-solid fa-gem"></i><div><p>它解决的是软件工程的<strong>本质性痛点</strong>。</p></div></li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 20: Summary -->
+            <section class="slide">
+                <h2>总结</h2>
+                <p>我们展示了如何通过<code>可逆计算</code>和<code>Nop平台</code>，将DDD从抽象理论，转变为一套严谨、闭环、可演化的工程科学。</p>
+                <h3>核心价值</h3>
+                <ul class="icon-list">
+                    <li class="icon-bullet"><i class="fa-solid fa-landmark"></i><div><p><strong>制度化</strong>的战略设计</p></div></li>
+                    <li class="icon-bullet"><i class="fa-solid fa-server"></i><div><p><strong>平台化</strong>的战术模式</p></div></li>
+                    <li class="icon-bullet"><i class="fa-solid fa-infinity"></i><div><p><strong>系统化</strong>的演化能力</p></div></li>
+                </ul>
+                <div class="highlight-box">
+                    <p><strong>最终愿景</strong>: 让开发者从“如何正确构建”的技术问题中解放，回归到“构建什么业务”的根本问题。</p>
+                </div>
+            </section>
+
+            <!-- Slide 21: Q&A -->
+            <section class="slide title-slide">
+                <h1>Q&A</h1>
+                <p class="subtitle">问题与讨论</p>
+                <div style="margin-top: 3rem; text-align: center; font-size: 1.2rem;">
+                    <p style="font-weight: 600; margin-bottom: 1rem;">项目地址</p>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; font-family: var(--font-code);">
+                        <a style="color: var(--color-primary);text-decoration:none" href="https://github.com/entropy-cloud/nop-entropy" >https://github.com/entropy-cloud/nop-entropy</a>
+                        <a style="color: var(--color-primary);text-decoration:none" href="https://gitee.com/canonical-entropy/nop-entropy">https://gitee.com/canonical-entropy/nop-entropy</a>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn" id="home-btn" title="First Slide"><i class="fa-solid fa-home"></i></button>
+            <button class="btn" id="prev-btn" title="Previous"><i class="fa-solid fa-arrow-left"></i></button>
+            <button class="btn" id="next-btn" title="Next"><i class="fa-solid fa-arrow-right"></i></button>
+            <button class="btn" id="fullscreen-btn" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+            <button class="btn" id="print-btn" title="Print"><i class="fa-solid fa-print"></i></button>
+            <button class="btn" id="pdf-btn" title="Export to PDF"><i class="fa-solid fa-file-pdf"></i></button>
+        </div>
+    </div>
+
+    <script>
+    // Mermaid图表配置和初始化
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'default',
+        securityLevel: 'loose',
+        fontFamily: 'var(--font-main)',
+        flowchart: {
+            useMaxWidth: false,
+            htmlLabels: true,
+            curve: 'basis'
+        },
+		sequence:{
+		   useMaxWidth:false
+		}
+    });
+	
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('presentation-container');
+        const allSlides = document.querySelectorAll('.slide');
+        const homeBtn = document.getElementById('home-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const printBtn = document.getElementById('print-btn');
+        const pdfBtn = document.getElementById('pdf-btn');
+        const slideCounter = document.getElementById('slide-counter');
+        const progressBar = document.getElementById('progress-bar');
+        const timerDisplay = document.getElementById('timer-display');
+        
+        let currentSlide = 0;
+        const totalSlides = allSlides.length;
+
+        function showSlide(index, skipHashUpdate = false) {
+            if (index < 0 || index >= totalSlides) return;
+            allSlides.forEach((slide, i) => slide.classList.toggle('active', i === index));
+            currentSlide = index;
+            updateControls();
+            if (!skipHashUpdate) {
+                updateHash(index);
+            }
+        }
+
+        function updateControls() {
+            slideCounter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+            progressBar.style.width = `${((currentSlide + 1) / totalSlides) * 100}%`;
+            prevBtn.disabled = currentSlide === 0;
+            nextBtn.disabled = currentSlide === totalSlides - 1;
+        }
+
+        function nextSlide() { showSlide(currentSlide + 1); }
+        function prevSlide() { showSlide(currentSlide - 1); }
+        function goToFirstSlide() { showSlide(0); }
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => alert(`Cannot enter fullscreen mode: ${err.message}`));
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        function updateHash(index) {
+            const hash = `#slide-${index + 1}`;
+            if (window.location.hash !== hash) {
+                history.pushState({slide: index}, `Slide ${index + 1}`, hash);
+            }
+        }
+        function parseHashToIndex() {
+            const h = window.location.hash;
+            const m = h.match(/#slide-(\d+)/);
+            if (m) {
+                const idx = parseInt(m[1], 10) - 1;
+                if (!isNaN(idx) && idx >= 0 && idx < totalSlides) return idx;
+            }
+            return 0;
+        }
+
+        function printPresentation() { window.print(); }
+
+        async function prepareForPdf(container) {
+            
+            return container;
+        }
+        
+        function exportToPDF() {
+            const originalButtonContent = pdfBtn.innerHTML;
+            pdfBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+            pdfBtn.disabled = true;
+            
+            const pdfContainer = document.createElement('div');
+            pdfContainer.className = 'pdf-page-container';
+            
+            // Clone all slides into a temporary container for PDF generation
+            allSlides.forEach(slide => {
+                const clone = slide.cloneNode(true);
+                clone.classList.remove('active');
+                clone.classList.add('pdf-slide');
+                pdfContainer.appendChild(clone);
+            });
+            document.body.appendChild(pdfContainer);
+
+            
+            
+
+            // Wait a moment for Mermaid to render before creating the PDF
+            setTimeout(() => {
+                prepareForPdf(pdfContainer).then(preparedContainer => {
+                    const options = {
+                        margin: 0,
+                        filename: 'DDD-Essence-Presentation.pdf',
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true, allowTaint: true, letterRendering: true },
+                        jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+                        pagebreak: { mode: ['css'] }
+                    };
+
+                    html2pdf().set(options).from(preparedContainer).save().then(() => {
+                        document.body.removeChild(preparedContainer);
+                        pdfBtn.innerHTML = originalButtonContent;
+                        pdfBtn.disabled = false;
+                    }).catch(err => {
+                        console.error('PDF export failed:', err);
+                        document.body.removeChild(preparedContainer);
+                        pdfBtn.innerHTML = originalButtonContent;
+                        pdfBtn.disabled = false;
+                        alert('PDF export failed. Check the console for details.');
+                    });
+                });
+            }, 500); // 500ms delay for rendering
+        }
+        
+        function updateTimer() {
+            if (!timerDisplay) return;
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            timerDisplay.textContent = `${hours}:${minutes}`;
+        }
+
+        homeBtn.addEventListener('click', goToFirstSlide);
+        nextBtn.addEventListener('click', nextSlide);
+        prevBtn.addEventListener('click', prevSlide);
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+        printBtn.addEventListener('click', printPresentation);
+        pdfBtn.addEventListener('click', exportToPDF);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+            const keyMap = { 'ArrowRight': nextSlide, ' ': nextSlide, 'PageDown': nextSlide, 'ArrowLeft': prevSlide, 'PageUp': prevSlide, 'Home': goToFirstSlide, 'End': () => showSlide(totalSlides - 1) };
+            if (keyMap[e.key]) {
+                e.preventDefault();
+                keyMap[e.key]();
+            }
+        });
+
+        let touchStartX = 0;
+        container.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+        container.addEventListener('touchend', e => {
+            const touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 50) nextSlide();
+            if (touchEndX - touchStartX > 50) prevSlide();
+        });
+
+        window.addEventListener('popstate', (e) => {
+            const idx = e.state ? e.state.slide : parseHashToIndex();
+            if (idx !== currentSlide) {
+                showSlide(idx, true);
+            }
+        });
+
+        const initialIndex = parseHashToIndex();
+        showSlide(initialIndex, true);
+        if (window.location.hash === '') {
+           updateHash(initialIndex);
+        }
+
+        updateTimer();
+        setInterval(updateTimer, 1000 * 30); // Update every 30 seconds
+setTimeout(()=>{
+		  window.enableContentLightboxForSelector && window.enableContentLightboxForSelector('.mermaid svg, .column img,.slide svg')
+		}, 1000);
+    });
+    </script>
+</body>
+</html>
