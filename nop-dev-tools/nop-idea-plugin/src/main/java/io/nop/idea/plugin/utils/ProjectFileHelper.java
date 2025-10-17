@@ -5,7 +5,6 @@ package io.nop.idea.plugin.utils;
 import java.io.File;
 import java.net.URL;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -23,6 +22,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.search.ProjectAndLibrariesScope;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlElement;
 import com.intellij.util.containers.CollectionFactory;
@@ -35,6 +35,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.dict.DictProvider;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.idea.plugin.resource.ProjectEnv;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ProjectFileHelper {
@@ -98,9 +99,15 @@ public class ProjectFileHelper {
         return ResourceHelper.getStdPath(path);
     }
 
+    public static @NotNull GlobalSearchScope getSearchScope(@NotNull Project project) {
+        return new ProjectAndLibrariesScope(project);
+    }
+
     /** 查找所有的 *.xdef 资源路径 */
     public static Collection<String> findAllXdefNopVfsPaths(Project project) {
-        return FilenameIndex.getAllFilesByExt(project, "xdef")
+        GlobalSearchScope scope = getSearchScope(project);
+
+        return FilenameIndex.getAllFilesByExt(project, "xdef", scope)
                             .stream()
                             .map(ProjectFileHelper::getNopVfsStdPath)
                             .filter(Objects::nonNull)
@@ -109,7 +116,9 @@ public class ProjectFileHelper {
 
     /** 查找所有的 Nop 字典资源路径 */
     public static Collection<String> findAllDictNopVfsPaths(Project project) {
-        return FilenameIndex.getAllFilesByExt(project, "dict.yaml")
+        GlobalSearchScope scope = getSearchScope(project);
+
+        return FilenameIndex.getAllFilesByExt(project, "dict.yaml", scope)
                             .stream()
                             .map(ProjectFileHelper::getNopVfsStdPath)
                             .filter(Objects::nonNull)
@@ -127,12 +136,15 @@ public class ProjectFileHelper {
 
     /** 查找所有 vfs 资源路径 */
     public static Collection<String> findAllNopVfsPaths(Project project) {
+        GlobalSearchScope scope = getSearchScope(project);
+
         Set<String> names = CollectionFactory.createSmallMemoryFootprintSet();
-        Collections.addAll(names, FilenameIndex.getAllFilenames(project));
+        FilenameIndex.processAllFileNames((name) -> {
+            names.add(name);
+            return true;
+        }, scope, null);
 
         Set<String> vfsPaths = CollectionFactory.createSmallMemoryFootprintSet();
-
-        GlobalSearchScope scope = GlobalSearchScope.allScope(project);
         FilenameIndex.processFilesByNames(names, true, scope, null, (file) -> {
             String vfsPath = getNopVfsPath(file);
 
@@ -192,8 +204,7 @@ public class ProjectFileHelper {
             return null;
         }
 
-        CharSequence str = document.getCharsSequence().subSequence(beginOffset, endOffset);
-        return str;
+        return document.getCharsSequence().subSequence(beginOffset, endOffset);
     }
 
     // copy from XsltBreakpointHandler

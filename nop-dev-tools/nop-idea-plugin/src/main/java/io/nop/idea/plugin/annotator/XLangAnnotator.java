@@ -160,6 +160,7 @@ public class XLangAnnotator implements Annotator {
     }
 
     private void checkTagValue(@NotNull AnnotationHolder holder, @NotNull XLangTag tag) {
+        // TODO 标签唯一性检查：未显式声明的，只能有一个，不能重复
         XDefTypeDecl xdefValue = tag.getSchemaDefNodeXdefValue();
         TextRange textRange = tag.getValue().getTextRange();
         String bodyText = tag.hasChildTag() ? null : tag.getBodyText();

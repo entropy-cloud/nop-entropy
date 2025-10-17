@@ -24,6 +24,8 @@ import io.nop.xlang.xdef.IXDefNode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static io.nop.idea.plugin.lang.reference.XLangReferenceHelper.XLANG_NAME_COMPARATOR;
+
 /**
  * {@link io.nop.xlang.xdsl.XDslKeys#PROTOTYPE x:prototype} 的值引用
  *
@@ -88,6 +90,7 @@ public class XLangXPrototypeReference extends XLangReferenceBase {
         return getKeyAttrElement(protoTag, keyAttr);
     }
 
+    /** @return {@link io.nop.xlang.xdsl.XDslKeys#PROTOTYPE x:prototype} 可引用的值（即，在兄弟节点上指定的唯一属性值） */
     @Override
     public Object @NotNull [] getVariants() {
         // Note: 在自动补全阶段，DSL 结构很可能是不完整的，只能从 xml 角度做分析
@@ -106,7 +109,7 @@ public class XLangXPrototypeReference extends XLangReferenceBase {
                      .filter(Objects::nonNull)
                      .map((child) -> child instanceof XLangAttribute attr ? attr.getValue() : child.getName())
                      .filter(Objects::nonNull)
-                     .sorted(XLangReferenceHelper.XLANG_NAME_COMPARATOR)
+                     .sorted(XLANG_NAME_COMPARATOR)
                      .toArray();
     }
 

@@ -26,6 +26,8 @@ import io.nop.xlang.xdsl.XDslKeys;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static io.nop.idea.plugin.lang.reference.XLangReferenceHelper.XLANG_NAME_COMPARATOR;
+
 /**
  * {@link io.nop.xlang.xdef.XDefKeys#KEY_ATTR xdef:key-attr} 的值引用
  *
@@ -79,7 +81,7 @@ public class XLangXdefKeyAttrReference extends XLangReferenceBase implements Psi
         return XmlPsiHelper.getCommonAttrNamesFromChildTag(tag) //
                            .stream() //
                            .filter(new TagAttrNameFilter(tag)) //
-                           .sorted(XLangReferenceHelper.XLANG_NAME_COMPARATOR) //
+                           .sorted(XLANG_NAME_COMPARATOR) //
                            .toArray();
     }
 

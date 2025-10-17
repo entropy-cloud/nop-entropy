@@ -10,6 +10,8 @@ package io.nop.idea.plugin.lang;
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
 
 /**
+ * TODO 对 xlib 函数及参数名的重命名支持
+ *
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-07-23
  */

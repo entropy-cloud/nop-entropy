@@ -45,6 +45,12 @@ public class XLangAttributeValue extends XmlAttributeValueImpl {
         return getClass().getSimpleName();
     }
 
+    @Override
+    public boolean skipValidation() {
+        // Note: 禁用 xml 的校验
+        return true;
+    }
+
     public XLangAttribute getParentAttr() {
         return getParent() instanceof XLangAttribute p ? p : null;
     }

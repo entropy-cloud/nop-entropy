@@ -10,10 +10,9 @@ package io.nop.idea.plugin.lang.psi;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
+import java.util.Objects;
 
 import com.intellij.openapi.progress.ProcessCanceledException;
-import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
@@ -80,15 +79,18 @@ public class XLangTag extends XmlTagImpl {
     }
 
     @Override
-    public void clearCaches() {
-        this.schemaMeta = null;
-
-        super.clearCaches();
+    public boolean skipValidation() {
+        // Note: 禁用 xml 的校验
+        return true;
     }
 
     @Override
     public XLangTag getParentTag() {
         return (XLangTag) super.getParentTag();
+    }
+
+    private boolean isRootTag() {
+        return getParentTag() == null;
     }
 
     public XLangTag getRootTag() {
@@ -560,113 +562,141 @@ public class XLangTag extends XmlTagImpl {
     }
 
     private synchronized SchemaMeta getSchemaMeta() {
-        if (schemaMeta == null) {
-            Project project = getProject();
-            schemaMeta = ProjectEnv.withProject(project, this::createSchemaMeta);
+        String tagName = getName();
 
-            try {
-                ProgressManager.checkCanceled();
-            } catch (ProcessCanceledException e) {
-                // Note: 若处理被中断，则保持元模型信息为空，以便于后续再重新初始化
-                schemaMeta = null;
+        if (schemaMeta == null || !isValid() /* 文件已无效 */) {
+            schemaMeta = createSchemaMeta();
+        }
+        // 根节点发生了 schema 相关的更新（包括 schema 的依赖的变更），或者标签名发生了变化
+        else if (schemaMeta != null //
+                 && (isRootTag() //
+                     || !Objects.equals(schemaMeta.tagName, tagName) //
+                 ) //
+        ) {
+            SchemaMeta newSchemaMeta = createSchemaMeta();
 
-                // Note: 避免后续访问成员变量出现 NPE 问题
-                return UNKNOWN_SCHEMA_META;
+            if (!Objects.equals(schemaMeta, newSchemaMeta)) {
+                clearSchemaMeta();
+
+                schemaMeta = newSchemaMeta;
             }
+        }
+
+        if (schemaMeta == null) {
+            // Note: 避免后续访问成员变量出现 NPE 问题
+            return UNKNOWN_SCHEMA_META;
         }
         return schemaMeta;
     }
 
+    private void clearSchemaMeta() {
+        this.schemaMeta = null;
+
+        // 子节点同时失效
+        for (PsiElement child : getChildren()) {
+            if (child instanceof XLangTag tag) {
+                tag.clearSchemaMeta();
+            }
+        }
+    }
+
     private SchemaMeta createSchemaMeta() {
+        Project project = getProject();
+
+        try {
+            return ProjectEnv.withProject(project, this::doCreateSchemaMeta);
+        } catch (ProcessCanceledException e) {
+            // Note: 若处理被中断，则保持元模型信息为空，以便于后续再重新初始化
+            return null;
+        }
+    }
+
+    private SchemaMeta doCreateSchemaMeta() {
+        if (isRootTag()) {
+            return doCreateRootTagSchemaMeta();
+        }
+
         XLangTag parentTag = getParentTag();
-        if (parentTag == null) {
-            return createSchemaMetaForRootTag(this);
+        SchemaMeta parentSchemaMeta = parentTag != null ? parentTag.getSchemaMeta() : null;
+        if (parentSchemaMeta == null) {
+            return UNKNOWN_SCHEMA_META;
         }
 
         String tagName = getName();
         String tagNs = getNamespacePrefix();
 
-        Project project = getProject();
-        SchemaMeta parentSchemaMeta = parentTag.getSchemaMeta();
+        IXDefNode xplUnknownTagDefNode = XDefPsiHelper.getXplDef().getRootNode().getXdefUnknownTag();
 
-        return new ChildTagSchemaMeta(project, parentSchemaMeta, tagName, tagNs);
+        return new ChildTagSchemaMeta(tagName, parentSchemaMeta, xplUnknownTagDefNode, tagNs);
     }
 
-    private static SchemaMeta createSchemaMetaForRootTag(XLangTag rootTag) {
-        String schemaUrl = XDefPsiHelper.getSchemaPath(rootTag);
+    private SchemaMeta doCreateRootTagSchemaMeta() {
+        String schemaUrl = XDefPsiHelper.getSchemaPath(this);
         if (schemaUrl == null) {
             return UNKNOWN_SCHEMA_META;
         }
 
-        String xdefNs = XmlPsiHelper.getXmlnsForUrl(rootTag, XDslConstants.XDSL_SCHEMA_XDEF);
-        String xdslNs = XmlPsiHelper.getXmlnsForUrl(rootTag, XDslConstants.XDSL_SCHEMA_XDSL);
+        String xdefNs = XmlPsiHelper.getXmlnsForUrl(this, XDslConstants.XDSL_SCHEMA_XDEF);
+        String xdslNs = XmlPsiHelper.getXmlnsForUrl(this, XDslConstants.XDSL_SCHEMA_XDSL);
         XDefKeys xdefKeys = XDefKeys.of(xdefNs);
         XDslKeys xdslKeys = XDslKeys.of(xdslNs);
 
-        Supplier<IXDefinition> selfDef = () -> null;
+        IXDefinition schemaDef = XDefPsiHelper.loadSchema(schemaUrl);
+        IXDefNode xdslDefNode = XDefPsiHelper.getXDslDef().getRootNode();
+
+        IXDefinition selfDef = null;
         // x:schema 为 /nop/schema/xdef.xdef 时，其自身也为元模型
         if (XDslConstants.XDSL_SCHEMA_XDEF.equals(schemaUrl)) {
-            String vfsPath = XmlPsiHelper.getNopVfsPath(rootTag);
+            String vfsPath = XmlPsiHelper.getNopVfsPath(this);
 
+            // Note: 正在编辑中的 xdef 有可能是不完整的，此时将无法解析出 IXDefinition
             if (vfsPath != null) {
-                selfDef = () -> XDefPsiHelper.loadSchema(vfsPath);
+                selfDef = XDefPsiHelper.loadSchema(vfsPath);
             } else {
                 // 适配单元测试环境：待测试资源可能不是标准的 vfs 资源
-                IXDefinition def = XDefPsiHelper.loadSchema(rootTag.getContainingFile());
-                selfDef = () -> def;
+                selfDef = XDefPsiHelper.loadSchema(getContainingFile());
             }
         }
 
-        Project project = rootTag.getProject();
-
-        return new RootTagSchemaMeta(project, schemaUrl, xdefKeys, xdslKeys, selfDef);
+        String tagName = getName();
+        return new RootTagSchemaMeta(tagName, schemaDef, xdslDefNode, selfDef, xdefKeys, xdslKeys);
     }
 
     private static class RootTagSchemaMeta extends SchemaMeta {
-        protected final String schemaUrl;
-        protected final XDefKeys xdefKeys;
-        protected final XDslKeys xdslKeys;
-
-        private final Supplier<IXDefinition> selfDef;
 
         RootTagSchemaMeta(
-                Project project, String schemaUrl, //
-                XDefKeys xdefKeys, XDslKeys xdslKeys, //
-                Supplier<IXDefinition> selfDef
+                String tagName, //
+                IXDefinition schemaDef, //
+                IXDefNode xdslDefNode, IXDefinition selfDef, //
+                XDefKeys xdefKeys, XDslKeys xdslKeys //
         ) {
-            super(project, null);
-            this.schemaUrl = schemaUrl;
-            this.xdefKeys = xdefKeys;
-            this.xdslKeys = xdslKeys;
-            this.selfDef = selfDef;
+            super(tagName, schemaDef, xdslDefNode, selfDef, xdefKeys, xdslKeys);
         }
 
         // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
         @Override
-        public IXDefinition getSchemaDef() {
-            return ProjectEnv.withProject(project, () -> XDefPsiHelper.loadSchema(schemaUrl));
+        protected IXDefNode doGetSchemaDefNode() {
+            IXDefinition schema = getSchemaDef();
+            if (schema == null) {
+                return null;
+            }
+
+            String schemaVfsPath = XmlPsiHelper.getNopVfsPath(schema);
+
+            IXDefNode defNode = schema.getRootNode();
+            // 如果不是 *.xdef，则其根节点名称必须与其 x:schema 所定义的根节点名称保持一致
+            if (!XDslConstants.XDSL_SCHEMA_XDEF.equals(schemaVfsPath) //
+                && !defNode.getTagName().equals(tagName) //
+            ) {
+                defNode = null;
+            }
+
+            return defNode;
         }
 
         @Override
-        public IXDefNode getSchemaDefNode() {
-            IXDefinition def = getSchemaDef();
-
-            return def != null ? def.getRootNode() : null;
-        }
-
-        @Override
-        public @Nullable IXDefNode getXDslDefNode() {
-            return ProjectEnv.withProject(project, () -> XDefPsiHelper.getXDslDef().getRootNode());
-        }
-
-        @Override
-        public @Nullable IXDefinition getSelfDef() {
-            return ProjectEnv.withProject(project, selfDef);
-        }
-
-        @Override
-        public IXDefNode getSelfDefNode() {
+        protected IXDefNode doGetSelfDefNode() {
             IXDefinition def = getSelfDef();
 
             return def != null ? def.getRootNode() : null;
@@ -674,35 +704,49 @@ public class XLangTag extends XmlTagImpl {
         // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
         @Override
-        public @NotNull XDefKeys getXDefKeys() {
-            return xdefKeys;
-        }
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
 
-        @Override
-        public @NotNull XDslKeys getXDslKeys() {
-            return xdslKeys;
+            RootTagSchemaMeta that = (RootTagSchemaMeta) o;
+            return Objects.equals(tagName, that.tagName)
+                   && Objects.equals(getSchemaDef(), that.getSchemaDef())
+                   && Objects.equals(getXDslDefNode(), that.getXDslDefNode())
+                   && Objects.equals(getSelfDef(), that.getSelfDef())
+                   && Objects.equals(getXDefKeys(), that.getXDefKeys())
+                   && Objects.equals(getXDslKeys(), that.getXDslKeys());
         }
     }
 
     private static class ChildTagSchemaMeta extends SchemaMeta {
-        protected final SchemaMeta parent;
-        protected final String tagNs;
+        private final SchemaMeta parent;
+        private final IXDefNode xplUnknownTagDefNode;
 
-        ChildTagSchemaMeta(Project project, SchemaMeta parent, String tagName, String tagNs) {
-            super(project, tagName);
+        private final String tagNs;
+
+        ChildTagSchemaMeta(
+                String tagName, SchemaMeta parent, //
+                IXDefNode xplUnknownTagDefNode, //
+                String tagNs
+        ) {
+            super(tagName);
+
             this.parent = parent;
+            this.xplUnknownTagDefNode = xplUnknownTagDefNode;
+
             this.tagNs = tagNs;
         }
 
         // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
         @Override
-        public @Nullable IXDefinition getSchemaDef() {
+        protected @Nullable IXDefinition doGetSchemaDef() {
             return parent.getSchemaDef();
         }
 
         @Override
-        public @Nullable IXDefNode getSchemaDefNode() {
+        protected @Nullable IXDefNode doGetSchemaDefNode() {
             if (XDslKeys.DEFAULT.NS.equals(tagNs) && !parent.isInXDslXDef()) {
                 return getXDslDefNode();
             }
@@ -710,10 +754,7 @@ public class XLangTag extends XmlTagImpl {
             IXDefNode parentDefNode = parent.getSchemaDefNode();
             if (parent.isXplDefNode()) {
                 // Xpl 子节点均为 xdef:unknown-tag
-                parentDefNode = ProjectEnv.withProject(project,
-                                                       () -> XDefPsiHelper.getXplDef()
-                                                                          .getRootNode()
-                                                                          .getXdefUnknownTag());
+                parentDefNode = xplUnknownTagDefNode;
             }
 
             if (parentDefNode == null) {
@@ -738,19 +779,19 @@ public class XLangTag extends XmlTagImpl {
         }
 
         @Override
-        public @Nullable IXDefNode getXDslDefNode() {
+        protected @Nullable IXDefNode doGetXDslDefNode() {
             IXDefNode parentDefNode = parent.getXDslDefNode();
 
             return getXDefNodeChild(parentDefNode, tagName);
         }
 
         @Override
-        public @Nullable IXDefinition getSelfDef() {
+        protected @Nullable IXDefinition doGetSelfDef() {
             return parent.getSelfDef();
         }
 
         @Override
-        public @Nullable IXDefNode getSelfDefNode() {
+        protected @Nullable IXDefNode doGetSelfDefNode() {
             // 在非 xdsl.xdef 中的 x 名字空间的节点，始终不视为自定义节点
             if (XDslKeys.DEFAULT.NS.equals(tagNs) && !parent.isInXDslXDef()) {
                 return null;
@@ -763,12 +804,12 @@ public class XLangTag extends XmlTagImpl {
         // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
         @Override
-        public @NotNull XDefKeys getXDefKeys() {
+        protected @NotNull XDefKeys doGetXDefKeys() {
             return parent.getXDefKeys();
         }
 
         @Override
-        public @NotNull XDslKeys getXDslKeys() {
+        protected @NotNull XDslKeys doGetXDslKeys() {
             return parent.getXDslKeys();
         }
     }
@@ -776,45 +817,7 @@ public class XLangTag extends XmlTagImpl {
     private static class UnknownSchemaMeta extends SchemaMeta {
 
         UnknownSchemaMeta() {
-            super(null, null);
-        }
-
-        // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        @Override
-        public @Nullable IXDefinition getSchemaDef() {
-            return null;
-        }
-
-        @Override
-        public @Nullable IXDefNode getSchemaDefNode() {
-            return null;
-        }
-
-        @Override
-        public @Nullable IXDefNode getXDslDefNode() {
-            return null;
-        }
-
-        @Override
-        public @Nullable IXDefinition getSelfDef() {
-            return null;
-        }
-
-        @Override
-        public @Nullable IXDefNode getSelfDefNode() {
-            return null;
-        }
-        // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-        @Override
-        public @NotNull XDefKeys getXDefKeys() {
-            return XDefKeys.DEFAULT;
-        }
-
-        @Override
-        public @NotNull XDslKeys getXDslKeys() {
-            return XDslKeys.DEFAULT;
+            super(null);
         }
     }
 
@@ -824,12 +827,32 @@ public class XLangTag extends XmlTagImpl {
      * 是有缓存和失效机制的，不会明显影响性能
      */
     private static abstract class SchemaMeta {
-        protected final Project project;
         protected final String tagName;
 
-        SchemaMeta(Project project, String tagName) {
-            this.project = project;
+        private IXDefinition schemaDef;
+        private IXDefNode schemaDefNode;
+        private IXDefNode xdslDefNode;
+        private IXDefinition selfDef;
+        private IXDefNode selfDefNode;
+        private XDefKeys xdefKeys;
+        private XDslKeys xdslKeys;
+
+        SchemaMeta(String tagName) {
             this.tagName = tagName;
+        }
+
+        SchemaMeta(
+                String tagName, //
+                IXDefinition schemaDef, //
+                IXDefNode xdslDefNode, IXDefinition selfDef, //
+                XDefKeys xdefKeys, XDslKeys xdslKeys
+        ) {
+            this.tagName = tagName;
+            this.schemaDef = schemaDef;
+            this.xdslDefNode = xdslDefNode;
+            this.selfDef = selfDef;
+            this.xdefKeys = xdefKeys;
+            this.xdslKeys = xdslKeys;
         }
 
         /**
@@ -837,34 +860,104 @@ public class XLangTag extends XmlTagImpl {
          * <p/>
          * 允许元模型不存在，以支持检查 xdsl.xdef 对应的节点
          */
-        public abstract @Nullable IXDefinition getSchemaDef();
+        public @Nullable IXDefinition getSchemaDef() {
+            if (schemaDef == null) {
+                schemaDef = doGetSchemaDef();
+            }
+            return schemaDef;
+        }
+
+        /** @see #getSchemaDef */
+        protected @Nullable IXDefinition doGetSchemaDef() {
+            return null;
+        }
 
         /** 当前标签在 {@link #getSchemaDef()} 中所对应的节点 */
-        public abstract @Nullable IXDefNode getSchemaDefNode();
+        public @Nullable IXDefNode getSchemaDefNode() {
+            if (schemaDefNode == null) {
+                schemaDefNode = doGetSchemaDefNode();
+            }
+            return schemaDefNode;
+        }
+
+        /** @see #getSchemaDefNode */
+        protected @Nullable IXDefNode doGetSchemaDefNode() {
+            return null;
+        }
 
         /**
          * 当前标签在 xdsl 模型（xdsl.xdef）中所对应的节点。
          * 注：所有 DSL 模型的节点均与 xdsl.xdef 的节点存在对应
          */
-        public abstract @Nullable IXDefNode getXDslDefNode();
+        public @Nullable IXDefNode getXDslDefNode() {
+            if (xdslDefNode == null) {
+                xdslDefNode = doGetXDslDefNode();
+            }
+            return xdslDefNode;
+        }
+
+        /** @see #getXDslDefNode */
+        protected @Nullable IXDefNode doGetXDslDefNode() {
+            return null;
+        }
 
         /** 当当前标签定义在 *.xdef 文件中时，需记录该元模型 */
-        public abstract @Nullable IXDefinition getSelfDef();
+        public @Nullable IXDefinition getSelfDef() {
+            if (selfDef == null) {
+                selfDef = doGetSelfDef();
+            }
+            return selfDef;
+        }
+
+        /** @see #getSelfDef */
+        protected @Nullable IXDefinition doGetSelfDef() {
+            return null;
+        }
 
         /** 当前标签定义在 {@link #getSelfDef()} 中所对应的节点 */
-        public abstract @Nullable IXDefNode getSelfDefNode();
+        public @Nullable IXDefNode getSelfDefNode() {
+            if (selfDefNode == null) {
+                selfDefNode = doGetSelfDefNode();
+            }
+            return selfDefNode;
+        }
+
+        /** @see #getSelfDefNode */
+        protected @Nullable IXDefNode doGetSelfDefNode() {
+            return null;
+        }
 
         /**
          * <code>/nop/schema/xdef.xdef</code> 对应的 {@link XDefKeys}。
          * 仅在元模型中设置，如 <code>xmlns:xdef="/nop/schema/xdef.xdef"</code>
          */
-        public abstract @NotNull XDefKeys getXDefKeys();
+        public @NotNull XDefKeys getXDefKeys() {
+            if (xdefKeys == null) {
+                xdefKeys = doGetXDefKeys();
+            }
+            return xdefKeys;
+        }
+
+        /** @see #getXDefKeys */
+        protected @NotNull XDefKeys doGetXDefKeys() {
+            return XDefKeys.DEFAULT;
+        }
 
         /**
          * <code>/nop/schema/xdsl.xdef</code> 对应的 {@link XDslKeys}。
          * 在 DSL 模型（含元模型）中均有设置，如 <code>xmlns:x="/nop/schema/xdsl.xdef"</code>
          */
-        public abstract @NotNull XDslKeys getXDslKeys();
+        public @NotNull XDslKeys getXDslKeys() {
+            if (xdslKeys == null) {
+                xdslKeys = doGetXDslKeys();
+            }
+            return xdslKeys;
+        }
+
+        /** @see #getXDslKeys */
+        protected @NotNull XDslKeys doGetXDslKeys() {
+            return XDslKeys.DEFAULT;
+        }
 
         /** 当前标签是否在元元模型 xdef.xdef 中 */
         public boolean isInXDefXDef() {
@@ -916,7 +1009,7 @@ public class XLangTag extends XmlTagImpl {
             return isXlibSourceNode(defNode, defPath);
         }
 
-        private boolean isXlibSourceNode(IXDefNode defNode, String defPath) {
+        protected boolean isXlibSourceNode(IXDefNode defNode, String defPath) {
             // xlib.xdef 中的 source 标签设置为 xml 类型，是因为在获取 XplLib 模型的时候会根据 xlib.xdef 来解析，
             // 但此时这个 source 段无法自动进行编译，必须结合它的 outputMode 和 attrs 配置等才能决定。
             // 因此，将其子节点同样视为 xpl 节点处理

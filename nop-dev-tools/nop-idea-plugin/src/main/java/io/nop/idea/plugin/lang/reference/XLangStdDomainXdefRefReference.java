@@ -28,6 +28,8 @@ import one.util.streamex.StreamEx;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static io.nop.idea.plugin.lang.reference.XLangReferenceHelper.XLANG_NAME_COMPARATOR;
+
 /**
  * {@link io.nop.xlang.xdef.XDefConstants#STD_DOMAIN_XDEF_REF xdef-ref} 类型的值引用
  *
@@ -121,12 +123,12 @@ public class XLangStdDomainXdefRefReference extends XLangReferenceBase {
         });
 
         return StreamEx.of( //
-                            names.stream().sorted(XLangReferenceHelper.XLANG_NAME_COMPARATOR) //
+                            names.stream().sorted(XLANG_NAME_COMPARATOR) //
                        ) //
-                       .append(ProjectFileHelper.findAllXdefNopVfsPaths(project)
-                                                .stream()
-                                                .sorted(XLangReferenceHelper.XLANG_NAME_COMPARATOR) //
-                       ) //
+                       .append( //
+                                ProjectFileHelper.findAllXdefNopVfsPaths(project)
+                                                 .stream()
+                                                 .sorted(XLANG_NAME_COMPARATOR)) //
                        .toArray();
     }
 

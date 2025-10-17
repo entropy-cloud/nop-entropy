@@ -35,6 +35,8 @@ import io.nop.xlang.xdsl.XDslKeys;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static io.nop.idea.plugin.lang.reference.XLangReferenceHelper.XLANG_NAME_COMPARATOR;
+
 /**
  * 对 {@link XLangAttributeReference} 的引用识别：指向属性的定义位置
  *
@@ -119,7 +121,7 @@ public class XLangAttributeReference extends XLangReferenceBase {
         addDefAttr(result, tag.getXlibTagMeta(), existAttrNames);
 
         return result.stream() //
-                     .sorted((a, b) -> XLangReferenceHelper.XLANG_NAME_COMPARATOR.compare(a.name, b.name)) //
+                     .sorted((a, b) -> XLANG_NAME_COMPARATOR.compare(a.name, b.name)) //
                      .map((defAttr) -> {
                          boolean trimNs = !attrNs.isEmpty();
 
@@ -135,8 +137,7 @@ public class XLangAttributeReference extends XLangReferenceBase {
     }
 
     private static void addDefAttr(
-            List<DefAttrWithLabel> list, IXDefNode defNode, String onlyNs, Set<String> excludeNames
-    ) {
+            List<DefAttrWithLabel> list, IXDefNode defNode, String onlyNs, Set<String> excludeNames) {
         for (IXDefAttribute defAttr : defNode.getAttributes().values()) {
             String attrName = defAttr.getName();
 

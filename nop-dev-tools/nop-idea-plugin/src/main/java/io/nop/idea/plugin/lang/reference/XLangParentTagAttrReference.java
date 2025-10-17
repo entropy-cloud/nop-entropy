@@ -19,6 +19,8 @@ import io.nop.idea.plugin.utils.XmlPsiHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static io.nop.idea.plugin.lang.reference.XLangReferenceHelper.XLANG_NAME_COMPARATOR;
+
 /**
  * 对父标签上的属性的引用
  *
@@ -56,7 +58,8 @@ public class XLangParentTagAttrReference extends XLangReferenceBase {
         }
         // 不能引用属性自身
         else if (target == getParentAttr()) {
-            String msg = NopPluginBundle.message("xlang.annotation.reference.parent-tag-attr-self-referenced", attrName);
+            String msg = NopPluginBundle.message("xlang.annotation.reference.parent-tag-attr-self-referenced",
+                                                 attrName);
             setUnresolvedMessage(msg);
 
             return null;
@@ -65,6 +68,7 @@ public class XLangParentTagAttrReference extends XLangReferenceBase {
         return target;
     }
 
+    /** @return {@link #attrName} 所在标签上的可引用的属性名 */
     @Override
     public Object @NotNull [] getVariants() {
         // Note: 在自动补全阶段，DSL 结构很可能是不完整的，只能从 xml 角度做分析
@@ -80,7 +84,7 @@ public class XLangParentTagAttrReference extends XLangReferenceBase {
                            .stream() //
                            .filter(new XLangXdefKeyAttrReference.TagAttrNameFilter(tag)) //
                            .filter((name) -> !name.equals(attrName)) //
-                           .sorted(XLangReferenceHelper.XLANG_NAME_COMPARATOR) //
+                           .sorted(XLANG_NAME_COMPARATOR) //
                            .toArray();
     }
 }

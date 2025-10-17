@@ -64,8 +64,7 @@ public class PsiClassHelper {
 //            scope = module == null
 //                    ? GlobalSearchScope.allScope(project)
 //                    : module.getModuleWithDependenciesAndLibrariesScope(true);
-            // Note: DSL 可能定义在独立的项目中，因此，其可能引入非其所在模块依赖包中的 class
-            return GlobalSearchScope.allScope(project);
+            return getSearchScope(project);
         }
     };
 
@@ -96,12 +95,16 @@ public class PsiClassHelper {
     public static @NotNull GlobalSearchScope getSearchScope(@NotNull PsiElement element) {
         Project project = element.getProject();
 
-        return javaClassRefProvider.getScope(project);
+        return getSearchScope(project);
+    }
+
+    public static @NotNull GlobalSearchScope getSearchScope(@NotNull Project project) {
+        // Note: DSL 可能定义在独立的项目中，因此，其可能引入非其所在模块依赖包中的 class
+        return GlobalSearchScope.allScope(project);
     }
 
     public static PsiReference @NotNull [] createJavaClassReferences(
-            PsiElement element, String qualifiedName, int startInElement
-    ) {
+            PsiElement element, String qualifiedName, int startInElement) {
         JavaClassReferenceSet refSet = new JavaClassReferenceSet(qualifiedName,
                                                                  element,
                                                                  startInElement,
@@ -112,8 +115,7 @@ public class PsiClassHelper {
     }
 
     public static PsiReference @NotNull [] createPackageReferences(
-            PsiElement element, String qualifiedName, int startInElement
-    ) {
+            PsiElement element, String qualifiedName, int startInElement) {
         PackageReferenceSet refSet = new PackageReferenceSet(qualifiedName, element, startInElement);
 
         return refSet.getPsiReferences();
@@ -223,15 +225,15 @@ public class PsiClassHelper {
 
     public static PsiClass findClass(PsiElement context, String className) {
         Project project = context.getProject();
-        GlobalSearchScope scope = PsiClassHelper.getSearchScope(context);
+        GlobalSearchScope scope = getSearchScope(context);
 
         return findClass(project, className, scope);
     }
 
     public static PsiClass findClass(Project project, String className) {
-        GlobalSearchScope scope = GlobalSearchScope.allScope(project);
+        GlobalSearchScope scope = getSearchScope(project);
 
-        return JavaPsiFacade.getInstance(project).findClass(className, scope);
+        return findClass(project, className, scope);
     }
 
     public static PsiClass findClass(Project project, String className, GlobalSearchScope scope) {
@@ -247,7 +249,7 @@ public class PsiClassHelper {
 
     /** 查找指定类的继承类 */
     public static @NotNull Query<PsiClass> findInheritors(Project project, String className) {
-        GlobalSearchScope scope = GlobalSearchScope.allScope(project);
+        GlobalSearchScope scope = getSearchScope(project);
 
         return findInheritors(project, className, scope);
     }
@@ -255,7 +257,7 @@ public class PsiClassHelper {
     /** 查找指定类的继承类 */
     public static @NotNull Query<PsiClass> findInheritors(Project project, String className, GlobalSearchScope scope) {
         // 确保可找到基类
-        GlobalSearchScope baseScope = GlobalSearchScope.allScope(project);
+        GlobalSearchScope baseScope = getSearchScope(project);
 
         PsiClass clazz = findClass(project, className, baseScope);
         if (clazz == null) {

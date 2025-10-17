@@ -17,6 +17,8 @@ import io.nop.idea.plugin.vfs.NopVirtualFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static io.nop.idea.plugin.lang.reference.XLangReferenceHelper.XLANG_NAME_COMPARATOR;
+
 /**
  * 对字典的引用
  *
@@ -52,7 +54,7 @@ public class XLangStdDomainDictReference extends XLangReferenceBase {
         return ProjectFileHelper.findAllDictNopVfsPaths(project)
                                 .stream()
                                 .map(ProjectFileHelper::getDictNameFromVfsPath)
-                                .sorted(XLangReferenceHelper.XLANG_NAME_COMPARATOR)
+                                .sorted(XLANG_NAME_COMPARATOR)
                                 .toArray();
     }
 }

@@ -28,6 +28,8 @@ import io.nop.xlang.xdsl.XDslKeys;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static io.nop.idea.plugin.lang.reference.XLangReferenceHelper.XLANG_NAME_COMPARATOR;
+
 /**
  * 对 {@link XLangTag} 的引用识别：指向节点的定义位置
  *
@@ -58,8 +60,10 @@ public class XLangTagReference extends XLangReferenceBase {
         return new NopVirtualFile(myElement, path, targetResolver);
     }
 
+    /** @return 可替换 {@link #myElement} 的标签名（即，在元模型中其父标签所定义的子标签）列表 */
     @Override
     public Object @NotNull [] getVariants() {
+        // TODO 对于 DSL 的根节点，其标签名只能为其 xdef 中的根节点名
         // Note: 在自动补全阶段，DSL 结构很可能是不完整的，只能从 xml 角度做分析
         XLangTag tag = (XLangTag) myElement;
         XLangTag parentTag = tag.getParentTag();
@@ -90,15 +94,13 @@ public class XLangTagReference extends XLangReferenceBase {
         }
 
         return result.stream()
-                     .sorted((a, b) -> XLangReferenceHelper.XLANG_NAME_COMPARATOR.compare(a.getTagName(),
-                                                                                          b.getTagName()))
+                     .sorted((a, b) -> XLANG_NAME_COMPARATOR.compare(a.getTagName(), b.getTagName()))
                      .map((defNode) -> lookupTag(defNode, !tagNs.isEmpty()))
                      .toArray(LookupElement[]::new);
     }
 
     private static void addChildDefNode(
-            List<IXDefNode> list, IXDefNode parentDefNode, String onlyNs, Set<String> excludeNames
-    ) {
+            List<IXDefNode> list, IXDefNode parentDefNode, String onlyNs, Set<String> excludeNames) {
         for (IXDefNode defNode : parentDefNode.getChildren().values()) {
             String tagName = defNode.getTagName();
 

@@ -88,9 +88,10 @@ public class XmlPsiHelper {
     }
 
     public static List<PsiFile> findPsiFileList(Project project, String path) {
+        GlobalSearchScope scope = ProjectFileHelper.getSearchScope(project);
         String fileName = StringHelper.fileFullName(path);
-        Collection<VirtualFile> vfList = FilenameIndex.getVirtualFilesByName(fileName,
-                                                                             GlobalSearchScope.allScope(project));
+
+        Collection<VirtualFile> vfList = FilenameIndex.getVirtualFilesByName(fileName, scope);
         if (vfList.isEmpty()) {
             return Collections.emptyList();
         }
@@ -127,7 +128,14 @@ public class XmlPsiHelper {
             return null;
         }
 
-        int offset = document.getLineStartOffset(line - 1) + column - 1;
+        int offset;
+        try {
+            offset = document.getLineStartOffset(line - 1) + column - 1;
+        } catch (IndexOutOfBoundsException e) {
+            // Note: 对于 _delta 文件，其可能不包含目标元素
+            return null;
+        }
+
         return psiFile.findElementAt(offset);
     }
 
@@ -260,8 +268,7 @@ public class XmlPsiHelper {
 
     /** 找到第一个符合条件的 {@link PsiElement 元素} */
     public static <T extends PsiElement> T findFirstElement(
-            PsiElement element, Predicate<? super @NotNull PsiElement> condition
-    ) {
+            PsiElement element, Predicate<? super @NotNull PsiElement> condition) {
         PsiElement[] result = new PsiElement[] { null };
 
         PsiTreeUtil.processElements(element, el -> {

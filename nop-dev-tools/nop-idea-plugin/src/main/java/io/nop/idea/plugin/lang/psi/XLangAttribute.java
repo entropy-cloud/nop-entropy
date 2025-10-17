@@ -32,6 +32,12 @@ public class XLangAttribute extends XmlAttributeImpl {
         return getClass().getSimpleName() + ':' + getElementType() + "('" + getName() + "')";
     }
 
+    @Override
+    public boolean skipValidation() {
+        // Note: 禁用 xml 的校验
+        return true;
+    }
+
     public XLangTag getParentTag() {
         return (XLangTag) getParent();
     }

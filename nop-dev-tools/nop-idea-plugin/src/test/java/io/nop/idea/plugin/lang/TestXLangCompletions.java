@@ -10,7 +10,8 @@ package io.nop.idea.plugin.lang;
 import java.util.Arrays;
 
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
-import io.nop.idea.plugin.lang.reference.XLangReferenceHelper;
+
+import static io.nop.idea.plugin.lang.reference.XLangReferenceHelper.XLANG_NAME_COMPARATOR;
 
 public class TestXLangCompletions extends BaseXLangPluginTestCase {
 
@@ -26,7 +27,7 @@ public class TestXLangCompletions extends BaseXLangPluginTestCase {
                 "value", //
         };
 
-        Arrays.sort(names, XLangReferenceHelper.XLANG_NAME_COMPARATOR);
+        Arrays.sort(names, XLANG_NAME_COMPARATOR);
 
         assertEquals(String.join(", ", new String[] {
                 "name", //
