@@ -7,6 +7,8 @@
  */
 package io.nop.idea.plugin.annotator;
 
+import java.util.Objects;
+
 import com.intellij.codeInsight.daemon.impl.HighlightRangeExtension;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.lang.annotation.AnnotationHolder;
@@ -37,6 +39,7 @@ import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFile;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.IXDefAttribute;
+import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import io.nop.xlang.xpl.utils.XplParseHelper;
@@ -131,7 +134,7 @@ public class XLangAnnotator implements Annotator {
 
     private void checkTag(@NotNull AnnotationHolder holder, @NotNull XLangTag tag) {
         if (tag.getSchemaDefNode() != null) {
-            checkTagValue(holder, tag);
+            checkTagBySchemaDefNode(holder, tag);
             return;
         }
 
@@ -142,25 +145,49 @@ public class XLangAnnotator implements Annotator {
             return;
         }
 
-        XmlToken startTagName = XmlTagUtil.getStartTagNameElement(tag);
-        if (startTagName != null) {
-            errorAnnotation(holder,
-                            startTagName.getTextRange(),
-                            "xlang.annotation.tag.not-defined",
-                            startTagName.getText());
-        }
-
-        XmlToken endTagName = XmlTagUtil.getEndTagNameElement(tag);
-        if (endTagName != null) {
-            errorAnnotation(holder,
-                            endTagName.getTextRange(),
-                            "xlang.annotation.tag.not-defined",
-                            endTagName.getText());
+        // Note: 若根节点被定义为 xdef:unknown-tag，则 tag.getSchemaDef() 不会返回 null
+        String expectedRootTag = parentTag == null && tag.getSchemaDef() != null //
+                                 ? tag.getSchemaDef().getRootNode().getTagName() : null;
+        XmlToken[] tokens = new XmlToken[] {
+                XmlTagUtil.getStartTagNameElement(tag), XmlTagUtil.getEndTagNameElement(tag)
+        };
+        for (XmlToken token : tokens) {
+            if (token != null) {
+                if (expectedRootTag != null) {
+                    errorAnnotation(holder,
+                                    token.getTextRange(),
+                                    "xlang.annotation.tag.expected-root",
+                                    expectedRootTag);
+                } else {
+                    errorAnnotation(holder, token.getTextRange(), "xlang.annotation.tag.not-defined", token.getText());
+                }
+            }
         }
     }
 
-    private void checkTagValue(@NotNull AnnotationHolder holder, @NotNull XLangTag tag) {
-        // TODO 标签唯一性检查：未显式声明的，只能有一个，不能重复
+    private void checkTagBySchemaDefNode(@NotNull AnnotationHolder holder, @NotNull XLangTag tag) {
+        IXDefNode xdefNode = tag.getSchemaDefNode();
+        // 检查标签可重复性
+        if (!xdefNode.isAllowMultiple() && tag.getParentTag() != null) {
+            for (PsiElement child : tag.getParentTag().getChildren()) {
+                // 检查在其之前的重复节点
+                if (child == tag) {
+                    break;
+                }
+
+                if (child instanceof XLangTag t //
+                    && Objects.equals(t.getName(), tag.getName()) //
+                ) {
+                    errorAnnotation(holder,
+                                    getStartTagName(tag).getTextRange(),
+                                    "xlang.annotation.tag.multiple-tag-not-allowed",
+                                    tag.getName());
+                    return;
+                }
+            }
+        }
+
+        // 检查节点内容
         XDefTypeDecl xdefValue = tag.getSchemaDefNodeXdefValue();
         TextRange textRange = tag.getValue().getTextRange();
         String bodyText = tag.hasChildTag() ? null : tag.getBodyText();

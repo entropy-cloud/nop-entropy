@@ -190,7 +190,7 @@ public class XLangTag extends XmlTagImpl {
     }
 
     /** @see SchemaMeta#getSchemaDef() */
-    private IXDefinition getSchemaDef() {
+    public IXDefinition getSchemaDef() {
         return getSchemaMeta().getSchemaDef();
     }
 
@@ -265,6 +265,11 @@ public class XLangTag extends XmlTagImpl {
     /** @see SchemaMeta#getXDslKeys() */
     public XDslKeys getXDslKeys() {
         return getSchemaMeta().getXDslKeys();
+    }
+
+    /** 当前标签是否在元模型 *.xdef 中 */
+    public boolean isInXDef() {
+        return isXDefDef(getSchemaDef());
     }
 
     /** @see SchemaMeta#isInXDefXDef() */
@@ -690,8 +695,11 @@ public class XLangTag extends XmlTagImpl {
             }
 
             IXDefNode defNode = def.getRootNode();
-            // 如果不是元模型（*.xdef），则其根节点名称必须与其 x:schema 所定义的根节点名称保持一致
-            if (!isXDefDef(def) && !defNode.getTagName().equals(tagName)) {
+            // 如果不是元模型（*.xdef），则其根节点名称必须与其 x:schema 所定义的根节点名称保持一致，
+            // 除非根节点被定义为 xdef:unknown-tag
+            if (!isXDefDef(def) && !defNode.isUnknownTag() //
+                && !defNode.getTagName().equals(tagName) //
+            ) {
                 defNode = null;
             }
 
