@@ -232,7 +232,8 @@ User user = dao.findFirstByQuery(query);
 **2. 嵌入子查询**
 
 ```java
-query.addFilter(SQL.begin("o.id in (select y.xx from tbl y where y.id=?)", 3).end().asFilter());
+query.addFilter(SQL.begin("o.id in (select y.xx from tbl y where y.id=?)", 3)
+   .end().asFilter());
 ```
 
 **3. 自动联表查询**
