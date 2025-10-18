@@ -646,7 +646,7 @@ public class XLangTag extends XmlTagImpl {
 
         IXDefinition selfDef = null;
         // x:schema 为 /nop/schema/xdef.xdef 时，其自身也为元模型
-        if (XDslConstants.XDSL_SCHEMA_XDEF.equals(schemaUrl)) {
+        if (isXDefDef(schemaDef)) {
             String vfsPath = XmlPsiHelper.getNopVfsPath(this);
 
             // Note: 正在编辑中的 xdef 有可能是不完整的，此时将无法解析出 IXDefinition
@@ -660,6 +660,13 @@ public class XLangTag extends XmlTagImpl {
 
         String tagName = getName();
         return new RootTagSchemaMeta(tagName, schemaDef, xdslDefNode, selfDef, xdefKeys, xdslKeys);
+    }
+
+    /** 指定的 <code>def</code> 是否为元元模型 /nop/schema/xdef.xdef */
+    private static boolean isXDefDef(IXDefinition def) {
+        String defVfsPath = XmlPsiHelper.getNopVfsPath(def);
+
+        return XDslConstants.XDSL_SCHEMA_XDEF.equals(defVfsPath);
     }
 
     private static class RootTagSchemaMeta extends SchemaMeta {
@@ -677,18 +684,14 @@ public class XLangTag extends XmlTagImpl {
 
         @Override
         protected IXDefNode doGetSchemaDefNode() {
-            IXDefinition schema = getSchemaDef();
-            if (schema == null) {
+            IXDefinition def = getSchemaDef();
+            if (def == null) {
                 return null;
             }
 
-            String schemaVfsPath = XmlPsiHelper.getNopVfsPath(schema);
-
-            IXDefNode defNode = schema.getRootNode();
-            // 如果不是 *.xdef，则其根节点名称必须与其 x:schema 所定义的根节点名称保持一致
-            if (!XDslConstants.XDSL_SCHEMA_XDEF.equals(schemaVfsPath) //
-                && !defNode.getTagName().equals(tagName) //
-            ) {
+            IXDefNode defNode = def.getRootNode();
+            // 如果不是元模型（*.xdef），则其根节点名称必须与其 x:schema 所定义的根节点名称保持一致
+            if (!isXDefDef(def) && !defNode.getTagName().equals(tagName)) {
                 defNode = null;
             }
 

@@ -269,12 +269,15 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         doAssertCompletion(null, expectedText);
     }
 
-    /** 检查选中指定的补全项之后的文本是否与预期相符 */
+    /**
+     * 检查选中指定的补全项之后的文本是否与预期相符
+     * <p/>
+     * 注意：<ul>
+     * <li>在仅有唯一的补全元素时，将自动完成补全，且不能再获取到补全列表；</li>
+     * <li>只有在调用 `myFixture.completeBasic()` 后，才能完成补全，获得补全列表；</li>
+     * </ul>
+     */
     protected void doAssertCompletion(String selectedItem, String expectedText) {
-        // Note:
-        // - 在仅有唯一的补全元素时，将自动完成补全，且不能再获取到补全列表
-        // - 只有在调用 `myFixture.completeBasic()` 后，才能完成补全，获得补全列表
-
         // 获取当前查找元素
         LookupImpl lookup = (LookupImpl) LookupManager.getActiveLookup(myFixture.getEditor());
         assertNotNull("Lookup not active", lookup);

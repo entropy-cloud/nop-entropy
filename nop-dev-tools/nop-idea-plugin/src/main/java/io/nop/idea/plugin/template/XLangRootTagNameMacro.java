@@ -32,6 +32,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
+ * 根据 <code>x:schema</code> 或文件名得到 DSL 的根节点标签名
+ *
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-08-06
  */

@@ -601,29 +601,29 @@ public class TestXLangCompletions extends BaseXLangPluginTestCase {
                                  </example>
                                  """);
 
-//        // 对 vfs 的补全：TODO 暂不支持对文本节点的补全
-//        assertCompletion("/nop/schema/xdsl.xdef", //
-//                         """
-//                                 <example xmlns:x="/nop/schema/xdsl.xdef" x:schema="/test/doc/example.xdef">
-//                                     <refs>/nop/schema/<caret></refs>
-//                                 </example>
-//                                 """, //
-//                         """
-//                                 <example xmlns:x="/nop/schema/xdsl.xdef" x:schema="/test/doc/example.xdef">
-//                                     <refs>/nop/schema/xdsl.xdef</refs>
-//                                 </example>
-//                                 """);
-//        assertCompletion("/test/doc/example.xdef", //
-//                         """
-//                                 <example xmlns:x="/nop/schema/xdsl.xdef" x:schema="/test/doc/example.xdef">
-//                                     <refs>/nop/schema/xdsl.xdef,/test/doc<caret></refs>
-//                                 </example>
-//                                 """, //
-//                         """
-//                                 <example xmlns:x="/nop/schema/xdsl.xdef" x:schema="/test/doc/example.xdef">
-//                                     <refs>/nop/schema/xdsl.xdef,/test/doc/example.xdef</refs>
-//                                 </example>
-//                                 """);
+        // 对 vfs 的补全
+        assertCompletion("/nop/schema/xdsl.xdef", //
+                         """
+                                 <example xmlns:x="/nop/schema/xdsl.xdef" x:schema="/test/doc/example.xdef">
+                                     <refs>/nop/schema/<caret></refs>
+                                 </example>
+                                 """, //
+                         """
+                                 <example xmlns:x="/nop/schema/xdsl.xdef" x:schema="/test/doc/example.xdef">
+                                     <refs>/nop/schema/xdsl.xdef</refs>
+                                 </example>
+                                 """);
+        assertCompletion("/nop/schema/xui/xview.xdef", //
+                         """
+                                 <example xmlns:x="/nop/schema/xdsl.xdef" x:schema="/test/doc/example.xdef">
+                                     <refs>/nop/schema/xdsl.xdef,/nop/schema/<caret></refs>
+                                 </example>
+                                 """, //
+                         """
+                                 <example xmlns:x="/nop/schema/xdsl.xdef" x:schema="/test/doc/example.xdef">
+                                     <refs>/nop/schema/xdsl.xdef,/nop/schema/xui/xview.xdef</refs>
+                                 </example>
+                                 """);
 
         // 对 boolean 的补全
         assertCompletion("false", //
