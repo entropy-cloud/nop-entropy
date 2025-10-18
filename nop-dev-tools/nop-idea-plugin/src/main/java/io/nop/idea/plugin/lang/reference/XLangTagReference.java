@@ -24,6 +24,7 @@ import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFile;
 import io.nop.xlang.xdef.IXDefComment;
 import io.nop.xlang.xdef.IXDefNode;
+import io.nop.xlang.xdef.XDefKeys;
 import io.nop.xlang.xdsl.XDslKeys;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -63,15 +64,39 @@ public class XLangTagReference extends XLangReferenceBase {
     /** @return 可替换 {@link #myElement} 的标签名（即，在元模型中其父标签所定义的子标签）列表 */
     @Override
     public Object @NotNull [] getVariants() {
-        // TODO 对于 DSL 的根节点，其标签名只能为其 xdef 中的根节点名
         // Note: 在自动补全阶段，DSL 结构很可能是不完整的，只能从 xml 角度做分析
         XLangTag tag = (XLangTag) myElement;
+        String tagNs = tag.getNamespacePrefix();
+        XDefKeys tagXDefKeys = tag.getXDefKeys();
+        boolean trimLookupTagNs = !tagNs.isEmpty();
+
         XLangTag parentTag = tag.getParentTag();
         if (parentTag == null) {
-            return LookupElement.EMPTY_ARRAY;
+            String fileName = tag.getContainingFile().getName();
+            String tagName = fileName.contains(".") ? fileName.substring(0, fileName.indexOf('.')) : fileName;
+
+            if (!tag.isInXDef()) {
+                IXDefNode rootDefNode = tag.getSchemaDef().getRootNode();
+
+                return new LookupElement[] {
+                        // 对于非元模型的根节点，其标签名只能为其 xdef 中的根节点名
+                        !rootDefNode.isUnknownTag() //
+                        ? lookupTag(rootDefNode, trimLookupTagNs)
+                        // 若根节点被定义为 xdef:unknown-tag，则以文件名作为其标签名
+                        : lookupTag(tagName, null, trimLookupTagNs),
+                        };
+            } else {
+                return new LookupElement[] {
+                        // 对于元模型的根节点，则一般以文件名作为其标签名
+                        lookupTag(tagName, null, trimLookupTagNs),
+                        // 或者为 xdef:unknown-tag
+                        lookupTag(tagXDefKeys != null ? tagXDefKeys.UNKNOWN_TAG : XDefKeys.DEFAULT.UNKNOWN_TAG,
+                                  null,
+                                  trimLookupTagNs),
+                        };
+            }
         }
 
-        String tagNs = tag.getNamespacePrefix();
         boolean usedXDslNs = XDslKeys.DEFAULT.NS.equals(tagNs);
 
         IXDefNode xdslDefNode = parentTag.getXDslDefNode();
@@ -95,7 +120,7 @@ public class XLangTagReference extends XLangReferenceBase {
 
         return result.stream()
                      .sorted((a, b) -> XLANG_NAME_COMPARATOR.compare(a.getTagName(), b.getTagName()))
-                     .map((defNode) -> lookupTag(defNode, !tagNs.isEmpty()))
+                     .map((defNode) -> lookupTag(defNode, trimLookupTagNs))
                      .toArray(LookupElement[]::new);
     }
 
@@ -127,10 +152,15 @@ public class XLangTagReference extends XLangReferenceBase {
         }
 
         String tagName = defNode.getTagName();
+
+        return lookupTag(tagName, label, trimNs);
+    }
+
+    /** 注意，若当前标签已经包含完整的名字空间，则补全项必须移除其名字空间，否则，补全项的插入位置将会发生偏移 */
+    private static LookupElement lookupTag(String tagName, String label, boolean trimNs) {
         if (trimNs) {
             tagName = tagName.substring(tagName.indexOf(':') + 1);
         }
-
         return LookupElementHelper.lookupXmlTag(tagName, label);
     }
 }
