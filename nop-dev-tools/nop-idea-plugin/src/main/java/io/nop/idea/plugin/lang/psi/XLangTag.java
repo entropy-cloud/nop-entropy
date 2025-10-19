@@ -217,7 +217,7 @@ public class XLangTag extends XmlTagImpl {
             attrName = changeNamespace(attrName, getXDefKeys().NS, XDefKeys.DEFAULT.NS);
         }
 
-        IXDefAttribute attr = getXDefNodeAttr(getSchemaDefNode(), attrName);
+        IXDefAttribute attr = getXDefNodeAttr(getSchemaDef(), getSchemaDefNode(), attrName);
 
         if (attr == null || attr.isUnknownAttr()) {
             XlibTagMeta xlibTag = getXlibTagMeta();
@@ -249,7 +249,7 @@ public class XLangTag extends XmlTagImpl {
         // Note: xdsl.xdef 的属性在固定的名字空间 x 中声明
         attrName = changeNamespace(attrName, getXDslKeys().NS, XDslKeys.DEFAULT.NS);
 
-        return getXDefNodeAttr(getXDslDefNode(), attrName);
+        return getXDefNodeAttr(null, getXDslDefNode(), attrName);
     }
 
     /** @see SchemaMeta#getSelfDefNode() */
@@ -441,8 +441,10 @@ public class XLangTag extends XmlTagImpl {
         }
 
         String mainTitle = attrName;
+        IXDefinition def = null;
         IXDefNode defNode;
         if (isInXDefXDef() && XDefKeys.DEFAULT.NS.equals(attrNs)) {
+            def = getSchemaMeta().getSelfDef();
             defNode = getSelfDefNode();
         } //
         else if (XDslKeys.DEFAULT.NS.equals(attrNs) || getXDslKeys().NS.equals(attrNs)) {
@@ -452,14 +454,16 @@ public class XLangTag extends XmlTagImpl {
         else {
             attrName = changeNamespace(attrName, getXDefKeys().NS, XDefKeys.DEFAULT.NS);
 
+            def = getSchemaMeta().getSelfDef();
             defNode = getSelfDefNode();
             // 对于 *.xdef，优先取其自身定义节点上的属性文档
             if (defNode == null || defNode.getAttribute(attrName) == null) {
+                def = getSchemaDef();
                 defNode = getSchemaDefNode();
             }
         }
 
-        IXDefAttribute defAttr = getXDefNodeAttr(defNode, attrName);
+        IXDefAttribute defAttr = getXDefNodeAttr(def, defNode, attrName);
         if (defAttr == null) {
             return null;
         }
@@ -474,6 +478,7 @@ public class XLangTag extends XmlTagImpl {
 
         XLangDocumentation doc = new XLangDocumentation(defAttr);
         doc.setMainTitle(mainTitle);
+        doc.setAdditional(defAttr instanceof XLangAttribute.XDefAttributeNotInCheckNS);
 
         IXDefComment nodeComment = defNode.getComment();
         if (nodeComment != null) {
@@ -492,7 +497,7 @@ public class XLangTag extends XmlTagImpl {
     }
 
     /** 获取 {@link IXDefNode} 上指定属性的 xdef 定义 */
-    private IXDefAttribute getXDefNodeAttr(IXDefNode xdefNode, String attrName) {
+    private IXDefAttribute getXDefNodeAttr(IXDefinition def, IXDefNode defNode, String attrName) {
         String xmlnsPrefix = "xmlns:";
         if (attrName.startsWith(xmlnsPrefix)) {
             String attrValue = getAttributeValue(attrName);
@@ -508,18 +513,24 @@ public class XLangTag extends XmlTagImpl {
             return at;
         }
 
-        if (xdefNode == null) {
+        if (defNode == null) {
             return null;
         }
 
-        IXDefAttribute attr = xdefNode.getAttribute(attrName);
+        IXDefAttribute attr = defNode.getAttribute(attrName);
         if (attr != null) {
             return attr;
         }
 
+        // 对于 xdef:check-ns 中不做校验的名字空间，该属性为任意类型
+        String attrNameNs = StringHelper.getNamespace(attrName);
+        if (attrNameNs != null && def != null && !def.getXdefCheckNs().contains(attrNameNs)) {
+            return new XLangAttribute.XDefAttributeNotInCheckNS(attrName);
+        }
+
         // Note: 在 IXDefNode 中，对 xdef:unknown-attr 只记录了类型，并没有 IXDefAttribute 实体，
         // 其处理逻辑见 XDefinitionParser#parseNode
-        XDefTypeDecl xdefUnknownAttrType = xdefNode.getXdefUnknownAttr();
+        XDefTypeDecl xdefUnknownAttrType = defNode.getXdefUnknownAttr();
         if (xdefUnknownAttrType != null) {
             XDefAttribute at = new XDefAttribute() {
                 @Override
@@ -534,7 +545,7 @@ public class XLangTag extends XmlTagImpl {
             // Note: 在需要时，通过节点位置再定位具体的属性位置
             SourceLocation loc = null;
             // 在存在节点继承的情况下，选择最上层定义的同类型的 unknown-attr 属性
-            IXDefNode refNode = xdefNode;
+            IXDefNode refNode = defNode;
             while (refNode != null) {
                 if (refNode.getXdefUnknownAttr() != xdefUnknownAttrType) {
                     break;

@@ -32,7 +32,7 @@ import static com.intellij.psi.xml.XmlTokenType.XML_NAME;
 public class XLangDocumentationProvider extends AbstractDocumentationProvider {
 
     /**
-     * 文档生成函数
+     * 文档生成函数：对于没有可识别的引用的元素，将不会调用该接口
      * <p/>
      * 默认鼠标移动时的文档也由该函数生成 {@link #generateHoverDoc}
      *

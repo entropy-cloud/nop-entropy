@@ -17,6 +17,9 @@ import io.nop.idea.plugin.lang.reference.XLangAttributeReference;
 import io.nop.idea.plugin.lang.reference.XLangXlibTagAttrReference;
 import io.nop.idea.plugin.lang.xlib.XlibXDefAttribute;
 import io.nop.xlang.xdef.IXDefAttribute;
+import io.nop.xlang.xdef.XDefTypeDecl;
+import io.nop.xlang.xdef.impl.XDefAttribute;
+import io.nop.xlang.xdef.parse.XDefTypeDeclParser;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -92,5 +95,15 @@ public class XLangAttribute extends XmlAttributeImpl {
         }
 
         return defAttr;
+    }
+
+    /** 带名字空间的附加属性（即，不做名字空间校验的属性） */
+    public static class XDefAttributeNotInCheckNS extends XDefAttribute {
+        private static final XDefTypeDecl STD_DOMAIN_ANY = new XDefTypeDeclParser().parseFromText(null, "any");
+
+        public XDefAttributeNotInCheckNS(String name) {
+            setName(name);
+            setType(STD_DOMAIN_ANY);
+        }
     }
 }

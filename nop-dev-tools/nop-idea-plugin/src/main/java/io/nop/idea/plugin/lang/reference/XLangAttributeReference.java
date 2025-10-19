@@ -57,6 +57,13 @@ public class XLangAttributeReference extends XLangReferenceBase {
             return null;
         }
 
+        // 对于带名字空间的附加属性，其定义直接引用其自身
+        if (defAttr instanceof XLangAttribute.XDefAttributeNotInCheckNS) {
+            String path = XmlPsiHelper.getNopVfsPath(myElement);
+
+            return path == null ? null : new NopVirtualFile(myElement, path, (file) -> myElement);
+        }
+
         String path = XmlPsiHelper.getNopVfsPath(defAttr);
         if (path == null) {
             return null;
