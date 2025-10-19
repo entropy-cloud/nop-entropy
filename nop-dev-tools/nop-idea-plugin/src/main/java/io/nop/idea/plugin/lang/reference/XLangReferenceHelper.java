@@ -96,7 +96,11 @@ public class XLangReferenceHelper {
                     new PsiReference[] {
                             new XLangStdDomainXdefRefReference(refElement, textRange, refValue)
                     };
-            case STD_DOMAIN_V_PATH, STD_DOMAIN_NAME_OR_V_PATH -> //
+            case STD_DOMAIN_NAME_OR_V_PATH -> //
+                    refValue.indexOf('.') > 0
+                    ? getReferencesByVfsPath(refElement, refValue, textRange)
+                    : PsiReference.EMPTY_ARRAY;
+            case STD_DOMAIN_V_PATH -> //
                     getReferencesByVfsPath(refElement, refValue, textRange);
             case STD_DOMAIN_V_PATH_LIST -> //
                     getReferencesFromVfsPathCsv(refElement, refValue, textRangeOffset);

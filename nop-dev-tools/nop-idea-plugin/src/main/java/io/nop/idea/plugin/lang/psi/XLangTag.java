@@ -574,15 +574,12 @@ public class XLangTag extends XmlTagImpl {
         }
         // 根节点发生了 schema 相关的更新（包括 schema 的依赖的变更），或者标签名发生了变化
         else if (schemaMeta != null //
-                 && (isRootTag() //
-                     || !Objects.equals(schemaMeta.tagName, tagName) //
-                 ) //
+                 && (!tagName.equals(schemaMeta.tagName) || isRootTag()) //
         ) {
             SchemaMeta newSchemaMeta = createSchemaMeta();
 
             if (!Objects.equals(schemaMeta, newSchemaMeta)) {
                 clearSchemaMeta();
-
                 schemaMeta = newSchemaMeta;
             }
         }
