@@ -56,7 +56,7 @@ public class DataBaseSchemaInitializer {
     @PostConstruct
     public void init() {
         IOrmModel ormModel = ormSessionFactory.getOrmModel();
-        Collection<IEntityModel> tables = ormModel.getEntityModelsInTopoOrder();
+        Collection<? extends IEntityModel> tables = ormModel.getEntityModelsInTopoOrder();
         for (IEntityModel table : tables) {
             if (table.isTableView())
                 continue;

@@ -31,6 +31,8 @@ import io.nop.dyn.dao.entity.NopDynModule;
 import io.nop.graphql.core.reflection.GraphQLBizModel;
 import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.IOrmTemplate;
+import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.lazy.IDynamicEntityModelProvider;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
@@ -47,7 +49,8 @@ import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE;
 import static io.nop.dyn.service.NopDynConfigs.CFG_DYN_GEN_CODE_WHEN_INIT;
 
-public class DynCodeGen implements ITenantResourceProvider, IDynamicBizModelProvider, ITenantModuleDiscovery {
+public class DynCodeGen implements ITenantResourceProvider, IDynamicBizModelProvider, ITenantModuleDiscovery,
+        IDynamicEntityModelProvider {
     @Inject
     IDaoProvider daoProvider;
 
@@ -137,6 +140,11 @@ public class DynCodeGen implements ITenantResourceProvider, IDynamicBizModelProv
                 return k;
             }
         });
+    }
+
+    @Override
+    public IEntityModel getEntityModel(String entityName) {
+        return null;
     }
 
     @Override

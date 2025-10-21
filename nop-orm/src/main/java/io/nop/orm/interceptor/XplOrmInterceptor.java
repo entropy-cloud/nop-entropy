@@ -31,6 +31,27 @@ public class XplOrmInterceptor implements IOrmInterceptor {
     private List<IEvalAction> preFlushActions;
     private List<IEvalAction> postFlushActions;
 
+    public boolean isEmpty() {
+        return !hasActions(preSaveActions) &&
+                !hasActions(preUpdateActions) &&
+                !hasActions(preDeleteActions) &&
+                !hasActions(preResetActions) &&
+                !hasActions(postSaveActions) &&
+                !hasActions(postUpdateActions) &&
+                !hasActions(postDeleteActions) &&
+                !hasActions(postLoadActions) &&
+                !hasActions(preFlushActions) &&
+                !hasActions(postFlushActions);
+    }
+
+    private boolean hasActions(Map<String, List<IEvalAction>> actions) {
+        return actions != null && !actions.isEmpty();
+    }
+
+    private boolean hasActions(List<IEvalAction> actions) {
+        return actions != null && !actions.isEmpty();
+    }
+
     public void setActions(String event, Map<String, List<IEvalAction>> actions) {
         if (OrmConstants.PRE_SAVE.equals(event)) {
             setPreSaveActions(actions);

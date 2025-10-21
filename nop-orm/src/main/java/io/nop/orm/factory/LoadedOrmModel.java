@@ -56,6 +56,11 @@ public class LoadedOrmModel implements ILoadedOrmModel {
     }
 
     @Override
+    public IPersistEnv getEnv() {
+        return env;
+    }
+
+    @Override
     public IOrmModel getOrmModel() {
         return ormModel;
     }

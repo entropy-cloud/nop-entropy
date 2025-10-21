@@ -53,6 +53,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
@@ -179,6 +180,12 @@ public class CollectionHelper {
 
     public static int calcInitSize(int expectedSize) {
         return (int) ((expectedSize / DEFAULT_LOAD_FACTOR) + 1);
+    }
+
+    public static <T> void reverseEach(List<T> list, Consumer<? super T> action) {
+        for (int i = list.size() - 1; i >= 0; i--) {
+            action.accept(list.get(i));
+        }
     }
 
     public static <T> List<T> newList(long size) {

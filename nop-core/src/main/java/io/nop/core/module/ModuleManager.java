@@ -17,12 +17,14 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.impl.UnknownResource;
+import io.nop.core.resource.tenant.ITenantModuleDiscovery;
 import io.nop.core.resource.tenant.ResourceTenantManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -137,6 +139,16 @@ public class ModuleManager {
                 }
             }
         }
+        return ret;
+    }
+
+    public Map<String, ModuleModel> getEnabledTenantModules() {
+        ITenantModuleDiscovery discovery = ResourceTenantManager.instance().getTenantModuleDiscovery();
+        if (discovery == null)
+            return Collections.emptyMap();
+        Map<String, ModuleModel> ret = ResourceTenantManager.instance().getTenantModuleDiscovery().getEnabledTenantModules();
+        if (ret == null)
+            ret = Collections.emptyMap();
         return ret;
     }
 

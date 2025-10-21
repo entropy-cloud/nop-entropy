@@ -9,7 +9,6 @@ package io.nop.orm.model;
 
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.core.model.graph.TopoEntry;
 import io.nop.core.reflect.hook.IPropGetMissingHook;
 
 import java.util.Collection;
@@ -29,9 +28,11 @@ public interface IOrmModel extends IPropGetMissingHook {
      */
     boolean isAnyEntityUseTenant();
 
-    TopoEntry<IEntityModel> getTopoEntry(String entityName);
+    List<IEntityModel> getEntityModelInTopoOrder(Collection<String> entityNames);
 
-    Collection<IEntityModel> getEntityModelsInTopoOrder();
+    List<IEntityModel> sortEntityModelInTopoOrder(Collection<IEntityModel> entityModels);
+
+    Collection<? extends IEntityModel> getEntityModelsInTopoOrder();
 
     List<? extends IEntityModel> getEntityModels();
 
@@ -41,10 +42,10 @@ public interface IOrmModel extends IPropGetMissingHook {
 
     IEntityModel getEntityModelByTableName(String tableName);
 
-    IEntityModel getEntityModelByUnderscoreName(String name);
+    IEntityModel getEntityModelBySnakeCaseName(String name);
 
-    default IEntityModel requireEntityModelByUnderscoreName(String name) {
-        IEntityModel entityModel = getEntityModelByUnderscoreName(name);
+    default IEntityModel requireEntityModelBySnakeCaseName(String name) {
+        IEntityModel entityModel = getEntityModelBySnakeCaseName(name);
         if (entityModel == null)
             throw new NopException(ERR_ORM_UNKNOWN_ENTITY_MODEL_FOR_TABLE).param(ARG_TABLE_NAME, name);
         return entityModel;

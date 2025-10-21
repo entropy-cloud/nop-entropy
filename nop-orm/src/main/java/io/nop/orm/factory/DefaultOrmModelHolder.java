@@ -1,7 +1,9 @@
 package io.nop.orm.factory;
 
-import io.nop.core.resource.cache.IResourceCacheEntry;
-import io.nop.core.resource.cache.ResourceCacheEntry;
+import io.nop.commons.cache.GlobalCacheRegistry;
+import io.nop.core.module.ModuleManager;
+import io.nop.core.resource.cache.CacheEntryManagement;
+import io.nop.core.resource.tenant.ResourceTenantManager;
 import io.nop.orm.ILoadedOrmModel;
 import io.nop.orm.IOrmInterceptor;
 import io.nop.orm.OrmConfigs;
@@ -14,22 +16,26 @@ public class DefaultOrmModelHolder implements IOrmModelHolder {
     private final IPersistEnv env;
     private LoadedOrmModel ormModel;
 
-    private IResourceCacheEntry<XplOrmInterceptor> interceptorCache = new ResourceCacheEntry<>("orm-interceptor-cache");
+    private final CacheEntryManagement<XplOrmInterceptor> interceptorCache = ResourceTenantManager.instance()
+            .makeCacheEntry("orm-interceptor-cache", false, null);
 
     public DefaultOrmModelHolder(IPersistEnv env) {
         this.env = env;
         clearCache();
+
+        GlobalCacheRegistry.instance().register(interceptorCache);
     }
 
     @Override
     public void close() {
+        GlobalCacheRegistry.instance().unregister(interceptorCache);
         ormModel.close();
     }
 
     @Override
     public ILoadedOrmModel getOrmModel(IPersistEnv env) {
         IOrmInterceptor interceptor = interceptorCache.getObject(OrmConfigs.CFG_ORM_INTERCEPTOR_CACHE_CHECK_CHANGE.get(),
-                cacheName -> new XplOrmInterceptorLoader().loadInterceptor(cacheName, false));
+                cacheName -> new XplOrmInterceptorLoader().loadInterceptor(ModuleManager.instance().getEnabledModules(false)));
         if (interceptor != null)
             ormModel.setOrmInterceptor(interceptor);
         return ormModel;

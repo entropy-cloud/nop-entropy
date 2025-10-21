@@ -17,7 +17,6 @@ import io.nop.core.model.graph.DefaultDirectedGraph;
 import io.nop.core.model.graph.DefaultEdge;
 import io.nop.core.model.graph.IDirectedGraph;
 import io.nop.core.model.graph.TopoEntry;
-import io.nop.core.model.graph.TopologicalOrderIterator;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityJoinConditionModel;
@@ -29,7 +28,6 @@ import io.nop.orm.model.OrmDomainModel;
 import io.nop.orm.model.OrmEntityModel;
 import io.nop.orm.model.OrmJoinOnModel;
 import io.nop.orm.model.OrmModel;
-import io.nop.orm.model.OrmModelConfigs;
 import io.nop.orm.model.OrmModelConstants;
 import io.nop.orm.model.OrmRefSetModel;
 import io.nop.orm.model.OrmReferenceModel;
@@ -40,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -48,7 +47,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 import static io.nop.orm.model.OrmModelErrors.ARG_ALLOWED_NAMES;
 import static io.nop.orm.model.OrmModelErrors.ARG_COL_NAME;
@@ -56,7 +54,6 @@ import static io.nop.orm.model.OrmModelErrors.ARG_DATA_TYPE;
 import static io.nop.orm.model.OrmModelErrors.ARG_DOMAIN;
 import static io.nop.orm.model.OrmModelErrors.ARG_DOMAIN_DATA_TYPE;
 import static io.nop.orm.model.OrmModelErrors.ARG_ENTITY_NAME;
-import static io.nop.orm.model.OrmModelErrors.ARG_LOOP_ENTITY_NAMES;
 import static io.nop.orm.model.OrmModelErrors.ARG_OTHER_ENTITY_NAME;
 import static io.nop.orm.model.OrmModelErrors.ARG_OTHER_LOC;
 import static io.nop.orm.model.OrmModelErrors.ARG_PROP_NAME;
@@ -67,7 +64,6 @@ import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_COL_NO_STD_SQL_TYPE;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_DUPLICATE_ENTITY_SHORT_NAME;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_INVALID_COLUMN_DOMAIN;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_JOIN_COLUMN_COUNT_LESS_THAN_PK_COLUMN_COUNT;
-import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_DEPENDS_CONTAINS_LOOP;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_ENTITY_NO_PROP;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_PROP_NOT_COLUMN;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_UNKNOWN_ENTITY;
@@ -80,7 +76,6 @@ public class OrmModelInitializer {
     Map<String, TopoEntry<IEntityModel>> entryMap = new TreeMap<>();
     Map<String, IEntityModel> entityModelByTableMap = new CaseInsensitiveMap<>();
     Map<String, OrmEntityModel> entityMap = new HashMap<>();
-    Map<TopoEntry<IEntityModel>, IEntityModel> topoMap = new TreeMap<>();
     Map<String, OrmToManyReferenceModel> collectionMap = new HashMap<>();
 
     Map<String, OrmEntityModel> underscoreNameMap = new HashMap<>();
@@ -108,10 +103,6 @@ public class OrmModelInitializer {
 
     public Map<String, OrmEntityModel> getEntityMap() {
         return entityMap;
-    }
-
-    public Map<TopoEntry<IEntityModel>, IEntityModel> getTopoMap() {
-        return topoMap;
     }
 
     public Map<String, OrmToManyReferenceModel> getCollectionMap() {
@@ -520,38 +511,12 @@ public class OrmModelInitializer {
     }
 
     private void initTopoMap() {
-        IDirectedGraph<IEntityModel, DefaultEdge<IEntityModel>> graph = buildDependsMap();
-        for (IEntityModel entityModel : graph.vertexSet()) {
-            if (graph.getOutwardDegree(entityModel) != 0) {
-                entityModel.setDependByOtherEntity(true);
-            }
-        }
-
-        TopologicalOrderIterator<IEntityModel> it = graph.topologicalOrderIterator(false);
-        int topoOrder = 0;
-        while (it.hasNext()) {
-            TopoEntry<IEntityModel> entry = new TopoEntry<>(topoOrder++, it.next());
-            IEntityModel entityModel = entry.getValue();
-            entryMap.put(entityModel.getName(), entry);
-            topoMap.put(entry, entityModel);
-        }
-
-        List<String> tableNames = topoMap.values().stream().map(IEntityModel::getTableName).collect(Collectors.toList());
-        LOG.debug("nop.orm.entity-topology-order:model={},tables={}", ormModel.getLocation(), tableNames);
-
-        if (!it.getRemaining().isEmpty()) {
-            Set<String> names = it.getRemaining().stream().map(IEntityModel::getName).collect(Collectors.toSet());
-            if (OrmModelConfigs.CFG_ORM_CHECK_ENTITY_LOOP_DEPENDENCY.get()) {
-                throw new NopException(ERR_ORM_MODEL_REF_DEPENDS_CONTAINS_LOOP).param(ARG_LOOP_ENTITY_NAMES, names);
-            } else {
-                LOG.warn("nop.orm.entity-dependency-contains-loop:model={},loopEntityNames={}", ormModel.getLocation(), names);
-            }
-        }
+        new OrmModelTopEntryBuilder().build(ormModel.getEntities(), this.entryMap);
     }
 
-    private IDirectedGraph<IEntityModel, DefaultEdge<IEntityModel>> buildDependsMap() {
+    private IDirectedGraph<IEntityModel, DefaultEdge<IEntityModel>> buildDependsMap(Collection<? extends IEntityModel> entityModels) {
         DefaultDirectedGraph<IEntityModel, DefaultEdge<IEntityModel>> graph = DefaultDirectedGraph.create();
-        for (IEntityModel entityModel : ormModel.getEntities()) {
+        for (IEntityModel entityModel : entityModels) {
             graph.addVertex(entityModel);
             for (IEntityRelationModel rel : entityModel.getRelations()) {
                 if (rel.isToOneRelation()) {

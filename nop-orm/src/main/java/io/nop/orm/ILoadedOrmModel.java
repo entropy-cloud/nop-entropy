@@ -1,6 +1,5 @@
 package io.nop.orm;
 
-import io.nop.core.model.graph.TopoEntry;
 import io.nop.orm.eql.ICompiledSql;
 import io.nop.orm.eql.IEqlAstTransformer;
 import io.nop.orm.eql.meta.EntityTableMeta;
@@ -9,7 +8,11 @@ import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IOrmModel;
 import io.nop.orm.persister.ICollectionPersister;
 import io.nop.orm.persister.IEntityPersister;
+import io.nop.orm.persister.IPersistEnv;
 import io.nop.orm.sql.ISqlCompileTool;
+
+import java.util.Collection;
+import java.util.List;
 
 import static io.nop.orm.OrmErrors.ARG_COLLECTION_NAME;
 import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
@@ -18,6 +21,8 @@ import static io.nop.orm.OrmErrors.ERR_ORM_UNKNOWN_ENTITY_PERSISTER;
 
 public interface ILoadedOrmModel extends AutoCloseable, ISqlCompileTool {
     IOrmModel getOrmModel();
+
+    IPersistEnv getEnv();
 
     void incRef();
 
@@ -47,8 +52,8 @@ public interface ILoadedOrmModel extends AutoCloseable, ISqlCompileTool {
         return persister;
     }
 
-    default TopoEntry<? extends IEntityModel> getEntityModelTopoEntry(String entityName) {
-        return getOrmModel().getTopoEntry(entityName);
+    default List<IEntityModel> getEntityModelsInTopoOrder(Collection<String> entityNames) {
+        return getOrmModel().getEntityModelInTopoOrder(entityNames);
     }
 
     default <T> T getExtension(String entityName, Class<T> extensionClass) {

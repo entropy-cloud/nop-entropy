@@ -44,7 +44,7 @@ public class SqlExprMetaCache {
         IEntityModel entityModel = ormModel.getEntityModel(entityName);
         if (entityModel == null) {
             if (allowUnderscoreName)
-                entityModel = ormModel.getEntityModelByUnderscoreName(entityName);
+                entityModel = ormModel.getEntityModelBySnakeCaseName(entityName);
         }
         return entityModel;
     }

@@ -9,7 +9,7 @@ package io.nop.orm.factory;
 
 import io.nop.api.core.util.OrderedComparator;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.core.module.ModuleManager;
+import io.nop.core.module.ModuleModel;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.orm.OrmConstants;
@@ -20,6 +20,7 @@ import io.nop.orm.model.interceptor.OrmInterceptorModel;
 import io.nop.xlang.xdsl.DslModelParser;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,11 +28,11 @@ import java.util.stream.Collectors;
 
 public class XplOrmInterceptorLoader {
 
-    public XplOrmInterceptor loadInterceptor(String cacheName, boolean includeTenant) {
+    public XplOrmInterceptor loadInterceptor(Collection<ModuleModel> modules) {
         // event -> entityName -> actions
         Map<String, Map<String, List<OrmInterceptorActionModel>>> allActions = new HashMap<>();
 
-        ModuleManager.instance().getEnabledModules(includeTenant).forEach(module -> {
+        modules.forEach(module -> {
             String path = "/" + module.getModuleId() + "/orm/app.orm-interceptor.xml";
 
             IResource resource = VirtualFileSystem.instance().getResource(path);
