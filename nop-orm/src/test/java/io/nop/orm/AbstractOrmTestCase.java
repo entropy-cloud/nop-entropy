@@ -83,7 +83,7 @@ public class AbstractOrmTestCase extends AbstractJdbcTestCase {
     }
 
     protected void createTables() {
-        Collection<IEntityModel> tables = sessionFactory.getOrmModel().getEntityModelsInTopoOrder();
+        Collection<? extends IEntityModel> tables = sessionFactory.getOrmModel().getEntityModelsInTopoOrder();
         String createSql = new DdlSqlCreator(jdbcTemplate.getDialectForQuerySpace(null)).createTables(tables, false);
         jdbcTemplate.executeMultiSql(new SQL(createSql));
     }

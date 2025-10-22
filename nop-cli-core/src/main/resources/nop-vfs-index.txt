@@ -319,7 +319,6 @@
 /nop/rpc/imp/api.imp.xml
 /nop/rpc/imp/template.api.xlsx
 /nop/schema/action-auth.xdef
-/nop/schema/ai/agent.xdef
 /nop/schema/ai/chat-options.xdef
 /nop/schema/ai/llm.xdef
 /nop/schema/ai/prompt.xdef

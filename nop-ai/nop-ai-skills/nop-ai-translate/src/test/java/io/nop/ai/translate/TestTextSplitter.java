@@ -18,7 +18,7 @@ public class TestTextSplitter extends JunitBaseTestCase {
     @Test
     public void testSplit() {
         File dir = getModuleDir();
-        File file = new File(dir, "../../docs/theory/why-springbatch-is-bad.md");
+        File file = new File(dir, "../../../docs/theory/why-springbatch-is-bad.md");
         String text = FileHelper.readText(file, null);
 
         text = StringHelper.replace(text, "\r\n", "\n");

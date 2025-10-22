@@ -42,6 +42,14 @@ public interface IAttributeSet {
 
     void setAttribute(String name, Object value);
 
+    default void addAttributes(Map<String, Object> attrs) {
+        if (attrs != null) {
+            for (Map.Entry<String, Object> entry : attrs.entrySet()) {
+                setAttribute(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+
     default void removeAttribute(String name) {
         Map<String, Object> attrs = getAttributes();
         if (attrs == null)

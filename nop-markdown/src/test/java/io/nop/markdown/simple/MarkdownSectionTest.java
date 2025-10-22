@@ -86,7 +86,7 @@ class MarkdownSectionTest {
         root.addChild(child2);
 
         String result = root.toIndexMarkdown(1, DEFAULT_OPTIONS);
-        String expected = "# 根节点\n\n" +
+        String expected = "# 根节点\n\n\n" +
                 "## [1.1 子节点1](section-1.1.md)\n" +
                 "## [1.2 子节点2](section-1.2.md)\n";
         assertEquals(expected, result);

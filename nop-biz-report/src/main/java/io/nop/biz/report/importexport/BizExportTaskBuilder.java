@@ -7,9 +7,7 @@ import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.consumer.ResourceRecordConsumerProvider;
 import io.nop.batch.orm.loader.OrmQueryBatchLoaderProvider;
-import io.nop.biz.api.IBizObjectManager;
 import io.nop.biz.report.BizReportConstants;
-import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.resource.VirtualFileSystem;
@@ -85,6 +83,7 @@ public class BizExportTaskBuilder {
         ResourceRecordConsumerProvider<Object> writer = new ResourceRecordConsumerProvider<>();
         writer.setPathExpr(getPathExpr());
         writer.setRecordIO(recordIO);
+        addMeta(writer, config);
         return writer;
     }
 
@@ -115,7 +114,13 @@ public class BizExportTaskBuilder {
         writer.setPathExpr(getPathExpr());
         writer.setRecordIO(io);
         writer.setResourceLocator(VirtualFileSystem.instance());
+        addMeta(writer, config);
         return writer;
     }
 
+    void addMeta(ResourceRecordConsumerProvider<Object> provider, BizEntityExportConfig config) {
+        if (config.getMetaData() != null) {
+            provider.setMetaProvider(taskCtx -> config.getMetaData());
+        }
+    }
 }

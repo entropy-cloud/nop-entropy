@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestJavaFileSplitter extends BaseTestCase {
     @Test
     public void testSplit() {
-        File file = new File(getModuleDir(), "../../nop-core/src/main/java/io/nop/core/lang/xml/XNode.java");
+        File file = new File(getModuleDir(), "../../../nop-core/src/main/java/io/nop/core/lang/xml/XNode.java");
 
         IAiTextSplitter.SplitOptions options = new IAiTextSplitter.SplitOptions();
         options.setMaxContentSize(20000);

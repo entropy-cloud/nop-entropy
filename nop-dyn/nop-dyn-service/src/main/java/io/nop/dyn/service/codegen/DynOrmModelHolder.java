@@ -1,6 +1,7 @@
 package io.nop.dyn.service.codegen;
 
 import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.module.ModuleManager;
@@ -35,9 +36,13 @@ public class DynOrmModelHolder implements IOrmModelHolder {
         GlobalCacheRegistry.instance().register(cache);
     }
 
-    @Inject
-    public void setEntityModelLoader(IDynamicEntityModelProvider entityModelLoader) {
-        this.entityModelLoader = entityModelLoader;
+    /**
+     * 直接注入存在循环依赖的问题，ioc初始化失败。
+     */
+    public IDynamicEntityModelProvider getEntityModelLoader(){
+        if(entityModelLoader == null)
+            entityModelLoader = BeanContainer.getBeanByType(IDynamicEntityModelProvider.class);
+        return entityModelLoader;
     }
 
     @Override
@@ -82,7 +87,7 @@ public class DynOrmModelHolder implements IOrmModelHolder {
             }
         }
 
-        LazyLoadOrmModel lazyModel = new LazyLoadOrmModel(baseModel.getOrmModel(), entityModelLoader);
+        LazyLoadOrmModel lazyModel = new LazyLoadOrmModel(baseModel.getOrmModel(), getEntityModelLoader());
         LoadedOrmModel loadedModel = new LoadedOrmModel(baseModel.getEnv(), lazyModel);
         loadedModel.setOrmInterceptor(mergedInterceptor);
         return loadedModel;

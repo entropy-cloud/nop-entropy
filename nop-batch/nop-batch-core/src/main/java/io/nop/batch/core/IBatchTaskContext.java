@@ -14,6 +14,7 @@ import io.nop.core.context.IServiceContext;
 import io.nop.core.utils.IVarSet;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -56,6 +57,15 @@ public interface IBatchTaskContext extends IExecutionContext {
     Map<String, Object> getParams();
 
     void setParams(Map<String, Object> params);
+
+    default void addParam(String name, Object value) {
+        Map<String, Object> params = getParams();
+        if (params == null) {
+            params = new HashMap<>();
+            setParams(params);
+        }
+        params.put(name, value);
+    }
 
     default Object getParam(String name) {
         Map<String, Object> params = getParams();

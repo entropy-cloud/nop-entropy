@@ -5,9 +5,10 @@ import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 
 import java.util.List;
+import java.util.Map;
 
 @DataBean
-public class BizEntityExportConfig implements IBizEntityExecutorConfig{
+public class BizEntityExportConfig implements IBizEntityExecutorConfig {
     private TreeBean filter;
     private List<OrderFieldBean> orderBy;
     private int concurrency;
@@ -19,6 +20,15 @@ public class BizEntityExportConfig implements IBizEntityExecutorConfig{
     private boolean useFieldLabels;
     private List<String> exportFieldNames;
     private List<String> exportFieldLabels;
+    private Map<String, Object> metaData;
+
+    public Map<String, Object> getMetaData() {
+        return metaData;
+    }
+
+    public void setMetaData(Map<String, Object> metaData) {
+        this.metaData = metaData;
+    }
 
     public String getExportFormat() {
         return exportFormat;

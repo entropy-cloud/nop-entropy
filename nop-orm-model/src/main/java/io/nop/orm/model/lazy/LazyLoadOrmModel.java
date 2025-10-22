@@ -34,9 +34,9 @@ public class LazyLoadOrmModel implements IOrmModel {
     private final Map<String, IEntityModel> entityModelMap = new ConcurrentHashMap<>();
 
     private final Map<String, IEntityModel> snakeCaseNameMap = new ConcurrentHashMap<>();
-    private boolean anyEntityUseTenant;
+    private volatile boolean anyEntityUseTenant;
 
-    private boolean topoEntryInited = true;
+    private volatile boolean topoEntryInited = false;
 
     public LazyLoadOrmModel(IOrmModel baseModel, IDynamicEntityModelProvider entityModelLoader) {
         this.baseModel = baseModel;

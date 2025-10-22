@@ -62,6 +62,7 @@ public class OrmModelTopEntryBuilder {
         Map<String, IEntityModel> entityMap = CollectionHelper.newHashMap(entityModels.size());
         for (IEntityModel entityModel : entityModels) {
             entityMap.put(entityModel.getName(), entityModel);
+            entityMap.put(StringHelper.simpleClassName(entityModel.getName()),entityModel);
         }
 
         DefaultDirectedGraph<IEntityModel, DefaultEdge<IEntityModel>> graph = DefaultDirectedGraph.create();

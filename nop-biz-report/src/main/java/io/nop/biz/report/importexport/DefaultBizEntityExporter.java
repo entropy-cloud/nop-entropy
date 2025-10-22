@@ -18,7 +18,6 @@ import io.nop.orm.IOrmEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -52,9 +51,11 @@ public class DefaultBizEntityExporter extends AbstractBizEntityService implement
         BizExportTaskBuilder builder = new BizExportTaskBuilder(graphQLEngine, daoProvider, executor);
         IBatchTask task = builder.newTaskBuilder(bizObjName, dao, config).buildTask();
         IBatchTaskContext taskCtx = new BatchTaskContextImpl(context);
+        if (config.getMetaData() != null)
+            taskCtx.addAttributes(config.getMetaData());
 
         IResource tempResource = ResourceHelper.getTempResource("export");
-        taskCtx.setParams(Map.of(BizReportConstants.VAR_EXPORT_FILE_PATH, tempResource.getPath()));
+        taskCtx.addParam(BizReportConstants.VAR_EXPORT_FILE_PATH, tempResource.getPath());
 
         return task.executeAsync(taskCtx).thenApply(ret -> {
             return buildWebContentBean(taskCtx, config, tempResource);

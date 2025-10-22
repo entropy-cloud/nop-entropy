@@ -97,14 +97,18 @@ public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHand
         IResource resource = getResource(context);
         String encoding = this.encodingExpr == null ? null : ConvertHelper.toString(this.encodingExpr.invoke(context));
         state.output = recordIO.openOutput(resource, encoding);
-        Map<String, Object> header = null;
+        Map<String, Object> header;
         if (metaProvider != null) {
             // 写入header
-            header = metaProvider.getMeta(context);
-        } else {
             header = new HashMap<>();
+            Map<String, Object> meta = metaProvider.getMeta(context);
+            if (meta != null)
+                header.putAll(meta);
             header.put(BatchConstants.VAR_BATCH_TASK_CTX, context);
+        } else {
+            header = context.getAttributes();
         }
+
         try {
             state.output.beginWrite(header);
         } catch (Exception e) {
