@@ -34,7 +34,7 @@
                 <col id="linkUrl" mandatory="true" sortable="true"/>
 
                 <!--状态-->
-                <col id="status" mandatory="true" sortable="true"/>
+                <col id="status" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--拥有者ID-->
                 <col id="ownerId" sortable="true"/>

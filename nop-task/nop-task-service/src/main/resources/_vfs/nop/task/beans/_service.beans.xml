@@ -7,9 +7,9 @@
 
     <bean id="io.nop.task.service.entity.NopTaskDefinitionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.task.service.entity.NopTaskDefinitionAuthBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
     <bean id="io.nop.task.service.entity.NopTaskInstanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.task.service.entity.NopTaskDefinitionAuthBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.task.service.entity.NopTaskStepInstanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 </beans>

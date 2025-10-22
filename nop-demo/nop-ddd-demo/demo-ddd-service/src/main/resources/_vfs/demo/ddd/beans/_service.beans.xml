@@ -5,6 +5,10 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
+    <bean id="app.demo.service.entity.VoyageBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="app.demo.service.entity.LocationBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
     <bean id="app.demo.service.entity.CargoBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="app.demo.service.entity.CarrierMovementBizModel" ioc:type="@bean:id" ioc:default="true"/>
@@ -12,8 +16,4 @@
     <bean id="app.demo.service.entity.HandlingEventBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="app.demo.service.entity.LegBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="app.demo.service.entity.LocationBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="app.demo.service.entity.VoyageBizModel" ioc:type="@bean:id" ioc:default="true"/>
 </beans>

@@ -7,31 +7,31 @@
 
     <bean id="io.nop.dyn.service.entity.NopDynAppBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.dyn.service.entity.NopDynAppModuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="io.nop.dyn.service.entity.NopDynDomainBizModel" ioc:type="@bean:id" ioc:default="true"/>
+    <bean id="io.nop.dyn.service.entity.NopDynModuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.dyn.service.entity.NopDynEntityBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.dyn.service.entity.NopDynEntityMetaBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
     <bean id="io.nop.dyn.service.entity.NopDynEntityRelationBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="io.nop.dyn.service.entity.NopDynEntityRelationMetaBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="io.nop.dyn.service.entity.NopDynFileBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="io.nop.dyn.service.entity.NopDynFunctionMetaBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="io.nop.dyn.service.entity.NopDynModuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="io.nop.dyn.service.entity.NopDynModuleDepBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="io.nop.dyn.service.entity.NopDynPageBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.dyn.service.entity.NopDynPatchFileBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.dyn.service.entity.NopDynPropMetaBizModel" ioc:type="@bean:id" ioc:default="true"/>
+    <bean id="io.nop.dyn.service.entity.NopDynModuleDepBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.dyn.service.entity.NopDynAppModuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.dyn.service.entity.NopDynSqlBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.dyn.service.entity.NopDynFileBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.dyn.service.entity.NopDynPageBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.dyn.service.entity.NopDynEntityMetaBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.dyn.service.entity.NopDynDomainBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.dyn.service.entity.NopDynEntityRelationMetaBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.dyn.service.entity.NopDynFunctionMetaBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.dyn.service.entity.NopDynPropMetaBizModel" ioc:type="@bean:id" ioc:default="true"/>
 </beans>

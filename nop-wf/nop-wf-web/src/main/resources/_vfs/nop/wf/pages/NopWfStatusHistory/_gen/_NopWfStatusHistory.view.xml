@@ -22,10 +22,10 @@
                 <col id="wfId" mandatory="true" sortable="true"/>
 
                 <!--源状态-->
-                <col id="fromStatus" mandatory="true" sortable="true"/>
+                <col id="fromStatus" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--目标状态-->
-                <col id="toStatus" mandatory="true" sortable="true"/>
+                <col id="toStatus" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--目标应用状态-->
                 <col id="toAppState" sortable="true"/>

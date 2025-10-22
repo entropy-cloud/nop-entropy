@@ -28,6 +28,7 @@ import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_ENTITY_NAME;
 public class OrmModel extends _OrmModel implements IOrmModel, INeedInit {
     private Map<String, TopoEntry<IEntityModel>> topoEntryMap;
     private Map<String, IEntityModel> entityModelByTableMap;
+    private List<IEntityModel> sortedEntityModels;
     private Map<String, OrmToManyReferenceModel> collectionMap;
     private Map<String, OrmEntityModel> entityModelMap;
 
@@ -93,9 +94,9 @@ public class OrmModel extends _OrmModel implements IOrmModel, INeedInit {
 
     @Override
     public List<? extends IEntityModel> getEntityModels() {
-        if (topoEntryMap == null)
+        if (sortedEntityModels == null)
             return getEntities();
-        return topoEntryMap.values().stream().map(TopoEntry::getValue).collect(Collectors.toList());
+        return sortedEntityModels;
     }
 
     @Override
@@ -132,6 +133,11 @@ public class OrmModel extends _OrmModel implements IOrmModel, INeedInit {
     public void init() {
         OrmModelInitializer initializer = new OrmModelInitializer(this);
         this.topoEntryMap = initializer.getEntryMap();
+        Map<TopoEntry<IEntityModel>, IEntityModel> map = new TreeMap<>();
+        this.topoEntryMap.values().forEach(entry -> {
+            map.put(entry, entry.getValue());
+        });
+        this.sortedEntityModels = map.values().stream().collect(Collectors.toUnmodifiableList());
         this.entityModelMap = initializer.getEntityMap();
         this.entityModelByTableMap = initializer.getEntityModelByTableMap();
         this.collectionMap = initializer.getCollectionMap();

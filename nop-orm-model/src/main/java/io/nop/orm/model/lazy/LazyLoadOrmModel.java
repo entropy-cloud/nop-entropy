@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import static io.nop.orm.model.OrmModelErrors.ARG_ENTITY_NAME;
 import static io.nop.orm.model.OrmModelErrors.ARG_OTHER_ENTITY_NAME;
@@ -30,6 +31,7 @@ public class LazyLoadOrmModel implements IOrmModel {
     private final IDynamicEntityModelProvider entityModelLoader;
 
     private final Map<String, TopoEntry<IEntityModel>> topoEntryMap = new ConcurrentHashMap<>();
+    private volatile List<IEntityModel> sortedEntityModels;
     private final Map<String, IEntityModel> entityModelByTableMap = new ConcurrentHashMap<>();
     private final Map<String, IEntityModel> entityModelMap = new ConcurrentHashMap<>();
 
@@ -63,6 +65,12 @@ public class LazyLoadOrmModel implements IOrmModel {
                 entityModels.addAll(baseModel.getEntityModels());
             entityModels.addAll(entityModelMap.values());
             new OrmModelTopEntryBuilder().build(entityModels, topoEntryMap);
+
+            Map<TopoEntry<IEntityModel>, IEntityModel> map = new TreeMap<>();
+            topoEntryMap.values().forEach(entry -> {
+                map.put(entry, entry.getValue());
+            });
+            this.sortedEntityModels = map.values().stream().collect(Collectors.toUnmodifiableList());
             topoEntryInited = true;
         }
     }
@@ -116,12 +124,7 @@ public class LazyLoadOrmModel implements IOrmModel {
     @Override
     public List<? extends IEntityModel> getEntityModels() {
         checkTopoEntryReady();
-        TreeMap<TopoEntry<IEntityModel>, IEntityModel> map = new TreeMap<>();
-        for (String name : topoEntryMap.keySet()) {
-            TopoEntry<IEntityModel> entry = topoEntryMap.get(name);
-            map.put(entry, entry.getValue());
-        }
-        return new ArrayList<>(map.values());
+        return sortedEntityModels;
     }
 
     @Override

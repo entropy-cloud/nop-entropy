@@ -5,25 +5,25 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="io.nop.wf.service.entity.NopWfActionBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
     <bean id="io.nop.wf.service.entity.NopWfDefinitionBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="io.nop.wf.service.entity.NopWfDefinitionAuthBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.wf.service.entity.NopWfInstanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.wf.service.entity.NopWfLogBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="io.nop.wf.service.entity.NopWfOutputBizModel" ioc:type="@bean:id" ioc:default="true"/>
+    <bean id="io.nop.wf.service.entity.NopWfDefinitionAuthBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.wf.service.entity.NopWfStatusHistoryBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.wf.service.entity.NopWfStepInstanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.wf.service.entity.NopWfStepInstanceLinkBizModel" ioc:type="@bean:id" ioc:default="true"/>
+    <bean id="io.nop.wf.service.entity.NopWfOutputBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.wf.service.entity.NopWfVarBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="io.nop.wf.service.entity.NopWfStepInstanceLinkBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.wf.service.entity.NopWfActionBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
     <bean id="io.nop.wf.service.entity.NopWfWorkBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.wf.service.entity.NopWfLogBizModel" ioc:type="@bean:id" ioc:default="true"/>
 </beans>

@@ -5,7 +5,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="io.nop.tcc.service.entity.NopTccBranchRecordBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
     <bean id="io.nop.tcc.service.entity.NopTccRecordBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.tcc.service.entity.NopTccBranchRecordBizModel" ioc:type="@bean:id" ioc:default="true"/>
 </beans>

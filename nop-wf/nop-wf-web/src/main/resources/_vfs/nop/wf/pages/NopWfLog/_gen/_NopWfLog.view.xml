@@ -28,7 +28,7 @@
                 <col id="actionId" sortable="true"/>
 
                 <!--日志级别-->
-                <col id="logLevel" mandatory="true" sortable="true"/>
+                <col id="logLevel" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--日志消息-->
                 <col id="logMsg" sortable="true"/>

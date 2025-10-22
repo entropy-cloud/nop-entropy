@@ -22,7 +22,7 @@
                 <col id="wfName" mandatory="true" sortable="true"/>
 
                 <!--工作流版本-->
-                <col id="wfVersion" mandatory="true" sortable="true"/>
+                <col id="wfVersion" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--工作流参数-->
                 <col id="wfParams" sortable="true"/>
@@ -37,7 +37,7 @@
                 <col id="title" mandatory="true" sortable="true"/>
 
                 <!--状态-->
-                <col id="status" mandatory="true" sortable="true"/>
+                <col id="status" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--应用状态-->
                 <col id="appState" sortable="true"/>
@@ -64,7 +64,7 @@
                 <col id="parentWfName" sortable="true"/>
 
                 <!--父流程版本-->
-                <col id="parentWfVersion" sortable="true"/>
+                <col id="parentWfVersion" ui:number="true" sortable="true"/>
 
                 <!--父流程ID-->
                 <col id="parentWfId" sortable="true"/>

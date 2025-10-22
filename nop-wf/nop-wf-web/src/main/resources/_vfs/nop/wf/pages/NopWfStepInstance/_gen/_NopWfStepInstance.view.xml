@@ -31,7 +31,7 @@
                 <col id="displayName" mandatory="true" sortable="true"/>
 
                 <!--状态-->
-                <col id="status" mandatory="true" sortable="true"/>
+                <col id="status" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--应用状态-->
                 <col id="appState" sortable="true"/>
@@ -40,10 +40,10 @@
                 <col id="subWfName" sortable="true"/>
 
                 <!--子流程版本-->
-                <col id="subWfVersion" sortable="true"/>
+                <col id="subWfVersion" ui:number="true" sortable="true"/>
 
                 <!--子流程结果状态-->
-                <col id="subWfResultStatus" sortable="true"/>
+                <col id="subWfResultStatus" ui:number="true" sortable="true"/>
 
                 <!--是否已读-->
                 <col id="isRead" mandatory="true" sortable="true"/>
@@ -91,7 +91,7 @@
                 <col id="remindTime" sortable="true" x:abstract="true"/>
 
                 <!--提醒次数-->
-                <col id="remindCount" sortable="true" x:abstract="true"/>
+                <col id="remindCount" ui:number="true" sortable="true" x:abstract="true"/>
 
                 <!--错误码-->
                 <col id="errCode" sortable="true"/>

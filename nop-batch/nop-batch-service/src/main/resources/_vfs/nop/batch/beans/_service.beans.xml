@@ -7,9 +7,9 @@
 
     <bean id="io.nop.batch.service.entity.NopBatchFileBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.batch.service.entity.NopBatchRecordResultBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
     <bean id="io.nop.batch.service.entity.NopBatchTaskBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.batch.service.entity.NopBatchTaskVarBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.batch.service.entity.NopBatchRecordResultBizModel" ioc:type="@bean:id" ioc:default="true"/>
 </beans>

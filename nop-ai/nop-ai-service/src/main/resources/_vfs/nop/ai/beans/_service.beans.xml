@@ -5,31 +5,31 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
+    <bean id="nop.ai.service.entity.NopAiProjectBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="nop.ai.service.entity.NopAiKnowledgeBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="nop.ai.service.entity.NopAiModelBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="nop.ai.service.entity.NopAiPromptTemplateBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="nop.ai.service.entity.NopAiProjectConfigBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="nop.ai.service.entity.NopAiRequirementBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="nop.ai.service.entity.NopAiProjectRuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="nop.ai.service.entity.NopAiPromptTemplateHistoryBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
     <bean id="nop.ai.service.entity.NopAiChatRequestBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="nop.ai.service.entity.NopAiRequirementHistoryBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="nop.ai.service.entity.NopAiChatResponseBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="nop.ai.service.entity.NopAiGenFileBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="nop.ai.service.entity.NopAiGenFileHistoryBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="nop.ai.service.entity.NopAiKnowledgeBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="nop.ai.service.entity.NopAiModelBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="nop.ai.service.entity.NopAiProjectBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="nop.ai.service.entity.NopAiProjectConfigBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="nop.ai.service.entity.NopAiProjectRuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="nop.ai.service.entity.NopAiPromptTemplateBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="nop.ai.service.entity.NopAiPromptTemplateHistoryBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="nop.ai.service.entity.NopAiRequirementBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="nop.ai.service.entity.NopAiRequirementHistoryBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="nop.ai.service.entity.NopAiTestCaseBizModel" ioc:type="@bean:id" ioc:default="true"/>
 

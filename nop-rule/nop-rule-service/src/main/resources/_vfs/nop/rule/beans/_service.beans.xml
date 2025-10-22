@@ -7,9 +7,9 @@
 
     <bean id="io.nop.rule.service.entity.NopRuleDefinitionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.rule.service.entity.NopRuleLogBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
     <bean id="io.nop.rule.service.entity.NopRuleNodeBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.rule.service.entity.NopRuleRoleBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.rule.service.entity.NopRuleLogBizModel" ioc:type="@bean:id" ioc:default="true"/>
 </beans>
