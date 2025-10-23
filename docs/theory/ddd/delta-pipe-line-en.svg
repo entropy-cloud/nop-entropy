@@ -1,0 +1,42 @@
+<svg width="700" height="400" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow-final-18" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur in="SourceAlpha" stdDeviation="5"/><feOffset dx="0" dy="4" result="offsetblur"/><feFlood flood-color="rgba(30, 64, 175, 0.15)"/><feComposite in2="offsetblur" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <marker id="arrow-final-18" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#1e3a8a"/></marker>
+    <!-- Arrow Gradient -->
+    <linearGradient id="arrow-grad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#1e3a8a"/></linearGradient>
+    <!-- Module Fills -->
+    <linearGradient id="fill-backend" x1="0" y1="0" x2="0" y2="1"><stop offset="0.5" stop-color="#3b82f6"/><stop offset="0.5" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="fill-frontend" x1="0" y1="0" x2="0" y2="1"><stop offset="0.5" stop-color="#10b981"/><stop offset="0.5" stop-color="#059669"/></linearGradient>
+    <linearGradient id="fill-source" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1e3a8a"/><stop offset="100%" stop-color="#1e40af"/></linearGradient>
+    <linearGradient id="fill-service" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#d97706"/></linearGradient>
+  </defs>
+  
+  <rect x="50" y="90" width="900" height="450" rx="20" fill="#f8fafc" stroke="#e5e7eb"/>
+  <rect x="65" y="105" width="425" height="420" rx="12" fill="rgba(37, 99, 235, 0.03)"/>
+  <rect x="510" y="105" width="425" height="420" rx="12" fill="rgba(5, 150, 105, 0.03)"/>
+  
+  <text x="500" y="60" text-anchor="middle" font-family="'Inter', sans-serif" font-size="32" font-weight="700" fill="#1e3a8a">Delta-Oriented Software Production Line</text>
+  
+  <text x="280" y="130" text-anchor="middle" font-family="'Inter', sans-serif" font-size="18" font-weight="600" fill="#2563eb">Backend</text>
+  <text x="725" y="130" text-anchor="middle" font-family="'Inter', sans-serif" font-size="18" font-weight="600" fill="#059669">Frontend</text>
+  
+  <rect x="90" y="280" width="120" height="100" rx="12" fill="url(#fill-backend)" filter="url(#shadow-final-18)"/><text x="150" y="310" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">XORM</text><text x="150" y="355" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">_XORM</text>
+  <ellipse cx="150" cy="450" rx="70" ry="40" fill="url(#fill-source)" filter="url(#shadow-final-18)"/><text x="150" y="455" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">Excel</text>
+  <rect x="290" y="280" width="120" height="100" rx="12" fill="url(#fill-backend)" filter="url(#shadow-final-18)"/><text x="350" y="310" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">XMeta</text><text x="350" y="355" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">_XMeta</text>
+  <rect x="560" y="280" width="120" height="100" rx="12" fill="url(#fill-frontend)" filter="url(#shadow-final-18)"/><text x="620" y="310" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">XView</text><text x="620" y="355" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">_XView</text>
+  <rect x="760" y="280" width="120" height="100" rx="12" fill="url(#fill-frontend)" filter="url(#shadow-final-18)"/><text x="820" y="310" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">XPage</text><text x="820" y="355" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">_XPage</text>
+  <rect x="440" y="160" width="120" height="50" rx="12" fill="url(#fill-service)" filter="url(#shadow-final-18)"/><text x="500" y="190" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">GraphQL</text>
+  <rect x="760" y="160" width="120" height="50" rx="12" fill="url(#fill-source)" filter="url(#shadow-final-18)"/><text x="820" y="190" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">UI</text>
+  
+  <g stroke-width="3.5" fill="none" marker-end="url(#arrow-final-18)" stroke="#3b82f6">
+    <line x1="150" y1="410" x2="150" y2="380"/>
+    <path d="M210,305 L250,305 L250,355 L290,355"/>
+    <path d="M410,305 L500,305 L500,355 L560,355"/>
+    <path d="M680,305 L720,305 L720,355 L760,355"/>
+    <line x1="820" y1="280" x2="820" y2="210"/>
+    <path d="M350,280 L350,185 L440,185"/>
+  </g>
+  
+  <text x="360" y="225" text-anchor="middle" font-family="'Inter', sans-serif" font-size="15" fill="#d97706" font-weight="600">+ BizModel</text>
+  <text x="500" y="130" text-anchor="middle" font-family="'Inter', sans-serif" font-size="18" font-weight="600" fill="#d97706">Service Layer</text>
+</svg>

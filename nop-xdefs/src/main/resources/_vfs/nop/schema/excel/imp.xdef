@@ -38,7 +38,7 @@
                field="string" sheetVarName="string" keyProp="string" multipleAsMap="!boolean=false"
                imp:treeChildrenProp="string" imp:treeChildKeyProp="string" imp:treeLevelProp="string"
                xpt:defaultRowExtendForSibling="boolean" xpt:defaultColExtendForSibling="boolean"
-               headerRowCount="!int=0" noSeqCol="!boolean=false" xpt:singleColLayout="boolean"
+               headerRowCount="!int=0" noSeqCol="!boolean=false" xpt:singleColLayout="boolean" alias="csv-set"
         >
 
             <description xdef:value="string"/>

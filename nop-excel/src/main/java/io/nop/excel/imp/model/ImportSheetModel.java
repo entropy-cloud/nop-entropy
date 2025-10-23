@@ -32,6 +32,19 @@ public class ImportSheetModel extends _ImportSheetModel implements INeedInit, IF
         getFields().forEach(field -> field.initStripText(defaultStripText));
     }
 
+    public boolean matchName(String name) {
+        if (getNamePattern() != null)
+            return matchNamePattern(name);
+
+        if (getName().equals(name))
+            return true;
+
+        if (getAlias() != null)
+            return getAlias().contains(name);
+
+        return false;
+    }
+
     @Override
     public String getFieldLabel() {
         return getName();
@@ -58,10 +71,8 @@ public class ImportSheetModel extends _ImportSheetModel implements INeedInit, IF
         return type == null ? null : type.getComponentType();
     }
 
-    public boolean matchNamePattern(String name) {
+    private boolean matchNamePattern(String name) {
         Pattern pattern = getCompiledNamePattern();
-        if (pattern == null)
-            return getName().equals(name);
         return pattern.matcher(name).matches();
     }
 

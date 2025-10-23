@@ -94,12 +94,12 @@ public class ExcelTemplateToXptModelTransformer {
     }
 
     private ImportSheetModel getSheetModel(ImportModel model, ExcelSheet sheet) {
-        ImportSheetModel sheetModel = model.getSheet(sheet.getName());
+        ImportSheetModel sheetModel = model.getSheetByNameOrAlias(sheet.getName());
         if (sheetModel != null)
             return sheetModel;
 
         for (ImportSheetModel sheetM : model.getSheets()) {
-            if (sheetM.matchNamePattern(sheet.getName()))
+            if (sheetM.matchName(sheet.getName()))
                 return sheetM;
         }
 

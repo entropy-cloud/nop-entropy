@@ -263,10 +263,7 @@ public class ImportExcelParser {
                                                   IEvalScope scope) {
         List<ExcelSheet> ret = new ArrayList<>();
         for (ExcelSheet sheet : sheets.values()) {
-            if (sheetModel.getNamePattern() != null) {
-                if (!sheetModel.matchNamePattern(sheet.getName()))
-                    continue;
-            } else if (!sheet.getName().equals(sheetModel.getName())) {
+            if (!sheetModel.matchName(sheet.getName())) {
                 continue;
             }
             if (sheetModel.getWhen() != null) {
@@ -289,12 +286,10 @@ public class ImportExcelParser {
     }
 
     private ExcelSheet getMatchedSheet(ImportSheetModel sheetModel, Map<String, ExcelSheet> sheets, IEvalScope scope) {
-        ExcelSheet sheet = null;
-        if (sheetModel.getNamePattern() == null) {
-            sheet = sheets.get(sheetModel.getName());
-        } else {
+        ExcelSheet sheet = sheets.get(sheetModel.getName());
+        if (sheet == null) {
             for (ExcelSheet sh : sheets.values()) {
-                if (sheetModel.matchNamePattern(sh.getName())) {
+                if (sheetModel.matchName(sh.getName())) {
                     sheet = sh;
                     break;
                 }

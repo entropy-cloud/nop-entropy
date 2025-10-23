@@ -5,137 +5,137 @@
      resultType="io.nop.orm.model.OrmModel" defaultStripText="true">
     <sheets>
         <sheet name="目录" ignore="true"/>
-        <sheet name="配置">
+        <sheet name="配置" alias="Configuration">
             <fields>
-                <field name="ext:extends" displayName="extends">
+                <field name="ext:extends" displayName="extends" alias="Extends">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="ext:registerShortName" displayName="registerShortName">
+                <field name="ext:registerShortName" displayName="registerShortName" alias="Register Short Name">
                     <schema stdDomain="boolean"/>
                 </field>
 
-                <field name="ext:appName" displayName="appName">
+                <field name="ext:appName" displayName="appName" alias="Application Name">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="ext:entityPackageName" displayName="entityPackageName">
+                <field name="ext:entityPackageName" displayName="entityPackageName" alias="Entity Package Name">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="ext:basePackageName" displayName="basePackageName">
+                <field name="ext:basePackageName" displayName="basePackageName" alias="Base Package Name">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="ext:mavenGroupId" displayName="maven.groupId">
+                <field name="ext:mavenGroupId" displayName="maven.groupId" alias="Maven Group Id">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="ext:mavenArtifactId" displayName="maven.artifactId">
+                <field name="ext:mavenArtifactId" displayName="maven.artifactId" alias="Maven Artifact Id">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="ext:mavenVersion" displayName="maven.version">
+                <field name="ext:mavenVersion" displayName="maven.version" alias="Maven Version">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="ext:platformVersion" displayName="platformVersion">
+                <field name="ext:platformVersion" displayName="platformVersion" alias="Platform Version">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="ext:useStdSysFields" displayName="useStdSysFields"/>
+                <field name="ext:useStdSysFields" displayName="useStdSysFields" alias="Use Standard System Fields"/>
 
-                <field name="ext:dialect" displayName="dialect">
+                <field name="ext:dialect" displayName="dialect" alias="Dialect">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="ext:moduleName" displayName="moduleName">
+                <field name="ext:moduleName" displayName="moduleName" alias="Module Name">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="ext:deltaDir" displayName="deltaDir">
+                <field name="ext:deltaDir" displayName="deltaDir" alias="Delta Directory">
                     <schema stdDomain="xml-name"/>
                 </field>
 
-                <field name="ext:useCoreModule" displayName="useCoreModule">
+                <field name="ext:useCoreModule" displayName="useCoreModule" alias="Use Core Module">
                     <schema stdDomain="boolean"/>
                 </field>
 
-                <field name="ext:allowIdAsColName" displayName="allowIdAsColName">
+                <field name="ext:allowIdAsColName" displayName="allowIdAsColName" alias="Allow Id As Column Name">
                     <schema stdDomain="boolean"/>
                 </field>
             </fields>
         </sheet>
 
-        <sheet name="域定义" field="domains" list="true">
+        <sheet name="域定义" field="domains" list="true" alias="Domain Definitions">
             <fields>
-                <field name="name" displayName="名称" mandatory="true">
+                <field name="name" displayName="名称" mandatory="true" alias="Name">
                     <schema stdDomain="xml-name"/>
                 </field>
 
-                <field name="stdDomain" displayName="标准域">
+                <field name="stdDomain" displayName="标准域" alias="StdDomain">
                     <schema stdDomain="std-domain"/>
                 </field>
 
-                <field name="stdSqlType" displayName="数据类型" mandatory="true">
+                <field name="stdSqlType" displayName="数据类型" mandatory="true" alias="StdSqlType">
                     <schema stdDomain="std-sql-type"/>
                 </field>
 
-                <field name="stdDataType" displayName="Java类型">
+                <field name="stdDataType" displayName="Java类型" alias="StdDataType">
                     <schema stdDomain="std-data-type"/>
                 </field>
 
-                <field name="precision" displayName="长度">
+                <field name="precision" displayName="长度" alias="Precision">
                     <schema stdDomain="int-size"/>
                 </field>
 
-                <field name="scale" displayName="小数位数">
+                <field name="scale" displayName="小数位数" alias="Scale">
                     <schema stdDomain="scale"/>
                 </field>
             </fields>
         </sheet>
 
-        <sheet name="字典定义" field="dicts" list="true">
+        <sheet name="字典定义" field="dicts" list="true" alias="Dictionary Definitions">
             <fields>
-                <field name="name" displayName="名称" mandatory="true">
+                <field name="name" displayName="名称" mandatory="true" alias="Name">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="label" displayName="中文名" mandatory="true">
+                <field name="label" displayName="中文名" mandatory="true" alias="Chinese Name">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="valueType" displayName="值类型">
+                <field name="valueType" displayName="值类型" alias="Value Type">
                     <schema stdDomain="std-data-type"/>
                 </field>
 
-                <field name="i18n-en:label" displayName="英文名">
+                <field name="i18n-en:label" displayName="英文名" alias="English Name">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="description" displayName="描述">
+                <field name="description" displayName="描述" alias="Description">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="options" displayName="字典项" mandatory="true" keyProp="value" list="true">
+                <field name="options" displayName="字典项" mandatory="true" keyProp="value" list="true" alias="Dictionary Items">
                     <fields>
-                        <field name="value" displayName="值">
+                        <field name="value" displayName="值" alias="Value">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="label" displayName="名称" mandatory="true">
+                        <field name="label" displayName="名称" mandatory="true" alias="Label">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="code" displayName="代码">
+                        <field name="code" displayName="代码" alias="Code">
                             <schema stdDomain="var-name"/>
                         </field>
 
-                        <field name="i18n-en:label" displayName="英文名">
+                        <field name="i18n-en:label" displayName="英文名" alias="English Name">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="description" displayName="描述">
+                        <field name="description" displayName="描述" alias="Description">
                             <schema stdDomain="string"/>
                         </field>
                     </fields>
@@ -143,7 +143,7 @@
             </fields>
         </sheet>
 
-        <sheet name="entity" namePattern=".*" field="entities" multiple="true" keyProp="name" sheetNameProp="tableName">
+        <sheet name="entity" namePattern=".*" field="entities" multiple="true" keyProp="name" sheetNameProp="tableName" >
             <normalizeFieldsExpr>
                 <c:script><![CDATA[
                     if(rootRecord['ext:registerShortName'])
@@ -199,64 +199,64 @@
             </normalizeFieldsExpr>
 
             <fields>
-                <field name="tableName" displayName="表名" mandatory="true">
+                <field name="tableName" displayName="表名" mandatory="true" alias="Table Name">
                     <schema stdDomain="prop-name"/>
                 </field>
 
-                <field name="name" displayName="对象名">
+                <field name="name" displayName="对象名" alias="Object Name">
                     <schema stdDomain="class-name"/>
                     <valueExpr>
                         value?.$fullClassName(rootRecord['ext:entityPackageName'])
                     </valueExpr>
                 </field>
 
-                <field name="tableView" displayName="是否视图">
+                <field name="tableView" displayName="是否视图" alias="Is View">
                     <schema stdDomain="boolean"/>
                 </field>
 
-                <field name="className" displayName="类名">
+                <field name="className" displayName="类名" alias="Class Name">
                     <schema stdDomain="class-name"/>
                     <valueExpr>
                         value?.$fullClassName(rootRecord['ext:entityPackageName'])
                     </valueExpr>
                 </field>
 
-                <field name="ext:baseClass" displayName="基类">
+                <field name="ext:baseClass" displayName="基类" alias="Base Class">
                     <schema stdDomain="class-name"/>
                     <valueExpr>
                         value?.$fullClassName(rootRecord['ext:entityPackageName'])
                     </valueExpr>
                 </field>
 
-                <field name="displayName" displayName="中文名" mandatory="true">
+                <field name="displayName" displayName="中文名" mandatory="true" alias="Chinese Name">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="i18n-en:displayName" displayName="英文名">
+                <field name="i18n-en:displayName" displayName="英文名" alias="English Name">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="tagSet" displayName="标签">
+                <field name="tagSet" displayName="标签" alias="Tags">
                     <schema stdDomain="csv-set"/>
                 </field>
 
-                <field name="biz:moduleId" displayName="所属模块">
+                <field name="biz:moduleId" displayName="所属模块" alias="Module">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="comment" displayName="备注">
+                <field name="comment" displayName="备注" alias="Comment">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="querySpace" displayName="查询空间">
+                <field name="querySpace" displayName="查询空间" alias="Query Space">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="ext:minPropId" displayName="propId的起始值">
+                <field name="ext:minPropId" displayName="propId的起始值" alias="Min Prop Id">
                     <schema stdDomain="int"/>
                 </field>
 
-                <field name="columns" displayName="字段列表" list="true" keyProp="name">
+                <field name="columns" displayName="字段列表" list="true" keyProp="name" alias="Column List">
                     <normalizeFieldsExpr>
                         if(!record.name){
                         // id被保留为系统自动生成的主键名，因此不会作为字段名
@@ -264,11 +264,11 @@
                         }
                     </normalizeFieldsExpr>
                     <fields>
-                        <field name="propId" displayName="编号" mandatory="true">
+                        <field name="propId" displayName="编号" mandatory="true" alias="Prop Id">
                             <schema stdDomain="int"/>
                         </field>
 
-                        <field name="primary" displayName="主键" xpt:formatExpr="cell.value ? 'PK' : ''">
+                        <field name="primary" displayName="主键" xpt:formatExpr="cell.value ? 'PK' : ''" alias="Primary Key">
                             <schema stdDomain="boolean"/>
                             <valueExpr>
                                 <c:script>
@@ -277,7 +277,7 @@
                             </valueExpr>
                         </field>
 
-                        <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''">
+                        <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''" alias="Mandatory">
                             <schema stdDomain="boolean"/>
                             <valueExpr>
                                 <c:script>
@@ -286,152 +286,152 @@
                             </valueExpr>
                         </field>
 
-                        <field name="code" displayName="字段名" mandatory="true">
+                        <field name="code" displayName="字段名" mandatory="true" alias="Code">
                             <schema stdDomain="var-name"/>
                         </field>
 
-                        <field name="name" displayName="属性名"
+                        <field name="name" displayName="属性名" alias="Name"
                                xpt:formatExpr="cell.value == cell.rp?.ev?.code?.$colCodeToPropName()?'':cell.value">
                             <schema stdDomain="var-name"/>
                         </field>
 
-                        <field name="ui:show" displayName="显示">
+                        <field name="ui:show" displayName="显示" alias="Show">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="displayName" displayName="中文名" mandatory="true"/>
+                        <field name="displayName" displayName="中文名" mandatory="true" alias="Chinese Name"/>
 
-                        <field name="i18n-en:displayName" displayName="英文名"/>
+                        <field name="i18n-en:displayName" displayName="英文名" alias="English Name"/>
 
-                        <field name="domain" displayName="数据域">
+                        <field name="domain" displayName="数据域" alias="Domain">
                             <schema stdDomain="xml-name"/>
                         </field>
 
-                        <field name="stdDomain" displayName="标准域">
+                        <field name="stdDomain" displayName="标准域" alias="StdDomain">
                             <schema stdDomain="xml-name"/>
                         </field>
 
-                        <field name="stdSqlType" displayName="类型" mandatory="true">
+                        <field name="stdSqlType" displayName="类型" mandatory="true" alias="StdSqlType">
                             <schema stdDomain="std-sql-type"/>
                         </field>
-                        <field name="precision" displayName="长度">
+                        <field name="precision" displayName="长度" alias="Precision">
                             <schema stdDomain="int-size"/>
                         </field>
-                        <field name="scale" displayName="小数位数">
+                        <field name="scale" displayName="小数位数" alias="Scale">
                             <schema stdDomain="int-size"/>
                         </field>
-                        <field name="ext:dict" displayName="字典">
+                        <field name="ext:dict" displayName="字典" alias="Dictionary">
                             <schema stdDomain="string"/>
                         </field>
-                        <field name="tagSet" displayName="标签">
+                        <field name="tagSet" displayName="标签" alias="Tags">
                             <schema stdDomain="csv-set"/>
                         </field>
-                        <field name="comment" displayName="备注">
+                        <field name="comment" displayName="备注" alias="Comment">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="extConfig" displayName="扩展配置" virtual="true">
+                        <field name="extConfig" displayName="扩展配置" virtual="true" alias="Ext Config">
                             <schema stdDomain="json"/>
                         </field>
 
-                        <field name="defaultValue" displayName="缺省值">
+                        <field name="defaultValue" displayName="缺省值" alias="Default Value">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="ui:control" displayName="控件">
+                        <field name="ui:control" displayName="控件" alias="Control">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="ui:rootLevel" displayName="根节点级别">
+                        <field name="ui:rootLevel" displayName="根节点级别" alias="Root Level">
                             <schema stdDomain="string"/>
                         </field>
 
                     </fields>
                 </field>
 
-                <field name="relations" displayName="关联列表" list="true">
+                <field name="relations" displayName="关联列表" list="true" alias="Relation List">
                     <fields>
-                        <field name="name" displayName="属性名" mandatory="true">
+                        <field name="name" displayName="属性名" mandatory="true" alias="Name">
                             <schema stdDomain="var-name"/>
                         </field>
 
-                        <field name="tagSet" displayName="标签">
+                        <field name="tagSet" displayName="标签" alias="Tags">
                             <schema stdDomain="csv-set"/>
                         </field>
 
-                        <field name="refEntityName" displayName="关联对象" mandatory="true">
+                        <field name="refEntityName" displayName="关联对象" mandatory="true" alias="Ref Entity Name">
                             <schema stdDomain="class-name"/>
                             <valueExpr>
                                 value.$fullClassName(rootRecord['ext:entityPackageName'])
                             </valueExpr>
                         </field>
 
-                        <field name="refPropName" displayName="关联属性名">
+                        <field name="refPropName" displayName="关联属性名" alias="Ref Property Name">
                             <schema stdDomain="var-name"/>
                         </field>
 
-                        <field name="displayName" displayName="中文名">
+                        <field name="displayName" displayName="中文名" alias="Chinese Name">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="i18n-en:displayName" displayName="英文名">
+                        <field name="i18n-en:displayName" displayName="英文名" alias="English Name">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="refDisplayName" displayName="关联中文名">
+                        <field name="refDisplayName" displayName="关联中文名" alias="Ref Chinese Name">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="ref-i18n-en:displayName" displayName="关联英文名">
+                        <field name="ref-i18n-en:displayName" displayName="关联英文名" alias="Ref English Name">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="comment" displayName="备注">
+                        <field name="comment" displayName="备注" alias="Comment">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="orm:manyToManyPropName1" displayName="多对多属性名1">
+                        <field name="orm:manyToManyPropName1" displayName="多对多属性名1" alias="Many-to-Many Property Name 1">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="orm:manyToManyPropName2" displayName="多对多属性名2">
+                        <field name="orm:manyToManyPropName2" displayName="多对多属性名2" alias="Many-to-Many Property Name 2">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="orm:manyToManyDisplayName1" displayName="多对多属性显示名1">
+                        <field name="orm:manyToManyDisplayName1" displayName="多对多属性显示名1" alias="Many-to-Many Display Name 1">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="orm:manyToManyDisplayName2" displayName="多对多属性显示名2">
+                        <field name="orm:manyToManyDisplayName2" displayName="多对多属性显示名2" alias="Many-to-Many Display Name 2">
                             <schema stdDomain="string"/>
                         </field>
 
                         <!--
                          一般情况下to-one应该是子表指向父表。而在一对一关联时，reverseDepends=true表示是从父表指向子表。
                          -->
-                        <field name="reverseDepends" displayName="反向依赖">
+                        <field name="reverseDepends" displayName="反向依赖" alias="Reverse Depends">
                             <schema stdDomain="boolean"/>
                         </field>
 
-                        <field name="type" displayName="关联类型">
+                        <field name="type" displayName="关联类型" alias="Relation Type">
                             <schema dict="core/entity-relation-type"/>
                             <valueExpr>
                                 value || 'to-one'
                             </valueExpr>
                         </field>
 
-                        <field name="ignoreDepends" displayName="忽略依赖">
+                        <field name="ignoreDepends" displayName="忽略依赖" alias="Ignore Depends">
                             <schema stdDomain="boolFlag"/>
                             <xpt:valueExpr>
                                 cell.rp.ev.type == 'to-one' ? cell.rp.ev.ignoreDepends : null;
                             </xpt:valueExpr>
                         </field>
 
-                        <field name="ui:control" displayName="控件">
+                        <field name="ui:control" displayName="控件" alias="Control">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="refSet.sort" displayName="排序条件">
+                        <field name="refSet.sort" displayName="排序条件" alias="Sort Condition">
                             <valueExpr><![CDATA[
                                 import io.nop.core.model.query.OrderBySqlParser;
 
@@ -442,28 +442,28 @@
                             </xpt:valueExpr>
                         </field>
 
-                        <field name="refSet.keyProp" displayName="唯一标识">
+                        <field name="refSet.keyProp" displayName="唯一标识" alias="Unique Identifier">
                             <schema stdDomain="string"/>
                             <xpt:valueExpr>
                                 cell.rp.ev.type == 'to-one' ? cell.rp.ev.refSet?.keyProp : null;
                             </xpt:valueExpr>
                         </field>
 
-                        <field name="join" displayName="关联条件" list="true" mandatory="true">
+                        <field name="join" displayName="关联条件" list="true" mandatory="true" alias="Join Condition">
                             <fields>
-                                <field name="leftProp" displayName="左属性">
+                                <field name="leftProp" displayName="左属性" alias="Left Property">
                                     <schema stdDomain="var-name"/>
                                 </field>
 
-                                <field name="rightProp" displayName="右属性">
+                                <field name="rightProp" displayName="右属性" alias="Right Property">
                                     <schema stdDomain="var-name"/>
                                 </field>
 
-                                <field name="leftValue" displayName="左值">
+                                <field name="leftValue" displayName="左值" alias="Left Value">
                                     <schema stdDomain="string"/>
                                 </field>
 
-                                <field name="rightValue" displayName="右值">
+                                <field name="rightValue" displayName="右值" alias="Right Value">
                                     <schema stdDomain="string"/>
                                 </field>
                             </fields>
@@ -471,121 +471,121 @@
                     </fields>
                 </field>
 
-                <field name="uniqueKeys" displayName="唯一键列表" list="true">
+                <field name="uniqueKeys" displayName="唯一键列表" list="true" alias="Unique Key List">
                     <fields>
-                        <field name="name" displayName="唯一键名" mandatory="true">
+                        <field name="name" displayName="唯一键名" mandatory="true" alias="Name">
                             <schema stdDomain="var-name"/>
                         </field>
 
-                        <field name="columns" displayName="字段列表" mandatory="true">
+                        <field name="columns" displayName="字段列表" mandatory="true" alias="Columns">
                             <schema stdDomain="word-set"/>
                         </field>
 
-                        <field name="displayName" displayName="中文名">
+                        <field name="displayName" displayName="中文名" alias="Chinese Name">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="i18n-en:displayName" displayName="英文名">
+                        <field name="i18n-en:displayName" displayName="英文名" alias="English Name">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="constraint" displayName="数据库约束名">
+                        <field name="constraint" displayName="数据库约束名" alias="Database Constraint Name">
                             <schema stdDomain="var-name"/>
                         </field>
 
-                        <field name="comment" displayName="注释">
+                        <field name="comment" displayName="注释" alias="Comment">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="tagSet" displayName="标签">
+                        <field name="tagSet" displayName="标签" alias="Tags">
                             <schema stdDomain="tag-set"/>
                         </field>
 
                     </fields>
                 </field>
 
-                <field name="aliases" displayName="别名列表" list="true">
+                <field name="aliases" displayName="别名列表" list="true" alias="Alias List">
                     <fields>
-                        <field name="name" displayName="名称" mandatory="true">
+                        <field name="name" displayName="名称" mandatory="true" alias="Name">
                             <schema stdDomain="var-name"/>
                         </field>
 
-                        <field name="displayName" displayName="中文名">
+                        <field name="displayName" displayName="中文名" alias="Chinese Name">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="i18n-en:displayName" displayName="英文名">
+                        <field name="i18n-en:displayName" displayName="英文名" alias="English Name">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="propPath" displayName="属性路径">
+                        <field name="propPath" displayName="属性路径" alias="Property Path">
                             <schema stdDomain="prop-path"/>
                         </field>
 
-                        <field name="type" displayName="数据类型">
+                        <field name="type" displayName="数据类型" alias="Data Type">
                             <schema stdDomain="generic-type"/>
                         </field>
 
-                        <field name="tagSet" displayName="标签">
+                        <field name="tagSet" displayName="标签" alias="Tags">
                             <schema stdDomain="tag-set"/>
                         </field>
 
-                        <field name="notGenCode" displayName="不生成代码">
+                        <field name="notGenCode" displayName="不生成代码" alias="Not Gen Code">
                             <schema stdDomain="boolean"/>
                         </field>
 
                     </fields>
                 </field>
 
-                <field name="computes" displayName="计算属性列表" list="true">
+                <field name="computes" displayName="计算属性列表" list="true" alias="Computed Property List">
                     <fields>
-                        <field name="name" displayName="名称" mandatory="true">
+                        <field name="name" displayName="名称" mandatory="true" alias="Name">
                             <schema stdDomain="var-name"/>
                         </field>
 
-                        <field name="displayName" displayName="中文名">
+                        <field name="displayName" displayName="中文名" alias="Chinese Name">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="i18n-en:displayName" displayName="英文名">
+                        <field name="i18n-en:displayName" displayName="英文名" alias="English Name">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="type" displayName="数据类型">
+                        <field name="type" displayName="数据类型" alias="Data Type">
                             <schema stdDomain="generic-type"/>
                         </field>
 
-                        <field name="tagSet" displayName="标签">
+                        <field name="tagSet" displayName="标签" alias="Tags">
                             <schema stdDomain="tag-set"/>
                         </field>
 
-                        <field name="notGenCode" displayName="不生成代码">
+                        <field name="notGenCode" displayName="不生成代码" alias="Not Gen Code">
                             <schema stdDomain="boolean"/>
                         </field>
 
-                        <field name="getter" displayName="读函数">
+                        <field name="getter" displayName="读函数" alias="Getter">
                             <schema stdDomain="xpl"/>
                         </field>
 
-                        <field name="setter" displayName="写函数">
+                        <field name="setter" displayName="写函数" alias="Setter">
                             <schema stdDomain="xpl"/>
                         </field>
 
-                        <field name="args" displayName="参数" list="true">
+                        <field name="args" displayName="参数" list="true" alias="Arguments">
                             <fields>
-                                <field name="name" displayName="名称" mandatory="true">
+                                <field name="name" displayName="名称" mandatory="true" alias="Name">
                                     <schema stdDomain="var-name"/>
                                 </field>
 
-                                <field name="displayName" displayName="中文名">
+                                <field name="displayName" displayName="中文名" alias="Chinese Name">
                                     <schema stdDomain="string"/>
                                 </field>
 
-                                <field name="i18n-en:displayName" displayName="英文名">
+                                <field name="i18n-en:displayName" displayName="英文名" alias="English Name">
                                     <schema stdDomain="string"/>
                                 </field>
 
-                                <field name="type" displayName="数据类型">
+                                <field name="type" displayName="数据类型" alias="Data Type">
                                     <schema stdDomain="generic-type"/>
                                 </field>
                             </fields>
@@ -593,41 +593,41 @@
                     </fields>
                 </field>
 
-                <field name="indexes" displayName="索引列表" list="true" keyProp="name">
+                <field name="indexes" displayName="索引列表" list="true" keyProp="name" alias="Indexes">
                     <fields>
-                        <field name="name" displayName="索引名" mandatory="true">
+                        <field name="name" displayName="索引名" mandatory="true" alias="Index Name">
                             <schema stdDomain="var-name"/>
                         </field>
 
-                        <field name="unique" displayName="唯一索引">
+                        <field name="unique" displayName="唯一索引" alias="Unique Index">
                             <schema stdDomain="boolean"/>
                         </field>
 
-                        <field name="displayName" displayName="中文名">
+                        <field name="displayName" displayName="中文名" alias="Chinese Name">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="indexType" displayName="索引类型"/>
+                        <field name="indexType" displayName="索引类型" alias="Index Type"/>
 
-                        <field name="i18n-en:displayName" displayName="英文名">
+                        <field name="i18n-en:displayName" displayName="英文名" alias="English Name">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="comment" displayName="注释">
+                        <field name="comment" displayName="注释" alias="Comment">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="tagSet" displayName="标签">
+                        <field name="tagSet" displayName="标签" alias="Tags">
                             <schema stdDomain="tag-set"/>
                         </field>
 
-                        <field name="columns" displayName="索引列">
+                        <field name="columns" displayName="索引列" alias="Index Columns">
                             <fields>
-                                <field name="name" displayName="列名" mandatory="true">
+                                <field name="name" displayName="列名" mandatory="true" alias="Column Name">
                                     <schema stdDomain="var-name"/>
                                 </field>
 
-                                <field name="desc" displayName="是否降序">
+                                <field name="desc" displayName="是否降序" alias="Is Desc">
                                     <schema stdDomain="boolean"/>
                                 </field>
                             </fields>

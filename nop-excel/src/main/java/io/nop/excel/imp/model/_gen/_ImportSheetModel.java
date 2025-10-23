@@ -25,6 +25,13 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: alias
+     * 
+     */
+    private java.util.Set<java.lang.String> _alias ;
+    
+    /**
+     *  
      * xml name: beforeParse
      * 
      */
@@ -206,6 +213,25 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._afterParse = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: alias
+     *  
+     */
+    
+    public java.util.Set<java.lang.String> getAlias(){
+      return _alias;
+    }
+
+    
+    public void setAlias(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._alias = value;
            
     }
 
@@ -712,6 +738,7 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         super.outputJson(out);
         
         out.putNotNull("afterParse",this.getAfterParse());
+        out.putNotNull("alias",this.getAlias());
         out.putNotNull("beforeParse",this.getBeforeParse());
         out.putNotNull("bizObjName",this.getBizObjName());
         out.putNotNull("description",this.getDescription());
@@ -748,6 +775,7 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         super.copyTo(instance);
         
         instance.setAfterParse(this.getAfterParse());
+        instance.setAlias(this.getAlias());
         instance.setBeforeParse(this.getBeforeParse());
         instance.setBizObjName(this.getBizObjName());
         instance.setDescription(this.getDescription());

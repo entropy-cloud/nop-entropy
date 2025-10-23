@@ -40,6 +40,11 @@ public interface ExcelErrors {
 
     String ARG_ERROR_DESC = "errorDesc";
 
+    String ARG_ALIAS = "alias";
+
+    String ARG_OLD_NAME = "oldName";
+    String ARG_NEW_NAME = "newName";
+
     ErrorCode ERR_IMPORT_UNKNOWN_SHEET = define("nop.err.excel.import.unknown-sheet",
             "未定义的Excel表格:[{sheetName}],允许的名称为{allowedNames}", ARG_SHEET_NAME, ARG_ALLOWED_NAMES);
 
@@ -88,4 +93,9 @@ public interface ExcelErrors {
 
     ErrorCode ERR_EXCEL_UNKNOWN_SHEET =
             define("nop.err.excel.unknown-sheet", "Excel文件中没有找到表格:[{sheetName}]", ARG_SHEET_NAME);
+
+    ErrorCode ERR_IMP_DUPLICATE_SHEET_ALIAS =
+            define("nop.err.imp.duplicate-sheet-alias",
+                    "发现重复的表单别名：别名'{alias}'同时被表单'{oldName}'和'{newName}'使用",
+                    ARG_ALIAS, ARG_OLD_NAME, ARG_NEW_NAME);
 }
