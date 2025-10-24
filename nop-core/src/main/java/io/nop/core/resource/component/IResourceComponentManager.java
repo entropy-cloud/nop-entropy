@@ -120,12 +120,6 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
 
     String buildComponentPath(String modelPath, String genFormat);
 
-    /**
-     * 根据componentPath先确定模型对象，然后再根据模型和genFormat生成对应组件文件
-     *
-     * @param componentPath 可以通过IComponentGenStrategy解析得到modelPath和genFormat
-     */
-    IGeneratedComponent loadGeneratedComponent(String componentPath);
 
     /**
      * 从预编译缓存中装载对象

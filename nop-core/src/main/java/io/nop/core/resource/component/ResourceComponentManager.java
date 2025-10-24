@@ -60,10 +60,8 @@ import static io.nop.core.CoreErrors.ERR_COMPONENT_INVALID_MODEL_PATH;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_MODEL_FILE_TYPE_CONFLICT;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_MODEL_TRANSFORMER_ALREADY_EXISTS;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_NOT_COMPOSITE_COMPONENT;
-import static io.nop.core.CoreErrors.ERR_COMPONENT_NO_COMPONENT_GENERATOR;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_NO_GEN_PATH_STRATEGY;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_UNDEFINED_COMPONENT_MODEL_TRANSFORM;
-import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_COMPONENT_FILE_TYPE;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_FILE_TYPE_FOR_MODEL_TYPE;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_MODEL_FILE_TYPE;
 import static io.nop.core.resource.component.version.ResourceVersionHelper.isVersionFile;
@@ -91,8 +89,6 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     private Map<Pair<String, String>, IComponentTransformer> modelTypeTransformers = new ConcurrentHashMap<>();
 
     private Map<String, IResourceLoadingCache<ComponentCacheEntry>> modelCaches = new ConcurrentHashMap<>();
-
-    private Map<String, IResourceLoadingCache<IGeneratedComponent>> componentCaches = new ConcurrentHashMap<>();
 
     private IResourceChangeChecker changeChecker = DefaultResourceChangeChecker.INSTANCE;
 
@@ -159,19 +155,11 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         for (IResourceLoadingCache<?> cache : this.modelCaches.values()) {
             cache.refreshConfig();
         }
-
-        for (IResourceLoadingCache<?> cache : this.componentCaches.values()) {
-            cache.refreshConfig();
-        }
     }
 
     @Override
     public void clearAllCache() {
         for (IResourceLoadingCache<?> cache : this.modelCaches.values()) {
-            cache.clear();
-        }
-
-        for (IResourceLoadingCache<?> cache : this.componentCaches.values()) {
             cache.clear();
         }
 
@@ -571,43 +559,6 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         }
 
         return config.getGenPathStrategy().buildComponentPath(modelPath, genFormat);
-    }
-
-    @Override
-    public IGeneratedComponent loadGeneratedComponent(String componentPath) {
-        ComponentModelConfig config = requireModelConfigByComponentPath(componentPath);
-        if (config.getGenerator() == null)
-            throw new NopException(ERR_COMPONENT_NO_COMPONENT_GENERATOR).param(ARG_RESOURCE_PATH, componentPath)
-                    .param(ARG_MODEL_TYPE, config.getModelType());
-
-        IResourceLoadingCache<IGeneratedComponent> cache = makeComponentCache(config, componentPath);
-        return cache.require(componentPath);
-    }
-
-    private ComponentModelConfig requireModelConfigByComponentPath(String componentPath) {
-        String fileType = StringHelper.fileType(componentPath);
-        List<ComponentModelConfig> list = findByFileType(fileTypeToGenerators, fileType);
-        if (list == null || list.isEmpty())
-            throw new NopException(ERR_COMPONENT_UNKNOWN_COMPONENT_FILE_TYPE).param(ARG_FILE_TYPE, fileType);
-        for (ComponentModelConfig config : list) {
-            if (config.getGenPathStrategy().supportComponentPath(componentPath))
-                return config;
-        }
-        throw new NopException(ERR_COMPONENT_UNKNOWN_COMPONENT_FILE_TYPE).param(ARG_FILE_TYPE, fileType);
-    }
-
-    private IResourceLoadingCache<IGeneratedComponent> makeComponentCache(ComponentModelConfig config, String path) {
-        Map<String, IResourceLoadingCache<IGeneratedComponent>> caches = componentCaches;
-
-        String modelType = config.getModelType();
-        return caches.computeIfAbsent(modelType, k -> {
-            String name = "gen-component-cache:" + modelType;
-            IResourceLoadingCache<IGeneratedComponent> cache = ResourceTenantManager.instance()
-                    .makeLoadingCache(name, new GenComponentLoader(config), null);
-            if (registerCache)
-                GlobalCacheRegistry.instance().register(cache);
-            return cache;
-        });
     }
 
     @Override
