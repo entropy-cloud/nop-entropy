@@ -72,10 +72,25 @@ public class XLangTag extends XmlTagImpl {
                                                                                                    XDefConstants.STD_DOMAIN_XDEF_REF);
 
     private SchemaMeta schemaMeta;
+    private XLangTagMeta tagMeta;
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + ':' + getElementType() + "('" + getName() + "')";
+    }
+
+    public synchronized XLangTagMeta getTagMeta() {
+        if (tagMeta == null) {
+            tagMeta = ProjectEnv.withProject(getProject(), () -> XLangTagMeta.create(this));
+        }
+        return this.tagMeta;
+    }
+
+    /** 标签存在被复用的可能，因此，需显式清理与之绑定的数据 */
+    @Override
+    public void clearCaches() {
+        tagMeta = null;
+        super.clearCaches();
     }
 
     @Override
@@ -217,7 +232,7 @@ public class XLangTag extends XmlTagImpl {
             attrName = changeNamespace(attrName, getXDefKeys().NS, XDefKeys.DEFAULT.NS);
         }
 
-        IXDefAttribute attr = getXDefNodeAttr(getSchemaDef(), getSchemaDefNode(), attrName);
+        IXDefAttribute attr = getXDefNodeAttr(getSchemaDefNode(), attrName);
 
         if (attr == null || attr.isUnknownAttr()) {
             XlibTagMeta xlibTag = getXlibTagMeta();
@@ -249,7 +264,7 @@ public class XLangTag extends XmlTagImpl {
         // Note: xdsl.xdef 的属性在固定的名字空间 x 中声明
         attrName = changeNamespace(attrName, getXDslKeys().NS, XDslKeys.DEFAULT.NS);
 
-        return getXDefNodeAttr(null, getXDslDefNode(), attrName);
+        return getXDefNodeAttr(getXDslDefNode(), attrName);
     }
 
     /** @see SchemaMeta#getSelfDefNode() */
@@ -441,10 +456,8 @@ public class XLangTag extends XmlTagImpl {
         }
 
         String mainTitle = attrName;
-        IXDefinition def = null;
         IXDefNode defNode;
         if (isInXDefXDef() && XDefKeys.DEFAULT.NS.equals(attrNs)) {
-            def = getSchemaMeta().getSelfDef();
             defNode = getSelfDefNode();
         } //
         else if (XDslKeys.DEFAULT.NS.equals(attrNs) || getXDslKeys().NS.equals(attrNs)) {
@@ -454,16 +467,14 @@ public class XLangTag extends XmlTagImpl {
         else {
             attrName = changeNamespace(attrName, getXDefKeys().NS, XDefKeys.DEFAULT.NS);
 
-            def = getSchemaMeta().getSelfDef();
             defNode = getSelfDefNode();
             // 对于 *.xdef，优先取其自身定义节点上的属性文档
             if (defNode == null || defNode.getAttribute(attrName) == null) {
-                def = getSchemaDef();
                 defNode = getSchemaDefNode();
             }
         }
 
-        IXDefAttribute defAttr = getXDefNodeAttr(def, defNode, attrName);
+        IXDefAttribute defAttr = getXDefNodeAttr(defNode, attrName);
         if (defAttr == null) {
             return null;
         }
@@ -497,7 +508,7 @@ public class XLangTag extends XmlTagImpl {
     }
 
     /** 获取 {@link IXDefNode} 上指定属性的 xdef 定义 */
-    private IXDefAttribute getXDefNodeAttr(IXDefinition def, IXDefNode defNode, String attrName) {
+    private IXDefAttribute getXDefNodeAttr(IXDefNode defNode, String attrName) {
         String xmlnsPrefix = "xmlns:";
         if (attrName.startsWith(xmlnsPrefix)) {
             String attrValue = getAttributeValue(attrName);
@@ -522,11 +533,11 @@ public class XLangTag extends XmlTagImpl {
             return attr;
         }
 
-        // 对于 xdef:check-ns 中不做校验的名字空间，该属性为任意类型
-        String attrNameNs = StringHelper.getNamespace(attrName);
-        if (attrNameNs != null && def != null && !def.getXdefCheckNs().contains(attrNameNs)) {
-            return new XLangAttribute.XDefAttributeNotInCheckNS(attrName);
-        }
+//        // 对于 xdef:check-ns 中不做校验的名字空间，该属性为任意类型
+//        String attrNameNs = StringHelper.getNamespace(attrName);
+//        if (attrNameNs != null && def != null && !def.getXdefCheckNs().contains(attrNameNs)) {
+//            return new XLangAttribute.XDefAttributeNotInCheckNS(attrName);
+//        }
 
         // Note: 在 IXDefNode 中，对 xdef:unknown-attr 只记录了类型，并没有 IXDefAttribute 实体，
         // 其处理逻辑见 XDefinitionParser#parseNode

@@ -291,8 +291,8 @@ public class XmlPsiHelper {
         } while (true);
     }
 
-    public static String getXmlnsForUrl(XmlTag tag, String url) {
-        for (XmlAttribute attr : tag.getAttributes()) {
+    public static String getXmlnsForUrl(XmlTag rootTag, String url) {
+        for (XmlAttribute attr : rootTag.getAttributes()) {
             if (url.equals(attr.getValue())) {
                 String name = attr.getName();
                 if (name.startsWith("xmlns:")) {

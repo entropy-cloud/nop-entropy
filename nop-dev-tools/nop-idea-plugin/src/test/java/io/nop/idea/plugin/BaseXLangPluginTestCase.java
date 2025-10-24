@@ -218,7 +218,7 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
      * 得到的是原始元素的引用元素
      */
     protected PsiElement getOriginalElementAtCaret() {
-        doAssertCaretExists();
+        assertCaretExists();
 
         return myFixture.getFile().findElementAt(myFixture.getCaretOffset());
     }
@@ -229,7 +229,7 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
 
     /** 找到光标位置的 {@link XLangReference} 或者其他类型的唯一引用 */
     protected PsiReference findReferenceAtCaret() {
-        doAssertCaretExists();
+        assertCaretExists();
 
         // 实际有多个引用时，将构造返回 PsiMultiReference，
         // 其会按 PsiMultiReference#COMPARATOR 对引用排序得到优先引用，
@@ -260,7 +260,7 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         return docProvider.generateDoc(resolvedElement, originalElement);
     }
 
-    private void doAssertCaretExists() {
+    protected void assertCaretExists() {
         assertTrue("No '<caret>' found in current text", myFixture.getCaretOffset() > 0);
     }
 
