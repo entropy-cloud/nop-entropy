@@ -1030,7 +1030,7 @@ public class XLangTag extends XmlTagImpl {
 
             String defPath = XmlPsiHelper.getNopVfsPath(defNode);
 
-            if (XDefPsiHelper.isXplDefNode(defNode) //
+            if (XDefPsiHelper.isXplTypeNode(defNode) //
                 || XDslConstants.XDSL_SCHEMA_XPL.equals(defPath) //
             ) {
                 return true;

@@ -84,7 +84,7 @@ public class XDefPsiHelper {
         }
     }
 
-    public static boolean isXplDefNode(IXDefNode defNode) {
+    public static boolean isXplTypeNode(IXDefNode defNode) {
         String stdDomain = getDefNodeType(defNode);
 
         return stdDomain != null && (stdDomain.equals("xpl") || stdDomain.startsWith("xpl-"));

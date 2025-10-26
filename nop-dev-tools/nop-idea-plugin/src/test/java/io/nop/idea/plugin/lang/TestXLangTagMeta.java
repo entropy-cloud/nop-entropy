@@ -16,6 +16,7 @@ import io.nop.idea.plugin.BaseXLangPluginTestCase;
 import io.nop.idea.plugin.lang.psi.XLangTag;
 import io.nop.idea.plugin.lang.psi.XLangTagMeta;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
+import io.nop.xlang.xdef.IXDefNode;
 
 /**
  *
@@ -29,16 +30,23 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
         assertTagMeta("""
                               <meta:un<caret>known-tag
                                 xmlns:x="/nop/schema/xdsl.xdef" xmlns:meta="/nop/schema/xdef.xdef"
-                                x:schema="/nop/schema/xdef.xdef"
+                                x:schema="/nop/schema/xdef.xdef" meta:check-ns="xdef"
                               >
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertTrue(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertTrue(tagMeta.isInXdefSchema());
+
                           assertEquals("meta:unknown-tag", tagMeta.getTagName());
                           assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
                           assertEquals("/nop/schema/xdef.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNotNull(tagMeta.getDefNodeInSelfSchema());
+                          assertTrue(tagMeta.getDefNodeInSelfSchema().isUnknownTag());
+                          assertNull(selfDefNodeVfsPath(tagMeta));
                       } //
         );
         assertTagMeta("""
@@ -50,115 +58,159 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertTrue(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("meta:unknown-tag", tagMeta.getTagName());
                           assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
                           assertEquals("/nop/schema/xdef.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNotNull(tagMeta.getDefNodeInSelfSchema());
+                          assertEquals(tagMeta.getTagName(), tagMeta.getDefNodeInSelfSchema().getTagName());
+                          assertNull(selfDefNodeVfsPath(tagMeta));
                       } //
         );
         assertTagMeta("""
                               <meta:unknown-tag
                                 xmlns:x="/nop/schema/xdsl.xdef" xmlns:meta="/nop/schema/xdef.xdef"
-                                x:schema="/nop/schema/xdef.xdef"
+                                x:schema="/nop/schema/xdef.xdef" meta:check-ns="xdef"
                               >
                                 <meta:de<caret>fine></meta:define>
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertTrue(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertTrue(tagMeta.isInXdefSchema());
+
                           assertEquals("meta:define", tagMeta.getTagName());
                           assertEquals("xdef:define", tagMeta.getDefNodeInSchema().getTagName());
                           assertEquals("/nop/schema/xdef.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
         assertTagMeta("""
                               <meta:unknown-tag
                                 xmlns:x="/nop/schema/xdsl.xdef" xmlns:meta="/nop/schema/xdef.xdef"
-                                x:schema="/nop/schema/xdef.xdef"
+                                x:schema="/nop/schema/xdef.xdef" meta:check-ns="xdef"
                               >
                                 <xdef:pre<caret>-parse meta:value="xpl"/>
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertTrue(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertTrue(tagMeta.isInXdefSchema());
+
                           assertEquals("xdef:pre-parse", tagMeta.getTagName());
                           assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
                           assertEquals("/nop/schema/xdef.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNotNull(tagMeta.getDefNodeInSelfSchema());
+                          assertEquals(tagMeta.getTagName(), tagMeta.getDefNodeInSelfSchema().getTagName());
+                          assertNull(selfDefNodeVfsPath(tagMeta));
                       } //
         );
         assertTagMeta("""
                               <meta:unknown-tag
                                 xmlns:x="/nop/schema/xdsl.xdef" xmlns:meta="/nop/schema/xdef.xdef"
-                                x:schema="/nop/schema/xdef.xdef"
+                                x:schema="/nop/schema/xdef.xdef" meta:check-ns="xdef"
                               >
                                 <meta:pre<caret>-parse/>
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertTrue(tagMeta.isXdefDefNode());
+                          assertTrue(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertTrue(tagMeta.isInXdefSchema());
+
                           assertEquals("meta:pre-parse", tagMeta.getTagName());
                           assertEquals("xdef:pre-parse", tagMeta.getDefNodeInSchema().getTagName());
                           assertEquals("/nop/schema/xdef.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
         assertTagMeta("""
                               <meta:unknown-tag
                                 xmlns:x="/nop/schema/xdsl.xdef" xmlns:meta="/nop/schema/xdef.xdef"
-                                x:schema="/nop/schema/xdef.xdef"
+                                x:schema="/nop/schema/xdef.xdef" meta:check-ns="xdef"
                               >
                                 <meta:de<caret>fine/>
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertTrue(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertTrue(tagMeta.isInXdefSchema());
+
                           assertEquals("meta:define", tagMeta.getTagName());
                           assertEquals("xdef:define", tagMeta.getDefNodeInSchema().getTagName());
                           assertEquals("/nop/schema/xdef.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
         assertTagMeta("""
                               <meta:unknown-tag
                                 xmlns:x="/nop/schema/xdsl.xdef" xmlns:meta="/nop/schema/xdef.xdef"
-                                x:schema="/nop/schema/xdef.xdef"
+                                x:schema="/nop/schema/xdef.xdef" meta:check-ns="xdef"
+                                meta:ref="XDefNode"
                               >
-                                <meta:define>
+                                <meta:define meta:name="XDefNode">
+                                  <meta:unknown-tag meta:ref="XDefNode"/>
                                   <xdef:unknow<caret>n-tag meta:ref="XDefNode"/>
+                                  <xdef:define xdef:name="!var-name" meta:ref="XDefNode" meta:unique-attr="xdef:name"/>
                                 </meta:define>
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertTrue(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertTrue(tagMeta.isInXdefSchema());
+
                           assertEquals("xdef:unknown-tag", tagMeta.getTagName());
                           assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
                           assertEquals("/nop/schema/xdef.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNotNull(tagMeta.getDefNodeInSelfSchema());
+                          assertEquals(tagMeta.getTagName(), tagMeta.getDefNodeInSelfSchema().getTagName());
+                          assertNull(selfDefNodeVfsPath(tagMeta));
                       } //
         );
         assertTagMeta("""
                               <meta:unknown-tag
                                 xmlns:x="/nop/schema/xdsl.xdef" xmlns:meta="/nop/schema/xdef.xdef"
-                                x:schema="/nop/schema/xdef.xdef"
+                                x:schema="/nop/schema/xdef.xdef" meta:check-ns="xdef"
                               >
                                 <x:g<caret>en-extends/>
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertFalse(tagMeta.isXdefDefNode());
+                          assertTrue(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertTrue(tagMeta.isInXdefSchema());
+
                           assertEquals("x:gen-extends", tagMeta.getTagName());
                           assertEquals("x:gen-extends", tagMeta.getDefNodeInSchema().getTagName());
                           assertEquals("/nop/schema/xdsl.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
         // - xpl node
         assertTagMeta("""
                               <meta:unknown-tag
                                 xmlns:x="/nop/schema/xdsl.xdef" xmlns:meta="/nop/schema/xdef.xdef"
-                                x:schema="/nop/schema/xdef.xdef"
+                                x:schema="/nop/schema/xdef.xdef" meta:check-ns="xdef"
                               >
                                 <meta:pre-parse>
                                   <c:scr<caret>ipt />
@@ -167,16 +219,21 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertFalse(tagMeta.isXdefDefNode());
+                          assertTrue(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertTrue(tagMeta.isInXdefSchema());
+
                           assertEquals("c:script", tagMeta.getTagName());
                           assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
                           assertEquals("/nop/schema/xpl.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
         assertTagMeta("""
                               <meta:unknown-tag
                                 xmlns:x="/nop/schema/xdsl.xdef" xmlns:meta="/nop/schema/xdef.xdef"
-                                x:schema="/nop/schema/xdef.xdef"
+                                x:schema="/nop/schema/xdef.xdef" meta:check-ns="xdef"
                               >
                                 <x:gen-extends>
                                   <c:scr<caret>ipt />
@@ -185,10 +242,15 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertFalse(tagMeta.isXdefDefNode());
+                          assertTrue(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertTrue(tagMeta.isInXdefSchema());
+
                           assertEquals("c:script", tagMeta.getTagName());
                           assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
                           assertEquals("/nop/schema/xpl.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
 
@@ -202,10 +264,17 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertTrue(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("xdef:unknown-tag", tagMeta.getTagName());
                           assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
                           assertEquals("/nop/schema/xdef.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNotNull(tagMeta.getDefNodeInSelfSchema());
+                          assertTrue(tagMeta.getDefNodeInSelfSchema().isUnknownTag());
+                          assertNull(selfDefNodeVfsPath(tagMeta));
                       } //
         );
         assertTagMeta("""
@@ -218,10 +287,17 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertTrue(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("x:gen-extends", tagMeta.getTagName());
                           assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
                           assertEquals("/nop/schema/xdef.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNotNull(tagMeta.getDefNodeInSelfSchema());
+                          assertEquals(tagMeta.getTagName(), tagMeta.getDefNodeInSelfSchema().getTagName());
+                          assertNull(selfDefNodeVfsPath(tagMeta));
                       } //
         );
         assertTagMeta("""
@@ -234,10 +310,15 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertFalse(tagMeta.isXdefDefNode());
+                          assertTrue(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("xdsl:gen-extends", tagMeta.getTagName());
                           assertEquals("x:gen-extends", tagMeta.getDefNodeInSchema().getTagName());
                           assertEquals("/nop/schema/xdsl.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
         assertTagMeta("""
@@ -252,10 +333,17 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertTrue(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("x:super", tagMeta.getTagName());
                           assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
                           assertEquals("/nop/schema/xdef.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNotNull(tagMeta.getDefNodeInSelfSchema());
+                          assertEquals(tagMeta.getTagName(), tagMeta.getDefNodeInSelfSchema().getTagName());
+                          assertNull(selfDefNodeVfsPath(tagMeta));
                       } //
         );
         assertTagMeta("""
@@ -270,10 +358,15 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertFalse(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("xdsl:super", tagMeta.getTagName());
                           assertEquals("x:super", tagMeta.getDefNodeInSchema().getTagName());
                           assertEquals("/nop/schema/xdsl.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
         // - xpl node
@@ -289,10 +382,15 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertFalse(tagMeta.isXdefDefNode());
+                          assertTrue(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("c:script", tagMeta.getTagName());
                           assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
                           assertEquals("/nop/schema/xpl.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
 
@@ -306,10 +404,17 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertTrue(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("example", tagMeta.getTagName());
                           assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
                           assertEquals("/nop/schema/xdef.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNotNull(tagMeta.getDefNodeInSelfSchema());
+                          assertEquals(tagMeta.getTagName(), tagMeta.getDefNodeInSelfSchema().getTagName());
+                          assertNull(selfDefNodeVfsPath(tagMeta));
                       } //
         );
         assertTagMeta("""
@@ -323,10 +428,15 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertTrue(tagMeta.isXdefDefNode());
+                          assertTrue(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("xdef:post-parse", tagMeta.getTagName());
                           assertEquals("xdef:post-parse", tagMeta.getDefNodeInSchema().getTagName());
                           assertEquals("/nop/schema/xdef.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
         assertTagMeta("""
@@ -340,10 +450,15 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertFalse(tagMeta.isXdefDefNode());
+                          assertTrue(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("x:gen-extends", tagMeta.getTagName());
                           assertEquals("x:gen-extends", tagMeta.getDefNodeInSchema().getTagName());
                           assertEquals("/nop/schema/xdsl.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
         assertTagMeta("""
@@ -356,10 +471,17 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertTrue(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("refs", tagMeta.getTagName());
                           assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
                           assertEquals("/nop/schema/xdef.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNotNull(tagMeta.getDefNodeInSelfSchema());
+                          assertEquals(tagMeta.getTagName(), tagMeta.getDefNodeInSelfSchema().getTagName());
+                          assertNull(selfDefNodeVfsPath(tagMeta));
                       } //
         );
         assertTagMeta("""
@@ -372,10 +494,17 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertTrue(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("xdef:unknown-tag", tagMeta.getTagName());
                           assertEquals("xdef:unknown-tag", tagMeta.getDefNodeInSchema().getTagName());
                           assertEquals("/nop/schema/xdef.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNotNull(tagMeta.getDefNodeInSelfSchema());
+                          assertTrue(tagMeta.getDefNodeInSelfSchema().isUnknownTag());
+                          assertNull(selfDefNodeVfsPath(tagMeta));
                       } //
         );
         // - xpl node
@@ -391,10 +520,15 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertFalse(tagMeta.isXdefDefNode());
+                          assertTrue(tagMeta.isXplNode());
+                          assertTrue(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("c:script", tagMeta.getTagName());
                           assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
                           assertEquals("/nop/schema/xpl.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
 
@@ -408,10 +542,15 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertFalse(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("example", tagMeta.getTagName());
                           assertEquals("example", tagMeta.getDefNodeInSchema().getTagName());
                           assertEquals("/test/lang/lang.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
         assertTagMeta("""
@@ -424,10 +563,15 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertFalse(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("child", tagMeta.getTagName());
                           assertEquals("child", tagMeta.getDefNodeInSchema().getTagName());
                           assertEquals("/test/lang/lang.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
         assertTagMeta("""
@@ -440,10 +584,15 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertTrue(tagMeta.isUnknown());
-                          assertFalse(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("unknown", tag.getName());
                           assertNull(tagMeta.getTagName());
                           assertNull(tagMeta.getDefNodeInSchema());
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
         // - xdsl node
@@ -457,10 +606,15 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertFalse(tagMeta.isXdefDefNode());
+                          assertTrue(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("x:gen-extends", tagMeta.getTagName());
                           assertEquals("x:gen-extends", tagMeta.getDefNodeInSchema().getTagName());
                           assertEquals("/nop/schema/xdsl.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
         // - xpl node
@@ -476,10 +630,15 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertFalse(tagMeta.isXdefDefNode());
+                          assertTrue(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("c:script", tagMeta.getTagName());
                           assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
                           assertEquals("/nop/schema/xpl.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
         // - undefined namespace node
@@ -493,10 +652,15 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertFalse(tagMeta.isUnknown());
-                          assertFalse(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("yui:style", tagMeta.getTagName());
                           assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
                           assertEquals("/nop/schema/xdsl.xdef", defNodeVfsPath(tagMeta));
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
         assertTagMeta("""
@@ -509,10 +673,105 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           assertTrue(tagMeta.isUnknown());
-                          assertFalse(tagMeta.isXdefDefNode());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
                           assertEquals("xui:style", tag.getName());
                           assertNull(tagMeta.getTagName());
                           assertNull(tagMeta.getDefNodeInSchema());
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
+                      } //
+        );
+    }
+
+    public void testCreateUnknownTagMeta() {
+        assertTagMeta("""
+                              <meta:un<caret>known-tag>
+                              </meta:unknown-tag>
+                              """, //
+                      (tag, tagMeta) -> {
+                          // 元模型未指定
+                          assertTrue(tagMeta.isUnknown());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
+                          assertEquals("meta:unknown-tag", tag.getName());
+                      } //
+        );
+        assertTagMeta("""
+                              <exam<caret>ple
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/xx/xx/example.xdef"
+                              >
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          // 标签由 xdsl.xdef 定义
+                          assertFalse(tagMeta.isUnknown());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
+                          assertEquals("example", tagMeta.getTagName());
+                          assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
+                          assertEquals("/nop/schema/xdsl.xdef", defNodeVfsPath(tagMeta));
+                      } //
+        );
+
+        assertTagMeta("""
+                              <meta:un<caret>known
+                                xmlns:x="/nop/schema/xdsl.xdef" xmlns:meta="/nop/schema/xdef.xdef"
+                                x:schema="/nop/schema/xdef.xdef" meta:check-ns="xdef"
+                              >
+                              </meta:unknown>
+                              """, //
+                      (tag, tagMeta) -> {
+                          // 标签未定义
+                          assertTrue(tagMeta.isUnknown());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
+                          assertEquals("meta:unknown", tag.getName());
+                      } //
+        );
+        assertTagMeta("""
+                              <meta:unknown-tag
+                                xmlns:x="/nop/schema/xdsl.xdef" xmlns:meta="/nop/schema/xdef.xdef"
+                                x:schema="/nop/schema/xdef.xdef" meta:check-ns="xdef"
+                              >
+                                <meta:ab<caret>cd/>
+                              </meta:unknown-tag>
+                              """, //
+                      (tag, tagMeta) -> {
+                          // 标签未定义
+                          assertTrue(tagMeta.isUnknown());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
+                          assertEquals("meta:abcd", tag.getName());
+                      } //
+        );
+
+        assertTagMeta("""
+                              <la<caret>ng
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                              </lang>
+                              """, //
+                      (tag, tagMeta) -> {
+                          // 根节点标签与定义的不一致
+                          assertTrue(tagMeta.isUnknown());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
+                          assertEquals("lang", tag.getName());
                       } //
         );
     }
@@ -532,7 +791,15 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
     }
 
     private String defNodeVfsPath(XLangTagMeta tagMeta) {
-        String vfsPath = XmlPsiHelper.getNopVfsPath(tagMeta.getDefNodeInSchema());
+        return defNodeVfsPath(tagMeta.getDefNodeInSchema());
+    }
+
+    private String selfDefNodeVfsPath(XLangTagMeta tagMeta) {
+        return defNodeVfsPath(tagMeta.getDefNodeInSelfSchema());
+    }
+
+    private String defNodeVfsPath(IXDefNode defNode) {
+        String vfsPath = XmlPsiHelper.getNopVfsPath(defNode);
 
         return vfsPath != null && vfsPath.lastIndexOf('/') == 0 ? null : vfsPath;
     }
