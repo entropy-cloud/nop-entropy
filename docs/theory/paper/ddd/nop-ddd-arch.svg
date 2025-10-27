@@ -1,0 +1,142 @@
+<svg width="1000" height="680" viewBox="0 0 1000 680" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Microsoft YaHei', sans-serif">
+    <defs>
+        <!-- Gradient Colors -->
+        <linearGradient id="grad-bo" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#4f46e5;" /> <!-- Indigo 600 -->
+            <stop offset="100%" style="stop-color:#6366f1;" /> <!-- Indigo 500 -->
+        </linearGradient>
+        <linearGradient id="grad-engine" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#1e40af;" /> <!-- Blue 800 -->
+            <stop offset="100%" style="stop-color:#2563eb;" /> <!-- Blue 600 -->
+        </linearGradient>
+        <linearGradient id="grad-spring" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#059669;" /> <!-- Green 600 -->
+            <stop offset="100%" style="stop-color:#10b981;" /> <!-- Green 500 -->
+        </linearGradient>
+
+        <!-- Shadows -->
+        <filter id="soft-shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#1e3a8a" flood-opacity="0.1"/>
+        </filter>
+        
+        <!-- Arrow Definitions -->
+        <marker id="arrow-blue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse">
+            <path d="M 0 0 L 8 3 L 0 6 z" fill="#3b82f6"/>
+        </marker>
+        <marker id="arrow-indigo" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse">
+            <path d="M 0 0 L 8 3 L 0 6 z" fill="#4f46e5"/>
+        </marker>
+        <marker id="arrow-gray" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse">
+            <path d="M 0 0 L 8 3 L 0 6 z" fill="#94a3b8"/>
+        </marker>
+        <marker id="arrow-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse">
+            <path d="M 0 0 L 8 3 L 0 6 z" fill="#059669"/>
+        </marker>
+        <marker id="arrow-white" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse">
+            <path d="M 0 0 L 8 3 L 0 6 z" fill="white"/>
+        </marker>
+    </defs>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="#f8fafc"/>
+
+    <!-- Title -->
+    <g id="title-section">
+        <text x="500" y="55" font-size="26" font-weight="700" text-anchor="middle" fill="#1e3a8a">Evolutionary DDD Architecture</text>
+        <text x="500" y="80" font-size="16" font-weight="400" text-anchor="middle" fill="#64748b">Structure-Dynamics Separation</text>
+    </g>
+
+    <!-- Top: Behavior Aggregate -->
+    <g id="behavior-aggregate" filter="url(#soft-shadow)">
+        <rect x="150" y="120" width="620" height="150" rx="16" fill="url(#grad-engine)"/>
+        <rect x="150" y="120" width="620" height="45" rx="16" ry="16" fill="black" fill-opacity="0.15" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+        <text x="175" y="150" font-size="18" font-weight="600" fill="white">Behavior Aggregate</text>
+        <text x="175" y="190" font-size="14" font-weight="500" fill="rgba(255,255,255,0.8)">Parses: placeOrder.task.yaml</text>
+        
+        <g id="pipeline" transform="translate(170, 210)">
+            <rect width="90" height="35" rx="8" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0"/>
+            <text x="45" y="23" text-anchor="middle" fill="#1e3a8a" font-weight="600">Step 1</text>
+            <path d="M 95 17.5 H 115" stroke="white" stroke-width="2" marker-end="url(#arrow-white)"/>
+            
+            <rect x="120" width="90" height="35" rx="8" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0"/>
+            <text x="165" y="23" text-anchor="middle" fill="#1e3a8a" font-weight="600">Step 2</text>
+            <text x="165" y="8" text-anchor="middle" font-size="11" fill="#f59e0b">when: ...</text>
+            <path d="M 215 17.5 H 235" stroke="white" stroke-width="2" marker-end="url(#arrow-white)"/>
+
+            <rect x="240" width="90" height="35" rx="8" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0"/>
+            <text x="285" y="23" text-anchor="middle" fill="#1e3a8a" font-weight="600">Step 3</text>
+            <path d="M 335 17.5 H 355" stroke="white" stroke-width="2" marker-end="url(#arrow-white)"/>
+            <text x="370" y="23" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="18">...</text>
+        </g>
+    </g>
+
+    <!-- Center: Context -->
+    <g id="context" filter="url(#soft-shadow)">
+        <rect x="275" y="320" width="320" height="150" rx="16" fill="white" stroke="#e2e8f0"/>
+        <text x="435" y="350" text-anchor="middle" font-size="18" font-weight="600" fill="#1e3a8a">Context</text>
+        <text x="435" y="370" text-anchor="middle" font-size="14" fill="#64748b">Information Bus / Blackboard</text>
+        <rect x="300" y="390" width="270" height="60" rx="8" fill="#f1f5f9" stroke="#e2e8f0"/>
+        <text x="435" y="415" text-anchor="middle" fill="#475569" font-weight="500">Holds: IDataCache</text>
+        <text x="435" y="435" text-anchor="middle" fill="#475569" font-weight="500">Holds: UserContext</text>
+    </g>
+
+    <!-- Left: BO & Manager -->
+    <g id="left-column">
+        <g filter="url(#soft-shadow)">
+            <rect x="50" y="320" width="200" height="90" rx="16" fill="url(#grad-bo)"/>
+             <rect x="50" y="320" width="200" height="35" rx="16" ry="16" fill="black" fill-opacity="0.15" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+            <text x="65" y="343" font-size="16" font-weight="600" fill="white">Business Object (BO)</text>
+            <text x="150" y="375" text-anchor="middle" fill="white" font-weight="500">e.g., OrderBO</text>
+            <text x="150" y="395" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="14">Data View &amp; Navigation</text>
+        </g>
+        <g filter="url(#soft-shadow)">
+            <rect x="50" y="480" width="200" height="90" rx="16" fill="white" stroke="#e2e8f0"/>
+            <text x="150" y="505" text-anchor="middle" font-size="16" font-weight="600" fill="#334155">Manager</text>
+            <text x="150" y="530" text-anchor="middle" fill="#64748b">e.g., OrderManager</text>
+            <text x="150" y="550" text-anchor="middle" fill="#64748b" font-size="14">Load/Persist/Cache</text>
+        </g>
+    </g>
+
+    <!-- Right: Spring Beans (Classic Layout + Aesthetic Style) -->
+    <g id="spring-beans" filter="url(#soft-shadow)">
+        <rect x="620" y="320" width="230" height="250" rx="16" fill="url(#grad-spring)"/>
+        <rect x="620" y="320" width="230" height="45" rx="16" ry="16" fill="black" fill-opacity="0.15" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+        <text x="640" y="345" font-size="18" font-weight="600" fill="white">Spring Beans (DI)</text>
+
+        <g transform="translate(640, 385)">
+             <rect width="190" height="60" rx="12" fill="rgba(255,255,255,0.95)" stroke="#a7f3d0"/>
+             <text x="95" y="28" text-anchor="middle" fill="#064e3b" font-weight="600">Kit Interface Impl</text>
+             <text x="95" y="48" text-anchor="middle" fill="#065f46" font-size="12">(PricingKit, etc.)</text>
+        </g>
+        <g transform="translate(640, 460)">
+             <rect width="190" height="60" rx="12" fill="rgba(255,255,255,0.95)" stroke="#a7f3d0"/>
+             <text x="95" y="28" text-anchor="middle" fill="#064e3b" font-weight="600">Step Bean</text>
+             <text x="95" y="48" text-anchor="middle" fill="#065f46" font-size="12">(Stateless, Reusable)</text>
+        </g>
+         <text x="735" y="545" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="14">...Other Beans</text>
+    </g>
+
+    <!-- Arrows and Connections (Coordinates using classic layout) -->
+    <g id="connections">
+        <!-- BO to Context -->
+        <path d="M 250 365 H 275" stroke="#4f46e5" stroke-width="2" marker-end="url(#arrow-indigo)" fill="none"/>
+        <text x="262" y="358" text-anchor="middle" font-size="12" fill="#4f46e5">Put/Get</text>
+        
+        <!-- BO to Manager -->
+        <path d="M 150 410 V 480" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 2" marker-end="url(#arrow-gray)" fill="none"/>
+        <text x="160" y="435" text-anchor="start" font-size="12" fill="#64748b">Via Manager</text>
+        <text x="160" y="450" text-anchor="start" font-size="12" fill="#64748b">Lazy Load Associations</text>
+        
+        <!-- Engine to Context -->
+        <path d="M 435 270 V 320" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrow-blue)" fill="none"/>
+        <text x="445" y="300" text-anchor="start" font-size="12" fill="#1e40af">Drives</text>
+        
+        <!-- Steps to Context -->
+        <path d="M 330 245 Q 360 285, 390 320" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrow-blue)" fill="none"/>
+        <text x="330" y="295" font-size="12" fill="#1e40af">Get BO from Context</text>
+
+        <!-- Spring Beans to Engine -->
+        <path d="M 620 350 Q 580 290, 520 270" stroke="#059669" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#arrow-green)" fill="none"/>
+        <text x="560" y="300" font-size="12" fill="#065f46" font-weight="500">Step Bean &amp; Kit provided by Spring (DI)</text>
+    </g>
+</svg>
