@@ -31,7 +31,7 @@
     colorlinks=false,
     pdfborder={0 0 0},
     pdftitle={Generalized Reversible Computation: A New Paradigm for Unifying Software Construction and Evolution},
-    pdfauthor={Zhang Jie}, % --- YOU CAN CHANGE THIS ---
+    pdfauthor={Canonical}, % --- YOU CAN CHANGE THIS ---
     pdfsubject={Computer Science},
     pdfkeywords={Generalized Reversible Computation, Delta-Oriented Programming, Metaprogramming, Model-Driven Engineering, Software Product Lines, Domain-Specific Languages, Recursive Fractal-like Construction, Domain-Driven Design, Minimal Information Expression, Software Configuration Management, Variability Management, Software Product Line Engineering, Compositional Software Development}
 }
@@ -69,21 +69,21 @@
 
 % Define languages for listings
 \lstdefinelanguage{YAML}{
-  keywords={true,false,null,y,n},
-  keywordstyle=\color{blue}\bfseries,
   basicstyle=\ttfamily\footnotesize,
-  sensitive=false,
   comment=[l]{\#},
+  commentstyle=\color{gray},
   morestring=[b]',
   morestring=[b]",
-  literate=
-    {---}{{\ProcessThreeDashes}}3,
-  morecomment=[s]{:}{},
-  commentstyle=\color{purple},
-  stringstyle=\color{codegreen},
+  stringstyle=\color{red},
   showstringspaces=false
 }
+
 \newcommand\ProcessThreeDashes{\llap{\color{blue}\bfseries---}}
+
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.9}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.8}
 
 \lstdefinelanguage{PythonPseudocode}{
     keywords={function, return, if, else, for, in, and, or, not, del, is, NULL, clone, getAttributes, setAttribute, getChildren, setChildren},
@@ -104,7 +104,7 @@
 \begin{document}
 
 \title{\textbf{Generalized Reversible Computation: A New Paradigm for Unifying Software Construction and Evolution}}
-\author{Zhang Jie \\ \texttt{canonical\_entropy@163.com}}
+\author{Canonical \\ \texttt{canonical\_entropy@163.com}}
 \date{\today}
 
 \maketitle
@@ -701,7 +701,7 @@ We applied GRC's "separation of structure and dynamics" principle to refactor th
 
 \paragraph{1. Declarative Process Definition (DSL: `placeOrder.task.yaml`)}
 The business process was externalized into a clear YAML file, which is the \textbf{Domain-Specific Language (DSL)} in GRC.
-\begin{lstlisting}[language=YAML, caption={Declarative Process Definition (placeOrder.task.yaml)}]
+\begin{lstlisting}[language=YAML,caption={Declarative Process Definition(placeOrder.task.yaml)}]
 # === placeOrder.task.yaml (Process Definition) ===
 name: placeOrder
 steps:
