@@ -12,14 +12,14 @@ import java.util.function.Function;
 import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.orm.OrmConfigs.CFG_ORM_MODEL_CACHE_TENANT_CACHE_CONTAINER_SIZE;
 
-public class TenantAwareOrmModelHolder implements IOrmModelHolder {
+public class TenantAwareOrmModelProvider implements IOrmModelProvider {
     private ILoadedOrmModel ormModel;
 
     private final ICache<String, ILoadedOrmModel> tenantCaches;
 
     private final Function<String, ILoadedOrmModel> loader;
 
-    public TenantAwareOrmModelHolder(String name, Function<String, ILoadedOrmModel> loader) {
+    public TenantAwareOrmModelProvider(String name, Function<String, ILoadedOrmModel> loader) {
         this.tenantCaches = LocalCache.newCache(name,
                 newConfig(CFG_ORM_MODEL_CACHE_TENANT_CACHE_CONTAINER_SIZE.get())
                         .useMetrics().destroyOnRemove(),

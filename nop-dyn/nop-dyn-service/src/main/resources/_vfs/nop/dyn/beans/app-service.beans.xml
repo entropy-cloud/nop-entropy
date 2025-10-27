@@ -10,5 +10,5 @@
 
     <bean id="nopDynCodeGen" class="io.nop.dyn.service.codegen.DynCodeGen"/>
 
-    <bean id="nopDynOrmModelHolder" class="io.nop.dyn.service.codegen.DynOrmModelHolder"/>
+    <bean id="nopDynOrmModelHolder" class="io.nop.dyn.service.codegen.DynOrmModelProvider"/>
 </beans>

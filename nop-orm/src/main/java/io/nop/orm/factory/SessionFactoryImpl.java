@@ -103,7 +103,7 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     private IEqlAstTransformer defaultAstTransformer;
 
-    private IOrmModelHolder ormModelHolder;
+    private IOrmModelProvider ormModelHolder;
 
     private ISequenceGenerator sequenceGenerator;
 
@@ -132,7 +132,7 @@ public class SessionFactoryImpl implements IPersistEnv {
         this.entityFilterProvider = entityFilterProvider;
     }
 
-    public void setOrmModelHolder(IOrmModelHolder ormModelHolder) {
+    public void setOrmModelHolder(IOrmModelProvider ormModelHolder) {
         this.ormModelHolder = ormModelHolder;
     }
 

@@ -44,10 +44,10 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
 
     private ICacheManagement cacheManagement;
 
-    private IOrmModelHolder ormModelHolder;
+    private IOrmModelProvider ormModelHolder;
 
     @Inject
-    public void setOrmModelHolder(@Nullable IOrmModelHolder ormModelHolder) {
+    public void setOrmModelHolder(@Nullable IOrmModelProvider ormModelHolder) {
         this.ormModelHolder = ormModelHolder;
     }
 
@@ -161,15 +161,15 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
             sessionFactory.getQueryPlanCache().clear();
         }
 
-        IOrmModelHolder holder = this.ormModelHolder;
+        IOrmModelProvider holder = this.ormModelHolder;
         if(holder != null)
             holder.clearCache();
     }
 
     private void setOrmModelHolder(SessionFactoryImpl sessionFactory) {
-        IOrmModelHolder ormModelHolder = this.ormModelHolder;
+        IOrmModelProvider ormModelHolder = this.ormModelHolder;
         if (ormModelHolder == null) {
-            ormModelHolder = new DefaultOrmModelHolder(sessionFactory);
+            ormModelHolder = new DefaultOrmModelProvider(sessionFactory);
         }
 
         sessionFactory.setOrmModelHolder(ormModelHolder);

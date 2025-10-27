@@ -342,27 +342,31 @@ public class DefaultConfigProvider extends AbstractConfigProvider {
 
         for (Map.Entry<String, ValueWithLocation> entry : vars.entrySet()) {
             String name = entry.getKey();
-            ConfigVarModel varModel = model == null ? null : model.getVar(name);
-            Object defaultValue = null;
-            Class targetClass = Object.class;
-            if (varModel != null) {
-                targetClass = varModel.getValueType();
-                defaultValue = varModel.getDefaultValue();
-            }
-
             SourceLocation loc = entry.getValue().getLocation();
             Object value = entry.getValue().getValue();
 
             try {
-                IConfigValue configValue = configValueEnhancer.enhance(value, targetClass);
-                DefaultConfigReference<Object> ref = new DefaultConfigReference<>(loc, name, targetClass, defaultValue,
-                        configValue);
+                DefaultConfigReference<Object> ref = makeRef(loc, name, value);
                 ret.put(name, ref);
             } catch (Exception e) {
-                LOG.error("nop.err.config.enhance-config-value-fail:name={},value={},targetClass={}", name, value,
-                        targetClass, e);
+                LOG.error("nop.err.config.enhance-config-value-fail:name={},value={}", name, value, e);
             }
         }
         return ret;
+    }
+
+    public DefaultConfigReference<Object> makeRef(SourceLocation loc, String name, Object value) {
+        ConfigVarModel varModel = configModel == null ? null : configModel.getVar(name);
+        Object defaultValue = null;
+        Class targetClass = Object.class;
+        if (varModel != null) {
+            targetClass = varModel.getValueType();
+            defaultValue = varModel.getDefaultValue();
+        }
+
+        IConfigValue configValue = configValueEnhancer.enhance(value, targetClass);
+        DefaultConfigReference<Object> ref = new DefaultConfigReference<>(loc, name, targetClass, defaultValue,
+                configValue);
+        return ref;
     }
 }

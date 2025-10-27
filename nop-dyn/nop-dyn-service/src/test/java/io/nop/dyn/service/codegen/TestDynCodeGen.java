@@ -19,7 +19,6 @@ import io.nop.commons.type.StdSqlType;
 import io.nop.core.module.ModuleManager;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.VirtualFileSystem;
-import io.nop.core.resource.tenant.ResourceTenantManager;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dyn.dao.NopDynDaoConstants;
@@ -55,7 +54,7 @@ public class TestDynCodeGen extends JunitBaseTestCase {
     IGraphQLEngine graphQLEngine;
 
     @Inject
-    DynOrmModelHolder ormModelHolder; // 单元测试时所有的bean都是延迟初始化，这里引入bean强制要求初始化
+    DynOrmModelProvider ormModelHolder; // 单元测试时所有的bean都是延迟初始化，这里引入bean强制要求初始化
 
     @Inject
     BizObjectManager bizObjectManager;

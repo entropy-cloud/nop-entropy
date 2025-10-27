@@ -12,14 +12,14 @@ import io.nop.orm.model.OrmModel;
 import io.nop.orm.model.loader.OrmModelLoader;
 import io.nop.orm.persister.IPersistEnv;
 
-public class DefaultOrmModelHolder implements IOrmModelHolder {
+public class DefaultOrmModelProvider implements IOrmModelProvider {
     private final IPersistEnv env;
     private LoadedOrmModel ormModel;
 
     private final CacheEntryManagement<XplOrmInterceptor> interceptorCache = ResourceTenantManager.instance()
             .makeCacheEntry("orm-interceptor-cache", false, null);
 
-    public DefaultOrmModelHolder(IPersistEnv env) {
+    public DefaultOrmModelProvider(IPersistEnv env) {
         this.env = env;
         clearCache();
 

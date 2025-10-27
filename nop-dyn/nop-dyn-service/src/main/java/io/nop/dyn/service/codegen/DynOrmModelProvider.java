@@ -10,7 +10,7 @@ import io.nop.core.resource.cache.CacheEntryManagement;
 import io.nop.core.resource.tenant.ResourceTenantManager;
 import io.nop.orm.ILoadedOrmModel;
 import io.nop.orm.IOrmInterceptor;
-import io.nop.orm.factory.IOrmModelHolder;
+import io.nop.orm.factory.IOrmModelProvider;
 import io.nop.orm.factory.LoadedOrmModel;
 import io.nop.orm.factory.XplOrmInterceptorLoader;
 import io.nop.orm.interceptor.XplOrmInterceptor;
@@ -20,18 +20,17 @@ import io.nop.orm.model.lazy.LazyLoadOrmModel;
 import io.nop.orm.model.loader.OrmModelLoader;
 import io.nop.orm.persister.IPersistEnv;
 import io.nop.orm.support.MultiOrmInterceptor;
-import jakarta.inject.Inject;
 
 import java.util.Collection;
 
 import static io.nop.orm.OrmConfigs.CFG_ORM_MODEL_CACHE_CHECK_CHANGE;
 
-public class DynOrmModelHolder implements IOrmModelHolder {
+public class DynOrmModelProvider implements IOrmModelProvider {
     private final CacheEntryManagement<ILoadedOrmModel> cache;
 
     private IDynamicEntityModelProvider entityModelLoader;
 
-    public DynOrmModelHolder() {
+    public DynOrmModelProvider() {
         this.cache = ResourceTenantManager.instance().makeCacheEntry("dyn-loaded-orm-model-cache", isUseTenant(), null);
         GlobalCacheRegistry.instance().register(cache);
     }

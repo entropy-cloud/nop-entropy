@@ -1,5 +1,6 @@
 package io.nop.core.execution;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
@@ -19,6 +20,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Semaphore;
 
 public class TaskExecutionGraph implements IExecution<Void> {
     static final Logger LOG = LoggerFactory.getLogger(TaskExecutionGraph.class);
@@ -31,9 +33,16 @@ public class TaskExecutionGraph implements IExecution<Void> {
 
     private boolean analyzed;
 
+    private Semaphore runPermits;
+
     public TaskExecutionGraph(Executor executor, String taskGraphName) {
+        this(executor, taskGraphName, null);
+    }
+
+    public TaskExecutionGraph(Executor executor, String taskGraphName, Semaphore runPermits) {
         this.taskGraphName = taskGraphName;
         this.executor = executor;
+        this.runPermits = runPermits;
     }
 
     void checkAllowChange() {
@@ -142,7 +151,7 @@ public class TaskExecutionGraph implements IExecution<Void> {
             return null;
 
         DagNode node = dag.getNode(taskName);
-        if(node == null)
+        if (node == null)
             return null;
 
         Set<String> prevNames = node.getPrevNodeNames();
@@ -173,6 +182,17 @@ public class TaskExecutionGraph implements IExecution<Void> {
 
     private void runTask(Executor executor, ICancelToken cancelToken, Map<String, CompletableFuture<Void>> futures, String taskName) {
         CompletableFuture<Void> future = futures.get(taskName);
+        if (runPermits != null) {
+            try {
+                runPermits.acquire();
+            } catch (InterruptedException e) {
+                Thread.interrupted();
+                throw NopException.adapt(e);
+            }
+            future.whenComplete((ret, err) -> {
+                runPermits.release();
+            });
+        }
         executor.execute(() -> {
             if (cancelToken != null) {
                 if (cancelToken.isCancelled()) {

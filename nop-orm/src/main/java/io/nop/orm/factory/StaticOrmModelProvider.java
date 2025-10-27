@@ -4,14 +4,14 @@ import io.nop.orm.ILoadedOrmModel;
 import io.nop.orm.model.IOrmModel;
 import io.nop.orm.persister.IPersistEnv;
 
-public class StaticOrmModelHolder implements IOrmModelHolder{
+public class StaticOrmModelProvider implements IOrmModelProvider {
     private final ILoadedOrmModel loadedOrmModel;
 
-    public StaticOrmModelHolder(ILoadedOrmModel loadedOrmModel) {
+    public StaticOrmModelProvider(ILoadedOrmModel loadedOrmModel) {
         this.loadedOrmModel = loadedOrmModel;
     }
 
-    public StaticOrmModelHolder(IPersistEnv env, IOrmModel ormModel){
+    public StaticOrmModelProvider(IPersistEnv env, IOrmModel ormModel){
         this.loadedOrmModel = new LoadedOrmModel(env, ormModel);
     }
 

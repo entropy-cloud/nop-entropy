@@ -16,7 +16,7 @@ import io.nop.dbtool.core.discovery.jdbc.JdbcMetaDiscovery;
 import io.nop.dbtool.core.initialize.DataBaseUpgradeInitializer;
 import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.factory.SessionFactoryImpl;
-import io.nop.orm.factory.StaticOrmModelHolder;
+import io.nop.orm.factory.StaticOrmModelProvider;
 import io.nop.orm.model.OrmModel;
 import io.nop.xlang.xdsl.DslModelHelper;
 import jakarta.inject.Inject;
@@ -50,7 +50,7 @@ public class TestDataBaseUpgradeInitializer extends JunitBaseTestCase {
         SessionFactoryImpl ormSessionFactory
                 = (SessionFactoryImpl) BeanContainer.getBeanByType(IOrmSessionFactory.class);
         // 临时修改 ORM 模型，以验证数据库升级逻辑，不需要重新加载
-        ormSessionFactory.setOrmModelHolder(new StaticOrmModelHolder(ormSessionFactory, newOrmModel));
+        ormSessionFactory.setOrmModelHolder(new StaticOrmModelProvider(ormSessionFactory, newOrmModel));
         initializer.init(); // 执行升级
 
         // 确认数据库的升级是否符合预期

@@ -3,7 +3,7 @@ package io.nop.orm.factory;
 import io.nop.orm.ILoadedOrmModel;
 import io.nop.orm.persister.IPersistEnv;
 
-public interface IOrmModelHolder extends AutoCloseable {
+public interface IOrmModelProvider extends AutoCloseable {
     ILoadedOrmModel getOrmModel(IPersistEnv env);
 
     void clearCache();
