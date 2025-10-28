@@ -9,6 +9,7 @@ import java.util.List;
  */
 public class MarkdownTextSplitter extends SimpleTextSplitter {
 
+    // 暂时忽略overlapSize参数
     @Override
     protected int collectOneChunk(List<String> parts, int index, int maxContentSize, int overlapSize,
                                   List<SplitChunk> chunks) {
@@ -35,7 +36,7 @@ public class MarkdownTextSplitter extends SimpleTextSplitter {
                 }
             }
 
-            if (sb.length() + line.length() <= maxContentSize) {
+            if (sb.length() + line.length() < maxContentSize) {
                 sb.append(line).append('\n');
             } else if (sb.length() > 0) {
                 chunks.add(new SplitChunk("text", sb.toString()));
@@ -92,7 +93,7 @@ public class MarkdownTextSplitter extends SimpleTextSplitter {
 
         // 当前内容 + block内容超长，则直接返回chunk
         if (sb.length() > 0) {
-            chunks.add(new SplitChunk(null, sb.toString()));
+            chunks.add(new SplitChunk("text", sb.toString()));
             sb.setLength(0);
             // 下次循环重试当前行
             return index - 1;
@@ -111,17 +112,18 @@ public class MarkdownTextSplitter extends SimpleTextSplitter {
                 continue;
             }
 
-            if (sb.length() + line.length() <= maxContentSize) {
+            // 最后要插入一个换行符，所以这里需要是小于maxContentSize
+            if (sb.length() + line.length() < maxContentSize) {
                 sb.append(line).append('\n');
             } else {
-                chunks.add(new SplitChunk(null, sb.toString()));
+                chunks.add(new SplitChunk("text", sb.toString()));
                 sb.setLength(0);
                 sb.append(line).append('\n');
             }
         }
 
         if (sb.length() > 0) {
-            chunks.add(new SplitChunk(null, sb.toString()));
+            chunks.add(new SplitChunk("text", sb.toString()));
             sb.setLength(0);
         }
     }

@@ -26,7 +26,7 @@ public interface IOrmEntityFileStore {
     String decodeFileId(String fileLink);
 
     /**
-     * 用于性能优化的函数，将对应的FileRecord加载到内存中
+     * 用于性能优化的函数，将对应的FileRecord加载到内存中。如果是同步加载，则返回null即可
      *
      * @param fileIds 文件id列表
      */

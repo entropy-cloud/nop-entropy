@@ -118,6 +118,9 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         return fileId;
     }
 
+    /**
+     * 用于性能优化的函数，将对应的FileRecord加载到内存中。如果是同步加载，则返回null即可
+     */
     @Override
     public CompletionStage<?> batchLoadResourceAsync(Collection<String> fileIds) {
         IEntityDao<NopFileRecord> dao = daoProvider.daoFor(NopFileRecord.class);
@@ -308,12 +311,16 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         IEntityDao<NopFileRecord> dao = daoProvider.daoFor(NopFileRecord.class);
         NopFileRecord record = dao.getEntityById(fileId);
         if (record != null) {
-            if (Objects.equals(record.getBizObjName(), bizObjName) && Objects.equals(record.getBizObjId(), objId)) {
+            if (Objects.equals(record.getBizObjName(), bizObjName)
+                    && Objects.equals(record.getBizObjId(), objId)
+                    && Objects.equals(record.getFieldName(), fieldName)) {
                 dao.deleteEntity(record);
-                if (isUniqueRef(dao, record))
+                if (isUniqueRef(dao, record)) {
                     removeResource(record.getFilePath());
+                }
             } else {
-                LOG.warn("nop.file.record-not-attached-to-object:fileId={},bizObjName={},objId={},attachedObjName={},attachedObjId={}", fileId, bizObjName, objId, record.getBizObjName(), record.getBizObjId());
+                LOG.warn("nop.file.record-not-attached-to-field:fileId={},bizObjName={},objId={},fieldName={},attachedObjName={},attachedObjId={},attachedFieldName={}",
+                        fileId, bizObjName, objId, fieldName, record.getBizObjName(), record.getBizObjId(), record.getFieldName());
             }
         }
     }

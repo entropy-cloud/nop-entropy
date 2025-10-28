@@ -20,6 +20,7 @@ public class LimitedExecutor implements Executor {
 
     @Override
     public void execute(Runnable command) {
+        boolean submitted = false;
         try {
             semaphore.acquire();
             executor.execute(() -> {
@@ -29,9 +30,14 @@ public class LimitedExecutor implements Executor {
                     semaphore.release();
                 }
             });
+            submitted = true;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw NopException.adapt(e);
+        } finally {
+            if (!submitted) {
+                semaphore.release();
+            }
         }
     }
 }

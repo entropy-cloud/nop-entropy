@@ -16,6 +16,8 @@ limitations under the License.
 ==================================================================== */
 package io.nop.excel.format;
 
+import io.nop.commons.text.formatter.FastIntegerFormatter;
+
 import java.text.DecimalFormat;
 import java.text.FieldPosition;
 import java.text.Format;
@@ -66,6 +68,9 @@ public class ExcelFormatHelper {
     // private static final Format generalDecimalNumFormat = new
     // DecimalFormat("#.##########");
 
+    /**
+     * 这里只缓存少量规定格式的format，不需要每个format都缓存。另外也不需要线程安全。假定除了系统初始化阶段不会动态设置format
+     */
     private static final Map<String, Format> formats = new HashMap<>();
 
     static {
@@ -270,7 +275,7 @@ public class ExcelFormatHelper {
     private static final class SSNFormat extends Format {
         private static final long serialVersionUID = 5842426239071043434L;
         public static final Format instance = new SSNFormat();
-        private static final DecimalFormat df = createIntegerOnlyFormat("000000000");
+        private static final Format df = FastIntegerFormatter.fromPattern("000000000");
 
         private SSNFormat() {
             // enforce singleton
@@ -306,7 +311,7 @@ public class ExcelFormatHelper {
     private static final class ZipPlusFourFormat extends Format {
         private static final long serialVersionUID = 1422822964748552552L;
         public static final Format instance = new ZipPlusFourFormat();
-        private static final DecimalFormat df = createIntegerOnlyFormat("000000000");
+        private static final Format df = FastIntegerFormatter.fromPattern("000000000");
 
         private ZipPlusFourFormat() {
             // enforce singleton
@@ -341,7 +346,7 @@ public class ExcelFormatHelper {
     private static final class PhoneFormat extends Format {
         private static final long serialVersionUID = -820798622022983780L;
         public static final Format instance = new PhoneFormat();
-        private static final DecimalFormat df = createIntegerOnlyFormat("##########");
+        private static final Format df = FastIntegerFormatter.fromPattern("##########");
 
         private PhoneFormat() {
             // enforce singleton
@@ -374,17 +379,14 @@ public class ExcelFormatHelper {
         }
 
         public StringBuffer format(Object obj, StringBuffer toAppendTo, FieldPosition pos) {
+            if (!(obj instanceof Number)) {
+                throw new IllegalArgumentException("Object to format must be a Number");
+            }
             return toAppendTo.append(format((Number) obj));
         }
 
         public Object parseObject(String source, ParsePosition pos) {
             return df.parseObject(source, pos);
         }
-    }
-
-    static DecimalFormat createIntegerOnlyFormat(String fmt) {
-        DecimalFormat result = new DecimalFormat(fmt);
-        result.setParseIntegerOnly(true);
-        return result;
     }
 }

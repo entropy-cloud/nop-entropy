@@ -27,10 +27,10 @@ import java.nio.channels.WritableByteChannel;
 public class ByteBufferHelper {
 
     public static byte[] getBytes(ByteBuffer buffer) {
-        byte[] dst = new byte[buffer.position()];
         ByteBuffer buf = buffer.duplicate();
-        buf.flip();
-        buffer.get(dst);
+        buf.flip(); // 读取范围变为 [0, original.position)
+        byte[] dst = new byte[buf.remaining()];
+        buf.get(dst);
         return dst;
     }
 
@@ -134,7 +134,9 @@ public class ByteBufferHelper {
     }
 
     public static void writeToOutput(DataOutput out, ByteBuffer buffer) throws IOException {
-        writeToOutput0(out, buffer, buffer.remaining());
+        int length = buffer.remaining(); // 记录要写入的长度
+        writeToOutput0(out, buffer, length);
+        buffer.position(buffer.position() + length); // 更新 position
     }
 
     public static void writeToOutput(DataOutput out, ByteBuffer buffer, int length) throws IOException {
@@ -180,6 +182,12 @@ public class ByteBufferHelper {
         } else {
             // 对于非数组支持的缓冲区，使用临时数组批量写入
             ByteBuffer slice = buffer.slice().limit(length);
+
+            // INTENTIONAL: Cast OutputStream to WritableByteChannel for performance.
+            // This is a common optimization in high-performance I/O frameworks. If the 'out'
+            // instance is a custom wrapper that implements both interfaces (e.g., wrapping a SocketChannel),
+            // this allows us to write a DirectByteBuffer directly, avoiding an intermediate
+            // memory copy to a temporary byte array and enabling potential zero-copy operations.
             if (out instanceof WritableByteChannel) {
                 ((WritableByteChannel) out).write(slice);
             } else {
@@ -205,17 +213,17 @@ public class ByteBufferHelper {
      */
     public static void writeToChannel(WritableByteChannel channel, byte[] source, int offset, int length)
             throws IOException {
-        int toWrite = Math.min(length, WRITE_CHUNK_SIZE);
-        ByteBuffer buffer = ByteBuffer.wrap(source, offset, toWrite);
-        int written = channel.write(buffer);
-        length -= written;
-        while (length > 0) {
-            toWrite = Math.min(length, WRITE_CHUNK_SIZE);
-            buffer.limit(buffer.position() + toWrite);
-            written = channel.write(buffer);
-            length -= written;
+        int remaining = length;
+        int pos = offset;
+        while (remaining > 0) {
+            int toWrite = Math.min(remaining, WRITE_CHUNK_SIZE);
+            ByteBuffer buf = ByteBuffer.wrap(source, pos, toWrite);
+            while (buf.hasRemaining()) {
+                channel.write(buf);
+            }
+            pos += toWrite;
+            remaining -= toWrite;
         }
-        assert length == 0 : "wrote more then expected bytes (length=" + length + ")";
     }
 
     /**

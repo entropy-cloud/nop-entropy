@@ -283,20 +283,24 @@ public class ClassHelper {
     public static Constructor<?> getDefaultConstructor(Class<?> clazz) {
         try {
             Constructor<?>[] constructors = clazz.getDeclaredConstructors();
-            if (constructors.length == 0)
-                return null;
+            if (constructors.length == 0) return null;
 
-            for (Constructor<?> constructor : constructors) {
-                if (constructor.getParameterCount() == 0)
-                    return constructor;
+            // 1) 无参优先
+            for (Constructor<?> c : constructors) {
+                if (c.getParameterCount() == 0) return c;
             }
-
-            for (Constructor<?> constructor : constructors) {
-                if (constructor.isAnnotationPresent(JsonCreator.class))
-                    return constructor;
+            // 2) @JsonCreator
+            for (Constructor<?> c : constructors) {
+                if (c.isAnnotationPresent(JsonCreator.class)) return c;
             }
-
-            return constructors[0];
+            // 3) 按可见性与参数个数排序选择
+            return Arrays.stream(constructors)
+                    .sorted((a, b) -> {
+                        int vis = Boolean.compare(Modifier.isPublic(b.getModifiers()), Modifier.isPublic(a.getModifiers()));
+                        return vis != 0 ? vis : Integer.compare(a.getParameterCount(), b.getParameterCount());
+                    })
+                    .findFirst()
+                    .orElse(null);
         } catch (Exception e) {
             throw NopException.wrap(e);
         }
@@ -481,11 +485,11 @@ public class ClassHelper {
     }
 
     /**
-//     * Return all interfaces that the given instance implements as an array, including ones implemented by superclasses.
-//     *
-//     * @param instance the instance to analyze for interfaces
-//     * @return all interfaces that the given instance implements as an array
-//     */
+     //     * Return all interfaces that the given instance implements as an array, including ones implemented by superclasses.
+     //     *
+     //     * @param instance the instance to analyze for interfaces
+     //     * @return all interfaces that the given instance implements as an array
+     //     */
 //    public static Class<?>[] getAllInterfaces(Object instance) {
 //        Guard.notNull(instance, "Instance must not be null");
 //        return getAllInterfacesForClass(instance.getClass());
@@ -623,10 +627,12 @@ public class ClassHelper {
      */
     public static String findContainingJar(Class<?> clazz, String preferJarKeyWord) {
         ClassLoader loader = clazz.getClassLoader();
-        String classFile = clazz.getName().replaceAll("\\.", "/") + ".class";
+        String classFile = clazz.getName().replace('.', '/') + ".class";
 
         try {
-            Enumeration<URL> e = loader.getResources(classFile);
+            Enumeration<URL> e = (loader != null)
+                    ? loader.getResources(classFile)
+                    : ClassLoader.getSystemResources(classFile);
 
             URL url = null;
             do {
@@ -693,8 +699,6 @@ public class ClassHelper {
 
         if (clazz == SortedSet.class)
             return new TreeSet<>();
-        if (clazz == Set.class)
-            return new LinkedHashSet<>();
         if (clazz == Set.class)
             return new LinkedHashSet<>();
         return new ArrayList<>();

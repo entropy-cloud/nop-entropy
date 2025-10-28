@@ -13,6 +13,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class JavaFileSplitter implements IAiTextSplitter {
     static final Logger LOG = LoggerFactory.getLogger(JavaFileSplitter.class);
@@ -96,15 +98,6 @@ public class JavaFileSplitter implements IAiTextSplitter {
                 currentSize + additionalSize > options.getMaxContentSize();
     }
 
-    private CompilationUnit createChunkCompilationUnit(CompilationUnit originalCu,
-                                                       List<MethodDeclaration> methodsToKeep) {
-        CompilationUnit chunkCu = originalCu.clone();
-        MethodFilter filter = new MethodFilter(methodsToKeep);
-        filter.visit(chunkCu, methodsToKeep);
-        filter.applyRemoval();
-        return chunkCu;
-    }
-
     private SplitChunk createSplitChunk(CompilationUnit chunkCu, int chunkNumber) {
         return new SplitChunk(CHUNK_TYPE, chunkCu.toString(), "part_" + chunkNumber);
     }
@@ -117,18 +110,29 @@ public class JavaFileSplitter implements IAiTextSplitter {
         }
     }
 
-    private static class MethodFilter extends VoidVisitorAdapter<List<MethodDeclaration>> {
-        private final List<MethodDeclaration> methodsToKeep;
+    private CompilationUnit createChunkCompilationUnit(CompilationUnit originalCu,
+                                                       List<MethodDeclaration> methodsToKeep) {
+        CompilationUnit chunkCu = originalCu.clone();
+        MethodFilter filter = new MethodFilter(methodsToKeep);
+        filter.visit(chunkCu, null);
+        filter.applyRemoval();
+        return chunkCu;
+    }
+
+    private static class MethodFilter extends VoidVisitorAdapter<Void> {
+        private final Set<String> keepSignatures;
         private final List<MethodDeclaration> methodsToRemove = new ArrayList<>();
 
         MethodFilter(List<MethodDeclaration> methodsToKeep) {
-            this.methodsToKeep = methodsToKeep;
+            this.keepSignatures = methodsToKeep.stream()
+                    .map(md -> md.getSignature().asString())
+                    .collect(Collectors.toSet());
         }
 
         @Override
-        public void visit(MethodDeclaration md, List<MethodDeclaration> arg) {
+        public void visit(MethodDeclaration md, Void arg) {
             super.visit(md, arg);
-            if (!methodsToKeep.contains(md)) {
+            if (!keepSignatures.contains(md.getSignature().asString())) {
                 methodsToRemove.add(md);
             }
         }

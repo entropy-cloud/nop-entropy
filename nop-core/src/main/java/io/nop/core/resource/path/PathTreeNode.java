@@ -99,6 +99,8 @@ public class PathTreeNode {
 
     public String getFullPath() {
         if (parent == null) {
+            if (name.equals("/"))
+                return "/";
             return name + (isDirectory ? "/" : "");
         }
         String parentPath = parent.getFullPath();
@@ -108,6 +110,7 @@ public class PathTreeNode {
         }
         return parentPath + "/" + name + (isDirectory ? "/" : "");
     }
+
 
     public List<PathTreeNode> getAllFiles() {
         List<PathTreeNode> files = new ArrayList<>();
@@ -159,10 +162,10 @@ public class PathTreeNode {
     }
 
     public PathTreeNode getDirectChild(String name) {
-        if (parent.children == null) {
+        if (children == null) {
             return null;
         }
-        for (PathTreeNode child : parent.children) {
+        for (PathTreeNode child : children) {
             if (child.name.equals(name)) {
                 return child;
             }
@@ -314,6 +317,7 @@ public class PathTreeNode {
                     throw new IllegalStateException("Invalid tree structure: file cannot have children, line=" + (i + 1));
                 }
 
+                // 解析时规则放松，有可能文件也包含子节点
                 PathTreeNode node = new PathTreeNode(name, indent, parent, isDirectory);
                 parent.makeChildren().add(node);
 

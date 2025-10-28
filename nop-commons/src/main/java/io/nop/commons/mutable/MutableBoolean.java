@@ -7,6 +7,9 @@
  */
 package io.nop.commons.mutable;
 
+/**
+ * 这个类是线程不安全的，但是接口方法与AtomicBoolean类似
+ */
 public class MutableBoolean implements IMutableValue<Boolean> {
     private boolean value;
 

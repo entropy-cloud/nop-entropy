@@ -415,23 +415,20 @@ public class CodeFileInfo {
 
     private void collectUsedFns(CodeFunctionInfo fn, Set<String> processedUsedFns,
                                 Set<CodeFunctionInfo> checking) {
-        if (fn.getUsedFns() == null || fn.getUsedFns().isEmpty()) {
-            return;
-        }
+        Set<String> used = fn.getUsedFns();
+        if (used == null || used.isEmpty()) return;
+        if (!checking.add(fn)) return; // 防循环
 
-        if (!checking.add(fn)) {
-            return;
-        }
-
-        for (String usedFnName : fn.getUsedFns()) {
+        for (String usedFnName : used) {
             CodeFunctionInfo usedFn = getFunctionInfo(usedFnName);
             if (usedFn == null) {
-                // 外部函数，直接添加
+                // 外部函数，直接添加一次
                 processedUsedFns.add(usedFnName);
-                continue;
+            } else {
+                // 内部函数，添加并递归收集其依赖
+                processedUsedFns.add(usedFnName);
+                collectUsedFns(usedFn, processedUsedFns, checking);
             }
-
-            processedUsedFns.add(usedFnName);
         }
     }
 
@@ -574,8 +571,12 @@ public class CodeFileInfo {
 
     private static Set<String> internStringSet(Set<String> set) {
         if (set == null) return null;
-        Set<String> ret = set.stream().map(s -> s.intern()).collect(LinkedHashSet::new, Set::add, Set::addAll);
-        return set;
+        // 推荐：更直观的写法
+        Set<String> ret = new LinkedHashSet<>();
+        for (String s : set) {
+            ret.add(s != null ? s.intern() : null);
+        }
+        return ret;
     }
 
     private static Map<String, String> internStringMap(Map<String, String> map) {

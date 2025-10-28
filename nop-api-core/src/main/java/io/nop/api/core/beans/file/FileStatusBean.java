@@ -23,7 +23,6 @@ public class FileStatusBean {
     private long size;
     private long lastModified;
     private String permissions;
-    private String fileSize;
     private String externalPath;
     private String previewPath;
 
@@ -82,6 +81,9 @@ public class FileStatusBean {
         this.permissions = permissions;
     }
 
+    /**
+     * INTENTIONAL 返回计算属性简化前端编程
+     */
     @PropMeta(propId = 6)
     public String getFileSize() {
         return ApiStringHelper.fileSizeString(getSize());

@@ -41,19 +41,19 @@ public class ChainedDocumentConverter implements IDocumentConverter {
     @Override
     public void convertToStream(IDocumentObject doc, String toFileType, OutputStream out, DocumentConvertOptions options) throws IOException {
         // Use ByteArrayOutputStream to collect intermediate result
-        ByteArrayOutputStream intermediateOut = new ByteArrayOutputStream();
-        firstConverter.convertToStream(doc, intermediateType, intermediateOut, options);
-        intermediateOut.close();
+        try (ByteArrayOutputStream intermediateOut = new ByteArrayOutputStream()) {
+            firstConverter.convertToStream(doc, intermediateType, intermediateOut, options);
 
-        // Create byte array resource from the intermediate result
-        byte[] intermediateBytes = intermediateOut.toByteArray();
-        String path = "/temp/" + StringHelper.replaceFileType(StringHelper.fileFullName(doc.resourcePath()), intermediateType);
-        IResource intermediateResource = new ByteArrayResource(path, intermediateBytes, -1L);
+            // Create byte array resource from the intermediate result
+            byte[] intermediateBytes = intermediateOut.toByteArray();
+            String path = "/temp/" + StringHelper.replaceFileType(StringHelper.fileFullName(doc.resourcePath()), intermediateType);
+            IResource intermediateResource = new ByteArrayResource(path, intermediateBytes, -1L);
 
-        // Create a document object from the intermediate resource
-        IDocumentObject intermediateDoc = docObjBuilder.buildFromResource(intermediateType, intermediateResource);
+            // Create a document object from the intermediate resource
+            IDocumentObject intermediateDoc = docObjBuilder.buildFromResource(intermediateType, intermediateResource);
 
-        // Then convert to final type
-        secondConverter.convertToStream(intermediateDoc, toFileType, out, options);
+            // Then convert to final type
+            secondConverter.convertToStream(intermediateDoc, toFileType, out, options);
+        }
     }
 }

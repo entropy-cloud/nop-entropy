@@ -50,7 +50,7 @@ public class NopDynPageBizModel extends CrudBizModel<NopDynPage> {
 
         checkValidPage(entityData.getEntity());
 
-        if (StringHelper.isEmpty(entityData.getEntity().getPageContent())) {
+        if (StringHelper.isBlank(entityData.getEntity().getPageContent())) {
             entityData.getEntity().setPageContent("{\"type\":\"page\"}");
         }
     }

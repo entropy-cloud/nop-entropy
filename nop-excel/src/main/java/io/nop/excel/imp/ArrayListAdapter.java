@@ -23,11 +23,22 @@ public class ArrayListAdapter implements IListAdapter {
         return list.add(value);
     }
 
+    /**
+     * 返回null表示不支持key属性。
+     *
+     * @param value 列表中的元素
+     * @return null表示不支持key属性
+     */
     @Override
     public String getKey(Object value) {
         return null;
     }
 
+    /**
+     * 普通的List，不支持keyProp，直接返回null
+     *
+     * @return
+     */
     @Override
     public String getKeyProp() {
         return null;
