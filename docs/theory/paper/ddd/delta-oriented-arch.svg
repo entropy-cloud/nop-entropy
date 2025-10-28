@@ -42,7 +42,7 @@
   <!-- Unified title style - moved up 25px -->
   <g id="title-section">
     <text x="500" y="35" font-size="26" font-weight="700" text-anchor="middle" fill="#1e3a8a">Delta-Oriented Architecture</text>
-    <text x="500" y="60" font-size="16" font-weight="400" text-anchor="middle" fill="#64748b">Layered Extension Architecture Based on Reversible Computing</text>
+    <text x="500" y="60" font-size="16" font-weight="400" text-anchor="middle" fill="#64748b">Layered Extension Architecture Based on Reversible Computation</text>
   </g>
 
   <!-- Business Application Layer - moved up 25px -->

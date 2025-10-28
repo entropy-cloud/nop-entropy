@@ -94,7 +94,7 @@ However, GRC seeks to achieve a paradigm upgrade over VCS by elevating the delta
 
 In summary, Git provides valuable but mathematically weak management of text-level deltas. GRC, by elevating deltas to **semantic-level entities** with well-behaved algebraic properties, makes large-scale, automated, and predictable software construction and evolution possible.
 
-#### 2.2.5. Language Workbenches: Unified Metamodel vs. Language Composition
+#### 2.2.5. Language Workbenches: Language Composition vs. Unified Metamodel
 
 JetBrains MPS (Meta Programming System), as a paradigm of a Language Workbench [15, 16], has at its core the idea of decoupling developers from the underlying text syntax through a **Projectional Editor**, allowing them to directly manipulate the Abstract Syntax Tree (AST). It builds a dedicated, highly customized development experience for each DSL and then aggregates these independent capabilities through **Language Composition**. This entire methodology is also known as Language-Oriented Programming (LOP) [17].
 
