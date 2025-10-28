@@ -1,9 +1,9 @@
 <svg width="1200" height="675" viewBox="0 0 1200 675" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Background gradient -->
+    <!-- Unified brand gradient -->
     <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#667eea"/>
-      <stop offset="100%" style="stop-color:#764ba2"/>
+      <stop offset="0%" style="stop-color:#1e3a8a"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
     </linearGradient>
     
     <linearGradient id="cardGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -11,33 +11,33 @@
       <stop offset="100%" style="stop-color:#f8fafc"/>
     </linearGradient>
     
-    <!-- Shadows -->
+    <!-- Unified shadows -->
     <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
       <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000" flood-opacity="0.1"/>
     </filter>
     
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#667eea" flood-opacity="0.3"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#2563eb" flood-opacity="0.3"/>
     </filter>
   </defs>
 
-  <!-- Background -->
+  <!-- Unified background -->
   <rect width="100%" height="100%" fill="url(#bgGradient)"/>
   
-  <!-- Decorative elements -->
+  <!-- Decorative geometric shapes -->
   <circle cx="100" cy="100" r="60" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.1"/>
   <circle cx="1100" cy="575" r="80" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.1"/>
   <polygon points="200,600 250,550 300,600 250,650" fill="#ffffff" opacity="0.05"/>
 
   <!-- Main title -->
   <text x="600" y="80" text-anchor="middle" 
-        font-family="'SF Pro Display', system-ui, sans-serif" 
+        font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
         font-size="42" font-weight="700" fill="#ffffff">
     Programmable Evolution
   </text>
   
   <text x="600" y="120" text-anchor="middle" 
-        font-family="'SF Pro Display', system-ui, sans-serif" 
+        font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
         font-size="18" font-weight="400" fill="#ffffff" opacity="0.8">
     XLang and the Structural Paradigm of Reversible Computation
   </text>
@@ -47,51 +47,50 @@
     <rect x="0" y="0" width="800" height="80" rx="20" 
           fill="url(#cardGradient)" filter="url(#shadow)"/>
     
-    <!-- Single-line formula -->
     <text x="400" y="50" text-anchor="middle" 
           font-family="'JetBrains Mono', monospace" 
-          font-size="28" font-weight="600" fill="#1e293b">
-      App = Delta <tspan fill="#3b82f6">x_extends</tspan> Generator&lt;DSL&gt;
+          font-size="28" font-weight="600" fill="#1e3a8a">
+      App = Delta <tspan fill="#2563eb">x-extends</tspan> Generator&lt;DSL&gt;
     </text>
   </g>
 
   <!-- Three core concept cards -->
   
-  <!-- DSL card -->
+  <!-- DSL Atlas card -->
   <g transform="translate(80, 320)">
     <rect x="0" y="0" width="320" height="220" rx="24" 
           fill="url(#cardGradient)" filter="url(#shadow)"/>
     
     <!-- Icon -->
-    <circle cx="60" cy="60" r="30" fill="#3b82f6" opacity="0.1"/>
+    <circle cx="60" cy="60" r="30" fill="#2563eb" opacity="0.1"/>
     <text x="60" y="70" text-anchor="middle" 
-          font-family="system-ui" font-size="28" fill="#3b82f6">🗂</text>
+          font-family="system-ui" font-size="28" fill="#2563eb">🗂</text>
     
     <!-- Title -->
     <text x="110" y="50" 
-          font-family="'SF Pro Display', system-ui, sans-serif" 
-          font-size="24" font-weight="700" fill="#1e293b">
+          font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
+          font-size="24" font-weight="700" fill="#1e3a8a">
       DSL Atlas
     </text>
     <text x="110" y="75" 
-          font-family="'SF Pro Display', system-ui, sans-serif" 
+          font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
           font-size="14" font-weight="400" fill="#64748b">
       Domain Coordinate System
     </text>
     
     <!-- Features list -->
     <text x="40" y="120" 
-          font-family="'SF Pro Display', system-ui, sans-serif" 
+          font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
           font-size="16" font-weight="500" fill="#475569">
       • Unified Meta-model Definition
     </text>
     <text x="40" y="145" 
-          font-family="'SF Pro Display', system-ui, sans-serif" 
+          font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
           font-size="16" font-weight="500" fill="#475569">
       • XPath Stable Paths
     </text>
     <text x="40" y="170" 
-          font-family="'SF Pro Display', system-ui, sans-serif" 
+          font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
           font-size="16" font-weight="500" fill="#475569">
       • Cross-DSL Collaboration
     </text>
@@ -111,44 +110,44 @@
           fill="url(#cardGradient)" filter="url(#shadow)"/>
     
     <!-- Icon -->
-    <circle cx="60" cy="60" r="30" fill="#f59e0b" opacity="0.1"/>
+    <circle cx="60" cy="60" r="30" fill="#059669" opacity="0.1"/>
     <text x="60" y="70" text-anchor="middle" 
-          font-family="system-ui" font-size="28" fill="#f59e0b">⚡</text>
+          font-family="system-ui" font-size="28" fill="#059669">⚡</text>
     
     <!-- Title -->
     <text x="110" y="50" 
-          font-family="'SF Pro Display', system-ui, sans-serif" 
-          font-size="24" font-weight="700" fill="#1e293b">
+          font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
+          font-size="24" font-weight="700" fill="#1e3a8a">
       Delta
     </text>
     <text x="110" y="75" 
-          font-family="'SF Pro Display', system-ui, sans-serif" 
+          font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
           font-size="14" font-weight="400" fill="#64748b">
       Reversible Evolution Unit
     </text>
     
     <!-- Features list -->
     <text x="40" y="120" 
-          font-family="'SF Pro Display', system-ui, sans-serif" 
+          font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
           font-size="16" font-weight="500" fill="#475569">
       • Deletion Semantics Support
     </text>
     <text x="40" y="145" 
-          font-family="'SF Pro Display', system-ui, sans-serif" 
+          font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
           font-size="16" font-weight="500" fill="#475569">
       • Associative Property
     </text>
     <text x="40" y="170" 
-          font-family="'SF Pro Display', system-ui, sans-serif" 
+          font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
           font-size="16" font-weight="500" fill="#475569">
       • Composable &amp; Reusable
     </text>
     
     <!-- Formula -->
-    <rect x="20" y="185" width="280" height="25" rx="8" fill="#fef3c7"/>
+    <rect x="20" y="185" width="280" height="25" rx="8" fill="#ecfdf5"/>
     <text x="160" y="202" text-anchor="middle"
           font-family="'JetBrains Mono', monospace" 
-          font-size="12" fill="#92400e">
+          font-size="12" fill="#059669">
       (A ⊕ B) ⊕ C = A ⊕ (B ⊕ C)
     </text>
   </g>
@@ -159,59 +158,59 @@
           fill="url(#cardGradient)" filter="url(#shadow)"/>
     
     <!-- Icon -->
-    <circle cx="60" cy="60" r="30" fill="#10b981" opacity="0.1"/>
+    <circle cx="60" cy="60" r="30" fill="#d97706" opacity="0.1"/>
     <text x="60" y="70" text-anchor="middle" 
-          font-family="system-ui" font-size="28" fill="#10b981">⚙️</text>
+          font-family="system-ui" font-size="28" fill="#d97706">⚙️</text>
     
     <!-- Title -->
     <text x="110" y="50" 
-          font-family="'SF Pro Display', system-ui, sans-serif" 
-          font-size="24" font-weight="700" fill="#1e293b">
+          font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
+          font-size="24" font-weight="700" fill="#1e3a8a">
       Generator
     </text>
     <text x="110" y="75" 
-          font-family="'SF Pro Display', system-ui, sans-serif" 
+          font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
           font-size="14" font-weight="400" fill="#64748b">
       Compile-time Engine
     </text>
     
     <!-- Features list -->
     <text x="40" y="120" 
-          font-family="'SF Pro Display', system-ui, sans-serif" 
+          font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
           font-size="16" font-weight="500" fill="#475569">
       • Multi-stage Compilation
     </text>
     <text x="40" y="145" 
-          font-family="'SF Pro Display', system-ui, sans-serif" 
+          font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
           font-size="16" font-weight="500" fill="#475569">
       • Structured Generation
     </text>
     <text x="40" y="170" 
-          font-family="'SF Pro Display', system-ui, sans-serif" 
+          font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
           font-size="16" font-weight="500" fill="#475569">
       • Source Traceability
     </text>
     
     <!-- Toolchain -->
     <g transform="translate(20, 185)">
-      <rect x="0" y="0" width="80" height="25" rx="8" fill="#dcfce7"/>
+      <rect x="0" y="0" width="80" height="25" rx="8" fill="#fef3c7"/>
       <text x="40" y="17" text-anchor="middle"
-            font-family="'SF Pro Display', system-ui, sans-serif" 
-            font-size="12" font-weight="600" fill="#166534">
+            font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
+            font-size="12" font-weight="600" fill="#d97706">
         XDef
       </text>
       
-      <rect x="90" y="0" width="80" height="25" rx="8" fill="#dcfce7"/>
+      <rect x="90" y="0" width="80" height="25" rx="8" fill="#fef3c7"/>
       <text x="130" y="17" text-anchor="middle"
-            font-family="'SF Pro Display', system-ui, sans-serif" 
-            font-size="12" font-weight="600" fill="#166534">
+            font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
+            font-size="12" font-weight="600" fill="#d97706">
         Xpl
       </text>
       
-      <rect x="180" y="0" width="80" height="25" rx="8" fill="#dcfce7"/>
+      <rect x="180" y="0" width="80" height="25" rx="8" fill="#fef3c7"/>
       <text x="220" y="17" text-anchor="middle"
-            font-family="'SF Pro Display', system-ui, sans-serif" 
-            font-size="12" font-weight="600" fill="#166534">
+            font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
+            font-size="12" font-weight="600" fill="#d97706">
         XScript
       </text>
     </g>
@@ -222,12 +221,12 @@
     <rect x="0" y="0" width="600" height="60" rx="30" 
           fill="#ffffff" fill-opacity="0.15" filter="url(#glow)"/>
     <text x="300" y="30" text-anchor="middle" 
-          font-family="'SF Pro Display', system-ui, sans-serif" 
+          font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
           font-size="16" font-weight="600" fill="#ffffff">
       Fundamental Refactoring from Syntactic Paradigm to Structural Space Construction Rules
     </text>
     <text x="300" y="50" text-anchor="middle" 
-          font-family="'SF Pro Display', system-ui, sans-serif" 
+          font-family="'Inter', 'SF Pro Display', system-ui, sans-serif" 
           font-size="14" font-weight="400" fill="#ffffff" opacity="0.8">
       Map → Tree Dimension Upgrade · Deletion Semantics · Compile-time Metaprogramming
     </text>

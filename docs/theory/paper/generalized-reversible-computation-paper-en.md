@@ -9,6 +9,7 @@
 In the history of computer science, the Turing Machine and Lambda Calculus laid the theoretical foundation for "computability," answering the fundamental question of "what is computable?" However, as software systems have evolved from isolated algorithms into intricate ecosystems, our core challenge has shifted from "computability" to "complexity management."
 
 Several long-standing challenges in software engineering can be distilled into three fundamental dichotomies:
+
 - The conflict between **standardization and customization**: How to satisfy individual needs while maintaining the stability of a core product.
 - The conflict between **reuse and evolution**: How to support the continuous evolution of a system while reusing existing assets.
 - The conflict between **entropy and control**: How to systematically govern software decay and control the growth of complexity.
@@ -21,14 +22,14 @@ Before delving into the theoretical system, we provide a brief glossary of the c
 
 ### **Glossary of Core Concepts**
 
-| Term | English/Symbol | Definition & Explanation |
-| :--- | :--- | :--- |
-| **Generalized Reversible Computation** | Generalized Reversible Computation (GRC) | The new paradigm proposed in this paper. It extends the principle of "reversibility" from runtime to the **entire process of software construction and evolution**, with a core focus on systematically managing complexity through algebraic delta operations. |
-| **Core Construction Formula** | `App = Generator<DSL> ⊕ Δ` | The mathematical cornerstone of GRC. It asserts that any software application (App) can be decomposed into a **predictable foundation built from a Generator and a DSL**, combined with one or more **Structured Deltas (Δ) that encapsulate all changes**. |
-| **Structured Delta** | Structured Delta (Δ) | A **first-class citizen** in GRC. It is a **structured data packet** that encapsulates evolutionary operations—additions, deletions, modifications—on a base model. Unlike a text `diff`, it operates at the **semantic level** and possesses algebraic properties. |
-| **Generator** | Generator | The deterministic transformation function in the GRC formula. It is responsible for reading a **Domain-Specific Language (DSL)** and "compiling" or "interpreting" it into a predictable, standardized "ideal backbone" of the system. |
-| **Domain-Specific Language** | Domain-Specific Language (DSL) | The carrier of the "**semantic coordinate system**" in GRC. It provides a stable, business-meaningful structure for software artifacts, enabling deltas (Δ) to have **precise and robust addressing anchors**. |
-| **Reversible Merge Operator** | Reversible Merge Operator (⊕) | The core algebraic operation used to apply a delta (Δ) to a base model. It is designed to be **non-invasive** and theoretically supports an **inverse operation** (`Base = App - Δ`), enabling the precise calculation and stripping of changes. |
+| Term                                   | English/Symbol                           | Definition & Explanation                                                                                                                                                                                                                                            |
+|:-------------------------------------- |:---------------------------------------- |:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Generalized Reversible Computation** | Generalized Reversible Computation (GRC) | The new paradigm proposed in this paper. It extends the principle of "reversibility" from runtime to the **entire process of software construction and evolution**, with a core focus on systematically managing complexity through algebraic delta operations.     |
+| **Core Construction Formula**          | `App = Generator<DSL> ⊕ Δ`               | The mathematical cornerstone of GRC. It asserts that any software application (App) can be decomposed into a **predictable foundation built from a Generator and a DSL**, combined with one or more **Structured Deltas (Δ) that encapsulate all changes**.         |
+| **Structured Delta**                   | Structured Delta (Δ)                     | A **first-class citizen** in GRC. It is a **structured data packet** that encapsulates evolutionary operations—additions, deletions, modifications—on a base model. Unlike a text `diff`, it operates at the **semantic level** and possesses algebraic properties. |
+| **Generator**                          | Generator                                | The deterministic transformation function in the GRC formula. It is responsible for reading a **Domain-Specific Language (DSL)** and "compiling" or "interpreting" it into a predictable, standardized "ideal backbone" of the system.                              |
+| **Domain-Specific Language**           | Domain-Specific Language (DSL)           | The carrier of the "**semantic coordinate system**" in GRC. It provides a stable, business-meaningful structure for software artifacts, enabling deltas (Δ) to have **precise and robust addressing anchors**.                                                      |
+| **Reversible Merge Operator**          | Reversible Merge Operator (⊕)            | The core algebraic operation used to apply a delta (Δ) to a base model. It is designed to be **non-invasive** and theoretically supports an **inverse operation** (`Base = App - Δ`), enabling the precise calculation and stripping of changes.                    |
 
 At a high level, this core construction principle can be understood as a new architectural paradigm. **As illustrated in Figure 1**, a typical layered software system, regardless of its internal divisions (e.g., infrastructure, core engine, and business application layers), can be enhanced by a new, orthogonal "delta customization" dimension. This Delta dimension is the manifestation of the structured delta `Δ` in the GRC formula. It acts like a unified control bus, capable of non-invasively modifying, replacing, or extending any layer of the system, thereby converging scattered, ad-hoc customization requirements into a systematic, manageable framework.
 
@@ -37,21 +38,23 @@ At a high level, this core construction principle can be understood as a new arc
 **Figure 1: A Top-Level Architectural Metaphor for GRC—A Layered Architecture with Delta Customization.** This diagram illustrates the core idea of the GRC paradigm: a traditional, vertically layered software system (Infrastructure, Core Engine, Business Application) is non-invasively enhanced by an orthogonal "Delta Customization" dimension that cuts across all layers. This Delta dimension corresponds to the `Δ` in the GRC formula, providing a unified and scalable mechanism for system evolution and variability management.
 
 The main contributions of this paper are:
-1.  **Paradigm Establishment and Positioning**: We systematically define GRC for the first time, establish its conceptual foundation as a computational framework through analogies with methodologies in physics, and clarify its relationship with related work such as DOP and MDA.
-2.  **Elucidation of the Theoretical Core**: We detail GRC's recursive fractal-like construction properties, its three dimensions of reversibility, and the foundation of its delta algebra.
-3.  **Demonstration of Unifying Explanatory Power**: Starting from GRC's first principles, we reinterpret Domain-Driven Design (DDD) and reveal the unified construction laws underlying modern practices like Docker and OpenUSD.
-4.  **Engineering Practice Validation**: We demonstrate the engineering feasibility, potential advantages, and universality of GRC theory through its canonical implementation in the Nop Platform and a case study of a large-scale enterprise system.
+
+1. **Paradigm Establishment and Positioning**: We systematically define GRC for the first time, establish its conceptual foundation as a computational framework through analogies with methodologies in physics, and clarify its relationship with related work such as DOP and MDA.
+2. **Elucidation of the Theoretical Core**: We detail GRC's recursive fractal-like construction properties, its three dimensions of reversibility, and the foundation of its delta algebra.
+3. **Demonstration of Unifying Explanatory Power**: Starting from GRC's first principles, we reinterpret Domain-Driven Design (DDD) and reveal the unified construction laws underlying modern practices like Docker and OpenUSD.
+4. **Engineering Practice Validation**: We demonstrate the engineering feasibility, potential advantages, and universality of GRC theory through its canonical implementation in the Nop Platform and a case study of a large-scale enterprise system.
 
 We begin by systematically articulating the substance of GRC, starting with its theoretical positioning and related work.
 
 ## 2. Theoretical Positioning and Related Work
 
 ### 2.1. Conceptual Demarcation of Generalized Reversible Computation
+
 To precisely define the theoretical scope of Generalized Reversible Computation (GRC), it is essential to distinguish it clearly from other "reversibility" concepts in computer science:
 
-*   **Physical Reversible Computing**: This field focuses on how to build extremely low-energy computing hardware using reversible processes at the level of physical laws. Its theoretical basis can be traced to Landauer's principle, which clarifies the necessary link between information erasure and energy dissipation [1].
-*   **Logical Reversible Computation (LRC)**: A branch of theoretical computer science concerned with whether computational steps at runtime have a strict logical bijection, meaning each computational state has a unique successor and predecessor. Bennett proved that any computational process can, in principle, be transformed into a logically reversible form [2].
-*   **Generalized Reversible Computation (GRC)**: The software construction paradigm proposed in this paper. It extends the principle of "reversibility" from the execution logic at **runtime** to the **design/build-time** activities across the entire software lifecycle. The core issue for GRC is not to eliminate all irreversibility, but rather, in a software engineering world that is macroscopically entropic, how to use reversible, algebraic construction operations as a core mechanism to systematically organize and tame unavoidable irreversibility.
+* **Physical Reversible Computing**: This field focuses on how to build extremely low-energy computing hardware using reversible processes at the level of physical laws. Its theoretical basis can be traced to Landauer's principle, which clarifies the necessary link between information erasure and energy dissipation [1].
+* **Logical Reversible Computation (LRC)**: A branch of theoretical computer science concerned with whether computational steps at runtime have a strict logical bijection, meaning each computational state has a unique successor and predecessor. Bennett proved that any computational process can, in principle, be transformed into a logically reversible form [2].
+* **Generalized Reversible Computation (GRC)**: The software construction paradigm proposed in this paper. It extends the principle of "reversibility" from the execution logic at **runtime** to the **design/build-time** activities across the entire software lifecycle. The core issue for GRC is not to eliminate all irreversibility, but rather, in a software engineering world that is macroscopically entropic, how to use reversible, algebraic construction operations as a core mechanism to systematically organize and tame unavoidable irreversibility.
 
 Therefore, GRC and LRC are not in competition but are concepts that focus on different levels. LRC can be seen as a theoretical special case of GRC where the construction dimension is greatly simplified to focus solely on runtime execution steps. GRC is concerned with the broader construction dynamics that encompass the entire process of software design, implementation, deployment, and evolution.
 
@@ -72,8 +75,9 @@ MDE significantly improves productivity and consistency by making the model the 
 Feature-Oriented Programming (FOP) [5] and its subsequent evolution, Delta-Oriented Programming (DOP) [6], are primarily used to manage variability in Software Product Lines (SPL) [7]. These paradigms grasp one half of the truth in the GRC formula—the `Δ`—by reifying "change" itself into manipulable "feature" or "delta" modules.
 
 Their classic pattern, `Product = Core ⊕ Deltas`, reveals their theoretical limitations:
-1.  **The Unspecified Core**: The origin and construction method of the `Core` are not theorized; it is usually assumed to be a pre-existing, manually crafted artifact.
-2.  **Lack of a Stable Semantic Coordinate System**: The delta operations in DOP/FOP typically act on unstable code structures defined by General-Purpose Languages (GPLs), and their addressing mechanisms (e.g., matching based on code patterns) are relatively fragile. Although some research has explored the use of DSLs in FOP [8], the role of the DSL is more auxiliary.
+
+1. **The Unspecified Core**: The origin and construction method of the `Core` are not theorized; it is usually assumed to be a pre-existing, manually crafted artifact.
+2. **Lack of a Stable Semantic Coordinate System**: The delta operations in DOP/FOP typically act on unstable code structures defined by General-Purpose Languages (GPLs), and their addressing mechanisms (e.g., matching based on code patterns) are relatively fragile. Although some research has explored the use of DSLs in FOP [8], the role of the DSL is more auxiliary.
 
 GRC systematically addresses these two problems with its other two theoretical pillars: the `Generator` and the `DSL`. `Generator<DSL>` provides a deterministic theoretical origin for the `Core`, while the DSL itself, through its inherent structure and domain semantics, constructs a stable "**semantic coordinate system**" that provides robust anchors for delta operations.
 
@@ -88,9 +92,10 @@ AOP and GRC differ in the dimension of "change" they capture. AOP's Pointcuts pr
 Modern Version Control Systems (VCS) like Git represent the most successful application of delta-oriented thinking in engineering practice. Their `diff/patch` mechanism has profoundly influenced a generation of developers, and academia has extensively mined and analyzed VCS history data [10].
 
 However, GRC seeks to achieve a paradigm upgrade over VCS by elevating the delta from the **"syntactic/text space" to the "semantic/model space"** and endowing it with robust algebraic properties. Git's `diff` and GRC's `Δ` differ in their mathematical properties:
-*   **Different Delta Spaces**: Git's deltas are defined in the **line-based text space** and lack business semantics. GRC's deltas are defined in the **domain model space**, where the minimal unit of operation is a semantic node with clear business meaning.
-*   **Lack of Closure**: A Git `merge` can result in a "Conflict," producing an abnormal structure that falls outside the space of "valid source code." This requires manual intervention and breaks the closure of the operation. GRC's merge operator `⊕` is designed to be closed within the model space.
-*   **Lack of Associativity**: A Git delta (patch) is tightly coupled to a specific baseline version and cannot be independently composed in a way like `(patch₁ ⊕ patch₂) ⊕ patch₃ = patch₁ ⊕ (patch₂ ⊕ patch₃)`. This prevents it from having general-purpose composability.
+
+* **Different Delta Spaces**: Git's deltas are defined in the **line-based text space** and lack business semantics. GRC's deltas are defined in the **domain model space**, where the minimal unit of operation is a semantic node with clear business meaning.
+* **Lack of Closure**: A Git `merge` can result in a "Conflict," producing an abnormal structure that falls outside the space of "valid source code." This requires manual intervention and breaks the closure of the operation. GRC's merge operator `⊕` is designed to be closed within the model space.
+* **Lack of Associativity**: A Git delta (patch) is tightly coupled to a specific baseline version and cannot be independently composed in a way like `(patch₁ ⊕ patch₂) ⊕ patch₃ = patch₁ ⊕ (patch₂ ⊕ patch₃)`. This prevents it from having general-purpose composability.
 
 In summary, Git provides valuable but mathematically weak management of text-level deltas. GRC, by elevating deltas to **semantic-level entities** with well-behaved algebraic properties, makes large-scale, automated, and predictable software construction and evolution possible.
 
@@ -102,24 +107,24 @@ While GRC also makes extensive use of DSLs, its theoretical starting point and c
 
 The paradigmatic differences between GRC and MPS can be analyzed through several key points:
 
-1.  **Unified Metamodel & Homomorphic Metaprogramming**: MPS maintains separate AST structures for each language. In contrast, GRC proposes a unified XNode metamodel, making **transformations on the model (metaprogramming) homomorphic to the structure of the model itself**. This allows the `Generator` to be implemented as a mechanism akin to Lisp macros, performing Turing-complete transformations at the unified AST level, with capabilities far exceeding simple code generation.
+1. **Unified Metamodel & Homomorphic Metaprogramming**: MPS maintains separate AST structures for each language. In contrast, GRC proposes a unified XNode metamodel, making **transformations on the model (metaprogramming) homomorphic to the structure of the model itself**. This allows the `Generator` to be implemented as a mechanism akin to Lisp macros, performing Turing-complete transformations at the unified AST level, with capabilities far exceeding simple code generation.
 
-2.  **Multiple, Reversible Representations**: In GRC, **the same information can have multiple different representations**. The text of a DSL is its **textual representation**, while a complex interactive interface is its **visual representation**. These representations can, in theory, be freely and reversibly converted between one another. In MPS, the projectional editor is part of the "language definition," whereas in GRC, representations are separate from the model. A powerful example is that the GRC framework can automatically provide an Excel representation for *all* DSLs. The necessary parsing and validation logic can be supplemented through a mapping definition. **Crucially, this mapping is flexible; it matches data purely based on attribute names without specifying fixed cell locations.** Thus, the system can not only generate but also reliably reverse-parse structured Excel files, allowing users to directly edit complex DSL tree structures using Excel. This ability to provide robust, universal editing methods for any DSL at low cost is a significant advantage of the GRC paradigm.
+2. **Multiple, Reversible Representations**: In GRC, **the same information can have multiple different representations**. The text of a DSL is its **textual representation**, while a complex interactive interface is its **visual representation**. These representations can, in theory, be freely and reversibly converted between one another. In MPS, the projectional editor is part of the "language definition," whereas in GRC, representations are separate from the model. A powerful example is that the GRC framework can automatically provide an Excel representation for *all* DSLs. The necessary parsing and validation logic can be supplemented through a mapping definition. **Crucially, this mapping is flexible; it matches data purely based on attribute names without specifying fixed cell locations.** Thus, the system can not only generate but also reliably reverse-parse structured Excel files, allowing users to directly edit complex DSL tree structures using Excel. This ability to provide robust, universal editing methods for any DSL at low cost is a significant advantage of the GRC paradigm.
 
-3.  **Generator as Representation Constructor**: Based on the above, the core GRC formula `App = Generator<DSL> ⊕ Δ` gains a deeper interpretation. The **`Generator`** here is no longer just a code generator; it is generalized to be **any transformer from the unified metamodel to a specific representation**. This includes the process of constructing a "projectional editor." At the implementation level, this can be achieved with great generality and flexibility: as a rendering engine traverses an XNode tree, **it can dynamically look up and load the corresponding UI control from a specified control library (`control.xlib`) based on each node's tag name (`tagName`)**. For example, a `<wf:send-task>` node could be mapped to a graphical block displaying "Send Task." By providing different control libraries—one for web rendering, another for a desktop IDE plugin—one can **generate completely different-looking and -behaving visual editors for the same XNode model data**.
+3. **Generator as Representation Constructor**: Based on the above, the core GRC formula `App = Generator<DSL> ⊕ Δ` gains a deeper interpretation. The **`Generator`** here is no longer just a code generator; it is generalized to be **any transformer from the unified metamodel to a specific representation**. This includes the process of constructing a "projectional editor." At the implementation level, this can be achieved with great generality and flexibility: as a rendering engine traverses an XNode tree, **it can dynamically look up and load the corresponding UI control from a specified control library (`control.xlib`) based on each node's tag name (`tagName`)**. For example, a `<wf:send-task>` node could be mapped to a graphical block displaying "Send Task." By providing different control libraries—one for web rendering, another for a desktop IDE plugin—one can **generate completely different-looking and -behaving visual editors for the same XNode model data**.
 
-4.  **Explicit Delta Algebra**: This is GRC's most unique theoretical contribution. MPS itself does not have a built-in concept of "delta merging and decomposition." GRC, by defining the `⊕` merge operator and the structured delta `Δ` on top of the unified XNode metamodel, provides an explicit, algebraically well-behaved language of operations for model evolution, customization, and composition.
+4. **Explicit Delta Algebra**: This is GRC's most unique theoretical contribution. MPS itself does not have a built-in concept of "delta merging and decomposition." GRC, by defining the `⊕` merge operator and the structured delta `Δ` on top of the unified XNode metamodel, provides an explicit, algebraically well-behaved language of operations for model evolution, customization, and composition.
 
 The table below summarizes the differences in the core mechanisms of the two paradigms:
 
-| Dimension | JetBrains MPS | Generalized Reversible Computation (GRC) |
-| :--- | :--- | :--- |
-| **Theoretical Focus** | Projectional Editing, Language Composition | **Unified Metamodel, Multiple Representations, Delta Algebra** |
-| **Core Structure** | Separate, typed ASTs for each language | Unified XNode metamodel (embodying Lisp S-expression ideas) |
-| **Representation Mechanism** | Language and editor are tightly coupled | **Same XNode reversibly mapped to multiple representations via control libraries** |
-| **Meaning of Generator** | Primarily a code generator | **Representation Constructor (incl. visual editors) & Homomorphic Macros** |
-| **Evolution Mechanism** | Relies on language module's own version management | **Explicit, computable evolution based on delta algebra** |
-| **Paradigm Positioning** | Heavyweight, complete language workbench | **A lightweight, algebra- and metaprogramming-based framework for realizing a language ecosystem** |
+| Dimension                    | JetBrains MPS                                      | Generalized Reversible Computation (GRC)                                                           |
+|:---------------------------- |:-------------------------------------------------- |:-------------------------------------------------------------------------------------------------- |
+| **Theoretical Focus**        | Projectional Editing, Language Composition         | **Unified Metamodel, Multiple Representations, Delta Algebra**                                     |
+| **Core Structure**           | Separate, typed ASTs for each language             | Unified XNode metamodel (embodying Lisp S-expression ideas)                                        |
+| **Representation Mechanism** | Language and editor are tightly coupled            | **Same XNode reversibly mapped to multiple representations via control libraries**                 |
+| **Meaning of Generator**     | Primarily a code generator                         | **Representation Constructor (incl. visual editors) & Homomorphic Macros**                         |
+| **Evolution Mechanism**      | Relies on language module's own version management | **Explicit, computable evolution based on delta algebra**                                          |
+| **Paradigm Positioning**     | Heavyweight, complete language workbench           | **A lightweight, algebra- and metaprogramming-based framework for realizing a language ecosystem** |
 
 In conclusion, GRC does not simply replicate or replace language workbenches. By returning to the universal structural idea of Lisp S-expressions and creatively supplementing it with the concepts of "delta algebra" and "multiple reversible representations," it provides a more fundamental and unified theoretical framework for both the construction (via `Generator` creating representations) and evolution (via `⊕ Δ` applying changes) of software.
 
@@ -142,6 +147,7 @@ App = Delta x-extends Generator<DSL>
 ```
 
 Where:
+
 - **Generator<DSL>**: The idealized backbone of the system, providing a standard, default structure.
 - **Delta**: A structured delta defining all customizations and specializations to the standard base.
 - **x-extends**: The reversible merge operator, an algebraic upgrade to traditional inheritance mechanisms.
@@ -154,24 +160,25 @@ In traditional software engineering, "project initialization" (construction) and
 
 Let's translate `A = ∅ ⊕ A` into the language of GRC:
 
-*   **A (left side)**: Represents a final, runnable **Application**.
-*   **∅ (empty set symbol)**: Represents a **"Zero Model"** or **"Empty Baseline."** It is the **Identity Element** in the GRC delta algebra system, a logically existing structure containing zero information.
-*   **⊕ A (right side)**: Here, `A` is no longer the final application entity but the **"Genesis Delta."** It is a massive, complete delta `Δ_A` that contains **all the information** needed to create the entire application `A` from "nothing."
+* **A (left side)**: Represents a final, runnable **Application**.
+* **∅ (empty set symbol)**: Represents a **"Zero Model"** or **"Empty Baseline."** It is the **Identity Element** in the GRC delta algebra system, a logically existing structure containing zero information.
+* **⊕ A (right side)**: Here, `A` is no longer the final application entity but the **"Genesis Delta."** It is a massive, complete delta `Δ_A` that contains **all the information** needed to create the entire application `A` from "nothing."
 
 Thus, the profound meaning of `A = ∅ ⊕ A` in the GRC context is:
 **The construction process of a new application is essentially equivalent to applying a "Genesis Delta," which contains the application's entire definition, to a "Zero Model."**
 
 Now, let's consider the system's evolution, for example, from version V₁ to V₂, which can be expressed as: `V₂ = V₁ ⊕ Δ`. Placing the two formulas side by side:
 
-1.  **Construction**: `App_V₁ = ∅ ⊕ Δ_Genesis`
-2.  **Evolution**: `App_V₂ = App_V₁ ⊕ Δ_Incremental`
+1. **Construction**: `App_V₁ = ∅ ⊕ Δ_Genesis`
+2. **Evolution**: `App_V₂ = App_V₁ ⊕ Δ_Incremental`
 
 The unity becomes apparent: **Construction is evolution**. The construction process can be seen as **one grand evolution from a "zero baseline."** Conversely, the evolution process can be seen as **a local construction on a "non-zero baseline."**
 
 This unifying principle brings immense engineering value:
-*   **Conceptual Simplification**: The entire software lifecycle is simplified to a single core operation: **Apply Delta**.
-*   **Toolchain Unification**: Since the underlying law is unified, the toolchains for "construction" and "evolution" can also be unified. A single merge engine can be used both to generate an application from scratch and to apply a tiny patch to it.
-*   **Everything is a "Patch"**: A new feature, a customer customization, an emergency fix, or even the entire initial application itself, are all abstracted into independently manageable, composable, and reusable delta assets.
+
+* **Conceptual Simplification**: The entire software lifecycle is simplified to a single core operation: **Apply Delta**.
+* **Toolchain Unification**: Since the underlying law is unified, the toolchains for "construction" and "evolution" can also be unified. A single merge engine can be used both to generate an application from scratch and to apply a tiny patch to it.
+* **Everything is a "Patch"**: A new feature, a customer customization, an emergency fix, or even the entire initial application itself, are all abstracted into independently manageable, composable, and reusable delta assets.
 
 ### 3.3. Recursive Fractal-like Construction: The Principle of Self-Similarity in Software Construction
 
@@ -233,8 +240,9 @@ The entire software world—from the final product to intermediate models, and e
 ### 3.4. Delta Algebra: The Foundation for Taming Change
 
 The mathematical cornerstone of GRC is **Delta Algebra**. It requires the construction process to be a solvable algebraic equation, not a series of irreversible instructions. By introducing an **inverse element (`-Δ`)** for the merge operation `⊕`, we can achieve:
-*   **Precise Delta Calculation**: `Δ = App - Base` (semantic diff).
-*   **Safe Stripping of Changes**: `Base = App - Δ` (semantic rebase).
+
+* **Precise Delta Calculation**: `Δ = App - Base` (semantic diff).
+* **Safe Stripping of Changes**: `Base = App - Δ` (semantic rebase).
 
 This extends software reuse from the component pattern of "reusing what is identical" to the transformation pattern of "**reusing what is related**," fundamentally resolving the core conflict between a "core product and customer customizations."
 
@@ -246,27 +254,25 @@ The theory of GRC is founded on an **ideological analogy** with fundamental anal
 
 GRC's "base + perturbation" decomposition idea is methodologically identical to the Dirac Picture used in quantum mechanics to handle complex interaction problems. The product of `Generator<DSL>` corresponds to the "exactly solvable free part" (`H₀`), while the `Delta` corresponds to the "interaction part treated as a perturbation" (`V`). This reveals that GRC is a general-purpose computational framework for tackling the problem of "complexity" in software.
 
-
 #### Methodological Comparison of Computational Paradigms and Physics Pictures
 
-| Comparison Dimension | Turing Machine Paradigm | Lambda Calculus Paradigm | Generalized Reversible Computing (GRC) Paradigm |
-| :--- | :--- | :--- | :--- |
-| **Theoretical Analogy** | **Schrödinger Picture** | **Heisenberg Picture** | **Dirac (Interaction) Picture** |
-| **Core Philosophy** | Operators (program) are invariant; state (data) evolves over time. | State (data) is invariant; operators (functions) evolve over time. | **The system is decomposed into an "exactly solvable free part" and an "interaction part treated as a perturbation."** |
-| **What Evolves** | **State/Data**<br>(Symbols on the tape, values in memory) | **Operators/Functions**<br>(New functions are generated through composition and application) | **Interaction/Delta (Δ)**<br>(Encapsulates all modifications, customizations, and evolutions to the ideal backbone) |
-| **What is Invariant** | **Program/Rules**<br>(The state transition table of the Turing machine) | **Data**<br>(Immutable data structures) | **Ideal Backbone (Generator<DSL>)**<br>(A predictable, exactly solvable, and standardized foundation) |
-| **Approach to Complexity** | **Process Simulation**: Control the system by precisely describing the state transition at each step. | **Abstract Composition**: Manage complexity by encapsulating behavior into stateless, composable functions. | **Decomposition and Superposition**: Decompose a complex problem into the superposition of a simple, generatable "ideal model" and a series of manageable "structured deltas." |
-| **Conceptual Advancement** | Established the **procedural view** of **"Computability"**: Everything can be evolved step-by-step by a state machine. | Established the **transformational view** of **"Computability"**: Everything can be expressed through function abstraction and application. | Provides a **methodology** for **"Complexity Management"**: Any complex system can be decomposed and constructed, and thus be systematically mastered. |
-
+| Comparison Dimension       | Turing Machine Paradigm                                                                                                | Lambda Calculus Paradigm                                                                                                                    | Generalized Reversible Computing (GRC) Paradigm                                                                                                                                |
+|:-------------------------- |:---------------------------------------------------------------------------------------------------------------------- |:------------------------------------------------------------------------------------------------------------------------------------------- |:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Theoretical Analogy**    | **Schrödinger Picture**                                                                                                | **Heisenberg Picture**                                                                                                                      | **Dirac (Interaction) Picture**                                                                                                                                                |
+| **Core Philosophy**        | Operators (program) are invariant; state (data) evolves over time.                                                     | State (data) is invariant; operators (functions) evolve over time.                                                                          | **The system is decomposed into an "exactly solvable free part" and an "interaction part treated as a perturbation."**                                                         |
+| **What Evolves**           | **State/Data**<br>(Symbols on the tape, values in memory)                                                              | **Operators/Functions**<br>(New functions are generated through composition and application)                                                | **Interaction/Delta (Δ)**<br>(Encapsulates all modifications, customizations, and evolutions to the ideal backbone)                                                            |
+| **What is Invariant**      | **Program/Rules**<br>(The state transition table of the Turing machine)                                                | **Data**<br>(Immutable data structures)                                                                                                     | **Ideal Backbone (Generator<DSL>)**<br>(A predictable, exactly solvable, and standardized foundation)                                                                          |
+| **Approach to Complexity** | **Process Simulation**: Control the system by precisely describing the state transition at each step.                  | **Abstract Composition**: Manage complexity by encapsulating behavior into stateless, composable functions.                                 | **Decomposition and Superposition**: Decompose a complex problem into the superposition of a simple, generatable "ideal model" and a series of manageable "structured deltas." |
+| **Conceptual Advancement** | Established the **procedural view** of **"Computability"**: Everything can be evolved step-by-step by a state machine. | Established the **transformational view** of **"Computability"**: Everything can be expressed through function abstraction and application. | Provides a **methodology** for **"Complexity Management"**: Any complex system can be decomposed and constructed, and thus be systematically mastered.                         |
 
 #### Paradigm Shift in Software Worldview: From Particles to Waves
 
-| Comparison Dimension | **Traditional Worldview: Particle View** | **New Worldview: Wave/Field View** |
-| :--- | :--- | :--- |
-| **Basic Unit** | The world is composed of discrete, bounded software "particles" such as **"objects", "components", and "modules"**. | The fundamental unit of the world is **"Change" itself**, i.e., a structured **Delta (Δ)**. It acts upon a **coordinate system** that serves as a background. |
-| **Construction Method** | Through **intrusive assembly**, these "particles" are rigidly connected via mechanisms like calls, inheritance, and composition. | Through **non-intrusive superposition**, different "changes" (Deltas/Δ) interfere and superpose within the same coordinate system (base model), collectively **reconstructing** the final system. |
-| **Focus** | The internal state and behavior of individual "particles". The question is:<br>"What **is** this **object**? What can it **do**?" | The patterns and combinations of **"Change" itself**. The question is:<br>"In which **coordinate system** did a **change** occur? How do these changes combine?" |
-| **Ontological Status** | **Data** (state) and **functions** (behavior) are the **fundamental elements** that constitute a "particle". They are primary. | **Data** is the **result** of applying a series of "changes".<br>**A function** is a **reusable "pattern of change"**.<br>Both are **derived** from the **Delta (Δ)** and are no longer primary. |
+| Comparison Dimension    | **Traditional Worldview: Particle View**                                                                                          | **New Worldview: Wave/Field View**                                                                                                                                                                |
+|:----------------------- |:--------------------------------------------------------------------------------------------------------------------------------- |:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Basic Unit**          | The world is composed of discrete, bounded software "particles" such as **"objects", "components", and "modules"**.               | The fundamental unit of the world is **"Change" itself**, i.e., a structured **Delta (Δ)**. It acts upon a **coordinate system** that serves as a background.                                     |
+| **Construction Method** | Through **intrusive assembly**, these "particles" are rigidly connected via mechanisms like calls, inheritance, and composition.  | Through **non-intrusive superposition**, different "changes" (Deltas/Δ) interfere and superpose within the same coordinate system (base model), collectively **reconstructing** the final system. |
+| **Focus**               | The internal state and behavior of individual "particles". The question is:<br>"What **is** this **object**? What can it **do**?" | The patterns and combinations of **"Change" itself**. The question is:<br>"In which **coordinate system** did a **change** occur? How do these changes combine?"                                  |
+| **Ontological Status**  | **Data** (state) and **functions** (behavior) are the **fundamental elements** that constitute a "particle". They are primary.    | **Data** is the **result** of applying a series of "changes".<br>**A function** is a **reusable "pattern of change"**.<br>Both are **derived** from the **Delta (Δ)** and are no longer primary.  |
 
 ### **4.2. The Principle of Minimum Information Expression: The First Principle of GRC**
 
@@ -274,15 +280,15 @@ All mechanisms of Generalized Reversible Computing (GRC) can be derived from a m
 
 Conceptually, this principle is analogous to the **Principle of Least Action** in physics. Both embody a profound philosophy of "economy," positing the existence of a minimizable metric (action vs. information), where the ideal form of a system is achieved when this metric reaches its minimum value. Adherence to this principle leads us to three key constructive strategies that collectively form the theoretical cornerstones of GRC:
 
-1.  **The Necessity of Declarative Programming and Domain-Specific Languages (DSLs)**
-    To minimize information, one must strip away "accidental" details related to specific execution methods, sequences, and environments, describing only the desired target state. This expressive style—focusing on "what" rather than "how"—is inherently declarative. General-Purpose Languages (GPLs), in order to ensure their Turing completeness, inevitably carry a large volume of generic syntax and concepts unrelated to the specific business domain, which is in itself a form of accidental complexity. Therefore, **the pursuit of minimum expression inevitably leads to the creation and use of Domain-Specific Languages (DSLs) designed to express domain logic using—and only using—the concepts of that domain.** This provides the theoretical justification for the presence of `Generator<DSL>` in the GRC formula.
+1. **The Necessity of Declarative Programming and Domain-Specific Languages (DSLs)**
+   To minimize information, one must strip away "accidental" details related to specific execution methods, sequences, and environments, describing only the desired target state. This expressive style—focusing on "what" rather than "how"—is inherently declarative. General-Purpose Languages (GPLs), in order to ensure their Turing completeness, inevitably carry a large volume of generic syntax and concepts unrelated to the specific business domain, which is in itself a form of accidental complexity. Therefore, **the pursuit of minimum expression inevitably leads to the creation and use of Domain-Specific Languages (DSLs) designed to express domain logic using—and only using—the concepts of that domain.** This provides the theoretical justification for the presence of `Generator<DSL>` in the GRC formula.
 
-2.  **The Pursuit of Semantic Uniqueness and Reversible Transformations**
-    Theoretically, if two different minimal expressions, *A* and *B*, describe the same business essence but cannot be losslessly converted into one another, it must mean that at least one of them contains extra information the other lacks, or is missing key information the other possesses. This would violate the requirements of "minimality" or "completeness." Therefore, an ideal minimal expression must have a **unique semantic core**.
-    This ideal of "semantic uniqueness" directly **leads to the pursuit of reversible transformations between different forms of expression**. Although direct transformation between different technical paradigms (e.g., aggregate models vs. event sourcing) is exceedingly complex in real-world engineering, the principle of minimum information expression guides us to approximate this ideal through a **generative architecture**. This involves building a pure, technology-agnostic business semantics model as the "single source of truth" and then using deterministic generators to map it to various technical implementations. At an engineering level, this achieves **traceability and logical reversibility from the "core semantics" to "multiple representations,"** providing both the theoretical guidance and an implementation path for the "transformational reversibility" of GRC (see Section 5.2).
+2. **The Pursuit of Semantic Uniqueness and Reversible Transformations**
+   Theoretically, if two different minimal expressions, *A* and *B*, describe the same business essence but cannot be losslessly converted into one another, it must mean that at least one of them contains extra information the other lacks, or is missing key information the other possesses. This would violate the requirements of "minimality" or "completeness." Therefore, an ideal minimal expression must have a **unique semantic core**.
+   This ideal of "semantic uniqueness" directly **leads to the pursuit of reversible transformations between different forms of expression**. Although direct transformation between different technical paradigms (e.g., aggregate models vs. event sourcing) is exceedingly complex in real-world engineering, the principle of minimum information expression guides us to approximate this ideal through a **generative architecture**. This involves building a pure, technology-agnostic business semantics model as the "single source of truth" and then using deterministic generators to map it to various technical implementations. At an engineering level, this achieves **traceability and logical reversibility from the "core semantics" to "multiple representations,"** providing both the theoretical guidance and an implementation path for the "transformational reversibility" of GRC (see Section 5.2).
 
-3.  **The Minimal Unit of Evolution is the Delta**
-    When a system *Base*, already in a state of minimal expression, needs to evolve, the information introduced for the change must also adhere to the principle of minimization. The most economical way to describe the transition from *Base* to a new state *App* is not to re-describe the entirety of *App*, but to describe only the **difference** between them. The minimal expression of this difference is the **structured delta (Δ)**. Consequently, the formula `App = Base ⊕ Δ` is not merely a construction formula; it is the minimal information expression of the system's evolutionary process, rendering "change" itself a manageable, first-class entity.
+3. **The Minimal Unit of Evolution is the Delta**
+   When a system *Base*, already in a state of minimal expression, needs to evolve, the information introduced for the change must also adhere to the principle of minimization. The most economical way to describe the transition from *Base* to a new state *App* is not to re-describe the entirety of *App*, but to describe only the **difference** between them. The minimal expression of this difference is the **structured delta (Δ)**. Consequently, the formula `App = Base ⊕ Δ` is not merely a construction formula; it is the minimal information expression of the system's evolutionary process, rendering "change" itself a manageable, first-class entity.
 
 In summary, the Principle of Minimum Information Expression provides a solid, first-principles justification for each component of the GRC construction paradigm `App = Generator<DSL> ⊕ Δ`. It is not a rigid dogma but a **guiding compass**, leading us to discover and construct the "logically optimal path"—one that is dictated by the essence of the problem and is minimal in its information content.
 
@@ -299,6 +305,7 @@ App = Base ⊕ Δ
 ```
 
 The "solvability" of this equation stems from the delta algebra structure, which allows us to:
+
 - Precisely calculate the difference between systems: `Δ = App - Base`
 - Restore the standard platform from a customized system: `Base = App - Δ`
 
@@ -313,6 +320,7 @@ G⁻¹(G(A)) ≈ A   and   G(G⁻¹(B)) ≈ normalize(B)
 ```
 
 where `≈` denotes semantic equivalence and `normalize` represents a normalization process. This mechanism:
+
 - Enables bidirectional editing across different forms.
 - Ensures system consistency across multiple perspectives.
 - Intentionally ignores purely presentational changes, extracting only structured modifications.
@@ -328,6 +336,7 @@ M_final = M_base ⊕ Δ_patch
 ```
 
 This breaks the linear causality of the physical world, achieving in the "virtual spacetime" of software construction:
+
 - A non-invasive hot-patch mechanism.
 - Compensatability for irreversible side effects (SAGA pattern).
 - Compensation operations based on evidence objects.
@@ -337,6 +346,7 @@ This breaks the linear causality of the physical world, achieving in the "virtua
 ### 5.4. Governing the Boundary between Reversible and Irreversible
 
 GRC's pragmatism is reflected in its not pursuing a utopia of complete reversibility, but rather providing engineering strategies for governing both:
+
 - **R/I Partitioning**: Clearly divide the system into a reversible core (R-Core) and an irreversible boundary (I-Boundary).
 - **Boundary Management**: Audit all crossings of the I-Boundary, generating the evidence objects needed for compensation.
 - **Entropy Governance**: Effectively localize and manage entropy increase by isolating it within deltas.
@@ -350,26 +360,28 @@ Domain-Driven Design (DDD), as a powerful set of practices aimed at tackling bus
 GRC aims to provide a new theoretical perspective for DDD, seeking to supplement and evolve it from a set of practices into a formal construction theory. It proposes that: **The most crucial role of the Aggregate Root is to serve as the carrier of the domain language—a unified map for accessing information.**
 
 Based on GRC's principle of "separating structure from dynamics," we can decompose the traditional, bloated aggregate root into two independent components:
-1.  **Data Aggregate**: Corresponds to `X` in the GRC formula. It is a pure **information space** that only carries structural data and minimal invariants (e.g., `amount >= 0`). Through an intelligent loading mechanism, it provides a unified view rich in domain semantics for the upper logic to **pull** information on demand, such as `order.getCustomer().getCreditLimit()`.
-2.  **Behavior Aggregate**: Corresponds to `F` in the GRC formula. It is a **process orchestrator** described by a **Domain-Specific Language (DSL)** (e.g., a YAML process definition). It decomposes complex business logic into a series of single-responsibility, composable **Steps**, transforming the data aggregate in a declarative manner.
+
+1. **Data Aggregate**: Corresponds to `X` in the GRC formula. It is a pure **information space** that only carries structural data and minimal invariants (e.g., `amount >= 0`). Through an intelligent loading mechanism, it provides a unified view rich in domain semantics for the upper logic to **pull** information on demand, such as `order.getCustomer().getCreditLimit()`.
+2. **Behavior Aggregate**: Corresponds to `F` in the GRC formula. It is a **process orchestrator** described by a **Domain-Specific Language (DSL)** (e.g., a YAML process definition). It decomposes complex business logic into a series of single-responsibility, composable **Steps**, transforming the data aggregate in a declarative manner.
 
 This paradigm shift represents an evolution from traditional object-oriented thinking to reversible computation thinking.
 
-| Comparison Dimension | Traditional DDD Paradigm | GRC-Empowered Evolutionary DDD Paradigm |
-|:--- |:--- |:--- |
-| **Theoretical Foundation** | Object-Oriented Paradigm | **Reversible Computation Theory** |
-| **Core Responsibility** | Behavior container, **guardian of consistency and transactions** | Carrier of domain language, **a unified map for accessing information** |
-| **Architectural Metaphor** | A carefully designed **network of objects** | A **structured information space** generated by reversible transformations |
-| **Data & Behavior** | Behavior and data **must be unified** (encapsulation) | **Structure (data) and dynamics (process) are separated** |
-| **Information Flow** | **Push-based** (preparing specific DTOs for methods) | **Pull-based** (logic pulls data from the information space as needed) |
-| **Extension Mechanism** | Inheritance, Composition (invasive, requires source code modification) | **Delta Programming** (non-invasive, extension via delta superposition) |
-| **Transaction Boundary** | **Tightly coupled** with aggregate root operations | **Decoupled** from the aggregate root, defined **declaratively** by a higher-level service |
+| Comparison Dimension       | Traditional DDD Paradigm                                               | GRC-Empowered Evolutionary DDD Paradigm                                                    |
+|:-------------------------- |:---------------------------------------------------------------------- |:------------------------------------------------------------------------------------------ |
+| **Theoretical Foundation** | Object-Oriented Paradigm                                               | **Reversible Computation Theory**                                                          |
+| **Core Responsibility**    | Behavior container, **guardian of consistency and transactions**       | Carrier of domain language, **a unified map for accessing information**                    |
+| **Architectural Metaphor** | A carefully designed **network of objects**                            | A **structured information space** generated by reversible transformations                 |
+| **Data & Behavior**        | Behavior and data **must be unified** (encapsulation)                  | **Structure (data) and dynamics (process) are separated**                                  |
+| **Information Flow**       | **Push-based** (preparing specific DTOs for methods)                   | **Pull-based** (logic pulls data from the information space as needed)                     |
+| **Extension Mechanism**    | Inheritance, Composition (invasive, requires source code modification) | **Delta Programming** (non-invasive, extension via delta superposition)                    |
+| **Transaction Boundary**   | **Tightly coupled** with aggregate root operations                     | **Decoupled** from the aggregate root, defined **declaratively** by a higher-level service |
 
 Under this new paradigm, GRC's reinterpretation of DDD's core concepts becomes clear:
-*   **Space**: A Bounded Context is a **partitioning of the problem space's coordinate system**.
-*   **Time**: A Domain Event is a **delta (Δ)** in the state space that follows `NewState = OldState ⊕ Event`.
-*   **Language**: The Ubiquitous Language is materialized as a **DSL** (e.g., process definitions, rule sets), providing an **intrinsic coordinate system** for the space.
-*   **Change**: Software evolution is the application of **deltas (Δ)**, including additions and deletions, within this coordinate system, for instance, by replacing or adding a business step via a delta model file.
+
+* **Space**: A Bounded Context is a **partitioning of the problem space's coordinate system**.
+* **Time**: A Domain Event is a **delta (Δ)** in the state space that follows `NewState = OldState ⊕ Event`.
+* **Language**: The Ubiquitous Language is materialized as a **DSL** (e.g., process definitions, rule sets), providing an **intrinsic coordinate system** for the space.
+* **Change**: Software evolution is the application of **deltas (Δ)**, including additions and deletions, within this coordinate system, for instance, by replacing or adding a business step via a delta model file.
 
 ### 6.2. Unifying Diverse Technical Innovations: Evidence of Convergent Evolution
 
@@ -404,10 +416,16 @@ Subsequently, we will systematically validate the engineering feasibility, advan
 
 The Nop Platform is a complete engineering mapping of GRC theory from abstraction to reality. The fundamental reason it can systematically address the integration, cost, and risk challenges of implementing GRC is that: **The core of the Nop Platform is built upon a meta-language system called XLang, specifically designed for the GRC paradigm.**
 
+The following diagram illustrates how XLang concretely implements the core GRC construction paradigm `App = Delta x-extends Generator<DSL>`, establishing a structural foundation for programmable evolution.
+
+![Programmable Evolution: XLang and the Structural Paradigm of Reversible Computation](ddd/xlang-paradigm.png) 
+**Figure 3: The XLang Implementation of the GRC Paradigm.** This diagram visualizes how the Nop Platform's XLang system materializes the core GRC formula. It highlights the three pillars: the **DSL Atlas** providing a stable domain coordinate system, the **Delta** as a reversible evolution unit with algebraic properties, and the **Generator** as a compile-time engine powered by tools like XDef and Xpl. Together, they enable a fundamental refactoring from syntactic paradigms to structural space construction rules.
+
 XLang gives each component of GRC's core construction formula `App = Generator<DSL> ⊕ Δ` a concrete, actionable language-level implementation:
-*   **DSL (Domain-Specific Language)**: Corresponds to various XDSLs (e.g., workflow, UI, ORM models) defined by the **XDef metamodel**, which possess stable domain coordinate systems.
-*   **Generator**: Corresponds to the Turing-complete **Xpl template language**, which executes at compile-time. It is responsible for performing model-to-model and model-to-code transformations.
-*   **Δ (Delta) & ⊕ (Merge Operator)**: Corresponds to the **`x-extends` delta merging mechanism** natively built into all XDSLs, which implements an algebraically complete, reversible structured merge.
+
+* **DSL (Domain-Specific Language)**: Corresponds to various XDSLs (e.g., workflow, UI, ORM models) defined by the **XDef metamodel**, which possess stable domain coordinate systems.
+* **Generator**: Corresponds to the Turing-complete **Xpl template language**, which executes at compile-time. It is responsible for performing model-to-model and model-to-code transformations. Crucially, Xpl supports structured generation of `XNode`, preserving source code location information and avoiding string concatenation.
+* **Δ (Delta) & ⊕ (Merge Operator)**: Corresponds to the **`x-extends` delta merging mechanism** natively built into all XDSLs, which implements an algebraically complete, reversible structured merge.
 
 This design gives the GRC theoretical formula a complete, self-consistent, closed-loop implementation within the Nop Platform. Building on this, the platform integrates this powerful language capability into existing technology ecosystems at low cost and non-invasively through three core engineering pillars: "Loader as Generator," the "XDef Metamodel," and "S-N-V Three-Phase Loading."
 
@@ -420,10 +438,11 @@ The "Loader as Generator" principle elegantly solves this problem. It posits tha
 We don't need to replace the entire framework; we only need to provide a "**Delta-Aware**" loader. This loader, before executing the standard loading process, first completes the `Base ⊕ Δ` merge operation.
 
 **The workflow is as follows**:
-1.  **Intercept Loading**: When a framework (e.g., Spring) attempts to load a configuration file (e.g., `beans.xml`, which is the **DSL**), the request is intercepted by a **delta-aware loader**.
-2.  **Locate Delta**: The loader finds the corresponding delta file (`Δ`), for example, `_delta/customer-a/beans.xml`, through some mechanism (like the virtual file system in Nop).
-3.  **Execute Merge**: The loader performs the `x-extends`-equivalent merge operation in memory, combining the base model `Base` and the delta model `Δ` into the final model `App`.
-4.  **Deliver to Framework**: The loader delivers the merged final model `App`, which conforms to the framework's specification, to the standard framework engine for subsequent processing.
+
+1. **Intercept Loading**: When a framework (e.g., Spring) attempts to load a configuration file (e.g., `beans.xml`, which is the **DSL**), the request is intercepted by a **delta-aware loader**.
+2. **Locate Delta**: The loader finds the corresponding delta file (`Δ`), for example, `_delta/customer-a/beans.xml`, through some mechanism (like the virtual file system in Nop).
+3. **Execute Merge**: The loader performs the `x-extends`-equivalent merge operation in memory, combining the base model `Base` and the delta model `Δ` into the final model `App`.
+4. **Deliver to Framework**: The loader delivers the merged final model `App`, which conforms to the framework's specification, to the standard framework engine for subsequent processing.
 
 In this way, GRC can act like a "plugin," **non-invasively** endowing any configuration-driven framework with delta-oriented and reversible construction capabilities, drastically reducing the adoption cost of GRC theory. For example, one could, in principle, build a plugin for Maven or Gradle to implement a similar delta merge during the resource processing phase, thereby empowering any Spring/CDI-based application. Or, one could develop a custom loader for Webpack/Vite to perform delta-based composition of JSON or YAML configuration files during the front-end build. "Loader as Generator" cleverly transforms a seemingly massive compile-time problem into a manageable load-time extension problem.
 
@@ -432,10 +451,11 @@ In this way, GRC can act like a "plugin," **non-invasively** endowing any config
 Once the "Loader as Generator" is in place, it needs a powerful internal engine to efficiently handle the multiple DSLs that may exist in a system. The traditional approach is to develop N separate toolchains (parsers, validators, code generators, etc.) for N DSLs, at a cost of **O(N)**, which is unsustainable in platform projects.
 
 XDef solves this problem by **raising the level of abstraction**. It provides a **meta-DSL for defining DSLs**. A developer only needs to write a single `.xdef` file describing the new DSL's syntax, constraints, and object mapping relationships, and the **generic toolchain** built around XDef in the Nop Platform will automatically provide comprehensive, industrial-grade support for this new DSL:
-*   **Unified Parsing and Loading Engine**: Follows the S-N-V (Source-Node-View) process to parse any DSL into a unified `XNode` intermediate representation, on which delta merging is performed.
-*   **IDE IntelliSense Support**: Automatically provides syntax highlighting, auto-completion, real-time validation, and documentation pop-ups through an IDE plugin.
-*   **Automated Code Generation**: Automatically generates type-safe Java POJOs and converts comments into JavaDoc based on `bean-*` directives in the metamodel.
-*   **Built-in Delta Capability**: All DSLs based on XDef naturally support `x:extends` delta merging.
+
+* **Unified Parsing and Loading Engine**: Follows the S-N-V (Source-Node-View) process to parse any DSL into a unified `XNode` intermediate representation, on which delta merging is performed.
+* **IDE IntelliSense Support**: Automatically provides syntax highlighting, auto-completion, real-time validation, and documentation pop-ups through an IDE plugin.
+* **Automated Code Generation**: Automatically generates type-safe Java POJOs and converts comments into JavaDoc based on `bean-*` directives in the metamodel.
+* **Built-in Delta Capability**: All DSLs based on XDef naturally support `x:extends` delta merging.
 
 Thus, the marginal cost of creating a new DSL is dramatically reduced from "developing a complete toolchain" to "writing a definition file," achieving a cost leap from **O(N) to approximately O(1)**. This is a concrete manifestation of GRC theory in engineering economics: **a one-time investment in a unified metamodel framework is exchanged for a near-constant marginal cost for future infinite extensibility**. Once an architect defines a new business DSL using XDef, the platform **immediately and automatically** endows this new language with the full suite of GRC capabilities. This "instant ROI" is the best compensation for the learning curve of a new paradigm.
 
@@ -445,17 +465,18 @@ A common and reasonable concern about GRC and XDef is whether the complex delta 
 
 The Nop Platform completely resolves this issue at an architectural level through a three-phase loading process called **S-N-V (Source-Node-View)**. This process not only provides a unified delta computation space for all DSLs but is also a concrete implementation of the core engineering philosophy of **"Phase Separation."**
 
-1.  **S (Source) Phase**: This phase deals with the raw, physical DSL source files. The delta virtual file system (VFS) operates at this stage, determining which source file (base file or a customized file from a delta layer) to load based on context like `deltaId`.
+1. **S (Source) Phase**: This phase deals with the raw, physical DSL source files. The delta virtual file system (VFS) operates at this stage, determining which source file (base file or a customized file from a delta layer) to load based on context like `deltaId`.
 
-2.  **N (Node) Phase: The Unified Structured Computation Space**. This is the core of GRC's delta computation. Regardless of whether the source file is XML, JSON, or YAML, it is parsed into a **unified, syntax-agnostic tree-like intermediate representation—the `XNode`**.
-    **All `x-extends` delta merge operations occur in this unified `XNode` structural space.**
-    This means that no matter how varied the high-level DSLs are, the underlying delta computation algorithm is **completely identical**. This structurally unifies the delta computation for all DSLs, ensuring theoretical consistency and implementation reuse. This phase is where all the "magic" happens; it shoulders all the complexity, including the recursive merging of multi-layered delta models and the execution of `x:gen-extends` templates.
+2. **N (Node) Phase: The Unified Structured Computation Space**. This is the core of GRC's delta computation. Regardless of whether the source file is XML, JSON, or YAML, it is parsed into a **unified, syntax-agnostic tree-like intermediate representation—the `XNode`**.
+   **All `x-extends` delta merge operations occur in this unified `XNode` structural space.**
+   This means that no matter how varied the high-level DSLs are, the underlying delta computation algorithm is **completely identical**. This structurally unifies the delta computation for all DSLs, ensuring theoretical consistency and implementation reuse. This phase is where all the "magic" happens; it shoulders all the complexity, including the recursive merging of multi-layered delta models and the execution of `x:gen-extends` templates.
 
-3.  **V (View) Phase**: This phase is the end of the load-time and the beginning of the run-time. The final `XNode` tree, after being merged in the N phase, is "compiled" or "interpreted" into the final Java objects (the `View` model) for runtime use, such as a `TaskFlow` object, a `BizForm` definition, etc. This `View` model is a **pure, simple, immutable static data structure**.
+3. **V (View) Phase**: This phase is the end of the load-time and the beginning of the run-time. The final `XNode` tree, after being merged in the N phase, is "compiled" or "interpreted" into the final Java objects (the `View` model) for runtime use, such as a `TaskFlow` object, a `BizForm` definition, etc. This `View` model is a **pure, simple, immutable static data structure**.
 
 **The S-N-V process is the engineering implementation of the "Phase Separation" idea**:
-*   **Load-Time**, corresponding to the S and N phases, "pre-computes" and digests all evolution-related complexity.
-*   **Run-Time**, corresponding to the V phase and its usage, operates on a static model that has already been "baked," making it extremely efficient and stable.
+
+* **Load-Time**, corresponding to the S and N phases, "pre-computes" and digests all evolution-related complexity.
+* **Run-Time**, corresponding to the V phase and its usage, operates on a static model that has already been "baked," making it extremely efficient and stable.
 
 This design strictly constrains complexity to the controllable load-time. For developers, if there are questions about the merge result, there is **no need for complex dynamic debugging**. They simply need to inspect the final generated `XNode` static model in the `_dump` directory output by the Nop Platform. This reduces the complexity of debugging from "tracing a dynamic process in spacetime" to "structurally inspecting a static result," completely addressing concerns about "leaky abstractions" and "ghost states."
 
@@ -493,6 +514,7 @@ public class Order {
     }
 }
 ```
+
 The **problems** with this design are obvious: mixed responsibilities, violation of the Open-Closed Principle, difficulty in testing, and tight coupling with the external environment.
 
 #### **After: Declarative Process Refactoring Based on GRC**
@@ -552,11 +574,11 @@ public class ValidateCreditStep implements IStep {
 }
 ```
 
-Through the above refactoring, the once monolithic and rigid `Order` aggregate root was decomposed into a series of clear, orthogonal components. The complete picture of how these components work together is shown in **Figure 3**. The core of this "Evolutionary DDD Architecture" is the principle of "separating structure from dynamics." The **Behavior Aggregate** (top), representing "dynamics," is driven by an externalized `placeOrder.task.yaml` file, orchestrating the complex business process as a series of independent `Step`s. The **Business Object (BO)** (left), representing "structure," becomes a pure data view, which lazily pulls associated objects on demand via its associated `Manager`. These two aggregates communicate through a central **Context** object, which acts as an information bus. Notably, all logical units (like `Step Bean`s and `Kit`s) are stateless Spring Beans (right), managed by the DI container, proving that the GRC paradigm can coexist well with mature existing technology ecosystems.
+Through the above refactoring, the once monolithic and rigid `Order` aggregate root was decomposed into a series of clear, orthogonal components. The complete picture of how these components work together is shown in **Figure 4**. The core of this "Evolutionary DDD Architecture" is the principle of "separating structure from dynamics." The **Behavior Aggregate** (top), representing "dynamics," is driven by an externalized `placeOrder.task.yaml` file, orchestrating the complex business process as a series of independent `Step`s. The **Business Object (BO)** (left), representing "structure," becomes a pure data view, which lazily pulls associated objects on demand via its associated `Manager`. These two aggregates communicate through a central **Context** object, which acts as an information bus. Notably, all logical units (like `Step Bean`s and `Kit`s) are stateless Spring Beans (right), managed by the DI container, proving that the GRC paradigm can coexist well with mature existing technology ecosystems.
 
 ![Nop DDD Architecture](ddd/nop-ddd-arch.svg)
 
-**Figure 3: Evolutionary DDD Architecture after Refactoring with GRC Principles.** This architecture diagram illustrates the core principle of "separating structure from dynamics." The **Behavior Aggregate** (top) is responsible for process orchestration, driven by a declarative DSL (e.g., a YAML file) and executed by a series of stateless `Step Bean`s (right). The **Data Aggregate** (the `BO` on the left) evolves into a pure, pull-based information view, with its loading and persistence managed by a `Manager`. The two are decoupled and interact via a central **Context** object (middle). The entire architecture integrates seamlessly with DI containers like Spring (right).
+**Figure 4: Evolutionary DDD Architecture after Refactoring with GRC Principles.** This architecture diagram illustrates the core principle of "separating structure from dynamics." The **Behavior Aggregate** (top) is responsible for process orchestration, driven by a declarative DSL (e.g., a YAML file) and executed by a series of stateless `Step Bean`s (right). The **Data Aggregate** (the `BO` on the left) evolves into a pure, pull-based information view, with its loading and persistence managed by a `Manager`. The two are decoupled and interact via a central **Context** object (middle). The entire architecture integrates seamlessly with DI containers like Spring (right).
 
 **3. Evolution and Customization: The Application of Deltas (Δ)**
 
@@ -577,9 +599,11 @@ steps:
     bean: customerAFraudCheckStep
     x:insert-after: stockChecking
 ```
+
 When deploying the system for "Customer A," one simply needs to set the environment's `deltaId` to `customer-a`. The Nop Platform's loader will automatically recognize the `x:extends` directive, merge the standard product's base model `/placeOrder.task.yaml` (Base) with Customer A's delta model `_delta/customer-a/placeOrder.task.yaml` (Δ) in memory, generate the final process model that meets Customer A's requirements, and then deliver it to the process engine for execution.
 
 This case clearly demonstrates the immense engineering value of GRC principles:
+
 - **Complexity Governance**: Decomposes large, entangled business logic into clear, orthogonal units.
 - **Evolvability**: Achieves truly non-invasive extension and customization through "delta" models, perfectly resolving the core "standardization vs. customization" conflict in software product lines.
 - **Theory into Practice**: It translates the abstract formula `App = Generator<DSL> ⊕ Δ` into a concrete, actionable engineering practice that seamlessly integrates with existing tech stacks, providing a systematic solution for the efficient delivery of B2B software.
@@ -592,36 +616,39 @@ Let's assume we are dealing with a well-designed "Before" version that already u
 
 **1. Variability Anchors: From "Reserved Interfaces" to "Model as Coordinates"**
 
-*   **Traditional Approach**: In the `OrderService`, a developer must **foresee** that credit validation is variable and thus call a strategy interface at that point. This is a **pre-defined extension point**. If a new business requirement arises, such as "add an anti-fraud scan for specific customers after the stock check," and the `placeOrder` method in `OrderService` does not have a hook pre-defined at that location, the only option is to **modify the source code of `OrderService`** to add a new extension point.
+* **Traditional Approach**: In the `OrderService`, a developer must **foresee** that credit validation is variable and thus call a strategy interface at that point. This is a **pre-defined extension point**. If a new business requirement arises, such as "add an anti-fraud scan for specific customers after the stock check," and the `placeOrder` method in `OrderService` does not have a hook pre-defined at that location, the only option is to **modify the source code of `OrderService`** to add a new extension point.
 
-*   **GRC Approach**: In the GRC paradigm, the process model `placeOrder.task.yaml` is itself a **complete coordinate system**. We do not need to foresee all changes. When the anti-fraud scan needs to be added, we simply declare `x:insert-after: stockChecking` in the delta model. The target of the change (`stockChecking`) is an existing coordinate in the model, and the action of the change (`insert-after`) is an operator in the delta algebra. The entire process **requires no modification to any base Java code**, achieving truly non-invasive evolution.
+* **GRC Approach**: In the GRC paradigm, the process model `placeOrder.task.yaml` is itself a **complete coordinate system**. We do not need to foresee all changes. When the anti-fraud scan needs to be added, we simply declare `x:insert-after: stockChecking` in the delta model. The target of the change (`stockChecking`) is an existing coordinate in the model, and the action of the change (`insert-after`) is an operator in the delta algebra. The entire process **requires no modification to any base Java code**, achieving truly non-invasive evolution.
 
 **2. Composition Mechanism: From "Imperative Branching" to "Declarative Merging"**
 
-*   **Traditional Approach**: A user's final process flow is determined at runtime by a dynamic combination of multiple `if-else` conditions scattered throughout the code (e.g., `customer.isVip()`, `feature.isEnabled()`). When multiple dimensions of variability exist, these imperative branches intertwine into a complex logical web, making it difficult to fully reason about the system's behavior for a specific combination.
+* **Traditional Approach**: A user's final process flow is determined at runtime by a dynamic combination of multiple `if-else` conditions scattered throughout the code (e.g., `customer.isVip()`, `feature.isEnabled()`). When multiple dimensions of variability exist, these imperative branches intertwine into a complex logical web, making it difficult to fully reason about the system's behavior for a specific combination.
 
-*   **GRC Approach**: Each dimension of variability (customer type, new feature) corresponds to a separate delta model (`Δ`). The final process for a complex scenario is calculated at load-time through a deterministic algebraic operation: `Base ⊕ Δ₁ ⊕ Δ₂ ...`. The composition logic is converged into the unified `⊕` merge operator, rather than being dispersed in `if` statements, which makes complex compositions systematic and predictable.
+* **GRC Approach**: Each dimension of variability (customer type, new feature) corresponds to a separate delta model (`Δ`). The final process for a complex scenario is calculated at load-time through a deterministic algebraic operation: `Base ⊕ Δ₁ ⊕ Δ₂ ...`. The composition logic is converged into the unified `⊕` merge operator, rather than being dispersed in `if` statements, which makes complex compositions systematic and predictable.
 
 **3. Decision Timing: From "Runtime Decisions" to "Load-time Pruning"**
 
 GRC's management of Feature Flags is a concentrated manifestation of its difference from traditional methods.
 
-*   **Traditional Approach**: Feature flags are typically checked at runtime, which means that inactive code paths still exist in the final runtime code.
+* **Traditional Approach**: Feature flags are typically checked at runtime, which means that inactive code paths still exist in the final runtime code.
 
-*   **GRC Approach**: GRC borrows and extends this idea, transforming it from **runtime branching** into **load-time model pruning**. The Nop Platform achieves this through the `feature:on` meta-attribute. For example, to add a toggle for a new risk control feature, we can define it in the base model like this:
-    ```yaml
-    # === placeOrder.task.yaml (Base Model) ===
+* **GRC Approach**: GRC borrows and extends this idea, transforming it from **runtime branching** into **load-time model pruning**. The Nop Platform achieves this through the `feature:on` meta-attribute. For example, to add a toggle for a new risk control feature, we can define it in the base model like this:
+  
+  ```yaml
+  # === placeOrder.task.yaml (Base Model) ===
+  # ...
+  steps:
     # ...
-    steps:
-      # ...
-      - name: newFraudDetection
-        bean: newFraudDetectionStep
-        feature:on: "features.new-fraud-detection.enabled" # Declarative feature toggle
-      # ...
-    ```
-    The value of the `feature:on` attribute is a boolean expression that references a global feature context. During the N (Node) phase of the S-N-V loading process, any model node that does not satisfy this condition is **completely pruned from the model tree**. This "load-time pruning" mechanism brings significant engineering advantages:
-    *   **Simpler Runtime**: No need to execute any conditional checks, resulting in a shorter execution path and more deterministic behavior.
-    *   **Static Analyzability**: We can generate (dump) the final effective model configuration for any given combination of features without running the system. This is crucial for debugging, auditing, and understanding the behavior of complex systems, as it transforms a dynamic "black box" problem into a static "white box" analysis.
+    - name: newFraudDetection
+      bean: newFraudDetectionStep
+      feature:on: "features.new-fraud-detection.enabled" # Declarative feature toggle
+    # ...
+  ```
+  
+  The value of the `feature:on` attribute is a boolean expression that references a global feature context. During the N (Node) phase of the S-N-V loading process, any model node that does not satisfy this condition is **completely pruned from the model tree**. This "load-time pruning" mechanism brings significant engineering advantages:
+  
+  * **Simpler Runtime**: No need to execute any conditional checks, resulting in a shorter execution path and more deterministic behavior.
+  * **Static Analyzability**: We can generate (dump) the final effective model configuration for any given combination of features without running the system. This is crucial for debugging, auditing, and understanding the behavior of complex systems, as it transforms a dynamic "black box" problem into a static "white box" analysis.
 
 **In summary**, the order placement refactoring case shows that GRC does not simply optimize traditional patterns but offers a fundamental paradigm shift. It guides the focus of engineers from "**how to deal with change by writing imperative code and pre-defining interfaces**" to "**how to build declarative models for the business domain and systematically compose and evolve these models through algebraic operations**." This shift aims to provide a more structured and scalable construction method for software systems—especially for product lines that require long-term evolution and high degrees of customization.
 
@@ -631,9 +658,9 @@ This paper has systematically proposed and elucidated Generalized Reversible Com
 
 We established GRC's core construction formula, `App = Generator<DSL> ⊕ Δ`, and argued for its recursive, fractal-like self-similarity across the vertical, horizontal, temporal, and meta-levels of software construction. By drawing an analogy with the "Dirac Picture" in physics, we have positioned GRC as a high-level computational framework for managing complexity. The main contributions of this paper are:
 
-1.  **Establishing a Unified Theoretical Framework**: By introducing the concepts of a generator, an algebraic delta, and a semantic coordinate system, GRC provides a unified explanation for various technological explorations like Model-Driven Engineering (MDE) and Feature-Oriented Programming (FOP), revealing them as "unconscious" approximations toward the complete form of GRC.
-2.  **Providing a Systematic Engineering Methodology**: Through the canonical implementation of the Nop Platform, we have demonstrated how to translate abstract theory into concrete engineering practice, addressing the challenges of cost, integration, and debugging when introducing a new paradigm.
-3.  **Demonstrating Powerful Explanatory and Practical Value**: By reinterpreting Domain-Driven Design (DDD) and analyzing a case study of a large-scale banking core system transformation, we have validated GRC's significant advantages in taming business complexity and achieving a harmonious coexistence of "standardization and customization."
+1. **Establishing a Unified Theoretical Framework**: By introducing the concepts of a generator, an algebraic delta, and a semantic coordinate system, GRC provides a unified explanation for various technological explorations like Model-Driven Engineering (MDE) and Feature-Oriented Programming (FOP), revealing them as "unconscious" approximations toward the complete form of GRC.
+2. **Providing a Systematic Engineering Methodology**: Through the canonical implementation of the Nop Platform, we have demonstrated how to translate abstract theory into concrete engineering practice, addressing the challenges of cost, integration, and debugging when introducing a new paradigm.
+3. **Demonstrating Powerful Explanatory and Practical Value**: By reinterpreting Domain-Driven Design (DDD) and analyzing a case study of a large-scale banking core system transformation, we have validated GRC's significant advantages in taming business complexity and achieving a harmonious coexistence of "standardization and customization."
 
 We believe that GRC offers a systematic, scalable, and theoretically sound solution to the two fundamental problems in software engineering: "complexity" and "evolution." It invites us to re-examine and reorganize our construction activities from a new, first-principles-based perspective, pushing software development from a "craftsmanship" model toward more predictable, industrialized production.
 
@@ -665,13 +692,13 @@ Furthermore, although GRC requires developers to embrace a new mental model, its
 
 Based on the discussion above, we believe that future research and development in GRC can focus on the following directions:
 
-1.  **Formalization of Delta Algebra**: **This paper provides a complete conceptual framework and a solid engineering implementation for GRC, offering intuitive arguments for its algebraic properties (such as associativity).** The next critical step is to establish a rigorous formal model for this delta algebra. This includes providing an axiomatic definition for its core operator `⊕`, formally proving properties like associativity and the identity element, and exploring the completeness of the algebraic structure under different merge strategies. This will provide a more solid mathematical foundation for GRC theory and may inspire more advanced automated reasoning and verification tools.
+1. **Formalization of Delta Algebra**: **This paper provides a complete conceptual framework and a solid engineering implementation for GRC, offering intuitive arguments for its algebraic properties (such as associativity).** The next critical step is to establish a rigorous formal model for this delta algebra. This includes providing an axiomatic definition for its core operator `⊕`, formally proving properties like associativity and the identity element, and exploring the completeness of the algebraic structure under different merge strategies. This will provide a more solid mathematical foundation for GRC theory and may inspire more advanced automated reasoning and verification tools.
 
-2.  **Integration of AI and GRC**: GRC provides an ideal "scaffolding" for AI-assisted/autonomous programming. `Generator<DSL> ⊕ Δ` offers a structurally clear, semantically explicit, and verifiable construction target. Future research can explore how to leverage Large Language Models (LLMs) to automatically generate DSL models, intelligently recommend deltas, and even reverse-engineer models from legacy code.
+2. **Integration of AI and GRC**: GRC provides an ideal "scaffolding" for AI-assisted/autonomous programming. `Generator<DSL> ⊕ Δ` offers a structurally clear, semantically explicit, and verifiable construction target. Future research can explore how to leverage Large Language Models (LLMs) to automatically generate DSL models, intelligently recommend deltas, and even reverse-engineer models from legacy code.
 
-3.  **Optimization of Toolchains and Developer Experience**: Continuously invest in developing smarter IDE plugins, visual delta comparison tools, and interactive learning tutorials to lower the learning curve of the GRC paradigm and improve the developer experience.
+3. **Optimization of Toolchains and Developer Experience**: Continuously invest in developing smarter IDE plugins, visual delta comparison tools, and interactive learning tutorials to lower the learning curve of the GRC paradigm and improve the developer experience.
 
-4.  **Broader Case Studies and Theoretical Corroboration**: Apply the GRC paradigm to a wider variety of software systems to test and expand the boundaries of its theoretical applicability and to find more evidence of "convergent evolution" in independent practices.
+4. **Broader Case Studies and Theoretical Corroboration**: Apply the GRC paradigm to a wider variety of software systems to test and expand the boundaries of its theoretical applicability and to find more evidence of "convergent evolution" in independent practices.
 
 We believe that by confronting its limitations and continuing to explore, Generalized Reversible Computation has the potential to grow from a novel theoretical paradigm into a mature, robust core infrastructure that profoundly changes the way the software industry produces software. The related open-source implementation and further documentation can be found at [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy), and we welcome community contributions and collaboration.
 
@@ -715,9 +742,9 @@ Another common space is the **line-based text space**, which is the space where 
 
 The profound insight of GRC theory is this: **we must actively "design and construct" a delta space that has good mathematical properties and clear business semantics**. This space is the model space defined by a **Domain-Specific Language (DSL)**.
 
-*   The success of **Docker** can be seen as its clever choice of the **filesystem** as its core delta space. A Docker image layer is a filesystem-level delta (Δ). The vast technological assets (like OverlayFS) and toolchains (`cp`, `rm`, `mkdir`) built around the filesystem by the Linux community over decades naturally became the **generators** and operators in this space.
+* The success of **Docker** can be seen as its clever choice of the **filesystem** as its core delta space. A Docker image layer is a filesystem-level delta (Δ). The vast technological assets (like OverlayFS) and toolchains (`cp`, `rm`, `mkdir`) built around the filesystem by the Linux community over decades naturally became the **generators** and operators in this space.
 
-*   The practice of **GRC (as in the Nop Platform)**, on the other hand, constructs a series of independent, semantically clear **domain model spaces** by defining a set of XDSLs (for business processes, UI pages, data models, etc.). In these spaces, deltas are structured, business-meaningful node changes (e.g., adding a step, modifying a property), and their merge rules (`x-extends`) are designed to be algebraically complete, allowing reversible computation to exert its full power.
+* The practice of **GRC (as in the Nop Platform)**, on the other hand, constructs a series of independent, semantically clear **domain model spaces** by defining a set of XDSLs (for business processes, UI pages, data models, etc.). In these spaces, deltas are structured, business-meaningful node changes (e.g., adding a step, modifying a property), and their merge rules (`x-extends`) are designed to be algebraically complete, allowing reversible computation to exert its full power.
 
 Therefore, the essence of GRC is not to passively accept a given representation space, but to **actively and intentionally construct a superior delta space** that makes the process of software construction and evolution more precise, controllable, and automated.
 
@@ -729,9 +756,9 @@ The core operator `⊕` of GRC theory is implemented as `x-extends` in the Nop P
 
 The implementation of `x-extends` cleverly combines two delta strategies:
 
-1.  **File-Level Delta (Overlay)**: A macroscopic overlay mechanism based on a **Virtual File System (VFS)**. It determines which file version to use based on the priority of different "layers," suitable for scenarios involving the replacement of entire files or providing customized versions.
+1. **File-Level Delta (Overlay)**: A macroscopic overlay mechanism based on a **Virtual File System (VFS)**. It determines which file version to use based on the priority of different "layers," suitable for scenarios involving the replacement of entire files or providing customized versions.
 
-2.  **Intra-File Delta (Merge)**: A microscopic, "scalpel-like" merge mechanism. Inside structured files like XML, JSON, or YAML, it performs precise node-level additions, deletions, and modifications on the model's tree structure based on meta-directives like `x:override`.
+2. **Intra-File Delta (Merge)**: A microscopic, "scalpel-like" merge mechanism. Inside structured files like XML, JSON, or YAML, it performs precise node-level additions, deletions, and modifications on the model's tree structure based on meta-directives like `x:override`.
 
 These two mechanisms work in concert, enabling GRC to handle both coarse-grained global customizations and fine-grained local evolutions.
 
@@ -752,6 +779,7 @@ The Nop Platform implements a VFS that supports "delta layers." All application 
 ```
 
 **Working Mechanism**:
+
 - When the system runs with `deltaId=customer-a` and requests access to `/beans/core.xml`.
 - The VFS first checks if `/_delta/customer-a/beans/core.xml` exists. If it does, this file is returned.
 - If it does not exist in the delta layer, the VFS falls back to the base layer and returns `/beans/core.xml`.
@@ -765,6 +793,7 @@ When the VFS locates a delta file, and that file's header contains a directive l
 **Example**:
 
 **Base Definition (`/beans/core.xml`)**
+
 ```xml
 <beans>
     <bean id="securityManager" class="com.mycorp.StandardSecurityManager"/>
@@ -773,6 +802,7 @@ When the VFS locates a delta file, and that file's header contains a directive l
 ```
 
 **Customer A's Delta Definition (`/_delta/customer-a/beans/core.xml`)**
+
 ```xml
 <beans x:extends="super">
     <!-- 1. Modify attribute -->
@@ -780,7 +810,7 @@ When the VFS locates a delta file, and that file's header contains a directive l
 
     <!-- 2. Remove node -->
     <bean id="dataService" x:override="remove"/>
-    
+
     <!-- 3. Add new node -->
     <bean id="auditLogger" class="com.customer.AuditLogger" />
 </beans>
@@ -797,7 +827,7 @@ function merge(base_node, delta_node):
 
     if override_action == 'remove':
         return NULL  # Mark for deletion
-    
+
     if override_action == 'replace':
         return delta_node # Complete replacement
 
@@ -815,11 +845,11 @@ function merge(base_node, delta_node):
 
     # Create a new list of children to maintain order
     new_children = []
-    
+
     # Iterate through the order of the base model's children
     for base_child in base_node.children:
         child_key = base_child.getKey() # e.g., 'securityManager'
-        
+
         if child_key in delta_children_map:
             # Found a matching child in Delta, merge recursively
             delta_child = delta_children_map[child_key]
@@ -831,14 +861,14 @@ function merge(base_node, delta_node):
         else:
             # No match in Delta, keep the base child
             new_children.append(base_child)
-            
+
     # 5. Append any remaining, unmatched nodes from Delta as new additions
     for remaining_delta_child in delta_children_map.values():
         new_children.append(remaining_delta_child)
-    
+
     # Replace the result node's children with the new list
     result_node.setChildren(new_children)
-    
+
     return result_node
 
 # Helper function to build a map based on a unique key (id, name, x:id)
@@ -853,9 +883,10 @@ function build_map_by_key(nodes):
 ```
 
 **Key Points of the Algorithm**:
-*   **Coordinate Location**: The core of the algorithm is to find a stable unique identifier (like `id`, `name`, or a virtual `x:id`) for each element in a list (collection). This establishes coordinates for each list element.
-*   **Recursive Merging**: Once matching nodes are found via their coordinates, the algorithm recursively calls itself to perform a deep merge on the node's subtree.
-*   **Order Preservation**: The algorithm attempts to preserve the original order of elements from the base model and appends new elements to the end of the list (though precise insertion positions can be controlled with directives like `x:insert-before`).
+
+* **Coordinate Location**: The core of the algorithm is to find a stable unique identifier (like `id`, `name`, or a virtual `x:id`) for each element in a list (collection). This establishes coordinates for each list element.
+* **Recursive Merging**: Once matching nodes are found via their coordinates, the algorithm recursively calls itself to perform a deep merge on the node's subtree.
+* **Order Preservation**: The algorithm attempts to preserve the original order of elements from the base model and appends new elements to the end of the list (though precise insertion positions can be controlled with directives like `x:insert-before`).
 
 Through this simple yet powerful recursive merge logic, `x-extends` achieves a non-invasive, predictable, and algebraically well-behaved merge operation for any structured model, providing a solid and reliable engineering implementation for GRC theory.
 
@@ -874,6 +905,7 @@ Associativity ensures that the order of delta merging is irrelevant, which allow
 First, we need to define the "space" in which GRC operates. GRC treats any structured software artifact (like an XML or JSON file) as a **domain model** and establishes a **domain coordinate system** for it. In this coordinate system, every value in the model can be located by a unique **Path**.
 
 For example, for the following XML model:
+
 ```xml
 <entity name="MyEntity" table="MY_ENTITY">
   <columns>
@@ -881,7 +913,9 @@ For example, for the following XML model:
   </columns>
 </entity>
 ```
+
 We can "flatten" it into a `{path: value}` map, where the path is the coordinate:
+
 ```json
 {
   "/@name": "MyEntity",
@@ -890,6 +924,7 @@ We can "flatten" it into a `{path: value}` map, where the path is the coordinate
   "/columns/column[@name='status']/@length": 10
 }
 ```
+
 The path here (a simplified form of XPath) is the **domain coordinate**, as it is composed of domain concepts with business meaning like `entity`, `column`, and `name`. All GRC operations are essentially operations on the values at specific coordinate points in this system.
 
 ### C.2 The Argument for Associativity
@@ -911,13 +946,14 @@ A common question is: how can a delta that "deletes field C" (an inverse element
 
 The key here is to distinguish between the **logical world** and the **physical (observational) world**.
 
-1.  **In the logical world, deltas are complete and closed**. A delta that "deletes field C" can be logically merged with another delta that "modifies the type of field C" beforehand, without needing to know what the base model is. This is similar to lazy evaluation in functional programming.
+1. **In the logical world, deltas are complete and closed**. A delta that "deletes field C" can be logically merged with another delta that "modifies the type of field C" beforehand, without needing to know what the base model is. This is similar to lazy evaluation in functional programming.
 
-2.  **Projection from the logical to the physical world**. When we finally want to "materialize" the merged logical model into a runnable physical entity, we introduce a **Projection** operator. This operator is responsible for interpreting the logical operations. For example, if the final model contains an operation to "delete field C," but during projection it is found that the base model does not have this field, the operation is **safely ignored**.
+2. **Projection from the logical to the physical world**. When we finally want to "materialize" the merged logical model into a runnable physical entity, we introduce a **Projection** operator. This operator is responsible for interpreting the logical operations. For example, if the final model contains an operation to "delete field C," but during projection it is found that the base model does not have this field, the operation is **safely ignored**.
 
 In the Nop Platform's implementation, this is handled through meta-attributes like `x:override="remove"` and `x:virtual="true"`. In the final stage of merging:
-*   All nodes marked with `remove` and their operations are executed.
-*   All nodes marked as `virtual` (representing "dangling" operations for which no corresponding node was found in the base model) and their operations are **discarded**.
+
+* All nodes marked with `remove` and their operations are executed.
+* All nodes marked as `virtual` (representing "dangling" operations for which no corresponding node was found in the base model) and their operations are **discarded**.
 
 This "logically closed, physically projected" mechanism ensures that deltas are **independent and composable** in the logical world, while being **safe and robust** in the physical world. It frees GRC's delta algebra from the constraints of the instantaneous state of the physical world, thereby gaining powerful expressiveness and compositional capabilities. This is the theoretical cornerstone that enables GRC to systematically tame complex evolution.
 
@@ -929,13 +965,14 @@ The construction formula of Generalized Reversible Computation (GRC), `App = Gen
 
 XDSL provides native delta merging capabilities for all DSLs through a set of common `x:` meta-attributes.
 
-*   **`x:extends`**: Defines a file as a **Delta (Δ)**. The directive `x:extends="base.xml"` triggers the loader to treat the current file as a delta and merge it on top of `base.xml`.
-*   **`x:override`**: Controls the behavior of the **Merge Operator (⊕)** at the node level.
-    *   `merge` (default): Recursively merges child nodes.
-    *   `replace`: Completely replaces the base node.
-    *   `remove`: Deletes the base node, providing an "inverse element" operation for GRC.
+* **`x:extends`**: Defines a file as a **Delta (Δ)**. The directive `x:extends="base.xml"` triggers the loader to treat the current file as a delta and merge it on top of `base.xml`.
+* **`x:override`**: Controls the behavior of the **Merge Operator (⊕)** at the node level.
+  * `merge` (default): Recursively merges child nodes.
+  * `replace`: Completely replaces the base node.
+  * `remove`: Deletes the base node, providing an "inverse element" operation for GRC.
 
 **Example:**
+
 ```xml
 <!-- delta.xml -->
 <config x:extends="base.xml">
@@ -955,6 +992,7 @@ The `Generator<DSL>` is implemented through embedded `x:gen-extends` and `x:post
 **Working Mechanism**: During model loading, the Xpl tags are executed, and the **XNode (Abstract Syntax Tree node)** they return is treated as a dynamically generated delta (`Δ_generated`), which then participates in subsequent merges.
 
 **Example:**
+
 ```xml
 <orm x:schema="/nop/schema/orm.xdef">
     <x:gen-extends>

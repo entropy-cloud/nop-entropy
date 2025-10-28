@@ -589,22 +589,32 @@ These successful cases indicate that decomposing a system into "a generatable ba
 
 \section{Practice and Validation: Closing the Loop from Theory to Engineering}
 
-The value of Generalized Reversible Computation (GRC) theory must ultimately be tested through engineering practice. To demonstrate the path from GRC's abstract theory to concrete engineering application, this section will deeply analyze its \textbf{Canonical Reference Implementation}--the Nop Platform\footnote{The Nop Platform, the reference implementation of GRC, is available as open-source software at: \url{https://github.com/entropy-cloud/nop-entropy}.}--\textbf{and use it as an example to reveal the core engineering principles required to transform GRC ideas into a robust, implementable solution.}
+The value of Generalized Reversible Computation (GRC) theory must ultimately be tested through engineering practice. To demonstrate the path from GRC's abstract theory to concrete engineering application, this section will deeply analyze its \textbf{Canonical Reference Implementation}---the Nop Platform\footnotemark[1]---\textbf{and use it as an example to reveal the core engineering principles required to transform GRC ideas into a robust, implementable solution.}
 
-Subsequently, we will systematically validate the engineering feasibility, advantages, and universality of the GRC paradigm through a large-scale enterprise transformation case study. \textbf{The purpose of this section is not just to showcase a successful toolset, but to elucidate how the abstract GRC formula $\text{App} = \text{Generator}\langle\text{DSL}\rangle \oplus \Delta$ can solve real-world complex problems in a low-cost, non-invasive manner through a set of well-designed, reusable engineering decisions.}
+Subsequently, we will systematically validate the engineering feasibility, advantages, and universality of the GRC paradigm through a large-scale enterprise transformation case study. \textbf{The purpose of this section is not just to showcase a successful toolset, but to elucidate how the abstract GRC formula `App = Generator<DSL> $\oplus$ $\Delta$` can solve real-world complex problems in a low-cost, non-invasive manner through a set of well-designed, reusable engineering decisions.}
 
 \subsection{The Canonical Implementation of the Nop Platform: A GRC Language System based on XLang}
 
 The Nop Platform is a complete engineering mapping of GRC theory from abstraction to reality. The fundamental reason it can systematically address the integration, cost, and risk challenges of implementing GRC is that: \textbf{The core of the Nop Platform is built upon a meta-language system called XLang, specifically designed for the GRC paradigm.}
 
-XLang gives each component of GRC's core construction formula $\text{App} = \text{Generator}\langle\text{DSL}\rangle \oplus \Delta$ a concrete, actionable language-level implementation:
+\textbf{Figure \ref{fig:xlang_paradigm}} illustrates how XLang concretely implements the core GRC construction paradigm `App = Delta x-extends Generator<DSL>`, establishing a structural foundation for programmable evolution.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{ddd/xlang-paradigm.png}
+    \caption{The XLang Implementation of the GRC Paradigm. This diagram visualizes how the Nop Platform's XLang system materializes the core GRC formula. It highlights the three pillars: the \textbf{DSL Atlas} providing a stable domain coordinate system, the \textbf{Delta} as a reversible evolution unit with algebraic properties, and the \textbf{Generator} as a compile-time engine powered by tools like XDef and Xpl. Together, they enable a fundamental refactoring from syntactic paradigms to structural space construction rules.}
+    \label{fig:xlang_paradigm}
+\end{figure}
+
+XLang gives each component of GRC's core construction formula `App = Generator<DSL> $\oplus$ $\Delta$` a concrete, actionable language-level implementation:
+
 \begin{itemize}
     \item \textbf{DSL (Domain-Specific Language)}: Corresponds to various XDSLs (e.g., workflow, UI, ORM models) defined by the \textbf{XDef metamodel}, which possess stable domain coordinate systems.
-    \item \textbf{Generator}: Corresponds to the Turing-complete \textbf{Xpl template language}, which executes at compile-time. It is responsible for performing model-to-model and model-to-code transformations.
+    \item \textbf{Generator}: Corresponds to the Turing-complete \textbf{Xpl template language}, which executes at compile-time. It is responsible for performing model-to-model and model-to-code transformations. Crucially, Xpl supports structured generation of `XNode`, preserving source code location information and avoiding string concatenation.
     \item \textbf{$\Delta$ (Delta) \& $\oplus$ (Merge Operator)}: Corresponds to the \textbf{`x-extends` delta merging mechanism} natively built into all XDSLs, which implements an algebraically complete, reversible structured merge.
 \end{itemize}
 
-This design gives the GRC theoretical formula a complete, self-consistent, closed-loop implementation within the Nop Platform. Building on this, the platform integrates this powerful language capability into existing technology ecosystems at low cost and non-invasively through three core engineering pillars: "Loader as Generator," the "XDef Metamodel," and "S-N-V Three-Phase Loading."
+This design gives the GRC theoretical formula a complete, self-consistent, closed-loop implementation within the Nop Platform. Building on this, the platform integrates this powerful language capability into existing technology ecosystems at low cost and non-invasively through three core engineering pillars: ``Loader as Generator,'' the ``XDef Metamodel,'' and ``S-N-V Three-Phase Loading.''
 
 \subsubsection{Loader as Generator: Non-invasively Introducing Reversible Computation}
 
@@ -858,7 +868,7 @@ GRC is often misunderstood as adding unnecessary complexity. In reality, it does
 
 A core advantage of GRC is its seamless fusion of declarative and imperative programming. In its core formula, the DSL does not need to be Turing-complete. When a declarative model is insufficient, the delta $\Delta$ allows for the introduction of an imperative "escape hatch," such as a script. This endows the system with the ability to handle arbitrary complexity while strictly constraining it within local, explicit delta units.
 
-Furthermore, although GRC requires a new mental model, its engineering implementation (such as the XDef metamodel in the Nop Platform) greatly reduces the cost of this transition. Once an architect defines a business DSL using XDef, the platform **immediately and automatically** endows this new language with the full suite of GRC capabilities.
+Furthermore, although GRC requires a new mental model, its engineering implementation (such as the XDef metamodel in the Nop Platform) greatly reduces the cost of this transition. Once an architect defines a business DSL using XDef, the platform \textbf{immediately and automatically} endows this new language with the full suite of GRC capabilities.
 
 \subsection{Future Work}
 
