@@ -257,7 +257,7 @@ The table below summarizes the differences in the core mechanisms of the two par
 \begin{table}[htbp]
 \centering
 \caption{Comparison of GRC and JetBrains MPS Paradigms}
-\begin{tabularx}{\textwidth}{@{} l X X @{}}
+\begin{tabularx}{\textwidth}{@{} X X X @{}}
 \toprule
 \textbf{Dimension} & \textbf{JetBrains MPS} & \textbf{Generalized Reversible Computation (GRC)} \\
 \midrule
@@ -406,7 +406,7 @@ GRC's "base + perturbation" decomposition idea is methodologically identical to 
 \begin{table}[htbp]
 \centering
 \caption{Methodological Comparison of Computational Paradigms and Physics Pictures}
-\begin{tabularx}{\textwidth}{@{} l X X X @{}}
+\begin{tabularx}{\textwidth}{@{} X X X X @{}}
 \toprule
 \textbf{Dimension} & \textbf{Turing Machine} & \textbf{Lambda Calculus} & \textbf{GRC Paradigm} \\
 \midrule
@@ -1079,18 +1079,22 @@ Associativity ensures that the order of delta merging is irrelevant, which allow
 \subsection{The Domain Model Coordinate System}
 GRC treats any structured software artifact as a \textbf{domain model} and establishes a \textbf{domain coordinate system} for it. Every value in the model can be located by a unique \textbf{Path}. For example, for the XML:
 \begin{lstlisting}[language=XML, numbers=none]
-<entity name="MyEntity">
-  <columns><column name="status" length="10" /></columns>
+<entity name="MyEntity" table="MY_ENTITY">
+  <columns>
+     <column name="status" sqlType="VARCHAR" length="10" />
+  </columns>
 </entity>
 \end{lstlisting}
-We can "flatten" it into a `{path: value}` map:
+We can "flatten" it into a `{path: value}` map, where the path is the coordinate:
 \begin{verbatim}
 {
   "/@name": "MyEntity",
+  "/@table": "MY_ENTITY",
+  "/columns/column[@name='status']/@sqlType": "VARCHAR",
   "/columns/column[@name='status']/@length": 10
 }
 \end{verbatim}
-All GRC operations are essentially operations on the values at specific coordinate points.
+The path here (a simplified form of XPath) is the domain coordinate, as it is composed of domain concepts with business meaning like `entity`, `column`, and `name`. All GRC operations are essentially operations on the values at specific coordinate points in this system.
 
 \subsection{The Argument for Associativity}
 If we view a model as a high-dimensional vector where each dimension corresponds to a unique domain coordinate, then the merge of two models $M_1 \oplus M_2$ can be seen as a dimension-wise merge of two vectors. To \textbf{argue} that the merge of vectors satisfies associativity, we only need to \textbf{show} that the value merge operation at a single coordinate point satisfies associativity.
@@ -1168,6 +1172,12 @@ The $\text{Generator}\langle\text{DSL}\rangle$ is implemented through embedded `
 \end{lstlisting}
 
 \subsection{Deterministic Construction Order}
-XDSL defines a deterministic, multi-stage delta merging pipeline. All these construction operations are completed during the model loading phase and are completely transparent to the runtime, implementing the core "phase separation" idea of GRC.
 
+XDSL defines a deterministic, multi-stage delta merging pipeline, with priority decreasing from left to right:
+
+\begin{center}
+$\Delta$ \textit{from post-extends} $\oplus$ $\Delta$ \textit{defined in current model} $\oplus$ $\Delta$ \textit{from gen-extends} $\oplus$ \textit{Base model from x:extends}
+\end{center}
+
+All these construction operations are completed during the model loading phase and are completely transparent to the runtime, implementing the core "phase separation" idea of GRC.
 \end{document}

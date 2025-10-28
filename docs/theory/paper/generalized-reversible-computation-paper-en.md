@@ -659,7 +659,7 @@ GRC is often misunderstood as adding unnecessary complexity. In reality, it does
 
 A core advantage of GRC is its seamless and orthogonal fusion of declarative and imperative programming. In the structure of its core formula `Y = Generator<DSL> ⊕ Δ`, the DSL, as the textual representation of the model, **does not need to be Turing-complete**, which keeps it simple and highly structured. When a declarative model is insufficient to express all logic, the delta `Δ` allows for the introduction of an imperative "escape hatch," such as a script or a Turing-complete template call. This endows the system with the ability to handle arbitrary complexity while strictly constraining the complexity of imperative code within local, explicit delta units.
 
-Furthermore, although GRC requires developers to embrace a new mental model, its engineering implementation (such as the XDef metamodel in the Nop Platform) greatly reduces the cost of this transition. Once an architect defines a new business DSL using XDef, the platform **immediately and automatically** endows this new language with the full suite of GRC capabilities, including a unified delta mechanism and toolchain support. This "instant ROI" is the best compensation for the learning curve.
+Furthermore, although GRC requires developers to embrace a new mental model, its engineering implementation (such as the XDef metamodel in the Nop Platform) greatly reduces the cost of this transition. Once an architect defines a new business DSL using XDef, the platform immediately and automatically endows this new language with the full suite of GRC capabilities, including a unified delta mechanism and toolchain support. This "instant ROI" is the best compensation for the learning curve.
 
 #### 9.2. Future Work
 
