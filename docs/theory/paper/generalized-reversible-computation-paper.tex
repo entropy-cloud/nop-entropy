@@ -924,12 +924,17 @@ steps:
 \end{lstlisting}
 When deploying the system for "Customer A," one simply needs to set the environment's `deltaId` to `customer-a`. The Nop Platform's loader will automatically recognize the `x:extends` directive, merge the standard product's base model `/placeOrder.task.yaml` (Base) with Customer A's delta model `\_delta/customer-a/placeOrder.task.yaml` ($\Delta$) in memory, generate the final process model that meets Customer A's requirements, and then deliver it to the process engine for execution.
 
-This case clearly demonstrates the immense engineering value of GRC principles:
-\begin{itemize}
-    \item \textbf{Complexity Governance}: Decomposes large, entangled business logic into clear, orthogonal units.
-    \item \textbf{Evolvability}: Achieves truly non-invasive extension and customization through "delta" models, perfectly resolving the core "standardization vs. customization" conflict in software product lines.
-    \item \textbf{Theory into Practice}: It translates the abstract formula $\text{App} = \text{Generator}\langle\text{DSL}\rangle \oplus \Delta$ into a concrete, actionable engineering practice that seamlessly integrates with existing tech stacks, providing a systematic solution for the efficient delivery of B2B software.
-\end{itemize}
+This case clearly demonstrates the immense engineering value of the GRC concept:
+
+\begin{enumerate}
+    \item \textbf{Systematic Complexity Governance}: GRC first decomposes large, entangled business logic into clear, orthogonal units through declarative DSLs. This not only reduces the inherent complexity of the system but, more crucially, establishes a stable ``semantic coordinate system'' for the entire system. This provides precise anchors for subsequent changes ($\Delta$) to attach to.
+
+    \item \textbf{Algebraic Evolvability}: Building upon this coordinate system, GRC achieves truly non-invasive extension and customization through ``delta'' models. Any customer-specific requirement is encapsulated into independently manageable $\Delta$ assets and applied to the base product via algebraic merging ($\oplus$). This fundamentally resolves the core conflict between ``standardization and customization'' in software product lines. Evolution is no longer a destructive modification but becomes a computable, composable superposition.
+
+    \item \textbf{Closed-Loop Progression from Theory to Practice}: It translates abstract theory into a concrete, actionable engineering solution that integrates seamlessly with existing mainstream technology stacks (like SpringBoot). This provides systematic support for the efficient and predictable delivery of B2B software.
+\end{enumerate}
+
+Leveraging this unified Delta customization mechanism, a coarse-grained software asset (such as a banking core application) can be \textbf{100\% reused}. Simply by providing a set of declarative $\Delta$ delta files, full-stack, non-invasive customization of the data model, business processes, and front-end presentation can be achieved. Crucially, all of this is accomplished \textbf{without requiring the base product to pre-define any extension points}.
 
 \subsection{Comparative Analysis: GRC vs. Traditional Composite Architecture}
 
