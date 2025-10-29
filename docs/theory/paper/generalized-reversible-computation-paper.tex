@@ -28,6 +28,7 @@
 
 % arXiv-friendly hyperref setup
 \hypersetup{
+    bookmarksnumbered=true,
     colorlinks=false,
     pdfborder={0 0 0},
     pdftitle={Generalized Reversible Computation: A New Paradigm for Unifying Software Construction and Evolution},
@@ -110,7 +111,7 @@
 \maketitle
 
 \begin{abstract}
-This paper proposes and systematically elucidates the theory of Generalized Reversible Computation (GRC), a new paradigm for unifying software construction and evolution. Unlike traditional logical reversible computation, which focuses on runtime execution, GRC extends the principle of "reversibility" from runtime to the construction process across the entire software lifecycle. Its core principle is the elevation of the \textbf{Structured Delta} to a first-class citizen, systematically taming the complexity of software evolution through a unified construction formula: $\text{App} = \text{Generator}\langle\text{DSL}\rangle \oplus \Delta$. This paper first defines the theoretical scope of GRC from first principles, positioning it as a computational framework for managing complexity by drawing an analogy to the Dirac (Interaction) Picture in physics. Building on this foundation, we detail GRC's core mechanisms, including its recursive fractal-like construction properties and delta composition based on algebraic operations. We demonstrate the explanatory power of GRC theory by reinterpreting Domain-Driven Design (DDD) and providing a unified analysis of modern engineering practices such as Docker, Kustomize, and OpenUSD. Finally, we validate the engineering feasibility and potential advantages of GRC through a canonical implementation in the Nop Platform and a case study of retrofitting a large-scale banking core system. We contend that GRC offers a systematic, scalable, and theoretically-grounded solution to the two fundamental challenges in software engineering: "complexity" and "evolution." By articulating this framework and providing initial validation, this paper aims to lay the groundwork for its further formalization and widespread application.
+This paper proposes and systematically elucidates the theory of Generalized Reversible Computation (GRC), a new paradigm for unifying software construction and evolution. Unlike traditional logical reversible computation, which focuses on runtime execution, GRC extends the principle of "reversibility" from runtime to the construction process across the entire software lifecycle. Its core principle is the elevation of the \textbf{Structured Delta} to a first-class citizen, systematically taming the complexity of software evolution through a unified construction formula: $\text{App} = \text{Generator}\langle\text{DSL}\rangle \oplus \Delta$. This paper first defines the theoretical scope of GRC from first principles, positioning it as a computational framework for managing complexity by drawing an analogy to the Dirac (Interaction) Picture in physics. Building on this foundation, we detail GRC's core mechanisms, including its recursive fractal-like construction properties and delta composition based on algebraic operations. We demonstrate the explanatory power of GRC theory by reinterpreting Domain-Driven Design (DDD) and providing a unified analysis of modern engineering practices such as Docker, Kustomize, and OpenUSD. Finally, we validate the engineering feasibility and potential advantages of GRC through a canonical implementation in the Nop Platform and a case study of retrofitting a large-scale banking core system. We contend that GRC offers a systematic, scalable, and theoretically-grounded solution to the two fundamental challenges in software engineering: "complexity" and "evolution." By articulating this framework and providing initial validation, this paper aims to lay the groundwork for its further formalization and widespread application. 
 \end{abstract}
 
 \vspace{1em}
@@ -277,6 +278,35 @@ The table below summarizes the differences in the core mechanisms of the two par
 \end{table}
 
 In conclusion, GRC does not simply replicate or replace language workbenches. By returning to the universal structural idea of Lisp S-expressions and creatively supplementing it with the concepts of "delta algebra" and "multiple reversible representations," it provides a more fundamental and unified theoretical framework for both the construction (via `Generator` creating representations) and evolution (via `$\oplus \Delta$` applying changes) of software.
+
+\subsubsection{Lenses: Update Propagation Theory vs. System Construction Theory}
+\label{sec:lenses}
+
+Bidirectional Transformation (BX) theory, represented by Lenses \cite{foster2007}, aims to solve the "view update problem": how to propagate modifications made to one of two related models (e.g., source A and view B) "well-behavedly" back to the other. Its core lies in defining `get` and `put` operations and ensuring they satisfy a set of axioms that guarantee behavioral consistency. Subsequent evolutions like $\delta$-lenses even elevate "edits/deltas ($\Delta$)" to be the entities of propagation, ensuring the correct propagation of composite edits through homomorphism.
+
+At first glance, GRC's "transformational reversibility" and the goal of Lenses appear similar. However, their \textbf{theoretical focus and engineering scope} are fundamentally different, a difference rooted in their basic postulates.
+
+\begin{table}[htbp]
+\centering
+\caption{Comparison of Lenses/BX and GRC}
+\begin{tabularx}{\textwidth}{@{} >{\bfseries}l X X @{}}
+\toprule
+Comparison Dimension & \textbf{Lenses / BX} & \textbf{Generalized Reversible Computation (GRC)} \\
+\midrule
+\textbf{Theoretical Focus} & \textbf{Local Consistency}: How to well-behavedly propagate an update on one side to the other (A $\leftrightarrow$ B). & \textbf{Global Construction Theory}: How the entire system uniformly follows the construction and evolution invariant $Y = F(X) \oplus \Delta$. \\
+\addlinespace
+\textbf{Basic Postulate} & Relies on \textbf{alignment algorithms} or \textbf{traces} to dynamically resolve the localization of changes. & \textbf{Postulates} that every semantic unit in the system must have an \textbf{intrinsic coordinate} (e.g., an `id`), fundamentally circumventing the alignment problem. \\
+\addlinespace
+\textbf{Status of Delta ($\Delta$)} & \textbf{Transient Input}: A procedural concept serving a single synchronization computation. & \textbf{First-Class Asset}: Can be independently packaged, versioned, and distributed, persisting throughout the software lifecycle. \\
+\addlinespace
+\textbf{System Scale} & \textbf{Point-to-point} (A $\leftrightarrow$ B). Extending to multi-model chains requires complex compositional proofs. & \textbf{System-level Closed Loop}: Natively supports full-chain evolution and traceability through a "DSL atlas," a unified IR, and homomorphic propagation contracts. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The strength of Lenses theory lies in providing a profound and elegant formal framework for the "two-model synchronization" problem. However, it does not treat "coordinate systems" and "an overlay algebra with associativity" as its first principles. This leads to challenges with "alignment difficulties" and "insufficient delta composability" when dealing with the construction of large-scale, multi-DSL, long-term evolving systems.
+
+GRC, by \textbf{elevating "intrinsic coordinates" and the "overlay algebra $\oplus$" to basic postulates}, shifts the problem from "how to synchronize two existing models" to "\textbf{how to construct and evolve the entire system using a unified, coordinate-based set of algebraic rules}." Lenses can be seen as a fine-grained, formal study of the relationship between $F$ and $F^{-1}$ in the special case of GRC where $Y = F(X)$ (i.e., $\Delta$ is empty). GRC's vision, however, is much broader. It is committed to providing a complete engineering framework for making the leap from a "point-wise update propagation theory" to a "unified methodology for system construction and evolution."
 
 \subsubsection{Conclusion: A More Fundamental Construction Paradigm}
 
@@ -614,7 +644,7 @@ XLang gives each component of GRC's core construction formula `App = Generator<D
     \item \textbf{$\Delta$ (Delta) \& $\oplus$ (Merge Operator)}: Corresponds to the \textbf{`x-extends` delta merging mechanism} natively built into all XDSLs, which implements an algebraically complete, reversible structured merge.
 \end{itemize}
 
-This design gives the GRC theoretical formula a complete, self-consistent, closed-loop implementation within the Nop Platform. Building on this, the platform integrates this powerful language capability into existing technology ecosystems at low cost and non-invasively through three core engineering pillars: ``Loader as Generator,'' the ``XDef Metamodel,'' and ``S-N-V Three-Phase Loading.''
+This design gives the GRC theoretical formula a complete, self-consistent, closed-loop implementation within the Nop Platform. Building on this, the platform integrates this powerful language capability into existing technology ecosystems at low cost and non-invasively through three core engineering pillars: ``Loader as Generator,'' the ``XDef Metamodel,'' and ``S-N-V Three-Stage Loading.''
 
 \subsubsection{Loader as Generator: Non-invasively Introducing Reversible Computation}
 
@@ -640,7 +670,7 @@ Once the "Loader as Generator" is in place, it needs a powerful internal engine 
 
 XDef solves this problem by \textbf{raising the level of abstraction}. It provides a \textbf{meta-DSL for defining DSLs}. A developer only needs to write a single `.xdef` file describing the new DSL's syntax, constraints, and object mapping relationships, and the \textbf{generic toolchain} built around XDef in the Nop Platform will automatically provide comprehensive, industrial-grade support for this new DSL:
 \begin{itemize}
-    \item \textbf{Unified Parsing and Loading Engine}: Follows the S-N-V (Source-Node-View) process to parse any DSL into a unified `XNode` intermediate representation, on which delta merging is performed.
+    \item \textbf{Unified Parsing and Loading Engine}: Follows the S-N-V (Structure-Normalization-Validation) process to parse any DSL into a unified `XNode` intermediate representation, on which delta merging is performed.
     \item \textbf{IDE IntelliSense Support}: Automatically provides syntax highlighting, auto-completion, real-time validation, and documentation pop-ups through an IDE plugin.
     \item \textbf{Automated Code Generation}: Automatically generates type-safe Java POJOs and converts comments into JavaDoc based on `bean-*` directives in the metamodel.
     \item \textbf{Built-in Delta Capability}: All DSLs based on XDef naturally support `x:extends` delta merging.
@@ -648,25 +678,83 @@ XDef solves this problem by \textbf{raising the level of abstraction}. It provid
 
 Thus, the marginal cost of creating a new DSL is dramatically reduced from "developing a complete toolchain" to "writing a definition file," achieving a cost leap from \textbf{O(N) to approximately O(1)}. This is a concrete manifestation of GRC theory in engineering economics: \textbf{a one-time investment in a unified metamodel framework is exchanged for a near-constant marginal cost for future infinite extensibility}. Once an architect defines a new business DSL using XDef, the platform \textbf{immediately and automatically} endows this new language with the full suite of GRC capabilities. This "instant ROI" is the best compensation for the learning curve of a new paradigm.
 
-\subsubsection{S-N-V Three-Phase Loading: Unified Computation Space and Phase Separation}
+\subsubsection{S-N-V Three-Stage Loading: Unified Computation Space and Phase Separation}
 
-A common and reasonable concern about GRC and XDef is whether the complex delta merging and metaprogramming mechanisms will leak into runtime, leading to unpredictable system behavior and a "debugging nightmare."
+A common and reasonable concern regarding GRC and XDef is whether complex delta merging and metaprogramming mechanisms might leak into runtime, leading to unpredictable system behavior and a ``debugging nightmare.''
 
-The Nop Platform completely resolves this issue at an architectural level through a three-phase loading process called \textbf{S-N-V (Source-Node-View)}. This process not only provides a unified delta computation space for all DSLs but is also a concrete implementation of the core engineering philosophy of \textbf{"Phase Separation."}
+The Nop platform thoroughly addresses this issue architecturally through a process called \textbf{S-N-V (Structure-Normalization-Validation)} three-stage loading. This process not only provides a unified delta computation space for all DSLs but is also a concrete implementation of the core engineering philosophy of \textbf{``phase separation.''}
 
-\begin{enumerate}
-    \item \textbf{S (Source) Phase}: This phase deals with the raw, physical DSL source files. The delta virtual file system (VFS) operates at this stage, determining which source file (base file or a customized file from a delta layer) to load based on context like `deltaId`.
-    \item \textbf{N (Node) Phase: The Unified Structured Computation Space}. This is the core of GRC's delta computation. Regardless of whether the source file is XML, JSON, or YAML, it is parsed into a \textbf{unified, syntax-agnostic tree-like intermediate representation--the `XNode`}. \textbf{All `x-extends` delta merge operations occur in this unified `XNode` structural space.} This means that no matter how varied the high-level DSLs are, the underlying delta computation algorithm is \textbf{completely identical}. This structurally unifies the delta computation for all DSLs, ensuring theoretical consistency and implementation reuse. This phase is where all the "magic" happens; it shoulders all the complexity, including the recursive merging of multi-layered delta models and the execution of `x:gen-extends` templates.
-    \item \textbf{V (View) Phase}: This phase is the end of the load-time and the beginning of the run-time. The final `XNode` tree, after being merged in the N phase, is "compiled" or "interpreted" into the final Java objects (the `View` model) for runtime use, such as a `TaskFlow` object, a `BizForm` definition, etc. This `View` model is a \textbf{pure, simple, immutable static data structure}.
-\end{enumerate}
+\textbf{Fundamental Insight: Unification by Retreating to the Structural Layer}
 
-\textbf{The S-N-V process is the engineering implementation of the "Phase Separation" idea}:
+Similar to how relational databases solve data consistency issues by \textbf{retreating to a normalized table structure without redundancy}, the Nop platform achieves unified delta processing by \textbf{retreating to a standardized XDSL structural layer.} The core idea is that delta merging is performed not on the strongly-typed, domain-bound object model after parsing, but on a lower-level, standardized, domain-agnostic tree structure (\texttt{XNode}).
+
+\begin{center}
+\begin{tabular}{|p{0.45\textwidth}|p{0.45\textwidth}|}
+\hline
+\textbf{Relational Model Theory} & \textbf{Reversible Computation Theory (Implementation in Nop)} \\
+\hline
+Schema Definition & \texttt{XDefinition} Metamodel Specification \\
+\hline
+Non-redundant Tabular Data & Non-redundant Tree-shaped Information Structure: \texttt{XDSL} \\
+\hline
+On-the-fly Computation on Standardized Data Structures: SQL & Compile-time Computation on the Universal \texttt{XNode} Data Structure: \texttt{XLang} \\
+\hline
+\end{tabular}
+\end{center}
+
+This design of ``taking a step back'' to a unified structural layer is the source of the S-N-V principle's power. It enables:
 \begin{itemize}
-    \item \textbf{Load-Time}, corresponding to the S and N phases, "pre-computes" and digests all evolution-related complexity.
-    \item \textbf{Run-Time}, corresponding to the V phase and its usage, operates on a static model that has already been "baked," making it extremely efficient and stable.
+\item \textbf{Decoupling of Delta Merging Algorithms from Business Semantics}: A single set of generic, mechanical merging algorithms can handle deltas for all DSLs, eliminating the need to rewrite them for each DSL.
+\item \textbf{Deterministic Merge Results}: Identical inputs (base model + delta model) always produce identical output structures.
+\item \textbf{Support for Cross-Domain Unified Processing}: Whether for workflow models, UI models, or data models, the same set of merging and transformation mechanisms is used.
 \end{itemize}
 
-This design strictly constrains complexity to the controllable load-time. For developers, if there are questions about the merge result, there is \textbf{no need for complex dynamic debugging}. They simply need to inspect the final generated `XNode` static model in the `\_dump` directory output by the Nop Platform. This reduces the complexity of debugging from "tracing a dynamic process in spacetime" to "structurally inspecting a static result," completely addressing concerns about "leaky abstractions" and "ghost states."
+\textbf{``Virtual Time'' and Three-Stage Decomposition}
+
+To realize the above insight, the S-N-V guideline introduces a philosophy of \textbf{``Virtual Time''}. It boldly allows models to exist in \textbf{temporary, semantically inconsistent intermediate states} during the construction process. The system remains tolerant of a model's ``imperfections'' until the final validation occurs, thereby completely decoupling generic ``structure placement'' from complex ``meaning checking.'' The entire loading process is clearly decomposed into three sequential stages:
+
+\textbf{1. S (Source/Structure Merge) - Source File Processing and Structural Merge Stage}
+
+This stage focuses on the transformation from physical source files to a logical structure tree and preliminary merging.
+\begin{itemize}
+\item \textbf{File-Level Operations (Source)}: The Virtual File System (VFS), based on the current context's \texttt{deltaId}, locates and loads specific DSL source files (which could be from the base layer or customization files in a delta layer) according to override rules.
+\item \textbf{Structure-Level Merging (Structure Merge)}: Regardless of whether the source files are XML, JSON, or YAML, they are parsed into a unified, syntax-agnostic tree intermediate representation -- \texttt{XNode}. Subsequently, all \texttt{x:extends} directives are identified, and a universal, recursive tree merging algorithm is executed within the \textbf{unified XNode structure space}, guided by meta-instructions like \texttt{x:override}. \textbf{The key output of this stage is a ``coarse'' model tree that has undergone all delta merging but may contain unresolved shorthands or derived properties.} All the GRC ``magic'' (like delta merging, metaprogramming generation) occurs and completes within this stage.
+\end{itemize}
+
+\textbf{2. N (Node/Normalization) - Normalization and Semantic Processing Stage}
+
+After obtaining a structurally complete model tree, this stage is responsible for domain-specific semantic refinement.
+\begin{itemize}
+\item The model tree is now passed to the \textbf{normalization processor} defined by the \texttt{XDefinition} metamodel.
+\item This processor executes a series of domain-aware transformations, including:
+\begin{itemize}
+\item \textbf{Resolving and applying default values}
+\item \textbf{Calculating derived properties}
+\item \textbf{Expanding shorthand syntax} (e.g., expanding string-format shorthands into structured child nodes)
+\item \textbf{Automatically repairing benign semantic conflicts} or performing intelligent completion.
+\end{itemize}
+\item \textbf{The output of this stage is a semantically rich, structurally complete ``refined'' model tree}, very close to the form required at runtime.
+\end{itemize}
+
+\textbf{3. V (View/Validation) - View Compilation and Final Validation Stage}
+
+This is the endpoint of the loading period and the starting point of the runtime.
+\begin{itemize}
+\item \textbf{View Compilation (View)}: The normalized \texttt{XNode} tree is compiled or deserialized into the final, strongly-typed, immutable Java objects (the \texttt{View} model), such as a \texttt{TaskFlow} object or a \texttt{BizForm} definition.
+\item \textbf{Final Validation (Validation)}: Before and after conversion to View objects, final, global validity checks are performed to ensure all business rules and constraints are satisfied. \textbf{The output of this stage is a pure, high-performance static model ready for direct use by the runtime engine.}
+\end{itemize}
+
+\textbf{Engineering Value: Complexity Governance and Deterministic Construction}
+
+The S-N-V process is a paradigmatic engineering implementation of the ``phase separation'' idea, delivering significant engineering value:
+
+\begin{enumerate}
+\item \textbf{Complexity Governance}: It strictly confines all complexities related to evolution (delta merging, metaprogramming, normalization) within the controllable \textbf{loading period (S and N stages)}. The \textbf{runtime period (after the V stage)} deals with a pre-``baked'' static model, making it extremely efficient and stable.
+\item \textbf{Simplified Debugging}: If a developer has questions about the merge or transformation result, \textbf{complex dynamic debugging is unnecessary}. The Nop platform can dump the intermediate \texttt{XNode} tree after S and N stage processing. This reduces debugging from ``tracing a dynamic process through time and space'' to the lower dimension of ``visually inspecting a static tree structure,'' completely eliminating the debugging nightmare of ``leaky abstractions'' and ``spooky state.''
+\item \textbf{Deterministic Construction}: Unified operations based on a stable structural layer ensure that the entire software construction process is like solving an algebraic equation: for a given input (DSL source files + deltas), the output (final View model) is completely deterministic.
+\end{enumerate}
+
+Through the S-N-V three-stage loading principle, the abstract $\oplus$ operator and $\Delta$ delta from GRC theory receive a precise, reliable, and efficient engineering implementation within the Nop platform, laying a solid technical foundation for the construction and evolution of large-scale software product lines.
 
 \subsection{Case Study: Refactoring the "Order Placement" Process of a Large-Scale Banking Core System}
 
@@ -841,7 +929,7 @@ This paper has systematically proposed and elucidated Generalized Reversible Com
 We established GRC's core construction formula, $\text{App} = \text{Generator}\langle\text{DSL}\rangle \oplus \Delta$, and argued for its recursive, fractal-like self-similarity across the vertical, horizontal, temporal, and meta-levels of software construction. By drawing an analogy with the "Dirac Picture" in physics, we have positioned GRC as a high-level computational framework for managing complexity. The main contributions of this paper are:
 
 \begin{enumerate}
-    \item \textbf{Establishing a Unified Theoretical Framework}: By introducing the concepts of a generator, an algebraic delta, and a semantic coordinate system, GRC provides a unified explanation for various technological explorations like MDE and FOP, revealing them as "unconscious" approximations toward the complete form of GRC.
+    \item \textbf{Establishing a Unified Theoretical Framework}: By introducing the concepts of a generator, an algebraic delta, and a semantic coordinate system, GRC provides a unified explanation for various technological explorations like MDE and FOP, revealing them as "unconscious" approximations toward the complete form of GRC. (See \autoref{sec:paradigm-innovation} for the formal foundation of the paradigm innovation, including active semantic Delta space design, unified formula invariant, and minimal algebraic primitives.)
     \item \textbf{Providing a Systematic Engineering Methodology}: Through the canonical implementation of the Nop Platform, we have demonstrated how to translate abstract theory into concrete engineering practice, addressing the challenges of cost, integration, and debugging when introducing a new paradigm.
     \item \textbf{Demonstrating Powerful Explanatory and Practical Value}: By reinterpreting DDD and analyzing a case study of a large-scale banking core system transformation, we have validated GRC's significant advantages in taming business complexity and achieving a harmonious coexistence of "standardization and customization."
 \end{enumerate}
@@ -1190,4 +1278,235 @@ $\Delta$ \textit{from post-extends} $\oplus$ $\Delta$ \textit{defined in current
 \end{center}
 
 All these construction operations are completed during the model loading phase and are completely transparent to the runtime, implementing the core "phase separation" idea of GRC.
+
+\section{Naming Principles of the Generalized Reversible Computation (GRC) Paradigm}
+
+This appendix aims to clarify the theoretical rationale behind the naming of the Generalized Reversible Computation (GRC) paradigm and to argue why "Reversibility," rather than "Delta," was chosen as the core concept to define it.
+
+This choice is based on a key distinction: \textbf{"Delta" describes the \emph{operational entity} of GRC, whereas "Reversibility" defines its pursued \emph{fundamental property} and \emph{ultimate goal}.} Naming the paradigm after the latter is essential to accurately capture its essence. We argue that "Reversibility" is the only appropriate concept to define its theoretical height, mathematical structure, and philosophical objectives. Abandoning it would lead to a misunderstanding of the paradigm's nature and cause it to be confused with existing, capability-limited "delta-oriented" practices.
+
+\subsection{"Reversibility": The Bridge Connecting Software Construction and Physical Laws}
+
+Placing "reversibility" at the theoretical core allows GRC to transcend ordinary software construction methodologies and resonate with the fundamental laws of the physical world.
+
+\begin{itemize}
+    \item   \textbf{Governance of Entropy}: The second law of thermodynamics predicts that entropy increase in isolated systems is inevitable. The long-term evolution of software systems similarly exhibits an entropic trend, i.e., the accumulation of "decay" and "chaos." GRC directly confronts this reality. Its core strategy is not to eliminate entropy but to \textbf{actively and systematically manage and isolate entropy increase by introducing reversibility at the construction level}. An algebraically reversible construction process allows us to encapsulate volatile, high-entropy changes (like customer customizations) in a detachable delta $\Delta$, thereby protecting the low-entropy state of the core architecture. This ability to "govern" entropy stems from the core property of "reversibility."
+
+    \item   \textbf{Conservation and Transformation of Information}: In information theory, "reversibility" is closely related to the conservation of information. The "generalized reversibility" pursued by GRC, especially its \textbf{transformational reversibility} (see Section 5.2), aims to achieve the conservation and high-fidelity round-tripping of "semantic information" between different representational forms (e.g., DSL, GUI). This provides a theoretical basis for solving the problems of "information silos" and "translation costs" caused by unidirectional, lossy information flow in traditional software development.
+\end{itemize}
+
+\subsection{The Multi-dimensional Meaning of "Reversibility" Surpasses "Delta"}
+
+"Delta" is the operational entity of GRC, but it alone is insufficient to encapsulate the entire theoretical framework. The term "delta" does not specify how it should be operated upon, whereas the core of GRC is precisely the imposition of the strong constraint of "reversibility" on delta operations.
+
+"Reversibility" in GRC is a multi-dimensional concept whose meaning far exceeds what "delta" can cover:
+\begin{enumerate}
+    \item   \textbf{Algebraic Reversibility} (see Section 5.1): Endows delta operations with an "inverse element," elevating the construction process from programmatic instructions to solvable algebraic equations.
+    \item   \textbf{Transformational Reversibility} (see Section 5.2): Guarantees "semantic round-tripping" between different model representations.
+    \item   \textbf{Process Reversibility} (see Section 5.3): Enables the ability to non-invasively correct and compensate for already-released systems.
+\end{enumerate}
+
+These three dimensions of reversibility together form the theoretical pillars of GRC, defining a complete set of construction laws concerning "reversible change." Emphasizing only "delta" would lose the core spirit of this set of laws.
+
+\subsection{"Reversibility": An Algebraic Structure Originating from Group Theory}
+
+The GRC paradigm was directly inspired by \textbf{Group Theory}. In algebraic structures, the most essential difference between a Group and the more widely known Monoid—the mathematical basis for the Monad concept in functional programming—is precisely the \textbf{existence of an Inverse Element}.
+
+\begin{itemize}
+    \item   \textbf{Monoid}: Only requires associativity and an identity element. This is sufficient to achieve the composition and chaining of operations.
+    \item   \textbf{Group}: Adds the \textbf{inverse law} to the Monoid.
+\end{itemize}
+
+By making "reversibility" its core pursuit, GRC is, in fact, declaring that its construction algebra \textbf{is designed with the complete structure of a "Group" as its theoretical goal, rather than being merely satisfied with the compositional capabilities of a "Monoid."} Introducing the concept of an "inverse element," even if it is an approximation in engineering implementation, brings a qualitative shift in thinking about software construction:
+
+\begin{enumerate}
+    \item   \textbf{Theoretical Solvability}: It makes the construction equation $\text{App} = \text{Base} \oplus \Delta$ theoretically solvable, thus allowing for the derivation of "semantic diff" operations like $\Delta = \text{App} - \text{Base}$.
+
+    \item   \textbf{Enabling of Advanced Reuse Patterns}: It gives rise to the advanced reuse pattern of "reusing what is related." The decomposition, stripping, and recombination of changes become systematic, with their theoretical foundation rooted in the existence of an inverse element.
+\end{enumerate}
+
+\paragraph{Conclusion} Naming the paradigm "Generalized Reversible Computation" was a carefully considered theoretical decision. This is because "reversibility" accurately captures the theory's mathematical structure (originating from group theory), philosophical goal (governing entropy), and core capabilities (multi-dimensional reversibility that surpasses simple delta composition). It clearly distinguishes GRC from all methodologies that remain at the "delta" level (such as Git, traditional DOP), and it is the key to defining the paradigm's advanced nature and the theoretical cornerstone connecting software construction with deeper scientific principles.
+
+\section{Paradigm Innovation of Generalized Reversible Computation}
+\label{sec:paradigm-innovation}
+This appendix presents the high-level skeleton of the Generalized Reversible Computation (GRC) paradigm: actively engineered semantic Delta space + unified formula invariant $Y = F(X) \oplus \Delta$ + minimal coverage primitives; along with space evaluation criteria, fractal four-dimensional structure, algebraic draft, axiomatization, and measurement directions. The main text retains only conceptual hints to avoid disrupting the primary narrative; complete paradigm arguments and formalization starting points are provided in this appendix.
+
+\subsection{Abstract}
+
+By actively engineering stable semantic Delta spaces, we unify any software construction as $Y = F(X) \oplus \Delta$: generating a skeleton first, then performing minimal changes through sparse coordinate coverage. Construction and evolution are no longer separated; fractal recursion repeatedly appears across vertical stages, horizontal DSLs, temporal versions, and meta-layer tools. With an extremely minimal x-extends mechanism (XPath coverage + post-ordering processing), we obtain determinism, reversibility, and composability, significantly reducing complexity noise and enhancing evolution governance capabilities.
+
+\subsection{Unified Paradigm Formula and Significance}
+
+\textbf{Formula}: $Y = F(X) \oplus \Delta$ uniformly describes:
+
+\begin{itemize}
+\item \textbf{$F(X)$}: Deterministic generation/projection/expansion of base model X within some structural space, corresponding to templates, loaders, compilation, transformation, or any deterministic process.
+\item \textbf{$\Delta$}: Sparse coverage (add/modify/delete/replace) defined in an actively selected or designed "delta structure space," superimposed with the result of $F(X)$ to obtain the final product Y.
+\end{itemize}
+
+\textbf{Unification of Construction and Evolution}:
+
+\begin{itemize}
+\item Initial construction: $Y_0 = F(\emptyset) \oplus \Delta_{\text{genesis}}$ (applying genesis Delta to "empty baseline")
+\item Ordinary evolution: $Y_k = Y_{k-1} \oplus \Delta_k$
+\end{itemize}
+
+Thus, "new project creation" and "version iteration" are no longer distinguished at the paradigm level, differing only in the selected baseline; all activities are reduced to the same structural operation—\textbf{applying Delta}.
+
+\subsection{Active Selection and Design of Delta Space}
+
+Traditional text diff (e.g., Git line space) "passively accepts" underlying representations; its coordinates (line numbers, indentation) are affected by formatting and sorting, resulting in high noise, weak semantics, and poor algebraic closure. The paradigm innovation advocates:
+
+\begin{enumerate}
+\item \textbf{Actively construct/select} structural spaces with semantic coordinates (e.g., layered VFS, XDSL syntax trees, process models, UI layout models)
+\item Define minimal primitives for Delta within this space, giving local operations good properties (determinism, reversible stripping, compositional closure)
+\item Allow multiple spaces to interconnect in fractal ways (vertical pipeline, horizontal DSL family, temporal version chain, meta-layer tools themselves)
+\end{enumerate}
+
+Active space design = upfront investment in stable coordinate systems; the payoff is that all subsequent superposition operations are no longer diluted by syntactic noise, improving the "information density and governability" of evolutionary assets.
+
+\subsection{Typical Delta Space Type Comparison}
+
+\begin{table}[htbp]
+\centering
+\small 
+\caption{Comparison of Typical Delta Space Types}
+\begin{tabularx}{\textwidth}{@{} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X @{}}
+\toprule
+\textbf{Space} & \textbf{Coord. Stability} & \textbf{Noise} & \textbf{Algebraic Closure} & \textbf{Semantic Density} & \textbf{Reversible Stripping} \\
+\midrule
+Git line space & Low (format/rearrangement affects) & High & Weak (conflicts break closure) & Low & Partial (text-level) \\
+\addlinespace
+VFS layers & Medium-High (path stable) & Low & Strong (priority + shadowing) & Medium & Good (layer stripping) \\
+\addlinespace
+XDSL XPath tree & High (semantic tags + attributes) & Very Low & Strong (coverage composable) & High & Strong (supports diff/stripping) \\
+\addlinespace
+UI layout space & Medium (nodes variable) & Medium & Needs strategy (ordering/placeholders) & Medium & Convention dependent \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Space Selection Evaluation Criteria}
+
+\begin{enumerate}
+\item \textbf{Coordinate Stability}: Whether node/unit positioning during evolution changes with formatting or fine-tuning
+\item \textbf{Noise Compression Rate}: Whether non-semantic changes (line breaks, indentation, reordering) are naturally avoided
+\item \textbf{Algebraic Closure}: Whether superposition operations still produce legitimate elements of the same space, without "conflicting foreign objects"
+\item \textbf{Reversible Strippability}: Whether specific Deltas can be reliably stripped from the result to restore the baseline
+\item \textbf{Sparse Expressiveness}: Whether a single change can be precisely expressed with few structural units
+\item \textbf{Fractal Connection Capability}: Whether the space easily connects with others in vertical, horizontal, temporal, and meta-layer dimensions
+\item \textbf{Tool Implementability}: Complexity and maintainability of parsing/merging algorithms
+\item \textbf{Cognitive Load}: Whether developers can easily understand and predict results
+\end{enumerate}
+
+\subsection{Fractal Construction Four Dimensions}
+
+\begin{enumerate}
+\item \textbf{Vertical Pipeline}: Multi-stage generation: $X_0 \xrightarrow{F_1} X_1 \xrightarrow{F_2} X_2$; each stage can superimpose its own $\Delta$
+
+\item \textbf{Horizontal DSL Family}: Cross-domain models: $Y = [\mathrm{DSL}_1, \mathrm{DSL}_2, \ldots, \mathrm{DSL}_n, \Delta_{\mathrm{residual}}]$
+
+\item \textbf{Temporal Evolution Chain}: $V_k = V_{k-1} \oplus \Delta_k$, version differences treated as first-class assets
+
+\item \textbf{Meta-layer Tool Self-recursion}: Generators, merge rules, DSL metamodels themselves: $\mathrm{Meta}_k = \mathrm{Meta}_{k-1} \oplus \Delta_{\mathrm{meta}}$
+\end{enumerate}
+
+All four dimensions share the unified invariant, giving the system self-similar structure at both macro and micro levels.
+
+\subsection{Minimal Delta Mechanism: x-extends + XPath Coverage}
+
+In XDSL tree space, an "extremely minimal yet sufficient" mechanism can support the paradigm:
+
+\begin{itemize}
+\item \textbf{x-extends}: Declares current file as Delta, specifies base file path or parent model identifier
+\item \textbf{XPath Coverage}: For appearing nodes/attributes, execute coverage according to their XPath coordinates; unappeared ones remain unchanged; use `x:override="remove"` to indicate deletion
+\item \textbf{Ordering Strategy}: List order doesn't rely on special insertion instructions; unified ordering after merging through conventional ordering fields `order`/`weight`
+\item \textbf{Placeholder Node Strategy}: In spaces where global ordering keys cannot be introduced (e.g., UI layout), use placeholder elements `<col id="placeholder"/>` then append `<col id="new"/>`, cleaned during normalization
+\end{itemize}
+
+\textbf{Rationale}: Reduce primitive count → Lower mental burden → Enhance merge predictability and algebraic analysis feasibility.
+
+\subsection{Minimal Algebraic Primitives and Axiom Draft}
+
+\textbf{Assume}:
+
+\begin{itemize}
+\item Coordinate set $C$: Finite or countable set of XPath paths
+\item Model $M$: Function $m: C \to V$ (sparse, undefined coordinates = inherit base value)
+\item Delta $\delta$: Partial function $\delta: C \rightharpoonup V \cup \{\bot_{\text{remove}}\}$, where $\bot_{\text{remove}}$ denotes removal
+\end{itemize}
+
+\textbf{Superposition}: $m' = m \oplus \delta$, for any $c \in C$:
+
+\[
+m'(c) = \begin{cases}
+   \text{undef} & \delta(c) = \bot_{\text{remove}}\\
+   \delta(c) & c \in \text{Dom}(\delta), \delta(c) \neq \bot_{\text{remove}}\\
+   m(c) & \text{otherwise}
+ \end{cases}
+\]
+
+\textbf{Candidate Axioms}:
+
+\begin{enumerate}
+\item \textbf{Coordinate Independence}: Covers of $c_1 \neq c_2$ do not affect each other
+\item \textbf{Determinism}: Input $m, \delta$ yields unique output
+\item \textbf{Local Associativity}: Coordinate-level $((m \oplus \delta_1) \oplus \delta_2)(c) = (m \oplus (\delta_1 \oplus \delta_2))(c)$
+\item \textbf{Sparse Closure}: $\delta_1 \oplus \delta_2$ can still be normalized into a single partial function
+\item \textbf{Strippable Near-inverse}: Recording coverage sequence allows replay removal of last $\delta_k$: $m_{k-1} = m_k - \delta_k$
+\item \textbf{Idempotence}: $m \oplus \delta \oplus \delta = m \oplus \delta$
+\end{enumerate}
+
+Extended operations (ordering, placeholder cleanup) are placed in the normalization stage, not entering the core algebra.
+
+\subsection{Conflict and Simplification Model}
+
+Conflicts degenerate to "same coordinate coverage chain" resolution: take final non-removal value or removal state. Semantic constraint conflicts are moved out of the algebraic layer, handled by the validation stage: maintaining closure and merge determinism.
+
+\subsection{Engineering Implementation Minimal Path}
+
+\begin{enumerate}
+\item \textbf{Unified Intermediate Structure}: All DSLs → Unified tree (XNode)
+\item \textbf{Order}: Delta superposition first → Ordering normalization → Semantic validation and projection
+\item \textbf{Delta Storage}: Only save Delta files; support stripping to restore standard distribution
+\item \textbf{Debugging}: Merged tree dump + Coordinate coverage chain view
+\item \textbf{Placeholder Strategy}: Limited to UI scenarios + Automatic cleaner
+\item \textbf{Performance}: Coordinate hash table; Merge $O(k)$
+\end{enumerate}
+
+\subsection{Paradigm Transition and Relationship with Existing Technologies}
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{GRC Paradigm Transition Compared to Existing Approaches}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Existing Direction} & \textbf{Relationship with Paradigm} & \textbf{Paradigm Transition Point} \\
+\midrule
+Git text diff & Passive space, unstable coordinates & Active semantic space selection, noise reduction \\
+\addlinespace
+MDE/MDA & Has generation $F(X)$ & Adds structured Delta + reversible stripping \\
+\addlinespace
+SPL/FOP/DOP & Has feature/incremental modules & Unified coordinates + minimal algebra + fractal layers \\
+\addlinespace
+Language Workbench & Multi-DSL editing & Simplifies to coverage, emphasizes Delta space \\
+\addlinespace
+OverlayFS/image layers & Filesystem Delta & Generalizes to semantic models, finer granularity \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Paradigm Innovation}: Extracting "generation + delta superposition" from isolated practices into a unified organizational method across spaces/layers, endowing it with reversible and fractal connection logic.
+
+\subsection{Further Formalization and Research Directions}
+
+\begin{enumerate}
+\item \textbf{Complete Axiomatization}: Characterization of $\oplus$'s associativity/identity/near-inverse conditions (generalized group or semigroup + projection structure)
+\item \textbf{Insertion Externalization Proof}: Post-ordering processing maintains algebraic core simplicity
+\item \textbf{Metric System}: Define sparsity, noise compression rate, reversible stripping success rate
+\item \textbf{Concurrent Merging}: Integration with CRDT, timestamp/last-write convergence
+\item \textbf{AI Collaboration}: Automatic Delta recommendation in semantic coordinate spaces
+\end{enumerate}
+
 \end{document}
