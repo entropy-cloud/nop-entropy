@@ -201,6 +201,10 @@ The core idea of Generalized Reversible Computation (GRC) was independently conc
 
 This phenomenon of "convergent evolution"--different paths leading to similar solutions--suggests to some extent that "delta-oriented" and "generative" construction may be an effective pattern for tackling software complexity. The purpose of this section is not only to clarify the origins of GRC's ideas but also to place it within a broader academic coordinate system. By comparing it with these prior works, we aim to reveal GRC's distinct characteristics in terms of theoretical completeness, algebraic rigor, and unifying power. We argue that many existing construction theories can be understood as incomplete implementations of the core GRC formula $\text{App} = \text{Generator}\langle\text{DSL}\rangle \oplus \Delta$ along different dimensions.
 
+Before proceeding with detailed comparisons, it is essential to clarify GRC's fundamental paradigm: its core lies in establishing $ Y = F(X) \oplus \Delta$ as a unified construction relationship and mental model, not in promoting any specific algebraic operator or technical implementation. The GRC framework is highly inclusive; it acknowledges and allows for the coexistence of diverse "delta spaces," such as Git's line-level textual diffs, Docker's filesystem layers, and the DSL-based semantic tree diffs discussed later in this paper.
+
+GRC's advancement lies in providing a unified framework for evaluating and organizing these different delta spaces. It guides us to proactively design and select delta spaces with more refined algebraic properties (e.g., determinism, composability, reversibility), as better algebraic properties yield greater benefits in automation and evolution management. Therefore, subsequent discussion of GRC's "algebraic nature" should be understood as referring to an ideal property achievable through sound design, not a rigid prerequisite for all scenarios. With this understanding, we can more deeply grasp the essential distinctions between GRC and other related work.
+
 \subsubsection{Model-Driven Engineering (MDE): Generation without Deltas}
 
 Model-Driven Engineering (MDE), and its early concrete implementation, Model-Driven Architecture (MDA) \cite{omg2003}, represented a major paradigm exploration in software engineering to raise the level of abstraction from code to models \cite{schmidt2006}. Its core pattern can be abstracted as $\text{App} = \text{Transformer}(\text{Model})$, which is highly consistent in spirit with the $\text{Generator}\langle\text{DSL}\rangle$ part of the GRC formula, as both recognize "generation" as a core means of systematic construction.
@@ -940,6 +944,21 @@ We believe that GRC offers a systematic, scalable, and theoretically sound solut
 
 As a new paradigm, the universality of GRC theory and its engineering effectiveness have been preliminarily validated. However, every powerful theory has its application boundaries and inherent challenges. This section aims to frankly discuss the limitations of GRC, clarify some common misconceptions, and look ahead to future research directions.
 
+\textbf{Paradigm Positioning Statement}: The core of GRC is not to presuppose a single, complete, a priori ``ideal merge algebra,'' but rather to establish an abstract construction relation:
+
+\[
+Y = F(X) \oplus \Delta
+\]
+
+Here, \( F(X) \) provides a batch-generable skeleton, while \( \Delta \) represents a sparse superposition within an actively chosen or designed ``change expression space.'' Multiple structural subspaces—such as Git line-level diffs, filesystem layer overlays, AST/DSL semantic trees, CRDT structures, and graphics scene layers—can coexist. They differ only in quality dimensions like coordinate stability, noise, closure, composability, and reversibility.
+
+The more refined the algebraic properties (e.g., associativity/approximate inverse), the greater the benefits in automation (batch generation, conflict reduction, reversible separation, concurrent fusion). However, even spaces with weaker mathematical properties (e.g., line-level diffs) can still serve as fast, low-barrier implementations.
+
+The core methodology is to continuously construct, evaluate, iterate, and combine multiple types of \( \Delta \)-spaces, thereby sparsifying and making changes governable within appropriate coordinate systems—rather than converging to a unique ``canonical \( \oplus \) semantics.'' If readily available solutions like CRDTs or OverlayFS already offer mature concurrency/merge structures, they can be directly integrated as subspace \( \Delta \)-spaces.
+
+Essentially, what the paradigm unifies is the ``relationship and mental model,'' not the implementation of any exclusive operator.
+
+
 \subsection{Discussion}
 
 \subsubsection{Applicability Boundaries and the Cost of Modeling}
@@ -1543,5 +1562,125 @@ OverlayFS/image layers & Filesystem Delta & Generalizes to semantic models, fine
 \item \textbf{Concurrent Merging}: Integration with CRDT, timestamp/last-write convergence
 \item \textbf{AI Collaboration}: Automatic Delta recommendation in semantic coordinate spaces
 \end{enumerate}
+
+
+\section{Value Proposition and Historical Context}
+\label{sec:value-context}
+
+This appendix aims to situate the General Reversible Computing (GRC) paradigm within the historical context of software engineering developments over the past three decades. It employs a systematic set of value criteria to clearly articulate its unique contributions and theoretical positioning amidst numerous technological waves.
+
+\subsection{Evaluation Criteria: Ten Dimensions for Assessing Paradigms for Complex Software Evolution}
+\label{subsec:evaluation-criteria}
+
+To objectively and systematically evaluate a paradigm designed to address the challenges of long-term evolvable complex software, we propose the following ten core value criteria:
+
+\begin{enumerate}
+    \item \textbf{Unification:} Can a stable, self-consistent mental model encompass activities across multiple levels (architecture, code), domains (business, technology), and stages (design, development, operations) in the software lifecycle?
+    
+    \item \textbf{Active Space Design:} Does it guide developers to proactively construct an expression space (e.g., a semantic model space) with favorable properties for hosting ``change,'' rather than just passively accepting the underlying representation (e.g., text)?
+    
+    \item \textbf{Change as First-Class Entity:} Is ``change'' itself elevated to a ``first-class citizen'' that can be independently named, measured, composed, and versioned, becoming the central subject of software construction and governance?
+    
+    \item \textbf{Reversibility / Peelability:} Does it systematically support the safe and precise separation of specific changes (e.g., customer customizations) from a finalized, customized system, to restore a standard baseline or enable refactoring?
+    
+    \item \textbf{Sparse Expression:} Does it encourage and mechanistically enable developers to express only the minimally necessary information (``What'' rather than ``How''), and systematically reduce ``accidental complexity'' noise from implementation details, formats, sequencing, etc.?
+    
+    \item \textbf{Composition \& Local Algebraicity:} Does a set of compositional rules for ``changes'' exist, possessing sound local algebraic properties (e.g., determinism, associativity, approximate inverses), making compositional behavior predictable and amenable to reasoning?
+    
+    \item \textbf{Cross-DSL/Model Coherence:} For systems inevitably comprising multiple models (e.g., data, UI, process models), does it provide systematic mechanisms to manage inter-model relationships and govern ``conceptual drift'' during evolution?
+    
+    \item \textbf{Metrics \& Observability:} Does the paradigm inherently support sustainable observation and measurement of key evolution metrics like system complexity, change coupling, and architectural ``entropy increase''?
+    
+    \item \textbf{Adoption Resistance:} Are the initial costs of adoption---including shifts in mental models, toolchain development, or integration with existing stacks---manageable, and does a gradual adoption path exist?
+    
+    \item \textbf{Synergy with AI:} Does it provide a structured, low-noise, semantically clear interface for AI-assisted or autonomous programming (especially leveraging Large Language Models), facilitating effective integration of AI-generated content and providing a verifiable feedback loop?
+\end{enumerate}
+
+\subsection{Overview and Comparison of Representative Engineering Approaches}
+\label{subsec:comparison}
+
+This table summarizes influential software engineering paradigms or approaches from the last thirty years using the above criteria, clarifying GRC's historical position.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Comparison of Software Engineering Paradigms}
+\label{tab:paradigm-comparison}
+\begin{tabular}{|p{0.14\textwidth}|p{0.12\textwidth}|p{0.12\textwidth}|p{0.25\textwidth}|p{0.25\textwidth}|}
+\hline
+\textbf{Paradigm} & \textbf{Core Lever} & \textbf{Primary Focus} & \textbf{Criteria Profile} & \textbf{Relation to GRC} \\
+\hline
+MDE / MDA & Model→Code Gen & Abstraction, Auto Code & Moderate Unification; Weak Change as 1st-Class; Limited Cross-Model Coherence & Adopts $F(X)$ generation, adds structured $\Delta$ and systematic coordination algebra. \\
+\hline
+SPL / FOP / DOP & Feature Modularization & Product Line Variants & Strong Change as 1st-Class; Unification limited by Core/Variant split & Generalizes Core via generation, Features via deltas, enhances composition. \\
+\hline
+AOP & Cross-Cutting Concerns & Separation of Concerns & Fragile change expression; Frequent composition conflicts & Delta space with lower semantic density based on unstable coordinates. \\
+\hline
+Git / VCS & Text Diff/Merge & Collaboration \& History & Change as 1st-Class (text-level); High noise; Weak semantics & Provides higher-semantic delta spaces; Git as underlying storage. \\
+\hline
+DDD & Domain Model & Domain Complexity & Strong conceptual governance; Unsystematic Change as 1st-Class & Formal evolution via DSL Atlas \& $\Delta$ Chains. \\
+\hline
+DevOps / CI/CD & Pipeline Automation & Delivery Frequency & Accelerates evolution; Changes remain irreversible & Structured layer enhancing traceability/control in pipelines. \\
+\hline
+IaC / Kustomize & Declarative Patches & Deployment Management & Change as 1st-Class (Patches); Deployment domain only & Application in ``infrastructure resource model'' delta space. \\
+\hline
+Microservices & Service Decoupling & Team Autonomy & Fragmented evolution; Cross-model coherence challenging & Governs inter-service drift via $\Delta$ management. \\
+\hline
+Event Sourcing & Event Log & State Traceability & Temporally reversible; Weak spatial coordinates & Events as ``temporal $\Delta$''; Adds spatial $\Delta$ management. \\
+\hline
+CRDT / OT & Mergeable Types & Real-time Collaboration & Strong convergence; Limited semantic coordinates & High-concurrency strategy in GRC delta spaces. \\
+\hline
+Language Workbenches & DSL Tools & DSL Ecosystems & Language-level unification; Lacks $\Delta$ algebra & Systematic evolution via explicit $\Delta$ algebra. \\
+\hline
+Generative AI & Code Generation & Accelerated Creation & Noisy output; Lacks evolution model & ``Structured absorption layer'' and ``$\Delta$ feedback loop''. \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Relative Advantages and Core Contributions of GRC}
+\label{subsec:advantages}
+
+\begin{enumerate}
+    \item \textbf{Unified Invariant:} Employs $Y = F(X) \oplus \Delta$ to unify vertical stages, horizontal DSLs, temporal versions, and meta-level tooling.
+    
+    \item \textbf{Active Delta Space Design:} Shifts from passive change handling to proactive design of structural spaces with semantic coordinates.
+    
+    \item \textbf{Sparsification \& Algebraification:} Encapsulates change as first-class entity ($\Delta$) for composition, peeling, and measurement.
+    
+    \item \textbf{Multi-Space Coordination:} Unified framework for diverse delta mechanisms within coherent cognitive system.
+    
+    \item \textbf{Mental Compression:} Unifies development activities into ``applying a $\Delta$'' operation.
+    
+    \item \textbf{AI-Friendly Interface:} High-semantics target (DSL) and $\Delta$ feedback for AI-assisted programming.
+\end{enumerate}
+
+\subsection{Risks and Mitigation Strategies}
+\label{subsec:risks}
+
+\begin{table}[htbp]
+\centering
+\caption{GRC Adoption Risks and Mitigation Strategies}
+\label{tab:risks}
+\begin{tabular}{|p{0.25\textwidth}|p{0.3\textwidth}|p{0.35\textwidth}|}
+\hline
+\textbf{Risk} & \textbf{Description} & \textbf{Mitigation Strategy} \\
+\hline
+Cognitive Cost & Requires ``model-first'' and ``delta-oriented'' mindset shift & Incremental adoption paths; ready-to-use examples and tooling \\
+\hline
+Tooling Maturity & Needs robust tools (unified meta-models, merge engines) & Open-source implementations; plugin architecture for existing tools \\
+\hline
+Over-Modeling Risk & Full modeling costly for simple projects & Clear applicability boundaries using lifespan, variant metrics \\
+\hline
+Concurrent $\Delta$ Conflicts & Semantic conflicts from high-concurrency edits & Conflict resolution strategies (CRDTs, three-way merge) \\
+\hline
+Metric Baselines & Needs benchmarks for architectural entropy & Open-source datasets; standardized metric tools; community effort \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{One-Sentence Positioning}
+\label{subsec:positioning}
+
+The value of GRC lies in establishing ``proactive $\Delta$ space design + unified construction invariant,'' transforming change into sparse, first-class entity for systematic measurement and composition; integrating past evolution practices and providing foundation for AI-era structured generation.
 
 \end{document}
