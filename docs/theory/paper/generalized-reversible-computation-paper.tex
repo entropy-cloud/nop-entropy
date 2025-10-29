@@ -1329,7 +1329,42 @@ By making "reversibility" its core pursuit, GRC is, in fact, declaring that its 
 
 \section{Paradigm Innovation of Generalized Reversible Computation}
 \label{sec:paradigm-innovation}
-This appendix presents the high-level skeleton of the Generalized Reversible Computation (GRC) paradigm: actively engineered semantic Delta space + unified formula invariant $Y = F(X) \oplus \Delta$ + minimal coverage primitives; along with space evaluation criteria, fractal four-dimensional structure, algebraic draft, axiomatization, and measurement directions. The main text retains only conceptual hints to avoid disrupting the primary narrative; complete paradigm arguments and formalization starting points are provided in this appendix.
+
+\subsection{Introduction: The Worldview Shift of a Paradigm Leap — From ``Objects'' to ``Coordinate Systems''}
+\label{subsec:introduction-worldview-shift}
+
+Before delving into the technical skeleton of the Generalized Reversible Computation (GRC) paradigm, it is essential first to clarify the most fundamental shift in worldview underlying it. This shift is a transition from the ``particle'' perspective of traditional Object-Oriented Programming (OOP) to the ``field theory'' perspective advocated by GRC. To facilitate understanding for readers in the computer field, we summarize this as: \textbf{a shift from focusing on ``discrete objects'' to focusing on ``continuous coordinate systems and the changes applied to them.''}
+
+\subsubsection*{Traditional Worldview: The Software Universe is Composed of ``Objects''}
+
+In the traditional worldview dominated by OOP, a software system is seen as composed of discrete \textbf{objects}, each encapsulating state and behavior.
+
+\begin{itemize}
+    \item \textbf{Basic Unit}: Objects are the fundamental ``particles'' of the universe.
+    \item \textbf{Construction Method}: These ``particles'' are rigidly connected through means such as message passing (method calls), inheritance, and composition.
+    \item \textbf{Evolution Method}: It is typically \textbf{intrusive}. A change in requirements often requires delving into the internals of multiple objects to modify their private state or methods. The metadata of such modifications becomes difficult to track and can easily trigger unpredictable ripple effects (side effects).
+\end{itemize}
+
+\subsubsection*{GRC New Worldview: Software is an Evolving Field within a ``Coordinate System''}
+
+GRC proposes a fundamentally new worldview, with the following core elements:
+
+\begin{enumerate}
+    \item \textbf{Language as Coordinate System} \\
+    GRC first requires us to establish a \textbf{structured coordinate system} for the software world. This coordinate system is defined by \textbf{Domain-Specific Languages (DSLs)}. Within this coordinate system, every unit of information in the system (a configuration, a UI component, a business rule) possesses a \textbf{stable, addressable semantic coordinate} (e.g., similar to a file path, XPath, or JSON Pointer). This coordinate should not change easily due to non-semantic factors like formatting or code rearrangement.
+
+    \item \textbf{Change as Superposition} \\
+    Once a coordinate system exists, any ``change'' (new feature, bug fix, customer customization) can be precisely described as a \textbf{structured delta ($\Delta$)}. This delta is essentially a sparse set of \textbf{``coordinate-new value''} pairs. Applying a change to the system is no longer about intrusively modifying code, but about \textbf{non-intrusively ``superimposing''} this delta $\Delta$ onto the base model. This superposition is an \textbf{algebraic operation} with good mathematical properties (such as associativity), making change itself computable, composable, and predictable.
+
+    \item \textbf{Multi-Coordinate System Collaboration} \\
+    A complex system cannot be described by a single global coordinate system. Therefore, drawing inspiration from the theory of differentiable manifolds in mathematics, GRC decomposes complex systems into an \textbf{``Atlas''} composed of multiple \textbf{local coordinate systems} (defined by different DSLs). The \textbf{Generator} plays the role of performing \textbf{coordinate transformations} between different coordinate systems. This allows us to ``divide and conquer,'' systematically managing complexity.
+\end{enumerate}
+
+\subsubsection*{Significance of the Worldview Leap:}
+
+The leap from ``objects'' to ``coordinate systems'' means shifting our focus from \textbf{``how to orchestrate a collection of interacting objects''} to \textbf{``how to design a set of stable coordinate systems and continuously evolve their content through algebraic superposition.''}
+
+Understanding this fundamental shift in worldview makes the design motivations and theoretical value of the subsequent technical details in sections F.2 to F.13---regarding the unified formula, Delta space selection, fractal construction, and minimal algebraic primitives---self-evident. They are all designed to support the precise and efficient implementation of this new worldview in engineering practice.
 
 \subsection{Abstract}
 
