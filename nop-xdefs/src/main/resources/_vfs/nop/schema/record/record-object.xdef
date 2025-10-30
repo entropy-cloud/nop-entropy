@@ -3,13 +3,15 @@
 @tagsCodec 类似ISO8583协议，支持先输出一个bitmap标记哪些字段需要写出，然后根据tagIndex过滤只写出部分字段
 @asMap 表示解析得到Map结构。要求fields中必须包含且只包含两个字段key和value，repeatKind不允许为空。
 @rawVarName 解析时将读取到的完整的原始数据暂存到上下文中，如果内部解析报错，则日志信息中原始信息
+@varName 如果设置此属性，解析结果不会保存到实体属性，而是以指定名称存储到解析上下文中。后续字段可以通过上下文变量访问该值，常用于条件解析或字段间依赖处理。
+    如果是body段得到，则不会返回，而是直接放置到上下文中。
 -->
 <object x:schema="/nop/schema/xdef.xdef"
         xmlns:x="/nop/schema/xdsl.xdef"
         xmlns:xdef="/nop/schema/xdef.xdef"
         xdef:name="RecordObjectMeta" xdef:bean-package="io.nop.record.model"
         length="int" tagsCodec="string" asMap="!boolean=false"
-        name="prop-name" displayName="string" rawVarName="string"
+        name="prop-name" displayName="string" rawVarName="var-name" varName="var-name"
         beanClass="class-name" typeRef="string" baseType="class-name">
 
     <doc xdef:value="string"/>

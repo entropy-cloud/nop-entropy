@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 
 import static io.nop.record.RecordErrors.ARG_CASE_VALUE;
 import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
@@ -129,7 +130,14 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
     }
 
     protected void readCollection(Input in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
-        Collection<Object> coll = (Collection<Object>) BeanTool.makeComplexProperty(record, field.getPropOrFieldName(), ArrayList::new);
+        Collection<Object> coll;
+        if (field.getVarName() != null) {
+            coll = new ArrayList<>();
+            context.setValue(field.getVarName(), coll);
+        } else {
+            coll = (Collection<Object>) BeanTool.makeComplexProperty(record, field.getPropOrFieldName(), ArrayList::new);
+        }
+
         IEvalFunction repeatUntil = field.getRepeatUntil();
         if (repeatUntil != null) {
             while (!checkUntil(repeatUntil, in, record, context)) {
@@ -189,6 +197,9 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
             return obj;
         } else {
             Object value = readField0(in, field, record, context);
+            if (field.getVarName() != null)
+                context.setValue(field.getVarName(), value);
+
             validate(value, field, context);
             if (!field.isVirtual())
                 setPropByName(record, field.getPropOrFieldName(), value);
@@ -210,6 +221,16 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
     }
 
     protected Object makeObject(RecordFieldMeta field, RecordTypeMeta typeMeta, Object record, IFieldCodecContext context) {
+        if (field.getVarName() != null) {
+            Object ret = new LinkedHashMap<>();
+            context.setValue(field.getVarName(), ret);
+            return ret;
+        } else if (typeMeta.getVarName() != null) {
+            Object ret = new LinkedHashMap<>();
+            context.setValue(typeMeta.getVarName(), ret);
+            return ret;
+        }
+
         if (field.isVirtual())
             return record;
 

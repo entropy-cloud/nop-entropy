@@ -17,6 +17,10 @@ public interface IFieldCodecContext extends IEvalContext, IVariableScope {
         return getEvalScope().getValue(name);
     }
 
+    default void setValue(String name, Object value){
+        getEvalScope().setLocalValue(name,value);
+    }
+
     String getFieldPath();
 
     void enterField(RecordFieldMeta field);

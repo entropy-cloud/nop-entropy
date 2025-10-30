@@ -9,6 +9,7 @@
 @type 字段解析得到的java类型
 @trim 解析得到值之后是否自动执行trim操作，去除padding字符。如果没有指定padding，则去除空格
 @virtual 虚拟字段，不解析到java bean中。当它具有fields子字段时可以起到分组作用。fields子字段会作为父对象的字段
+@varName 如果设置此属性，解析结果不会保存到实体属性，而是以指定名称存储到解析上下文中。后续字段可以通过上下文变量访问该值，常用于条件解析或字段间依赖处理
 @offset 相对于上一个字段的偏移量。如果大于0，解析的时候会跳过指定个数的字符或者字节。从新的位置处开始解析
 @length 缺省长度。如果padding不为空，则会补全到该长度
 @padding 用于padding的字符
@@ -24,7 +25,7 @@
        name="string" displayName="string" type="generic-type" prop="prop-name"
        length="!int=0" codec="string" charset="string"
        padding="encoded-bytes" leftPad="!boolean=false" trim="!boolean=true"
-       offset="!int=0" virtual="!boolean=false" format="string"
+       offset="!int=0" virtual="!boolean=false" varName="var-name" format="string"
        content="encoded-bytes" defaultValue="any"
        mandatory="!boolean=false" endian="enum:io.nop.commons.bytes.EndianKind"
        skipWriteWhenEmpty="!boolean=false" skipWhenRead="!boolean=false" skipWhenWrite="!boolean=false"

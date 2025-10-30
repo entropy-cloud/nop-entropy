@@ -50,7 +50,13 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
     protected void readCollectionWithCodec(IBinaryDataReader in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
         IFieldBinaryCodec codec = resolveBinaryCodec(field, registry);
         if (codec != null) {
-            codec.decode(in, record, field.getLength(), context, this);
+            Object ret = codec.decode(in, record, field.getLength(), context, this);
+            if (field.getVarName() != null) {
+                context.setValue(field.getVarName(), ret);
+            }
+            if (!field.isVirtual()) {
+                context.setValue(field.getPropOrFieldName(), ret);
+            }
         } else {
             readCollection(in, field, record, context);
         }

@@ -151,6 +151,14 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: varName
+     * 如果设置此属性，解析结果不会保存到实体属性，而是以指定名称存储到解析上下文中。后续字段可以通过上下文变量访问该值，常用于条件解析或字段间依赖处理。
+     * 如果是body段得到，则不会返回，而是直接放置到上下文中。
+     */
+    private java.lang.String _varName ;
+    
+    /**
+     *  
      * xml name: writeWhen
      * 
      */
@@ -571,6 +579,26 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: varName
+     *  如果设置此属性，解析结果不会保存到实体属性，而是以指定名称存储到解析上下文中。后续字段可以通过上下文变量访问该值，常用于条件解析或字段间依赖处理。
+     * 如果是body段得到，则不会返回，而是直接放置到上下文中。
+     */
+    
+    public java.lang.String getVarName(){
+      return _varName;
+    }
+
+    
+    public void setVarName(java.lang.String value){
+        checkAllowChange();
+        
+        this._varName = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: writeWhen
      *  
      */
@@ -626,6 +654,7 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         out.putNotNull("tagsCodec",this.getTagsCodec());
         out.putNotNull("template",this.getTemplate());
         out.putNotNull("typeRef",this.getTypeRef());
+        out.putNotNull("varName",this.getVarName());
         out.putNotNull("writeWhen",this.getWriteWhen());
     }
 
@@ -657,6 +686,7 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         instance.setTagsCodec(this.getTagsCodec());
         instance.setTemplate(this.getTemplate());
         instance.setTypeRef(this.getTypeRef());
+        instance.setVarName(this.getVarName());
         instance.setWriteWhen(this.getWriteWhen());
     }
 

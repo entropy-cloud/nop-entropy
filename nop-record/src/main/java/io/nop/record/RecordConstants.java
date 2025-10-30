@@ -19,6 +19,8 @@ public interface RecordConstants {
 
     String PAGE_HEADER_NAME = "pageHeader";
 
+    String VAR_NEXT_RECORD = "nextRecord";
+    String VAR_LAST_RECORD = "lastRecord";
 
     String VAR_AGG_STATE = "aggState";
 

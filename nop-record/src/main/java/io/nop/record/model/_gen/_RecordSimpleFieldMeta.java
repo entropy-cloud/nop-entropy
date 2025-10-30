@@ -229,6 +229,13 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      *  
+     * xml name: varName
+     * 如果设置此属性，解析结果不会保存到实体属性，而是以指定名称存储到解析上下文中。后续字段可以通过上下文变量访问该值，常用于条件解析或字段间依赖处理
+     */
+    private java.lang.String _varName ;
+    
+    /**
+     *  
      * xml name: virtual
      * 虚拟字段，不解析到java bean中。当它具有fields子字段时可以起到分组作用。fields子字段会作为父对象的字段
      */
@@ -814,6 +821,25 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      * 
+     * xml name: varName
+     *  如果设置此属性，解析结果不会保存到实体属性，而是以指定名称存储到解析上下文中。后续字段可以通过上下文变量访问该值，常用于条件解析或字段间依赖处理
+     */
+    
+    public java.lang.String getVarName(){
+      return _varName;
+    }
+
+    
+    public void setVarName(java.lang.String value){
+        checkAllowChange();
+        
+        this._varName = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: virtual
      *  虚拟字段，不解析到java bean中。当它具有fields子字段时可以起到分组作用。fields子字段会作为父对象的字段
      */
@@ -897,6 +923,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         out.putNotNull("transformOut",this.getTransformOut());
         out.putNotNull("trim",this.isTrim());
         out.putNotNull("type",this.getType());
+        out.putNotNull("varName",this.getVarName());
         out.putNotNull("virtual",this.isVirtual());
         out.putNotNull("writeWhen",this.getWriteWhen());
     }
@@ -940,6 +967,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         instance.setTransformOut(this.getTransformOut());
         instance.setTrim(this.isTrim());
         instance.setType(this.getType());
+        instance.setVarName(this.getVarName());
         instance.setVirtual(this.isVirtual());
         instance.setWriteWhen(this.getWriteWhen());
     }

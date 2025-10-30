@@ -16,6 +16,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import static io.nop.record.RecordConstants.VAR_LAST_RECORD;
+import static io.nop.record.RecordConstants.VAR_NEXT_RECORD;
+
 public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> implements IRecordInput<T> {
     //static final Logger LOG = LoggerFactory.getLogger(AbstractModelBasedRecordOutput.class);
 
@@ -28,6 +31,7 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
 
     private Map<String, Object> headerMeta;
     private T nextRecord;
+    private T lastRecord;
     private FieldRepeatKind repeatKind;
     private RecordFileBodyMeta bodyMeta;
     private RecordObjectMeta resolvedBody;
@@ -98,6 +102,9 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
             throw new NoSuchElementException();
         readCount++;
         T ret = nextRecord;
+        lastRecord = ret;
+        context.setValue(VAR_LAST_RECORD, lastRecord);
+
         fetchNext();
         return ret;
     }
@@ -139,7 +146,9 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
         T record = (T) resolvedBody.newBean();
         if (deserializer.readObject(this.baseIn, resolvedBody, record, context)) {
             this.nextRecord = record;
+            context.setValue(VAR_NEXT_RECORD, record);
         } else {
+            context.setValue(VAR_NEXT_RECORD, null);
             if (fileMeta.getAfterRead() != null)
                 fileMeta.getAfterRead().call2(null, baseIn, context, context.getEvalScope());
         }

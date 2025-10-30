@@ -47,7 +47,14 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
     protected void readCollectionWithCodec(ITextDataReader in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
         IFieldTextCodec codec = resolveTextCodec(field, registry);
         if (codec != null) {
-            codec.decode(in, record, field.getLength(), context, this);
+            Object ret = codec.decode(in, record, field.getLength(), context, this);
+
+            if (field.getVarName() != null) {
+                context.setValue(field.getVarName(), ret);
+            }
+            if (!field.isVirtual()) {
+                context.setValue(field.getPropOrFieldName(), ret);
+            }
         } else {
             readCollection(in, field, record, context);
         }
