@@ -64,7 +64,7 @@ public class GenOrmHelper {
     }
 
     public static void addCatalog(ExcelWorkbook workbook, OrmModel ormModel) {
-        ExcelSheet sheet = workbook.getSheet("目录");
+    ExcelSheet sheet = workbook.getSheet("Catalog");
         ExcelTable table = sheet.getTable();
         List<? extends IEntityModel> tables = ormModel.getEntityModels();
         int index = 1;

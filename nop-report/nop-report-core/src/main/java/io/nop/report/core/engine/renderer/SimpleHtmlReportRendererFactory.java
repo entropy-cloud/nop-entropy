@@ -73,6 +73,7 @@ public class SimpleHtmlReportRendererFactory implements IReportRendererFactory {
                     renderSheet(sheet, sheetId, out, context);
                 });
             }
+            out.write("\n</div>\n");
             out.flush();
             long endTime = CoreMetrics.currentTimeMillis();
             LOG.info("nop.report.end-generate-html:usedTime={}", endTime - beginTime);

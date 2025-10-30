@@ -38,28 +38,28 @@ import java.util.concurrent.Callable;
 import static io.nop.core.resource.ResourceHelper.resolveRelativePathResource;
 
 @CommandLine.Command(
-        name = "gen-file",
-        mixinStandardHelpOptions = true,
-        description = "读取数据文件，生成Excel等报表文件"
+    name = "gen-file",
+    mixinStandardHelpOptions = true,
+    description = "Generate Excel or other report files from data file"
 )
 public class CliGenFileCommand implements Callable<Integer> {
 
-    @CommandLine.Option(names = {"-o", "--output"}, description = "输出文件")
+    @CommandLine.Option(names = {"-o", "--output"}, description = "Output file")
     File outputFile;
 
-    @CommandLine.Option(names = {"-t", "--template"}, description = "导出模板", required = true)
+    @CommandLine.Option(names = {"-t", "--template"}, description = "Export template", required = true)
     String template;
 
-    @CommandLine.Parameters(description = "数据文件", index = "0", arity = "0..1")
+    @CommandLine.Parameters(description = "Data file path", index = "0", arity = "0..1")
     String file;
 
-    @CommandLine.Option(names = {"-i", "--input"}, description = "输入数据")
+    @CommandLine.Option(names = {"-i", "--input"}, description = "Inline input data (JSON)")
     String input;
 
     @CommandLine.Option(
-            names = "-P",
-            description = "动态参数（格式：-Pname=value）",
-            paramLabel = "KEY=VALUE"
+        names = "-P",
+        description = "Dynamic parameter (format: -Pname=value)",
+        paramLabel = "KEY=VALUE"
     )
     Map<String, String> dynamicParams = new HashMap<>();
 
@@ -105,7 +105,7 @@ public class CliGenFileCommand implements Callable<Integer> {
             String renderType = StringHelper.fileExt(outputFile.getName());
             newReportEngine().getRendererForXptModel(xptModel, renderType).generateToFile(outputFile, scope);
         } else if (template.endsWith(".xpt.xlsx")) {
-            // 报表模板
+            // Report template
             IResource tplResource = ResourceHelper.resolveRelativePathResource(template);
             ExcelWorkbook xptModel = new XptModelLoader().loadModelFromResource(tplResource);
             scope.setLocalValue(null, XptConstants.VAR_ENTITY, json);
@@ -113,7 +113,7 @@ public class CliGenFileCommand implements Callable<Integer> {
             String renderType = StringHelper.fileExt(outputFile.getName());
             newReportEngine().getRendererForXptModel(xptModel, renderType).generateToFile(outputFile, scope);
         } else if (template.endsWith(".docx")) {
-            // Word模板
+            // Word template
             IResource tplResource = ResourceHelper.resolveRelativePathResource(template);
             WordTemplate tpl = new WordTemplateParser().parseFromResource(tplResource);
             scope.setLocalValue(null, XptConstants.VAR_ENTITY, json);

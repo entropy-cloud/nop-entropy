@@ -21,29 +21,29 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(
-        name = "run-task",
-        mixinStandardHelpOptions = true,
-        description = "运行逻辑编排任务"
+    name = "run-task",
+    mixinStandardHelpOptions = true,
+    description = "Run orchestration task defined in task.xml"
 )
 public class CliRunTaskCommand implements Callable<Integer> {
     static final Logger LOG = LoggerFactory.getLogger(CliRunTaskCommand.class);
 
-    @CommandLine.Parameters(index = "0", description = "task.xml逻辑编排任务文件")
+    @CommandLine.Parameters(index = "0", description = "Path to task.xml orchestration task file")
     String file;
 
-    @CommandLine.Option(names = {"-i", "--input"}, description = "输入参数")
+    @CommandLine.Option(names = {"-i", "--input"}, description = "Input parameters (JSON)")
     String input;
 
-    @CommandLine.Option(names = {"-f", "--flags"}, description = "启用特性标记（如：-f verbose,dry-run")
+    @CommandLine.Option(names = {"-f", "--flags"}, description = "Enable feature flags (e.g.: -f verbose,dry-run)")
     String flags;
 
-    @CommandLine.Option(names = {"-if", "--input-file"}, description = "输入参数文件")
+    @CommandLine.Option(names = {"-if", "--input-file"}, description = "Input parameters file path")
     String inputFile;
 
     @CommandLine.Option(
-            names = "-P",
-            description = "动态参数（格式：-Pname=value）",
-            paramLabel = "KEY=VALUE"
+        names = "-P",
+        description = "Dynamic parameter (format: -Pname=value)",
+        paramLabel = "KEY=VALUE"
     )
     Map<String, String> dynamicParams = new HashMap<>();
 

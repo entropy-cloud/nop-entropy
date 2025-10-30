@@ -21,27 +21,27 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(
-        name = "export-db",
-        mixinStandardHelpOptions = true,
-        description = "导出数据库中指定表的数据"
+    name = "export-db",
+    mixinStandardHelpOptions = true,
+    description = "Export data of specified tables from database"
 )
 public class CliExportDbCommand implements Callable<Integer> {
 
-    @CommandLine.Option(names = {"-o", "--output"}, description = "输出目录")
+    @CommandLine.Option(names = {"-o", "--output"}, description = "Output directory")
     File outputDir;
 
-    @CommandLine.Option(names = {"-a", "--args"}, description = "输入参数")
+    @CommandLine.Option(names = {"-a", "--args"}, description = "Input arguments (JSON)")
     String args;
 
-    @CommandLine.Option(names = {"-s", "--state"}, description = "状态文件路径")
+    @CommandLine.Option(names = {"-s", "--state"}, description = "State file path")
     File stateFile;
-    @CommandLine.Parameters(description = "配置文件路径")
+    @CommandLine.Parameters(description = "Config file path")
     String configPath;
 
     @CommandLine.Option(
-            names = "-P",
-            description = "动态参数（格式：-Pname=value）",
-            paramLabel = "KEY=VALUE"
+        names = "-P",
+        description = "Dynamic parameter (format: -Pname=value)",
+        paramLabel = "KEY=VALUE"
     )
     Map<String, String> dynamicParams = new HashMap<>();
 
@@ -50,7 +50,7 @@ public class CliExportDbCommand implements Callable<Integer> {
     public Integer call() {
         IResource resource = ResourceHelper.resolveRelativePathResource(configPath);
         ExportDbConfig config = (ExportDbConfig) ResourceComponentManager.instance().loadComponentModel(resource.getPath());
-        // 有可能会修改config的属性，所以需要复制一份
+    // Clone config because exporting may modify its properties
         config = config.cloneInstance();
 
         if (outputDir != null)

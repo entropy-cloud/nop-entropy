@@ -13,25 +13,25 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(
-        name = "convert",
-        mixinStandardHelpOptions = true,
-        description = "在DSL模型的各种文件格式（XML/JSON/YAML/XLSX等）之间进行转换"
+    name = "convert",
+    mixinStandardHelpOptions = true,
+    description = "Convert between DSL model file formats (XML/JSON/YAML/XLSX etc.)"
 )
 public class CliConvertCommand implements Callable<Integer> {
 
-    @CommandLine.Parameters(description = "模型文件名", index = "0", arity = "1..*")
+    @CommandLine.Parameters(description = "Model file names", index = "0", arity = "1..*")
     List<String> inputFiles;
 
-    @CommandLine.Option(names = {"-o", "--output"}, description = "输出文件", required = true)
+    @CommandLine.Option(names = {"-o", "--output"}, description = "Output file", required = true)
     File outputFile;
 
-    @CommandLine.Option(names = {"-a", "--attachment-dir"}, description = "附件目录")
+    @CommandLine.Option(names = {"-a", "--attachment-dir"}, description = "Attachment directory")
     File attachmentDir;
 
     @Override
     public Integer call() {
 
-        // 解析输入文件
+    // Parse input files
         List<IResource> resources = new ArrayList<>();
         for (String inputFile : inputFiles) {
             IResource inputResource = ResourceHelper.resolveRelativePathResource(inputFile);

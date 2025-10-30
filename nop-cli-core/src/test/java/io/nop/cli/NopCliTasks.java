@@ -192,4 +192,19 @@ public class NopCliTasks {
         app.setFactory(factory);
         assertEquals(0, app.run(args));
     }
+
+    @Test
+    public void testSplitHtml(){
+        String[] args = new String[]{"convert", "../nop-cli/demo/test-app.orm.xlsx",
+                "-o", "target/test-app.shtml"
+        };
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        assertEquals(0, app.run(args));
+
+        args = new String[]{"split", "target/test-app.shtml",
+                "-o", "target/test-app"
+        };
+        assertEquals(0, app.run(args));
+    }
 }

@@ -11,16 +11,16 @@ import java.io.File;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(
-        name = "repackage",
-        mixinStandardHelpOptions = true,
-        description = "将外部文件和cli工具打包在一起"
+    name = "repackage",
+    mixinStandardHelpOptions = true,
+    description = "Package external files together with the CLI tool"
 )
 public class CliRepackageCommand implements Callable<Integer> {
 
-    @CommandLine.Option(names = {"-i", "--input"}, description = "输入目录")
+    @CommandLine.Option(names = {"-i", "--input"}, description = "Input directory")
     File inputDir;
 
-    @CommandLine.Option(names = {"-o", "--output"}, description = "输出文件")
+    @CommandLine.Option(names = {"-o", "--output"}, description = "Output jar file")
     File outputFile;
 
     @Override

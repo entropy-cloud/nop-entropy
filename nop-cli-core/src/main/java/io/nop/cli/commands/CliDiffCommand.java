@@ -24,24 +24,24 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(
-        name = "diff",
-        mixinStandardHelpOptions = true,
-        description = "比较模型差异"
+    name = "diff",
+    mixinStandardHelpOptions = true,
+    description = "Compare differences between two models"
 )
 public class CliDiffCommand implements Callable<Integer> {
     static final Logger LOG = LoggerFactory.getLogger(CliDiffCommand.class);
 
     @CommandLine.Option(names = {"-O", "--old-model"}, required = true,
-            description = "旧模型")
+        description = "Old model path")
     String oldModelPath;
 
-    @CommandLine.Option(names = {"-N", "--new-model"}, description = "新模型")
+    @CommandLine.Option(names = {"-N", "--new-model"}, description = "New model path")
     String newModelPath;
 
-    @CommandLine.Option(names = {"-f", "--format"}, description = "文件格式")
+    @CommandLine.Option(names = {"-f", "--format"}, description = "Output format: json|xml|yaml")
     DiffFormat format;
 
-    @CommandLine.Option(names = {"-o", "--output"}, description = "输出文件")
+    @CommandLine.Option(names = {"-o", "--output"}, description = "Output file")
     File outputFile;
 
     public enum DiffFormat {

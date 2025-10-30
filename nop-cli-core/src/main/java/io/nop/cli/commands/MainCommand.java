@@ -12,7 +12,7 @@ import picocli.CommandLine;
 
 @TopCommand
 @CommandLine.Command(
-        name = "nop-cli", description = "Nop命令行工具", version = "nop-cli 2.0",
+        name = "nop-cli", description = "Nop command line tool", version = "nop-cli 2.0",
         mixinStandardHelpOptions = true,
         subcommands = {
                 CliGenCommand.class,

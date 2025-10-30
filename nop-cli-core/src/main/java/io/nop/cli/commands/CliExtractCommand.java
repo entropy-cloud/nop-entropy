@@ -30,22 +30,22 @@ import static io.nop.cli.CliErrors.ARG_PATH;
 import static io.nop.cli.CliErrors.ERR_CLI_MODEL_OBJECT_NO_XDSL_SCHEMA;
 
 @CommandLine.Command(
-        name = "extract",
-        mixinStandardHelpOptions = true,
-        description = "读取xlsx文件中定义的模型对象，输出到外部文件中"
+    name = "extract",
+    mixinStandardHelpOptions = true,
+    description = "Extract model objects defined in an xlsx file and write to an external file"
 )
 public class CliExtractCommand implements Callable<Integer> {
 
-    @CommandLine.Option(names = {"-o", "--output"}, description = "输出文件，缺省输出到out.json文件中")
+    @CommandLine.Option(names = {"-o", "--output"}, description = "Output file (default: out.json)")
     File outputFile;
 
-    @CommandLine.Option(names = {"-t", "--template"}, description = "解析模板")
+    @CommandLine.Option(names = {"-t", "--template"}, description = "Parsing template path")
     String templatePath;
 
-    @CommandLine.Option(names = {"-f", "--format"}, description = "输出格式")
+    @CommandLine.Option(names = {"-f", "--format"}, description = "Output format: xml|json")
     OutputFormat format;
 
-    @CommandLine.Parameters(description = "模型文件名", index = "0")
+    @CommandLine.Parameters(description = "Model xlsx file", index = "0")
     String xlsxFile;
 
     enum OutputFormat {
@@ -99,7 +99,7 @@ public class CliExtractCommand implements Callable<Integer> {
         String path = resource.getPath();
         if (path.endsWith(".xlsx")) {
             if (templatePath != null && templatePath.endsWith(".imp.xml")) {
-                // 使用指定的imp.xml模型文件来解析
+                // Use specified imp.xml model file to parse
                 return (IComponentModel) ExcelReportHelper.loadXlsxObject(templatePath, resource);
             }
         }

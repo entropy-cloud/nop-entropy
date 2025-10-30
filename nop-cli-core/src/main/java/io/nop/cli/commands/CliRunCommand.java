@@ -34,29 +34,29 @@ import static io.nop.cli.CliErrors.ERR_CLI_FILE_NOT_EXISTS;
 import static io.nop.cli.CliErrors.ERR_CLI_FILE_NOT_TASK_FILE;
 
 @CommandLine.Command(
-        name = "run",
-        mixinStandardHelpOptions = true,
-        description = "运行脚本"
+    name = "run",
+    mixinStandardHelpOptions = true,
+    description = "Run script file(s)"
 )
 public class CliRunCommand implements Callable<Integer> {
     static final Logger LOG = LoggerFactory.getLogger(CliRunCommand.class);
 
-    @CommandLine.Parameters(index = "0", description = "脚本文件路径或者脚本文件目录。如果是目录，则会运行目录下所有的xrun文件")
+    @CommandLine.Parameters(index = "0", description = "Script file path or directory. If a directory, all .xrun files inside are executed")
     File file;
 
-    @CommandLine.Option(names = {"-i", "--input"}, description = "输入参数")
+    @CommandLine.Option(names = {"-i", "--input"}, description = "Input parameters (JSON)")
     String input;
 
-    @CommandLine.Option(names = {"-o", "--output"}, description = "输出目录")
+    @CommandLine.Option(names = {"-o", "--output"}, description = "Output directory")
     File outputDir;
 
-    @CommandLine.Option(names = {"-t", "--interval"}, description = "循环运行的时间间隔")
+    @CommandLine.Option(names = {"-t", "--interval"}, description = "Repeat interval in milliseconds")
     int interval;
 
     @CommandLine.Option(
-            names = "-P",
-            description = "动态参数（格式：-Pname=value）",
-            paramLabel = "KEY=VALUE"
+        names = "-P",
+        description = "Dynamic parameter (format: -Pname=value)",
+        paramLabel = "KEY=VALUE"
     )
     Map<String, String> dynamicParams = new HashMap<>();
 

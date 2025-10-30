@@ -28,20 +28,20 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(
-        name = "gen-orm-excel",
-        mixinStandardHelpOptions = true,
-        description = "读取pdm模型或者pdma.json模型，生成Excel数据模型"
+    name = "gen-orm-excel",
+    mixinStandardHelpOptions = true,
+    description = "Generate Excel ORM model from pdm or pdma.json model file"
 )
 public class CliGenOrmExcelCommand implements Callable<Integer> {
 
-    @CommandLine.Option(names = {"-o", "--output"}, description = "输出文件（缺省输出到命令行窗口中）")
+    @CommandLine.Option(names = {"-o", "--output"}, description = "Output file (default: print to console)")
     File outputFile;
 
 
-    @CommandLine.Option(names = {"-d", "--dump"}, description = "输出文件（缺省输出到命令行窗口中）")
+    @CommandLine.Option(names = {"-d", "--dump"}, description = "Dump intermediate info to console")
     boolean dump;
 
-    @CommandLine.Parameters(description = "模型文件", index = "0")
+    @CommandLine.Parameters(description = "Model file (.pdm | .pdma.json | .xmeta | .xdef)", index = "0")
     File file;
 
     @Override
@@ -76,7 +76,7 @@ public class CliGenOrmExcelCommand implements Callable<Integer> {
             type = "meta";
             model = new SchemaToOrmModel().transform(objMeta.getDefines());
         } else {
-            System.err.println("只支持pdm或者pmda.json模型文件");
+            System.err.println("Only .pdm or .pdma.json model files are supported");
             return -1;
         }
 

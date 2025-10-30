@@ -31,34 +31,34 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(
-        name = "gen",
-        mixinStandardHelpOptions = true,
-        description = "根据模型文件路径和模板文件目录生成代码"
+    name = "gen",
+    mixinStandardHelpOptions = true,
+    description = "Generate code from model file path using one or more template directories"
 )
 public class CliGenCommand implements Callable<Integer> {
     static final Logger LOG = LoggerFactory.getLogger(CliGenCommand.class);
 
 
     @CommandLine.Option(names = {"-t", "--template"}, required = true,
-            description = "模板文件路径,至少需要指定一个模板。")
+        description = "Template path(s); at least one template is required")
     String[] templates;
 
-    @CommandLine.Option(names = {"-i", "--input"}, description = "输入参数")
+    @CommandLine.Option(names = {"-i", "--input"}, description = "Input parameters (JSON)")
     String input;
 
-    @CommandLine.Option(names = {"-o", "--output"}, description = "输出目录，缺省为当前目录")
+    @CommandLine.Option(names = {"-o", "--output"}, description = "Output directory (default: current directory)")
     File outputDir;
 
-    @CommandLine.Option(names = {"-F", "--force"}, description = "强制覆盖输出目录中的文件")
+    @CommandLine.Option(names = {"-F", "--force"}, description = "Force overwrite existing files in output directory")
     boolean forceOverride;
 
-    @CommandLine.Parameters(description = "模型文件路径")
+    @CommandLine.Parameters(description = "Model file path")
     String file;
 
     @CommandLine.Option(
-            names = "-P",
-            description = "动态参数（格式：-Pname=value）",
-            paramLabel = "KEY=VALUE"
+        names = "-P",
+        description = "Dynamic parameter (format: -Pname=value)",
+        paramLabel = "KEY=VALUE"
     )
     Map<String, String> dynamicParams = new HashMap<>();
 
@@ -103,8 +103,8 @@ public class CliGenCommand implements Callable<Integer> {
     private void renderTemplate(IEvalScope scope, String template, File outputDir) {
         int pos = template.indexOf('=');
         if (pos > 0) {
-            // 如果template的格式为xxx=/nop/templates/tpl这种形式，则生成目录为outputDir+'/'+xxx
-            // 可以通过template参数来指定生成到outputDir的某个子目录下
+            // If template format is xxx=/nop/templates/tpl then output directory becomes outputDir+'/'+xxx
+            // You can use prefix before '=' to generate into a subdirectory of outputDir
             outputDir = new File(outputDir, template.substring(0, pos));
             template = template.substring(pos + 1);
         }

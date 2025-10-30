@@ -17,42 +17,42 @@ import java.io.File;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(
-        name = "reverse-db",
-        mixinStandardHelpOptions = true,
-        description = "对数据库进行逆向工程分析，生成Excel模型文件"
+    name = "reverse-db",
+    mixinStandardHelpOptions = true,
+    description = "Reverse engineer database schema and generate Excel model file"
 )
 public class CliReverseDbCommand implements Callable<Integer> {
-    @CommandLine.Option(names = {"-c", "--driverClass"}, description = "JDBC驱动类", required = true)
+    @CommandLine.Option(names = {"-c", "--driverClass"}, description = "JDBC driver class", required = true)
     String driverClassName;
 
-    @CommandLine.Option(names = {"-j", "--jdbcUrl"}, description = "jdbc连接", required = true)
+    @CommandLine.Option(names = {"-j", "--jdbcUrl"}, description = "JDBC url", required = true)
     String jdbcUrl;
 
-    @CommandLine.Option(names = {"-u", "--username"}, description = "数据库用户名", required = true)
+    @CommandLine.Option(names = {"-u", "--username"}, description = "Database user name", required = true)
     String username;
 
-    @CommandLine.Option(names = {"-p", "--password"}, description = "数据库密码")
+    @CommandLine.Option(names = {"-p", "--password"}, description = "Database password")
     String password;
 
-    @CommandLine.Option(names = {"-t", "--table"}, description = "数据库表模式，例如litemal%%表示匹配litemall为前缀的表")
+    @CommandLine.Option(names = {"-t", "--table"}, description = "Table pattern, e.g. litemall%% matches tables with prefix litemall")
     String table;
 
-    @CommandLine.Option(names = {"-o", "--output"}, description = "输出文件（缺省输出到命令行窗口中）")
+    @CommandLine.Option(names = {"-o", "--output"}, description = "Output file (default: print to console if not provided)")
     File outputFile;
 
-    @CommandLine.Option(names = {"-d", "--dump"}, description = "输出文件（缺省输出到命令行窗口中）")
+    @CommandLine.Option(names = {"-d", "--dump"}, description = "Dump intermediate info to console")
     boolean dump;
 
-    @CommandLine.Option(names = {"-n", "--ignoreUnknownType"}, description = "忽略未知类型")
+    @CommandLine.Option(names = {"-n", "--ignoreUnknownType"}, description = "Ignore unknown column types")
     boolean ignoreUnknownType;
 
-    @CommandLine.Option(names = {"-k", "--ignoreKey"}, description = "忽略唯一键和索引等信息")
+    @CommandLine.Option(names = {"-k", "--ignoreKey"}, description = "Ignore unique keys and index information")
     boolean ignoreKey;
 
-    @CommandLine.Parameters(description = "数据库Catalog", index = "0")
+    @CommandLine.Parameters(description = "Database catalog", index = "0")
     String catalog;
 
-    @CommandLine.Option(names = {"-s", "--schema"}, description = "数据库Schema")
+    @CommandLine.Option(names = {"-s", "--schema"}, description = "Database schema pattern")
     String schemaPattern;
 
     @Override

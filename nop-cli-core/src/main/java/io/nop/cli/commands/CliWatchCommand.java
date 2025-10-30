@@ -37,26 +37,26 @@ import static io.nop.cli.CliErrors.ARG_NAME;
 import static io.nop.cli.CliErrors.ARG_PATH;
 import static io.nop.cli.CliErrors.ERR_CLI_UNKNOWN_SCRIPT;
 
-@CommandLine.Command(name = "watch", mixinStandardHelpOptions = true, description = "监控指定目录或者文件的变化")
+@CommandLine.Command(name = "watch", mixinStandardHelpOptions = true, description = "Watch specified directories or files for changes and execute a script")
 public class CliWatchCommand implements Callable<Integer> {
     static final Logger LOG = LoggerFactory.getLogger(CliWatchCommand.class);
 
-    @CommandLine.Parameters(index = "0", description = "监控文件目录", arity = "1..10")
+    @CommandLine.Parameters(index = "0", description = "Directories to watch", arity = "1..10")
     File[] watchDirs;
 
-    @CommandLine.Option(names = {"-p", "--patterns"}, description = "监听的文件名模式,例如*.meta.xml。如果不指定，则任何文件变动都会触发事件")
+    @CommandLine.Option(names = {"-p", "--patterns"}, description = "File name patterns to watch (e.g. *.meta.xml). If omitted, any change triggers events")
     String[] fileNamePatterns;
 
-    @CommandLine.Option(names = {"-e", "--execute"}, required = true, description = "发现文件变动后执行的脚本文件名称")
+    @CommandLine.Option(names = {"-e", "--execute"}, required = true, description = "Script file to execute when changes are detected")
     String scriptFile;
 
-    @CommandLine.Option(names = {"-o", "--output"}, description = "输出目录，缺省为当前目录")
+    @CommandLine.Option(names = {"-o", "--output"}, description = "Output directory (default: current directory)")
     File outputDir;
 
-    @CommandLine.Option(names = {"-w", "--wait"}, description = "延迟处理等待间隔，缺省为100毫秒")
+    @CommandLine.Option(names = {"-w", "--wait"}, description = "Debounce wait interval in milliseconds (default: 100)")
     int debounceWait = 100;
 
-    @CommandLine.Option(names = {"-i", "--input"}, description = "输入参数")
+    @CommandLine.Option(names = {"-i", "--input"}, description = "Input parameters (JSON)")
     String input;
 
     @Inject
@@ -78,7 +78,7 @@ public class CliWatchCommand implements Callable<Integer> {
 
         XplModel xpl = XLang.parseXpl(resource, XLangOutputMode.none);
 
-        // 总是执行一次脚本，然后再watch
+    // Always execute script once before starting watch loop
         processEvents(xpl, Collections.emptyList(), state);
 
         watcher.watch(Arrays.asList(watchDirs).stream().map(File::getAbsolutePath).collect(Collectors.toList()),

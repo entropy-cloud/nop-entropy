@@ -19,86 +19,86 @@ import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
 
 @CommandLine.Command(
-        name = "file",
-        mixinStandardHelpOptions = true,
-        description = "文件操作命令，支持读取和写入多个文件",
-        subcommands = {CommandLine.HelpCommand.class}
+    name = "file",
+    mixinStandardHelpOptions = true,
+    description = "File operations: read, write, path-tree, plain-path-tree, find",
+    subcommands = {CommandLine.HelpCommand.class}
 )
 public class CliFileCommand implements Callable<Integer> {
 
     @CommandLine.Parameters(
-            index = "0",
-            description = "操作类型: read|write|path-tree|plain-path-tree|find",
-            arity = "1"
+        index = "0",
+        description = "Operation type: read|write|path-tree|plain-path-tree|find",
+        arity = "1"
     )
     String operation;
 
-    @CommandLine.Option(names = {"-b", "--base-dir"}, description = "基础目录", defaultValue = ".")
+    @CommandLine.Option(names = {"-b", "--base-dir"}, description = "Base directory", defaultValue = ".")
     File baseDir;
 
     @CommandLine.Option(
-            names = {"-p", "--pattern"},
-            description = "文件匹配模式(Ant风格路径)，仅read操作需要"
+        names = {"-p", "--pattern"},
+        description = "File match pattern (Ant style path), required for read operation"
     )
     String pattern;
 
     @CommandLine.Option(
-            names = {"-r", "--regex"},
-            description = "正则匹配模式，在find和path-tree时使用"
+        names = {"-r", "--regex"},
+        description = "Regex match pattern, used by find and path-tree operations"
     )
     String regex;
 
     @CommandLine.Option(
-            names = {"-d", "--dir"},
-            description = "搜索目录，仅read操作需要",
-            defaultValue = "/"
+        names = {"-d", "--dir"},
+        description = "Search directory (root), required for read operation",
+        defaultValue = "/"
     )
     String searchDir;
 
     @CommandLine.Option(
-            names = {"-mf", "--max-files"},
-            description = "最大读取文件数量",
-            defaultValue = "10"
+        names = {"-mf", "--max-files"},
+        description = "Maximum number of files to read",
+        defaultValue = "10"
     )
     int maxFiles;
 
     @CommandLine.Option(
-            names = {"-ml", "--max-length-per-file"},
-            description = "每个文件读取的最大字符数",
-            defaultValue = "2000"
+        names = {"-ml", "--max-length-per-file"},
+        description = "Maximum characters to read per file",
+        defaultValue = "2000"
     )
     int maxLengthPerFile;
 
 
     @CommandLine.Option(
-            names = {"-l", "--max-depth"},
-            description = "最大遍历目录深度",
-            defaultValue = "-1"
+        names = {"-l", "--max-depth"},
+        description = "Max directory traversal depth (-1 for unlimited)",
+        defaultValue = "-1"
     )
     int maxDepth;
 
     @CommandLine.Option(
-            names = {"-c", "--content"},
-            description = "要写入的内容(支持多文件格式)，仅write操作需要"
+        names = {"-c", "--content"},
+        description = "Content to write (supports multi-file format). Required for write operation"
     )
     String content;
 
     @CommandLine.Option(
-            names = {"-i", "--input"},
-            description = "从输入文件中读取内容进行写入，仅write操作需要"
+        names = {"-i", "--input"},
+        description = "Read content from input file (write operation)"
     )
     File inputFile;
 
     @CommandLine.Option(
-            names = {"-o", "--output"},
-            description = "输出目标(文件或目录路径)",
-            defaultValue = ""
+        names = {"-o", "--output"},
+        description = "Output target (file or directory path)",
+        defaultValue = ""
     )
     String outputPath;
 
     @CommandLine.Option(
-            names = {"-O", "--overwrite"},
-            description = "是否覆盖已存在文件"
+        names = {"-O", "--overwrite"},
+        description = "Overwrite existing files"
     )
     boolean overwrite;
 
@@ -154,16 +154,16 @@ public class CliFileCommand implements Callable<Integer> {
 
         FileContents contents;
         if (inputFile != null) {
-            // 从输入文件读取内容
+            // Read content from input file
             String fileContent = FileHelper.readText(inputFile, null);
             contents = FileContents.fromText(fileContent);
         } else {
-            // 使用直接提供的内容
+            // Use directly provided content
             contents = FileContents.fromText(content);
         }
 
         if (outputPath.isEmpty()) {
-            // 如果没有指定输出路径，使用内容中的第一个文件名
+            // If no output path specified, use first file name from content bundle
             if (contents.getFiles().isEmpty()) {
                 throw new IllegalArgumentException("No file content provided");
             }
@@ -172,11 +172,11 @@ public class CliFileCommand implements Callable<Integer> {
         } else {
             File outputFile = new File(outputPath);
             if (outputFile.isDirectory()) {
-                // 如果输出目标是目录，写入多个文件
+                // If output target is a directory, write multiple files
                 fileOperator.writeFileContents(contents, overwrite);
                 System.out.println("Files written to directory: " + outputPath);
             } else {
-                // 如果输出目标是文件，只写入第一个文件内容
+                // If output target is a file, only write first file's content
                 if (!contents.getFiles().isEmpty()) {
                     FileHelper.writeText(outputFile, contents.getFiles().get(0).getContent(), null);
                     System.out.println("File written to: " + outputPath);

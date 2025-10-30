@@ -21,27 +21,27 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(
-        name = "import-db",
-        mixinStandardHelpOptions = true,
-        description = "导入数据到数据库中"
+    name = "import-db",
+    mixinStandardHelpOptions = true,
+    description = "Import data into database"
 )
 public class CliImportDbCommand implements Callable<Integer> {
-    @CommandLine.Option(names = {"-i", "--input"}, description = "数据数据目录")
+    @CommandLine.Option(names = {"-i", "--input"}, description = "Input data directory")
     File inputDir;
 
-    @CommandLine.Option(names = {"-a", "--args"}, description = "输入参数")
+    @CommandLine.Option(names = {"-a", "--args"}, description = "Input arguments (JSON)")
     String args;
 
-    @CommandLine.Option(names = {"-s", "--state"}, description = "状态文件路径")
+    @CommandLine.Option(names = {"-s", "--state"}, description = "State file path")
     File stateFile;
 
-    @CommandLine.Parameters(description = "配置文件路径")
+    @CommandLine.Parameters(description = "Config file path")
     String configPath;
 
     @CommandLine.Option(
-            names = "-P",
-            description = "动态参数（格式：-Pname=value）",
-            paramLabel = "KEY=VALUE"
+        names = "-P",
+        description = "Dynamic parameter (format: -Pname=value)",
+        paramLabel = "KEY=VALUE"
     )
     Map<String, String> dynamicParams = new HashMap<>();
 
@@ -50,7 +50,7 @@ public class CliImportDbCommand implements Callable<Integer> {
     public Integer call() {
         IResource resource = ResourceHelper.resolveRelativePathResource(configPath);
         ImportDbConfig config = (ImportDbConfig) ResourceComponentManager.instance().loadComponentModel(resource.getPath());
-        // 有可能会修改config的属性，所以需要复制一份
+    // Clone config because importing may modify its properties
         config = config.cloneInstance();
 
         if (inputDir != null)
