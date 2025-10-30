@@ -32,6 +32,7 @@ public interface RecordErrors {
     String ARG_TYPE_NAME = "typeName";
 
     String ARG_FIELD_PATH = "fieldPath";
+    String ARG_REAL_READ_POS = "realReadPos";
 
     String ARG_POS = "pos";
     String ARG_EXPECTED = "expected";

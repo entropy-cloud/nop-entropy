@@ -31,6 +31,11 @@ public class SubBinaryDataReader implements IBinaryDataReader {
     }
 
     @Override
+    public long realPos() {
+        return underlying.realPos();
+    }
+
+    @Override
     public void seek(long newPos) throws IOException {
         if (newPos > maxLength) {
             throw new IOException("Seek position " + newPos + " exceeds max length " + maxLength);

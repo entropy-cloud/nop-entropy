@@ -53,6 +53,11 @@ public class SubTextDataReader implements ITextDataReader {
     }
 
     @Override
+    public long realPos() {
+        return input.realPos();
+    }
+
+    @Override
     public long available() throws IOException {
         long offset = pos();
         if (offset >= maxLength)

@@ -1,6 +1,7 @@
 package io.nop.record.serialization;
 
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IVariableScope;
 import io.nop.api.core.util.Symbol;
@@ -30,6 +31,7 @@ import java.util.LinkedHashMap;
 import static io.nop.record.RecordErrors.ARG_CASE_VALUE;
 import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
 import static io.nop.record.RecordErrors.ARG_FIELD_PATH;
+import static io.nop.record.RecordErrors.ARG_REAL_READ_POS;
 import static io.nop.record.RecordErrors.ARG_TYPE_NAME;
 import static io.nop.record.RecordErrors.ERR_RECORD_FIELD_IS_MANDATORY;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_MATCH_FOR_CASE_VALUE;
@@ -46,6 +48,34 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
         if (recordMeta.getBeforeRead() != null)
             recordMeta.getBeforeRead().call3(null, in, record, context, context.getEvalScope());
 
+        String rawString = null;
+        int length = getObjectLength(in, recordMeta, record, context);
+        if (length > 0) {
+            in = (Input) in.subInput(length);
+
+            // 如果rawVarName不为空，则解析对象的时候将原始内容保存到上下文中，抛出异常的时候可以携带这个内容
+            // 这个特性对于解析复杂结构出错时进行问题诊断很有用
+            if (recordMeta.getRawVarName() != null) {
+                rawString = getRawDataString(in, length);
+                context.setValue(recordMeta.getRawVarName(), rawString);
+            }
+        }
+
+        if (rawString == null) {
+            _readObject(in, recordMeta, record, context);
+        } else {
+            try {
+                _readObject(in, recordMeta, record, context);
+            } catch (NopException e) {
+                e.param(recordMeta.getRawVarName(), rawString);
+                throw e;
+            }
+        }
+        return pos != in.pos();
+    }
+
+    protected void _readObject(Input in, RecordObjectMeta recordMeta, Object record, IFieldCodecContext context)
+            throws IOException {
         if (recordMeta.getResolvedBaseType() != null)
             readObject(in, recordMeta.getResolvedBaseType(), record, context);
 
@@ -54,7 +84,6 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
 
         if (recordMeta.getAfterRead() != null)
             recordMeta.getAfterRead().call3(null, in, record, context, context.getEvalScope());
-        return pos != in.pos();
     }
 
     protected void readTemplateOrFields(Input in, IBitSet tags,
@@ -81,7 +110,7 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
                 readField(in, field, record, context);
             }
         } else {
-            throw new NopException(ERR_RECORD_TYPE_NO_FIELDS).source(fields).param(ARG_TYPE_NAME, fields.getName());
+            throw newError(ERR_RECORD_TYPE_NO_FIELDS, in, context).source(fields).param(ARG_TYPE_NAME, fields.getName());
         }
     }
 
@@ -111,10 +140,25 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
 
             if (field.getAfterRead() != null)
                 field.getAfterRead().call3(null, in, record, context, context.getEvalScope());
+        } catch (NopException e) {
+            fillStdErrorInfo(e, field, in, context);
+            throw e;
         } finally {
             context.exitField(field);
         }
         return true;
+    }
+
+    protected void fillStdErrorInfo(NopException e, RecordSimpleFieldMeta field, Input in, IFieldCodecContext context) {
+        if (e.getErrorLocation() == null)
+            e.loc(field.getLocation());
+
+        if (e.getParam(ARG_REAL_READ_POS) == null) {
+            e.param(ARG_REAL_READ_POS, in.realPos());
+        }
+        if (e.getParam(ARG_FIELD_PATH) == null) {
+            e.param(ARG_FIELD_PATH, context.getFieldPath());
+        }
     }
 
     protected int getFieldLength(Input in, RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) {
@@ -124,10 +168,23 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
 
             length = ConvertHelper.toPrimitiveInt(lengthValue,
                     field.getLength(),
-                    err -> new NopException(err).param(ARG_FIELD_NAME, field.getName()).param(ARG_FIELD_PATH, context.getFieldPath()));
+                    err -> newError(err, in, context).param(ARG_FIELD_NAME, field.getName()));
         }
         return length;
     }
+
+    protected int getObjectLength(Input in, RecordObjectMeta typeMeta, Object record, IFieldCodecContext context) {
+        int length = typeMeta.getLength() == null ? -1: typeMeta.getLength();
+        if (typeMeta.getLengthExpr() != null) {
+            Object lengthValue = typeMeta.getLengthExpr().call3(null, in, record, context, context.getEvalScope());
+
+            length = ConvertHelper.toPrimitiveInt(lengthValue,
+                    typeMeta.getLength(),
+                    err -> newError(err, in, context).param(ARG_TYPE_NAME, typeMeta.getName()));
+        }
+        return length;
+    }
+
 
     protected void readCollection(Input in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
         Collection<Object> coll;
@@ -186,7 +243,7 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
                 }
             }
         }
-        return ConvertHelper.toPrimitiveInt(count, err -> new NopException(err).source(field).param(ARG_FIELD_NAME, field.getName()));
+        return ConvertHelper.toPrimitiveInt(count, err -> newError(err, in, context).source(field).param(ARG_FIELD_NAME, field.getName()));
     }
 
     protected Object readSwitch(Input in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
@@ -200,18 +257,17 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
             if (field.getVarName() != null)
                 context.setValue(field.getVarName(), value);
 
-            validate(value, field, context);
+            validate(value, field, in, context);
             if (!field.isVirtual())
                 setPropByName(record, field.getPropOrFieldName(), value);
             return value;
         }
     }
 
-    protected void validate(Object value, RecordSimpleFieldMeta field, IFieldCodecContext context) {
+    protected void validate(Object value, RecordSimpleFieldMeta field, Input in, IFieldCodecContext context) {
         if (field.isMandatory() && StringHelper.isEmptyObject(value)) {
-            throw new NopException(ERR_RECORD_FIELD_IS_MANDATORY)
-                    .param(ARG_FIELD_NAME, field.getName())
-                    .param(ARG_FIELD_PATH, context.getFieldPath());
+            throw newError(ERR_RECORD_FIELD_IS_MANDATORY, in, context)
+                    .param(ARG_FIELD_NAME, field.getName());
         }
 
         if (field.getSchema() != null) {
@@ -254,7 +310,7 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
             }
 
             if (onValue == null)
-                throw new NopException(ERR_RECORD_NO_SWITCH_ON_FIELD)
+                throw newError(ERR_RECORD_NO_SWITCH_ON_FIELD, in, context)
                         .source(field)
                         .param(ARG_FIELD_NAME, field.getName());
 
@@ -264,14 +320,14 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
 
             String caseType = field.getTypeByCaseValue(onValue);
             if (caseType == null)
-                throw new NopException(ERR_RECORD_NO_MATCH_FOR_CASE_VALUE)
+                throw newError(ERR_RECORD_NO_MATCH_FOR_CASE_VALUE, in, context)
                         .source(field)
                         .param(ARG_FIELD_NAME, field.getName())
                         .param(ARG_CASE_VALUE, onValue);
 
             typeMeta = context.getType(caseType);
             if (typeMeta == null)
-                throw new NopException(ERR_RECORD_NO_MATCH_FOR_CASE_VALUE)
+                throw newError(ERR_RECORD_NO_MATCH_FOR_CASE_VALUE, in, context)
                         .source(field)
                         .param(ARG_FIELD_NAME, field.getName())
                         .param(ARG_CASE_VALUE, onValue)
@@ -283,7 +339,7 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
         if (field.getTypeRef() != null) {
             RecordTypeMeta typeMeta = context.getType(field.getTypeRef());
             if (typeMeta == null)
-                throw new NopException(ERR_RECORD_UNKNOWN_OBJ_TYPE)
+                throw newError(ERR_RECORD_UNKNOWN_OBJ_TYPE, in, context)
                         .source(field)
                         .param(ARG_FIELD_NAME, field.getName())
                         .param(ARG_TYPE_NAME, field.getTypeRef());
@@ -292,6 +348,12 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
         }
 
         return null;
+    }
+
+    protected NopException newError(ErrorCode errorCode, Input in, IFieldCodecContext context) {
+        return new NopException(errorCode)
+                .param(ARG_REAL_READ_POS, in.realPos())
+                .param(ARG_FIELD_PATH, context.getFieldPath());
     }
 
     protected Object getPropByName(Object record, String propName) {
@@ -304,6 +366,8 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
     protected void setPropByName(Object record, String propName, Object value) {
         BeanTool.setProperty(record, propName, value);
     }
+
+    abstract protected String getRawDataString(Input in, int length) throws IOException;
 
     abstract protected String determineObjectTypeByRule(IPeekMatchRule rule, Input in, RecordFieldMeta field,
                                                         Object record, IFieldCodecContext context) throws IOException;

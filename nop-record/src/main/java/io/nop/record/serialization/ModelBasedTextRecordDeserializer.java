@@ -44,6 +44,11 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
     }
 
     @Override
+    protected String getRawDataString(ITextDataReader in, int length) throws IOException {
+        return in.peek(length);
+    }
+
+    @Override
     protected void readCollectionWithCodec(ITextDataReader in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
         IFieldTextCodec codec = resolveTextCodec(field, registry);
         if (codec != null) {

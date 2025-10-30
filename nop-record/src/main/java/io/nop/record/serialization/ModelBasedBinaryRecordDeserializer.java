@@ -47,6 +47,11 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
     }
 
     @Override
+    protected String getRawDataString(IBinaryDataReader in, int length) throws IOException {
+        return in.peekByteString(length).hex();
+    }
+
+    @Override
     protected void readCollectionWithCodec(IBinaryDataReader in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
         IFieldBinaryCodec codec = resolveBinaryCodec(field, registry);
         if (codec != null) {
