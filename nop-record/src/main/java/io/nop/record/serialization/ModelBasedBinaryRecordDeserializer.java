@@ -77,7 +77,7 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
         byte[] bytes = str.getBytes(charset == null ? StandardCharsets.UTF_8 : charset);
         byte[] read = in.readBytes(bytes.length);
         if (!Arrays.equals(bytes, read))
-            throw new NopException(ERR_RECORD_VALUE_NOT_MATCH_STRING)
+            throw newError(ERR_RECORD_VALUE_NOT_MATCH_STRING,in,context)
                     .param(ARG_POS, in.pos())
                     .param(ARG_EXPECTED, str)
                     .param(ARG_VALUE, StringHelper.bytesToHex(read));
@@ -95,7 +95,7 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
             String str = decodeString(in, field.getCharsetObj(), length);
             if (field.getContent() != null) {
                 if (!field.getContent().utf8().equals(str))
-                    throw new NopException(ERR_RECORD_VALUE_NOT_MATCH_STRING)
+                    throw newError(ERR_RECORD_VALUE_NOT_MATCH_STRING,in,context)
                             .param(ARG_POS, in.pos()).param(ARG_EXPECTED, field.getContent().utf8())
                             .param(ARG_VALUE, str);
             }

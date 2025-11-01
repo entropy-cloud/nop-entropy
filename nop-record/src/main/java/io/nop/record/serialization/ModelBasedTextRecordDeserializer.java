@@ -74,7 +74,7 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
     protected void readString(ITextDataReader in, String str, Charset charset, IFieldCodecContext context) throws IOException {
         String read = in.readFully(str.length());
         if (!str.equals(read))
-            throw new NopException(ERR_RECORD_VALUE_NOT_MATCH_STRING)
+            throw newError(ERR_RECORD_VALUE_NOT_MATCH_STRING, in, context)
                     .param(ARG_POS, in.pos())
                     .param(ARG_EXPECTED, str)
                     .param(ARG_VALUE, read);
@@ -93,7 +93,7 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
             String str = in.readFully(length);
             if (field.getContent() != null) {
                 if (!field.getContent().utf8().equals(str))
-                    throw new NopException(ERR_RECORD_VALUE_NOT_MATCH_STRING)
+                    throw newError(ERR_RECORD_VALUE_NOT_MATCH_STRING, in, context)
                             .param(ARG_POS, in.pos()).param(ARG_EXPECTED, field.getContent().utf8())
                             .param(ARG_VALUE, str);
             }
