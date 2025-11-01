@@ -17,8 +17,6 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.impl.UnknownResource;
-import io.nop.core.resource.tenant.ITenantModuleDiscovery;
-import io.nop.core.resource.tenant.ResourceTenantManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,9 +50,18 @@ public class ModuleManager {
 
     private final AtomicReference<Map<String, ModuleModel>> modules = new AtomicReference<>(new TreeMap<>());
 
+    private ITenantModuleDiscovery tenantModuleDiscovery;
 
     public static ModuleManager instance() {
         return _instance;
+    }
+
+    public ITenantModuleDiscovery getTenantModuleDiscovery() {
+        return tenantModuleDiscovery;
+    }
+
+    public void setTenantModuleDiscovery(ITenantModuleDiscovery tenantModuleDiscovery) {
+        this.tenantModuleDiscovery = tenantModuleDiscovery;
     }
 
     /**
@@ -132,8 +139,8 @@ public class ModuleManager {
 
         if (includeTenant) {
             String tenantId = getTenantId();
-            if (!StringHelper.isEmpty(tenantId) && ResourceTenantManager.instance().getTenantModuleDiscovery() != null) {
-                Map<String, ModuleModel> m = ResourceTenantManager.instance().getTenantModuleDiscovery().getEnabledTenantModules();
+            if (tenantId != null && tenantModuleDiscovery != null) {
+                Map<String, ModuleModel> m = tenantModuleDiscovery.getEnabledTenantModules();
                 if (m != null) {
                     ret.putAll(m);
                 }
@@ -143,10 +150,9 @@ public class ModuleManager {
     }
 
     public Map<String, ModuleModel> getEnabledTenantModules() {
-        ITenantModuleDiscovery discovery = ResourceTenantManager.instance().getTenantModuleDiscovery();
-        if (discovery == null)
+        if (tenantModuleDiscovery == null)
             return Collections.emptyMap();
-        Map<String, ModuleModel> ret = ResourceTenantManager.instance().getTenantModuleDiscovery().getEnabledTenantModules();
+        Map<String, ModuleModel> ret = tenantModuleDiscovery.getEnabledTenantModules();
         if (ret == null)
             ret = Collections.emptyMap();
         return ret;

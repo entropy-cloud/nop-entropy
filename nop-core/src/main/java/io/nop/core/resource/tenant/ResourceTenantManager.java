@@ -89,16 +89,6 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
 
     private ITenantResourceProvider tenantResourceProvider;
 
-    private ITenantModuleDiscovery tenantModuleDiscovery;
-
-    public ITenantModuleDiscovery getTenantModuleDiscovery() {
-        return tenantModuleDiscovery;
-    }
-
-    public void setTenantModuleDiscovery(ITenantModuleDiscovery tenantModuleDiscovery) {
-        this.tenantModuleDiscovery = tenantModuleDiscovery;
-    }
-
     public ITenantResourceProvider getTenantResourceProvider() {
         return tenantResourceProvider;
     }

@@ -1,6 +1,4 @@
-package io.nop.core.resource.tenant;
-
-import io.nop.core.module.ModuleModel;
+package io.nop.core.module;
 
 import java.util.Map;
 

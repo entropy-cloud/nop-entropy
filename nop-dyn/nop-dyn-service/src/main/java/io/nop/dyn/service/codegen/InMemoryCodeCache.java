@@ -3,7 +3,6 @@ package io.nop.dyn.service.codegen;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.biz.api.IBizObjectManager;
-import io.nop.biz.impl.IDynamicBizModelProvider;
 import io.nop.codegen.XCodeGenerator;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
@@ -30,7 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * 最终发布到虚拟文件系统中的是一个合并后的只读副本，避免出现并发更新的情况。作为编辑使用的CodeCache，每次编辑时都使用同步机制避免并发错误。
@@ -46,8 +44,6 @@ public class InMemoryCodeCache {
 
     // bizObjName => BizModel
     private final Map<String, GraphQLBizModel> dynBizModels = new ConcurrentHashMap<>();
-
-    private final List<IDynamicBizModelProvider.ChangeListener> changeListeners = new CopyOnWriteArrayList<>();
 
     /**
      * 将所有模块的资源文件合并在一起
@@ -103,11 +99,6 @@ public class InMemoryCodeCache {
 
     public GraphQLBizModel getBizModel(String bizObjName) {
         return dynBizModels.get(bizObjName);
-    }
-
-    public Runnable addOnChangeListener(IDynamicBizModelProvider.ChangeListener changeListener) {
-        this.changeListeners.add(changeListener);
-        return () -> changeListeners.remove(changeListener);
     }
 
     public void removeModule(String moduleName) {

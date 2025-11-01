@@ -76,7 +76,7 @@ public class LazyLoadOrmModel implements IOrmModel {
     }
 
     protected IEntityModel loadEntityModel(String entityName) {
-        return entityModelLoader.getEntityModel(entityName);
+        return entityModelLoader.getDynamicEntityModel(entityName);
     }
 
     @Override

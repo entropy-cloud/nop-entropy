@@ -11,14 +11,15 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.biz.api.IBizObjectManager;
-import io.nop.biz.impl.IDynamicBizModelProvider;
+import io.nop.biz.api.ITenantBizModelProvider;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.module.ITenantModuleDiscovery;
+import io.nop.core.module.ModuleManager;
 import io.nop.core.module.ModuleModel;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceStore;
-import io.nop.core.resource.tenant.ITenantModuleDiscovery;
 import io.nop.core.resource.tenant.ITenantResourceProvider;
 import io.nop.core.resource.tenant.ResourceTenantManager;
 import io.nop.dao.api.IDaoProvider;
@@ -49,7 +50,7 @@ import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE;
 import static io.nop.dyn.service.NopDynConfigs.CFG_DYN_GEN_CODE_WHEN_INIT;
 
-public class DynCodeGen implements ITenantResourceProvider, IDynamicBizModelProvider, ITenantModuleDiscovery,
+public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvider, ITenantModuleDiscovery,
         IDynamicEntityModelProvider {
     @Inject
     IDaoProvider daoProvider;
@@ -88,7 +89,7 @@ public class DynCodeGen implements ITenantResourceProvider, IDynamicBizModelProv
 
         if (useTenant) {
             ResourceTenantManager.instance().setTenantResourceProvider(this);
-            ResourceTenantManager.instance().setTenantModuleDiscovery(this);
+            ModuleManager.instance().setTenantModuleDiscovery(this);
         }
     }
 
@@ -96,14 +97,14 @@ public class DynCodeGen implements ITenantResourceProvider, IDynamicBizModelProv
     public void destroy() {
         if (useTenant) {
             ResourceTenantManager.instance().setTenantResourceProvider(null);
-            ResourceTenantManager.instance().setTenantModuleDiscovery(null);
+            ModuleManager.instance().setTenantModuleDiscovery(null);
         }
         codeCache.clear();
         tenantCache.clear();
     }
 
     @Override
-    public Set<String> getBizObjNames() {
+    public Set<String> getTenantBizObjNames() {
         return getCodeCache().getDynBizModels().keySet();
     }
 
@@ -143,7 +144,7 @@ public class DynCodeGen implements ITenantResourceProvider, IDynamicBizModelProv
     }
 
     @Override
-    public IEntityModel getEntityModel(String entityName) {
+    public IEntityModel getDynamicEntityModel(String entityName) {
         return null;
     }
 
@@ -252,12 +253,8 @@ public class DynCodeGen implements ITenantResourceProvider, IDynamicBizModelProv
     }
 
     @Override
-    public GraphQLBizModel getBizModel(String bizObjName) {
+    public GraphQLBizModel getTenantBizModel(String bizObjName) {
         return getCodeCache().getBizModel(bizObjName);
     }
 
-    @Override
-    public Runnable addOnChangeListener(ChangeListener listener) {
-        return getCodeCache().addOnChangeListener(listener);
-    }
 }

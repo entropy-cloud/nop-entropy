@@ -14,6 +14,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancellable;
 import io.nop.biz.api.IBizObject;
 import io.nop.biz.api.IBizObjectManager;
+import io.nop.biz.api.ITenantBizModelProvider;
 import io.nop.biz.decorator.IActionDecoratorCollector;
 import io.nop.biz.makerchecker.IMakerCheckerProvider;
 import io.nop.commons.cache.GlobalCacheRegistry;
@@ -36,6 +37,7 @@ import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.ast._gen._GraphQLTypeDefinition;
 import io.nop.graphql.core.biz.IGraphQLBizInitializer;
 import io.nop.graphql.core.biz.IGraphQLSchemaInitializer;
+import io.nop.graphql.core.reflection.GraphQLBizModel;
 import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
 import io.nop.graphql.core.schema.TypeRegistry;
@@ -79,6 +81,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
     private ICancellable cancellable;
 
     private GraphQLBizModels bizModels;
+    private GraphQLBizModels dynBizModels;
 
     private List<IActionDecoratorCollector> actionDecoratorCollectors;
 
@@ -87,11 +90,9 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
 
     private IMakerCheckerProvider makerCheckerProvider;
 
-    private IDynamicBizModelProvider dynamicBizModelProvider;
+    private ITenantBizModelProvider tenantBizModelProvider;
     private final IResourceLoadingCache<IBizObject> bizObjCache = ResourceTenantManager.instance().makeLoadingCache("biz-object-cache",
             this::buildBizObject, null);
-
-    private Runnable cleanup;
 
     private boolean autoRegisterGlobalCache = true;
 
@@ -103,21 +104,13 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         this.bizModelBeans = bizModelBeans;
     }
 
-    @Inject
-    public void setDynamicBizModelProvider(@Nullable IDynamicBizModelProvider dynamicBizModelProvider) {
-        this.dynamicBizModelProvider = dynamicBizModelProvider;
-        if (dynamicBizModelProvider != null)
-            cleanup = dynamicBizModelProvider.addOnChangeListener(new IDynamicBizModelProvider.ChangeListener() {
-                @Override
-                public void onBizObjRemoved(String bizObjName) {
-                    removeCache(bizObjName);
-                }
+    public void setDynBizModels(GraphQLBizModels dynBizModels){
+        this.dynBizModels = dynBizModels;
+    }
 
-                @Override
-                public void onBizObjChanged(String bizObjName) {
-                    removeCache(bizObjName);
-                }
-            });
+    @Inject
+    public void setTenantBizModelProvider(@Nullable ITenantBizModelProvider tenantBizModelProvider) {
+        this.tenantBizModelProvider = tenantBizModelProvider;
     }
 
     public void setBizInitializers(List<IGraphQLBizInitializer> bizInitializers) {
@@ -191,13 +184,12 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         if (typeRegistry != null)
             typeRegistry.clear();
         bizObjCache.clear();
-        if (cleanup != null)
-            cleanup.run();
     }
 
     protected IBizObject buildBizObject(String bizObjName) {
         try {
-            return new BizObjectBuilder(this, bizModels, dynamicBizModelProvider, typeRegistry,
+            return new BizObjectBuilder(this, bizModels, dynBizModels,
+                    tenantBizModelProvider, typeRegistry,
                     actionDecoratorCollectors, bizInitializers, makerCheckerProvider)
                     .buildBizObject(bizObjName);
         } catch (NopException e) {
@@ -311,9 +303,9 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
     @Override
     public Set<String> getBizObjNames() {
         Set<String> ret = bizModels.getBizObjNames();
-        if (dynamicBizModelProvider != null) {
+        if (tenantBizModelProvider != null) {
             ret = new HashSet<>(ret);
-            ret.addAll(dynamicBizModelProvider.getBizObjNames());
+            ret.addAll(tenantBizModelProvider.getTenantBizObjNames());
         }
         return ret;
     }

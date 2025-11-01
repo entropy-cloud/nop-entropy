@@ -7,10 +7,12 @@
  */
 package io.nop.biz.impl;
 
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObject;
 import io.nop.biz.api.IBizObjectManager;
+import io.nop.biz.api.ITenantBizModelProvider;
 import io.nop.biz.crud.BizObjectQueryProcessorAdapter;
 import io.nop.biz.decorator.IActionDecoratorCollector;
 import io.nop.biz.makerchecker.IMakerCheckerProvider;
@@ -60,8 +62,9 @@ import static io.nop.biz.BizErrors.ERR_BIZ_UNKNOWN_BIZ_OBJ_NAME;
 public class BizObjectBuilder {
     static final Logger LOG = LoggerFactory.getLogger(BizObjectImpl.class);
     private final GraphQLBizModels bizModels;
+    private final GraphQLBizModels dynBizModels;
 
-    private final IDynamicBizModelProvider dynBizModels;
+    private final ITenantBizModelProvider tenantBizModelProvider;
     private final TypeRegistry typeRegistry;
 
     private final List<IActionDecoratorCollector> collectors;
@@ -72,13 +75,15 @@ public class BizObjectBuilder {
     private final IBizObjectManager bizObjectManager;
 
     public BizObjectBuilder(IBizObjectManager bizObjectManager, GraphQLBizModels bizModels,
-                            IDynamicBizModelProvider dynBizModels, TypeRegistry typeRegistry,
+                            GraphQLBizModels dynBizModels,
+                            ITenantBizModelProvider tenantBizModelProvider, TypeRegistry typeRegistry,
                             List<IActionDecoratorCollector> collectors,
                             List<IGraphQLBizInitializer> bizInitializers,
                             IMakerCheckerProvider makerCheckerProvider) {
         this.bizObjectManager = bizObjectManager;
         this.bizModels = bizModels;
         this.dynBizModels = dynBizModels;
+        this.tenantBizModelProvider = tenantBizModelProvider;
         this.typeRegistry = typeRegistry;
         this.collectors = collectors;
         this.bizInitializers = bizInitializers;
@@ -195,6 +200,9 @@ public class BizObjectBuilder {
         GraphQLBizModel gqlBizModel = bizModels.getBizModel(bizObjName);
         if (gqlBizModel == null && dynBizModels != null)
             gqlBizModel = dynBizModels.getBizModel(bizObjName);
+
+        if (gqlBizModel == null && tenantBizModelProvider != null && ContextProvider.currentTenantId() != null)
+            gqlBizModel = tenantBizModelProvider.getTenantBizModel(bizObjName);
         if (gqlBizModel == null)
             throw new NopException(ERR_BIZ_UNKNOWN_BIZ_OBJ_NAME).param(ARG_BIZ_OBJ_NAME, bizObjName);
 
