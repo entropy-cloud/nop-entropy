@@ -14,32 +14,37 @@ import static io.nop.api.core.ApiErrors.ERR_IOC_BEAN_CONTAINER_NOT_INITIALIZED;
 
 @GlobalInstance
 public class BeanContainer {
-    static IBeanContainer _instance;
+    static IBeanContainerProvider _provider;
 
     public static boolean isInitialized() {
-        return _instance != null;
+        return _provider != null;
     }
 
     public static IBeanContainer instance() {
-        IBeanContainer provider = _instance;
+        IBeanContainerProvider provider = _provider;
         if (provider == null)
             throw new NopException(ERR_IOC_BEAN_CONTAINER_NOT_INITIALIZED);
-        return provider;
+        return provider.getBeanContainer();
     }
 
     public static void registerInstance(IBeanContainer container) {
-        _instance = container;
+        _provider = () -> container;
+    }
+
+    public static void registerProvider(IBeanContainerProvider provider) {
+        _provider = provider;
     }
 
     public static <T> T getBeanByType(Class<T> beanClass) {
-        return _instance.getBeanByType(beanClass);
+        return instance().getBeanByType(beanClass);
     }
 
     public static Object tryGetBean(String beanName) {
-        if (_instance == null)
+        if (_provider == null)
             return null;
-        if (!_instance.containsBean(beanName))
+        IBeanContainer container = instance();
+        if (!container.containsBean(beanName))
             return null;
-        return _instance.getBean(beanName);
+        return container.getBean(beanName);
     }
 }
