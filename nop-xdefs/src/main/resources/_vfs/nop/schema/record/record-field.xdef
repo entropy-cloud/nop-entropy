@@ -18,12 +18,12 @@
     <!--
     返回字段的循环次数
     -->
-    <repeatCountExpr xdef:value="xpl-fn:(in,record,ctx)=>long"/>
+    <repeatCountExpr xdef:value="xpl-fn:(input,record,ctx)=>long"/>
 
     <!--
     返回字段循环的终止条件
     -->
-    <repeatUntil xdef:value="xpl-fn:(in,record,ctx)=>boolean"/>
+    <repeatUntil xdef:value="xpl-fn:(input,record,ctx)=>boolean"/>
 
     <!--
     动态确定字段类型
@@ -33,17 +33,17 @@
 
     <switchOnRule xdef:value="peek-match-rule"/>
 
-    <switchOnExpr xdef:value="xpl-fn:(in,record,ctx)=>string"/>
+    <switchOnExpr xdef:value="xpl-fn:(input,record,ctx)=>string"/>
 
     <!-- 根据record[switchOnField]或者switchOnRule获取到类型，key为*表示缺省映射 -->
     <switchTypeMap xdef:value="string-map"/>
 
     <beforeWrite xdef:value="xpl-fn:(out,record,ctx)=>any"/>
 
-    <beforeRead xdef:value="xpl-fn:(in,record,ctx)=>any"/>
+    <beforeRead xdef:value="xpl-fn:(input,record,ctx)=>any"/>
 
     <afterWrite xdef:value="xpl-fn:(out,record,ctx)=>any"/>
 
     <!-- 在所有子字段都读取到之后执行 -->
-    <afterRead xdef:value="xpl-fn:(in,record,ctx)=>any"/>
+    <afterRead xdef:value="xpl-fn:(input,record,ctx)=>any"/>
 </field>

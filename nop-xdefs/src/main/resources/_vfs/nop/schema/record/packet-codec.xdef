@@ -8,5 +8,5 @@
 >
     <encodeTypeDecider xdef:value="xpl-fn:(msg)=>string"/>
 
-    <decodeTypeDecider xdef:value="xpl-fn:(in)=>string"/>
+    <decodeTypeDecider xdef:value="xpl-fn:(input)=>string"/>
 </codec>

@@ -40,14 +40,14 @@
     <!--
     动态确定字段长度。在表达式中record指向父结构，_root指向根结构。
     -->
-    <lengthExpr xdef:value="xpl-fn:(in,record,ctx)=>int"/>
+    <lengthExpr xdef:value="xpl-fn:(input,record,ctx)=>int"/>
 
     <!--
     当表达式返回false时，此字段将被跳过，不会被处理
     -->
     <writeWhen xdef:value="xpl-fn:(record,ctx)=>boolean"/>
 
-    <readWhen xdef:value="xpl-fn:(in,record,ctx)=>boolean"/>
+    <readWhen xdef:value="xpl-fn:(input,record,ctx)=>boolean"/>
 
     <!-- 解析时对已经解析到的value进行转换  -->
     <transformIn xdef:value="xpl-fn:(record,value,ctx)=>any"/>
@@ -55,7 +55,7 @@
     <!-- 输出时不从实体上获取，根据表达式计算得到输出值 -->
     <transformOut xdef:value="xpl-fn:(record,value,ctx)=>any"/>
 
-    <parseExpr xdef:value="xpl-fn:(in,record,ctx)=>any"/>
+    <parseExpr xdef:value="xpl-fn:(input,record,ctx)=>any"/>
 
     <!-- 导出时通过此表达式获取值，而不是通过prop获取值 -->
     <exportExpr xdef:value="xpl-fn:(record,ctx)=>any"/>

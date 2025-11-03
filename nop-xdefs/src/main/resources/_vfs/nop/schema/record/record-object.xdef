@@ -23,7 +23,7 @@
     <!--
     动态确定字段长度。在表达式中record指向父结构，_root指向根结构。
     -->
-    <lengthExpr xdef:value="xpl-fn:(in,record,ctx)=>int"/>
+    <lengthExpr xdef:value="xpl-fn:(input,record,ctx)=>int"/>
 
     <fields xdef:body-type="list" xdef:key-attr="name">
         <field name="!string" xdef:ref="record-field.xdef"/>
@@ -31,16 +31,16 @@
 
     <writeWhen xdef:value="xpl-fn:(record,ctx)=>boolean"/>
 
-    <readWhen xdef:value="xpl-fn:(in,record,ctx)=>boolean"/>
+    <readWhen xdef:value="xpl-fn:(input,record,ctx)=>boolean"/>
 
     <beforeWrite xdef:value="xpl-fn:(out,record,ctx)=>any"/>
 
     <afterWrite xdef:value="xpl-fn:(out,record,ctx)=>any"/>
 
-    <beforeRead xdef:value="xpl-fn:(in,record,ctx)=>any"/>
+    <beforeRead xdef:value="xpl-fn:(input,record,ctx)=>any"/>
 
     <!-- 在所有子字段都读取到之后执行 -->
-    <afterRead xdef:value="xpl-fn:(in,record,ctx)=>any"/>
+    <afterRead xdef:value="xpl-fn:(input,record,ctx)=>any"/>
 
     <template xdef:value="string"/>
 
