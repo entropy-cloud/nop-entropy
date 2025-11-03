@@ -38,6 +38,12 @@ public class GraphQLBizModels {
         return bizModels;
     }
 
+    public static GraphQLBizModels fromBizModels(Map<String, GraphQLBizModel> bizModels) {
+        GraphQLBizModels ret = new GraphQLBizModels();
+        ret.bizModels.putAll(bizModels);
+        return ret;
+    }
+
     public void build(TypeRegistry typeRegistry, Collection<?> beans) {
         if (beans != null) {
             for (Object bean : beans) {

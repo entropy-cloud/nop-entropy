@@ -34,6 +34,8 @@ public class ResourceStoreHelper {
             public TreeVisitResult beginNodeState(ResourceTreeVisitState state) {
                 if(state.getCurrent().isDirectory())
                     return TreeVisitResult.CONTINUE;
+                if(!state.getCurrent().exists())
+                    return TreeVisitResult.CONTINUE;
                 String dumpPath = ResourceHelper.getDumpPath(state.getCurrent().getPath());
                 IResource targetResource = VirtualFileSystem.instance().getResource(dumpPath);
                 state.getCurrent().saveToResource(targetResource);

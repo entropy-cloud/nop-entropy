@@ -29,7 +29,7 @@ import java.util.Collection;
 public class OrmModelLoader {
     static final SourceLocation merged_loc = SourceLocation.fromPath("/nop/main/orm/merged-app.orm.xml");
 
-    private OrmModel loadFromResource(IResource resource, boolean ignoreUnknown) {
+    public OrmModel loadFromResource(IResource resource, boolean ignoreUnknown) {
         OrmModel model = (OrmModel) new DslModelParser(OrmModelConstants.XDSL_SCHEMA_ORM).parseFromResource(resource,
                 ignoreUnknown);
         return model;

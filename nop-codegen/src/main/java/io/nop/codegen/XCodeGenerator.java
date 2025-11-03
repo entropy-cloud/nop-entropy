@@ -29,7 +29,9 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static io.nop.codegen.CodeGenErrors.ARG_FILE_NAME;
 import static io.nop.codegen.CodeGenErrors.ERR_CODEGEN_UNKNOWN_MODEL_TYPE;
@@ -145,23 +147,33 @@ public class XCodeGenerator extends TemplateFileGenerator {
         LOG.debug("nop.execute-codegen:tplPath={},vars={},tplRootPath={},targetRootPath={}", tplPath, vars,
                 this.getTplRootPath(), this.getTargetRootPath());
 
-        scope = scope.newChildScope();
+        IEvalScope childScope = scope.newChildScope();
         if (vars != null) {
-            scope.setLocalValues(s_loc, vars);
+            childScope.setLocalValues(s_loc, vars);
         }
-        scope.setLocalValue(s_loc, CodeGenConstants.VAR_CODE_GENERATOR, this);
+        childScope.setLocalValue(s_loc, CodeGenConstants.VAR_CODE_GENERATOR, this);
 
-        boolean hasInit = runInit(scope);
-        INestedLoop loop = (INestedLoop) scope.getLocalValue(CodeGenConstants.VAR_CODE_GEN_LOOP);
+        boolean hasInit = runInit(childScope);
+        INestedLoop loop = (INestedLoop) childScope.getLocalValue(CodeGenConstants.VAR_CODE_GEN_LOOP);
         if (loop == null) {
             if (hasInit)
                 LOG.warn("nop.codegen.code-gen-loop-not-found");
-            loop = new NestedLoop(new NestedLoopModel(Collections.emptySet(), Collections.emptyMap()),
-                    Collections.emptyMap());
-        }
-        scope.setLocalValues(s_loc, loop.getGlobalVars());
+            // 没有指定genLoop，则以当前scope中的变量为基础构造全局变量
+            Set<String> globalVars = new HashSet<>();
+            globalVars.addAll(scope.keySet());
+            globalVars.addAll(childScope.keySet());
 
-        executeWithLoop(tplPath, loop, scope);
+            Map<String, Object> globalValues = new HashMap<>();
+            globalVars.forEach(varName -> {
+                globalValues.put(varName, childScope.getValue(varName));
+            });
+            loop = new NestedLoop(new NestedLoopModel(scope.keySet(), Collections.emptyMap()),
+                    globalValues);
+        } else {
+            childScope.setLocalValues(s_loc, loop.getGlobalVars());
+        }
+
+        executeWithLoop(tplPath, loop, childScope);
     }
 
     /**

@@ -10,6 +10,7 @@ package io.nop.biz.api;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
+import io.nop.graphql.core.reflection.GraphQLBizModels;
 
 import java.util.Set;
 
@@ -23,6 +24,8 @@ public interface IBizObjectManager {
     IBizObject getBizObject(String bizObjName) throws NopException;
 
     Set<String> getBizObjNames();
+
+    void setDynamicBizModels(GraphQLBizModels bizModels);
 
     /**
      * 将BizActor.invoke调用的返回值包装为ApiResponse对象

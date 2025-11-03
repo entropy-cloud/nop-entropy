@@ -38,7 +38,7 @@ import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_MULTI_META_FILE_FOR_
 
 @DataBean
 public class GraphQLBizModel {
-    private String moduleName;
+    private String moduleId;
     private final String bizObjName;
     private final Map<String, GraphQLFieldDefinition> queryActions = new HashMap<>();
     private final Map<String, GraphQLFieldDefinition> mutationActions = new HashMap<>();
@@ -48,8 +48,11 @@ public class GraphQLBizModel {
     // 在后台使用的内部调用函数，不参与GraphQL类型包装，不直接向前台返回数据
     private final Map<String, BeanMethodAction> bizActions = new HashMap<>();
 
+    private String entityName;
     private String metaPath;
     private String bizPath;
+
+    private String entityMetaId;
 
     public GraphQLBizModel(String bizObjName) {
         this.bizObjName = Guard.notEmpty(bizObjName, "bizObjName");
@@ -63,16 +66,34 @@ public class GraphQLBizModel {
         ret.bizActions.putAll(bizActions);
         ret.metaPath = metaPath;
         ret.bizPath = bizPath;
-        ret.moduleName = moduleName;
+        ret.moduleId = moduleId;
+        ret.entityName = entityName;
+        ret.entityMetaId = entityMetaId;
         return ret;
     }
 
-    public String getModuleName() {
-        return moduleName;
+    public String getEntityMetaId() {
+        return entityMetaId;
     }
 
-    public void setModuleName(String moduleName) {
-        this.moduleName = moduleName;
+    public void setEntityMetaId(String entityMetaId) {
+        this.entityMetaId = entityMetaId;
+    }
+
+    public String getEntityName() {
+        return entityName;
+    }
+
+    public void setEntityName(String entityName) {
+        this.entityName = entityName;
+    }
+
+    public String getModuleId() {
+        return moduleId;
+    }
+
+    public void setModuleId(String moduleId) {
+        this.moduleId = moduleId;
     }
 
     public String getMetaPath() {
@@ -96,7 +117,7 @@ public class GraphQLBizModel {
 
     public void setBizPath(String bizPath) {
         bizPath = ResourceHelper.getStdPath(bizPath);
-        
+
         if (this.bizPath != null && !this.bizPath.equals(bizPath))
             throw new NopException(ERR_GRAPHQL_MULTI_BIZ_FILE_FOR_BIZ_OBJ)
                     .param(ARG_BIZ_OBJ_NAME, bizObjName)

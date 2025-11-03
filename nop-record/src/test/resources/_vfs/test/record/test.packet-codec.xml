@@ -8,4 +8,8 @@
             </fields>
         </type>
     </types>
+
+    <decodeTypeDecider>
+        return 'default';
+    </decodeTypeDecider>
 </codec>

@@ -1,0 +1,6 @@
+<c:unit>
+<c:script>
+ const metaInfo = {objMeta};
+</c:script>
+<c:include src="/nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/_gen/_{metaInfo.objName}.view.xml.xgen" />
+</c:unit>

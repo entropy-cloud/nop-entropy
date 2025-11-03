@@ -20,6 +20,7 @@ import io.nop.biz.model.BizActionModel;
 import io.nop.biz.model.BizLoaderModel;
 import io.nop.biz.model.BizModel;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.CoreErrors;
 import io.nop.core.context.action.IServiceAction;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
@@ -54,6 +55,8 @@ import static io.nop.biz.BizErrors.ERR_BIZ_INVALID_BIZ_OBJ_NAME;
 import static io.nop.biz.BizErrors.ERR_BIZ_MISSING_META_FILE_FOR_OBJ;
 import static io.nop.biz.BizErrors.ERR_BIZ_STATE_MACHINE_NO_STATE_PROP;
 import static io.nop.biz.BizErrors.ERR_BIZ_UNKNOWN_BIZ_OBJ_NAME;
+import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
+import static io.nop.core.CoreErrors.ERR_RESOURCE_NOT_EXISTS;
 
 /**
  * 对于/nop/auth/model/NopAuthUser_admin.xbiz，允许三种情况 1. 存在NopAuthUser_admin.xbiz文件，可能存在xmeta文件 2.
@@ -245,6 +248,11 @@ public class BizObjectBuilder {
                             .param(ARG_META_PATH, metaPath);
             }
         }
+        if (bizModel == null && gqlBizModel.getBizPath() != null)
+            throw new NopException(CoreErrors.ERR_RESOURCE_NOT_EXISTS).param(ARG_RESOURCE_PATH, gqlBizModel.getBizPath());
+
+        if (objMeta == null && gqlBizModel.getMetaPath() != null)
+            throw new NopException(ERR_RESOURCE_NOT_EXISTS).param(ARG_RESOURCE_PATH, gqlBizModel.getMetaPath());
         return newBizObject(bizObjName, bizModel, objMeta);
     }
 

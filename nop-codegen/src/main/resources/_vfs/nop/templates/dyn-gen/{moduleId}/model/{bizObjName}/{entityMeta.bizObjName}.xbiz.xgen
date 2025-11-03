@@ -1,0 +1,1 @@
+<c:include src="/nop/templates/dyn/{moduleId}/model/{entityMeta.bizObjName}/{entityMeta.bizObjName}.xbiz.xgen" />

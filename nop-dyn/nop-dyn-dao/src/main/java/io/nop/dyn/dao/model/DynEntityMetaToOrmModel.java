@@ -163,13 +163,13 @@ public class DynEntityMetaToOrmModel {
         // 如果是外部表，或者没有属性，则不需要生成对应的实体定义
         List<OrmEntityModel> ret = entityMetas.stream().filter(entityMeta -> {
             return entityMeta.isHasProp() || Boolean.TRUE.equals(entityMeta.getIsExternal());
-        }).map(this::toOrmEntityModel).collect(Collectors.toList());
+        }).map(this::transformEntityModel).collect(Collectors.toList());
 
         addMiddleTables(ret, entityMetas, basePackageName);
         return ret;
     }
 
-    OrmEntityModel toOrmEntityModel(NopDynEntityMeta entityMeta) {
+    public OrmEntityModel transformEntityModel(NopDynEntityMeta entityMeta) {
         OrmEntityModel ret = new OrmEntityModel();
         ret.setName(entityMeta.getEntityName());
         ret.setDisplayName(entityMeta.getDisplayName());
@@ -565,7 +565,6 @@ public class DynEntityMetaToOrmModel {
             }
 
         });
-
     }
 
     private OrmToOneReferenceModel newToOneRef(String propName, String entityName, String leftProp, String rightProp) {

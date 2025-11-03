@@ -24,6 +24,7 @@ public class ModuleModel {
     private String publishDate;
 
     private boolean dynamic;
+    private String sid;
 
     public ModuleModel() {
     }
@@ -40,6 +41,14 @@ public class ModuleModel {
 
     public void setModuleName(String moduleName) {
         this.moduleId = ResourceHelper.getModuleIdFromModuleName(moduleName);
+    }
+
+    public String getSid() {
+        return sid;
+    }
+
+    public void setSid(String sid) {
+        this.sid = sid;
     }
 
     @JsonIgnore

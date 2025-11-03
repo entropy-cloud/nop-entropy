@@ -36,6 +36,10 @@ public class NopDynEntityMeta extends _NopDynEntityMeta implements ITagSetSuppor
         this.entityModel = entityModel;
     }
 
+    public String getNopModuleId(){
+        return getModule().getNopModuleId();
+    }
+
     /**
      * 是否定义实体属性。如果没有定义实体属性，则不需要生成实体对象和xmeta，仅生成xbiz
      */

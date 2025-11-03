@@ -19,4 +19,8 @@ public interface NopDynConfigs {
     @Description("启动时是否自动初始化动态模块")
     IConfigReference<Boolean> CFG_DYN_GEN_CODE_WHEN_INIT =
             varRef(s_loc, "nop.dyn.gen-code-when-init", Boolean.class, true);
+
+    @Description("最多允许多少动态对象")
+    IConfigReference<Integer> CFG_DYN_MAX_BIZ_OBJECTS =
+            varRef(s_loc, "nop.dyn.max-biz-objects", Integer.class, 1000);
 }

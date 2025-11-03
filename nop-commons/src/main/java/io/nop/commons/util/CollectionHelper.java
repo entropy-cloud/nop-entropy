@@ -211,6 +211,10 @@ public class CollectionHelper {
         return new LinkedHashMap<>(calcInitSize(expectedSize));
     }
 
+    public static <T> Set<T> newConcurrentHashSet() {
+        return Collections.newSetFromMap(new ConcurrentHashMap<>());
+    }
+
     public static <T> Set<T> newIdentityHashSet() {
         return Collections.newSetFromMap(new IdentityHashMap<>());
     }

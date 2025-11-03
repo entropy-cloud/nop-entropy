@@ -1,0 +1,3 @@
+<c:print>
+   <c:log info="unload module:${moduleModel.moduleName}" />
+</c:print>

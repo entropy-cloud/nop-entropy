@@ -78,8 +78,8 @@ public class TestDynCodeGen extends JunitBaseTestCase {
             codeGen.reloadModel();
         });
 
-        IBizObject bizObj = bizObjectManager.getBizObject("MyDynEntity_one");
-        assertEquals("MyDynEntity_one", bizObj.getBizObjName());
+        IBizObject bizObj = bizObjectManager.getBizObject("MyDynEntity");
+        assertEquals("MyDynEntity", bizObj.getBizObjName());
 
         ormTemplate.runInSession(() -> {
 

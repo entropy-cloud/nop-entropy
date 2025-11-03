@@ -27,4 +27,9 @@ public class XplModelLoader implements IResourceObjectLoader<IComponentModel> {
         IResource resource = VirtualFileSystem.instance().getResource(path);
         return XLang.parseXpl(resource, outputMode);
     }
+
+    @Override
+    public IComponentModel parseFromResource(IResource resource) {
+        return XLang.parseXpl(resource, outputMode);
+    }
 }

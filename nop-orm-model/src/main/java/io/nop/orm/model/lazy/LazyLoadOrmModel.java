@@ -26,7 +26,7 @@ import static io.nop.orm.model.OrmModelErrors.ARG_OTHER_LOC;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_DUPLICATE_ENTITY_SHORT_NAME;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_ENTITY_NAME;
 
-public class LazyLoadOrmModel implements IOrmModel {
+public class LazyLoadOrmModel implements ILazyLoadOrmModel {
     private final IOrmModel baseModel;
     private final IDynamicEntityModelProvider entityModelLoader;
 
@@ -76,7 +76,7 @@ public class LazyLoadOrmModel implements IOrmModel {
     }
 
     protected IEntityModel loadEntityModel(String entityName) {
-        return entityModelLoader.getDynamicEntityModel(entityName);
+        return entityModelLoader.getDynamicEntityModel(entityName, this);
     }
 
     @Override
@@ -156,6 +156,11 @@ public class LazyLoadOrmModel implements IOrmModel {
             putEntityModel(entityModel);
         }
         return entityModel;
+    }
+
+    @Override
+    public void addEntityModel(IEntityModel entityModel) {
+        putEntityModel(entityModel);
     }
 
     void putEntityModel(IEntityModel entityModel) {

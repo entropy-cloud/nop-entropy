@@ -37,7 +37,6 @@ import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.ast._gen._GraphQLTypeDefinition;
 import io.nop.graphql.core.biz.IGraphQLBizInitializer;
 import io.nop.graphql.core.biz.IGraphQLSchemaInitializer;
-import io.nop.graphql.core.reflection.GraphQLBizModel;
 import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
 import io.nop.graphql.core.schema.TypeRegistry;
@@ -104,7 +103,8 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         this.bizModelBeans = bizModelBeans;
     }
 
-    public void setDynBizModels(GraphQLBizModels dynBizModels){
+    @Override
+    public void setDynamicBizModels(GraphQLBizModels dynBizModels) {
         this.dynBizModels = dynBizModels;
     }
 

@@ -24,6 +24,7 @@ import java.io.StringReader;
 
 import static io.nop.core.CoreErrors.ARG_PATH;
 import static io.nop.core.CoreErrors.ARG_RESOURCE;
+import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_NOT_EXISTS;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_WRITE_TO_STREAM_FAIL;
 
@@ -34,7 +35,7 @@ public class InMemoryTextResource extends AbstractResource {
     private long lastModified;
     private boolean readonly;
 
-    private boolean exists = true;
+    private boolean exists;
 
     public InMemoryTextResource(String path, String text) {
         super(path);
@@ -43,10 +44,18 @@ public class InMemoryTextResource extends AbstractResource {
         this.exists = text != null;
     }
 
+    public synchronized InMemoryTextResource cloneInstance() {
+        InMemoryTextResource ret = new InMemoryTextResource(getPath(), text);
+        ret.lastModified = lastModified;
+        ret.readonly = readonly;
+        ret.length = length;
+        return ret;
+    }
+
     private void checkExists() {
         if (!exists)
             throw new NopException(ERR_RESOURCE_NOT_EXISTS)
-                    .param(ARG_PATH, getPath());
+                    .param(ARG_RESOURCE_PATH, getPath());
     }
 
     public String getText() {
