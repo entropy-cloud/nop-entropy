@@ -1,4 +1,4 @@
-package io.nop.markdown.simple;
+package io.nop.markdown.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -12,6 +12,9 @@ import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.model.tree.ITreeChildrenStructure;
 import io.nop.markdown.MarkdownConstants;
+import io.nop.markdown.simple.MarkdownCodeBlockParser;
+import io.nop.markdown.simple.MarkdownSectionHeader;
+import io.nop.markdown.simple.MarkdownSectionMerger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -627,7 +630,7 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport, ITe
         }
     }
 
-    protected void buildMainText(StringBuilder sb, MarkdownTextOptions options) {
+    public void buildMainText(StringBuilder sb, MarkdownTextOptions options) {
         boolean includeTags = options.isIncludeTags();
 
         if (getLevel() > 0) {

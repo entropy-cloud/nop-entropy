@@ -1,7 +1,7 @@
 package io.nop.ai.core.response;
 
 import io.nop.commons.util.StringHelper;
-import io.nop.markdown.simple.MarkdownCodeBlock;
+import io.nop.markdown.model.MarkdownCodeBlock;
 import io.nop.markdown.simple.MarkdownCodeBlockParser;
 
 public class CodeResponseParser {

@@ -11,7 +11,7 @@ import io.nop.commons.text.CDataText;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.utils.CodeLangMap;
 import io.nop.core.lang.xml.XNode;
-import io.nop.markdown.simple.MarkdownSection;
+import io.nop.markdown.model.MarkdownSection;
 
 import java.util.List;
 

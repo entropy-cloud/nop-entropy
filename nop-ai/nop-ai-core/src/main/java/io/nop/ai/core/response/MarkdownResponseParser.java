@@ -1,7 +1,7 @@
 package io.nop.ai.core.response;
 
 import io.nop.commons.util.StringHelper;
-import io.nop.markdown.simple.MarkdownDocument;
+import io.nop.markdown.model.MarkdownDocument;
 import io.nop.markdown.utils.MarkdownTool;
 
 public class MarkdownResponseParser {

@@ -1,6 +1,8 @@
 package io.nop.markdown.simple;
 
 import io.nop.commons.util.CharSequenceHelper;
+import io.nop.markdown.model.MarkdownSection;
+import io.nop.markdown.model.MarkdownTextOptions;
 
 import java.util.function.Function;
 

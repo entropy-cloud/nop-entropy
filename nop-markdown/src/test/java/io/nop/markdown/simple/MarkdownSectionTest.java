@@ -1,9 +1,9 @@
 package io.nop.markdown.simple;
 
 import io.nop.commons.collections.MutableIntArray;
+import io.nop.markdown.model.MarkdownSection;
 import org.junit.jupiter.api.Test;
 
-import static io.nop.markdown.simple.MarkdownNode.DEFAULT_OPTIONS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -85,7 +85,7 @@ class MarkdownSectionTest {
         root.addChild(child1);
         root.addChild(child2);
 
-        String result = root.toIndexMarkdown(1, DEFAULT_OPTIONS);
+        String result = root.toIndexMarkdown(1, null);
         String expected = "# 根节点\n\n\n" +
                 "## [1.1 子节点1](section-1.1.md)\n" +
                 "## [1.2 子节点2](section-1.2.md)\n";

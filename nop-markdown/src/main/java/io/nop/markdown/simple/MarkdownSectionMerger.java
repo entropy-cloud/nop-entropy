@@ -1,6 +1,7 @@
 package io.nop.markdown.simple;
 
 import io.nop.commons.util.StringHelper;
+import io.nop.markdown.model.MarkdownSection;
 
 import java.util.List;
 import java.util.stream.Collectors;

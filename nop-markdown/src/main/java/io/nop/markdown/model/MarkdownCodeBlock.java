@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.markdown.simple;
+package io.nop.markdown.model;
 
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.util.SourceLocation;

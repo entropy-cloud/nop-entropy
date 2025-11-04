@@ -2,7 +2,7 @@ package io.nop.ai.core.response;
 
 import io.nop.ai.core.AiCoreConstants;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.markdown.simple.MarkdownCodeBlock;
+import io.nop.markdown.model.MarkdownCodeBlock;
 
 import java.util.Map;
 

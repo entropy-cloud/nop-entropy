@@ -1,7 +1,7 @@
 package io.nop.ooxml.markdown;
 
 import io.nop.core.resource.impl.FileResource;
-import io.nop.markdown.simple.MarkdownDocument;
+import io.nop.markdown.model.MarkdownDocument;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 

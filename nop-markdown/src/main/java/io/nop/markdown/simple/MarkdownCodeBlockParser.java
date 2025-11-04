@@ -2,6 +2,7 @@ package io.nop.markdown.simple;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
+import io.nop.markdown.model.MarkdownCodeBlock;
 
 import java.util.ArrayList;
 import java.util.List;

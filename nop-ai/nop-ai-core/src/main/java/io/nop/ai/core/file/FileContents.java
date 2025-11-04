@@ -5,7 +5,7 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.util.ITextSerializable;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
-import io.nop.markdown.simple.MarkdownSection;
+import io.nop.markdown.model.MarkdownSection;
 
 import java.util.ArrayList;
 import java.util.List;

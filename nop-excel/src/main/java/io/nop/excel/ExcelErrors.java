@@ -53,10 +53,11 @@ public interface ExcelErrors {
             ARG_CELL_POS, ARG_FIELD_NAME, ARG_ALLOWED_NAMES);
 
     ErrorCode ERR_IMPORT_INVALID_DATA_ROW = define("nop.err.excel.import.invalid-data-row",
-            "表格[{sheetName}]的第[{rowNumber}]行无法被解析");
+            "表格[{sheetName}]的第[{rowNumber}]行无法被解析", ARG_SHEET_NAME, ARG_ROW_NUMBER);
 
     ErrorCode ERR_IMPORT_LIST_SHEET_MODEL_MUST_HAS_FIELD_ATTR = define(
-            "nop.err.excel.import.list-sheet-model-must-has-field-attr", "表格[{sheetName}]设置了list=true，则它的field属性必须被设置");
+            "nop.err.excel.import.list-sheet-model-must-has-field-attr", "表格[{sheetName}]设置了list=true，则它的field属性必须被设置",
+            ARG_SHEET_NAME);
 
     ErrorCode ERR_IMPORT_MISSING_MANDATORY_FIELD = define("nop.err.excel.import.missing-mandatory-field",
             "表格[{sheetName}]中缺少必填字段[{fieldName}({fieldLabel})]", ARG_SHEET_NAME, ARG_FIELD_NAME, ARG_FIELD_LABEL);

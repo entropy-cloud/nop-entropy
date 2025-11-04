@@ -20,7 +20,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.object.DynamicObject;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.type.PredefinedGenericTypes;
-import io.nop.markdown.simple.MarkdownDocument;
+import io.nop.markdown.model.MarkdownDocument;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdsl.DslModelParser;

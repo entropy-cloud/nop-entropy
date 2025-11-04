@@ -1,7 +1,7 @@
 package io.nop.markdown;
 
 import io.nop.commons.util.StringHelper;
-import io.nop.markdown.simple.MarkdownSection;
+import io.nop.markdown.model.MarkdownSection;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

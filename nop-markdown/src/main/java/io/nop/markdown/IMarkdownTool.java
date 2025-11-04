@@ -3,8 +3,8 @@ package io.nop.markdown;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceObjectLoader;
-import io.nop.markdown.simple.MarkdownDocument;
-import io.nop.markdown.simple.MarkdownSection;
+import io.nop.markdown.model.MarkdownDocument;
+import io.nop.markdown.model.MarkdownSection;
 
 public interface IMarkdownTool extends IResourceObjectLoader<MarkdownDocument> {
 

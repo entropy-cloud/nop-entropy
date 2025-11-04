@@ -6,6 +6,8 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.markdown.IMarkdownTool;
 import io.nop.markdown.MarkdownConstants;
+import io.nop.markdown.model.MarkdownDocument;
+import io.nop.markdown.model.MarkdownSection;
 
 import java.util.List;
 

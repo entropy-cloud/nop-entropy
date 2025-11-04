@@ -7,11 +7,13 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.component.parse.AbstractResourceParser;
 import io.nop.markdown.MarkdownConstants;
+import io.nop.markdown.model.MarkdownDocument;
+import io.nop.markdown.model.MarkdownSection;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.nop.markdown.simple.MarkdownSection.removeEmptySections;
+import static io.nop.markdown.model.MarkdownSection.removeEmptySections;
 
 public class MarkdownDocumentParser extends AbstractResourceParser<MarkdownDocument> {
 

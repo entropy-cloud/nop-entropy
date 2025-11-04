@@ -4,7 +4,7 @@ import io.nop.api.core.annotations.core.GlobalInstance;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.markdown.IMarkdownTool;
 import io.nop.markdown.simple.DefaultMarkdownTool;
-import io.nop.markdown.simple.MarkdownDocument;
+import io.nop.markdown.model.MarkdownDocument;
 
 @GlobalInstance
 public class MarkdownTool {

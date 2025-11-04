@@ -23,10 +23,10 @@ public interface FsmErrors {
     String ARG_TYPE = "type";
     String ARG_VALUE = "value";
 
-    ErrorCode ERR_FSM_UNKNOWN_STATE_VALUE = define("nop.err.fsm.err-unknown-state-value", "未知的状态:{}", ARG_STATE_VALUE);
+    ErrorCode ERR_FSM_UNKNOWN_STATE_VALUE = define("nop.err.fsm.err-unknown-state-value", "未知的状态:{stateValue}", ARG_STATE_VALUE);
 
     ErrorCode ERR_FSM_STATE_NO_TRANSITION_FOR_EVENT = define("nop.err.fsm.state-no-transition-for-event",
-            "状态[{stateId}]不存在针对事件[{event}]的转换");
+            "状态[{stateId}]不存在针对事件[{event}]的转换", ARG_STATE_ID, ARG_EVENT);
 
     ErrorCode ERR_FSM_UNDEFINED_STATE = define("nop.err.fsm.undefined-state", "未定义的状态[{stateId}]", ARG_STATE_ID);
 
@@ -35,5 +35,5 @@ public interface FsmErrors {
             ARG_STATE_ID, ARG_STATE_VALUE, ARG_OLD_STATE_ID);
 
     ErrorCode ERR_FSM_STATE_VALUE_CAN_NOT_CONVERT_TO_TYPE = define("nop.err.fsm.state-value-can-not-convert-to-type",
-            "状态值[{value}]无法转换为类型[{type}]", ARG_STATE_ID, ARG_VALUE, ARG_TYPE);
+            "状态[{stateId}]的值[{value}]无法转换为类型[{type}]", ARG_STATE_ID, ARG_VALUE, ARG_TYPE);
 }

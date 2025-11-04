@@ -1,6 +1,6 @@
 package io.nop.ai.core.response;
 
-import io.nop.markdown.simple.MarkdownCodeBlock;
+import io.nop.markdown.model.MarkdownCodeBlock;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

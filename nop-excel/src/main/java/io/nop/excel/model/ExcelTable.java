@@ -70,7 +70,7 @@ public class ExcelTable extends _ExcelTable implements INeedInit, IExcelTable {
 
             ExcelCell ec = (ExcelCell) cell;
             StdDataType dataType = ec.getType();
-            if (dataType == null && StringHelper.isEmptyObject(ec.getValue())) {
+            if (dataType == null && !StringHelper.isEmptyObject(ec.getValue())) {
                 dataType = StdDataType.guessFromValue(ec.getValue());
             }
             if (dataType != null) {

@@ -1,4 +1,4 @@
-package io.nop.markdown.simple;
+package io.nop.markdown.model;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ISourceLocationGetter;

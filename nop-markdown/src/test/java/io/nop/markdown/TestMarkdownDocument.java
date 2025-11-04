@@ -4,7 +4,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.core.unittest.BaseTestCase;
-import io.nop.markdown.simple.MarkdownDocument;
+import io.nop.markdown.model.MarkdownDocument;
 import io.nop.markdown.utils.MarkdownTool;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;

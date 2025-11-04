@@ -32,8 +32,8 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.NopRebuildException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
-import io.nop.markdown.simple.MarkdownCodeBlock;
-import io.nop.markdown.simple.MarkdownDocument;
+import io.nop.markdown.model.MarkdownCodeBlock;
+import io.nop.markdown.model.MarkdownDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

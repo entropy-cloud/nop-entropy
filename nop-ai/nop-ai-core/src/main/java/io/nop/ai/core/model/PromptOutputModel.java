@@ -5,7 +5,7 @@ import io.nop.ai.core.xdef.AiXDefHelper;
 import io.nop.api.core.util.INeedInit;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.markdown.MarkdownConstants;
-import io.nop.markdown.simple.MarkdownDocument;
+import io.nop.markdown.model.MarkdownDocument;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdsl.action.IActionOutputModel;
 import io.nop.xlang.xmeta.SchemaLoader;
