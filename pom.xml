@@ -372,16 +372,9 @@
     </profiles>
 
     <modules>
-        <module>nop-dependencies</module>
+        <module>nop-kernel</module>
         <module>nop-bom</module>
         <module>build-tools</module>
-        <module>nop-api-core</module>
-        <module>nop-commons</module>
-        <module>nop-core</module>
-        <module>nop-javac</module>
-        <module>nop-antlr4</module>
-        <module>nop-xdefs</module>
-        <module>nop-xlang</module>
         <module>nop-log</module>
         <module>nop-graphql</module>
         <module>nop-socket</module>
@@ -399,7 +392,6 @@
         <module>nop-message</module>
         <module>nop-spring</module>
         <module>nop-http</module>
-        <module>nop-codegen</module>
         <module>nop-dao</module>
         <module>nop-orm</module>
         <module>nop-biz</module>
@@ -433,7 +425,6 @@
         <module>nop-codec</module>
         <module>nop-tool</module>
         <module>nop-stream</module>
-        <module>nop-dataset</module>
         <module>nop-orm-model</module>
         <module>nop-orm-eql</module>
         <module>nop-orm-pdm</module>

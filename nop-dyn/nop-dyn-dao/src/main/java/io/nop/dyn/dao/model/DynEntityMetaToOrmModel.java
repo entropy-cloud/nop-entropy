@@ -171,7 +171,7 @@ public class DynEntityMetaToOrmModel {
 
     public OrmEntityModel transformEntityModel(NopDynEntityMeta entityMeta) {
         OrmEntityModel ret = new OrmEntityModel();
-        ret.setName(entityMeta.getEntityName());
+        ret.setName(entityMeta.getFullEntityName());
         ret.setDisplayName(entityMeta.getDisplayName());
         ret.setTableName(entityMeta.forceGetTableName());
         ret.setTagSet(ConvertHelper.toCsvSet(entityMeta.getTagsText()));

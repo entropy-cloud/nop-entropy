@@ -297,17 +297,19 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
     }
 
     protected void addEnabledModulesToCache(InMemoryCodeCache cache) {
-        IEntityDao<NopDynModule> dao = daoProvider.daoFor(NopDynModule.class);
-        NopDynModule example = new NopDynModule();
-        example.setStatus(NopDynDaoConstants.MODULE_STATUS_PUBLISHED);
-        List<NopDynModule> list = dao.findAllByExample(example);
-        dao.batchLoadProps(list, List.of("entityMetas"));
+        ormTemplate.runInSession(()->{
+            IEntityDao<NopDynModule> dao = daoProvider.daoFor(NopDynModule.class);
+            NopDynModule example = new NopDynModule();
+            example.setStatus(NopDynDaoConstants.MODULE_STATUS_PUBLISHED);
+            List<NopDynModule> list = dao.findAllByExample(example);
+            dao.batchLoadProps(list, List.of("entityMetas"));
 
-        for (NopDynModule module : list) {
-            ModuleModel moduleModel = buildModuleModel(module);
-            cache.addModule(moduleModel, formatGenCode);
-            Collection<NopDynEntityMeta> entityMetas = module.getEntityMetas();
-        }
+            for (NopDynModule module : list) {
+                ModuleModel moduleModel = buildModuleModel(module);
+                cache.addModule(moduleModel, formatGenCode);
+                Collection<NopDynEntityMeta> entityMetas = module.getEntityMetas();
+            }
+        });
     }
 
     protected void batchLoadModule(NopDynModule module) {

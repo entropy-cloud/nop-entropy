@@ -4,7 +4,6 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.record.RecordConstants;
 import io.nop.record.model.PacketCodecModel;
 import io.nop.record.model.RecordDefinitions;
-import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordFileMeta;
 import io.nop.record.model.RecordObjectMeta;
 import io.nop.xlang.xdsl.DslModelParser;

@@ -458,6 +458,13 @@
 /nop/templates/backend/{appName}-codegen/postcompile/gen-orm.xgen.xgen
 /nop/templates/backend/{appName}-codegen/src/test/java/{basePackagePath}/codegen/{moduleClassPrefix}CodeGen.java.xgen
 /nop/templates/cli/app.orm.xml.xgen
+/nop/templates/dyn-gen/{enableModuleCore}/{moduleId}/on-load.xpl.xgen
+/nop/templates/dyn-gen/{enableModuleCore}/{moduleId}/on-unload.xpl.xgen
+/nop/templates/dyn-gen/{moduleId}/model/{bizObjName}/{!!entityModel}{entityModel.shortName}.xmeta.xgen
+/nop/templates/dyn-gen/{moduleId}/model/{bizObjName}/{entityMeta.bizObjName}.xbiz.xgen
+/nop/templates/dyn-gen/{moduleId}/orm/app.orm.xml.xgen
+/nop/templates/dyn-gen/{moduleId}/pages/{bizObjName}/{bizObjName}.view.xml.xgen
+/nop/templates/dyn-gen/{moduleId}/pages/{bizObjName}/{pageName}.page.yaml.xgen
 /nop/templates/dyn-web/@init.xrun
 /nop/templates/dyn-web/{moduleId}/a-impl.xrun
 /nop/templates/dyn/@init.xrun

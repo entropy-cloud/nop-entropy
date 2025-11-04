@@ -15,7 +15,6 @@ import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
-import io.nop.dev.core.store.IDevModelStore;
 import io.nop.xlang.delta.DeltaDiffer;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdsl.DslModelHelper;

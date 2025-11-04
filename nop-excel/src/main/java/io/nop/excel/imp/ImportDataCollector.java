@@ -45,7 +45,6 @@ import static io.nop.core.CoreErrors.ARG_CELL_POS;
 import static io.nop.core.CoreErrors.ARG_VALUE;
 import static io.nop.excel.ExcelErrors.ARG_ALLOWED_NAMES;
 import static io.nop.excel.ExcelErrors.ARG_ALLOWED_VALUES;
-import static io.nop.excel.ExcelErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.excel.ExcelErrors.ARG_DISPLAY_NAME;
 import static io.nop.excel.ExcelErrors.ARG_ERROR_DESC;
 import static io.nop.excel.ExcelErrors.ARG_FIELD_LABEL;

@@ -7,7 +7,6 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.ResourceComponentManager;
-import io.nop.core.resource.impl.FileResource;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelSheet;

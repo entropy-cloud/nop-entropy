@@ -11,7 +11,6 @@ import io.nop.api.core.annotations.biz.BizObjName;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
-import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.dyn.dao.NopDynDaoConstants;
