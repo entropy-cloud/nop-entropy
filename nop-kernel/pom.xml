@@ -364,5 +364,7 @@
         <module>nop-dependencies</module>
         <module>nop-xlang</module>
         <module>nop-xdefs</module>
+        <module>nop-markdown</module>
+        <module>nop-kernel-cli</module>
     </modules>
 </project>

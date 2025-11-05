@@ -1,6 +1,7 @@
 package io.nop.markdown;
 
 import io.nop.core.unittest.BaseTestCase;
+import io.nop.markdown.ext.MarkdownNormalizer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

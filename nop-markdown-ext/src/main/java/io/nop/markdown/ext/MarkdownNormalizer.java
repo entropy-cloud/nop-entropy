@@ -1,4 +1,4 @@
-package io.nop.markdown;
+package io.nop.markdown.ext;
 
 import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.text.MutableString;
@@ -6,8 +6,8 @@ import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.FileResource;
-import io.nop.markdown.math.MathExtension;
-import io.nop.markdown.math.MathNode;
+import io.nop.markdown.ext.math.MathExtension;
+import io.nop.markdown.ext.math.MathNode;
 import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.node.AbstractVisitor;
 import org.commonmark.node.FencedCodeBlock;

@@ -1,5 +1,7 @@
 package io.nop.markdown;
 
+import io.nop.markdown.ext.MarkdownNormalizer;
+
 import java.io.File;
 
 public class DocumentNormalizer {

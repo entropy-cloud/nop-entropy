@@ -1,4 +1,4 @@
-package io.nop.markdown.math;
+package io.nop.markdown.ext.math;
 
 import org.commonmark.node.CustomBlock;
 
