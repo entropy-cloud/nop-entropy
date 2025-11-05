@@ -16,4 +16,19 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <modules>
+        <module>nop-cdc</module>
+        <module>nop-dao</module>
+        <module>nop-dbtool</module>
+        <module>nop-nosql</module>
+        <module>nop-orm</module>
+        <module>nop-orm-data</module>
+        <module>nop-orm-drivers</module>
+        <module>nop-orm-eql</module>
+        <module>nop-orm-geo</module>
+        <module>nop-orm-graphql</module>
+        <module>nop-orm-model</module>
+        <module>nop-orm-pdm</module>
+    </modules>
+
 </project>

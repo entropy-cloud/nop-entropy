@@ -3,25 +3,21 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <packaging>pom</packaging>
+
     <parent>
         <groupId>io.github.entropy-cloud</groupId>
-        <artifactId>nop-entropy</artifactId>
+        <artifactId>nop-core-framework</artifactId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nop-network</artifactId>
-    <packaging>pom</packaging>
-
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
+    <groupId>io.github.entropy-cloud</groupId>
+    <artifactId>nop-graphql</artifactId>
 
     <modules>
-        <module>nop-http</module>
-        <module>nop-rpc</module>
-        <module>nop-netty</module>
-        <module>nop-netty-ext</module>
-        <module>nop-socket</module>
-        <module>nop-vertx</module>
+        <module>nop-graphql-core</module>
+        <module>nop-graphql-orm</module>
+        <module>nop-graphql-gateway</module>
+        <module>nop-graphql-message</module>
     </modules>
 </project>

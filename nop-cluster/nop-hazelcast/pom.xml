@@ -5,11 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.github.entropy-cloud</groupId>
-        <artifactId>nop-entropy</artifactId>
+        <artifactId>nop-cluster</artifactId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nop-format</artifactId>
+    <artifactId>nop-hazelcast</artifactId>
+
     <packaging>pom</packaging>
 
     <properties>
@@ -17,15 +18,7 @@
     </properties>
 
     <modules>
-        <module>nop-codec</module>
-        <module>nop-converter</module>
-        <module>nop-excel</module>
-        <module>nop-mermaid</module>
-        <module>nop-ooxml</module>
-        <module>nop-pdf</module>
-        <module>nop-svg</module>
-        <module>nop-record</module>
-        <module>nop-markdown-ext</module>
+        <module>nop-hazelcast-core</module>
+        <module>nop-hazelcast-cache</module>
     </modules>
-
 </project>

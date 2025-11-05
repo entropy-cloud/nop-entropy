@@ -2,27 +2,23 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>nop-entropy</artifactId>
         <groupId>io.github.entropy-cloud</groupId>
+        <artifactId>nop-core-framework</artifactId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
+    <artifactId>nop-plugin</artifactId>
     <packaging>pom</packaging>
 
-    <modelVersion>4.0.0</modelVersion>
-
-    <artifactId>nop-cluster</artifactId>
-
-    <name>nop-cluster</name>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 
     <modules>
-        <module>nop-cluster-core</module>
-        <module>nop-cluster-sentinel</module>
-        <module>nop-cluster-nacos</module>
-        <module>nop-cluster-admin</module>
-        <module>nop-hazelcast</module>
-        <module>nop-rpc-cluster</module>
+        <module>nop-plugin-api</module>
+        <module>nop-plugin-manager</module>
+        <module>nop-plugin-support</module>
     </modules>
-
 </project>

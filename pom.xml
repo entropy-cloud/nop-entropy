@@ -374,100 +374,39 @@
     <modules>
         <module>nop-kernel</module>
         <module>nop-bom</module>
-        <module>build-tools</module>
-        <module>nop-log</module>
-        <module>nop-graphql</module>
-        <module>nop-socket</module>
-        <module>nop-web</module>
         <module>nop-tcc</module>
         <module>nop-cluster</module>
         <module>nop-wf</module>
         <module>nop-auth</module>
-        <module>nop-config</module>
-        <module>nop-js</module>
-        <module>nop-pdf</module>
         <module>nop-benchmark</module>
-        <module>nop-cli-core</module>
-        <module>nop-cli</module>
         <module>nop-message</module>
         <module>nop-spring</module>
-        <module>nop-http</module>
-        <module>nop-dao</module>
-        <module>nop-orm</module>
-        <module>nop-biz</module>
-        <module>nop-api-debugger</module>
-        <module>nop-rpc</module>
         <module>nop-rule</module>
         <module>nop-job</module>
         <module>nop-batch</module>
-        <module>nop-nosql</module>
-        <module>nop-shell</module>
-        <module>nop-fsm</module>
-        <module>nop-dbtool</module>
-        <module>nop-svg</module>
         <module>nop-task</module>
-        <module>nop-excel</module>
-        <module>nop-ooxml</module>
-        <module>nop-boot</module>
-        <module>nop-ui</module>
         <module>nop-autotest</module>
-        <module>nop-ioc</module>
         <module>nop-demo</module>
         <module>nop-quarkus</module>
         <module>nop-sys</module>
-        <module>nop-match</module>
-        <module>nop-web-site</module>
-        <module>nop-web-amis-editor</module>
         <module>nop-report</module>
         <module>nop-integration</module>
-        <module>nop-record</module>
-        <module>nop-orm-graphql</module>
-        <module>nop-codec</module>
-        <module>nop-tool</module>
         <module>nop-stream</module>
-        <module>nop-orm-model</module>
-        <module>nop-orm-eql</module>
-        <module>nop-orm-pdm</module>
-        <module>nop-xlang-debugger</module>
-        <module>nop-orm-geo</module>
-        <module>nop-vertx</module>
-        <module>nop-router</module>
-        <module>nop-biz-report</module>
-        <module>nop-web-page</module>
         <module>nop-file</module>
-        <module>nop-netty</module>
         <module>nop-datav</module>
-        <module>nop-dev</module>
-        <!--        <module>nop-all-for-spring</module>-->
-        <module>nop-git</module>
         <!-- <module>tests</module> -->
-        <module>nop-oauth</module>
         <module>nop-dyn</module>
         <module>nop-ai</module>
-        <module>nop-tablesaw</module>
-        <module>nop-cdc</module>
-        <module>nop-maven</module>
-        <module>nop-css</module>
         <module>nop-search</module>
-        <module>nop-orm-data</module>
-        <module>nop-orm-drivers</module>
-        <module>nop-cli-jdk11</module>
-        <module>nop-security</module>
-        <module>nop-ofbiz-migration</module>
-        <module>nop-netty-ext</module>
-        <module>nop-hazelcast</module>
-        <module>nop-plugin</module>
-        <module>nop-java-parser</module>
-        <module>nop-converter</module>
-        <module>nop-image</module>
-        <module>nop-mermaid</module>
-        <module>nop-markdown-ext</module>
         <module>nop-persistence</module>
         <module>nop-dev-tools</module>
         <module>nop-format</module>
         <module>nop-utils</module>
         <module>nop-network</module>
         <module>nop-frontend-support</module>
+        <module>nop-core-framework</module>
+        <module>nop-migration</module>
+        <module>nop-runner</module>
         <!--        <module>nop-commons-java21</module>-->
     </modules>
 </project>

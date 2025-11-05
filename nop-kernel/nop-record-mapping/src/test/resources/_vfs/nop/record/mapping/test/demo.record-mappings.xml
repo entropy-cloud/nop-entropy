@@ -1,0 +1,34 @@
+<definitions x:schema="/nop/schema/record/record-mappings.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <mapping name="Type1ToType2">
+        <fields>
+            <field from="field1" mandatory="true" name="base.name1">
+                <schema/>
+            </field>
+            <field from="sub.field2" mandatory="true" name="ext.name2">
+                <schema/>
+            </field>
+            <field defaultValue="123" from="sub.field3" mandatory="true" name="ext.name3" type="Integer">
+                <schema/>
+            </field>
+            <field from="field4" name="name4">
+                <schema/>
+            </field>
+            <field from="listB" itemMapping="ItemTest" name="listA">
+                <schema/>
+            </field>
+            <field from="mapB" itemMapping="ItemTest" name="mapA">
+                <schema/>
+            </field>
+        </fields>
+    </mapping>
+    <mapping name="ItemTest">
+        <fields>
+            <field from="c" mandatory="true" name="a">
+                <schema/>
+            </field>
+            <field from="d" mandatory="true" name="b">
+                <schema/>
+            </field>
+        </fields>
+    </mapping>
+</definitions>

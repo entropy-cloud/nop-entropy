@@ -9,7 +9,7 @@
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nop-format</artifactId>
+    <artifactId>nop-core-framework</artifactId>
     <packaging>pom</packaging>
 
     <properties>
@@ -17,15 +17,13 @@
     </properties>
 
     <modules>
-        <module>nop-codec</module>
-        <module>nop-converter</module>
-        <module>nop-excel</module>
-        <module>nop-mermaid</module>
-        <module>nop-ooxml</module>
-        <module>nop-pdf</module>
-        <module>nop-svg</module>
-        <module>nop-record</module>
-        <module>nop-markdown-ext</module>
+        <module>nop-config</module>
+        <module>nop-ioc</module>
+        <module>nop-graphql</module>
+        <module>nop-biz</module>
+        <module>nop-biz-report</module>
+        <module>nop-boot</module>
+        <module>nop-plugin</module>
+        <module>nop-security</module>
     </modules>
-
 </project>

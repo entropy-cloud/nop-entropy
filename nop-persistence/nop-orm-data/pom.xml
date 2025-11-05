@@ -5,27 +5,21 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.github.entropy-cloud</groupId>
-        <artifactId>nop-entropy</artifactId>
+        <artifactId>nop-persistence</artifactId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nop-format</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>nop-orm-data</artifactId>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <modules>
-        <module>nop-codec</module>
-        <module>nop-converter</module>
-        <module>nop-excel</module>
-        <module>nop-mermaid</module>
-        <module>nop-ooxml</module>
-        <module>nop-pdf</module>
-        <module>nop-svg</module>
-        <module>nop-record</module>
-        <module>nop-markdown-ext</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-orm</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>

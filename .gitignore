@@ -44,26 +44,24 @@ nb-configuration.xml
 # Plugin directory
 /.quarkus/cli/plugins/
 
-/nop-antlr4/nop-antlr4-playground/gen
-/nop-antlr4/nop-antlr4-playground/src/main/antlr4/imports/.antlr
-/nop-antlr4/nop-antlr4-playground/src/main/antlr4/imports/gen
-/nop-xlang/gen/antlr
-/nop-xlang/gen
-/nop-antlr4/nop-antlr4-tool/gen/antlr4/xlang
-/nop-idea-plugin/.gradle/7.2
-/nop-idea-plugin/build
-/nop-idea-plugin/.gradle
-/nop-idea-plugin/nop-idea-plugin.jar
+/nop-kernel/nop-antlr4/nop-antlr4-playground/gen
+/nop-kernel/nop-antlr4/nop-antlr4-playground/src/main/antlr4/imports/.antlr
+/nop-kernel/nop-antlr4/nop-antlr4-playground/src/main/antlr4/imports/gen
+/nop-kernel/nop-xlang/gen/antlr
+/nop-kernel/nop-xlang/gen
+/nop-kernel/nop-antlr4/nop-antlr4-tool/gen/antlr4/xlang
+/nop-dev-tools/nop-idea-plugin/.gradle/7.2
+/nop-dev-tools/nop-idea-plugin/build
+/nop-dev-tools/nop-idea-plugin/.gradle
+/nop-dev-tools/nop-idea-plugin/nop-idea-plugin.jar
 .antlr
-/nop-idea-plugin/bin
+/nop-dev-tools/nop-idea-plugin/bin
 /log
 _dump
 /db
-/nop-antlr4/gen
-/nop-antlr4/nop-antlr4-xlang/src/main/antlr4/imports/gen
-/nop-antlr4/nop-antlr4-xpath/src/main/antlr4/imports/gen
-/nop-tool/src/test/java/io/nop/tool/log/TestLogProcessor.java
-/nop-all-for-spring/dependency-reduced-pom.xml
+/nop-kernel/nop-antlr4/gen
+/nop-kernel/nop-antlr4/nop-antlr4-xlang/src/main/antlr4/imports/gen
+/nop-kernel/nop-antlr4/nop-antlr4-xpath/src/main/antlr4/imports/gen
 
 package-lock.json
 node_modules/
@@ -81,4 +79,5 @@ node_modules/
 /.knosys/sites/default/Thumbs.db
 /.knosys/sites/default/db.json
 /.knosys/sites/default/package.json
-/nop-cli-jdk11/dependency-reduced-pom.xml
+
+/nop-runner/nop-cli-jdk11/dependency-reduced-pom.xml
