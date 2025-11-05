@@ -19931,7 +19931,19 @@
       {
         "name": "normalizeSectionContent",
         "parameterTypes": [
+          "io.nop.markdown.model.MarkdownSection"
+        ]
+      },
+      {
+        "name": "normalizeSectionContent",
+        "parameterTypes": [
           "io.nop.markdown.simple.MarkdownSection"
+        ]
+      },
+      {
+        "name": "normalizeTitle",
+        "parameterTypes": [
+          "io.nop.markdown.model.MarkdownSection"
         ]
       },
       {
@@ -26268,6 +26280,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.record.util.RecordModelParseHelper"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.record_mapping.impl.RecordMappingManagerImpl"
   },
   {
     "allDeclaredConstructors": true,
