@@ -1,12 +1,19 @@
 package io.nop.core.model.tree;
 
+import io.nop.commons.util.FileHelper;
+import io.nop.commons.util.MavenDirHelper;
 import io.nop.core.resource.path.PathTreeNode;
+import io.nop.core.unittest.BaseTestCase;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -16,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class PathTreeNodeTest {
+public class PathTreeNodeTest extends BaseTestCase {
     private PathTreeNode root;
     private static final String TREE_TEXT =
             "项目名称\n" +
@@ -148,5 +155,23 @@ public class PathTreeNodeTest {
 
         assertEquals("手动项目/\n└── 手动目录/\n    └── 手动文件.md\n",
                 manualRoot.buildTreeString());
+    }
+
+    @Test
+    @Disabled
+    public void showPlatformModuleTree() {
+        File dir = FileHelper.getAbsoluteFile(new File(getModuleDir(), "../.."));
+        PathTreeNode node = PathTreeNode.createRootNode();
+        genModuleNode(dir, node);
+        System.out.println(node.buildTreeString());
+    }
+
+    void genModuleNode(File dir, PathTreeNode node){
+        for(File subFile: dir.listFiles()){
+            if(MavenDirHelper.isMavenModuleDir(subFile)){
+                PathTreeNode child = node.addSubNode(subFile.getName());
+                genModuleNode(subFile, child);
+            }
+        }
     }
 }

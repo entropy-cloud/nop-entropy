@@ -3,8 +3,11 @@ package io.nop.xlang.parse.antlr;
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.misc.*; //NOPMD - suppressed UnusedImports - Auto Gen Code
 import org.antlr.v4.runtime.tree.*;
 import java.util.List;
+import java.util.Iterator; //NOPMD - suppressed UnusedImports - Auto Gen Code
+import java.util.ArrayList; //NOPMD - suppressed UnusedImports - Auto Gen Code
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue"})
 // tell cpd to start ignoring code - CPD-OFF

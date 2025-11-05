@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:xpt="xpt"
+     x:extends="/nop/excel/imp/dict-support.imp.xml"
+     resultType="io.nop.record_mapping.model.RecordMappingDefinitions"
+     templatePath="template.record-mapping.xlsx" xdef="/nop/schema/record/record-mapping.xdef" defaultStripText="true">
+    <sheets>
+        <sheet name="目录" ignore="true"/>
+
+        <sheet name="配置" ignore="true"/>
+
+        <sheet name="RecordMapping" namePattern=".*" field="mappings" multiple="true" keyProp="name">
+
+            <fields>
+                <field name="name" displayName="名称" mandatory="true">
+                    <schema stdDomain="var-name"/>
+                </field>
+
+                <field name="displayName" displayName="中文名">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="i18n-en:displayName" displayName="英文名">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="tagSet" displayName="标签">
+                    <schema stdDomain="csv-set"/>
+                </field>
+
+                <field name="description" displayName="描述">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="fromClass" displayName="来源类型">
+                    <schema stdDomain="class-name"/>
+                </field>
+
+                <field name="beforeMapping" displayName="映射前">
+                    <schema stdDomain="xpl-fn" stdDomainOptions="(source,target,ctx)=>void"/>
+                </field>
+
+                <field name="afterMapping" displayName="映射后">
+                    <schema stdDomain="xpl-fn" stdDomainOptions="(source,target,ctx)=>void"/>
+                </field>
+
+                <field name="fields" displayName="字段映射列表" list="true" keyProp="to">
+                    <fields>
+                        <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''">
+                            <schema stdDomain="boolean"/>
+                            <valueExpr>
+                                <c:script>
+                                    value == 'M' || value == 'Y' || value == true || value == 'true'
+                                </c:script>
+                            </valueExpr>
+                        </field>
+
+                        <field name="tagSet" displayName="标签">
+                            <schema stdDomain="csv-set"/>
+                        </field>
+
+                        <field name="from" displayName="来源字段">
+                            <schema stdDomain="prop-path"/>
+                        </field>
+
+                        <field name="name" displayName="目标字段" mandatory="true">
+                            <schema stdDomain="prop-path"/>
+                        </field>
+
+                        <field name="displayName" displayName="中文名"/>
+
+                        <field name="i18n-en:displayName" displayName="英文名"/>
+
+                        <field name="description" displayName="备注"/>
+
+                        <field name="defaultValue" displayName="缺省值">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="computeExpr" displayName="计算表达式">
+                            <schema stdDomain="xpl-fn" stdDomainOptions="(source,target,ctx)=>any"/>
+                        </field>
+
+                        <field name="mapping" displayName="映射规则">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="itemMapping" displayName="子项目映射规则">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="valueMapper" displayName="值映射">
+                            <schema stdDomain="value-mapper" type="String"/>
+                        </field>
+
+                        <field name="type" displayName="类型">
+                            <schema stdDomain="generic-type"/>
+                        </field>
+
+                        <field name="schema.stdDomain" displayName="标准域">
+                            <schema stdDomain="std-domain"/>
+                        </field>
+
+                        <field name="schema.domain" displayName="数据域">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="schema.dict" displayName="字典">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="schema.pattern" displayName="正则模式">
+                            <schema stdDomain="regex"/>
+                        </field>
+
+                        <field name="schema.min" displayName="最小值">
+                            <schema stdDomain="double"/>
+                        </field>
+
+                        <field name="schema.max" displayName="最大值">
+                            <schema stdDomain="double"/>
+                        </field>
+
+                        <field name="schema.precision" displayName="精度">
+                            <schema stdDomain="int"/>
+                        </field>
+
+                        <field name="schema.scale" displayName="小数位数">
+                            <schema stdDomain="int"/>
+                        </field>
+
+                    </fields>
+                </field>
+            </fields>
+        </sheet>
+    </sheets>
+</imp>

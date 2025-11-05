@@ -366,5 +366,6 @@
         <module>nop-xdefs</module>
         <module>nop-markdown</module>
         <module>nop-kernel-cli</module>
+        <module>nop-record-mapping</module>
     </modules>
 </project>

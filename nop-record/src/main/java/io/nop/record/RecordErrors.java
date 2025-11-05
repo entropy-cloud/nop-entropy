@@ -40,11 +40,10 @@ public interface RecordErrors {
     String ARG_FIRST_CACHED_POS = "firstCachedPos";
 
     String ARG_VALUE = "value";
-    String ARG_DICT = "dict";
 
     String ARG_LENGTH_FIELD_LENGTH = "lengthFieldLength";
 
-    String ARG_MAPPING_NAME = "mappingName";
+
 
     ErrorCode ERR_RECORD_NO_ENOUGH_DATA =
             define("nop.err.record.no-enough-data", "缺少数据，无法读取");
@@ -105,17 +104,6 @@ public interface RecordErrors {
     ErrorCode ERR_RECORD_TYPE_NO_FIELDS = define("nop.err.record.type-no-fields",
             "结构体没有定义字段");
 
-    ErrorCode ERR_RECORD_FIELD_VALUE_NOT_IN_DICT = define("nop.err.record.field-value-not-in-dict",
-            "字段[{fieldName}]的值不在字典中:{value}", ARG_FIELD_NAME, ARG_VALUE);
-
-    ErrorCode ERR_RECORD_FIELD_MAPPING_NOT_FOUND = define("nop.err.record.field-mapping-not-found",
-            "未找到字段映射:{mappingName}", ARG_MAPPING_NAME, ARG_FIELD_NAME);
-
-    ErrorCode ERR_RECORD_MAPPING_NOT_FOUND = define("nop.err.record.mapping-not-found",
-            "未找到映射:{mappingName}", ARG_MAPPING_NAME);
-
-    ErrorCode ERR_RECORD_FIELD_NOT_COLLECTION_TYPE = define("nop.err.record.field-not-collection-type",
-            "字段[{fieldName}]的值不是合法的集合类型", ARG_FIELD_NAME);
 
     ErrorCode ERR_RECORD_NOT_END_OF_LINE = define("nop.err.record.not-enough-of-line",
             "不是换行符", ARG_POS);

@@ -25,39 +25,41 @@ public class CodeGen {
 
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-core"), "/", false);
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-xlang"), "", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-ioc"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-record-mapping"), "", false);
 
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-ui"), "", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-web-page"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-ioc"), "", false);
 
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-task/nop-task-core"), "", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-wf/nop-wf-core"), "", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-batch/nop-batch-dsl"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-ui"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-web-page"), "", false);
 
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-fsm"), "", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-biz"), "", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-dao"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-task/nop-task-core"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-wf/nop-wf-core"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-batch/nop-batch-dsl"), "", false);
+
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-fsm"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-biz"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-dao"), "", false);
             //
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-orm-model"), "", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-orm-eql"), "", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-orm"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-orm-model"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-orm-eql"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-orm"), "", false);
 
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-excel"), "", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-record"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-excel"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-record"), "", false);
 
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-converter"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-converter"), "", false);
 
             // XCodeGenerator.runProjectFile(new File(projectDir, "../nop-orm"),
             // "/src/test/resources/gen-demo-entity.xgen", true);
 
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-graphql/nop-graphql-core"), "", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-rule/nop-rule-core"), "", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-stream/nop-stream-cep"), "", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-auth/nop-auth-core"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-graphql/nop-graphql-core"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-rule/nop-rule-core"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-stream/nop-stream-cep"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-auth/nop-auth-core"), "", false);
 
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-dbtool/nop-dbtool-exp"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-dbtool/nop-dbtool-exp"), "", false);
 
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-ai/nop-ai-core"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-ai/nop-ai-core"), "", false);
 
             // System.setProperty("dryRun","true");
             // CodeGenTask.main(new String[]{new File("projectDir","../nop-graphql").getAbsolutePath()});

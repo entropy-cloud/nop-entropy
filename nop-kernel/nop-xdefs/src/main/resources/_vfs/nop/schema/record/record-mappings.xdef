@@ -1,7 +1,7 @@
 <definitions x:schema="/nop/schema/xdef.xdef"
              xmlns:x="/nop/schema/xdsl.xdef"
              xmlns:xdef="/nop/schema/xdef.xdef"
-             xdef:name="RecordMappingDefinitions" xdef:bean-package="io.nop.record.model">
+             xdef:name="RecordMappingDefinitions" xdef:bean-package="io.nop.record_mapping.model">
 
     <mapping xdef:ref="record-mapping.xdef" name="!var-name" xdef:unique-attr="name"/>
 

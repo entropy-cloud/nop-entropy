@@ -7,6 +7,4 @@
     codeGenerator.renderModel('/nop/schema/record/record-simple-field.xdef','/nop/templates/xdsl', '/',$scope);
     codeGenerator.renderModel('/nop/schema/record/record-template.xdef','/nop/templates/xdsl', '/',$scope);
     codeGenerator.renderModel('/nop/schema/record/packet-codec.xdef','/nop/templates/xdsl', '/',$scope);
-    codeGenerator.renderModel('/nop/schema/record/record-mapping.xdef','/nop/templates/xdsl', '/',$scope);
-    codeGenerator.renderModel('/nop/schema/record/record-mappings.xdef','/nop/templates/xdsl', '/',$scope);
 </c:script>

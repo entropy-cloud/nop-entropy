@@ -48,4 +48,8 @@ public class MavenDirHelper {
         String fullPath = file.getAbsolutePath();
         return new File(fullPath.substring(0, fullPath.length() - path.length()));
     }
+
+    public static boolean isMavenModuleDir(File file) {
+        return file.isDirectory() && new File(file, "pom.xml").exists();
+    }
 }

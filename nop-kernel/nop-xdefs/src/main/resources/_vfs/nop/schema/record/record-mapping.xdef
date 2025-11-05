@@ -5,8 +5,8 @@
 -->
 <mapping x:schema="/nop/schema/xdef.xdef" name="!var-name" displayName="string" tagSet="csv-set"
          xmlns:x="/nop/schema/xdsl.xdef"
-         xmlns:xdef="/nop/schema/xdef.xdef"
-         xdef:name="RecordMappingConfig" xdef:bean-package="io.nop.record.model"
+         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:md="md"
+         xdef:name="RecordMappingConfig" xdef:bean-package="io.nop.record_mapping.model"
          fromClass="class-name">
 
     <description xdef:value="string"/>
@@ -15,14 +15,16 @@
 
     <afterMapping xdef:value="xpl-fn:(source,target,ctx)=>void"/>
 
-    <fieldMappings xdef:key-attr="to" xdef:body-type="list">
+    <fields xdef:key-attr="name" xdef:body-type="list">
         <!--
         @mapping 引用其他RecordMapping映射规则。
         @itemMapping 如果to和from对应的属性是Map类型或者List类型，可以通过itemMapping来指定每个条目所对应的映射规则
+        @md:serializer 当反向利用这个映射配置来生成markdown文件时，这里指定to所对应的字段如何转换为markdown结构。
         -->
-        <fieldMapping to="!prop-path" from="prop-path" displayName="string" tagSet="csv-set"
+        <field name="!prop-path" from="prop-path" displayName="string" tagSet="csv-set"
                       defaultValue="string" mapping="var-name" virtual="!boolean=false"
                       type="generic-type" mandatory="!boolean=false" itemMapping="var-name"
+                      md:serializer="enum:json|table" skipWhenSerialize="boolean"
                       xdef:name="RecordFieldMappingConfig">
             <when xdef:value="xpl-fn:(source,target,ctx)=>boolean"/>
             <computeExpr xdef:value="xpl-fn:(source,target,ctx)=>any"/>
@@ -43,7 +45,7 @@
             <beforeFieldMapping xdef:value="xpl-fn:(source,target,ctx)=>void"/>
 
             <afterFieldMapping xdef:value="xpl-fn:(source,target,ctx)=>void"/>
-        </fieldMapping>
-    </fieldMappings>
+        </field>
+    </fields>
 
 </mapping>

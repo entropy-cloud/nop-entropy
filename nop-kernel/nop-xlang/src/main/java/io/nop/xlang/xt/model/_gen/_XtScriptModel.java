@@ -1,5 +1,6 @@
 package io.nop.xlang.xt.model._gen;
 
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 import io.nop.xlang.xt.model.XtScriptModel;
 import io.nop.commons.util.ClassHelper;

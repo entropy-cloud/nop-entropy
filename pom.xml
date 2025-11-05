@@ -430,7 +430,6 @@
         <module>nop-orm-pdm</module>
         <module>nop-xlang-debugger</module>
         <module>nop-orm-geo</module>
-        <module>nop-gateway</module>
         <module>nop-vertx</module>
         <module>nop-router</module>
         <module>nop-biz-report</module>
@@ -451,7 +450,6 @@
         <module>nop-css</module>
         <module>nop-search</module>
         <module>nop-orm-data</module>
-        <module>nop-rpa</module>
         <module>nop-orm-drivers</module>
         <module>nop-cli-jdk11</module>
         <module>nop-security</module>
@@ -464,6 +462,12 @@
         <module>nop-image</module>
         <module>nop-mermaid</module>
         <module>nop-markdown-ext</module>
+        <module>nop-persistence</module>
+        <module>nop-dev-tools</module>
+        <module>nop-format</module>
+        <module>nop-utils</module>
+        <module>nop-network</module>
+        <module>nop-frontend-support</module>
         <!--        <module>nop-commons-java21</module>-->
     </modules>
 </project>

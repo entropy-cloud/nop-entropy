@@ -1,9 +1,13 @@
 // Nop Generated from XLangLexer.g4 by ANTLR 4.13.0
 package io.nop.xlang.parse.antlr;
+import org.antlr.v4.runtime.Lexer; //NOPMD - suppressed UnusedImports - Auto Gen Code
 import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.Token; //NOPMD - suppressed UnusedImports - Auto Gen Code
+import org.antlr.v4.runtime.TokenStream; //NOPMD - suppressed UnusedImports - Auto Gen Code
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
+import org.antlr.v4.runtime.misc.*; //NOPMD - suppressed UnusedImports - Auto Gen Code
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue"})
 // tell cpd to start ignoring code - CPD-OFF

@@ -1,0 +1,4 @@
+<c:script>
+    codeGenerator.renderModel('/nop/schema/record/record-mapping.xdef','/nop/templates/xdsl', '/',$scope);
+    codeGenerator.renderModel('/nop/schema/record/record-mappings.xdef','/nop/templates/xdsl', '/',$scope);
+</c:script>

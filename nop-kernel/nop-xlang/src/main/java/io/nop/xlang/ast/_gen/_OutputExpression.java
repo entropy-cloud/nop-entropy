@@ -2,6 +2,7 @@
 package io.nop.xlang.ast._gen;
 
 import io.nop.xlang.ast.OutputExpression;
+import io.nop.xlang.ast.XLangASTNode; //NOPMD NOSONAR - suppressed UnusedImports - Auto Gen Code
 
 
 // tell cpd to start ignoring code - CPD-OFF
