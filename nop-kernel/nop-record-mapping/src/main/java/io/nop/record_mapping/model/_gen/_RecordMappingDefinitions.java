@@ -18,10 +18,36 @@ public abstract class _RecordMappingDefinitions extends io.nop.core.resource.com
     
     /**
      *  
+     * xml name: default
+     * 
+     */
+    private java.lang.String _default ;
+    
+    /**
+     *  
      * xml name: mapping
      * 数据对象属性映射规则
      */
     private KeyedList<io.nop.record_mapping.model.RecordMappingConfig> _mappings = KeyedList.emptyList();
+    
+    /**
+     * 
+     * xml name: default
+     *  
+     */
+    
+    public java.lang.String getDefault(){
+      return _default;
+    }
+
+    
+    public void setDefault(java.lang.String value){
+        checkAllowChange();
+        
+        this._default = value;
+           
+    }
+
     
     /**
      * 
@@ -85,6 +111,7 @@ public abstract class _RecordMappingDefinitions extends io.nop.core.resource.com
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("default",this.getDefault());
         out.putNotNull("mappings",this.getMappings());
     }
 
@@ -97,6 +124,7 @@ public abstract class _RecordMappingDefinitions extends io.nop.core.resource.com
     protected void copyTo(RecordMappingDefinitions instance){
         super.copyTo(instance);
         
+        instance.setDefault(this.getDefault());
         instance.setMappings(this.getMappings());
     }
 
