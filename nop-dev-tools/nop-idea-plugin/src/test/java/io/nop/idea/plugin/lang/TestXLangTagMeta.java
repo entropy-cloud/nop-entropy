@@ -693,12 +693,14 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           // 元模型未指定
+                          assertTrue(tagMeta.hasError());
                           assertTrue(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
 
                           assertEquals("meta:unknown-tag", tag.getName());
+                          assertTrue(tagMeta.getErrorMsg().contains("No schema path is specified"));
                       } //
         );
         assertTagMeta("""
@@ -710,6 +712,7 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           // 标签由 xdsl.xdef 定义
+                          assertFalse(tagMeta.hasError());
                           assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
@@ -729,13 +732,15 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </meta:unknown>
                               """, //
                       (tag, tagMeta) -> {
-                          // 标签未定义
+                          // meta 名字空间的标签未定义
+                          assertTrue(tagMeta.hasError());
                           assertTrue(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
 
                           assertEquals("meta:unknown", tag.getName());
+                          assertTrue(tagMeta.getErrorMsg().contains("corresponding namespace 'xdef'"));
                       } //
         );
         assertTagMeta("""
@@ -747,13 +752,57 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
-                          // 标签未定义
+                          // meta 名字空间的标签未定义
+                          assertTrue(tagMeta.hasError());
                           assertTrue(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
 
                           assertEquals("meta:abcd", tag.getName());
+                          assertTrue(tagMeta.getErrorMsg().contains("corresponding namespace 'xdef'"));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <x:a<caret>ny/>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          // x 名字空间的标签未定义
+                          assertTrue(tagMeta.hasError());
+                          assertTrue(tagMeta.isUnknown());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
+                          assertEquals("x:any", tag.getName());
+                          assertTrue(tagMeta.getErrorMsg().contains("corresponding namespace 'x'"));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <x:post-extends>
+                                  <xpl:ab<caret>c/>
+                                </x:post-extends>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          // xpl 名字空间的标签未定义
+                          assertTrue(tagMeta.hasError());
+                          assertTrue(tagMeta.isUnknown());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
+                          assertEquals("xpl:abc", tag.getName());
+                          assertTrue(tagMeta.getErrorMsg().contains("corresponding namespace 'xpl'"));
                       } //
         );
 
@@ -766,12 +815,57 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               """, //
                       (tag, tagMeta) -> {
                           // 根节点标签与定义的不一致
+                          assertTrue(tagMeta.hasError());
                           assertTrue(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
 
                           assertEquals("lang", tag.getName());
+                          assertTrue(tagMeta.getErrorMsg().contains("doesn't match with the root tag"));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <xui:par<caret>ent>
+                                </xui:parent>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          // xui 名字空间的标签未显式定义
+                          assertTrue(tagMeta.hasError());
+                          assertTrue(tagMeta.isUnknown());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
+                          assertEquals("xui:parent", tag.getName());
+                          assertTrue(tagMeta.getErrorMsg().contains("should be defined in schema"));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <xui:parent>
+                                  <xui:ch<caret>ild/>
+                                </xui:parent>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          // 父标签未定义
+                          assertTrue(tagMeta.hasError());
+                          assertTrue(tagMeta.isUnknown());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
+                          assertEquals("xui:child", tag.getName());
+                          assertTrue(tagMeta.getErrorMsg().contains("'xui:parent' isn't defined"));
                       } //
         );
     }

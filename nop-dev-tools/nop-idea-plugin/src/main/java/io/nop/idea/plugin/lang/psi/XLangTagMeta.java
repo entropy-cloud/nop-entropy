@@ -11,6 +11,7 @@ package io.nop.idea.plugin.lang.psi;
 import java.util.Set;
 
 import io.nop.commons.util.StringHelper;
+import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.utils.XDefPsiHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.xlang.xdef.IXDefNode;
@@ -21,6 +22,10 @@ import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xpl.XplConstants;
 import io.nop.xlang.xpl.xlib.XlibConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.PropertyKey;
+
+import static io.nop.idea.plugin.messages.NopPluginBundle.BUNDLE;
 
 /**
  * 标签的{@link IXDefNode 定义节点}信息
@@ -29,9 +34,9 @@ import io.nop.xlang.xpl.xlib.XlibConstants;
  * @date 2025-10-21
  */
 public class XLangTagMeta {
-    private static final XLangTagMeta UNKNOWN_META = new XLangTagMeta(null);
-
     final String tagName;
+    final String errorMsg;
+
     XLangTagMeta parent;
 
     /**
@@ -66,12 +71,21 @@ public class XLangTagMeta {
     XDefKeys xdefKeys;
     XDslKeys xdslKeys;
 
-    XLangTagMeta(String tagName) {
+    XLangTagMeta(@NotNull String tagName) {
+        this(tagName, null);
+    }
+
+    XLangTagMeta(@NotNull String tagName, String errorMsg) {
         this.tagName = tagName;
+        this.errorMsg = errorMsg;
     }
 
     public String getTagName() {
         return tagName;
+    }
+
+    public String getErrorMsg() {
+        return this.errorMsg;
     }
 
     public IXDefNode getDefNodeInSchema() {
@@ -80,6 +94,10 @@ public class XLangTagMeta {
 
     public IXDefNode getDefNodeInSelfSchema() {
         return defNodeInSelfSchema;
+    }
+
+    public boolean hasError() {
+        return errorMsg != null;
     }
 
     /** 是否未定义 */
@@ -136,12 +154,21 @@ public class XLangTagMeta {
         return createForChildTag(parentTag, tagNs, tagName);
     }
 
+    private static XLangTagMeta error(
+            @NotNull String tagName, @NotNull @PropertyKey(resourceBundle = BUNDLE) String msgKey,
+            Object @NotNull ... msgParams
+    ) {
+        return new XLangTagMeta(tagName, NopPluginBundle.message(msgKey, msgParams));
+    }
+
     private static XLangTagMeta createForRootTag(String tagNs, String tagName, XLangTag tag) {
+        String xdslNs = XmlPsiHelper.getXmlnsForUrl(tag, XDslConstants.XDSL_SCHEMA_XDSL);
+        XDslKeys xdslKeys = XDslKeys.of(xdslNs);
+
         // Note: 若标签在 Xpl 脚本中，则将返回 /nop/schema/xpl.xdef
         String schemaUrl = XDefPsiHelper.getSchemaPath(tag);
         if (schemaUrl == null) {
-            // TODO 未在根节点通过 x:schema 指定元模型路径
-            return UNKNOWN_META;
+            return error(tagName, "xlang.parser.tag-meta.schema-not-specified", xdslKeys.SCHEMA, tagName);
         }
 
         IXDefinition schema = XDefPsiHelper.loadSchema(schemaUrl);
@@ -157,20 +184,20 @@ public class XLangTagMeta {
         }
         // 若元模型加载失败，则不做识别
         if (schema == null) {
-            // TODO 元模型 /xx/xx.xdef 加载失败
-            return UNKNOWN_META;
+            return error(tagName, "xlang.parser.tag-meta.schema-loading-failed", schemaUrl);
         }
 
         String xdefNs = XmlPsiHelper.getXmlnsForUrl(tag, XDslConstants.XDSL_SCHEMA_XDEF);
-        String xdslNs = XmlPsiHelper.getXmlnsForUrl(tag, XDslConstants.XDSL_SCHEMA_XDSL);
         XDefKeys xdefKeys = XDefKeys.of(xdefNs);
-        XDslKeys xdslKeys = XDslKeys.of(xdslNs);
 
         // Note: xdef 名字空间的根节点必须为 xdef.xdef 中已定义的节点
         if (inSchema && xdefKeys.NS.equals(tagNs)) {
             if (getChildXdefDefNode(xdefKeys, schema, tagName) == null) {
-                // TODO 在名字空间 xx 对应的元模型 xdef.xdef 中未定义 xx:xx
-                return UNKNOWN_META;
+                return error(tagName,
+                             "xlang.parser.tag-meta.ns-tag-not-defined-in-schema",
+                             tagName,
+                             XDefKeys.DEFAULT.NS,
+                             XDslConstants.XDSL_SCHEMA_XDEF);
             }
         }
 
@@ -180,8 +207,11 @@ public class XLangTagMeta {
         if (!inSchema && !defNodeInSchema.isUnknownTag() //
             && !defNodeInSchema.getTagName().equals(tagName) //
         ) {
-            // TODO 根节点标签名 <xx/> 与元模型定义的根节点标签名 <yy/> 不一致
-            return UNKNOWN_META;
+            return error(tagName,
+                         "xlang.parser.tag-meta.root-tag-name-not-match-schema-root",
+                         tagName,
+                         defNodeInSchema.getTagName(),
+                         schemaUrl);
         }
 
         // Note: 正在编辑中的 xdef 有可能是不完整的，此时将无法解析出 IXDefinition
@@ -217,8 +247,7 @@ public class XLangTagMeta {
         XLangTagMeta parentTagMeta = parentTag.getTagMeta();
         // 无定义节点
         if (parentTagMeta.isUnknown()) {
-            // TODO 父节点未定义
-            return UNKNOWN_META;
+            return error(tagName, "xlang.parser.tag-meta.parent-not-defined", parentTagMeta.getTagName());
         }
 
         XDefKeys xdefKeys = parentTagMeta.xdefKeys;
@@ -231,8 +260,11 @@ public class XLangTagMeta {
             defNodeInSchema = getChildDefNode(parentTagMeta.xdslDefNode, xdslTagName);
 
             if (defNodeInSchema.isUnknownTag()) {
-                // TODO 在名字空间 xx 对应的元模型 xdsl.xdef 中未定义 xx:xx
-                return UNKNOWN_META;
+                return error(tagName,
+                             "xlang.parser.tag-meta.ns-tag-not-defined-in-schema",
+                             tagName,
+                             XDslKeys.DEFAULT.NS,
+                             XDslConstants.XDSL_SCHEMA_XDSL);
             }
         }
 
@@ -241,8 +273,11 @@ public class XLangTagMeta {
             defNodeInSchema = getChildDefNode(XDefPsiHelper.getXplDef().getRootNode(), tagName);
 
             if (XplConstants.XPL_NS.equals(tagNs) && defNodeInSchema.isUnknownTag()) {
-                // TODO 在名字空间 xpl 对应的元模型 xpl.xdef 中未定义 xpl:xx
-                return UNKNOWN_META;
+                return error(tagName,
+                             "xlang.parser.tag-meta.ns-tag-not-defined-in-schema",
+                             tagName,
+                             XplConstants.XPL_NS,
+                             XDslConstants.XDSL_SCHEMA_XPL);
             }
         }
 
@@ -260,8 +295,11 @@ public class XLangTagMeta {
         ) {
             defNodeInSchema = getChildXdefDefNode(xdefKeys, parentTagMeta.defNodeInSchema, tagName);
             if (defNodeInSchema == null) {
-                // TODO 在名字空间 xx 对应的元模型 xdef.xdef 中未定义 xx:xx
-                return UNKNOWN_META;
+                return error(tagName,
+                             "xlang.parser.tag-meta.ns-tag-not-defined-in-schema",
+                             tagName,
+                             XDefKeys.DEFAULT.NS,
+                             XDslConstants.XDSL_SCHEMA_XDEF);
             }
         }
 
@@ -277,9 +315,13 @@ public class XLangTagMeta {
                 && parentTagMeta.checkNsInSchema != null //
                 && parentTagMeta.checkNsInSchema.contains(tagNs) //
             ) {
-                if (defNodeInSchema != null && defNodeInSchema.isUnknownTag()) {
-                    // TODO 名字空间 xx 下的标签必须在 /xx/xx.xdef 中显式定义
-                    return UNKNOWN_META;
+                if (defNodeInSchema == null || defNodeInSchema.isUnknownTag()) {
+                    String schemaUrl = XmlPsiHelper.getNopVfsPath(parentTagMeta.defNodeInSchema);
+                    return error(tagName,
+                                 "xlang.parser.tag-meta.ns-tag-should-be-defined-in-schema",
+                                 tagName,
+                                 tagNs,
+                                 schemaUrl);
                 }
             }
             // 否则，其定义节点必然为 xdsl 的 xdef:unknown-tag 节点
@@ -289,8 +331,7 @@ public class XLangTagMeta {
         }
 
         if (defNodeInSchema == null) {
-            // TODO 节点未定义
-            return UNKNOWN_META;
+            return error(tagName, "xlang.parser.tag-meta.tag-not-defined", tagName);
         }
 
         XLangTagMeta tagMeta = new XLangTagMeta(tagName);
