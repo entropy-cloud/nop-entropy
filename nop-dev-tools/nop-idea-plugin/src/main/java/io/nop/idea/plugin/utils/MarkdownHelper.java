@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Set;
 
 import io.nop.idea.plugin.messages.NopPluginBundle;
-import io.nop.markdown.math.MathExtension;
+import io.nop.markdown.ext.math.MathExtension;
 import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.node.Image;
 import org.commonmark.node.Link;

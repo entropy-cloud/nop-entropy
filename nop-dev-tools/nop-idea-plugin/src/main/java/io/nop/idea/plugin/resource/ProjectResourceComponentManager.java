@@ -105,11 +105,6 @@ public class ProjectResourceComponentManager implements IResourceComponentManage
     }
 
     @Override
-    public IGeneratedComponent loadGeneratedComponent(String componentPath) {
-        return getImpl().loadGeneratedComponent(componentPath);
-    }
-
-    @Override
     public <T> T loadPrecompiledObject(String resourcePath) {
         return getImpl().loadPrecompiledObject(resourcePath);
     }

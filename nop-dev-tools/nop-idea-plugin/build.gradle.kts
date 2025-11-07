@@ -30,6 +30,7 @@ dependencies {
     // ANTLR 适配器：https://github.com/antlr/antlr4-intellij-adaptor
     implementation("org.antlr:antlr4-intellij-adaptor:0.1")
 
+    implementation("io.github.entropy-cloud:nop-markdown-ext:2.0.0-SNAPSHOT")
     implementation("io.github.entropy-cloud:nop-markdown:2.0.0-SNAPSHOT")
     implementation("io.github.entropy-cloud:nop-xlang-debugger:2.0.0-SNAPSHOT")
     implementation("io.github.entropy-cloud:nop-xlang:2.0.0-SNAPSHOT") {
