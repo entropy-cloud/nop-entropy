@@ -81,29 +81,35 @@ public class XLangAttribute extends XmlAttributeImpl {
             return null;
         }
 
-        String ns = getNamespacePrefix();
-        String attrName = getName();
-        boolean hasXDslNs = !ns.isEmpty() && ns.equals(tag.getXDslKeys().NS);
-
-        IXDefAttribute defAttr;
-        // 取 xdsl.xdef 中声明的属性
-        if (hasXDslNs) {
-            defAttr = tag.getXDslDefNodeAttr(attrName);
-        } //
-        else {
-            defAttr = tag.getSchemaDefNodeAttr(attrName);
-        }
-
-        return defAttr;
+        XLangTagMeta tagMeta = tag.getTagMeta();
+        return tagMeta.getDefAttr(this);
     }
 
-    /** 带名字空间的附加属性（即，不做名字空间校验的属性） */
-    public static class XDefAttributeNotInCheckNS extends XDefAttribute {
+    public static boolean isNullOrErrorDefAttr(IXDefAttribute defAttr) {
+        return defAttr == null || defAttr instanceof XDefAttributeWithError;
+    }
+
+    /** 类型为 {@code any} 的属性定义 */
+    public static class XDefAttributeWithTypeAny extends XDefAttribute {
         private static final XDefTypeDecl STD_DOMAIN_ANY = new XDefTypeDeclParser().parseFromText(null, "any");
 
-        public XDefAttributeNotInCheckNS(String name) {
+        public XDefAttributeWithTypeAny(String name) {
             setName(name);
             setType(STD_DOMAIN_ANY);
+        }
+    }
+
+    /** 含错误信息的属性定义 */
+    public static class XDefAttributeWithError extends XDefAttribute {
+        final String errorMsg;
+
+        public XDefAttributeWithError(String name, String errorMsg) {
+            this.errorMsg = errorMsg;
+            setName(name);
+        }
+
+        public String getErrorMsg() {
+            return this.errorMsg;
         }
     }
 }

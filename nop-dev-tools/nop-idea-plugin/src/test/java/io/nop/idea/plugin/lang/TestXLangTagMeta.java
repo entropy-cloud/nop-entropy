@@ -35,7 +35,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertTrue(tagMeta.isInXdefSchema());
@@ -57,7 +56,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -80,7 +78,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertTrue(tagMeta.isInXdefSchema());
@@ -101,7 +98,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertTrue(tagMeta.isInXdefSchema());
@@ -124,7 +120,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertTrue(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertTrue(tagMeta.isInXdefSchema());
@@ -145,7 +140,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertTrue(tagMeta.isInXdefSchema());
@@ -171,7 +165,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertTrue(tagMeta.isInXdefSchema());
@@ -194,7 +187,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertTrue(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertTrue(tagMeta.isInXdefSchema());
@@ -218,7 +210,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertTrue(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertTrue(tagMeta.isInXdefSchema());
@@ -241,7 +232,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </meta:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertTrue(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertTrue(tagMeta.isInXdefSchema());
@@ -263,7 +253,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </xdef:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -286,7 +275,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </xdef:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -309,7 +297,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </xdef:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertTrue(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -332,7 +319,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </xdef:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -357,7 +343,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </xdef:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -381,7 +366,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </xdef:unknown-tag>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertTrue(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -403,7 +387,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </example>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -427,7 +410,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </example>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertTrue(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -449,7 +431,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </example>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertTrue(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -470,7 +451,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </example>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -493,7 +473,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </example>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -519,7 +498,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </example>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertTrue(tagMeta.isXplNode());
                           assertTrue(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -541,7 +519,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </example>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -562,7 +539,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </example>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -583,13 +559,11 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </example>
                               """, //
                       (tag, tagMeta) -> {
-                          assertTrue(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
 
-                          assertEquals("unknown", tag.getName());
-                          assertNull(tagMeta.getTagName());
+                          assertEquals("unknown", tagMeta.getTagName());
                           assertNull(tagMeta.getDefNodeInSchema());
 
                           assertNull(tagMeta.getDefNodeInSelfSchema());
@@ -605,7 +579,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </example>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertTrue(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -629,7 +602,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </example>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertTrue(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -651,7 +623,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </example>
                               """, //
                       (tag, tagMeta) -> {
-                          assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -672,18 +643,18 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                               </example>
                               """, //
                       (tag, tagMeta) -> {
-                          assertTrue(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
 
-                          assertEquals("xui:style", tag.getName());
-                          assertNull(tagMeta.getTagName());
+                          assertEquals("xui:style", tagMeta.getTagName());
                           assertNull(tagMeta.getDefNodeInSchema());
 
                           assertNull(tagMeta.getDefNodeInSelfSchema());
                       } //
         );
+
+        // TODO xjson type child
     }
 
     public void testCreateUnknownTagMeta() {
@@ -694,12 +665,11 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                       (tag, tagMeta) -> {
                           // 元模型未指定
                           assertTrue(tagMeta.hasError());
-                          assertTrue(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
 
-                          assertEquals("meta:unknown-tag", tag.getName());
+                          assertEquals("meta:unknown-tag", tagMeta.getTagName());
                           assertTrue(tagMeta.getErrorMsg().contains("No schema path is specified"));
                       } //
         );
@@ -713,7 +683,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                       (tag, tagMeta) -> {
                           // 标签由 xdsl.xdef 定义
                           assertFalse(tagMeta.hasError());
-                          assertFalse(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
@@ -734,12 +703,11 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                       (tag, tagMeta) -> {
                           // meta 名字空间的标签未定义
                           assertTrue(tagMeta.hasError());
-                          assertTrue(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
 
-                          assertEquals("meta:unknown", tag.getName());
+                          assertEquals("meta:unknown", tagMeta.getTagName());
                           assertTrue(tagMeta.getErrorMsg().contains("corresponding namespace 'xdef'"));
                       } //
         );
@@ -754,12 +722,11 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                       (tag, tagMeta) -> {
                           // meta 名字空间的标签未定义
                           assertTrue(tagMeta.hasError());
-                          assertTrue(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
 
-                          assertEquals("meta:abcd", tag.getName());
+                          assertEquals("meta:abcd", tagMeta.getTagName());
                           assertTrue(tagMeta.getErrorMsg().contains("corresponding namespace 'xdef'"));
                       } //
         );
@@ -774,12 +741,11 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                       (tag, tagMeta) -> {
                           // x 名字空间的标签未定义
                           assertTrue(tagMeta.hasError());
-                          assertTrue(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
 
-                          assertEquals("x:any", tag.getName());
+                          assertEquals("x:any", tagMeta.getTagName());
                           assertTrue(tagMeta.getErrorMsg().contains("corresponding namespace 'x'"));
                       } //
         );
@@ -796,12 +762,11 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                       (tag, tagMeta) -> {
                           // xpl 名字空间的标签未定义
                           assertTrue(tagMeta.hasError());
-                          assertTrue(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
 
-                          assertEquals("xpl:abc", tag.getName());
+                          assertEquals("xpl:abc", tagMeta.getTagName());
                           assertTrue(tagMeta.getErrorMsg().contains("corresponding namespace 'xpl'"));
                       } //
         );
@@ -816,12 +781,11 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                       (tag, tagMeta) -> {
                           // 根节点标签与定义的不一致
                           assertTrue(tagMeta.hasError());
-                          assertTrue(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
 
-                          assertEquals("lang", tag.getName());
+                          assertEquals("lang", tagMeta.getTagName());
                           assertTrue(tagMeta.getErrorMsg().contains("doesn't match with the root tag"));
                       } //
         );
@@ -837,12 +801,11 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                       (tag, tagMeta) -> {
                           // xui 名字空间的标签未显式定义
                           assertTrue(tagMeta.hasError());
-                          assertTrue(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
 
-                          assertEquals("xui:parent", tag.getName());
+                          assertEquals("xui:parent", tagMeta.getTagName());
                           assertTrue(tagMeta.getErrorMsg().contains("should be defined in schema"));
                       } //
         );
@@ -859,12 +822,11 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                       (tag, tagMeta) -> {
                           // 父标签未定义
                           assertTrue(tagMeta.hasError());
-                          assertTrue(tagMeta.isUnknown());
                           assertFalse(tagMeta.isXplNode());
                           assertFalse(tagMeta.isInAnySchema());
                           assertFalse(tagMeta.isInXdefSchema());
 
-                          assertEquals("xui:child", tag.getName());
+                          assertEquals("xui:child", tagMeta.getTagName());
                           assertTrue(tagMeta.getErrorMsg().contains("'xui:parent' isn't defined"));
                       } //
         );

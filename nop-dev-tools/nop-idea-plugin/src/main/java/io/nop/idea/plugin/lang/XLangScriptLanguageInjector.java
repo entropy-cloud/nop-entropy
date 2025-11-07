@@ -15,6 +15,7 @@ import com.intellij.psi.LanguageInjector;
 import com.intellij.psi.PsiLanguageInjectionHost;
 import io.nop.commons.util.StringHelper;
 import io.nop.idea.plugin.lang.psi.XLangTag;
+import io.nop.idea.plugin.lang.psi.XLangTagMeta;
 import io.nop.idea.plugin.lang.psi.XLangText;
 import io.nop.idea.plugin.lang.script.XLangScriptLanguage;
 import io.nop.xlang.xpl.XplConstants;
@@ -35,16 +36,22 @@ public class XLangScriptLanguageInjector implements LanguageInjector {
 
     @Override
     public void getLanguagesToInject(
-            @NotNull PsiLanguageInjectionHost host, @NotNull InjectedLanguagePlaces registrar
+            @NotNull PsiLanguageInjectionHost host,
+            @NotNull InjectedLanguagePlaces registrar
     ) {
         // 针对仅包含文本内容的 Xpl 类型节点（xdef:value=xpl*）
         if (!(host instanceof XLangText) //
             || !(host.getParent() instanceof XLangTag tag) //
-            || !tag.isXplDefNode() //
-            || (!XplConstants.TAG_C_SCRIPT.equals(tag.getName()) //
-                && !tag.isXlibSourceNode() // TODO 暂时仅针对 c:script/source 标签做内嵌代码解析
-            ) //
             || tag.hasChildTag() //
+        ) {
+            return;
+        }
+
+        XLangTagMeta tagMeta = tag.getTagMeta();
+        if (!tagMeta.isXplNode() //
+            || (!XplConstants.TAG_C_SCRIPT.equals(tag.getName()) //
+                && !tagMeta.isXlibSourceNode() // TODO 暂时仅针对 c:script/source 标签做内嵌代码解析
+            ) //
         ) {
             return;
         }

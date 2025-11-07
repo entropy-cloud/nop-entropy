@@ -14,6 +14,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlElement;
 import io.nop.idea.plugin.lang.psi.XLangAttribute;
 import io.nop.idea.plugin.lang.psi.XLangTag;
+import io.nop.idea.plugin.lang.psi.XLangTagMeta;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import org.jetbrains.annotations.NotNull;
@@ -80,9 +81,10 @@ public class XLangParentTagAttrReference extends XLangReferenceBase {
         XLangAttribute attr = getParentAttr();
         String attrName = attr != null ? attr.getName() : null;
 
+        XLangTagMeta tagMeta = tag.getTagMeta();
         return XmlPsiHelper.getTagAttrNames(tag) //
                            .stream() //
-                           .filter(new XLangXdefKeyAttrReference.TagAttrNameFilter(tag)) //
+                           .filter(new XLangXdefKeyAttrReference.TagAttrNameFilter(tagMeta)) //
                            .filter((name) -> !name.equals(attrName)) //
                            .sorted(XLANG_NAME_COMPARATOR) //
                            .toArray();

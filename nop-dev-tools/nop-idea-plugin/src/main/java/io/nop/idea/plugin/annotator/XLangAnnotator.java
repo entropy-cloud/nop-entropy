@@ -30,6 +30,7 @@ import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.idea.plugin.lang.psi.XLangAttribute;
 import io.nop.idea.plugin.lang.psi.XLangAttributeValue;
 import io.nop.idea.plugin.lang.psi.XLangTag;
+import io.nop.idea.plugin.lang.psi.XLangTagMeta;
 import io.nop.idea.plugin.lang.psi.XLangText;
 import io.nop.idea.plugin.lang.psi.XLangTextToken;
 import io.nop.idea.plugin.lang.reference.XLangReference;
@@ -39,7 +40,6 @@ import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFile;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.IXDefAttribute;
-import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import io.nop.xlang.xpl.utils.XplParseHelper;
@@ -133,42 +133,26 @@ public class XLangAnnotator implements Annotator {
     }
 
     private void checkTag(@NotNull AnnotationHolder holder, @NotNull XLangTag tag) {
-        if (tag.getSchemaDefNode() != null) {
+        XLangTagMeta tagMeta = tag.getTagMeta();
+        if (!tagMeta.hasError()) {
             checkTagBySchemaDefNode(holder, tag);
             return;
         }
 
-        XLangTag parentTag = tag.getParentTag();
-        if ((parentTag != null && parentTag.isXdefValueSupportBody()) //
-            || tag.isAllowedUnknownTag() //
-        ) {
-            return;
-        }
-
-        // Note: 若根节点被定义为 xdef:unknown-tag，则 tag.getSchemaDef() 不会返回 null
-        String expectedRootTag = parentTag == null && tag.getSchemaDef() != null //
-                                 ? tag.getSchemaDef().getRootNode().getTagName() : null;
         XmlToken[] tokens = new XmlToken[] {
                 XmlTagUtil.getStartTagNameElement(tag), XmlTagUtil.getEndTagNameElement(tag)
         };
         for (XmlToken token : tokens) {
             if (token != null) {
-                if (expectedRootTag != null) {
-                    errorAnnotation(holder,
-                                    token.getTextRange(),
-                                    "xlang.annotation.tag.expected-root",
-                                    expectedRootTag);
-                } else {
-                    errorAnnotation(holder, token.getTextRange(), "xlang.annotation.tag.not-defined", token.getText());
-                }
+                _errorAnnotation(holder, token.getTextRange(), tagMeta.getErrorMsg());
             }
         }
     }
 
     private void checkTagBySchemaDefNode(@NotNull AnnotationHolder holder, @NotNull XLangTag tag) {
-        IXDefNode xdefNode = tag.getSchemaDefNode();
+        XLangTagMeta tagMeta = tag.getTagMeta();
         // 检查标签可重复性
-        if (!xdefNode.isAllowMultiple() && tag.getParentTag() != null) {
+        if (!tagMeta.canBeMultipleTag() && tag.getParentTag() != null) {
             for (PsiElement child : tag.getParentTag().getChildren()) {
                 // 检查在其之前的重复节点
                 if (child == tag) {
@@ -188,7 +172,7 @@ public class XLangAnnotator implements Annotator {
         }
 
         // 检查节点内容
-        XDefTypeDecl xdefValue = tag.getSchemaDefNodeXdefValue();
+        XDefTypeDecl xdefValue = tagMeta.getXdefValue();
         TextRange textRange = tag.getValue().getTextRange();
         String bodyText = tag.hasChildTag() ? null : tag.getBodyText();
         boolean blankBodyText = StringHelper.isBlank(bodyText);
@@ -197,11 +181,6 @@ public class XLangAnnotator implements Annotator {
             if (!blankBodyText) {
                 errorAnnotation(holder, textRange, "xlang.annotation.tag.value-not-allowed", tag.getName());
             }
-            return;
-        }
-
-        if (!tag.isAllowedChildTag() && tag.hasChildTag()) {
-            errorAnnotation(holder, textRange, "xlang.annotation.tag.child-not-allowed", tag.getName());
             return;
         }
 
@@ -217,7 +196,7 @@ public class XLangAnnotator implements Annotator {
             SourceLocation loc = XmlPsiHelper.getValueLocation(tag);
 
             String stdDomain = xdefValue.getStdDomain();
-            if (tag.isXlibSourceNode()) {
+            if (tagMeta.isXlibSourceNode()) {
                 stdDomain = "xpl";
             }
 
@@ -234,18 +213,22 @@ public class XLangAnnotator implements Annotator {
             return;
         }
 
-        if (attr.getDefAttr() == null) {
+        IXDefAttribute defAttr = attr.getDefAttr();
+        if (defAttr == null) {
             errorAnnotation(holder,
                             attrNameElement.getTextRange(),
                             "xlang.annotation.attr.not-defined",
                             attr.getName());
+        } //
+        else if (defAttr instanceof XLangAttribute.XDefAttributeWithError error) {
+            _errorAnnotation(holder, attrNameElement.getTextRange(), error.getErrorMsg());
         }
     }
 
     private void checkAttrValue(@NotNull AnnotationHolder holder, @NotNull XLangAttributeValue attrValue) {
         XLangAttribute attr = attrValue.getParentAttr();
         IXDefAttribute defAttr = attr != null ? attr.getDefAttr() : null;
-        if (defAttr == null) {
+        if (XLangAttribute.isNullOrErrorDefAttr(defAttr)) {
             return;
         }
 

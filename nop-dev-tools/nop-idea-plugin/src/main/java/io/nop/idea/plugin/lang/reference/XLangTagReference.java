@@ -19,6 +19,7 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.idea.plugin.lang.psi.XLangTag;
+import io.nop.idea.plugin.lang.psi.XLangTagMeta;
 import io.nop.idea.plugin.utils.LookupElementHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFile;
@@ -46,13 +47,14 @@ public class XLangTagReference extends XLangReferenceBase {
     @Override
     public @Nullable PsiElement resolveInner() {
         XLangTag tag = (XLangTag) myElement;
-        IXDefNode defNode = tag.getSchemaDefNode();
 
-        String path = XmlPsiHelper.getNopVfsPath(defNode);
+        XLangTagMeta tagMeta = tag.getTagMeta();
+        String path = tagMeta.getDefNodeSchemaPath();
         if (path == null) {
             return null;
         }
 
+        IXDefNode defNode = tagMeta.getDefNodeInSchema();
         SourceLocation loc = defNode.getLocation();
         Function<PsiFile, PsiElement> targetResolver = (file) -> XmlPsiHelper.getPsiElementAt(file,
                                                                                               loc,
@@ -67,7 +69,9 @@ public class XLangTagReference extends XLangReferenceBase {
         // Note: 在自动补全阶段，DSL 结构很可能是不完整的，只能从 xml 角度做分析
         XLangTag tag = (XLangTag) myElement;
         String tagNs = tag.getNamespacePrefix();
-        XDefKeys tagXDefKeys = tag.getXDefKeys();
+        XLangTagMeta tagMeta = tag.getTagMeta();
+
+        XDefKeys tagXdefKeys = tagMeta.getXdefKeys();
         boolean trimLookupTagNs = !tagNs.isEmpty();
 
         XLangTag parentTag = tag.getParentTag();
@@ -75,12 +79,12 @@ public class XLangTagReference extends XLangReferenceBase {
             String fileName = tag.getContainingFile().getName();
             String tagName = fileName.contains(".") ? fileName.substring(0, fileName.indexOf('.')) : fileName;
 
-            if (!tag.isInXDef()) {
-                IXDefNode rootDefNode = tag.getSchemaDef().getRootNode();
+            if (!tagMeta.isInAnySchema()) {
+                IXDefNode rootDefNode = tag.getRootTag().getTagMeta().getDefNodeInSchema();
 
                 return new LookupElement[] {
                         // 对于非元模型的根节点，其标签名只能为其 xdef 中的根节点名
-                        !rootDefNode.isUnknownTag() //
+                        rootDefNode != null && !rootDefNode.isUnknownTag() //
                         ? lookupTag(rootDefNode, trimLookupTagNs)
                         // 若根节点被定义为 xdef:unknown-tag，则以文件名作为其标签名
                         : lookupTag(tagName, null, trimLookupTagNs),
@@ -90,7 +94,7 @@ public class XLangTagReference extends XLangReferenceBase {
                         // 对于元模型的根节点，则一般以文件名作为其标签名
                         lookupTag(tagName, null, trimLookupTagNs),
                         // 或者为 xdef:unknown-tag
-                        lookupTag(tagXDefKeys != null ? tagXDefKeys.UNKNOWN_TAG : XDefKeys.DEFAULT.UNKNOWN_TAG,
+                        lookupTag(tagXdefKeys != null ? tagXdefKeys.UNKNOWN_TAG : XDefKeys.DEFAULT.UNKNOWN_TAG,
                                   null,
                                   trimLookupTagNs),
                         };
@@ -99,8 +103,9 @@ public class XLangTagReference extends XLangReferenceBase {
 
         boolean usedXDslNs = XDslKeys.DEFAULT.NS.equals(tagNs);
 
-        IXDefNode xdslDefNode = parentTag.getXDslDefNode();
-        IXDefNode parentTagDefNode = parentTag.getSchemaDefNode();
+        XLangTagMeta parentTagMeta = parentTag.getTagMeta();
+        IXDefNode xdslDefNode = parentTagMeta.getXDslDefNode();
+        IXDefNode parentTagDefNode = parentTagMeta.getDefNodeInSchema();
         if (usedXDslNs) {
             parentTagDefNode = xdslDefNode;
         }

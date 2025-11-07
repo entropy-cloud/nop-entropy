@@ -18,6 +18,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlElement;
 import io.nop.idea.plugin.lang.psi.XLangAttribute;
 import io.nop.idea.plugin.lang.psi.XLangTag;
+import io.nop.idea.plugin.lang.psi.XLangTagMeta;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.xlang.xdef.IXDefNode;
@@ -114,10 +115,13 @@ public class XLangXPrototypeReference extends XLangReferenceBase {
     }
 
     private String getKeyAttrName(XLangTag tag, XLangTag parentTag) {
+        XLangTagMeta tagMeta = tag.getTagMeta();
+        XLangTagMeta parentTagMeta = parentTag.getTagMeta();
+
         // 仅从父节点中取引用到的子节点
         // io.nop.xlang.delta.DeltaMerger#mergePrototype
-        IXDefNode defNode = tag.getSchemaDefNode();
-        IXDefNode parentDefNode = parentTag.getSchemaDefNode();
+        IXDefNode defNode = tagMeta.getDefNodeInSchema();
+        IXDefNode parentDefNode = parentTagMeta.getDefNodeInSchema();
 
         String keyAttr = parentDefNode.getXdefKeyAttr();
 

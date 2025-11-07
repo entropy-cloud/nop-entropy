@@ -69,7 +69,11 @@ public class XLangAttributeValue extends XmlAttributeValueImpl {
 
         IXDefAttribute defAttr = attr.getDefAttr();
         // 对于未定义属性，不做引用识别
-        if (defAttr == null || (defAttr.isUnknownAttr() && defAttr.getType().getStdDomain().equals("any"))) {
+        if (XLangAttribute.isNullOrErrorDefAttr(defAttr) //
+            || (defAttr.isUnknownAttr() //
+                && defAttr.getType().getStdDomain().equals("any") //
+            ) //
+        ) {
             //return PsiReference.EMPTY_ARRAY;
             // Note: 临时支持对 xpl 内置函数的 vfs 引用识别
             return XLangReferenceHelper.getReferencesFromText(this, attrValue);
@@ -95,41 +99,48 @@ public class XLangAttributeValue extends XmlAttributeValueImpl {
 
     private PsiReference[] getReferencesByAttrName(XLangAttribute attr, String attrValue) {
         XLangTag tag = attr.getParentTag();
-        XDslKeys xdslKeys = tag.getXDslKeys();
-        XDefKeys xdefKeys = tag.getXDefKeys();
+        XLangTagMeta tagMeta = tag.getTagMeta();
 
         String attrName = attr.getName();
         // Note: XmlAttributeValue 的文本范围是包含引号的
         TextRange attrValueTextRange = getValueTextRange().shiftLeft(getStartOffset());
-        if (xdslKeys.PROTOTYPE.equals(attrName)) {
-            return new PsiReference[] {
-                    new XLangXPrototypeReference(this, attrValueTextRange, attrValue)
-            };
-        } //
-        else if (xdefKeys.KEY_ATTR.equals(attrName)) {
-            return new PsiReference[] {
-                    new XLangXdefKeyAttrReference(this, attrValueTextRange, attrValue)
-            };
-        } //
-        else if (xdefKeys.UNIQUE_ATTR.equals(attrName) //
-                 || xdefKeys.ORDER_ATTR.equals(attrName) //
-        ) {
-            return new PsiReference[] {
-                    new XLangParentTagAttrReference(this, attrValueTextRange, attrValue)
-            };
-        } //
-        else if (xdefKeys.NAME.equals(attrName)) {
-            // 与根节点上的 xdef:bean-package 组成 class
-            XLangTag rootTag = tag.getRootTag();
 
-            String pkgName = rootTag.getAttributeValue(rootTag.getXDefKeys().BEAN_PACKAGE);
-            if (StringHelper.isEmpty(pkgName)) {
-                return PsiReference.EMPTY_ARRAY;
+        XDslKeys xdslKeys = tagMeta.getXdslKeys();
+        if (xdslKeys != null) {
+            if (xdslKeys.PROTOTYPE.equals(attrName)) {
+                return new PsiReference[] {
+                        new XLangXPrototypeReference(this, attrValueTextRange, attrValue)
+                };
             }
+        }
 
-            return new PsiReference[] {
-                    new XLangXdefNameReference(this, attrValueTextRange, pkgName, attrValue)
-            };
+        XDefKeys xdefKeys = tagMeta.getXdefKeys();
+        if (xdefKeys != null) {
+            if (xdefKeys.KEY_ATTR.equals(attrName)) {
+                return new PsiReference[] {
+                        new XLangXdefKeyAttrReference(this, attrValueTextRange, attrValue)
+                };
+            } //
+            else if (xdefKeys.UNIQUE_ATTR.equals(attrName) //
+                     || xdefKeys.ORDER_ATTR.equals(attrName) //
+            ) {
+                return new PsiReference[] {
+                        new XLangParentTagAttrReference(this, attrValueTextRange, attrValue)
+                };
+            } //
+            else if (xdefKeys.NAME.equals(attrName)) {
+                // 与根节点上的 xdef:bean-package 组成 class
+                XLangTag rootTag = tag.getRootTag();
+
+                String pkgName = rootTag.getAttributeValue(xdefKeys.BEAN_PACKAGE);
+                if (StringHelper.isEmpty(pkgName)) {
+                    return PsiReference.EMPTY_ARRAY;
+                }
+
+                return new PsiReference[] {
+                        new XLangXdefNameReference(this, attrValueTextRange, pkgName, attrValue)
+                };
+            }
         }
 
         return null;
