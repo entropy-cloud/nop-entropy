@@ -30,9 +30,9 @@ import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.NopRebuildException;
+import io.nop.commons.text.SourceCodeBlock;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
-import io.nop.markdown.model.MarkdownCodeBlock;
 import io.nop.markdown.model.MarkdownDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -503,7 +503,7 @@ public class AiChatExchange {
         return YamlResponseParser.instance().parseResponse(content);
     }
 
-    public MarkdownCodeBlock parseCodeBlock(String lang) {
+    public SourceCodeBlock parseCodeBlock(String lang) {
         String content = getContent();
         if (StringHelper.isEmpty(content))
             return null;

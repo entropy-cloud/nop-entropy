@@ -1,8 +1,8 @@
 package io.nop.markdown.simple;
 
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.text.SourceCodeBlock;
 import io.nop.commons.util.StringHelper;
-import io.nop.markdown.model.MarkdownCodeBlock;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,37 +12,51 @@ public class MarkdownCodeBlockParser {
     static final String CODE_BLOCK_START = "```";
     static final String MIDDLE_CODE_BLOCK_START = "\n```";
 
-    public MarkdownCodeBlock parseCodeBlockForLang(SourceLocation loc, String text, String lang) {
+    public SourceCodeBlock parseCodeBlockForLang(SourceLocation loc, String text, String lang) {
         int pos = 0;
         do {
-            MarkdownCodeBlock block = parseNextCodeBlock(loc, text, pos);
+            ParseResult block = parseNextCodeBlock(loc, text, pos);
             if (block == null)
                 return null;
             if (lang == null || lang.equals(block.getLang()))
-                return block;
+                return block.block;
             pos = block.getEndPos();
         } while (pos < text.length());
         return null;
     }
 
-    public List<MarkdownCodeBlock> parseAllCodeBlocks(SourceLocation loc, String text, String lang) {
-        List<MarkdownCodeBlock> ret = new ArrayList<>();
+    public List<SourceCodeBlock> parseAllCodeBlocks(SourceLocation loc, String text, String lang) {
+        List<SourceCodeBlock> ret = new ArrayList<>();
         forEachCodeBlock(loc, text, block -> {
             if (lang == null || lang.equals(block.getLang()))
-                ret.add(block);
+                ret.add(block.block);
         });
         return ret;
     }
 
-    public void forEachCodeBlock(SourceLocation loc, String text, Consumer<MarkdownCodeBlock> consumer) {
+    public void forEachCodeBlock(SourceLocation loc, String text, Consumer<ParseResult> consumer) {
         int pos = 0;
         do {
-            MarkdownCodeBlock block = parseNextCodeBlock(loc, text, pos);
+            ParseResult block = parseNextCodeBlock(loc, text, pos);
             if (block == null)
                 return;
             consumer.accept(block);
             pos = block.getEndPos();
         } while (pos < text.length());
+    }
+
+    public static class ParseResult {
+        public SourceCodeBlock block;
+        public int startPos;
+        public int endPos;
+
+        public int getEndPos() {
+            return endPos;
+        }
+
+        public String getLang() {
+            return block.getLang();
+        }
     }
 
     /**
@@ -54,7 +68,7 @@ public class MarkdownCodeBlockParser {
      * @return 解析到的代码块，如果没有找到则返回null
      * @throws IllegalArgumentException 如果text为null或start无效
      */
-    public MarkdownCodeBlock parseNextCodeBlock(SourceLocation loc, String text, int start) {
+    public ParseResult parseNextCodeBlock(SourceLocation loc, String text, int start) {
         // 参数校验
         if (text == null) {
             throw new IllegalArgumentException("Text cannot be null");
@@ -106,17 +120,16 @@ public class MarkdownCodeBlockParser {
         String lang = text.substring(markEnd, langEnd).trim();
         String code = text.substring(langEnd + 1, endPos).trim();
 
-        // 创建并返回代码块
-        MarkdownCodeBlock block = new MarkdownCodeBlock();
-        if (loc != null) {
-            block.setLocation(loc.offset(startMark, 0));
-        }
-        block.setStartPos(startMark);
-        block.setEndPos(blockEnd);
-        block.setLang(lang);
-        block.setSource(code);
+        SourceLocation blockLoc = loc == null ? null : loc.offset(startMark, 0);
 
-        return block;
+        // 创建并返回代码块
+        SourceCodeBlock block = new SourceCodeBlock(blockLoc, lang, code);
+
+        ParseResult ret = new ParseResult();
+        ret.block = block;
+        ret.startPos = startMark;
+        ret.endPos = blockEnd;
+        return ret;
     }
 
     int findQuoteStart(String text, int startPos) {

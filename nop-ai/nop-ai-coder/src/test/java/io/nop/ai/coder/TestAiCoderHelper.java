@@ -5,6 +5,7 @@ import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.ai.core.xdef.AiXDefHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.commons.text.SourceCodeBlock;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
@@ -12,7 +13,6 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.impl.FileResource;
-import io.nop.markdown.model.MarkdownCodeBlock;
 import io.nop.markdown.simple.MarkdownCodeBlockParser;
 import io.nop.markdown.model.MarkdownDocument;
 import io.nop.markdown.utils.MarkdownTool;
@@ -122,7 +122,7 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
     @Test
     public void testParseJavaCode() {
         String text = attachmentText("test-java-code.md");
-        MarkdownCodeBlock block = new MarkdownCodeBlockParser().parseCodeBlockForLang(null, text, "java");
+        SourceCodeBlock block = new MarkdownCodeBlockParser().parseCodeBlockForLang(null, text, "java");
         System.out.println(block.getSource());
     }
 

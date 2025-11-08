@@ -1,7 +1,7 @@
 package io.nop.ai.core.response;
 
+import io.nop.commons.text.SourceCodeBlock;
 import io.nop.commons.util.StringHelper;
-import io.nop.markdown.model.MarkdownCodeBlock;
 import io.nop.markdown.simple.MarkdownCodeBlockParser;
 
 public class CodeResponseParser {
@@ -18,7 +18,7 @@ public class CodeResponseParser {
     protected CodeResponseParser() {
     }
 
-    public MarkdownCodeBlock parseResponse(String content, String lang) {
+    public SourceCodeBlock parseResponse(String content, String lang) {
         content = StringHelper.normalizeCRLF(content, false);
         return new MarkdownCodeBlockParser().parseCodeBlockForLang(null, content, lang);
     }

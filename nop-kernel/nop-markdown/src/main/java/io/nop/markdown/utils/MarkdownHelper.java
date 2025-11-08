@@ -36,6 +36,10 @@ public class MarkdownHelper {
     }
 
     public static List<IntRangeBean> findImagePositions(String text) {
+        return findLinkPositions(text);
+    }
+
+    public static List<IntRangeBean> findLinkPositions(String text) {
         List<IntRangeBean> result = new ArrayList<>();
         int len = text.length();
         int i = 0;
@@ -57,10 +61,14 @@ public class MarkdownHelper {
     }
 
     public static String getImageUrl(String text, IntRangeBean rangeBean) {
+        return getLinkUrl(text, rangeBean);
+    }
+
+    public static String getLinkUrl(String text, IntRangeBean rangeBean) {
         String subText = text.substring(rangeBean.getBegin(), rangeBean.getEnd());
-        int beginPos = subText.indexOf('(');
+        int beginPos = subText.indexOf("](");
         int endPos = subText.lastIndexOf(')');
-        return subText.substring(beginPos + 1, endPos).trim();
+        return subText.substring(beginPos + 2, endPos).trim();
     }
 
     /**

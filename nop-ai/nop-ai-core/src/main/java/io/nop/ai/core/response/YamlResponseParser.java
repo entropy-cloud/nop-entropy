@@ -1,8 +1,8 @@
 package io.nop.ai.core.response;
 
 import io.nop.ai.core.AiCoreConstants;
+import io.nop.commons.text.SourceCodeBlock;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.markdown.model.MarkdownCodeBlock;
 
 import java.util.Map;
 
@@ -18,7 +18,7 @@ public class YamlResponseParser {
     }
 
     public Map<String, Object> parseResponse(String content) {
-        MarkdownCodeBlock codeBlock = CodeResponseParser.instance().parseResponse(content, AiCoreConstants.CODE_LANG_YAML);
+        SourceCodeBlock codeBlock = CodeResponseParser.instance().parseResponse(content, AiCoreConstants.CODE_LANG_YAML);
         if (codeBlock == null)
             return null;
         return JsonTool.parseMap(codeBlock.getSource());

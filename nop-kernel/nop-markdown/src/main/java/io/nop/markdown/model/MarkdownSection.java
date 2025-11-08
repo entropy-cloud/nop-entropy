@@ -7,6 +7,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ITextSerializable;
 import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.lang.ITagSetSupport;
+import io.nop.commons.text.SourceCodeBlock;
 import io.nop.commons.util.CharSequenceHelper;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
@@ -345,14 +346,14 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport, ITe
         return null;
     }
 
-    public MarkdownCodeBlock getCodeBlock(String lang) {
+    public SourceCodeBlock getCodeBlock(String lang) {
         if (StringHelper.isEmpty(text))
             return null;
         return new MarkdownCodeBlockParser().parseCodeBlockForLang(getLocation(), text, lang);
     }
 
     public String getCodeSource(String lang) {
-        MarkdownCodeBlock block = getCodeBlock(lang);
+        SourceCodeBlock block = getCodeBlock(lang);
         return block == null ? null : block.getSource();
     }
 
