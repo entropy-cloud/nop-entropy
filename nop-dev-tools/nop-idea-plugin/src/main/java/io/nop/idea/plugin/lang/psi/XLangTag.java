@@ -83,7 +83,8 @@ public class XLangTag extends XmlTagImpl {
     /** 标签存在被复用的可能，因此，需显式清理与之绑定的数据 */
     @Override
     public void clearCaches() {
-        tagMeta = null;
+        clearTagMeta();
+
         super.clearCaches();
     }
 

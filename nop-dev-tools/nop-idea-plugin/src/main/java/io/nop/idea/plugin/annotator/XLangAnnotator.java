@@ -139,14 +139,7 @@ public class XLangAnnotator implements Annotator {
             return;
         }
 
-        XmlToken[] tokens = new XmlToken[] {
-                XmlTagUtil.getStartTagNameElement(tag), XmlTagUtil.getEndTagNameElement(tag)
-        };
-        for (XmlToken token : tokens) {
-            if (token != null) {
-                _errorAnnotation(holder, token.getTextRange(), tagMeta.getErrorMsg());
-            }
-        }
+        tagErrorAnnotation(holder, tag, tagMeta.getErrorMsg());
     }
 
     private void checkTagBySchemaDefNode(@NotNull AnnotationHolder holder, @NotNull XLangTag tag) {
@@ -162,10 +155,7 @@ public class XLangAnnotator implements Annotator {
                 if (child instanceof XLangTag t //
                     && Objects.equals(t.getName(), tag.getName()) //
                 ) {
-                    errorAnnotation(holder,
-                                    getStartTagName(tag).getTextRange(),
-                                    "xlang.annotation.tag.multiple-tag-not-allowed",
-                                    tag.getName());
+                    tagErrorAnnotation(holder, tag, "xlang.annotation.tag.multiple-tag-not-allowed", tag.getName());
                     return;
                 }
             }
@@ -185,10 +175,7 @@ public class XLangAnnotator implements Annotator {
         }
 
         if (xdefValue.isMandatory() && blankBodyText) {
-            errorAnnotation(holder,
-                            getStartTagName(tag).getTextRange(),
-                            "xlang.annotation.tag.body-required",
-                            tag.getName());
+            tagErrorAnnotation(holder, tag, "xlang.annotation.tag.body-required", tag.getName());
             return;
         }
 
@@ -270,10 +257,21 @@ public class XLangAnnotator implements Annotator {
         }
     }
 
-    private XmlElement getStartTagName(XmlTag tag) {
-        XmlElement element = XmlTagUtil.getStartTagNameElement(tag);
+    private void tagErrorAnnotation(AnnotationHolder holder, XmlTag tag, String msgKey, Object... msgParams) {
+        String msg = NopPluginBundle.message(msgKey, msgParams);
 
-        return element != null ? element : tag;
+        tagErrorAnnotation(holder, tag, msg);
+    }
+
+    private void tagErrorAnnotation(AnnotationHolder holder, XmlTag tag, String msg) {
+        XmlToken[] tokens = new XmlToken[] {
+                XmlTagUtil.getStartTagNameElement(tag), XmlTagUtil.getEndTagNameElement(tag)
+        };
+        for (XmlToken token : tokens) {
+            if (token != null) {
+                _errorAnnotation(holder, token.getTextRange(), msg);
+            }
+        }
     }
 
     private void errorAnnotation(AnnotationHolder holder, TextRange textRange, String msgKey, Object... msgParams) {

@@ -8,6 +8,10 @@
     </refs>
 
     <var com="abc" value="abc" type="" name="#@adf"/>
+    <xjson>
+        <name>Tom</name>
+        <age>23</age>
+    </xjson>
 
     <unknown name="abc"/>
 </example>

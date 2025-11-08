@@ -748,7 +748,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         assertReference("""
                                 <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
                                           x:schema="/nop/schema/xdef.xdef">
-                                     <item xdef:name="Item0" xdef:ref="Item0"/>
+                                     <item xdef:name="Item0" xdef:ref="It<caret>em0"/>
                                      <xdef:define xdef:name="Item1" />
                                  </example>
                                 """, //

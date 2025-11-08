@@ -13,6 +13,11 @@
         <c:script xpl:dump="true"/>
     </xdef:post-parse>
 
+    <!-- [Common Node Definition]
+    @name [Node Name] This is node name
+    -->
+    <xdef:define name="!string" xdef:name="Common" xdef:value="string" x:prototype-override="merge"/>
+
     <!-- [Child Node]
     > This is child node
 
@@ -28,6 +33,8 @@
 
     <tag-no-child/>
     <tag-allow-child xdef:value="xml"/>
+
+    <xjson xdef:value="xjson"/>
 
     <!-- Any child node
 

@@ -138,7 +138,8 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
     }
 
     protected PsiFile configureByXLangText(String text) {
-        return myFixture.configureByText("unit." + XLANG_EXT, text);
+        String fileName = "unit-" + StringHelper.randomDigits(8) + '.' + XLANG_EXT;
+        return myFixture.configureByText(fileName, text);
     }
 
     protected void addAllNopXDefsToProject() {
@@ -252,7 +253,13 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         // 消除异常 "Read access is allowed from inside read-action"
         PsiElement originalElement = getOriginalElementAtCaret();
 
-        PsiElement resolvedElement = getResolvedElementAtCaret();
+        PsiElement resolvedElement;
+        // Note: 当 <caret> 位置的元素没有引用元素时，会直接抛出异常，这里需要屏蔽该异常
+        try {
+            resolvedElement = getResolvedElementAtCaret();
+        } catch (Throwable ignore) {
+            resolvedElement = originalElement;
+        }
 
         Language lang = originalElement.getContainingFile().getLanguage();
         DocumentationProvider docProvider = LanguageDocumentation.INSTANCE.forLanguage(lang);

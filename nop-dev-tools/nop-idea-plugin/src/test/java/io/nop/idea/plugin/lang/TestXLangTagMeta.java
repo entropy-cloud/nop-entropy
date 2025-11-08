@@ -13,9 +13,11 @@ import java.util.function.BiConsumer;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
+import io.nop.idea.plugin.lang.psi.XLangAttribute;
 import io.nop.idea.plugin.lang.psi.XLangTag;
 import io.nop.idea.plugin.lang.psi.XLangTagMeta;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
+import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
 
 /**
@@ -654,7 +656,30 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                       } //
         );
 
-        // TODO xjson type child
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <xjson>
+                                  <n<caret>ame>Tom</name>
+                                  <age>23</age>
+                                </xjson>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
+                          assertEquals("name", tagMeta.getTagName());
+                          assertNotNull(tagMeta.getDefNodeInSchema());
+                          // 实际为 xdsl.xdef 的 xdef:unknown-tag 节点
+                          assertEquals(tagMeta.getDefNodeInSchema(), tagMeta.getXDslDefNode());
+
+                          assertNull(tagMeta.getDefNodeInSelfSchema());
+                      } //
+        );
     }
 
     public void testCreateUnknownTagMeta() {
@@ -728,6 +753,26 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
 
                           assertEquals("meta:abcd", tagMeta.getTagName());
                           assertTrue(tagMeta.getErrorMsg().contains("corresponding namespace 'xdef'"));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                              >
+                                <xdef:som<caret>ething>
+                                </xdef:something>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          // xdef 名字空间的标签未定义
+                          assertTrue(tagMeta.hasError());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
+                          assertEquals("xdef:something", tagMeta.getTagName());
+                          assertTrue(tagMeta.getErrorMsg().contains("isn't defined in schema '/nop/schema/xdef.xdef'"));
                       } //
         );
         assertTagMeta("""
@@ -832,6 +877,158 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
         );
     }
 
+    public void testDefAttrByTagMeta() {
+        assertDefAttr("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <refs i18n:ti<caret>tle="Refs" />
+                              </example>
+                              """, //
+                      (attr, defAttr) -> {
+                          // 名字空间未要求校验，则其下属性可任意指定
+                          assertEquals("i18n:title", attr.getName());
+
+                          assertNotNull(defAttr);
+                          assertEquals("any", defAttr.getType().getStdDomain());
+                      } //
+        );
+
+        assertDefAttr("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <some tit<caret>le="Some" />
+                              </example>
+                              """, //
+                      (attr, defAttr) -> {
+                          // 无名字空间的属性必须显式定义
+                          assertEquals("title", attr.getName());
+
+                          assertNotNull(defAttr);
+                          assertInstanceOf(defAttr, XLangAttribute.XDefAttributeWithError.class);
+                          assertTrue(((XLangAttribute.XDefAttributeWithError) defAttr).getErrorMsg()
+                                                                                      .contains(
+                                                                                              "is defined on undefined tag"));
+                      } //
+        );
+        assertDefAttr("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <some i18n:tit<caret>le="Some" />
+                              </example>
+                              """, //
+                      (attr, defAttr) -> {
+                          // 在未定义标签上的属性也为未定义
+                          assertEquals("i18n:title", attr.getName());
+
+                          assertNotNull(defAttr);
+                          assertInstanceOf(defAttr, XLangAttribute.XDefAttributeWithError.class);
+                          assertTrue(((XLangAttribute.XDefAttributeWithError) defAttr).getErrorMsg()
+                                                                                      .contains(
+                                                                                              "is defined on undefined tag"));
+                      } //
+        );
+
+        assertDefAttr("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <refs xui:cla<caret>ss="w-full" />
+                              </example>
+                              """, //
+                      (attr, defAttr) -> {
+                          // 需校验的名字空间，其下属性必须显式定义
+                          assertEquals("xui:class", attr.getName());
+
+                          assertNotNull(defAttr);
+                          assertInstanceOf(defAttr, XLangAttribute.XDefAttributeWithError.class);
+                          assertTrue(((XLangAttribute.XDefAttributeWithError) defAttr).getErrorMsg()
+                                                                                      .contains(
+                                                                                              "namespace 'xui' should be defined in schema '/test/lang/lang.xdef'"));
+                      } //
+        );
+        assertDefAttr("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <refs x:cla<caret>ss="w-full" />
+                              </example>
+                              """, //
+                      (attr, defAttr) -> {
+                          // x 名字空间下的属性必须为 xdsl.xdef 中已定义的
+                          assertEquals("x:class", attr.getName());
+
+                          assertNotNull(defAttr);
+                          assertInstanceOf(defAttr, XLangAttribute.XDefAttributeWithError.class);
+                          assertTrue(((XLangAttribute.XDefAttributeWithError) defAttr).getErrorMsg()
+                                                                                      .contains(
+                                                                                              "namespace 'x' should be defined in schema '/nop/schema/xdsl.xdef'"));
+                      } //
+        );
+        assertDefAttr("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                              >
+                                <refs xdef:unde<caret>fined="string" />
+                              </example>
+                              """, //
+                      (attr, defAttr) -> {
+                          // xdef 名字空间下的属性必须为 xdef.xdef 中已定义的
+                          assertEquals("xdef:undefined", attr.getName());
+
+                          assertNotNull(defAttr);
+                          assertInstanceOf(defAttr, XLangAttribute.XDefAttributeWithError.class);
+                          assertTrue(((XLangAttribute.XDefAttributeWithError) defAttr).getErrorMsg()
+                                                                                      .contains(
+                                                                                              "namespace 'xdef' should be defined in schema '/nop/schema/xdef.xdef'"));
+                      } //
+        );
+        assertDefAttr("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                              >
+                                <refs x:unde<caret>fined="string" />
+                              </example>
+                              """, //
+                      (attr, defAttr) -> {
+                          // x 名字空间下的属性必须为 xdsl.xdef 中已定义的
+                          assertEquals("x:undefined", attr.getName());
+
+                          assertNotNull(defAttr);
+                          assertInstanceOf(defAttr, XLangAttribute.XDefAttributeWithError.class);
+                          assertTrue(((XLangAttribute.XDefAttributeWithError) defAttr).getErrorMsg()
+                                                                                      .contains(
+                                                                                              "namespace 'x' should be defined in schema '/nop/schema/xdsl.xdef'"));
+                      } //
+        );
+        assertDefAttr("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                              >
+                                <refs xui:cl<caret>ass="string" />
+                              </example>
+                              """, //
+                      (attr, defAttr) -> {
+                          // 在元模型中的带名字空间的属性可任意定义
+                          assertEquals("xui:class", attr.getName());
+
+                          assertNotNull(defAttr);
+                          assertNotNull(defAttr.getType());
+                          assertEquals("xdef-attr", defAttr.getType().getStdDomain());
+                      } //
+        );
+    }
+
     private void assertTagMeta(String text, BiConsumer<XLangTag, XLangTagMeta> consumer) {
         configureByXLangText(text);
         assertCaretExists();
@@ -844,6 +1041,20 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
         assertNotNull(tagMeta);
 
         consumer.accept(tag, tagMeta);
+    }
+
+    private void assertDefAttr(String text, BiConsumer<XLangAttribute, IXDefAttribute> consumer) {
+        configureByXLangText(text);
+        assertCaretExists();
+
+        PsiElement target = getOriginalElementAtCaret();
+        XLangAttribute attr = PsiTreeUtil.getParentOfType(target, XLangAttribute.class);
+        assertNotNull(attr);
+
+        XLangTagMeta tagMeta = attr.getParentTag().getTagMeta();
+        assertNotNull(tagMeta);
+
+        consumer.accept(attr, tagMeta.getDefAttr(attr));
     }
 
     private String defNodeVfsPath(XLangTagMeta tagMeta) {

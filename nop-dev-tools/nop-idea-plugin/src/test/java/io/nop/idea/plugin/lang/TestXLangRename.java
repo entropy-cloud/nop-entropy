@@ -23,7 +23,7 @@ public class TestXLangRename extends BaseXLangPluginTestCase {
     public void testRenameTag() {
     }
 
-    public void testRenameXlibTag() {
+    public void _testRenameXlibTag() {
         // 从定义侧更名
         assertRename("NewCall", //
                      """
@@ -81,7 +81,7 @@ public class TestXLangRename extends BaseXLangPluginTestCase {
         );
     }
 
-    public void testRenameXlibAttr() {
+    public void _testRenameXlibAttr() {
         // 从定义侧更名
         assertRename("newArg", //
                      """

@@ -28,6 +28,7 @@ import io.nop.xlang.xdef.XDefKeys;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import io.nop.xlang.xdef.impl.XDefAttribute;
+import io.nop.xlang.xdef.impl.XDefinition;
 import io.nop.xlang.xdef.parse.XDefTypeDeclParser;
 import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xdsl.XDslKeys;
@@ -212,7 +213,7 @@ public class XLangTagMeta {
     public boolean canBeMultipleTag() {
         IXDefNode defNode = getDefNodeInSchema();
 
-        return defNode != null && defNode.isAllowMultiple();
+        return (defNode != null && defNode.isAllowMultiple()) || isXplNode();
     }
 
     /**
@@ -274,7 +275,7 @@ public class XLangTagMeta {
         // Note: xdsl.xdef 的属性在固定的名字空间 x 中声明
         attrName = XLangTag.replaceXmlNs(attrName, xdslKeys.NS, XDslKeys.DEFAULT.NS);
 
-        return getDefAttrOnNode(attr, xdslDefNode, attrName, null, xdefKeys, null);
+        return getDefAttrOnNode(attr, xdslDefNode, attrName, null, xdefKeys, Set.of(XDslKeys.DEFAULT.NS));
     }
 
     /** 获取当前标签的说明文档 */
@@ -283,23 +284,31 @@ public class XLangTagMeta {
             return null;
         }
 
+        IXDefNode defNode = null;
         String tagName = tag.getName();
-        // xdef:define 没有实体节点，故而，不显示其文档
-        if (xdefKeys != null && xdefKeys.DEFINE.equals(tagName)) {
-            return null;
-        }
-
-        IXDefNode defNode;
         String tagNs = StringHelper.getNamespace(tagName);
-        // 不在元元模型 xdef.xdef 中的以 xdef 为名字空间的节点（不含 xdef:unknown-tag），显示其定义文档
-        if (!isInXdefSchema() //
-            && xdefKeys != null && xdefKeys.NS.equals(tagNs) //
-            && !xdefKeys.UNKNOWN_TAG.equals(tagName) //
+
+        // 单独处理元模型中的 xdef:define 节点：其由父节点记录定义信息
+        if (xdefKeys != null && xdefKeys.DEFINE.equals(tagName)) {
+            String xdefName = tag.getAttributeValue(xdefKeys.NAME);
+
+            if (xdefName != null && parent.defNodeInSelfSchema != null) {
+                defNode = ((XDefinition) parent.defNodeInSelfSchema).getXdefDefine(xdefName);
+            }
+        }
+        // 不在元元模型中的以 xdef 为名字空间的节点（不含 xdef:unknown-tag），显示其定义文档
+        else if (!isInXdefSchema() //
+                 && xdefKeys != null && xdefKeys.NS.equals(tagNs) //
+                 && !xdefKeys.UNKNOWN_TAG.equals(tagName) //
         ) {
             defNode = defNodeInSchema;
         }
-        // *.xdef 中的自定义节点，显示自己的文档
-        else if (defNodeInSelfSchema != null) {
+        // 元模型中的自定义节点，显示元模型中的文档
+        else if (isInAnySchema() //
+                 && !xdslKeys.NS.equals(tagNs) //
+                 && !isXplNode() //
+        ) {
+            // Note: 可能会因元模型自身解析异常而无法得到节点定义
             defNode = defNodeInSelfSchema;
         }
         // 其余 dsl 均显示节点的定义文档
@@ -337,27 +346,46 @@ public class XLangTagMeta {
         }
 
         String mainTitle = attrName;
-        IXDefNode defNode;
-        // xdef.xdef 中 xdef 名字空间下的属性
-        if (isInXdefSchema() && XDefKeys.DEFAULT.NS.equals(attrNs)) {
+        String tagName = tag.getName();
+
+        IXDefNode defNode = null;
+        Set<String> checkNsSet = checkNsInSchema;
+        // 单独处理元模型中的 xdef:define 节点：其由父节点记录定义信息
+        if (xdefKeys != null && xdefKeys.DEFINE.equals(tagName) //
+            && !xdefKeys.NS.equals(attrNs) && !xdslKeys.NS.equals(attrNs) //
+        ) {
+            String xdefName = tag.getAttributeValue(xdefKeys.NAME);
+
+            if (xdefName != null && parent.defNodeInSelfSchema != null) {
+                attrName = XLangTag.replaceXmlNs(attrName, xdefKeys.NS, XDefKeys.DEFAULT.NS);
+                defNode = ((XDefinition) parent.defNodeInSelfSchema).getXdefDefine(xdefName);
+            }
+        }
+        // 元元模型中 xdef 名字空间下的属性
+        else if (isInXdefSchema() && XDefKeys.DEFAULT.NS.equals(attrNs)) {
             defNode = defNodeInSelfSchema;
         }
         // x 名字空间下的属性
         else if (XDslKeys.DEFAULT.NS.equals(attrNs) || xdslKeys.NS.equals(attrNs)) {
             attrName = XLangTag.replaceXmlNs(attrName, xdslKeys.NS, XDslKeys.DEFAULT.NS);
             defNode = xdslDefNode;
+            checkNsSet = Set.of(XDslKeys.DEFAULT.NS);
         } //
         else {
             attrName = XLangTag.replaceXmlNs(attrName, xdefKeys != null ? xdefKeys.NS : null, XDefKeys.DEFAULT.NS);
 
+            // 对于元模型，优先取其自身定义节点上的属性文档
             defNode = defNodeInSelfSchema;
-            // 对于 *.xdef，优先取其自身定义节点上的属性文档
             if (defNode == null || defNode.getAttribute(attrName) == null) {
                 defNode = defNodeInSchema;
             }
         }
 
-        IXDefAttribute defAttr = getDefAttrOnNode(attr, defNode, attrName, null, xdefKeys, null);
+        if (defNode == null) {
+            return null;
+        }
+
+        IXDefAttribute defAttr = getDefAttrOnNode(attr, defNode, attrName, null, xdefKeys, checkNsSet);
         if (XLangAttribute.isNullOrErrorDefAttr(defAttr)) {
             return null;
         }
@@ -535,7 +563,7 @@ public class XLangTagMeta {
 
         // 2. 若父节点为 Xpl 类型节点，则直接从 xpl.xdef 中获取节点（含带 xpl 名字空间的节点）
         if (defNodeInSchema == null && parentTagMeta.isXplNode()) {
-            defNodeInSchema = getChildDefNode(XDefPsiHelper.getXplDef().getRootNode(), tagName);
+            defNodeInSchema = getChildDefNode(XDefPsiHelper.getXplDef().getXdefUnknownTag(), tagName);
 
             if (XplConstants.XPL_NS.equals(tagNs) && defNodeInSchema.isUnknownTag()) {
                 return errorTag(tag,
@@ -650,7 +678,7 @@ public class XLangTagMeta {
         }
 
         if (defNode == null) {
-            return errorAttr(attr, "xlang.parser.tag-meta.attr-on-defined-tag", attrName);
+            return errorAttr(attr, "xlang.parser.tag-meta.attr-on-undefined-tag", attrName);
         }
 
         IXDefAttribute defAttr = defNode.getAttribute(attrName);
@@ -658,12 +686,27 @@ public class XLangTagMeta {
             return defAttr;
         }
 
-        // 对于 xdef:check-ns 中不做校验的名字空间，其下的属性均为任意类型
+        // 属性未显式定义
         String attrNameNs = StringHelper.getNamespace(attrName);
-        if (attrNameNs != null && checkNsInSchema != null && checkNsInSchema.contains(attrNameNs)) {
-            return new XLangAttribute.XDefAttributeWithTypeAny(attrName);
+        if (attrNameNs != null) {
+            if (checkNsInSchema == null || !checkNsInSchema.contains(attrNameNs)) {
+                // 对于 xdef:check-ns 中不做校验的名字空间，且不在元模型中的，其下的属性均为任意类型
+                if (xdefKeys == null) {
+                    return new XLangAttribute.XDefAttributeWithTypeAny(attrName);
+                }
+            }
+            // 对于 xdef:check-ns 中需校验的名字空间，其下属性必须显式定义
+            else {
+                String schemaPath = XmlPsiHelper.getNopVfsPath(defNode);
+                return errorAttr(attr,
+                                 "xlang.parser.tag-meta.check-ns-attr-not-defined",
+                                 attrName,
+                                 attrNameNs,
+                                 schemaPath);
+            }
         }
 
+        // 在节点上定义了 xdef:unknown-attr
         XDefTypeDecl xdefUnknownAttrType = defNode.getXdefUnknownAttr();
         if (xdefUnknownAttrType == null) {
             return errorAttr(attr, "xlang.parser.tag-meta.attr-not-defined", attrName);

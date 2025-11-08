@@ -41,6 +41,6 @@ public class TestXLangParser extends BaseXLangPluginTestCase {
     protected void assertASTTree(String code, String expectedAstFile) {
         PsiFile testFile = configureByXLangText(code);
 
-        doAssertASTTree(testFile, expectedAstFile);
+        doAssertASTTree(testFile.getFirstChild()/* 跳过文件名 */, expectedAstFile);
     }
 }

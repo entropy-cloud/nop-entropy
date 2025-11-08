@@ -41,7 +41,11 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
         assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
                                      "<meta:define meta:name", //
                                      "<meta:def<caret>ine meta:name"), //
-                  TestCase::assertNull //
+                  (doc) -> {
+                      assertTrue(doc.contains("meta:define"));
+                      assertTrue(doc.contains("def-type"));
+                      assertFalse(doc.contains("/nop/schema/xdef.xdef"));
+                  } //
         );
         assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
                                      "<xdef:unknown-tag meta:ref", //
@@ -107,6 +111,17 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
                   (doc) -> {
                       assertTrue(doc.contains("Any child node"));
                       assertFalse(doc.contains("/test/doc/example.xdef"));
+                      assertFalse(doc.contains("/nop/schema/xdef.xdef"));
+                  } //
+        );
+        assertDoc(insertCaretIntoVfs("/test/doc/example.xdef", //
+                                     "<xdef:define", //
+                                     "<xd<caret>ef:define"), //
+                  (doc) -> {
+                      assertTrue(doc.contains("Common Node Definition"));
+                      assertTrue(doc.contains("string"));
+                      assertFalse(doc.contains("/test/doc/example.xdef"));
+                      assertFalse(doc.contains("/nop/schema/xdef.xdef"));
                   } //
         );
         assertDoc(insertCaretIntoVfs("/test/doc/example.xdef", //
@@ -171,6 +186,46 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
                       assertTrue(doc.contains("/test/reference/a.xlib"));
                   } //
         );
+
+        // xpl 节点
+        assertDoc("""
+                          <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
+                               <x:gen-extends>
+                                   <c:scr<caret>ipt xpl:dump="true"/>
+                               </x:gen-extends>
+                          </view>
+                          """, //
+                  (doc) -> {
+                      assertTrue(doc.contains("XPL标签"));
+                      assertTrue(doc.contains("/nop/schema/xpl.xdef"));
+                  } //
+        );
+
+        // 在 xdef 中的 x/xpl 节点
+        assertDoc("""
+                          <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef">
+                               <x:gen-ex<caret>tends>
+                                   <c:script xpl:dump="true"/>
+                               </x:gen-extends>
+                          </view>
+                          """, //
+                  (doc) -> {
+                      assertTrue(doc.contains("通过x:gen-extends来动态生成父模型"));
+                      assertTrue(doc.contains("/nop/schema/xdsl.xdef"));
+                  } //
+        );
+        assertDoc("""
+                          <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef">
+                               <x:gen-extends>
+                                   <c:scr<caret>ipt xpl:dump="true"/>
+                               </x:gen-extends>
+                          </view>
+                          """, //
+                  (doc) -> {
+                      assertTrue(doc.contains("XPL标签"));
+                      assertTrue(doc.contains("/nop/schema/xpl.xdef"));
+                  } //
+        );
     }
 
     public void testGenerateDocForAttribute() {
@@ -227,6 +282,14 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
                   (doc) -> {
                       assertTrue(doc.contains("body的数据类型"));
                       assertTrue(doc.contains("/nop/schema/xdef.xdef"));
+                  } //
+        );
+        assertDoc(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
+                                     "meta:value=\"def-type\"", //
+                                     "meta:va<caret>lue=\"def-type\""), //
+                  (doc) -> {
+                      assertTrue(doc.contains("body的数据类型"));
+                      assertFalse(doc.contains("/nop/schema/xdef.xdef"));
                   } //
         );
 
@@ -300,6 +363,31 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
                   } //
         );
 
+        assertDoc(insertCaretIntoVfs("/test/doc/example.xdef", //
+                                     "<xdef:define name=\"!string\"", //
+                                     "<xdef:define na<caret>me=\"!string\""), //
+                  (doc) -> {
+                      assertTrue(doc.contains("This is node name"));
+                      assertFalse(doc.contains("/test/doc/example.xdef"));
+                      assertFalse(doc.contains("/nop/schema/xdef.xdef"));
+                  } //
+        );
+        assertDoc(insertCaretIntoVfs("/test/doc/example.xdef", //
+                                     "xdef:name=\"Common\"", //
+                                     "xdef:na<caret>me=\"Common\""), //
+                  (doc) -> {
+                      assertTrue(doc.contains("注册为xdef片段"));
+                      assertTrue(doc.contains("/nop/schema/xdef.xdef"));
+                  } //
+        );
+        assertDoc(insertCaretIntoVfs("/test/doc/example.xdef", //
+                                     "x:prototype-override=\"merge\"", //
+                                     "x:protot<caret>ype-override=\"merge\""), //
+                  (doc) -> {
+                      assertTrue(doc.contains("对应的合并算子"));
+                      assertTrue(doc.contains("/nop/schema/xdsl.xdef"));
+                  } //
+        );
         assertDoc(insertCaretIntoVfs("/test/doc/example.xdef", //
                                      "<xdef:unknown-tag xdef:unknown-attr=\"any\"/>", //
                                      "<xdef:unknown-tag xdef:unknown<caret>-attr=\"any\"/>"), //
@@ -446,6 +534,22 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
                       assertTrue(doc.contains("for queryBuilder"));
                       assertTrue(doc.contains("/test/reference/a.xlib"));
                   } //
+        );
+
+        // 未定义 xdef/x 名字空间下的属性
+        assertDoc("""
+                          <example xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef">
+                              <child xdef:ag<caret>e="int"/>
+                          </example>
+                          """, //
+                  TestCase::assertNull //
+        );
+        assertDoc("""
+                          <example xmlns:x="/nop/schema/xdsl.xdef" x:schema="/test/doc/example.xdef">
+                              <child x:ag<caret>e="22"/>
+                          </example>
+                          """, //
+                  TestCase::assertNull //
         );
     }
 
