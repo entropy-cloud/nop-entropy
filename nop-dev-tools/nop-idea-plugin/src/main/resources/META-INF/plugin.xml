@@ -5,16 +5,18 @@
     <vendor email="canonical_entropy@163.com" url="https://gitee.com/canonical-entropy/nop-entropy">Canonical</vendor>
 
     <description><![CDATA[
-        <ul>
-            <li>根据 xdef 元模型定义来校验 dsl 文件格式；</li>
-            <li>为 Xpl 模板语言提供调试功能；</li>
-        </ul>
+    <p>Provides <a href="https://zhuanlan.zhihu.com/p/1942216215067100536">XLang</a> support to JetBrains IDEs.
+
+    <h2>Features</h2>
+    <ul>
+      <li>Verify the DSL file format based on the xdef metamodel definition</li>
+      <li>Provide debugging functionality for the Xpl template language</li>
+    </ul>
     ]]></description>
 
     <change-notes><![CDATA[
 
-    ]]>
-    </change-notes>
+    ]]></change-notes>
 
     <depends>com.intellij.modules.lang</depends>
     <depends>com.intellij.java</depends>
