@@ -10,7 +10,7 @@ public class TestCodeResponseParser {
     public void testParse() {
         String text = "```python \n x=3;\n```\n";
         SourceCodeBlock block = CodeResponseParser.instance().parseResponse(text, "python");
-        assertEquals("```python\n\n" +
+        assertEquals("```python\n" +
                 "x=3;\n" +
                 "```\n", block.toMarkdown());
     }

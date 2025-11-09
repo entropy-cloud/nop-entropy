@@ -4767,7 +4767,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "getClobBinder",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStringBinder",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.dao.dialect.impl.DialectImpl"
   },
   {
@@ -5825,6 +5834,12 @@
     ],
     "methods": [
       {
+        "name": "addEnabledModulesToCache",
+        "parameterTypes": [
+          "io.nop.dyn.service.codegen.InMemoryCodeCache"
+        ]
+      },
+      {
         "name": "batchLoadApp",
         "parameterTypes": [
           "io.nop.dyn.dao.entity.NopDynApp"
@@ -5837,15 +5852,46 @@
         ]
       },
       {
+        "name": "batchLoadModuleForOrm",
+        "parameterTypes": [
+          "io.nop.dyn.dao.entity.NopDynModule"
+        ]
+      },
+      {
         "name": "batchLoadModules",
         "parameterTypes": [
           "java.util.Collection"
         ]
       },
       {
+        "name": "buildGraphQLBizModel",
+        "parameterTypes": [
+          "io.nop.dyn.dao.entity.NopDynEntityMeta"
+        ]
+      },
+      {
+        "name": "buildModuleModel",
+        "parameterTypes": [
+          "io.nop.dyn.dao.entity.NopDynModule"
+        ]
+      },
+      {
+        "name": "generateAllModulesToCache",
+        "parameterTypes": [
+          "io.nop.dyn.service.codegen.InMemoryCodeCache"
+        ]
+      },
+      {
         "name": "generateForAllModules",
         "parameterTypes": [
           "io.nop.dyn.service.codegen.InMemoryCodeCache"
+        ]
+      },
+      {
+        "name": "generateModuleToCache",
+        "parameterTypes": [
+          "io.nop.dyn.service.codegen.InMemoryCodeCache",
+          "io.nop.dyn.dao.entity.NopDynModule"
         ]
       },
       {
@@ -5876,6 +5922,21 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.dyn.service.codegen.DynOrmModelHolder"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "isUseTenant",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.dyn.service.codegen.DynOrmModelProvider"
   },
   {
     "allDeclaredConstructors": true,
@@ -8303,7 +8364,19 @@
       {
         "name": "normalizeSectionContent",
         "parameterTypes": [
+          "io.nop.markdown.model.MarkdownSection"
+        ]
+      },
+      {
+        "name": "normalizeSectionContent",
+        "parameterTypes": [
           "io.nop.markdown.simple.MarkdownSection"
+        ]
+      },
+      {
+        "name": "normalizeTitle",
+        "parameterTypes": [
+          "io.nop.markdown.model.MarkdownSection"
         ]
       },
       {

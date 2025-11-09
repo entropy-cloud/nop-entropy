@@ -20,7 +20,7 @@ public class SourceCodeBlock implements ISourceLocationGetter {
                            @JsonProperty("source") String source) {
         this.loc = loc;
         this.lang = lang;
-        this.source = source != null ? "" : source;
+        this.source = source == null ? "" : source;
     }
 
     public static SourceCodeBlock build(SourceLocation loc, String lang, String source) {
@@ -74,7 +74,7 @@ public class SourceCodeBlock implements ISourceLocationGetter {
         // 智能 fence 选择策略
         String fence = determineFence(source);
         String language = lang != null ? lang : "";
-        out.append('\n').append(fence).append(language).append("\n");
+        out.append(fence).append(language).append("\n");
         out.append(source);
         out.append('\n').append(fence).append("\n");
     }
