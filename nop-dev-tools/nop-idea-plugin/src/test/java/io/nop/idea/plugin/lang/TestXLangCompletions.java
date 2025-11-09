@@ -769,6 +769,13 @@ public class TestXLangCompletions extends BaseXLangPluginTestCase {
                                        </x:gen-extends>
                                  </view>
                                  """);
+        assertCompletion("xrun", "Query", //
+                         """
+                                 <a:Q<caret> xpl:lib="/test/reference/a.xlib"/>
+                                 """, //
+                         """
+                                 <a:Query xpl:lib="/test/reference/a.xlib"/>
+                                 """);
         // - c:import 导入库的补全
         assertCompletion("DoFindByMdxQuery", //
                          """
@@ -808,6 +815,17 @@ public class TestXLangCompletions extends BaseXLangPluginTestCase {
                                        </x:gen-extends>
                                  </view>
                                  """);
+        assertCompletion("xrun", "queryBuilder", //
+                         """
+                                 <a:DoFindByMdxQuery xpl:lib="/test/reference/a.xlib"
+                                      e<caret>
+                                 />
+                                 """, //
+                         """
+                                 <a:DoFindByMdxQuery xpl:lib="/test/reference/a.xlib"
+                                      queryBuilder=""
+                                 />
+                                 """);
     }
 
     /** 需确保仅有唯一一项自动填充项：匹配是模糊匹配，需增加输入长度才能做唯一匹配 */
@@ -819,7 +837,11 @@ public class TestXLangCompletions extends BaseXLangPluginTestCase {
     }
 
     protected void assertCompletion(String selectedItem, String text, String expectedText) {
-        configureByXLangText(text);
+        assertCompletion(null, selectedItem, text, expectedText);
+    }
+
+    protected void assertCompletion(String suffix, String selectedItem, String text, String expectedText) {
+        configureByXLangText(text, suffix);
         myFixture.completeBasic();
 
         doAssertCompletion(selectedItem, expectedText);

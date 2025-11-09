@@ -206,8 +206,8 @@ public class XLangTag extends XmlTagImpl {
             return null;
         }
 
-        XLangTag parentTag = getParentTag();
-        if (parentTag == null || !parentTag.getTagMeta().isXplNode()) {
+        XLangTagMeta tagMeta = getTagMeta();
+        if (!tagMeta.isXplNode()) {
             return null;
         }
 
