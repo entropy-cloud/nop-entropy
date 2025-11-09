@@ -12,6 +12,6 @@ public class TestCodeResponseParser {
         SourceCodeBlock block = CodeResponseParser.instance().parseResponse(text, "python");
         assertEquals("```python\n\n" +
                 "x=3;\n" +
-                "```\n", block.toText());
+                "```\n", block.toMarkdown());
     }
 }
