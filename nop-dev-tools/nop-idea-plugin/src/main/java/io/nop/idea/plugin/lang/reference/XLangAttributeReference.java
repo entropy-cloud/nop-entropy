@@ -23,6 +23,7 @@ import com.intellij.util.PlatformIcons;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.idea.plugin.lang.psi.XLangAttribute;
 import io.nop.idea.plugin.lang.psi.XLangTag;
+import io.nop.idea.plugin.lang.psi.XLangTagMeta;
 import io.nop.idea.plugin.lang.xlib.XlibTagMeta;
 import io.nop.idea.plugin.lang.xlib.XlibXDefAttribute;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
@@ -34,6 +35,8 @@ import io.nop.xlang.xdef.XDefKeys;
 import io.nop.xlang.xdsl.XDslKeys;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import static io.nop.idea.plugin.lang.reference.XLangReferenceHelper.XLANG_NAME_COMPARATOR;
 
 /**
  * 对 {@link XLangAttributeReference} 的引用识别：指向属性的定义位置
@@ -51,8 +54,15 @@ public class XLangAttributeReference extends XLangReferenceBase {
 
     @Override
     public @Nullable PsiElement resolveInner() {
-        if (defAttr == null) {
+        if (XLangAttribute.isNullOrErrorDefAttr(defAttr)) {
             return null;
+        }
+
+        // 对于带名字空间的附加属性，其定义直接引用其自身
+        if (defAttr instanceof XLangAttribute.XDefAttributeWithTypeAny) {
+            String path = XmlPsiHelper.getNopVfsPath(myElement);
+
+            return path == null ? null : new NopVirtualFile(myElement, path, (file) -> myElement);
         }
 
         String path = XmlPsiHelper.getNopVfsPath(defAttr);
@@ -88,14 +98,16 @@ public class XLangAttributeReference extends XLangReferenceBase {
         }
 
         String attrNs = attr.getNamespacePrefix();
-        XDefKeys xdefKeys = tag.getXDefKeys();
-        XDslKeys xdslKeys = tag.getXDslKeys();
-        // Note: 需支持处理 x/xdef 的名字空间非默认的情况
-        boolean usedXDefNs = xdefKeys.NS.equals(attrNs);
-        boolean usedXDslNs = xdslKeys.NS.equals(attrNs);
+        XLangTagMeta tagMeta = tag.getTagMeta();
 
-        IXDefNode xdslDefNode = tag.getXDslDefNode();
-        IXDefNode tagDefNode = tag.getSchemaDefNode();
+        XDefKeys xdefKeys = tagMeta.getXdefKeys();
+        XDslKeys xdslKeys = tagMeta.getXdslKeys();
+        // Note: 需支持处理 x/xdef 的名字空间非默认的情况
+        boolean usedXDefNs = xdefKeys != null && xdefKeys.NS.equals(attrNs);
+        boolean usedXDslNs = xdslKeys != null && xdslKeys.NS.equals(attrNs);
+
+        IXDefNode xdslDefNode = tagMeta.getXDslDefNode();
+        IXDefNode tagDefNode = tagMeta.getDefNodeInSchema();
         if (usedXDslNs) {
             tagDefNode = xdslDefNode;
         }
@@ -119,14 +131,18 @@ public class XLangAttributeReference extends XLangReferenceBase {
         addDefAttr(result, tag.getXlibTagMeta(), existAttrNames);
 
         return result.stream() //
-                     .sorted((a, b) -> XLangReferenceHelper.XLANG_NAME_COMPARATOR.compare(a.name, b.name)) //
+                     .sorted((a, b) -> XLANG_NAME_COMPARATOR.compare(a.name, b.name)) //
                      .map((defAttr) -> {
                          boolean trimNs = !attrNs.isEmpty();
 
                          String attrName = defAttr.name;
                          if (!trimNs) {
-                             attrName = XLangTag.changeNamespace(attrName, XDefKeys.DEFAULT.NS, xdefKeys.NS);
-                             attrName = XLangTag.changeNamespace(attrName, XDslKeys.DEFAULT.NS, xdslKeys.NS);
+                             attrName = XLangTag.replaceXmlNs(attrName,
+                                                              XDefKeys.DEFAULT.NS,
+                                                              xdefKeys != null ? xdefKeys.NS : null);
+                             attrName = XLangTag.replaceXmlNs(attrName,
+                                                              XDslKeys.DEFAULT.NS,
+                                                              xdslKeys != null ? xdslKeys.NS : null);
                          }
 
                          return lookupAttr(attrName, defAttr.label, trimNs);
@@ -135,8 +151,7 @@ public class XLangAttributeReference extends XLangReferenceBase {
     }
 
     private static void addDefAttr(
-            List<DefAttrWithLabel> list, IXDefNode defNode, String onlyNs, Set<String> excludeNames
-    ) {
+            List<DefAttrWithLabel> list, IXDefNode defNode, String onlyNs, Set<String> excludeNames) {
         for (IXDefAttribute defAttr : defNode.getAttributes().values()) {
             String attrName = defAttr.getName();
 

@@ -138,7 +138,8 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
     }
 
     protected PsiFile configureByXLangText(String text) {
-        return myFixture.configureByText("unit." + XLANG_EXT, text);
+        String fileName = "unit-" + StringHelper.randomDigits(8) + '.' + XLANG_EXT;
+        return myFixture.configureByText(fileName, text);
     }
 
     protected void addAllNopXDefsToProject() {
@@ -218,7 +219,7 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
      * 得到的是原始元素的引用元素
      */
     protected PsiElement getOriginalElementAtCaret() {
-        doAssertCaretExists();
+        assertCaretExists();
 
         return myFixture.getFile().findElementAt(myFixture.getCaretOffset());
     }
@@ -229,7 +230,7 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
 
     /** 找到光标位置的 {@link XLangReference} 或者其他类型的唯一引用 */
     protected PsiReference findReferenceAtCaret() {
-        doAssertCaretExists();
+        assertCaretExists();
 
         // 实际有多个引用时，将构造返回 PsiMultiReference，
         // 其会按 PsiMultiReference#COMPARATOR 对引用排序得到优先引用，
@@ -252,7 +253,13 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         // 消除异常 "Read access is allowed from inside read-action"
         PsiElement originalElement = getOriginalElementAtCaret();
 
-        PsiElement resolvedElement = getResolvedElementAtCaret();
+        PsiElement resolvedElement;
+        // Note: 当 <caret> 位置的元素没有引用元素时，会直接抛出异常，这里需要屏蔽该异常
+        try {
+            resolvedElement = getResolvedElementAtCaret();
+        } catch (Throwable ignore) {
+            resolvedElement = originalElement;
+        }
 
         Language lang = originalElement.getContainingFile().getLanguage();
         DocumentationProvider docProvider = LanguageDocumentation.INSTANCE.forLanguage(lang);
@@ -260,7 +267,7 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         return docProvider.generateDoc(resolvedElement, originalElement);
     }
 
-    private void doAssertCaretExists() {
+    protected void assertCaretExists() {
         assertTrue("No '<caret>' found in current text", myFixture.getCaretOffset() > 0);
     }
 
@@ -269,12 +276,15 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         doAssertCompletion(null, expectedText);
     }
 
-    /** 检查选中指定的补全项之后的文本是否与预期相符 */
+    /**
+     * 检查选中指定的补全项之后的文本是否与预期相符
+     * <p/>
+     * 注意：<ul>
+     * <li>在仅有唯一的补全元素时，将自动完成补全，且不能再获取到补全列表；</li>
+     * <li>只有在调用 `myFixture.completeBasic()` 后，才能完成补全，获得补全列表；</li>
+     * </ul>
+     */
     protected void doAssertCompletion(String selectedItem, String expectedText) {
-        // Note:
-        // - 在仅有唯一的补全元素时，将自动完成补全，且不能再获取到补全列表
-        // - 只有在调用 `myFixture.completeBasic()` 后，才能完成补全，获得补全列表
-
         // 获取当前查找元素
         LookupImpl lookup = (LookupImpl) LookupManager.getActiveLookup(myFixture.getEditor());
         assertNotNull("Lookup not active", lookup);

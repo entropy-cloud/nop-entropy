@@ -5,15 +5,17 @@ package io.nop.idea.plugin.utils;
 import java.io.File;
 import java.net.URL;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
+import com.intellij.java.library.JavaLibraryModificationTracker;
 import com.intellij.openapi.application.PathManager;
 import com.intellij.openapi.application.PluginPathManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.vfs.JarFileSystem;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -23,6 +25,10 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.search.ProjectAndLibrariesScope;
+import com.intellij.psi.util.CachedValue;
+import com.intellij.psi.util.CachedValueProvider;
+import com.intellij.psi.util.CachedValuesManager;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlElement;
 import com.intellij.util.containers.CollectionFactory;
@@ -35,9 +41,11 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.dict.DictProvider;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.idea.plugin.resource.ProjectEnv;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ProjectFileHelper {
+    private static final Map<Project, CachedValue<Collection<String>>> nopVfsPathCaches = new ConcurrentHashMap<>();
 
     /**
      * 与FileHelper.getFileUrl格式保持一致
@@ -98,23 +106,21 @@ public class ProjectFileHelper {
         return ResourceHelper.getStdPath(path);
     }
 
-    /** 查找所有的 *.xdef 资源路径 */
-    public static Collection<String> findAllXdefNopVfsPaths(Project project) {
-        return FilenameIndex.getAllFilesByExt(project, "xdef")
-                            .stream()
-                            .map(ProjectFileHelper::getNopVfsStdPath)
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.toSet());
+    public static @NotNull GlobalSearchScope getSearchScope(@NotNull Project project) {
+        return new ProjectAndLibrariesScope(project);
     }
 
-    /** 查找所有的 Nop 字典资源路径 */
-    public static Collection<String> findAllDictNopVfsPaths(Project project) {
-        return FilenameIndex.getAllFilesByExt(project, "dict.yaml")
-                            .stream()
-                            .map(ProjectFileHelper::getNopVfsStdPath)
-                            .filter(Objects::nonNull)
-                            .filter((path) -> path.startsWith("/dict/"))
-                            .collect(Collectors.toSet());
+    /** 获取已缓存的项目内所有可访问的 *.xdef 资源路径列表（已排序） */
+    public static Collection<String> getCachedNopXDefVfsPaths(Project project) {
+        return getCachedNopVfsPaths(project).stream().filter((path) -> path.endsWith(".xdef")).toList();
+    }
+
+    /** 获取已缓存的项目内所有可访问的字典名列表（已排序） */
+    public static Collection<String> getCachedNopDictNames(Project project) {
+        return getCachedNopVfsPaths(project).stream()
+                                            .filter((path) -> path.startsWith("/dict/") && path.endsWith(".dict.yaml"))
+                                            .map(ProjectFileHelper::getDictNameFromVfsPath)
+                                            .toList();
     }
 
     /** 从 vfs 路径中获取字典名字 */
@@ -125,24 +131,54 @@ public class ProjectFileHelper {
         return name;
     }
 
+    /** 获取已缓存的项目内所有可访问的 vfs 资源路径列表（已排序） */
+    public static Collection<String> getCachedNopVfsPaths(Project project) {
+        return getCachedSearchResult(nopVfsPathCaches,
+                                     project,
+                                     (p) -> findAllNopVfsPaths(p).stream().sorted().toList());
+    }
+
     /** 查找所有 vfs 资源路径 */
     public static Collection<String> findAllNopVfsPaths(Project project) {
+        GlobalSearchScope scope = getSearchScope(project);
+
         Set<String> names = CollectionFactory.createSmallMemoryFootprintSet();
-        Collections.addAll(names, FilenameIndex.getAllFilenames(project));
+        FilenameIndex.processAllFileNames((name) -> {
+            names.add(name);
+            return true;
+        }, scope, null);
 
         Set<String> vfsPaths = CollectionFactory.createSmallMemoryFootprintSet();
-
-        GlobalSearchScope scope = GlobalSearchScope.allScope(project);
         FilenameIndex.processFilesByNames(names, true, scope, null, (file) -> {
-            String vfsPath = getNopVfsPath(file);
+            String vfsPath = getNopVfsStdPath(file);
 
-            if (!file.isDirectory() && vfsPath != null) {
+            if (!file.isDirectory() && vfsPath != null && !vfsPath.equals("/")) {
                 vfsPaths.add(vfsPath);
             }
             return true;
         });
 
         return vfsPaths;
+    }
+
+    /** 获得与 {@link Project} 相关的已缓存的查询结果 */
+    public static <T> T getCachedSearchResult(
+            Map<Project, CachedValue<T>> caches, //
+            Project project, Function<Project, T> searcher //
+    ) {
+        return caches.computeIfAbsent(project, (p) -> {
+            return CachedValuesManager.getManager(p) //
+                                      .createCachedValue(() -> {
+                                          Object[] deps = new Object[] {
+                                                  JavaLibraryModificationTracker.getInstance(p),
+                                                  ProjectRootManager.getInstance(p),
+                                                  };
+
+                                          T result = searcher.apply(p);
+
+                                          return CachedValueProvider.Result.create(result, deps);
+                                      });
+        }).getValue();
     }
 
     public static DictBean loadDict(PsiElement refElement, String dictName) {
@@ -192,8 +228,7 @@ public class ProjectFileHelper {
             return null;
         }
 
-        CharSequence str = document.getCharsSequence().subSequence(beginOffset, endOffset);
-        return str;
+        return document.getCharsSequence().subSequence(beginOffset, endOffset);
     }
 
     // copy from XsltBreakpointHandler

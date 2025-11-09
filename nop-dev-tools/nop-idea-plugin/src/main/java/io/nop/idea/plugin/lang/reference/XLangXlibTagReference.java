@@ -75,6 +75,7 @@ public class XLangXlibTagReference extends XLangReferenceBase {
         return target;
     }
 
+    /** @return {@link #xlibPath} 中定义的标签函数 */
     @Override
     public Object @NotNull [] getVariants() {
         return XlibTagMeta.withLoadedXlib(myElement, xlibPath, (xlib) -> {

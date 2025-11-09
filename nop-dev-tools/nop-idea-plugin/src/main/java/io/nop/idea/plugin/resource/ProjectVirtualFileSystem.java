@@ -7,10 +7,16 @@
  */
 package io.nop.idea.plugin.resource;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.PsiFile;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.search.FilenameIndex;
-import com.intellij.psi.search.GlobalSearchScope;
 import io.nop.api.core.util.progress.IStepProgressListener;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
@@ -22,40 +28,32 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-
 public class ProjectVirtualFileSystem implements IVirtualFileSystem {
     static final Logger LOG = LoggerFactory.getLogger(ProjectVirtualFileSystem.class);
 
     @Override
     public IResource getResource(String path, boolean returnNull) {
         Project project = ProjectEnv.currentProject();
-        if (project == null)
+        if (project == null) {
             return returnNull ? null : new UnknownResource(path);
+        }
 
         String fileName = StringHelper.fileFullName(path);
-        PsiFile[] files = FilenameIndex.getFilesByName(project, fileName, GlobalSearchScope.allScope(project));
-        if (files.length == 0) {
+        Collection<VirtualFile> files = //
+                FilenameIndex.getVirtualFilesByName(fileName, ProjectFileHelper.getSearchScope(project));
+        if (files.isEmpty()) {
             LOG.debug("nop.project.file-index-not-found:{}", fileName);
             return returnNull ? null : new UnknownResource(path);
         }
 
-        if (path.startsWith("/dict/")) {
-            // 在模块中查找
-            for (PsiFile file : files) {
-                String matchPath = ProjectFileHelper.getNopVfsPath(file.getVirtualFile());
-                if (matchPath != null && matchPath.startsWith(path))
-                    return new VirtualFileResource(path, file.getVirtualFile());
-            }
-        } else {
-            for (PsiFile file : files) {
-                String matchPath = ProjectFileHelper.getNopVfsPath(file.getVirtualFile());
-                if (Objects.equals(path, matchPath))
-                    return new VirtualFileResource(path, file.getVirtualFile());
+        boolean isDictPath = path.startsWith("/dict/");
+        for (VirtualFile file : files) {
+            String matchPath = ProjectFileHelper.getNopVfsPath(file);
+
+            if ((isDictPath && matchPath != null && matchPath.startsWith(path)) //
+                || (!isDictPath && Objects.equals(path, matchPath)) //
+            ) {
+                return new VirtualFileResource(path, file);
             }
         }
 
@@ -98,7 +96,10 @@ public class ProjectVirtualFileSystem implements IVirtualFileSystem {
     }
 
     @Override
-    public String saveResource(String path, IResource iResource, IStepProgressListener iStepProgressListener, Map<String, Object> map) {
+    public String saveResource(
+            String path, IResource iResource, IStepProgressListener iStepProgressListener,
+            Map<String, Object> map
+    ) {
         return null;
     }
 }

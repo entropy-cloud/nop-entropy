@@ -84,8 +84,7 @@ public class XLangReferenceHelper {
      * @return 若返回 <code>null</code>，则表示未支持对指定类型的处理
      */
     public static PsiReference[] getReferencesByDefType(
-            XmlElement refElement, String refValue, XDefTypeDecl refDefType
-    ) {
+            XmlElement refElement, String refValue, XDefTypeDecl refDefType) {
         // Note: 计算引用源文本（XmlAttributeValue#getText 的结果包含引号）与引用值文本之间的文本偏移量，
         // 从而精确匹配与引用相关的文本内容
         int textRangeOffset = refElement.getText().indexOf(refValue);
@@ -97,7 +96,11 @@ public class XLangReferenceHelper {
                     new PsiReference[] {
                             new XLangStdDomainXdefRefReference(refElement, textRange, refValue)
                     };
-            case STD_DOMAIN_V_PATH, STD_DOMAIN_NAME_OR_V_PATH -> //
+            case STD_DOMAIN_NAME_OR_V_PATH -> //
+                    refValue.indexOf('.') > 0
+                    ? getReferencesByVfsPath(refElement, refValue, textRange)
+                    : PsiReference.EMPTY_ARRAY;
+            case STD_DOMAIN_V_PATH -> //
                     getReferencesByVfsPath(refElement, refValue, textRange);
             case STD_DOMAIN_V_PATH_LIST -> //
                     getReferencesFromVfsPathCsv(refElement, refValue, textRangeOffset);
@@ -125,8 +128,7 @@ public class XLangReferenceHelper {
 
     /** 根据属性的类型定义识别引用 */
     public static PsiReference[] getReferencesFromDefType(
-            XmlElement refElement, String refValue, String refDefTypeText
-    ) {
+            XmlElement refElement, String refValue, String refDefTypeText) {
         XDefTypeDecl refDefType;
         try {
             refDefType = XDslParseHelper.parseDefType(null, null, refDefTypeText);
@@ -209,8 +211,7 @@ public class XLangReferenceHelper {
 
     /** 从 csv 文本中识别对 vfs 资源路径的引用 */
     public static PsiReference[] getReferencesFromVfsPathCsv(
-            XmlElement refElement, String refValue, int textRangeOffset
-    ) {
+            XmlElement refElement, String refValue, int textRangeOffset) {
         Map<TextRange, String> rangeMap = extractValuesFromCsv(refValue);
 
         List<PsiReference> list = new ArrayList<>(rangeMap.size());
@@ -240,15 +241,14 @@ public class XLangReferenceHelper {
         int textRangeOffset = refElement.getText().indexOf(refValue);
         TextRange textRange = new TextRange(0, refValue.length()).shiftRight(textRangeOffset);
 
+        if (!StringHelper.isValidFilePath(refValue) || refValue.lastIndexOf('.') <= 0) {
+            return PsiReference.EMPTY_ARRAY;
+        }
         return getReferencesByVfsPath(refElement, refValue, textRange);
     }
 
     /** 识别对 vfs 资源路径的引用 */
     public static PsiReference[] getReferencesByVfsPath(XmlElement refElement, String path, TextRange textRange) {
-        if (!StringHelper.isValidFilePath(path) || path.lastIndexOf('.') <= 0) {
-            return PsiReference.EMPTY_ARRAY;
-        }
-
         return new PsiReference[] {
                 new NopVirtualFileReference(refElement, textRange, path)
         };
@@ -256,8 +256,7 @@ public class XLangReferenceHelper {
 
     /** 从 csv 文本中识别对 {@link IGenericType} 的引用 */
     public static PsiReference[] getReferencesFromGenericTypeCsv(
-            XmlElement refElement, String refValue, int textRangeOffset
-    ) {
+            XmlElement refElement, String refValue, int textRangeOffset) {
         Map<TextRange, String> rangeMap = extractValuesFromCsv(refValue);
 
         List<PsiReference> list = new ArrayList<>(rangeMap.size());
@@ -271,9 +270,7 @@ public class XLangReferenceHelper {
         return list.toArray(PsiReference[]::new);
     }
 
-    public static NopVirtualFile createNopVfsForDict(
-            PsiElement refElement, String dictName, Object dictOptionValue
-    ) {
+    public static NopVirtualFile createNopVfsForDict(PsiElement refElement, String dictName, Object dictOptionValue) {
         Function<PsiFile, PsiElement> targetResolver = //
                 (file) -> XmlPsiHelper.findFirstElement(file, (element) -> {
                     if (element instanceof LeafPsiElement value //

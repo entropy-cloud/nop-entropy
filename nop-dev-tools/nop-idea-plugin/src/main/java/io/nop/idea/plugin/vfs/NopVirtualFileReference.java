@@ -44,10 +44,11 @@ public class NopVirtualFileReference extends XLangReferenceBase {
         return target;
     }
 
+    /** @return 项目内所有可访问的 vfs 资源路径 */
     @Override
     public Object @NotNull [] getVariants() {
         Project project = myElement.getProject();
 
-        return ProjectFileHelper.findAllNopVfsPaths(project).stream().sorted().toArray();
+        return ProjectFileHelper.getCachedNopVfsPaths(project).toArray();
     }
 }

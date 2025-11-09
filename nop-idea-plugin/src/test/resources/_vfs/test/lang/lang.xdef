@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+         x:schema="/nop/schema/xdef.xdef" x:dump="true"
+         xdef:check-ns="xui"
+>
+    <child name="string" type="dict:test/doc/child-type=node" xdef:unknown-attr="any"/>
+
+    <refs xdef:value="v-path-list"/>
+
+    <xjson xdef:value="xjson"/>
+</example>

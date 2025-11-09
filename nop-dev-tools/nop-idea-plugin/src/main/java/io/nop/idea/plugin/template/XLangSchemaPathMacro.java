@@ -14,7 +14,6 @@ import com.intellij.codeInsight.template.ExpressionContext;
 import com.intellij.codeInsight.template.Macro;
 import com.intellij.codeInsight.template.Result;
 import com.intellij.codeInsight.template.TemplateContextType;
-import com.intellij.openapi.project.Project;
 import io.nop.idea.plugin.utils.LookupElementHelper;
 import io.nop.idea.plugin.utils.ProjectFileHelper;
 import org.jetbrains.annotations.NonNls;
@@ -22,6 +21,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
+ * 获取项目内所有可访问的 xdef 资源路径
+ *
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-08-06
  */
@@ -39,16 +40,10 @@ public class XLangSchemaPathMacro extends Macro {
 
     @Override
     public LookupElement @Nullable [] calculateLookupItems(Expression @NotNull [] params, ExpressionContext context) {
-        // Note: TODO 全项目搜索的性能极差，暂时不启用补全
-//        Project project = context.getProject();
-//
-//        return ProjectFileHelper.findAllNopVfsPaths(project)
-//                                .stream()
-//                                .sorted()
-//                                .filter(path -> path.endsWith(".xdef"))
-//                                .map(LookupElementHelper::lookupString)
-//                                .toArray(LookupElement[]::new);
-        return LookupElement.EMPTY_ARRAY;
+        return ProjectFileHelper.getCachedNopXDefVfsPaths(context.getProject())
+                                .stream()
+                                .map(LookupElementHelper::lookupString)
+                                .toArray(LookupElement[]::new);
     }
 
     @Override

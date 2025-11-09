@@ -1,7 +1,10 @@
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.9.25"
+
     id("org.jetbrains.intellij") version "1.17.4"
+    // for idea 2025+
+//    id("org.jetbrains.intellij.platform") version "2.10.0"
 }
 
 
@@ -13,6 +16,11 @@ version = "1.0-SNAPSHOT"
 repositories {
     mavenLocal()
     mavenCentral()
+
+    // for idea 2025+
+//    intellijPlatform {
+//        defaultRepositories()
+//    }
 }
 
 // Configure Gradle IntelliJ Plugin
@@ -23,10 +31,16 @@ intellij {
     type.set("IC") // Target IDE Platform
 
     plugins.set(listOf("java", "gradle", "org.jetbrains.plugins.yaml"))
-
 }
 
 dependencies {
+    // for idea 2025+
+//    intellijPlatform {
+//        intellijIdeaCommunity("2025.2.2")
+//
+//        bundledPlugins("com.intellij.java", "com.intellij.gradle", "org.jetbrains.plugins.yaml")
+//    }
+
     // ANTLR 适配器：https://github.com/antlr/antlr4-intellij-adaptor
     implementation("org.antlr:antlr4-intellij-adaptor:0.1")
 

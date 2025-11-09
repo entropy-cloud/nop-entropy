@@ -20,6 +20,7 @@ import io.nop.api.core.beans.DictOptionBean;
 import io.nop.idea.plugin.lang.XLangDocumentation;
 import io.nop.idea.plugin.lang.psi.XLangAttribute;
 import io.nop.idea.plugin.lang.psi.XLangTag;
+import io.nop.idea.plugin.lang.psi.XLangTagMeta;
 import io.nop.idea.plugin.utils.ProjectFileHelper;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.XDefConstants;
@@ -32,7 +33,7 @@ import static com.intellij.psi.xml.XmlTokenType.XML_NAME;
 public class XLangDocumentationProvider extends AbstractDocumentationProvider {
 
     /**
-     * 文档生成函数
+     * 文档生成函数：对于没有可识别的引用的元素，将不会调用该接口
      * <p/>
      * 默认鼠标移动时的文档也由该函数生成 {@link #generateHoverDoc}
      *
@@ -77,13 +78,18 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
 
         XLangDocumentation doc = null;
         if (parent instanceof XLangTag tag) {
-            doc = tag.getTagDocumentation();
+            XLangTagMeta tagMeta = tag.getTagMeta();
+
+            doc = tagMeta.getTagDocumentation();
         } //
         else if (parent instanceof XLangAttribute attr) {
-            String attrName = attr.getName();
             XLangTag tag = attr.getParentTag();
 
-            doc = tag != null ? tag.getAttrDocumentation(attrName) : null;
+            if (tag != null) {
+                XLangTagMeta tagMeta = tag.getTagMeta();
+
+                doc = tagMeta.getAttrDocumentation(attr);
+            }
         }
 
         return doc;
@@ -97,11 +103,11 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
         }
 
         IXDefAttribute defAttr = attr.getDefAttr();
-        XDefTypeDecl defAttrType = defAttr != null ? defAttr.getType() : null;
-        if (defAttrType == null) {
+        if (XLangAttribute.isNullOrErrorDefAttr(defAttr)) {
             return null;
         }
 
+        XDefTypeDecl defAttrType = defAttr.getType();
         if (!XDefConstants.STD_DOMAIN_DICT.equals(defAttrType.getStdDomain())) {
             return null;
         }

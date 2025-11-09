@@ -143,7 +143,7 @@ public class XlibTagMeta {
 
     public static XLangTag findXlibImportTag(XLangTag tag, String alias) {
         XLangTag parentTag = tag != null ? tag.getParentTag() : null;
-        if (parentTag == null || !parentTag.isXplDefNode()) {
+        if (parentTag == null || !parentTag.getTagMeta().isXplNode()) {
             return null;
         }
 

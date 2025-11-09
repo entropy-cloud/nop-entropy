@@ -22,6 +22,8 @@ import io.nop.idea.plugin.vfs.NopVirtualFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static io.nop.idea.plugin.lang.reference.XLangReferenceHelper.XLANG_NAME_COMPARATOR;
+
 /**
  * 对字典选项的引用
  *
@@ -101,8 +103,7 @@ public class XLangDictOptionReference extends XLangReferenceBase {
                    .stream()
                    .filter((opt) -> !opt.isInternal() && !opt.isDeprecated())
                    .map(LookupElementHelper::lookupDictOpt)
-                   .sorted((a, b) -> XLangReferenceHelper.XLANG_NAME_COMPARATOR.compare(a.getLookupString(),
-                                                                                        b.getLookupString()))
+                   .sorted((a, b) -> XLANG_NAME_COMPARATOR.compare(a.getLookupString(), b.getLookupString()))
                    .toArray();
     }
 

@@ -34,4 +34,10 @@ public class XLangValueToken extends XmlTokenImpl {
     public String toString() {
         return getClass().getSimpleName() + ':' + getTokenType();
     }
+
+    @Override
+    public boolean skipValidation() {
+        // Note: 禁用 xml 的校验
+        return true;
+    }
 }

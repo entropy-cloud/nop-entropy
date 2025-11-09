@@ -48,6 +48,7 @@ public class XLangDocumentation {
     String stdDomain;
     String defaultValue;
     String[] modifiers;
+    boolean additional;
 
     String desc;
     String path;
@@ -105,6 +106,10 @@ public class XLangDocumentation {
         this.desc = desc;
     }
 
+    public void setAdditional(boolean additional) {
+        this.additional = additional;
+    }
+
     public String genDoc() {
         StringBuilder sb = new StringBuilder();
         sb.append("<html><head></head><body>");
@@ -128,6 +133,12 @@ public class XLangDocumentation {
                 appendStyledSpan(sb,
                                  resolveAttributes(JavaHighlightingColors.LINE_COMMENT),
                                  " (=" + defaultValue + ')');
+            }
+            if (additional) {
+                sb.append(' ');
+                appendStyledSpan(sb,
+                                 resolveAttributes(JavaHighlightingColors.LINE_COMMENT),
+                                 NopPluginBundle.message("xlang.doc.flag.additional"));
             }
             if (StringHelper.isNotBlank(subTitle)) {
                 sb.append(' ');
@@ -202,14 +213,12 @@ public class XLangDocumentation {
     }
 
     private static void appendStyledSpan(
-            @NotNull StringBuilder sb, @Nullable String value, String @NotNull ... properties
-    ) {
+            @NotNull StringBuilder sb, @Nullable String value, String @NotNull ... properties) {
         HtmlSyntaxInfoUtil.appendStyledSpan(sb, StringHelper.escapeXml(value), properties);
     }
 
     private static void appendStyledSpan(
-            @NotNull StringBuilder sb, @NotNull TextAttributes attributes, @Nullable String value
-    ) {
+            @NotNull StringBuilder sb, @NotNull TextAttributes attributes, @Nullable String value) {
         HtmlSyntaxInfoUtil.appendStyledSpan(sb,
                                             attributes,
                                             StringHelper.escapeXml(value),

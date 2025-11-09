@@ -19,12 +19,15 @@ import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlElement;
 import io.nop.commons.util.StringHelper;
 import io.nop.idea.plugin.lang.psi.XLangTag;
+import io.nop.idea.plugin.lang.psi.XLangTagMeta;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.xlang.xdef.XDefKeys;
 import io.nop.xlang.xdsl.XDslKeys;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import static io.nop.idea.plugin.lang.reference.XLangReferenceHelper.XLANG_NAME_COMPARATOR;
 
 /**
  * {@link io.nop.xlang.xdef.XDefKeys#KEY_ATTR xdef:key-attr} 的值引用
@@ -68,6 +71,7 @@ public class XLangXdefKeyAttrReference extends XLangReferenceBase implements Psi
                            .toArray(ResolveResult[]::new);
     }
 
+    /** 在子节点中均存在的可被 {@link io.nop.xlang.xdef.XDefKeys#KEY_ATTR xdef:key-attr} 引用的属性名列表 */
     @Override
     public Object @NotNull [] getVariants() {
         // Note: 在自动补全阶段，DSL 结构很可能是不完整的，只能从 xml 角度做分析
@@ -76,28 +80,30 @@ public class XLangXdefKeyAttrReference extends XLangReferenceBase implements Psi
             return new Object[0];
         }
 
+        XLangTagMeta tagMeta = tag.getTagMeta();
         return XmlPsiHelper.getCommonAttrNamesFromChildTag(tag) //
                            .stream() //
-                           .filter(new TagAttrNameFilter(tag)) //
-                           .sorted(XLangReferenceHelper.XLANG_NAME_COMPARATOR) //
+                           .filter(new TagAttrNameFilter(tagMeta)) //
+                           .sorted(XLANG_NAME_COMPARATOR) //
                            .toArray();
     }
 
     static class TagAttrNameFilter implements Predicate<String> {
-        private final XLangTag refTag;
+        private final XLangTagMeta refTagMeta;
 
-        TagAttrNameFilter(XLangTag refTag) {
-            this.refTag = refTag;
+        TagAttrNameFilter(XLangTagMeta refTagMeta) {
+            this.refTagMeta = refTagMeta;
         }
 
         @Override
         public boolean test(String name) {
-            XDefKeys xdefKeys = refTag.getXDefKeys();
-            XDslKeys xdslKeys = refTag.getXDslKeys();
+            XDefKeys xdefKeys = refTagMeta.getXdefKeys();
+            XDslKeys xdslKeys = refTagMeta.getXdslKeys();
 
             String ns = StringHelper.getNamespace(name);
 
-            return !xdefKeys.NS.equals(ns) && !xdslKeys.NS.equals(ns);
+            return (xdefKeys == null || !xdefKeys.NS.equals(ns)) //
+                   && (xdslKeys == null || !xdslKeys.NS.equals(ns));
         }
     }
 }

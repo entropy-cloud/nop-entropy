@@ -17,6 +17,9 @@ import io.nop.idea.plugin.lang.reference.XLangAttributeReference;
 import io.nop.idea.plugin.lang.reference.XLangXlibTagAttrReference;
 import io.nop.idea.plugin.lang.xlib.XlibXDefAttribute;
 import io.nop.xlang.xdef.IXDefAttribute;
+import io.nop.xlang.xdef.XDefTypeDecl;
+import io.nop.xlang.xdef.impl.XDefAttribute;
+import io.nop.xlang.xdef.parse.XDefTypeDeclParser;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -30,6 +33,12 @@ public class XLangAttribute extends XmlAttributeImpl {
     @Override
     public String toString() {
         return getClass().getSimpleName() + ':' + getElementType() + "('" + getName() + "')";
+    }
+
+    @Override
+    public boolean skipValidation() {
+        // Note: 禁用 xml 的校验
+        return true;
     }
 
     public XLangTag getParentTag() {
@@ -72,19 +81,35 @@ public class XLangAttribute extends XmlAttributeImpl {
             return null;
         }
 
-        String ns = getNamespacePrefix();
-        String attrName = getName();
-        boolean hasXDslNs = !ns.isEmpty() && ns.equals(tag.getXDslKeys().NS);
+        XLangTagMeta tagMeta = tag.getTagMeta();
+        return tagMeta.getDefAttr(this);
+    }
 
-        IXDefAttribute defAttr;
-        // 取 xdsl.xdef 中声明的属性
-        if (hasXDslNs) {
-            defAttr = tag.getXDslDefNodeAttr(attrName);
-        } //
-        else {
-            defAttr = tag.getSchemaDefNodeAttr(attrName);
+    public static boolean isNullOrErrorDefAttr(IXDefAttribute defAttr) {
+        return defAttr == null || defAttr instanceof XDefAttributeWithError;
+    }
+
+    /** 类型为 {@code any} 的属性定义 */
+    public static class XDefAttributeWithTypeAny extends XDefAttribute {
+        private static final XDefTypeDecl STD_DOMAIN_ANY = new XDefTypeDeclParser().parseFromText(null, "any");
+
+        public XDefAttributeWithTypeAny(String name) {
+            setName(name);
+            setType(STD_DOMAIN_ANY);
+        }
+    }
+
+    /** 含错误信息的属性定义 */
+    public static class XDefAttributeWithError extends XDefAttribute {
+        final String errorMsg;
+
+        public XDefAttributeWithError(String name, String errorMsg) {
+            this.errorMsg = errorMsg;
+            setName(name);
         }
 
-        return defAttr;
+        public String getErrorMsg() {
+            return this.errorMsg;
+        }
     }
 }

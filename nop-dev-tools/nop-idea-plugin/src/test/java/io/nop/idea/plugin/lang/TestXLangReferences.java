@@ -748,7 +748,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         assertReference("""
                                 <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
                                           x:schema="/nop/schema/xdef.xdef">
-                                     <item xdef:name="Item0" xdef:ref="Item0"/>
+                                     <item xdef:name="Item0" xdef:ref="It<caret>em0"/>
                                      <xdef:define xdef:name="Item1" />
                                  </example>
                                 """, //
@@ -816,10 +816,10 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                            "meta:unique-attr=\"xdef:<caret>name\""), //
                         "xdef:define#xdef:name=!var-name" //
         );
-        assertReference(insertCaretIntoVfs("/nop/schema/xmeta.xdef", //
-                                           "xdef:key-attr=\"id\"", //
-                                           "xdef:key-attr=\"i<caret>d\""), //
-                        "selection#id=!var-name" //
+        assertReference(insertCaretIntoVfs("/nop/schema/conf.xdef", //
+                                           "xdef:key-attr=\"name\"", //
+                                           "xdef:key-attr=\"n<caret>ame\""), //
+                        "var#name=!conf-name" //
         );
         // - 引用不存在
         assertReference("""

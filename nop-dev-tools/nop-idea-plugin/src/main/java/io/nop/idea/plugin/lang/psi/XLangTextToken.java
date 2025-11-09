@@ -51,6 +51,12 @@ public class XLangTextToken extends XmlTokenImpl {
         return getClass().getSimpleName() + ':' + getTokenType();
     }
 
+    @Override
+    public boolean skipValidation() {
+        // Note: 禁用 xml 的校验
+        return true;
+    }
+
     public XLangTag getParentTag() {
         return PsiTreeUtil.getParentOfType(this, XLangTag.class);
     }
@@ -63,7 +69,9 @@ public class XLangTextToken extends XmlTokenImpl {
         }
 
         String text = getText();
-        XDefTypeDecl xdefValue = tag.getSchemaDefNodeXdefValue();
+        XLangTagMeta tagMeta = tag.getTagMeta();
+
+        XDefTypeDecl xdefValue = tagMeta.getXdefValue();
         if (xdefValue == null || StringHelper.isBlank(text)) {
             return PsiReference.EMPTY_ARRAY;
         }

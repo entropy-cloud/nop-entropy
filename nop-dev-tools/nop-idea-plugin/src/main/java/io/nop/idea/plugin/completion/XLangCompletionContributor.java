@@ -37,6 +37,7 @@ import io.nop.core.dict.DictProvider;
 import io.nop.idea.plugin.lang.psi.XLangAttribute;
 import io.nop.idea.plugin.lang.psi.XLangAttributeValue;
 import io.nop.idea.plugin.lang.psi.XLangTag;
+import io.nop.idea.plugin.lang.psi.XLangTagMeta;
 import io.nop.idea.plugin.resource.ProjectEnv;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.xlang.xdef.IXDefAttribute;
@@ -95,8 +96,7 @@ public class XLangCompletionContributor extends CompletionContributor implements
     // 情况比较简单，因此没有使用extend来注册CompletionProvider，而是直接实现此方法
     @Override
     public void fillCompletionVariants(
-            @NotNull final CompletionParameters parameters, @NotNull CompletionResultSet result
-    ) {
+            @NotNull final CompletionParameters parameters, @NotNull CompletionResultSet result) {
         PsiElement element = parameters.getPosition().getParent();
         ASTNode node = element.getNode();
         if (node == null) {
@@ -120,12 +120,13 @@ public class XLangCompletionContributor extends CompletionContributor implements
 
         if (elType == XmlElementType.XML_TAG) {
             XLangTag tag = (XLangTag) element;
-
             XLangTag parentTag = tag.getParentTag();
-            IXDefNode parentTagDefNode = parentTag != null ? parentTag.getSchemaDefNode() : null;
             if (parentTag == null) {
                 return;
             }
+
+            XLangTagMeta parentTagMeta = parentTag.getTagMeta();
+            IXDefNode parentTagDefNode = parentTagMeta.getDefNodeInSchema();
 
             Set<String> existChildTagNames = XmlPsiHelper.getChildTagNames(parentTag);
             for (IXDefNode childNode : parentTagDefNode.getChildren().values()) {
@@ -148,10 +149,12 @@ public class XLangCompletionContributor extends CompletionContributor implements
                 return;
             }
 
+            XLangTagMeta tagMeta = tag.getTagMeta();
             String prefix = result.getPrefixMatcher().getPrefix();
-            IXDefNode defNode = tag.getSchemaDefNode();
+
+            IXDefNode defNode = tagMeta.getDefNodeInSchema();
             if (prefix.startsWith(XDslKeys.DEFAULT.X_NS_PREFIX)) {
-                defNode = tag.getXDslDefNode();
+                defNode = tagMeta.getXDslDefNode();
             }
 
             if (defNode == null) {
@@ -177,8 +180,8 @@ public class XLangCompletionContributor extends CompletionContributor implements
                 return;
             }
 
-            String attrName = attr.getName();
-            IXDefAttribute defAttr = tag.getSchemaDefNodeAttr(attrName);
+            XLangTagMeta tagMeta = tag.getTagMeta();
+            IXDefAttribute defAttr = tagMeta.getDefAttr(attr);
             if (defAttr != null) {
                 completeAttrValue(result, defAttr);
             }

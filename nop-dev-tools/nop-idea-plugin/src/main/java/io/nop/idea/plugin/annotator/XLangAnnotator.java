@@ -7,6 +7,8 @@
  */
 package io.nop.idea.plugin.annotator;
 
+import java.util.Objects;
+
 import com.intellij.codeInsight.daemon.impl.HighlightRangeExtension;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.lang.annotation.AnnotationHolder;
@@ -28,6 +30,7 @@ import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.idea.plugin.lang.psi.XLangAttribute;
 import io.nop.idea.plugin.lang.psi.XLangAttributeValue;
 import io.nop.idea.plugin.lang.psi.XLangTag;
+import io.nop.idea.plugin.lang.psi.XLangTagMeta;
 import io.nop.idea.plugin.lang.psi.XLangText;
 import io.nop.idea.plugin.lang.psi.XLangTextToken;
 import io.nop.idea.plugin.lang.reference.XLangReference;
@@ -130,37 +133,36 @@ public class XLangAnnotator implements Annotator {
     }
 
     private void checkTag(@NotNull AnnotationHolder holder, @NotNull XLangTag tag) {
-        if (tag.getSchemaDefNode() != null) {
-            checkTagValue(holder, tag);
+        XLangTagMeta tagMeta = tag.getTagMeta();
+        if (!tagMeta.hasError()) {
+            checkTagBySchemaDefNode(holder, tag);
             return;
         }
 
-        XLangTag parentTag = tag.getParentTag();
-        if ((parentTag != null && parentTag.isXdefValueSupportBody()) //
-            || tag.isAllowedUnknownTag() //
-        ) {
-            return;
-        }
-
-        XmlToken startTagName = XmlTagUtil.getStartTagNameElement(tag);
-        if (startTagName != null) {
-            errorAnnotation(holder,
-                            startTagName.getTextRange(),
-                            "xlang.annotation.tag.not-defined",
-                            startTagName.getText());
-        }
-
-        XmlToken endTagName = XmlTagUtil.getEndTagNameElement(tag);
-        if (endTagName != null) {
-            errorAnnotation(holder,
-                            endTagName.getTextRange(),
-                            "xlang.annotation.tag.not-defined",
-                            endTagName.getText());
-        }
+        tagErrorAnnotation(holder, tag, tagMeta.getErrorMsg());
     }
 
-    private void checkTagValue(@NotNull AnnotationHolder holder, @NotNull XLangTag tag) {
-        XDefTypeDecl xdefValue = tag.getSchemaDefNodeXdefValue();
+    private void checkTagBySchemaDefNode(@NotNull AnnotationHolder holder, @NotNull XLangTag tag) {
+        XLangTagMeta tagMeta = tag.getTagMeta();
+        // 检查标签可重复性
+        if (!tagMeta.canBeMultipleTag() && tag.getParentTag() != null) {
+            for (PsiElement child : tag.getParentTag().getChildren()) {
+                // 检查在其之前的重复节点
+                if (child == tag) {
+                    break;
+                }
+
+                if (child instanceof XLangTag t //
+                    && Objects.equals(t.getName(), tag.getName()) //
+                ) {
+                    tagErrorAnnotation(holder, tag, "xlang.annotation.tag.multiple-tag-not-allowed", tag.getName());
+                    return;
+                }
+            }
+        }
+
+        // 检查节点内容
+        XDefTypeDecl xdefValue = tagMeta.getXdefValue();
         TextRange textRange = tag.getValue().getTextRange();
         String bodyText = tag.hasChildTag() ? null : tag.getBodyText();
         boolean blankBodyText = StringHelper.isBlank(bodyText);
@@ -172,16 +174,8 @@ public class XLangAnnotator implements Annotator {
             return;
         }
 
-        if (!tag.isAllowedChildTag() && tag.hasChildTag()) {
-            errorAnnotation(holder, textRange, "xlang.annotation.tag.child-not-allowed", tag.getName());
-            return;
-        }
-
         if (xdefValue.isMandatory() && blankBodyText) {
-            errorAnnotation(holder,
-                            getStartTagName(tag).getTextRange(),
-                            "xlang.annotation.tag.body-required",
-                            tag.getName());
+            tagErrorAnnotation(holder, tag, "xlang.annotation.tag.body-required", tag.getName());
             return;
         }
 
@@ -189,7 +183,7 @@ public class XLangAnnotator implements Annotator {
             SourceLocation loc = XmlPsiHelper.getValueLocation(tag);
 
             String stdDomain = xdefValue.getStdDomain();
-            if (tag.isXlibSourceNode()) {
+            if (tagMeta.isXlibSourceNode()) {
                 stdDomain = "xpl";
             }
 
@@ -206,18 +200,22 @@ public class XLangAnnotator implements Annotator {
             return;
         }
 
-        if (attr.getDefAttr() == null) {
+        IXDefAttribute defAttr = attr.getDefAttr();
+        if (defAttr == null) {
             errorAnnotation(holder,
                             attrNameElement.getTextRange(),
                             "xlang.annotation.attr.not-defined",
                             attr.getName());
+        } //
+        else if (defAttr instanceof XLangAttribute.XDefAttributeWithError error) {
+            _errorAnnotation(holder, attrNameElement.getTextRange(), error.getErrorMsg());
         }
     }
 
     private void checkAttrValue(@NotNull AnnotationHolder holder, @NotNull XLangAttributeValue attrValue) {
         XLangAttribute attr = attrValue.getParentAttr();
         IXDefAttribute defAttr = attr != null ? attr.getDefAttr() : null;
-        if (defAttr == null) {
+        if (XLangAttribute.isNullOrErrorDefAttr(defAttr)) {
             return;
         }
 
@@ -259,10 +257,21 @@ public class XLangAnnotator implements Annotator {
         }
     }
 
-    private XmlElement getStartTagName(XmlTag tag) {
-        XmlElement element = XmlTagUtil.getStartTagNameElement(tag);
+    private void tagErrorAnnotation(AnnotationHolder holder, XmlTag tag, String msgKey, Object... msgParams) {
+        String msg = NopPluginBundle.message(msgKey, msgParams);
 
-        return element != null ? element : tag;
+        tagErrorAnnotation(holder, tag, msg);
+    }
+
+    private void tagErrorAnnotation(AnnotationHolder holder, XmlTag tag, String msg) {
+        XmlToken[] tokens = new XmlToken[] {
+                XmlTagUtil.getStartTagNameElement(tag), XmlTagUtil.getEndTagNameElement(tag)
+        };
+        for (XmlToken token : tokens) {
+            if (token != null) {
+                _errorAnnotation(holder, token.getTextRange(), msg);
+            }
+        }
     }
 
     private void errorAnnotation(AnnotationHolder holder, TextRange textRange, String msgKey, Object... msgParams) {

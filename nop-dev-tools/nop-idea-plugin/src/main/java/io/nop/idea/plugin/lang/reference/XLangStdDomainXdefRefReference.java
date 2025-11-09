@@ -9,6 +9,7 @@
 package io.nop.idea.plugin.lang.reference;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
@@ -24,9 +25,10 @@ import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.utils.ProjectFileHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFile;
-import one.util.streamex.StreamEx;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import static io.nop.idea.plugin.lang.reference.XLangReferenceHelper.XLANG_NAME_COMPARATOR;
 
 /**
  * {@link io.nop.xlang.xdef.XDefConstants#STD_DOMAIN_XDEF_REF xdef-ref} 类型的值引用
@@ -101,6 +103,7 @@ public class XLangStdDomainXdefRefReference extends XLangReferenceBase {
         return target;
     }
 
+    /** @return 当前 xdef 文件中可引用的 xdef:name 名字，或者项目内所有可访问的 *.xdef 资源路径 */
     @Override
     public Object @NotNull [] getVariants() {
         // Note: 在自动补全阶段，DSL 结构很可能是不完整的，只能从 xml 角度做分析
@@ -120,14 +123,12 @@ public class XLangStdDomainXdefRefReference extends XLangReferenceBase {
             return true;
         });
 
-        return StreamEx.of( //
-                            names.stream().sorted(XLangReferenceHelper.XLANG_NAME_COMPARATOR) //
-                       ) //
-                       .append(ProjectFileHelper.findAllXdefNopVfsPaths(project)
-                                                .stream()
-                                                .sorted(XLangReferenceHelper.XLANG_NAME_COMPARATOR) //
-                       ) //
-                       .toArray();
+        Collection<String> xdefVfsPaths = ProjectFileHelper.getCachedNopXDefVfsPaths(project);
+
+        names.sort(XLANG_NAME_COMPARATOR);
+        names.addAll(xdefVfsPaths);
+
+        return names.toArray();
     }
 
     private XmlAttribute getXdefNameAttr(XLangTag tag) {

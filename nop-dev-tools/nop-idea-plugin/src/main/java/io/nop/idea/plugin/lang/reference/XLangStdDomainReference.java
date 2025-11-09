@@ -24,6 +24,8 @@ import one.util.streamex.StreamEx;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static io.nop.idea.plugin.lang.reference.XLangReferenceHelper.XLANG_NAME_COMPARATOR;
+
 /**
  * 对标准数据域的引用
  *
@@ -84,7 +86,7 @@ public class XLangStdDomainReference extends XLangReferenceBase {
         return StreamEx.of(modifiers) //
                        .filter((modifier) -> !text.contains(modifier.getStringValue())) //
                        .append(XLangReferenceHelper.getRegisteredStdDomains().stream() //
-                                                   .sorted(XLangReferenceHelper.XLANG_NAME_COMPARATOR) //
+                                                   .sorted(XLANG_NAME_COMPARATOR) //
                                                    .map((value) -> {
                                                        DictBean dict = getDict();
                                                        DictOptionBean opt = dict != null

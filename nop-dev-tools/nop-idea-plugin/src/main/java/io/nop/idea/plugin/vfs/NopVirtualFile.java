@@ -1,12 +1,12 @@
 package io.nop.idea.plugin.vfs;
 
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import javax.swing.*;
 
 import com.intellij.codeInsight.navigation.PsiTargetNavigator;
+import com.intellij.ide.util.EditSourceUtil;
 import com.intellij.lang.ASTNode;
 import com.intellij.lang.Language;
 import com.intellij.navigation.ItemPresentation;
@@ -15,6 +15,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.PlainTextLanguage;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.pom.Navigatable;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiNamedElement;
@@ -69,6 +70,7 @@ public class NopVirtualFile extends PsiElementBase implements PsiNamedElement {
         return true;
     }
 
+    /** 支持 ctrl + 点击 方式跳转到具体文件 */
     @Override
     public void navigate(boolean requestFocus) {
         Editor editor = FileEditorManager.getInstance(getProject()).getSelectedTextEditor();
@@ -76,9 +78,20 @@ public class NopVirtualFile extends PsiElementBase implements PsiNamedElement {
             return;
         }
 
-        // 支持 ctrl + 点击 方式跳转到具体文件
-        PsiTargetNavigator<PsiElement> navigator = new PsiTargetNavigator<>(() -> Arrays.asList(getChildren()));
-        navigator.navigate(editor, null);
+        PsiElement[] children = getChildren();
+        // Note: 在 2025 版本中，PsiTargetNavigator 不能对单个元素做跳转，原因未知，
+        // 故而，单独通过 Navigatable 做元素跳转
+        if (children.length == 1) {
+            PsiElement child = children[0];
+            Navigatable nav = EditSourceUtil.getDescriptor(child);
+
+            if (nav != null) {
+                nav.navigate(true);
+            }
+        } else if (children.length > 1) {
+            PsiTargetNavigator<PsiElement> navigator = new PsiTargetNavigator<>(children);
+            navigator.navigate(editor, null);
+        }
     }
 
     /** ctrl + 鼠标移动 所显示的元素信息 */

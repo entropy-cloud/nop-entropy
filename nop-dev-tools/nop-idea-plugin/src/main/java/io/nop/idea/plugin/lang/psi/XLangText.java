@@ -59,6 +59,12 @@ public class XLangText extends XmlTextImpl {
         return getClass().getSimpleName() + ':' + getElementType();
     }
 
+    @Override
+    public boolean skipValidation() {
+        // Note: 禁用 xml 的校验
+        return true;
+    }
+
     /** 获取文本内容（特殊符号已转义） */
     public @NotNull String getTextChars() {
         PsiElement cdata = findPsiChildByType(XML_CDATA);

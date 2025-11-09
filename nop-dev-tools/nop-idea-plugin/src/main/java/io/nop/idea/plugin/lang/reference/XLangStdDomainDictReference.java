@@ -45,14 +45,11 @@ public class XLangStdDomainDictReference extends XLangReferenceBase {
         return target;
     }
 
+    /** @return 项目内所有可访问的字典名 */
     @Override
     public Object @NotNull [] getVariants() {
         Project project = myElement.getProject();
 
-        return ProjectFileHelper.findAllDictNopVfsPaths(project)
-                                .stream()
-                                .map(ProjectFileHelper::getDictNameFromVfsPath)
-                                .sorted(XLangReferenceHelper.XLANG_NAME_COMPARATOR)
-                                .toArray();
+        return ProjectFileHelper.getCachedNopDictNames(project).toArray();
     }
 }

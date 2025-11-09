@@ -18,11 +18,14 @@ import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlElement;
 import io.nop.idea.plugin.lang.psi.XLangAttribute;
 import io.nop.idea.plugin.lang.psi.XLangTag;
+import io.nop.idea.plugin.lang.psi.XLangTagMeta;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.xlang.xdef.IXDefNode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import static io.nop.idea.plugin.lang.reference.XLangReferenceHelper.XLANG_NAME_COMPARATOR;
 
 /**
  * {@link io.nop.xlang.xdsl.XDslKeys#PROTOTYPE x:prototype} 的值引用
@@ -88,6 +91,7 @@ public class XLangXPrototypeReference extends XLangReferenceBase {
         return getKeyAttrElement(protoTag, keyAttr);
     }
 
+    /** @return {@link io.nop.xlang.xdsl.XDslKeys#PROTOTYPE x:prototype} 可引用的值（即，在兄弟节点上指定的唯一属性值） */
     @Override
     public Object @NotNull [] getVariants() {
         // Note: 在自动补全阶段，DSL 结构很可能是不完整的，只能从 xml 角度做分析
@@ -106,15 +110,18 @@ public class XLangXPrototypeReference extends XLangReferenceBase {
                      .filter(Objects::nonNull)
                      .map((child) -> child instanceof XLangAttribute attr ? attr.getValue() : child.getName())
                      .filter(Objects::nonNull)
-                     .sorted(XLangReferenceHelper.XLANG_NAME_COMPARATOR)
+                     .sorted(XLANG_NAME_COMPARATOR)
                      .toArray();
     }
 
     private String getKeyAttrName(XLangTag tag, XLangTag parentTag) {
+        XLangTagMeta tagMeta = tag.getTagMeta();
+        XLangTagMeta parentTagMeta = parentTag.getTagMeta();
+
         // 仅从父节点中取引用到的子节点
         // io.nop.xlang.delta.DeltaMerger#mergePrototype
-        IXDefNode defNode = tag.getSchemaDefNode();
-        IXDefNode parentDefNode = parentTag.getSchemaDefNode();
+        IXDefNode defNode = tagMeta.getDefNodeInSchema();
+        IXDefNode parentDefNode = parentTagMeta.getDefNodeInSchema();
 
         String keyAttr = parentDefNode.getXdefKeyAttr();
 
