@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDD核心概念演进：充血模型与聚合根的范式升级</title>
+    <!-- External Libraries: Font Awesome & html2pdf.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    
+    <style>
+        /* --- 1. Global Styles & Variables --- */
+        :root {
+            --color-primary: #3b82f6;
+            --color-primary-dark: #2563eb;
+            --color-secondary: #10b981;
+            --color-warning: #f59e0b;
+            --color-text-dark: #1f2937;
+            --color-text-light: #4b5563;
+            --color-bg-main: #f4f6f9;
+            --color-bg-slide: #ffffff;
+            --color-border: #e5e7eb;
+            --color-code-bg: #f8fafc;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-code: 'Fira Code', monospace;
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --font-size-base: 1.25rem; /* Set base font size for projection */
+            --line-height-base: 1.7;
+            --controls-area-height: 40px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--color-bg-main);
+            color: var(--color-text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            line-height: var(--line-height-base);
+        }
+
+        /* --- 2. Core Layout & Container --- */
+        #presentation-container {
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            background: var(--color-bg-slide);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            padding-bottom: var(--controls-area-height);
+        }
+
+        .slides-viewport { flex-grow: 1; position: relative; overflow: hidden; }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 50px 60px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            transform: translateY(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            overflow-y: auto;
+            background-color: var(--color-bg-slide); /* Ensure background for slides */
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            z-index: 1;
+        }
+
+        /* --- 3. Typography --- */
+        h1, h2, h3 { font-weight: 700; line-height: 1.2; }
+        h1 { font-size: 3rem; margin-bottom: 1rem; }
+        h2 { font-size: 2.2rem; color: var(--color-text-dark); border-bottom: 3px solid var(--color-primary); padding-bottom: 0.75rem; margin-bottom: 2.2rem; font-weight: 600; }
+        h3 { font-size: 1.5rem; color: var(--color-primary); margin-bottom: 1rem; }
+        h4 { font-size: 1.25rem; font-weight: 600; color: var(--color-text-dark); margin-bottom: 0.5rem; }
+        p, li { font-size: var(--font-size-base); color: var(--color-text-light); margin-bottom: 1rem; }
+        strong { color: var(--color-primary); font-weight: 600; }
+        ul { list-style: none; padding-left: 0; }
+        li p { margin-bottom: 0.25rem; }
+
+        .font-bold {
+            font-weight: bold;
+        }
+
+        /* --- 4. UI Components --- */
+        #progress-bar { position: absolute; top: 0; left: 0; height: 4px; background-color: var(--color-primary); width: 0%; transition: width 0.4s ease; z-index: 10; }
+        .controls { position: absolute; bottom: 20px; right: 20px; display: flex; gap: 10px; z-index: 10; }
+        .btn { background-color: var(--color-primary); color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.2s ease; box-shadow: var(--shadow-md); }
+        .btn:hover:not(:disabled) { background-color: var(--color-primary-dark); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+        .btn:disabled { background-color: #9ca3af; cursor: not-allowed; transform: none; box-shadow: var(--shadow-md); }
+        #pdf-btn { background-color: var(--color-secondary); }
+        #pdf-btn:hover:not(:disabled) { background-color: #059669; }
+        #print-btn { background-color: #6366f1; }
+        #print-btn:hover:not(:disabled) { background-color: #4f46e5; }
+        #slide-counter { position: absolute; bottom: 20px; left: 20px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(5px); padding: 8px 14px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; color: var(--color-text-dark); box-shadow: var(--shadow-md); z-index: 10; }
+
+        /* --- 5. Content Modules --- */
+        .title-slide { text-align: center; align-items: center; }
+        .slide.title-slide {
+            justify-content: center;
+            align-items: center;
+        }
+        .title-slide h1 { font-size: 3.5rem; color: var(--color-text-dark); }
+        .title-slide .subtitle { font-size: 1.5rem; color: var(--color-text-light); font-weight: 400; }
+        .icon-list { list-style: none; padding: 0; margin: 1.5rem 0; }
+        .icon-bullet { display: flex; gap: 16px; background-color: var(--color-code-bg); padding: 16px; border-radius: 10px; margin-bottom: 12px; border: 1px solid var(--color-border); transition: all 0.3s ease; }
+        .icon-bullet:hover { transform: translateX(5px); box-shadow: var(--shadow-md); }
+        .icon-bullet i { font-size: 1.25rem; color: var(--color-primary); margin-top: 5px; flex-shrink: 0; width: 24px; text-align: center; }
+        .icon-bullet div { flex-grow: 1; }
+        .icon-bullet p { margin-bottom: 0.25rem; color: var(--color-text-dark); font-weight: 500; }
+        .icon-bullet .details { font-size: calc(var(--font-size-base) - 0.2rem); color: var(--color-text-light); font-weight: 400; }
+        .sub-items { margin-top: 0.5rem; margin-left: 1rem; }
+        .sub-item { font-size: calc(var(--font-size-base) - 0.1rem); color: var(--color-text-light); margin-bottom: 0.25rem; position: relative; padding-left: 1rem; }
+        .sub-item::before { content: "•"; color: var(--color-secondary); position: absolute; left: 0; }
+        .sub-items-split {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .sub-items-split .sub-item {
+            flex: 1 1 0;   
+        }
+        .two-column { display: flex; gap: 40px; align-items: flex-start; width: 100%; }
+        .column { flex: 1; }
+        .column-narrow { flex: 0.7; }
+        .column-wide { flex: 1.3; }
+        .code-block { background-color: var(--color-code-bg); color: var(--color-text-dark); padding: 1em 1.5em; border-radius: 8px; overflow-x: auto; font-family: var(--font-code); font-size: 0.95rem; line-height: 1.6; border: 1px solid var(--color-border); margin: 1.5rem 0; }
+        .code-block > code { font-size: inherit; background: transparent; padding: 0; border-radius: 0; }
+        .code-block.is-centered { display: flex; justify-content: center; align-items: center; }
+        
+        .code-comment {
+            color: #64748b; /* Darker, more legible gray */
+            font-style: normal; /* Removing italics improves readability from a distance */
+        }
+
+        .code-keyword {
+            color: #be185d; /* Strong, high-contrast pink/magenta */
+            font-weight: 600;
+        }
+
+        .code-string {
+            color: #057a55; /* Dark, rich green */
+        }
+
+        .code-attr {
+            color: #9333ea; /* Deeper, more vibrant purple */
+        }
+        
+        .img-placeholder { width: 100%; min-height: 250px; background-color: var(--color-code-bg); border: 2px dashed var(--color-border); border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--color-text-light); margin: 1.5rem 0; }
+        .img-placeholder i { font-size: 3rem; margin-bottom: 1rem; }
+        .highlight-box { background-color: #eff6ff; border-left: 4px solid var(--color-primary); padding: 20px; margin: 1.5rem 0; border-radius: 0 8px 8px 0; }
+        .quote { background: #fffbeb; border-left: 4px solid var(--color-warning); padding: 20px; margin: 1.5rem 0; border-radius: 0 8px 8px 0; font-style: italic; color: #92400e; }
+        .quote p { font-size: calc(var(--font-size-base) + 0.1rem); }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin: 2rem 0; }
+        .stat-card { background: var(--color-code-bg); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid var(--color-border); transition: all 0.3s ease; }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); }
+        .stat-number { font-size: 2.5rem; font-weight: 700; color: var(--color-primary); display: block; }
+        .stat-label { font-size: 0.9rem; color: var(--color-text-light); margin-top: 0.25rem; }
+
+        /* Mermaid diagram styling */
+        .mermaid-container {
+            background-color: var(--color-code-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+            margin: 1.5rem 0;
+            overflow: auto;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+
+        /* Table styling */
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;    /* 保持原有 */
+    margin: 1.5rem 0;            /* 保持原有 */
+
+    /* ↓↓↓ 新增/修改部分 ↓↓↓ */
+    border-radius: 8px;           /* 圆角 */
+    overflow: hidden;             /* 隐藏溢出，配合圆角 */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* 轻微阴影 */
+    font-size: 1.1rem;            /* 统一字号 */
+}
+
+/* ========== 表头 ========== */
+.comparison-table th {
+    padding: 12px 16px;           /* 保持原有 */
+    text-align: left;             /* 保持原有 */
+    border: 1px solid var(--color-border); /* 保持原有 */
+
+    /* ↓↓↓ 新增/修改部分 ↓↓↓ */
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); /* 渐变表头 */
+    color: #fff;                  /* 白色文字 */
+    text-transform: uppercase;    /* 大写 */
+    letter-spacing: 0.5px;        /* 字间距 */
+    font-weight: 600;
+}
+
+/* ========== 单元格 ========== */
+.comparison-table td {
+    padding: 12px 16px;           /* 保持原有 */
+    text-align: left;             /* 保持原有 */
+    border: 1px solid var(--color-border); /* 保持原有 */
+
+    /* ↓↓↓ 新增/修改部分 ↓↓↓ */
+    transition: background-color 0.2s ease; /* 悬停过渡 */
+}
+
+/* ========== 隔行变色 ========== */
+.comparison-table tr:nth-child(even) {
+    background-color: #f9fafb;    /* 保持原有 */
+}
+
+/* ========== 悬停高亮 ========== */
+.comparison-table tbody tr:hover td {
+    background-color: #f0f9ff;    /* 悬停高亮 */
+}
+
+        /* --- 6. Responsive & Print Styles --- */
+        @media (max-width: 768px) {
+            .slide { padding: 30px; }
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.5rem; }
+            .two-column, .stat-grid { flex-direction: column; grid-template-columns: 1fr; }
+            .controls { right: auto; left: 50%; transform: translateX(-50%); }
+            #slide-counter { display: none; }
+        }
+
+        @media print {
+            body { background: #fff !important; height: auto; overflow: visible; display: block; }
+            .controls, #progress-bar, #slide-counter { display: none !important; }
+            #presentation-container { display: block; width: 100%; height: auto; box-shadow: none; border: none; padding: 0; }
+            .slides-viewport { overflow: visible; height: auto; }
+            .slide { display: flex !important; opacity: 1 !important; visibility: visible !important; transform: none !important; position: relative; page-break-after: always; page-break-inside: avoid; width: 100%; height: auto; aspect-ratio: 16 / 9; border: 1px solid #ddd; margin-bottom: 20px; box-shadow: none; border-radius: 0; overflow: hidden; }
+            .slide:last-of-type { page-break-after: avoid; }
+            svg * {   animation-play-state: paused !important; }
+        }
+        
+        .pdf-page-container { width: 100%; height: auto; background: white; color: black; box-shadow: none; }
+        .pdf-slide { position: relative !important; opacity: 1 !important; visibility: visible !important; transform: none !important; height: auto !important; width: 100%; background: white; border: 1px solid #eeeeee; padding: 40px 50px; box-shadow: none; margin-bottom: 0; overflow: hidden; page-break-after: always; break-inside: avoid; aspect-ratio: 16 / 12; }
+        .pdf-slide:last-of-type { page-break-after: avoid; }
+    </style>
+</head>
+<body>
+    <div id="presentation-container">
+        <!-- UI Elements -->
+        <div id="progress-bar"></div>
+        <div id="slide-counter">1 / 20</div>
+
+        <!-- Slides Viewport -->
+        <div class="slides-viewport">
+            
+            <!-- Slide 1: Title Slide -->
+            <section class="slide active title-slide">
+                <h1>DDD核心概念演进：充血模型与聚合根的范式升级</h1>
+                <p class="subtitle">从行为充血到结构充血的架构哲学跃迁</p>
+            </section>
+
+            <!-- Slide 2: 问题背景 -->
+            <section class="slide">
+                <h2>1. 问题背景：DDD实践中的核心困惑</h2>
+                <h3>充血模型的"两难境地"</h3>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-thumbs-up"></i>
+                        <div>
+                            <p><strong>理论美好</strong>：对象包含数据+行为</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <div>
+                            <p><strong>现实困境</strong>：</p>
+                            <div class="sub-items">
+                                <div class="sub-item">业务逻辑放领域对象？ → 上帝类</div>
+                                <div class="sub-item">放领域服务？ → 事务脚本</div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+                
+                <div class="quote">
+                    <p>"领域服务承载业务逻辑，领域对象只做数据结构，不是更清爽吗？"</p>
+                </div>
+                
+                <div class="highlight-box">
+                    <p><strong>代价</strong>：放弃面向对象优势，退化为难以维护的事务脚本</p>
+                </div>
+            </section>
+
+            <!-- Slide 3: 问题根源 -->
+            <section class="slide">
+                <h2>2. 问题根源：混淆结构与行为</h2>
+                <h3>两个正交关注点</h3>
+                
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>结构（是什么）</th>
+                            <th>行为（怎么做）</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>系统稳定状态</td>
+                            <td>状态变化过程</td>
+                        </tr>
+                        <tr>
+                            <td>实体关联关系</td>
+                            <td>业务流程步骤</td>
+                        </tr>
+                        <tr>
+                            <td>领域概念定义</td>
+                            <td>业务目标实现</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>传统错误做法</h3>
+                <pre class="code-block"><code><span class="code-comment">// 把所有行为塞进聚合根</span>
+<span class="code-keyword">public class</span> <span class="code-attr">Order</span> {
+    <span class="code-keyword">public void</span> <span class="code-attr">placeOrder</span>() {
+        <span class="code-comment">// 校验 + 风控 + 营销 + 库存...</span>
+    }
+}</code></pre>
+            </section>
+
+            <!-- Slide 4: 范式转变 -->
+            <section class="slide">
+                <h2>3. 范式转变：从行为充血到结构充血</h2>
+                <h3>重新定义"充血"</h3>
+                
+                <div class="two-column">
+                    <div class="column">
+                        <div class="highlight-box" style="background-color: #fee2e2; border-left-color: #dc2626;">
+                            <p>❌ <strong>行为充血</strong>：塞满业务方法</p>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="highlight-box" style="background-color: #d1fae5; border-left-color: #059669;">
+                            <p>✅ <strong>结构充血</strong>：充领域语义的血</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3>结构充血的三大支柱</h3>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-1"></i>
+                        <div>
+                            <p>聚合根 = 领域语言载体</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-2"></i>
+                        <div>
+                            <p>声明式而非立即执行</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-3"></i>
+                        <div>
+                            <p>业务流程外置编排</p>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Slide 5: 聚合根作为领域语言载体 -->
+            <section class="slide">
+                <h2>4. 聚合根作为领域语言载体</h2>
+                <h3>构建领域词汇表</h3>
+                
+                <pre class="code-block"><code><span class="code-comment">// 领域自然表达</span>
+order.customer.creditLimit
+order.canBeCancelled()
+order.getItems().totalWeight()</code></pre>
+                
+                <h3>声明式设计精髓</h3>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-pen-ruler"></i>
+                        <div>
+                            <p><strong>设计时</strong>：完整定义所有关联</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-play"></i>
+                        <div>
+                            <p><strong>运行时</strong>：按需加载数据</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-gauge-high"></i>
+                        <div>
+                            <p><strong>性能保障</strong>：形式聚合 ≠ 存取时机聚合</p>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Slide 6: 重新思考聚合根的核心职责 -->
+            <section class="slide">
+                <h2>5. 重新思考聚合根的核心职责</h2>
+                <h3>传统标准答案 vs 实践真相</h3>
+                
+                <div class="two-column" style="margin-bottom:-4em">
+                    <div class="column">
+                        <h4>传统认知</h4>
+                        <div class="highlight-box">
+                            <p>维护一致性边界</p>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <h4>现实困境</h4>
+                        <ul class="icon-list">
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-circle-exclamation"></i>
+                                <div>
+                                    <p>"不变式"幻觉 → 将易变策略当作领域真理</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-weight-hanging"></i>
+                                <div>
+                                    <p>"上帝聚合"陷阱 → 行为数据过度捆绑导致臃肿</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-puzzle-piece"></i>
+                                <div>
+                                    <p>粒度误区 → 不相关规则杂糅在宏大的方法中</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-hourglass-half"></i>
+                                <div>
+                                    <p>事务边界枷锁 → 在批量处理和长流程中成为性能瓶颈</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <h3>真正的不变式</h3>
+                <div class="two-column">
+                    <div class="column">
+                        <div class="highlight-box">
+                            <p><strong>核心结构约束</strong>：价格≥0、库存≥0</p>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="highlight-box" style="background-color: #fef3c7;">
+                            <p><strong>易变业务策略</strong>：VIP额度、促销规则</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 7: 新概念模型 -->
+            <section class="slide">
+                <h2>6. 新概念模型：数据聚合与行为聚合</h2>
+                
+                <div class="mermaid-container">
+                    <div class="mermaid">
+graph TB
+    A[数据聚合] --> B[领域语言载体]
+    C[行为聚合] --> D[流程编排器]
+    E[流程步骤] --> F[单一职责单元]
+    G[Kit接口] --> H[策略抽象]
+    
+    B --> I[信息访问地图]
+    D --> J[步骤链协调]
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 8: 数据聚合 -->
+            <section class="slide">
+                <h2>7. 数据聚合：信息表达者</h2>
+                <h3>核心职责</h3>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-map"></i>
+                        <div>
+                            <p>构建统一的信息访问地图</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-database"></i>
+                        <div>
+                            <p>承载结构性数据与核心不变式</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-link"></i>
+                        <div>
+                            <p>提供关联对象加载能力</p>
+                        </div>
+                    </li>
+                </ul>
+                
+                <h3>实现特性</h3>
+                <pre class="code-block"><code><span class="code-keyword">public class</span> <span class="code-attr">OrderBO</span> {
+    <span class="code-comment">// 惰性加载关联对象</span>
+    <span class="code-keyword">public</span> CustomerBO <span class="code-attr">getCustomer</span>() {
+        <span class="code-keyword">return</span> manager.getCustomerOfOrder(<span class="code-keyword">this</span>.data, <span class="code-keyword">this</span>.cache);
+    }
+}</code></pre>
+            </section>
+
+            <!-- Slide 9: 行为聚合 -->
+            <section class="slide">
+                <h2>8. 行为聚合：流程协调者</h2>
+                <h3>核心职责</h3>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-ban"></i>
+                        <div>
+                            <p>不直接承载领域状态</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-scissors"></i>
+                        <div>
+                            <p>将大方法拆分为有序步骤链</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-puzzle-piece"></i>
+                        <div>
+                            <p>支持动态组合扩展</p>
+                        </div>
+                    </li>
+                </ul>
+                
+                <h3>编排模式</h3>
+                <div class="mermaid-container">
+                    <div class="mermaid">
+graph LR
+    A[业务流程] --> B[步骤1]
+    B --> C[步骤2]
+    C --> D[步骤3]
+    D --> E[步骤N]
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 10: 重构示例 Before -->
+            <section class="slide">
+                <h2>9. 重构示例：下单流程Before</h2>
+                <h3>典型的"上帝聚合"</h3>
+                
+                <pre class="code-block"><code><span class="code-keyword">public class</span> <span class="code-attr">Order</span> {
+    <span class="code-keyword">public void</span> <span class="code-attr">placeOrder</span>(CustomerRepository repo, 
+                          PromotionService promoSvc) {
+        <span class="code-comment">// 1. 校验状态</span>
+        <span class="code-comment">// 2. 加载关联对象</span>
+        <span class="code-comment">// 3. 检查信用</span>
+        <span class="code-comment">// 4. 应用促销</span>
+        <span class="code-comment">// 5. 检查库存</span>
+        <span class="code-comment">// 6. 修改状态</span>
+        <span class="code-comment">// 50+行混杂逻辑</span>
+    }
+}</code></pre>
+                
+                <div class="highlight-box" style="background-color: #fee2e2; border-left-color: #dc2626;">
+                    <p><strong>问题</strong>：臃肿、强依赖、难测试、违反开闭原则</p>
+                </div>
+            </section>
+
+            <!-- Slide 11: 重构示例 After -->
+            <section class="slide">
+                <h2>10. 重构示例：下单流程After</h2>
+                <h3>声明式流程定义</h3>
+                
+                <pre class="code-block"><code><span class="code-comment"># placeOrder.task.yaml</span>
+steps:
+  - name: creditValidation
+    bean: validateCreditStep
+  - name: couponApplication
+    bean: applyCouponStep
+    when: <span class="code-string">"order.customer.coupons.size() > 0"</span>
+  - name: promotionApplication
+    bean: applyPromotionStep</code></pre>
+                
+                <h3>独立步骤实现</h3>
+                <pre class="code-block"><code><span class="code-comment">@Component("validateCreditStep")</span>
+<span class="code-keyword">public class</span> <span class="code-attr">ValidateCreditStep</span> <span class="code-keyword">implements</span> <span class="code-attr">IStep</span> {
+    <span class="code-keyword">public void</span> <span class="code-attr">execute</span>(Context ctx) {
+        OrderBO order = (OrderBO) ctx.getAttribute(<span class="code-string">"order"</span>);
+        <span class="code-comment">// 单一职责：只做信用验证</span>
+    }
+}</code></pre>
+            </section>
+
+            <!-- Slide 12: 架构优势：拉取式信息流 -->
+            <section class="slide">
+                <h2>11. 架构优势：拉取式信息流</h2>
+                
+                <div class="two-column">
+                    <div class="column">
+                        <h3>传统推送模式</h3>
+                        <pre class="code-block"><code><span class="code-comment">// 需要准备专用DTO</span>
+orderService.placeOrder(orderDTO);</code></pre>
+                    </div>
+                    <div class="column">
+                        <h3>新范式拉取模式</h3>
+                        <pre class="code-block"><code><span class="code-comment">// 按需从信息空间拉取</span>
+<span class="code-keyword">if</span> (order.getCustomer().isVIP()) {
+    <span class="code-comment">// 业务逻辑</span>
+}</code></pre>
+                    </div>
+                </div>
+                
+                <h3>优势</h3>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-link-slash"></i>
+                        <div>
+                            <p>组件彻底解耦</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-wrench"></i>
+                        <div>
+                            <p>逻辑调整只需修改局部</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-language"></i>
+                        <div>
+                            <p>自然表达领域语义</p>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Slide 13: 架构优势：差量编程 -->
+            <section class="slide">
+                <h2>12. 架构优势：差量编程</h2>
+                
+                <div class="two-column">
+                    <div class="column">
+                        <h3>传统扩展方式</h3>
+                        <ul class="icon-list">
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-code-branch"></i>
+                                <div>
+                                    <p>继承、组合</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-file-pen"></i>
+                                <div>
+                                    <p>需要修改源码</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-handshake-slash"></i>
+                                <div>
+                                    <p>侵入性强</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="column">
+                        <h3>差量编程机制</h3>
+                        <div class="mermaid-container">
+                            <div class="mermaid">
+graph TB
+    A[基础模型] --> B[差量层1]
+    B --> C[差量层2]
+    C --> D[最终逻辑]
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="highlight-box">
+                    <p><strong>价值</strong>：非侵入式扩展，支持多租户深度定制</p>
+                </div>
+            </section>
+
+            <!-- Slide 14: CQRS架构下的聚合根 -->
+            <section class="slide">
+                <h2>13. CQRS架构下的聚合根</h2>
+                <h3>命令端 vs 查询端</h3>
+                
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>命令端</th>
+                            <th>查询端</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>写操作处理</td>
+                            <td>读操作处理</td>
+                        </tr>
+                        <tr>
+                            <td>业务规则维护</td>
+                            <td>高效数据返回</td>
+                        </tr>
+                        <tr>
+                            <td>行为聚合+数据聚合</td>
+                            <td>优化数据聚合</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>统一语义，差异实现</h3>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-pen"></i>
+                        <div>
+                            <p><strong>命令端</strong>：流程编排修改数据聚合状态</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-eye"></i>
+                        <div>
+                            <p><strong>查询端</strong>：数据聚合提供领域语义表达</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-gauge-high"></i>
+                        <div>
+                            <p><strong>价值</strong>：保持代码纯净，解决性能瓶颈</p>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Slide 15: 工程实践：迁移路径 -->
+            <section class="slide">
+                <h2>14. 工程实践：迁移路径</h2>
+                <h3>渐进式迁移步骤</h3>
+                
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-1"></i>
+                        <div>
+                            <p><strong>分类</strong>：区分结构不变式 vs 策略/流程逻辑</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-2"></i>
+                        <div>
+                            <p><strong>提取</strong>：策略代码到Kit接口</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-3"></i>
+                        <div>
+                            <p><strong>切分</strong>：大方法拆分为Step</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-4"></i>
+                        <div>
+                            <p><strong>配置化</strong>：创建流程定义</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-5"></i>
+                        <div>
+                            <p><strong>替换</strong>：引入框架统一调用入口</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-6"></i>
+                        <div>
+                            <p><strong>扩展</strong>：差量编程定制</p>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Slide 16: 工程实践：陷阱规避 -->
+            <section class="slide">
+                <h2>15. 工程实践：陷阱规避</h2>
+                <h3>常见问题与解决方案</h3>
+                
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>陷阱</th>
+                            <th>解决方案</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>过度拆分步骤</td>
+                            <td>保持清晰的领域可命名性</td>
+                        </tr>
+                        <tr>
+                            <td>上帝Kit接口</td>
+                            <td>按能力域拆分</td>
+                        </tr>
+                        <tr>
+                            <td>重试不幂等</td>
+                            <td>将变化输入捕获到Context</td>
+                        </tr>
+                        <tr>
+                            <td>性能退化</td>
+                            <td>批加载器解决N+1查询</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Slide 17: 事务与并发策略 -->
+            <section class="slide">
+                <h2>16. 事务与并发策略</h2>
+                
+                <div class="two-column">
+                    <div class="column">
+                        <h3>灵活的事务管理</h3>
+                        <ul class="icon-list">
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-link-slash"></i>
+                                <div>
+                                    <p>事务边界与聚合根解耦</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-flag-checkered"></i>
+                                <div>
+                                    <p>流程末尾统一提交</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-layer-group"></i>
+                                <div>
+                                    <p>支持微批处理（每N个聚合提交一次）</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="column">
+                        <h3>并发控制</h3>
+                        <ul class="icon-list">
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-lock-open"></i>
+                                <div>
+                                    <p>乐观锁：版本号检查</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-rotate"></i>
+                                <div>
+                                    <p>冲突处理：安全重放流程</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 18: 一致性分层管理 -->
+            <section class="slide">
+                <h2>17. 一致性分层管理</h2>
+                
+                <div class="mermaid-container">
+                    <div class="mermaid">
+graph TB
+    A[微服务边界] --> B[Saga/领域事件]
+    C[行为聚合] --> D[步骤序列+统一提交]
+    E[数据聚合] --> F[核心结构约束]
+    G[流程步骤] --> H[单一不变式]
+                    </div>
+                </div>
+                
+                <h3>各层职责明确</h3>
+                <div class="two-column">
+                    <div class="column">
+                        <div class="highlight-box">
+                            <p>只有核心结构约束需要强一致性</p>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="highlight-box" style="background-color: #fef3c7;">
+                            <p>业务策略正确性通过流程保证</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 19: 两种范式根本差异 -->
+            <section class="slide">
+                <h2>18. 两种范式根本差异</h2>
+                
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>对比维度</th>
+                            <th>传统DDD</th>
+                            <th>新范式</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>理论基础</td>
+                            <td>面向对象</td>
+                            <td>可逆计算</td>
+                        </tr>
+                        <tr>
+                            <td>核心职责</td>
+                            <td>一致性守护</td>
+                            <td>语言载体</td>
+                        </tr>
+                        <tr>
+                            <td>数据行为</td>
+                            <td>必须合一</td>
+                            <td>结构vs动力学分离</td>
+                        </tr>
+                        <tr>
+                            <td>扩展机制</td>
+                            <td>侵入式</td>
+                            <td>差量编程</td>
+                        </tr>
+                        <tr>
+                            <td>事务边界</td>
+                            <td>与聚合根强绑定</td>
+                            <td>声明式定义</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Slide 20: 总结：架构哲学跃迁 -->
+            <section class="slide">
+                <h2>19. 总结：架构哲学跃迁</h2>
+                
+                <h3>核心理念转变</h3>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <div>
+                            <p><strong>充血模型</strong>：结构充血 > 行为充血</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-language"></i>
+                        <div>
+                            <p><strong>聚合根</strong>：语言载体 > 事务囚徒</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-diagram-project"></i>
+                        <div>
+                            <p><strong>架构设计</strong>：信息空间 + 流程编排 > 对象网络</p>
+                        </div>
+                    </li>
+                </ul>
+                
+                <div class="quote">
+                    <p>构建与业务同频演化的软件系统</p>
+                </div>
+            </section>
+
+            <!-- Slide 21: Q&A -->
+            <section class="slide title-slide">
+                <h1>20. Q&A与讨论</h1>
+                <p class="subtitle">感谢聆听！</p>
+                <div style="margin-top: 2rem; font-size: 1.1rem; color: var(--color-text-light);">
+                    <i class="fa-solid fa-comments" style="margin-right: 10px;"></i> 欢迎提问与交流
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn" id="home-btn" title="First Slide"><i class="fa-solid fa-home"></i></button>
+            <button class="btn" id="prev-btn" title="Previous"><i class="fa-solid fa-arrow-left"></i></button>
+            <button class="btn" id="next-btn" title="Next"><i class="fa-solid fa-arrow-right"></i></button>
+            <button class="btn" id="fullscreen-btn" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+            <button class="btn" id="print-btn" title="Print"><i class="fa-solid fa-print"></i></button>
+            <button class="btn" id="pdf-btn" title="Export to PDF"><i class="fa-solid fa-file-pdf"></i></button>
+        </div>
+    </div>
+
+    <script>
+    // Mermaid图表配置和初始化
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'default',
+        securityLevel: 'loose',
+        fontFamily: 'var(--font-main)',
+        flowchart: {
+            useMaxWidth: false,
+            htmlLabels: true,
+            curve: 'basis'
+        }
+    });
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('presentation-container');
+        const allSlides = document.querySelectorAll('.slide');
+        const homeBtn = document.getElementById('home-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const printBtn = document.getElementById('print-btn');
+        const pdfBtn = document.getElementById('pdf-btn');
+        const slideCounter = document.getElementById('slide-counter');
+        const progressBar = document.getElementById('progress-bar');
+        
+        let currentSlide = 0;
+        const totalSlides = allSlides.length;
+
+        function showSlide(index, skipHashUpdate = false) {
+            if (index < 0 || index >= totalSlides) return;
+            allSlides.forEach((slide, i) => slide.classList.toggle('active', i === index));
+            currentSlide = index;
+            updateControls();
+            if (!skipHashUpdate) {
+                updateHash(index);
+            }
+        }
+        
+        function updateControls() {
+            slideCounter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+            progressBar.style.width = `${((currentSlide + 1) / totalSlides) * 100}%`;
+            prevBtn.disabled = currentSlide === 0;
+            nextBtn.disabled = currentSlide === totalSlides - 1;
+        }
+        
+        function nextSlide() { showSlide(currentSlide + 1); }
+        function prevSlide() { showSlide(currentSlide - 1); }
+        function goToFirstSlide() { showSlide(0); }
+        
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => alert(`Cannot enter fullscreen mode: ${err.message}`));
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        
+        function updateHash(index) {
+            const hash = `#slide-${index + 1}`;
+            if (location.hash !== hash) {
+                history.pushState(null, null, hash);
+            }
+        }
+        
+        function parseHashToIndex() {
+            const h = location.hash;
+            const m = h.match(/slide-(\d+)/i);
+            if (m) {
+                const idx = parseInt(m[1], 10) - 1;
+                if (!isNaN(idx) && idx >= 0 && idx < totalSlides) {
+                    return idx;
+                }
+            }
+            return null;
+        }
+
+        function printPresentation() {
+            window.print();
+        }
+
+        async function prepareForPdf() {
+            const pdfContainer = document.createElement('div');
+            pdfContainer.className = 'pdf-page-container';
+            allSlides.forEach(slide => {
+                const clone = slide.cloneNode(true);
+                clone.classList.remove('active');
+                clone.classList.add('pdf-slide');
+                pdfContainer.appendChild(clone);
+            });
+            document.body.appendChild(pdfContainer);
+            return pdfContainer;
+        }
+        
+        function exportToPDF() {
+            console.log('Starting PDF export...');
+            const originalButtonContent = pdfBtn.innerHTML;
+            pdfBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+            pdfBtn.disabled = true;
+            
+            prepareForPdf().then(pdfContainer => {
+                const options = {
+                    margin: 0,
+                    filename: 'DDD核心概念演进-充血模型与聚合根的范式升级.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, allowTaint:true, letterRendering: true },
+                    jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+                    pagebreak: { mode: ['css'] }
+                };
+
+                html2pdf().set(options).from(pdfContainer).save().then(() => {
+                    console.log('PDF export successful!');
+                    document.body.removeChild(pdfContainer);
+                    pdfBtn.innerHTML = originalButtonContent;
+                    pdfBtn.disabled = false;
+                }).catch(err => {
+                    console.error('PDF export failed:', err);
+                    document.body.removeChild(pdfContainer);
+                    pdfBtn.innerHTML = originalButtonContent;
+                    pdfBtn.disabled = false;
+                    alert('PDF export failed. Check the console for details.');
+                });
+            });
+        }
+
+        homeBtn.addEventListener('click', goToFirstSlide);
+        nextBtn.addEventListener('click', nextSlide);
+        prevBtn.addEventListener('click', prevSlide);
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+        printBtn.addEventListener('click', printPresentation);
+        pdfBtn.addEventListener('click', exportToPDF);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); nextSlide(); }
+            if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prevSlide(); }
+            if (e.key === 'Home') { e.preventDefault(); goToFirstSlide(); }
+            if (e.key === 'End') { e.preventDefault(); showSlide(totalSlides - 1); }
+        });
+
+        let touchStartX = 0;
+        container.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+        container.addEventListener('touchend', e => {
+            const touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 50) nextSlide();
+            if (touchEndX - touchStartX > 50) prevSlide();
+        });
+
+        window.addEventListener('popstate', () => {
+            const idx = parseHashToIndex();
+            if (idx !== null && idx !== currentSlide) {
+                showSlide(idx, true);
+            }
+        });
+
+        const initialIndexFromHash = parseHashToIndex();
+        if (initialIndexFromHash !== null) {
+            showSlide(initialIndexFromHash, true);
+        } else {
+            showSlide(0);
+        }
+    });
+    </script>
+</body>
+</html>
