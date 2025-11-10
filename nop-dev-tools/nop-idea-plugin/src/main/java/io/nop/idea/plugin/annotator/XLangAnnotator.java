@@ -44,8 +44,11 @@ import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import io.nop.xlang.xpl.utils.XplParseHelper;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class XLangAnnotator implements Annotator {
+    static final Logger LOG = LoggerFactory.getLogger(XLangAnnotator.class);
 
     /**
      * 注意事项：
@@ -79,6 +82,7 @@ public class XLangAnnotator implements Annotator {
                 doAnnotate(holder, element);
             } catch (Exception e) {
                 String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getName();
+                LOG.debug("nop.validate-xlang-fail", e);
 
                 holder.newAnnotation(HighlightSeverity.WARNING, msg)
                       .highlightType(ProblemHighlightType.WARNING)

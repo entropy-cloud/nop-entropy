@@ -172,12 +172,17 @@ public class XmlPsiHelper {
             return null;
         }
 
-        String path = ProjectFileHelper.getNopVfsPath(vf);
-
         Document document = psiFile.getViewProvider().getDocument();
         assert document != null;
+
         int sourceLine = document.getLineNumber(offset);
         int sourceColumn = offset - document.getLineStartOffset(sourceLine);
+
+        String path = ProjectFileHelper.getNopVfsPath(vf);
+        // Note: 可能为非标准 vfs 资源，比如在 precompile/precompile2 中的 xpl 脚本
+        if (path == null) {
+            path = vf.getPath();
+        }
         return SourceLocation.fromLine(path, sourceLine, sourceColumn, len);
     }
 
