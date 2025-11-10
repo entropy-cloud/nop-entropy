@@ -1,22 +1,20 @@
 package io.nop.markdown.dsl;
 
-import io.nop.api.core.exceptions.NopException;
+import io.nop.core.context.IEvalContext;
+import io.nop.core.resource.tpl.ITextTemplateOutput;
 
 import java.io.IOException;
+import java.io.Writer;
 
-public class MarkdownObjectGenerator {
+public class MarkdownObjectGenerator implements ITextTemplateOutput {
+    private final Object obj;
 
-    public String generateText() {
-        StringBuilder sb = new StringBuilder();
-        try {
-            generate(sb);
-        } catch (IOException e) {
-            throw NopException.adapt(e);
-        }
-        return sb.toString();
+    public MarkdownObjectGenerator(Object obj) {
+        this.obj = obj;
     }
 
-    public void generate(Appendable out) throws IOException {
+    @Override
+    public void generateToWriter(Writer out, IEvalContext context) throws IOException {
 
     }
 }

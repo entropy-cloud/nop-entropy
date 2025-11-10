@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ITextSerializable;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.lang.ITagSetSupport;
 import io.nop.commons.text.SourceCodeBlock;
@@ -45,6 +46,7 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport, ITe
     private String title;
     private String linkUrl;
 
+    private SourceLocation contentLocation;
     private String text;
     private String summary;
 
@@ -88,6 +90,14 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport, ITe
                 return 1;
             return StringHelper.compareVersions(sectionNoA, sectionNoB);
         }
+    }
+
+    public SourceLocation getContentLocation() {
+        return contentLocation;
+    }
+
+    public void setContentLocation(SourceLocation contentLocation) {
+        this.contentLocation = contentLocation;
     }
 
     @Override
@@ -724,6 +734,14 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport, ITe
     public void setTitle(String title) {
         checkAllowChange();
         this.title = title;
+    }
+
+    public String getContent() {
+        return getText();
+    }
+
+    public void setContent(String content) {
+        setText(content);
     }
 
     public String getText() {

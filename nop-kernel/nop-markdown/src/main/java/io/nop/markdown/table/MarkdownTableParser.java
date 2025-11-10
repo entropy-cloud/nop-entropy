@@ -21,6 +21,7 @@ public class MarkdownTableParser {
 
     public static BaseTable parseTable(TextScanner sc) {
         BaseTable table = new BaseTable();
+        table.setLocation(sc.location());
 
         // Parse header row
         BaseRow headerRow = parseRow(sc);
@@ -44,6 +45,7 @@ public class MarkdownTableParser {
 
     private static BaseRow parseRow(TextScanner sc) {
         BaseRow row = new BaseRow();
+        row.setLocation(sc.location());
         sc.skipBlank();
 
         // Must start with |
@@ -52,17 +54,18 @@ public class MarkdownTableParser {
         while (true) {
             sc.skipBlankInLine();
 
+            SourceLocation loc = sc.location();
             // Parse cell content using the new helper method
             String cellText = parseMarkdownCellContent(sc);
 
             BaseCell cell = new BaseCell();
+            cell.setLocation(loc);
             cell.setValue(cellText);
 
             // Check for end of cell/row
             if (sc.cur == '|') {
                 sc.next();
                 row.internalAddCell(cell);
-                continue;
             } else if (sc.cur == '\n' || sc.cur == '\r' || sc.isEnd()) {
                 sc.skipBlank();
                 if (!cellText.isEmpty()) {

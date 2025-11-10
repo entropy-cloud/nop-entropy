@@ -119,8 +119,10 @@ public class MarkdownDocumentParser extends AbstractResourceParser<MarkdownDocum
         }
 
 
+        SourceLocation textLoc = sc.location();
         String text = sc.nextUntil('\n', '#', true).toString();
         section.setText(text);
+        section.setContentLocation(textLoc);
         section.setEndPos(sc.pos);
         if (!sc.isEnd())
             sc.next();

@@ -1,6 +1,7 @@
 package io.nop.markdown.dsl;
 
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.json.JObject;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.parse.AbstractResourceParser;
 import io.nop.core.resource.component.parse.ITextResourceParser;
@@ -10,16 +11,9 @@ import io.nop.markdown.simple.MarkdownDocumentParser;
 
 public class MarkdownObjectParser extends AbstractResourceParser<Object>
         implements ITextResourceParser<Object> {
-    
-    private boolean keepLoc = true;
 
     public MarkdownObjectParser() {
 
-    }
-
-    public MarkdownObjectParser keepLoc(boolean b) {
-        this.keepLoc = b;
-        return this;
     }
 
     @Override
@@ -38,12 +32,16 @@ public class MarkdownObjectParser extends AbstractResourceParser<Object>
         return parseObjectFromSection(doc.getRootSection());
     }
 
-    public Object parseObjectFromSection(MarkdownSection section) {
+    public JObject parseObjectFromSection(MarkdownSection section) {
         // # [title](name)
         //   - name: value
         //   - name
         // ## 1. [displayName](name)
         // ## 2.
         return null;
+    }
+
+    void parseObjectSection(MarkdownSection section, JObject obj) {
+
     }
 }

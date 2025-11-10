@@ -126,4 +126,16 @@ public class MarkdownHelper {
 
         return sb.toString();
     }
+
+    public static boolean containsCodeBlock(String text) {
+        return text.contains("\n```");
+    }
+
+    public static boolean containsTable(String text) {
+        return findTable(text) >= 0;
+    }
+
+    public static int findTable(String text) {
+        return MarkdownTableHelper.findTable(text);
+    }
 }
