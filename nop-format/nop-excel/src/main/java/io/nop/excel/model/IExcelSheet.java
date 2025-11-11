@@ -14,6 +14,8 @@ import java.util.List;
 public interface IExcelSheet {
     String getName();
 
+    void setName(String name);
+
     XptSheetModel getModel();
 
     ExcelPageSetup getPageSetup();

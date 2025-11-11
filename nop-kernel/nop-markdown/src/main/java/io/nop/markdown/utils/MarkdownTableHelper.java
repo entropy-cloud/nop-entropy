@@ -1,9 +1,21 @@
 package io.nop.markdown.utils;
 
+import io.nop.api.core.util.SourceLocation;
+import io.nop.core.model.table.IRowView;
+import io.nop.core.model.table.impl.BaseTable;
+import io.nop.markdown.table.MarkdownTableParser;
+
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import static io.nop.commons.util.StringHelper.escapeMarkdown;
+
 class MarkdownTableHelper {
 
     /**
      * 查找第一个GFM表格的开始位置
+     *
      * @return 表格开始的字符位置，如果没找到返回-1
      */
     public static int findTable(String text) {
@@ -65,9 +77,13 @@ class MarkdownTableHelper {
         for (int j = start; j < end; j++) {
             char c = text.charAt(j);
             switch (c) {
-                case '|': case ' ': case '\t': case ':':
+                case '|':
+                case ' ':
+                case '\t':
+                case ':':
                     break;
-                case '-': case '=':
+                case '-':
+                case '=':
                     hasDash = true;
                     break;
                 default:
@@ -75,5 +91,32 @@ class MarkdownTableHelper {
             }
         }
         return hasDash;
+    }
+
+    public static String buildMappingTable(Collection<String> list, String sourceField, String targetField) {
+        StringBuilder sb = new StringBuilder();
+        sb.append('|').append(escapeMarkdown(sourceField)).append('|').append(escapeMarkdown(targetField)).append('|');
+        sb.append("\n|-----|-----|\n");
+        for (String item : list) {
+            sb.append("\n|").append(escapeMarkdown(item)).append("| |\n");
+        }
+        return sb.toString();
+    }
+
+    public static Map<String, String> parseMappingTable(SourceLocation loc, String text) {
+        BaseTable table = MarkdownTableParser.parseTable(loc, text);
+        Map<String, String> map = new LinkedHashMap<>();
+        String sourceField = table.getCellText(0, 0);
+        String targetField = table.getCellText(0, 1);
+
+        for (int i = 1, n = table.getRowCount(); i < n; i++) {
+            IRowView row = table.getRow(i);
+            String source = row.getCellText(0);
+            String target = row.getCellText(1);
+            map.put(sourceField, source);
+            map.put(targetField, target);
+        }
+
+        return map;
     }
 }

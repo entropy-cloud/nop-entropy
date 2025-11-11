@@ -8,7 +8,7 @@ import java.nio.file.FileVisitResult;
 
 public class FixTranslateDir {
     public static void main(String[] args) {
-        cleanup();
+       // cleanup();
 
         File srcDir = new File("c:/tmp/nop-tmp/translate");
         File targetDir = new File("c:/tmp/nop-tmp/output-translate1");
@@ -25,6 +25,9 @@ public class FixTranslateDir {
             }
             return FileVisitResult.CONTINUE;
         });
+
+        if(true)
+            return;
 
         FileHelper.walk(targetDir, file -> {
             if (file.isDirectory())

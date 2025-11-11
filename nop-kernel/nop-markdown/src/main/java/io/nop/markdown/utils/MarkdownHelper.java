@@ -1,12 +1,15 @@
 package io.nop.markdown.utils;
 
 import io.nop.api.core.beans.IntRangeBean;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class MarkdownHelper {
@@ -36,10 +39,6 @@ public class MarkdownHelper {
     }
 
     public static List<IntRangeBean> findImagePositions(String text) {
-        return findLinkPositions(text);
-    }
-
-    public static List<IntRangeBean> findLinkPositions(String text) {
         List<IntRangeBean> result = new ArrayList<>();
         int len = text.length();
         int i = 0;
@@ -57,6 +56,47 @@ public class MarkdownHelper {
             }
             i++;
         }
+        return result;
+    }
+
+    /**
+     * 查找链接位置
+     *
+     * @param text         文本内容
+     * @param includeImage 是否包含图片链接
+     * @return 链接位置列表
+     */
+    public static List<IntRangeBean> findLinkPositions(String text, boolean includeImage) {
+        List<IntRangeBean> result = new ArrayList<>();
+        int len = text.length();
+        int i = 0;
+
+        while (i < len) {
+            if (text.charAt(i) == '[') {
+                // 检查是否是图片链接（前面有!）
+                boolean isImage = (i > 0 && text.charAt(i - 1) == '!');
+
+                // 如果是图片链接但不包含图片，跳过
+                if (isImage && !includeImage) {
+                    i++;
+                    continue;
+                }
+
+                int altEnd = findCharNoNewline(text, i + 1, len, ']');
+                if (altEnd != -1 && altEnd + 1 < len && text.charAt(altEnd + 1) == '(') {
+                    int urlEnd = findCharNoNewline(text, altEnd + 2, len, ')');
+                    if (urlEnd != -1) {
+                        // 如果是图片链接，范围从 ! 开始；否则从 [ 开始
+                        int begin = isImage ? i - 1 : i;
+                        result.add(IntRangeBean.build(begin, urlEnd + 1));
+                        i = urlEnd + 1;
+                        continue;
+                    }
+                }
+            }
+            i++;
+        }
+
         return result;
     }
 
@@ -83,7 +123,7 @@ public class MarkdownHelper {
 
         // 如果范围个数与infos不匹配，抛出异常或处理
         if (imagePosList.size() != infos.size()) {
-            throw new IllegalArgumentException("范围数和总结信息数必须相等");
+            throw new IllegalArgumentException("posList and infos size must match");
         }
 
         // 先排序范围，确保按照开始位置
@@ -127,6 +167,69 @@ public class MarkdownHelper {
         return sb.toString();
     }
 
+    /**
+     * linkPosList确定text内的一个区间范围，其中对应于链接。
+     * 将这些位置的linkUrl替换为newUrls中对应的值
+     */
+    public static String changeLinkUrl(String text, List<IntRangeBean> linkPosList,
+                                       List<String> newUrls) {
+        if (text == null || linkPosList == null || newUrls == null) {
+            return text;
+        }
+
+        // 如果范围个数与newUrls不匹配，抛出异常或处理
+        if (linkPosList.size() != newUrls.size()) {
+            throw new IllegalArgumentException("posList and newUrls size must match");
+        }
+
+        // 先排序范围，确保按照开始位置
+        Collections.sort(linkPosList, Comparator.comparingInt(IntRangeBean::getBegin));
+
+        StringBuilder sb = new StringBuilder();
+
+        int currentIndex = 0; // 当前处理文本的位置
+
+        for (int i = 0; i < linkPosList.size(); i++) {
+            IntRangeBean range = linkPosList.get(i);
+            String newUrl = newUrls.get(i);
+
+            // 让范围合法
+            int begin = Math.max(0, range.getBegin());
+            int end = Math.min(text.length(), range.getEnd());
+
+            // 复制中间未处理部分
+            if (currentIndex < begin) {
+                sb.append(text, currentIndex, begin);
+            }
+
+            // 处理链接部分，替换URL
+            String linkText = text.substring(begin, end);
+            int urlStartPos = linkText.indexOf("](");
+            int urlEndPos = linkText.lastIndexOf(')');
+
+            if (urlStartPos != -1 && urlEndPos != -1) {
+                // 保留 ![alt]( 或 [text]( 部分
+                sb.append(linkText, 0, urlStartPos + 2);
+                // 插入新URL
+                sb.append(newUrl);
+                // 保留 ) 部分
+                sb.append(linkText.substring(urlEndPos));
+            } else {
+                // 如果格式不对，保持原样
+                sb.append(linkText);
+            }
+
+            currentIndex = end;
+        }
+
+        // 复制剩余部分
+        if (currentIndex < text.length()) {
+            sb.append(text.substring(currentIndex));
+        }
+
+        return sb.toString();
+    }
+
     public static boolean containsCodeBlock(String text) {
         return text.contains("\n```");
     }
@@ -137,5 +240,13 @@ public class MarkdownHelper {
 
     public static int findTable(String text) {
         return MarkdownTableHelper.findTable(text);
+    }
+
+    public static String buildMappingTable(Collection<String> list, String sourceField, String targetField) {
+        return MarkdownTableHelper.buildMappingTable(list, sourceField, targetField);
+    }
+
+    public static Map<String, String> parseMappingTable(SourceLocation loc, String text) {
+        return MarkdownTableHelper.parseMappingTable(loc, text);
     }
 }
