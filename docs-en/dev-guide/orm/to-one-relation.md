@@ -41,7 +41,7 @@ Just add the corresponding tags in the Excel data model.
 
 If you do not wish to expose all properties on the associated object, you can specify them individually.
 
-See the configuration in [NopAuthOpLog.xmeta](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/main/resources/_vfs/nop/auth/model/NopAuthOpLog/NopAuthOpLog.xmeta).
+See the configuration in [NopAuthOpLog.xmeta](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-meta/src/main/resources/_vfs/nop/auth/model/NopAuthOpLog/NopAuthOpLog.xmeta).
 
 ```xml
 

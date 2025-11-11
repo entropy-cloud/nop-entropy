@@ -20,7 +20,7 @@ let chenfenList = [
 ] 
 ```
 
-[View Report Template](https://gitee.com/canonical-entropy/nop-entropy/raw/master/nop-report/nop-report-demo/src/main/resources/_vfs/nop/report/demo/base/08-%E5%8A%A8%E6%80%81%E5%B1%95%E5%BC%80%E5%88%97.xpt.xlsx)
+[View Report Template](https://gitee.com/canonical-entropy/nop-entropy/blob/master)
 
 The basic approach is:
 
@@ -57,7 +57,7 @@ The basic approach is:
 ![](dynamic-col/cell-value.png)
 
 \*`valueExpr=(_.findWhere(cell.rp.ev.chenfen,"name",cell.cp.ev.value)?.weight || 0) + 'g'`
-This indicates using the findWhere function on the [Underscore](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/lang/utils/Underscore.java) class to find the object in the chenfen list whose name equals the specified value, and then display its weight property.
+This indicates using the findWhere function on the [Underscore](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/lang/utils/Underscore.java) class to find the object in the chenfen list whose name equals the specified value, and then display its weight property.
 In report expressions, you can use all built-in functions and objects of the XLang language, and you can define local functions in the [Before Expand] section.
 
 <!-- SOURCE_MD5:ade6f31e1375ed6e43b5c254679fa3aa-->

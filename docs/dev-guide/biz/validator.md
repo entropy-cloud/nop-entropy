@@ -12,7 +12,7 @@
 模型文件中定义验证逻辑。validator内部可以分为多个check步骤，
 每个步骤对应一个判断条件，条件不匹配的时候将抛出对应的异常码和异常消息。
 
-具体判断条件的格式由元模型[filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef)
+具体判断条件的格式由元模型[filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef)
 规定。
 在其中可以写and/or/not等嵌套条件，可以通过eq/gt/ge等实现比较判断。name属性对应于上下文环境中的变量以及变量上的属性。
 
@@ -46,7 +46,7 @@ Nop平台中的后台服务函数不一定在Java类中实现。在进行无代�
 
 比如[Demo.xbiz](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-quarkus-demo/src/main/resources/_vfs/nop/demo/model/Demo/Demo.xbiz)
 模型中定义的
-testValidator2和testValidator3函数，它们的作用和[DemoBizModel](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-quarkus-demo/src/main/java/io/nop/demo/biz/DemoBizModel.java)
+testValidator2和testValidator3函数，它们的作用和[DemoBizModel](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-spring-simple-demo/src/main/java/io/nop/demo/biz/DemoBizModel.java)
 类中定义的testValidator函数的作用完全等价。
 
 testValidator3函数通过`biz:RunValidator`标签函数来装载外部的validator模型文件，并执行验证逻辑。这样做的好处是未来可以通过Delta定制机制来修改验证逻辑，而不用修改Demo.xbiz文件。
@@ -108,7 +108,7 @@ Demo.xbiz文件中的testValidator2函数演示了另外一种执行Validator验
 
 ## 模型注册
 
-通过[register-model.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/resources/_vfs/nop/core/registry/validator.register-model.xml)
+通过[register-model.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/resources/_vfs/nop/core/registry/validator.register-model.xml)
 可以将自定义模型的加载器注册到Nop平台中，这样通过统一的ResourceComponentManager.loadComponentModel函数就可以加载平台中注册的所有种类的模型。
 
 ```xml

@@ -97,7 +97,7 @@ codeGenerator.withTplDir('/nop/templates/orm-web').execute("/",{ moduleId: "nop/
 
 ### 表格基本配置
 
-具体配置选项可以参见 [grid.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/grid.xdef)元模型定义。
+具体配置选项可以参见 [grid.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/grid.xdef)元模型定义。
 
 #### 1. 控制列表显示哪些字段，以及字段的顺序
 
@@ -125,7 +125,7 @@ codeGenerator.withTplDir('/nop/templates/orm-web').execute("/",{ moduleId: "nop/
 
 #### 3. 指定显式控件
 
-缺省情况下表格字段的显式控件是根据字段类型和表格上指定的`editMode`来确定，具体使用的控件在[control.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-web/src/main/resources/_vfs/nop/web/xlib/control.xlib)中定义。
+缺省情况下表格字段的显式控件是根据字段类型和表格上指定的`editMode`来确定，具体使用的控件在[control.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/control.xlib)中定义。
 
 如果需要特殊指定显示控件，可以使用`gen-control`配置
 
@@ -145,7 +145,7 @@ codeGenerator.withTplDir('/nop/templates/orm-web').execute("/",{ moduleId: "nop/
 
 表单布局使用的DSL参见[layout.md](layout.md)。
 
-表单的配置选项可以参见 [form.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/form.xdef)元模型定义。
+表单的配置选项可以参见 [form.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/form.xdef)元模型定义。
 
 ## 常见功能配置
 
@@ -248,7 +248,7 @@ url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildre
 
 ### 7. 点击按钮，弹出一个对话框，填写完毕后执行后台操作，关闭对话框，并刷新原页面
 
-参见[LitemallGoods.view.xml](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/LitemallGoods.view.xml)
+参见[LitemallGoods.view.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master)
 
 ```xml
 <crud name="role-users" grid="simple-list">

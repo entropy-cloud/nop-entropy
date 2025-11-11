@@ -1,6 +1,6 @@
 # 基本使用方式
 
-QueryBean提供了复杂查询条件封装，它所支持的查询操作符可以参考[filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef)
+QueryBean提供了复杂查询条件封装，它所支持的查询操作符可以参考[filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef)
 元模型中的定义。
 
 ## 1. 复杂查询条件
@@ -80,7 +80,7 @@ select distinct o.book from BookAuthor o where o.author.name like '张%'
 ## 5. 在sql-lib等标签库中的查询条件
 
 Nop平台非常强调同一种模型信息存在多种表达形式，并且这些形式之间可以自由的转换。作为一个典型用例，Filter提供了一种标准的复杂判断条件表达形式。
-它的信息结构由[filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef)
+它的信息结构由[filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef)
 元模型来定义。
 
 1. 在Java中我们可以通过FilterBeans类上的and/or/eq/gt等帮助函数来构建TreeBean对象。

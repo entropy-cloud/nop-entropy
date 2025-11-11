@@ -42,13 +42,13 @@ NopOrm的第二个重要的设计决策是：**放弃POJO的假定**。POJO(Plai
 
 NopOrm中所有实体类都要求实现IOrmEntity接口，并提供了一个缺省实现OrmEntity
 
-[IOrmEntity](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/IOrmEntity.java)
+[IOrmEntity](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/IOrmEntity.java)
 
 每一个column模型都具有一个唯一的propId属性，通过IOrmEntity.orm\_propValue(int propId)方法可以代替反射机制来存取属性数据。
 
 所有集合属性都是OrmEntitySet类型，它实现了IOrmEntitySet接口。代码生成时实体的集合属性只会生成get方法，并不会生成set方法，从而杜绝了误用的可能。
 
-[IOrmEntitySet](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/IOrmEntitySet.java)
+[IOrmEntitySet](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/IOrmEntitySet.java)
 
 自动生成代码时对每个实体会生成两个Java类，例如SimsExam和\_SimsExam，\_SimsExam类每次都会被自动覆盖，而SimsExam类如果已经存在则会保持原有内容，因此手工调整的代码可以写在SimsExam类中。参见
 
@@ -124,7 +124,7 @@ NopOrm继承了Hibernate和Spring框架中一些非常优秀的设计：
 
 9. **组件逻辑复用**：一组相关的字段可能组成一个可以复用的组件，通过OrmComponent机制可以对这些逻辑进行复用。例如，数据库中的Decimal类型精度必须事先指定，但是客户要求必须按照输入时指定的精度来进行显示和计算，这要求我们在记录表中增加一个VALUE\_SCALE字段来保留精度信息，但是当我们从数据库中取出值的时候我们又希望直接得到一个scale已经被设置为指定值的BigDecimal。NopOrm提供了一个FloatingScaleDecimal组件来完成这件工作。对于附件、附件列表等具有复杂关联逻辑的字段可以采用类似的方式进行封装。
 
-   [FloatingScaleDecimal](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/support/FloatingScaleDecimal.java)
+   [FloatingScaleDecimal](https://gitee.com/canonical-entropy/nop-entropy/blob/master)
 
 与外围框架相结合，Nop平台还内置了更多常用的解决方案。比如
 
@@ -185,11 +185,11 @@ class Context{
 
 NopOrm通过Dialect模型来封装不同数据库之间的差异。
 
-[default dialect](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-dao/src/main/resources/_vfs/nop/dao/dialect/default.dialect.xml)
+[default dialect](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/default.dialect.xml)
 
-[mysql dialect](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-dao/src/main/resources/_vfs/nop/dao/dialect/mysql.dialect.xml)
+[mysql dialect](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/mysql.dialect.xml)
 
-[postgresql dialect](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-dao/src/main/resources/_vfs/nop/dao/dialect/postgresql.dialect.xml)
+[postgresql dialect](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/postgresql.dialect.xml)
 
 参考上面的示例，mysql.dialect.xml和postgresql.dialect.xml均从default.dialect.xml继承。与Hibernate通过编程方式构造Dialect对象相比，使用dialect模型文件明显信息密度更高，表达形式更加直观。更重要的是，在postgresql.dialect.xml中可以清楚的识别出相对于default.dialect.xml所**增加、修改和减少**的配置。
 
@@ -462,7 +462,7 @@ QueryBuilder本质上是与ORM无关的，因为在完全脱离关系数据库�
 
 在Java代码中通过所谓的QueryDsl来构造SQL语句本质上说并没有什么优势。因为如果采用模型驱动的方式，直接使用前台传入的QueryBean就好了，补充少量查询条件可以使用FilterBeans中定义的and/or/eq等静态组合函数。如果是非常复杂的SQL构造，那么直接采用类似MyBatis的方案，在独立的外部文件中统一管理无疑是更好的选择。在sql-lib中，我们可以实现QueryDsl所无法达到的直观性、灵活性和可扩展性（在后面后有更详细的介绍）。
 
-[QueryBean](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-api-core/src/main/java/io/nop/api/core/beans/query/QueryBean.java)
+[QueryBean](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/query/QueryBean.java)
 
 ## 八. OLAP分析能用ORM吗？
 
@@ -583,11 +583,11 @@ JOIN 合同表 BY 客户表.地区
 
 在NopOrm中，我们通过sql-lib模型来统一管理所有复杂的SQL/EQL/DQL语句。在利用Nop平台已有基础设施的情况下，实现类似MyBatis的这一SQL语句管理机制，大概只需要200行代码。具体实现代码参见
 
-[SqlLibManager](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlLibManager.java)
+[SqlLibManager](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlLibManager.java)
 
-[SqlItemModel](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlItemModel.java)
+[SqlItemModel](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlItemModel.java)
 
-[SqlLibInvoker](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/sql_lib/proxy/SqlLibInvoker.java)
+[SqlLibInvoker](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/sql_lib/proxy/SqlLibInvoker.java)
 
 测试用的sql-lib文件参见
 
@@ -708,7 +708,7 @@ where id = :id
 
 具体标签的实现参见
 
-[sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib)
+[sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib)
 
 本质上这个概念等价于Lisp语言中的宏，特别是它与Lisp宏一样，可以用于程序代码中的任意部分（即AST的任意节点都可以被替换为宏节点）。只不过，它采用XML的表现形式，相比于Lisp惜字如金的数学符号风格而言，显得更加人性化一些。
 

@@ -13,7 +13,7 @@ Define validation logic in the [validator.xml](https://gitee.com/canonical-entro
 model file. A validator can be divided into multiple check steps,
 each corresponding to a condition. When the condition is not met, the corresponding error code and error message are thrown.
 
-The exact format of the conditions is defined by the metamodel [filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef).
+The exact format of the conditions is defined by the metamodel [filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef).
 You can write nested conditions such as and/or/not, and use eq/gt/ge for comparisons. The name attribute corresponds to variables in the context and their properties.
 
 When invoking the validator model, you need to pass in the context object.
@@ -45,7 +45,7 @@ Backend service functions in the Nop platform are not necessarily implemented in
 
 For example, in the [Demo.xbiz](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-quarkus-demo/src/main/resources/_vfs/nop/demo/model/Demo/Demo.xbiz)
 model, the functions
-testValidator2 and testValidator3 are functionally equivalent to the testValidator function defined in the [DemoBizModel](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-quarkus-demo/src/main/java/io/nop/demo/biz/DemoBizModel.java)
+testValidator2 and testValidator3 are functionally equivalent to the testValidator function defined in the [DemoBizModel](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-demo/nop-spring-simple-demo/src/main/java/io/nop/demo/biz/DemoBizModel.java)
 class.
 
 The testValidator3 function uses the `biz:RunValidator` tag function to load an external validator model file and execute the validation logic. The advantage is that, in the future, you can modify the validation logic via the Delta customization mechanism without changing the Demo.xbiz file.
@@ -106,7 +106,7 @@ You can define extension tags in the /nop/core/xlib/biz!check.xlib tag library. 
 
 ## Model registration
 
-Via [register-model.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/resources/_vfs/nop/core/registry/validator.register-model.xml)
+Via [register-model.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/resources/_vfs/nop/core/registry/validator.register-model.xml)
 you can register loaders for custom models in the Nop platform. This allows the unified ResourceComponentManager.loadComponentModel function to load all types of models registered in the platform.
 
 ```xml

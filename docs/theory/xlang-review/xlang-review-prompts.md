@@ -3198,7 +3198,7 @@ App = DockerBuild<DockerFile> overlay-fs BaseImage
 
 DockerFile就是一种DSL语言，而Docker镜像的build工具相当于是一种生成器，它解释DockerFile中定义的apt install等DSL语句，动态将它们展开为硬盘上对文件系统的一种差量化修改（新建文件、修改文件、删除文件等）。
 
-[OverlayFS](https://blog.csdn.net/qq_15770331/article/details/96702613) 是一种**堆叠文件系统**，它依赖并建立在其它的文件系统之上（例如 ext4fs 和 xfs 等等），并不直接参与磁盘空间结构的划分，**仅仅将原来底层文件系统中不同的目录进行 “合并”，然后向用户呈现，这也就是联合挂载技术**。OverlayFS在查找文件的时候会先在上层找，找不到的情况下再到下层找。如果需要列举文件夹内的所有文件，则会合并上层目录和下层目录的所有文件统一返回。如果用Java语言实现一种类似OverlayFS的虚拟文件系统，结果代码就类似于[Nop平台中的DeltaResourceStore](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/resource/store/DeltaResourceStore.java)。OverlayFS的这种合并过程就是一种标准的树状结构差量合并过程，特别是我们可以通过增加一个Whiteout文件来表示删除一个文件或者目录，所以它符合`x-extends`算子的要求。
+[OverlayFS](https://blog.csdn.net/qq_15770331/article/details/96702613) 是一种**堆叠文件系统**，它依赖并建立在其它的文件系统之上（例如 ext4fs 和 xfs 等等），并不直接参与磁盘空间结构的划分，**仅仅将原来底层文件系统中不同的目录进行 “合并”，然后向用户呈现，这也就是联合挂载技术**。OverlayFS在查找文件的时候会先在上层找，找不到的情况下再到下层找。如果需要列举文件夹内的所有文件，则会合并上层目录和下层目录的所有文件统一返回。如果用Java语言实现一种类似OverlayFS的虚拟文件系统，结果代码就类似于[Nop平台中的DeltaResourceStore](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/DeltaResourceStore.java)。OverlayFS的这种合并过程就是一种标准的树状结构差量合并过程，特别是我们可以通过增加一个Whiteout文件来表示删除一个文件或者目录，所以它符合`x-extends`算子的要求。
 
 ## Docker镜像与虚拟机增量备份的对比
 
@@ -3454,9 +3454,9 @@ Nop平台中的Delta合并算法规定，所有的差量合并完毕之后，检
 
 **为了得到一种稳定的、具有明确业务语义的函数差量化表示形式，我们必须要在领域专用的模型空间中实现对函数的定义**。具体来说，我们可以将函数分解为多个步骤，然后为每个步骤分配一个唯一id等等。在Nop平台中，我们定义了两种可以实现分布式异步调用函数的差量化逻辑表达形式。
 
-1. **基于堆栈结构的TaskFlow**。每一个步骤执行完毕之后缺省会自动执行下一个兄弟节点，而当所有的子节点都执行完毕之后会返回父节点继续执行。在运行时，可以按照父子节点关系查找到每个节点当前持有的状态数据，相当于是构成一个堆栈空间。通过引入外部持久化存储，TaskFlow可以实现类似程序语言中的[Continuation机制](https://www.zhihu.com/question/61222322/answer/564847803)：即某个步骤执行时可以将整个流程或者流程的一个分支挂起，然后外部程序可以调用TaskFlow的continueWith函数，从挂起的步骤继续执行。TaskFlow的XDef元模型参见[task.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)
+1. **基于堆栈结构的TaskFlow**。每一个步骤执行完毕之后缺省会自动执行下一个兄弟节点，而当所有的子节点都执行完毕之后会返回父节点继续执行。在运行时，可以按照父子节点关系查找到每个节点当前持有的状态数据，相当于是构成一个堆栈空间。通过引入外部持久化存储，TaskFlow可以实现类似程序语言中的[Continuation机制](https://www.zhihu.com/question/61222322/answer/564847803)：即某个步骤执行时可以将整个流程或者流程的一个分支挂起，然后外部程序可以调用TaskFlow的continueWith函数，从挂起的步骤继续执行。TaskFlow的XDef元模型参见[task.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)
 
-2. **基于图结构的Workflow**。工作流模型可以描述大数据处理领域常见的DAG有向无环图，也可以描述办公自动化领域带回退、循环功能的审批流程图。工作流完全依赖于to-next步骤迁移规则来指定下一个待执行的步骤。同时，因为工作流的步骤之间完全平级，没有嵌套关系（子流程除外），所以在流程挂起之后，可以从任意一个步骤重新开始执行，在Workflow中实现Continuation机制要更加简单。Workflow的XDef元模型参见[wf.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef)
+2. **基于图结构的Workflow**。工作流模型可以描述大数据处理领域常见的DAG有向无环图，也可以描述办公自动化领域带回退、循环功能的审批流程图。工作流完全依赖于to-next步骤迁移规则来指定下一个待执行的步骤。同时，因为工作流的步骤之间完全平级，没有嵌套关系（子流程除外），所以在流程挂起之后，可以从任意一个步骤重新开始执行，在Workflow中实现Continuation机制要更加简单。Workflow的XDef元模型参见[wf.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef)
 
 ```xml
 <task x:extends="send-order.task.xml">
@@ -4143,7 +4143,7 @@ Nop平台是可逆计算理论的一个参考实现，它就是将数学上的�
 App = Delta x-extends Base ==>  Delta = App x-diff Base
 ```
 
-[DeltaMerger.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/delta/DeltaMerger.java)和[DeltaDiffer.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/delta/DeltaDiffer.java)分别实现了正向的`x-extends`和逆向的`x-diff`运算。也就是说，在Nop平台中通过Delta合并算法合并得到整体之后，我们还可以通过diff算法反向计算重新拆分出其中的Delta成分，这种能力使得我们可以像解方程一样实现软件的差量化构造。
+[DeltaMerger.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/delta/DeltaMerger.java)和[DeltaDiffer.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/delta/DeltaDiffer.java)分别实现了正向的`x-extends`和逆向的`x-diff`运算。也就是说，在Nop平台中通过Delta合并算法合并得到整体之后，我们还可以通过diff算法反向计算重新拆分出其中的Delta成分，这种能力使得我们可以像解方程一样实现软件的差量化构造。
 
 具体的一个实际应用场景是，既支持自动化模型生成，又支持可视化设计的前端页面设计器。在Nop平台中，前端页面是根据数据模型自动推定生成的，在自动生成之后我们可以通过可视化设计器对生成的结果进行微调，然后再保存回页面DSL的时候，我们应用diff算法计算得到可视化修改的差量部分。也就是说，如果可视化设计器只是进行了局部调整，则实际保存到DSL文件中的也是少量的差量信息，而不是整个完整页面的信息。通过这种方法，我们可以实现自动化模型生成和可视化设计之间的协同作用。
 
@@ -4298,10 +4298,10 @@ Nop平台遵循了可逆计算理论所制定的技术战略
 举例来说，
 
 1. ORM模型文件[app.orm.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-dao/src/main/resources/_vfs/nop/auth/orm/_app.orm.xml)定义了一个数据库存储模型
-2. ORM模型的结构由它的元模型[orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef)来描述
-3. 在Nop平台中，所有的模型都采用统一的XDef元模型语言来描述，而XDef元模型语言的定义[xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef)就是所谓的元元模型。有趣的是，XDef由XDef自己来定义，所以我们不再需要元元元模型。
+2. ORM模型的结构由它的元模型[orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef)来描述
+3. 在Nop平台中，所有的模型都采用统一的XDef元模型语言来描述，而XDef元模型语言的定义[xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef)就是所谓的元元模型。有趣的是，XDef由XDef自己来定义，所以我们不再需要元元元模型。
 
-Nop平台根据XDef元模型自动得到模型解析器、验证器等，通过统一的IDE插件实现代码提示、链接跳转以及断点单步调试等功能。更进一步，Nop平台可以根据XDef元模型描述以及扩展的Meta描述，**自动为模型文件生成可视化设计器**。借助于公共的元模型以及内嵌的Xpl模板语言，我们可以**实现多个DSL之间的无缝嵌入**。比如在工作流引擎中嵌入规则引擎，在报表引擎中嵌入ETL引擎等。此外，**统一元元模型使得复用元模型成为可能**，比如[designer模型](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/designer/graph-designer.xdef)和[view模型](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/xview.xdef)都引用了公共的form模型。复用元模型可以极大的提升系统内部语义的一致性，从根源上减少概念冲突，提升系统的复用性。
+Nop平台根据XDef元模型自动得到模型解析器、验证器等，通过统一的IDE插件实现代码提示、链接跳转以及断点单步调试等功能。更进一步，Nop平台可以根据XDef元模型描述以及扩展的Meta描述，**自动为模型文件生成可视化设计器**。借助于公共的元模型以及内嵌的Xpl模板语言，我们可以**实现多个DSL之间的无缝嵌入**。比如在工作流引擎中嵌入规则引擎，在报表引擎中嵌入ETL引擎等。此外，**统一元元模型使得复用元模型成为可能**，比如[designer模型](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/designer/graph-designer.xdef)和[view模型](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/xview.xdef)都引用了公共的form模型。复用元模型可以极大的提升系统内部语义的一致性，从根源上减少概念冲突，提升系统的复用性。
 
 Nop平台所提供的是所谓的领域语言工作台(DSL Workbench)的能力。我们可以利用Nop平台来快速的开发新的DSL或者扩展已有的DSL，然后再使用DSL来开发具体的业务逻辑。
 
@@ -4956,7 +4956,7 @@ AST的元编程机制，而XLang除了引入宏函数用于生成XLang AST之外
 XLang语言中也定义了类似Lisp宏的宏函数。所谓宏函数是在编译期执行，自动生成Expression抽象语法树节点的函数。
 
 宏函数具有特殊的参数要求，并且需要增加`@Macro`
-注解。具体示例可以参见[GlobalFunctions](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/functions/GlobalFunctions.java)。
+注解。具体示例可以参见[GlobalFunctions](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/functions/GlobalFunctions.java)。
 
 > EvalGlobalRegistry.instance().registerStaticFunctions(GlobalFunctions.class) 会将类中的所有静态函数注册为XScript脚本语言中可用的全局函数
 
@@ -5075,7 +5075,7 @@ and o.fld = ${param}
 </c:if>
 ```
 
-具体实现在[sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib)
+具体实现在[sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib)
 标签库中
 
 ```xml
@@ -5457,7 +5457,7 @@ NopIoC更为强大的地方是它支持XLang语言内置的Delta定制机制。�
     <bean id="nopDataSource" x:override="remove" />
 ```
 
-具体配置参见[delta目录下的dao-defaults.beans.xml](https://gitee.com/canonical-entropy/nop-for-ruoyi/blob/master/ruoyi-admin/src/main/resources/_vfs/_delta/default/nop/dao/beans/dao-defaults.beans.xml)
+具体配置参见[delta目录下的dao-defaults.beans.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master)
 
 Delta定制非常简单直观，**适用于所有模型文件而且可以定制到最细粒度的单个属性**。如果对比一下SpringBoot的等价实现，我们会发现SpringBoot的定制功能存在很大的限制：首先，为了实现Bean exclusion和 Bean Override，Spring需要在引擎内部增加大量相关的处理代码，同时也引入很多特殊的使用语法。第二，Spring的定制机制只针对单个Bean的配置，比如我们可以禁用某个bean，但缺乏合适的针对单个属性的定制手段。如果事前规划的不好，我们很难通过简单的方式来覆盖系统中已有的Bean的定义。
 
@@ -5519,7 +5519,7 @@ Nop平台的前端页面主要在`view.xml`和`page.yaml`这两种模型文件�
 ## 3.6 标签函数的Delta定制
 
 Nop平台的代码生成以及元编程机制中大量使用Xpl模板语言，而且工作流模型等可执行模型中所有涉及脚本执行的地方使用的都是Xpl模板语言。Xpl模板语言内置了标签库机制来实现函数级别的封装（每一个标签相当于是一个静态函数）。标签库xlib文件可以通过Delta定制机制来实现定制。
-例如我们可以定制[control.xlib](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-app/src/main/resources/_vfs/_delta/default/nop/web/xlib/control.xlib)来调整字段类型所对应的缺省展示控件，也可以定制[ddl.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/ddl/ddl_mysql.xlib)来修复针对某个数据库版本的建表语句的语法。
+例如我们可以定制[control.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master)来调整字段类型所对应的缺省展示控件，也可以定制[ddl.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/resources/_vfs/nop/orm/xlib/ddl/ddl_mysql.xlib)来修复针对某个数据库版本的建表语句的语法。
 
 ## 3.7 规则模型和报表模型等的Delta定制
 
@@ -5528,7 +5528,7 @@ Nop平台中的所有模型，包括工作流模型、报表模型、规则模�
 与一般的报表引擎、工作流引擎不同，Nop平台中的引擎大量使用了Xpl模板语言作为可执行脚本，因此可以引入自定义标签库来实现定制扩展。例如，
 一般的报表引擎会内置几种数据加载机制:JDBC/CSV/JSON/Excel等。如果我们希望增加新的加载方式，一般需要实现引擎内置的特殊接口，并且使用特殊的注册机制将接口实现注册到引擎中，而修改可视化设计器，使其支持自定义配置一般也不是一项很简单的工作。
 
-而在`NopReport`报表模型中，提供了名为`beforeExecute`的Xpl模板配置，它可以看作是一个基于通用接口（[IEvalAction](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/lang/eval/IEvalAction.java)）的扩展点。在`beforeExecute`段中我们可以采用如下方式引入新的数据加载机制：
+而在`NopReport`报表模型中，提供了名为`beforeExecute`的Xpl模板配置，它可以看作是一个基于通用接口（[IEvalAction](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/lang/eval/IEvalAction.java)）的扩展点。在`beforeExecute`段中我们可以采用如下方式引入新的数据加载机制：
 
 ```xml
 <beforeExecute>
@@ -6251,13 +6251,13 @@ DSL的价值在于它所抽象出来的具有业务价值的领域语义空间�
 
 * 在模型文件的根节点上，我们通过`x:schema`来指定元模型定义文件。
 
-* [orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef)这个元模型使用[xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef)这个元元模型来定义。
+* [orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef)这个元模型使用[xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef)这个元元模型来定义。
 
 * xdef.xdef采用xdef.xdef自身来定义，所以我们不需要更高层次的元元元模型。
 
 ### 统一的元模型语言促进DSL之间的无缝嵌套
 
-在Nop平台中，大量的DSL元模型定义中会引用已经定义的其他DSL模型。例如 [api.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/api.xdef)和[xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef)都会引用已定义的[schema.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/schema.xdef)
+在Nop平台中，大量的DSL元模型定义中会引用已经定义的其他DSL模型。例如 [api.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/api.xdef)和[xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef)都会引用已定义的[schema.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/schema.xdef)
 
 不同的DSL使用同样的类型定义，也便于复用同样的可视化设计组件、转换工具、校验规则等。
 
@@ -6269,7 +6269,7 @@ Nop平台提供了一个IDEA插件[nop-idea-plugin](https://gitee.com/canonical-
 
 ## 三. 所有DSL都需要提供分解、合并机制
 
-一个DSL文件复杂到一定程度，必然需要引入分解、合并、库抽象等管理复杂性的机制。XDSL定义了一组标准化的Delta差量语法，具体参见[xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef)
+一个DSL文件复杂到一定程度，必然需要引入分解、合并、库抽象等管理复杂性的机制。XDSL定义了一组标准化的Delta差量语法，具体参见[xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef)
 
 ```xml
 <meta x:extends="_NopAuthUser.xmeta"
@@ -6345,7 +6345,7 @@ nop-cli工具还提供了watch功能，可以监听指定目录下为模型文�
 
 XDSL模型对象的属性并不是在开发期固化的，它一般从AbstractComponentModel基类继承，支持增加任意的扩展属性。在具体的业务应用中，我们可以选择从已有的元模型继承，增加业务特定的扩展属性。
 
-比如平台中内置了[xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef)这个元模型。
+比如平台中内置了[xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef)这个元模型。
 
 我们可以定义xmeta-ext.xdef元模型，它从xmeta.xdef继承，然后增加一些扩展字段
 

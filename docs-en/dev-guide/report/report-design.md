@@ -108,7 +108,7 @@ NopReport provides an open-source implementation of the nonlinear report expansi
 NopReport’s functionality is implemented in the [ReportEngine](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/ReportEngine.java) object, and its main tasks can be divided into the following three parts:
 
 1. Parse: Parse the report model from xpt or xpt.xlsx files
-   - [Parse the Excel file to obtain an ExcelWorkbook object](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-ooxml/nop-ooxml-xlsx/src/main/java/io/nop/ooxml/xlsx/parse/ExcelWorkbookParser.java)
+   - [Parse the Excel file to obtain an ExcelWorkbook object](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-format/nop-ooxml/nop-ooxml-xlsx/src/main/java/io/nop/ooxml/xlsx/parse/ExcelWorkbookParser.java)
    - [Convert ExcelWorkbook to the report model](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/build/ExcelToXptModelTransformer.java)
    - [Analyze parent-child relationships among cells and initialize various relational information in the report model](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/build/XptModelInitializer.java)
 2. [Generate](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/ExpandedSheetGenerator.java): Dynamically expand based on the report model and generate an ExpandedSheet

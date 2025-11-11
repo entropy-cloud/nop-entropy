@@ -72,7 +72,7 @@ Skyve采用了XSD（XML Schema）语言来规范XML模型文件的格式，然�
 
 ### 1. 同态设计
 
-XDef明确采用了同态映射的设计思想，XDef元模型的结构与模型自身的结构保持一致，只是在模型语法结构的基础上增加一些标注信息。例如[view.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/xview.xdef)
+XDef明确采用了同态映射的设计思想，XDef元模型的结构与模型自身的结构保持一致，只是在模型语法结构的基础上增加一些标注信息。例如[view.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/xview.xdef)
 
 ```xml
 <!--
@@ -171,7 +171,7 @@ Nop平台提供了一个IDEA插件[nop-idea-plugin](https://gitee.com/canonical-
 </beans>
 ```
 
-以上例子是Nop平台和基于SpringBoot的若依Ruoyi框架集成时所定制的[dao-defaults.beans.xml](https://gitee.com/canonical-entropy/nop-for-ruoyi/blob/master/ruoyi-admin/src/main/resources/_vfs/_delta/default/nop/dao/beans/dao-defaults.beans.xml)。它删除了Nop平台缺省提供的数据源定义，为Ruoyi框架内置的dynamicDataSource设置了一个别名，从而使得Nop平台可以直接使用该数据源。
+以上例子是Nop平台和基于SpringBoot的若依Ruoyi框架集成时所定制的[dao-defaults.beans.xml](https://www.gitee.com/nop-entropy/null)。它删除了Nop平台缺省提供的数据源定义，为Ruoyi框架内置的dynamicDataSource设置了一个别名，从而使得Nop平台可以直接使用该数据源。
 
 ### 4. 元编程
 
@@ -189,7 +189,7 @@ Generator是可逆计算理论中的一个非常关键的部分。Nop平台的�
 
 这种元编程机制非常强大，因为它类似于数学定理推导：只需要考虑如何符号变换得到最终需要的结果，完全不用考虑复杂的运行时状态依赖关系。
 
-在NopORM引擎中，JSON对象支持和扩展字段支持也是通过编译期运行技术实现的，ORM引擎本身并没有内置相关知识。具体参见[orm-gen.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/orm-gen.xlib)
+在NopORM引擎中，JSON对象支持和扩展字段支持也是通过编译期运行技术实现的，ORM引擎本身并没有内置相关知识。具体参见[orm-gen.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/resources/_vfs/nop/orm/xlib/orm-gen.xlib)
 
 ### 5. 自定义扩展
 
@@ -207,7 +207,7 @@ Skyve中的模型对象属性是固定的，我们只能单方面接受Skyve的�
 
 Skyve的做法是一种比较传统的做法，它针对每个模型单独实现具体功能。而Nop平台的做法是试图提供一个领域语言工作台(Language Workbench)，为开发领域特定语言提供一系列的技术支撑，从而使得我们可以根据领域需求快速的开发一个对应的领域特定语言。参见[XDSL：通用的领域特定语言设计](https://zhuanlan.zhihu.com/p/612512300)。领域语言工作台可以看作是一种面向语言编程(Language Oriented Programming)范式。IDEA的开发商JetBrains公司曾经发布了一个产品[MPS](https://www.jetbrains.com/mps/)专门用于实现LOP。Nop平台的设计目标和MPS大致上一致的，只是它是基于系统化的可逆计算理论，在基本的软件构造原理和技术路线方面与MPS有着本质性差异。
 
-在Nop平台中，所有的领域模型都是采用统一的元模型机制进行定义的，它们都符合基础的XDSL语法规范（XDSL语法规范由元模型[xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef)定义）。借助于XDSL所提供的通用能力，我们自己定义的DSL可以自动获得差量合并、元编程、断点调试、可视化设计等能力。**例如对于工作流引擎，我们只需要编写最内核的流程运行时，无需额外工作即可得到可视化流程设计器、流程断点调试、差量定制、继承已有流程模板等能力**。
+在Nop平台中，所有的领域模型都是采用统一的元模型机制进行定义的，它们都符合基础的XDSL语法规范（XDSL语法规范由元模型[xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef)定义）。借助于XDSL所提供的通用能力，我们自己定义的DSL可以自动获得差量合并、元编程、断点调试、可视化设计等能力。**例如对于工作流引擎，我们只需要编写最内核的流程运行时，无需额外工作即可得到可视化流程设计器、流程断点调试、差量定制、继承已有流程模板等能力**。
 
 基于XDSL，我们还很自然的实现了多个DSL之间的无缝嵌入。比如在流程引擎中嵌入规则引擎，在规则引擎的动作中触发流程步骤等。
 

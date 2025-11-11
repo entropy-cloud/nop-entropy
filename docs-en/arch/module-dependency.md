@@ -46,7 +46,7 @@ The Nop platform’s backend services are implemented using the NopGraphQL engin
 
 * nop-orm implements an ORM engine that encompasses all the core features of Hibernate and MyBatis
 
-* [BizObjectManager](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/impl/BizObjectManager.java) in nop-biz provides an implementation of the [IGraphQLSchemaLoader](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/schema/IGraphQLSchemaLoader.java) interface, mapping GraphQL calls to BizModel methods. This process is similar to how REST frameworks map URL links to methods on Controller classes. See [graphql-java.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/graphql/graphql-java.md). The nop-biz module includes a built-in [CRUD service](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/crud/CrudBizModel.java) and a [dictionary table service](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/dict/DictProviderBizModel.java).
+* [BizObjectManager](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core-framework/nop-biz/src/main/java/io/nop/biz/impl/BizObjectManager.java) in nop-biz provides an implementation of the [IGraphQLSchemaLoader](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/schema/IGraphQLSchemaLoader.java) interface, mapping GraphQL calls to BizModel methods. This process is similar to how REST frameworks map URL links to methods on Controller classes. See [graphql-java.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/graphql/graphql-java.md). The nop-biz module includes a built-in [CRUD service](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core-framework/nop-biz/src/main/java/io/nop/biz/crud/CrudBizModel.java) and a [dictionary table service](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core-framework/nop-biz/src/main/java/io/nop/biz/dict/DictProviderBizModel.java).
 
 * nop-biz provides a built-in finite state machine mechanism via nop-fsm, allowing the description of certain simple business processes
 
@@ -60,7 +60,7 @@ The Nop platform builds a distributed RPC mechanism on top of the GraphQL engine
 
 * nop-cluster-core provides support mechanisms related to clusters, such as load balancing, service discovery, and leader election
 
-* nop-rpc-http wraps the [IHttpClient](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-http/nop-http-api/src/main/java/io/nop/http/api/client/IHttpClient.java) interface as the IRpcService interface (the internal implementation interface of RPC services)
+* nop-rpc-http wraps the [IHttpClient](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-http/nop-http-api/src/main/java/io/nop/http/api/client/IHttpClient.java) interface as the IRpcService interface (the internal implementation interface of RPC services)
 
 * nop-rpc-cluster provides broadcast-style RPC calls and load-balanced RPC calls
 

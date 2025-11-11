@@ -24,7 +24,7 @@ Configurations loaded earlier have higher priority and will be used first.
 12. Profile configurations specified by `nop.profile` and `nop.profile.parent`, which have higher priority than application.yaml
 13. Recognize profile configuration prefixes as defined by the Quarkus configuration specification, such as `'%dev.'`; adjust the access order of profile-specific items according to the current profile. For example, in dev mode, the value of `%dev.a.b.c` will override the value of `a.b.c`.
 
-> The specific configuration loading logic is centralized in the [ConfigStarter.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-config/src/main/java/io/nop/config/starter/ConfigStarter.java) class.
+> The specific configuration loading logic is centralized in the [ConfigStarter.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core-framework/nop-config/src/main/java/io/nop/config/starter/ConfigStarter.java) class.
 
 * **You can configure `nop.profile=dev` in bootstrap.yaml or application.yaml to enable application-dev.yaml, similar to Spring’s profile concept.** You can also configure the profile via Java properties or environment variables, e.g. `-Dnop.profile=dev` or set the environment variable `NOP_PROFILE=dev`.
 * Configuration files with the `.yaml` suffix are preferred. If not found, files with the same name but `.yml` suffix will be tried. In other words, if both `application.yaml` and `application.yml` exist, the former will be used preferentially.

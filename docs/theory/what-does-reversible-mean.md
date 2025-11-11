@@ -56,7 +56,7 @@ Nop平台是可逆计算理论的一个参考实现，它就是将数学上的�
 App = Delta x-extends Base ==>  Delta = App x-diff Base
 ```
 
-[DeltaMerger.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/delta/DeltaMerger.java)和[DeltaDiffer.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/delta/DeltaDiffer.java)分别实现了正向的`x-extends`和逆向的`x-diff`运算。也就是说，在Nop平台中通过Delta合并算法合并得到整体之后，我们还可以通过diff算法反向计算重新拆分出其中的Delta成分，这种能力使得我们可以像解方程一样实现软件的差量化构造。
+[DeltaMerger.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/delta/DeltaMerger.java)和[DeltaDiffer.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/delta/DeltaDiffer.java)分别实现了正向的`x-extends`和逆向的`x-diff`运算。也就是说，在Nop平台中通过Delta合并算法合并得到整体之后，我们还可以通过diff算法反向计算重新拆分出其中的Delta成分，这种能力使得我们可以像解方程一样实现软件的差量化构造。
 
 具体的一个实际应用场景是，既支持自动化模型生成，又支持可视化设计的前端页面设计器。在Nop平台中，前端页面是根据数据模型自动推定生成的，在自动生成之后我们可以通过可视化设计器对生成的结果进行微调，然后再保存回页面DSL的时候，我们应用diff算法计算得到可视化修改的差量部分。也就是说，如果可视化设计器只是进行了局部调整，则实际保存到DSL文件中的也是少量的差量信息，而不是整个完整页面的信息。通过这种方法，我们可以实现自动化模型生成和可视化设计之间的协同作用。
 

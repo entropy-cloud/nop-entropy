@@ -238,7 +238,7 @@ Configure data permissions in the `/nop/main/auth/app.data-auth.xml` file. The `
 * Data permissions apply not only to queries; on `get` calls the corresponding data permissions are checked. In that case, the `check` section in the `role-auth` configuration is invoked. If no `check` is configured, the `filter` is automatically compiled into an `IEvalPredicate`. For complex filter conditions, an error may be raised indicating the operation is not supported; in such cases you must define `check`.
 
 In the `filter` section, you can write permission filter conditions; the `value` part can use expression variables with the `@biz:` prefix, such as `@biz:userId` or `@biz:deptId`.
-All available variables are defined in [biz-var.dict.yaml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/dict/core/biz-var.dict.yaml).
+All available variables are defined in [biz-var.dict.yaml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/resources/_vfs/dict/core/biz-var.dict.yaml).
 
 Generally, the `/nop/main/auth/app.data-auth.xml` file can be configured to dynamically collect data-auth configurations across all modules
 

@@ -73,7 +73,7 @@ Skyve uses the XSD (XML Schema) language to regulate the format of XML model fil
 
 ### 1. Homomorphic Design
 
-XDef explicitly adopts a homomorphic mapping design philosophy: the structure of the XDef metamodel remains consistent with the structure of the model itself, only adding annotations on top of the model’s syntax. For example, [view.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/xview.xdef)
+XDef explicitly adopts a homomorphic mapping design philosophy: the structure of the XDef metamodel remains consistent with the structure of the model itself, only adding annotations on top of the model’s syntax. For example, [view.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/xview.xdef)
 
 ```xml
 <!--
@@ -172,7 +172,7 @@ With Delta computation based on domain models, many architecture-level features 
 </beans>
 ```
 
-The example above is the customization of [dao-defaults.beans.xml](https://gitee.com/canonical-entropy/nop-for-ruoyi/blob/master/ruoyi-admin/src/main/resources/_vfs/_delta/default/nop/dao/beans/dao-defaults.beans.xml) when integrating the Nop platform with the SpringBoot-based Ruoyi framework. It removes the Nop platform’s default data source definitions and sets an alias for Ruoyi’s built-in dynamicDataSource, enabling the Nop platform to use that data source directly.
+The example above is the customization of [dao-defaults.beans.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master) when integrating the Nop platform with the SpringBoot-based Ruoyi framework. It removes the Nop platform’s default data source definitions and sets an alias for Ruoyi’s built-in dynamicDataSource, enabling the Nop platform to use that data source directly.
 
 ### 4. Metaprogramming
 
@@ -190,7 +190,7 @@ Take workflow as an example: to support countersignature, implementations usuall
 
 This metaprogramming mechanism is extremely powerful because it resembles mathematical derivation: you only consider symbolic transformations to produce the desired result, without worrying about complex runtime state dependencies.
 
-In the NopORM engine, support for JSON objects and extended fields is also implemented via compile-time techniques; the ORM engine itself does not embed such knowledge. See [orm-gen.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/orm-gen.xlib).
+In the NopORM engine, support for JSON objects and extended fields is also implemented via compile-time techniques; the ORM engine itself does not embed such knowledge. See [orm-gen.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/resources/_vfs/nop/orm/xlib/orm-gen.xlib).
 
 ### 5. Custom Extensions
 
@@ -208,7 +208,7 @@ Although ui:show is not defined in the XDef metamodel, it is preserved as an ext
 
 Skyve’s approach is rather traditional—it implements specific functionality for each model separately. The Nop platform’s approach is to provide a Language Workbench, offering technical support for developing domain-specific languages, so that we can quickly develop a DSL that fits domain needs. See [XDSL: General-purpose DSL design](https://zhuanlan.zhihu.com/p/612512300). A language workbench can be viewed as a Language Oriented Programming paradigm. JetBrains has a product called [MPS](https://www.jetbrains.com/mps/) specifically for LOP. The Nop platform’s goals are broadly similar to MPS, but it is founded on the systematic Reversible Computation theory, and it differs fundamentally from MPS in core software construction principles and technical approach.
 
-In the Nop platform, all domain models are defined via a unified metamodel mechanism that conforms to the base XDSL grammar specification (defined by the [xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef) metamodel). Leveraging XDSL’s general capabilities, our custom DSLs can automatically gain Delta merging, metaprogramming, breakpoint debugging, visual design, etc. For example, for a workflow engine, we only need to implement the core runtime of the flow; we automatically obtain the visual flow designer, flow breakpoint debugging, Delta customization, inheritance of an existing flow template, and more without extra work.
+In the Nop platform, all domain models are defined via a unified metamodel mechanism that conforms to the base XDSL grammar specification (defined by the [xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef) metamodel). Leveraging XDSL’s general capabilities, our custom DSLs can automatically gain Delta merging, metaprogramming, breakpoint debugging, visual design, etc. For example, for a workflow engine, we only need to implement the core runtime of the flow; we automatically obtain the visual flow designer, flow breakpoint debugging, Delta customization, inheritance of an existing flow template, and more without extra work.
 
 Based on XDSL, we have naturally implemented seamless embedding across multiple DSLs—for instance, embedding a rules engine within a workflow engine, and triggering workflow steps in rules engine actions.
 

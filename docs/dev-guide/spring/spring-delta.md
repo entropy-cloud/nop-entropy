@@ -86,7 +86,7 @@ DslNodeLoader加载DSL文件时会自动识别delta目录，如果发现`/_vfs/_
 
 基于Nop平台可以对Mybatis进行如下改造:
 
-1. 增加[beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)元模型定义，定义两个节点如何进行差量合并
+1. 增加[beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)元模型定义，定义两个节点如何进行差量合并
 2. 增加NopBeansRegistrar，在其中利用Nop平台的DSL文件加载器去加载mapper文件
 
 ```java

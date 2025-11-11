@@ -23,7 +23,7 @@
 
 ## ORM配置
 
-在编译期，[`<orm-gen:ExtFieldsSupport>`](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/orm-gen.xlib)标签会识别`use-ext-field`配置，并自动生成关联属性：
+在编译期，[`<orm-gen:ExtFieldsSupport>`](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/resources/_vfs/nop/orm/xlib/orm-gen.xlib)标签会识别`use-ext-field`配置，并自动生成关联属性：
 
 ```xml
 <entity name="xxx.MyEntity">

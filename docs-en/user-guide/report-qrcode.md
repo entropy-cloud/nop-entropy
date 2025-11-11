@@ -18,7 +18,7 @@ Currently, the `nop-report-ext` module provides the QR code extension component.
     </dependency>
 ```
 
-In the Excel template, call the `QRCODE()` extension function via the cell’s annotation. [Sample template](https://gitee.com/canonical-entropy/nop-entropy/raw/master/nop-report/nop-report-demo/src/main/resources/_vfs/nop/report/demo/base/11-%E6%89%93%E5%8D%B0%E6%9D%A1%E7%A0%81%E5%92%8C%E4%BA%8C%E7%BB%B4%E7%A0%81.xpt.xlsx)
+In the Excel template, call the `QRCODE()` extension function via the cell’s annotation. [Sample template](https://gitee.com/canonical-entropy/nop-entropy/blob/master)
 
 ![](report/qrcode-config.png)
 

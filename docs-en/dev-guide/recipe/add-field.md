@@ -52,5 +52,5 @@ For relatively simple cases, we don't need to modify the BizModel or entity clas
 $toLocalDate is an extended type conversion function. All expressions can ultimately invoke type conversion functions on ConvertHelper via $toLocalDate, toInt(), and similar methods.
 
 For common, reusable conversion functions and the like, we can leverage the Nop platform’s built-in metaprogramming mechanisms, such as `x:gen-extends` and `x:post-extends`, to automatically generate property definitions.
-See [biz-gen.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/nop/core/xlib/biz-gen.xlib)
+See [biz-gen.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/resources/_vfs/nop/core/xlib/biz-gen.xlib)
 <!-- SOURCE_MD5:b7d9d7d18ff8d1ebfbb19b6b6359d7fa-->

@@ -40,7 +40,7 @@ TaskFlow的Step相当于是对于传统的函数对象进行了增强，自动�
 
 ## 步骤的通用配置
 
-TaskFlow的元模型定义参见[task.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)
+TaskFlow的元模型定义参见[task.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)
 
 TaskFlow内置了sequential/parallel/loop/choose等通用语法步骤，所有这些步骤具有一些通用的配置。
 

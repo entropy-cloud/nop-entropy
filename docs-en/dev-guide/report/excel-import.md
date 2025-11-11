@@ -1,6 +1,6 @@
 # Excel Data Import and Export
 
-In the Nop platform, you only need to add an imp.xml import model to parse complex business objects stored in Excel. For the exact definition of the imp model, see [imp.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/excel/imp.xdef)
+In the Nop platform, you only need to add an imp.xml import model to parse complex business objects stored in Excel. For the exact definition of the imp model, see [imp.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/excel/imp.xdef)
 
 ## Basic Principles
 
@@ -33,7 +33,7 @@ In the Nop platform, you only need to add an imp.xml import model to parse compl
 
 ## Using an Import Template to Implement Export
 
-1. First, create an empty import template by removing the imported data while retaining the serial-number column of list data. See [template.orm.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm-model/src/main/resources/_vfs/nop/orm/imp/template.orm.xlsx) for an example.
+1. First, create an empty import template by removing the imported data while retaining the serial-number column of list data. See [template.orm.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm-model/src/main/resources/_vfs/nop/orm/imp/template.orm.xlsx) for an example.
 2. In the imp.xml file, point to the import template via the templatePath attribute.
 
 ```xml

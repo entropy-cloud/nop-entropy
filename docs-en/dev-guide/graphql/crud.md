@@ -332,7 +332,7 @@ Corresponds to
 }
 ```
 
-The operators supported in filter conditions, such as eq and gt, are defined in [FilterOp.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java).
+The operators supported in filter conditions, such as eq and gt, are defined in [FilterOp.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java).
 Reusable operators include:
 
 |Operator|Description|

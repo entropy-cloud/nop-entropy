@@ -19,7 +19,7 @@ Schema要直观、高效。可以直接根据XDef定义得到可执行的领域�
 
 https://www.springframework.org/schema/beans/spring-beans-4.3.xsd
 
-[nop-xdefs/src/main/resources/\_vfs/nop/schema/beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)
+[nop-xdefs/src/main/resources/\_vfs/nop/schema/beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)
 
 关于XDef元模型定义语言，我后续会写一篇专门的文章来介绍相关的技术细节。
 
@@ -70,7 +70,7 @@ public XXX getXx(){
 2. 工程编译的时候会通过maven插件扫描target/classes目录下的类，检查类的方法上是否具有AOP可识别的注解，如果有，则为该类生成一个\_\_aop派生类，用于插入AOP
    interceptor。这样打包好的jar包中就包含了AOP相关的生成代码，在使用AOP机制的时候就不需要动态生成字节码了。这里的实现原理其实和AspectJ类似，只是操作过程要简化很多。代码生成器的具体实现参见
 
-   [nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java)
+   [nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java)
 
 3. IoC容器在创建bean的时候，如果发现存在可以应用到该类上的interceptor，则使用\_\_aop派生类来新建对象，并插入interceptor。
 

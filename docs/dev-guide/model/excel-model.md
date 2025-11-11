@@ -1,6 +1,6 @@
 # Excel数据模型
 
-通过Excel格式的文档可以配置数据模型。数据模型的具体结构由[orm.imp.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/imp/orm.imp.xml)导入模型文件来定义。
+通过Excel格式的文档可以配置数据模型。数据模型的具体结构由[orm.imp.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm-model/src/main/resources/_vfs/nop/orm/imp/orm.imp.xml)导入模型文件来定义。
 
 在Nop平台中，无需手工编程，只需要增加`imp.xml`配置文件，即可实现对Excel文件的解析。例如[Api模型](api-model.md)也是采用同一机制实现。
 

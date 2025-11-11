@@ -3150,7 +3150,7 @@ App = DockerBuild<DockerFile> overlay-fs BaseImage
 
 DockerFile is a DSL, while Docker’s image build tool acts as a generator. It interprets DSL statements in the DockerFile such as apt install, and dynamically expands them into delta-like modifications to the filesystem (create, modify, delete files, etc.).
 
-[OverlayFS](https://blog.csdn.net/qq_15770331/article/details/96702613) is a stacked filesystem built on other filesystems (such as ext4fs and xfs). It does not directly participate in the partitioning of disk space; it merely “merges” different directories in the underlying filesystems and presents them to the user—this is the union mount technique. OverlayFS looks for files in the upper layer first and, if not found, searches the lower layer. If listing all files in a directory, it merges files from both upper and lower directories and returns them uniformly. If we implement a virtual filesystem similar to OverlayFS in Java, the resulting code would look like [DeltaResourceStore in the Nop platform](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/resource/store/DeltaResourceStore.java). This merge process is a standard tree-structured delta merge. In particular, we can add a Whiteout file to represent deleting a file or directory, which satisfies the requirements of the `x-extends` operator.
+[OverlayFS](https://blog.csdn.net/qq_15770331/article/details/96702613) is a stacked filesystem built on other filesystems (such as ext4fs and xfs). It does not directly participate in the partitioning of disk space; it merely “merges” different directories in the underlying filesystems and presents them to the user—this is the union mount technique. OverlayFS looks for files in the upper layer first and, if not found, searches the lower layer. If listing all files in a directory, it merges files from both upper and lower directories and returns them uniformly. If we implement a virtual filesystem similar to OverlayFS in Java, the resulting code would look like [DeltaResourceStore in the Nop platform](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/DeltaResourceStore.java). This merge process is a standard tree-structured delta merge. In particular, we can add a Whiteout file to represent deleting a file or directory, which satisfies the requirements of the `x-extends` operator.
 
 ## Comparison Between Docker Images and VM Incremental Backups
 
@@ -3404,9 +3404,9 @@ A second common representation space is the source-code text-line space: all sou
 
 To obtain a stable, domain-semantic delta representation for functions, we must define functions in a domain-specific model space. Concretely, we can decompose a function into multiple steps, assign a unique id to each step, etc. In the Nop platform, we define two delta-ized logical expression forms that implement distributed asynchronous function invocation.
 
-1. TaskFlow based on a stack structure. After each step completes, by default it automatically executes the next sibling step; when all child nodes finish, it returns to the parent node to continue execution. At runtime, we can find the state data held by each node according to the parent-child relationships, forming a stack space. By introducing external persistent storage, TaskFlow can implement a mechanism similar to [Continuation](https://www.zhihu.com/question/61222322/answer/564847803): a step can suspend the entire flow or a branch of it during execution; external programs can call TaskFlow’s continueWith function to resume from the suspended step. TaskFlow’s XDef metamodel: [task.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)
+1. TaskFlow based on a stack structure. After each step completes, by default it automatically executes the next sibling step; when all child nodes finish, it returns to the parent node to continue execution. At runtime, we can find the state data held by each node according to the parent-child relationships, forming a stack space. By introducing external persistent storage, TaskFlow can implement a mechanism similar to [Continuation](https://www.zhihu.com/question/61222322/answer/564847803): a step can suspend the entire flow or a branch of it during execution; external programs can call TaskFlow’s continueWith function to resume from the suspended step. TaskFlow’s XDef metamodel: [task.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)
 
-2. Workflow based on a graph structure. Workflow models can describe DAGs common in big data processing, as well as office automation approval flows with rollback and loops. Workflow relies entirely on to-next step migration rules to specify the next step to execute. Since workflow steps are completely peer-level with no nesting (except for subflows), when the flow is suspended, execution can resume from any step; implementing Continuation in Workflow is easier. Workflow’s XDef metamodel: [wf.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef)
+2. Workflow based on a graph structure. Workflow models can describe DAGs common in big data processing, as well as office automation approval flows with rollback and loops. Workflow relies entirely on to-next step migration rules to specify the next step to execute. Since workflow steps are completely peer-level with no nesting (except for subflows), when the flow is suspended, execution can resume from any step; implementing Continuation in Workflow is easier. Workflow’s XDef metamodel: [wf.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef)
 
 ```xml
 <task x:extends="send-order.task.xml">
@@ -4096,7 +4096,7 @@ In the Nop platform implementation:
 App = Delta x-extends Base ==>  Delta = App x-diff Base
 ```
 
-[DeltaMerger.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/delta/DeltaMerger.java) and [DeltaDiffer.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/delta/DeltaDiffer.java) implement forward `x-extends` and reverse `x-diff` operations, respectively. In other words, in the Nop platform, after merging via Delta algorithms to obtain the whole, we can reverse-compute via diff to re-split out the Delta components—allowing software to be constructed like solving equations.
+[DeltaMerger.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/delta/DeltaMerger.java) and [DeltaDiffer.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/delta/DeltaDiffer.java) implement forward `x-extends` and reverse `x-diff` operations, respectively. In other words, in the Nop platform, after merging via Delta algorithms to obtain the whole, we can reverse-compute via diff to re-split out the Delta components—allowing software to be constructed like solving equations.
 
 A practical scenario is a front-end page designer that supports both automated model generation and visual design. In Nop, front-end pages are auto-inferred from data models. After generation, we can use a visual designer to fine-tune results, then when saving back to the page DSL, we apply a diff algorithm to compute the visual edits’ Delta. If the visual designer only made local adjustments, the DSL file actually stores only small Delta information, not the entire page. This enables synergy between automated model generation and visual design.
 
@@ -4251,10 +4251,10 @@ If all models have strictly defined internal consistency at the bottom, we can a
 For example,
 
 1. The ORM model file [app.orm.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-dao/src/main/resources/_vfs/nop/auth/orm/_app.orm.xml) defines a database storage model
-2. The ORM model’s structure is described by its meta-model [orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef)
-3. In Nop, all models use the unified XDef meta-model language, whose definition [xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef) is the meta-meta model. Interestingly, XDef is defined by itself, so no meta-meta-meta model is needed.
+2. The ORM model’s structure is described by its meta-model [orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef)
+3. In Nop, all models use the unified XDef meta-model language, whose definition [xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef) is the meta-meta model. Interestingly, XDef is defined by itself, so no meta-meta-meta model is needed.
 
-Nop automatically obtains model parsers and validators from XDef and implements code completion, navigation, and debugging via unified IDE plugins. Further, Nop can automatically generate visual designers for model files based on XDef and extended Meta descriptions. With a common meta-model and embedded Xpl template language, we achieve seamless embedding among multiple DSLs—for example, embedding a rules engine in a workflow engine or an ETL engine in a report engine. Also, a unified meta-meta model enables reuse of meta-models, e.g., both the [designer model](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/designer/graph-designer.xdef) and the [view model](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/xview.xdef) reference the common form model. Reusing meta-models greatly elevates internal semantic consistency, reduces conceptual conflicts at the root, and increases system reuse.
+Nop automatically obtains model parsers and validators from XDef and implements code completion, navigation, and debugging via unified IDE plugins. Further, Nop can automatically generate visual designers for model files based on XDef and extended Meta descriptions. With a common meta-model and embedded Xpl template language, we achieve seamless embedding among multiple DSLs—for example, embedding a rules engine in a workflow engine or an ETL engine in a report engine. Also, a unified meta-meta model enables reuse of meta-models, e.g., both the [designer model](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/designer/graph-designer.xdef) and the [view model](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/xview.xdef) reference the common form model. Reusing meta-models greatly elevates internal semantic consistency, reduces conceptual conflicts at the root, and increases system reuse.
 
 Nop provides the capability of a DSL Workbench. We can quickly develop or extend DSLs with Nop, then use DSLs to develop business logic.
 
@@ -4886,7 +4886,7 @@ The XLang language of the Nop platform is one of the core technologies implement
 
 XLang also defines macro functions similar to Lisp macros. Macro functions run at compile time and automatically generate nodes of the Expression AST.
 
-Macro functions have special parameter requirements and must be annotated with `@Macro`. For concrete examples, see [GlobalFunctions](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/functions/GlobalFunctions.java).
+Macro functions have special parameter requirements and must be annotated with `@Macro`. For concrete examples, see [GlobalFunctions](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/functions/GlobalFunctions.java).
 
 > EvalGlobalRegistry.instance().registerStaticFunctions(GlobalFunctions.class) will register all static functions in the class as global functions available to the XScript scripting language.
 
@@ -4999,7 +4999,7 @@ and o.fld = ${param}
 </c:if>
 ```
 
-See [sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib) for implementation:
+See [sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib) for implementation:
 
 ```xml
 
@@ -5368,7 +5368,7 @@ In addition to overriding bean configurations, we can delete bean configurations
     <bean id="nopDataSource" x:override="remove" />
 ```
 
-See [dao-defaults.beans.xml under the delta directory](https://gitee.com/canonical-entropy/nop-for-ruoyi/blob/master/ruoyi-admin/src/main/resources/_vfs/_delta/default/nop/dao/beans/dao-defaults.beans.xml).
+See [dao-defaults.beans.xml under the delta directory](https://gitee.com/canonical-entropy/nop-entropy/blob/master).
 
 Delta customization is simple and intuitive, applicable to all model files, and can be refined to individual properties. In contrast, SpringBoot’s equivalent capabilities have significant limitations: first, to implement Bean exclusion and override, Spring needs numerous engine-level processing code and special syntax. Second, Spring’s customization mostly targets single beans (e.g., disabling a bean) and lacks convenient means for targeting individual properties. If not well planned, it’s difficult to override existing bean definitions via simple means.
 
@@ -5429,7 +5429,7 @@ By customizing these two model files, we can adjust form layout, set display con
 
 ## 3.6 Delta Customization of Tag Functions
 
-Code generation and metaprogramming in the Nop platform heavily use the Xpl template language, and all places involving script execution in executable models like workflows use Xpl as well. The Xpl template language has a tag library mechanism to implement function-level encapsulation (each tag is like a static function). Tag library xlib files can be customized via the Delta mechanism. For example, you can customize [control.xlib](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-app/src/main/resources/_vfs/_delta/default/nop/web/xlib/control.xlib) to adjust default presentation controls for field types, or customize [ddl.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/ddl/ddl_mysql.xlib) to fix DDL syntax for a specific database version.
+Code generation and metaprogramming in the Nop platform heavily use the Xpl template language, and all places involving script execution in executable models like workflows use Xpl as well. The Xpl template language has a tag library mechanism to implement function-level encapsulation (each tag is like a static function). Tag library xlib files can be customized via the Delta mechanism. For example, you can customize [control.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master) to adjust default presentation controls for field types, or customize [ddl.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/resources/_vfs/nop/orm/xlib/ddl/ddl_mysql.xlib) to fix DDL syntax for a specific database version.
 
 ## 3.7 Delta Customization of Rule and Report Models
 
@@ -5437,7 +5437,7 @@ All models in the Nop platform—including workflow, report, and rule models—a
 
 Unlike typical report/workflow engines, Nop extensively uses the Xpl template language for executable scripts, enabling custom tag libraries for extended customization. For example, typical report engines have built-in data loading mechanisms: JDBC/CSV/JSON/Excel, etc. Adding a new loading method usually requires implementing special interfaces built into the engine and using special registration mechanisms, and modifying visual designers to support custom configurations is not trivial.
 
-In the `NopReport` model, there is an `beforeExecute` Xpl template configuration that can be viewed as an extension point based on a general interface ([IEvalAction](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/lang/eval/IEvalAction.java)). In the `beforeExecute` section, we can introduce new data loading mechanisms as follows:
+In the `NopReport` model, there is an `beforeExecute` Xpl template configuration that can be viewed as an extension point based on a general interface ([IEvalAction](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/lang/eval/IEvalAction.java)). In the `beforeExecute` section, we can introduce new data loading mechanisms as follows:
 
 
 ```xml
@@ -6115,12 +6115,12 @@ The value of a DSL lies in abstracting a business-valuable domain semantic space
 ```
 
 * At the root node of a model file, specify the metamodel via x:schema.
-* [orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef) uses [xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef), the meta-metamodel, to define itself.
+* [orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef) uses [xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef), the meta-metamodel, to define itself.
 * xdef.xdef is defined using xdef.xdef (self-describing), so we do not need a meta-meta-metamodel.
 
 ### A Unified Metamodel Language Enables Seamless Nesting Among DSLs
 
-In the Nop platform, many DSL metamodels reference other already-defined DSLs. For example, [api.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/api.xdef) and [xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef) both reference [schema.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/schema.xdef).
+In the Nop platform, many DSL metamodels reference other already-defined DSLs. For example, [api.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/api.xdef) and [xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef) both reference [schema.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/schema.xdef).
 
 Different DSLs using the same type definitions facilitates reuse of visual design components, transformation tools, validation rules, etc.
 
@@ -6132,7 +6132,7 @@ Based on the metamodel, we can also automatically infer visual designers without
 
 ## III. All DSLs Must Provide Decomposition and Merging Mechanisms
 
-When a DSL file becomes sufficiently complex, we inevitably need decomposition, merging, and library abstractions to manage complexity. XDSL defines standardized Delta syntax; see [xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef).
+When a DSL file becomes sufficiently complex, we inevitably need decomposition, merging, and library abstractions to manage complexity. XDSL defines standardized Delta syntax; see [xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef).
 
 ```xml
 <meta x:extends="_NopAuthUser.xmeta"
@@ -6207,7 +6207,7 @@ For theoretical analysis, see [Low-Code Platform Design Through the Lens of Tens
 
 XDSL model object properties are not fixed at development time. Model objects typically inherit from AbstractComponentModel and support arbitrary extension attributes. In practical business applications, we can inherit from existing metamodels and add business-specific extension attributes.
 
-For example, the platform includes [xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef).
+For example, the platform includes [xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef).
 
 We can define xmeta-ext.xdef to inherit from xmeta.xdef and add extension fields:
 

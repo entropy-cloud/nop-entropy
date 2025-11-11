@@ -18,7 +18,7 @@ AST的元编程机制，而XLang除了引入宏函数用于生成XLang AST之外
 XLang语言中也定义了类似Lisp宏的宏函数。所谓宏函数是在编译期执行，自动生成Expression抽象语法树节点的函数。
 
 宏函数具有特殊的参数要求，并且需要增加`@Macro`
-注解。具体示例可以参见[GlobalFunctions](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/functions/GlobalFunctions.java)。
+注解。具体示例可以参见[GlobalFunctions](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/functions/GlobalFunctions.java)。
 
 > EvalGlobalRegistry.instance().registerStaticFunctions(GlobalFunctions.class) 会将类中的所有静态函数注册为XScript脚本语言中可用的全局函数
 
@@ -137,7 +137,7 @@ and o.fld = ${param}
 </c:if>
 ```
 
-具体实现在[sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib)
+具体实现在[sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib)
 标签库中
 
 ```xml

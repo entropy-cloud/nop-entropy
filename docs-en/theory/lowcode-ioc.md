@@ -266,7 +266,7 @@ Below we can directly compare Spring 1.0’s configuration format defined with x
 
 https://www.springframework.org/schema/beans/spring-beans-4.3.xsd
 
-[nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)
+[nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)
 
 I will write a follow-up article specifically introducing the technical details of the XDef meta-model definition language.
 
@@ -316,7 +316,7 @@ The implementation principle is:
 
 2. During project compilation, a Maven plugin will scan the classes under target/classes to check whether class methods have AOP-recognizable annotations; if so, it generates a __aop derived class for that class to insert AOP interceptors. Thus, the packaged jar contains the AOP-related generated code, and no dynamic bytecode generation is needed when using AOP. The underlying principle is similar to AspectJ, but the process is much simpler. See:
 
-   [nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java)
+   [nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java)
 
 3. When the IoC container creates beans, if it finds an interceptor applicable to a class, it uses the __aop derived class to instantiate the object and insert the interceptor.
 

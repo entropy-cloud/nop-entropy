@@ -26,13 +26,13 @@ DSL的价值在于它所抽象出来的具有业务价值的领域语义空间�
 
 * 在模型文件的根节点上，我们通过`x:schema`来指定元模型定义文件。
 
-* [orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef)这个元模型使用[xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef)这个元元模型来定义。
+* [orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef)这个元模型使用[xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef)这个元元模型来定义。
 
 * xdef.xdef采用xdef.xdef自身来定义，所以我们不需要更高层次的元元元模型。
 
 ### 统一的元模型语言促进DSL之间的无缝嵌套
 
-在Nop平台中，大量的DSL元模型定义中会引用已经定义的其他DSL模型。例如 [api.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/api.xdef)和[xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef)都会引用已定义的[schema.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/schema.xdef)
+在Nop平台中，大量的DSL元模型定义中会引用已经定义的其他DSL模型。例如 [api.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/api.xdef)和[xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef)都会引用已定义的[schema.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/schema.xdef)
 
 不同的DSL使用同样的类型定义，也便于复用同样的可视化设计组件、转换工具、校验规则等。
 
@@ -44,7 +44,7 @@ Nop平台提供了一个IDEA插件[nop-idea-plugin](https://gitee.com/canonical-
 
 ## 三. 所有DSL都需要提供分解、合并机制
 
-一个DSL文件复杂到一定程度，必然需要引入分解、合并、库抽象等管理复杂性的机制。XDSL定义了一组标准化的Delta差量语法，具体参见[xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef)
+一个DSL文件复杂到一定程度，必然需要引入分解、合并、库抽象等管理复杂性的机制。XDSL定义了一组标准化的Delta差量语法，具体参见[xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef)
 
 ```xml
 <meta x:extends="_NopAuthUser.xmeta"
@@ -120,7 +120,7 @@ nop-cli工具还提供了watch功能，可以监听指定目录下为模型文�
 
 XDSL模型对象的属性并不是在开发期固化的，它一般从AbstractComponentModel基类继承，支持增加任意的扩展属性。在具体的业务应用中，我们可以选择从已有的元模型继承，增加业务特定的扩展属性。
 
-比如平台中内置了[xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef)这个元模型。
+比如平台中内置了[xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef)这个元模型。
 
 我们可以定义xmeta-ext.xdef元模型，它从xmeta.xdef继承，然后增加一些扩展字段
 

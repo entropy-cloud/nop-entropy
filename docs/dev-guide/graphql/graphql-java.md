@@ -84,9 +84,9 @@ NopGraphQL引擎在构造BizObject的时候还会检查xbiz扩展模型，我们
 操作往往是不同的业务对象中相似度最高的部分，因此有必要对它们进行统一抽象。NopGraphQL使用设计模式中的模板方法(Template
 Method)模式提供了通用的CRUD实现：CrudBizModel。具体使用方法是从CrudBizModel类继承，然后可以通过实现defaultPrepareSave/afterEntityChange等函数补充定制逻辑。参见代码
 
-[CrudBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/crud/CrudBizModel.java)
+[CrudBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core-framework/nop-biz/src/main/java/io/nop/biz/crud/CrudBizModel.java)
 
-[ObjMetaBasedValidator.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/crud/ObjMetaBasedValidator.java)
+[ObjMetaBasedValidator.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core-framework/nop-biz/src/main/java/io/nop/biz/crud/ObjMetaBasedValidator.java)
 
 [NopAuthUserBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/entity/NopAuthUserBizModel.java)
 
@@ -235,7 +235,7 @@ filter对应于后台的TreeBean类型的对象，这是一个通用的Tree结�
 }
 ```
 
-过滤条件中所支持的运算符如eq,gt等，都是[FilterOp.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java)
+过滤条件中所支持的运算符如eq,gt等，都是[FilterOp.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java)
 中定义的操作符。
 重用的算符有：
 
@@ -556,7 +556,7 @@ public class DevDocBizModel {
 }
 ```
 
-完整实现参考[DevDocBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/dev/DevDocBizModel.java)
+完整实现参考[DevDocBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core-framework/nop-biz/src/main/java/io/nop/biz/dev/DevDocBizModel.java)
 
 ## 在XBiz模型中定义Loader
 

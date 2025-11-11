@@ -2,7 +2,7 @@
 
 Nop平台内置了命令行程序支持，只要注册ICommand接口的bean，就可以通过命令行指令直接调用。执行完指令后会直接推出应用
 
-## 1. 注册[ICommand](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/command/ICommand.java)接口的实现类，bean的名称为nopCommand\_xxx
+## 1. 注册[ICommand](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/command/ICommand.java)接口的实现类，bean的名称为nopCommand\_xxx
 
 ```
   <bean id="nopCommand_test" class="test.TestCommand" />

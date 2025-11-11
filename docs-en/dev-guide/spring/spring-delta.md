@@ -86,7 +86,7 @@ In a customization file under the delta directory, we can use `x:extends="super"
 
 Based on the Nop platform, Spring can be adapted as follows:
 
-1. Add the [beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef) meta-model definition to specify how two nodes are Delta-merged
+1. Add the [beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef) meta-model definition to specify how two nodes are Delta-merged
 2. Add NopBeansRegistrar, which uses the Nop platform’s DSL file loader to load beans files
 
 ```java

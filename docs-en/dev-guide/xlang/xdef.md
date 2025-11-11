@@ -51,7 +51,7 @@ First, we can see that the XDef meta-model and the model it describes are in a h
 All attributes in xdef files (excluding built-in attributes in the `xdef` and `x` namespaces) have values of type `def-type`. Its format is `(!~#)?{stdDomain}:{options}={defaultValue}`.
 
 * `!` indicates a required attribute, `~` indicates an internal or deprecated attribute, and `#` indicates a compile-time expression can be used.
-* `stdDomain` is a constraint stricter than a data type, e.g., `stdDomain=email`. See the dictionary definition [core/std-domain](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/dict/core/std-domain.dict.yaml).
+* `stdDomain` is a constraint stricter than a data type, e.g., `stdDomain=email`. See the dictionary definition [core/std-domain](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/resources/_vfs/dict/core/std-domain.dict.yaml).
 * Some `def-type` definitions require `options` parameters, e.g., `enum:xxx.yyy`, where `options` sets the specific dictionary name.
 * A default value can be specified for attributes.
 
@@ -60,10 +60,10 @@ All attributes in xdef files (excluding built-in attributes in the `xdef` and `x
 The meta-model must be introduced via the `x:schema` attribute on the XML root node. For example, `x:schema="/nop/schema/my-wf.xdef"` indicates the model is constrained by the `my-wf.xdef` meta-model.
 
 All DSL languages in the Nop platform share some common attributes and child nodes, effectively introducing a common syntax for all DSLs; the `x:schema` attribute is part of this common syntax. These common syntaxes are defined in the `xdsl.xdef` meta-model, so we specify on the root node `xmlns:x="/nop/schema/xdsl.xdef"` to indicate that the `x` namespace corresponds to the DSL common syntax space. For details, see
-[xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef) and
+[xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef) and
 [XDSL: General-Purpose Domain-Specific Language Design](https://zhuanlan.zhihu.com/p/612512300).
 
-The XDef meta-model definition language is powerful enough to describe the XDef meta-model itself; see [xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef).
+The XDef meta-model definition language is powerful enough to describe the XDef meta-model itself; see [xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef).
 
 In the meta-meta model definition file `xdef.xdef`, the `xdef` namespace must be treated as an ordinary attribute namespace and cannot be interpreted as XDef meta attributes, so we add the attribute definition `xmlns:meta="/nop/schema/xdef.xdef"` on the root node and use the `meta` namespace to express meta attributes.
 

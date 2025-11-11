@@ -77,9 +77,9 @@ The capability dual to Gather is Scatter: we often need abstractions for global 
 
 In typical business development, CRUD (Create/Read/Update/Delete) operations are the most similar parts across different business objects, making it worthwhile to abstract them uniformly. NopGraphQL uses the Template Method design pattern to provide a generic CRUD implementation: CrudBizModel. You inherit from the CrudBizModel class and can add custom logic by implementing methods such as defaultPrepareSave and afterEntityChange. See:
 
-[CrudBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/crud/CrudBizModel.java)
+[CrudBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core-framework/nop-biz/src/main/java/io/nop/biz/crud/CrudBizModel.java)
 
-[ObjMetaBasedValidator.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/crud/ObjMetaBasedValidator.java)
+[ObjMetaBasedValidator.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core-framework/nop-biz/src/main/java/io/nop/biz/crud/ObjMetaBasedValidator.java)
 
 [NopAuthUserBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/entity/NopAuthUserBizModel.java)
 
@@ -224,7 +224,7 @@ Corresponding JSON:
 }
 ```
 
-Supported filter operators such as eq and gt are defined in [FilterOp.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java).
+Supported filter operators such as eq and gt are defined in [FilterOp.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java).
 Common operators include:
 
 | Operator      | Description                     |
@@ -532,7 +532,7 @@ public class DevDocBizModel {
 }
 ```
 
-See the full implementation in [DevDocBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/dev/DevDocBizModel.java)
+See the full implementation in [DevDocBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core-framework/nop-biz/src/main/java/io/nop/biz/dev/DevDocBizModel.java)
 
 ## Defining Loaders in XBiz Models
 

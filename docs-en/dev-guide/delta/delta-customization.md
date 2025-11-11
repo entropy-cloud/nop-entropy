@@ -234,7 +234,7 @@ Beyond overriding bean configurations, we can remove bean configurations via del
     <bean id="nopDataSource" x:override="remove" />
 ```
 
-See the specific configuration in [dao-defaults.beans.xml under the delta directory](https://gitee.com/canonical-entropy/nop-for-ruoyi/blob/master/ruoyi-admin/src/main/resources/_vfs/_delta/default/nop/dao/beans/dao-defaults.beans.xml).
+See the specific configuration in [dao-defaults.beans.xml under the delta directory](https://gitee.com/canonical-entropy/nop-entropy/blob/master).
 
 Delta customization is simple and intuitive—**it applies to all model files and can customize down to the finest granularity of individual properties.** Compared to the equivalent in Spring Boot, we find notable limitations in Spring Boot’s customization: first, to implement Bean exclusion and Bean override, Spring must add a lot of processing code in the engine and introduces many special usage patterns. Second, Spring’s customization mechanisms target single-bean configurations (e.g., disabling a bean) but lack suitable means to customize individual properties. Without good upfront planning, it’s hard to override existing bean definitions across the system in a simple way.
 
@@ -295,7 +295,7 @@ By customizing these two model files, we can adjust form layouts, set display co
 
 ## 3.6 Delta Customization of Tag Functions
 
-The Nop platform extensively uses the Xpl template language for code generation and meta-programming, and all script execution areas in executable models (such as workflow models) use Xpl. The Xpl template language has a tag library mechanism to encapsulate functions (each tag is akin to a static function). Tag library `.xlib` files can be customized via Delta. For example, we can customize [control.xlib](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-app/src/main/resources/_vfs/_delta/default/nop/web/xlib/control.xlib) to adjust the default display controls for field types, or customize [ddl.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/ddl/ddl_mysql.xlib) to fix SQL syntax in create-table statements for a specific database version.
+The Nop platform extensively uses the Xpl template language for code generation and meta-programming, and all script execution areas in executable models (such as workflow models) use Xpl. The Xpl template language has a tag library mechanism to encapsulate functions (each tag is akin to a static function). Tag library `.xlib` files can be customized via Delta. For example, we can customize [control.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master) to adjust the default display controls for field types, or customize [ddl.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/resources/_vfs/nop/orm/xlib/ddl/ddl_mysql.xlib) to fix SQL syntax in create-table statements for a specific database version.
 
 ## 3.7 Delta Customization of Rule Models, Report Models, etc.
 
@@ -303,7 +303,7 @@ All models in the Nop platform—workflow models, report models, rule models, et
 
 Unlike typical report engines and workflow engines, Nop engines extensively use the Xpl template language as the executable script, allowing custom tag libraries for extension. For instance, typical report engines might offer built-in data loading mechanisms such as JDBC/CSV/JSON/Excel. If we want to add a new loading method, we typically need to implement specialized interfaces built into the engine and register them using special mechanisms; modifying the visual designer to support custom configurations is generally non-trivial.
 
-In the `NopReport` model, we provide an Xpl template section named `beforeExecute`, which acts as an extension point based on a universal interface ([IEvalAction](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/lang/eval/IEvalAction.java)). In `beforeExecute`, we can introduce a new data loading mechanism as follows:
+In the `NopReport` model, we provide an Xpl template section named `beforeExecute`, which acts as an extension point based on a universal interface ([IEvalAction](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/lang/eval/IEvalAction.java)). In `beforeExecute`, we can introduce a new data loading mechanism as follows:
 
 ```xml
 <beforeExecute>

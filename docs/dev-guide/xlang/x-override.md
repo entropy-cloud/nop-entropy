@@ -25,7 +25,7 @@
 `entity`节点下只允许一个`comment`子节点，以及一个`columns`子节点，所以合并的时候，这两个子节点都是按照名称进行合并。然后递归处理这两个子节点的合并情况时，
 按照XDef元模型中的定义，`columns`的子节点是允许重复的，所以它将按照`name`这一唯一标识属性进行合并。在上面的例子中，`phone3`字段的`label`属性会被定制配置自动覆盖。
 
-`x:override`的所有值都在[XDefOverride](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/xdef/XDefOverride.java)类中定义。
+`x:override`的所有值都在[XDefOverride](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdef/XDefOverride.java)类中定义。
 
 我们常用的合并模式有如下几种：
 

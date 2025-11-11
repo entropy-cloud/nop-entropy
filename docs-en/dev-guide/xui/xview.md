@@ -97,7 +97,7 @@ Many generated nodes are marked with `x:abstract="true"`, indicating the node is
 
 ### Basic Grid Configuration
 
-For specific configuration options, see the [grid.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/grid.xdef) meta-model definition.
+For specific configuration options, see the [grid.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/grid.xdef) meta-model definition.
 
 #### 1. Control which fields the list displays, and their order
 
@@ -125,7 +125,7 @@ For specific configuration options, see the [grid.xdef](https://gitee.com/canoni
 
 #### 3. Specify explicit control
 
-By default, the display control for grid fields is determined by the field type and the `editMode` specified on the grid. The specific controls used are defined in [control.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-web/src/main/resources/_vfs/nop/web/xlib/control.xlib).
+By default, the display control for grid fields is determined by the field type and the `editMode` specified on the grid. The specific controls used are defined in [control.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/control.xlib).
 
 If you need to explicitly specify the display control, use `gen-control`:
 
@@ -145,7 +145,7 @@ If you need to explicitly specify the display control, use `gen-control`:
 
 For the DSL used for form layouts, see [layout.md](layout.md).
 
-Form configuration options are defined in the [form.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/form.xdef) meta-model.
+Form configuration options are defined in the [form.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/form.xdef) meta-model.
 
 ## Common Feature Configurations
 
@@ -247,7 +247,7 @@ All supported filter operators are defined in the `FilterOp.java` class. Common 
 
 ### 7. Click a button to open a dialog, complete the form, execute a backend operation, close the dialog, and refresh the original page
 
-See [LitemallGoods.view.xml](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/LitemallGoods.view.xml)
+See [LitemallGoods.view.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master)
 
 ```xml
 <crud name="role-users" grid="simple-list">

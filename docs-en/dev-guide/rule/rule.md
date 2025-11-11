@@ -115,7 +115,7 @@ Configure rule evaluation expressions (RuleExpr) in input-column cells. Its synt
 3. A numeric literal indicates strict equality match
 4. A quoted string literal indicates strict equality match
 5. A lone identifier is not interpreted as a variable but as a string literal. To compare against a variable, use the form == myVar
-6. Comparison operators and and/or/not are supported, as are parentheses. All supported comparison operators are defined in the [FilterOp](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java) class
+6. Comparison operators and and/or/not are supported, as are parentheses. All supported comparison operators are defined in the [FilterOp](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java) class
 7. All global functions registered in XScript are supported
 
 ## Auto-Executed Functions After Rule Matching
@@ -160,7 +160,7 @@ Within the overall design of the Nop platform, NopRule abstracts complex evaluat
 
 ## 3.1 Filter Model
 
-The filter model is defined by the [filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef) meta-model and describes complex and/or conditions
+The filter model is defined by the [filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef) meta-model and describes complex and/or conditions
 
 ```xml
 <and>
@@ -174,20 +174,20 @@ The filter model is defined by the [filter.xdef](https://gitee.com/canonical-ent
 
 1. The Nop platform consistently uses the Filter model wherever conditional logic must be expressed; in Java this corresponds to the ITreeBean type
 2. With bidirectional XML/JSON conversion, Filter models can be stored in XML or JSON
-3. Advanced queries in the Nop platform use the Filter model, which the backend converts to SQL via the [FilterBeanToSQLTransformer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/lang/sql/FilterBeanToSQLTransformer.java) class
-4. The frontend AMIS ConditionBuilder control persists complex conditions as Condition objects. [ConditionExprHelper](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-web-page/src/main/java/io/nop/web/page/condition/ConditionExprHelper.java) performs bidirectional conversion between Condition and the Filter model.
+3. Advanced queries in the Nop platform use the Filter model, which the backend converts to SQL via the [FilterBeanToSQLTransformer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/lang/sql/FilterBeanToSQLTransformer.java) class
+4. The frontend AMIS ConditionBuilder control persists complex conditions as Condition objects. [ConditionExprHelper](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-frontend-support/nop-web-page/src/main/java/io/nop/web/page/condition/ConditionExprHelper.java) performs bidirectional conversion between Condition and the Filter model.
 5. The Filter model can be compiled into an IEvalPredicate via [FilterBeanToPredicateTransformer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rule/nop-rule-core/src/main/java/io/nop/rule/core/model/compile/FilterBeanToPredicateTransformer.java) to execute filtering logic directly in memory,
-6. Filter models can also be executed in memory via [FilterBeanEvaluator](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/model/query/FilterBeanEvaluator.java)
-7. The Filter model and the Expression language support reversible conversion via [FilterBeanExpressionCompiler](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/xpl/tags/FilterBeanExpressionCompiler.java) and [ExpressionToFilterBeanTransformer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/expr/filter/ExpressionToFilterBeanTransformer.java)
+6. Filter models can also be executed in memory via [FilterBeanEvaluator](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/model/query/FilterBeanEvaluator.java)
+7. The Filter model and the Expression language support reversible conversion via [FilterBeanExpressionCompiler](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/tags/FilterBeanExpressionCompiler.java) and [ExpressionToFilterBeanTransformer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/expr/filter/ExpressionToFilterBeanTransformer.java)
 
 ## 3.2 Schema Model
 
-Wherever an object type needs to be defined, the Nop platform uniformly uses the schema model, defined by the meta-model [schema.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/schema.xdef).
+Wherever an object type needs to be defined, the Nop platform uniformly uses the schema model, defined by the meta-model [schema.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/schema.xdef).
 
 1. XDef meta-models and Schema models can be converted to each other. XDef defines XML structures, while Schema defines objects and JSON structures.
-2. [SimpleSchemaValidator](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/xmeta/SimpleSchemaValidator.java) can verify whether a value conforms to the schema constraints
-3. [XSchemaToJsonSchema](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/xmeta/jsonschema/XSchemaToJsonSchema.java) converts schema objects into JSON Schema definitions
-4. [ConditionSchemaHelper](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-web-page/src/main/java/io/nop/web/page/condition/ConditionSchemaHelper.java) transforms input-variable definitions from the rule model into schema definitions supported by the frontend ConditionBuilder control.
+2. [SimpleSchemaValidator](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xmeta/SimpleSchemaValidator.java) can verify whether a value conforms to the schema constraints
+3. [XSchemaToJsonSchema](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xmeta/jsonschema/XSchemaToJsonSchema.java) converts schema objects into JSON Schema definitions
+4. [ConditionSchemaHelper](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-frontend-support/nop-web-page/src/main/java/io/nop/web/page/condition/ConditionSchemaHelper.java) transforms input-variable definitions from the rule model into schema definitions supported by the frontend ConditionBuilder control.
 
 ## 3.3 Excel Data Model
 

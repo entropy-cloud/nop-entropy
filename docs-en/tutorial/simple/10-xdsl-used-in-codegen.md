@@ -109,7 +109,7 @@ One point to note is that the DSL file format corresponding to ExcelWorkbook is 
 
 The Nop platform extensively uses models to express requirements: for example, using data models to define database schema and API models to define backend service interfaces. These models can be expressed as DSLs in XML format. However, XML is a language more familiar to technical staff, while business users are more familiar with Excel. If business users can directly edit and view model information in Excel, requirement documents can serve directly as inputs to the code generation tool, ensuring that models and code remain consistent forever.
 
-The Nop platform provides a general-purpose [ImportExcelParser](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-excel/src/main/java/io/nop/excel/imp/ImportExcelParser.java) that can automatically parse an ExcelWorkbook into a model object according to an ImportModel configuration. During parsing, detailed field validation is performed and complex transformation logic can be executed; if an error is found, it will indicate the exact cell and the reason for the error.
+The Nop platform provides a general-purpose [ImportExcelParser](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-format/nop-excel/src/main/java/io/nop/excel/imp/ImportExcelParser.java) that can automatically parse an ExcelWorkbook into a model object according to an ImportModel configuration. During parsing, detailed field validation is performed and complex transformation logic can be executed; if an error is found, it will indicate the exact cell and the reason for the error.
 
 ![](images/excel-to-obj.png)
 

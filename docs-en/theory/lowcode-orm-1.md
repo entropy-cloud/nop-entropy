@@ -84,7 +84,7 @@ limit 3 offset 2
 
 In NopOrm, both SQL and EQL execution are abstracted into a unified interface ISqlExecutor, and their results are wrapped as IDataSet (a replacement for JDBC’s ResultSet). The only difference at the usage level is that EQL result fields may be objects or object collections, not just atomic data types. See:
 
-[ISqlExecutor](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-dao/src/main/java/io/nop/dao/api/ISqlExecutor.java)
+[ISqlExecutor](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-dao/src/main/java/io/nop/dao/api/ISqlExecutor.java)
 
 EQL’s extensions to SQL only involve two places:
 
@@ -196,11 +196,11 @@ let x = entity.examScoreScale;
 
 In NopOrm’s entity model definition, you can specify different persistDriver for each entity type. For example, persistDriver="elasticSearch" indicates that ElasticSearchEntityPersistDriver will be used to persist the entity. It corresponds to the ORM engine’s IEntityPersistDriver interface and supports batch and asynchronous persistence.
 
-[IEntityPersistDriver](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/driver/IEntityPersistDriver.java)
+[IEntityPersistDriver](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/IEntityPersistDriver.java)
 
 Meanwhile, for single-entity queries, NopOrm provides unified encapsulation via the IEntityDao.findPage(QueryBean) function. If the PersistDriver implements the IEntityDaoExtension interface, the application layer can use the complex query capabilities provided by the underlying driver through the IEntityDao interface.
 
-[IEntityDao](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-dao/src/main/java/io/nop/dao/api/IEntityDao.java)
+[IEntityDao](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-dao/src/main/java/io/nop/dao/api/IEntityDao.java)
 
 Another extension approach is to store JSON strings in text columns in the relational database, and parse the JSON into a Map at use time. For example:
 

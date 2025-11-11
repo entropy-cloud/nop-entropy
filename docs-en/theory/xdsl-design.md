@@ -27,13 +27,13 @@ The value of a DSL lies in the domain semantic space it abstracts with business 
 
 * On the root node of the model file, we use `x:schema` to specify the metamodel definition file.
 
-* [orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef) uses [xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef), a meta-metamodel, to define itself.
+* [orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef) uses [xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef), a meta-metamodel, to define itself.
 
 * xdef.xdef is defined using xdef.xdef itself, so we do not need a higher-level meta-meta-metamodel.
 
 ### A unified metamodel language facilitates seamless nesting among DSLs
 
-In the Nop platform, many DSL metamodel definitions reference other already-defined DSL models. For example, both [api.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/api.xdef) and [xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef) reference the already defined [schema.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/schema.xdef).
+In the Nop platform, many DSL metamodel definitions reference other already-defined DSL models. For example, both [api.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/api.xdef) and [xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef) reference the already defined [schema.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/schema.xdef).
 
 Different DSLs using the same type definitions also makes it easy to reuse the same visual design components, conversion tools, validation rules, etc.
 
@@ -45,7 +45,7 @@ Based on the metamodel, we can also automatically derive visual designers, witho
 
 ## III. All DSLs must provide decomposition and merging mechanisms
 
-Once a DSL file becomes sufficiently complex, you inevitably need mechanisms like decomposition, merging, and library abstraction to manage complexity. XDSL defines a standardized Delta syntax; see [xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef).
+Once a DSL file becomes sufficiently complex, you inevitably need mechanisms like decomposition, merging, and library abstraction to manage complexity. XDSL defines a standardized Delta syntax; see [xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef).
 
 ```xml
 <meta x:extends="_NopAuthUser.xmeta"
@@ -121,7 +121,7 @@ For a theoretical analysis, see [Designing low-code platforms from the perspecti
 
 XDSL model object properties are not fixed at development time; they generally inherit from the AbstractComponentModel base class and support the addition of arbitrary extension properties. In specific business applications, we can choose to inherit from existing metamodels and add business-specific extension properties.
 
-For example, the platform has a built-in metamodel [xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef).
+For example, the platform has a built-in metamodel [xmeta.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xmeta.xdef).
 
 We can define a xmeta-ext.xdef metamodel that inherits from xmeta.xdef and adds some extension fields:
 

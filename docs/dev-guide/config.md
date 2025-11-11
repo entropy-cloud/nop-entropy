@@ -28,7 +28,7 @@
 
 >
 
-具体配置加载逻辑全部集中在[ConfigStarter.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-config/src/main/java/io/nop/config/starter/ConfigStarter.java)
+具体配置加载逻辑全部集中在[ConfigStarter.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core-framework/nop-config/src/main/java/io/nop/config/starter/ConfigStarter.java)
 类中
 
 * **在bootstrap.yaml或者application.yaml中可以配置nop.profile=dev来启用application-dev.yaml配置，类似于spring中的profile概念。**

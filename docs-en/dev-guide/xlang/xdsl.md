@@ -8,9 +8,9 @@ The value of a DSL lies in distilling domain-specific logical relationships and 
 
 > Lisp does exactly this by directly using a general S-Expr to represent the AST, making it easy to define custom DSLs via macros. A similar effect can be achieved based on XML syntax, especially since XML tags can represent template functions that dynamically generate new XML nodes, serving a role similar to Lisp macros (both the code and the generated result are XML nodes, corresponding to what Lisp calls homoiconicity: https://zhuanlan.zhihu.com/p/34063805).
 
-We use the XDef meta-model definition language to constrain the syntax structure of a DSL, for example [beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef). Compared with XML Schema or JSON Schema, XDef definitions are simpler and more intuitive, while expressing more complex constraints. For details on the XDef language, see [xdef.md](xdef.md)
+We use the XDef meta-model definition language to constrain the syntax structure of a DSL, for example [beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef). Compared with XML Schema or JSON Schema, XDef definitions are simpler and more intuitive, while expressing more complex constraints. For details on the XDef language, see [xdef.md](xdef.md)
 
-> All DSLs in the Nop platform are defined using the XDef language, including workflow, reporting, IoC, ORM, etc. The definition files are uniformly stored in the [nop-xdefs module](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-xdefs/src/main/resources/_vfs/nop/schema).
+> All DSLs in the Nop platform are defined using the XDef language, including workflow, reporting, IoC, ORM, etc. The definition files are uniformly stored in the [nop-xdefs module](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema).
 
 ![](xml-to-json.png)
 
@@ -20,7 +20,7 @@ In the absence of an XDef meta-model, the Nop platform also defines a compact, c
 
 ## II. XDSL Common Syntax
 
-After unifying all DSLs to XML format, we can uniformly provide advanced mechanisms such as module decomposition, Delta merging, and metaprogramming. The Nop platform defines a unified XDSL extension syntax that automatically adds Reversible Computation extension syntax to all DSLs defined via XDef meta-models. The specific XDSL syntax is defined by the meta-model [xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef).
+After unifying all DSLs to XML format, we can uniformly provide advanced mechanisms such as module decomposition, Delta merging, and metaprogramming. The Nop platform defines a unified XDSL extension syntax that automatically adds Reversible Computation extension syntax to all DSLs defined via XDef meta-models. The specific XDSL syntax is defined by the meta-model [xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef).
 
 The main syntactic elements of XDSL are exemplified as follows:
 
@@ -153,7 +153,7 @@ In the Nop platform, countersignature nodes commonly seen in OA approvals are im
 
 ### Executable Semantics
 
-XDSL uses the XLang language to implement executable semantics. As long as an attribute is annotated as an EL expression in the xdef meta-model, or a node’s content is annotated as the XPL template language, the attribute will be automatically parsed into the IEvalAction executable function interface. For a specific example, see [wf.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef)
+XDSL uses the XLang language to implement executable semantics. As long as an attribute is annotated as an EL expression in the xdef meta-model, or a node’s content is annotated as the XPL template language, the attribute will be automatically parsed into the IEvalAction executable function interface. For a specific example, see [wf.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef)
 
 ```xml
  <action name="!string" >
@@ -200,6 +200,6 @@ Any XML or JSON can be automatically adapted into XDSL. For example, since the f
 }
 ```
 
-For which syntactic attributes XDSL uses specifically, see the [xdsl.xdef meta-model definition](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef).
+For which syntactic attributes XDSL uses specifically, see the [xdsl.xdef meta-model definition](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef).
 For an introduction to the x:override merge operator, see [x-override.md](x-override.md)
 <!-- SOURCE_MD5:39fa9181a168b1caca0aedc675674d99-->

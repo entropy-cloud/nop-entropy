@@ -517,7 +517,7 @@ XPL内置了一些通用属性，所有标签都可以指定这些属性。xpl�
   </biz:WhenAdmin>
 ```
 
-Xpl语言所内置的所有属性，完整定义在[xpl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xpl.xdef)文件中
+Xpl语言所内置的所有属性，完整定义在[xpl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xpl.xdef)文件中
 
 ## 装饰器decorator
 

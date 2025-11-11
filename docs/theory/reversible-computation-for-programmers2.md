@@ -22,9 +22,9 @@
 
 **为了得到一种稳定的、具有明确业务语义的函数差量化表示形式，我们必须要在领域专用的模型空间中实现对函数的定义**。具体来说，我们可以将函数分解为多个步骤，然后为每个步骤分配一个唯一id等等。在Nop平台中，我们定义了两种可以实现分布式异步调用函数的差量化逻辑表达形式。
 
-1. **基于堆栈结构的TaskFlow**。每一个步骤执行完毕之后缺省会自动执行下一个兄弟节点，而当所有的子节点都执行完毕之后会返回父节点继续执行。在运行时，可以按照父子节点关系查找到每个节点当前持有的状态数据，相当于是构成一个堆栈空间。通过引入外部持久化存储，TaskFlow可以实现类似程序语言中的[Continuation机制](https://www.zhihu.com/question/61222322/answer/564847803)：即某个步骤执行时可以将整个流程或者流程的一个分支挂起，然后外部程序可以调用TaskFlow的continueWith函数，从挂起的步骤继续执行。TaskFlow的XDef元模型参见[task.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)
+1. **基于堆栈结构的TaskFlow**。每一个步骤执行完毕之后缺省会自动执行下一个兄弟节点，而当所有的子节点都执行完毕之后会返回父节点继续执行。在运行时，可以按照父子节点关系查找到每个节点当前持有的状态数据，相当于是构成一个堆栈空间。通过引入外部持久化存储，TaskFlow可以实现类似程序语言中的[Continuation机制](https://www.zhihu.com/question/61222322/answer/564847803)：即某个步骤执行时可以将整个流程或者流程的一个分支挂起，然后外部程序可以调用TaskFlow的continueWith函数，从挂起的步骤继续执行。TaskFlow的XDef元模型参见[task.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)
 
-2. **基于图结构的Workflow**。工作流模型可以描述大数据处理领域常见的DAG有向无环图，也可以描述办公自动化领域带回退、循环功能的审批流程图。工作流完全依赖于to-next步骤迁移规则来指定下一个待执行的步骤。同时，因为工作流的步骤之间完全平级，没有嵌套关系（子流程除外），所以在流程挂起之后，可以从任意一个步骤重新开始执行，在Workflow中实现Continuation机制要更加简单。Workflow的XDef元模型参见[wf.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef)
+2. **基于图结构的Workflow**。工作流模型可以描述大数据处理领域常见的DAG有向无环图，也可以描述办公自动化领域带回退、循环功能的审批流程图。工作流完全依赖于to-next步骤迁移规则来指定下一个待执行的步骤。同时，因为工作流的步骤之间完全平级，没有嵌套关系（子流程除外），所以在流程挂起之后，可以从任意一个步骤重新开始执行，在Workflow中实现Continuation机制要更加简单。Workflow的XDef元模型参见[wf.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef)
 
 ```xml
 <task x:extends="send-order.task.xml">

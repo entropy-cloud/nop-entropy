@@ -47,7 +47,7 @@ Nop平台的后端服务使用NopGraphQL引擎实现。NopGraphQL引擎没有使
 
 * nop-orm实现了一个包含Hibernate和MyBatis所有核心功能的ORM引擎
 
-* nop-biz中的[BizObjectManager](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/impl/BizObjectManager.java)提供了[IGraphQLSchemaLoader](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/schema/IGraphQLSchemaLoader.java)接口的实现，将GraphQL调用映射到BizModel的方法上。这个过程类似于REST框架将URL链接映射到Controler类的方法上，具体参见[graphql-java.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/graphql/graphql-java.md)。nop-biz模块内置了[CRUD服务](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/crud/CrudBizModel.java)和[字典表服务](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/dict/DictProviderBizModel.java)。
+* nop-biz中的[BizObjectManager](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core-framework/nop-biz/src/main/java/io/nop/biz/impl/BizObjectManager.java)提供了[IGraphQLSchemaLoader](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/schema/IGraphQLSchemaLoader.java)接口的实现，将GraphQL调用映射到BizModel的方法上。这个过程类似于REST框架将URL链接映射到Controler类的方法上，具体参见[graphql-java.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/graphql/graphql-java.md)。nop-biz模块内置了[CRUD服务](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core-framework/nop-biz/src/main/java/io/nop/biz/crud/CrudBizModel.java)和[字典表服务](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core-framework/nop-biz/src/main/java/io/nop/biz/dict/DictProviderBizModel.java)。
 
 * nop-biz通过nop-fsm内置了有限自动机机制，可以描述某些简单的业务流程
 
@@ -61,7 +61,7 @@ Nop平台在GraphQL引擎的基础上建立了分布式RPC机制，参见[rpc-de
 
 * nop-cluster-core提供了负载均衡、服务发现、Leader选举等集群相关的支持机制
 
-* nop-rpc-http将[IHttpClient](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-http/nop-http-api/src/main/java/io/nop/http/api/client/IHttpClient.java)接口封装成了IRpcService接口（RPC服务的内部实现接口）
+* nop-rpc-http将[IHttpClient](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-http/nop-http-api/src/main/java/io/nop/http/api/client/IHttpClient.java)接口封装成了IRpcService接口（RPC服务的内部实现接口）
 
 * nop-rpc-cluster提供了广播式RPC调用和负载均衡RPC调用
 

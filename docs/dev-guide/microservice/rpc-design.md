@@ -165,7 +165,7 @@ NopGraphQL引擎本质上采用的是框架中立的设计，相当于是针对P
 
 ## 2.2 RPC over Message Queue
 
-很多RPC框架在实现层面都会引入大量内部接口，这些接口仅对该RPC框架有意义，无法在RPC框架之外作为一般应用接口来使用。NopRPC非常强调概念层面的抽象性和通用性，提供了[MessageRpcClient](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/message/MessageRpcClient.java)和[MessageRpcServer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/message/MessageRpcServer.java)等缺省实现，可以在任意消息队列的基础上建立RPC调用机制。
+很多RPC框架在实现层面都会引入大量内部接口，这些接口仅对该RPC框架有意义，无法在RPC框架之外作为一般应用接口来使用。NopRPC非常强调概念层面的抽象性和通用性，提供了[MessageRpcClient](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/message/MessageRpcClient.java)和[MessageRpcServer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/message/MessageRpcServer.java)等缺省实现，可以在任意消息队列的基础上建立RPC调用机制。
 消息队列在Nop平台中的定位就是单向信息发送，它的核心抽象接口如下：
 
 ```java
@@ -203,9 +203,9 @@ interface IMessageService{
 
 这个消息队列的实现非常通用。比如说[nop-rpc-simple](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-rpc/nop-rpc-simple)模块将Socket信道抽象为IMessageService服务，实现了基于TCP进行简单RPC调用的机制。此外我们还可以基于Kafka或者Pulsar等消息队列实现RPC，或者利用Redis的PUB/SUB机制来实现。
 
-**再次强调一下[IMessageService](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-api-core/src/main/java/io/nop/api/core/message/IMessageService.java)是Nop平台在应用层提供的对消息服务的统一抽象接口，并不是专为RPC内部实现所设计的一种专用接口**。
+**再次强调一下[IMessageService](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-api-core/src/main/java/io/nop/api/core/message/IMessageService.java)是Nop平台在应用层提供的对消息服务的统一抽象接口，并不是专为RPC内部实现所设计的一种专用接口**。
 
-NopRPC这一双向信息交互抽象可以建筑在单向的消息流抽象之上，有趣的是，我们也可以反过来，基于IRpcService抽象来提供IMessageService接口的实现。具体参见 [RpcMessageSender,java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/message/RpcMessageSender.java)和[RpcMessageSubscriber.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/message/RpcMessageSubscriber.java)。这种我中有你，你中有我的现象在数学推理中非常常见，它体现出IRpcService和IMessageService都是某种类似数学概念的通用抽象。
+NopRPC这一双向信息交互抽象可以建筑在单向的消息流抽象之上，有趣的是，我们也可以反过来，基于IRpcService抽象来提供IMessageService接口的实现。具体参见 [RpcMessageSender,java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/message/RpcMessageSender.java)和[RpcMessageSubscriber.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/message/RpcMessageSubscriber.java)。这种我中有你，你中有我的现象在数学推理中非常常见，它体现出IRpcService和IMessageService都是某种类似数学概念的通用抽象。
 
 基于这种通用抽象，NopRPC的实现非常简洁、通用，而很多RPC框架的实现都和底层的Netty交换信道深度绑定，无法轻易应用到新的交换信道上。
 
@@ -298,7 +298,7 @@ interface MyEntityService{
 
 > 如果cancelMethod中没有包含对象名，则表示调用当前业务对象上的方法。
 
-具体cancelMethod的调用逻辑可以参见[CancellableRpcClient.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/composite/CancellableRpcClient.java)
+具体cancelMethod的调用逻辑可以参见[CancellableRpcClient.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/composite/CancellableRpcClient.java)
 
 除了cancelMethod之外，RpcMethod注解还支持配置pollingMethod。
 
@@ -312,11 +312,11 @@ interface MyEntityService{
 
 如果配置了pollingMethod，则当执行RPC方法之后不会立刻返回，而是不断调用pollingMethod对应的远程服务，直到返回结果信息。
 
-具体pollingMethod的处理逻辑参见 [PollingRpcClient.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/composite/PollingRpcClient.java)
+具体pollingMethod的处理逻辑参见 [PollingRpcClient.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/composite/PollingRpcClient.java)
 
 ## 四. 上下文传播
 
-在微服务架构下，一次业务操作可能会产生多个相关联的RPC调用，必须要建立一种自动的上下文传播机制，将一些共享的信息从上游的服务传播到下游的服务。在NopRPC的具体实现中[ContextBinder](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-api/src/main/java/io/nop/rpc/api/ContextBinder.java)负责将ApiRequest的部分header信息复制到异步上下文对象IContext上，而[ClientContextRpcServiceInterceptor](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/interceptors/ClientContextRpcServiceInterceptor.java)负责将IContext上的信息传播到下游的ApiRequest的headers中。
+在微服务架构下，一次业务操作可能会产生多个相关联的RPC调用，必须要建立一种自动的上下文传播机制，将一些共享的信息从上游的服务传播到下游的服务。在NopRPC的具体实现中[ContextBinder](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-rpc/nop-rpc-api/src/main/java/io/nop/rpc/api/ContextBinder.java)负责将ApiRequest的部分header信息复制到异步上下文对象IContext上，而[ClientContextRpcServiceInterceptor](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/interceptors/ClientContextRpcServiceInterceptor.java)负责将IContext上的信息传播到下游的ApiRequest的headers中。
 
 缺省情况下，以下header会自动跨系统传播
 
@@ -347,7 +347,7 @@ NopRPC的nop-timeout消息头表示的是整个RPC调用的超时时间，因此
 
 ![](api-model.png)
 
-在RPC的实现层面，我们也可以直接生成对[TaskFlow](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)或者[Workflow](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef)模型的调用，通过可视化编配来实现业务功能。
+在RPC的实现层面，我们也可以直接生成对[TaskFlow](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)或者[Workflow](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef)模型的调用，通过可视化编配来实现业务功能。
 
 ## 六. 关于Dubbo的设计
 

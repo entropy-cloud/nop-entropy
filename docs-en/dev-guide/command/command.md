@@ -2,7 +2,7 @@
 
 The Nop platform has built-in support for command-line programs. As long as you register a bean that implements the ICommand interface, you can invoke it directly via command-line instructions. The application will exit immediately after the command finishes.
 
-## 1. Register an implementation class of the [ICommand](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/command/ICommand.java) interface, with the bean name nopCommand\_xxx
+## 1. Register an implementation class of the [ICommand](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/command/ICommand.java) interface, with the bean name nopCommand\_xxx
 
 ```
   <bean id="nopCommand_test" class="test.TestCommand" />

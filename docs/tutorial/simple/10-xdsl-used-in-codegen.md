@@ -109,7 +109,7 @@ DslModelHelper.saveDslModel("/nop/schema/excel/workbook.xdef",
 
 Nop平台大量使用模型来表达需求信息，比如使用数据模型来定义数据库结构，使用API模型来定义后台服务接口等，这些模型都可以用XML格式的DSL来表达。但是XML是一种技术人员比较熟悉的语言，业务人员更熟悉的是Excel，如果能够让业务人员在Excel中直接编辑和查看模型信息，就可以直接将需求文档作为代码生成工具的输入，确保模型永远和代码保持一致。
 
-Nop平台提供了一个通用的[ImportExcelParser](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-excel/src/main/java/io/nop/excel/imp/ImportExcelParser.java)，它可以根据`ImportModel`导入模型配置来自动解析ExcelWorkbook得到模型对象。解析的过程中会进行细致的字段验证，并且可以执行复杂的转换逻辑，如果发现错误会提示具体是哪个单元格因为什么原因报错。
+Nop平台提供了一个通用的[ImportExcelParser](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-format/nop-excel/src/main/java/io/nop/excel/imp/ImportExcelParser.java)，它可以根据`ImportModel`导入模型配置来自动解析ExcelWorkbook得到模型对象。解析的过程中会进行细致的字段验证，并且可以执行复杂的转换逻辑，如果发现错误会提示具体是哪个单元格因为什么原因报错。
 
 ![](images/excel-to-obj.png)
 

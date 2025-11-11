@@ -24,7 +24,7 @@ For example:
 
 Under the `entity` node, only one `comment` child node and one `columns` child node are allowed, so these two child nodes are merged by name. Then, when recursively handling the merge of these two child nodes, according to the XDef metamodel definition, the child nodes of `columns` are repeatable, so they will be merged based on the unique identifier attribute `name`. In the example above, the `label` attribute of the `phone3` field will be automatically overridden by customization.
 
-All values of `x:override` are defined in the [XDefOverride](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/xdef/XDefOverride.java) class.
+All values of `x:override` are defined in the [XDefOverride](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xdef/XDefOverride.java) class.
 
 Commonly used merge modes include:
 

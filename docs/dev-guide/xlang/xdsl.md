@@ -8,9 +8,9 @@ Nop平台提供了面向语言编程的编程范式，即我们解决问题时�
 
 > Lisp语言的做法正是直接使用通用的`S-Expr`来表达AST，从而可以很容易的使用宏机制来定义自定义的DSL。基于XML语法可以做到类似的效果，特别是XML标签可以表示模板函数，动态生成新的XML节点，起到类似Lisp宏的作用（代码和代码生成结果的结构都是XML节点，这对应于[Lisp语言中所谓的同像性](https://zhuanlan.zhihu.com/p/34063805)）。
 
-我们使用XDef元模型定义语言来约束DSL的语法结构，例如 [beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)。相比于XML Schema或者JSON Schema，XDef定义更加简单直观，而且可以表达更复杂的约束条件。关于XDef语言的细节，可以参考[xdef.md](xdef.md)
+我们使用XDef元模型定义语言来约束DSL的语法结构，例如 [beans.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)。相比于XML Schema或者JSON Schema，XDef定义更加简单直观，而且可以表达更复杂的约束条件。关于XDef语言的细节，可以参考[xdef.md](xdef.md)
 
-> Nop平台中的所有DSL都通过XDef语言来定义，包括工作流、报表、IoC、ORM等，定义文件统一存放在[nop-xdefs模块](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-xdefs/src/main/resources/_vfs/nop/schema)中。
+> Nop平台中的所有DSL都通过XDef语言来定义，包括工作流、报表、IoC、ORM等，定义文件统一存放在[nop-xdefs模块](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema)中。
 
 ![](xml-to-json.png)
 
@@ -20,7 +20,7 @@ XDef不仅仅定义了XML格式的DSL语法，它还规定了一种XML和JSON之
 
 ## 二. XDSL通用语法
 
-将所有的DSL都归一化为XML格式之后，就可以统一提供模块分解、差量合并、元编程等高级机制了。Nop平台定义了统一的XDSL扩展语法，自动为所有通过XDef元模型定义的DSL语言增加可逆计算扩展语法，具体XDSL语法的内容由[xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)这一元模型来定义。
+将所有的DSL都归一化为XML格式之后，就可以统一提供模块分解、差量合并、元编程等高级机制了。Nop平台定义了统一的XDSL扩展语法，自动为所有通过XDef元模型定义的DSL语言增加可逆计算扩展语法，具体XDSL语法的内容由[xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef)这一元模型来定义。
 
 XDSL的主要语法元素示例如下:
 
@@ -153,7 +153,7 @@ DSL = Delta x-extends Generator<DSLx>
 
 ### 可执行语义
 
-XDSL中通过XLang语言来实现可执行语义。只要在xdef元模型中标注某个属性为EL表达式，或者某个节点内容为XPL模板语言，则该属性就会被自动解析为`IEvalAction`可执行函数接口。具体示例可以参见[wf.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef)
+XDSL中通过XLang语言来实现可执行语义。只要在xdef元模型中标注某个属性为EL表达式，或者某个节点内容为XPL模板语言，则该属性就会被自动解析为`IEvalAction`可执行函数接口。具体示例可以参见[wf.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef)
 
 ```xml
  <action name="!string" >
@@ -201,5 +201,5 @@ Nop平台对于自定义程序语法的DSL开发也提供了一定的支持，�
 }
 ```
 
-具体XDSL使用了哪些语法属性，参见[xdsl.xdef元模型定义](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef).
+具体XDSL使用了哪些语法属性，参见[xdsl.xdef元模型定义](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef).
 `x:override`合并算子的介绍参见[x-override.md](x-override.md)

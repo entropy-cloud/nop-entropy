@@ -121,7 +121,7 @@ Excel规则模型必须包含两个Sheet，其中Rule表单配置决策规则，
 
 5. 如果是单个变量名则不把它作为变量来解释，而是看作是字符串值。如果要表示等于变量，则应该使用 == myVar这种形式
 
-6. 支持比较操作符和and/or/not，并且支持括号。所有支持比较操作符在[FilterOp](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java)类中定义
+6. 支持比较操作符和and/or/not，并且支持括号。所有支持比较操作符在[FilterOp](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java)类中定义
 
 7. 支持所有XScript中注册的全局函数
 
@@ -167,7 +167,7 @@ Excel规则模型必须包含两个Sheet，其中Rule表单配置决策规则，
 
 ## 3.1 Filter模型
 
-filter模型由[filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef)元模型来定义，它可以用于描述复杂的and/or条件
+filter模型由[filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef)元模型来定义，它可以用于描述复杂的and/or条件
 
 ```xml
 <and>
@@ -181,20 +181,20 @@ filter模型由[filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blo
 
 1. Nop平台在所有需要表达判断条件的地方都统一使用Filter模型,在Java程序中对应ITreeBean类型
 2. 利用XML和JSON的双向转换，Filter模型可以保存为XML格式或者JSON格式
-3. Nop平台中高级查询使用的就是Filter模型，后台通过[FilterBeanToSQLTransformer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/lang/sql/FilterBeanToSQLTransformer.java)类将它转换为SQL语句
-4. 前端AMIS的ConditionBuilder控件可以将复杂判断条件保存为Condition对象。[ConditionExprHelper](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-web-page/src/main/java/io/nop/web/page/condition/ConditionExprHelper.java)负责实现Condition和Filter模型之间的双向转换。
+3. Nop平台中高级查询使用的就是Filter模型，后台通过[FilterBeanToSQLTransformer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/lang/sql/FilterBeanToSQLTransformer.java)类将它转换为SQL语句
+4. 前端AMIS的ConditionBuilder控件可以将复杂判断条件保存为Condition对象。[ConditionExprHelper](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-frontend-support/nop-web-page/src/main/java/io/nop/web/page/condition/ConditionExprHelper.java)负责实现Condition和Filter模型之间的双向转换。
 5. Filter模型可以通过[FilterBeanToPredicateTransformer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rule/nop-rule-core/src/main/java/io/nop/rule/core/model/compile/FilterBeanToPredicateTransformer.java)编译得到IEvalPredicate接口，直接在内存中执行过滤逻辑，
-6. Filter模型也可以通过[FilterBeanEvaluator](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/model/query/FilterBeanEvaluator.java)在内存中执行
-7. Filter模型与表达式语言Expression之间可以利用[FilterBeanExpressionCompiler](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/xpl/tags/FilterBeanExpressionCompiler.java)和[ExpressionToFilterBeanTransformer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/expr/filter/ExpressionToFilterBeanTransformer.java)进行可逆转换，
+6. Filter模型也可以通过[FilterBeanEvaluator](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/model/query/FilterBeanEvaluator.java)在内存中执行
+7. Filter模型与表达式语言Expression之间可以利用[FilterBeanExpressionCompiler](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/tags/FilterBeanExpressionCompiler.java)和[ExpressionToFilterBeanTransformer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/expr/filter/ExpressionToFilterBeanTransformer.java)进行可逆转换，
 
 ## 3.2 Schema模型
 
-Nop平台中所有需要定义对象类型的地方都统一使用schema模型，它由元模型[schema.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/schema.xdef)来定义。
+Nop平台中所有需要定义对象类型的地方都统一使用schema模型，它由元模型[schema.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/schema.xdef)来定义。
 
 1. XDef元模型和Schema模型之间可以相互转换。XDef用于定义XML结构，而Schema用于定义对象以及JSON结构。
-2. 通过[SimpleSchemaValidator](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/xmeta/SimpleSchemaValidator.java)可以检查value是否满足schema规范要求
-3. 通过[XSchemaToJsonSchema](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/xmeta/jsonschema/XSchemaToJsonSchema.java)可以将schema对象转换为JSON Schema定义
-4. [ConditionSchemaHelper](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-web-page/src/main/java/io/nop/web/page/condition/ConditionSchemaHelper.java)负责将规则模型中的输入变量定义转换为前端ConditionBuilder控件所支持的schema定义。
+2. 通过[SimpleSchemaValidator](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xmeta/SimpleSchemaValidator.java)可以检查value是否满足schema规范要求
+3. 通过[XSchemaToJsonSchema](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xmeta/jsonschema/XSchemaToJsonSchema.java)可以将schema对象转换为JSON Schema定义
+4. [ConditionSchemaHelper](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-frontend-support/nop-web-page/src/main/java/io/nop/web/page/condition/ConditionSchemaHelper.java)负责将规则模型中的输入变量定义转换为前端ConditionBuilder控件所支持的schema定义。
 
 ## 3.3 Excel数据模型
 

@@ -43,7 +43,7 @@ class NopAuthUser {
 
 如果不想开放整个关联对象上的属性，在可以逐个指定。
 
-具体参见[NopAuthOpLog.xmeta](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/main/resources/_vfs/nop/auth/model/NopAuthOpLog/NopAuthOpLog.xmeta)
+具体参见[NopAuthOpLog.xmeta](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-meta/src/main/resources/_vfs/nop/auth/model/NopAuthOpLog/NopAuthOpLog.xmeta)
 中的配置
 
 ```xml

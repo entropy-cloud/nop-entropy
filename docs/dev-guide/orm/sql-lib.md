@@ -5,11 +5,11 @@
 
 在NopOrm中，我们通过sql-lib模型来统一管理所有复杂的SQL/EQL/DQL语句。在利用Nop平台已有基础设施的情况下，实现类似MyBatis的这一SQL语句管理机制，大概只需要500行代码。具体实现代码参见
 
-[SqlLibManager](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlLibManager.java)
+[SqlLibManager](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlLibManager.java)
 
-[SqlItemModel](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlItemModel.java)
+[SqlItemModel](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlItemModel.java)
 
-[SqlLibInvoker](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/sql_lib/proxy/SqlLibInvoker.java)
+[SqlLibInvoker](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/sql_lib/proxy/SqlLibInvoker.java)
 
 测试用的sql-lib文件参见
 
@@ -145,7 +145,7 @@ where id = :id
 
 具体标签的实现参见
 
-[sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib)
+[sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib)
 
 本质上这个概念等价于Lisp语言中的宏，特别是它与Lisp宏一样，可以用于程序代码中的任意部分（即AST的任意节点都可以被替换为宏节点）。只不过，它采用XML的表现形式，相比于Lisp惜字如金的数学符号风格而言，显得更加人性化一些。
 
@@ -248,7 +248,7 @@ from my_entity
 
 ## 8. Mapper接口
 
-只要在Excel数据模型中为实体增加mapper标签，代码生成的时候就会自动生成类似MyBatis的强类型的Mapper接口，通过它可以调用SqlLibManager所管理的SQL模型文件。例如[LitemallGoodsMapper.java](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-dao/src/main/java/app/mall/dao/mapper/LitemallGoodsMapper.java)。
+只要在Excel数据模型中为实体增加mapper标签，代码生成的时候就会自动生成类似MyBatis的强类型的Mapper接口，通过它可以调用SqlLibManager所管理的SQL模型文件。例如[LitemallGoodsMapper.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master)。
 
 ```java
 

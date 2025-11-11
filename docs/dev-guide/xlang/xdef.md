@@ -51,7 +51,7 @@ XDef元模型文件的作用类似于XSD(XML Schema Definition)文件，都是�
 xdef文件中的所有属性（除去`xdef`名字空间以及`x`名字空间中的内置属性）的值类型都是`def-type`类型，它的格式为 `(!~#)?{stdDomain}:{options}={defaultValue}`。
 
 * `!`表示必填属性，`~`表示内部属性或者已经被废弃的属性，`#`表示可以使用编译期表达式
-* `stdDomain`是比数据类型更严格的格式限制，例如`stdDomain=email`等，具体值参见字典定义[core/std-domain](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/dict/core/std-domain.dict.yaml)
+* `stdDomain`是比数据类型更严格的格式限制，例如`stdDomain=email`等，具体值参见字典定义[core/std-domain](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/resources/_vfs/dict/core/std-domain.dict.yaml)
 * 某些`def-type`定义需要`options`参数，例如`enum:xxx.yyy`，通过`options`来设置具体的字典名称
 * 可以为属性指定缺省值
 
@@ -61,10 +61,10 @@ xdef文件中的所有属性（除去`xdef`名字空间以及`x`名字空间中�
 
 Nop平台中所有的DSL语言都具有一些公共的属性和子节点，相当于是为所有DSL引入一些公共的语法，`x:schema`属性就是这个公共语法的一部分。这些公共语法在`xdsl.xdef`
 元模型中定义，所以我们要在根节点上通过属性`xmlns:x="/nop/schema/xdsl.xdef"`表示x名字空间对应于DSL公共语法空间。具体介绍参见
-[xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef)和
+[xdsl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef)和
 [XDSL：通用的领域特定语言设计](https://zhuanlan.zhihu.com/p/612512300)
 
-XDef元模型定义语言的能力足够强大，它可以被用于描述XDef元模型自身，具体参见[xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef)
+XDef元模型定义语言的能力足够强大，它可以被用于描述XDef元模型自身，具体参见[xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef)
 
 在`xdef.xdef`这个元元模型定义文件中，`xdef`名字空间必须被看作是普通属性空间，不能被解释为XDef元属性，所以在根节点上我们增加了属性定义`xmlns:meta="/nop/schema/xdef.xdef"`，使用`meta`名字空间来表达元属性。
 

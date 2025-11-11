@@ -41,7 +41,7 @@ A TaskFlow Step can be seen as an enhanced version of a traditional function obj
 
 ## Common Step Configuration
 
-For the TaskFlow meta-model definition, see [task.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)
+For the TaskFlow meta-model definition, see [task.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)
 
 TaskFlow comes with generic syntactic steps such as sequential/parallel/loop/choose. All of these steps share some common configuration.
 

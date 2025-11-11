@@ -1,7 +1,7 @@
 # 字典表翻译
 
 在ORM模型中可以直接定义字典表，并且可以为字段指定关联的字典表，然后在GraphQL层会自动为这些字段生成对应的label字段，
-比如status生成status\_label。参见[meta-gen.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/nop/core/xlib/meta-gen.xlib)中GenDictLabelFields标签的实现。
+比如status生成status\_label。参见[meta-gen.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/resources/_vfs/nop/core/xlib/meta-gen.xlib)中GenDictLabelFields标签的实现。
 
 ## 为字段指定字典表
 

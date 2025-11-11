@@ -188,7 +188,7 @@ App = DockerBuild<DockerFile> overlay-fs BaseImage
 
 DockerFile就是一种DSL语言，而Docker镜像的build工具相当于是一种生成器，它解释DockerFile中定义的apt install等DSL语句，动态将它们展开为硬盘上对文件系统的一种差量化修改（新建文件、修改文件、删除文件等）。
 
-[OverlayFS](https://blog.csdn.net/qq_15770331/article/details/96702613) 是一种**堆叠文件系统**，它依赖并建立在其它的文件系统之上（例如 ext4fs 和 xfs 等等），并不直接参与磁盘空间结构的划分，**仅仅将原来底层文件系统中不同的目录进行 “合并”，然后向用户呈现，这也就是联合挂载技术**。OverlayFS在查找文件的时候会先在上层找，找不到的情况下再到下层找。如果需要列举文件夹内的所有文件，则会合并上层目录和下层目录的所有文件统一返回。如果用Java语言实现一种类似OverlayFS的虚拟文件系统，结果代码就类似于[Nop平台中的DeltaResourceStore](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/resource/store/DeltaResourceStore.java)。OverlayFS的这种合并过程就是一种标准的树状结构差量合并过程，特别是我们可以通过增加一个Whiteout文件来表示删除一个文件或者目录，所以它符合`x-extends`算子的要求。
+[OverlayFS](https://blog.csdn.net/qq_15770331/article/details/96702613) 是一种**堆叠文件系统**，它依赖并建立在其它的文件系统之上（例如 ext4fs 和 xfs 等等），并不直接参与磁盘空间结构的划分，**仅仅将原来底层文件系统中不同的目录进行 “合并”，然后向用户呈现，这也就是联合挂载技术**。OverlayFS在查找文件的时候会先在上层找，找不到的情况下再到下层找。如果需要列举文件夹内的所有文件，则会合并上层目录和下层目录的所有文件统一返回。如果用Java语言实现一种类似OverlayFS的虚拟文件系统，结果代码就类似于[Nop平台中的DeltaResourceStore](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/DeltaResourceStore.java)。OverlayFS的这种合并过程就是一种标准的树状结构差量合并过程，特别是我们可以通过增加一个Whiteout文件来表示删除一个文件或者目录，所以它符合`x-extends`算子的要求。
 
 ## Docker镜像与虚拟机增量备份的对比
 

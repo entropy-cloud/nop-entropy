@@ -4,11 +4,11 @@ NopOrm encapsulates differences across databases through the Dialect model.
 
 ## Dialect Inheritance and Customization
 
-[default dialect](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-dao/src/main/resources/_vfs/nop/dao/dialect/default.dialect.xml)
+[default dialect](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/default.dialect.xml)
 
-[mysql dialect](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-dao/src/main/resources/_vfs/nop/dao/dialect/mysql.dialect.xml)
+[mysql dialect](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/mysql.dialect.xml)
 
-[postgresql dialect](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-dao/src/main/resources/_vfs/nop/dao/dialect/postgresql.dialect.xml)
+[postgresql dialect](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/postgresql.dialect.xml)
 
 Referencing the examples above, both mysql.dialect.xml and postgresql.dialect.xml inherit from default.dialect.xml. Compared to Hibernate, which constructs Dialect objects programmatically, using dialect model files offers significantly higher information density and a more intuitive expression. More importantly, in postgresql.dialect.xml you can clearly identify the configurations that are added, modified, and removed relative to default.dialect.xml.
 

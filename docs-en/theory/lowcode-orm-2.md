@@ -42,13 +42,13 @@ As technology evolves, the hidden costs of POJO keep increasing, further eroding
 
 All entity classes in NopOrm are required to implement the IOrmEntity interface, and a default implementation OrmEntity is provided.
 
-[IOrmEntity](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/IOrmEntity.java)
+[IOrmEntity](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/IOrmEntity.java)
 
 Every column model has a unique propId attribute, and you can use IOrmEntity.orm\_propValue(int propId) instead of reflection to access property data.
 
 All collection properties are of type OrmEntitySet, which implements the IOrmEntitySet interface. When generating code, only the getter is generated for entity collection properties, not the setter, eliminating misuse.
 
-[IOrmEntitySet](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/IOrmEntitySet.java)
+[IOrmEntitySet](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/IOrmEntitySet.java)
 
 For each entity, two Java classes are generated, e.g., SimsExam and \_SimsExam. The \_SimsExam class is overwritten each time, while SimsExam preserves existing content if already present, so custom code can be written in SimsExam. See:
 
@@ -124,7 +124,7 @@ Common business requirements can be easily implemented via an ORM engine, so Nop
 
 9. Component logic reuse: a related set of fields may form a reusable component. OrmComponent enables reuse of such logic. For example, Decimal precision must be specified in the database, but customers may require display and computation with input-specified precision. This requires a VALUE\_SCALE column to store precision, while we want BigDecimal values fetched with the desired scale already set. NopOrm provides a FloatingScaleDecimal component for this. Complex fields such as attachment and attachment lists can be similarly encapsulated.
 
-   [FloatingScaleDecimal](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/support/FloatingScaleDecimal.java)
+   [FloatingScaleDecimal](https://gitee.com/canonical-entropy/nop-entropy/blob/master)
 
 Combined with outer frameworks, the Nop platform also includes more common solutions, e.g.:
 
@@ -185,11 +185,11 @@ For cross-system RPC, pass a timeout interval in the message header. On the serv
 
 NopOrm encapsulates cross-database differences via a Dialect model.
 
-[default dialect](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-dao/src/main/resources/_vfs/nop/dao/dialect/default.dialect.xml)
+[default dialect](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/default.dialect.xml)
 
-[mysql dialect](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-dao/src/main/resources/_vfs/nop/dao/dialect/mysql.dialect.xml)
+[mysql dialect](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/mysql.dialect.xml)
 
-[postgresql dialect](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-dao/src/main/resources/_vfs/nop/dao/dialect/postgresql.dialect.xml)
+[postgresql dialect](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/postgresql.dialect.xml)
 
 As in the examples above, mysql.dialect.xml and postgresql.dialect.xml both extend default.dialect.xml. Compared to programmatic Dialect construction in Hibernate, using dialect model files yields higher information density and more intuitive expression. More importantly, in postgresql.dialect.xml you can clearly see what is added/modified/removed relative to default.dialect.xml.
 
@@ -460,7 +460,7 @@ You can directly reuse the frontend QueryBuilder to visually configure backend d
 
 Constructing SQL in Java via so-called QueryDSL has no real advantage. In a model-driven approach, just use the frontend-provided QueryBean, and for minor additions use static combinators and/or/eq in FilterBeans. For truly complex SQL, adopt a MyBatis-like approach of managing statements in external files; in sql-lib we can achieve a level of intuitiveness, flexibility, and extensibility that QueryDSL cannot match (details below).
 
-[QueryBean](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-api-core/src/main/java/io/nop/api/core/beans/query/QueryBean.java)
+[QueryBean](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/query/QueryBean.java)
 
 ## 8. Can ORM Handle OLAP?
 
@@ -581,11 +581,11 @@ When constructing complex SQL/EQL, managing them via an external model file is v
 
 In NopOrm, we manage all complex SQL/EQL/DQL via sql-lib. Leveraging the Nop platform’s infrastructure, an equivalent to MyBatis’s SQL management takes about 200 lines of code. See:
 
-[SqlLibManager](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlLibManager.java)
+[SqlLibManager](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlLibManager.java)
 
-[SqlItemModel](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlItemModel.java)
+[SqlItemModel](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlItemModel.java)
 
-[SqlLibInvoker](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/sql_lib/proxy/SqlLibInvoker.java)
+[SqlLibInvoker](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/sql_lib/proxy/SqlLibInvoker.java)
 
 Test sql-lib:
 
@@ -706,7 +706,7 @@ In NopOrm, macro tags can implement similar local syntactic transformations:
 
 See tag implementations:
 
-[sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib)
+[sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib)
 
 This is conceptually equivalent to Lisp macros—particularly that, like Lisp, any part of the code (any AST node) can be replaced by a macro node. It uses XML as the representation, more human-friendly than Lisp’s mathematical-symbol style.
 

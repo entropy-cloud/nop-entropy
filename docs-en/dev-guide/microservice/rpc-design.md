@@ -167,7 +167,7 @@ For more on the NopGraphQL engine, see [graphql-java.md](../graphql/graphql-java
 
 ## 2.2 RPC over Message Queue
 
-Many RPC frameworks introduce numerous internal interfaces meaningful only within that framework and unusable as general-purpose interfaces elsewhere. NopRPC emphasizes conceptual abstraction and generality, providing default implementations such as [MessageRpcClient](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/message/MessageRpcClient.java) and [MessageRpcServer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/message/MessageRpcServer.java), enabling an RPC mechanism atop any message queue.
+Many RPC frameworks introduce numerous internal interfaces meaningful only within that framework and unusable as general-purpose interfaces elsewhere. NopRPC emphasizes conceptual abstraction and generality, providing default implementations such as [MessageRpcClient](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/message/MessageRpcClient.java) and [MessageRpcServer](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/message/MessageRpcServer.java), enabling an RPC mechanism atop any message queue.
 In the Nop platform, message queues are positioned as one-way message senders. The core abstraction is:
 
 ```java
@@ -205,9 +205,9 @@ Server-side implementation is straightforward:
 
 This message-queue-based implementation is highly general. For instance, the [nop-rpc-simple](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-rpc/nop-rpc-simple) module abstracts a Socket channel as an IMessageService, implementing simple RPC over TCP. We can also implement RPC over Kafka or Pulsar, or via Redis PUB/SUB.
 
-Emphasizing again, [IMessageService](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-api-core/src/main/java/io/nop/api/core/message/IMessageService.java) is the Nop platform’s unified application-layer abstraction for messaging services; it is not a bespoke interface designed only for the internals of RPC.
+Emphasizing again, [IMessageService](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-api-core/src/main/java/io/nop/api/core/message/IMessageService.java) is the Nop platform’s unified application-layer abstraction for messaging services; it is not a bespoke interface designed only for the internals of RPC.
 
-NopRPC’s two-way interaction abstraction can be built on top of a one-way message stream abstraction. Interestingly, the reverse is also possible: provide an IMessageService implementation atop the IRpcService abstraction. See [RpcMessageSender,java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/message/RpcMessageSender.java) and [RpcMessageSubscriber.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/message/RpcMessageSubscriber.java). This mutual embedding is common in mathematical reasoning, reflecting that IRpcService and IMessageService are general abstractions akin to mathematical concepts.
+NopRPC’s two-way interaction abstraction can be built on top of a one-way message stream abstraction. Interestingly, the reverse is also possible: provide an IMessageService implementation atop the IRpcService abstraction. See [RpcMessageSender,java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/message/RpcMessageSender.java) and [RpcMessageSubscriber.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/message/RpcMessageSubscriber.java). This mutual embedding is common in mathematical reasoning, reflecting that IRpcService and IMessageService are general abstractions akin to mathematical concepts.
 
 With such general abstractions, NopRPC’s implementation is concise and universal, whereas many RPC frameworks are tightly coupled to the underlying Netty transport and cannot be easily applied to new channels.
 
@@ -300,7 +300,7 @@ The @RpcMethod(cancelMethod="Sys__cancel") annotation indicates that a call to t
 
 > If the cancelMethod does not include an object name, it calls a method on the current business object.
 
-For the precise cancelMethod invocation logic, see [CancellableRpcClient.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/composite/CancellableRpcClient.java)
+For the precise cancelMethod invocation logic, see [CancellableRpcClient.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/composite/CancellableRpcClient.java)
 
 In addition to cancelMethod, the RpcMethod annotation supports configuring a pollingMethod.
 
@@ -314,11 +314,11 @@ interface MyEntityService{
 
 If pollingMethod is configured, the RPC method won’t return immediately; instead, it repeatedly invokes the remote service specified by pollingMethod until a result is returned.
 
-For the exact pollingMethod handling, see [PollingRpcClient.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/composite/PollingRpcClient.java)
+For the exact pollingMethod handling, see [PollingRpcClient.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/composite/PollingRpcClient.java)
 
 ## IV. Context Propagation
 
-In a microservice architecture, a single business operation may produce multiple related RPC calls. An automatic context propagation mechanism is needed to pass shared information from upstream to downstream services. In NopRPC, [ContextBinder](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-api/src/main/java/io/nop/rpc/api/ContextBinder.java) copies selected ApiRequest headers into the asynchronous context object IContext, while [ClientContextRpcServiceInterceptor](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/interceptors/ClientContextRpcServiceInterceptor.java) propagates information from IContext into the headers of downstream ApiRequests.
+In a microservice architecture, a single business operation may produce multiple related RPC calls. An automatic context propagation mechanism is needed to pass shared information from upstream to downstream services. In NopRPC, [ContextBinder](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-rpc/nop-rpc-api/src/main/java/io/nop/rpc/api/ContextBinder.java) copies selected ApiRequest headers into the asynchronous context object IContext, while [ClientContextRpcServiceInterceptor](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-network/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/interceptors/ClientContextRpcServiceInterceptor.java) propagates information from IContext into the headers of downstream ApiRequests.
 
 By default, the following headers propagate automatically across systems:
 
@@ -349,7 +349,7 @@ The Nop platform provides an API model allowing the definition, in Excel, of whi
 
 ![](api-model.png)
 
-At the RPC implementation layer, we can also directly generate calls to [TaskFlow](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef) or [Workflow](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef) models and implement business functionality via visual orchestration.
+At the RPC implementation layer, we can also directly generate calls to [TaskFlow](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef) or [Workflow](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef) models and implement business functionality via visual orchestration.
 
 ## VI. On Dubbo’s Design
 

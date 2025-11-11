@@ -1,6 +1,6 @@
 # Excel数据导入导出
 
-在Nop平台中只需要增加imp.xml导入模型即可实现对存储在Excel中的复杂业务对象的解析，具体imp模型的定义参见[imp.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/excel/imp.xdef)
+在Nop平台中只需要增加imp.xml导入模型即可实现对存储在Excel中的复杂业务对象的解析，具体imp模型的定义参见[imp.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/excel/imp.xdef)
 
 ## 基本原理
 
@@ -33,7 +33,7 @@
 
 ## 使用导入模板来实现导出
 
-1. 首先制作一个空的导入模板，即把导入数据删除，保留列表数据的序号列。具体样例参考[template.orm.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm-model/src/main/resources/_vfs/nop/orm/imp/template.orm.xlsx)
+1. 首先制作一个空的导入模板，即把导入数据删除，保留列表数据的序号列。具体样例参考[template.orm.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm-model/src/main/resources/_vfs/nop/orm/imp/template.orm.xlsx)
 2. 在imp.xml文件中通过templatePath属性来指向导入模板
 
 ```xml

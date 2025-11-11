@@ -5,11 +5,11 @@ When we need to construct fairly complex SQL or EQL statements, managing them th
 
 In NopOrm, we use the sql-lib model to centrally manage all complex SQL/EQL/DQL statements. Leveraging the existing infrastructure of the Nop platform, implementing a MyBatis-like SQL statement management mechanism takes roughly 500 lines of code. See the implementation:
 
-[SqlLibManager](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlLibManager.java)
+[SqlLibManager](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlLibManager.java)
 
-[SqlItemModel](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlItemModel.java)
+[SqlItemModel](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlItemModel.java)
 
-[SqlLibInvoker](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/sql_lib/proxy/SqlLibInvoker.java)
+[SqlLibInvoker](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/sql_lib/proxy/SqlLibInvoker.java)
 
 See the test sql-lib file:
 
@@ -145,7 +145,7 @@ In NopOrm, we can implement similar **local syntactic structure transformations*
 
 See the implementation of specific tags:
 
-[sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib)
+[sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib)
 
 This concept is essentially equivalent to macros in Lisp, especially in that it can be used in any part of program code (i.e., any AST node can be replaced by a macro node). It just adopts an XML representation, which is more human-friendly compared to Lisp’s terse mathematical-symbol style.
 
@@ -238,7 +238,7 @@ from my_entity
 
 ## 8. Mapper interfaces
 
-As long as you add a mapper tag for an entity in the Excel data model, code generation will automatically produce type-safe Mapper interfaces similar to MyBatis. Through them you can invoke SQL model files managed by SqlLibManager. For example [LitemallGoodsMapper.java](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-dao/src/main/java/app/mall/dao/mapper/LitemallGoodsMapper.java).
+As long as you add a mapper tag for an entity in the Excel data model, code generation will automatically produce type-safe Mapper interfaces similar to MyBatis. Through them you can invoke SQL model files managed by SqlLibManager. For example [LitemallGoodsMapper.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master).
 
 ```java
 

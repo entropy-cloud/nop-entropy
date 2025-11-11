@@ -20,7 +20,7 @@ let chenfenList = [
 ] 
 ```
 
-[查看报表模板](https://gitee.com/canonical-entropy/nop-entropy/raw/master/nop-report/nop-report-demo/src/main/resources/_vfs/nop/report/demo/base/08-%E5%8A%A8%E6%80%81%E5%B1%95%E5%BC%80%E5%88%97.xpt.xlsx)
+[查看报表模板](https://gitee.com/canonical-entropy/nop-entropy/blob/master)
 
 基本做法为：
 
@@ -57,5 +57,5 @@ let chenfenList = [
 ![](dynamic-col/cell-value.png)
 
 \*`valueExpr=(_.findWhere(cell.rp.ev.chenfen,"name",cell.cp.ev.value)?.weight || 0) + 'g'`
-表示使用[Underscore](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/lang/utils/Underscore.java)类上的findWhere函数，从chenfen列表中查找到name为指定值的对象，然后显示它的weight属性。
+表示使用[Underscore](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/lang/utils/Underscore.java)类上的findWhere函数，从chenfen列表中查找到name为指定值的对象，然后显示它的weight属性。
 在报表表达式中可以使用所有XLang语言内置的函数和对象，并且可以在【展开前】段中定义可使用的局部函数

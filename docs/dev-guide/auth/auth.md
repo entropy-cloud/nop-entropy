@@ -247,7 +247,7 @@ if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
 对于使用了复杂过滤条件的情况，会报错无法支持对应操作等异常，此时必须定义check。
 
 在`filter`段中可以编写权限过滤条件，其中`value`部分可以使用`@biz:`为前缀的表达式变量，例如`@biz:userId`、`@biz:deptId`等。
-全部可用的变量在[biz-var.dict.yaml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/dict/core/biz-var.dict.yaml)
+全部可用的变量在[biz-var.dict.yaml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/resources/_vfs/dict/core/biz-var.dict.yaml)
 中定义。
 
 一般情况下`/nop/main/auth/app.data-auth.xml`文件中可以配置动态搜集所有模块下的data-auth配置

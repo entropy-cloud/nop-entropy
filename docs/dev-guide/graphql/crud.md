@@ -332,7 +332,7 @@ filter对应于后台的TreeBean类型的对象，这是一个通用的Tree结�
 }
 ```
 
-过滤条件中所支持的运算符如eq,gt等，都是[FilterOp.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java)
+过滤条件中所支持的运算符如eq,gt等，都是[FilterOp.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java)
 中定义的操作符。
 重用的算符有：
 

@@ -44,10 +44,10 @@ Nop平台遵循了可逆计算理论所制定的技术战略
 举例来说，
 
 1. ORM模型文件[app.orm.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-dao/src/main/resources/_vfs/nop/auth/orm/_app.orm.xml)定义了一个数据库存储模型
-2. ORM模型的结构由它的元模型[orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef)来描述
-3. 在Nop平台中，所有的模型都采用统一的XDef元模型语言来描述，而XDef元模型语言的定义[xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef)就是所谓的元元模型。有趣的是，XDef由XDef自己来定义，所以我们不再需要元元元模型。
+2. ORM模型的结构由它的元模型[orm.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/orm.xdef)来描述
+3. 在Nop平台中，所有的模型都采用统一的XDef元模型语言来描述，而XDef元模型语言的定义[xdef.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdef.xdef)就是所谓的元元模型。有趣的是，XDef由XDef自己来定义，所以我们不再需要元元元模型。
 
-Nop平台根据XDef元模型自动得到模型解析器、验证器等，通过统一的IDE插件实现代码提示、链接跳转以及断点单步调试等功能。更进一步，Nop平台可以根据XDef元模型描述以及扩展的Meta描述，**自动为模型文件生成可视化设计器**。借助于公共的元模型以及内嵌的Xpl模板语言，我们可以**实现多个DSL之间的无缝嵌入**。比如在工作流引擎中嵌入规则引擎，在报表引擎中嵌入ETL引擎等。此外，**统一元元模型使得复用元模型成为可能**，比如[designer模型](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/designer/graph-designer.xdef)和[view模型](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/xview.xdef)都引用了公共的form模型。复用元模型可以极大的提升系统内部语义的一致性，从根源上减少概念冲突，提升系统的复用性。
+Nop平台根据XDef元模型自动得到模型解析器、验证器等，通过统一的IDE插件实现代码提示、链接跳转以及断点单步调试等功能。更进一步，Nop平台可以根据XDef元模型描述以及扩展的Meta描述，**自动为模型文件生成可视化设计器**。借助于公共的元模型以及内嵌的Xpl模板语言，我们可以**实现多个DSL之间的无缝嵌入**。比如在工作流引擎中嵌入规则引擎，在报表引擎中嵌入ETL引擎等。此外，**统一元元模型使得复用元模型成为可能**，比如[designer模型](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/designer/graph-designer.xdef)和[view模型](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/xview.xdef)都引用了公共的form模型。复用元模型可以极大的提升系统内部语义的一致性，从根源上减少概念冲突，提升系统的复用性。
 
 Nop平台所提供的是所谓的领域语言工作台(DSL Workbench)的能力。我们可以利用Nop平台来快速的开发新的DSL或者扩展已有的DSL，然后再使用DSL来开发具体的业务逻辑。
 

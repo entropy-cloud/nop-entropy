@@ -1,6 +1,6 @@
 # Basic Usage
 
-QueryBean provides encapsulation for complex query criteria. The supported query operators are defined in the metamodel of [filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef).
+QueryBean provides encapsulation for complex query criteria. The supported query operators are defined in the metamodel of [filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef).
 
 ## 1. Complex query criteria
 
@@ -78,7 +78,7 @@ If you omit the distinct keyword, because it is a many-to-many relationship, the
 
 ## 5. Query conditions in sql-lib and other tag libraries
 
-The Nop platform emphasizes that the same model information can have multiple representations that are freely convertible. As a typical use case, Filter provides a standard representation for complex predicate conditions. Its information structure is defined by the [filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef) metamodel.
+The Nop platform emphasizes that the same model information can have multiple representations that are freely convertible. As a typical use case, Filter provides a standard representation for complex predicate conditions. Its information structure is defined by the [filter.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/query/filter.xdef) metamodel.
 
 1. In Java, we can use helper functions like and/or/eq/gt on FilterBeans to build TreeBean objects.
 2. In XML and the Xpl template language, we can express the same condition using XML syntax such as `<eq name="status" value="1" />`.

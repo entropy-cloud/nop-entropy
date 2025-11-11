@@ -2,7 +2,7 @@
 
 ## 一. 使用XDef来定义元模型
 
-例如 [imp.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/excel/imp.xdef)
+例如 [imp.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/excel/imp.xdef)
 是Excel导入模型的元模型，它描述了为了实现Excel文件解析，我们需要提供哪些信息。
 
 ```xml
@@ -30,7 +30,7 @@ Schema的约束。
 只不过XDef元模型比JSON Schema更强大，比如它提供了xpl、xpl-predicate等可执行代码类型，而JSON
 Schema只能指定Number,String等少数纯数据类型，没有定义函数等可执行类型。
 
-例如 [orm.imp.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm-model/src/main/resources/_vfs/nop/orm/imp/orm.imp.xml)
+例如 [orm.imp.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm-model/src/main/resources/_vfs/nop/orm/imp/orm.imp.xml)
 是导入数据库模型时使用的导入模型配置
 
 ```xml
@@ -49,7 +49,7 @@ Schema只能指定Number,String等少数纯数据类型，没有定义函数等�
 </imp>
 ```
 
-normalizeFieldsExpr在元模型中对应的stdDomain是xpl，对应的Java类型为[IEvalAction](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/lang/eval/IEvalAction.java)
+normalizeFieldsExpr在元模型中对应的stdDomain是xpl，对应的Java类型为[IEvalAction](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/lang/eval/IEvalAction.java)
 接口。
 在具体的模型中，normalizeFieldsExpr的body使用[xpl模板语言](xpl.md)。这里有一个特殊情况，当body段只有一个`c:script`
 节点的时候，我们可以直接写[XScript脚本语法](xscript.md)，而不需要使用`c:script`来包裹。

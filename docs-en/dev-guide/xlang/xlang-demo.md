@@ -2,7 +2,7 @@
 
 ## I. Define the Metamodel with XDef
 
-For example, [imp.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/excel/imp.xdef)
+For example, [imp.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/excel/imp.xdef)
 is the metamodel of the Excel import model. It describes what information we need to provide in order to parse Excel files.
 
 ```xml
@@ -30,7 +30,7 @@ Schema.
 However, XDef metamodels are more powerful than JSON Schema—for instance, they provide executable code types such as xpl and xpl-predicate—whereas JSON
 Schema can only specify a few pure data types like Number and String, and does not define functions or other executable types.
 
-For example, [orm.imp.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm-model/src/main/resources/_vfs/nop/orm/imp/orm.imp.xml)
+For example, [orm.imp.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm-model/src/main/resources/_vfs/nop/orm/imp/orm.imp.xml)
 is the import model configuration used when importing database models.
 
 ```xml
@@ -49,7 +49,7 @@ is the import model configuration used when importing database models.
 </imp>
 ```
 
-In the metamodel, normalizeFieldsExpr corresponds to the xpl stdDomain and maps to the Java type [IEvalAction](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/lang/eval/IEvalAction.java)
+In the metamodel, normalizeFieldsExpr corresponds to the xpl stdDomain and maps to the Java type [IEvalAction](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-core/src/main/java/io/nop/core/lang/eval/IEvalAction.java)
 interface.
 In the concrete model, the body of normalizeFieldsExpr uses the [xpl template language](xpl.md). There is a special case: when the body contains only a single `c:script`
 node, we can write [XScript syntax](xscript.md) directly without wrapping it in `c:script`.

@@ -19,7 +19,7 @@ Compared to other report engines, NopReport has the following distinctive charac
 
 [Operational demo video](https://www.bilibili.com/video/BV1Sa4y1K7tD/)
 
-According to the principles of Reversible Computation, the essence of a report engine is a DSL defined for tabular data structures (see the metamodel definition [workbook.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/excel/workbook.xdef)), and the visual designer is merely a visual presentation of this DSL. To enable a model-driven code generator, the Nop Platform has already implemented Excel file parsing and generation. With a small amount of additional annotation, Excel itself can be used as the report designer. Specifically, we treat Excel comments as extended information and recognize expression syntax in cell text. NopReport currently supports the following types of reports:
+According to the principles of Reversible Computation, the essence of a report engine is a DSL defined for tabular data structures (see the metamodel definition [workbook.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/excel/workbook.xdef)), and the visual designer is merely a visual presentation of this DSL. To enable a model-driven code generator, the Nop Platform has already implemented Excel file parsing and generation. With a small amount of additional annotation, Excel itself can be used as the report designer. Specifically, we treat Excel comments as extended information and recognize expression syntax in cell text. NopReport currently supports the following types of reports:
 
 ### Archive-style report
 

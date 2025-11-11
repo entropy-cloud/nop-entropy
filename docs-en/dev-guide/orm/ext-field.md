@@ -24,7 +24,7 @@ Depending on the setting of the `field_type` field, the actual value is stored i
 
 ## ORM Configuration
 
-At compile time, the [`<orm-gen:ExtFieldsSupport>`](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/orm-gen.xlib) tag recognizes the `use-ext-field` configuration and automatically generates an association property:
+At compile time, the [`<orm-gen:ExtFieldsSupport>`](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/resources/_vfs/nop/orm/xlib/orm-gen.xlib) tag recognizes the `use-ext-field` configuration and automatically generates an association property:
 
 ```xml
 <entity name="xxx.MyEntity">

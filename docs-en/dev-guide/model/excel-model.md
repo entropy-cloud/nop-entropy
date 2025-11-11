@@ -1,6 +1,6 @@
 # Excel Data Model
 
-You can configure the data model through Excel-formatted documents. The specific structure of the data model is defined by the import model file [orm.imp.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/imp/orm.imp.xml).
+You can configure the data model through Excel-formatted documents. The specific structure of the data model is defined by the import model file [orm.imp.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm-model/src/main/resources/_vfs/nop/orm/imp/orm.imp.xml).
 
 In the Nop platform, there is no need for manual coding—simply add an `imp.xml` configuration file to enable parsing of Excel files. For example, the [Api model](api-model.md) is implemented using the same mechanism.
 

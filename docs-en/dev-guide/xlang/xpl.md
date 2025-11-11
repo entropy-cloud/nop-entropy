@@ -514,7 +514,7 @@ XPL provides a set of common attributes that all tags can specify. The processin
   </biz:WhenAdmin>
 ```
 
-All built-in attributes of the Xpl language are fully defined in the [xpl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xpl.xdef) file.
+All built-in attributes of the Xpl language are fully defined in the [xpl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xpl.xdef) file.
 
 ## Decorator
 

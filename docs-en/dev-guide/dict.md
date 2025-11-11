@@ -1,6 +1,6 @@
 # Dictionary Table Translation
 
-In the ORM model, you can define dictionary tables directly and associate fields with a dictionary table. The GraphQL layer will then automatically generate the corresponding label fields for those fields, for example, status produces status\_label. See the implementation of the GenDictLabelFields tag in [meta-gen.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/nop/core/xlib/meta-gen.xlib).
+In the ORM model, you can define dictionary tables directly and associate fields with a dictionary table. The GraphQL layer will then automatically generate the corresponding label fields for those fields, for example, status produces status\_label. See the implementation of the GenDictLabelFields tag in [meta-gen.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/resources/_vfs/nop/core/xlib/meta-gen.xlib).
 
 ## Assign a dictionary table to a field
 

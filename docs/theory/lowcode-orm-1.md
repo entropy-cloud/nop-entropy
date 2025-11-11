@@ -86,7 +86,7 @@ limit 3 offset 2
 
 在NopOrm中，SQL和EQL的执行被抽象成了统一的接口ISqlExecutor，它们返回的结果都被封装成了IDataSet接口（JDBC的ResultSet的替代品），在使用层面唯一的区别就是EQL返回的结果字段有可能是对象或者对象集合，而不仅仅是原子数据类型。接口具体定义参见
 
-[ISqlExecutor](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-dao/src/main/java/io/nop/dao/api/ISqlExecutor.java)
+[ISqlExecutor](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-dao/src/main/java/io/nop/dao/api/ISqlExecutor.java)
 
 EQL对SQL语言的扩展只涉及到两个地方：
 
@@ -198,11 +198,11 @@ let x = entity.examScoreScale;
 
 在NopOrm的实体模型定义中，可以为每一种实体类型指定不同的persistDriver，例如persistDriver="elasticSearch"表示将使用ElasticSearchEntityPersistDriver来存取实体。它对应于ORM引擎中的IEntityPersistDriver接口，支持批量和异步的实体数据存取。
 
-[IEntityPersistDriver](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/driver/IEntityPersistDriver.java)
+[IEntityPersistDriver](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/IEntityPersistDriver.java)
 
 同时对于针对单实体的数据查询，NopOrm通过IEntityDao.findPage(QueryBean)函数进行了统一的封装。如果PersistDriver实现了IEntityDaoExtension接口，应用层就可以通过IEntityDao接口使用到底层Driver所提供的复杂查询能力。
 
-[IEntityDao](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-dao/src/main/java/io/nop/dao/api/IEntityDao.java)
+[IEntityDao](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-dao/src/main/java/io/nop/dao/api/IEntityDao.java)
 
 另一种扩展方式是使用关系数据库中的文本字段来保存JSON字符串，然后在使用的时候将JSON字符串解析为Map使用。例如
 

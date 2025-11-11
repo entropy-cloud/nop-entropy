@@ -11,7 +11,7 @@ XLang defines a complete, systematic set of Generators covering all aspects of a
 
 XLang defines macro functions similar to Lisp macros. Macro functions are executed at compile time and automatically generate Expression abstract syntax tree (AST) nodes.
 
-Macro functions have special parameter requirements and need the `@Macro` annotation. See [GlobalFunctions](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/java/io/nop/xlang/functions/GlobalFunctions.java) for concrete examples.
+Macro functions have special parameter requirements and need the `@Macro` annotation. See [GlobalFunctions](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/java/io/nop/xlang/functions/GlobalFunctions.java) for concrete examples.
 
 > EvalGlobalRegistry.instance().registerStaticFunctions(GlobalFunctions.class) registers all static functions in the class as global functions available in the XScript scripting language.
 
@@ -124,7 +124,7 @@ and o.fld = ${param}
 </c:if>
 ```
 
-See the specific implementation in the [sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib) tag library.
+See the specific implementation in the [sql.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-orm/src/main/resources/_vfs/nop/orm/xlib/sql.xlib) tag library.
 
 ```xml
 

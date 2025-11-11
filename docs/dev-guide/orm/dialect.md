@@ -4,11 +4,11 @@ NopOrm通过`Dialect`模型来封装不同数据库之间的差异。
 
 ## Dialect的继承和定制
 
-[default dialect](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-dao/src/main/resources/_vfs/nop/dao/dialect/default.dialect.xml)
+[default dialect](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/default.dialect.xml)
 
-[mysql dialect](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-dao/src/main/resources/_vfs/nop/dao/dialect/mysql.dialect.xml)
+[mysql dialect](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/mysql.dialect.xml)
 
-[postgresql dialect](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-dao/src/main/resources/_vfs/nop/dao/dialect/postgresql.dialect.xml)
+[postgresql dialect](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/postgresql.dialect.xml)
 
 参考上面的示例，`mysql.dialect.xml`和`postgresql.dialect.xml`均从`default.dialect.xml`继承。与Hibernate通过编程方式构造`Dialect`对象相比，使用dialect模型文件明显信息密度更高，表达形式更加直观。更重要的是，在`postgresql.dialect.xml`中可以清楚的识别出相对于`default.dialect.xml`所**增加、修改和减少**的配置。
 

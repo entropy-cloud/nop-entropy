@@ -52,4 +52,4 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
 $toLocalDate是扩展类型转换函数。所有的表达式最后都可以通过$toLocalDate/toInt()等方式调用ConvertHelper上的类型转换函数。
 
 对于一些常见的可复用转换函数等，我们可以利用Nop平台内置的`x:gen-extends`、`x:post-extends`等元编程机制自动生成属性定义。
-参见[biz-gen.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/nop/core/xlib/biz-gen.xlib)
+参见[biz-gen.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xlang/src/main/resources/_vfs/nop/core/xlib/biz-gen.xlib)

@@ -184,7 +184,7 @@ var { a: aName, b: bName} = await fn( {x: exprInput1, y: exprInput1} )
 
 TaskFlow内置了sequential/parallel/loop/choose/xpl/call-step等多种步骤类型，相当于是一种图灵完备的函数式编程语言。
 
-> 具体步骤定义可以查看[task.xdef元模型定义](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)
+> 具体步骤定义可以查看[task.xdef元模型定义](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)
 
 上面的示例等价于如下代码
 
@@ -999,7 +999,7 @@ ITaskRuntime taskRt = new TaskRuntimeImpl(taskStateStore);
 taskStepReturn = task.execute(taskRt);
 ```
 
-1. 实现NopTaskFlow的第一步也是最重要的一步是**定义元模型[task.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)**。然后平台就会根据元模型自动推导得到大量功能，包括生成解析器、验证器、IDE插件、可视化设计器，实现动态模型缓存、差量合并、元编程等，解决前面提到的众多共性问题。所有这些功能都被封装在Loader抽象之下，loadComponentModel函数返回的就是经过可逆计算处理的模型对象。
+1. 实现NopTaskFlow的第一步也是最重要的一步是**定义元模型[task.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)**。然后平台就会根据元模型自动推导得到大量功能，包括生成解析器、验证器、IDE插件、可视化设计器，实现动态模型缓存、差量合并、元编程等，解决前面提到的众多共性问题。所有这些功能都被封装在Loader抽象之下，loadComponentModel函数返回的就是经过可逆计算处理的模型对象。
 
 2. **描述式结构与运行时结构分离**。描述式模型TaskFlowModel采用最小化信息表达，可以独立分析并从中反向提取信息。可执行的运行时模型 ITask独立于描述式结构，它由TaskFlowModel编译得到，编译结果可以缓存下来。一些逻辑编排引擎在设计时和运行时采用同样的模型结果，就无法实现性能的最优化，同时会导致运行时的实现细节侵入到模型定义层面，无法实现最小化信息表达。关于最小化信息表达，可以参见[业务开发自由之路：如何打破框架束缚，实现真正的框架中立性](https://zhuanlan.zhihu.com/p/682910525)
 
