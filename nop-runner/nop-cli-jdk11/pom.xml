@@ -23,6 +23,12 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-boot</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>micrometer-registry-prometheus</artifactId>
+                    <groupId>io.micrometer</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
