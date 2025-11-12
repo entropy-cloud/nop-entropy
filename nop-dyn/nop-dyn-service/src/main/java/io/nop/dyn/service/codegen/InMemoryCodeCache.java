@@ -167,7 +167,7 @@ public class InMemoryCodeCache {
     protected IResource getModuleResource(String moduleId, String path) {
         String dir = "/";
         if (tenantId != null)
-            dir = "/_tenant/" + tenantId;
+            dir = "/_tenant/" + tenantId + '/';
         String fullPath = dir + moduleId + path;
 
         IResourceStore store = moduleStores.get(moduleId);

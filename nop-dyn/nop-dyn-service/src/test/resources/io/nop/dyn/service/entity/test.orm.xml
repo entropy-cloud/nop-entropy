@@ -1,0 +1,167 @@
+<orm>
+    <entities>
+        <entity name="employee" displayName="员工">
+            <columns>
+                <column name="employee_id" displayName="员工ID" mandatory="true" primary="true" sqlType="VARCHAR" precision="32" />
+                <column name="employee_no" displayName="工号" mandatory="true" sqlType="VARCHAR" precision="20" />
+                <column name="full_name" displayName="姓名" mandatory="true" sqlType="VARCHAR" precision="50" />
+                <column name="gender" displayName="性别" sqlType="CHAR" precision="1" />
+                <column name="birth_date" displayName="出生日期" sqlType="DATE" />
+                <column name="id_card_no" displayName="身份证号" sqlType="VARCHAR" precision="18" />
+                <column name="phone" displayName="电话" sqlType="VARCHAR" precision="20" />
+                <column name="email" displayName="邮箱" sqlType="VARCHAR" precision="100" />
+                <column name="hire_date" displayName="入职日期" mandatory="true" sqlType="DATE" />
+                <column name="employee_status" displayName="员工状态" mandatory="true" sqlType="VARCHAR" precision="20" />
+                <column name="department_id" displayName="部门ID" sqlType="VARCHAR" precision="32" orm:ref-table="department" />
+                <column name="position_id" displayName="职位ID" sqlType="VARCHAR" precision="32" orm:ref-table="position" />
+                <column name="direct_manager_id" displayName="直属经理ID" sqlType="VARCHAR" precision="32" orm:ref-table="employee" />
+            </columns>
+        </entity>
+
+        <entity name="department" displayName="部门">
+            <columns>
+                <column name="department_id" displayName="部门ID" mandatory="true" primary="true" sqlType="VARCHAR" precision="32" />
+                <column name="department_code" displayName="部门编码" mandatory="true" sqlType="VARCHAR" precision="20" />
+                <column name="department_name" displayName="部门名称" mandatory="true" sqlType="VARCHAR" precision="100" />
+                <column name="parent_department_id" displayName="上级部门ID" sqlType="VARCHAR" precision="32" orm:ref-table="department" />
+                <column name="department_level" displayName="部门级别" sqlType="INT" />
+                <column name="manager_id" displayName="部门负责人ID" sqlType="VARCHAR" precision="32" orm:ref-table="employee" />
+                <column name="cost_center" displayName="成本中心" sqlType="VARCHAR" precision="50" />
+                <column name="department_status" displayName="部门状态" mandatory="true" sqlType="VARCHAR" precision="20" />
+            </columns>
+        </entity>
+
+        <entity name="position" displayName="职位">
+            <columns>
+                <column name="position_id" displayName="职位ID" mandatory="true" primary="true" sqlType="VARCHAR" precision="32" />
+                <column name="position_code" displayName="职位编码" mandatory="true" sqlType="VARCHAR" precision="20" />
+                <column name="position_name" displayName="职位名称" mandatory="true" sqlType="VARCHAR" precision="100" />
+                <column name="position_level" displayName="职位级别" sqlType="VARCHAR" precision="20" />
+                <column name="job_family" displayName="职位族群" sqlType="VARCHAR" precision="50" />
+                <column name="min_salary" displayName="最低薪资" sqlType="DECIMAL" precision="10" scale="2" />
+                <column name="max_salary" displayName="最高薪资" sqlType="DECIMAL" precision="10" scale="2" />
+                <column name="position_status" displayName="职位状态" mandatory="true" sqlType="VARCHAR" precision="20" />
+                <column name="job_description" displayName="职位描述" sqlType="TEXT" />
+            </columns>
+        </entity>
+
+        <entity name="salary_structure" displayName="薪资结构">
+            <columns>
+                <column name="salary_id" displayName="薪资ID" mandatory="true" primary="true" sqlType="VARCHAR" precision="32" />
+                <column name="employee_id" displayName="员工ID" mandatory="true" sqlType="VARCHAR" precision="32" orm:ref-table="employee" />
+                <column name="base_salary" displayName="基本工资" mandatory="true" sqlType="DECIMAL" precision="10" scale="2" />
+                <column name="performance_bonus" displayName="绩效奖金" sqlType="DECIMAL" precision="10" scale="2" />
+                <column name="allowance_total" displayName="津贴合计" sqlType="DECIMAL" precision="10" scale="2" />
+                <column name="effective_date" displayName="生效日期" mandatory="true" sqlType="DATE" />
+                <column name="expiry_date" displayName="失效日期" sqlType="DATE" />
+                <column name="salary_status" displayName="薪资状态" mandatory="true" sqlType="VARCHAR" precision="20" />
+            </columns>
+        </entity>
+
+        <entity name="attendance_record" displayName="考勤记录">
+            <columns>
+                <column name="attendance_id" displayName="考勤ID" mandatory="true" primary="true" sqlType="VARCHAR" precision="32" />
+                <column name="employee_id" displayName="员工ID" mandatory="true" sqlType="VARCHAR" precision="32" orm:ref-table="employee" />
+                <column name="attendance_date" displayName="考勤日期" mandatory="true" sqlType="DATE" />
+                <column name="check_in_time" displayName="签到时间" sqlType="DATETIME" />
+                <column name="check_out_time" displayName="签退时间" sqlType="DATETIME" />
+                <column name="work_hours" displayName="工作时长" sqlType="DECIMAL" precision="4" scale="2" />
+                <column name="overtime_hours" displayName="加班时长" sqlType="DECIMAL" precision="4" scale="2" />
+                <column name="attendance_status" displayName="考勤状态" mandatory="true" sqlType="VARCHAR" precision="20" />
+                <column name="remark" displayName="备注" sqlType="VARCHAR" precision="500" />
+            </columns>
+        </entity>
+
+        <entity name="leave_application" displayName="请假申请">
+            <columns>
+                <column name="leave_id" displayName="请假ID" mandatory="true" primary="true" sqlType="VARCHAR" precision="32" />
+                <column name="employee_id" displayName="员工ID" mandatory="true" sqlType="VARCHAR" precision="32" orm:ref-table="employee" />
+                <column name="leave_type" displayName="请假类型" mandatory="true" sqlType="VARCHAR" precision="20" />
+                <column name="start_date" displayName="开始日期" mandatory="true" sqlType="DATE" />
+                <column name="end_date" displayName="结束日期" mandatory="true" sqlType="DATE" />
+                <column name="leave_days" displayName="请假天数" mandatory="true" sqlType="DECIMAL" precision="4" scale="1" />
+                <column name="leave_reason" displayName="请假原因" mandatory="true" sqlType="TEXT" />
+                <column name="application_status" displayName="申请状态" mandatory="true" sqlType="VARCHAR" precision="20" />
+                <column name="submit_time" displayName="提交时间" mandatory="true" sqlType="DATETIME" />
+                <column name="approver_id" displayName="审批人ID" sqlType="VARCHAR" precision="32" orm:ref-table="employee" />
+                <column name="approval_time" displayName="审批时间" sqlType="DATETIME" />
+            </columns>
+        </entity>
+
+        <entity name="performance_evaluation" displayName="绩效考核">
+            <columns>
+                <column name="evaluation_id" displayName="考核ID" mandatory="true" primary="true" sqlType="VARCHAR" precision="32" />
+                <column name="employee_id" displayName="员工ID" mandatory="true" sqlType="VARCHAR" precision="32" orm:ref-table="employee" />
+                <column name="evaluation_period" displayName="考核周期" mandatory="true" sqlType="VARCHAR" precision="20" />
+                <column name="evaluation_year" displayName="考核年度" mandatory="true" sqlType="INT" />
+                <column name="evaluation_quarter" displayName="考核季度" sqlType="INT" />
+                <column name="self_score" displayName="自评分数" sqlType="DECIMAL" precision="5" scale="2" />
+                <column name="manager_score" displayName="主管评分" sqlType="DECIMAL" precision="5" scale="2" />
+                <column name="final_score" displayName="最终得分" sqlType="DECIMAL" precision="5" scale="2" />
+                <column name="evaluation_grade" displayName="考核等级" sqlType="VARCHAR" precision="10" />
+                <column name="evaluation_status" displayName="考核状态" mandatory="true" sqlType="VARCHAR" precision="20" />
+                <column name="evaluator_id" displayName="考核人ID" sqlType="VARCHAR" precision="32" orm:ref-table="employee" />
+            </columns>
+        </entity>
+
+        <entity name="training_program" displayName="培训项目">
+            <columns>
+                <column name="training_id" displayName="培训ID" mandatory="true" primary="true" sqlType="VARCHAR" precision="32" />
+                <column name="training_name" displayName="培训名称" mandatory="true" sqlType="VARCHAR" precision="200" />
+                <column name="training_type" displayName="培训类型" mandatory="true" sqlType="VARCHAR" precision="50" />
+                <column name="trainer" displayName="培训师" sqlType="VARCHAR" precision="100" />
+                <column name="training_location" displayName="培训地点" sqlType="VARCHAR" precision="200" />
+                <column name="start_date" displayName="开始日期" mandatory="true" sqlType="DATE" />
+                <column name="end_date" displayName="结束日期" mandatory="true" sqlType="DATE" />
+                <column name="max_participants" displayName="最大参与人数" sqlType="INT" />
+                <column name="training_cost" displayName="培训费用" sqlType="DECIMAL" precision="10" scale="2" />
+                <column name="training_status" displayName="培训状态" mandatory="true" sqlType="VARCHAR" precision="20" />
+            </columns>
+        </entity>
+
+        <entity name="training_enrollment" displayName="培训报名">
+            <columns>
+                <column name="enrollment_id" displayName="报名ID" mandatory="true" primary="true" sqlType="VARCHAR" precision="32" />
+                <column name="training_id" displayName="培训ID" mandatory="true" sqlType="VARCHAR" precision="32" orm:ref-table="training_program" />
+                <column name="employee_id" displayName="员工ID" mandatory="true" sqlType="VARCHAR" precision="32" orm:ref-table="employee" />
+                <column name="enrollment_date" displayName="报名日期" mandatory="true" sqlType="DATE" />
+                <column name="attendance_status" displayName="出勤状态" sqlType="VARCHAR" precision="20" />
+                <column name="completion_status" displayName="完成状态" sqlType="VARCHAR" precision="20" />
+                <column name="final_score" displayName="培训成绩" sqlType="DECIMAL" precision="5" scale="2" />
+                <column name="certificate_issued" displayName="是否颁发证书" sqlType="BOOLEAN" />
+            </columns>
+        </entity>
+
+        <entity name="recruitment_position" displayName="招聘职位">
+            <columns>
+                <column name="recruitment_id" displayName="招聘ID" mandatory="true" primary="true" sqlType="VARCHAR" precision="32" />
+                <column name="position_id" displayName="职位ID" mandatory="true" sqlType="VARCHAR" precision="32" orm:ref-table="position" />
+                <column name="department_id" displayName="部门ID" mandatory="true" sqlType="VARCHAR" precision="32" orm:ref-table="department" />
+                <column name="recruitment_count" displayName="招聘人数" mandatory="true" sqlType="INT" />
+                <column name="urgency_level" displayName="紧急程度" sqlType="VARCHAR" precision="20" />
+                <column name="job_requirements" displayName="岗位要求" sqlType="TEXT" />
+                <column name="publish_date" displayName="发布日期" mandatory="true" sqlType="DATE" />
+                <column name="deadline" displayName="截止日期" sqlType="DATE" />
+                <column name="recruitment_status" displayName="招聘状态" mandatory="true" sqlType="VARCHAR" precision="20" />
+                <column name="recruiter_id" displayName="招聘负责人ID" sqlType="VARCHAR" precision="32" orm:ref-table="employee" />
+            </columns>
+        </entity>
+
+        <entity name="candidate" displayName="候选人">
+            <columns>
+                <column name="candidate_id" displayName="候选人ID" mandatory="true" primary="true" sqlType="VARCHAR" precision="32" />
+                <column name="recruitment_id" displayName="招聘ID" mandatory="true" sqlType="VARCHAR" precision="32" orm:ref-table="recruitment_position" />
+                <column name="candidate_name" displayName="候选人姓名" mandatory="true" sqlType="VARCHAR" precision="50" />
+                <column name="gender" displayName="性别" sqlType="CHAR" precision="1" />
+                <column name="phone" displayName="电话" mandatory="true" sqlType="VARCHAR" precision="20" />
+                <column name="email" displayName="邮箱" mandatory="true" sqlType="VARCHAR" precision="100" />
+                <column name="education_background" displayName="教育背景" sqlType="VARCHAR" precision="100" />
+                <column name="work_experience" displayName="工作经验" sqlType="TEXT" />
+                <column name="expected_salary" displayName="期望薪资" sqlType="DECIMAL" precision="10" scale="2" />
+                <column name="application_date" displayName="申请日期" mandatory="true" sqlType="DATE" />
+                <column name="interview_status" displayName="面试状态" mandatory="true" sqlType="VARCHAR" precision="20" />
+                <column name="final_result" displayName="最终结果" sqlType="VARCHAR" precision="20" />
+            </columns>
+        </entity>
+    </entities>
+</orm>

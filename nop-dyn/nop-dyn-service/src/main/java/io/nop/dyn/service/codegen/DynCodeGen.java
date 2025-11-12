@@ -297,7 +297,7 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
     }
 
     protected void addEnabledModulesToCache(InMemoryCodeCache cache) {
-        ormTemplate.runInSession(()->{
+        ormTemplate.runInSession(() -> {
             IEntityDao<NopDynModule> dao = daoProvider.daoFor(NopDynModule.class);
             NopDynModule example = new NopDynModule();
             example.setStatus(NopDynDaoConstants.MODULE_STATUS_PUBLISHED);
@@ -380,7 +380,7 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
                 IEntityModel entityModel = ormModel.requireEntityModel(bizModel.getEntityName());
                 scope.setLocalValue(VAR_ENTITY_MODEL, entityModel);
             } else {
-                scope.removeLocalValue(VAR_ENTITY_MODEL);
+                scope.setLocalValue(VAR_ENTITY_MODEL, null);
             }
 
             IEntityDao<NopDynEntityMeta> dao = daoProvider.daoFor(NopDynEntityMeta.class);
