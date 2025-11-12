@@ -22,7 +22,15 @@
         <maven.compiler.encoding>UTF-8</maven.compiler.encoding>
 
         <compiler-plugin.version>3.11.0</compiler-plugin.version>
-        <quarkus.platform.version>3.21.4</quarkus.platform.version>
+
+        <quarkus.platform.version>3.29.2</quarkus.platform.version>
+        <spring-boot.version>3.5.7</spring-boot.version>
+        <spring-cloud.version>2025.0.0</spring-cloud.version>
+        <spring-ai.version>1.0.0</spring-ai.version>
+        <graalvm.version>23.1.2</graalvm.version>
+        <!-- 与quarkus3.14.4中使用版本一致 -->
+        <antlr.version>4.13.0</antlr.version>
+
         <surefire-plugin.version>3.1.2</surefire-plugin.version>
 
         <!--        <vertx.version>4.3.1</vertx.version>-->
@@ -31,10 +39,6 @@
 
         <!--        <tcnative.version>2.0.52.Final</tcnative.version>-->
 
-        <!-- 与quarkus3.14.4中使用版本一致 -->
-        <antlr.version>4.13.0</antlr.version>
-
-        <graalvm.version>23.1.2</graalvm.version>
         <!--        <jackson.version>2.10.2</jackson.version>-->
         <janino.version>3.1.12</janino.version>
         <!--        <junit-jupiter.version>5.7.0</junit-jupiter.version>-->
@@ -46,10 +50,6 @@
         <!--        <h2.version>2.1.210</h2.version>-->
         <nacos.version>2.3.2</nacos.version>
         <!--        <testcontainers.version>1.16.3</testcontainers.version>-->
-
-        <spring-boot.version>3.5.3</spring-boot.version>
-        <spring-cloud.version>2025.0.0</spring-cloud.version>
-        <spring-ai.version>1.0.0</spring-ai.version>
 
         <tablesaw.version>0.43.1</tablesaw.version>
         <lucene.version>9.7.0</lucene.version>

@@ -96,8 +96,42 @@
                     </execution>
                 </executions>
             </plugin>
-
-
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>native</id>
+            <build>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.graalvm.buildtools</groupId>
+                            <artifactId>native-maven-plugin</artifactId>
+                            <version>0.10.6</version>
+                            <configuration>
+                                <imageName>${project.artifactId}</imageName>
+                                <classesDirectory>${project.build.outputDirectory}</classesDirectory>
+                                <requiredVersion>22.3</requiredVersion>
+                            </configuration>
+
+                            <executions>
+                                <execution>
+                                    <id>add-reachability-metadata</id>
+                                    <goals>
+                                        <goal>add-reachability-metadata</goal>
+                                    </goals>
+                                </execution>
+
+                                <execution>
+                                    <id>build-image</id>
+                                    <goals>
+                                        <goal>compile-no-fork</goal>
+                                    </goals>
+                                </execution>
+                            </executions>
+                        </plugin>
+                    </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
