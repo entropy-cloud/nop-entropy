@@ -4,7 +4,7 @@
 
 ## I. Why do we need to design the XLang language
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/simple/images/xlang.png)
+![XLang](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/simple/images/xlang.png)
 
 The XLang language is a key foundational technology of the Nop platform. Formally, it comprises multiple sub-languages such as XDef, Xpl, and XScript. Because XLang differs significantly from other languages that have a single syntactic form, many people encountering it for the first time may wonder whether it is truly a programming language, or merely a set of scattered extensions on top of several existing languages.
 
