@@ -44,17 +44,40 @@ An asynchronous model means there is no global clock, processes can proceed at a
 
 FLP essentially says: if an omniscient, omnipotent deity maliciously disrupts the progress of consensus and, each time consensus is about to be achieved (at the moment a critical transition is about to occur), indefinitely suspends a critical node, then no algorithm can ensure consensus is reached. Fortunately, in our world, such a bored deity has not been discovered. Try enough times, and you’ll eventually get lucky.
 
-### Paxos Algorithm at a Glance
+### **Paxos Algorithm at a Glance**
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos-diagram.webp)
+The Paxos algorithm operates through two main phases to achieve consensus on a single value in a distributed system:
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/phase1.png)
+**Core Components:**
+- **Proposers:** Generate proposals with unique, monotonically increasing IDs
+- **Acceptors:** Store accepted values and respond to proposals
+- **Learners:** Learn the chosen value once consensus is reached
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/phase2.png)
+**Phase 1: Prepare/Promise**
+1. A Proposer selects a unique proposal number N and sends PREPARE(N) requests to a majority of Acceptors
+2. Each Acceptor responds with:
+   - A promise not to accept any proposal with number less than N
+   - If it has already accepted a proposal, it includes the highest-numbered proposal it has accepted
+3. If Proposer receives promises from a majority, it proceeds to Phase 2
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos-algorithm.png)
+**Phase 2: Accept/Accepted**
+1. The Proposer sends ACCEPT(N, V) requests to a majority of Acceptors, where V is:
+   - The value from the highest-numbered proposal among the responses, if any
+   - Or the Proposer's own value if no Acceptors had accepted any proposal
+2. Acceptors accept the proposal unless they have promised not to (i.e., they've promised to a higher-numbered proposal)
+3. If a majority of Acceptors accept (N, V), the value V is chosen
 
-The above images are from the Alibaba Infrastructure Division’s presentation by Hedengcheng: [PaxosRaft Distributed Consistency Algorithm Principles and Their Practical Applications.pdf](https://github.com/hedengcheng/tech/blob/master/distributed/PaxosRaft%20%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95%E5%8E%9F%E7%90%86%E5%89%96%E6%9E%90%E5%8F%8A%E5%85%B6%E5%9C%A8%E5%AE%9E%E6%88%98%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8.pdf)
+**Key Rules:**
+- Acceptors must honor their promises - they cannot accept proposals with numbers less than what they've promised
+- A value is considered chosen when accepted by a majority of Acceptors
+- Proposers must use the value from the highest-numbered proposal they learn about in Phase 1
+
+**Safety Properties Guaranteed:**
+- **Agreement:** Only one value can be chosen
+- **Validity:** Only proposed values can be chosen
+- **Termination:** Eventually some value is chosen (assuming eventual message delivery and sufficient retries)
+
+This two-phase approach ensures that even with multiple competing Proposers and partial failures, the system maintains consistency and eventually reaches consensus on a single value.
 
 Definition of a value being chosen: A value is chosen if it is accepted by a majority (more than half) of acceptors.
 
@@ -86,7 +109,7 @@ Einstein imagined sending out a photon to probe the world and discovered an eart
 
 Interestingly, although Lamport was guided by special relativity, in the paper itself he only discussed logical clocks and never mentioned special relativity, leading some to mistakenly believe it was a stroke of genius out of thin air.
 
-Lamport’s original paper on Paxos [The Part-Time Parliament](https://ying-zhang.github.io/dist/1989-paxos-cn/) was finally formally published in 1998, after which many people exclaimed that they couldn’t understand it. So in 2001, Lamport wrote [Paxos Made Simple](https://www.jianshu.com/p/1bbbfbe300d1), beginning with the sentence: “The Paxos algorithm, when presented in plain English, is very simple.” In this article, Lamport provides a “Why” for the design of Paxos, but this explanation is based on step-by-step mathematical reasoning—effectively forcing others to accept the rationality of the algorithm. The inevitable result is that many people think they understand it at first glance, but are confused again in the next moment.
+Lamport’s original paper on Paxos [The Part-Time Parliament](https://lamport.azurewebsites.net/pubs/lamport-paxos.pdf) was finally formally published in 1998, after which many people exclaimed that they couldn’t understand it. So in 2001, Lamport wrote [Paxos Made Simple](https://lamport.azurewebsites.net/pubs/paxos-simple.pdf), beginning with the sentence: “The Paxos algorithm, when presented in plain English, is very simple.” In this article, Lamport provides a “Why” for the design of Paxos, but this explanation is based on step-by-step mathematical reasoning—effectively forcing others to accept the rationality of the algorithm. The inevitable result is that many people think they understand it at first glance, but are confused again in the next moment.
 
 Physics emphasizes physical imagery in learning and research. Physicists never obediently follow mathematical rules step by step; they believe a derivation because it corresponds to a reasonable physical explanation. So for the Paxos algorithm, we can’t help but ask: what is its underlying physical image? In Lamport’s heart, is there still a hidden, non-mathematical understanding of the inevitability of Paxos—like when he quietly concealed relativity from that group of computer folks?
 
@@ -127,7 +150,7 @@ Recall that the series of actions by Proposers and Acceptors in Paxos fundamenta
 
 In our low-magic world, the most basic method to simulate magic is cognitive deletion—that is, delete from our cognition all facts that don’t conform to magical principles. If you can’t see it, it doesn’t exist! The Acceptor’s seemingly odd behaviors simply ignore facts that would cause the time-freezing magic to be exposed.
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/time_arrow.png)
+![Time Arrow](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/time_arrow.png)
 
 Each Acceptor records a Proposal ID that only increases and never decreases, establishing a local arrow of time. The entire system aligns Proposal IDs to the same point, effectively tying multiple local time arrows together into a coarse-grained, unified arrow of time. The flow of time resembles a wavefront sweeping across the system.
 
@@ -155,7 +178,7 @@ A local arrow of time can be interrupted at any time due to various anomalies. T
 
 A key to understanding Paxos is that we only need to focus on events that ascend to the macro world—i.e., what happens on the primary timeline of the primary world. Each time point on the primary timeline corresponds to a process in the small world: time-freeze start to time-freeze end. At each time point, a value may be set (if the setting succeeds, consensus is reached). The effect of time freezing eventually manifests fully in the primary world: on the primary timeline, it appears as isolated time points that do not overlap, corresponding to process intervals in the small world that do not interleave.
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_phase2.png)
+![paxos phase2](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_phase2.png)
 
 Only events that occur in most small worlds ascend to the primary world and become events in the primary world. The first step in Paxos is to obtain promises from a majority of Acceptors. If successful, the majority of Acceptors’ times are aligned as one, creating a new time point on the primary timeline. In other words, only time points recognized by a majority of Acceptors appear on the primary timeline, and they record the start of time freezing on that timeline. If multiple Proposers compete concurrently, multiple Proposers may access different Acceptors with the same Proposal ID; if none obtains majority recognition, that time is automatically discarded and will not be observed on the primary timeline. There can be many competition processes at the micro level; what we observe on the primary timeline is the macro result of successful competition that obtains majority recognition. In analyzing the algorithm, we only need to consider results on the primary timeline.
 
@@ -185,7 +208,7 @@ Phase 2 of Paxos has a particularly puzzling operation: after the Proposer colle
 
 These questions exist essentially due to the limitations of mortals.
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_consensus.png)
+![paxos consensus](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_consensus.png)
 
 Consider 5 Acceptors and multiple Proposers. At ProposalID=t1, proposal P1 was accepted by A1 and A2, but did not reach a majority, so no value was determined in that round. ProposalID=t2 (P2) likewise failed to reach a majority. ProposalID=t3 (P3) was accepted by the majority A2, A3, A4, thus reaching consensus.
 
@@ -195,7 +218,7 @@ If consensus can be overturned, how does a mortal with limited cognition know wh
 
 > In fact, the definition of consensus already excludes the possibility of overturning consensus after it is reached.
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_consensus_fail.png)
+![paxos consensus fail](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_consensus_fail.png)
 
 Now consider the case in the figure above. Suppose A3 crashed while processing P3. From the outside, there are two possibilities:
 
@@ -232,7 +255,7 @@ For example: at t3, five nodes return values 1, 2, 3, 4, 5. According to Paxos, 
 
 When consensus is determined, do participants in the system instantly realize it has been achieved? Interestingly, the instant consensus is reached, no participants—Acceptors nor Proposers—know that consensus has been reached! However, over time, the algorithm’s execution gradually reveals the fact that consensus has been reached.
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_consensus.png)
+![paxos consensus](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_consensus.png)
 
 First, note that before consensus is reached, an Acceptor may change the value it has accepted—for example, A3 first accepted P2, then accepted P3. Because a Proposer may become unreachable at any time, Acceptors can only choose to accept newer values. Therefore, when A3 accepts P3, it cannot know that consensus has been reached and that P3 is the final chosen value. By the same token, A2 and A4 only know their local states and cannot judge whether the system as a whole has reached consensus. On the Proposer side, it cannot know whether P3 will be accepted by a majority or become the final consensus until it has received successful responses from a majority of Acceptors. Consensus belongs to the whole; a single participant needs a process of understanding whether consensus has been reached. This is the key to the Learner role. The Learner first recognizes that consensus has been reached and then disseminates this information, avoiding the need for each participant to independently collect and reason.
 
@@ -321,7 +344,7 @@ To strive for survival in a world of chance and uncertainty, we can only coopera
 
 Consider a Grid Quorum example:
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_grid_quorum.png)
+![paxos grid quorum](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/paxos_grid_quorum.png)
 
 For the `3*6` Acceptors composing this grid, we can stipulate that writing any single column’s quorum suffices to achieve consensus. Clearly, any two columns are disjoint. To avoid contradictions, we must build a horizontal bridge: require Phase 1 reads to read at least one row. Suppose a consensus has emerged at some time; then the next consensus must read a row and then write a column. Because any row and any column intersect, a row read must see the consensus value; thus the newly written value must remain consistent with the previous consensus. Note that the row quorum and the intersecting column quorum in this example do not reach a majority, and their total size is 3+6-1=8, still not a majority. So the read and write quorums need not be identical nor be a majority; as long as they intersect, information can be transmitted.
 
@@ -433,7 +456,7 @@ Raft’s original paper proposed single-step changes (one member at a time) and 
 
 Consider migrating from cluster C1 (abc) to cluster C2 (def):
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/join-consensus.png)
+![join consensus](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/join-consensus.png)
 
 In the Paxos family, we only need to consider what happens on the primary world’s timeline, ignoring micro-level details—this includes when the leader switches. Paxos’s safety essentially derives from the fact that at a designated moment t only one quorum performs writes (mutual exclusion of quorums). Whether the write is initiated by a leader is irrelevant. Paxos does not depend on leader election; the leader exists solely for performance optimization.
 
@@ -449,7 +472,7 @@ See [How to solve “ghost reappearance” in distributed systems](https://www.i
 
 Multi-Paxos can encounter “ghost reappearance,” where logs not previously confirmed by a majority reappear in later operations, causing inconsistency or duplicate processing. That is, entries not committed under the previous leader may be committed by the next leader—transitioning from unknown to committed.
 
-![](https://pic3.zhimg.com/80/v2-5035bf2fa2a2fdceabe67334d5517834_1440w.webp)
+![ghost reappearance](https://pic3.zhimg.com/80/v2-5035bf2fa2a2fdceabe67334d5517834_1440w.webp)
 
 Round 1: A is elected leader and writes logs 1–10. Logs 1–5 form a majority and are acknowledged to clients; clients time out on 6–10.
 
@@ -481,7 +504,7 @@ acceptors: 2f+1
 
 replicas: at least f+1
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/BPaxos.png)
+![BPaxos](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/paxos/BPaxos.png)
 
 $deps(v_x)$ is the union of dependency sets returned by at least f+1 dependency service nodes.
 
@@ -493,7 +516,7 @@ Consensus invariant: For each vertex v, at most one value `(x,deps(v))` can exis
 
 Dependency invariant: A formal description of conflicts in the dependency graph. If x and y conflict, then either $v_x \in deps(v_y)$ or $v_y\in deps(v_x)$ (or both).
 
-![](https://picx.zhimg.com/80/v2-e367275aa567652df6bbc7d3ff79aab1_1440w.webp)
+![dependency](https://picx.zhimg.com/80/v2-e367275aa567652df6bbc7d3ff79aab1_1440w.webp)
 
 Two conflicting operations may be initiated simultaneously; messages may arrive at different dependency service nodes in different orders, producing different dependencies across nodes. Even if the service’s conflict graph is acyclic, the replicas’ conflict graph can still have cycles.
 
@@ -565,7 +588,7 @@ Each node’s vector clock starts as:
 
 ### CRDT data structures
 
-See [How to design CRDT algorithms](https://www.zxch3n.com/crdt-intro/design-crdt/)
+See [CRDTs: The Hard Parts](https://martin.kleppmann.com/2020/07/06/crdt-hard-parts-hydra.html)
 
 CRDT (Conflict-free Replicated Data Type) is a specially designed data type for achieving eventual consistency in distributed systems. CRDT’s core is allowing replicas to update independently without a central coordinator; when replicas eventually merge, the merge is conflict-free and ensures consistency. CRDT’s mathematical foundation is Semi-Lattice theory.
 
