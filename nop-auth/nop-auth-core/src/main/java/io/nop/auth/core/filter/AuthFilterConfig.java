@@ -19,6 +19,8 @@ public class AuthFilterConfig {
      */
     private boolean defaultPublic = false;
 
+    private int cookieMaxAge = 24 * 60 * 60; // 24小时
+
     private List<String> publicPaths = Collections.emptyList();
 
     /**
@@ -30,6 +32,13 @@ public class AuthFilterConfig {
      * 服务路径。服务总是需要上下文
      */
     private List<String> servicePaths = Collections.emptyList();
+
+    /**
+     * 允许的重定向URL前缀列表
+     * 默认只允许相对路径，外部域名需要显式配置
+     */
+    private List<String> allowedRedirectPrefixes = Collections.emptyList();
+
 
     private boolean servicePublic = false;
 
@@ -65,6 +74,22 @@ public class AuthFilterConfig {
 
     public void setRememberMeCookie(String rememberMeCookie) {
         this.rememberMeCookie = rememberMeCookie;
+    }
+
+    public int getCookieMaxAge() {
+        return cookieMaxAge;
+    }
+
+    public void setCookieMaxAge(int cookieMaxAge) {
+        this.cookieMaxAge = cookieMaxAge;
+    }
+
+    public List<String> getAllowedRedirectPrefixes() {
+        return allowedRedirectPrefixes;
+    }
+
+    public void setAllowedRedirectPrefixes(List<String> allowedRedirectPrefixes) {
+        this.allowedRedirectPrefixes = allowedRedirectPrefixes;
     }
 
     public String getAuthCookie() {
@@ -175,5 +200,16 @@ public class AuthFilterConfig {
 
     public void setOauthCallbackPath(String oauthCallbackPath) {
         this.oauthCallbackPath = oauthCallbackPath;
+    }
+
+    public boolean isAllowedRedirectUri(String uri) {
+        if (this.allowedRedirectPrefixes == null || this.allowedRedirectPrefixes.isEmpty())
+            return false;
+
+        for (String prefix : this.allowedRedirectPrefixes) {
+            if (uri.startsWith(prefix))
+                return true;
+        }
+        return false;
     }
 }

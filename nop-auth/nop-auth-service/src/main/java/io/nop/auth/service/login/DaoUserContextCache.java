@@ -28,6 +28,7 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -42,6 +43,7 @@ public class DaoUserContextCache extends LocalUserContextCache {
         return daoProvider.daoFor(NopAuthSession.class);
     }
 
+    @SingleSession
     @Override
     public CompletionStage<IUserContext> getUserContextAsync(String sessionId) {
         Guard.notEmpty(sessionId, "sessionId");
@@ -57,6 +59,9 @@ public class DaoUserContextCache extends LocalUserContextCache {
                 LOG.debug("nop.auth.login-session-already-logout:sessionId={}", sessionId);
                 return null;
             }
+
+            if (checkExpired(session))
+                return null;
 
             UserContextImpl userContext = new UserContextImpl();
 
@@ -77,6 +82,20 @@ public class DaoUserContextCache extends LocalUserContextCache {
             return userContext;
         });
 
+    }
+
+    protected boolean checkExpired(NopAuthSession session) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime timeoutTime = session.getLastAccessTime().plus(config.getSessionTimeout());
+
+
+        if (now.isAfter(timeoutTime)) {
+            session.setLogoutType(AuthApiConstants.LOGOUT_TYPE_EXPIRE);
+            session.setLogoutTime(CoreMetrics.currentTimestamp());
+            return true;
+        }
+
+        return false;
     }
 
     @SingleSession

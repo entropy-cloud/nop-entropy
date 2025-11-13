@@ -8,6 +8,7 @@
 package io.nop.auth.core.filter;
 
 import io.nop.api.core.ApiConstants;
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
@@ -34,6 +35,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.http.api.HttpApiConstants;
 import io.nop.http.api.server.IHttpServerContext;
 import io.nop.http.api.server.IHttpServerFilter;
+import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,13 +44,12 @@ import java.net.HttpCookie;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 import static io.nop.auth.core.AuthCoreConfigs.CFG_AUTH_USE_USER_ID_FOR_AUDIT_FIELDS;
+import static io.nop.auth.core.AuthCoreErrors.ERR_AUTH_INVALID_REDIRECT_URI;
 import static io.nop.auth.core.AuthCoreErrors.ERR_AUTH_NOT_AUTHORIZED;
 
 /**
@@ -58,16 +59,19 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
     static final Logger LOG = LoggerFactory.getLogger(AuthHttpServerFilter.class);
 
     private static final String OAUTH_TOKEN_REQUEST_STATE = "OAuth_Token_Request_State";
-    private static final AtomicLong counter = new AtomicLong();
-
-    private static String genStateCode() {
-        return counter.getAndIncrement() + "/" + UUID.randomUUID();
-    }
+    private StateCookieHelper stateCookieHelper; // 新增
 
 
     private AuthFilterConfig config;
 
     private ILoginService loginService;
+
+    private boolean autoRefreshToken;
+
+    @InjectValue("@cfg:nop.auth.auto-refresh-token|true")
+    public void setAutoRefreshToken(boolean autoRefreshToken) {
+        this.autoRefreshToken = autoRefreshToken;
+    }
 
     @Inject
     public void setConfig(AuthFilterConfig config) {
@@ -77,6 +81,18 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
     @Inject
     public void setLoginService(ILoginService loginService) {
         this.loginService = loginService;
+    }
+
+    public void setStateCookieHelper(StateCookieHelper stateCookieHelper) {
+        this.stateCookieHelper = stateCookieHelper;
+    }
+
+    // 如果没有注入，提供默认实例
+    @PostConstruct
+    public void init() {
+        if (stateCookieHelper == null) {
+            this.stateCookieHelper = new StateCookieHelper();
+        }
     }
 
     @Override
@@ -161,6 +177,11 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
             AuthToken authToken = loginService.parseAuthToken(accessToken);
             String redirectUri = routeContext.getQueryParam(AuthCoreConstants.PARAM_REDIRECT_URI);
             if (redirectUri != null) {
+                // 应验证redirectUri是否为允许的域名
+                if (!isAllowedRedirectUri(redirectUri)) {
+                    throw new NopException(ERR_AUTH_INVALID_REDIRECT_URI);
+                }
+
                 routeContext.sendRedirect(redirectUri);
                 return next.get();
             }
@@ -170,6 +191,30 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
             handleError(routeContext, ex, servicePath);
             throw NopException.adapt(ex);
         });
+    }
+
+    protected boolean isAllowedRedirectUri(String redirectUri) {
+        if (StringHelper.isEmpty(redirectUri)) {
+            LOG.debug("nop.auth.redirect-uri-empty");
+            return false;
+        }
+
+        // 快速检查：默认允许相对路径
+        if (isRelativePath(redirectUri)) {
+            LOG.debug("nop.auth.redirect-relative-allowed:uri={}", redirectUri);
+            return true;
+        }
+
+        // 绝对URL需要进一步验证
+        return config.isAllowedRedirectUri(redirectUri);
+    }
+
+    /**
+     * 检查是否为相对路径
+     */
+    private boolean isRelativePath(String uri) {
+        // 相对路径特征：以/开头，且不包含://
+        return uri.startsWith("/") && !uri.contains("://");
     }
 
     protected IUserContext newSysUserContext(IHttpServerContext context) {
@@ -202,6 +247,7 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         if (!StringHelper.isEmpty(config.getLogoutUrl())) {
             if (routeContext.getRequestPath().startsWith(config.getLogoutUrl())) {
                 if (config.getAuthCookie() != null) {
+                    // 内部实现是通过setMaxAge(0)等机制
                     routeContext.removeCookie(config.getAuthCookie());
                 }
                 return true;
@@ -211,12 +257,14 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
     }
 
     protected boolean isNeedRefresh(AuthToken authToken) {
-        if (authToken == null)
-            return false;
+        if (authToken == null || !autoRefreshToken) return false;
 
-        if ((authToken.getExpireAt() - CoreMetrics.currentTimeMillis()) * 2 < (authToken.getExpireSeconds() * 1000L))
-            return true;
-        return false;
+        long currentTime = CoreMetrics.currentTimeMillis();
+        long timeToLive = authToken.getExpireAt() - currentTime;
+        long halfLife = authToken.getExpireSeconds() * 500L; // 半衰期
+
+        // 增加最小刷新间隔，避免频繁刷新
+        return timeToLive < halfLife;
     }
 
 
@@ -279,16 +327,28 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         cookie.setPath("/");
         cookie.setHttpOnly(true);
         cookie.setSecure(AuthCoreConfigs.CFG_AUTH_USE_SECURE_COOKIE.get());
+        cookie.setMaxAge(config.getCookieMaxAge());
         context.addCookie("Lax", cookie);
     }
 
     protected boolean hasOAuthCode(IHttpServerContext routeContext) {
+        // 检查是否在OAuth回调路径上
         if (!StringHelper.isEmpty(config.getOauthCallbackPath())) {
-            if (!config.getOauthCallbackPath().equals(routeContext.getRequestPath()))
+            if (!config.getOauthCallbackPath().equals(routeContext.getRequestPath())) {
                 return false;
+            }
         }
-        return routeContext.getQueryParam(AuthCoreConstants.PARAM_CODE) != null
-                && routeContext.getQueryParam(AuthCoreConstants.PARAM_STATE) != null;
+
+        // 检查必需的OAuth参数
+        String code = routeContext.getQueryParam(AuthCoreConstants.PARAM_CODE);
+        String state = routeContext.getQueryParam(AuthCoreConstants.PARAM_STATE);
+
+        if (StringHelper.isEmpty(code) || StringHelper.isEmpty(state)) {
+            return false;
+        }
+
+        // 使用StateCookieHelper验证state
+        return stateCookieHelper.validateAndClearState(state, routeContext);
     }
 
     protected AuthToken parseAuthToken(IHttpServerContext routeContext) {
@@ -357,25 +417,39 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         if (forceJson || isAjaxRequest(context) || StringHelper.isEmpty(config.getLoginUrl())) {
             writeJsonResponse(context, errorCode, errorDesc);
         } else {
-            // auth?client_id=xx&response_type=code&state=xxx&redirect_uri=zz&scope=vv
-            String url = config.getLoginUrl();
-            url = StringHelper.replace(url, AuthCoreConstants.PLACEHOLDER_HOST, context.getHost());
-            url = StringHelper.replace(url, AuthCoreConstants.PLACEHOLDER_BACK_URL, StringHelper.encodeURL(context.getRequestUrl()));
-            url = StringHelper.replace(url, AuthCoreConstants.PLACEHOLDER_ERR_CODE, StringHelper.encodeURL(errorCode));
-            String state = genStateCode();
-            int pos = url.lastIndexOf('#');
-            if (pos < 0) {
-                url = StringHelper.appendQuery(url, "state=" + state);
-            } else {
-                String fragment = url.substring(pos);
-                url = url.substring(0, pos);
-                url = StringHelper.appendQuery(url, "state=" + state);
-                url += fragment;
-            }
-            addCookie(OAUTH_TOKEN_REQUEST_STATE, state, context);
+            String url = buildLoginUrlWithState(context, errorCode);
             context.sendRedirect(url);
         }
         return FutureHelper.success(null);
+    }
+
+    /**
+     * 构建带state参数的登录URL
+     */
+    protected String buildLoginUrlWithState(IHttpServerContext context, String errorCode) {
+        String url = config.getLoginUrl();
+        url = StringHelper.replace(url, AuthCoreConstants.PLACEHOLDER_HOST, context.getHost());
+        url = StringHelper.replace(url, AuthCoreConstants.PLACEHOLDER_BACK_URL,
+                StringHelper.encodeURL(context.getRequestUrl()));
+        url = StringHelper.replace(url, AuthCoreConstants.PLACEHOLDER_ERR_CODE,
+                StringHelper.encodeURL(errorCode));
+
+        // 生成并设置state
+        String state = stateCookieHelper.generateStateCode();
+        stateCookieHelper.setStateCookie(state, context);
+
+        // 添加state参数到URL
+        int pos = url.lastIndexOf('#');
+        if (pos < 0) {
+            url = StringHelper.appendQuery(url, "state=" + StringHelper.encodeURL(state));
+        } else {
+            String fragment = url.substring(pos);
+            url = url.substring(0, pos);
+            url = StringHelper.appendQuery(url, "state=" + StringHelper.encodeURL(state));
+            url += fragment;
+        }
+
+        return url;
     }
 
     protected void writeJsonResponse(IHttpServerContext context, String errorCode, String errorDesc) {

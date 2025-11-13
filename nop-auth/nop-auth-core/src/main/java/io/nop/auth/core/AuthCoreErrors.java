@@ -70,4 +70,7 @@ public interface AuthCoreErrors {
     ErrorCode ERR_AUTH_NOT_AUTHORIZED =
             define("nop.err.auth.not-authorized",
                     "用户未登录或者会话已过期");
+
+    ErrorCode ERR_AUTH_INVALID_REDIRECT_URI = define("nop.err.auth.invalid-redirect-uri",
+            "重定向URI不合法");
 }
