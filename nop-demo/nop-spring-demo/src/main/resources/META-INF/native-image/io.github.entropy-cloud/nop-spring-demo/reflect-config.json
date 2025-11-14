@@ -6049,6 +6049,13 @@
         ]
       },
       {
+        "name": "buildLoginUrlWithState",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "checkLogoutUrl",
         "parameterTypes": [
           "io.nop.http.api.server.IHttpServerContext"
@@ -6125,6 +6132,12 @@
         "name": "isAjaxRequest",
         "parameterTypes": [
           "io.nop.http.api.server.IHttpServerContext"
+        ]
+      },
+      {
+        "name": "isAllowedRedirectUri",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {

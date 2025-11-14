@@ -51,9 +51,9 @@ public class TestImportDbTool extends JunitBaseTestCase {
                 "  perms             varchar(100)    default null               comment '权限标识',\n" +
                 "  icon              varchar(100)    default '#'                comment '菜单图标',\n" +
                 "  create_by         varchar(64)     default ''                 comment '创建者',\n" +
-                "  create_time       datetime                                   comment '创建时间',\n" +
+                "  create_time       timestamp                                   comment '创建时间',\n" +
                 "  update_by         varchar(64)     default ''                 comment '更新者',\n" +
-                "  update_time       datetime                                   comment '更新时间',\n" +
+                "  update_time       timestamp                                   comment '更新时间',\n" +
                 "  remark            varchar(500)    default ''                 comment '备注',\n" +
                 "  constraint PK_SYS_MENU primary key (menu_id)\n" +
                 ")";
