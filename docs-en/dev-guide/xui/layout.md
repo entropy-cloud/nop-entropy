@@ -1,27 +1,27 @@
-# Layout Language
+# Form layout language in a low-code platform: NopLayout
 
 In the Nop platform, we use NopLayout, a domain-specific language dedicated to form layouts, to separate form layout information from (field-level) content information. For example, for the following form layout
 
 ```xml
- <form id="add" editMode="add" title="新增-用户" i18n-en:title="Add User">
+ <form id="add" editMode="add" title="Add-User" i18n-en:title="Add User">
   <layout>
-    ============>baseInfo[基本信息]======
-    userName[用户名] status[用户状态]
-    nickName[昵称]
-    deptId[部门]
+    ============>baseInfo[Basic Information]======
+    userName[Username] status[User Status]
+    nickName[Nickname]
+    deptId[Department]
 
-    ===========^extInfo[扩展信息]=========
-    idType[证件类型] idNbr[证件号]
-    birthday[生日] workNo[工号]
-    positionId[职务]
-    remark[备注]
+    ===========^extInfo[Extended Information]=========
+    idType[ID Type] idNbr[ID Number]
+    birthday[Birthday] workNo[Work Number]
+    positionId[Position]
+    remark[Remarks]
   </layout>
 </form>
 ```
 
 This renders as
 
-![](layout/group-layout.png)
+![Group Layout](layout/group-layout.png)
 
 ## I. Layout Syntax
 
@@ -44,7 +44,7 @@ For example, to add department-based filtering on the left side of the user list
 ```xml
 <form id="asideFilter" submitOnChange="true" editMode="query">
   <layout>
-    ==dept[部门]==
+    ==dept[Department]==
     !deptId
   </layout>
   <cells>
@@ -61,7 +61,7 @@ For example, to add department-based filtering on the left side of the user list
 
 The `deptId` field is prefixed with `!`, meaning its label is hidden, resulting in
 
-![](layout/aside-filter.png)
+![Aside Filter](layout/aside-filter.png)
 
 ## II. Field Control Inference
 
@@ -107,7 +107,7 @@ If a control is specialized and doesn’t warrant abstraction into a unified dom
    <cells>
       <cell id="fldA">
          <gen-control>
-            这里输出具体使用的控件描述
+            Here output the specific control description used
          </gen-control>
       </cell>
    </cells>
@@ -123,19 +123,19 @@ Beyond layout information, you can specify inter-field interactions via suppleme
 ```xml
 <form id="default" >
   <layout>
-    sid[资源ID] siteId[站点ID]
-    displayName[显示名称] orderNo[排序]
-    resourceType[资源类型] parentId[父资源ID]
+    sid[Resource ID] siteId[Site ID]
+    displayName[Display Name] orderNo[Sort Order]
+    resourceType[Resource Type] parentId[Parent Resource ID]
     =====menuProps=============
-    icon[图标] routePath[前端路由]
-    url[链接] component[组件名]
-    target[链接目标] hidden[是否隐藏]
-    keepAlive[隐藏时保持状态] noAuth[不检查权限]
-    depends[依赖资源]
+    icon[Icon] routePath[Frontend Route]
+    url[URL] component[Component Name]
+    target[Link Target] hidden[Hidden]
+    keepAlive[Keep State When Hidden] noAuth[No Permission Check]
+    depends[Dependent Resources]
     =====authProps============
-    permissions[权限标识]
+    permissions[Permission Identifiers]
     =====otherProps===========
-    status[状态] remark[备注]
+    status[Status] remark[Remarks]
   </layout>
 
   <cells>
