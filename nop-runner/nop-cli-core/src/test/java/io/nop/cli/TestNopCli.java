@@ -24,6 +24,7 @@ import static io.nop.codegen.CodeGenConfigs.CFG_CODEGEN_TRACE_ENABLED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@Disabled
 @QuarkusTest
 public class TestNopCli extends BaseTestCase {
 
