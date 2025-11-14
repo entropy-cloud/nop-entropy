@@ -1,0 +1,20 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+  <tags>
+    <ColJdbcType outputMode="none">
+        <attr name="col"/>
+        <attr name="entityModel" implicit="true" />
+
+        <source>
+            <c:script><![CDATA[
+                const jdbcType = SWITCH(col.stdDataType.toString(), 'string', 'VARCHAR',
+                        'int', 'INTEGER', 'long', 'BIGINT', 'short', 'SMALLINT',
+                        'date', 'DATE', 'datetime', 'TIMESTAMP', 'boolean','CHAR',
+                        'double', 'DOUBLE', 'decimal', 'DECIMAL', 'clob', 'CLOB',
+                        'blob','BLOB','byte','INTEGER','timestamp','TIMESTAMP');
+                $.notEmpty(jdbcType,"gen.err.invalid-col-type:"+col.code+"-"+col.stdDataType+"-"+entityModel.tableName);
+                return jdbcType;
+            ]]></c:script>
+        </source>
+    </ColJdbcType>
+  </tags>
+</lib>

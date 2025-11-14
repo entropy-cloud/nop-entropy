@@ -1,0 +1,49 @@
+<c:unit xmlns:c="c"><c:out escape="none"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+]]></c:out>
+    <c:import from="/xlib/mapper-gen.xlib" />
+    <c:script>
+      function colType(col){
+        return xpl('mapper-gen:ColJdbcType',{col});
+      }
+    </c:script>
+
+    <mapper namespace="${entityModel.className}Mapper">
+
+        <!-- 基础结果映射 -->
+        <resultMap id="BaseResultMap" type="${entityModel.className}">
+            <c:for var="col" items="${entityModel.columns}">
+                <c:script>if(col.notGenCode) continue</c:script>
+                <c:choose>
+                    <when test="${col.primary}">
+                        <id column="${col.code}" property="${col.name}" jdbcType="${colType(col)}"/>
+                    </when>
+                    <otherwise>
+                        <result column="${col.code}" property="${col.name}" jdbcType="${colType(col)}"/>
+                    </otherwise>
+                </c:choose>
+            </c:for>
+        </resultMap>
+
+        <!-- 基础列列表 -->
+        <sql id="Base_Column_List">
+            <c:for var="col" items="${entityModel.columns}" index="index">
+                <c:script>if(col.notGenCode) continue</c:script>
+                <c:if test="${index != 0}">,</c:if>${col.code}
+            </c:for>
+        </sql>
+
+        <!-- 插入语句 -->
+        <insert id="insert" parameterType="${entityModel.className}">
+            INSERT INTO ${entityModel.tableName} (
+            <include refid="Base_Column_List"/>
+            ) VALUES (
+            <c:for var="col" items="${entityModel.columns}" index="index">
+                <c:script>if(col.notGenCode) continue</c:script>
+                 <c:if test="${index != 0}">,</c:if>${'#'}{${col.name},jdbcType=${colType(col)}}
+            </c:for>
+            )
+        </insert>
+
+    </mapper>
+</c:unit>

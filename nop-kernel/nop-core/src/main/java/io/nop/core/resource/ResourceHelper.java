@@ -1026,7 +1026,7 @@ public class ResourceHelper {
 
         int pos = path.indexOf(':');
         if (pos < 0) {
-            File file = new File(path);
+            File file = FileHelper.resolveFile(path);
             return FileHelper.getFileUrl(file);
         }
         if (pos == 1) {

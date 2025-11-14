@@ -1,0 +1,3 @@
+<mapper x:schema="/nop/spring/schema/mapper.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+    x:extends="_gen/${entityModel.shortName}.mapper.xml">
+</mapper>

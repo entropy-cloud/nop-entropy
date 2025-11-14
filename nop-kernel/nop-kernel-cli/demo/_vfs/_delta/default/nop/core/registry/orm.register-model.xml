@@ -1,0 +1,8 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="orm">
+    <loaders>
+        <xdsl-loader fileType="orm.xml" schemaPath="/nop/schema/orm/orm.xdef"/>
+        <xdsl-loader fileType="orm.json" schemaPath="/nop/schema/orm/orm.xdef"/>
+        <xdsl-loader fileType="orm.yaml" schemaPath="/nop/schema/orm/orm.xdef"/>
+    </loaders>
+</model>

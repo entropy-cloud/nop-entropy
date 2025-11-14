@@ -1,0 +1,19 @@
+<gen:DefineLoop xpl:lib="/nop/codegen/xlib/gen.xlib" xpl:slotScope="builder">
+    <c:script>
+        // 原始模型已经被冻结，不能修改。需要复制一份
+        let ormModel = codeGenModel.deepClone();
+
+        let appName = ormModel['ext:appName'] || ormModel['ext:moduleName'];
+        let pkgName = ormModel['ext:basePackageName'];
+        let entityPkgName = ormModel['ext:entityPackageName'];
+
+        builder.defineGlobalVar("appName", appName);
+        builder.defineGlobalVar("moduleId", appName.replace('-','/'));
+        builder.defineGlobalVar("ormModel",ormModel);
+        builder.defineLoopVar("entityModel","ormModel", model => model.entities);
+
+        for(let entity of ormModel.entities){
+           entity.shortName = entity.name.$simpleClassName();
+        }
+    </c:script>
+</gen:DefineLoop>

@@ -1,0 +1,1 @@
+../target/nop-kernel-cli gen model/demo.orm.xml "-t=v:/demo/templates/boot" "-o=../target/gen"

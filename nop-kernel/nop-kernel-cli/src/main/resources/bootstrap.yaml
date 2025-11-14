@@ -1,0 +1,8 @@
+"%dev":
+  nop.codegen.trace.enabled: true
+  nop.debug: true
+
+nop:
+  core:
+    vfs:
+      lib-paths:

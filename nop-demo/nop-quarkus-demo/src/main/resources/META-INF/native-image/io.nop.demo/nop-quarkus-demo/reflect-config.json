@@ -1032,6 +1032,13 @@
         ]
       },
       {
+        "name": "buildLoginUrlWithState",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getAuthToken",
         "parameterTypes": [
           "io.nop.http.api.server.IHttpServerContext"
@@ -1080,6 +1087,12 @@
         "name": "isAjaxRequest",
         "parameterTypes": [
           "io.nop.http.api.server.IHttpServerContext"
+        ]
+      },
+      {
+        "name": "isAllowedRedirectUri",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -2225,7 +2238,14 @@
         "name": "daoProvider"
       }
     ],
-    "methods": [],
+    "methods": [
+      {
+        "name": "checkExpired",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthSession"
+        ]
+      }
+    ],
     "name": "io.nop.auth.service.login.DaoUserContextCache"
   },
   {
