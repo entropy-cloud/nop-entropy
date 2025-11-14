@@ -192,7 +192,7 @@
         <sqlDataType name="SMALLINT" stdSqlType="SMALLINT"/>
         <sqlDataType name="BIGINT" stdSqlType="BIGINT"/>
         <sqlDataType name="DATE" stdSqlType="DATE"/>
-        <sqlDataType name="DATETIME" stdSqlType="DATETIME"/>
+        <sqlDataType name="DATETIME" code="TIMESTAMP" stdSqlType="DATETIME" />
         <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP"/>
         <sqlDataType name="TIMESTAMP WITH TIME ZONE" stdSqlType="TIMESTAMP"/>
         <sqlDataType name="REAL" stdSqlType="REAL"/>
