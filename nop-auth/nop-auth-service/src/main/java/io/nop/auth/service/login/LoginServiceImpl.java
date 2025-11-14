@@ -258,6 +258,7 @@ public class LoginServiceImpl extends AbstractLoginService {
         context.setTimeZone(request.getTimeZone() == null ? AppConfig.appTimezone() : request.getTimeZone());
         context.setDeptId(user.getDeptId());
         context.setTenantId(user.getTenantId());
+        context.setLastAccessTime(CoreMetrics.currentTimeMillis());
 
         NopAuthDept dept = getDept(user.getDeptId());
         if (dept != null) {

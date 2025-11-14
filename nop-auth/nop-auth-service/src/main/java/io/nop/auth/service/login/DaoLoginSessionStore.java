@@ -64,6 +64,7 @@ public class DaoLoginSessionStore implements ILoginSessionStore {
         session.setLoginDevice(request.getDeviceType());
         session.setLoginApp(request.getAppName());
         session.setLoginOs(request.getDeviceOs());
+        session.setLastAccessTime(CoreMetrics.currentDateTime());
         daoProvider.daoFor(NopAuthSession.class).saveEntity(session);
         return session.getSessionId();
     }
