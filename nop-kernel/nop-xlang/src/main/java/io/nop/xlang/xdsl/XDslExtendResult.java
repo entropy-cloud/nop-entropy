@@ -88,6 +88,13 @@ public class XDslExtendResult {
         }
         if (validated)
             ret.setAttr(keys.VALIDATED, true);
+
+        if (xdef != null) {
+            String path = xdef.resourceStdPath();
+            if (path != null)
+                ret.setAttr(keys.SCHEMA, path);
+        }
+
         return ret;
     }
 
