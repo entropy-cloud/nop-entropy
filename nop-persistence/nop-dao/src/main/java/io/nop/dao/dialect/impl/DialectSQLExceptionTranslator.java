@@ -33,6 +33,7 @@ import java.sql.SQLTransientException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import static io.nop.dao.DaoErrors.ARG_ACTION;
 import static io.nop.dao.DaoErrors.ARG_SQL_NAME;
@@ -96,9 +97,9 @@ public class DialectSQLExceptionTranslator implements ISQLExceptionTranslator {
     Map<String, ErrorCode> buildVendorCodeToErrorCodes() {
         Map<String, ErrorCode> ret = new HashMap<>();
         for (DialectErrorCodeModel errorCodeModel : dialectModel.getErrorCodes()) {
-            Set<String> values = errorCodeModel.getValues();
-            for (String value : values) {
-                ret.put(value, buildErrorCode(errorCodeModel.getName()));
+            ErrorCode errorCode = buildErrorCode(errorCodeModel.getName());
+            for (String value : errorCodeModel.getValues()) {
+                ret.put(value, errorCode);
             }
         }
         return ret;
@@ -156,6 +157,23 @@ public class DialectSQLExceptionTranslator implements ISQLExceptionTranslator {
             if (errorCode == null && current.getSQLState() != null) {
                 errorCode = vendorCodeToErrorCodes.get(current.getSQLState());
             }
+
+            // 采用正则表达式匹配错误消息内容
+            if (errorCode == null && current.getErrorCode() == 0 && current.getSQLState() == null) {
+                String msg = current.getMessage();
+                for (Map.Entry<String, ErrorCode> entry : vendorCodeToErrorCodes.entrySet()) {
+                    String key = entry.getKey();
+                    if (key.contains("_")) {
+                        Pattern regex = Pattern.compile(key.replace('_', ' '),
+                                                        Pattern.MULTILINE | Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+                        if (regex.matcher(msg).matches()) {
+                            errorCode = entry.getValue();
+                            break;
+                        }
+                    }
+                }
+            }
+
             if (errorCode != null) {
                 return newError(errorCode, sql, action, current);
             }
