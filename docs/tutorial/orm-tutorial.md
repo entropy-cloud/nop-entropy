@@ -438,7 +438,7 @@ QueryBean query = new QueryBean();
 query.addFilter(and(
     eq(User.PROP_NAME_status, 1),
     like(User.PROP_NAME_department + ".name", "IT%")
-));
+)).limit(100);
 List<User> users = userDao.findPageByQuery(query);
 ```
 
