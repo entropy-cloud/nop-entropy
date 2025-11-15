@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!-- [DuckDB 方言配置]
+> - 其与 PostgreSQL 的语法基本一致：https://duckdb.org/docs/stable/sql/introduction
+> - 在线演示 https://shell.duckdb.org/
+-->
+<dialect xmlns:x="/nop/schema/xdsl.xdef"
+         x:extends="postgresql.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+         keywordQuote="&quot;" defaultNullsFirst="false"
+>
+
+    <!-- https://duckdb.org/docs/stable/clients/java -->
+    <driverClassName>org.duckdb.DuckDBDriver</driverClassName>
+    <dbProductNames>DuckDB</dbProductNames>
+    <jdbcUrlPattern>jdbc:duckdb:{filePath}</jdbcUrlPattern>
+
+    <!--
+    > - 支持 `NULLS FIRST` 和 `NULLS LAST`: https://duckdb.org/docs/stable/sql/query_syntax/orderby#syntax
+    > - 支持事务管理：https://duckdb.org/docs/stable/sql/statements/transactions
+    -->
+    <features supportNullsFirst="true" supportReturningForUpdate="false"/>
+
+    <!-- https://duckdb.org/docs/stable/core_extensions/spatial/overview -->
+    <geometryTypeHandler>io.nop.orm.geo.dialect.postgis.PostgisGeometryTypeHandler</geometryTypeHandler>
+
+    <!--
+    > - 支持 `CREATE SEQUENCE`，且与 PostgreSQL 语法一致：https://duckdb.org/docs/stable/sql/statements/create_sequence
+    > - 时间类型转换
+    >   - Date: https://duckdb.org/docs/stable/sql/data_types/date
+    >   - Time: https://duckdb.org/docs/stable/sql/data_types/time
+    >   - Timestamp: https://duckdb.org/docs/stable/sql/data_types/timestamp
+    -->
+    <sqls>
+        <dateTimeLiteral>TIMESTAMP_S '{value:yyyy-MM-dd HH:mm:ss}'</dateTimeLiteral>
+        <timestampLiteral>TIMESTAMP_NS '{value:yyyy-MM-dd HH:mm:ss.nnnnnnnnn}'</timestampLiteral>
+
+        <!-- Note: DuckDB 无锁支持 -->
+        <forUpdate x:override="replace"/>
+        <lockHint x:override="replace"/>
+    </sqls>
+
+    <!-- https://duckdb.org/docs/stable/sql/data_types/overview -->
+    <sqlDataTypes x:override="replace">
+        <sqlDataType name="BIGINT" alias="INT8,LONG" stdSqlType="BIGINT"/>
+        <sqlDataType name="INTEGER" alias="INT4,INT,SIGNED" stdSqlType="INTEGER"/>
+        <sqlDataType name="SMALLINT" alias="INT2,SHORT" stdSqlType="SMALLINT"/>
+        <sqlDataType name="TINYINT" alias="INT1" stdSqlType="TINYINT"/>
+        <sqlDataType name="FLOAT" alias="FLOAT4,REAL" stdSqlType="REAL"/>
+        <sqlDataType name="DOUBLE" alias="FLOAT8" stdSqlType="DOUBLE"/>
+        <sqlDataType name="DECIMAL" alias="NUMERIC" stdSqlType="DECIMAL"/>
+
+        <sqlDataType name="BOOLEAN" alias="BOOL,LOGICAL" stdSqlType="BOOLEAN"/>
+        <!-- Note: 字符不限定长度 https://duckdb.org/docs/stable/sql/data_types/text -->
+        <sqlDataType name="VARCHAR" alias="CHAR,BPCHAR,TEXT,STRING" stdSqlType="VARCHAR" allowPrecision="false"/>
+        <sqlDataType name="BLOB" alias="BYTEA,BINARY,VARBINARY" stdSqlType="BLOB"/>
+
+        <sqlDataType name="DATE" stdSqlType="DATE"/>
+        <sqlDataType name="TIME" stdSqlType="TIME"/>
+        <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP"/>
+        <sqlDataType name="DATETIME" code="TIMESTAMP" stdSqlType="DATETIME"/>
+        <sqlDataType name="TIMESTAMP WITH TIME ZONE" alias="TIMESTAMPTZ" stdSqlType="TIMESTAMP"/>
+
+        <sqlDataType name="JSON" stdSqlType="JSON"/>
+        <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>
+    </sqlDataTypes>
+
+    <!-- https://duckdb.org/docs/stable/sql/functions/overview
+    > 查询内置函数：
+    > ```sql
+    > SELECT DISTINCT ON(function_name)
+    >   function_name,
+    >   function_type,
+    >   return_type,
+    >   parameters,
+    >   parameter_types,
+    >   description
+    > FROM duckdb_functions()
+    > ORDER BY function_name;
+    > ```
+    -->
+    <functions>
+        <native name="cosh" returnType="DOUBLE" argTypes="NUMERIC"/>
+        <native name="sinh" returnType="DOUBLE" argTypes="NUMERIC"/>
+        <native name="uuid" returnType="VARCHAR"/>
+
+        <native name="rand" realName="random"/>
+        <native name="instr" realName="strpos"/>
+
+        <native name="current_date" hasParenthesis="true"/>
+        <native name="current_timestamp" realName="current_localtimestamp" hasParenthesis="true"/>
+        <native name="year" returnType="INTEGER" argTypes="TIMESTAMP" x:override="replace"/>
+
+        <!-- TODO 按需补充其他 DuckDB 函数 -->
+        <native name="uuidv7" returnType="VARCHAR"/>
+    </functions>
+
+    <!-- DuckDB 未定义错误码，只抛出了异常信息：
+    https://github.com/duckdb/duckdb-java/blob/c7cb0f252dd0047f4ec4acbe70269db45bdfae4c/src/jni/duckdb_java.cpp#L34
+    -->
+    <errorCodes x:override="replace">
+        <errorCode name="nop.err.dao.sql.bad-sql-grammar">
+            .+_with_name_.+_does_not_exist.*
+        </errorCode>
+    </errorCodes>
+
+    <!-- https://duckdb.org/docs/stable/sql/dialect/keywords_and_identifiers
+    > - 查询关键字：`select * from duckdb_keywords();`
+    > - 列名、表名、函数名默认不区分大小写
+    -->
+    <reservedKeywords x:override="replace">
+        abort,absolute,access,action,add,admin,after,aggregate,
+        all,also,alter,always,analyse,analyze,and,anti,
+        any,array,as,asc,asof,assertion,assignment,asymmetric,
+        at,attach,attribute,authorization,
+
+        backward,before,begin,between,bigint,binary,bit,boolean,both,by,
+
+        cache,call,called,cascade,cascaded,case,cast,catalog,centuries,
+        century,chain,char,character,characteristics,check,checkpoint,
+        class,close,cluster,coalesce,collate,collation,column,columns,
+        comment,comments,commit,committed,compression,concurrently,configuration,
+        conflict,connection,constraint,constraints,content,continue,conversion,
+        copy,cost,create,cross,csv,cube,current,cursor,cycle,
+
+        data,database,day,days,deallocate,dec,decade,decades,decimal,declare,
+        default,defaults,deferrable,deferred,definer,delete,delimiter,delimiters,
+        depends,desc,describe,detach,dictionary,disable,discard,distinct,
+        do,document,domain,double,drop,
+
+        each,else,enable,encoding,encrypted,end,enum,error,escape,event,
+        except,exclude,excluding,exclusive,execute,exists,explain,
+        export,export_state,extension,extensions,external,extract,
+
+        false,family,fetch,filter,first,float,following,for,force,foreign,
+        forward,freeze,from,full,function,functions,
+
+        generated,glob,global,grant,granted,group,grouping,grouping_id,groups,
+
+        handler,having,header,hold,hour,hours,
+
+        identity,if,ignore,ilike,immediate,immutable,implicit,import,in,
+        include,including,increment,index,indexes,inherit,inherits,initially,
+        inline,inner,inout,input,insensitive,insert,install,instead,
+        int,integer,intersect,interval,into,invoker,is,isnull,isolation,
+
+        join,json,
+
+        key,
+
+        label,lambda,language,large,last,lateral,leading,leakproof,left,
+        level,like,limit,listen,load,local,location,lock,locked,logged,
+
+        macro,map,mapping,match,matched,materialized,maxvalue,merge,
+        method,microsecond,microseconds,millennia,millennium,
+        millisecond,milliseconds,minute,minutes,minvalue,mode,month,months,
+        move,
+
+        name,names,national,natural,nchar,new,next,no,none,not,nothing,
+        notify,notnull,nowait,null,nullif,nulls,numeric,
+
+        object,of,off,offset,oids,old,on,only,operator,option,options,
+        or,order,ordinality,others,out,outer,over,overlaps,overlay,
+        overriding,owned,owner,
+
+        parallel,parser,partial,partition,partitioned,passing,password,
+        percent,persistent,pivot,pivot_longer,pivot_wider,placing,plans,
+        policy,position,positional,pragma,preceding,precision,prepare,prepared,
+        preserve,primary,prior,privileges,procedural,procedure,
+        program,publication,
+
+        qualify,quarter,quarters,quote,
+
+        range,read,real,reassign,recheck,recursive,ref,references,referencing,
+        refresh,reindex,relative,release,rename,repeatable,replace,replica,
+        reset,respect,restart,restrict,returning,returns,revoke,right,
+        role,rollback,rollup,row,rows,rule,
+
+        sample,savepoint,schema,schemas,scope,scroll,search,second,seconds,
+        secret,security,select,semi,sequence,sequences,serializable,server,
+        session,set,setof,sets,share,show,similar,simple,skip,smallint,
+        snapshot,some,sorted,source,sql,stable,standalone,start,statement,
+        statistics,stdin,stdout,storage,stored,strict,strip,struct,
+        subscription,substring,summarize,symmetric,sysid,system,
+
+        table,tables,tablesample,tablespace,target,temp,template,temporary,
+        text,then,ties,time,timestamp,to,trailing,transaction,transform,
+        treat,trigger,trim,true,truncate,trusted,try_cast,type,types,
+
+        unbounded,uncommitted,unencrypted,union,unique,unknown,unlisten,
+        unlogged,unpack,unpivot,until,update,use,user,using,
+
+        vacuum,valid,validate,validator,value,values,varchar,variable,
+        variadic,varying,verbose,version,view,views,virtual,volatile,
+
+        week,weeks,when,where,whitespace,window,with,within,without,
+        work,wrapper,write,
+
+        xml,xmlattributes,xmlconcat,xmlelement,xmlexists,xmlforest,
+        xmlnamespaces,xmlparse,xmlpi,xmlroot,xmlserialize,xmltable,
+
+        year,years,yes,
+
+        zone,
+    </reservedKeywords>
+</dialect>
