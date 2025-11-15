@@ -61,19 +61,23 @@ public class XLangDebuggerInitializer implements ICoreInitializer {
         config.setIdleTimeout(0);
         server.setServerConfig(config);
 
-        debugger = createDebugger();
-        debugger.setNotifier(new DebugNotifier());
-        server.addServiceImpl(IDebugger.class, debugger);
-        server.setOnChannelOpen(this::sendBreakpointNotice);
+        try {
+            debugger = createDebugger();
+            debugger.setNotifier(new DebugNotifier());
+            server.addServiceImpl(IDebugger.class, debugger);
+            server.setOnChannelOpen(this::sendBreakpointNotice);
 
-        server.start();
+            server.start();
 
-        int waitSeconds = CFG_XLANG_DEBUGGER_WAIT_CONNECTION_SECONDS.get();
-        if (waitSeconds > 0) {
-            server.waitConnected(waitSeconds * 1000L);
+            int waitSeconds = CFG_XLANG_DEBUGGER_WAIT_CONNECTION_SECONDS.get();
+            if (waitSeconds > 0) {
+                server.waitConnected(waitSeconds * 1000L);
+            }
+            LOG.info("nop.debugger.register-debug-executor");
+            EvalExprProvider.registerGlobalExecutor(new DebugExpressionExecutor(debugger));
+        } catch (Exception e) {
+            LOG.error("nop.debugger.init-fail", e);
         }
-        LOG.info("nop.debugger.register-debug-executor");
-        EvalExprProvider.registerGlobalExecutor(new DebugExpressionExecutor(debugger));
     }
 
     protected XLangDebugger createDebugger() {
