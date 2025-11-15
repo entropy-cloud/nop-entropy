@@ -123,6 +123,10 @@ public interface IOrmEntity extends IDaoEntity, IOrmObject, ICloneable, IOrmEnti
      */
     boolean orm_propDirty(int propId);
 
+    default boolean orm_propDirtyByName(String propName) {
+        return orm_propDirty(orm_propId(propName));
+    }
+
     /**
      * 清空dirty标识。
      */
@@ -163,7 +167,7 @@ public interface IOrmEntity extends IDaoEntity, IOrmObject, ICloneable, IOrmEnti
 
     void orm_propValueByName(String propName, Object value);
 
-    default void orm_propValues(Map<String,Object> values){
+    default void orm_propValues(Map<String, Object> values) {
         values.forEach(this::orm_propValueByName);
     }
 
@@ -197,6 +201,10 @@ public interface IOrmEntity extends IDaoEntity, IOrmObject, ICloneable, IOrmEnti
      * @param propId 属性id
      */
     Object orm_propOldValue(int propId);
+
+    default Object orm_propOldValueByName(String propName) {
+        return orm_propOldValue(orm_propId(propName));
+    }
 
     /**
      * 得到修改前的属性值，key为propName
