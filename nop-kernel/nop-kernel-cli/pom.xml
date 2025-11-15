@@ -69,7 +69,7 @@
                         </path>
                     </annotationProcessorPaths>
                     <compilerArgs>
-                        <arg>-proc:full</arg>
+                        <arg>-proc:only</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
