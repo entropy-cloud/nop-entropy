@@ -1,4 +1,4 @@
-# NopORM 教程：支持大型SaaS应用的下一代ORM 框架
+# NopORM 教程：支持企业级SaaS应用的下一代ORM 框架
 
 ## 什么是 NopORM？
 
@@ -599,6 +599,6 @@ NopORM 通过创新的设计解决了传统 ORM 在企业级应用中的痛点�
 ## 了解更多
 
 - [官方文档](https://gitee.com/canonical-entropy/nop-entropy)
-- [示例项目](https://gitee.com/canonical-entropy/nop-entropy/demo)
+- [示例项目](https://gitee.com/canonical-entropy/nop-entropy/nop-demo/nop-orm-demo)
 - [视频教程](https://space.bilibili.com/3493261219990250)
 - [社区交流](https://gitee.com/canonical-entropy/nop-entropy/issues)
