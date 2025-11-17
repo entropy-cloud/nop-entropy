@@ -21,7 +21,7 @@ We can leverage a series of DSLs and glue them together via Generators and Delta
 
 This section introduced the horizontal DSL decomposition in Reversible Computation. Similarly, we can introduce multi-level vertical DSL decomposition to overcome the inherent flaws of traditional Model-Driven Architecture (MDA).
 
-![](../tutorial/delta-pipeline.png)
+![Delta Pipeline](../tutorial/delta-pipeline.png)
 
 In daily development, we often observe similarities and certain imprecise derivation relationships among logical structures. For example, the strong association between a backend data model and a frontend page: in simple cases, we can derive CRUD pages directly from the data model, or conversely, derive database storage structures from form fields. However, such imprecise derivation is hard to capture and utilize with existing techniques. If we forcibly impose association rules, they will only apply to highly constrained scenarios, leading to incompatibility with other technical approaches, making it difficult to reuse existing tools and technologies, and hard to accommodate the dynamic evolution of requirements from simple to complex. This is precisely the dilemma faced by traditional MDA: for a model to exert maximal power, it must embed a large amount of knowledge for automatic reasoning, but the more knowledge is embedded, the more it gets bound to a specific application scenario, making it hard to handle unforeseen new requirements.
 

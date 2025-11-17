@@ -1,4 +1,4 @@
-Looking at kustomize from the perspective of Reversible Computation
+# Kustomize from the Perspective of Reversible Computation
 
 kustomize is a declarative configuration management mechanism heavily promoted in Kubernetes 1.14. It explicitly articulates the idea “Customization is reuse.” Its core idea borrows from Docker’s design principles, using union-filesystem-style layering for configuration files. The lowest layer is a base file; different patch files are overlaid on top of the base to produce different configuration variants, thereby achieving reuse of the base configuration.
 
@@ -86,9 +86,13 @@ The differences between Delta customization and kustomize are:
 - Delta customization includes a built-in metaprogramming generation mechanism, which makes it easy to support higher-order abstraction, so end users are not limited by the expressive power of the base model. Kubernetes configurations amount to a domain-specific language for cloud deployment, but in specific business scenarios there is still a great deal of domain knowledge that can be abstracted and reused—knowledge that cannot be encapsulated within kustomize’s current mechanisms.
 - Delta customization places strong emphasis on reversibility and actively leverages it. If you think carefully, you’ll realize that if we can implement precise customization, it necessarily means we can precisely locate anywhere in the domain structure and thus retrieve information from any point in it. In other words, the information expressed through the domain structure can be extracted in reverse. If such reversibility can be systematized and leveraged, it may unleash unimaginable productivity. For example, in a system that satisfies reversibility, it is easy to realize multiple representations of the same information; visual design is merely a simple application of reversible semantics.
 
-[Diagram: Visual UI generator and data extraction]
+Visual Interface = Interface Generator( DSL )
+DSL = Data Extractor( Visual Interface )
 
 Domain models are described using a Domain-Specific Language (DSL). A UI generator can understand the DSL, extract information from it, and convert it into a visual interface. At the same time, the UI generator provides a corresponding reverse information extraction mechanism, enabling the DSL model information to be extracted back from the generated visual interface. So-called visual design is merely a reversible transformation between two representations of the model.
 
 Reversible Computation builds a complete software construction theory based on the concept of Delta. Its core ideas are inspired by physics and mathematics, giving it broad applicability. For specific theoretical analysis, see my earlier article “Reversible Computation: The Next-Generation Software Construction Theory.” In fact, Kubernetes’ architectural principles can also be explained within the framework of Reversible Computation:
+
+[Reversible Computation: A Next-Generation Theory for Software Construction](https://dev.to/canonical/reversible-computation-a-next-generation-theory-for-software-construction-27fk)
+
 <!-- SOURCE_MD5:a2550be0cdf36f2bfa92c90b5ca40d69-->

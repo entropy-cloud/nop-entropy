@@ -159,8 +159,8 @@ o.orders[status = 'INVALID'].last()      // 返回 null
 // 当聚合函数返回null时，比较操作自然返回false
 o.orders[status = 'INVALID'].sum(amount) > 1000  // 返回false
 
-// 如果需要显式处理null值，可以使用$nvl函数
-o.orders[status = 'COMPLETED'].sum(amount).$nvl(0) > 10000
+// 如果需要显式处理null值，可以使用coelesce函数
+coelesce(o.orders[status = 'COMPLETED'].sum(amount), 0) > 10000
 ```
 
 ## 4. 与Collection Operator语法的兼容性
@@ -235,17 +235,6 @@ exists (
       limit 1
     )
 )
-```
-
-#### $nvl 函数转换
-```javascript
-// EQL: o.orders[status = 'COMPLETED'].sum(amount).$nvl(0) > 10000
-
-// SQL:
-coalesce((
-  select sum(amount) from Order ord 
-  where ord.user_id = o.id and ord.status = 'COMPLETED'
-), 0) > 10000
 ```
 
 ### 5.2 优化转换策略
@@ -328,7 +317,7 @@ and o.orders[status = 'PENDING'].exists()
 // 推荐：同时使用过滤和排序
 o.orders[status = 'PENDING' and priority = 'HIGH' order by createTime asc].first().assignee = 'currentUser'
 
-// 注意：聚合函数返回null时比较结果为false，通常不需要$nvl
+// 注意：聚合函数返回null时比较结果为false，通常不需要coelesce转换
 o.orders[status = 'COMPLETED'].sum(amount) > 10000  // 空集合时返回false
 
 // 避免：不必要的复杂表达式
@@ -360,5 +349,4 @@ o.orders[status = 'COMPLETED'].invalidFunc()  // 错误：函数 invalidFunc 不
 - **布尔表达式**：`exists()` 直接作为布尔值使用，无需 `== true`
 - **SQL语义一致**：聚合函数在空集合时的行为与SQL标准完全一致
 - **空值处理**：聚合函数返回null时，比较操作自然返回false
-- **默认值处理**：特殊情况下可使用 `$nvl` 函数提供默认值
 - **一致性**：所有操作符遵循统一的语法模式和调用约定

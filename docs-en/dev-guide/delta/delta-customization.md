@@ -349,6 +349,6 @@ Open-source repositories for the Nop platform:
 
 - gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- Development example: [docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- Development example: [docs-en/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs-en/tutorial/tutorial.md)
 - [Reversible Computation Principles and Nop Platform Introduction & Q&A_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
 <!-- SOURCE_MD5:e58134e9f62b5cd88af9209e28ad85ec-->
