@@ -14397,6 +14397,12 @@
     ],
     "methods": [
       {
+        "name": "checkExpired",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthSession"
+        ]
+      },
+      {
         "name": "getUserContextAsync",
         "parameterTypes": [
           "java.lang.String"
@@ -25638,6 +25644,16 @@
       }
     ],
     "name": "io.nop.core.resource.IResourceLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.resource.IResourceLocator"
   },
   {
     "allDeclaredConstructors": true,
@@ -58236,6 +58252,26 @@
       }
     ],
     "name": "java.util.HashSet"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.util.ImmutableCollections$AbstractImmutableMap"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.util.ImmutableCollections$Map1"
   },
   {
     "allDeclaredConstructors": true,

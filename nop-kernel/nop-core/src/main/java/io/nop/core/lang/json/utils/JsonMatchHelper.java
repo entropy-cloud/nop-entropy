@@ -7,11 +7,13 @@
  */
 package io.nop.core.lang.json.utils;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.commons.functional.IEqualsChecker;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -20,6 +22,10 @@ public class JsonMatchHelper {
     public static boolean valueEquals(Object v1, Object v2) {
         if (Objects.equals(v1, v2))
             return true;
+
+        if (v1 instanceof LocalDateTime || v2 instanceof LocalDateTime) {
+            return Objects.equals(ConvertHelper.toString(v1), ConvertHelper.toString(v2));
+        }
 
         if (v1 instanceof Timestamp) {
             v1 = v1.toString().substring(0, 19);

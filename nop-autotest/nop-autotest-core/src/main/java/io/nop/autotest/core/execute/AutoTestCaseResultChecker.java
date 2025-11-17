@@ -145,7 +145,7 @@ public class AutoTestCaseResultChecker {
         for (Map.Entry<String, Object> entry : row.entrySet()) {
             String colName = entry.getKey();
             IColumnModel col = entityModel.getColumnByCode(colName, false);
-            entityData.put(colName, entity.orm_propValue(col.getPropId()));
+            Object propValue = entity.orm_propValue(col.getPropId());
             Object value = entry.getValue();
             if (value instanceof String) {
                 String str = value.toString();
@@ -153,6 +153,7 @@ public class AutoTestCaseResultChecker {
                     entry.setValue(ConvertHelper.convertTo(col.getJavaClass(), entry.getValue(), err-> new NopException(err).param("colName",colName)));
                 }
             }
+            entityData.put(colName, propValue);
         }
 
         try {

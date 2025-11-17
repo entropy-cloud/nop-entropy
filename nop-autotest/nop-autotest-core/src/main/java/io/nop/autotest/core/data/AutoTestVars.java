@@ -125,7 +125,7 @@ public class AutoTestVars {
         }
     }
 
-    private static Object normalizeValue(Object value) {
+    public static Object normalizeValue(Object value) {
         if (value == null)
             return null;
         if (value instanceof String)
