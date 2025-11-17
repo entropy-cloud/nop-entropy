@@ -1417,10 +1417,12 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (labelProp == null) {
             labelProp = GraphQLConstants.PROP_ID;
         }
+        IObjPropMeta propMeta = objMeta.requireProp(labelProp);
+
         for (T entity : pageBean.getItems()) {
             DictOptionBean option = new DictOptionBean();
             option.setValue(entity.orm_idString());
-            Object value = entity.orm_propValueByName(labelProp);
+            Object value = BizObjHelper.getProp(entity, propMeta, context);
             option.setLabel(StringHelper.toString(value, ""));
             options.add(option);
         }
