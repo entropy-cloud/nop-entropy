@@ -249,4 +249,11 @@ public class MarkdownHelper {
     public static Map<String, String> parseMappingTable(SourceLocation loc, String text) {
         return MarkdownTableHelper.parseMappingTable(loc, text);
     }
+
+    public static boolean isOrderedItem(String content) {
+        int pos = content.indexOf('.');
+        if (pos < 0)
+            return false;
+        return StringHelper.isInt(content.substring(0, pos).trim(), false);
+    }
 }
