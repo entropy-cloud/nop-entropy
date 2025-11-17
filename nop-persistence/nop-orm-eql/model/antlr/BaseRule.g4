@@ -194,6 +194,12 @@ sqlExpr_simple
 //    | matchExpression
     | sqlCaseExpr
     | sqlIntervalExpr
+    | sqlCollectionAccessExpr
+    ;
+
+sqlCollectionAccessExpr
+    : collection=sqlColumnName '[' where=sqlExpr? (ORDER BY orderBy=sqlOrderBy)? ']'
+      DOT_ collFuncName=sqlIdentifier_ LP_ collFuncArgs=functionArgs_? RP_
     ;
 
 sqlUnaryExpr:

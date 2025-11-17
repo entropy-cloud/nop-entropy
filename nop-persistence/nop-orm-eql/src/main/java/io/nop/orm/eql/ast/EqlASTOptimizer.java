@@ -187,6 +187,9 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                 case SqlTypeExpr:
                 return optimizeSqlTypeExpr((SqlTypeExpr)node,context);
             
+                case SqlCollectionAccessExpr:
+                return optimizeSqlCollectionAccessExpr((SqlCollectionAccessExpr)node,context);
+            
                 case SqlCommit:
                 return optimizeSqlCommit((SqlCommit)node,context);
             
@@ -1709,6 +1712,57 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
         SqlTypeExpr ret = node;
 
         
+		return ret;
+	}
+    
+	public EqlASTNode optimizeSqlCollectionAccessExpr(SqlCollectionAccessExpr node, C context){
+        SqlCollectionAccessExpr ret = node;
+
+        
+                    if(node.getCollection() != null){
+                    
+                            io.nop.orm.eql.ast.SqlColumnName collectionOpt = (io.nop.orm.eql.ast.SqlColumnName)optimize(node.getCollection(),context);
+                            if(collectionOpt != node.getCollection()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { collectionOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setCollection(collectionOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getWhere() != null){
+                    
+                            io.nop.orm.eql.ast.SqlExpr whereOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getWhere(),context);
+                            if(whereOpt != node.getWhere()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { whereOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setWhere(whereOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getOrderBy() != null){
+                    
+                            io.nop.orm.eql.ast.SqlOrderBy orderByOpt = (io.nop.orm.eql.ast.SqlOrderBy)optimize(node.getOrderBy(),context);
+                            if(orderByOpt != node.getOrderBy()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { orderByOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setOrderBy(orderByOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getCollFuncArgs() != null){
+                    
+                            java.util.List<io.nop.orm.eql.ast.SqlExpr> collFuncArgsOpt = optimizeList(node.getCollFuncArgs(),true, context);
+                            if(collFuncArgsOpt != node.getCollFuncArgs()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(collFuncArgsOpt); ret = node.deepClone();}
+                                ret.setCollFuncArgs(collFuncArgsOpt);
+                            }
+                        
+                    }
+                
 		return ret;
 	}
     

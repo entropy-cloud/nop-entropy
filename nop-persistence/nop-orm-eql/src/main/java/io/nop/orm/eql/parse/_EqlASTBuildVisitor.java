@@ -497,6 +497,33 @@ public java.util.List<io.nop.orm.eql.ast.SqlAssignment> buildSqlAssignments_(Sql
           return ret;
       }
             
+      public io.nop.orm.eql.ast.SqlCollectionAccessExpr visitSqlCollectionAccessExpr(SqlCollectionAccessExprContext ctx){
+          io.nop.orm.eql.ast.SqlCollectionAccessExpr ret = new io.nop.orm.eql.ast.SqlCollectionAccessExpr();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.collection != null){
+               ret.setCollection((visitSqlColumnName(ctx.collection)));
+            }
+            if(ctx.where != null){
+               ret.setWhere((visitSqlExpr(ctx.where)));
+            }
+            if(ctx.orderBy != null){
+               ret.setOrderBy((visitSqlOrderBy(ctx.orderBy)));
+            }
+            if(ctx.collFuncName != null){
+               ret.setCollFuncName((SqlCollectionAccessExpr_collFuncName(ctx.collFuncName)));
+            }
+            if(ctx.collFuncArgs != null){
+               ret.setCollFuncArgs((buildFunctionArgs_(ctx.collFuncArgs)));
+            }else{
+               ret.setCollFuncArgs(Collections.emptyList());
+            }
+            
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
       public io.nop.orm.eql.ast.SqlColumnName visitSqlColumnName(SqlColumnNameContext ctx){
           io.nop.orm.eql.ast.SqlColumnName ret = new io.nop.orm.eql.ast.SqlColumnName();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -1551,6 +1578,11 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
    * rules: sqlBitValueLiteral
    */
   public abstract java.lang.String SqlBitValueLiteral_value(org.antlr.v4.runtime.Token token);
+
+  /**
+   * rules: sqlCollectionAccessExpr
+   */
+  public abstract java.lang.String SqlCollectionAccessExpr_collFuncName(ParseTree node);
 
   /**
    * rules: sqlColumnName

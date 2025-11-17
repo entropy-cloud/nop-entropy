@@ -349,7 +349,7 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
 
     @Override
     public String SqlRegularFunction_name(ParseTree node) {
-        return text(node).toLowerCase();
+        return text(node).toLowerCase(Locale.ROOT);
     }
 
     @Override
@@ -370,5 +370,10 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
     @Override
     public SqlFunction SqlWindowExpr_function(ParseTree node) {
         return (SqlFunction) node.accept(this);
+    }
+
+    @Override
+    public String SqlCollectionAccessExpr_collFuncName(ParseTree node) {
+        return text(node).toLowerCase(Locale.ROOT);
     }
 }

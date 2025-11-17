@@ -508,6 +508,19 @@ class EqlAST {
         String collate;
     }
 
+    class SqlCollectionAccessExpr extends SqlExpr {
+        @PropMeta(mandatory = true)
+        SqlColumnName collection;
+
+        SqlExpr where;
+
+        SqlOrderBy orderBy;
+
+        String collFuncName;
+
+        List<SqlExpr> collFuncArgs;
+    }
+
     abstract class SqlTransactionStatement extends SqlStatement {
 
     }

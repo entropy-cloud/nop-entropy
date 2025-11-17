@@ -530,6 +530,12 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlExpr_simple(EqlParser.SqlExpr_simpleContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlCollectionAccessExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlCollectionAccessExpr(EqlParser.SqlCollectionAccessExprContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlUnaryExpr}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

@@ -1014,6 +1014,18 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlCollectionAccessExpr(EqlParser.SqlCollectionAccessExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlCollectionAccessExpr(EqlParser.SqlCollectionAccessExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlUnaryExpr(EqlParser.SqlUnaryExprContext ctx) { }
 	/**
 	 * {@inheritDoc}

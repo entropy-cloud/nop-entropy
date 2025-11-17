@@ -880,6 +880,16 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlExpr_simple(EqlParser.SqlExpr_simpleContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlCollectionAccessExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlCollectionAccessExpr(EqlParser.SqlCollectionAccessExprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlCollectionAccessExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlCollectionAccessExpr(EqlParser.SqlCollectionAccessExprContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlUnaryExpr}.
 	 * @param ctx the parse tree
 	 */

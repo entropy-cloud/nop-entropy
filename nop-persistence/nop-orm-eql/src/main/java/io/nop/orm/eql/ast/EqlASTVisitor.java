@@ -246,6 +246,10 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
                     visitSqlTypeExpr((SqlTypeExpr)node);
                     return;
             
+                case SqlCollectionAccessExpr:
+                    visitSqlCollectionAccessExpr((SqlCollectionAccessExpr)node);
+                    return;
+            
                 case SqlCommit:
                     visitSqlCommit((SqlCommit)node);
                     return;
@@ -594,6 +598,14 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
         
             public void visitSqlTypeExpr(SqlTypeExpr node){
             
+            }
+        
+            public void visitSqlCollectionAccessExpr(SqlCollectionAccessExpr node){
+            
+                    this.visitChild(node.getCollection());
+                    this.visitChild(node.getWhere());
+                    this.visitChild(node.getOrderBy());
+                    this.visitChildren(node.getCollFuncArgs());         
             }
         
             public void visitSqlCommit(SqlCommit node){

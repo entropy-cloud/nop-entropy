@@ -20,7 +20,7 @@ public enum SqlOperator {
 
     IS("is", 110), LT("<", 110), LE("<=", 110), EQ("=", 110), NE("<>", 110), GT(">", 110), GE(">=", 110),
 
-    LIKE("like", 110), RLIKE("rlike", 110), ILIKE("ilike",110),
+    LIKE("like", 110), RLIKE("rlike", 110), ILIKE("ilike", 110),
 
     BIT_NOT("~", 130, true),
 
@@ -114,5 +114,24 @@ public enum SqlOperator {
         if (isAdditiveOp() || isMultiplicativeOp())
             return StdSqlType.DECIMAL;
         return StdSqlType.OTHER;
+    }
+
+    public SqlOperator reverse() {
+        switch (this) {
+            case EQ:
+                return SqlOperator.EQ;
+            case NE:
+                return SqlOperator.NE;
+            case GT:
+                return SqlOperator.LT;
+            case GE:
+                return SqlOperator.LE;
+            case LT:
+                return SqlOperator.GT;
+            case LE:
+                return SqlOperator.GE;
+            default:
+                return null;
+        }
     }
 }

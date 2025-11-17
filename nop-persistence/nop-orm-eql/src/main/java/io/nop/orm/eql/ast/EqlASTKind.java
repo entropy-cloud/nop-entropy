@@ -121,8 +121,10 @@ public enum EqlASTKind{
         
             SqlTypeExpr, // ordinal: 58
         
-            SqlCommit, // ordinal: 59
+            SqlCollectionAccessExpr, // ordinal: 59
         
-            SqlRollback, // ordinal: 60
+            SqlCommit, // ordinal: 60
+        
+            SqlRollback, // ordinal: 61
         
 }

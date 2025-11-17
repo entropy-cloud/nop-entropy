@@ -186,6 +186,9 @@ public class EqlASTProcessor<T,C>{
             case SqlTypeExpr:
                 return processSqlTypeExpr((SqlTypeExpr)node,context);
         
+            case SqlCollectionAccessExpr:
+                return processSqlCollectionAccessExpr((SqlCollectionAccessExpr)node,context);
+        
             case SqlCommit:
                 return processSqlCommit((SqlCommit)node,context);
         
@@ -431,6 +434,10 @@ public class EqlASTProcessor<T,C>{
 	}
     
 	public T processSqlTypeExpr(SqlTypeExpr node, C context){
+        return defaultProcess(node, context);
+	}
+    
+	public T processSqlCollectionAccessExpr(SqlCollectionAccessExpr node, C context){
         return defaultProcess(node, context);
 	}
     
