@@ -1,4 +1,3 @@
-
 # A Clarification of the Delta Concept for Programmers, Using Git and Docker as Examples
 
 The theory of Reversible Computation proposes a general formula for software construction
@@ -101,7 +100,7 @@ A group (G, *) consists of a set G and a binary operation *: G × G → G such t
 1. Closure: For all a, b ∈ G, a * b is also in G.
 2. Associativity: For all a, b, c ∈ G, (a * b) * c = a * (b * c).
 3. Identity Element: There exists e ∈ G such that for all a ∈ G, e * a = a * e = a. This element e is the identity of the group.
-4. Inverse Elements: For each a ∈ G, there exists a−1 ∈ G such that a * a−1 = a−1 * a = e. This element a−1 is the inverse of a.
+4. Inverse Elements: For each a ∈ G, there exists a⁻¹ ∈ G such that a * a⁻¹ = a⁻¹ * a = e. This element a⁻¹ is the inverse of a.
 
 Note first that in the group definition, the base set G and its operation * are a whole; neither G nor the operation alone can form a group. But in everyday communication we abbreviate the group (G, *) as group G, which can mislead some people.
 
@@ -122,7 +121,7 @@ In the definition, * is merely an abstract symbol; it does not mean multiplicati
    - Closure: For all a, b ∈ ℝ*, a · b is in ℝ*.
    - Associativity: For all a, b, c ∈ ℝ*, (a · b) · c = a · (b · c).
    - Identity: There exists 1 ∈ ℝ* such that for all a ∈ ℝ*, 1 · a = a · 1 = a. The element 1 is the identity for multiplication.
-   - Inverse: For each a ∈ ℝ*, there exists a−1 ∈ ℝ* such that a · a−1 = a−1 · a = 1. The element a−1 is the multiplicative inverse of a.
+   - Inverse: For each a ∈ ℝ*, there exists a⁻¹ ∈ ℝ* such that a · a⁻¹ = a⁻¹ · a = 1. The element a⁻¹ is the multiplicative inverse of a.
      Therefore, ℝ* under multiplication forms a group, called the multiplicative group.
 
 The Delta concept in Reversible Computation is inspired by the group idea; thus for every kind of Delta, we can analyze it by analogy to the group definition, from the following aspects:
@@ -220,27 +219,27 @@ In the example above, we can compute a+b and c+d simultaneously. Many fast algor
 
 The identity element of Git’s Delta operation is clearly an empty patch file—it represents doing nothing. Some might wonder: If the identity does nothing, is it even necessary? First, we should understand the identity’s peculiarity: Once an identity exists, it is everywhere.
 
-$$
+```
 a*b = e*e*e*a*e*e*b*e*e*e
-$$
+```
 
 You can insert any number of identities before and after any object. This means that although a and b appear to interact directly, they actually interact indirectly, immersed in an ocean of identity elements. So what—can this ocean of identities stir any trouble? To truly understand the identity’s importance, we must consider it together with the existence of inverses.
 
-$$
-e = a*a^{-1} = a^{-1}*a
-$$
+```
+e = a*a⁻¹ = a⁻¹*a
+```
 
 Now the ocean of identities is not empty; it provides infinitely many intermediate computational processes whose result ultimately returns to nothing.
 
-$$
-a*b = a *e * b = a * c*d * d^{-1} * c^{-1} * b
-$$
+```
+a*b = a *e * b = a * c*d * d⁻¹ * c⁻¹ * b
+```
 
 Suppose we have already constructed a*c*d; then we can reuse this construction to form a*b:
 
-$$
-acd * d^{-1} * c^{-1} * b = ab
-$$
+```
+acd * d⁻¹ * c⁻¹ * b = ab
+```
 
 > In our physical world, in the quantum vacuum beyond human reach, while it appears empty, it is actually a dynamic balance of positive and negative particles repeatedly arising and annihilating. If a black hole is nearby, its strong gravitational field can separate the spontaneously fluctuated particle-antiparticle pair, with one falling into the event horizon and the other escaping. This is the famed Hawking radiation and black hole evaporation.
 
@@ -340,9 +339,9 @@ This projection operation removes all negative objects and retains all positive 
 
 > This is a standard mathematical routine: add illegal results to the original space to form an extended space, making operations in the extended space legal. For example, we must add complex numbers to the solution space for quadratic equations to have general solutions; otherwise, some are unsolvable in the real number space.
 
-$$
-x^2 + 1= 0 \Longrightarrow x = ?
-$$
+```
+x² + 1= 0 ⟹ x = ?
+```
 
 ### 2. Does Docker’s Delta operation result remain in the file system space?
 
@@ -440,13 +439,13 @@ Docker images gain conceptual independence; thus they can be managed and distrib
 
 ### 4. What are the identity and inverse elements of Docker’s Delta operation?
 
-Clearly, doing nothing is the identity element in Docker’s Delta space. The Whiteout file can be regarded as an inverse. But there is a subtlety: In the group definition, inverses are defined per element—each a has its own a−1, and these inverses are different (equal inverses imply equal elements). That is, inverses in a group have a certain specificity: a−1 is dedicated to canceling a’s effect. However, Docker’s Whiteout file is only for placement; its content is empty. Once a Whiteout exists, it automatically indicates deletion of the lower-level file with the same path, no matter what the file contents are. Therefore, when used as an inverse, the Whiteout lacks specificity—it can cancel a lower-level file of the same path regardless of its content.
+Clearly, doing nothing is the identity element in Docker’s Delta space. The Whiteout file can be regarded as an inverse. But there is a subtlety: In the group definition, inverses are defined per element—each a has its own a⁻¹, and these inverses are different (equal inverses imply equal elements). That is, inverses in a group have a certain specificity: a⁻¹ is dedicated to canceling a’s effect. However, Docker’s Whiteout file is only for placement; its content is empty. Once a Whiteout exists, it automatically indicates deletion of the lower-level file with the same path, no matter what the file contents are. Therefore, when used as an inverse, the Whiteout lacks specificity—it can cancel a lower-level file of the same path regardless of its content.
 
 Mathematically, this lack of specificity appears as the idempotence of deletion:
 
-$$
+```
 Delete * Delete = Delete
-$$
+```
 
 Deleting a file twice is equivalent to deleting it once.
 
@@ -454,14 +453,12 @@ Mathematically, idempotence conflicts with group structure. If an idempotent ele
 
 Assume idempotence: a*a = a, then
 
-$$
-\begin{aligned}
-a     &= a*e = a * (a*a^{-1}) \\
-      &= a* a * a^{-1} = (a* a) * a^{-1} \\
-      &= a* a^{-1} \\
-      &= e
-\end{aligned}
-$$
+```
+a     = a*e = a * (a*a⁻¹)
+      = a* a * a⁻¹ = (a* a) * a⁻¹
+      = a* a⁻¹
+      = e
+```
 
 The above derivation shows that if a group structure contains an idempotent element, it must be the identity. By contraposition, if there exists a non-identity idempotent element, the structure cannot be a group. Because in implementing inverse operations we often adopt idempotent deletions to minimize recorded information, the mathematical structure we define is not truly a group—only some kind of structure that supports reversible operations.
 
@@ -475,19 +472,19 @@ The following is the definition of adjoint functors provided by Zhipu Qingyan AI
 
 The definition of adjoint functors involves a pair of functors and a special relationship between them. Specifically, given two categories C and D, if there is a pair of functors:
 
-$$
-L: \mathcal{C} \rightarrow \mathcal{D}
-$$
+```
+L: C → D
+```
 
-$$
-R: \mathcal{D} \rightarrow \mathcal{C}
-$$
+```
+R: D → C
+```
 
 and for all objects c in C and d in D there exists a natural bijection
 
-$$
-\text{Hom}_{\mathcal{D}}(L(c), d) \cong \text{Hom}_{\mathcal{C}}(c, R(d))
-$$
+```
+Hom_D(L(c), d) ≅ Hom_C(c, R(d))
+```
 
 then L and R are adjoint functors, with L the left adjoint of R and R the right adjoint of L.
 
