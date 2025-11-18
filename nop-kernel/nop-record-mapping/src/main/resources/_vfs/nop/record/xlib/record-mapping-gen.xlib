@@ -1,0 +1,39 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <GenReverseMapping>
+            <attr name="name" mandatory="true" />
+            <attr name="base" mandatory="true" />
+            <attr name="_dsl_root" implicit="true" />
+
+            <source>
+               <c:script>
+                   const mapping = _dsl_root.childByTag('mappings').childWithAttr('name',base);
+                   $.notNull(mapping, "unknown base mapping:"+base);
+
+                   function reverseMappingName(mappingName){
+                      if(!mappingName)
+                         return null;
+                      const parts = mappingName.$split('_to_');
+                      if(parts.length == 2){
+                         return parts[1] + '_to_' + parts[0];
+                      }
+                      return null;
+                   }
+               </c:script>
+
+               <mapping name="${name}">
+                   <fields>
+                       <c:for var="field" items="${mapping.childByTag('fields').children}">
+                           <field name="${field.attrText('from') || field.attrText('displayName')}"
+                                  type="${field.attrText('type')}" mandatory="${field.attrText('mandatory')}"
+                                  from="${field.attrText('name')}" displayName="${field.attrText('displayName')}"
+                                  mapping="${reverseMapping(field.attrText('mapping'))}" itemMapping="${reverseMapping(field.attrText('itemMapping'))}">
+                               ${field.childByTag('schema')}
+                           </field>
+                       </c:for>
+                   </fields>
+               </mapping>
+            </source>
+        </GenReverseMapping>
+    </tags>
+</lib>

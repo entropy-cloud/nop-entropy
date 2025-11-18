@@ -28,7 +28,7 @@ public class TestRecordMappingManager extends BaseTestCase {
 
     @Test
     public void testMapping() {
-        IRecordMapping mapping = RecordMappingManager.instance().getRecordMapping("test.demo.Type1ToType2");
+        IRecordMapping mapping = RecordMappingManager.instance().getRecordMapping("test.demo.Type1_to_Type2");
 
         Type1 t1 = new Type1();
         t1.setField1("f1");
