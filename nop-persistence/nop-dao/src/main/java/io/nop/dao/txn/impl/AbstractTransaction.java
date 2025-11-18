@@ -363,8 +363,8 @@ public abstract class AbstractTransaction implements ITransaction {
     }
 
     protected void invokeListener(Consumer<ITransactionListener> action, boolean ignoreError) {
-        if (listeners != null) {
-            for (ITransactionListener listener : listeners) {
+        if (listeners != null && !listeners.isEmpty()) {
+            for (ITransactionListener listener : new ArrayList<>(listeners)) {
                 try {
                     action.accept(listener);
                 } catch (Exception e) {
@@ -399,8 +399,8 @@ public abstract class AbstractTransaction implements ITransaction {
     }
 
     protected void invokeOpenListener() {
-        if (listeners != null) {
-            for (ITransactionListener listener : listeners) {
+        if (listeners != null && !listeners.isEmpty()) {
+            for (ITransactionListener listener : new ArrayList<>(listeners)) {
                 try {
                     listener.onOpen(this);
                 } catch (Exception e) {
@@ -411,8 +411,8 @@ public abstract class AbstractTransaction implements ITransaction {
     }
 
     protected void invokeCloseListener() {
-        if (listeners != null) {
-            for (ITransactionListener listener : listeners) {
+        if (listeners != null && !listeners.isEmpty()) {
+            for (ITransactionListener listener : new ArrayList<>(listeners)) {
                 try {
                     listener.onClose(this);
                 } catch (Exception e) {
