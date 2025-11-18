@@ -19,4 +19,10 @@ public interface MarkdownErrors {
 
     ErrorCode ERR_MARKDOWN_INVALID_NAME_VALUE_LINE =
             define("nop.err.markdown.invalid-name-value-line", "不是name:value这种格式", ARG_CONTENT);
+
+    ErrorCode ERR_MARKDOWN_NOT_ALL_CHILD_ORDERED =
+            define("nop.err.markdown.not-all-child-ordered", "不是所有子节点都是有序节点");
+
+    ErrorCode ERR_MARKDOWN_NOT_ALL_CHILD_SECTION_ORDERED =
+            define("nop.err.markdown.not-all-child-section-ordered", "不是所有子项目都是有序节点");
 }

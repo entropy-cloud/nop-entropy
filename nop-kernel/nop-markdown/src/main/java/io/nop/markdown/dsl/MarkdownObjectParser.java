@@ -1,6 +1,8 @@
 package io.nop.markdown.dsl;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.text.SourceCodeBlock;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.Pair;
 import io.nop.commons.util.objects.ValueWithLocation;
@@ -11,12 +13,17 @@ import io.nop.core.resource.component.parse.ITextResourceParser;
 import io.nop.markdown.model.MarkdownDocument;
 import io.nop.markdown.model.MarkdownListItem;
 import io.nop.markdown.model.MarkdownSection;
+import io.nop.markdown.simple.MarkdownCodeBlockParser;
 import io.nop.markdown.simple.MarkdownDocumentParser;
 import io.nop.markdown.simple.MarkdownListParser;
+import io.nop.markdown.table.MarkdownTableParser;
 import io.nop.markdown.utils.MarkdownHelper;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static io.nop.markdown.MarkdownErrors.ERR_MARKDOWN_NOT_ALL_CHILD_ORDERED;
+import static io.nop.markdown.MarkdownErrors.ERR_MARKDOWN_NOT_ALL_CHILD_SECTION_ORDERED;
 
 public class MarkdownObjectParser extends AbstractResourceParser<Object>
         implements ITextResourceParser<Object> {
@@ -44,17 +51,14 @@ public class MarkdownObjectParser extends AbstractResourceParser<Object>
     }
 
     public JObject parseObjectFromSection(MarkdownSection section) {
-        // # [value](name)
-        //   - name: value
-        //   - name: value
-        // ## 1. name: value
-        // ## 2.
-        return null;
-    }
-
-    void parseObjectSection(MarkdownSection section, JObject obj) {
+        JObject obj = new JObject();
         parseTitleProp(section, obj);
 
+        parseObjectFromSection(section, obj);
+        return obj;
+    }
+
+    void parseObjectFromSection(MarkdownSection section, JObject obj) {
         List<MarkdownListItem> items = listParser.parseAllListItems(section.getContentLocation(), section.getContent());
         parseListItems(items, obj);
 
@@ -75,6 +79,7 @@ public class MarkdownObjectParser extends AbstractResourceParser<Object>
                 name = "name";
                 value = section.getTitle();
             }
+            value = decodeText(value);
             obj.put(name, value);
         }
     }
@@ -85,13 +90,13 @@ public class MarkdownObjectParser extends AbstractResourceParser<Object>
             int pos = title.indexOf("](");
             String content = title.substring(1, pos);
             String name = title.substring(pos + 2, title.length() - 1).trim();
-            return Pair.of(name, content);
+            return Pair.of(name, decodeText(content));
         } else {
             int pos = title.indexOf(':');
             if (pos < 0) {
                 String name = title.substring(0, pos).trim();
                 String value = title.substring(pos + 1).trim();
-                return Pair.of(name, value);
+                return Pair.of(name, decodeText(value));
             } else {
                 return Pair.of(title, null);
             }
@@ -116,13 +121,20 @@ public class MarkdownObjectParser extends AbstractResourceParser<Object>
 
     Object parseItemChildren(MarkdownListItem item) {
         List<MarkdownListItem> children = item.getChildren();
-        if (MarkdownHelper.isOrderedItem(children.get(0).getContent())) {
+        if (children == null || children.isEmpty())
+            return null;
+
+        if (item.containsOrderedChild()) {
+            if (!item.isAllChildOrdered())
+                throw new NopException(ERR_MARKDOWN_NOT_ALL_CHILD_ORDERED)
+                        .source(item);
+
             List<Object> ret = new ArrayList<>();
             for (MarkdownListItem child : children) {
                 if (child.hasChildren()) {
                     ret.add(parseItemChildren(child));
                 } else {
-                    ret.add(removeOrderNo(child.getContent()));
+                    ret.add(decodeText(child.getContent()));
                 }
             }
             return ret;
@@ -139,15 +151,79 @@ public class MarkdownObjectParser extends AbstractResourceParser<Object>
             return;
 
         for (MarkdownSection child : children) {
+            String varName = getVarName(child);
+            Object value;
 
+            if (containsOrderedChildSection(child)) {
+                if (!isAllChildSectionOrdered(child))
+                    throw new NopException(ERR_MARKDOWN_NOT_ALL_CHILD_SECTION_ORDERED)
+                            .source(child);
+
+                value = parseSectionList(section);
+            } else {
+                value = parseSectionValue(section);
+            }
+            obj.put(varName, ValueWithLocation.of(child.getContentLocation(), value));
         }
     }
 
-    static String removeOrderNo(String text) {
-        if (MarkdownHelper.isOrderedItem(text)) {
-            int pos = text.indexOf('.');
-            return text.substring(pos + 1).trim();
+    String decodeText(String text) {
+        if (text == null || text.isEmpty())
+            return null;
+        return StringHelper.unquote(text);
+    }
+
+    Object parseSectionList(MarkdownSection section) {
+        List<Object> ret = new ArrayList<>(section.getChildCount());
+        for (MarkdownSection child : section.getChildren()) {
+            Object value = parseObjectFromSection(child);
+            ret.add(value);
         }
-        return text;
+        return ret;
+    }
+
+    Object parseSectionValue(MarkdownSection section) {
+        SourceCodeBlock block = MarkdownCodeBlockParser.INSTANCE.parseCodeBlockForLang(
+                section.getContentLocation(), section.getContent(), null);
+        if (block != null)
+            return block;
+
+        int pos = MarkdownHelper.findTable(section.getContent());
+        if (pos >= 0) {
+            SourceLocation loc = section.getContentLocation();
+            if (loc != null) {
+                loc = loc.skipContent(section.getContent(), 0, pos);
+            }
+            return MarkdownTableParser.parseTable(loc, section.getContent().substring(pos + 1));
+        }
+
+        JObject obj = new JObject();
+        obj.setLocation(section.getContentLocation());
+
+        parseObjectFromSection(section, obj);
+        return obj;
+    }
+
+    String getVarName(MarkdownSection section) {
+        String url = section.getLinkUrl();
+        if (StringHelper.isEmpty(url))
+            return url;
+        return section.getTitle();
+    }
+
+    boolean containsOrderedChildSection(MarkdownSection section) {
+        for (MarkdownSection child : section.getChildren()) {
+            if (child.getSectionNo() != null)
+                return true;
+        }
+        return false;
+    }
+
+    boolean isAllChildSectionOrdered(MarkdownSection section) {
+        for (MarkdownSection child : section.getChildren()) {
+            if (child.getSectionNo() == null)
+                return false;
+        }
+        return true;
     }
 }

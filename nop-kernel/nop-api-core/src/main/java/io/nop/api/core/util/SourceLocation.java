@@ -350,4 +350,20 @@ public class SourceLocation implements Serializable, IJsonString {
     public void setExternalPath(String externalPath) {
         this.externalPath = externalPath;
     }
+
+    public SourceLocation skipContent(String content, int offset, int len) {
+        int line = 0;
+        int col = 0;
+        for (int i = 0; i < len; i++) {
+            char c = content.charAt(i);
+            if (c == '\n') {
+                line++;
+                col = 0;
+            } else {
+                col++;
+            }
+        }
+        return new SourceLocation(path, this.line + line, this.col + col, this.len - len,
+                pos + len, sheet, cell, ref);
+    }
 }

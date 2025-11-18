@@ -17,6 +17,27 @@ public class MarkdownListItem extends MarkdownNode {
     private List<MarkdownListItem> children;
 
     // ========== 子节点管理 ==========
+    public boolean containsOrderedChild() {
+        if (children == null || children.isEmpty())
+            return false;
+
+        for (MarkdownListItem child : children) {
+            if (child.isOrdered())
+                return true;
+        }
+        return false;
+    }
+
+    public boolean isAllChildOrdered() {
+        if (children == null || children.isEmpty())
+            return false;
+
+        for (MarkdownListItem child : children) {
+            if (!child.isOrdered())
+                return false;
+        }
+        return true;
+    }
 
     public void addChild(MarkdownListItem child) {
         checkAllowChange();
