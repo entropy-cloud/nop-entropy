@@ -1,7 +1,12 @@
-<definitions x:schema="/nop/schema/record/record-mappings.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<definitions x:schema="/nop/schema/record/record-mappings.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:dump="true">
 
     <x:post-extends>
-
+        <definitions>
+            <record-mapping-gen:GenReverseMapping name="Type2_to_Type1" base="Type1_to_Type2"
+                xpl:lib="/nop/record/xlib/record-mapping-gen.xlib"/>
+            <record-mapping-gen:GenReverseMapping name="Test_to_Item" base="Item_to_Test"
+                                                  xpl:lib="/nop/record/xlib/record-mapping-gen.xlib"/>
+        </definitions>
     </x:post-extends>
 
     <mapping name="Type1_to_Type2">
@@ -18,15 +23,15 @@
             <field from="field4" name="name4">
                 <schema/>
             </field>
-            <field from="listB" itemMapping="ItemTest" name="listA">
+            <field from="listB" itemMapping="Item_to_Test" name="listA">
                 <schema/>
             </field>
-            <field from="mapB" itemMapping="ItemTest" name="mapA">
+            <field from="mapB" itemMapping="Item_to_Test" name="mapA">
                 <schema/>
             </field>
         </fields>
     </mapping>
-    <mapping name="ItemTest">
+    <mapping name="Item_to_Test">
         <fields>
             <field from="c" mandatory="true" name="a">
                 <schema/>

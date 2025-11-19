@@ -117,13 +117,6 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     
     /**
      *  
-     * xml name: skipWhenSerialize
-     * 
-     */
-    private java.lang.Boolean _skipWhenSerialize ;
-    
-    /**
-     *  
      * xml name: tagSet
      * 
      */
@@ -426,25 +419,6 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     
     /**
      * 
-     * xml name: skipWhenSerialize
-     *  
-     */
-    
-    public java.lang.Boolean getSkipWhenSerialize(){
-      return _skipWhenSerialize;
-    }
-
-    
-    public void setSkipWhenSerialize(java.lang.Boolean value){
-        checkAllowChange();
-        
-        this._skipWhenSerialize = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: tagSet
      *  
      */
@@ -569,7 +543,6 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         out.putNotNull("newInstanceExpr",this.getNewInstanceExpr());
         out.putNotNull("newItemExpr",this.getNewItemExpr());
         out.putNotNull("schema",this.getSchema());
-        out.putNotNull("skipWhenSerialize",this.getSkipWhenSerialize());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("type",this.getType());
         out.putNotNull("valueMapper",this.getValueMapper());
@@ -600,7 +573,6 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         instance.setNewInstanceExpr(this.getNewInstanceExpr());
         instance.setNewItemExpr(this.getNewItemExpr());
         instance.setSchema(this.getSchema());
-        instance.setSkipWhenSerialize(this.getSkipWhenSerialize());
         instance.setTagSet(this.getTagSet());
         instance.setType(this.getType());
         instance.setValueMapper(this.getValueMapper());

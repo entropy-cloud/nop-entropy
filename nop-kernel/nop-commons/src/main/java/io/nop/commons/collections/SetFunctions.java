@@ -195,4 +195,70 @@ public class SetFunctions {
         }
         return ret;
     }
+
+    /**
+     * find( callbackfn:(value: T) => boolean): T | undefined
+     * 查找第一个满足条件的元素，如果找不到返回 null
+     */
+    public static <T> T find(Collection<T> list, Predicate<T> fn) {
+        if (list == null) {
+            return null;
+        }
+        for (T item : list) {
+            if (fn.test(item)) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * findLast( callbackfn:(value: T) => boolean): T | undefined
+     * 从后往前查找第一个满足条件的元素，如果找不到返回 null
+     */
+    public static <T> T findLast(List<T> list, Predicate<T> fn) {
+        if (list == null) {
+            return null;
+        }
+        // 从最后一个元素开始遍历到第一个元素
+        for (int i = list.size() - 1; i >= 0; i--) {
+            T item = list.get(i);
+            if (fn.test(item)) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * findIndex( callbackfn:(value: T) => boolean): number
+     * 查找第一个满足条件的元素的索引，如果找不到返回 -1
+     */
+    public static <T> int findIndex(List<T> list, Predicate<T> fn) {
+        if (list == null) {
+            return -1;
+        }
+        for (int i = 0; i < list.size(); i++) {
+            if (fn.test(list.get(i))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * findLastIndex( callbackfn:(value: T) => boolean): number
+     * 从后往前查找第一个满足条件的元素的索引，如果找不到返回 -1
+     */
+    public static <T> int findLastIndex(List<T> list, Predicate<T> fn) {
+        if (list == null) {
+            return -1;
+        }
+        for (int i = list.size() - 1; i >= 0; i--) {
+            if (fn.test(list.get(i))) {
+                return i;
+            }
+        }
+        return -1;
+    }
 }

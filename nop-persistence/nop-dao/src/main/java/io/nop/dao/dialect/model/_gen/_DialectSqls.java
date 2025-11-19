@@ -26,14 +26,18 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     /**
      *  
      * xml name: dateLiteral
-     * 
+     * 在数据库层面将字符串转换为**日期**类型的表达式，如 `DATE '{value:yyyy-MM-dd}'`，
+     * 其中，`{value:<pattern>}` 表示 JDBC 层按 `<pattern>` 对 `LocalDate` 进行格式化，且
+     * `{value:}` 为固定形式，只有 `<pattern>` 是可变的，并采用 `DateTimeFormatter` 的格式规范
      */
     private java.lang.String _dateLiteral ;
     
     /**
      *  
      * xml name: dateTimeLiteral
-     * 
+     * 在数据库层面将字符串转换为**日期时间**类型的表达式，如 `TIMESTAMP '{value:yyyy-MM-dd HH:mm:ss}'`，
+     * 其中，`{value:<pattern>}` 表示 JDBC 层按 `<pattern>` 对 `LocalDateTime` 进行格式化，且
+     * `{value:}` 为固定形式，只有 `<pattern>` 是可变的，并采用 `DateTimeFormatter` 的格式规范
      */
     private java.lang.String _dateTimeLiteral ;
     
@@ -75,7 +79,8 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     /**
      *  
      * xml name: forUpdate
-     * 
+     * 在锁定选中行的语法中，追加到 select 语句的部分，如
+     * `select xxx from x where y for update` 中的 `for update`
      */
     private java.lang.String _forUpdate ;
     
@@ -89,7 +94,8 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     /**
      *  
      * xml name: lockHint
-     * 
+     * 在 `from table_name` 后面追加的关于锁的 SQL 语句，如
+     * `SELECT xxx FROM x WITH (TABLOCKX)` 中的 `WITH (TABLOCKX)`
      */
     private java.lang.String _lockHint ;
     
@@ -110,14 +116,18 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     /**
      *  
      * xml name: timeLiteral
-     * 
+     * 在数据库层面将字符串转换为**时间**类型的表达式，如 `TIME '{value:HH:mm:ss}'`，
+     * 其中，`{value:<pattern>}` 表示 JDBC 层按 `<pattern>` 对 `LocalTime` 进行格式化，且
+     * `{value:}` 为固定形式，只有 `<pattern>` 是可变的，并采用 `DateTimeFormatter` 的格式规范
      */
     private java.lang.String _timeLiteral ;
     
     /**
      *  
      * xml name: timestampLiteral
-     * 
+     * 在数据库层面将字符串转换为**时间戳**类型的表达式，如 `TIMESTAMP '{value:yyyy-MM-dd HH:mm:ss.nnnnnnnnn}'`，
+     * 其中，`{value:<pattern>}` 表示 JDBC 层按 `<pattern>` 对 `Timestamp` 进行格式化，且
+     * `{value:}` 为固定形式，只有 `<pattern>` 是可变的，并采用 `DateTimeFormatter` 的格式规范
      */
     private java.lang.String _timestampLiteral ;
     
@@ -164,7 +174,9 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     /**
      * 
      * xml name: dateLiteral
-     *  
+     *  在数据库层面将字符串转换为**日期**类型的表达式，如 `DATE '{value:yyyy-MM-dd}'`，
+     * 其中，`{value:<pattern>}` 表示 JDBC 层按 `<pattern>` 对 `LocalDate` 进行格式化，且
+     * `{value:}` 为固定形式，只有 `<pattern>` 是可变的，并采用 `DateTimeFormatter` 的格式规范
      */
     
     public java.lang.String getDateLiteral(){
@@ -183,7 +195,9 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     /**
      * 
      * xml name: dateTimeLiteral
-     *  
+     *  在数据库层面将字符串转换为**日期时间**类型的表达式，如 `TIMESTAMP '{value:yyyy-MM-dd HH:mm:ss}'`，
+     * 其中，`{value:<pattern>}` 表示 JDBC 层按 `<pattern>` 对 `LocalDateTime` 进行格式化，且
+     * `{value:}` 为固定形式，只有 `<pattern>` 是可变的，并采用 `DateTimeFormatter` 的格式规范
      */
     
     public java.lang.String getDateTimeLiteral(){
@@ -297,7 +311,8 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     /**
      * 
      * xml name: forUpdate
-     *  
+     *  在锁定选中行的语法中，追加到 select 语句的部分，如
+     * `select xxx from x where y for update` 中的 `for update`
      */
     
     public java.lang.String getForUpdate(){
@@ -335,7 +350,8 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     /**
      * 
      * xml name: lockHint
-     *  
+     *  在 `from table_name` 后面追加的关于锁的 SQL 语句，如
+     * `SELECT xxx FROM x WITH (TABLOCKX)` 中的 `WITH (TABLOCKX)`
      */
     
     public java.lang.String getLockHint(){
@@ -392,7 +408,9 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     /**
      * 
      * xml name: timeLiteral
-     *  
+     *  在数据库层面将字符串转换为**时间**类型的表达式，如 `TIME '{value:HH:mm:ss}'`，
+     * 其中，`{value:<pattern>}` 表示 JDBC 层按 `<pattern>` 对 `LocalTime` 进行格式化，且
+     * `{value:}` 为固定形式，只有 `<pattern>` 是可变的，并采用 `DateTimeFormatter` 的格式规范
      */
     
     public java.lang.String getTimeLiteral(){
@@ -411,7 +429,9 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     /**
      * 
      * xml name: timestampLiteral
-     *  
+     *  在数据库层面将字符串转换为**时间戳**类型的表达式，如 `TIMESTAMP '{value:yyyy-MM-dd HH:mm:ss.nnnnnnnnn}'`，
+     * 其中，`{value:<pattern>}` 表示 JDBC 层按 `<pattern>` 对 `Timestamp` 进行格式化，且
+     * `{value:}` 为固定形式，只有 `<pattern>` 是可变的，并采用 `DateTimeFormatter` 的格式规范
      */
     
     public java.lang.String getTimestampLiteral(){
