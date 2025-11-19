@@ -1,3 +1,5 @@
+/_delta/default/nop/spring/beans/spring-demo.beans.xml
+/_delta/default/nop/spring/mapper/SysUser.mapper.xml
 /dict/auth/gender.dict.yaml
 /dict/auth/login-status.dict.yaml
 /dict/auth/login-type.dict.yaml
@@ -283,6 +285,7 @@
 /nop/dao/dialect/db2.dialect.xml
 /nop/dao/dialect/default.dialect.xml
 /nop/dao/dialect/dm.dialect.xml
+/nop/dao/dialect/duckdb.dialect.xml
 /nop/dao/dialect/es.dialect.xml
 /nop/dao/dialect/geo-support.dialect.xml
 /nop/dao/dialect/h2.dialect.xml
@@ -297,6 +300,7 @@
 /nop/dao/dialect/postgresql.dialect.xml
 /nop/dao/dialect/selector/db2.selector.yaml
 /nop/dao/dialect/selector/dm.selector.yaml
+/nop/dao/dialect/selector/duckdb.selector.yaml
 /nop/dao/dialect/selector/h2.selector.yaml
 /nop/dao/dialect/selector/mariadb.selector.yaml
 /nop/dao/dialect/selector/mssql.selector.yaml
@@ -333,6 +337,7 @@
 /nop/orm/imp/template.orm.xlsx
 /nop/orm/xlib/dao.xlib
 /nop/orm/xlib/ddl/ddl.xlib
+/nop/orm/xlib/ddl/ddl_duckdb.xlib
 /nop/orm/xlib/ddl/ddl_h2.xlib
 /nop/orm/xlib/ddl/ddl_h2gis.xlib
 /nop/orm/xlib/ddl/ddl_mariadb.xlib
@@ -470,6 +475,9 @@
 /nop/schema/xui/xview.xdef
 /nop/spring/_module
 /nop/spring/beans/spring-base.beans.xml
+/nop/spring/beans/spring-demo.beans.xml
+/nop/spring/mapper/SysUser.mapper.xml
+/nop/spring/mapper/_gen/_SysUser.mapper.xml
 /nop/spring/schema/mapper.xdef
 /nop/sys/_module
 /nop/sys/auth/_nop-sys.action-auth.xml

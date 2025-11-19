@@ -4,6 +4,7 @@ package io.nop.markdown.table;
 import io.nop.api.core.util.ProcessResult;
 import io.nop.core.model.table.IRowView;
 import io.nop.core.model.table.ITableView;
+import io.nop.markdown.utils.MarkdownHelper;
 
 /**
  * Markdown表格转换器
@@ -93,10 +94,6 @@ public class TableToMarkdownConverter {
      * - 换行符转换为空格
      */
     private String escapeCell(String content) {
-        if (content == null || content.isEmpty()) return " ";
-        return content
-                .replace("|", "\\|")  // 转义管道符
-                .replace("\n", " ")   // 替换换行为空格
-                .replace("\r", "");    // 移除回车符
+        return MarkdownHelper.escapeCell(content);
     }
 }

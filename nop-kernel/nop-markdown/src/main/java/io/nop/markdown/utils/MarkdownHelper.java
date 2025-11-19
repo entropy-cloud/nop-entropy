@@ -27,6 +27,14 @@ public class MarkdownHelper {
         return text;
     }
 
+    public static String escapeCell(String content) {
+        if (content == null || content.isEmpty()) return " ";
+        return content
+                .replace("|", "\\|")  // 转义管道符
+                .replace("\n", " ")   // 替换换行为空格
+                .replace("\r", "");    // 移除回车符
+    }
+
 
     // 查找 ]，遇到换行直接返回-1
     private static int findCharNoNewline(String text, int from, int to, char ch) {

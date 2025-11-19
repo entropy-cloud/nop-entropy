@@ -183,18 +183,23 @@ public class MarkdownObjectParser extends AbstractResourceParser<Object>
     }
 
     Object parseSectionValue(MarkdownSection section) {
-        SourceCodeBlock block = MarkdownCodeBlockParser.INSTANCE.parseCodeBlockForLang(
-                section.getContentLocation(), section.getContent(), null);
-        if (block != null)
-            return block;
 
-        int pos = MarkdownHelper.findTable(section.getContent());
-        if (pos >= 0) {
-            SourceLocation loc = section.getContentLocation();
-            if (loc != null) {
-                loc = loc.skipContent(section.getContent(), 0, pos);
+        // section content只能是code block、list、table、普通文本
+        String content = section.getContent();
+        if (!StringHelper.isBlank(content)) {
+            SourceCodeBlock block = MarkdownCodeBlockParser.INSTANCE.parseCodeBlockForLang(
+                    section.getContentLocation(), content, null);
+            if (block != null)
+                return block;
+
+            int pos = MarkdownHelper.findTable(content);
+            if (pos >= 0) {
+                SourceLocation loc = section.getContentLocation();
+                if (loc != null) {
+                    loc = loc.skipContent(content, 0, pos);
+                }
+                return MarkdownTableParser.parseTable(loc, content.substring(pos + 1));
             }
-            return MarkdownTableParser.parseTable(loc, section.getContent().substring(pos + 1));
         }
 
         JObject obj = new JObject();
@@ -202,6 +207,18 @@ public class MarkdownObjectParser extends AbstractResourceParser<Object>
 
         parseObjectFromSection(section, obj);
         return obj;
+    }
+
+    boolean containsSectionContent(String content) {
+        if (content.startsWith("```") || content.contains("\n```"))
+            return true;
+        if (content.startsWith("|") || content.contains("\n|"))
+            return true;
+        if (content.startsWith("-") || content.contains("\n-"))
+            return true;
+        if (content.startsWith("*") || content.contains("**"))
+            return true;
+        return false;
     }
 
     String getVarName(MarkdownSection section) {
