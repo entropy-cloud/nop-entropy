@@ -25,6 +25,13 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     
     /**
      *  
+     * xml name: alias
+     * 
+     */
+    private java.util.Set<java.lang.String> _alias ;
+    
+    /**
+     *  
      * xml name: beforeFieldMapping
      * 
      */
@@ -71,6 +78,13 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
      * 如果to和from对应的属性是Map类型或者List类型，可以通过itemMapping来指定每个条目所对应的映射规则
      */
     private java.lang.String _itemMapping ;
+    
+    /**
+     *  
+     * xml name: keyProp
+     * 
+     */
+    private java.lang.String _keyProp ;
     
     /**
      *  
@@ -131,6 +145,13 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     
     /**
      *  
+     * xml name: valueExpr
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _valueExpr ;
+    
+    /**
+     *  
      * xml name: valueMapper
      * 
      */
@@ -165,6 +186,25 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         checkAllowChange();
         
         this._afterFieldMapping = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: alias
+     *  
+     */
+    
+    public java.util.Set<java.lang.String> getAlias(){
+      return _alias;
+    }
+
+    
+    public void setAlias(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._alias = value;
            
     }
 
@@ -298,6 +338,25 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         checkAllowChange();
         
         this._itemMapping = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: keyProp
+     *  
+     */
+    
+    public java.lang.String getKeyProp(){
+      return _keyProp;
+    }
+
+    
+    public void setKeyProp(java.lang.String value){
+        checkAllowChange();
+        
+        this._keyProp = value;
            
     }
 
@@ -457,6 +516,25 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     
     /**
      * 
+     * xml name: valueExpr
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getValueExpr(){
+      return _valueExpr;
+    }
+
+    
+    public void setValueExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._valueExpr = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: valueMapper
      *  
      */
@@ -530,6 +608,7 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         super.outputJson(out);
         
         out.putNotNull("afterFieldMapping",this.getAfterFieldMapping());
+        out.putNotNull("alias",this.getAlias());
         out.putNotNull("beforeFieldMapping",this.getBeforeFieldMapping());
         out.putNotNull("computeExpr",this.getComputeExpr());
         out.putNotNull("defaultValue",this.getDefaultValue());
@@ -537,6 +616,7 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         out.putNotNull("from",this.getFrom());
         out.putNotNull("itemFilterExpr",this.getItemFilterExpr());
         out.putNotNull("itemMapping",this.getItemMapping());
+        out.putNotNull("keyProp",this.getKeyProp());
         out.putNotNull("mandatory",this.isMandatory());
         out.putNotNull("mapping",this.getMapping());
         out.putNotNull("name",this.getName());
@@ -545,6 +625,7 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         out.putNotNull("schema",this.getSchema());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("type",this.getType());
+        out.putNotNull("valueExpr",this.getValueExpr());
         out.putNotNull("valueMapper",this.getValueMapper());
         out.putNotNull("virtual",this.isVirtual());
         out.putNotNull("when",this.getWhen());
@@ -560,6 +641,7 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         super.copyTo(instance);
         
         instance.setAfterFieldMapping(this.getAfterFieldMapping());
+        instance.setAlias(this.getAlias());
         instance.setBeforeFieldMapping(this.getBeforeFieldMapping());
         instance.setComputeExpr(this.getComputeExpr());
         instance.setDefaultValue(this.getDefaultValue());
@@ -567,6 +649,7 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         instance.setFrom(this.getFrom());
         instance.setItemFilterExpr(this.getItemFilterExpr());
         instance.setItemMapping(this.getItemMapping());
+        instance.setKeyProp(this.getKeyProp());
         instance.setMandatory(this.isMandatory());
         instance.setMapping(this.getMapping());
         instance.setName(this.getName());
@@ -575,6 +658,7 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         instance.setSchema(this.getSchema());
         instance.setTagSet(this.getTagSet());
         instance.setType(this.getType());
+        instance.setValueExpr(this.getValueExpr());
         instance.setValueMapper(this.getValueMapper());
         instance.setVirtual(this.isVirtual());
         instance.setWhen(this.getWhen());

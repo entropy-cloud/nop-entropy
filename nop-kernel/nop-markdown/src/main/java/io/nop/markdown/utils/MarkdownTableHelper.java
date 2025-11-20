@@ -1,12 +1,17 @@
 package io.nop.markdown.utils;
 
+import io.nop.api.core.util.ProcessResult;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.core.model.table.IRowView;
+import io.nop.core.model.table.ITableView;
 import io.nop.core.model.table.impl.BaseTable;
 import io.nop.markdown.table.MarkdownTableParser;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static io.nop.commons.util.StringHelper.escapeMarkdown;
@@ -118,5 +123,30 @@ class MarkdownTableHelper {
         }
 
         return map;
+    }
+
+    public static List<Map<String, Object>> toRecordList(ITableView table) {
+        if (table == null)
+            return null;
+
+        int rowCount = table.getRowCount();
+        if (rowCount <= 1)
+            return new ArrayList<>();
+
+        List<String> headers = table.getRow(0).getCellTexts();
+
+        List<Map<String, Object>> ret = new ArrayList<>();
+        for (int i = 1; i < rowCount; i++) {
+            IRowView row = table.getRow(i);
+            Map<String, Object> data = new LinkedHashMap<>();
+            row.forEachCell(i, (cell, rowIndex, colIndex) -> {
+                String header = CollectionHelper.get(headers, colIndex);
+                data.put(header, cell.getValue());
+                return ProcessResult.CONTINUE;
+            });
+            ret.add(data);
+        }
+
+        return ret;
     }
 }

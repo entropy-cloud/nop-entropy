@@ -59,6 +59,13 @@ public class Lazy<T> implements Supplier<T> {
         return value;
     }
 
+    public void set(T value) {
+        synchronized (this) {
+            this.value = value;
+            this.loaded = true;
+        }
+    }
+
     public boolean isLoaded() {
         return loaded;
     }

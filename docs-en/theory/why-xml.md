@@ -128,5 +128,5 @@ For details, see xpl.md (https://gitee.com/canonical-entropy/nop-entropy/blob/ma
 3. Supports compile-time execution, essentially similar to macros in Lisp.
 4. Supports custom tag libraries, and tag libraries support Delta customization. In other words, the XPL template language supports function-level Delta customization.
 
-For concrete examples, see the video [How to implement back-end service functions in the Nop platform via XBiz configuration files](Nop平台中如果通过XBiz配置文件实现后台服务函数)
+For concrete examples, see the video [How to implement back-end service functions in the Nop platform via XBiz configuration files](https://www.bilibili.com/video/BV1aN411B7Ju/)
 <!-- SOURCE_MD5:88cf22815577b85308eeca4e78fc1dc6-->

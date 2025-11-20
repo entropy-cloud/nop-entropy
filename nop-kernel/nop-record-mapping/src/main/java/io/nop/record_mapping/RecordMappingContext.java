@@ -6,6 +6,8 @@ import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.xlang.api.XLang;
 
+import static io.nop.record_mapping.RecordMappingConstants.VAR_ROOT_RECORD;
+
 public class RecordMappingContext implements IEvalContext {
     private final IEvalScope scope;
     private ICache<Object, Object> cache;
@@ -66,6 +68,7 @@ public class RecordMappingContext implements IEvalContext {
 
     public void setTargetRoot(Object targetRoot) {
         this.targetRoot = targetRoot;
+        this.scope.setLocalValue(VAR_ROOT_RECORD, targetRoot);
     }
 
     public Object getTargetParent() {

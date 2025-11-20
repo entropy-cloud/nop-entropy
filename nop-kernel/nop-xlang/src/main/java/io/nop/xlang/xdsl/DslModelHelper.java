@@ -9,6 +9,7 @@ package io.nop.xlang.xdsl;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IComponentModel;
+import io.nop.commons.functional.Lazy;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.object.DynamicObject;
@@ -27,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
 
@@ -115,32 +117,44 @@ public class DslModelHelper {
         return xdefPath;
     }
 
-    static IExcelModelLoaderFactory g_excelModelLoaderFactory;
+    static final Lazy<IExcelModelLoaderFactory> g_excelModelLoaderFactory = Lazy.of(() -> {
+        try {
+            ServiceLoader<IExcelModelLoaderFactory> loader = ServiceLoader.load(IExcelModelLoaderFactory.class);
+            Optional<IExcelModelLoaderFactory> first = loader.findFirst();
+            if (first.isPresent())
+                return first.get();
+            return null;
+        } catch (Exception e) {
+            LOG.warn("nop.xlang.not-support-excel-model-loader:missing-lib={}", "nop-ooxml-xlsx.jar");
+            return null;
+        }
+    });
 
     public static void registerExcelModelLoaderFactory(IExcelModelLoaderFactory modelLoaderFactory) {
-        g_excelModelLoaderFactory = modelLoaderFactory;
+        g_excelModelLoaderFactory.set(modelLoaderFactory);
     }
 
     public static boolean supportExcelModelLoader() {
-        if (g_excelModelLoaderFactory != null)
-            return true;
-
-        try {
-            ServiceLoader<IExcelModelLoaderFactory> loader = ServiceLoader.load(IExcelModelLoaderFactory.class);
-            return loader.findFirst().isPresent();
-        } catch (Exception e) {
-            LOG.warn("nop.xlang.not-support-excel-model-loader:missing-lib={}", "nop-ooxml-xlsx.jar");
-            return false;
-        }
-
+        return g_excelModelLoaderFactory.get() != null;
     }
 
     public static IResourceObjectLoader<?> newExcelModelLoader(String impModelPath) {
-        if (g_excelModelLoaderFactory != null) {
-            return g_excelModelLoaderFactory.newExcelModelLoader(impModelPath);
-        } else {
-            ServiceLoader<IExcelModelLoaderFactory> loader = ServiceLoader.load(IExcelModelLoaderFactory.class);
-            return loader.findFirst().get().newExcelModelLoader(impModelPath);
-        }
+        IExcelModelLoaderFactory factory = g_excelModelLoaderFactory.get();
+        if (factory == null)
+            throw new IllegalArgumentException("not support excel model loader");
+        return factory.newExcelModelLoader(impModelPath);
+    }
+
+    static final Lazy<IDslObjectTransformerFactory> g_objTransformerFactory = Lazy.valueOrError(() -> {
+        ServiceLoader<IDslObjectTransformerFactory> factory = ServiceLoader.load(IDslObjectTransformerFactory.class);
+        return factory.findFirst().orElseThrow(() -> new IllegalArgumentException("not support dsl object transformer"));
+    });
+
+    public static IDslObjectTransformerFactory.IDslObjectTransformer newDslObjectTransformer(String mappingName) {
+        return g_objTransformerFactory.get().newTransformer(mappingName);
+    }
+
+    public static void registerDslObjectTransformerFactory(IDslObjectTransformerFactory factory) {
+        g_objTransformerFactory.set(factory);
     }
 }

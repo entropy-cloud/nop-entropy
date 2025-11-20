@@ -73,6 +73,13 @@ public abstract class _RecordMappingConfig extends io.nop.core.resource.componen
     private java.util.Set<java.lang.String> _tagSet ;
     
     /**
+     *  
+     * xml name: toClass
+     * 
+     */
+    private java.lang.String _toClass ;
+    
+    /**
      * 
      * xml name: afterMapping
      *  
@@ -250,6 +257,25 @@ public abstract class _RecordMappingConfig extends io.nop.core.resource.componen
     }
 
     
+    /**
+     * 
+     * xml name: toClass
+     *  
+     */
+    
+    public java.lang.String getToClass(){
+      return _toClass;
+    }
+
+    
+    public void setToClass(java.lang.String value){
+        checkAllowChange();
+        
+        this._toClass = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -275,6 +301,7 @@ public abstract class _RecordMappingConfig extends io.nop.core.resource.componen
         out.putNotNull("fromClass",this.getFromClass());
         out.putNotNull("name",this.getName());
         out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("toClass",this.getToClass());
     }
 
     public RecordMappingConfig cloneInstance(){
@@ -294,6 +321,7 @@ public abstract class _RecordMappingConfig extends io.nop.core.resource.componen
         instance.setFromClass(this.getFromClass());
         instance.setName(this.getName());
         instance.setTagSet(this.getTagSet());
+        instance.setToClass(this.getToClass());
     }
 
     protected RecordMappingConfig newInstance(){

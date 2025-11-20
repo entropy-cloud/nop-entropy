@@ -10,10 +10,10 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.dict.DictProvider;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.type.IGenericType;
-import io.nop.record_mapping.model.RecordFieldMappingConfig;
-import io.nop.record_mapping.model.RecordMappingConfig;
 import io.nop.record_mapping.IRecordMapping;
 import io.nop.record_mapping.RecordMappingContext;
+import io.nop.record_mapping.model.RecordFieldMappingConfig;
+import io.nop.record_mapping.model.RecordMappingConfig;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.SimpleSchemaValidator;
 import org.slf4j.Logger;
@@ -39,6 +39,11 @@ public class ModelBasedRecordMapping implements IRecordMapping {
 
     public ModelBasedRecordMapping(RecordMappingConfig config) {
         this.config = config;
+    }
+
+    @Override
+    public Object newTarget() {
+        return config.newTarget();
     }
 
     @Override
@@ -90,6 +95,10 @@ public class ModelBasedRecordMapping implements IRecordMapping {
         } else {
             // 1. 从源对象上获取值，或者动态计算值
             Object value = getFromValue(field, source, target, ctx);
+
+            if (field.getValueExpr() != null) {
+                value = field.getValueExpr().call2(null, value, ctx, ctx.getEvalScope());
+            }
 
             if (field.getItemMapping() != null) {
                 // 映射Map或者List
@@ -260,7 +269,16 @@ public class ModelBasedRecordMapping implements IRecordMapping {
             return field.getComputeExpr().call3(null, source, target, ctx, ctx.getEvalScope());
 
         if (field.getFrom() != null) {
-            return BeanTool.getComplexProperty(source, field.getFrom());
+            Object value = BeanTool.getComplexProperty(source, field.getFrom());
+            if (value == null) {
+                if (field.getAlias() != null) {
+                    for (String alias : field.getAlias()) {
+                        value = BeanTool.getComplexProperty(source, alias);
+                        if (value != null)
+                            return value;
+                    }
+                }
+            }
         }
 
         // 既不是动态计算的值，也没有指定源对象上的属性路径，则返回null

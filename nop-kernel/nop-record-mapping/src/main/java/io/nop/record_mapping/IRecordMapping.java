@@ -4,6 +4,14 @@ package io.nop.record_mapping;
  * 结构体映射规则，将一个source对象上的属性映射到target对象上
  */
 public interface IRecordMapping {
+    Object newTarget();
+
+    default Object map(Object source, RecordMappingContext ctx) {
+        Object target = newTarget();
+        map(source, target, ctx);
+        return target;
+    }
+
     /**
      * 执行记录字段映射操作
      *

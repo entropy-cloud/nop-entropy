@@ -3,6 +3,7 @@ package io.nop.markdown.utils;
 import io.nop.api.core.beans.IntRangeBean;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.model.table.ITableView;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -263,5 +264,9 @@ public class MarkdownHelper {
         if (pos < 0)
             return false;
         return StringHelper.isInt(content.substring(0, pos).trim(), false);
+    }
+
+    public static List<Map<String, Object>> toRecordList(ITableView table) {
+        return MarkdownTableHelper.toRecordList(table);
     }
 }

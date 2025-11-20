@@ -28,6 +28,14 @@ public interface IClassModel extends IAnnotatedElement {
 
     String getSimpleName();
 
+    default boolean isAssignableFrom(Class<?> clazz){
+        return getRawClass().isAssignableFrom(clazz);
+    }
+
+    default boolean isAssignableTo(Class<?> clazz){
+        return clazz.isAssignableFrom(getRawClass());
+    }
+
     default Class getRawClass() {
         return getType().getRawClass();
     }

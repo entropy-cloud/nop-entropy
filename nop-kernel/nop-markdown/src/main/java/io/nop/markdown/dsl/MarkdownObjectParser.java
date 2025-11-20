@@ -7,6 +7,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.Pair;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.json.JObject;
+import io.nop.core.model.table.impl.BaseTable;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.parse.AbstractResourceParser;
 import io.nop.core.resource.component.parse.ITextResourceParser;
@@ -31,7 +32,6 @@ public class MarkdownObjectParser extends AbstractResourceParser<Object>
     private final MarkdownListParser listParser = new MarkdownListParser(true);
 
     public MarkdownObjectParser() {
-
     }
 
     @Override
@@ -74,6 +74,7 @@ public class MarkdownObjectParser extends AbstractResourceParser<Object>
             String value;
             if (pos <= 0) {
                 name = section.getTitle().substring(0, pos).trim();
+                name = normalizeKey(name);
                 value = section.getTitle().substring(pos + 1).trim();
             } else {
                 name = "name";
@@ -82,6 +83,11 @@ public class MarkdownObjectParser extends AbstractResourceParser<Object>
             value = decodeText(value);
             obj.put(name, value);
         }
+    }
+
+    String normalizeKey(String key) {
+        key = MarkdownHelper.removeStyle(key);
+        return key;
     }
 
     Pair<String, String> parseNameValuePair(SourceLocation loc, String title) {
@@ -95,6 +101,7 @@ public class MarkdownObjectParser extends AbstractResourceParser<Object>
             int pos = title.indexOf(':');
             if (pos < 0) {
                 String name = title.substring(0, pos).trim();
+                name = normalizeKey(name);
                 String value = title.substring(pos + 1).trim();
                 return Pair.of(name, decodeText(value));
             } else {
@@ -198,7 +205,8 @@ public class MarkdownObjectParser extends AbstractResourceParser<Object>
                 if (loc != null) {
                     loc = loc.skipContent(content, 0, pos);
                 }
-                return MarkdownTableParser.parseTable(loc, content.substring(pos + 1));
+                BaseTable table = MarkdownTableParser.parseTable(loc, content.substring(pos + 1));
+                return MarkdownHelper.toRecordList(table);
             }
         }
 
