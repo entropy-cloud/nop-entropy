@@ -1,8 +1,10 @@
 package io.nop.record_mapping.model;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.collections.KeyedList;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.ReflectionManager;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.record_mapping.RecordMappingContext;
@@ -26,7 +28,6 @@ public class RecordFieldMappingConfig extends _RecordFieldMappingConfig {
     public RecordFieldMappingConfig() {
 
     }
-
 
 
     public RecordMappingConfig getResolvedMapping() {
@@ -87,6 +88,11 @@ public class RecordFieldMappingConfig extends _RecordFieldMappingConfig {
     public Supplier<Object> getObjectConstructor(boolean collection, Object source, Object target, RecordMappingContext ctx) {
         if (getNewInstanceExpr() != null)
             return () -> getNewInstanceExpr().call3(null, source, target, ctx, ctx.getEvalScope());
+
+        if (collection && getKeyProp() != null) {
+            String keyProp = getKeyProp();
+            return () -> new KeyedList<>(item -> BeanTool.getProperty(item, keyProp));
+        }
 
         if (classModel != null)
             return classModel::newInstance;

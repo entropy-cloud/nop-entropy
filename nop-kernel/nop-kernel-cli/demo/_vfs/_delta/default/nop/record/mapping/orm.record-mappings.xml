@@ -1,5 +1,27 @@
-<definitions xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/record/record-mappings.xdef">
-    <mapping name="OrmModel">
+<definitions xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/record/record-mappings.xdef"
+             xmlns:record-mapping-gen="record-mapping-gen" xmlns:c="c" xmlns:md="md">
+
+    <x:post-extends>
+        <c:import from="/nop/record/xlib/record-mapping-gen.xlib"/>
+        <definitions>
+            <record-mapping-gen:GenReverseMapping name="OrmModel_to_Md" base="Md_to_OrmModel"/>
+            <record-mapping-gen:GenReverseMapping name="DomainModel_to_Md" base="Md_to_DomainModel"/>
+            <record-mapping-gen:GenReverseMapping name="DictModel_to_Md" base="Md_to_DictModel"/>
+            <record-mapping-gen:GenReverseMapping name="DictOptionModel_to_Md" base="Md_to_DictOptionModel"/>
+            <record-mapping-gen:GenReverseMapping name="EntityModel_to_Md" base="Md_to_EntityModel"/>
+            <record-mapping-gen:GenReverseMapping name="RelationModel_to_Md" base="Md_to_RelationModel"/>
+            <record-mapping-gen:GenReverseMapping name="JoinConditionModel_to_Md" base="Md_to_JoinConditionModel"/>
+            <record-mapping-gen:GenReverseMapping name="UniqueKeyModel_to_Md" base="Md_to_UniqueKeyModel"/>
+            <record-mapping-gen:GenReverseMapping name="AliasModel_to_Md" base="Md_to_AliasModel"/>
+            <record-mapping-gen:GenReverseMapping name="ComputeModel_to_Md" base="Md_to_ComputeModel"/>
+            <record-mapping-gen:GenReverseMapping name="ComputeArgModel_to_Md" base="Md_to_ComputeArgModel"/>
+            <record-mapping-gen:GenReverseMapping name="IndexModel_to_Md" base="Md_to_IndexModel"/>
+            <record-mapping-gen:GenReverseMapping name="IndexColumnModel_to_Md" base="Md_to_IndexColumnModel"/>
+            <record-mapping-gen:GenReverseMapping name="ColumnModel_to_Md" base="Md_to_ColumnModel"/>
+        </definitions>
+    </x:post-extends>
+
+    <mapping name="Md_to_OrmModel">
         <fields>
             <field name="ext:extends" from="extends" alias="Extends">
                 <schema stdDomain="string"/>
@@ -59,17 +81,18 @@
                 <schema stdDomain="boolean"/>
             </field>
 
-            <field name="domains" from="域定义" itemMapping="DomainModel" alias="Domain Definitions"/>
+            <field name="domains" from="域定义" itemMapping="Md_to_DomainModel" alias="Domain Definitions"
+                   md:serializer="table"/>
 
-            <field name="dicts" from="字典定义" itemMapping="DictModel" alias="Dictionary Definitions"/>
+            <field name="dicts" from="字典定义" itemMapping="Md_to_DictModel" alias="Dictionary Definitions"/>
 
             <field name="entities" from="实体定义" alias="Entities" keyProp="name"
-                   itemMapping="EntityModel">
+                   itemMapping="Md_to_EntityModel">
             </field>
         </fields>
     </mapping>
 
-    <mapping name="DomainModel">
+    <mapping name="Md_to_DomainModel">
         <fields>
             <field name="name" from="名称" mandatory="true" alias="Name">
                 <schema stdDomain="xml-name"/>
@@ -97,7 +120,7 @@
         </fields>
     </mapping>
 
-    <mapping name="DictModel">
+    <mapping name="Md_to_DictModel">
         <fields>
             <field name="name" from="名称" mandatory="true" alias="Name">
                 <schema stdDomain="string"/>
@@ -120,13 +143,14 @@
             </field>
 
             <field name="options" from="字典项" mandatory="true" keyProp="value"
-                   alias="Dictionary Items" itemMapping="DictOptionModel">
+                   md:serializer="table"
+                   alias="Dictionary Items" itemMapping="Md_to_DictOptionModel">
             </field>
 
         </fields>
     </mapping>
 
-    <mapping name="DictOptionModel">
+    <mapping name="Md_to_DictOptionModel">
         <fields>
             <field name="value" from="值" alias="Value">
                 <schema stdDomain="string"/>
@@ -150,7 +174,7 @@
         </fields>
     </mapping>
 
-    <mapping name="EntityModel">
+    <mapping name="Md_to_EntityModel">
         <fields>
             <field name="tableName" from="表名" mandatory="true" alias="Table Name">
                 <schema stdDomain="prop-name"/>
@@ -209,28 +233,30 @@
                 <schema stdDomain="int"/>
             </field>
 
-            <field name="columns" from="字段列表" keyProp="name" alias="Column List" itemMapping="ColumnModel">
+            <field name="columns" from="字段列表" keyProp="name" alias="Column List" itemMapping="Md_to_ColumnModel">
             </field>
 
-            <field name="relations" from="关联列表" list="true" alias="Relation List" itemMapping="RelationModel">
+            <field name="relations" from="关联列表" list="true" alias="Relation List" itemMapping="Md_to_RelationModel">
             </field>
 
-            <field name="uniqueKeys" from="唯一键列表" list="true" alias="Unique Key List" itemMapping="UniqueKeyModel">
+            <field name="uniqueKeys" from="唯一键列表" list="true" alias="Unique Key List"
+                   itemMapping="Md_to_UniqueKeyModel">
             </field>
 
-            <field name="aliases" from="别名列表" list="true" alias="Alias List" itemMapping="AliasModel">
+            <field name="aliases" from="别名列表" list="true" alias="Alias List" itemMapping="Md_to_AliasModel">
             </field>
 
             <field name="computes" from="计算属性列表" list="true" alias="Computed Property List"
-                   itemMapping="ComputeModel">
+                   itemMapping="Md_to_ComputeModel">
             </field>
 
-            <field name="indexes" from="索引列表" list="true" keyProp="name" alias="Indexes" itemMapping="IndexModel">
+            <field name="indexes" from="索引列表" list="true" keyProp="name" alias="Indexes"
+                   itemMapping="Md_to_IndexModel">
             </field>
         </fields>
     </mapping>
 
-    <mapping name="RelationModel">
+    <mapping name="Md_to_RelationModel">
         <fields>
             <field name="name" from="属性名" mandatory="true" alias="Name">
                 <schema stdDomain="var-name"/>
@@ -326,12 +352,12 @@
             </field>
 
             <field name="join" from="关联条件" list="true" mandatory="true" alias="Join Condition"
-                   itemMapping="JoinConditionModel">
+                   itemMapping="Md_to_JoinConditionModel">
             </field>
         </fields>
     </mapping>
 
-    <mapping name="JoinConditionModel">
+    <mapping name="Md_to_JoinConditionModel">
         <fields>
             <field name="leftProp" from="左属性" alias="Left Property">
                 <schema stdDomain="var-name"/>
@@ -351,7 +377,7 @@
         </fields>
     </mapping>
 
-    <mapping name="UniqueKeyModel">
+    <mapping name="Md_to_UniqueKeyModel">
         <fields>
             <field name="name" from="唯一键名" mandatory="true" alias="Name">
                 <schema stdDomain="var-name"/>
@@ -383,7 +409,7 @@
         </fields>
     </mapping>
 
-    <mapping name="AliasModel">
+    <mapping name="Md_to_AliasModel">
         <fields>
             <field name="name" from="名称" mandatory="true" alias="Name">
                 <schema stdDomain="var-name"/>
@@ -415,7 +441,7 @@
         </fields>
     </mapping>
 
-    <mapping name="ComputeModel">
+    <mapping name="Md_to_ComputeModel">
         <fields>
             <field name="name" from="名称" mandatory="true" alias="Name">
                 <schema stdDomain="var-name"/>
@@ -449,12 +475,12 @@
                 <schema stdDomain="xpl"/>
             </field>
 
-            <field name="args" from="参数" list="true" alias="Arguments" itemMapping="ComputeArgModel">
+            <field name="args" from="参数" list="true" alias="Arguments" itemMapping="Md_to_ComputeArgModel">
             </field>
         </fields>
     </mapping>
 
-    <mapping name="ComputeArgModel">
+    <mapping name="Md_to_ComputeArgModel">
         <fields>
             <field name="name" from="名称" mandatory="true" alias="Name">
                 <schema stdDomain="var-name"/>
@@ -474,7 +500,7 @@
         </fields>
     </mapping>
 
-    <mapping name="IndexModel">
+    <mapping name="Md_to_IndexModel">
         <fields>
             <field name="name" from="索引名" mandatory="true" alias="Index Name">
                 <schema stdDomain="var-name"/>
@@ -502,12 +528,12 @@
                 <schema stdDomain="tag-set"/>
             </field>
 
-            <field name="columns" from="索引列" alias="Index Columns" itemMapping="IndexColumnModel">
+            <field name="columns" from="索引列" alias="Index Columns" itemMapping="Md_to_IndexColumnModel">
             </field>
         </fields>
     </mapping>
 
-    <mapping name="IndexColumnModel">
+    <mapping name="Md_to_IndexColumnModel">
         <fields>
             <field name="name" from="列名" mandatory="true" alias="Column Name">
                 <schema stdDomain="var-name"/>
@@ -519,7 +545,7 @@
         </fields>
     </mapping>
 
-    <mapping name="ColumnModel">
+    <mapping name="Md_to_ColumnModel">
         <fields>
             <field name="propId" from="编号" mandatory="true" alias="Prop Id">
                 <schema stdDomain="int"/>

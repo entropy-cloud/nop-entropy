@@ -6,6 +6,7 @@ import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.validate.IValidationErrorCollector;
+import io.nop.commons.collections.IKeyedList;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.dict.DictProvider;
 import io.nop.core.reflect.bean.BeanTool;
@@ -23,13 +24,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static io.nop.record_mapping.RecordMappingErrors.ARG_DICT;
 import static io.nop.record_mapping.RecordMappingErrors.ARG_FIELD_NAME;
+import static io.nop.record_mapping.RecordMappingErrors.ARG_KEY_PROP;
+import static io.nop.record_mapping.RecordMappingErrors.ARG_KEY_VALUE;
 import static io.nop.record_mapping.RecordMappingErrors.ARG_VALUE;
 import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_FIELD_IS_MANDATORY;
 import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_FIELD_NOT_COLLECTION_TYPE;
 import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_FIELD_VALUE_NOT_IN_DICT;
+import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_LIST_DUPLICATE_ITEM;
 import static io.nop.xlang.XLangErrors.ARG_BIZ_OBJ_NAME;
 
 public class ModelBasedRecordMapping implements IRecordMapping {
@@ -137,18 +142,14 @@ public class ModelBasedRecordMapping implements IRecordMapping {
                     throw new NopException(ERR_RECORD_FIELD_IS_MANDATORY).source(field)
                             .param(ARG_FIELD_NAME, field.getName()).param(ARG_BIZ_OBJ_NAME, mappingName);
 
-                BeanTool.setComplexProperty(target, field.getName(), value);
+                setTargetValue(target, field, value, ctx);
             }
         }
     }
 
     protected void mapMapField(RecordFieldMappingConfig field, Map<String, Object> value,
                                Object source, Object target, RecordMappingContext ctx) {
-        Object toValue = BeanTool.makeComplexProperty(target, field.getName(), field.getObjectConstructor(false, source, target, ctx));
-        if (toValue == null) {
-            toValue = new LinkedHashMap<>();
-            BeanTool.setComplexProperty(target, field.getName(), toValue);
-        }
+        Object toValue = makeTargetObject(field, source, target, ctx);
 
         RecordMappingConfig itemMapping = field.getResolvedItemMapping();
         for (Map.Entry<String, Object> entry : value.entrySet()) {
@@ -161,17 +162,13 @@ public class ModelBasedRecordMapping implements IRecordMapping {
                     continue;
             }
 
-            Object toItemValue = BeanTool.instance().makeProperty(toValue, key, ctx.getEvalScope());
+            Object toItemValue = makeMapValue(field, value, toValue, key, ctx);
             Object sourceParent = ctx.getSourceParent();
             Object targetParent = ctx.getTargetParent();
 
             ctx.setSourceParent(value);
             ctx.setTargetParent(toValue);
 
-            if (toItemValue == null) {
-                toItemValue = field.getItemConstructor(value, toValue, ctx).get();
-                BeanTool.setProperty(toValue, key, toItemValue);
-            }
             mapObject(itemMapping, itemValue, toItemValue, ctx);
 
             ctx.setSourceParent(sourceParent);
@@ -179,12 +176,18 @@ public class ModelBasedRecordMapping implements IRecordMapping {
         }
     }
 
-    protected void mapCollectionField(RecordFieldMappingConfig field, Collection<?> value, Object source, Object target, RecordMappingContext ctx) {
-        Object toValue = BeanTool.makeComplexProperty(target, field.getName(), field.getObjectConstructor(true, source, target, ctx));
-        if (toValue == null) {
-            toValue = new ArrayList<>();
-            BeanTool.setComplexProperty(target, field.getName(), toValue);
+    protected Object makeMapValue(RecordFieldMappingConfig field, Object value,
+                                  Object toValue, String key, RecordMappingContext ctx) {
+        Object toItemValue = BeanTool.instance().makeProperty(toValue, key, ctx.getEvalScope());
+        if (toItemValue == null) {
+            toItemValue = field.getItemConstructor(value, toValue, ctx).get();
+            BeanTool.setProperty(toValue, key, toItemValue);
         }
+        return toItemValue;
+    }
+
+    protected void mapCollectionField(RecordFieldMappingConfig field, Collection<?> value, Object source, Object target, RecordMappingContext ctx) {
+        Object toValue = makeTargetCollection(field, source, target, ctx);
 
         RecordMappingConfig itemMapping = field.getResolvedItemMapping();
         int index = 0;
@@ -202,9 +205,7 @@ public class ModelBasedRecordMapping implements IRecordMapping {
             ctx.setSourceParent(value);
             ctx.setTargetParent(toValue);
 
-            Object toItemValue = field.getItemConstructor(itemValue, null, ctx).get();
-            ((Collection<Object>) toValue).add(toItemValue);
-
+            Object toItemValue = makeCollectionItem(field, itemValue, toValue, ctx);
             mapObject(itemMapping, itemValue, toItemValue, ctx);
 
             ctx.setSourceParent(sourceParent);
@@ -212,12 +213,26 @@ public class ModelBasedRecordMapping implements IRecordMapping {
         }
     }
 
+    protected Object makeCollectionItem(RecordFieldMappingConfig field,
+                                        Object itemValue,
+                                        Object toValue, RecordMappingContext ctx) {
+        Object toItemValue = field.getItemConstructor(itemValue, null, ctx).get();
+        if (toValue instanceof IKeyedList) {
+            ((IKeyedList) toValue).addUnique(toItemValue, key ->
+                    new NopException(ERR_RECORD_LIST_DUPLICATE_ITEM).source(field)
+                            .param(ARG_KEY_PROP, field.getKeyProp()).param(ARG_KEY_VALUE, key));
+        } else {
+            ((Collection<Object>) toValue).add(toItemValue);
+        }
+        return toItemValue;
+    }
+
     protected void mapObjectField(RecordFieldMappingConfig field, Object source, Object target, RecordMappingContext ctx) {
         if (field.isVirtual()) {
             mapObject(field.getResolvedMapping(), source, target, ctx);
         } else {
-            Object fromValue = BeanTool.getComplexProperty(source, field.getFrom());
-            Object toValue = BeanTool.makeComplexProperty(target, field.getName(), field.getObjectConstructor(true, source, target, ctx));
+            Object fromValue = getFromValue(field, source, target, ctx);
+            Object toValue = makeTargetObject(field, source, target, ctx);
 
             Object sourceParent = ctx.getSourceParent();
             Object targetParent = ctx.getTargetParent();
@@ -269,14 +284,15 @@ public class ModelBasedRecordMapping implements IRecordMapping {
             return field.getComputeExpr().call3(null, source, target, ctx, ctx.getEvalScope());
 
         if (field.getFrom() != null) {
-            Object value = BeanTool.getComplexProperty(source, field.getFrom());
-            if (value == null) {
-                if (field.getAlias() != null) {
-                    for (String alias : field.getAlias()) {
-                        value = BeanTool.getComplexProperty(source, alias);
-                        if (value != null)
-                            return value;
-                    }
+            Object value = getSourceValue(source, field.getFrom(), ctx);
+            if (value != null) {
+                return value;
+            }
+            if (field.getAlias() != null) {
+                for (String alias : field.getAlias()) {
+                    value = getSourceValue(source, alias, ctx);
+                    if (value != null)
+                        return value;
                 }
             }
         }
@@ -294,4 +310,35 @@ public class ModelBasedRecordMapping implements IRecordMapping {
         }
         return value;
     }
+
+    protected Object getSourceValue(Object source, String propName, RecordMappingContext ctx) {
+        return BeanTool.getComplexProperty(source, propName);
+    }
+
+    protected Object makeTargetObject(RecordFieldMappingConfig field, Object source, Object target,
+                                      RecordMappingContext ctx) {
+        Supplier<Object> constructor = field.getObjectConstructor(false, source, target, ctx);
+        Object toValue = BeanTool.makeComplexProperty(target, field.getName(), constructor);
+        if (toValue == null) {
+            toValue = new LinkedHashMap<>();
+            BeanTool.setComplexProperty(target, field.getName(), toValue);
+        }
+        return toValue;
+    }
+
+    protected Object makeTargetCollection(RecordFieldMappingConfig field, Object source, Object target,
+                                          RecordMappingContext ctx) {
+        Supplier<Object> constructor = field.getObjectConstructor(true, source, target, ctx);
+        Object toValue = BeanTool.makeComplexProperty(target, field.getName(), constructor);
+        if (toValue == null) {
+            toValue = new ArrayList<>();
+            BeanTool.setComplexProperty(target, field.getName(), toValue);
+        }
+        return toValue;
+    }
+
+    protected void setTargetValue(Object target, RecordFieldMappingConfig field, Object value, RecordMappingContext ctx) {
+        BeanTool.setComplexProperty(target, field.getName(), value);
+    }
+
 }

@@ -159,6 +159,23 @@ public class KeyedList<T> extends AbstractList<T> implements IKeyedList<T>, IFre
     }
 
     @Override
+    public void addUnique(T t, Function<String, NopException> errorFactory) {
+        FreezeHelper.checkNotFrozen(this);
+
+        if (t == null) {
+            throw new NopException(ERR_LIST_NOT_ALLOW_NULL_ELEMENT);
+        }
+
+        String key = getKey(t);
+        T item = map.get(key);
+        if (item != null)
+            throw errorFactory.apply(key);
+
+        map.put(key, t);
+        list.add(t);
+    }
+
+    @Override
     public boolean add(T t) {
         FreezeHelper.checkNotFrozen(this);
 
