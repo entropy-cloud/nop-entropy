@@ -152,6 +152,12 @@ public interface IXDefNode extends IComponentModel, IFreezable {
 
     String getXdefUniqueAttr();
 
+    String getXdefUniqueProp();
+
+    String getXdefKeyProp();
+
+    String getXdefOrderProp();
+
     String getXdefKeyAttr();
 
     String getXdefOrderAttr();

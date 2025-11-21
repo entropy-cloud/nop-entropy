@@ -211,7 +211,7 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
         if (objName == null) {
             objName = defNode.getTagName();
         }
-        DynamicObject obj = new DynamicObject(objName, defNode.getXdefUniqueAttr());
+        DynamicObject obj = new DynamicObject(objName, defNode.getXdefUniqueProp());
         obj.setLocation(node.getLocation());
         if (subTypeProp != null) {
             obj.addProp(subTypeProp, node.getTagName());

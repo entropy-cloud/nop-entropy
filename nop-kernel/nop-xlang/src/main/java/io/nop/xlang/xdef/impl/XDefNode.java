@@ -20,6 +20,10 @@ import java.util.Map;
 
 public class XDefNode extends _XDefNode implements IXDefNode {
 
+    private String xdefKeyProp;
+    private String xdefUniqueProp;
+    private String xdefOrderProp;
+
     private IXDefNode refNode;
     // 是否已经根据ref查找到具体的refNode
     private boolean refResolved;
@@ -37,6 +41,51 @@ public class XDefNode extends _XDefNode implements IXDefNode {
         if (getComment() == null)
             setComment(new XDefComment());
         return comment;
+    }
+
+    @Override
+    public String getXdefUniqueProp() {
+        return xdefUniqueProp;
+    }
+
+    @Override
+    public String getXdefKeyProp() {
+        return xdefKeyProp;
+    }
+
+    @Override
+    public String getXdefOrderProp() {
+        return xdefOrderProp;
+    }
+
+    @Override
+    public void setXdefUniqueAttr(String value) {
+        super.setXdefUniqueAttr(value);
+        if (value == null) {
+            xdefUniqueProp = null;
+        } else {
+            xdefUniqueProp = StringHelper.xmlNameToPropName(value);
+        }
+    }
+
+    @Override
+    public void setXdefKeyAttr(String value) {
+        super.setXdefKeyAttr(value);
+        if (value == null) {
+            xdefKeyProp = null;
+        } else {
+            xdefKeyProp = StringHelper.xmlNameToPropName(value);
+        }
+    }
+
+    @Override
+    public void setXdefOrderAttr(String value) {
+        super.setXdefOrderAttr(value);
+        if (value == null) {
+            xdefOrderProp = null;
+        } else {
+            xdefOrderProp = StringHelper.xmlNameToPropName(value);
+        }
     }
 
     public boolean isRefResolved() {
