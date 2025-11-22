@@ -78,9 +78,6 @@ public class OrmTemplateImpl extends AbstractSqlExecutor implements IOrmTemplate
 
     @Override
     public IOrmModel getOrmModel() {
-        IOrmSession session = currentSession();
-        if (session != null)
-            return session.getLoadedOrmModel().getOrmModel();
         return sessionFactory.getOrmModel();
     }
 
