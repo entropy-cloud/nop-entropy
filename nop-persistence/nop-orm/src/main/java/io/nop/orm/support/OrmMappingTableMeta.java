@@ -31,7 +31,7 @@ public class OrmMappingTableMeta {
     }
 
     /**
-     * 中间表具有mapping标签或者many-to-man标签
+     * 中间表具有mapping标签或者many-to-many标签
      */
     public static boolean isMappingTable(IEntityModel entityModel) {
         return entityModel.containsTag(OrmModelConstants.TAG_MAPPING) || entityModel.containsTag(OrmModelConstants.TAG_MANY_TO_MANY);
