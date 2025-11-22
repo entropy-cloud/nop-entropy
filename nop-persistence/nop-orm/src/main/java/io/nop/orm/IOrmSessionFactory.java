@@ -28,6 +28,8 @@ public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider {
      */
     void clearQueryCache();
 
+    void clearQueryPlanCache();
+
     ITransactionTemplate txn();
 
     <T> T getExtension(String entityName, Class<T> extensionClass);
