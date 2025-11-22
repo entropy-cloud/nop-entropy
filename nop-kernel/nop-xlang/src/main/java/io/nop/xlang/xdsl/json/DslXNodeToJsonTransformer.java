@@ -151,7 +151,7 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
             return list;
         } else {
             KeyedList<Object> list = new KeyedList<>(node.getChildCount(),
-                    item -> getKey(item, defNode.getXdefKeyAttr()));
+                    item -> getKey(item, defNode.getXdefKeyProp()));
             for (XNode child : node.getChildren()) {
                 IXDefNode childDef = defNode.getChild(child.getTagName());
                 if (childDef != null) {
