@@ -119,7 +119,7 @@ public class DslBeanModelParser extends DslXNodeToJsonTransformer {
                     }
                     List<Object> list = (List<Object>) beanModel.getProperty(obj, propName);
                     if (list == null || list.isEmpty()) {
-                        list = new KeyedList<>(item -> getKey(item, childDef.getXdefUniqueAttr()));
+                        list = new KeyedList<>(item -> getKey(item, childDef.getXdefUniqueProp()));
                         beanModel.setProperty(obj, propName, list);
                     }
                     Object childObj = parseObject(childDef, child);

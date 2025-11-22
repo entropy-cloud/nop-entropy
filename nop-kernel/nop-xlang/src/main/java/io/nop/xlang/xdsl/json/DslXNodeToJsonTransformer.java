@@ -290,7 +290,7 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
                     }
                     KeyedList<Object> list = (KeyedList<Object>) obj.prop_get(propName);
                     if (list == null) {
-                        list = new KeyedList<>(item -> getKey(item, childDef.getXdefUniqueAttr()));
+                        list = new KeyedList<>(item -> getKey(item, childDef.getXdefUniqueProp()));
                         obj.prop_set(propName, list);
                     }
                     Object childObj = parseObject(childDef, child);
