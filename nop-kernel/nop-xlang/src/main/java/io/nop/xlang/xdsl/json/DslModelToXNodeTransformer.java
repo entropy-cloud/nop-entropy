@@ -52,7 +52,6 @@ import static io.nop.xlang.XLangErrors.ARG_VALUE;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_UNKNOWN_STD_DOMAIN;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_NOT_SUPPORTED_SCHEMA_KIND;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_NO_SUB_SCHEMA_DEFINITION;
-import static io.nop.xlang.XLangErrors.ERR_XDSL_PROP_LIST_ITEM_NOT_MAP;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_PROP_NO_SUB_SCHEMA_DEFINITION;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_PROP_VALUE_NOT_LIST;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_PROP_VALUE_NOT_MAP;
@@ -399,11 +398,12 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
                 break;
             }
             case UNION: {
-                if (!(value instanceof Map))
-                    throw new NopException(ERR_XDSL_PROP_LIST_ITEM_NOT_MAP).source(propMeta)
-                            .param(ARG_PROP_NAME, propMeta.getName()).param(ARG_VALUE, value);
+//                if (!(value instanceof Map))
+//                    throw new NopException(ERR_XDSL_PROP_LIST_ITEM_NOT_MAP).source(propMeta)
+//                            .param(ARG_PROP_NAME, propMeta.getName()).param(ARG_VALUE, value);
                 XNode child = transformUnion(value, schema, propMeta.getName());
                 node.appendChild(child);
+                break;
             }
             default: {
                 throw new NopException(ERR_XDSL_NOT_SUPPORTED_SCHEMA_KIND).source(schema).param(ARG_SCHEMA_KIND,
@@ -472,11 +472,16 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
     private ISchema getSubSchema(List<ISchema> oneOf, String typeValue) {
         if (oneOf == null || oneOf.isEmpty())
             return null;
+        ISchema unknownSchema = null;
         for (ISchema schema : oneOf) {
+            // 识别xdef:unknown-tag
+            if ("*".equals(schema.getTypeValue())) {
+                unknownSchema = schema;
+            }
             if (typeValue.equals(schema.getTypeValue()))
                 return schema;
         }
-        return null;
+        return unknownSchema;
     }
 
     private SourceLocation getLocation(Object value) {
