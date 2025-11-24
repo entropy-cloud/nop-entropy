@@ -40,7 +40,7 @@ let result = linq `select ff from myObject o  where o.value > 3`
 
 The Nop platform currently ships with the following macro functions:
 
-|函数名|说明|
+|Function Name|Description|
 |---|---|
 |xml|Parses XML text into an XNode and wraps it as a LiteralExpression|
 |xpl|Parses Xpl template text into an Expression|

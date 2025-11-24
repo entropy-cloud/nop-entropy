@@ -201,5 +201,5 @@ Any XML or JSON can be automatically adapted into XDSL. For example, since the f
 ```
 
 For which syntactic attributes XDSL uses specifically, see the [xdsl.xdef meta-model definition](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/xdsl.xdef).
-For an introduction to the x:override merge operator, see [x-override.md](x-override.md)
+For an introduction to the x:override merge operator, see [x-override.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs-en/dev-guide/xlang/x-override.md)
 <!-- SOURCE_MD5:39fa9181a168b1caca0aedc675674d99-->
