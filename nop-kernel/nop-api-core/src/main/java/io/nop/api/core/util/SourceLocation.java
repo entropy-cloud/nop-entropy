@@ -354,7 +354,7 @@ public class SourceLocation implements Serializable, IJsonString {
     public SourceLocation skipContent(String content, int offset, int len) {
         int line = 0;
         int col = 0;
-        for (int i = 0; i < len; i++) {
+        for (int i = offset; i < len; i++) {
             char c = content.charAt(i);
             if (c == '\n') {
                 line++;

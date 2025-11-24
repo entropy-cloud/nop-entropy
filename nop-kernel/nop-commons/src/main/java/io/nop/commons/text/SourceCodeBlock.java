@@ -71,6 +71,10 @@ public class SourceCodeBlock implements ISourceLocationGetter {
     }
 
     public void writeAsMarkdown(Appendable out) throws IOException {
+        writeAsMarkdown(lang, source, out);
+    }
+
+    public static void writeAsMarkdown(String lang, String source, Appendable out) throws IOException {
         // 智能 fence 选择策略
         String fence = determineFence(source);
         String language = lang != null ? lang : "";

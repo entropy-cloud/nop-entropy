@@ -25,6 +25,13 @@ public abstract class _RecordMappingConfig extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: baseMapping
+     * 
+     */
+    private java.lang.String _baseMapping ;
+    
+    /**
+     *  
      * xml name: beforeMapping
      * 
      */
@@ -94,6 +101,25 @@ public abstract class _RecordMappingConfig extends io.nop.core.resource.componen
         checkAllowChange();
         
         this._afterMapping = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: baseMapping
+     *  
+     */
+    
+    public java.lang.String getBaseMapping(){
+      return _baseMapping;
+    }
+
+    
+    public void setBaseMapping(java.lang.String value){
+        checkAllowChange();
+        
+        this._baseMapping = value;
            
     }
 
@@ -294,6 +320,7 @@ public abstract class _RecordMappingConfig extends io.nop.core.resource.componen
         super.outputJson(out);
         
         out.putNotNull("afterMapping",this.getAfterMapping());
+        out.putNotNull("baseMapping",this.getBaseMapping());
         out.putNotNull("beforeMapping",this.getBeforeMapping());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
@@ -314,6 +341,7 @@ public abstract class _RecordMappingConfig extends io.nop.core.resource.componen
         super.copyTo(instance);
         
         instance.setAfterMapping(this.getAfterMapping());
+        instance.setBaseMapping(this.getBaseMapping());
         instance.setBeforeMapping(this.getBeforeMapping());
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());

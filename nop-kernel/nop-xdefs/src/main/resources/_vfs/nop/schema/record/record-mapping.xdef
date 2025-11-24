@@ -4,10 +4,10 @@
  数据对象属性映射规则
 -->
 <mapping x:schema="/nop/schema/xdef.xdef" name="!var-name" displayName="string" tagSet="csv-set"
-         xmlns:x="/nop/schema/xdsl.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef" xmlns:md="md"
          xmlns:xdef="/nop/schema/xdef.xdef"
          xdef:name="RecordMappingConfig" xdef:bean-package="io.nop.record_mapping.model"
-         fromClass="class-name" toClass="class-name">
+         baseMapping="var-name" fromClass="class-name" toClass="class-name">
 
     <description xdef:value="string"/>
 
@@ -23,11 +23,12 @@
         <field name="!prop-path" from="prop-path" displayName="string" tagSet="csv-set"
                defaultValue="string" mapping="var-name" virtual="!boolean=false" alias="csv-set"
                type="generic-type" mandatory="!boolean=false" itemMapping="var-name"
-               keyProp="prop-path"
-               xdef:name="RecordFieldMappingConfig">
+               keyProp="prop-path" xdef:name="RecordFieldMappingConfig"
+               md:format="string" md:titleField="prop-path">
+
             <when xdef:value="xpl-fn:(source,target,ctx)=>boolean"/>
             <computeExpr xdef:value="xpl-fn:(source,target,ctx)=>any"/>
-            <valueExpr xdef:value="xpl-fn:(value,ctx)=>any" />
+            <valueExpr xdef:value="xpl-fn:(value,ctx)=>any"/>
 
             <newItemExpr xdef:value="xpl-fn:(source,target,ctx)=>any"/>
 

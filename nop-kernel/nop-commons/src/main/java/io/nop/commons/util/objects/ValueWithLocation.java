@@ -63,6 +63,8 @@ public class ValueWithLocation implements Serializable, ISourceLocationGetter, I
             return UNDEFINED_VALUE;
         if (value instanceof ValueWithLocation)
             return (ValueWithLocation) value;
+        if (value instanceof ISourceLocationGetter)
+            return new ValueWithLocation(((ISourceLocationGetter) value).getLocation(), value);
         return new ValueWithLocation(loc, value);
     }
 

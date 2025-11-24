@@ -21,8 +21,10 @@
         </definitions>
     </x:post-extends>
 
-    <mapping name="Md_to_OrmModel">
+    <mapping name="Md_to_OrmModel" md:titleField="displayName">
         <fields>
+            <field name="displayName" from="displayName"/>
+
             <field name="ext:extends" from="extends" alias="Extends">
                 <schema stdDomain="string"/>
             </field>
@@ -82,7 +84,7 @@
             </field>
 
             <field name="domains" from="域定义" itemMapping="Md_to_DomainModel" alias="Domain Definitions"
-                   md:serializer="table"/>
+                   md:format="table"/>
 
             <field name="dicts" from="字典定义" itemMapping="Md_to_DictModel" alias="Dictionary Definitions"/>
 
@@ -120,7 +122,7 @@
         </fields>
     </mapping>
 
-    <mapping name="Md_to_DictModel">
+    <mapping name="Md_to_DictModel" md:titleField="name">
         <fields>
             <field name="name" from="名称" mandatory="true" alias="Name">
                 <schema stdDomain="string"/>
@@ -143,7 +145,7 @@
             </field>
 
             <field name="options" from="字典项" mandatory="true" keyProp="value"
-                   md:serializer="table"
+                   md:format="table"
                    alias="Dictionary Items" itemMapping="Md_to_DictOptionModel">
             </field>
 
@@ -174,17 +176,17 @@
         </fields>
     </mapping>
 
-    <mapping name="Md_to_EntityModel">
+    <mapping name="Md_to_EntityModel" md:titleField="name">
         <fields>
-            <field name="tableName" from="表名" mandatory="true" alias="Table Name">
-                <schema stdDomain="prop-name"/>
-            </field>
-
             <field name="name" from="对象名" alias="Object Name">
                 <schema stdDomain="class-name"/>
                 <valueExpr>
                     value?.$fullClassName(rootRecord['ext:entityPackageName'])
                 </valueExpr>
+            </field>
+
+            <field name="tableName" from="表名" mandatory="true" alias="Table Name">
+                <schema stdDomain="prop-name"/>
             </field>
 
             <field name="tableView" from="是否视图" alias="Is View">
@@ -205,11 +207,11 @@
                 </valueExpr>
             </field>
 
-            <field name="from" from="中文名" mandatory="true" alias="Chinese Name">
+            <field name="displayName" from="中文名" mandatory="true" alias="Chinese Name">
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="i18n-en:from" from="英文名" alias="English Name">
+            <field name="i18n-en:displayName" from="英文名" alias="English Name">
                 <schema stdDomain="string"/>
             </field>
 
@@ -233,25 +235,28 @@
                 <schema stdDomain="int"/>
             </field>
 
-            <field name="columns" from="字段列表" keyProp="name" alias="Column List" itemMapping="Md_to_ColumnModel">
+            <field name="columns" from="字段列表" keyProp="name"
+                   alias="Column List" itemMapping="Md_to_ColumnModel" md:format="table">
             </field>
 
-            <field name="relations" from="关联列表" list="true" alias="Relation List" itemMapping="Md_to_RelationModel">
+            <field name="relations" from="关联列表" list="true" alias="Relation List"
+                   itemMapping="Md_to_RelationModel">
             </field>
 
-            <field name="uniqueKeys" from="唯一键列表" list="true" alias="Unique Key List"
+            <field name="uniqueKeys" from="唯一键列表" list="true" alias="Unique Key List" md:format="table"
                    itemMapping="Md_to_UniqueKeyModel">
             </field>
 
-            <field name="aliases" from="别名列表" list="true" alias="Alias List" itemMapping="Md_to_AliasModel">
+            <field name="aliases" from="别名列表" list="true" alias="Alias List" md:format="table"
+                   itemMapping="Md_to_AliasModel">
             </field>
 
             <field name="computes" from="计算属性列表" list="true" alias="Computed Property List"
-                   itemMapping="Md_to_ComputeModel">
+                   itemMapping="Md_to_ComputeModel" md:format="table">
             </field>
 
             <field name="indexes" from="索引列表" list="true" keyProp="name" alias="Indexes"
-                   itemMapping="Md_to_IndexModel">
+                   itemMapping="Md_to_IndexModel" md:format="table">
             </field>
         </fields>
     </mapping>
@@ -277,19 +282,19 @@
                 <schema stdDomain="var-name"/>
             </field>
 
-            <field name="from" from="中文名" alias="Chinese Name">
+            <field name="displayName" from="中文名" alias="Chinese Name">
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="i18n-en:from" from="英文名" alias="English Name">
+            <field name="i18n-en:displayName" from="英文名" alias="English Name">
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="reffrom" from="关联中文名" alias="Ref Chinese Name">
+            <field name="refDisplayName" from="关联中文名" alias="Ref Chinese Name">
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="ref-i18n-en:from" from="关联英文名" alias="Ref English Name">
+            <field name="ref-i18n-en:displayName" from="关联英文名" alias="Ref English Name">
                 <schema stdDomain="string"/>
             </field>
 
@@ -307,12 +312,12 @@
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="orm:manyToManyfrom1" from="多对多属性显示名1"
+            <field name="orm:manyToManyPropName1" from="多对多属性显示名1"
                    alias="Many-to-Many Display Name 1">
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="orm:manyToManyfrom2" from="多对多属性显示名2"
+            <field name="orm:manyToManyDisplayName2" from="多对多属性显示名2"
                    alias="Many-to-Many Display Name 2">
                 <schema stdDomain="string"/>
             </field>
@@ -387,11 +392,11 @@
                 <schema stdDomain="word-set"/>
             </field>
 
-            <field name="from" from="中文名" alias="Chinese Name">
+            <field name="displayName" from="中文名" alias="Chinese Name">
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="i18n-en:from" from="英文名" alias="English Name">
+            <field name="i18n-en:displayName" from="英文名" alias="English Name">
                 <schema stdDomain="string"/>
             </field>
 
@@ -415,11 +420,11 @@
                 <schema stdDomain="var-name"/>
             </field>
 
-            <field name="from" from="中文名" alias="Chinese Name">
+            <field name="displayName" from="中文名" alias="Chinese Name">
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="i18n-en:from" from="英文名" alias="English Name">
+            <field name="i18n-en:displayName" from="英文名" alias="English Name">
                 <schema stdDomain="string"/>
             </field>
 
@@ -447,11 +452,11 @@
                 <schema stdDomain="var-name"/>
             </field>
 
-            <field name="from" from="中文名" alias="Chinese Name">
+            <field name="displayName" from="中文名" alias="Chinese Name">
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="i18n-en:from" from="英文名" alias="English Name">
+            <field name="i18n-en:displayName" from="英文名" alias="English Name">
                 <schema stdDomain="string"/>
             </field>
 
@@ -486,11 +491,11 @@
                 <schema stdDomain="var-name"/>
             </field>
 
-            <field name="from" from="中文名" alias="Chinese Name">
+            <field name="displayName" from="中文名" alias="Chinese Name">
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="i18n-en:from" from="英文名" alias="English Name">
+            <field name="i18n-en:displayName" from="英文名" alias="English Name">
                 <schema stdDomain="string"/>
             </field>
 
@@ -510,13 +515,13 @@
                 <schema stdDomain="boolean"/>
             </field>
 
-            <field name="from" from="中文名" alias="Chinese Name">
+            <field name="displayName" from="中文名" alias="Chinese Name">
                 <schema stdDomain="string"/>
             </field>
 
             <field name="indexType" from="索引类型" alias="Index Type"/>
 
-            <field name="i18n-en:from" from="英文名" alias="English Name">
+            <field name="i18n-en:displayName" from="英文名" alias="English Name">
                 <schema stdDomain="string"/>
             </field>
 
@@ -582,9 +587,9 @@
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="from" from="中文名" mandatory="true" alias="Chinese Name"/>
+            <field name="displayName" from="中文名" mandatory="true" alias="Chinese Name"/>
 
-            <field name="i18n-en:from" from="英文名" alias="English Name"/>
+            <field name="i18n-en:displayName" from="英文名" alias="English Name"/>
 
             <field name="domain" from="数据域" alias="Domain">
                 <schema stdDomain="xml-name"/>

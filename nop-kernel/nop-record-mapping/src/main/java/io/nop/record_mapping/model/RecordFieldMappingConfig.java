@@ -29,7 +29,6 @@ public class RecordFieldMappingConfig extends _RecordFieldMappingConfig {
 
     }
 
-
     public RecordMappingConfig getResolvedMapping() {
         return resolvedMapping;
     }

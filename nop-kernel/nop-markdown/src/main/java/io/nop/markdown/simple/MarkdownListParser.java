@@ -14,12 +14,16 @@ import java.util.function.Consumer;
  * 可通过 supportNested 属性控制是否支持嵌套列表
  */
 public class MarkdownListParser {
+    public static MarkdownListParser NESTED = new MarkdownListParser(true);
+    public static MarkdownListParser FLAT = new MarkdownListParser(false);
+
     // Tab的制表位宽度
     private static final int TAB_STOP_WIDTH = 4;
 
-    private boolean supportNested = false;
+    private final boolean supportNested;
 
     public MarkdownListParser() {
+        this.supportNested = false;
     }
 
     public MarkdownListParser(boolean supportNested) {
@@ -30,20 +34,17 @@ public class MarkdownListParser {
         return supportNested;
     }
 
-    public void setSupportNested(boolean supportNested) {
-        this.supportNested = supportNested;
-    }
-
     /**
      * 解析所有列表项
-     * @param loc 源码位置信息，可为null
+     *
+     * @param loc  源码位置信息，可为null
      * @param text 要解析的文本。假设是连续的列表块。
      * @return 列表项集合。如果 supportNested=true，返回顶层项，子项通过 children 访问；否则返回扁平列表
      */
     public List<MarkdownListItem> parseAllListItems(SourceLocation loc, String text) {
         List<MarkdownListItem> allItems = new ArrayList<>();
         int pos = 0;
-        
+
         while (pos < text.length()) {
             MarkdownListItem item = parseNextListItem(loc, text, pos);
             if (item == null) {
@@ -52,11 +53,11 @@ public class MarkdownListParser {
             allItems.add(item);
             pos = item.getEndPos();
         }
-        
+
         if (supportNested && !allItems.isEmpty()) {
             return buildTreeAndSetMetadata(allItems);
         }
-        
+
         if (!allItems.isEmpty()) {
             int currentNumber = 1;
             for (MarkdownListItem item : allItems) {
@@ -66,12 +67,12 @@ public class MarkdownListParser {
                 }
             }
         }
-        
+
         return allItems;
     }
-    
+
     // ... 其他公共方法 (parseAllListItemsImmutable, forEachListItem) 保持不变 ...
-    
+
     public List<MarkdownListItem> parseAllListItemsImmutable(SourceLocation loc, String text) {
         List<MarkdownListItem> items = parseAllListItems(loc, text);
         for (MarkdownListItem item : items) {
@@ -79,7 +80,7 @@ public class MarkdownListParser {
         }
         return items;
     }
-    
+
     public void forEachListItem(SourceLocation loc, String text, Consumer<MarkdownListItem> consumer) {
         List<MarkdownListItem> items = parseAllListItems(loc, text);
         if (supportNested) {
@@ -90,7 +91,7 @@ public class MarkdownListParser {
             items.forEach(consumer);
         }
     }
-    
+
     private void traverseItem(MarkdownListItem item, Consumer<MarkdownListItem> consumer) {
         consumer.accept(item);
         if (item.hasChildren()) {
@@ -114,7 +115,7 @@ public class MarkdownListParser {
 
         int listStart = findListItemStart(text, pos);
         if (listStart < 0) return null;
-        
+
         int lineStart = text.lastIndexOf('\n', listStart) + 1;
         int indent = calculateColumnWidth(text, lineStart, listStart);
 
@@ -122,8 +123,8 @@ public class MarkdownListParser {
         if (marker == null) return null;
 
         int requiredContentIndent = indent + marker.markerWidth;
-        
-        int contentEnd = supportNested ? 
+
+        int contentEnd = supportNested ?
                 findListItemEnd(text, marker.contentStart, indent, requiredContentIndent) :
                 findListItemEndSimple(text, marker.contentStart);
 
@@ -139,11 +140,11 @@ public class MarkdownListParser {
         item.setEndPos(contentEnd);
         item.setOrdered(marker.ordered);
         item.setContent(content);
-        item.setRawIndent(indent); 
+        item.setRawIndent(indent);
 
         return item;
     }
-    
+
     // ... buildTreeAndSetMetadata 方法保持不变 ...
     List<MarkdownListItem> buildTreeAndSetMetadata(List<MarkdownListItem> flatItems) {
         if (flatItems.isEmpty()) {
@@ -165,7 +166,7 @@ public class MarkdownListParser {
                 rootItems.add(item);
                 if (item.isOrdered()) {
                     long orderCount = rootItems.stream().filter(MarkdownListItem::isOrdered).count();
-                    item.setItemIndex((int)orderCount);
+                    item.setItemIndex((int) orderCount);
                 }
             } else {
                 MarkdownListItem parent = stack.peek();
@@ -173,7 +174,7 @@ public class MarkdownListParser {
                 parent.addChild(item);
                 if (item.isOrdered()) {
                     long orderCount = parent.getChildren().stream().filter(MarkdownListItem::isOrdered).count();
-                    item.setItemIndex((int)orderCount);
+                    item.setItemIndex((int) orderCount);
                 }
             }
             stack.push(item);
@@ -237,17 +238,17 @@ public class MarkdownListParser {
             if (lineEnd == -1 || lineEnd >= end) {
                 lineEnd = end;
             }
-            
+
             String rawContentLine = text.substring(lineStart, lineEnd);
             String indentedContent = removeIndent(rawContentLine, requiredIndentWidth);
             result.append(expandTabs(indentedContent));
-            
+
             currentPos = lineEnd + 1;
         }
 
         return result.toString().trim();
     }
-    
+
     // ... 其他辅助方法 (calculateColumnWidth, removeIndent, findListItemEnd, etc.) 保持不变 ...
 
     int calculateColumnWidth(String text, int start, int end) {
@@ -331,7 +332,7 @@ public class MarkdownListParser {
         }
         return text.length();
     }
-    
+
     int skipWhitespace(String text, int pos) {
         while (pos < text.length()) {
             char c = text.charAt(pos);
@@ -354,7 +355,7 @@ public class MarkdownListParser {
         }
         return pos;
     }
-    
+
     int findListItemStart(String text, int pos) {
         int current = pos;
         while (current < text.length()) {
@@ -383,12 +384,12 @@ public class MarkdownListParser {
                 p++;
             }
             if (p > pos && p < text.length() && text.charAt(p) == '.') {
-                 return p + 1 < text.length() && (text.charAt(p + 1) == ' ' || text.charAt(p + 1) == '\t');
+                return p + 1 < text.length() && (text.charAt(p + 1) == ' ' || text.charAt(p + 1) == '\t');
             }
         }
         return false;
     }
-    
+
     ListMarker parseListMarker(String text, int pos) {
         if (!isListItemStart(text, pos)) return null;
         ListMarker marker = new ListMarker();
@@ -413,7 +414,7 @@ public class MarkdownListParser {
         }
         return null;
     }
-    
+
     static class ListMarker {
         boolean ordered;
         int contentStart;
