@@ -29,6 +29,13 @@ public class RecordFieldMappingConfig extends _RecordFieldMappingConfig {
 
     }
 
+    public String getFromOrName() {
+        String from = getFrom();
+        if (from != null)
+            return from;
+        return getName();
+    }
+
     public RecordMappingConfig getResolvedMapping() {
         return resolvedMapping;
     }

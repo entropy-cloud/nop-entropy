@@ -6,6 +6,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.record_mapping.IRecordMapping;
 import io.nop.record_mapping.IRecordMappingManager;
+import io.nop.record_mapping.model.RecordMappingConfig;
 import io.nop.record_mapping.model.RecordMappingDefinitions;
 
 import static io.nop.record_mapping.RecordMappingErrors.ARG_MAPPING_NAME;
@@ -21,6 +22,17 @@ public class RecordMappingManagerImpl implements IRecordMappingManager {
         if (mapping == null)
             throw new NopException(ERR_RECORD_MAPPING_NOT_FOUND).param(ARG_MAPPING_NAME, mappingName);
         return mapping;
+    }
+
+    @Override
+    public RecordMappingConfig getRecordMappingConfig(String mappingName) {
+        String path = getMappingPath(mappingName);
+        RecordMappingDefinitions defs = loadMappingsFromPath(path);
+        String name = StringHelper.lastPart(mappingName, '.');
+        RecordMappingConfig config = defs.getMapping(name);
+        if (config == null)
+            throw new NopException(ERR_RECORD_MAPPING_NOT_FOUND).param(ARG_MAPPING_NAME, mappingName);
+        return config;
     }
 
     public RecordMappingDefinitions loadMappingsFromPath(String path) {

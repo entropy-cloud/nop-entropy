@@ -239,23 +239,23 @@
                    alias="Column List" itemMapping="Md_to_ColumnModel" md:format="table">
             </field>
 
-            <field name="relations" from="关联列表" list="true" alias="Relation List"
+            <field name="relations" from="关联列表"  alias="Relation List"
                    itemMapping="Md_to_RelationModel">
             </field>
 
-            <field name="uniqueKeys" from="唯一键列表" list="true" alias="Unique Key List" md:format="table"
+            <field name="uniqueKeys" from="唯一键列表" alias="Unique Key List" md:format="table"
                    itemMapping="Md_to_UniqueKeyModel">
             </field>
 
-            <field name="aliases" from="别名列表" list="true" alias="Alias List" md:format="table"
+            <field name="aliases" from="别名列表" alias="Alias List" md:format="table"
                    itemMapping="Md_to_AliasModel">
             </field>
 
-            <field name="computes" from="计算属性列表" list="true" alias="Computed Property List"
+            <field name="computes" from="计算属性列表" alias="Computed Property List"
                    itemMapping="Md_to_ComputeModel" md:format="table">
             </field>
 
-            <field name="indexes" from="索引列表" list="true" keyProp="name" alias="Indexes"
+            <field name="indexes" from="索引列表" keyProp="name" alias="Indexes"
                    itemMapping="Md_to_IndexModel" md:format="table">
             </field>
         </fields>
@@ -312,7 +312,7 @@
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="orm:manyToManyPropName1" from="多对多属性显示名1"
+            <field name="orm:manyToManyDisplayName1" from="多对多属性显示名1"
                    alias="Many-to-Many Display Name 1">
                 <schema stdDomain="string"/>
             </field>
@@ -356,7 +356,7 @@
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="join" from="关联条件" list="true" mandatory="true" alias="Join Condition"
+            <field name="join" from="关联条件" mandatory="true" alias="Join Condition"
                    itemMapping="Md_to_JoinConditionModel">
             </field>
         </fields>
@@ -480,7 +480,7 @@
                 <schema stdDomain="xpl"/>
             </field>
 
-            <field name="args" from="参数" list="true" alias="Arguments" itemMapping="Md_to_ComputeArgModel">
+            <field name="args" from="参数" alias="Arguments" itemMapping="Md_to_ComputeArgModel">
             </field>
         </fields>
     </mapping>
@@ -616,10 +616,6 @@
             </field>
             <field name="comment" from="备注" alias="Comment">
                 <schema stdDomain="string"/>
-            </field>
-
-            <field name="extConfig" from="扩展配置" virtual="true" alias="Ext Config">
-                <schema stdDomain="json"/>
             </field>
 
             <field name="defaultValue" from="缺省值" alias="Default Value">

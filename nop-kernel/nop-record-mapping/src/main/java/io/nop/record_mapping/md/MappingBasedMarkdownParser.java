@@ -67,10 +67,7 @@ public class MappingBasedMarkdownParser {
         String titleField = (String) mapping.prop_get(VAR_MD_TITLE_FIELD);
         if (titleField != null) {
             RecordFieldMappingConfig field = mapping.requireField(titleField);
-            String name = field.getFrom();
-            if (name == null)
-                name = field.getName();
-            return name;
+            return field.getFromOrName();
         }
         return null;
     }

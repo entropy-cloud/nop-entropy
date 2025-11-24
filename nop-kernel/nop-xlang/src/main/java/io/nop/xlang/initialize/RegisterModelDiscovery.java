@@ -252,7 +252,7 @@ public class RegisterModelDiscovery {
         String mappingName = (String) BeanTool.getProperty(loader, "mappingName");
 
         try {
-            IResourceObjectLoader loaderBean = newLoader(className);
+            IResourceObjectLoader loaderBean = newLoader(className, loader);
             if (returnXNode)
                 loaderBean = new XNodeToModelResourceObjectLoader(config.getXdefPath(), config.getResolveInDir(), loaderBean);
             config.loader(fileType, makeLoaderConfig(null, null, mappingName, loaderBean));
@@ -302,7 +302,7 @@ public class RegisterModelDiscovery {
         if (StringHelper.isEmpty(className))
             return null;
 
-        return newLoader(className);
+        return newLoader(className, resolveHandler);
     }
 
     IComponentTransformer newTransformer(String className) {
@@ -315,10 +315,10 @@ public class RegisterModelDiscovery {
         return src -> (IComponentModel) fn.call1(classModel.newInstance(), src, DisabledEvalScope.INSTANCE);
     }
 
-    IResourceObjectLoader<Object> newLoader(String className) {
+    IResourceObjectLoader<Object> newLoader(String className, Object config) {
         IClassModel classModel = ReflectionManager.instance().loadClassModel(className);
         if (classModel.isAssignableTo(IResourceObjectLoaderFactory.class))
-            return ((IResourceObjectLoaderFactory) classModel.newInstance()).newResourceObjectLoader();
+            return ((IResourceObjectLoaderFactory) classModel.newInstance()).newResourceObjectLoader(config);
 
         if (classModel.isAssignableTo(IResourceObjectLoader.class)) {
             return (IResourceObjectLoader) classModel.newInstance();

@@ -4,7 +4,7 @@
         <xdsl-loader fileType="orm.xml" schemaPath="/nop/schema/orm/orm.xdef"/>
         <xdsl-loader fileType="orm.json" schemaPath="/nop/schema/orm/orm.xdef"/>
         <xdsl-loader fileType="orm.yaml" schemaPath="/nop/schema/orm/orm.xdef"/>
-        <loader fileType="orm.md" class="io.nop.markdown.dsl.MarkdownModelLoader"
+        <loader fileType="orm.md" class="io.nop.record_mapping.md.MarkdownResourceObjectLoaderFactory"
                 mappingName="orm.Md_to_OrmModel"/>
     </loaders>
 </model>
