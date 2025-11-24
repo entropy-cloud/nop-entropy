@@ -110,6 +110,12 @@
         </ioc:condition>
     </bean>
 
+    <bean id="nopCoreInitializationGuardFilter" class="io.nop.http.server.filters.CoreInitializationGuardFilter">
+        <ioc:condition>
+            <on-class>io.nop.http.server.filters.CoreInitializationGuardFilter</on-class>
+        </ioc:condition>
+    </bean>
+
     <bean id="nopDevDocBizModel" class="io.nop.biz.dev.DevDocBizModel">
         <ioc:condition>
             <if-property name="nop.debug"/>

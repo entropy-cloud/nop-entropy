@@ -546,6 +546,12 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-http-server-filters</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-http-client-apache</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>

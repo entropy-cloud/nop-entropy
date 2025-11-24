@@ -18,6 +18,7 @@
         <module>nop-http-client-okhttp</module>
         <module>nop-http-client-apache</module>
         <module>nop-http-client-jdk</module>
+        <module>nop-http-server-filters</module>
     </modules>
 
     <properties>

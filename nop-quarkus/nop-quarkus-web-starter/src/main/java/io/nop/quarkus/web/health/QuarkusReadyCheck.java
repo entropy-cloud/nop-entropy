@@ -10,6 +10,7 @@ package io.nop.quarkus.web.health;
 import io.nop.core.initialize.CoreInitialization;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
+import org.eclipse.microprofile.health.HealthCheckResponseBuilder;
 import org.eclipse.microprofile.health.Readiness;
 
 /**
@@ -21,7 +22,25 @@ public class QuarkusReadyCheck implements HealthCheck {
 
     @Override
     public HealthCheckResponse call() {
-        boolean inited = CoreInitialization.isInitialized();
-        return inited ? HealthCheckResponse.up(APP_NAME) : HealthCheckResponse.down(APP_NAME);
+        // 使用Builder模式创建响应，更灵活
+        HealthCheckResponseBuilder responseBuilder = HealthCheckResponse.named(APP_NAME);
+
+        // 1. 优先检查是否被挂起。挂起状态意味着服务不可用。
+        if (CoreInitialization.isSuspended()) {
+            return responseBuilder.down()
+                    .withData("reason", "Service is suspended")
+                    .build();
+        }
+
+        // 2. 接着检查是否已初始化。
+        if (CoreInitialization.isInitialized()) {
+            // 已初始化且未被挂起，服务就绪
+            return responseBuilder.up().build();
+        }
+
+        // 3. 如果既未挂起也未初始化，则说明服务正在启动中。
+        return responseBuilder.down()
+                .withData("reason", "Service is initializing")
+                .build();
     }
 }

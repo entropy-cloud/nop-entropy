@@ -44,6 +44,7 @@ public class CoreInitialization {
     private static boolean initialized;
     private static long initializeBeginTime;
 
+    private static volatile boolean suspended;
     private static volatile boolean initializerRunning = false;
     private static Map<String, Object> bootstrapConfig = null;
 
@@ -56,6 +57,14 @@ public class CoreInitialization {
 
     public static boolean isForAnalyze() {
         return CFG_CORE_MAX_INITIALIZE_LEVEL.get() == CoreConstants.INITIALIZER_PRIORITY_ANALYZE;
+    }
+
+    public static boolean isSuspended(){
+        return suspended;
+    }
+
+    public static void setSuspended(boolean b){
+        suspended = b;
     }
 
     public static boolean isInitializerRunning() {
