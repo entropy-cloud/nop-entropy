@@ -19,10 +19,11 @@
         <!--
         @mapping 引用其他RecordMapping映射规则。
         @itemMapping 如果to和from对应的属性是Map类型或者List类型，可以通过itemMapping来指定每个条目所对应的映射规则
+        @optional 如果设置为true，则获取属性前会判断属性是否存在
         -->
         <field name="!xml-name" from="xml-name" displayName="string" tagSet="csv-set"
                defaultValue="string" mapping="var-name" virtual="!boolean=false" alias="csv-set"
-               type="generic-type" mandatory="!boolean=false" itemMapping="var-name"
+               type="generic-type" mandatory="!boolean=false" itemMapping="var-name" optional="!boolean=false"
                keyProp="xml-name" xdef:name="RecordFieldMappingConfig"
                md:format="string" md:titleField="xml-name">
 

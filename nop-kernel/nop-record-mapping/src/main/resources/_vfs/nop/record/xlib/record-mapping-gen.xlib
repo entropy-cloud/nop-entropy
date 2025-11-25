@@ -1,17 +1,24 @@
 <lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <tags>
-        <GenReverseMapping outputMode="node">
-            <attr name="name" mandatory="true" />
-            <attr name="base" mandatory="true" />
+        <GenReverseMappings outputMode="node">
             <attr name="_dsl_root" implicit="true" />
 
             <source>
                <c:script>
                    const mappings = _dsl_root.childrenByTag('mapping');
-                   const mapping = mappings.find(node=> node.attrText('name') == base);
-                   $.notNull(mapping, "unknown base mapping:"+base);
-
-                   const reverseMapping = mappings.find(node=>node.attrText('name') == reverseMappingName(base));
+                   const mappingMap = {};
+                   const reverseMappingMap = {};
+                   mappings.forEach(node=>{
+                     const name = node.attrText('name');
+                     if(name.contains('_to_')){
+                         const reverseName = reverseMappingName(name);
+                         if(mappingMap[reverseName]){
+                            reverseMappingMap[reverseName] = node;
+                         }else{
+                            mappingMap[name] = node;
+                         }
+                     }
+                   });
 
                    function reverseMappingName(mappingName){
                       if(!mappingName)
@@ -24,22 +31,31 @@
                    }
                </c:script>
 
-               <mapping name="${name}">
-                   <fields>
-                       <c:for var="field" items="${mapping.childByTag('fields').children}">
-                           <field name="${field.attrText('from') || field.attrText('displayName')}"
-                                  type="${field.attrText('type')}" mandatory="${field.attrText('mandatory')}"
-                                  from="${field.attrText('name')}" displayName="${field.attrText('displayName')}"
-                                  mapping="${reverseMappingName(field.attrText('mapping'))}"
-                                  itemMapping="${reverseMappingName(field.attrText('itemMapping'))}">
-                               <c:out value="${field.childByTag('schema')}" escape="none"/>
-                           </field>
-                       </c:for>
-                   </fields>
-               </mapping>
+               <definitions>
+                  <c:for var="mapping" items="${mappingMap.values()}">
+                   <mapping name="${reverseMappingName(mapping.attrText('name'))}">
+                       <fields>
+                           <c:for var="field" items="${mapping.childByTag('fields').children}">
+                               <field name="${field.attrText('from') || field.attrText('displayName')}"
+                                      type="${field.attrText('type')}" mandatory="${field.attrText('mandatory')}"
+                                      from="${field.attrText('name')}" displayName="${field.attrText('displayName')}"
+                                      mapping="${reverseMappingName(field.attrText('mapping'))}"
+                                      optional="${field.attrText('optional')}"
+                                      itemMapping="${reverseMappingName(field.attrText('itemMapping'))}">
+                                   <c:out value="${field.childByTag('schema')}" escape="none"/>
+                               </field>
+                           </c:for>
+                       </fields>
+                   </mapping>
+                  </c:for>
+               </definitions>
 
-               <c:out value="${reverseMapping}" escape="none"/>
+               <definitions>
+                   <c:for var="reverseMapping" items="${reverseMappingMap.values()}">
+                     <c:out value="${reverseMapping}" escape="none"/>
+                   </c:for>
+               </definitions>
             </source>
-        </GenReverseMapping>
+        </GenReverseMappings>
     </tags>
 </lib>

@@ -10,6 +10,7 @@ import io.nop.record_mapping.model.RecordMappingConfig;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -77,8 +78,11 @@ public class MappingBasedMarkdownGenerator implements ITextTemplateOutput {
 
             // 判断是否为列表项字段（简单值）
             if (isListItemField(field, format)) {
-                hasListItems = true;
                 Object value = getObjProp(obj, fieldName);
+                if (value == null)
+                    continue;
+
+                hasListItems = true;
                 out.write("- " + encodeKey(fieldName) + ": " + encodeValue(value) + "\n");
             }
         }
@@ -104,10 +108,12 @@ public class MappingBasedMarkdownGenerator implements ITextTemplateOutput {
 
             // 判断是否为子章节字段
             if (isSectionField(field, format)) {
+                Object value = getObjProp(obj, fieldName);
+                if (value == null)
+                    continue;
+
                 hasSections = true;
                 writeHeader(out, level + 1, encodeKey(fieldName));
-
-                Object value = getObjProp(obj, fieldName);
 
                 if (FORMAT_TABLE.equals(format) && value instanceof List) {
                     // 表格 → 子章节
@@ -272,7 +278,12 @@ public class MappingBasedMarkdownGenerator implements ITextTemplateOutput {
      */
     protected String encodeValue(Object value) {
         if (value == null) return "";
-        String str = String.valueOf(value).trim();
+        String str;
+        if (value instanceof Collection) {
+            str = StringHelper.join((Collection<?>) value, ",");
+        } else {
+            str = String.valueOf(value).trim();
+        }
 
         // 如果值为空，直接返回空字符串
         if (str.isEmpty()) return "";

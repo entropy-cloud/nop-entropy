@@ -137,6 +137,13 @@ public class BeanTool {
         return BeanPropHelper.getIn(instance(), bean, propPath);
     }
 
+    public static Object tryGetComplexProperty(Object bean, String propPath) {
+        if (bean == null)
+            return null;
+
+        return BeanPropHelper.tryGetIn(instance(), bean, propPath);
+    }
+
     public static Object makeComplexProperty(Object bean, String propPath, Supplier<?> constructor) {
         if (bean == null)
             return null;

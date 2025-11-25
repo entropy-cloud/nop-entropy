@@ -368,6 +368,9 @@ public class ModelBasedRecordMapping implements IRecordMapping {
 
     protected Object getSourceValue(RecordFieldMappingConfig field,
                                     Object source, String propName, RecordMappingContext ctx) {
+        if (field.isOptional()) {
+            return BeanTool.tryGetComplexProperty(source, propName);
+        }
         return BeanTool.getComplexProperty(source, propName);
     }
 

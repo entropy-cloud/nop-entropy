@@ -155,6 +155,36 @@
                     <!--                    <forkCount>4</forkCount>-->
                     <!--                    <reuseForks>true</reuseForks>-->
                     <!--                    <forkedProcessExitTimeoutInSeconds>60</forkedProcessExitTimeoutInSeconds>-->
+
+                    <!--
+                       forkCount: 这是关键！它定义了要启动多少个JVM进程来运行测试。
+                       你可以使用一个固定的数字，比如 '4'。
+                       或者，更灵活的方式是使用类似 '2C' 的表达式，表示“每个CPU核心启动2个JVM进程”。
+                       这里我们用 '2C' 作为示例，它会根据你机器的CPU核心数动态调整。
+                   -->
+                    <forkCount>1C</forkCount>
+
+                    <!--
+                        reuseForks: 设置为 'true'。
+                        这意味着Maven会重用已经启动的JVM进程来运行多个测试类，而不是为每个测试类都创建一个新的JVM。
+                        这可以显著减少测试的总体时间，因为JVM的启动和销毁是昂贵的操作。
+                    -->
+                    <reuseForks>true</reuseForks>
+
+                    <!--
+                        parallel: 设置为 'classes'。
+                        这个设置告诉Surefire将“测试类”作为并行的基本单位。
+                        它会将所有的测试类分发到由 forkCount 创建的多个JVM中去执行。
+                    -->
+                    <parallel>classes</parallel>
+
+                    <!--
+                        threadCount: 这是实现“JVM内串行”的关键！
+                        将其设置为 '1'。
+                        它限制了在每一个独立的JVM进程内部，只有一个执行线程。
+                        因此，被分配到同一个JVM的测试类会一个接一个地串行执行。
+                    -->
+                    <threadCount>1</threadCount>
                 </configuration>
 
             </plugin>

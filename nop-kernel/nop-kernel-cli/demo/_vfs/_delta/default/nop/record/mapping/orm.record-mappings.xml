@@ -1,24 +1,9 @@
 <definitions xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/record/record-mappings.xdef"
-             xmlns:record-mapping-gen="record-mapping-gen" xmlns:c="c" xmlns:md="md">
+             xmlns:record-mapping-gen="record-mapping-gen" xmlns:c="c" xmlns:md="md" x:dump="true">
 
     <x:post-extends>
         <c:import from="/nop/record/xlib/record-mapping-gen.xlib"/>
-        <definitions>
-            <record-mapping-gen:GenReverseMapping name="OrmModel_to_Md" base="Md_to_OrmModel"/>
-            <record-mapping-gen:GenReverseMapping name="DomainModel_to_Md" base="Md_to_DomainModel"/>
-            <record-mapping-gen:GenReverseMapping name="DictModel_to_Md" base="Md_to_DictModel"/>
-            <record-mapping-gen:GenReverseMapping name="DictOptionModel_to_Md" base="Md_to_DictOptionModel"/>
-            <record-mapping-gen:GenReverseMapping name="EntityModel_to_Md" base="Md_to_EntityModel"/>
-            <record-mapping-gen:GenReverseMapping name="RelationModel_to_Md" base="Md_to_RelationModel"/>
-            <record-mapping-gen:GenReverseMapping name="JoinConditionModel_to_Md" base="Md_to_JoinConditionModel"/>
-            <record-mapping-gen:GenReverseMapping name="UniqueKeyModel_to_Md" base="Md_to_UniqueKeyModel"/>
-            <record-mapping-gen:GenReverseMapping name="AliasModel_to_Md" base="Md_to_AliasModel"/>
-            <record-mapping-gen:GenReverseMapping name="ComputeModel_to_Md" base="Md_to_ComputeModel"/>
-            <record-mapping-gen:GenReverseMapping name="ComputeArgModel_to_Md" base="Md_to_ComputeArgModel"/>
-            <record-mapping-gen:GenReverseMapping name="IndexModel_to_Md" base="Md_to_IndexModel"/>
-            <record-mapping-gen:GenReverseMapping name="IndexColumnModel_to_Md" base="Md_to_IndexColumnModel"/>
-            <record-mapping-gen:GenReverseMapping name="ColumnModel_to_Md" base="Md_to_ColumnModel"/>
-        </definitions>
+        <record-mapping-gen:GenReverseMappings />
     </x:post-extends>
 
     <mapping name="Md_to_OrmModel" md:titleField="displayName">
@@ -239,8 +224,8 @@
                    alias="Column List" itemMapping="Md_to_ColumnModel" md:format="table">
             </field>
 
-            <field name="relations" from="关联列表"  alias="Relation List"
-                   itemMapping="Md_to_RelationModel">
+            <field name="relations" from="关联列表" alias="Relation List"
+                   itemMapping="Md_to_RelationModel" md:format="table">
             </field>
 
             <field name="uniqueKeys" from="唯一键列表" alias="Unique Key List" md:format="table"
@@ -263,12 +248,20 @@
 
     <mapping name="Md_to_RelationModel">
         <fields>
-            <field name="name" from="属性名" mandatory="true" alias="Name">
-                <schema stdDomain="var-name"/>
-            </field>
 
             <field name="tagSet" from="标签" alias="Tags">
                 <schema stdDomain="csv-set"/>
+            </field>
+
+            <field name="type" from="关联类型" alias="Relation Type">
+                <schema dict="core/entity-relation-type"/>
+                <valueExpr>
+                    value || 'to-one'
+                </valueExpr>
+            </field>
+
+            <field name="name" from="属性名" mandatory="true" alias="Name">
+                <schema stdDomain="var-name"/>
             </field>
 
             <field name="refEntityName" from="关联对象" mandatory="true" alias="Ref Entity Name">
@@ -280,6 +273,13 @@
 
             <field name="refPropName" from="关联属性名" alias="Ref Property Name">
                 <schema stdDomain="var-name"/>
+            </field>
+
+            <field name="join" from="关联条件" mandatory="true" alias="Join Condition">
+                <valueExpr>
+                    import io.nop.record_mapping.utils.OrmMdHelper;
+                    return OrmMdHelper.parseJoinText(value);
+                </valueExpr>
             </field>
 
             <field name="displayName" from="中文名" alias="Chinese Name">
@@ -325,18 +325,11 @@
             <!--
              一般情况下to-one应该是子表指向父表。而在一对一关联时，reverseDepends=true表示是从父表指向子表。
              -->
-            <field name="reverseDepends" from="反向依赖" alias="Reverse Depends">
+            <field name="reverseDepends" from="反向依赖" alias="Reverse Depends" optional="true">
                 <schema stdDomain="boolean"/>
             </field>
 
-            <field name="type" from="关联类型" alias="Relation Type">
-                <schema dict="core/entity-relation-type"/>
-                <valueExpr>
-                    value || 'to-one'
-                </valueExpr>
-            </field>
-
-            <field name="ignoreDepends" from="忽略依赖" alias="Ignore Depends">
+            <field name="ignoreDepends" from="忽略依赖" alias="Ignore Depends" optional="true">
                 <schema stdDomain="boolFlag"/>
             </field>
 
@@ -344,7 +337,7 @@
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="refSet.sort" from="排序条件" alias="Sort Condition">
+            <field name="refSet.sort" from="排序条件" alias="Sort Condition" optional="true">
                 <valueExpr><![CDATA[
                         import io.nop.core.model.query.OrderBySqlParser;
 
@@ -352,12 +345,20 @@
                  ]]></valueExpr>
             </field>
 
-            <field name="refSet.keyProp" from="唯一标识" alias="Unique Identifier">
+            <field name="refSet.keyProp" from="唯一标识" alias="Unique Identifier" optional="true">
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="join" from="关联条件" mandatory="true" alias="Join Condition"
-                   itemMapping="Md_to_JoinConditionModel">
+        </fields>
+    </mapping>
+
+    <mapping name="RelationModel_to_Md">
+        <fields>
+            <field name="关联条件">
+                <valueExpr>
+                    import io.nop.record_mapping.utils.OrmMdHelper;
+                    return OrmMdHelper.genJoinText(value);
+                </valueExpr>
             </field>
         </fields>
     </mapping>
@@ -556,6 +557,10 @@
                 <schema stdDomain="int"/>
             </field>
 
+            <field name="tagSet" from="标签" alias="Tags">
+                <schema stdDomain="csv-set"/>
+            </field>
+
             <field name="primary" from="主键"
                    alias="Primary Key">
                 <schema stdDomain="boolean"/>
@@ -611,9 +616,7 @@
             <field name="ext:dict" from="字典" alias="Dictionary">
                 <schema stdDomain="string"/>
             </field>
-            <field name="tagSet" from="标签" alias="Tags">
-                <schema stdDomain="csv-set"/>
-            </field>
+
             <field name="comment" from="备注" alias="Comment">
                 <schema stdDomain="string"/>
             </field>

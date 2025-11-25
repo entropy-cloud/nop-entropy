@@ -47,7 +47,38 @@ public class BeanPropHelper {
         } while (true);
     }
 
+    public static Object tryGetIn(IBeanTool beanTool, Object original, String path) {
+        if (isSimple(path))
+            return tryGetSimple(beanTool, original, path);
+
+        Object obj = original;
+
+        int pos = 0;
+        do {
+            int pos2 = path.indexOf('.', pos);
+            if (pos2 < 0) {
+                return tryGetSimple(beanTool, obj, path.substring(pos));
+            }
+
+            String name = path.substring(pos, pos2);
+
+            obj = tryGetSimple(beanTool, obj, name);
+            if (obj == null)
+                return null;
+
+            // c == '['
+            pos = pos2 + 1;
+
+        } while (true);
+    }
+
     static Object getSimple(IBeanObjectAdapter beanTool, Object obj, String name) {
+        return beanTool.getProperty(obj, name);
+    }
+
+    static Object tryGetSimple(IBeanObjectAdapter beanTool, Object obj, String name) {
+        if (!beanTool.hasProperty(obj, name))
+            return null;
         return beanTool.getProperty(obj, name);
     }
 
