@@ -452,7 +452,7 @@ public class EntityPersisterImpl implements IEntityPersister {
     }
 
     protected void queueSave(IOrmEntity entity, IOrmSessionImplementor session) {
-        OrmTimestampHelper.onCreate(entityModel, entity);
+        OrmTimestampHelper.instance().onCreate(entityModel, entity);
 
         this.checkColumnValueWhenSave(entity);
 
@@ -468,7 +468,7 @@ public class EntityPersisterImpl implements IEntityPersister {
     }
 
     protected void queueUpdate(IOrmEntity entity, final IOrmSessionImplementor session) {
-        OrmTimestampHelper.onUpdate(entityModel, entity);
+        OrmTimestampHelper.instance().onUpdate(entityModel, entity);
 
         if (CFG_ORM_CHECK_MANDATORY_WHEN_UPDATE.get()) {
             this.checkMandatoryWhenUpdate(entity);

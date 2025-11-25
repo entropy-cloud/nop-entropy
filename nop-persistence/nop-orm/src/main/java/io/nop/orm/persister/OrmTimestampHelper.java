@@ -18,7 +18,17 @@ import static io.nop.orm.OrmConfigs.CFG_ORM_SYS_USER_NAME;
 import static io.nop.orm.OrmConfigs.CFG_ORM_USE_ASSIGNED_USER_TIMESTAMP;
 
 public class OrmTimestampHelper {
-    public static void onCreate(IEntityModel entityModel, IOrmEntity entity) {
+    static OrmTimestampHelper _instance = new OrmTimestampHelper();
+
+    public static OrmTimestampHelper instance() {
+        return _instance;
+    }
+
+    public static void registerInstance(OrmTimestampHelper helper) {
+        _instance = helper;
+    }
+
+    public void onCreate(IEntityModel entityModel, IOrmEntity entity) {
         if (entity.orm_disableAutoStamp())
             return;
 
@@ -61,7 +71,7 @@ public class OrmTimestampHelper {
         }
     }
 
-    public static void onUpdate(IEntityModel entityModel, IOrmEntity entity) {
+    public void onUpdate(IEntityModel entityModel, IOrmEntity entity) {
         if (entity.orm_disableAutoStamp())
             return;
 
@@ -101,13 +111,13 @@ public class OrmTimestampHelper {
         }
     }
 
-    static boolean shouldAssign(IOrmEntity entity, int propId, boolean useAssigned) {
+    public boolean shouldAssign(IOrmEntity entity, int propId, boolean useAssigned) {
         if (!useAssigned)
             return true;
         return entity.orm_propValue(propId) == null;
     }
 
-    private static String getCurrentUser() {
+    public String getCurrentUser() {
         return ContextProvider.currentUserRefNo();
     }
 }
