@@ -16,12 +16,16 @@ import io.nop.record.serialization.ModelBasedBinaryRecordDeserializer;
 
 public class ModelBasedBinaryRecordInput<T> extends AbstractModelBasedRecordInput<IBinaryDataReader, T> {
 
-    public ModelBasedBinaryRecordInput(IBinaryDataReader in, RecordFileMeta fileMeta,
+    public ModelBasedBinaryRecordInput(IBinaryDataReader in, RecordFileMeta fileMeta, boolean useStreaming,
                                        IFieldCodecContext context, FieldCodecRegistry registry) {
-        super(in, fileMeta, context, new ModelBasedBinaryRecordDeserializer(registry));
+        super(in, fileMeta, useStreaming, context, new ModelBasedBinaryRecordDeserializer(registry));
+    }
+
+    public ModelBasedBinaryRecordInput(IBinaryDataReader in, RecordFileMeta fileMeta, boolean useStreaming) {
+        this(in, fileMeta, useStreaming, new DefaultFieldCodecContext(fileMeta::getType), FieldCodecRegistry.DEFAULT);
     }
 
     public ModelBasedBinaryRecordInput(IBinaryDataReader in, RecordFileMeta fileMeta) {
-        this(in, fileMeta, new DefaultFieldCodecContext(fileMeta::getType), FieldCodecRegistry.DEFAULT);
+        this(in, fileMeta, false);
     }
 }

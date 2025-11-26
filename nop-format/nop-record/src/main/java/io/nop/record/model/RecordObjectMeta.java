@@ -37,6 +37,8 @@ public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFields
     private IFieldTagBinaryCodec resolvedTagBinaryCodec;
     private IFieldTagTextCodec resolvedTagTextCodec;
 
+    private boolean anyFieldSupportStreaming;
+
     private int totalLength;
 
     public RecordObjectMeta() {
@@ -102,6 +104,10 @@ public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFields
         this.resolvedBaseType = resolvedBaseType;
     }
 
+    public boolean isAnyFieldSupportStreaming() {
+        return anyFieldSupportStreaming || (resolvedBaseType != null && resolvedBaseType.isAnyFieldSupportStreaming());
+    }
+
     public void init(RecordDefinitions defs) {
         if (getTemplate() != null) {
             this.normalizedTemplate = SimpleTextTemplate.normalize(getTemplate());
@@ -110,6 +116,10 @@ public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFields
         for (RecordFieldMeta field : getFields()) {
             field.setObjectMeta(this);
             field.init(defs);
+
+            if (field.isSupportStreaming()) {
+                anyFieldSupportStreaming = true;
+            }
         }
 
         if (!getFields().isEmpty()) {

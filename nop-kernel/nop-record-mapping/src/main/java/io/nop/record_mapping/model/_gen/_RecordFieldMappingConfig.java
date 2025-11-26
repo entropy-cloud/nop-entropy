@@ -124,7 +124,7 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     /**
      *  
      * xml name: optional
-     * 
+     * 如果设置为true，则获取属性前会判断属性是否存在
      */
     private boolean _optional  = false;
     
@@ -466,7 +466,7 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     /**
      * 
      * xml name: optional
-     *  
+     *  如果设置为true，则获取属性前会判断属性是否存在
      */
     
     public boolean isOptional(){

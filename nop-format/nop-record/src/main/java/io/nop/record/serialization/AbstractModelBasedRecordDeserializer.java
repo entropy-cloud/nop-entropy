@@ -42,6 +42,15 @@ import static io.nop.record.RecordErrors.ERR_RECORD_UNKNOWN_OBJ_TYPE;
 public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataReaderBase>
         implements IModelBasedRecordDeserializer<Input> {
 
+    protected StreamingRecordDeserializer<Input> streamingDeserializer;
+
+    @Override
+    public StreamingReadResult readObjectStreaming(Input in, RecordObjectMeta recordMeta, Object record, IFieldCodecContext context) throws IOException {
+        if (streamingDeserializer == null)
+            streamingDeserializer = new StreamingRecordDeserializer<>(this);
+        return streamingDeserializer.readObjectStreaming(in, recordMeta, record, context);
+    }
+
     @Override
     public boolean readObject(Input in, RecordObjectMeta recordMeta, Object record, IFieldCodecContext context) throws IOException {
         long pos = in.pos();
@@ -174,7 +183,7 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
     }
 
     protected int getObjectLength(Input in, RecordObjectMeta typeMeta, Object record, IFieldCodecContext context) {
-        int length = typeMeta.getLength() == null ? -1: typeMeta.getLength();
+        int length = typeMeta.getLength() == null ? -1 : typeMeta.getLength();
         if (typeMeta.getLengthExpr() != null) {
             Object lengthValue = typeMeta.getLengthExpr().call3(null, in, record, context, context.getEvalScope());
 
@@ -365,6 +374,11 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
 
     protected void setPropByName(Object record, String propName, Object value) {
         BeanTool.setProperty(record, propName, value);
+    }
+
+    @Override
+    public Object readSimpleField(Input in, RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
+        return readField0(in, field, record, context);
     }
 
     abstract protected String getRawDataString(Input in, int length) throws IOException;

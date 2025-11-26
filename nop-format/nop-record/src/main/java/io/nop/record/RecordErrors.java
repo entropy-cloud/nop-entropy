@@ -43,10 +43,16 @@ public interface RecordErrors {
 
     String ARG_LENGTH_FIELD_LENGTH = "lengthFieldLength";
 
+    String ARG_READ_COUNT = "readCount";
+    String ARG_TOTAL_COUNT = "totalCount";
 
 
     ErrorCode ERR_RECORD_NO_ENOUGH_DATA =
             define("nop.err.record.no-enough-data", "缺少数据，无法读取");
+
+    ErrorCode ERR_RECORD_NO_ENOUGH_ITEMS =
+            define("nop.err.record.no-enough-items", "仅读取[{readCount}]条数据，预计[{totalCount}]条",
+                    ARG_READ_COUNT, ARG_TOTAL_COUNT);
 
     ErrorCode ERR_RECORD_POS_NOT_IN_CACHE =
             define("nop.err.record.pos-not-in-cache", "位置{pos}不在缓存中", ARG_POS);

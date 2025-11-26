@@ -1,0 +1,41 @@
+<file x:schema="/nop/schema/record/record-file.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <header typeRef="Header"/>
+    <trailer typeRef="Trailer"/>
+
+    <body typeRef="Body" repeatKind="expr">
+        <repeatCountField type="int" length="4" padding=" "/>
+    </body>
+
+    <types>
+        <type name="Header">
+            <fields>
+                <field name="h1" type="int" padding=" " length="5"/>
+            </fields>
+        </type>
+
+        <type name="Trailer">
+            <fields>
+                <field name="t1" type="int" padding=" " length="5"/>
+                <field name="t2" type="String" length="10"/>
+            </fields>
+        </type>
+
+        <type name="Body">
+            <fields>
+                <field name="header" typeRef="Header"/>
+                <field name="rows" typeRef="Item" repeatKind="expr" supportStreaming="true">
+                    <repeatCountField type="int" length="4"/>
+                </field>
+                <field name="footer" typeRef="Trailer"/>
+            </fields>
+        </type>
+
+        <type name="Item">
+            <fields>
+                <field name="a" type="int" length="5"/>
+                <field name="b" type="int" length="5"/>
+            </fields>
+        </type>
+    </types>
+
+</file>

@@ -5,12 +5,14 @@
 
 @name 对应解析得到的属性名
 @repeatKind 如果是列表结构或者Map结构，则这里用来确定如何判断所有条目已经解析完毕
+@supportStreaming 当字段类型为集合类型时，如果设置了supportStreaming，则流式解析的时候可以每次只返回一个StreamingItem。
 -->
 <field x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xmlns:xdef="/nop/schema/xdef.xdef"
        name="!string" xdef:ref="record-simple-field.xdef"
        xdef:name="RecordFieldMeta" xdef:bean-package="io.nop.record.model"
        repeatKind="enum:io.nop.record.model.FieldRepeatKind"
+       supportStreaming="!boolean=false"
        tagIndex="!int=0" typeRef="string" repeatCountFieldName="prop-path"
 >
     <repeatCountField xdef:ref="record-simple-field.xdef"/>

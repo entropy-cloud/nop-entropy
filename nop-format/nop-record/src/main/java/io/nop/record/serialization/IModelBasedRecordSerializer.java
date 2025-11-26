@@ -3,6 +3,7 @@ package io.nop.record.serialization;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordObjectMeta;
+import io.nop.record.model.RecordSimpleFieldMeta;
 import io.nop.record.writer.IDataWriterBase;
 
 import java.io.IOException;
@@ -11,4 +12,6 @@ public interface IModelBasedRecordSerializer<Output extends IDataWriterBase> {
     boolean writeObject(Output out, RecordObjectMeta recordMeta, Object record, IFieldCodecContext context) throws IOException;
 
     boolean writeField(Output out, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException;
+
+    void writeSimpleField(Output out, RecordSimpleFieldMeta field, Object record, Object value, IFieldCodecContext context) throws IOException;
 }

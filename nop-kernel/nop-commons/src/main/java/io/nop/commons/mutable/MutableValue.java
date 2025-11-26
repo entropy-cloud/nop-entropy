@@ -7,6 +7,8 @@
  */
 package io.nop.commons.mutable;
 
+import java.util.function.Supplier;
+
 public class MutableValue<T> implements IMutableValue<T> {
     private T value;
 
@@ -16,6 +18,12 @@ public class MutableValue<T> implements IMutableValue<T> {
 
     public MutableValue() {
 
+    }
+
+    public T lazyGet(Supplier<T> supplier) {
+        if (value == null)
+            value = supplier.get();
+        return value;
     }
 
     @Override

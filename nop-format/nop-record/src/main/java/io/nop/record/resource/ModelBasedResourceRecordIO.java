@@ -41,6 +41,7 @@ public class ModelBasedResourceRecordIO<T> implements IResourceRecordIO<T> {
 
     private String modelFilePath = "/model/record/";
     private RecordFileMeta fileMeta;
+    private boolean useStreaming = false;
 
     private int maxInMemorySize = 1024 * 1024;
 
@@ -56,6 +57,14 @@ public class ModelBasedResourceRecordIO<T> implements IResourceRecordIO<T> {
         this.fileMeta = fileMeta;
     }
 
+    public boolean isUseStreaming() {
+        return useStreaming;
+    }
+
+    public void setUseStreaming(boolean useStreaming) {
+        this.useStreaming = useStreaming;
+    }
+
     public static <T> ModelBasedResourceRecordIO<T> fromFileModel(RecordFileMeta fileMeta) {
         Guard.notNull(fileMeta, "fileMeta");
         ModelBasedResourceRecordIO<T> io = new ModelBasedResourceRecordIO<>();
@@ -67,13 +76,13 @@ public class ModelBasedResourceRecordIO<T> implements IResourceRecordIO<T> {
     public IRecordInput<T> openInput(IResource resource, String encoding) {
         RecordFileMeta fileMeta = getFileMeta(resource);
         if (fileMeta.isBinary()) {
-            return createBinaryInput(resource);
+            return createBinaryInput(fileMeta, resource);
         } else {
-            return createTextInput(resource, encoding);
+            return createTextInput(fileMeta, resource, encoding);
         }
     }
 
-    protected IRecordInput<T> createBinaryInput(IResource resource) {
+    protected IRecordInput<T> createBinaryInput(RecordFileMeta fileMeta, IResource resource) {
         File file = resource.toFile();
         IBinaryDataReader reader;
         if (file != null) {
@@ -85,11 +94,10 @@ public class ModelBasedResourceRecordIO<T> implements IResourceRecordIO<T> {
             IBinaryDataReader baseReader = new StreamBinaryDataReader(resource.getInputStream());
             reader = new BlockCachedBinaryDataReader(baseReader, 4096, false, maxInMemorySize / 4096);
         }
-        RecordFileMeta fileMeta = getFileMeta(resource);
-        return new ModelBasedBinaryRecordInput<>(reader, fileMeta);
+          return new ModelBasedBinaryRecordInput<T>(reader, fileMeta,useStreaming);
     }
 
-    protected IRecordInput<T> createTextInput(IResource resource, String encoding) {
+    protected IRecordInput<T> createTextInput(RecordFileMeta fileMeta, IResource resource, String encoding) {
         ITextDataReader reader;
         if (resource.length() <= maxInMemorySize) {
             String text = ResourceHelper.readText(resource, encoding);
@@ -98,7 +106,7 @@ public class ModelBasedResourceRecordIO<T> implements IResourceRecordIO<T> {
             ITextDataReader baseReader = new ReaderTextDataReader(resource.getReader(encoding));
             reader = new BlockCachedTextDataReader(baseReader, 4096, false, maxInMemorySize / 4096);
         }
-        return new ModelBasedTextRecordInput<>(reader, fileMeta);
+        return new ModelBasedTextRecordInput<T>(reader, fileMeta,isUseStreaming());
     }
 
     @Override

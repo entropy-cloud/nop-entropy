@@ -139,13 +139,16 @@ public class RecordMetaHelper {
                 return str;
 
             ByteString padding = field.getPadding();
+            char c = ' ';
             if (padding != null) {
                 String paddingStr = padding.toString(field.getCharset());
-                if (field.isLeftPad()) {
-                    str = StringHelper.leftPad(str, expected, paddingStr.charAt(0));
-                } else {
-                    str = StringHelper.rightPad(str, expected, paddingStr.charAt(0));
-                }
+                c = paddingStr.charAt(0);
+            }
+
+            if (field.isLeftPad()) {
+                str = StringHelper.leftPad(str, expected, c);
+            } else {
+                str = StringHelper.rightPad(str, expected, c);
             }
         }
         return str;
@@ -162,12 +165,14 @@ public class RecordMetaHelper {
                 return str;
 
             ByteString padding = field.getPadding();
+            byte c = (byte) 0;
             if (padding != null) {
-                if (field.isLeftPad()) {
-                    str = str.leftPad(expected, padding.at(0));
-                } else {
-                    str = str.rightPad(expected, padding.at(0));
-                }
+                c = padding.at(0);
+            }
+            if (field.isLeftPad()) {
+                str = str.leftPad(expected, c);
+            } else {
+                str = str.rightPad(expected, c);
             }
         }
         return str;
@@ -177,13 +182,16 @@ public class RecordMetaHelper {
         if (!field.isTrim())
             return str;
 
-        if (field.getPadding() != null) {
-            char c = (char) field.getPadding().at(0);
-            if (field.isLeftPad()) {
-                str = StringHelper.trimLeft(str, c);
-            } else {
-                str = StringHelper.trimRight(str, c);
-            }
+        ByteString padding = field.getPadding();
+        char c = ' ';
+        if (padding != null) {
+            String paddingStr = padding.toString(field.getCharset());
+            c = paddingStr.charAt(0);
+        }
+        if (field.isLeftPad()) {
+            str = StringHelper.trimLeft(str, c);
+        } else {
+            str = StringHelper.trimRight(str, c);
         }
         return str;
     }
@@ -192,13 +200,14 @@ public class RecordMetaHelper {
         if (!field.isTrim())
             return str;
 
+        byte c = (byte) 0;
         if (field.getPadding() != null) {
-            byte c =  field.getPadding().at(0);
-            if (field.isLeftPad()) {
-                str = str.trimLeft(c);
-            } else {
-                str = str.trimRight(c);
-            }
+            c = field.getPadding().at(0);
+        }
+        if (field.isLeftPad()) {
+            str = str.trimLeft(c);
+        } else {
+            str = str.trimRight(c);
         }
         return str;
     }

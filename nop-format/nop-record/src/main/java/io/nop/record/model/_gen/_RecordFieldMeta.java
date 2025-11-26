@@ -81,6 +81,13 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      *  
+     * xml name: supportStreaming
+     * 当字段类型为集合类型时，如果设置了supportStreaming，则流式解析的时候可以每次只返回一个StreamingItem。
+     */
+    private boolean _supportStreaming  = false;
+    
+    /**
+     *  
      * xml name: switchOnExpr
      * 
      */
@@ -295,6 +302,25 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      * 
+     * xml name: supportStreaming
+     *  当字段类型为集合类型时，如果设置了supportStreaming，则流式解析的时候可以每次只返回一个StreamingItem。
+     */
+    
+    public boolean isSupportStreaming(){
+      return _supportStreaming;
+    }
+
+    
+    public void setSupportStreaming(boolean value){
+        checkAllowChange();
+        
+        this._supportStreaming = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: switchOnExpr
      *  
      */
@@ -438,6 +464,7 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         out.putNotNull("repeatCountFieldName",this.getRepeatCountFieldName());
         out.putNotNull("repeatKind",this.getRepeatKind());
         out.putNotNull("repeatUntil",this.getRepeatUntil());
+        out.putNotNull("supportStreaming",this.isSupportStreaming());
         out.putNotNull("switchOnExpr",this.getSwitchOnExpr());
         out.putNotNull("switchOnField",this.getSwitchOnField());
         out.putNotNull("switchOnRule",this.getSwitchOnRule());
@@ -464,6 +491,7 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         instance.setRepeatCountFieldName(this.getRepeatCountFieldName());
         instance.setRepeatKind(this.getRepeatKind());
         instance.setRepeatUntil(this.getRepeatUntil());
+        instance.setSupportStreaming(this.isSupportStreaming());
         instance.setSwitchOnExpr(this.getSwitchOnExpr());
         instance.setSwitchOnField(this.getSwitchOnField());
         instance.setSwitchOnRule(this.getSwitchOnRule());

@@ -319,6 +319,16 @@ public class Underscore {
     }
 
     @Deterministic
+    public static <T> Number sumBy(Collection<T> c, String prop) {
+        Number ret = 0;
+        for (T item : c) {
+            Object v = getFieldValue(item, prop);
+            ret = MathHelper.add(ret, v);
+        }
+        return ret;
+    }
+
+    @Deterministic
     public static <T> Number sum(Collection<T> c) {
         return sum(c, null);
     }

@@ -1,9 +1,12 @@
 package io.nop.record.resource;
 
+import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.NopConnectException;
 import io.nop.commons.aggregator.IAggregatorProvider;
 import io.nop.dataset.record.IRecordOutput;
 import io.nop.record.RecordConstants;
 import io.nop.record.codec.IFieldCodecContext;
+import io.nop.record.model.FieldRepeatKind;
 import io.nop.record.model.RecordFileMeta;
 import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.model.RecordPaginationMeta;
@@ -12,6 +15,8 @@ import io.nop.record.writer.IDataWriterBase;
 
 import java.io.IOException;
 import java.util.Map;
+
+import static io.nop.record.RecordConstants.VAR_TOTAL_COUNT;
 
 public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterBase, T> implements IRecordOutput<T> {
     //static final Logger LOG = LoggerFactory.getLogger(AbstractModelBasedRecordOutput.class);
@@ -63,6 +68,15 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
 
         if (fileMeta.getResolvedHeaderType() != null) {
             writeObject(baseOut, fileMeta.getResolvedHeaderType(), context);
+        }
+
+        FieldRepeatKind repeatKind = fileMeta.getBody().getRepeatKind();
+        if (repeatKind == FieldRepeatKind.expr) {
+            if (fileMeta.getBody().getRepeatCountField() != null) {
+                Object value = context.getValue(VAR_TOTAL_COUNT);
+                value = ConvertHelper.toPrimitiveInt(value, NopConnectException::new);
+                serializer.writeSimpleField(baseOut, fileMeta.getBody().getRepeatCountField(), null, value, context);
+            }
         }
     }
 

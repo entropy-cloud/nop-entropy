@@ -28,6 +28,8 @@ public interface RecordConstants {
 
     String RECORD_XML_POSTFIX = ".record.xml";
 
+    String VAR_TOTAL_COUNT = "totalCount";
+
     String TYPE_DEFAULT = "default";
 
     String VAR_FILE_NAME = "fileName";

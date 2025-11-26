@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Collection;
+import java.util.Collections;
 
 import static io.nop.record.RecordErrors.ARG_CASE_VALUE;
 import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
@@ -112,7 +113,9 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
                 field.getBeforeWrite().call3(null, out, record, context, context.getEvalScope());
 
             if (field.getRepeatKind() != null) {
-                Collection<?> c = (Collection<?>) record;
+                Collection<?> c = (Collection<?>) getProp(field, record, context);
+                if (c == null)
+                    c = Collections.emptyList();
                 writeCollection(out, field, c, context);
             } else {
                 Object value = getProp(field, record, context);
@@ -214,6 +217,12 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
         }
 
         return null;
+    }
+
+    @Override
+    public void writeSimpleField(Output out, RecordSimpleFieldMeta field,
+                                 Object record, Object value, IFieldCodecContext context) throws IOException {
+        writeField0(out, field, record, value, context);
     }
 
     abstract protected IBitSet writeTags(Output out, RecordObjectMeta typeMeta,

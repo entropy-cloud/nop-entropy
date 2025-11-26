@@ -9,6 +9,7 @@ package io.nop.orm;
 
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.core.lang.utils.Underscore;
 import io.nop.core.reflect.hook.IPropGetMissingHook;
 import io.nop.core.reflect.hook.IPropMakeMissingHook;
 import io.nop.core.reflect.hook.IPropSetMissingHook;
@@ -106,4 +107,12 @@ public interface IOrmEntitySet<T extends IOrmEntity>
     void orm_forceLoad();
 
     void orm_tenantId(String tenantId);
+
+    default Number sum(String field) {
+        return Underscore.sumBy(this, field);
+    }
+
+    default int count() {
+        return size();
+    }
 }
