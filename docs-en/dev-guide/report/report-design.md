@@ -1,6 +1,6 @@
 # Source Code Analysis of the Nonlinear Chinese-Style Reporting Engine NopReport
 
-In daily development, we often need to import and export Excel data, generate Excel and Word reports, etc. Common packages like [easyexcel](https://gitee.com/easyexcel/easyexcel) and [poi-tl](https://gitee.com/mirrors/poi-tl) rely on the underlying POI engine, which is bulky and struggles with complex, irregular tables. When creating complex Chinese-style reports, one usually needs to use report engines provided by professional report software companies such as Runqian and FanRuan.
+In daily development, we often need to import and export Excel data, generate Excel and Word reports, etc. Common packages like [easyexcel](https://github.com/alibaba/easyexcel) and [poi-tl](https://github.com//poi-tl) rely on the underlying POI engine, which is bulky and struggles with complex, irregular tables. When creating complex Chinese-style reports, one usually needs to use report engines provided by professional report software companies such as Runqian and FanRuan.
 
 Many years ago, Runqian pioneered a nonlinear report generation algorithm that supports symmetric expansion across rows and columns, which later became a leader in commercial reporting software. Subsequent report software like FanRuan has mimicked similar report generation algorithms. The NopReport reporting engine offers a very lightweight open-source implementation (about 3,000 lines of code) of this algorithm, making it easy to customize and extend. This article introduces the fundamental principles behind the NopReport reporting engine and the technical details of the nonlinear report generation algorithm.
 
@@ -68,23 +68,23 @@ graph LR;
 
 subgraph DSL
    direction LR
-   Excel模型 --> 扩展模型
+   ExcelModel --> ExtensionModel
 end
 
 subgraph UI
    direction LR
-   Excel可视化 --> 扩展可视化
+   ExcelDesigner --> ExtensionDesigner
 end
 
-DSL <-..-> UI
+D
 ```
 
 1. Use the cell’s Comment to store extended model information
 
-![](xpt-report/cell-model-as-comment.png)
+![cell-model-as-comment](xpt-report/cell-model-as-comment.png)
 
 2. Use a dedicated Sheet to store extended model information
-   ![](xpt-report/model-as-sheet.png)
+   ![model-as-sheet](xpt-report/model-as-sheet.png)
 
 **If the Excel tool introduces a custom Schema mechanism, it can automatically perform format validation for the extended model.**
 
@@ -92,12 +92,12 @@ DSL <-..-> UI
 
 ## II. Theory of Nonlinear Chinese-Style Reports
 
-![](xpt-report/runqian-report.png)
+![runqian-report](xpt-report/runqian-report.png)
 
 Alumnus Jiang Buxing, founder of Runqian, invented the theory behind the nonlinear Chinese-style report model. It is a truly original technology in the field of report engines. Subsequent commercial report companies such as FanRuan have continued this Excel-like cell expansion design philosophy.
 
-![](xpt-report/chinese-style-report.png)
-![](xpt-report/nonlinear-report-model.png)
+![chinese-style-report](xpt-report/chinese-style-report.png)
+![nonlinear-report-model](xpt-report/nonlinear-report-model.png)
 
 > Nonlinear reports are defined in contrast to linear reports. Foreign tools like Crystal Reports can only expand in a single direction, with the column direction generally fixed, which is why they are categorized as linear reports. In nonlinear reports, both rows and columns form complex, tree-like nested relationships, no longer a linear layout.
 
@@ -217,7 +217,7 @@ Newly inserted cells need to establish parent-child relationships, and care must
 - Row parent cells and row child cells are not necessarily in the same row, but a row parent cell governs a contiguous region that contains all its row children. Regions under different parent cells do not intersect; they only nest, forming a strict tree structure.
 - Similarly, the logic for column parent cells is analogous.
 
-![](xpt-report/expand-span.png)
+![expand-span](xpt-report/expand-span.png)
 
 ## Hierarchical Coordinates
 
@@ -234,7 +234,7 @@ A hierarchical coordinate is essentially a selector. Through hierarchical coordi
 Hierarchical coordinate format: CellName[rowCoordinates ; colCoordinates]
 ```
 
-![](xpt-report/absolute-coord-value.png)
+![absolute-coord-value](xpt-report/absolute-coord-value.png)
 
 ```mermaid
 graph RL
@@ -374,7 +374,7 @@ style a1 fill:#eecc00
 3. The current() function performs dynamic lookup to obtain the currently available data list.
 
 > A configuration like ds=ds1, expandType=r, field=xxx is effectively equivalent to expandType=r,expandExpr=ds1.group("xxx"), which will set the expandedValue of the expanded cell to the grouped-and-aggregated child dataset.
->
+> 
 > A cell may simultaneously have both a row parent and a column parent. When executing a function like ds1.field(name), it will take the intersection of the child datasets from the row and column parents to obtain the currently visible list, and then perform the corresponding operation.
 
 ## Report Context: XptRuntime
@@ -527,8 +527,7 @@ The low-code platform NopPlatform, designed based on Reversible Computation theo
 
 - gitee: https://gitee.com/canonical-entropy/nop-entropy
 - github: https://github.com/entropy-cloud/nop-entropy
-- Development examples: https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md
-- Documentation index: https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/index.md
-- Theoretical introduction: https://zhuanlan.zhihu.com/p/64004026
-- Reversible Computation principles and Nop Platform introduction and Q&A: https://www.bilibili.com/video/BV14u411T715/
+- Development examples: https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs-en/tutorial/tutorial.md
+- Documentation index: https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs-en/index.md
+
 <!-- SOURCE_MD5:f5dfecebaa7776ac4717b00982efb59c-->

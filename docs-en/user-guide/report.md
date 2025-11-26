@@ -11,7 +11,7 @@ Currently, commercial reporting tools in China all support Chinese-style report 
 
 NopReport is an open-source Chinese-style reporting engine independently implemented from scratch based on the theory of Reversible Computation. Its core code is short—just over 3,000 lines (see the [nop-report-core](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-report/nop-report-core) module). It delivers high performance (performance test code: [TestReportSpeed.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-demo/src/test/java/io/nop/report/demo/TestReportSpeed.java)) and offers flexibility and extensibility that are difficult for other report engines to match.
 
-Within the [Nop Platform](https://gitee.com/canonical-entropy/nop-entropy), NopReport is positioned as a general modeling tool for tabular data structures. Any functionality that needs to generate tabular data can be implemented by converting it into NopReport report model objects. For example, the NopCli command-line tool’s database reverse-engineering command analyzes database table structures and generates an Excel model file. This Excel model file is produced by **converting the import template into a report output model**.
+Within the [Nop Platform](https://github.com/entropy-cloud/nop-entropy), NopReport is positioned as a general modeling tool for tabular data structures. Any functionality that needs to generate tabular data can be implemented by converting it into NopReport report model objects. For example, the NopCli command-line tool’s database reverse-engineering command analyzes database table structures and generates an Excel model file. This Excel model file is produced by **converting the import template into a report output model**.
 
 Compared to other report engines, NopReport has the following distinctive characteristics:
 
@@ -23,18 +23,18 @@ According to the principles of Reversible Computation, the essence of a report e
 
 ### Archive-style report
 
-![](report/profile-report.png)
-![](report/profile-report-result.png)
+![profile-report](report/profile-report.png)
+![profile-report-result](report/profile-report-result.png)
 
 ### Paragraph detail report
 
-![](report/block-report.png)
-![](report/block-report-result.png)
+![block-report](report/block-report.png)
+![block-report-result](report/block-report-result.png)
 
 ### Complex multi-source report
 
-![](report/multi-ds-report.png)
-![](report/multi-ds-report-result.png)
+![multi-ds-resport](report/multi-ds-report.png)
+![multids-report-result](report/multi-ds-report-result.png)
 
 ### Cross table — bi-directional data expansion
 
@@ -43,12 +43,12 @@ According to the principles of Reversible Computation, the essence of a report e
 
 ### YoY/MoM and other financial statistic tables
 
-![](report/MOM-YOY-report.png)
-![](report/MOM-YOY-report-result.png)
+![MOM-YOY-report](report/MOM-YOY-report.png)
+![MOM-YOY-report-result](report/MOM-YOY-report-result.png)
 
 ### Parallel expansion of sibling nodes
-![](report/sibling-expand.png)
-![](report/sibling-expand-result.png)
+![sibling-expand](report/sibling-expand.png)
+![sibling-expand-result](report/sibling-expand-result.png)
 
 Expanding the column parent cell D2 will cause D3 to be duplicated multiple times, and when D3 performs row expansion, multiple sibling nodes execute row expansion in parallel.
 When sibling nodes expand rows, they automatically share newly created rows. Therefore, the final number of rows to which the parent node is expanded is determined by the total expansion count across all child nodes.
@@ -64,7 +64,7 @@ The NopReport model can be viewed as an extension of the Excel model. In cell co
    C. `*=>ds1!fieldName` is equivalent to configuring expandType=c, ds=ds1, field=fieldName
    D. `*=^fieldName@entity.children` is equivalent to configuring expandType=r, field=fieldName, expandExpr=entity.children
 
-For detailed instructions, see [xpt-report.md](../dev-guide/report/xpt-report.md)
+For detailed instructions, see [xpt-report.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs-en/dev-guide/report/xpt-report.md)
 
 ## II. Highly flexible data object support
 
@@ -73,11 +73,11 @@ Typical report engines only target flat table data structures at the data manage
 This approach has the advantage of making the report engine relatively generic and able to run independently of business systems. The drawback is obvious: the report engine cannot directly use domain model objects already constructed within the application, nor can it leverage the intrinsic structural relationships in the domain model for performance optimization.
 
 NopReport adopts a more flexible and open layered design. At runtime, it directly targets domain model objects, and DataSet is only an optional data organization form. For example, in the archive-style report introduced in the previous section, report data is constructed directly via a JSON variable:
-![](report/profile-report-data.png)
+![profile report data](report/profile-report-data.png)
 
-To expand [Education Experience], you only need to configure expandType=r, expandExpr=entity.educations. Meanwhile, report tools like FineReport require defining multiple datasets such as ds_study, ds_work, etc., and then configuring relational filters between these datasets. In NopReport, we simply assume user information is organized as a tree structure. A user object retrieved from the NopOrm engine can be passed directly to the report engine as input data, without redefining a dataset specifically for report export inside the report engine.
+To expand `[Education Experience]`, you only need to configure expandType=r, expandExpr=entity.educations. Meanwhile, report tools like FineReport require defining multiple datasets such as ds_study, ds_work, etc., and then configuring relational filters between these datasets. In NopReport, we simply assume user information is organized as a tree structure. A user object retrieved from the NopOrm engine can be passed directly to the report engine as input data, without redefining a dataset specifically for report export inside the report engine.
 
-NopOrm has already optimized access to object association properties (e.g., addressing the ORM engine’s common [N+1 problem](https://zhuanlan.zhihu.com/p/545063021)), and its usage aligns well with business intuition: parent-child relationships in table cells directly correspond to property associations on entity objects.
+NopOrm has already optimized access to object association properties (e.g., addressing the ORM engine’s common [N+1 problem](https://dev.to/canonical/what-kind-of-orm-engine-does-a-low-code-platform-need-2-mfj)), and its usage aligns well with business intuition: parent-child relationships in table cells directly correspond to property associations on entity objects.
 
 NopReport imposes no special requirements on data sources. In the 【Before Expansion】 configuration, we can freely process data using the Xpl template language. Typical report engines may design datasets in a visual designer; in NopReport, built on the principles of Reversible Computation, we can easily emulate this.
 
@@ -160,9 +160,9 @@ class ReportDataSet{
 }
 ```
 
-`@EvalMethod` is an annotation recognized by XScript, indicating that the scope environment object will be automatically passed when the expression is invoked. For example, `ds.sum('金额')` actually calls the method `ReportDataSet.sum(IEvalScope, String)`. The current function uses the implicitly passed scope to determine the hierarchical coordinates of the current cell, and then determines which data items satisfy those hierarchical coordinate conditions.
+`@EvalMethod` is an annotation recognized by XScript, indicating that the scope environment object will be automatically passed when the expression is invoked. For example, `ds.sum('Amount')` actually calls the method `ReportDataSet.sum(IEvalScope, String)`. The current function uses the implicitly passed scope to determine the hierarchical coordinates of the current cell, and then determines which data items satisfy those hierarchical coordinate conditions.
 
-In the complex multi-source report in the previous section, to obtain the project total, we used an expression configured as valueExpr=zs.where('ID',xptRt.field('ID')).sum('数量'), which is a regular JavaScript function call. In FineReport’s configuration, you need to configure relational filter conditions between datasets and agree on specialized dataset invocation expressions like `zs.求和(数量)`.
+In the complex multi-source report in the previous section, to obtain the project total, we used an expression configured as valueExpr=zs.where('ID',xptRt.field('ID')).sum('Quantity'), which is a regular JavaScript function call. In FineReport’s configuration, you need to configure relational filter conditions between datasets and agree on specialized dataset invocation expressions like `zs.SUM(Quantity)`.
 
 On the Nop Platform, we can easily introduce our own wrapper functions into expression evaluation, without requiring that all functions be prebuilt into the report engine. For example, in the 【Before Expansion】 configuration we can add functions for the current report without registering them as global functions.
 
