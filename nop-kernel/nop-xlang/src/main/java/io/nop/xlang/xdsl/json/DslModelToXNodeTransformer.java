@@ -251,12 +251,22 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
                 break;
             }
             case attr: {
-                String xmlName = propMeta.getXmlName();
-                if (xmlName == null)
-                    xmlName = propMeta.getName();
+                // Map类型展开到节点上。xdef:bean-unknown-attr-prop会生成这种结构
+                if (propMeta.getSchema() != null && propMeta.getSchema().getMapValueSchema() != null) {
+                    Map<String, Object> map = (Map<String, Object>) value;
+                    if (map != null) {
+                        map.forEach((k, v) -> {
+                            node.setAttr(loc, k, v);
+                        });
+                    }
+                } else {
+                    String xmlName = propMeta.getXmlName();
+                    if (xmlName == null)
+                        xmlName = propMeta.getName();
 
-                value = serialize(propMeta, value);
-                node.setAttr(loc, xmlName, value);
+                    value = serialize(propMeta, value);
+                    node.setAttr(loc, xmlName, value);
+                }
                 break;
             }
             case child: {
