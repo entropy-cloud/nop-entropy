@@ -31,10 +31,7 @@ import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_VALUE_OWNER;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_ALWAYS_FALSE;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_ALWAYS_TRUE;
 import static io.nop.api.core.convert.ConvertHelper.defaults;
-import static io.nop.core.CoreErrors.ARG_NAME;
 import static io.nop.core.CoreErrors.ARG_OP;
-import static io.nop.core.CoreErrors.ARG_VALUE;
-import static io.nop.core.CoreErrors.ERR_FILTER_INVALID_VALUE_FORMAT;
 import static io.nop.core.CoreErrors.ERR_FILTER_NO_NAME_ARG;
 import static io.nop.core.CoreErrors.ERR_FILTER_OP_IS_NULL;
 import static io.nop.core.CoreErrors.ERR_FILTER_OP_NOT_ALLOW_CONTENT;
@@ -220,18 +217,7 @@ public class FilterBeanVisitor<T> {
             String str = value.toString();
             if (str.startsWith(CoreConstants.ATTR_EXPR_PREFIX)) {
                 str = str.substring(CoreConstants.ATTR_EXPR_PREFIX.length()).trim();
-                return JsonTool.parseSimpleJsonValue(str);
-            } else if (str.startsWith(CoreConstants.ATTR_JSON_PREFIX)) {
-                str = str.substring(CoreConstants.ATTR_JSON_PREFIX.length()).trim();
-                if (StringHelper.isNumber(str)) {
-                    return StringHelper.parseNumber(str);
-                }
-                if (str.equals("true"))
-                    return true;
-                if (str.equals("false"))
-                    return false;
-                throw new NopException(ERR_FILTER_INVALID_VALUE_FORMAT).loc(loc)
-                        .param(ARG_NAME, name).param(ARG_VALUE, value);
+                return JsonTool.parseNonStrict(str);
             }
         }
         return value;

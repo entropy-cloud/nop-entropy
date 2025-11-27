@@ -44,6 +44,23 @@ public class TestXJson {
     }
 
     @Test
+    public void testEmptyMap() {
+        String xml = "<api url='a'><data>@:{}</data></api>";
+        XNode node = XNode.parse(xml);
+        Object json = node.toXJson();
+        assertEquals("{\"url\":\"a\",\"data\":{}}", JsonTool.stringify(json));
+        assertEquals("{\"type\":\"api\",\"url\":\"a\",\"data\":{}}", JsonTool.stringify(node.toXJson(true)));
+        assertEquals("{\"data\":{}}", JsonTool.stringify(node.bodyToXJson()));
+    }
+
+    @Test
+    public void testContent() {
+        String xml = "<data>@:{}</data>";
+        XNode node = XNode.parse(xml);
+        assertEquals("{}", JsonTool.stringify(node.toXJson()));
+    }
+
+    @Test
     public void testSpecialKey() {
         String xml = "<form><data><_ j:key='&amp;'>$$</_></data></form>";
         XNode node = XNodeParser.instance().parseFromText(null, xml);

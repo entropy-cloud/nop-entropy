@@ -9,16 +9,15 @@ package io.nop.core.lang.xml.handler;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.commons.text.CDataText;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.CoreConstants;
 import io.nop.core.lang.json.JArray;
 import io.nop.core.lang.json.JObject;
-import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.json.utils.SourceLocationHelper;
 import io.nop.core.lang.utils.NestedProcessingState;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.lang.xml.json.XJsonHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -79,10 +78,27 @@ public class CollectJObjectHandler extends XNodeHandlerAdapter {
         this.comment = comment;
     }
 
+    public Object processNodeBody(XNode node) {
+        String tagName = CoreConstants.DUMMY_TAG_NAME;
+        JObject obj = newObject(node.getLocation(), tagName);
+        JArray parent = currentList();
+        parent.add(obj);
+        stack.add(obj);
+        state.push(OBJECT_TYPE);
+
+        for (XNode child : node.getChildren()) {
+            child.process(this);
+        }
+
+        endNode(tagName);
+
+        return getResult();
+    }
+
     public Object processNode(String tagName, XNode node) {
         if (!hasObjAttr(node.attrValueLocs())) {
             if (!node.hasChild()) {
-                return node.getContentValue();
+                return XJsonHelper.decodeJsonValue(node.content().getLocation(), node.getContentValue());
             }
         }
 
@@ -279,45 +295,7 @@ public class CollectJObjectHandler extends XNodeHandlerAdapter {
     }
 
     ValueWithLocation normalizeValue(ValueWithLocation vl) {
-        Object value = vl.getValue();
-        if (value instanceof String || value instanceof CDataText) {
-            String text = value.toString();
-            if (text.startsWith(CoreConstants.ESCAPED_ATTR_EXPR_PREFIX)
-                    || text.startsWith(CoreConstants.ESCAPED_ATTR_JSON_PREFIX)) {
-                SourceLocation loc = SourceLocationHelper.offset(vl.getLocation(), 1);
-                return ValueWithLocation.of(loc, text.substring(1));
-            }
-            if (text.startsWith(CoreConstants.ATTR_JSON_PREFIX)) {
-                text = text.substring(CoreConstants.ATTR_JSON_PREFIX.length());
-                SourceLocation loc = SourceLocationHelper.offset(vl.getLocation(),
-                        CoreConstants.ATTR_JSON_PREFIX.length());
-                Object v = JsonTool.parseNonStrict(loc, text);
-                return ValueWithLocation.of(loc, v);
-            }
-            if (text.startsWith(CoreConstants.ATTR_EXPR_PREFIX)) {
-                text = text.substring(CoreConstants.ATTR_EXPR_PREFIX.length());
-                SourceLocation loc = SourceLocationHelper.offset(vl.getLocation(),
-                        CoreConstants.ATTR_EXPR_PREFIX.length());
-                String str = text.trim();
-                if (str.isEmpty())
-                    return ValueWithLocation.of(loc, str);
-
-                if (str.equals("true")) {
-                    return ValueWithLocation.of(loc, true);
-                }
-                if (str.equals("false"))
-                    return ValueWithLocation.of(loc, false);
-
-                if (str.equals("null")) {
-                    return ValueWithLocation.of(loc, null);
-                }
-
-                if (StringHelper.isNumber(str)) {
-                    return ValueWithLocation.of(loc, StringHelper.parseNumber(str));
-                }
-            }
-        }
-        return vl;
+        return XJsonHelper.decodeJsonValueLoc(vl);
     }
 
     JObject currentObject() {

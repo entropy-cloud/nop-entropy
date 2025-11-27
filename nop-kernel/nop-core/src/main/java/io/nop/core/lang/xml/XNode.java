@@ -34,13 +34,13 @@ import io.nop.core.lang.eval.WriterEvalOutput;
 import io.nop.core.lang.json.IJsonHandler;
 import io.nop.core.lang.json.IJsonSerializable;
 import io.nop.core.lang.json.JObject;
-import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.json.handler.BuildJObjectJsonHandler;
 import io.nop.core.lang.json.handler.CollectTextJsonHandler;
 import io.nop.core.lang.xml.handler.CollectJObjectHandler;
 import io.nop.core.lang.xml.handler.CollectTextHandler;
 import io.nop.core.lang.xml.handler.CollectXmlHandler;
 import io.nop.core.lang.xml.json.StdXNodeToJsonTransformer;
+import io.nop.core.lang.xml.json.XJsonHelper;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.model.tree.ITreeStructure;
 import io.nop.core.model.tree.ITreeVisitor;
@@ -2657,19 +2657,25 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
     }
 
     public Object toXJson() {
+        return toXJson(false);
+    }
+
+    public Object toXJson(boolean includeTagName) {
         CollectJObjectHandler handler = new CollectJObjectHandler();
-        return handler.processNode(DUMMY_TAG_NAME, this);
+        if (includeTagName) {
+            this.process(handler);
+            return handler.getResult();
+        } else {
+            return handler.processNode(DUMMY_TAG_NAME, this);
+        }
     }
 
     public Object bodyToXJson() {
         if (!hasChild())
-            return getContentValue();
+            return XJsonHelper.decodeJsonValue(content.getLocation(), getContentValue());
 
         CollectJObjectHandler handler = new CollectJObjectHandler();
-        for (XNode child : getChildren()) {
-            child.process(handler);
-        }
-        return handler.getResult();
+        return handler.processNodeBody(this);
     }
 
     public boolean isXmlEquals(XNode node) {
@@ -2759,17 +2765,14 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
 
         for (Map.Entry<String, ValueWithLocation> entry : attributes.entrySet()) {
             ValueWithLocation vl = entry.getValue();
-            Object value = vl.getValue();
-            if (needAddJsonPrefix(value)) {
-                String str = "@:" + JsonTool.stringify(value);
-                entry.setValue(ValueWithLocation.of(vl.getLocation(), str));
-            }
+            ValueWithLocation encoded = XJsonHelper.encodeJsonValueLoc(vl);
+            if (encoded != vl)
+                entry.setValue(encoded);
         }
 
-        Object value = content.getValue();
-        if (needAddJsonPrefix(value)) {
-            content = ValueWithLocation.of(content.getLocation(), value);
-        }
+        ValueWithLocation encoded = XJsonHelper.encodeJsonValueLoc(this.content);
+        if (encoded != this.content)
+            this.content = encoded;
 
         for (XNode child : children) {
             child.addJsonPrefix();
@@ -2785,18 +2788,14 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
 
         for (Map.Entry<String, ValueWithLocation> entry : attributes.entrySet()) {
             ValueWithLocation vl = entry.getValue();
-            Object value = vl.getValue();
-            if (value instanceof String && value.toString().startsWith("@:")) {
-                Object json = JsonTool.parseNonStrict(value.toString().substring("@:".length()));
-                entry.setValue(ValueWithLocation.of(vl.getLocation(), json));
-            }
+            ValueWithLocation decoded = XJsonHelper.decodeJsonValueLoc(vl);
+            if (decoded != vl)
+                entry.setValue(decoded);
         }
 
-        Object value = content.getValue();
-        if (value instanceof String && value.toString().startsWith("@:")) {
-            Object json = JsonTool.parseNonStrict(value.toString().substring("@:".length()));
-            content = ValueWithLocation.of(content.getLocation(), json);
-        }
+        ValueWithLocation vl = XJsonHelper.decodeJsonValueLoc(content);
+        if (vl != content)
+            this.content = vl;
 
         if (cascade) {
             for (XNode child : children) {

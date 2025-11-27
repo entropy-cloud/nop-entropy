@@ -75,10 +75,10 @@ public interface CoreConstants extends ResourceConstants {
 
     String ATTR_EXPR_PREFIX = "@:";
 
-    String ATTR_JSON_PREFIX = "@j:";
+//    String ATTR_JSON_PREFIX = "@j:";
 
-    String ESCAPED_ATTR_EXPR_PREFIX = "@@:";
-    String ESCAPED_ATTR_JSON_PREFIX = "@@j:";
+//    String ESCAPED_ATTR_EXPR_PREFIX = "@@:";
+//    String ESCAPED_ATTR_JSON_PREFIX = "@@j:";
 
     String BINDER_VAR_PREFIX = "@var:";
     String BINDER_STR_PREFIX = "@s:";
