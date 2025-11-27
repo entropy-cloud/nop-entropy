@@ -1,0 +1,5 @@
+<button x:schema="/nop/schema/xdef.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef" xdef:unknown-attr="string"
+        xdef:bean-unknown-attrs-prop="attrs">
+
+</button>

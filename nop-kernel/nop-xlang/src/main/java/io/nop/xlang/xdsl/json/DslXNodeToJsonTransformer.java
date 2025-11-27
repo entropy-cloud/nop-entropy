@@ -231,8 +231,13 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
 
             IXDefAttribute attr = defNode.getAttribute(name);
             if (attr == null) {
-                if (!ignoreUnknown)
-                    obj.addProp(name, vl.getValue());
+                if (defNode.getXdefBeanUnknownAttrsProp() != null) {
+                    Map<String, Object> props = obj.makeMap(defNode.getXdefBeanUnknownAttrsProp());
+                    props.put(name, vl.getValue());
+                } else {
+                    if (!ignoreUnknown)
+                        obj.addProp(name, vl.getValue());
+                }
             } else {
                 Object value = parseValue(vl, name, attr.getType());
                 String propName = attr.getPropName();

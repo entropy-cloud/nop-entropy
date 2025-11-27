@@ -50,6 +50,14 @@ public class TestGenericDslParser extends BaseTestCase {
     }
 
     @Test
+    public void testUnknownAttr() {
+        String xml = "<button id='a' name='b' xui:roles='a' x:schema='/test/test-unknown-attr.xdef' />";
+        XNode node = XNode.parse(xml);
+        DynamicObject obj = new GenericDslParser().parseFromNode(node);
+        assertEquals("{\"attrs\":{\"id\":\"a\",\"name\":\"b\",\"xui:roles\":\"a\"}}", JsonTool.stringify(obj));
+    }
+
+    @Test
     public void testParseForEditor() {
         GenericDslParser parser = new GenericDslParser().forEditor(true);
         DynamicObject obj = parser.parseFromVirtualPath("/test/my.xlib");
