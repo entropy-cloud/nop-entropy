@@ -184,6 +184,7 @@ public class TextScanner {
         return cur < 0;
     }
 
+    /** 取{@link #cur 当前位置}的下一个字符 */
     public int peek() {
         return reader.peek();
     }
@@ -229,6 +230,7 @@ public class TextScanner {
         return startsWith(seq) && !StringHelper.isJavaIdentifierPart(peek(seq.length()));
     }
 
+    /** 取{@link #cur 当前位置}的第 N 个字符：N 为 0 时，取当前字符 */
     public int peek(int nRead) {
         if (nRead == 0)
             return cur;
@@ -505,7 +507,7 @@ public class TextScanner {
         while (cur > 0) {
             if (cur == '\r') {
                 next();
-                if (peek() == '\n') {
+                if (cur == '\n') {
                     next();
                 }
                 break;
@@ -526,7 +528,7 @@ public class TextScanner {
 
     public int skipEmptyLines() {
         int n = 0;
-        while (nextLineIsEmpty()) {
+        while (nextLineIsEmpty() && cur > 0) {
             skipLine();
             n++;
         }
@@ -536,7 +538,7 @@ public class TextScanner {
     private boolean nextLineIsEmpty() {
         int i = 0;
         do {
-            int c = peek(i);
+            int c = peek(i++);
             if (c < 0)
                 return true;
 
