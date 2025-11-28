@@ -2950,6 +2950,15 @@ public class StringHelper extends ApiStringHelper {
     }
 
     @Deterministic
+    public static String removePackageName(String s, String packageName) {
+        if (s == null)
+            return null;
+        if (isEmpty(packageName) || !startsWithPackage(s, packageName))
+            return s;
+        return s.substring(packageName.length() + 1);
+    }
+
+    @Deterministic
     public static String skip(String s, int n) {
         if (s == null)
             return null;

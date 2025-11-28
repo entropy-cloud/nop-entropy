@@ -3,7 +3,7 @@
 
     <x:post-extends>
         <c:import from="/nop/record/xlib/record-mapping-gen.xlib"/>
-        <record-mapping-gen:GenReverseMappings />
+        <record-mapping-gen:GenReverseMappings/>
     </x:post-extends>
 
     <mapping name="Md_to_OrmModel" md:titleField="displayName">
@@ -352,17 +352,6 @@
         </fields>
     </mapping>
 
-    <mapping name="RelationModel_to_Md">
-        <fields>
-            <field name="关联条件">
-                <valueExpr>
-                    import io.nop.record_mapping.utils.OrmMdHelper;
-                    return OrmMdHelper.genJoinText(value);
-                </valueExpr>
-            </field>
-        </fields>
-    </mapping>
-
     <mapping name="Md_to_JoinConditionModel">
         <fields>
             <field name="leftProp" from="左属性" alias="Left Property">
@@ -634,4 +623,39 @@
             </field>
         </fields>
     </mapping>
+
+    <mapping name="EntityModel_to_Md">
+        <fields>
+            <field name="对象名">
+                <valueExpr>
+                    value?.$removePackageName(sourceRoot['ext:entityPackageName']);
+                </valueExpr>
+            </field>
+
+            <field name="类名">
+                <valueExpr>
+                    value?.$removePackageName(sourceRoot['ext:entityPackageName']);
+                </valueExpr>
+            </field>
+        </fields>
+    </mapping>
+
+    <mapping name="RelationModel_to_Md">
+        <fields>
+            <field name="关联对象">
+                <valueExpr>
+                    value?.$removePackageName(sourceRoot['ext:entityPackageName']);
+                </valueExpr>
+            </field>
+
+            <field name="关联条件">
+                <valueExpr>
+                    import io.nop.record_mapping.utils.OrmMdHelper;
+                    return OrmMdHelper.genJoinText(value);
+                </valueExpr>
+            </field>
+        </fields>
+    </mapping>
+
+
 </definitions>

@@ -4,6 +4,7 @@ import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.MavenDirHelper;
 import io.nop.core.CoreConfigs;
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.record_mapping.IRecordMappingManager;
@@ -37,6 +38,7 @@ public class TestMappingBasedMarkdownParser extends BaseTestCase {
         IRecordMappingManager mappingManager = new RecordMappingManagerImpl();
 
         Object bean = ResourceComponentManager.instance().loadComponentModel("/test/demo.orm.xml");
+        System.out.println(JsonTool.serialize(bean, true));
 
         RecordMappingConfig config = mappingManager.getRecordMappingConfig("orm.OrmModel_to_Md");
         String text = new MappingBasedMarkdownGenerator(config, bean).generateText(XLang.newEvalScope());

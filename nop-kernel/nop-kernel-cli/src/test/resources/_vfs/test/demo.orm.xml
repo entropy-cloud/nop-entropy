@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<orm ext:mavenArtifactId="nop-ai" ext:entityPackageName="nop.ai.dao.entity" ext:allowIdAsColName="true"
-     ext:basePackageName="nop.ai" ext:appName="nop-ai" ext:registerShortName="true"
+<orm ext:mavenArtifactId="nop-ai" ext:entityPackageName="io.nop.ai.dao.entity" ext:allowIdAsColName="true"
+     ext:basePackageName="io.nop.ai" ext:appName="nop-ai" ext:registerShortName="true"
      ext:mavenGroupId="io.github.entropy-cloud" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-     xmlns:ext="ext" displayName="AI模型"
+     xmlns:ext="ext"
      xmlns:ui="ui">
 
     <dicts>
@@ -67,7 +67,7 @@
     </dicts>
 
     <entities>
-        <entity className="nop.ai.dao.entity.NopAiProject" displayName="AI项目" name="nop.ai.dao.entity.NopAiProject"
+        <entity className="io.nop.ai.dao.entity.NopAiProject" displayName="AI项目" name="io.nop.ai.dao.entity.NopAiProject"
                 registerShortName="true" tableName="nop_ai_project">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
@@ -87,31 +87,31 @@
             </columns>
             <comment>存储AI项目基本信息</comment>
             <relations>
-                <to-one name="prototype" refEntityName="nop.ai.dao.entity.NopAiProject">
+                <to-one name="prototype" refEntityName="io.nop.ai.dao.entity.NopAiProject">
                     <join>
                         <on leftProp="prototypeId" rightProp="id"/>
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-many displayName="项目规则" name="projectRules" refEntityName="nop.ai.dao.entity.NopAiProjectRule"
+                <to-many displayName="项目规则" name="projectRules" refEntityName="io.nop.ai.dao.entity.NopAiProjectRule"
                          refPropName="project">
                     <join>
                         <on leftProp="id" rightProp="projectId"/>
                     </join>
                 </to-many>
-                <to-many displayName="配置项" name="configs" refEntityName="nop.ai.dao.entity.NopAiProjectConfig"
+                <to-many displayName="配置项" name="configs" refEntityName="io.nop.ai.dao.entity.NopAiProjectConfig"
                          refPropName="project">
                     <join>
                         <on leftProp="id" rightProp="projectId"/>
                     </join>
                 </to-many>
-                <to-many displayName="需求列表" name="requirements" refEntityName="nop.ai.dao.entity.NopAiRequirement"
+                <to-many displayName="需求列表" name="requirements" refEntityName="io.nop.ai.dao.entity.NopAiRequirement"
                          refPropName="project">
                     <join>
                         <on leftProp="id" rightProp="projectId"/>
                     </join>
                 </to-many>
-                <to-many displayName="生成文件" name="generatedFiles" refEntityName="nop.ai.dao.entity.NopAiGenFile"
+                <to-many displayName="生成文件" name="generatedFiles" refEntityName="io.nop.ai.dao.entity.NopAiGenFile"
                          refPropName="project">
                     <join>
                         <on leftProp="id" rightProp="projectId"/>
@@ -119,8 +119,8 @@
                 </to-many>
             </relations>
         </entity>
-        <entity className="nop.ai.dao.entity.NopAiProjectRule" displayName="项目规则"
-                name="nop.ai.dao.entity.NopAiProjectRule" registerShortName="true" tableName="nop_ai_project_rule">
+        <entity className="io.nop.ai.dao.entity.NopAiProjectRule" displayName="项目规则"
+                name="io.nop.ai.dao.entity.NopAiProjectRule" registerShortName="true" tableName="nop_ai_project_rule">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -146,14 +146,14 @@
             </columns>
             <comment>存储项目规则配置</comment>
             <relations>
-                <to-one name="project" refDisplayName="项目规则" refEntityName="nop.ai.dao.entity.NopAiProject"
+                <to-one name="project" refDisplayName="项目规则" refEntityName="io.nop.ai.dao.entity.NopAiProject"
                         refPropName="projectRules">
                     <join>
                         <on leftProp="projectId" rightProp="id"/>
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-one name="knowledge" refDisplayName="关联规则" refEntityName="nop.ai.dao.entity.NopAiKnowledge"
+                <to-one name="knowledge" refDisplayName="关联规则" refEntityName="io.nop.ai.dao.entity.NopAiKnowledge"
                         refPropName="relatedRules">
                     <join>
                         <on leftProp="knowledgeId" rightProp="id"/>
@@ -162,8 +162,8 @@
                 </to-one>
             </relations>
         </entity>
-        <entity className="nop.ai.dao.entity.NopAiProjectConfig" displayName="项目配置"
-                name="nop.ai.dao.entity.NopAiProjectConfig" registerShortName="true" tableName="nop_ai_project_config">
+        <entity className="io.nop.ai.dao.entity.NopAiProjectConfig" displayName="项目配置"
+                name="io.nop.ai.dao.entity.NopAiProjectConfig" registerShortName="true" tableName="nop_ai_project_config">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -179,7 +179,7 @@
             </columns>
             <comment>项目级配置项管理</comment>
             <relations>
-                <to-one name="project" refDisplayName="配置项" refEntityName="nop.ai.dao.entity.NopAiProject"
+                <to-one name="project" refDisplayName="配置项" refEntityName="io.nop.ai.dao.entity.NopAiProject"
                         refPropName="configs">
                     <join>
                         <on leftProp="projectId" rightProp="id"/>
@@ -188,7 +188,7 @@
                 </to-one>
             </relations>
         </entity>
-        <entity className="nop.ai.dao.entity.NopAiModel" displayName="AI模型" name="nop.ai.dao.entity.NopAiModel"
+        <entity className="io.nop.ai.dao.entity.NopAiModel" displayName="AI模型" name="io.nop.ai.dao.entity.NopAiModel"
                 registerShortName="true" tableName="nop_ai_model">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
@@ -206,7 +206,7 @@
             </columns>
             <comment>第三方AI模型注册信息</comment>
             <relations>
-                <to-many displayName="调用记录" name="responses" refEntityName="nop.ai.dao.entity.NopAiChatResponse"
+                <to-many displayName="调用记录" name="responses" refEntityName="io.nop.ai.dao.entity.NopAiChatResponse"
                          refPropName="model">
                     <join>
                         <on leftProp="id" rightProp="modelId"/>
@@ -214,8 +214,8 @@
                 </to-many>
             </relations>
         </entity>
-        <entity className="nop.ai.dao.entity.NopAiRequirement" displayName="需求条目"
-                name="nop.ai.dao.entity.NopAiRequirement" registerShortName="true" tableName="nop_ai_requirement">
+        <entity className="io.nop.ai.dao.entity.NopAiRequirement" displayName="需求条目"
+                name="io.nop.ai.dao.entity.NopAiRequirement" registerShortName="true" tableName="nop_ai_requirement">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -242,39 +242,39 @@
             </columns>
             <comment>结构化需求管理</comment>
             <relations>
-                <to-one name="project" refDisplayName="需求列表" refEntityName="nop.ai.dao.entity.NopAiProject"
+                <to-one name="project" refDisplayName="需求列表" refEntityName="io.nop.ai.dao.entity.NopAiProject"
                         refPropName="requirements">
                     <join>
                         <on leftProp="projectId" rightProp="id"/>
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-one name="parent" refDisplayName="子需求" refEntityName="nop.ai.dao.entity.NopAiRequirement"
+                <to-one name="parent" refDisplayName="子需求" refEntityName="io.nop.ai.dao.entity.NopAiRequirement"
                         refPropName="children">
                     <join>
                         <on leftProp="parentId" rightProp="id"/>
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-many displayName="子需求" name="children" refEntityName="nop.ai.dao.entity.NopAiRequirement"
+                <to-many displayName="子需求" name="children" refEntityName="io.nop.ai.dao.entity.NopAiRequirement"
                          refPropName="parent">
                     <join>
                         <on leftProp="id" rightProp="parentId"/>
                     </join>
                 </to-many>
                 <to-many displayName="历史版本" name="historyRecords"
-                         refEntityName="nop.ai.dao.entity.NopAiRequirementHistory" refPropName="requirement">
+                         refEntityName="io.nop.ai.dao.entity.NopAiRequirementHistory" refPropName="requirement">
                     <join>
                         <on leftProp="id" rightProp="requirementId"/>
                     </join>
                 </to-many>
-                <to-many displayName="关联文件" name="generatedFiles" refEntityName="nop.ai.dao.entity.NopAiGenFile"
+                <to-many displayName="关联文件" name="generatedFiles" refEntityName="io.nop.ai.dao.entity.NopAiGenFile"
                          refPropName="requirement">
                     <join>
                         <on leftProp="id" rightProp="requirementId"/>
                     </join>
                 </to-many>
-                <to-many displayName="测试用例" name="testCases" refEntityName="nop.ai.dao.entity.NopAiTestCase"
+                <to-many displayName="测试用例" name="testCases" refEntityName="io.nop.ai.dao.entity.NopAiTestCase"
                          refPropName="requirement">
                     <join>
                         <on leftProp="id" rightProp="requirementId"/>
@@ -282,8 +282,8 @@
                 </to-many>
             </relations>
         </entity>
-        <entity className="nop.ai.dao.entity.NopAiRequirementHistory" displayName="需求历史"
-                name="nop.ai.dao.entity.NopAiRequirementHistory" registerShortName="true"
+        <entity className="io.nop.ai.dao.entity.NopAiRequirementHistory" displayName="需求历史"
+                name="io.nop.ai.dao.entity.NopAiRequirementHistory" registerShortName="true"
                 tableName="nop_ai_requirement_history">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
@@ -298,7 +298,7 @@
             </columns>
             <comment>需求变更版本记录</comment>
             <relations>
-                <to-one name="requirement" refDisplayName="历史版本" refEntityName="nop.ai.dao.entity.NopAiRequirement"
+                <to-one name="requirement" refDisplayName="历史版本" refEntityName="io.nop.ai.dao.entity.NopAiRequirement"
                         refPropName="historyRecords">
                     <join>
                         <on leftProp="requirementId" rightProp="id"/>
@@ -307,8 +307,8 @@
                 </to-one>
             </relations>
         </entity>
-        <entity className="nop.ai.dao.entity.NopAiKnowledge" displayName="知识库"
-                name="nop.ai.dao.entity.NopAiKnowledge"
+        <entity className="io.nop.ai.dao.entity.NopAiKnowledge" displayName="知识库"
+                name="io.nop.ai.dao.entity.NopAiKnowledge"
                 registerShortName="true" tableName="nop_ai_knowledge">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
@@ -323,7 +323,7 @@
             </columns>
             <comment>领域知识文档存储</comment>
             <relations>
-                <to-many displayName="关联规则" name="relatedRules" refEntityName="nop.ai.dao.entity.NopAiProjectRule"
+                <to-many displayName="关联规则" name="relatedRules" refEntityName="io.nop.ai.dao.entity.NopAiProjectRule"
                          refPropName="knowledge">
                     <join>
                         <on leftProp="id" rightProp="knowledgeId"/>
@@ -331,8 +331,8 @@
                 </to-many>
             </relations>
         </entity>
-        <entity className="nop.ai.dao.entity.NopAiPromptTemplate" displayName="提示词模板"
-                name="nop.ai.dao.entity.NopAiPromptTemplate" registerShortName="true"
+        <entity className="io.nop.ai.dao.entity.NopAiPromptTemplate" displayName="提示词模板"
+                name="io.nop.ai.dao.entity.NopAiPromptTemplate" registerShortName="true"
                 tableName="nop_ai_prompt_template">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
@@ -354,12 +354,12 @@
             <comment>AI提示词模板定义</comment>
             <relations>
                 <to-many displayName="历史版本" name="historyRecords"
-                         refEntityName="nop.ai.dao.entity.NopAiPromptTemplateHistory" refPropName="template">
+                         refEntityName="io.nop.ai.dao.entity.NopAiPromptTemplateHistory" refPropName="template">
                     <join>
                         <on leftProp="id" rightProp="templateId"/>
                     </join>
                 </to-many>
-                <to-many displayName="测试请求" name="requests" refEntityName="nop.ai.dao.entity.NopAiChatRequest"
+                <to-many displayName="测试请求" name="requests" refEntityName="io.nop.ai.dao.entity.NopAiChatRequest"
                          refPropName="template">
                     <join>
                         <on leftProp="id" rightProp="templateId"/>
@@ -367,8 +367,8 @@
                 </to-many>
             </relations>
         </entity>
-        <entity className="nop.ai.dao.entity.NopAiPromptTemplateHistory" displayName="模板历史"
-                name="nop.ai.dao.entity.NopAiPromptTemplateHistory" registerShortName="true"
+        <entity className="io.nop.ai.dao.entity.NopAiPromptTemplateHistory" displayName="模板历史"
+                name="io.nop.ai.dao.entity.NopAiPromptTemplateHistory" registerShortName="true"
                 tableName="nop_ai_prompt_template_history">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
@@ -383,7 +383,7 @@
             </columns>
             <comment>提示词模板版本记录</comment>
             <relations>
-                <to-one name="template" refDisplayName="历史版本" refEntityName="nop.ai.dao.entity.NopAiPromptTemplate"
+                <to-one name="template" refDisplayName="历史版本" refEntityName="io.nop.ai.dao.entity.NopAiPromptTemplate"
                         refPropName="historyRecords">
                     <join>
                         <on leftProp="templateId" rightProp="id"/>
@@ -392,8 +392,8 @@
                 </to-one>
             </relations>
         </entity>
-        <entity className="nop.ai.dao.entity.NopAiChatRequest" displayName="对话请求"
-                name="nop.ai.dao.entity.NopAiChatRequest" registerShortName="true" tableName="nop_ai_chat_request">
+        <entity className="io.nop.ai.dao.entity.NopAiChatRequest" displayName="对话请求"
+                name="io.nop.ai.dao.entity.NopAiChatRequest" registerShortName="true" tableName="nop_ai_chat_request">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -418,14 +418,14 @@
             </columns>
             <comment>多模型测试请求记录</comment>
             <relations>
-                <to-one name="template" refDisplayName="测试请求" refEntityName="nop.ai.dao.entity.NopAiPromptTemplate"
+                <to-one name="template" refDisplayName="测试请求" refEntityName="io.nop.ai.dao.entity.NopAiPromptTemplate"
                         refPropName="requests">
                     <join>
                         <on leftProp="templateId" rightProp="id"/>
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-many displayName="响应列表" name="responses" refEntityName="nop.ai.dao.entity.NopAiChatResponse"
+                <to-many displayName="响应列表" name="responses" refEntityName="io.nop.ai.dao.entity.NopAiChatResponse"
                          refPropName="request">
                     <join>
                         <on leftProp="id" rightProp="requestId"/>
@@ -433,8 +433,8 @@
                 </to-many>
             </relations>
         </entity>
-        <entity className="nop.ai.dao.entity.NopAiChatResponse" displayName="响应结果"
-                name="nop.ai.dao.entity.NopAiChatResponse" registerShortName="true" tableName="nop_ai_chat_response">
+        <entity className="io.nop.ai.dao.entity.NopAiChatResponse" displayName="响应结果"
+                name="io.nop.ai.dao.entity.NopAiChatResponse" registerShortName="true" tableName="nop_ai_chat_response">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -476,27 +476,27 @@
             </columns>
             <comment>AI模型响应记录</comment>
             <relations>
-                <to-one name="request" refDisplayName="响应列表" refEntityName="nop.ai.dao.entity.NopAiChatRequest"
+                <to-one name="request" refDisplayName="响应列表" refEntityName="io.nop.ai.dao.entity.NopAiChatRequest"
                         refPropName="responses">
                     <join>
                         <on leftProp="requestId" rightProp="id"/>
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-one name="model" refDisplayName="调用记录" refEntityName="nop.ai.dao.entity.NopAiModel"
+                <to-one name="model" refDisplayName="调用记录" refEntityName="io.nop.ai.dao.entity.NopAiModel"
                         refPropName="responses">
                     <join>
                         <on leftProp="modelId" rightProp="id"/>
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-many displayName="生成产物" name="generatedFiles" refEntityName="nop.ai.dao.entity.NopAiGenFile"
+                <to-many displayName="生成产物" name="generatedFiles" refEntityName="io.nop.ai.dao.entity.NopAiGenFile"
                          refPropName="chatResponse">
                     <join>
                         <on leftProp="id" rightProp="chatResponseId"/>
                     </join>
                 </to-many>
-                <to-many displayName="生成用例" name="testCases" refEntityName="nop.ai.dao.entity.NopAiTestCase"
+                <to-many displayName="生成用例" name="testCases" refEntityName="io.nop.ai.dao.entity.NopAiTestCase"
                          refPropName="chatResponse">
                     <join>
                         <on leftProp="id" rightProp="chatResponseId"/>
@@ -504,7 +504,7 @@
                 </to-many>
             </relations>
         </entity>
-        <entity className="nop.ai.dao.entity.NopAiGenFile" displayName="生成文件" name="nop.ai.dao.entity.NopAiGenFile"
+        <entity className="io.nop.ai.dao.entity.NopAiGenFile" displayName="生成文件" name="io.nop.ai.dao.entity.NopAiGenFile"
                 registerShortName="true" tableName="nop_ai_gen_file">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
@@ -528,14 +528,14 @@
             </columns>
             <comment>AI生成的DSL模型文件</comment>
             <relations>
-                <to-one name="project" refDisplayName="生成文件" refEntityName="nop.ai.dao.entity.NopAiProject"
+                <to-one name="project" refDisplayName="生成文件" refEntityName="io.nop.ai.dao.entity.NopAiProject"
                         refPropName="generatedFiles">
                     <join>
                         <on leftProp="projectId" rightProp="id"/>
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-one name="requirement" refDisplayName="关联文件" refEntityName="nop.ai.dao.entity.NopAiRequirement"
+                <to-one name="requirement" refDisplayName="关联文件" refEntityName="io.nop.ai.dao.entity.NopAiRequirement"
                         refPropName="generatedFiles">
                     <join>
                         <on leftProp="requirementId" rightProp="id"/>
@@ -543,7 +543,7 @@
                     <ref-set/>
                 </to-one>
                 <to-one name="chatResponse" refDisplayName="生成产物"
-                        refEntityName="nop.ai.dao.entity.NopAiChatResponse"
+                        refEntityName="io.nop.ai.dao.entity.NopAiChatResponse"
                         refPropName="generatedFiles">
                     <join>
                         <on leftProp="chatResponseId" rightProp="id"/>
@@ -551,13 +551,13 @@
                     <ref-set/>
                 </to-one>
                 <to-many displayName="历史版本" name="historyRecords"
-                         refEntityName="nop.ai.dao.entity.NopAiGenFileHistory"
+                         refEntityName="io.nop.ai.dao.entity.NopAiGenFileHistory"
                          refPropName="genFile">
                     <join>
                         <on leftProp="id" rightProp="genFileId"/>
                     </join>
                 </to-many>
-                <to-many displayName="测试用例" name="testCases" refEntityName="nop.ai.dao.entity.NopAiTestCase"
+                <to-many displayName="测试用例" name="testCases" refEntityName="io.nop.ai.dao.entity.NopAiTestCase"
                          refPropName="genFile">
                     <join>
                         <on leftProp="id" rightProp="genFileId"/>
@@ -565,8 +565,8 @@
                 </to-many>
             </relations>
         </entity>
-        <entity className="nop.ai.dao.entity.NopAiGenFileHistory" displayName="文件历史"
-                name="nop.ai.dao.entity.NopAiGenFileHistory" registerShortName="true"
+        <entity className="io.nop.ai.dao.entity.NopAiGenFileHistory" displayName="文件历史"
+                name="io.nop.ai.dao.entity.NopAiGenFileHistory" registerShortName="true"
                 tableName="nop_ai_gen_file_history">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
@@ -580,7 +580,7 @@
             </columns>
             <comment>生成文件版本记录</comment>
             <relations>
-                <to-one name="genFile" refDisplayName="历史版本" refEntityName="nop.ai.dao.entity.NopAiGenFile"
+                <to-one name="genFile" refDisplayName="历史版本" refEntityName="io.nop.ai.dao.entity.NopAiGenFile"
                         refPropName="historyRecords">
                     <join>
                         <on leftProp="genFileId" rightProp="id"/>
@@ -589,8 +589,8 @@
                 </to-one>
             </relations>
         </entity>
-        <entity className="nop.ai.dao.entity.NopAiTestCase" displayName="测试用例"
-                name="nop.ai.dao.entity.NopAiTestCase"
+        <entity className="io.nop.ai.dao.entity.NopAiTestCase" displayName="测试用例"
+                name="io.nop.ai.dao.entity.NopAiTestCase"
                 registerShortName="true" tableName="nop_ai_test_case">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
@@ -610,14 +610,14 @@
             </columns>
             <comment>生成的测试用例</comment>
             <relations>
-                <to-one name="requirement" refDisplayName="测试用例" refEntityName="nop.ai.dao.entity.NopAiRequirement"
+                <to-one name="requirement" refDisplayName="测试用例" refEntityName="io.nop.ai.dao.entity.NopAiRequirement"
                         refPropName="testCases">
                     <join>
                         <on leftProp="requirementId" rightProp="id"/>
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-one name="genFile" refDisplayName="测试用例" refEntityName="nop.ai.dao.entity.NopAiGenFile"
+                <to-one name="genFile" refDisplayName="测试用例" refEntityName="io.nop.ai.dao.entity.NopAiGenFile"
                         refPropName="testCases">
                     <join>
                         <on leftProp="genFileId" rightProp="id"/>
@@ -625,14 +625,14 @@
                     <ref-set/>
                 </to-one>
                 <to-one name="chatResponse" refDisplayName="生成用例"
-                        refEntityName="nop.ai.dao.entity.NopAiChatResponse"
+                        refEntityName="io.nop.ai.dao.entity.NopAiChatResponse"
                         refPropName="testCases">
                     <join>
                         <on leftProp="chatResponseId" rightProp="id"/>
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-many displayName="执行结果" name="testResults" refEntityName="nop.ai.dao.entity.NopAiTestResult"
+                <to-many displayName="执行结果" name="testResults" refEntityName="io.nop.ai.dao.entity.NopAiTestResult"
                          refPropName="testCase">
                     <join>
                         <on leftProp="id" rightProp="testCaseId"/>
@@ -640,8 +640,8 @@
                 </to-many>
             </relations>
         </entity>
-        <entity className="nop.ai.dao.entity.NopAiTestResult" displayName="测试结果"
-                name="nop.ai.dao.entity.NopAiTestResult" registerShortName="true" tableName="nop_ai_test_result">
+        <entity className="io.nop.ai.dao.entity.NopAiTestResult" displayName="测试结果"
+                name="io.nop.ai.dao.entity.NopAiTestResult" registerShortName="true" tableName="nop_ai_test_result">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
@@ -656,7 +656,7 @@
             </columns>
             <comment>测试用例执行结果</comment>
             <relations>
-                <to-one name="testCase" refDisplayName="执行结果" refEntityName="nop.ai.dao.entity.NopAiTestCase"
+                <to-one name="testCase" refDisplayName="执行结果" refEntityName="io.nop.ai.dao.entity.NopAiTestCase"
                         refPropName="testResults">
                     <join>
                         <on leftProp="testCaseId" rightProp="id"/>

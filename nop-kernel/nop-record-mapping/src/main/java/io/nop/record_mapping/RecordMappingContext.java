@@ -7,6 +7,8 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.xlang.api.XLang;
 
 import static io.nop.record_mapping.RecordMappingConstants.VAR_ROOT_RECORD;
+import static io.nop.record_mapping.RecordMappingConstants.VAR_SOURCE_ROOT;
+import static io.nop.record_mapping.RecordMappingConstants.VAR_TARGET_ROOT;
 
 public class RecordMappingContext implements IEvalContext {
     private final IEvalScope scope;
@@ -52,6 +54,7 @@ public class RecordMappingContext implements IEvalContext {
 
     public void setSourceRoot(Object sourceRoot) {
         this.sourceRoot = sourceRoot;
+        this.scope.setLocalValue(VAR_SOURCE_ROOT, sourceRoot);
     }
 
     public Object getSourceParent() {
@@ -69,6 +72,7 @@ public class RecordMappingContext implements IEvalContext {
     public void setTargetRoot(Object targetRoot) {
         this.targetRoot = targetRoot;
         this.scope.setLocalValue(VAR_ROOT_RECORD, targetRoot);
+        this.scope.setLocalValue(VAR_TARGET_ROOT, targetRoot);
     }
 
     public Object getTargetParent() {
