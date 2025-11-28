@@ -33,7 +33,7 @@ Here are some concrete examples of data-driven approaches:
 
 In a sense, all programs are data-driven, because binary code is indeed a kind of data that drives a general Turing machine to perform all possible computations (Turing-complete). Generally, however, when we say data-driven, we mean using some custom form of data to drive specific business logic (a computational model that can only solve certain domain-specific problems), rather than driving a general Turing machine computational model. Whenever we implicitly define a specific computational model through a set of functions—one that executes different logic based on input parameter data—and that set of parameter data can be understood independently of our functions (constituting some semantic independence and completeness), we have effectively introduced a new data-driven approach. In everyday development, we target the general Turing machine model, so we simply don’t call it data-driven.
 
-In other words, `数据驱动 = 领域驱动 = 元数据驱动 = 模型驱动 = DSL`: these concepts are fundamentally the same—they boil down to establishing a specific, non-general logical model within a particular domain.
+In other words, `DataDriven = DomainDriven = MetaDataDriven = ModelDriven = DSL`: these concepts are fundamentally the same—they boil down to establishing a specific, non-general logical model within a particular domain.
 
 However, in practice, these concepts emphasize different aspects:
 
@@ -49,26 +49,19 @@ However, in practice, these concepts emphasize different aspects:
 
 ## III. Data-driven in the Nop platform
 
-The Nop platform systematically applies the principle of Reversible Computation, that is, by leveraging the general computational pattern $Y=F(X)+Delta$, it transforms a large number of problems into ones defined and solved with DSLs.
+The Nop platform systematically applies the principle of Reversible Computation, that is, by leveraging the general computational pattern Y=F(X)+Δ, it transforms a large number of problems into ones defined and solved with DSLs.
 
-$$
-\DeclareMathOperator{\extends}{\mathcal{x-extends}}
-App = Delta \extends Generator\langle DSL\rangle
-$$
+App = Δ ⊕ Generator⟨DSL⟩
 
 What the Nop platform provides is a programming paradigm known as Language Oriented Programming: before solving business problems, we first define a DSL for the current business domain, and then use that DSL to solve the business problems.
 
 The design in the Nop platform is not aimed at a single DSL dedicated to low-code, but instead systematically provides a way to create new DSLs and a technical approach to seamlessly fuse different DSLs.
 
-$$
-\begin{aligned}
-& \text{// Horizontal decomposition, producing multiple $DSL$} \\
-App &= Delta +  G_1\langle DSL_1\rangle + G_2\langle DSL_2\rangle + ... \\
-\\
-&\text{// Deep decomposition, producing multiple $DSL$} \\
-App &= Delta + G_1\langle Delta_2 + G_2\langle Delta_3 + G_3\langle DSL_3\rangle\rangle\rangle
-\end{aligned}
-$$
+// Horizontal decomposition, producing multiple DSL
+App = Δ ⊕  G₁⟨DSL₁⟩ ⊕ G₂⟨DSL₂⟩ + ...
+
+// Deep decomposition, producing multiple DSL
+App = Δ ⊕ G₁⟨Δ₂ ⊕ G₂⟨Δ₃ ⊕ G₃⟨DSL₃⟩⟩⟩
 
 A large number of DSLs form a DSL forest that collaborates to solve problems.
 
