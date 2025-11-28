@@ -40,6 +40,10 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
         this.tool = RecordMappingTool.DEFAULT;
     }
 
+    public Object parseMarkdown(MarkdownSection doc) {
+        return map(doc, new RecordMappingContext());
+    }
+
     @Override
     public Object newTarget() {
         return mapping.newTarget();

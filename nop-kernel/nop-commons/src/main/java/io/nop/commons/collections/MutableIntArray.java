@@ -165,6 +165,10 @@ public class MutableIntArray implements IntArray {
         return get(size - 1);
     }
 
+    public void setLast(int value) {
+        set(size - 1, value);
+    }
+
     public int get(int index) {
         if (index >= size)
             throw new IndexOutOfBoundsException(String.valueOf(index));

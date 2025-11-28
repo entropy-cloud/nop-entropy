@@ -1,6 +1,7 @@
 package io.nop.record_mapping.md;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.mutable.MutableBoolean;
 import io.nop.commons.text.SourceCodeBlock;
 import io.nop.commons.util.StringHelper;
@@ -42,19 +43,21 @@ public class MappingBasedMarkdownGenerator implements ITextTemplateOutput {
 
     @Override
     public void generateToWriter(Writer out, IEvalContext context) throws IOException {
-        generateObject(out, obj, mapping, 0);
+        // 使用MutableIntArray记录嵌套层次，初始化为空数组
+        MutableIntArray levelCounters = new MutableIntArray();
+        generateObject(out, obj, mapping, levelCounters);
     }
 
     /**
      * 核心方法：将对象生成为Markdown章节
      *
-     * @param out     输出流
-     * @param obj     数据对象
-     * @param mapping 映射配置
-     * @param level   标题层级（0=顶级，1=二级标题##）
+     * @param out           输出流
+     * @param obj           数据对象
+     * @param mapping       映射配置
+     * @param levelCounters 标题层级计数器数组
      */
     private void generateObject(Writer out, Object obj,
-                                RecordMappingConfig mapping, int level) {
+                                RecordMappingConfig mapping, MutableIntArray levelCounters) {
         tool.executeForObject(mapping, obj, out, ctx, () -> {
             try {
                 Set<String> processedFields = new HashSet<>();
@@ -63,14 +66,14 @@ public class MappingBasedMarkdownGenerator implements ITextTemplateOutput {
                 RecordFieldMappingConfig titleField = getTitleField(mapping);
                 if (titleField != null) {
                     processedFields.add(titleField.getName());
-                    writeHeader(out, level, getObjProp(titleField, obj, out));
+                    writeHeader(out, levelCounters, getObjProp(titleField, obj, out));
                 }
 
                 // 2. 先处理所有列表项字段
                 boolean hasListItems = generateListItemFields(out, obj, mapping, processedFields);
 
                 // 3. 再处理所有子章节字段
-                boolean hasSections = generateSectionFields(out, obj, mapping, level, processedFields);
+                boolean hasSections = generateSectionFields(out, obj, mapping, levelCounters, processedFields);
 
                 // 4. 格式化：添加适当的空行
                 if (hasListItems || hasSections) {
@@ -126,47 +129,56 @@ public class MappingBasedMarkdownGenerator implements ITextTemplateOutput {
      * 生成子章节字段（复杂结构）
      */
     private boolean generateSectionFields(Writer out, Object obj,
-                                          RecordMappingConfig mapping, int level,
+                                          RecordMappingConfig mapping, MutableIntArray levelCounters,
                                           Set<String> processedFields) throws IOException {
         MutableBoolean hasSections = new MutableBoolean();
 
-        for (RecordFieldMappingConfig field : mapping.getFields()) {
-            String fieldName = field.getName();
-            if (processedFields.contains(field.getName()))
-                continue;
+        levelCounters.add(0);
 
-            String format = (String) field.prop_get(VAR_MD_FORMAT);
+        try {
+            for (RecordFieldMappingConfig field : mapping.getFields()) {
+                String fieldName = field.getName();
+                if (processedFields.contains(field.getName()))
+                    continue;
 
-            tool.executeForField(mapping, field, obj, out, ctx, f -> {
+                String format = (String) field.prop_get(VAR_MD_FORMAT);
 
-                Object value = getObjProp(field, obj, out);
+                tool.executeForField(mapping, field, obj, out, ctx, f -> {
 
-                hasSections.set(true);
-                try {
-                    writeHeader(out, level + 1, encodeKey(fieldName));
+                    Object value = getObjProp(field, obj, out);
 
-                    // 即使没有值section也要写一个header
-                    if (value == null)
-                        return;
+                    hasSections.set(true);
+                    // 为子章节增加层级计数
+                    levelCounters.setLast(levelCounters.last() + 1); // 新层级从1开始
 
-                    if (FORMAT_TABLE.equals(format) && field.getResolvedItemMapping() != null) {
-                        // 表格 → 子章节
-                        generateTable(out, field.getResolvedItemMapping(), value);
-                    } else if (FORMAT_CODE.equals(format)) {
-                        // 代码块 → 子章节
-                        generateCodeBlock(out, value);
-                    } else if (field.getResolvedMapping() != null) {
-                        // 嵌套对象 → 子章节
-                        generateObject(out, value, field.getResolvedMapping(), level + 1);
-                    } else if (field.getResolvedItemMapping() != null) {
-                        // 对象列表 → 子章节列表
-                        generateListAsSections(out, field.getResolvedItemMapping(), (List<Object>) value, level + 1);
+                    try {
+                        writeHeader(out, levelCounters, encodeKey(fieldName));
+
+                        // 即使没有值section也要写一个header
+                        if (value == null) {
+                            return;
+                        }
+
+                        if (FORMAT_TABLE.equals(format) && field.getResolvedItemMapping() != null) {
+                            // 表格 → 子章节
+                            generateTable(out, field.getResolvedItemMapping(), value);
+                        } else if (FORMAT_CODE.equals(format)) {
+                            // 代码块 → 子章节
+                            generateCodeBlock(out, value);
+                        } else if (field.getResolvedMapping() != null) {
+                            // 嵌套对象 → 子章节
+                            generateObject(out, value, field.getResolvedMapping(), levelCounters);
+                        } else if (field.getResolvedItemMapping() != null) {
+                            // 对象列表 → 子章节列表
+                            generateListAsSections(out, field.getResolvedItemMapping(), (List<Object>) value, levelCounters);
+                        }
+                    } catch (IOException e) {
+                        throw NopException.adapt(e);
                     }
-                } catch (IOException e) {
-                    throw NopException.adapt(e);
-                }
-            });
-
+                });
+            }
+        }finally {
+            levelCounters.pop();
         }
 
         return hasSections.get();
@@ -187,12 +199,19 @@ public class MappingBasedMarkdownGenerator implements ITextTemplateOutput {
      * 生成对象列表作为子章节
      */
     private void generateListAsSections(Writer out, RecordMappingConfig itemMapping,
-                                        List<Object> list, int level) throws IOException {
+                                        List<Object> list, MutableIntArray levelCounters) throws IOException {
         if (list == null || list.isEmpty()) return;
 
-        for (int i = 0; i < list.size(); i++) {
-            Object item = list.get(i);
-            generateObject(out, item, itemMapping, level);
+        levelCounters.add(0);
+        try {
+            for (int i = 0; i < list.size(); i++) {
+                Object item = list.get(i);
+                // 为列表中的每个项目设置序号（替换最后一个层级的计数）
+                levelCounters.set(levelCounters.size() - 1, i + 1);
+                generateObject(out, item, itemMapping, levelCounters);
+            }
+        } finally {
+            levelCounters.pop();
         }
     }
 
@@ -248,9 +267,27 @@ public class MappingBasedMarkdownGenerator implements ITextTemplateOutput {
     /**
      * 写入章节标题
      */
-    private void writeHeader(Writer out, int level, Object text) throws IOException {
-        // level=0 → # 一级标题，level=1 → ## 二级标题
-        out.write("#".repeat(Math.max(1, level + 1)) + " " + encodeKey(StringHelper.toString(text, null)) + "\n\n");
+    private void writeHeader(Writer out, MutableIntArray levelCounters, Object text) throws IOException {
+        // 第一层不用标号，从第二层开始使用数字标号
+        StringBuilder headerBuilder = new StringBuilder();
+
+        // 添加标题标记
+        headerBuilder.append("#".repeat(levelCounters.size() + 1));
+        headerBuilder.append(" ");
+
+        // 从第二层开始添加数字标号
+        if (!levelCounters.isEmpty()) {
+            for (int i = 0; i < levelCounters.size(); i++) {
+                if (i > 0) headerBuilder.append(".");
+                headerBuilder.append(levelCounters.get(i));
+            }
+            headerBuilder.append(" ");
+        }
+
+        headerBuilder.append(encodeKey(StringHelper.toString(text, null)));
+        headerBuilder.append("\n\n");
+
+        out.write(headerBuilder.toString());
     }
 
     /**
