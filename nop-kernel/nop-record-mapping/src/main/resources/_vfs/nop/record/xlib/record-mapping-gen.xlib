@@ -29,18 +29,29 @@
                       }
                       return null;
                    }
+
+                   function reverseTitleField(mapping){
+                      const titleField = mapping.attrText('md:titleField');
+                      if(!titleField)
+                         return null;
+                      const fields = mapping.childByTag('fields');
+                      const field = fields.childByAttr('name',titleField);
+                      return field?.attrText('from');
+                   }
                </c:script>
 
                <definitions>
                   <c:for var="mapping" items="${mappingMap.values()}">
-                   <mapping name="${reverseMappingName(mapping.attrText('name'))}">
+                   <mapping name="${reverseMappingName(mapping.attrText('name'))}"
+                        md:titleField="${reverseTitleField(mapping)}" >
                        <fields>
                            <c:for var="field" items="${mapping.childByTag('fields').children}">
-                               <field name="${field.attrText('from') || field.attrText('displayName')}"
+                               <!-- 当from不为空的时候生成反向字段映射 -->
+                               <field name="${field.attrText('from')}" xpl:if="field.attrText('from')"
                                       type="${field.attrText('type')}" mandatory="${field.attrText('mandatory')}"
                                       from="${field.attrText('name')}" displayName="${field.attrText('displayName')}"
                                       mapping="${reverseMappingName(field.attrText('mapping'))}"
-                                      optional="${field.attrText('optional')}"
+                                      optional="${field.attrText('optional')}" md:format="${field.attrText('md:format')}"
                                       itemMapping="${reverseMappingName(field.attrText('itemMapping'))}">
                                    <c:out value="${field.childByTag('schema')}" escape="none"/>
                                </field>

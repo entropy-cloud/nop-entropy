@@ -53,6 +53,12 @@ public class RecordMappingConfig extends _RecordMappingConfig {
 
             if (field.getFrom() != null)
                 this.fromFields.putIfAbsent(field.getFrom(), field);
+
+            if (field.getAlias() != null) {
+                for (String alias : field.getAlias()) {
+                    this.fromFields.putIfAbsent(alias, field);
+                }
+            }
         }
     }
 

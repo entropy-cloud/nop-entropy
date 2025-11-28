@@ -6,9 +6,7 @@ import io.nop.core.CoreConfigs;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.unittest.BaseTestCase;
-import io.nop.record_mapping.IRecordMapping;
 import io.nop.record_mapping.IRecordMappingManager;
-import io.nop.record_mapping.RecordMappingContext;
 import io.nop.record_mapping.impl.RecordMappingManagerImpl;
 import io.nop.record_mapping.md.MappingBasedMarkdownGenerator;
 import io.nop.record_mapping.model.RecordMappingConfig;
@@ -34,16 +32,14 @@ public class TestMappingBasedMarkdownParser extends BaseTestCase {
     }
 
     @Test
-    public void testSerialize() {
+    public void testGenerator() {
+        forceStackTrace();
         IRecordMappingManager mappingManager = new RecordMappingManagerImpl();
 
         Object bean = ResourceComponentManager.instance().loadComponentModel("/test/demo.orm.xml");
 
-        IRecordMapping mapping = mappingManager.getRecordMapping("orm.OrmModel_to_Md");
-        Object md = mapping.map(bean, new RecordMappingContext());
-
-        RecordMappingConfig config = mappingManager.getRecordMappingConfig("orm.Md_to_OrmModel");
-        String text = new MappingBasedMarkdownGenerator(config, md).generateText(XLang.newEvalScope());
+        RecordMappingConfig config = mappingManager.getRecordMappingConfig("orm.OrmModel_to_Md");
+        String text = new MappingBasedMarkdownGenerator(config, bean).generateText(XLang.newEvalScope());
         System.out.println(text);
 
         FileHelper.writeText(getTargetFile("test/demo.orm.md"), text, null);
