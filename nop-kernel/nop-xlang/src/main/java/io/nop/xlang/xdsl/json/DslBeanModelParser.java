@@ -20,6 +20,7 @@ import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdef.impl.XDefComment;
 
 import java.util.List;
+import java.util.Map;
 
 public class DslBeanModelParser extends DslXNodeToJsonTransformer {
 
@@ -69,8 +70,15 @@ public class DslBeanModelParser extends DslXNodeToJsonTransformer {
             try {
                 IXDefAttribute attr = defNode.getAttribute(name);
                 if (attr == null) {
-                    if (beanModel.isAllowSetExtProperty())
-                        beanModel.setProperty(obj, name, vl.getValue());
+                    if (defNode.getXdefUnknownAttr() != null && defNode.getXdefBeanUnknownAttrsProp()!=null) {
+                        Object value = parseValue(vl, name, defNode.getXdefUnknownAttr());
+                        String propName = defNode.getXdefBeanUnknownAttrsProp();
+                        Map<String, Object> props = beanModel.getMapProperty(obj, propName);
+                        props.put(name, value);
+                    } else {
+                        if (beanModel.isAllowSetExtProperty())
+                            beanModel.setProperty(obj, name, vl.getValue());
+                    }
                 } else {
                     Object value = parseValue(vl, name, attr.getType());
                     String propName = attr.getPropName();

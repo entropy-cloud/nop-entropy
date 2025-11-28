@@ -19,6 +19,7 @@ import io.nop.core.type.IGenericType;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -200,6 +201,21 @@ public interface IBeanModel extends IBeanCollectionAdapter {
                     propName);
         }
         return prop.getPropertyValue(obj, scope);
+    }
+
+    /** 获取 Map 类型属性的值，若该属性值为 null，则自动为其赋一个初值后再返回 */
+    default Map<String, Object> getMapProperty(Object obj, String propName) {
+        return getMapProperty(obj, propName, DisabledEvalScope.INSTANCE);
+    }
+
+    /** 获取 Map 类型属性的值，若该属性值为 null，则自动为其赋一个初值后再返回 */
+    default Map<String, Object> getMapProperty(Object obj, String propName, IEvalScope scope) {
+        Map<String, Object> value = (Map<String, Object>) getProperty(obj, propName, scope);
+        if (value == null) {
+            value = new LinkedHashMap<>();
+            setProperty(obj, propName, value, scope);
+        }
+        return value;
     }
 
     default Object makeProperty(Object obj, String propName, IEvalScope scope) {
