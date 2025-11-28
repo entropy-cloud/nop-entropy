@@ -73,7 +73,7 @@ public class DslBeanModelParser extends DslXNodeToJsonTransformer {
                     if (defNode.getXdefUnknownAttr() != null && defNode.getXdefBeanUnknownAttrsProp()!=null) {
                         Object value = parseValue(vl, name, defNode.getXdefUnknownAttr());
                         String propName = defNode.getXdefBeanUnknownAttrsProp();
-                        Map<String, Object> props = beanModel.getMapProperty(obj, propName);
+                        Map<String, Object> props = beanModel.makeMapProperty(obj, propName);
                         props.put(name, value);
                     } else {
                         if (beanModel.isAllowSetExtProperty())

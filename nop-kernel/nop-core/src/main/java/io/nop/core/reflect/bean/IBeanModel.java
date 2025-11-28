@@ -204,12 +204,12 @@ public interface IBeanModel extends IBeanCollectionAdapter {
     }
 
     /** 获取 Map 类型属性的值，若该属性值为 null，则自动为其赋一个初值后再返回 */
-    default Map<String, Object> getMapProperty(Object obj, String propName) {
-        return getMapProperty(obj, propName, DisabledEvalScope.INSTANCE);
+    default Map<String, Object> makeMapProperty(Object obj, String propName) {
+        return makeMapProperty(obj, propName, DisabledEvalScope.INSTANCE);
     }
 
     /** 获取 Map 类型属性的值，若该属性值为 null，则自动为其赋一个初值后再返回 */
-    default Map<String, Object> getMapProperty(Object obj, String propName, IEvalScope scope) {
+    default Map<String, Object> makeMapProperty(Object obj, String propName, IEvalScope scope) {
         Map<String, Object> value = (Map<String, Object>) getProperty(obj, propName, scope);
         if (value == null) {
             value = new LinkedHashMap<>();
