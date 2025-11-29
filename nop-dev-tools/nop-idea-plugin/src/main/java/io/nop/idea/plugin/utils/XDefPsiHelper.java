@@ -25,15 +25,15 @@ public class XDefPsiHelper {
     static final Logger LOG = LoggerFactory.getLogger(XDefPsiHelper.class);
 
     public static IXDefinition getXdefDef() {
-        return loadSchema(XDslConstants.XDSL_SCHEMA_XDEF);
+        return SchemaLoader.loadXDefinition(XDslConstants.XDSL_SCHEMA_XDEF);
     }
 
     public static IXDefinition getXDslDef() {
-        return loadSchema(XDslConstants.XDSL_SCHEMA_XDSL);
+        return SchemaLoader.loadXDefinition(XDslConstants.XDSL_SCHEMA_XDSL);
     }
 
     public static IXDefinition getXplDef() {
-        return loadSchema(XDslConstants.XDSL_SCHEMA_XPL);
+        return SchemaLoader.loadXDefinition(XDslConstants.XDSL_SCHEMA_XPL);
     }
 
     /**

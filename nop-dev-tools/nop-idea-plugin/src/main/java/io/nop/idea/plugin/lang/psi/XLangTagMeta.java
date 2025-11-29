@@ -13,6 +13,7 @@ import java.util.Set;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.idea.plugin.lang.XLangDocumentation;
 import io.nop.idea.plugin.lang.xlib.XlibTagMeta;
 import io.nop.idea.plugin.messages.NopPluginBundle;
@@ -427,11 +428,16 @@ public class XLangTagMeta {
     public static XLangTagMeta create(XLangTag tag) {
         XLangTag parentTag = tag.getParentTag();
 
-        // 根节点
-        if (parentTag == null) {
-            return createForRootTag(tag);
+        try {
+            // 根节点
+            if (parentTag == null) {
+                return createForRootTag(tag);
+            }
+            return createForChildTag(tag, parentTag);
+        } catch (Exception e) {
+            String msg = ErrorMessageManager.instance().getRootCause(e).getMessage();
+            return errorTag(tag, "xlang.parser.tag-meta.creating-exception", msg);
         }
-        return createForChildTag(tag, parentTag);
     }
 
     protected static XLangTagMeta errorTag(
