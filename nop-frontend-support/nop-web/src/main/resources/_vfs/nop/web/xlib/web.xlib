@@ -397,10 +397,12 @@
                         desc: cellModel?.desc && ('@i18n:cells.'+i18nRoot+"."+formCell.id + ".$desc").$i18n(cellModel.desc)
                     };
 
-                    if(cellModel['xui:permissions'])
-                       cell['xui:permissions'] = cellModel['xui:permissions'];
-                    if(cellModel['xui:roles'])
-                       cell['xui:roles'] = cellModel['xui:roles'];
+                    if(cellModel){
+                        if(cellModel['xui:permissions'])
+                           cell['xui:permissions'] = cellModel['xui:permissions'];
+                        if(cellModel['xui:roles'])
+                           cell['xui:roles'] = cellModel['xui:roles'];
+                    }
 
                     let cellXpl = cellModel?.genControl;
                     let control = null;
