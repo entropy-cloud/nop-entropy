@@ -14,8 +14,6 @@ import com.intellij.codeInsight.template.ExpressionContext;
 import com.intellij.codeInsight.template.Macro;
 import com.intellij.codeInsight.template.Result;
 import com.intellij.codeInsight.template.TemplateContextType;
-import io.nop.idea.plugin.utils.LookupElementHelper;
-import io.nop.idea.plugin.utils.ProjectFileHelper;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -40,10 +38,12 @@ public class XLangSchemaPathMacro extends Macro {
 
     @Override
     public LookupElement @Nullable [] calculateLookupItems(Expression @NotNull [] params, ExpressionContext context) {
-        return ProjectFileHelper.getCachedNopXDefVfsPaths(context.getProject())
-                                .stream()
-                                .map(LookupElementHelper::lookupString)
-                                .toArray(LookupElement[]::new);
+        // Note: 搜索 vfs 资源的性能太差，暂不启用
+//        return ProjectFileHelper.getCachedNopXDefVfsPaths(context.getProject())
+//                                .stream()
+//                                .map(LookupElementHelper::lookupString)
+//                                .toArray(LookupElement[]::new);
+        return LookupElement.EMPTY_ARRAY;
     }
 
     @Override
