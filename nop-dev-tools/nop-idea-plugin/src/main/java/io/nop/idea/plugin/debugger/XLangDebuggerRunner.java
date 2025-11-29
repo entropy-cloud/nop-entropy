@@ -9,13 +9,12 @@ package io.nop.idea.plugin.debugger;
 
 import java.awt.*;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.intellij.debugger.DebugEnvironment;
 import com.intellij.debugger.DebuggerManagerEx;
 import com.intellij.debugger.impl.DebuggerSession;
 import com.intellij.debugger.impl.GenericDebuggerRunner;
-import com.intellij.execution.ExecutionException;
 import com.intellij.execution.JavaRunConfigurationBase;
 import com.intellij.execution.RunConfigurationExtension;
 import com.intellij.execution.configurations.RunProfile;
@@ -23,6 +22,7 @@ import com.intellij.execution.configurations.RunProfileState;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.ui.RunContentDescriptor;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Computable;
@@ -32,7 +32,6 @@ import com.intellij.xdebugger.XDebugProcessStarter;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.FutureHelper;
 import io.nop.idea.plugin.execution.XLangDebugExecutor;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.utils.PsiClassHelper;
@@ -64,7 +63,7 @@ public class XLangDebuggerRunner extends GenericDebuggerRunner {
     @Override
     protected RunContentDescriptor createContentDescriptor(
             @NotNull RunProfileState state, @NotNull ExecutionEnvironment environment
-    ) throws ExecutionException {
+    ) {
         XLangRunConfigurationExtension extension = //
                 RunConfigurationExtension.EP_NAME.findExtensionOrFail(XLangRunConfigurationExtension.class);
 
@@ -82,15 +81,15 @@ public class XLangDebuggerRunner extends GenericDebuggerRunner {
 
         return dispatch(()-> {
             // 实际上同时启动了java调试器和XLang调试器
+            DebuggerSession debuggerSession = //
+                    DebuggerManagerEx.getInstanceEx(environment.getProject()) //
+                                     .attachVirtualMachine(debugEnvironment);
+            assert debuggerSession != null;
+
             XDebugSession session = XDebuggerManager.getInstance(environment.getProject()).startSession(environment, new XDebugProcessStarter() {
                 @NotNull
                 @Override
-                public XDebugProcess start(@NotNull XDebugSession debugSession) throws ExecutionException {
-                    DebuggerSession debuggerSession = //
-                            DebuggerManagerEx.getInstanceEx(environment.getProject()) //
-                                             .attachVirtualMachine(debugEnvironment);
-                    assert debuggerSession != null;
-
+                public XDebugProcess start(@NotNull XDebugSession debugSession) {
                     debuggerSession.getContextManager() //
                                    .addListener(new XLangDebugContextListener(debugSession, debuggerSession));
 
@@ -117,27 +116,24 @@ public class XLangDebuggerRunner extends GenericDebuggerRunner {
     }
 
     private <T> T dispatch(Callable<T> task) {
-        if (EventQueue.isDispatchThread()) {
-            try {
-                return task.call();
-            } catch (Exception e) {
-                throw NopException.adapt(e);
-            }
-        }
+        // 参考 com.intellij.debugger.impl.GenericDebuggerRunner#attachVirtualMachine
+        AtomicReference<Exception> ex = new AtomicReference<>();
+        AtomicReference<T> result = new AtomicReference<>();
 
-        CompletableFuture<T> promise = new CompletableFuture<>();
-        try {
-            EventQueue.invokeAndWait(() -> {
-                try {
-                    T ret = task.call();
-                    promise.complete(ret);
-                } catch (Throwable e) {
-                    promise.completeExceptionally(e);
-                }
-            });
-        } catch (Exception e) {
-            throw NopException.adapt(e);
+        // Note: 通过 Application#invokeAndWait 处理 AWT Event Dispatch Thread (EDT) 并获得执行结果，
+        // 避免出现异常 "Running sync tasks on pure EDT (w/o IW lock) is dangerous for several reasons"
+        ApplicationManager.getApplication().invokeAndWait(() -> {
+            try {
+                result.set(task.call());
+            } catch (ProcessCanceledException ignored) {
+            } catch (Exception e) {
+                ex.set(e);
+            }
+        });
+
+        if (ex.get() != null) {
+            throw NopException.adapt(ex.get());
         }
-        return FutureHelper.syncGet(promise);
+        return result.get();
     }
 }
