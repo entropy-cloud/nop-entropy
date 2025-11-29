@@ -196,10 +196,7 @@ public class DynamicObject extends AbstractFreezable implements IComponentModel,
             if (value != null)
                 propValues.put(propName, value);
         }
-        if (value == null) {
-            value = new DynamicObject(this.objName + "@" + propName);
-            propValues.put(propName, value);
-        }
+        // 无法判定value类型，无法自动创建
         return value;
     }
 

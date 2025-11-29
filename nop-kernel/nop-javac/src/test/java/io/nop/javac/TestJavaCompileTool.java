@@ -38,7 +38,7 @@ public class TestJavaCompileTool {
             JavaCompileTool.instance().parseJavaSource(null, text);
             assertTrue(false);
         } catch (NopException e) {
-            e.printStackTrace();
+            System.out.println(e);
             assertEquals(6, e.getErrorLocation().getLine());
         }
     }

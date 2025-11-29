@@ -8,6 +8,7 @@
 package io.nop.core.reflect.bean;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.core.model.object.DynamicObject;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -92,6 +93,9 @@ public class BeanPropHelper {
                 Map<String, Object> map = new LinkedHashMap<>();
                 ((Map) obj).put(name, map);
                 value = map;
+            } else if (obj instanceof DynamicObject) {
+                DynamicObject dynObj = (DynamicObject) obj;
+                return dynObj.makeObject(name);
             }
         }
         return value;

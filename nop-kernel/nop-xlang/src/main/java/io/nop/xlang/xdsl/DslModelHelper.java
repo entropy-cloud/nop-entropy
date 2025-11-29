@@ -157,4 +157,28 @@ public class DslModelHelper {
     public static void registerDslObjectTransformerFactory(IDslObjectTransformerFactory factory) {
         g_objTransformerFactory.set(factory);
     }
+
+    static final Lazy<IMarkdownModelLoaderFactory> g_markdownModelLoaderFactory = Lazy.of(() -> {
+        try {
+            ServiceLoader<IMarkdownModelLoaderFactory> loader = ServiceLoader.load(IMarkdownModelLoaderFactory.class);
+            Optional<IMarkdownModelLoaderFactory> first = loader.findFirst();
+            if (first.isPresent())
+                return first.get();
+            return null;
+        } catch (Exception e) {
+            LOG.warn("nop.xlang.not-support-markdown-model-loader:missing-lib={}", "nop-markdown.jar");
+            return null;
+        }
+    });
+
+    public static boolean supportMarkdownModelLoader() {
+        return g_markdownModelLoaderFactory.get() != null;
+    }
+
+    public static IResourceObjectLoader<?> newMarkdownModelLoader(String mappingName) {
+        IMarkdownModelLoaderFactory factory = g_markdownModelLoaderFactory.get();
+        if (factory == null)
+            throw new IllegalArgumentException("not support markdown model loader");
+        return factory.newMarkdownModelLoader(mappingName);
+    }
 }

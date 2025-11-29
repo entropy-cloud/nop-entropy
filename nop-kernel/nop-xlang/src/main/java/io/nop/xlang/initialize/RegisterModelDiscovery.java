@@ -39,7 +39,6 @@ import io.nop.xlang.feature.XModelInclude;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.DslModelParser;
-import io.nop.xlang.xdsl.IDslObjectTransformerFactory;
 import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xmeta.SchemaLoader;
@@ -169,7 +168,8 @@ public class RegisterModelDiscovery {
             for (Object loader : loaders) {
                 String type = (String) BeanTool.getProperty(loader, "type");
                 String fileType = (String) BeanTool.getProperty(loader, "fileType");
-                String mappingName = (String) BeanTool.getProperty(loader, "mappingName");
+
+                String mappingName = null;
 
                 String impPath = null;
                 String schemaPath = null;
@@ -178,21 +178,31 @@ public class RegisterModelDiscovery {
                     schemaPath = (String) BeanTool.getProperty(loader, "schemaPath");
                     config.setXdefPath(schemaPath);
                     if (JsonTool.isJsonOrYamlFileExt(StringHelper.fileExtFromFileType(fileType))) {
-                        config.loader(fileType, makeLoaderConfig(impPath, schemaPath, mappingName,
+                        config.loader(fileType, makeLoaderConfig(impPath, schemaPath,
                                 new DslJsonResourceLoader(schemaPath, resolveInDir)));
                     } else {
-                        config.loader(fileType, makeLoaderConfig(impPath, schemaPath, mappingName,
+                        config.loader(fileType, makeLoaderConfig(impPath, schemaPath,
                                 new DslXmlResourceLoader(schemaPath, resolveInDir)));
                     }
                 } else if ("xlsx-loader".equals(type)) {
                     impPath = (String) BeanTool.getProperty(loader, "impPath");
                     config.setImpPath(impPath);
                     if (DslModelHelper.supportExcelModelLoader()) {
-                        config.loader(fileType, makeLoaderConfig(impPath, schemaPath, mappingName,
+                        config.loader(fileType, makeLoaderConfig(impPath, schemaPath,
                                 DslModelHelper.newExcelModelLoader(impPath)));
                     } else {
                         LOG.warn("nop.registry.ignore-xlsx-loader-since-no-xlsx-parser:fileType={},impPath={}",
                                 fileType, impPath);
+                    }
+                } else if ("md-loader".equals(type)) {
+                    mappingName = (String) BeanTool.getProperty(loader, "mappingName");
+                    config.setMdMappingName(mappingName);
+                    if (DslModelHelper.supportMarkdownModelLoader()) {
+                        config.loader(fileType, makeLoaderConfig(impPath, schemaPath,
+                                DslModelHelper.newMarkdownModelLoader(mappingName)));
+                    } else {
+                        LOG.warn("nop.registry.ignore-markdown-loader-since-no-markdown-parser:fileType={},mappingName={}",
+                                fileType, mappingName);
                     }
                 }
             }
@@ -218,30 +228,28 @@ public class RegisterModelDiscovery {
         return config;
     }
 
-    private IResourceObjectLoader<?> withMapping(String mappingName, IResourceObjectLoader<?> loader) {
-        if (StringHelper.isEmpty(mappingName))
-            return loader;
-
-        IDslObjectTransformerFactory.IDslObjectTransformer transformer = DslModelHelper.newDslObjectTransformer(mappingName);
-        return new IResourceObjectLoader<>() {
-            @Override
-            public Object loadObjectFromPath(String path) {
-                Object model = loader.loadObjectFromPath(path);
-                return transformer.transform(model);
-            }
-
-            @Override
-            public Object parseFromResource(IResource resource) {
-                Object model = loader.parseFromResource(resource);
-                return transformer.transform(model);
-            }
-        };
-    }
+//    private IResourceObjectLoader<?> withMapping(String mappingName, IResourceObjectLoader<?> loader) {
+//        if (StringHelper.isEmpty(mappingName))
+//            return loader;
+//
+//        IDslObjectTransformerFactory.IDslObjectTransformer transformer = DslModelHelper.newDslObjectTransformer(mappingName);
+//        return new IResourceObjectLoader<>() {
+//            @Override
+//            public Object loadObjectFromPath(String path) {
+//                Object model = loader.loadObjectFromPath(path);
+//                return transformer.transform(model);
+//            }
+//
+//            @Override
+//            public Object parseFromResource(IResource resource) {
+//                Object model = loader.parseFromResource(resource);
+//                return transformer.transform(model);
+//            }
+//        };
+//    }
 
     private ComponentModelConfig.LoaderConfig makeLoaderConfig(String impPath, String xdefPath,
-                                                               String mappingName,
                                                                IResourceObjectLoader<?> loader) {
-        loader = this.withMapping(mappingName, loader);
 
         return new ComponentModelConfig.LoaderConfig(impPath, xdefPath, (IResourceObjectLoader<? extends IComponentModel>) loader);
     }
@@ -249,13 +257,11 @@ public class RegisterModelDiscovery {
     private void initLoader(ComponentModelConfig config, Object loader, String fileType, boolean optional) {
         String className = (String) BeanTool.getProperty(loader, "className");
         boolean returnXNode = ConvertHelper.toPrimitiveBoolean(BeanTool.getProperty(loader, "returnXNode"));
-        String mappingName = (String) BeanTool.getProperty(loader, "mappingName");
-
         try {
             IResourceObjectLoader loaderBean = newLoader(className, loader);
             if (returnXNode)
                 loaderBean = new XNodeToModelResourceObjectLoader(config.getXdefPath(), config.getResolveInDir(), loaderBean);
-            config.loader(fileType, makeLoaderConfig(null, null, mappingName, loaderBean));
+            config.loader(fileType, makeLoaderConfig(null, null, loaderBean));
         } catch (NoClassDefFoundError | NopException e) {
             if (!optional) {
                 throw NopException.adapt(e);

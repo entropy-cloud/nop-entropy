@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class MarkdownHelper {
@@ -266,7 +267,7 @@ public class MarkdownHelper {
         return StringHelper.isInt(content.substring(0, pos).trim(), false);
     }
 
-    public static List<Map<String, Object>> toRecordList(ITableView table) {
-        return MarkdownTableHelper.toRecordList(table);
+    public static List<Map<String, Object>> toRecordList(ITableView table, Function<String,String> headerMap) {
+        return MarkdownTableHelper.toRecordList(table,headerMap);
     }
 }

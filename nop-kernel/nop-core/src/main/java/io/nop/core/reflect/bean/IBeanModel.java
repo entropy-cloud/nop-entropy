@@ -203,12 +203,16 @@ public interface IBeanModel extends IBeanCollectionAdapter {
         return prop.getPropertyValue(obj, scope);
     }
 
-    /** 获取 Map 类型属性的值，若该属性值为 null，则自动为其赋一个初值后再返回 */
+    /**
+     * 获取 Map 类型属性的值，若该属性值为 null，则自动为其赋一个初值后再返回
+     */
     default Map<String, Object> makeMapProperty(Object obj, String propName) {
         return makeMapProperty(obj, propName, DisabledEvalScope.INSTANCE);
     }
 
-    /** 获取 Map 类型属性的值，若该属性值为 null，则自动为其赋一个初值后再返回 */
+    /**
+     * 获取 Map 类型属性的值，若该属性值为 null，则自动为其赋一个初值后再返回
+     */
     default Map<String, Object> makeMapProperty(Object obj, String propName, IEvalScope scope) {
         Map<String, Object> value = (Map<String, Object>) getProperty(obj, propName, scope);
         if (value == null) {
@@ -224,7 +228,8 @@ public interface IBeanModel extends IBeanCollectionAdapter {
             if (isAllowMakeExtProperty())
                 return makeExtProperty(obj, propName, scope);
 
-            throw new NopException(ERR_BEAN_UNKNOWN_PROP).param(ARG_CLASS_NAME, getRawTypeName());
+            throw new NopException(ERR_BEAN_UNKNOWN_PROP)
+                    .param(ARG_CLASS_NAME, getRawTypeName()).param(ARG_PROP_NAME, propName);
         }
         return prop.makePropertyValue(obj, scope);
     }

@@ -4815,4 +4815,46 @@ public class StringHelper extends ApiStringHelper {
             return "";
         return str.substring(startIndex, Math.min(endIndex, str.length()));
     }
+
+    @Deterministic
+    public static String reverseMappingName(String mappingName) {
+        if (mappingName == null || mappingName.isEmpty()) {
+            return mappingName;
+        }
+
+        // 找到 "_to_" 的位置
+        int toIndex = mappingName.indexOf("_to_");
+        if (toIndex == -1) {
+            // 如果没有找到 "_to_"，直接返回原字符串
+            return mappingName;
+        }
+
+        // 找到最后一个点号的位置（package name 的结束）
+        int lastDotIndex = mappingName.lastIndexOf('.', toIndex);
+
+        String packageName = "";
+        String fromPart;
+        String toPart;
+
+        if (lastDotIndex != -1) {
+            // 有 package name
+            packageName = mappingName.substring(0, lastDotIndex + 1); // 包含点号
+            fromPart = mappingName.substring(lastDotIndex + 1, toIndex);
+        } else {
+            // 没有 package name
+            fromPart = mappingName.substring(0, toIndex);
+        }
+
+        // 提取 to 部分
+        toPart = mappingName.substring(toIndex + 4); // "_to_" 长度是4
+
+        // 构建反转后的字符串
+        StringBuilder result = new StringBuilder();
+        result.append(packageName);
+        result.append(toPart);
+        result.append("_to_");
+        result.append(fromPart);
+
+        return result.toString();
+    }
 }

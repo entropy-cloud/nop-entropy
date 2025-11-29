@@ -5,6 +5,7 @@ import io.nop.commons.cache.MapCache;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.xlang.api.XLang;
+import io.nop.xlang.api.XLangCompileTool;
 
 import static io.nop.record_mapping.RecordMappingConstants.VAR_ROOT_RECORD;
 import static io.nop.record_mapping.RecordMappingConstants.VAR_SOURCE_ROOT;
@@ -14,6 +15,7 @@ public class RecordMappingContext implements IEvalContext {
     private final IEvalScope scope;
     private ICache<Object, Object> cache;
     private boolean skipValidation;
+    private XLangCompileTool compileTool;
 
     private Object sourceRoot;
     private Object sourceParent;
@@ -33,6 +35,20 @@ public class RecordMappingContext implements IEvalContext {
             cache = new MapCache<>("record-mapping-cache", true);
         }
         return cache;
+    }
+
+    public XLangCompileTool getCompileTool() {
+        return compileTool;
+    }
+
+    public XLangCompileTool makeCompileTool() {
+        if (compileTool == null)
+            compileTool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
+        return compileTool;
+    }
+
+    public void setCompileTool(XLangCompileTool compileTool) {
+        this.compileTool = compileTool;
     }
 
     public boolean isSkipValidation() {

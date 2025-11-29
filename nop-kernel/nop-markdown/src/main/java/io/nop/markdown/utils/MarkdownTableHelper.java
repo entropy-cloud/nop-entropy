@@ -13,11 +13,11 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static io.nop.commons.util.StringHelper.escapeMarkdown;
 
 class MarkdownTableHelper {
-
     /**
      * 查找第一个GFM表格的开始位置
      *
@@ -28,7 +28,7 @@ class MarkdownTableHelper {
 
         int len = text.length();
         int i = 0;
-        int stage = 0; // 0=找表头行 1=找分隔行 2=找数据行
+        int stage = 0; // 0=找表头行 1=找分隔行
         int tableStartPos = -1; // 记录表格开始的字符位置
 
         while (i < len) {
@@ -54,10 +54,11 @@ class MarkdownTableHelper {
                     tableStartPos = lineStart; // 记录表格开始字符位置
                     stage = 1;
                 }
-            } else if (stage == 1) {
+            } else { // stage == 1
                 // 找分隔行：必须有 | 且是合法分隔行
                 if (pipes > 0 && isSeparatorLine(text, lineStart, i)) {
-                    stage = 2;
+                    // 找到表头行和分隔行，即构成完整表格
+                    return tableStartPos;
                 } else {
                     // 重置状态，但当前行可能是一个新的表头行
                     if (pipes > 0 && lineHasContent) {
@@ -68,9 +69,6 @@ class MarkdownTableHelper {
                         stage = 0;
                     }
                 }
-            } else { // stage == 2
-                // 找到完整的三连，返回表格开始位置
-                return tableStartPos;
             }
         }
 
@@ -81,6 +79,8 @@ class MarkdownTableHelper {
         boolean hasDash = false;
         for (int j = start; j < end; j++) {
             char c = text.charAt(j);
+            if (c == '\n')
+                break;
             switch (c) {
                 case '|':
                 case ' ':
@@ -125,7 +125,7 @@ class MarkdownTableHelper {
         return map;
     }
 
-    public static List<Map<String, Object>> toRecordList(ITableView table) {
+    public static List<Map<String, Object>> toRecordList(ITableView table, Function<String, String> headerMap) {
         if (table == null)
             return null;
 
@@ -141,7 +141,8 @@ class MarkdownTableHelper {
             Map<String, Object> data = new LinkedHashMap<>();
             row.forEachCell(i, (cell, rowIndex, colIndex) -> {
                 String header = CollectionHelper.get(headers, colIndex);
-                data.put(header, cell.getValue());
+                String colName = headerMap == null ? header : headerMap.apply(header);
+                data.put(colName, cell.getValue());
                 return ProcessResult.CONTINUE;
             });
             ret.add(data);

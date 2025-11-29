@@ -25,8 +25,14 @@ public class RecordFieldMappingConfig extends _RecordFieldMappingConfig {
     private IClassModel classModel;
     private String objName;
 
+    private Object normalizedDefaultValue;
+
     public RecordFieldMappingConfig() {
 
+    }
+
+    public Object getNormalizedDefaultValue() {
+        return normalizedDefaultValue;
     }
 
     public String getFromOrName() {
@@ -78,6 +84,8 @@ public class RecordFieldMappingConfig extends _RecordFieldMappingConfig {
                 }
             }
             classModel = ReflectionManager.instance().getClassModelForType(type);
+            if (this.getDefaultValue() != null)
+                this.normalizedDefaultValue = type.getStdDataType().convert(this.getDefaultValue());
         }
     }
 

@@ -17,11 +17,12 @@
                      supportVersion="!boolean=true"/>
 
     <loaders xdef:body-type="list" xdef:key-attr="fileType">
-        <xdsl-loader fileType="!file-type" schemaPath="!v-path" mappingName="string"
+        <xdsl-loader fileType="!file-type" schemaPath="!v-path"
                      xdef:bean-tag-prop="type" optional="boolean"/>
-        <xlsx-loader fileType="!file-type" impPath="!v-path" mappingName="string"
+        <xlsx-loader fileType="!file-type" impPath="!v-path"
                      xdef:bean-tag-prop="type" optional="boolean"/>
-        <loader fileType="!file-type" class="!class-name" mappingName="string"
+        <md-loader fileType="!file-type" mappingName="!string" xdef:bean-tag-prop="type" optional="boolean"/>
+        <loader fileType="!file-type" class="!class-name"
                 xdef:bean-tag-prop="type" optional="boolean" returnXNode="boolean"/>
     </loaders>
 

@@ -117,7 +117,7 @@
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="valueType" from="值类型" alias="Value Type">
+            <field name="valueType" from="值类型" alias="Value Type" optional="true">
                 <schema stdDomain="std-data-type"/>
             </field>
 
@@ -330,7 +330,7 @@
             </field>
 
             <field name="ignoreDepends" from="忽略依赖" alias="Ignore Depends" optional="true">
-                <schema stdDomain="boolFlag"/>
+                <schema stdDomain="boolean"/>
             </field>
 
             <field name="ui:control" from="控件" alias="Control">
@@ -341,7 +341,7 @@
                 <valueExpr><![CDATA[
                         import io.nop.core.model.query.OrderBySqlParser;
 
-                        return OrderBySqlParser.INSTANCE.parseFromText(cell.location,value);
+                        return OrderBySqlParser.INSTANCE.parseFromText(null,value);
                  ]]></valueExpr>
             </field>
 

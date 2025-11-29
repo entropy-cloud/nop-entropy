@@ -22,6 +22,8 @@ public interface RecordMappingErrors {
 
     String ARG_MD_FORMAT = "md:format";
 
+    String ARG_CONTENT = "content";
+
     ErrorCode ERR_RECORD_FIELD_VALUE_NOT_IN_DICT = define("nop.err.record.field-value-not-in-dict",
             "字段[{fieldName}]的值不在字典中:{value}", ARG_FIELD_NAME, ARG_VALUE);
 
@@ -54,5 +56,10 @@ public interface RecordMappingErrors {
             define("nop.err.record.md-section-not-allow-sub-section", "Markdown段落不支持子段落");
 
     ErrorCode ERR_RECORD_MD_SECTION_CONTENT_NOT_TABLE =
-            define("nop.err.record.md-section-content-not-table", "Markdown段落内容必须是表格");
+            define("nop.err.record.md-section-content-not-table", "Markdown段落内容必须是表格:{content}",
+                    ARG_CONTENT);
+
+    ErrorCode ERR_RECORD_MD_MISSING_FIELD =
+            define("nop.err.record.md-missing-field-not-optional", "缺少字段[{fieldName}]",
+                    ARG_MAPPING_NAME, ARG_FIELD_NAME);
 }

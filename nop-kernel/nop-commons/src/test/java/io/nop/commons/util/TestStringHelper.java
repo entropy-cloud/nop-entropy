@@ -540,8 +540,14 @@ public class TestStringHelper {
     }
 
     @Test
-    public void testUnescapeMarkdown(){
+    public void testUnescapeMarkdown() {
         String text = "\\|";
         assertEquals("|", StringHelper.unescapeMarkdown(text));
+    }
+
+    @Test
+    public void testReverseMappingName() {
+        String text = "a.b.c.X_to_yy";
+        assertEquals("a.b.c.yy_to_X", StringHelper.reverseMappingName(text));
     }
 }

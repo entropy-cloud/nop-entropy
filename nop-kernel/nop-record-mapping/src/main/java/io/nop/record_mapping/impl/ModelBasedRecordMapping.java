@@ -17,13 +17,17 @@ public class ModelBasedRecordMapping implements IRecordMapping {
     private final RecordMappingTool tool;
 
     public ModelBasedRecordMapping(RecordMappingConfig config) {
+        this(config, RecordMappingTool.DEFAULT);
+    }
+
+    public ModelBasedRecordMapping(RecordMappingConfig config, RecordMappingTool tool) {
         this.config = config;
-        this.tool = RecordMappingTool.DEFAULT;
+        this.tool = tool;
     }
 
     @Override
-    public Object newTarget() {
-        return config.newTarget();
+    public Object newTarget(boolean useDynObj) {
+        return config.newTarget(useDynObj);
     }
 
     @Override
@@ -31,7 +35,7 @@ public class ModelBasedRecordMapping implements IRecordMapping {
         mapObject(config, source, target, ctx);
     }
 
-    protected void mapObject(RecordMappingConfig mapping, Object source, Object target, RecordMappingContext ctx) {
+    public void mapObject(RecordMappingConfig mapping, Object source, Object target, RecordMappingContext ctx) {
         tool.executeForEachField(mapping, source, target, ctx, field -> {
             mapField0(mapping, field, source, target, ctx);
         });
@@ -72,8 +76,8 @@ public class ModelBasedRecordMapping implements IRecordMapping {
         }
     }
 
-    protected void mapMapField(RecordFieldMappingConfig field, java.util.Map<String, Object> value,
-                               Object source, Object target, RecordMappingContext ctx) {
+    public void mapMapField(RecordFieldMappingConfig field, java.util.Map<String, Object> value,
+                            Object source, Object target, RecordMappingContext ctx) {
         RecordMappingConfig itemMapping = field.getResolvedItemMapping();
 
         tool.mapMapField(field, value, source, target, ctx, (fromItem, toItem) -> {
@@ -81,16 +85,16 @@ public class ModelBasedRecordMapping implements IRecordMapping {
         });
     }
 
-    protected void mapCollectionField(RecordFieldMappingConfig field, java.util.Collection<?> value,
-                                      Object source, Object target, RecordMappingContext ctx) {
+    public Object mapCollectionField(RecordFieldMappingConfig field, java.util.Collection<?> value,
+                                   Object source, Object target, RecordMappingContext ctx) {
         RecordMappingConfig itemMapping = field.getResolvedItemMapping();
 
-        tool.mapCollectionField(field, value, source, target, ctx, (fromItem, toItem) -> {
+        return tool.mapCollectionField(field, value, source, target, ctx, (fromItem, toItem) -> {
             mapObject(itemMapping, fromItem, toItem, ctx);
         });
     }
 
-    protected void mapObjectField(RecordFieldMappingConfig field, Object source, Object target, RecordMappingContext ctx) {
+    public void mapObjectField(RecordFieldMappingConfig field, Object source, Object target, RecordMappingContext ctx) {
         if (field.isVirtual()) {
             mapObject(field.getResolvedMapping(), source, target, ctx);
         } else {

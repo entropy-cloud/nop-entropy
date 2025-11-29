@@ -27,6 +27,7 @@ public class ComponentModelConfig {
 
     private String xdefPath;
     private String impPath;
+    private String mdMappingName;
 
     /**
      * 模型可以存在多种存储格式，每种格式对应一个文件类型，采用一种特定的加载器加载
@@ -193,5 +194,13 @@ public class ComponentModelConfig {
 
     public void setImpPath(String impPath) {
         this.impPath = impPath;
+    }
+
+    public String getMdMappingName() {
+        return mdMappingName;
+    }
+
+    public void setMdMappingName(String mdMappingName) {
+        this.mdMappingName = mdMappingName;
     }
 }

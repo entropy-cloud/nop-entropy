@@ -15,6 +15,11 @@ import io.nop.core.type.IGenericType;
 import io.nop.record_mapping.RecordMappingContext;
 import io.nop.record_mapping.model.RecordFieldMappingConfig;
 import io.nop.record_mapping.model.RecordMappingConfig;
+import io.nop.xlang.api.EvalCode;
+import io.nop.xlang.api.ExprEvalAction;
+import io.nop.xlang.api.source.IWithSourceCode;
+import io.nop.xlang.xdef.IStdDomainHandler;
+import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.SimpleSchemaValidator;
 import org.slf4j.Logger;
@@ -172,7 +177,7 @@ public class RecordMappingTool {
         value = applyValueMapper(field, value);
 
         // 2. 类型转换
-        value = castType(field, value);
+        value = castType(field, value, ctx);
 
         // 3. 验证
         validateValue(mapping, field, value, ctx);
@@ -185,7 +190,7 @@ public class RecordMappingTool {
 
     public Object applyValueMapper(RecordFieldMappingConfig field, Object value) {
         if (value == null)
-            return field.getDefaultValue();
+            return field.getNormalizedDefaultValue();
 
         if (field.getValueMapper() != null) {
             value = field.getValueMapper().mapValue(value.toString());
@@ -233,11 +238,11 @@ public class RecordMappingTool {
         return toItemValue;
     }
 
-    public Object makeTargetCollection(RecordFieldMappingConfig field,
-                                       Object source, Object target,
-                                       RecordMappingContext ctx) {
+    public Collection<?> makeTargetCollection(RecordFieldMappingConfig field,
+                                              Object source, Object target,
+                                              RecordMappingContext ctx) {
         Supplier<Object> constructor = field.getObjectConstructor(true, source, target, ctx);
-        Object toValue = BeanTool.makeComplexProperty(target, field.getName(), constructor);
+        Collection<?> toValue = (Collection<?>) BeanTool.makeComplexProperty(target, field.getName(), constructor);
         if (toValue == null) {
             toValue = new ArrayList<>();
             BeanTool.setComplexProperty(target, field.getName(), toValue);
@@ -249,14 +254,17 @@ public class RecordMappingTool {
                                      Object itemValue,
                                      Object toValue, RecordMappingContext ctx) {
         Object toItemValue = field.getItemConstructor(itemValue, null, ctx).get();
-        if (toValue instanceof IKeyedList) {
-            ((IKeyedList) toValue).addUnique(toItemValue, key ->
+        return toItemValue;
+    }
+
+    public void addToList(RecordFieldMappingConfig field, Object coll, Object value) {
+        if (coll instanceof IKeyedList) {
+            ((IKeyedList) coll).addUnique(value, key ->
                     new NopException(ERR_RECORD_LIST_DUPLICATE_ITEM).source(field)
                             .param(ARG_KEY_PROP, field.getKeyProp()).param(ARG_KEY_VALUE, key));
         } else {
-            ((Collection<Object>) toValue).add(toItemValue);
+            ((Collection<Object>) coll).add(value);
         }
-        return toItemValue;
     }
 
     public void mapMapField(RecordFieldMappingConfig field, java.util.Map<String, Object> value,
@@ -277,11 +285,11 @@ public class RecordMappingTool {
         }
     }
 
-    public void mapCollectionField(RecordFieldMappingConfig field, Collection<?> items,
-                                   Object source, Object target,
-                                   RecordMappingContext ctx,
-                                   BiConsumer<Object, Object> action) {
-        if (items == null) return;
+    public Object mapCollectionField(RecordFieldMappingConfig field, Collection<?> items,
+                                     Object source, Object target,
+                                     RecordMappingContext ctx,
+                                     BiConsumer<Object, Object> action) {
+        if (items == null) return null;
 
         Object toValue = makeTargetCollection(field, source, target, ctx);
 
@@ -295,13 +303,35 @@ public class RecordMappingTool {
 
             Object itemValue = makeCollectionItem(field, item, toValue, ctx);
             action.accept(item, itemValue);
+            addToList(field, toValue, itemValue);
             index++;
         }
+        return toValue;
     }
 
     // ========== 验证相关 ==========
-    public Object castType(RecordFieldMappingConfig field, Object value) {
+    public Object castType(RecordFieldMappingConfig field, Object value, RecordMappingContext ctx) {
+        if(StringHelper.isEmptyObject(value))
+            return null;
+
+        if (field.getSchema() != null) {
+            String stdDomain = field.getSchema().getStdDomain();
+            if (stdDomain != null) {
+                IStdDomainHandler handler = StdDomainRegistry.instance().requireStdDomainHandler(field.getLocation(), stdDomain);
+                Object source = value;
+                value = handler.parseProp(field.getSchema().getStdDomainOptions(), field.getLocation(), field.getName(), value, ctx.makeCompileTool());
+                if (value instanceof ExprEvalAction && !(value instanceof IWithSourceCode)) {
+                    value = EvalCode.addSource((ExprEvalAction) value, source.toString());
+                }
+                return value;
+            }
+        }
+
         IGenericType type = field.getType();
+        if (type == null) {
+            if (field.getSchema() != null)
+                type = field.getSchema().getType();
+        }
         if (type != null)
             value = BeanTool.castBeanToType(value, type);
         return value;
