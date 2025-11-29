@@ -255,6 +255,7 @@ public class PageProvider extends ResourceWithHistoryProvider {
     }
 
     protected Object transformPermissions(Object value) {
+        // 将xui:permissions判断转换为xui:roles判断，这样转换的结果是可以被缓存的，前端不同的用户执行不同的roles过滤即可。
         Map<String, Object> map = (Map<String, Object>) value;
         Object perms = map.remove(WebConstants.ATTR_XUI_PERMISSIONS);
         if (perms == null)
@@ -264,7 +265,13 @@ public class PageProvider extends ResourceWithHistoryProvider {
         Set<String> roles = rolePermissionMapping.getRolesWithPermission(permissions);
         Set<String> oldRoles = ConvertHelper.toCsvSet(map.get(WebConstants.ATTR_XUI_ROLES));
         Set<String> merged = CollectionHelper.mergeSet(roles, oldRoles);
-        map.put(WebConstants.ATTR_XUI_ROLES, StringHelper.join(merged, ","));
+
+        // 如果没有任何角色具有该权限，则roles设置为none，避免前台因为roles为空误以为不需要判断权限
+        String mergedRoles = "none";
+        if (!CollectionHelper.isEmpty(merged)) {
+            mergedRoles = StringHelper.join(merged, ",");
+        }
+        map.put(WebConstants.ATTR_XUI_ROLES, mergedRoles);
         return map;
     }
 

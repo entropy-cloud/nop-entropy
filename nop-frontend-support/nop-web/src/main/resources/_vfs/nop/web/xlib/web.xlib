@@ -397,6 +397,11 @@
                         desc: cellModel?.desc && ('@i18n:cells.'+i18nRoot+"."+formCell.id + ".$desc").$i18n(cellModel.desc)
                     };
 
+                    if(cellModel['xui:permissions'])
+                       cell['xui:permissions'] = cellModel['xui:permissions'];
+                    if(cellModel['xui:roles'])
+                       cell['xui:roles'] = cellModel['xui:roles'];
+
                     let cellXpl = cellModel?.genControl;
                     let control = null;
 
@@ -482,6 +487,11 @@
                         remark: colModel.desc && ('@i18n:col.'+i18nRoot+"."+colModel.id + ".$desc").$i18n(colModel.desc),
                         hint: colModel.hint && ('@i18n:col.'+i18nRoot+"."+colModel.id + ".$hint").$i18n(colModel.hint)
                     };
+                    if(colModel['xui:permissions'])
+                       col['xui:permissions'] = colModel['xui:permissions'];
+                    if(colModel['xui:roles'])
+                       col['xui:roles'] = colModel['xui:roles'];
+
                     let colXpl = colModel.genControl;
                     let control = null;
                     let mode = editMode || colModel.editMode || gridModel.editMode || 'list-view'
