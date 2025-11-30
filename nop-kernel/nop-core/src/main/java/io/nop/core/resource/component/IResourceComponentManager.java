@@ -39,12 +39,6 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
      */
     ICancellable registerComponentModelConfig(ComponentModelConfig config);
 
-    Runnable registerComponentModelLoader(String modelType, String fileType,
-                                          IResourceObjectLoader<? extends IComponentModel> loader, boolean replace);
-
-    Runnable registerComponentModelTransformer(String fromModelType, String toModelType,
-                                               IComponentTransformer<?, ?> transformer, boolean replace);
-
     ComponentModelConfig getModelConfigByModelPath(String path);
 
     ComponentModelConfig getModelConfigByFileType(String fileType);
@@ -79,10 +73,10 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
 
     void removeCachedModel(String path);
 
-    IComponentModel loadComponentModel(String modelPath);
+    Object loadComponentModel(String modelPath);
 
-    default IComponentModel requireComponentModel(String modelPath) {
-        IComponentModel model = loadComponentModel(modelPath);
+    default Object requireComponentModel(String modelPath) {
+        Object model = loadComponentModel(modelPath);
         if (model == null)
             throw new NopException(ERR_COMPONENT_LOAD_MODEL_NOT_EXIST)
                     .param(ARG_MODEL_PATH, modelPath);
@@ -95,7 +89,7 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
      * @param modelPath 模型资源路径
      * @param transform 转换类型
      */
-    IComponentModel loadComponentModel(String modelPath, String transform);
+    Object loadComponentModel(String modelPath, String transform);
 
     /**
      * 每个模型对应于一个唯一的、确定的资源url。资源url格式为 resourcePath?paramName=paramValue 例如：/a/b.xmeta?transform=xdef&sub=MyObject。
@@ -112,14 +106,11 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
      *
      * @param modelUrl 源url格式为 resourcePath?paramName=paramValue，参数为可选部分
      */
-    IComponentModel loadComponentModelByUrl(String modelUrl);
+    Object loadComponentModelByUrl(String modelUrl);
 
-    IComponentModel parseComponentModel(IResource resource);
+    Object parseComponentModel(IResource resource);
 
-    IComponentModel parseComponentModel(IResource resource, String transform);
-
-    String buildComponentPath(String modelPath, String genFormat);
-
+    Object parseComponentModel(IResource resource, String transform);
 
     /**
      * 从预编译缓存中装载对象

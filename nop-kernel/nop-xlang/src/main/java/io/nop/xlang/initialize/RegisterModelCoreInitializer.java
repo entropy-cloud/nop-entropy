@@ -21,7 +21,7 @@ public class RegisterModelCoreInitializer implements ICoreInitializer {
 
     @Override
     public void initialize() {
-        new RegisterModelDiscovery().registerAll(cleanup);
+        RegisterModelDiscovery.instance().registerAll(cleanup);
     }
 
     @Override

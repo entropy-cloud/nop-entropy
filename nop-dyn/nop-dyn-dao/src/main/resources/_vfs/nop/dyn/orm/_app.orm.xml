@@ -165,7 +165,6 @@
                     <join>
                         <on leftProp="moduleId" rightProp="moduleId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="所属应用" name="app" refDisplayName="补丁文件"
                         refEntityName="io.nop.dyn.dao.entity.NopDynApp" refPropName="patchFiles"
@@ -174,7 +173,6 @@
                     <join>
                         <on leftProp="appId" rightProp="appId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -210,14 +208,12 @@
                     <join>
                         <on leftProp="moduleId" rightProp="moduleId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="基础模块" name="depModule" refEntityName="io.nop.dyn.dao.entity.NopDynModule"
                         tagSet="pub,ref-pub" i18n-en:displayName="Dependent Module">
                     <join>
                         <on leftProp="depModuleId" rightProp="moduleId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -270,7 +266,6 @@
                     <join>
                         <on leftProp="baseModuleId" rightProp="moduleId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-many displayName="派生模块" name="derivedModules" refEntityName="io.nop.dyn.dao.entity.NopDynModule"
                          refPropName="baseModule" tagSet="pub" i18n-en:displayName="Derived Modules">
@@ -355,14 +350,12 @@
                     <join>
                         <on leftProp="appId" rightProp="appId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="关联模块" name="module" refEntityName="io.nop.dyn.dao.entity.NopDynModule"
                         refPropName="appMappings" tagSet="pub,ref-pub,ref-cascade-delete" i18n-en:displayName="Module">
                     <join>
                         <on leftProp="moduleId" rightProp="moduleId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -442,7 +435,6 @@
                     <join>
                         <on leftProp="moduleId" rightProp="moduleId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -490,7 +482,6 @@
                     <join>
                         <on leftProp="moduleId" rightProp="moduleId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -541,7 +532,6 @@
                     <join>
                         <on leftProp="moduleId" rightProp="moduleId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -721,7 +711,6 @@
                     <join>
                         <on leftProp="domainId" rightProp="domainId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -789,7 +778,6 @@
                     <join>
                         <on leftProp="entityMetaId" rightProp="entityMetaId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="关联实体元数据" name="refEntityMeta" refDisplayName="引用本实体的关联属性"
                         refEntityName="io.nop.dyn.dao.entity.NopDynEntityMeta" refPropName="relationMetasForRefEntity"
@@ -798,7 +786,6 @@
                     <join>
                         <on leftProp="refEntityMetaId" rightProp="entityMetaId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -1012,7 +999,6 @@
                     <join>
                         <on leftProp="nopParentId" rightProp="sid"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-many displayName="子对象" name="nopChildren" refEntityName="io.nop.dyn.dao.entity.NopDynEntity"
                          refPropName="nopParent" tagSet="pub" i18n-en:displayName="Children">

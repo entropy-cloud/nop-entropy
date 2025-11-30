@@ -8,7 +8,6 @@
 package io.nop.xlang.xdsl;
 
 import io.nop.api.core.util.Guard;
-import io.nop.api.core.util.IComponentModel;
 import io.nop.commons.functional.Lazy;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
@@ -45,15 +44,15 @@ public class DslModelHelper {
      *
      * @param resource 模型文件路径
      */
-    public static IComponentModel loadDslModel(IResource resource) {
+    public static Object loadDslModel(IResource resource) {
         return new DslModelParser().parseFromResource(resource);
     }
 
-    public static IComponentModel loadDslModelFromPath(String path) {
+    public static Object loadDslModelFromPath(String path) {
         return loadDslModel(VirtualFileSystem.instance().getResource(path));
     }
 
-    public static IComponentModel parseDslModelNode(String xdefPath, XNode node) {
+    public static Object parseDslModelNode(String xdefPath, XNode node) {
         return new DslModelParser(xdefPath).parseFromNode(node);
     }
 
@@ -138,47 +137,11 @@ public class DslModelHelper {
         return g_excelModelLoaderFactory.get() != null;
     }
 
-    public static IResourceObjectLoader<?> newExcelModelLoader(String impModelPath) {
+    public static IResourceObjectLoader<Object> newExcelModelLoader(String impModelPath) {
         IExcelModelLoaderFactory factory = g_excelModelLoaderFactory.get();
         if (factory == null)
             throw new IllegalArgumentException("not support excel model loader");
         return factory.newExcelModelLoader(impModelPath);
     }
 
-    static final Lazy<IDslObjectTransformerFactory> g_objTransformerFactory = Lazy.valueOrError(() -> {
-        ServiceLoader<IDslObjectTransformerFactory> factory = ServiceLoader.load(IDslObjectTransformerFactory.class);
-        return factory.findFirst().orElseThrow(() -> new IllegalArgumentException("not support dsl object transformer"));
-    });
-
-    public static IDslObjectTransformerFactory.IDslObjectTransformer newDslObjectTransformer(String mappingName) {
-        return g_objTransformerFactory.get().newTransformer(mappingName);
-    }
-
-    public static void registerDslObjectTransformerFactory(IDslObjectTransformerFactory factory) {
-        g_objTransformerFactory.set(factory);
-    }
-
-    static final Lazy<IMarkdownModelLoaderFactory> g_markdownModelLoaderFactory = Lazy.of(() -> {
-        try {
-            ServiceLoader<IMarkdownModelLoaderFactory> loader = ServiceLoader.load(IMarkdownModelLoaderFactory.class);
-            Optional<IMarkdownModelLoaderFactory> first = loader.findFirst();
-            if (first.isPresent())
-                return first.get();
-            return null;
-        } catch (Exception e) {
-            LOG.warn("nop.xlang.not-support-markdown-model-loader:missing-lib={}", "nop-markdown.jar");
-            return null;
-        }
-    });
-
-    public static boolean supportMarkdownModelLoader() {
-        return g_markdownModelLoaderFactory.get() != null;
-    }
-
-    public static IResourceObjectLoader<?> newMarkdownModelLoader(String mappingName) {
-        IMarkdownModelLoaderFactory factory = g_markdownModelLoaderFactory.get();
-        if (factory == null)
-            throw new IllegalArgumentException("not support markdown model loader");
-        return factory.newMarkdownModelLoader(mappingName);
-    }
 }

@@ -8,7 +8,7 @@
     <mapping name="Type1_to_Type2">
         <fields>
             <field from="field1" mandatory="true" name="base.name1">
-                <schema stdDomain="email"/>
+                <schema stdDomain="xml-name"/>
             </field>
             <field from="sub.field2" mandatory="true" name="ext.name2">
                 <schema/>

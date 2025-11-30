@@ -7,7 +7,10 @@
  */
 package io.nop.xlang.xdef.impl;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.core.resource.component.AbstractFreezable;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.XDefTypeDecl;
@@ -17,6 +20,11 @@ public class XDefAttribute extends AbstractFreezable implements IXDefAttribute {
     private String name;
     private XDefTypeDecl type;
     private String propName;
+
+    @JsonIgnore
+    public SourceLocation getLocation() {
+        return super.getLocation();
+    }
 
     @Override
     public String getName() {
@@ -38,6 +46,7 @@ public class XDefAttribute extends AbstractFreezable implements IXDefAttribute {
         this.type = type;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     @Override
     public String getPropName() {
         return propName;

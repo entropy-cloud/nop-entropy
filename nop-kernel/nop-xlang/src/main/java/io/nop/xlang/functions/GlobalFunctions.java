@@ -416,7 +416,7 @@ public class GlobalFunctions {
     }
 
     @Description("加载DSL模型")
-    public static IComponentModel loadDslModel(@Name("modelPath") String modelPath) {
+    public static Object loadDslModel(@Name("modelPath") String modelPath) {
         return ResourceComponentManager.instance().requireComponentModel(modelPath);
     }
 }

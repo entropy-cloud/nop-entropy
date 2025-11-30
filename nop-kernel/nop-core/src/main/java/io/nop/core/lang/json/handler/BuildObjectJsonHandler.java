@@ -18,9 +18,11 @@ package io.nop.core.lang.json.handler;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.json.IJsonHandler;
+import io.nop.core.lang.json.IJsonSerializable;
 import io.nop.core.lang.utils.NestedProcessingState;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -230,8 +232,28 @@ public class BuildObjectJsonHandler implements IJsonHandler {
      * @return this writer.
      */
     public IJsonHandler value(SourceLocation loc, Object value) {
-        addValue(loc, value);
-        beforeValue();
+        if (value instanceof IJsonSerializable) {
+            ((IJsonSerializable) value).serializeToJson(this);
+        } else if (value instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) value;
+            this.beginObject(SourceLocation.getLocation(value));
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                String k = entry.getKey();
+                Object v = entry.getValue();
+                put(k, v);
+            }
+            this.endObject();
+        } else if (value instanceof Collection) {
+            Collection<?> c = (Collection<?>) value;
+            this.beginArray(SourceLocation.getLocation(value));
+            for (Object v : c) {
+                value(SourceLocation.getLocation(v), v);
+            }
+            this.endArray();
+        } else {
+            addValue(loc, value);
+            beforeValue();
+        }
         return this;
     }
 

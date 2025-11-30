@@ -10,8 +10,16 @@
         <fields>
             <field name="displayName" from="displayName"/>
 
-            <field name="ext:extends" from="extends" alias="Extends">
+            <field name="x:extends" from="extends" alias="Extends">
                 <schema stdDomain="string"/>
+            </field>
+
+            <field name="x:gen-extends" from="gen-extends" md:format="code">
+                <schema stdDomain="string" />
+            </field>
+
+            <field name="x:post-extends" from="post-extends" md:format="code">
+                <schema stdDomain="string" />
             </field>
 
             <field name="ext:registerShortName" from="registerShortName" alias="Register Short Name">

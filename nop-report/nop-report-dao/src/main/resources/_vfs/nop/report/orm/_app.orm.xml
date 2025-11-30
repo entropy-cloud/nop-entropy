@@ -121,7 +121,6 @@
                     <join>
                         <on leftProp="rptId" rightProp="rptId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -157,7 +156,6 @@
                     <join>
                         <on leftProp="rptId" rightProp="rptId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -247,7 +245,6 @@
                     <join>
                         <on leftProp="dsId" rightProp="sid"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="子数据集定义" name="reportSubDataset"
                         refEntityName="io.nop.report.dao.entity.NopReportDataset"
@@ -256,7 +253,6 @@
                     <join>
                         <on leftProp="subDsId" rightProp="sid"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -337,7 +333,6 @@
                     <join>
                         <on leftProp="datasourceId" rightProp="sid"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -389,7 +384,6 @@
                     <join>
                         <on leftProp="rptId" rightProp="rptId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>

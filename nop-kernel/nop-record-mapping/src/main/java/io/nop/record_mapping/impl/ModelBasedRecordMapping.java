@@ -26,8 +26,8 @@ public class ModelBasedRecordMapping implements IRecordMapping {
     }
 
     @Override
-    public Object newTarget(boolean useDynObj) {
-        return config.newTarget(useDynObj);
+    public Object newTarget(RecordMappingContext ctx) {
+        return config.newTarget(ctx);
     }
 
     @Override

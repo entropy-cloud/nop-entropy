@@ -52,7 +52,7 @@ public class ExcelHelper {
      * @param resource     excel文件
      */
     public static Object loadXlsxObject(String impModelPath, IResource resource) {
-        return new XlsxObjectLoader(impModelPath).parseFromResource(resource);
+        return new XlsxObjectLoader(impModelPath).loadObjectFromResource(resource);
     }
 
     public static Object loadXlsxObject(String impModelPath, IResource resource, IEvalScope scope) {

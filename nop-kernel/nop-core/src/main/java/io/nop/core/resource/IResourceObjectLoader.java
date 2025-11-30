@@ -10,7 +10,7 @@ package io.nop.core.resource;
 /**
  * 为避免概念混淆，特别定义一个装载接口，此接口必须是允许反复调用多次的。而IResourceParser接口一般是新建parser对象，只允许调用一次。
  *
- * @param <T>
+ * @param <T> 模型对象类型
  */
 public interface IResourceObjectLoader<T> {
 
@@ -21,7 +21,7 @@ public interface IResourceObjectLoader<T> {
      */
     T loadObjectFromPath(String path);
 
-    default T parseFromResource(IResource resource) {
+    default T loadObjectFromResource(IResource resource) {
         return loadObjectFromPath(resource.getPath());
     }
 }

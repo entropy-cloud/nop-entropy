@@ -1,10 +1,24 @@
 {
   "tagName": "lib",
   "xdefName": "XplTagLib",
-  "displayName": "string",
-  "defaultOutputMode": "enum:io.nop.xlang.xpl.XplOutputMode=none",
-  "interfaces": "generic-type-list",
-  "namespace": "ns-name",
+  "attributes": {
+    "displayName": {
+      "name": "displayName",
+      "type": "string"
+    },
+    "defaultOutputMode": {
+      "name": "defaultOutputMode",
+      "type": "enum:io.nop.xlang.xpl.XplOutputMode=none"
+    },
+    "interfaces": {
+      "name": "interfaces",
+      "type": "generic-type-list"
+    },
+    "namespace": {
+      "name": "namespace",
+      "type": "ns-name"
+    }
+  },
   "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagLib",
   "xdefDefaultExtends": "/nop/core/defaults/default.xlib",
   "xmlns:x": "/nop/schema/xdsl.xdef",
@@ -38,16 +52,48 @@
     "xdefUnknownTag": {
       "tagName": "xdef:unknown-tag",
       "xdefName": "XplTag",
-      "displayName": "string",
-      "alias": "csv-set",
-      "schema": "v-path",
-      "deprecated": "boolean",
-      "macro": "boolean",
-      "transformer": "v-path",
-      "bodyType": "enum:io.nop.xlang.xpl.XplSlotType",
-      "outputMode": "enum:io.nop.xlang.xpl.XplOutputMode",
-      "unknownAttrsVar": "var-name",
-      "attrsVar": "var-name",
+      "attributes": {
+        "displayName": {
+          "name": "displayName",
+          "type": "string"
+        },
+        "alias": {
+          "name": "alias",
+          "type": "csv-set"
+        },
+        "schema": {
+          "name": "schema",
+          "type": "v-path"
+        },
+        "deprecated": {
+          "name": "deprecated",
+          "type": "boolean"
+        },
+        "macro": {
+          "name": "macro",
+          "type": "boolean"
+        },
+        "transformer": {
+          "name": "transformer",
+          "type": "v-path"
+        },
+        "bodyType": {
+          "name": "bodyType",
+          "type": "enum:io.nop.xlang.xpl.XplSlotType"
+        },
+        "outputMode": {
+          "name": "outputMode",
+          "type": "enum:io.nop.xlang.xpl.XplOutputMode"
+        },
+        "unknownAttrsVar": {
+          "name": "unknownAttrsVar",
+          "type": "var-name"
+        },
+        "attrsVar": {
+          "name": "attrsVar",
+          "type": "var-name"
+        }
+      },
       "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTag",
       "xdefBeanTagProp": "tagName",
       "comment": {
@@ -98,16 +144,48 @@
       "attr": {
         "tagName": "attr",
         "xdefName": "XplTagAttribute",
-        "name": "!xml-name",
-        "var": "var-name",
-        "displayName": "string",
-        "type": "generic-type",
-        "domain": "var-name",
-        "mandatory": "boolean",
-        "implicit": "boolean",
-        "optional": "boolean=true",
-        "defaultValue": "string",
-        "deprecated": "boolean",
+        "attributes": {
+          "name": {
+            "name": "name",
+            "type": "!xml-name"
+          },
+          "var": {
+            "name": "var",
+            "type": "var-name"
+          },
+          "displayName": {
+            "name": "displayName",
+            "type": "string"
+          },
+          "type": {
+            "name": "type",
+            "type": "generic-type"
+          },
+          "domain": {
+            "name": "domain",
+            "type": "var-name"
+          },
+          "mandatory": {
+            "name": "mandatory",
+            "type": "boolean"
+          },
+          "implicit": {
+            "name": "implicit",
+            "type": "boolean"
+          },
+          "optional": {
+            "name": "optional",
+            "type": "boolean=true"
+          },
+          "defaultValue": {
+            "name": "defaultValue",
+            "type": "string"
+          },
+          "deprecated": {
+            "name": "deprecated",
+            "type": "boolean"
+          }
+        },
         "xdefAllowMultiple": true,
         "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagAttribute",
         "xdefBeanProp": "attrs",
@@ -135,14 +213,40 @@
       "slot": {
         "tagName": "slot",
         "xdefName": "XplTagSlot",
-        "name": "!var-name",
-        "displayName": "string",
-        "type": "generic-type",
-        "domain": "var-name",
-        "mandatory": "boolean",
-        "multiple": "boolean",
-        "schema": "v-path",
-        "deprecated": "boolean",
+        "attributes": {
+          "name": {
+            "name": "name",
+            "type": "!var-name"
+          },
+          "displayName": {
+            "name": "displayName",
+            "type": "string"
+          },
+          "type": {
+            "name": "type",
+            "type": "generic-type"
+          },
+          "domain": {
+            "name": "domain",
+            "type": "var-name"
+          },
+          "mandatory": {
+            "name": "mandatory",
+            "type": "boolean"
+          },
+          "multiple": {
+            "name": "multiple",
+            "type": "boolean"
+          },
+          "schema": {
+            "name": "schema",
+            "type": "v-path"
+          },
+          "deprecated": {
+            "name": "deprecated",
+            "type": "boolean"
+          }
+        },
         "xdefAllowMultiple": true,
         "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagSlot",
         "xdefBeanProp": "slots",
@@ -157,10 +261,24 @@
         "arg": {
           "tagName": "arg",
           "xdefName": "XplTagSlotArg",
-          "name": "!string",
-          "displayName": "string",
-          "type": "generic-type",
-          "deprecated": "boolean",
+          "attributes": {
+            "name": {
+              "name": "name",
+              "type": "!string"
+            },
+            "displayName": {
+              "name": "displayName",
+              "type": "string"
+            },
+            "type": {
+              "name": "type",
+              "type": "generic-type"
+            },
+            "deprecated": {
+              "name": "deprecated",
+              "type": "boolean"
+            }
+          },
           "xdefAllowMultiple": true,
           "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagSlotArg",
           "xdefBeanProp": "args"
@@ -169,16 +287,48 @@
           "tagName": "attr",
           "xdefRef": "/test/test.xdef#XplTagAttribute",
           "xdefRefResolved": true,
-          "name": "!xml-name",
-          "var": "var-name",
-          "displayName": "string",
-          "type": "generic-type",
-          "domain": "var-name",
-          "mandatory": "boolean",
-          "implicit": "boolean",
-          "optional": "boolean=true",
-          "defaultValue": "string",
-          "deprecated": "boolean",
+          "attributes": {
+            "name": {
+              "name": "name",
+              "type": "!xml-name"
+            },
+            "var": {
+              "name": "var",
+              "type": "var-name"
+            },
+            "displayName": {
+              "name": "displayName",
+              "type": "string"
+            },
+            "type": {
+              "name": "type",
+              "type": "generic-type"
+            },
+            "domain": {
+              "name": "domain",
+              "type": "var-name"
+            },
+            "mandatory": {
+              "name": "mandatory",
+              "type": "boolean"
+            },
+            "implicit": {
+              "name": "implicit",
+              "type": "boolean"
+            },
+            "optional": {
+              "name": "optional",
+              "type": "boolean=true"
+            },
+            "defaultValue": {
+              "name": "defaultValue",
+              "type": "string"
+            },
+            "deprecated": {
+              "name": "deprecated",
+              "type": "boolean"
+            }
+          },
           "xdefAllowMultiple": true,
           "xdefSupportExtends": true,
           "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagAttribute",
@@ -261,8 +411,16 @@
               "tagName": "lt",
               "xdefRef": "/test/test-filter.xdef#SimpleFilterNode",
               "xdefRefResolved": true,
-              "name": "!string",
-              "value": "number",
+              "attributes": {
+                "name": {
+                  "name": "name",
+                  "type": "!string"
+                },
+                "value": {
+                  "name": "value",
+                  "type": "number"
+                }
+              },
               "xdefAllowMultiple": true,
               "xdefSupportExtends": true,
               "xdefBeanClass": "io.nop.api.support.beans.TreeBean",
@@ -276,11 +434,28 @@
               "tagName": "timeBetween",
               "xdefRef": "/test/test-filter.xdef#SimpleFilterNode",
               "xdefRefResolved": true,
-              "excludeMax": "boolean",
-              "excludeMin": "boolean",
-              "min": "time",
-              "max": "time",
-              "name": "!string",
+              "attributes": {
+                "excludeMax": {
+                  "name": "excludeMax",
+                  "type": "boolean"
+                },
+                "excludeMin": {
+                  "name": "excludeMin",
+                  "type": "boolean"
+                },
+                "min": {
+                  "name": "min",
+                  "type": "time"
+                },
+                "max": {
+                  "name": "max",
+                  "type": "time"
+                },
+                "name": {
+                  "name": "name",
+                  "type": "!string"
+                }
+              },
               "xdefAllowMultiple": true,
               "xdefSupportExtends": true,
               "xdefBeanClass": "io.nop.api.support.beans.TreeBean",
@@ -335,8 +510,16 @@
       "return": {
         "tagName": "return",
         "xdefName": "XplTagReturn",
-        "type": "generic-type",
-        "domain": "var-name",
+        "attributes": {
+          "type": {
+            "name": "type",
+            "type": "generic-type"
+          },
+          "domain": {
+            "name": "domain",
+            "type": "var-name"
+          }
+        },
         "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagReturn",
         "description": {
           "tagName": "description",

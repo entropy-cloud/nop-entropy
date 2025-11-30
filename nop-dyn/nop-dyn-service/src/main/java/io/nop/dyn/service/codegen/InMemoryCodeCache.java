@@ -157,7 +157,7 @@ public class InMemoryCodeCache {
 
     protected void runXpl(IResource resource, ModuleModel module) {
         if (resource != null && resource.exists()) {
-            XplModel xplModel = (XplModel) new XplModelLoader(XLangOutputMode.none).parseFromResource(resource);
+            XplModel xplModel = new XplModelLoader(XLangOutputMode.none).loadObjectFromResource(resource);
             scope.setLocalValue(VAR_MODULE_MODEL, module);
             scope.setLocalValue(VAR_MODULE_ID, module.getModuleId());
             xplModel.invoke(scope);

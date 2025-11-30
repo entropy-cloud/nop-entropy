@@ -161,7 +161,6 @@
                     <join>
                         <on leftProp="taskDefId" rightProp="taskDefId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -254,7 +253,6 @@
                     <join>
                         <on leftProp="parentTaskId" rightProp="taskInstanceId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-many cascadeDelete="true" name="steps" refEntityName="io.nop.task.dao.entity.NopTaskStepInstance"
                          refPropName="taskInstance" tagSet="pub,cascade-delete">
@@ -347,7 +345,6 @@
                     <join>
                         <on leftProp="taskInstanceId" rightProp="taskInstanceId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="子流程实例" name="subTaskInstance"
                         refEntityName="io.nop.task.dao.entity.NopTaskInstance" tagSet="pub,ref-pub"
@@ -355,7 +352,6 @@
                     <join>
                         <on leftProp="subTaskId" rightProp="taskInstanceId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="父步骤实例" name="parentStepInstance" refDisplayName="子步骤集合"
                         refEntityName="io.nop.task.dao.entity.NopTaskStepInstance" refPropName="childSteps"
@@ -363,7 +359,6 @@
                     <join>
                         <on leftProp="parentStepId" rightProp="stepInstanceId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-many displayName="子步骤集合" name="childSteps"
                          refEntityName="io.nop.task.dao.entity.NopTaskStepInstance" refPropName="parentStepInstance"

@@ -6,6 +6,7 @@ import io.nop.commons.mutable.MutableBoolean;
 import io.nop.commons.text.SourceCodeBlock;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IEvalContext;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.record_mapping.RecordMappingContext;
 import io.nop.record_mapping.impl.RecordMappingTool;
@@ -33,12 +34,13 @@ public class MappingBasedMarkdownGenerator implements ITextTemplateOutput {
     private final Object obj;
 
     private final RecordMappingTool tool;
-    private final RecordMappingContext ctx = new RecordMappingContext();
+    private final RecordMappingContext ctx;
 
-    public MappingBasedMarkdownGenerator(RecordMappingConfig mapping, Object obj) {
+    public MappingBasedMarkdownGenerator(RecordMappingConfig mapping, Object obj, IEvalScope scope) {
         this.mapping = mapping;
         this.obj = obj;
         this.tool = RecordMappingTool.DEFAULT;
+        this.ctx = new RecordMappingContext(scope);
     }
 
     @Override
@@ -177,7 +179,7 @@ public class MappingBasedMarkdownGenerator implements ITextTemplateOutput {
                     }
                 });
             }
-        }finally {
+        } finally {
             levelCounters.pop();
         }
 

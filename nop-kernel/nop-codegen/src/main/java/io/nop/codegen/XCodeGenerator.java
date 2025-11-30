@@ -188,7 +188,7 @@ public class XCodeGenerator extends TemplateFileGenerator {
         String fileType = StringHelper.fileType(fullPath);
         ComponentModelLoader loader = ResourceComponentManager.instance().getComponentModelLoader(fileType);
         if (loader != null) {
-            IComponentModel model = ResourceComponentManager.instance().loadComponentModel(fullPath);
+            Object model = ResourceComponentManager.instance().loadComponentModel(fullPath);
             scope.setLocalValue(null, CodeGenConstants.VAR_CODE_GEN_MODEL, model);
         } else {
             if (fullPath.endsWith(".xlsx"))

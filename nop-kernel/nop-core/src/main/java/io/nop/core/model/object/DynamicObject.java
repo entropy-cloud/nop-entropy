@@ -22,6 +22,7 @@ import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.IJsonHandler;
 import io.nop.core.lang.json.IJsonSerializable;
+import io.nop.core.lang.json.handler.BuildObjectJsonHandler;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.reflect.hook.IMethodMissingHook;
 import io.nop.core.reflect.hook.IPropGetMissingHook;
@@ -307,11 +308,18 @@ public class DynamicObject extends AbstractFreezable implements IComponentModel,
         propValues.put(propName, value);
     }
 
+    public Map<String, Object> toJson() {
+        BuildObjectJsonHandler handler = new BuildObjectJsonHandler();
+        serializeToJson(handler);
+        return (Map<String, Object>) handler.getResult();
+    }
+
     @Override
     public void serializeToJson(IJsonHandler out) {
         out.beginObject(getLocation());
         for (Map.Entry<String, Object> entry : propValues.entrySet()) {
-            out.put(entry.getKey(), entry.getValue());
+            Object value = entry.getValue();
+            out.put(entry.getKey(), value);
         }
         out.endObject();
     }

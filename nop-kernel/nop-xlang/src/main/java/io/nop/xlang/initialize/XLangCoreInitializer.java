@@ -16,6 +16,7 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.global.EvalGlobalRegistry;
 import io.nop.core.lang.json.bind.ValueResolverCompilerRegistry;
 import io.nop.core.lang.xml.XPathProvider;
+import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.xlang.XLangConstants;
@@ -28,7 +29,7 @@ import io.nop.xlang.janino.JaninoScriptCompiler;
 import io.nop.xlang.utils.DebugHelper;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdef.impl.XDefToObjMeta;
-import io.nop.xlang.xdef.parse.XDefinitionParser;
+import io.nop.xlang.xdef.parse.XDefinitionLoader;
 import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xdsl.json.DeltaExtendsGenerator;
 import io.nop.xlang.xpath.DefaultXPathProvider;
@@ -60,71 +61,25 @@ public class XLangCoreInitializer implements ICoreInitializer {
 
         JaninoScriptCompiler.register();
 
-//        registerXpl();
         registerXDef();
-//        registerXMeta();
-//        registerXlib();
-//        registerXTask();
-
     }
 
     IEvalAction parseExpr(SourceLocation loc, String expr) {
         return XLang.newCompileTool().compileSimpleExpr(loc, expr);
     }
 
-    //
-//    private void registerXpl() {
-//        ComponentModelConfig config = new ComponentModelConfig();
-//        config.modelType(XLangConstants.MODEL_TYPE_XPL);
-//        IResourceObjectLoader<IComponentModel> htmlLoader = new XplModelLoader(XLangOutputMode.html);
-//        IResourceObjectLoader<IComponentModel> noneLoader = new XplModelLoader(XLangOutputMode.none);
-//
-//        config.loader(XLangConstants.FILE_TYPE_XPL, htmlLoader);
-//        config.loader(XLangConstants.FILE_TYPE_XGEN, htmlLoader);
-//        config.loader(XLangConstants.FILE_TYPE_XRUN, noneLoader);
-//        cleanup.append(ResourceComponentManager.instance().registerComponentModelConfig(config));
-//    }
-//
-//    private void registerXMeta() {
-//        ComponentModelConfig config = new ComponentModelConfig();
-//        config.modelType(XLangConstants.MODEL_TYPE_XMETA);
-//
-//        config.loader(XLangConstants.MODEL_TYPE_XMETA,
-//                path -> new DslModelParser(XDSL_SCHEMA_XMETA).parseFromVirtualPath(path));
-//        config.loader(XLangConstants.MODEL_TYPE_XJAVA, path -> new JavaObjMetaParser().parseFromVirtualPath(path));
-//
-//        config.transformer(XLangConstants.MODEL_TYPE_XDEF, meta -> new ObjMetaToXDef().transform((IObjMeta) meta));
-//
-//        cleanup.append(ResourceComponentManager.instance().registerComponentModelConfig(config));
-//    }
-//
     private void registerXDef() {
         ComponentModelConfig config = new ComponentModelConfig();
         config.modelType(XLangConstants.MODEL_TYPE_XDEF);
 
-        config.loader(XLangConstants.MODEL_TYPE_XDEF, new ComponentModelConfig.LoaderConfig(null, XDslConstants.XDSL_SCHEMA_XDEF, path -> new XDefinitionParser().parseFromVirtualPath(path)));
+        config.loader(XLangConstants.MODEL_TYPE_XDEF, new ComponentModelConfig.LoaderConfig(
+                "xdsl-loader", null, XDslConstants.XDSL_SCHEMA_XDEF,
+                null, (IResourceObjectLoader) new XDefinitionLoader()));
 
         config.transformer(XLangConstants.MODEL_TYPE_XMETA, def -> new XDefToObjMeta().transform((IXDefinition) def));
 
         cleanup.append(ResourceComponentManager.instance().registerComponentModelConfig(config));
     }
-//
-//    private void registerXlib() {
-//        ComponentModelConfig config = new ComponentModelConfig();
-//        config.modelType(XLangConstants.MODEL_TYPE_XLIB);
-//        config.loader(XLangConstants.FILE_TYPE_XLIB,
-//                path -> new DslModelParser(XLangConstants.XDSL_SCHEMA_XLIB).parseFromVirtualPath(path));
-//
-//        cleanup.append(ResourceComponentManager.instance().registerComponentModelConfig(config));
-//    }
-//
-//    private void registerXTask() {
-//        ComponentModelConfig config = new ComponentModelConfig();
-//        config.modelType(XLangConstants.MODEL_TYPE_XTASK);
-//        config.loader(XLangConstants.MODEL_TYPE_XTASK, new XplTaskLoader());
-//
-//        cleanup.append(ResourceComponentManager.instance().registerComponentModelConfig(config));
-//    }
 
     @Override
     public void destroy() {

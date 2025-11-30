@@ -47,7 +47,7 @@ public class TestXlsxObjectLoader extends BaseTestCase {
 
         XlsxObjectLoader parser = new XlsxObjectLoader(importModel);
 
-        DynamicObject bean = (DynamicObject) parser.parseFromResource(new ClassPathResource("classpath:xlsx/test-imp.xlsx"));
+        DynamicObject bean = (DynamicObject) parser.loadObjectFromResource(new ClassPathResource("classpath:xlsx/test-imp.xlsx"));
         System.out.println(JsonTool.stringify(bean, null, "  "));
         assertEquals("/nop/schema/orm/orm.xdef", bean.prop_get(XDslKeys.DEFAULT.SCHEMA));
 

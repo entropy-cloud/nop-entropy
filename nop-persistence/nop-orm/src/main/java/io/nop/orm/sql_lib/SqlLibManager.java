@@ -14,7 +14,6 @@ import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.ICancellable;
 import io.nop.commons.util.ReflectionHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.context.IEvalContext;
@@ -24,7 +23,6 @@ import io.nop.core.lang.sql.SQL;
 import io.nop.core.module.ModuleManager;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.resource.IResource;
-import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.ISqlExecutor;
@@ -34,9 +32,6 @@ import io.nop.orm.OrmConstants;
 import io.nop.orm.OrmErrors;
 import io.nop.orm.sql_lib.proxy.SqlLibInvoker;
 import io.nop.xlang.api.XLang;
-import io.nop.xlang.xdsl.DslModelParser;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,8 +56,6 @@ public class SqlLibManager implements ISqlLibManager {
 
     private IOrmTemplate ormTemplate;
 
-    private ICancellable cancellable;
-
     private IDaoProvider daoProvider;
 
     @Inject
@@ -78,26 +71,6 @@ public class SqlLibManager implements ISqlLibManager {
     @Inject
     public void setDaoProvider(IDaoProvider daoProvider) {
         this.daoProvider = daoProvider;
-    }
-
-    @PostConstruct
-    public void init() {
-        LOG.info("SqlLibManager.init");
-        ComponentModelConfig config = new ComponentModelConfig();
-        config.modelType(OrmConstants.MODEL_TYPE_SQL_LIB);
-
-        config.loader(OrmConstants.FILE_TYPE_SQL_LIB,
-                new ComponentModelConfig.LoaderConfig(null, null, path -> new DslModelParser(OrmConstants.XDSL_SCHEMA_SQL_LIB).parseFromVirtualPath(path)));
-        cancellable = ResourceComponentManager.instance().registerComponentModelConfig(config);
-    }
-
-    @PreDestroy
-    public void destroy() {
-        LOG.info("SqlLibManager.destroy");
-        if (cancellable != null) {
-            cancellable.cancel();
-            cancellable = null;
-        }
     }
 
     public void delayInit() {

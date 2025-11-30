@@ -1,8 +1,7 @@
 <model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        name="dict">
-
     <loaders>
-        <loader fileType="dict.yaml" class="io.nop.core.dict.DictModelParser"/>
+        <xdsl-loader fileType="dict.xml" schemaPath="/nop/schema/orm/dict.xdef"/>
+        <xdsl-loader fileType="dict.yaml" schemaPath="/nop/schema/orm/dict.xdef"/>
     </loaders>
-
 </model>

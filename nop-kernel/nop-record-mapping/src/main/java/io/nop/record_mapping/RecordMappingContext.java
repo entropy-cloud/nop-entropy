@@ -14,6 +14,7 @@ import static io.nop.record_mapping.RecordMappingConstants.VAR_TARGET_ROOT;
 public class RecordMappingContext implements IEvalContext {
     private final IEvalScope scope;
     private ICache<Object, Object> cache;
+    private boolean forceUseMap;
     private boolean skipValidation;
     private XLangCompileTool compileTool;
 
@@ -49,6 +50,14 @@ public class RecordMappingContext implements IEvalContext {
 
     public void setCompileTool(XLangCompileTool compileTool) {
         this.compileTool = compileTool;
+    }
+
+    public boolean isForceUseMap() {
+        return forceUseMap;
+    }
+
+    public void setForceUseMap(boolean forceUseMap) {
+        this.forceUseMap = forceUseMap;
     }
 
     public boolean isSkipValidation() {

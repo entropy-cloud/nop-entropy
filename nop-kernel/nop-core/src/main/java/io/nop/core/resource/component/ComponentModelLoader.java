@@ -7,14 +7,13 @@
  */
 package io.nop.core.resource.component;
 
-import io.nop.api.core.util.IComponentModel;
 import io.nop.core.resource.IResourceObjectLoader;
 
 public class ComponentModelLoader {
     private final String modelType;
-    private final IResourceObjectLoader<? extends IComponentModel> loader;
+    private final IResourceObjectLoader<Object> loader;
 
-    public ComponentModelLoader(String modelType, IResourceObjectLoader<? extends IComponentModel> loader) {
+    public ComponentModelLoader(String modelType, IResourceObjectLoader<Object> loader) {
         this.modelType = modelType;
         this.loader = loader;
     }
@@ -23,7 +22,7 @@ public class ComponentModelLoader {
         return modelType;
     }
 
-    public IResourceObjectLoader<? extends IComponentModel> getLoader() {
+    public IResourceObjectLoader<Object> getLoader() {
         return loader;
     }
 }

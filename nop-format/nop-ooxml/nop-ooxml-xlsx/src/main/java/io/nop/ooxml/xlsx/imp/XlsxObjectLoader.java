@@ -59,7 +59,7 @@ public class XlsxObjectLoader implements IResourceObjectLoader<Object> {
     }
 
     @Override
-    public Object parseFromResource(IResource resource) {
+    public Object loadObjectFromResource(IResource resource) {
         return parseFromResource(resource, XLang.newEvalScope());
     }
 

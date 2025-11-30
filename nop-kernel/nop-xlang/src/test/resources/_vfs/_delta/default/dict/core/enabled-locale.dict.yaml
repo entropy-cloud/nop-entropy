@@ -1,0 +1,5 @@
+x:extends: super
+
+options:
+  - label: 繁体中文
+    value: zh-TW

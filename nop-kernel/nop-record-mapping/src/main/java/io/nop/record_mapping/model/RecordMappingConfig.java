@@ -2,10 +2,10 @@ package io.nop.record_mapping.model;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.commons.util.StringHelper;
-import io.nop.core.model.object.DynamicObject;
+import io.nop.core.lang.json.JObject;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.ReflectionManager;
+import io.nop.record_mapping.RecordMappingContext;
 import io.nop.record_mapping.model._gen._RecordMappingConfig;
 
 import java.util.HashMap;
@@ -37,7 +37,10 @@ public class RecordMappingConfig extends _RecordMappingConfig {
         this.resolvedBaseMapping = resolvedBaseMapping;
     }
 
-    public Object newTarget(boolean useDynObj) {
+    public Object newTarget(RecordMappingContext ctx) {
+        if (ctx.isForceUseMap())
+            return new JObject();
+
         if (toClassModel == null) {
             String toClassName = getToClass();
             if (toClassName != null) {
@@ -45,8 +48,6 @@ public class RecordMappingConfig extends _RecordMappingConfig {
             }
         }
         if (toClassModel == null) {
-            if (useDynObj)
-                return new DynamicObject(StringHelper.toString(this.getName(),"MAPPING"));
             return new LinkedHashMap<>();
         }
         return toClassModel.newInstance();

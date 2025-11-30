@@ -7,7 +7,6 @@
  */
 package io.nop.xlang.xdsl;
 
-import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.INeedInit;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
@@ -19,7 +18,7 @@ import io.nop.xlang.xdsl.json.DslBeanModelParser;
 import io.nop.xlang.xdsl.json.DslXNodeToJsonTransformer;
 import io.nop.xlang.xmeta.SchemaLoader;
 
-public class DslModelParser extends AbstractDslParser<IComponentModel> {
+public class DslModelParser extends AbstractDslParser<Object> {
     private boolean dynamic;
     /**
      * 为编辑器提供数据，此时只解析数字类型和boolean类型，其他类型都作为字符串返回
@@ -75,13 +74,13 @@ public class DslModelParser extends AbstractDslParser<IComponentModel> {
         return this;
     }
 
-    public IComponentModel parseWithXDef(IXDefinition xdef, XNode node) {
+    public Object parseWithXDef(IXDefinition xdef, XNode node) {
         setXdef(xdef);
         SchemaLoader.validateNode(node, xdef.getRootNode(), false);
         return doParseNode(node);
     }
 
-    protected IComponentModel initModelName(IComponentModel model) {
+    protected Object initModelName(Object model) {
         if (resolveInDir == null)
             return model;
 
@@ -104,15 +103,15 @@ public class DslModelParser extends AbstractDslParser<IComponentModel> {
     }
 
     @Override
-    protected IComponentModel doParseNode(XNode node) {
+    protected Object doParseNode(XNode node) {
         return initModelName(doParseNode0(node));
     }
 
-    protected IComponentModel doParseNode0(XNode node) {
+    protected Object doParseNode0(XNode node) {
         IXDefinition xdef = getXdef();
         if (dynamic || forEditor) {
             Object obj = new DslXNodeToJsonTransformer(forEditor, xdef, getCompileTool()).ignoreUnknown(ignoreUnknown).parseObject(node);
-            return (IComponentModel) obj;
+            return obj;
         }
 
         // if (xdef.getXdefBeanClass() == null)
@@ -132,6 +131,6 @@ public class DslModelParser extends AbstractDslParser<IComponentModel> {
 
         if (!disableInit && model instanceof INeedInit)
             ((INeedInit) model).init();
-        return (IComponentModel) model;
+        return model;
     }
 }

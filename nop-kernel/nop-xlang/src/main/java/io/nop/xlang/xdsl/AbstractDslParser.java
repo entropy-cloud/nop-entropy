@@ -9,7 +9,6 @@ package io.nop.xlang.xdsl;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
-import io.nop.api.core.util.IComponentModel;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
@@ -41,7 +40,7 @@ import static io.nop.core.CoreErrors.ERR_COMPONENT_PARSE_MISSING_RESOURCE;
 import static io.nop.xlang.XLangErrors.ARG_NODE;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_CONFIG_CHILD_MUST_BE_IMPORT;
 
-public abstract class AbstractDslParser<T extends IComponentModel> extends AbstractResourceParser<T> {
+public abstract class AbstractDslParser<T> extends AbstractResourceParser<T> {
     static final Logger LOG = LoggerFactory.getLogger(AbstractDslParser.class);
 
     private IXDslNodeLoader modelLoader = DslNodeLoader.INSTANCE;

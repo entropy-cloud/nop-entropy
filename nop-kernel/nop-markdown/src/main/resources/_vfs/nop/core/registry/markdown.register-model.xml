@@ -2,7 +2,7 @@
        name="markdown">
 
     <loaders>
-        <loader fileType="tpl.md" class="io.nop.markdown.simple.MarkdownDocumentParser"/>
+        <loader fileType="tpl.md" class="io.nop.markdown.simple.MarkdownDocumentLoader"/>
     </loaders>
 
 </model>

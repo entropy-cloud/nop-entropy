@@ -125,7 +125,6 @@
                     <join>
                         <on leftProp="inputFileId" rightProp="sid"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-many cascadeDelete="true" displayName="任务状态变量" name="taskVars"
                          refEntityName="io.nop.batch.dao.entity.NopBatchTaskVar" refPropName="task"
@@ -180,7 +179,6 @@
                     <join>
                         <on leftProp="batchTaskId" rightProp="sid"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -232,7 +230,6 @@
                     <join>
                         <on leftProp="batchTaskId" rightProp="sid"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>

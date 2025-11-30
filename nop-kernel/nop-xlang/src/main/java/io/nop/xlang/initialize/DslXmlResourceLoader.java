@@ -1,43 +1,28 @@
 package io.nop.xlang.initialize;
 
-import io.nop.api.core.util.IComponentModel;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
-import io.nop.core.resource.VirtualFileSystem;
-import io.nop.xlang.xdsl.DslModelParser;
-import io.nop.xlang.xdsl.IDslResourceObjectLoader;
-import io.nop.xlang.xdsl.XDslKeys;
+import io.nop.xlang.feature.XModelInclude;
+import io.nop.xlang.xdsl.AbstractDslResourcePersister;
+import io.nop.xlang.xdsl.DslModelHelper;
 
-public class DslXmlResourceLoader implements IDslResourceObjectLoader<IComponentModel> {
-    private final String schemaPath;
-    private final String resolveInDir;
-    private boolean dynamic;
-
+public class DslXmlResourceLoader extends AbstractDslResourcePersister {
     public DslXmlResourceLoader(String schemaPath, String resolveInDir) {
-        this.schemaPath = schemaPath;
-        this.resolveInDir = resolveInDir;
+        super(schemaPath, resolveInDir);
     }
 
-    public DslXmlResourceLoader dynamic(boolean b) {
-        this.dynamic = b;
-        return this;
-    }
-
-    @Override
-    public IComponentModel loadObjectFromPath(String path) {
-        return parseFromResource(VirtualFileSystem.instance().getResource(path));
+    public DslXmlResourceLoader(String schemaPath, String resolveInDir, boolean dynamic) {
+        super(schemaPath, resolveInDir, dynamic);
     }
 
     @Override
-    public XNode parseNodeFromResource(IResource resource) {
-        XNode ret = new DslModelParser(schemaPath).resolveInDir(resolveInDir).dynamic(dynamic).parseNodeFromResource(resource, false);
-        if (schemaPath != null)
-            ret.setAttr(XDslKeys.DEFAULT.SCHEMA, schemaPath);
-        return ret;
+    public XNode loadDslNodeFromResource(IResource resource) {
+        return XModelInclude.instance().loadActiveNodeFromResource(resource);
     }
 
     @Override
-    public IComponentModel parseFromResource(IResource resource) {
-        return new DslModelParser(schemaPath).resolveInDir(resolveInDir).dynamic(dynamic).parseFromResource(resource);
+    public void saveObjectToResource(IResource resource, Object obj) {
+        XNode node = DslModelHelper.dslModelToXNode(schemaPath, obj);
+        node.saveToResource(resource, null);
     }
 }

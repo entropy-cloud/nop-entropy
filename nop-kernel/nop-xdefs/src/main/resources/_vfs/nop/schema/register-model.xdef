@@ -9,21 +9,18 @@
     则调用ResourceComponentManager.instance().loadComponentPath("resolve-rule:xxx")对应于如下过程：
     1. 尝试加载/nop/rule/xxx.rule.xml
     2. 尝试加载/nop/rule/xxx.rule.xlsx
-    3. 尝试使用defaultLoader来加载
 
     这里resolve-为特殊的前缀，它可以拼接在任意的modelType前面表示执行对应模型的resolve功能。
     -->
-    <resolve-handler resolveInDir="!v-path" defaultLoaderClass="class-name" defaultLoaderBean="string"
-                     supportVersion="!boolean=true"/>
+    <resolve-handler resolveInDir="!v-path" supportVersion="!boolean=true"/>
 
     <loaders xdef:body-type="list" xdef:key-attr="fileType">
         <xdsl-loader fileType="!file-type" schemaPath="!v-path"
                      xdef:bean-tag-prop="type" optional="boolean"/>
         <xlsx-loader fileType="!file-type" impPath="!v-path"
                      xdef:bean-tag-prop="type" optional="boolean"/>
-        <md-loader fileType="!file-type" mappingName="!string" xdef:bean-tag-prop="type" optional="boolean"/>
         <loader fileType="!file-type" class="!class-name"
-                xdef:bean-tag-prop="type" optional="boolean" returnXNode="boolean"/>
+                xdef:bean-tag-prop="type" optional="boolean"/>
     </loaders>
 
     <transformers xdef:body-type="list" xdef:key-attr="target">

@@ -136,28 +136,24 @@
                     <join>
                         <on leftProp="deptId" rightProp="deptId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="部门" name="relatedDept" refEntityName="io.nop.auth.dao.entity.NopAuthDept"
                         tagSet="pub,ref-pub" i18n-en:displayName="Related Department">
                     <join>
                         <on leftProp="relDeptId" rightProp="deptId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="岗位" name="position" refEntityName="io.nop.auth.dao.entity.NopAuthPosition"
                         tagSet="pub,ref-pub" i18n-en:displayName="Position">
                     <join>
                         <on leftProp="positionId" rightProp="positionId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="上级" name="manager" refEntityName="io.nop.auth.dao.entity.NopAuthUser"
                         tagSet="pub,ref-pub" i18n-en:displayName="Manager">
                     <join>
                         <on leftProp="managerId" rightProp="userId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-many cascadeDelete="true" displayName="角色映射" name="roleMappings"
                          refEntityName="io.nop.auth.dao.entity.NopAuthUserRole" refPropName="user"
@@ -235,7 +231,6 @@
                     <join>
                         <on leftProp="userId" rightProp="userId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -327,7 +322,6 @@
                     <join>
                         <on leftProp="userId" rightProp="userId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="角色" name="role" refDisplayName="用户映射"
                         refEntityName="io.nop.auth.dao.entity.NopAuthRole" refPropName="userMappings"
@@ -336,7 +330,6 @@
                     <join>
                         <on leftProp="roleId" rightProp="roleId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -382,14 +375,12 @@
                     <join>
                         <on leftProp="userId" rightProp="userId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="被代理的用户" name="substitutedUser" refEntityName="io.nop.auth.dao.entity.NopAuthUser"
                         tagSet="pub" i18n-en:displayName="Substituted User">
                     <join>
                         <on leftProp="substitutedUserId" rightProp="userId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -532,7 +523,6 @@
                     <join>
                         <on leftProp="parentId" rightProp="resourceId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="子系统" name="site" refDisplayName="资源列表"
                         refEntityName="io.nop.auth.dao.entity.NopAuthSite" refPropName="resources"
@@ -541,7 +531,6 @@
                     <join>
                         <on leftProp="siteId" rightProp="siteId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-many cascadeDelete="true" displayName="子资源" name="children"
                          refEntityName="io.nop.auth.dao.entity.NopAuthResource" refPropName="parent"
@@ -598,7 +587,6 @@
                     <join>
                         <on leftProp="roleId" rightProp="roleId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="资源" name="resource" refDisplayName="角色映射"
                         refEntityName="io.nop.auth.dao.entity.NopAuthResource" refPropName="roleMappings"
@@ -607,7 +595,6 @@
                     <join>
                         <on leftProp="resourceId" rightProp="resourceId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -711,7 +698,6 @@
                     <join>
                         <on leftProp="userId" rightProp="userId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -755,14 +741,12 @@
                     <join>
                         <on leftProp="sessionId" rightProp="sessionId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="用户" name="user" refEntityName="io.nop.auth.dao.entity.NopAuthUser"
                         tagSet="pub,ref-pub" i18n-en:displayName="User">
                     <join>
                         <on leftProp="userId" rightProp="userId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -814,7 +798,6 @@
                     <join>
                         <on leftProp="parentId" rightProp="deptId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="部门负责人" ignoreDepends="true" name="manager"
                         refEntityName="io.nop.auth.dao.entity.NopAuthUser" tagSet="pub,ref-pub"
@@ -822,7 +805,6 @@
                     <join>
                         <on leftProp="managerId" rightProp="userId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-many displayName="部门用户" name="deptUsers" refEntityName="io.nop.auth.dao.entity.NopAuthUser"
                          refPropName="dept" tagSet="pub" i18n-en:displayName="Users">
@@ -885,14 +867,12 @@
                     <join>
                         <on leftProp="parentId" rightProp="groupId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="所有者" name="owner" refEntityName="io.nop.auth.dao.entity.NopAuthUser"
                         tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable" i18n-en:displayName="Owner">
                     <join>
                         <on leftProp="ownerId" rightProp="userId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-many displayName="子分组" name="children" refEntityName="io.nop.auth.dao.entity.NopAuthGroup"
                          refPropName="parent" tagSet="pub" i18n-en:displayName="Children">
@@ -952,7 +932,6 @@
                     <join>
                         <on leftProp="deptId" rightProp="deptId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="分组" name="group" refDisplayName="部门映射"
                         refEntityName="io.nop.auth.dao.entity.NopAuthGroup" refPropName="deptMappings"
@@ -961,7 +940,6 @@
                     <join>
                         <on leftProp="groupId" rightProp="groupId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -998,7 +976,6 @@
                     <join>
                         <on leftProp="userId" rightProp="userId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="分组" name="group" refDisplayName="用户映射"
                         refEntityName="io.nop.auth.dao.entity.NopAuthGroup" refPropName="userMappings"
@@ -1007,7 +984,6 @@
                     <join>
                         <on leftProp="groupId" rightProp="groupId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>

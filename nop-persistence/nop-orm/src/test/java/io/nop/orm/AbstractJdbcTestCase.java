@@ -53,7 +53,6 @@ public abstract class AbstractJdbcTestCase extends BaseTestCase {
         jdbcTemplate = createJdbcTemplate();
         ormTemplate = createOrmTemplate();
         sqlLibManager = createSqlLibManager();
-        sqlLibManager.init();
         dictLoader = new SqlLibDictLoader();
         dictLoader.setSqlLibManager(sqlLibManager);
         dictLoader.init();
@@ -72,9 +71,6 @@ public abstract class AbstractJdbcTestCase extends BaseTestCase {
     public void tearDown() {
         if(dictLoader != null)
             dictLoader.destroy();
-
-        if (sqlLibManager != null)
-            sqlLibManager.destroy();
 
         if (dataSource != null) {
             dataSource.close();

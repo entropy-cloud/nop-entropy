@@ -14,7 +14,7 @@ public class JsonSaveOptions {
     /**
      * 如果资源文件已存在，且内容与待保存的内容相同，则跳过保存
      */
-    private boolean checkSameContent = true;
+    private boolean checkSameContent = false;
 
     public boolean isCheckSameContent() {
         return checkSameContent;

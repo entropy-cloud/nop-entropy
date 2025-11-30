@@ -214,7 +214,6 @@
                     <join>
                         <on leftProp="ruleId" rightProp="ruleId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -243,7 +242,6 @@
                     <join>
                         <on leftProp="ruleId" rightProp="ruleId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>

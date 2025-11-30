@@ -183,7 +183,6 @@
                     <join>
                         <on leftProp="wfDefId" rightProp="wfDefId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -283,7 +282,6 @@
                     <join>
                         <on leftProp="parentWfId" rightProp="wfId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-many cascadeDelete="true" name="statusHistories"
                          refEntityName="io.nop.wf.dao.entity.NopWfStatusHistory" refPropName="wfInstance"
@@ -356,7 +354,6 @@
                     <join>
                         <on leftProp="wfId" rightProp="wfId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -491,14 +488,12 @@
                     <join>
                         <on leftProp="wfId" rightProp="wfId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="子流程实例" name="subWfInstance" refEntityName="io.nop.wf.dao.entity.NopWfInstance"
                         tagSet="pub,ref-pub" i18n-en:displayName="Sub Workflow Instance">
                     <join>
                         <on leftProp="subWfId" rightProp="wfId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-many cascadeDelete="true" name="nextLinks"
                          refEntityName="io.nop.wf.dao.entity.NopWfStepInstanceLink" refPropName="wfStep"
@@ -549,7 +544,6 @@
                     <join>
                         <on leftProp="wfId" rightProp="wfId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="工作流步骤" name="wfStep" refEntityName="io.nop.wf.dao.entity.NopWfStepInstance"
                         refPropName="nextLinks" tagSet="pub,ref-pub,ref-cascade-delete"
@@ -557,7 +551,6 @@
                     <join>
                         <on leftProp="stepId" rightProp="stepId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="工作流步骤" name="nextWfStep" refEntityName="io.nop.wf.dao.entity.NopWfStepInstance"
                         refPropName="prevLinks" tagSet="pub,ref-pub,ref-cascade-delete"
@@ -565,7 +558,6 @@
                     <join>
                         <on leftProp="nextStepId" rightProp="stepId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -616,7 +608,6 @@
                     <join>
                         <on leftProp="wfId" rightProp="wfId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="工作流步骤实例" name="wfStepInstance"
                         refEntityName="io.nop.wf.dao.entity.NopWfStepInstance" refPropName="stepActions"
@@ -624,7 +615,6 @@
                     <join>
                         <on leftProp="stepId" rightProp="stepId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -670,7 +660,6 @@
                     <join>
                         <on leftProp="wfId" rightProp="wfId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -751,7 +740,6 @@
                     <join>
                         <on leftProp="wfId" rightProp="wfId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="工作流步骤实例" name="wfStepInstance"
                         refEntityName="io.nop.wf.dao.entity.NopWfStepInstance" tagSet="pub,ref-pub"
@@ -759,14 +747,12 @@
                     <join>
                         <on leftProp="stepId" rightProp="stepId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="工作流动作" name="wfAction" refEntityName="io.nop.wf.dao.entity.NopWfAction"
                         tagSet="pub,ref-pub" i18n-en:displayName="Workflow Action">
                     <join>
                         <on leftProp="actionId" rightProp="sid"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -823,7 +809,6 @@
                     <join>
                         <on leftProp="wfId" rightProp="wfId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
                 <to-one displayName="工作流步骤实例" name="wfStepInstance"
                         refEntityName="io.nop.wf.dao.entity.NopWfStepInstance" tagSet="pub,ref-pub"
@@ -831,7 +816,6 @@
                     <join>
                         <on leftProp="stepId" rightProp="stepId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>

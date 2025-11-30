@@ -10,19 +10,14 @@ package io.nop.xlang.initialize;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.ioc.BeanContainer;
-import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancellable;
-import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
-import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.model.object.DynamicObject;
 import io.nop.core.reflect.IClassModel;
-import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.IResource;
@@ -55,6 +50,16 @@ import static io.nop.xlang.XLangErrors.ERR_XDSL_MODEL_NO_NAME_ATTR;
 public class RegisterModelDiscovery {
     static final Logger LOG = LoggerFactory.getLogger(RegisterModelDiscovery.class);
 
+    static RegisterModelDiscovery _instance = new RegisterModelDiscovery();
+
+    public static RegisterModelDiscovery instance() {
+        return _instance;
+    }
+
+    public static void registerInstance(RegisterModelDiscovery instance) {
+        _instance = instance;
+    }
+
     public void registerAll(ICancellable cancellable) {
         IResource registryResource = VirtualFileSystem.instance().getResource(CoreConstants.MAIN_REGISTRY_PATH);
         XNode registryNode;
@@ -66,8 +71,9 @@ public class RegisterModelDiscovery {
 
         dumpModel(registryNode);
 
-        Object model = new DslModelParser(XLangConstants.XDSL_SCHEMA_REGISTRY).parseFromNode(registryNode);
-        processModel(model, cancellable);
+        DynamicObject model = (DynamicObject) new DslModelParser(XLangConstants.XDSL_SCHEMA_REGISTRY)
+                .parseFromNode(registryNode);
+        processModel(model.toJson(), cancellable);
     }
 
     private void dumpModel(XNode node) {
@@ -110,32 +116,15 @@ public class RegisterModelDiscovery {
                 models.appendChild(modelNode);
             } else {
                 new DeltaMerger(XDslKeys.DEFAULT).merge(existing, modelNode, xdef.getRootNode(), false);
-//                if (AppConfig.isDebugMode()) {
-//                    existing.dump("merge-register-model");
-//                }
             }
         }
         return node;
     }
-//
-//    private void mergeChild(XNode nodeA, XNode nodeB, String childName) {
-//        XNode childB = nodeB.childByTag(childName);
-//        if (childB == null)
-//            return;
-//
-//        XNode childA = nodeA.childByTag(childName);
-//        if (childA == null) {
-//            nodeA.appendChild(childB.detach());
-//        } else {
-//            childA.appendChildren(childB.detachChildren());
-//        }
-//    }
 
-    private void processModel(Object registry, ICancellable cancellable) {
-        Object models = BeanTool.getProperty(registry, "models");
+    private void processModel(Map<String, Object> registry, ICancellable cancellable) {
+        List<Map<String, Object>> models = (List<Map<String, Object>>) registry.get("models");
         if (models != null) {
-            List<Object> list = CollectionHelper.toList(models);
-            for (Object model : list) {
+            for (Map<String, Object> model : models) {
                 ComponentModelConfig config = buildConfig(model);
                 ICancellable cleanup = ResourceComponentManager.instance().registerComponentModelConfig(config);
                 if (cancellable != null) {
@@ -145,82 +134,71 @@ public class RegisterModelDiscovery {
         }
     }
 
-    ComponentModelConfig buildConfig(Object model) {
+    ComponentModelConfig buildConfig(Map<String, Object> model) {
         ComponentModelConfig config = new ComponentModelConfig();
-        String name = (String) BeanTool.getProperty(model, "name");
+        String name = (String) model.get("name");
         config.setModelType(name);
 
         boolean supportVersion = true;
 
-        Object resolveHandler = BeanTool.getProperty(model, "resolveHandler");
+        Map<String, Object> resolveHandler = (Map<String, Object>) model.get("resolveHandler");
         String resolveInDir = null;
         if (resolveHandler != null) {
-            resolveInDir = (String) BeanTool.getProperty(resolveHandler, "resolveInDir");
+            resolveInDir = (String) resolveHandler.get("resolveInDir");
             config.setResolveInDir(resolveInDir);
-            config.setResolveDefaultLoader(buildDefaultResolveLoader(resolveHandler));
-            supportVersion = ConvertHelper.toPrimitiveBoolean(
-                    BeanTool.getProperty(resolveHandler, "supportVersion"), true, NopException::new);
+            supportVersion = ConvertHelper.toPrimitiveBoolean(resolveHandler.get("supportVersion"), true, NopException::new);
         }
         config.setSupportVersion(supportVersion);
 
-        List<Object> loaders = (List<Object>) BeanTool.getProperty(model, "loaders");
+        List<Map<String, Object>> loaders = (List<Map<String, Object>>) model.get("loaders");
         if (loaders != null) {
-            for (Object loader : loaders) {
-                String type = (String) BeanTool.getProperty(loader, "type");
-                String fileType = (String) BeanTool.getProperty(loader, "fileType");
-
-                String mappingName = null;
+            for (Map<String, Object> loader : loaders) {
+                String type = (String) loader.get("type");
+                String fileType = (String) loader.get("fileType");
 
                 String impPath = null;
                 String schemaPath = null;
 
                 if ("xdsl-loader".equals(type)) {
-                    schemaPath = (String) BeanTool.getProperty(loader, "schemaPath");
-                    config.setXdefPath(schemaPath);
+                    schemaPath = (String) loader.get("schemaPath");
+                    if (config.getXdefPath() == null) {
+                        config.setXdefPath(schemaPath);
+                        config.setPrimaryFileType(fileType);
+                    }
+
                     if (JsonTool.isJsonOrYamlFileExt(StringHelper.fileExtFromFileType(fileType))) {
-                        config.loader(fileType, makeLoaderConfig(impPath, schemaPath,
+                        config.loader(fileType, makeLoaderConfig(type, impPath, schemaPath, loader,
                                 new DslJsonResourceLoader(schemaPath, resolveInDir)));
                     } else {
-                        config.loader(fileType, makeLoaderConfig(impPath, schemaPath,
+                        config.loader(fileType, makeLoaderConfig(type, impPath, schemaPath, loader,
                                 new DslXmlResourceLoader(schemaPath, resolveInDir)));
                     }
                 } else if ("xlsx-loader".equals(type)) {
-                    impPath = (String) BeanTool.getProperty(loader, "impPath");
-                    config.setImpPath(impPath);
+                    impPath = (String) loader.get("impPath");
                     if (DslModelHelper.supportExcelModelLoader()) {
-                        config.loader(fileType, makeLoaderConfig(impPath, schemaPath,
+                        config.loader(fileType, makeLoaderConfig(type, impPath, schemaPath, loader,
                                 DslModelHelper.newExcelModelLoader(impPath)));
                     } else {
                         LOG.warn("nop.registry.ignore-xlsx-loader-since-no-xlsx-parser:fileType={},impPath={}",
                                 fileType, impPath);
                     }
-                } else if ("md-loader".equals(type)) {
-                    mappingName = (String) BeanTool.getProperty(loader, "mappingName");
-                    config.setMdMappingName(mappingName);
-                    if (DslModelHelper.supportMarkdownModelLoader()) {
-                        config.loader(fileType, makeLoaderConfig(impPath, schemaPath,
-                                DslModelHelper.newMarkdownModelLoader(mappingName)));
-                    } else {
-                        LOG.warn("nop.registry.ignore-markdown-loader-since-no-markdown-parser:fileType={},mappingName={}",
-                                fileType, mappingName);
-                    }
                 }
             }
 
-            for (Object loader : loaders) {
-                String type = (String) BeanTool.getProperty(loader, "type");
-                String fileType = (String) BeanTool.getProperty(loader, "fileType");
-                boolean optional = ConvertHelper.toPrimitiveBoolean(BeanTool.getProperty(loader, "optional"),
-                        false, NopException::new);
+            for (Map<String, Object> loader : loaders) {
+                String type = (String) loader.get("type");
+                String fileType = (String) loader.get("fileType");
                 if ("loader".equals(type)) {
-                    initLoader(config, loader, fileType, optional);
+                    boolean optional = ConvertHelper.toPrimitiveBoolean(loader.get("optional"),
+                            false, NopException::new);
+                    initLoader(config, loader, type, fileType, optional);
                 }
             }
         }
 
-        List<Object> transformers = (List<Object>) BeanTool.getProperty(model, "transformers");
+        List<Map<String, Object>> transformers = (List<Map<String, Object>>) BeanTool.getProperty(model, "transformers");
         if (transformers != null) {
-            for (Object transformer : transformers) {
+            for (Map<String, Object> transformer : transformers) {
                 initTransformer(config, transformer, name);
             }
         }
@@ -228,40 +206,20 @@ public class RegisterModelDiscovery {
         return config;
     }
 
-//    private IResourceObjectLoader<?> withMapping(String mappingName, IResourceObjectLoader<?> loader) {
-//        if (StringHelper.isEmpty(mappingName))
-//            return loader;
-//
-//        IDslObjectTransformerFactory.IDslObjectTransformer transformer = DslModelHelper.newDslObjectTransformer(mappingName);
-//        return new IResourceObjectLoader<>() {
-//            @Override
-//            public Object loadObjectFromPath(String path) {
-//                Object model = loader.loadObjectFromPath(path);
-//                return transformer.transform(model);
-//            }
-//
-//            @Override
-//            public Object parseFromResource(IResource resource) {
-//                Object model = loader.parseFromResource(resource);
-//                return transformer.transform(model);
-//            }
-//        };
-//    }
+    private ComponentModelConfig.LoaderConfig makeLoaderConfig(String type,
+                                                               String impPath, String xdefPath,
+                                                               Map<String, Object> attributes,
+                                                               IResourceObjectLoader<Object> loader) {
 
-    private ComponentModelConfig.LoaderConfig makeLoaderConfig(String impPath, String xdefPath,
-                                                               IResourceObjectLoader<?> loader) {
-
-        return new ComponentModelConfig.LoaderConfig(impPath, xdefPath, (IResourceObjectLoader<? extends IComponentModel>) loader);
+        return new ComponentModelConfig.LoaderConfig(type, impPath, xdefPath, attributes, loader);
     }
 
-    private void initLoader(ComponentModelConfig config, Object loader, String fileType, boolean optional) {
-        String className = (String) BeanTool.getProperty(loader, "className");
-        boolean returnXNode = ConvertHelper.toPrimitiveBoolean(BeanTool.getProperty(loader, "returnXNode"));
+    private void initLoader(ComponentModelConfig config, Map<String, Object> loader,
+                            String type, String fileType, boolean optional) {
+        String className = (String) loader.get("className");
         try {
-            IResourceObjectLoader loaderBean = newLoader(className, loader);
-            if (returnXNode)
-                loaderBean = new XNodeToModelResourceObjectLoader(config.getXdefPath(), config.getResolveInDir(), loaderBean);
-            config.loader(fileType, makeLoaderConfig(null, null, loaderBean));
+            IResourceObjectLoader<Object> loaderBean = newLoader(className, config, loader);
+            config.loader(fileType, makeLoaderConfig(type, null, null, loader, loaderBean));
         } catch (NoClassDefFoundError | NopException e) {
             if (!optional) {
                 throw NopException.adapt(e);
@@ -271,10 +229,10 @@ public class RegisterModelDiscovery {
         }
     }
 
-    private void initTransformer(ComponentModelConfig config, Object transformer, String modelType) {
-        String target = (String) BeanTool.getProperty(transformer, "target");
-        String className = (String) BeanTool.getProperty(transformer, "className");
-        boolean optional = ConvertHelper.toPrimitiveBoolean(BeanTool.getProperty(transformer, "optional"),
+    private void initTransformer(ComponentModelConfig config, Map<String, Object> transformer, String modelType) {
+        String target = (String) transformer.get("target");
+        String className = (String) transformer.get("className");
+        boolean optional = ConvertHelper.toPrimitiveBoolean(transformer.get("optional"),
                 false, NopException::new);
 
         try {
@@ -288,64 +246,23 @@ public class RegisterModelDiscovery {
         }
     }
 
-    IResourceObjectLoader buildDefaultResolveLoader(Object resolveHandler) {
-        String beanName = (String) BeanTool.getProperty(resolveHandler, "defaultLoaderBean");
-        if (!StringHelper.isEmpty(beanName)) {
-            LOG.info("nop.use-default-loader-bean:beanName={}", beanName);
-            return new IResourceObjectLoader() {
-                @Override
-                public Object loadObjectFromPath(String path) {
-                    return ((IResourceObjectLoader) BeanContainer.instance().getBean(beanName)).loadObjectFromPath(path);
-                }
-
-                @Override
-                public Object parseFromResource(IResource resource) {
-                    return ((IResourceObjectLoader) BeanContainer.instance().getBean(beanName)).parseFromResource(resource);
-                }
-            };
-        }
-        String className = (String) BeanTool.getProperty(resolveHandler, "defaultLoaderClass");
-        if (StringHelper.isEmpty(className))
-            return null;
-
-        return newLoader(className, resolveHandler);
-    }
-
-    IComponentTransformer newTransformer(String className) {
+    IComponentTransformer<Object, Object> newTransformer(String className) {
         IClassModel classModel = ReflectionManager.instance().loadClassModel(className);
         if (IComponentTransformer.class.isAssignableFrom(classModel.getRawClass()))
-            return src -> ((IComponentTransformer) classModel.newInstance()).transform(src);
+            return (IComponentTransformer<Object, Object>) classModel.newInstance();
 
-        IFunctionModel fn = classModel.getMethod("transform", 1);
-        Guard.notNull(fn, className + ".transform not exists");
-        return src -> (IComponentModel) fn.call1(classModel.newInstance(), src, DisabledEvalScope.INSTANCE);
+        throw new IllegalArgumentException("nop.err.core.invalid-transformer-type:" + className);
     }
 
-    IResourceObjectLoader<Object> newLoader(String className, Object config) {
+    IResourceObjectLoader<Object> newLoader(String className, ComponentModelConfig config, Map<String, Object> attributes) {
         IClassModel classModel = ReflectionManager.instance().loadClassModel(className);
         if (classModel.isAssignableTo(IResourceObjectLoaderFactory.class))
-            return ((IResourceObjectLoaderFactory) classModel.newInstance()).newResourceObjectLoader(config);
+            return ((IResourceObjectLoaderFactory) classModel.newInstance()).newResourceObjectLoader(config, attributes);
 
         if (classModel.isAssignableTo(IResourceObjectLoader.class)) {
             return (IResourceObjectLoader) classModel.newInstance();
         }
 
-        IFunctionModel fn = classModel.getMethod("parseFromVirtualPath", 1);
-        Guard.notNull(fn, className + ".parseFromVirtualPath not exists");
-
-        IFunctionModel parseFn = classModel.getMethod("parseFromResource", 1);
-        return new IResourceObjectLoader() {
-            @Override
-            public Object loadObjectFromPath(String path) {
-                return fn.call1(classModel.newInstance(), path, DisabledEvalScope.INSTANCE);
-            }
-
-            @Override
-            public Object parseFromResource(IResource resource) {
-                if (parseFn != null)
-                    return parseFn.call1(classModel.newInstance(), resource, DisabledEvalScope.INSTANCE);
-                return loadObjectFromPath(resource.getPath());
-            }
-        };
+        throw new IllegalArgumentException("nop.err.core.invalid-loader-type:" + className);
     }
 }

@@ -4,6 +4,8 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.Pair;
+import io.nop.commons.util.objects.ValueWithLocation;
+import io.nop.core.lang.json.JObject;
 import io.nop.core.model.object.DynamicObject;
 import io.nop.core.model.table.impl.BaseTable;
 import io.nop.markdown.model.MarkdownDocument;
@@ -54,8 +56,8 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
     }
 
     @Override
-    public Object newTarget(boolean useDynObj) {
-        return mapping.newTarget(useDynObj);
+    public Object newTarget(RecordMappingContext ctx) {
+        return mapping.newTarget(ctx);
     }
 
     @Override
@@ -79,7 +81,7 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
             // 处理内容
             mapSectionContent(mapping, section, target, ctx, processedFields);
         });
-        checkComplete(mapping, target, processedFields);
+        checkComplete(mapping, target, processedFields, ctx);
     }
 
     protected void mapTitleField(RecordMappingConfig mapping, MarkdownSection section,
@@ -88,6 +90,9 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
         if (titleField != null) {
             tool.executeForField(mapping, titleField, section, target, ctx, field -> {
                 Object titleValue = tool.processFieldValue(mapping, field, section.getTitle(), ctx);
+                if (target instanceof JObject)
+                    titleValue = ValueWithLocation.of(section.getLocation(), titleValue);
+
                 tool.setTargetValue(field, target, titleValue, ctx);
                 processedFields.add(titleField.getName());
             });
@@ -133,7 +138,7 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
             Object fieldValue = tool.makeTargetObject(field, item, target, ctx);
             Set<String> processedFields = new HashSet<>();
             mapListItems(field.getResolvedMapping(), item.getChildren(), fieldValue, ctx, processedFields);
-            checkComplete(field.getResolvedMapping(), fieldValue, processedFields);
+            checkComplete(field.getResolvedMapping(), fieldValue, processedFields, ctx);
         } else if (field.getResolvedItemMapping() != null) {
             // 映射到列表
             Object fieldValue = tool.makeTargetCollection(field, item, target, ctx);
@@ -148,11 +153,17 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
             }
 
             Object value = tool.processFieldValue(mapping, field, pair.getValue(), ctx);
+            if (target instanceof JObject)
+                value = ValueWithLocation.of(item.getLocation(), value);
             tool.setTargetValue(field, target, value, ctx);
         }
     }
 
-    void checkComplete(RecordMappingConfig mapping, Object obj, Set<String> processedFields) {
+    void checkComplete(RecordMappingConfig mapping, Object obj, Set<String> processedFields,
+                       RecordMappingContext ctx) {
+        if (ctx.isSkipValidation())
+            return;
+
         for (RecordFieldMappingConfig field : mapping.getFields()) {
             if (field.isMandatory() && !processedFields.contains(field.getName())) {
                 throw new NopException(ERR_RECORD_MD_MISSING_FIELD)
@@ -191,6 +202,9 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
                 tool.executeForField(itemMapping, titleField, item, target, ctx, field -> {
                     processedFields.add(titleField.getName());
                     Object titleValue = tool.processFieldValue(itemMapping, field, item.getContent(), ctx);
+
+                    if (target instanceof JObject)
+                        titleValue = ValueWithLocation.of(item.getLocation(), titleValue);
                     tool.setTargetValue(field, target, titleValue, ctx);
                 });
             }
@@ -199,7 +213,7 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
             mapListItems(itemMapping, item.getChildren(), target, ctx, processedFields);
         });
 
-        checkComplete(itemMapping, target, processedFields);
+        checkComplete(itemMapping, target, processedFields, ctx);
     }
 
     protected void mapSectionChildren(RecordMappingConfig mapping, List<MarkdownSection> children,
@@ -245,7 +259,9 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
         }
 
         Object tableData = parseContentTable(field, section, target, ctx);
-        tool.validateMandatoryField(mapping.getName(), field, tableData);
+        if (!ctx.isSkipValidation())
+            tool.validateMandatoryField(mapping.getName(), field, tableData);
+
         tool.setTargetValue(field, target, tableData, ctx);
     }
 
@@ -292,6 +308,9 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
 
         Object contentValue = parseSectionContent(field, format, section);
         Object value = tool.processFieldValue(mapping, field, contentValue, ctx);
+        if (target instanceof JObject)
+            value = ValueWithLocation.of(section.getContentLocation(), value);
+
         tool.setTargetValue(field, target, value, ctx);
     }
 

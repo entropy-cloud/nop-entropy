@@ -42,9 +42,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -60,7 +58,6 @@ import static io.nop.core.CoreErrors.ERR_COMPONENT_INVALID_MODEL_PATH;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_MODEL_FILE_TYPE_CONFLICT;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_MODEL_TRANSFORMER_ALREADY_EXISTS;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_NOT_COMPOSITE_COMPONENT;
-import static io.nop.core.CoreErrors.ERR_COMPONENT_NO_GEN_PATH_STRATEGY;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_UNDEFINED_COMPONENT_MODEL_TRANSFORM;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_FILE_TYPE_FOR_MODEL_TYPE;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_MODEL_FILE_TYPE;
@@ -86,7 +83,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     private Map<String, ComponentModelLoader> fileTypeLoaders = new ConcurrentHashMap<>();
     private Map<String, List<ComponentModelConfig>> fileTypeToGenerators = new ConcurrentHashMap<>();
 
-    private Map<Pair<String, String>, IComponentTransformer> modelTypeTransformers = new ConcurrentHashMap<>();
+    private Map<Pair<String, String>, IComponentTransformer<Object, Object>> modelTypeTransformers = new ConcurrentHashMap<>();
 
     private Map<String, IResourceLoadingCache<ComponentCacheEntry>> modelCaches = new ConcurrentHashMap<>();
 
@@ -107,11 +104,11 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
         @Override
         public ComponentCacheEntry loadObjectFromPath(String path) {
-            Pair<String, IResourceObjectLoader<? extends IComponentModel>> pair = resolveModelLoader(path, modelType);
+            Pair<String, IResourceObjectLoader<Object>> pair = resolveModelLoader(path, modelType);
             if (pair == null)
                 return null;
 
-            IComponentModel model;
+            Object model;
             if (!ResourceTenantManager.supportTenant(path)) {
                 model = ContextProvider.runWithoutTenantId(() -> pair.getValue().loadObjectFromPath(pair.getKey()));
             } else {
@@ -127,26 +124,6 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
             ComponentCacheEntry entry = new ComponentCacheEntry();
             entry.model = model;
             return entry;
-        }
-    }
-
-    class GenComponentLoader implements IResourceObjectLoader<IGeneratedComponent> {
-        private final ComponentModelConfig config;
-
-        public GenComponentLoader(ComponentModelConfig config) {
-            this.config = config;
-        }
-
-        @Override
-        public IGeneratedComponent loadObjectFromPath(String path) {
-            ComponentGenPath genPath = config.getGenPathStrategy().parseComponentPath(path);
-            IComponentModel model = loadComponentModel(genPath.getModelPath());
-            if (!ResourceTenantManager.supportTenant(path)) {
-                return ContextProvider.runWithoutTenantId(() -> config.getGenerator().generateComponent(model,
-                        genPath.getGenFormat(), ResourceComponentManager.this));
-            }
-            return config.getGenerator().generateComponent(model, genPath.getGenFormat(),
-                    ResourceComponentManager.this);
         }
     }
 
@@ -191,7 +168,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         return dependsManager.isAnyDependsChange(depends);
     }
 
-    Pair<String, IResourceObjectLoader<? extends IComponentModel>> resolveModelLoader(String path, String modelType) {
+    Pair<String, IResourceObjectLoader<Object>> resolveModelLoader(String path, String modelType) {
         if (path.startsWith(ResourceConstants.RESOLVE_PREFIX)) {
             int pos = path.indexOf(':');
             String subName = path.substring(pos + 1);
@@ -220,11 +197,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
                 }
             }
 
-            if (config.getResolveDefaultLoader() != null) {
-                return Pair.of(path, config.getResolveDefaultLoader());
-            } else {
-                return null;
-            }
+            return null;
         } else {
             String fileType = StringHelper.fileType(path);
             return Pair.of(path, requireLoader(modelType, fileType));
@@ -256,27 +229,18 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         }
 
         if (config.getTransformers() != null) {
-            for (Map.Entry<String, IComponentTransformer> entry : config.getTransformers()
+            for (Map.Entry<String, IComponentTransformer<Object, Object>> entry : config.getTransformers()
                     .entrySet()) {
                 cancellable.appendOnCancelTask(registerComponentModelTransformer(config.getModelType(), entry.getKey(),
                         entry.getValue(), false));
             }
         }
 
-        if (config.getGenPathStrategy() != null) {
-            Set<String> fileTypes = config.getGenPathStrategy().getGenFileTypes();
-            Guard.notEmpty(fileTypes, "component gen fileTypes should not be empty");
-            for (String fileType : fileTypes) {
-                addFileTypeToGenerator(cancellable, fileType, config);
-            }
-        }
-
         return cancellable;
     }
 
-    @Override
-    public Runnable registerComponentModelLoader(String modelType, String fileType,
-                                                 IResourceObjectLoader<? extends IComponentModel> loader, boolean replace) {
+    protected Runnable registerComponentModelLoader(String modelType, String fileType,
+                                                    IResourceObjectLoader<Object> loader, boolean replace) {
         Guard.notEmpty(modelType, "modelType");
         Guard.notEmpty(fileType, "fileType");
         Guard.notNull(loader, "loader");
@@ -294,9 +258,8 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         return () -> fileTypeLoaders.remove(fileType, modelLoader);
     }
 
-    @Override
-    public Runnable registerComponentModelTransformer(String fromModelType, String toModelType,
-                                                      IComponentTransformer transformer, boolean replace) {
+    protected Runnable registerComponentModelTransformer(String fromModelType, String toModelType,
+                                                         IComponentTransformer<Object, Object> transformer, boolean replace) {
         Guard.notEmpty(fromModelType, "fromModelType");
         Guard.notEmpty(toModelType, "toModelType");
         Guard.notEmpty(transformer, "transformer");
@@ -305,25 +268,13 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         if (replace) {
             modelTypeTransformers.put(key, transformer);
         } else {
-            IComponentTransformer old = modelTypeTransformers.putIfAbsent(Pair.of(fromModelType, toModelType), transformer);
-            if (old != null && replace)
+            IComponentTransformer<Object, Object> old = modelTypeTransformers.putIfAbsent(Pair.of(fromModelType, toModelType), transformer);
+            if (old != null)
                 throw new NopException(ERR_COMPONENT_MODEL_TRANSFORMER_ALREADY_EXISTS)
                         .param(ARG_FROM_MODEL_TYPE, fromModelType).param(ARG_TO_MODEL_TYPE, toModelType);
         }
 
         return () -> modelTypeTransformers.remove(key, transformer);
-    }
-
-    private void addFileTypeToGenerator(Cancellable cancellable, String fileType, ComponentModelConfig config) {
-        if (fileType.startsWith(".") || StringHelper.countChar(fileType, '.') > 2)
-            throw new NopException(ERR_COMPONENT_UNKNOWN_FILE_TYPE_FOR_MODEL_TYPE).param(ARG_FILE_TYPE, fileType)
-                    .param(ARG_MODEL_TYPE, config.getModelType());
-
-        List<ComponentModelConfig> list = fileTypeToGenerators.computeIfAbsent(fileType,
-                k -> new CopyOnWriteArrayList<>());
-        list.add(config);
-
-        cancellable.appendOnCancel(r -> list.remove(config));
     }
 
     @Override
@@ -332,7 +283,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     }
 
     @Override
-    public IComponentModel loadComponentModelByUrl(String modelUrl) {
+    public Object loadComponentModelByUrl(String modelUrl) {
         String resourcePath = modelUrl;
         String transform = null;
         String subName = null;
@@ -348,7 +299,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
             resourcePath = resourcePath.substring(0, pos);
         }
 
-        IComponentModel model;
+        Object model;
         if (!StringHelper.isEmpty(transform)) {
             model = loadComponentModel(resourcePath, transform);
         } else {
@@ -360,29 +311,29 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         return model;
     }
 
-    IComponentModel getSubComponent(String resourcePath, IComponentModel model, String subName) {
+    IComponentModel getSubComponent(String resourcePath, Object model, String subName) {
         if (!(model instanceof ICompositeComponentModel))
             throw new NopException(ERR_COMPONENT_NOT_COMPOSITE_COMPONENT).param(ARG_COMPONENT_PATH, resourcePath);
         return ((ICompositeComponentModel) model).getSubComponent(subName);
     }
 
     @Override
-    public IComponentModel loadComponentModel(String resourcePath, String transform) {
+    public Object loadComponentModel(String resourcePath, String transform) {
         String modelType = findModelTypeFromPath(resourcePath);
-        IComponentTransformer transformer = getTransformer(modelType, transform);
+        IComponentTransformer<Object, Object> transformer = getTransformer(modelType, transform);
 
         IResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType, resourcePath);
         ComponentCacheEntry entry = cache.require(resourcePath);
         if (StringHelper.isEmpty(transform) || modelType.equals(transform))
-            return (IComponentModel) entry.model;
+            return entry.model;
 
-        return entry.transformed.computeIfAbsent(transform, k -> transformer.transform((IComponentModel) entry.model));
+        return entry.transformed.computeIfAbsent(transform, k -> transformer.transform(entry.model));
     }
 
-    private IComponentTransformer getTransformer(String modelType, String transform) {
+    private IComponentTransformer<Object, Object> getTransformer(String modelType, String transform) {
 
         if (!StringHelper.isEmpty(transform) && !modelType.equals(transform)) {
-            IComponentTransformer transformer = modelTypeTransformers
+            IComponentTransformer<Object, Object> transformer = modelTypeTransformers
                     .get(Pair.of(modelType, transform));
             if (transformer == null)
                 throw new NopException(ERR_COMPONENT_UNDEFINED_COMPONENT_MODEL_TRANSFORM)
@@ -419,33 +370,33 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     }
 
     @Override
-    public IComponentModel loadComponentModel(String resourcePath) {
+    public Object loadComponentModel(String resourcePath) {
         String modelType = findModelTypeFromPath(resourcePath);
         IResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType, resourcePath);
-        return (IComponentModel) cache.require(resourcePath).model;
+        return cache.require(resourcePath).model;
     }
 
     @Override
-    public IComponentModel parseComponentModel(IResource resource) {
+    public Object parseComponentModel(IResource resource) {
         ComponentModelConfig config = requireModelConfigByModelPath(resource.getPath());
-        Pair<String, IResourceObjectLoader<? extends IComponentModel>> pair =
+        Pair<String, IResourceObjectLoader<Object>> pair =
                 resolveModelLoader(resource.getPath(), config.getModelType());
         if (pair == null)
             throw new IllegalArgumentException("nop.err.unsupported-resource-file:" + resource.getPath());
-        return pair.getRight().parseFromResource(resource);
+        return pair.getRight().loadObjectFromResource(resource);
     }
 
     @Override
-    public IComponentModel parseComponentModel(IResource resource, String transform) {
+    public Object parseComponentModel(IResource resource, String transform) {
         ComponentModelConfig config = requireModelConfigByModelPath(resource.getPath());
-        Pair<String, IResourceObjectLoader<? extends IComponentModel>> pair =
+        Pair<String, IResourceObjectLoader<Object>> pair =
                 resolveModelLoader(resource.getPath(), config.getModelType());
         if (pair == null)
             throw new IllegalArgumentException("nop.err.unsupported-resource-file:" + resource.getPath());
 
-        IComponentModel model = pair.getRight().parseFromResource(resource);
+        Object model = pair.getRight().loadObjectFromResource(resource);
 
-        IComponentTransformer transformer = getTransformer(config.getModelType(), transform);
+        IComponentTransformer<Object, Object> transformer = getTransformer(config.getModelType(), transform);
         if (transformer == null)
             return model;
         return transformer.transform(model);
@@ -453,7 +404,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     static class ComponentCacheEntry implements IObjectChangeDetectable {
         Object model;
-        Map<String, IComponentModel> transformed = new ConcurrentHashMap<>();
+        Map<String, Object> transformed = new ConcurrentHashMap<>();
 
         @Override
         public boolean isObjectChanged() {
@@ -522,8 +473,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         return config;
     }
 
-    private IResourceObjectLoader<? extends IComponentModel> requireLoader(String modelType,
-                                                                           String fileType) {
+    private IResourceObjectLoader<Object> requireLoader(String modelType, String fileType) {
         ComponentModelLoader loader = fileTypeLoaders.get(fileType);
         if (loader == null) {
             int pos = fileType.lastIndexOf('.');
@@ -547,18 +497,6 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
             }
         }
         return ret;
-    }
-
-    @Override
-    public String buildComponentPath(String modelPath, String genFormat) {
-        ComponentModelConfig config = requireModelConfigByModelPath(modelPath);
-
-        if (config.getGenPathStrategy() == null) {
-            throw new NopException(ERR_COMPONENT_NO_GEN_PATH_STRATEGY).param(ARG_RESOURCE_PATH, modelPath)
-                    .param(ARG_MODEL_TYPE, config.getModelType());
-        }
-
-        return config.getGenPathStrategy().buildComponentPath(modelPath, genFormat);
     }
 
     @Override

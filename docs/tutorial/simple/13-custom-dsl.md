@@ -79,8 +79,7 @@ project-root/
 
     <!-- 自定义解析器，用于simple文件 -->
     <loader fileType="simple"
-            class="io.nop.xlang.xdsl.SimpleDslParser"
-            returnXNode="true"/>
+            class="io.nop.xlang.xdsl.SimpleDslLoader"/>
   </loaders>
 
 </model>
@@ -90,21 +89,25 @@ project-root/
 
 - **name="simple"**：DSL模型名称，在系统中唯一标识
 - **xdsl-loader**：基于xdef定义的通用解析器，处理XML格式
-- **自定义loader**：通过Java类处理特定格式，`returnXNode="true"`表示返回XNode语法树
+
 
 ## 4. 实现自定义解析器
 
-创建Java解析器类 `io.nop.xlang.xdsl.SimpleDslParser`：
+创建Java解析器类 `io.nop.xlang.xdsl.SimpleDslLoader`：
 
 ```java
-public class SimpleDslParser implements IResourceParser<XNode> {
-  private static final Logger LOG = LoggerFactory.getLogger(SimpleDslParser.class);
+public class SimpleDslLoader extends AbstractDslResourceLoader<Object> {
+
+  public SimpleDslLoader() {
+    super("/simple/simple.xdef", null);
+  }
 
   @Override
-  public XNode parseResource(IResource resource) {
-      ...
+  public XNode loadDslNodeFromResource(IResource resource) {
+    return ...
   }
 }
+
 ```
 
 ## 5. 创建DSL示例文件
@@ -245,7 +248,7 @@ public class CodeGenerator {
 
 ```
 test.simple
-    → SimpleDslParser (自定义解析逻辑)
+    → SimpleDslLoader (自定义解析逻辑)
     → 返回XNode语法树
     → DslModelParser (根据xdef验证和转换)
     → SimpleModel Java对象

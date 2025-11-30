@@ -1,10 +1,10 @@
 package io.nop.kernel.cli;
 
-import io.nop.api.core.ioc.BeanContainer;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.MavenDirHelper;
 import io.nop.core.CoreConfigs;
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.ResourceComponentManager;
@@ -51,7 +51,8 @@ public class TestMappingBasedMarkdownParser extends BaseTestCase {
         System.out.println(JsonTool.serialize(bean, true));
 
         RecordMappingConfig config = mappingManager.getRecordMappingConfig("orm.OrmModel_to_Md");
-        String text = new MappingBasedMarkdownGenerator(config, bean).generateText(XLang.newEvalScope());
+        IEvalScope scope = XLang.newEvalScope();
+        String text = new MappingBasedMarkdownGenerator(config, bean, scope).generateText(scope);
         System.out.println(text);
 
         FileHelper.writeText(new File(getVfsDir(), "../model/demo.orm.md"), text, null);
@@ -61,7 +62,7 @@ public class TestMappingBasedMarkdownParser extends BaseTestCase {
     public void testParse() {
         forceStackTrace();
 
-        IResource ormModelFile = new FileResource(new File(getVfsDir(), "../model/demo.orm.md"));
+        IResource ormModelFile = new FileResource(new File(getVfsDir(), "../model/demo2.orm.md"));
 
         Object bean = ResourceComponentManager.instance().loadComponentModel(ormModelFile.getPath());
         System.out.println(JsonTool.serialize(bean, true));

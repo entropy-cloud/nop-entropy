@@ -4,10 +4,10 @@ package io.nop.record_mapping;
  * 结构体映射规则，将一个source对象上的属性映射到target对象上
  */
 public interface IRecordMapping {
-    Object newTarget(boolean useDynObj);
+    Object newTarget(RecordMappingContext ctx);
 
     default Object map(Object source, RecordMappingContext ctx) {
-        Object target = newTarget(true);
+        Object target = newTarget(ctx);
         map(source, target, ctx);
         return target;
     }

@@ -1,11 +1,9 @@
 package io.nop.converter.impl;
 
-import io.nop.api.core.util.IComponentModel;
 import io.nop.commons.util.StringHelper;
 import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.IDocumentObject;
 import io.nop.converter.IDocumentObjectBuilder;
-import io.nop.core.CoreConstants;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
@@ -15,7 +13,8 @@ import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.impl.InMemoryTextResource;
 import io.nop.xlang.initialize.DslJsonResourceLoader;
 import io.nop.xlang.initialize.DslXmlResourceLoader;
-import io.nop.xlang.xdsl.IDslResourceObjectLoader;
+import io.nop.xlang.xdsl.IDslResourceLoader;
+import io.nop.xlang.xdsl.IDslTextSerializer;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -56,7 +55,7 @@ public class DslDocumentObjectBuilder implements IDocumentObjectBuilder {
 
         @Override
         public Object getModelObject(DocumentConvertOptions options) {
-            return newLoader(options).parseFromResource(getResource());
+            return newLoader(options).loadObjectFromResource(getResource());
         }
 
         @Override
@@ -65,7 +64,7 @@ public class DslDocumentObjectBuilder implements IDocumentObjectBuilder {
             return getXdefPathFromFileType(fileType);
         }
 
-        IDslResourceObjectLoader<IComponentModel> newLoader(DocumentConvertOptions options) {
+        IDslResourceLoader<Object> newLoader(DocumentConvertOptions options) {
             String fileType = getFileType();
             ComponentModelConfig config = ResourceComponentManager.instance().requireModelConfigByFileType(fileType);
 
@@ -75,9 +74,9 @@ public class DslDocumentObjectBuilder implements IDocumentObjectBuilder {
 
             String fileExt = StringHelper.fileExtFromFileType(fileType);
             if (JsonTool.isJsonOrYamlFileExt(fileExt)) {
-                return new DslJsonResourceLoader(loaderConfig.getXdefPath(), config.getResolveInDir()).dynamic(true);
+                return new DslJsonResourceLoader(loaderConfig.getXdefPath(), config.getResolveInDir(), true);
             } else {
-                return new DslXmlResourceLoader(loaderConfig.getXdefPath(), config.getResolveInDir()).dynamic(true);
+                return new DslXmlResourceLoader(loaderConfig.getXdefPath(), config.getResolveInDir(), true);
             }
         }
 
@@ -93,20 +92,18 @@ public class DslDocumentObjectBuilder implements IDocumentObjectBuilder {
 
         @Override
         public String getText(DocumentConvertOptions options) {
-            IDslResourceObjectLoader<IComponentModel> loader = newLoader(options);
-            if (loader instanceof DslJsonResourceLoader) {
-                Object bean = loader.parseFromResource(getResource());
-                String fileExt = getFileExt();
-                if (CoreConstants.YAML_FILE_EXTS.contains(fileExt))
-                    return JsonTool.serializeToYaml(bean);
-                return JsonTool.serialize(bean, true);
+            IDslResourceLoader<Object> loader = newLoader(options);
+            if (loader instanceof IDslTextSerializer) {
+                IDslTextSerializer serializer = (IDslTextSerializer) loader;
+                Object bean = loader.loadObjectFromResource(getResource());
+                return serializer.serializeToText(getFileType(), bean);
             }
-            return loader.parseNodeFromResource(getResource()).xml();
+            return loader.loadDslNodeFromResource(getResource()).xml();
         }
 
         @Override
         public XNode getNode(DocumentConvertOptions options) {
-            return newLoader(options).parseNodeFromResource(getResource());
+            return newLoader(options).loadDslNodeFromResource(getResource());
         }
     }
 }

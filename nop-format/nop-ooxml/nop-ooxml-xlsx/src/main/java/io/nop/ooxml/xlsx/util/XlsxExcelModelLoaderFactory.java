@@ -13,7 +13,7 @@ import io.nop.xlang.xdsl.IExcelModelLoaderFactory;
 
 public class XlsxExcelModelLoaderFactory implements IExcelModelLoaderFactory {
     @Override
-    public IResourceObjectLoader<?> newExcelModelLoader(String impPath) {
+    public IResourceObjectLoader<Object> newExcelModelLoader(String impPath) {
         return new XlsxObjectLoader(impPath);
     }
 }

@@ -10,5 +10,5 @@ package io.nop.xlang.xdsl;
 import io.nop.core.resource.IResourceObjectLoader;
 
 public interface IExcelModelLoaderFactory {
-    IResourceObjectLoader<?> newExcelModelLoader(String impPath);
+    IResourceObjectLoader<Object> newExcelModelLoader(String impPath);
 }

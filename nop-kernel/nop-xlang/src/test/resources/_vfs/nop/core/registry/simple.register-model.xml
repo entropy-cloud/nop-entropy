@@ -2,7 +2,8 @@
        name="simple">
 
     <loaders>
-        <loader fileType="simple" class="io.nop.xlang.xdsl.SimpleDslParser" returnXNode="true"/>
+        <xdsl-loader fileType="simple.xml" schemaPath="/schema/simple.xdef"/>
+        <loader fileType="simple" class="io.nop.xlang.xdsl.SimpleDslLoader" />
     </loaders>
 
 </model>

@@ -7,11 +7,10 @@
  */
 package io.nop.core.resource.component;
 
-import io.nop.api.core.util.IComponentModel;
-import io.nop.commons.util.StringHelper;
-import io.nop.commons.util.objects.Pair;
-import io.nop.core.lang.json.JsonTool;
+import io.nop.core.resource.IResourceDslNodeLoader;
+import io.nop.core.resource.IResourceDslNodeSaver;
 import io.nop.core.resource.IResourceObjectLoader;
+import io.nop.core.resource.IResourceObjectSaver;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -21,13 +20,11 @@ public class ComponentModelConfig {
     private String modelType;
 
     private String resolveInDir;
-    private IResourceObjectLoader<? extends IComponentModel> resolveDefaultLoader;
 
     private boolean supportVersion;
 
+    private String primaryFileType;
     private String xdefPath;
-    private String impPath;
-    private String mdMappingName;
 
     /**
      * 模型可以存在多种存储格式，每种格式对应一个文件类型，采用一种特定的加载器加载
@@ -37,20 +34,41 @@ public class ComponentModelConfig {
      */
     private Map<String, LoaderConfig> loaders;
 
-    private IComponentGenPathStrategy genPathStrategy;
-    private IComponentGenerator generator;
 
-    private Map<String, IComponentTransformer> transformers;
+    private Map<String, IComponentTransformer<Object,Object>> transformers;
 
     public static class LoaderConfig {
+        private final String type;
         private final String impPath;
         private final String xdefPath;
-        private final IResourceObjectLoader<? extends IComponentModel> loader;
+        private final Map<String, Object> attributes;
+        private final IResourceObjectLoader<Object> loader;
+        private final IResourceObjectSaver<Object> saver;
+        private final IResourceDslNodeLoader dslNodeLoader;
+        private final IResourceDslNodeSaver dslNodeSaver;
 
-        public LoaderConfig(String impPath, String xdefPath, IResourceObjectLoader<? extends IComponentModel> loader) {
+        public LoaderConfig(String type,
+                            String impPath, String xdefPath,
+                            Map<String, Object> attributes,
+                            IResourceObjectLoader<Object> loader) {
+            this.type = type;
             this.impPath = impPath;
             this.xdefPath = xdefPath;
             this.loader = loader;
+            this.attributes = attributes;
+            this.saver = loader instanceof IResourceObjectSaver ? (IResourceObjectSaver<Object>) loader : null;
+            this.dslNodeLoader = loader instanceof IResourceDslNodeLoader ? (IResourceDslNodeLoader) loader : null;
+            this.dslNodeSaver = loader instanceof IResourceDslNodeSaver ? (IResourceDslNodeSaver) loader : null;
+        }
+
+        public Object getAttribute(String name) {
+            if (attributes == null)
+                return null;
+            return attributes.get(name);
+        }
+
+        public String getType() {
+            return type;
         }
 
         public String getImpPath() {
@@ -61,24 +79,29 @@ public class ComponentModelConfig {
             return xdefPath;
         }
 
-        public IResourceObjectLoader<? extends IComponentModel> getLoader() {
+        public IResourceObjectLoader<Object> getLoader() {
             return loader;
+        }
+
+        public IResourceObjectSaver<Object> getSaver() {
+            return saver;
+        }
+
+        public IResourceDslNodeLoader getDslNodeLoader() {
+            return dslNodeLoader;
+        }
+
+        public IResourceDslNodeSaver getDslNodeSaver() {
+            return dslNodeSaver;
         }
     }
 
-    public Pair<String, String> getXmlLoader() {
-        if (loaders == null)
-            return null;
-        for (Map.Entry<String, LoaderConfig> entry : loaders.entrySet()) {
-            String fileType = entry.getKey();
-            LoaderConfig loader = entry.getValue();
-            if (loader.getXdefPath() != null) {
-                String fileExt = StringHelper.fileExtFromFileType(fileType);
-                if (!JsonTool.isJsonOrYamlFileExt(fileExt))
-                    return Pair.of(fileType, loader.getXdefPath());
-            }
-        }
-        return null;
+    public String getPrimaryFileType() {
+        return primaryFileType;
+    }
+
+    public void setPrimaryFileType(String primaryFileType) {
+        this.primaryFileType = primaryFileType;
     }
 
     public LoaderConfig getLoader(String fileType) {
@@ -92,10 +115,6 @@ public class ComponentModelConfig {
             loaders = new HashMap<>();
         loaders.put(fileType, loaderConfig);
         return this;
-    }
-
-    public ComponentModelConfig loader(String fileType, IResourceObjectLoader<? extends IComponentModel> loader) {
-        return loader(fileType, new LoaderConfig(null, null, loader));
     }
 
     public boolean isSupportVersion() {
@@ -134,14 +153,6 @@ public class ComponentModelConfig {
         this.resolveInDir = resolveInDir;
     }
 
-    public IResourceObjectLoader<? extends IComponentModel> getResolveDefaultLoader() {
-        return resolveDefaultLoader;
-    }
-
-    public void setResolveDefaultLoader(IResourceObjectLoader<? extends IComponentModel> resolveDefaultLoader) {
-        this.resolveDefaultLoader = resolveDefaultLoader;
-    }
-
     public String getModelType() {
         return modelType;
     }
@@ -158,49 +169,17 @@ public class ComponentModelConfig {
         this.loaders = loaders;
     }
 
-    public IComponentGenPathStrategy getGenPathStrategy() {
-        return genPathStrategy;
-    }
-
-    public void setGenPathStrategy(IComponentGenPathStrategy genPathStrategy) {
-        this.genPathStrategy = genPathStrategy;
-    }
-
-    public IComponentGenerator getGenerator() {
-        return generator;
-    }
-
-    public void setGenerator(IComponentGenerator generator) {
-        this.generator = generator;
-    }
-
-    public Map<String, IComponentTransformer> getTransformers() {
+    public Map<String, IComponentTransformer<Object,Object>> getTransformers() {
         return transformers;
     }
 
-    public void setTransformers(Map<String, IComponentTransformer> transformers) {
+    public void setTransformers(Map<String, IComponentTransformer<Object,Object>> transformers) {
         this.transformers = transformers;
     }
 
-    public IComponentTransformer getTransformer(String transform) {
+    public IComponentTransformer<Object,Object> getTransformer(String transform) {
         if (transformers == null)
             return null;
         return transformers.get(transform);
-    }
-
-    public String getImpPath() {
-        return impPath;
-    }
-
-    public void setImpPath(String impPath) {
-        this.impPath = impPath;
-    }
-
-    public String getMdMappingName() {
-        return mdMappingName;
-    }
-
-    public void setMdMappingName(String mdMappingName) {
-        this.mdMappingName = mdMappingName;
     }
 }

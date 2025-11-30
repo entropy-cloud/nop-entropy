@@ -9,13 +9,17 @@ package io.nop.xlang.xpl.loader;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IComponentModel;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.IResourceDslNodeLoader;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.xlang.api.XLang;
+import io.nop.xlang.api.XplModel;
 import io.nop.xlang.ast.XLangOutputMode;
+import io.nop.xlang.feature.XModelInclude;
 
-public class XplModelLoader implements IResourceObjectLoader<IComponentModel> {
+public class XplModelLoader implements IResourceObjectLoader<IComponentModel>, IResourceDslNodeLoader {
     private final XLangOutputMode outputMode;
 
     public XplModelLoader(XLangOutputMode outputMode) {
@@ -23,13 +27,18 @@ public class XplModelLoader implements IResourceObjectLoader<IComponentModel> {
     }
 
     @Override
-    public IComponentModel loadObjectFromPath(String path) {
+    public XplModel loadObjectFromPath(String path) {
         IResource resource = VirtualFileSystem.instance().getResource(path);
         return XLang.parseXpl(resource, outputMode);
     }
 
     @Override
-    public IComponentModel parseFromResource(IResource resource) {
+    public XplModel loadObjectFromResource(IResource resource) {
         return XLang.parseXpl(resource, outputMode);
+    }
+
+    @Override
+    public XNode loadDslNodeFromResource(IResource resource) {
+        return XModelInclude.instance().loadActiveNodeFromResource(resource);
     }
 }

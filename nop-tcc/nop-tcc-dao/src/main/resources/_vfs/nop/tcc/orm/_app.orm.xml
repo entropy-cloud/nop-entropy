@@ -150,7 +150,6 @@
                     <join>
                         <on leftProp="txnId" rightProp="txnId"/>
                     </join>
-                    <ref-set/>
                 </to-one>
             </relations>
         </entity>

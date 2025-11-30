@@ -8,18 +8,38 @@
 package io.nop.dao.dialect.loader;
 
 import io.nop.core.lang.eval.DisabledEvalScope;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.resource.IResource;
-import io.nop.core.resource.component.parse.AbstractResourceParser;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.model.DialectModel;
+import io.nop.xlang.feature.XModelInclude;
+import io.nop.xlang.xdsl.AbstractDslResourcePersister;
+import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.DslModelParser;
 
-public class DialectModelLoader extends AbstractResourceParser<IDialect> {
+public class DialectModelLoader extends AbstractDslResourcePersister {
+    public DialectModelLoader() {
+        super(DaoConstants.XDSL_SCHEMA_DIALECT, null);
+    }
+
     @Override
-    protected IDialect doParseResource(IResource resource) {
+    public XNode loadDslNodeFromResource(IResource resource) {
+        return XModelInclude.instance().loadActiveNodeFromResource(resource);
+    }
+
+    @Override
+    public void saveObjectToResource(IResource resource, Object obj) {
+        if (obj instanceof IDialect)
+            obj = ((IDialect) obj).getDialectModel();
+        XNode node = DslModelHelper.dslModelToXNode(schemaPath, obj);
+        node.saveToResource(resource, null);
+    }
+
+    @Override
+    public IDialect loadObjectFromResource(IResource resource) {
         DialectModel dialectModel = (DialectModel) new DslModelParser(DaoConstants.XDSL_SCHEMA_DIALECT)
                 .parseFromResource(resource);
         dialectModel.freeze(true);

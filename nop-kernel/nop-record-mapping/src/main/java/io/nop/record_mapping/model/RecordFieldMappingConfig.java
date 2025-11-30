@@ -2,6 +2,7 @@ package io.nop.record_mapping.model;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.KeyedList;
+import io.nop.core.lang.json.JObject;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.BeanTool;
@@ -90,6 +91,9 @@ public class RecordFieldMappingConfig extends _RecordFieldMappingConfig {
     }
 
     public Supplier<Object> getItemConstructor(Object source, Object target, RecordMappingContext ctx) {
+        if (ctx.isForceUseMap())
+            return JObject::new;
+
         if (getNewItemExpr() != null)
             return () -> getNewItemExpr().call3(null, source, target, ctx, ctx.getEvalScope());
 
@@ -100,6 +104,12 @@ public class RecordFieldMappingConfig extends _RecordFieldMappingConfig {
     }
 
     public Supplier<Object> getObjectConstructor(boolean collection, Object source, Object target, RecordMappingContext ctx) {
+        if (ctx.isForceUseMap()) {
+            if (collection)
+                return ArrayList::new;
+            return JObject::new;
+        }
+
         if (getNewInstanceExpr() != null)
             return () -> getNewInstanceExpr().call3(null, source, target, ctx, ctx.getEvalScope());
 

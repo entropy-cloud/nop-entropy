@@ -176,14 +176,16 @@ public class RecordMappingTool {
         // 1. 对源对象返回的值进行映射，如果为null，则返回defaultValue
         value = applyValueMapper(field, value);
 
-        // 2. 类型转换
-        value = castType(field, value, ctx);
+        if (!ctx.isSkipValidation()) {
+            // 2. 类型转换
+            value = castType(field, value, ctx);
 
-        // 3. 验证
-        validateValue(mapping, field, value, ctx);
+            // 3. 验证
+            validateValue(mapping, field, value, ctx);
 
-        // 4. 必填检查
-        validateMandatoryField(mapping.getName(), field, value);
+            // 4. 必填检查
+            validateMandatoryField(mapping.getName(), field, value);
+        }
 
         return value;
     }
@@ -311,7 +313,7 @@ public class RecordMappingTool {
 
     // ========== 验证相关 ==========
     public Object castType(RecordFieldMappingConfig field, Object value, RecordMappingContext ctx) {
-        if(StringHelper.isEmptyObject(value))
+        if (StringHelper.isEmptyObject(value))
             return null;
 
         if (field.getSchema() != null) {
@@ -343,7 +345,7 @@ public class RecordMappingTool {
         String mappingName = mapping.getName();
         ISchema schema = field.getSchema();
         // 验证值满足schema要求
-        if (schema == null || ctx.isSkipValidation()) {
+        if (schema == null) {
             return;
         }
 

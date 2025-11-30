@@ -1,50 +1,44 @@
 package io.nop.xlang.initialize;
 
-import io.nop.api.core.util.IComponentModel;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JObject;
+import io.nop.core.lang.json.JsonSaveOptions;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
-import io.nop.core.resource.VirtualFileSystem;
-import io.nop.xlang.xdsl.DslModelHelper;
-import io.nop.xlang.xdsl.DslModelParser;
-import io.nop.xlang.xdsl.IDslResourceObjectLoader;
-import io.nop.xlang.xdsl.XDslKeys;
+import io.nop.xlang.xdsl.AbstractDslResourcePersister;
+import io.nop.xlang.xdsl.IDslTextSerializer;
 
-public class DslJsonResourceLoader implements IDslResourceObjectLoader<IComponentModel> {
-    private final String schemaPath;
-    private final String resolveInDir;
-    private boolean dynamic;
+public class DslJsonResourceLoader extends AbstractDslResourcePersister implements IDslTextSerializer {
 
     public DslJsonResourceLoader(String schemaPath, String resolveInDir) {
-        this.schemaPath = schemaPath;
-        this.resolveInDir = resolveInDir;
+        super(schemaPath, resolveInDir);
     }
 
-    public DslJsonResourceLoader dynamic(boolean b) {
-        this.dynamic = b;
-        return this;
+    public DslJsonResourceLoader(String schemaPath, String resolveInDir, boolean dynamic) {
+        super(schemaPath, resolveInDir, dynamic);
     }
 
     @Override
-    public XNode parseNodeFromResource(IResource resource) {
+    public XNode loadDslNodeFromResource(IResource resource) {
         Object bean = JsonTool.parseBeanFromResource(resource, JObject.class, true);
-        XNode node = DslModelHelper.dslModelToXNode(schemaPath, bean);
-        XNode ret = new DslModelParser(schemaPath).resolveInDir(resolveInDir).dynamic(dynamic).resolveDslNode(node);
-        if (schemaPath != null)
-            ret.setAttr(XDslKeys.DEFAULT.SCHEMA, schemaPath);
-        return ret;
+        return transformBeanToNode(bean);
     }
 
     @Override
-    public IComponentModel loadObjectFromPath(String path) {
-        return parseFromResource(VirtualFileSystem.instance().getResource(path));
+    public void saveObjectToResource(IResource resource, Object obj) {
+        JsonSaveOptions options = new JsonSaveOptions();
+        JsonTool.instance().saveToResource(resource, obj, options);
     }
 
     @Override
-    public IComponentModel parseFromResource(IResource resource) {
-        Object bean = JsonTool.parseBeanFromResource(resource, JObject.class, true);
-        XNode node = DslModelHelper.dslModelToXNode(schemaPath, bean);
-        return new DslModelParser(schemaPath).resolveInDir(resolveInDir).dynamic(dynamic).parseFromNode(node);
+    public String serializeToText(String fileType, Object bean) {
+        String fileExt = StringHelper.lastPart(fileType, '.');
+
+        if (JsonTool.isYamlFileExt(fileExt)) {
+            return JsonTool.serializeToYaml(bean);
+        }
+
+        return JsonTool.serialize(bean, true);
     }
 }

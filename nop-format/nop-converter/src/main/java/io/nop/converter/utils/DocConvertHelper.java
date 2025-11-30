@@ -1,7 +1,6 @@
 package io.nop.converter.utils;
 
 import io.nop.commons.util.StringHelper;
-import io.nop.commons.util.objects.Pair;
 import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.DocumentConverterManager;
 import io.nop.converter.IDocumentConverterManager;
@@ -50,11 +49,8 @@ public class DocConvertHelper {
         String fileType = StringHelper.fileType(fromResources.get(0).getPath());
 
         ComponentModelConfig config = ResourceComponentManager.instance().requireModelConfigByFileType(fileType);
-        Pair<String, String> xmlType = config.getXmlLoader();
-        if (xmlType == null)
-            throw new IllegalArgumentException("fileType no xdef config:" + fileType);
 
-        IXDefinition xdef = SchemaLoader.loadXDefinition(xmlType.getSecond());
+        IXDefinition xdef = SchemaLoader.loadXDefinition(config.getXdefPath());
 
         XNode node = null;
         for (IResource resource : fromResources) {

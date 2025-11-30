@@ -1,0 +1,7 @@
+label: 测试字典
+locale: zh-CN
+options:
+  - label: 条目1
+    value: 1
+  - label: 条目2
+    value: 2  w

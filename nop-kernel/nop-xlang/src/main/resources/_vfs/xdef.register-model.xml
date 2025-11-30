@@ -2,7 +2,7 @@
        name="xdef">
 
     <loaders>
-        <loader fileType="xdef" class="io.nop.xlang.xdef.parse.XDefinitionParser"/>
+        <loader fileType="xdef" class="io.nop.xlang.xdef.parse.XDefinitionLoader"/>
     </loaders>
 
     <transformers>
