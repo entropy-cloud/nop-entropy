@@ -1,4 +1,4 @@
-# Nop Getting Started: Extending Existing Services
+# Getting Started with Nop: Extending Existing Services
 
 When developing a productized business system, you often need to extend existing services in the base product. For example, extend the system’s built-in Login service by adding more request parameters to LoginRequest, or extend the returned LoginResult object with additional response information. As a productized system, we certainly do not want to modify existing code. However, popular open-source frameworks such as Spring and Quarkus do not provide a built-in extension mechanism that allows changing existing service interfaces without altering the original service function code. As a result, secondary development for complex business products becomes challenging.
 
@@ -25,7 +25,7 @@ public class LoginApiBizModel implements ILoginSpi {
              .thenApply(this::buildLoginResult);
     }
     // ...
-}    
+}
 ```
 
 A common extension requirement is to return some business-related extra information after a successful login. In traditional web frameworks, modifying the return type of a service function requires changing the function’s code itself. However, the Nop platform’s web layer uses the NopGraphQL engine, which can leverage NopGraphQL’s built-in property loader mechanism to extend results without modifying the login function. The approach is as follows.
@@ -41,7 +41,7 @@ public class LoginApiBizModelDelta {
                            IServiceContext context) {
         return "loc:" + result.getUserInfo().getUserId();
     }
-}    
+}
 ```
 
 * We can add a new LoginApiBizModelDelta class, which does not need to inherit from the existing LoginApiBizModel class.
@@ -59,7 +59,7 @@ The Nop platform does not use class scanning. Therefore, all objects must be reg
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xmlns:ioc="ioc" x:extends="super">
 
-   <bean id="io.nop.auth.service.biz.LoginApiBizModel" 
+   <bean id="io.nop.auth.service.biz.LoginApiBizModel"
          class="io.nop.auth.service.biz.LoginApiBizModelEx" />
 
    <bean id="io.nop.demo.biz.LoginApiBizModelDelta" ioc:type="@bean:id" />
@@ -135,7 +135,7 @@ public class LoginApiBizModel implements ILoginSpi {
         ...
     }
     // ...
-}    
+}
 ```
 
 * Headers can be regarded as a cross-system, cross-service-function extension channel. Common extension data spanning multiple service functions can be passed via headers.

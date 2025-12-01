@@ -1,4 +1,4 @@
-# Scalable Design of Backend Service Functions from the Perspective of Reversible Computation
+# Extensible Design of Backend Service Functions from the Perspective of Reversible Computation
 
 Many low-code platforms are fundamentally built around a CRUD model, typically offering a certain level of customization through built-in extension points (such as before-insert, after-insert, etc.). In the Nop platform, the CRUD model is not special; the built-in CrudBizModel is merely a regular BizModel, and the core of the Nop platform does not apply any special treatment to CRUD extension points. In this article, I will use CrudBizModel as an example to explain common extension approaches for implementing backend services in the Nop platform.
 
@@ -8,21 +8,21 @@ Most service functions in CrudBizModel adopt two layers of abstraction. The uppe
 
 ```javascript
     public PageBean<T> findPage(@Optional @Name("query") QueryBean query,
-                                FieldSelectionBean selection, 
+                                FieldSelectionBean selection,
                                 IServiceContext context) {
-        return doFindPage0(query, getBizObjName(), prepareQuery, 
+        return doFindPage0(query, getBizObjName(), prepareQuery,
                    selection, context);
     }
 
     @BizAction
     public PageBean<T> doFindPage0(@Name("query") QueryBean query,
                                    @Name("authObjName") String authObjName,
-                                   @Name("prepareQuery") BiConsumer<QueryBean, 
-                                   IServiceContext> prepareQuery, 
+                                   @Name("prepareQuery") BiConsumer<QueryBean,
+                                   IServiceContext> prepareQuery,
                                    FieldSelectionBean selection,
                                    IServiceContext context) {
-         query = prepareFindPageQuery(query, authObjName, 
-                     METHOD_FIND_PAGE, prepareQuery, context);                      
+         query = prepareFindPageQuery(query, authObjName,
+                     METHOD_FIND_PAGE, prepareQuery, context);
         ...
     }
 ```
@@ -54,21 +54,21 @@ In the Nop platform, each business object can be associated with an XMeta file, 
    }
 
     @BizAction
-    public T doSave(@Name("data") Map<String, Object> data, 
+    public T doSave(@Name("data") Map<String, Object> data,
                     @Name("inputSelection") FieldSelectionBean inputSelection,
-                    @Name("prepareSave") BiConsumer<EntityData<T>, 
-                    IServiceContext> prepareSave, 
+                    @Name("prepareSave") BiConsumer<EntityData<T>,
+                    IServiceContext> prepareSave,
                     IServiceContext context) {
         if (CollectionHelper.isEmptyMap(data))
             throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_SAVE)
                  .param(ARG_BIZ_OBJ_NAME, getBizObjName());
 
         // 1. Perform input validation and transformation based on XMeta configuration
-        ObjMetaBasedValidator validator = 
+        ObjMetaBasedValidator validator =
             new ObjMetaBasedValidator(bizObjectManager, bizObj.getBizObjName(),
                 objMeta,context, true);
 
-        Map<String, Object> validated = 
+        Map<String, Object> validated =
               validator.validateForSave(data, inputSelection);
 
         // 2. Determine whether logical deletion is enabled based on ORM entity model parameters
@@ -79,7 +79,7 @@ In the Nop platform, each business object can be associated with an XMeta file, 
             entity = dao().newEntity();
         }
 
-        EntityData entityData = new EntityData<>(data, validated, entity, objMeta); 
+        EntityData entityData = new EntityData<>(data, validated, entity, objMeta);
 
         // 3. Check for duplicate records based on unique keys configured in XMeta
         checkUniqueForSave(entityData);
@@ -87,8 +87,8 @@ In the Nop platform, each business object can be associated with an XMeta file, 
         // 4. Determine how to set master–detail data onto the newly created entity based on XMeta configuration
         new OrmEntityCopier(daoProvider, bizObjectManager)
                 .copyToEntity(entityData.getValidatedData(),
-                    entityData.getEntity(), null, entityData.getObjMeta(), 
-                    getBizObjName(), BizConstants.METHOD_SAVE, 
+                    entityData.getEntity(), null, entityData.getObjMeta(),
+                    getBizObjName(), BizConstants.METHOD_SAVE,
                     context.getEvalScope());
 
         // 5. Check that the entity’s attributes satisfy data authorization requirements and are visible to the current user
@@ -242,7 +242,7 @@ For example, the `bo.xlib` tags provide wrappers for functions like `doFindPage/
        <filter>
           <c:if test="${xxx}">
              <eq name="status" value="1" />
-          </c:if>  
+          </c:if>
 
           <!-- A more concise expression can be used -->
           <eq name="status" value="1" xpl:if="xxx" />
@@ -283,7 +283,7 @@ The implementations of the bizObjName and selection attributes in this tag are i
     <source>
       ...
     </source>
-</DoFindPage>        
+</DoFindPage>
 ```
 
 At compile time, if bizObjName or selection is non-empty, they are automatically transformed into expressions:

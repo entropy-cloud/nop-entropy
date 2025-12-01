@@ -1,4 +1,4 @@
-# Nop Getting Started: How to Creatively Extend GraphQL
+# Getting Started with Nop: How to Creatively Extend GraphQL
 
 The Nop platform does not use common GraphQL open-source libraries such as `graphql-java`; instead, it implements the NopGraphQL engine from scratch. The NopGraphQL engine introduces many novel implementation approaches that broaden GraphQL’s scope of application and enhance its practicality.
 
