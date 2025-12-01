@@ -12,6 +12,7 @@ import io.nop.record_mapping.impl.RecordMappingManagerImpl;
 import io.nop.record_mapping.model.RecordMappingConfig;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdsl.AbstractDslResourcePersister;
+import io.nop.xlang.xdsl.DslNodeLoader;
 
 public class MarkdownDslResourceLoader extends AbstractDslResourcePersister {
     private final String mappingName;
@@ -22,7 +23,7 @@ public class MarkdownDslResourceLoader extends AbstractDslResourcePersister {
     }
 
     @Override
-    public XNode loadDslNodeFromResource(IResource resource) {
+    public XNode loadDslNodeFromResource(IResource resource, ResolvePhase phase) {
         IRecordMappingManager manager = BeanContainer.isInitialized() ?
                 BeanContainer.getBeanByType(IRecordMappingManager.class)
                 : new RecordMappingManagerImpl();
@@ -36,7 +37,8 @@ public class MarkdownDslResourceLoader extends AbstractDslResourcePersister {
         ctx.setSkipValidation(true);
 
         Object model = new MappingBasedMarkdownParser(mapping).map(doc.getRootSection(), ctx);
-        return transformBeanToNode(model);
+        XNode node = transformBeanToNode(model);
+        return DslNodeLoader.INSTANCE.processDslNode(node, schemaPath, phase);
     }
 
     @Override
