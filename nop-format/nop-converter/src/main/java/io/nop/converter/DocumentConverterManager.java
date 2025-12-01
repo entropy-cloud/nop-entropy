@@ -5,7 +5,9 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
 import io.nop.converter.impl.ChainedDocumentConverter;
+import io.nop.converter.impl.SameTypeDocumentConverter;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.IResourceDslNodeLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,13 +124,23 @@ public class DocumentConverterManager implements IDocumentConverterManager {
 
         IDocumentObjectBuilder builder = requireDocumentObjectBuilder(fromFileType);
         IDocumentObject doc = builder.buildFromResource(fromFileType, fromResource);
-        if (toFileType.equals(fromFileType)) {
-            doc.saveToResource(toResource, options);
-            return;
-        }
+//        if (toFileType.equals(fromFileType)) {
+//            if (isKeepRaw(builder, fromFileType, options)) {
+//                doc.saveToResource(toResource, options);
+//                return;
+//            }
+//        }
 
         IDocumentConverter converter = requireConverter(fromFileType, toFileType, options.isAllowChained());
         converter.convertToResource(doc, toFileType, toResource, options);
+    }
+
+    boolean isKeepRaw(IDocumentObjectBuilder builder, String fileType, DocumentConvertOptions options) {
+        if (builder.isBinaryOnly(fileType))
+            return true;
+        if (options.getDslNodeResolvePhase() == IResourceDslNodeLoader.ResolvePhase.raw)
+            return true;
+        return false;
     }
 
     @Override
@@ -147,7 +159,10 @@ public class DocumentConverterManager implements IDocumentConverterManager {
 
     @Override
     public IDocumentConverter getConverter(String fromFileType, String toFileType, boolean allowChained) {
-        Guard.checkArgument(!fromFileType.equals(toFileType), "fromFileType and toFileType must not be the same: ");
+        // Guard.checkArgument(!fromFileType.equals(toFileType), "fromFileType and toFileType must not be the same: ");
+
+        if (fromFileType.equals(toFileType))
+            return SameTypeDocumentConverter.INSTANCE;
 
         // First try direct converter
         IDocumentConverter converter = getDirectConverter(fromFileType, toFileType, false);

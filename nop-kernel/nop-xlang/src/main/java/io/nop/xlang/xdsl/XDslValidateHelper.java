@@ -23,4 +23,9 @@ public class XDslValidateHelper {
                         .param(ARG_ATTR_NAME, attrName).param(ARG_CLASS_NAME, ClassHelper.getCanonicalClassName(clazz));
         }
     }
+
+    public static void removeOverride(XNode node){
+        XDslKeys keys = XDslKeys.of(node);
+        node.forEachNode(elm -> elm.removeAttr(keys.OVERRIDE));
+    }
 }

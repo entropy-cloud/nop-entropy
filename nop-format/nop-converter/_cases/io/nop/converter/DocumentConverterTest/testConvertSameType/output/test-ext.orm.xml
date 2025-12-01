@@ -1,6 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
 <orm ext:mavenArtifactId="nop-ai" ext:entityPackageName="nop.ai.dao.entity" ext:allowIdAsColName="true"
      ext:basePackageName="nop.ai" ext:appName="nop-ai" ext:registerShortName="true"
-     ext:mavenGroupId="io.github.entropy-cloud" xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/orm/orm.xdef">
+     ext:mavenGroupId="io.github.entropy-cloud" x:validated="true" x:schema="/nop/schema/orm/orm.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+
     <dicts>
         <dict label="消息类型" name="ai/message_type">
             <description>对话消息的角色类型</description>
@@ -61,6 +64,7 @@
             <option code="UI" description="页面定义" label="UI模块" value="003"/>
         </dict>
     </dicts>
+
     <entities>
         <entity className="nop.ai.dao.entity.NopAiProject" displayName="AI项目" name="nop.ai.dao.entity.NopAiProject"
                 registerShortName="true" tableName="nop_ai_project">

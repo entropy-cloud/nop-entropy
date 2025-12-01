@@ -7,12 +7,14 @@ import io.nop.converter.IDocumentConverterManager;
 import io.nop.converter.IDocumentObject;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.IResourceDslNodeLoader;
 import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.impl.InMemoryTextResource;
 import io.nop.xlang.delta.DeltaMerger;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdsl.XDslKeys;
+import io.nop.xlang.xdsl.XDslValidateHelper;
 import io.nop.xlang.xmeta.SchemaLoader;
 
 import java.util.List;
@@ -40,6 +42,7 @@ public class DocConvertHelper {
             return;
 
         DocumentConvertOptions options = DocumentConvertOptions.create().allowChained();
+        options.setDslNodeResolvePhase(IResourceDslNodeLoader.ResolvePhase.merged);
 
         if (fromResources.size() == 1) {
             manager.convertResource(fromResources.get(0), toResource, options);
@@ -64,6 +67,8 @@ public class DocConvertHelper {
                 new DeltaMerger(keys).merge(node, resNode, xdef, false);
             }
         }
+
+        XDslValidateHelper.removeOverride(node);
 
         String xdslFileType = config.getXdslFileType();
         if (xdslFileType == null)
