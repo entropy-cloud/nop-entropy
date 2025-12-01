@@ -65,7 +65,11 @@ public class DocConvertHelper {
             }
         }
 
-        IResource resultRes = new InMemoryTextResource("/text/unnamed." + xmlType.getFirst(), node.xml());
+        String xdslFileType = config.getXdslFileType();
+        if (xdslFileType == null)
+            xdslFileType = config.getPrimaryLoaderFileType();
+
+        IResource resultRes = new InMemoryTextResource("/text/unnamed." + xdslFileType, node.xml());
         manager.convertResource(resultRes, toResource, options);
     }
 }

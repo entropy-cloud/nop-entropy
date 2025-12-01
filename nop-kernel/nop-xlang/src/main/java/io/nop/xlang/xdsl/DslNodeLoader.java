@@ -12,7 +12,9 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.IResourceDslNodeLoader;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.xlang.api.XLang;
@@ -39,6 +41,35 @@ public class DslNodeLoader implements IXDslNodeLoader {
 //        }
 
         return loadFromNode(node, requiredSchema, phase);
+    }
+
+    public XNode loadDslNodeFromResource(IResource resource, String requiredSchema,
+                                         IResourceDslNodeLoader.ResolvePhase resolvePhase) {
+        if (resolvePhase == null)
+            resolvePhase = IResourceDslNodeLoader.ResolvePhase.completed;
+
+        XNode node = XNodeParser.instance().keepComment(true).parseFromResource(resource);
+
+        return processDslNode(node, requiredSchema, resolvePhase);
+    }
+
+    public XNode processDslNode(XNode node, String requiredSchema,
+                                IResourceDslNodeLoader.ResolvePhase phase) {
+        if (phase == null)
+            phase = IResourceDslNodeLoader.ResolvePhase.completed;
+
+        if (phase == IResourceDslNodeLoader.ResolvePhase.raw)
+            return node;
+
+        node = XModelInclude.instance().processNode(node);
+        if (phase == IResourceDslNodeLoader.ResolvePhase.filtered)
+            return node;
+
+        if (phase == IResourceDslNodeLoader.ResolvePhase.merged) {
+            return loadFromNode(node, requiredSchema, XDslExtendPhase.mergeBase).getNode();
+        }
+
+        return loadFromNode(node, requiredSchema, XDslExtendPhase.validate).getNodeForDump();
     }
 
     @Override

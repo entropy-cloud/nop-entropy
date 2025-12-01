@@ -11,7 +11,6 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.functional.IAsyncFunctionService;
-import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.text.tokenizer.SimpleTextReader;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
@@ -19,12 +18,9 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceTextLoader;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
-import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.component.TextFile;
 import io.nop.web.WebConstants;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,28 +36,11 @@ import static io.nop.web.WebConfigs.CFG_WEB_USE_DYNAMIC_JS;
 
 public class DynamicJsLoader implements IResourceTextLoader {
     static final Logger LOG = LoggerFactory.getLogger(DynamicJsLoader.class);
-    private final Cancellable cancellable = new Cancellable();
 
     private IAsyncFunctionService systemJsTransformer;
 
     public void setSystemJsTransformer(IAsyncFunctionService systemJsTransformer) {
         this.systemJsTransformer = systemJsTransformer;
-    }
-
-    @PostConstruct
-    public void init() {
-        ComponentModelConfig config = new ComponentModelConfig();
-        config.modelType(WebConstants.FILE_EXT_JS);
-
-        config.loader(WebConstants.FILE_EXT_JS, this::loadDynamicJs);
-        config.loader(WebConstants.FILE_EXT_MJS, this::loadDynamicJs);
-
-        cancellable.append(ResourceComponentManager.instance().registerComponentModelConfig(config));
-    }
-
-    @PreDestroy
-    public void destroy() {
-        cancellable.cancel();
     }
 
     @Override

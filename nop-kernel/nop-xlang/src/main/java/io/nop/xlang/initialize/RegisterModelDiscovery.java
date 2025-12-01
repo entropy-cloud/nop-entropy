@@ -10,6 +10,7 @@ package io.nop.xlang.initialize;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.util.ICancellable;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
@@ -137,7 +138,9 @@ public class RegisterModelDiscovery {
     ComponentModelConfig buildConfig(Map<String, Object> model) {
         ComponentModelConfig config = new ComponentModelConfig();
         String name = (String) model.get("name");
+        String xdefPath = (String) model.get("xdefPath");
         config.setModelType(name);
+        config.setXdefPath(xdefPath);
 
         boolean supportVersion = true;
 
@@ -146,6 +149,7 @@ public class RegisterModelDiscovery {
         if (resolveHandler != null) {
             resolveInDir = (String) resolveHandler.get("resolveInDir");
             config.setResolveInDir(resolveInDir);
+            config.setResolveDefaultLoader(buildDefaultResolveLoader(config, resolveHandler));
             supportVersion = ConvertHelper.toPrimitiveBoolean(resolveHandler.get("supportVersion"), true, NopException::new);
         }
         config.setSupportVersion(supportVersion);
@@ -163,7 +167,7 @@ public class RegisterModelDiscovery {
                     schemaPath = (String) loader.get("schemaPath");
                     if (config.getXdefPath() == null) {
                         config.setXdefPath(schemaPath);
-                        config.setPrimaryFileType(fileType);
+                        config.setXdslFileType(fileType);
                     }
 
                     if (JsonTool.isJsonOrYamlFileExt(StringHelper.fileExtFromFileType(fileType))) {
@@ -175,6 +179,9 @@ public class RegisterModelDiscovery {
                     }
                 } else if ("xlsx-loader".equals(type)) {
                     impPath = (String) loader.get("impPath");
+                    if (config.getImpPath() == null)
+                        config.setImpPath(impPath);
+                    
                     if (DslModelHelper.supportExcelModelLoader()) {
                         config.loader(fileType, makeLoaderConfig(type, impPath, schemaPath, loader,
                                 DslModelHelper.newExcelModelLoader(impPath)));
@@ -204,6 +211,29 @@ public class RegisterModelDiscovery {
         }
 
         return config;
+    }
+
+    IResourceObjectLoader<Object> buildDefaultResolveLoader(ComponentModelConfig config, Map<String, Object> resolveHandler) {
+        String beanName = (String) resolveHandler.get("defaultLoaderBean");
+        if (!StringHelper.isEmpty(beanName)) {
+            LOG.info("nop.use-default-loader-bean:beanName={}", beanName);
+            return new IResourceObjectLoader<Object>() {
+                @Override
+                public Object loadObjectFromPath(String path) {
+                    return ((IResourceObjectLoader<Object>) BeanContainer.instance().getBean(beanName)).loadObjectFromPath(path);
+                }
+
+                @Override
+                public Object loadObjectFromResource(IResource resource) {
+                    return ((IResourceObjectLoader<Object>) BeanContainer.instance().getBean(beanName)).loadObjectFromResource(resource);
+                }
+            };
+        }
+        String className = (String) BeanTool.getProperty(resolveHandler, "defaultLoaderClass");
+        if (StringHelper.isEmpty(className))
+            return null;
+
+        return newLoader(className, config, resolveHandler);
     }
 
     private ComponentModelConfig.LoaderConfig makeLoaderConfig(String type,

@@ -14,11 +14,9 @@ import io.nop.api.core.context.IContext;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
-import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.concurrent.executor.ExecutorHelper;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
-import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
@@ -36,22 +34,13 @@ import io.nop.core.lang.json.bind.resolver.LoadTextResolver;
 import io.nop.core.lang.json.delta.DeltaJsonSaver;
 import io.nop.core.lang.json.utils.JsonTransformHelper;
 import io.nop.core.module.ModuleManager;
-import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
-import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.web.WebConstants;
 import io.nop.xlang.api.XLang;
-import io.nop.xlang.xdsl.DslModelParser;
 import io.nop.xlang.xdsl.json.XJsonLoader;
-import io.nop.xlang.xmeta.IObjMeta;
-import io.nop.xlang.xmeta.SchemaLoader;
-import io.nop.xui.model.UiFormModel;
-import io.nop.xui.model.UiGridModel;
 import jakarta.annotation.Nullable;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
 
 import java.io.File;
@@ -64,7 +53,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
 
 import static io.nop.web.WebConfigs.CFG_WEB_PAGE_VALIDATION_THREAD_COUNT;
-import static io.nop.web.WebConstants.XDSL_SCHEMA_XVIEW;
 import static io.nop.web.WebErrors.ARG_PATH;
 import static io.nop.web.WebErrors.ARG_RESOURCE;
 import static io.nop.web.WebErrors.ERR_WEB_PAGE_RESOURCE_NOT_FILE;
@@ -73,8 +61,6 @@ import static io.nop.web.WebErrors.ERR_WEB_PAGE_RESOURCE_NOT_FILE;
  * 装载page.yaml文件，并对@i18n标识进行转换
  */
 public class PageProvider extends ResourceWithHistoryProvider {
-
-    private final Cancellable cleanup = new Cancellable();
 
     private IRolePermissionMapping rolePermissionMapping;
 
@@ -94,70 +80,6 @@ public class PageProvider extends ResourceWithHistoryProvider {
     @Inject
     public void setRolePermissionMapping(@Nullable IRolePermissionMapping rolePermissionMapping) {
         this.rolePermissionMapping = rolePermissionMapping;
-    }
-
-    @PostConstruct
-    public void init() {
-        registerXView();
-        registerXPage();
-    }
-
-    void registerXView() {
-        ComponentModelConfig config = new ComponentModelConfig();
-        config.modelType(WebConstants.MODEL_TYPE_XVIEW);
-
-        config.loader(WebConstants.FILE_EXT_VIEW_XML, this::parseViewModel);
-
-        cleanup.append(ResourceComponentManager.instance().registerComponentModelConfig(config));
-    }
-
-    IComponentModel parseViewModel(String path) {
-        IComponentModel comp = new DslModelParser(XDSL_SCHEMA_XVIEW).parseFromVirtualPath(path);
-        String objMetaPath = (String) BeanTool.instance().getProperty(comp, "objMeta");
-
-
-        ResourceComponentManager.instance().ignoreDepends(() -> {
-            IObjMeta objMeta = objMetaPath == null ? null : SchemaLoader.loadXMeta(objMetaPath);
-            List<UiFormModel> forms = (List<UiFormModel>) BeanTool.instance().getProperty(comp, "forms");
-            if (forms != null) {
-                for (UiFormModel form : forms) {
-                    form.validate(getObjMeta(form.getObjMeta(), objMeta));
-                }
-            }
-
-            List<UiGridModel> grids = (List<UiGridModel>) BeanTool.instance().getProperty(comp, "grids");
-            if (grids != null) {
-                for (UiGridModel grid : grids) {
-                    grid.validate(getObjMeta(grid.getObjMeta(), objMeta));
-                }
-            }
-            return null;
-        });
-
-        return comp;
-    }
-
-    IObjMeta getObjMeta(String path, IObjMeta defaultObjMeta) {
-        if (!StringHelper.isEmpty(path))
-            return SchemaLoader.loadXMeta(path);
-        return defaultObjMeta;
-    }
-
-    void registerXPage() {
-        ComponentModelConfig config = new ComponentModelConfig();
-        config.modelType(WebConstants.MODEL_TYPE_XPAGE);
-
-        config.loader(WebConstants.FILE_TYPE_PAGE_XML, this::loadPage);
-        config.loader(WebConstants.FILE_TYPE_PAGE_YAML, this::loadPage);
-        config.loader(WebConstants.FILE_TYPE_PAGE_JSON, this::loadPage);
-        config.loader(WebConstants.FILE_TYPE_PAGE_JSON5, this::loadPage);
-
-        cleanup.append(ResourceComponentManager.instance().registerComponentModelConfig(config));
-    }
-
-    @PreDestroy
-    public void destroy() {
-        cleanup.cancel();
     }
 
     public void validateAllPages() {
@@ -279,12 +201,8 @@ public class PageProvider extends ResourceWithHistoryProvider {
         return value instanceof Map<?, ?> && ((Map<?, ?>) value).get(WebConstants.ATTR_XUI_PERMISSIONS) != null;
     }
 
-    private PageModel loadPage(String localeAndPath) {
-        int pos = localeAndPath.indexOf('|');
-        String locale = localeAndPath.substring(0, pos);
-        String path = localeAndPath.substring(pos + 1);
-        IResource resource = VirtualFileSystem.instance().getResource(path);
-        return loadPage(resource, locale, registry, true);
+    public PageModel loadPage(IResource resource, String locale, boolean resolveI18n) {
+        return loadPage(resource, locale, registry, resolveI18n);
     }
 
     protected PageModel loadPage(IResource resource, String locale, ValueResolverCompilerRegistry resolverRegistry, boolean resolveI18n) {

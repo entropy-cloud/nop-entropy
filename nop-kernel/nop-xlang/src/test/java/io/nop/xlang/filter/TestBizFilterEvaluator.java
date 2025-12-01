@@ -29,4 +29,17 @@ public class TestBizFilterEvaluator {
         boolean b = new BizFilterEvaluator(new ServiceContextImpl()).testForEntity(node, entity);
         assertTrue(b);
     }
+
+    @Test
+    public void testAlwaysTrue(){
+        String text = "<alwaysTrue/>";
+
+        XNode node = XNodeParser.instance().forFragments(true).parseFromText(null, text);
+
+        Map<String, Object> entity = new HashMap<>();
+        entity.put("status", 1);
+
+        boolean b = new BizFilterEvaluator(new ServiceContextImpl()).testForEntity(node, entity);
+        assertTrue(b);
+    }
 }

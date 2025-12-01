@@ -7,6 +7,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.xlang.xdsl.AbstractDslResourcePersister;
+import io.nop.xlang.xdsl.DslNodeLoader;
 import io.nop.xlang.xdsl.IDslTextSerializer;
 
 public class DslJsonResourceLoader extends AbstractDslResourcePersister implements IDslTextSerializer {
@@ -20,9 +21,10 @@ public class DslJsonResourceLoader extends AbstractDslResourcePersister implemen
     }
 
     @Override
-    public XNode loadDslNodeFromResource(IResource resource) {
+    public XNode loadDslNodeFromResource(IResource resource, ResolvePhase phase) {
         Object bean = JsonTool.parseBeanFromResource(resource, JObject.class, true);
-        return transformBeanToNode(bean);
+        XNode node = transformBeanToNode(bean);
+        return DslNodeLoader.INSTANCE.processDslNode(node, this.schemaPath, phase);
     }
 
     @Override

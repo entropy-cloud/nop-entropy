@@ -2,9 +2,9 @@ package io.nop.xlang.initialize;
 
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
-import io.nop.xlang.feature.XModelInclude;
 import io.nop.xlang.xdsl.AbstractDslResourcePersister;
 import io.nop.xlang.xdsl.DslModelHelper;
+import io.nop.xlang.xdsl.DslNodeLoader;
 
 public class DslXmlResourceLoader extends AbstractDslResourcePersister {
     public DslXmlResourceLoader(String schemaPath, String resolveInDir) {
@@ -16,13 +16,13 @@ public class DslXmlResourceLoader extends AbstractDslResourcePersister {
     }
 
     @Override
-    public XNode loadDslNodeFromResource(IResource resource) {
-        return XModelInclude.instance().loadActiveNodeFromResource(resource);
+    public XNode loadDslNodeFromResource(IResource resource, ResolvePhase phase) {
+        return DslNodeLoader.INSTANCE.loadDslNodeFromResource(resource, schemaPath, phase);
     }
 
     @Override
     public void saveObjectToResource(IResource resource, Object obj) {
-        XNode node = DslModelHelper.dslModelToXNode(schemaPath, obj);
+        XNode node = obj instanceof XNode ? (XNode) obj : DslModelHelper.dslModelToXNode(schemaPath, obj);
         node.saveToResource(resource, null);
     }
 }

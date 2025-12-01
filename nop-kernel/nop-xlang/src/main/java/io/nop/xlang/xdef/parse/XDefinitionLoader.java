@@ -3,9 +3,9 @@ package io.nop.xlang.xdef.parse;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.xlang.XLangConstants;
-import io.nop.xlang.feature.XModelInclude;
 import io.nop.xlang.xdef.impl.XDefinition;
 import io.nop.xlang.xdsl.AbstractDslResourceLoader;
+import io.nop.xlang.xdsl.DslNodeLoader;
 
 public class XDefinitionLoader extends AbstractDslResourceLoader<Object> {
     public XDefinitionLoader() {
@@ -13,8 +13,8 @@ public class XDefinitionLoader extends AbstractDslResourceLoader<Object> {
     }
 
     @Override
-    public XNode loadDslNodeFromResource(IResource resource) {
-        return XModelInclude.instance().loadActiveNodeFromResource(resource);
+    public XNode loadDslNodeFromResource(IResource resource, ResolvePhase phase) {
+        return DslNodeLoader.INSTANCE.loadDslNodeFromResource(resource, this.schemaPath, phase);
     }
 
     @Override

@@ -15,10 +15,10 @@ import io.nop.core.resource.IResource;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.model.DialectModel;
-import io.nop.xlang.feature.XModelInclude;
 import io.nop.xlang.xdsl.AbstractDslResourcePersister;
 import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.DslModelParser;
+import io.nop.xlang.xdsl.DslNodeLoader;
 
 public class DialectModelLoader extends AbstractDslResourcePersister {
     public DialectModelLoader() {
@@ -26,8 +26,8 @@ public class DialectModelLoader extends AbstractDslResourcePersister {
     }
 
     @Override
-    public XNode loadDslNodeFromResource(IResource resource) {
-        return XModelInclude.instance().loadActiveNodeFromResource(resource);
+    public XNode loadDslNodeFromResource(IResource resource, ResolvePhase phase) {
+        return DslNodeLoader.INSTANCE.loadDslNodeFromResource(resource, schemaPath, phase);
     }
 
     @Override

@@ -196,7 +196,7 @@ public class TestReportEngine extends BaseTestCase {
     @Test
     public void testTransformToXml() {
         IResource resource = getResource("/nop/report/demo/test-expand-inplace-count.xpt.xlsx");
-        XNode node = XptModelLoader.instance().loadModelNodeFromResource(resource);
+        XNode node = XptModelLoader.instance().loadDslNodeFromResource(resource, null);
         node.dump();
     }
 

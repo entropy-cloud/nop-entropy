@@ -12,7 +12,6 @@ import io.nop.core.resource.IResourceDslNodeSaver;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.IResourceObjectSaver;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -22,9 +21,11 @@ public class ComponentModelConfig {
     private String resolveInDir;
 
     private boolean supportVersion;
+    private String impPath;
 
-    private String primaryFileType;
+    private String xdslFileType;
     private String xdefPath;
+    private IResourceObjectLoader<Object> resolveDefaultLoader;
 
     /**
      * 模型可以存在多种存储格式，每种格式对应一个文件类型，采用一种特定的加载器加载
@@ -34,8 +35,14 @@ public class ComponentModelConfig {
      */
     private Map<String, LoaderConfig> loaders;
 
+    private String primaryLoaderFileType;
+    private String primarySaverFileType;
+    private IResourceDslNodeSaver primaryDslNodeSaver;
 
-    private Map<String, IComponentTransformer<Object,Object>> transformers;
+    private IResourceDslNodeLoader primaryDslNodeLoader;
+
+
+    private Map<String, IComponentTransformer<Object, Object>> transformers;
 
     public static class LoaderConfig {
         private final String type;
@@ -96,12 +103,20 @@ public class ComponentModelConfig {
         }
     }
 
-    public String getPrimaryFileType() {
-        return primaryFileType;
+    public String getImpPath() {
+        return impPath;
     }
 
-    public void setPrimaryFileType(String primaryFileType) {
-        this.primaryFileType = primaryFileType;
+    public void setImpPath(String impPath) {
+        this.impPath = impPath;
+    }
+
+    public IResourceDslNodeLoader getPrimaryDslNodeLoader() {
+        return primaryDslNodeLoader;
+    }
+
+    public IResourceDslNodeSaver getPrimaryDslNodeSaver() {
+        return primaryDslNodeSaver;
     }
 
     public LoaderConfig getLoader(String fileType) {
@@ -112,9 +127,40 @@ public class ComponentModelConfig {
 
     public ComponentModelConfig loader(String fileType, LoaderConfig loaderConfig) {
         if (loaders == null)
-            loaders = new HashMap<>();
+            loaders = new LinkedHashMap<>();
         loaders.put(fileType, loaderConfig);
+
+        if (primaryDslNodeSaver == null && loaderConfig.getDslNodeSaver() != null) {
+            this.primaryDslNodeSaver = loaderConfig.getDslNodeSaver();
+            this.primarySaverFileType = fileType;
+        }
+
+        if (primaryDslNodeLoader == null && loaderConfig.getDslNodeLoader() != null) {
+            this.primaryDslNodeLoader = loaderConfig.getDslNodeLoader();
+            this.primaryLoaderFileType = fileType;
+        }
+
         return this;
+    }
+
+    public String getXdslFileType() {
+        return xdslFileType;
+    }
+
+    public void setXdslFileType(String xdslFileType) {
+        this.xdslFileType = xdslFileType;
+    }
+
+    public String getPrimarySaverFileType() {
+        return primarySaverFileType;
+    }
+
+    public void setPrimarySaverFileType(String primarySaverFileType) {
+        this.primarySaverFileType = primarySaverFileType;
+    }
+
+    public String getPrimaryLoaderFileType() {
+        return primaryLoaderFileType;
     }
 
     public boolean isSupportVersion() {
@@ -145,6 +191,14 @@ public class ComponentModelConfig {
         return this;
     }
 
+    public IResourceObjectLoader<Object> getResolveDefaultLoader() {
+        return resolveDefaultLoader;
+    }
+
+    public void setResolveDefaultLoader(IResourceObjectLoader<Object> resolveDefaultLoader) {
+        this.resolveDefaultLoader = resolveDefaultLoader;
+    }
+
     public String getResolveInDir() {
         return resolveInDir;
     }
@@ -169,15 +223,15 @@ public class ComponentModelConfig {
         this.loaders = loaders;
     }
 
-    public Map<String, IComponentTransformer<Object,Object>> getTransformers() {
+    public Map<String, IComponentTransformer<Object, Object>> getTransformers() {
         return transformers;
     }
 
-    public void setTransformers(Map<String, IComponentTransformer<Object,Object>> transformers) {
+    public void setTransformers(Map<String, IComponentTransformer<Object, Object>> transformers) {
         this.transformers = transformers;
     }
 
-    public IComponentTransformer<Object,Object> getTransformer(String transform) {
+    public IComponentTransformer<Object, Object> getTransformer(String transform) {
         if (transformers == null)
             return null;
         return transformers.get(transform);

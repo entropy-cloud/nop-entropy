@@ -17,7 +17,7 @@ public class JavaObjMetaLoader extends AbstractDslResourceLoader<Object> {
     }
 
     @Override
-    public XNode loadDslNodeFromResource(IResource resource) {
+    public XNode loadDslNodeFromResource(IResource resource, ResolvePhase phase) {
         IObjMeta objMeta = loadObjectFromResource(resource);
         return transformBeanToNode(objMeta);
     }

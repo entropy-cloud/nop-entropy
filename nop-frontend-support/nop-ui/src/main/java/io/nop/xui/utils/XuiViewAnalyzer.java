@@ -409,7 +409,7 @@ public class XuiViewAnalyzer {
     }
 
     static IComponentModel loadViewModel(String viewPath) {
-        return ResourceComponentManager.instance().loadComponentModel(viewPath);
+        return (IComponentModel) ResourceComponentManager.instance().loadComponentModel(viewPath);
     }
 
     static IObjMeta getViewObjMeta(IComponentModel viewModel) {

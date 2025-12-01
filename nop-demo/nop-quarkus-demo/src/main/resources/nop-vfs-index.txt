@@ -475,6 +475,7 @@
 /nop/core/app.module.yaml
 /nop/core/model/DictProvider/DictProvider.xbiz
 /nop/core/registry/api.register-model.xml
+/nop/core/registry/css.register-model.xml
 /nop/core/registry/dao-rule.register-model.xml
 /nop/core/registry/dao-wf.register-model.xml
 /nop/core/registry/dialect.register-model.xml
@@ -483,13 +484,17 @@
 /nop/core/registry/gateway.register-model.xml
 /nop/core/registry/graph-designer.register-model.xml
 /nop/core/registry/imp.register-model.xml
+/nop/core/registry/js.register-model.xml
 /nop/core/registry/llm.register-model.xml
 /nop/core/registry/markdown.register-model.xml
 /nop/core/registry/orm.register-model.xml
+/nop/core/registry/page.register-model.xml
 /nop/core/registry/prompt.register-model.xml
 /nop/core/registry/rule.register-model.xml
+/nop/core/registry/sql-lib.register-model.xml
 /nop/core/registry/task.register-model.xml
 /nop/core/registry/validator.register-model.xml
+/nop/core/registry/view.register-model.xml
 /nop/core/registry/wf.register-model.xml
 /nop/core/registry/xlib.register-model.xml
 /nop/core/registry/xmeta.register-model.xml

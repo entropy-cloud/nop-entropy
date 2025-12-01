@@ -1,6 +1,7 @@
 package io.nop.converter;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.core.resource.IResourceDslNodeLoader;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -8,6 +9,7 @@ import java.util.Map;
 @DataBean
 public class DocumentConvertOptions {
     private boolean allowChained;
+    private IResourceDslNodeLoader.ResolvePhase dslNodeResolvePhase;
     private Map<String, Object> properties;
 
     public static DocumentConvertOptions create() {
@@ -17,6 +19,19 @@ public class DocumentConvertOptions {
     public DocumentConvertOptions allowChained() {
         this.allowChained = true;
         return this;
+    }
+
+    public DocumentConvertOptions dslNodeResolvePhase(IResourceDslNodeLoader.ResolvePhase phase) {
+        this.dslNodeResolvePhase = phase;
+        return this;
+    }
+
+    public IResourceDslNodeLoader.ResolvePhase getDslNodeResolvePhase() {
+        return dslNodeResolvePhase;
+    }
+
+    public void setDslNodeResolvePhase(IResourceDslNodeLoader.ResolvePhase dslNodeResolvePhase) {
+        this.dslNodeResolvePhase = dslNodeResolvePhase;
     }
 
     public boolean isAllowChained() {

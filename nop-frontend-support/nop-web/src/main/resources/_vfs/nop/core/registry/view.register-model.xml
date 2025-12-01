@@ -1,0 +1,6 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="xview" xdefPath="/nop/schema/xui/xview.xdef">
+    <loaders>
+        <loader fileType="view.xml" class="io.nop.web.page.ViewModelLoaderFactory"/>
+    </loaders>
+</model>

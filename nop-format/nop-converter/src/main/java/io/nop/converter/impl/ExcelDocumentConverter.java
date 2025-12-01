@@ -30,7 +30,7 @@ public class ExcelDocumentConverter implements IDocumentConverter {
     public String convertToText(IDocumentObject doc, String toFileType, DocumentConvertOptions options) {
         if (toFileType.equals(FILE_TYPE_XPT_XML)) {
             if (doc.getFileType().equals(FILE_TYPE_XPT_XLSX)) {
-                return convertXptModelToXml(doc);
+                return convertXptModelToXml(doc,options);
             }
         }
         String renderType = StringHelper.lastPart(toFileType, '.');
@@ -58,8 +58,8 @@ public class ExcelDocumentConverter implements IDocumentConverter {
         return renderer.generateText(XLang.newEvalScope());
     }
 
-    protected String convertXptModelToXml(IDocumentObject doc) {
-        return XptModelLoader.instance().loadModelNodeFromResource(doc.getResource()).xml();
+    protected String convertXptModelToXml(IDocumentObject doc, DocumentConvertOptions options) {
+        return XptModelLoader.instance().loadDslNodeFromResource(doc.getResource(), options.getDslNodeResolvePhase()).xml();
     }
 
     @Override

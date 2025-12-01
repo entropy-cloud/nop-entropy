@@ -33,6 +33,10 @@ public abstract class AbstractDslResourceLoader<T> implements IDslResourceLoader
         return DslModelHelper.dslModelToXNode(schemaPath, bean);
     }
 
+    protected XNode loadXmlFile(IResource resource, ResolvePhase phase) {
+        return DslNodeLoader.INSTANCE.loadDslNodeFromResource(resource, schemaPath, phase);
+    }
+
     @Override
     public T loadObjectFromPath(String path) {
         IResource resource = VirtualFileSystem.instance().getResource(path);
@@ -41,7 +45,7 @@ public abstract class AbstractDslResourceLoader<T> implements IDslResourceLoader
 
     @Override
     public T loadObjectFromResource(IResource resource) {
-        XNode node = loadDslNodeFromResource(resource);
+        XNode node = loadDslNodeFromResource(resource, ResolvePhase.raw);
         return (T) new DslModelParser(schemaPath).resolveInDir(resolveInDir).dynamic(dynamic).parseFromNode(node);
     }
 }

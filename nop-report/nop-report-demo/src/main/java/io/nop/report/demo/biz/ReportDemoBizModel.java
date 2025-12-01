@@ -124,7 +124,7 @@ public class ReportDemoBizModel {
         path = StringHelper.removeTail(path, ".xlsx") + ".xml";
         node.dump();
         IResource resource = new ByteArrayResource(path, node.xml().getBytes(StandardCharsets.UTF_8), -1L);
-        xptModel = XptModelLoader.instance().loadModelFromResource(resource);
+        xptModel = XptModelLoader.instance().loadObjectFromResource(resource);
         ITextTemplateOutput output = (ITextTemplateOutput) reportEngine.getRendererForXptModel(xptModel, XptConstants.RENDER_TYPE_HTML);
         return output.generateText(scope);
     }

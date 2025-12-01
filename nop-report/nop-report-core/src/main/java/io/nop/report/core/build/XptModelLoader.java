@@ -11,14 +11,12 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
-import io.nop.core.resource.VirtualFileSystem;
-import io.nop.excel.ExcelConstants;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.report.core.XptConstants;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
-import io.nop.xlang.xdsl.DslModelHelper;
+import io.nop.xlang.xdsl.AbstractDslResourceLoader;
 import io.nop.xlang.xdsl.DslModelParser;
 
 import static io.nop.report.core.XptConstants.ALLOWED_XPT_FILE_TYPES;
@@ -29,19 +27,19 @@ import static io.nop.report.core.XptErrors.ERR_XPT_UNSUPPORTED_XPT_FILE_TYPE;
 /**
  * 加载xml格式或者xlsx格式的模型文件。对应文件名规则为xxx.xpt.xml或者xxx.xpt.xlsx
  */
-public class XptModelLoader {
+public class XptModelLoader extends AbstractDslResourceLoader<ExcelWorkbook> {
     static XptModelLoader _instance = new XptModelLoader();
 
     public static XptModelLoader instance() {
         return _instance;
     }
 
-    public ExcelWorkbook parseFromVirtualPath(String reportPath) {
-        IResource resource = VirtualFileSystem.instance().getResource(reportPath);
-        return loadModelFromResource(resource);
+    public XptModelLoader() {
+        super(XptConstants.XDSL_SCHEMA_WORKBOOK, null);
     }
 
-    public ExcelWorkbook loadModelFromResource(IResource resource) {
+    @Override
+    public ExcelWorkbook loadObjectFromResource(IResource resource) {
         String fileType = StringHelper.fileType(resource.getPath());
         ExcelWorkbook workbook;
         if (XptConstants.FILE_TYPE_XPT_XLSX.equals(fileType)) {
@@ -61,8 +59,9 @@ public class XptModelLoader {
         return workbook;
     }
 
-    public XNode loadModelNodeFromResource(IResource resource) {
-        ExcelWorkbook wk = loadModelFromResource(resource);
-        return DslModelHelper.dslModelToXNode(ExcelConstants.XDSL_SCHEMA_WORKBOOK, wk);
+    @Override
+    public XNode loadDslNodeFromResource(IResource resource, ResolvePhase phase) {
+        ExcelWorkbook wk = loadObjectFromResource(resource);
+        return transformBeanToNode(wk);
     }
 }

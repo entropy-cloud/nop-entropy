@@ -45,7 +45,7 @@ public class TestReportFile extends BaseTestCase {
     public void testGenFile() {
         IReportEngine reportEngine = newReportEngine();
         File xptFile = attachmentFile("test.xpt.xlsx");
-        ExcelWorkbook xptModel = new XptModelLoader().loadModelFromResource(new FileResource(xptFile));
+        ExcelWorkbook xptModel = new XptModelLoader().loadObjectFromResource(new FileResource(xptFile));
         ITemplateOutput output = reportEngine.getRendererForXptModel(xptModel, "xlsx");
 
         IEvalScope scope = XLang.newEvalScope();

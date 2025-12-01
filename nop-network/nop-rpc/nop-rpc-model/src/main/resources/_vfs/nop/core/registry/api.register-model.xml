@@ -3,6 +3,6 @@
     <loaders>
         <xlsx-loader fileType="api.xlsx" impPath="/nop/rpc/imp/api.imp.xml"/>
         <xdsl-loader fileType="api.xml" schemaPath="/nop/schema/api.xdef"/>
-        <loader fileType="proto" class="io.nop.rpc.model.proto.ProtoFileParser"/>
+        <loader fileType="proto" class="io.nop.rpc.model.proto.ProtoApiModelLoader"/>
     </loaders>
 </model>

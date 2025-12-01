@@ -1,0 +1,9 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="xpage">
+    <loaders>
+        <loader fileType="page.xml" class="io.nop.web.page.PageModelLoaderFactory"/>
+        <loader fileType="page.json" class="io.nop.web.page.PageModelLoaderFactory"/>
+        <loader fileType="page.json5" class="io.nop.web.page.PageModelLoaderFactory"/>
+        <loader fileType="page.yaml" class="io.nop.web.page.PageModelLoaderFactory"/>
+    </loaders>
+</model>

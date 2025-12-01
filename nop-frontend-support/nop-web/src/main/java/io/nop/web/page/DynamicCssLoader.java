@@ -8,21 +8,16 @@
 package io.nop.web.page;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceTextLoader;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
-import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.component.TextFile;
 import io.nop.web.WebConstants;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 
 import java.io.File;
 
@@ -32,30 +27,13 @@ import static io.nop.web.WebConfigs.CFG_WEB_USE_DYNAMIC_CSS;
 
 public class DynamicCssLoader implements IResourceTextLoader {
 
-    private final Cancellable cancellable = new Cancellable();
-
-    @PostConstruct
-    public void init() {
-        ComponentModelConfig config = new ComponentModelConfig();
-        config.modelType(WebConstants.FILE_EXT_CSS);
-
-        config.loader(WebConstants.FILE_EXT_CSS, this::loadDynamicCss);
-
-        cancellable.append(ResourceComponentManager.instance().registerComponentModelConfig(config));
-    }
-
-    @PreDestroy
-    public void destroy() {
-        cancellable.cancel();
-    }
-
     @Override
     public String loadText(String path) {
         TextFile file = (TextFile) ResourceComponentManager.instance().loadComponentModel(path);
         return file.getText();
     }
 
-    protected IComponentModel loadDynamicCss(String path) {
+    public TextFile loadDynamicCss(String path) {
         SourceLocation loc = SourceLocation.fromPath(path);
 
         IResource resource = VirtualFileSystem.instance().getResource(path);

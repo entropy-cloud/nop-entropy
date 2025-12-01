@@ -57,7 +57,7 @@ public class TestReportEngine extends JunitBaseTestCase {
     public void testConfig() {
         setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
         String reportPath = "/nop/report/demo/base/04-交叉报表—数据双向扩展.xpt.xlsx";
-        ExcelWorkbook model = new XptModelLoader().parseFromVirtualPath(reportPath);
+        ExcelWorkbook model = new XptModelLoader().loadObjectFromPath(reportPath);
         String json = JsonTool.serialize(model, true);
         FileHelper.writeText(getTargetFile("xpt-demo.json"), json, null);
         FileHelper.writeText(getTargetFile("xpt-demo.yaml"), JsonTool.serializeToYaml(model), null);

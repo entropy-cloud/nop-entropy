@@ -1,5 +1,5 @@
 <model name="!xml-name" x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-       xmlns:xdef="/nop/schema/xdef.xdef">
+       xmlns:xdef="/nop/schema/xdef.xdef" xdefPath="v-path">
 
     <!--
     配置如何根据resolve-rule:xxx这种类型的模型路径来加载模型。首先在resolveInDir路径下尝试不同的fileType，如果不存在对应的文件或者文件为空，
@@ -12,7 +12,8 @@
 
     这里resolve-为特殊的前缀，它可以拼接在任意的modelType前面表示执行对应模型的resolve功能。
     -->
-    <resolve-handler resolveInDir="!v-path" supportVersion="!boolean=true"/>
+    <resolve-handler resolveInDir="!v-path" supportVersion="!boolean=true"
+                     defaultLoaderBean="xml-name" defaultLoaderClass="class-name"/>
 
     <loaders xdef:body-type="list" xdef:key-attr="fileType">
         <xdsl-loader fileType="!file-type" schemaPath="!v-path"

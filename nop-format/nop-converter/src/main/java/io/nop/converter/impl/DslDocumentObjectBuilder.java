@@ -1,20 +1,16 @@
 package io.nop.converter.impl;
 
-import io.nop.commons.util.StringHelper;
 import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.IDocumentObject;
 import io.nop.converter.IDocumentObjectBuilder;
-import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.IResourceDslNodeLoader;
+import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.impl.InMemoryTextResource;
-import io.nop.xlang.initialize.DslJsonResourceLoader;
-import io.nop.xlang.initialize.DslXmlResourceLoader;
-import io.nop.xlang.xdsl.IDslResourceLoader;
-import io.nop.xlang.xdsl.IDslTextSerializer;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -64,7 +60,7 @@ public class DslDocumentObjectBuilder implements IDocumentObjectBuilder {
             return getXdefPathFromFileType(fileType);
         }
 
-        IDslResourceLoader<Object> newLoader(DocumentConvertOptions options) {
+        IResourceObjectLoader<Object> newLoader(DocumentConvertOptions options) {
             String fileType = getFileType();
             ComponentModelConfig config = ResourceComponentManager.instance().requireModelConfigByFileType(fileType);
 
@@ -72,12 +68,7 @@ public class DslDocumentObjectBuilder implements IDocumentObjectBuilder {
             if (loaderConfig == null)
                 throw new IllegalArgumentException("unsupported fileType: " + fileType);
 
-            String fileExt = StringHelper.fileExtFromFileType(fileType);
-            if (JsonTool.isJsonOrYamlFileExt(fileExt)) {
-                return new DslJsonResourceLoader(loaderConfig.getXdefPath(), config.getResolveInDir(), true);
-            } else {
-                return new DslXmlResourceLoader(loaderConfig.getXdefPath(), config.getResolveInDir(), true);
-            }
+            return loaderConfig.getLoader();
         }
 
         @Override
@@ -90,20 +81,30 @@ public class DslDocumentObjectBuilder implements IDocumentObjectBuilder {
             out.write(getText(options).getBytes(StandardCharsets.UTF_8));
         }
 
-        @Override
-        public String getText(DocumentConvertOptions options) {
-            IDslResourceLoader<Object> loader = newLoader(options);
-            if (loader instanceof IDslTextSerializer) {
-                IDslTextSerializer serializer = (IDslTextSerializer) loader;
-                Object bean = loader.loadObjectFromResource(getResource());
-                return serializer.serializeToText(getFileType(), bean);
-            }
-            return loader.loadDslNodeFromResource(getResource()).xml();
-        }
+//        @Override
+//        public String getText(DocumentConvertOptions options) {
+//            IResourceObjectLoader<Object> loader = newLoader(options);
+//            if (loader instanceof IDslNodeTextSerializer) {
+//                IDslNodeTextSerializer serializer = (IDslNodeTextSerializer) loader;
+//                Object bean = loader.load(getResource());
+//                return serializer.serializeToText(getFileType(), bean);
+//            }
+//            if (loader instanceof IDslTextSerializer) {
+//                IDslTextSerializer serializer = (IDslTextSerializer) loader;
+//                Object bean = loader.loadObjectFromResource(getResource());
+//                return serializer.serializeToText(getFileType(), bean);
+//            }
+//            if (loader instanceof IResourceDslNodeLoader)
+//                return ((IResourceDslNodeLoader) loader).loadDslNodeFromResource(getResource()).xml();
+//            return super.getText(options);
+//        }
 
         @Override
         public XNode getNode(DocumentConvertOptions options) {
-            return newLoader(options).loadDslNodeFromResource(getResource());
+            IResourceObjectLoader<Object> loader = newLoader(options);
+            if (loader instanceof IResourceDslNodeLoader)
+                return ((IResourceDslNodeLoader) loader).loadDslNodeFromResource(getResource(), options.getDslNodeResolvePhase());
+            throw new IllegalArgumentException("nop.err.converter.not-support-node");
         }
     }
 }

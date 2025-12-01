@@ -1,0 +1,7 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="js">
+    <loaders>
+        <loader fileType="js" class="io.nop.web.page.DynamicJsModelLoader"/>
+        <loader fileType="mjs" class="io.nop.web.page.DynamicJsModelLoader"/>
+    </loaders>
+</model>

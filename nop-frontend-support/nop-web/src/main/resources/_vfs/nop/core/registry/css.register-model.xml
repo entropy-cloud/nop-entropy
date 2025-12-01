@@ -1,0 +1,6 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="css">
+    <loaders>
+        <loader fileType="css" class="io.nop.web.page.DynamicCssModelLoader"/>
+    </loaders>
+</model>

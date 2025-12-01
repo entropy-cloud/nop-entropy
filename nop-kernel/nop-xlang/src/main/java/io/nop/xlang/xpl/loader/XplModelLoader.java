@@ -17,7 +17,7 @@ import io.nop.core.resource.VirtualFileSystem;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XplModel;
 import io.nop.xlang.ast.XLangOutputMode;
-import io.nop.xlang.feature.XModelInclude;
+import io.nop.xlang.xdsl.DslNodeLoader;
 
 public class XplModelLoader implements IResourceObjectLoader<IComponentModel>, IResourceDslNodeLoader {
     private final XLangOutputMode outputMode;
@@ -38,7 +38,7 @@ public class XplModelLoader implements IResourceObjectLoader<IComponentModel>, I
     }
 
     @Override
-    public XNode loadDslNodeFromResource(IResource resource) {
-        return XModelInclude.instance().loadActiveNodeFromResource(resource);
+    public XNode loadDslNodeFromResource(IResource resource, ResolvePhase resolvePhase) {
+        return DslNodeLoader.INSTANCE.loadDslNodeFromResource(resource, null, resolvePhase);
     }
 }

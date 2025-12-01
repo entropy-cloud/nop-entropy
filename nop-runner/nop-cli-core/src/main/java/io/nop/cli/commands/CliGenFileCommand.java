@@ -107,7 +107,7 @@ public class CliGenFileCommand implements Callable<Integer> {
         } else if (template.endsWith(".xpt.xlsx")) {
             // Report template
             IResource tplResource = ResourceHelper.resolveRelativePathResource(template);
-            ExcelWorkbook xptModel = new XptModelLoader().loadModelFromResource(tplResource);
+            ExcelWorkbook xptModel = new XptModelLoader().loadObjectFromResource(tplResource);
             scope.setLocalValue(null, XptConstants.VAR_ENTITY, json);
 
             String renderType = StringHelper.fileExt(outputFile.getName());
