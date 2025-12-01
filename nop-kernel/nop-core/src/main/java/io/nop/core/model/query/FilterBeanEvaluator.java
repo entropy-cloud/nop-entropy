@@ -37,7 +37,7 @@ public class FilterBeanEvaluator extends FilterBeanVisitor<Boolean> {
         return filterOp.getBiPredicate().test(leftValue, rightValue);
     }
 
-    protected Object getValue(IVariableScope scope, String name){
+    protected Object getValue(IVariableScope scope, String name) {
         return scope.getValueByPropPath(name);
     }
 
@@ -101,5 +101,15 @@ public class FilterBeanEvaluator extends FilterBeanVisitor<Boolean> {
     @Override
     public Boolean visitNot(ITreeBean filter, IVariableScope scope) {
         return !visitAnd(filter, scope);
+    }
+
+    @Override
+    public Boolean visitAlwaysTrue(ITreeBean filter, IVariableScope scope) {
+        return true;
+    }
+
+    @Override
+    public Boolean visitAlwaysFalse(ITreeBean filter, IVariableScope scope) {
+        return false;
     }
 }
