@@ -24,7 +24,7 @@ public abstract class AbstractPollingLeaderElector extends AbstractLeaderElector
 
     protected void scheduleCheck() {
         IScheduledExecutor executor = this.scheduledExecutor;
-        if (executor != null)
+        if (executor != null && !executor.isDestroyed())
             executor.schedule(this::checkElection, getCheckIntervalMs(), TimeUnit.MICROSECONDS);
     }
 

@@ -19,8 +19,11 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.IXNodeTransformer;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.IResourceDslNodeLoader;
 import io.nop.core.resource.ResourceConstants;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.component.ComponentModelConfig;
+import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.IXLangCompileScope;
 import io.nop.xlang.api.XLang;
@@ -321,7 +324,14 @@ public class XDslExtender {
             Object bean = JsonTool.parseBeanFromResource(resource, JObject.class, true);
             node = DslModelHelper.dslModelToXNode(def.resourcePath(), bean);
         } else {
-            node = XModelInclude.instance().loadActiveNode(path);
+            ComponentModelConfig config = ResourceComponentManager.instance().getModelConfigByModelPath(path);
+            ComponentModelConfig.LoaderConfig dslLoader = config == null ? null : config.getLoader(StringHelper.fileType(path));
+            if (dslLoader != null && dslLoader.getDslNodeLoader() != null) {
+                IResource resource = VirtualFileSystem.instance().getResource(path);
+                node = dslLoader.getDslNodeLoader().loadDslNodeFromResource(resource, IResourceDslNodeLoader.ResolvePhase.filtered);
+            } else {
+                node = XModelInclude.instance().loadActiveNode(path);
+            }
         }
         node = transformNode(node, def, genScope);
         return buildSource(def, node, node.resourcePath(), genScope);

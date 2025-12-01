@@ -45,7 +45,7 @@ public abstract class AbstractDslResourceLoader<T> implements IDslResourceLoader
 
     @Override
     public T loadObjectFromResource(IResource resource) {
-        XNode node = loadDslNodeFromResource(resource, ResolvePhase.raw);
+        XNode node = loadDslNodeFromResource(resource, ResolvePhase.completed);
         return (T) new DslModelParser(schemaPath).resolveInDir(resolveInDir).dynamic(dynamic).parseFromNode(node);
     }
 }
