@@ -11,7 +11,7 @@ public class SimpleDslLoader extends AbstractDslResourceLoader<Object> {
     }
 
     @Override
-    public XNode loadDslNodeFromResource(IResource resource) {
+    public XNode loadDslNodeFromResource(IResource resource, ResolvePhase phase) {
         return XNodeParser.instance().parseFromResource(resource);
     }
 }
