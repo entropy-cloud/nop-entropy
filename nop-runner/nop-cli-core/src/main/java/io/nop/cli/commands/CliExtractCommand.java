@@ -75,7 +75,7 @@ public class CliExtractCommand implements Callable<Integer> {
             }
         }
 
-        IComponentModel model = parseModel(resource);
+        Object model = parseModel(resource);
         if (format == OutputFormat.xml) {
             String xdefPath = null;
             if (model instanceof IXDslModel) {
@@ -95,7 +95,7 @@ public class CliExtractCommand implements Callable<Integer> {
         return 0;
     }
 
-    IComponentModel parseModel(IResource resource) {
+    Object parseModel(IResource resource) {
         String path = resource.getPath();
         if (path.endsWith(".xlsx")) {
             if (templatePath != null && templatePath.endsWith(".imp.xml")) {

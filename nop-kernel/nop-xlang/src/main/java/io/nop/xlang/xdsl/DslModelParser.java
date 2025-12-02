@@ -108,6 +108,7 @@ public class DslModelParser extends AbstractDslParser<Object> {
     }
 
     protected Object doParseNode0(XNode node) {
+        setResourcePath(node.resourcePath());
         IXDefinition xdef = getXdef();
         if (dynamic || forEditor) {
             Object obj = new DslXNodeToJsonTransformer(forEditor, xdef, getCompileTool()).ignoreUnknown(ignoreUnknown).parseObject(node);

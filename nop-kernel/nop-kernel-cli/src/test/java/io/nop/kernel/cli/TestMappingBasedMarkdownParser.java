@@ -6,6 +6,7 @@ import io.nop.core.CoreConfigs;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.impl.FileResource;
@@ -15,6 +16,7 @@ import io.nop.record_mapping.impl.RecordMappingManagerImpl;
 import io.nop.record_mapping.md.MappingBasedMarkdownGenerator;
 import io.nop.record_mapping.model.RecordMappingConfig;
 import io.nop.xlang.api.XLang;
+import io.nop.xlang.xdsl.DslModelHelper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -66,5 +68,8 @@ public class TestMappingBasedMarkdownParser extends BaseTestCase {
 
         Object bean = ResourceComponentManager.instance().loadComponentModel(ormModelFile.getPath());
         System.out.println(JsonTool.serialize(bean, true));
+
+        XNode node = DslModelHelper.dslModelToXNode("/nop/schema/orm/orm.xdef", bean);
+        node.dump();
     }
 }

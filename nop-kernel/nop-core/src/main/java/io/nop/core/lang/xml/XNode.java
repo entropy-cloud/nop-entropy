@@ -145,6 +145,10 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return new XNode(TEXT_TAG_NAME);
     }
 
+    public static XNode makeDummyNode() {
+        return new XNode(DUMMY_TAG_NAME);
+    }
+
     public static XNode make(SourceLocation loc, String tagName) {
         XNode node = XNode.make(tagName);
         node.setLocation(loc);
@@ -2603,6 +2607,10 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
     }
 
     public static XNode fromValue(Object value) {
+        return fromValue(null, value);
+    }
+
+    public static XNode fromValue(SourceLocation loc, Object value) {
         if (StringHelper.isEmptyObject(value))
             return null;
         if (value instanceof XNode)
@@ -2612,7 +2620,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         if (value instanceof Map)
             return fromTreeBean(TreeBean.createFromJson((Map<String, Object>) value));
         if (value instanceof String)
-            return XNodeParser.instance().parseFromText(null, value.toString());
+            return XNodeParser.instance().forFragments(true).parseFromText(loc, value.toString());
         throw new NopException(ERR_XML_NOT_NODE_VALUE)
                 .param(ARG_VALUE, value);
     }

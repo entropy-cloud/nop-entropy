@@ -79,7 +79,7 @@ public class CliGenCommand implements Callable<Integer> {
 
             ComponentModelConfig config = ResourceComponentManager.instance().getModelConfigByModelPath(resource.getPath());
             if (config != null) {
-                IComponentModel model = ResourceComponentManager.instance().loadComponentModel(resource.getPath());
+                Object model = ResourceComponentManager.instance().loadComponentModel(resource.getPath());
                 scope.setLocalValue(null, CodeGenConstants.VAR_CODE_GEN_MODEL, model);
             } else {
                 LOG.warn("nop.cli.unregistered-code-gen-model-type:{}", StringHelper.fileFullName(resource.getPath()));

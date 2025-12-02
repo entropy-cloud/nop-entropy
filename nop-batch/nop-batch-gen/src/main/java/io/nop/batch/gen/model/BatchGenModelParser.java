@@ -21,7 +21,7 @@ public class BatchGenModelParser extends AbstractResourceParser<BatchGenModel> {
     protected BatchGenModel doParseResource(IResource resource) {
         if (resource.getName().endsWith(BatchGenConstants.POSTFIX_BATCH_GEN_XLSX)) {
             BatchGenModel model = (BatchGenModel) DslModelHelper.newExcelModelLoader(
-                    BatchGenConstants.XDSL_BATCH_GEN_IMP_PATH).parseFromResource(resource);
+                    BatchGenConstants.XDSL_BATCH_GEN_IMP_PATH).loadObjectFromResource(resource);
             model.init();
             return model;
         }

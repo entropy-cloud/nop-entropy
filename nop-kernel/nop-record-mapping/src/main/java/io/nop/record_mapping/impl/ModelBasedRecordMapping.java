@@ -1,6 +1,7 @@
 package io.nop.record_mapping.impl;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.StringHelper;
 import io.nop.record_mapping.IRecordMapping;
 import io.nop.record_mapping.RecordMappingContext;
 import io.nop.record_mapping.model.RecordFieldMappingConfig;
@@ -69,6 +70,8 @@ public class ModelBasedRecordMapping implements IRecordMapping {
             } else {
                 // 2. 对源对象返回的值进行映射，如果为null，则返回defaultValue
                 value = tool.processFieldValue(mapping, field, value, ctx);
+                if (field.isIgnoreWhenEmpty() && StringHelper.isEmptyObject(value))
+                    return;
 
                 // 4. 设置到目标对象
                 tool.setTargetValue(field, target, value, ctx);
@@ -86,7 +89,7 @@ public class ModelBasedRecordMapping implements IRecordMapping {
     }
 
     public Object mapCollectionField(RecordFieldMappingConfig field, java.util.Collection<?> value,
-                                   Object source, Object target, RecordMappingContext ctx) {
+                                     Object source, Object target, RecordMappingContext ctx) {
         RecordMappingConfig itemMapping = field.getResolvedItemMapping();
 
         return tool.mapCollectionField(field, value, source, target, ctx, (fromItem, toItem) -> {

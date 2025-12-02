@@ -7,7 +7,6 @@
  */
 package io.nop.autotest.junit;
 
-import io.nop.api.core.util.Guard;
 import io.nop.autotest.core.data.AutoTestDataHelper;
 import io.nop.commons.util.ArrayHelper;
 import io.nop.commons.util.MavenDirHelper;
@@ -37,12 +36,12 @@ public class VariantsArgumentProvider implements ArgumentsProvider, AnnotationCo
         Class<?> testClass = context.getTestClass().orElse(null);
         Method testMethod = context.getTestMethod().orElse(null);
 
-        if(testClass == null || testMethod == null)
+        if (testClass == null || testMethod == null)
             throw new IllegalArgumentException("null test info");
 
         String dataDir = AutoTestDataHelper.getTestDataPath(testClass, testMethod);
 
-        File casesDir = new File(MavenDirHelper.projectDir(testClass), "cases");
+        File casesDir = new File(MavenDirHelper.projectDir(testClass), "_cases");
 
         File variantsDir = new File(casesDir, dataDir + "/variants");
         List<String> ret = new ArrayList<>();
@@ -58,8 +57,8 @@ public class VariantsArgumentProvider implements ArgumentsProvider, AnnotationCo
             }
         }
 
-        if(variants.length != 0){
-            return ret.stream().filter(a-> ArrayHelper.indexOf(variants,a)>=0).map(Arguments::of);
+        if (variants.length != 0) {
+            return ret.stream().filter(a -> ArrayHelper.indexOf(variants, a) >= 0).map(Arguments::of);
         }
 
         return ret.stream().map(Arguments::of);

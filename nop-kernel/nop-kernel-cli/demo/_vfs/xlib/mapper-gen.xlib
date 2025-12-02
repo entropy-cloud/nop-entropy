@@ -6,7 +6,7 @@
 
         <source>
             <c:script><![CDATA[
-                const jdbcType = SWITCH(col.stdDataType.toString(), 'string', 'VARCHAR',
+                const jdbcType = SWITCH((col.stdDataType || col.stdSqlType.stdDataType) ?.toString(), 'string', 'VARCHAR',
                         'int', 'INTEGER', 'long', 'BIGINT', 'short', 'SMALLINT',
                         'date', 'DATE', 'datetime', 'TIMESTAMP', 'boolean','CHAR',
                         'double', 'DOUBLE', 'decimal', 'DECIMAL', 'clob', 'CLOB',

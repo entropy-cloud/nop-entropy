@@ -25,11 +25,11 @@ public class ResourceDocumentHtmlParser implements
 
     @Override
     public ResourceDocument loadObjectFromPath(String path) {
-        return parseFromResource(VirtualFileSystem.instance().getResource(path));
+        return loadObjectFromResource(VirtualFileSystem.instance().getResource(path));
     }
 
     @Override
-    public ResourceDocument parseFromResource(IResource resource) {
+    public ResourceDocument loadObjectFromResource(IResource resource) {
 
         // FileResource file = new FileResource(new File("c:/test.html"));
 

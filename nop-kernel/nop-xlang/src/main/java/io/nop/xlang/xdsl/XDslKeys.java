@@ -78,7 +78,7 @@ public final class XDslKeys implements Serializable {
         this.PROTOTYPE = getFullName(ns, "prototype");
         this.PROTOTYPE_SUPER = getFullName(ns, "prototype-super");
         this.PROTOTYPE_OVERRIDE = getFullName(ns, "prototype-override");
-        this.DEFAULT_OVERRIDE = getFullName(ns,"default-override");
+        this.DEFAULT_OVERRIDE = getFullName(ns, "default-override");
 
         this.ABSTRACT = getFullName(ns, "abstract");
         this.FINAL = getFullName(ns, "final");
@@ -99,6 +99,10 @@ public final class XDslKeys implements Serializable {
         this.CHILD_NAMES = CollectionHelper.buildImmutableSet(ARGS, GEN_EXTENDS, CONFIG, POST_EXTENDS,
                 PRE_PARSE, POST_PARSE,
                 SUPER, PROTOTYPE_SUPER);
+    }
+
+    public boolean isXplValue(String key) {
+        return GEN_EXTENDS.equals(key) || POST_EXTENDS.equals(key) || POST_PARSE.equals(key) || PRE_PARSE.equals(key);
     }
 
     public String getOverride(boolean forPrototype) {

@@ -2,6 +2,6 @@
        name="orm">
     <loaders>
         <!-- 追加pdm解析器。系统初始化时会将这里的配置与orm.register-model.xml中的配置合并 -->
-        <loader fileType="pdm" class="io.nop.orm.pdm.PdmModelParser"/>
+        <loader fileType="pdm" class="io.nop.orm.pdm.PdmModelLoader"/>
     </loaders>
 </model>

@@ -125,7 +125,7 @@ quarkus:
     http2: true
 
   log:
-    level: info
+    level: DEBUG
     min-level: trace
 
 #    console:

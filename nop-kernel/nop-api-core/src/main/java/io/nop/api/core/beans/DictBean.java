@@ -153,6 +153,7 @@ public class DictBean implements Serializable, IFreezable, IDeepCloneable,
         this.label = label;
     }
 
+    @JsonIgnore
     public String getOptionsText() {
         StringBuilder sb = new StringBuilder();
         if (this.getOptions() != null) {

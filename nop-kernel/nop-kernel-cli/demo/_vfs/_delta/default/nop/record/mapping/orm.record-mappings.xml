@@ -333,11 +333,11 @@
             <!--
              一般情况下to-one应该是子表指向父表。而在一对一关联时，reverseDepends=true表示是从父表指向子表。
              -->
-            <field name="reverseDepends" from="反向依赖" alias="Reverse Depends" optional="true">
+            <field name="reverseDepends" from="反向依赖" alias="Reverse Depends" optional="true" ignoreWhenEmpty="true">
                 <schema stdDomain="boolean"/>
             </field>
 
-            <field name="ignoreDepends" from="忽略依赖" alias="Ignore Depends" optional="true">
+            <field name="ignoreDepends" from="忽略依赖" alias="Ignore Depends" optional="true" ignoreWhenEmpty="true">
                 <schema stdDomain="boolean"/>
             </field>
 
@@ -345,7 +345,7 @@
                 <schema stdDomain="string"/>
             </field>
 
-            <field name="refSet.sort" from="排序条件" alias="Sort Condition" optional="true">
+            <field name="refSet.sort" from="排序条件" alias="Sort Condition" optional="true" ignoreWhenEmpty="true">
                 <valueExpr><![CDATA[
                         import io.nop.core.model.query.OrderBySqlParser;
 
@@ -353,7 +353,7 @@
                  ]]></valueExpr>
             </field>
 
-            <field name="refSet.keyProp" from="唯一标识" alias="Unique Identifier" optional="true">
+            <field name="refSet.keyProp" from="唯一标识" alias="Unique Identifier" optional="true" ignoreWhenEmpty="true">
                 <schema stdDomain="string"/>
             </field>
 

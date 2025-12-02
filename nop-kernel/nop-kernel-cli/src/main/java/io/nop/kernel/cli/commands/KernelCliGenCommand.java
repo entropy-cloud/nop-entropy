@@ -1,7 +1,6 @@
 package io.nop.kernel.cli.commands;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.IComponentModel;
 import io.nop.codegen.CodeGenConstants;
 import io.nop.codegen.XCodeGenerator;
 import io.nop.commons.util.FileHelper;
@@ -30,7 +29,6 @@ import java.util.concurrent.Callable;
 )
 public class KernelCliGenCommand implements Callable<Integer> {
     static final Logger LOG = LoggerFactory.getLogger(KernelCliGenCommand.class);
-
 
     @CommandLine.Option(names = {"-t", "--template"}, required = true,
             description = "Template path(s); at least one template is required")
@@ -72,7 +70,7 @@ public class KernelCliGenCommand implements Callable<Integer> {
 
             ComponentModelConfig config = ResourceComponentManager.instance().getModelConfigByModelPath(resource.getPath());
             if (config != null) {
-                IComponentModel model = ResourceComponentManager.instance().loadComponentModel(resource.getPath());
+                Object model = ResourceComponentManager.instance().loadComponentModel(resource.getPath());
                 scope.setLocalValue(null, CodeGenConstants.VAR_CODE_GEN_MODEL, model);
             } else {
                 LOG.warn("nop.cli.unregistered-code-gen-model-type:{}", StringHelper.fileFullName(resource.getPath()));

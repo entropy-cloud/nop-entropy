@@ -4,5 +4,5 @@
 
 ## gen-extends
 ```xml
-<orm-gen:DefaultPostExtends/>
+<orm-gen:DefaultPostExtends xpl:lib="/xlib/orm-gen.xlib"/>
 ```

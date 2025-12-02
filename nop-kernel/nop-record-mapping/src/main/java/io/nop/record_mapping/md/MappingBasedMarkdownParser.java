@@ -2,6 +2,7 @@ package io.nop.record_mapping.md;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.text.SourceCodeBlock;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.Pair;
 import io.nop.commons.util.objects.ValueWithLocation;
@@ -308,6 +309,9 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
 
         Object contentValue = parseSectionContent(field, format, section);
         Object value = tool.processFieldValue(mapping, field, contentValue, ctx);
+        if (field.isIgnoreWhenEmpty() && StringHelper.isEmptyObject(value))
+            return;
+
         if (target instanceof JObject)
             value = ValueWithLocation.of(section.getContentLocation(), value);
 
@@ -341,8 +345,11 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
             return null;
 
         if (FORMAT_CODE.equals(format)) {
-            return MarkdownCodeBlockParser.INSTANCE.parseCodeBlockForLang(section.getContentLocation(),
+            SourceCodeBlock block = MarkdownCodeBlockParser.INSTANCE.parseCodeBlockForLang(section.getContentLocation(),
                     section.getContent(), null);
+            if (block == null)
+                return null;
+            return block.getSource();
         } else {
             return section.getContent();
         }

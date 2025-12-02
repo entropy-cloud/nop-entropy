@@ -67,6 +67,13 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     
     /**
      *  
+     * xml name: ignoreWhenEmpty
+     * 当数据为空的时候自动忽略该字段，不设置到record对象上
+     */
+    private boolean _ignoreWhenEmpty  = false;
+    
+    /**
+     *  
      * xml name: itemFilterExpr
      * 当Map或者Collection结构进行映射时，可以判断每个条目是否需要映射
      */
@@ -307,6 +314,25 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         checkAllowChange();
         
         this._from = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: ignoreWhenEmpty
+     *  当数据为空的时候自动忽略该字段，不设置到record对象上
+     */
+    
+    public boolean isIgnoreWhenEmpty(){
+      return _ignoreWhenEmpty;
+    }
+
+    
+    public void setIgnoreWhenEmpty(boolean value){
+        checkAllowChange();
+        
+        this._ignoreWhenEmpty = value;
            
     }
 
@@ -640,6 +666,7 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         out.putNotNull("defaultValue",this.getDefaultValue());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("from",this.getFrom());
+        out.putNotNull("ignoreWhenEmpty",this.isIgnoreWhenEmpty());
         out.putNotNull("itemFilterExpr",this.getItemFilterExpr());
         out.putNotNull("itemMapping",this.getItemMapping());
         out.putNotNull("keyProp",this.getKeyProp());
@@ -674,6 +701,7 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         instance.setDefaultValue(this.getDefaultValue());
         instance.setDisplayName(this.getDisplayName());
         instance.setFrom(this.getFrom());
+        instance.setIgnoreWhenEmpty(this.isIgnoreWhenEmpty());
         instance.setItemFilterExpr(this.getItemFilterExpr());
         instance.setItemMapping(this.getItemMapping());
         instance.setKeyProp(this.getKeyProp());

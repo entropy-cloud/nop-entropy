@@ -1,6 +1,7 @@
 package io.nop.record_mapping.md;
 
 import io.nop.api.core.ioc.BeanContainer;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
@@ -16,10 +17,12 @@ import io.nop.xlang.xdsl.DslNodeLoader;
 
 public class MarkdownDslResourceLoader extends AbstractDslResourcePersister {
     private final String mappingName;
+    private final String reverseMappingName;
 
     public MarkdownDslResourceLoader(String schemaPath, String resolveInDir, String mappingName) {
         super(schemaPath, resolveInDir);
         this.mappingName = mappingName;
+        this.reverseMappingName = StringHelper.reverseMappingName(mappingName);
     }
 
     @Override
@@ -47,7 +50,7 @@ public class MarkdownDslResourceLoader extends AbstractDslResourcePersister {
                 BeanContainer.getBeanByType(IRecordMappingManager.class)
                 : new RecordMappingManagerImpl();
 
-        RecordMappingConfig mapping = manager.getRecordMappingConfig(mappingName);
+        RecordMappingConfig mapping = manager.getRecordMappingConfig(reverseMappingName);
 
         IEvalScope scope = XLang.newEvalScope();
         new MappingBasedMarkdownGenerator(mapping, obj, scope).generateToResource(resource, scope);

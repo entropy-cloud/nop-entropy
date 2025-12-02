@@ -106,7 +106,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         public ComponentCacheEntry loadObjectFromPath(String path) {
             Pair<String, IResourceObjectLoader<Object>> pair = resolveModelLoader(path, modelType);
             if (pair == null)
-                return null;
+                throw new IllegalArgumentException("nop.err.resource.no-loader-for-path:" + path);
 
             Object model;
             if (!ResourceTenantManager.supportTenant(path)) {
@@ -197,7 +197,11 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
                 }
             }
 
-            return null;
+            if (config.getResolveDefaultLoader() != null) {
+                return Pair.of(path, config.getResolveDefaultLoader());
+            } else {
+                return null;
+            }
         } else {
             String fileType = StringHelper.fileType(path);
             return Pair.of(path, requireLoader(modelType, fileType));

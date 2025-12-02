@@ -1,0 +1,92 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:task="task"
+      xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib" x:dump="true"
+      xmlns:file-utils="/nop/task/xlib/file-utils.xlib" defaultUseParentScope="true"
+      x:extends="/nop/task/lib/common.task.xml">
+
+    <!-- 1. 全局AI配置，从输入参数中获取 -->
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" maxTokens="${aiMaxTokens}"
+                    temperature="${aiTemperature}" enableThinking="true"/>
+
+    <!-- 2. 启用ai-coder和file-utils的自定义任务步骤 -->
+    <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
+
+    <!-- 3. 定义任务的输入参数 -->
+    <input name="projectDir" type="String" mandatory="true"
+           description="需要生成README的项目目录"/>
+    <input name="gitRepository" type="String" mandatory="true"
+           description="项目的Git仓库路径，例如 my-group/my-project"/>
+    <input name="outputFile" type="String" optional="true" defaultValue="README.md"
+           description="输出的README文件名"/>
+
+    <input name="aiProvider" type="String" mandatory="true" description="AI服务提供商，例如 azure"/>
+    <input name="aiModel" type="String" mandatory="true" description="具体的AI模型，例如 gpt-4"/>
+    <input name="aiMaxTokens" type="Integer" optional="true"/>
+    <input name="aiTemperature" type="Float" optional="true"/>
+
+    <steps>
+        <!-- 步骤1: 解析项目目录的路径 -->
+        <step name="resolveDir">
+            <output name="dir">
+                <source>
+                    import io.nop.core.resource.ResourceHelper;
+                    return ResourceHelper.resolveRelativePathResource(projectDir);
+                </source>
+            </output>
+        </step>
+
+        <!-- 步骤2: 遍历项目目录，生成文件树列表 -->
+        <step name="findFiles">
+            <output name="fileTree">
+                <source><![CDATA[
+                    import io.nop.core.resource.VirtualFileSystem;
+
+                    const visitor = VirtualFileSystem.instance().depthVisitor(dir.stdPath);
+
+                    // 模拟FileOperatorHelper::filterNopProjectFiles的过滤逻辑
+                    // 排除常见的版本控制、构建产物、IDE配置等目录和文件
+                    const excludeDirs = ['.git', '.idea', 'build', 'target', '.settings', 'node_modules', '.gradle', 'dist'];
+                    const excludeExtensions = ['.class', '.jar', '.zip', '.exe', '.dll', '.so', '.DS_Store', '.log'];
+
+                    const paths = visitor.filter(res -> {
+                        if (res.isDir()) return false;
+                        if (res.name.startsWith('.')) return false;
+
+                        const path = res.path;
+                        if (excludeExtensions.any(ext -> path.endsWith(ext))) return false;
+                        if (excludeDirs.any(d -> path.contains('/' + d + '/'))) return false;
+
+                        return true;
+                    })
+                    // 获取相对于项目根目录的路径
+                    .map(res -> res.path.substring(dir.path.length()))
+                    .toList();
+
+                    return paths.join("\n");
+                ]]></source>
+            </output>
+        </step>
+
+        <!-- 步骤3 (可选但推荐): 为AI工具设置项目上下文 -->
+        <step name="setProjectContext" customType="ai-coder:SetProject">
+            <input name="projectDir" value="${dir.path}"/>
+        </step>
+
+        <!-- 步骤4: 调用AI prompt生成README -->
+        <step name="generateReadme" customType="ai:TaskStep"
+              ai:promptName="deepwiki/generate-readme"
+              ai:toolSet="nopGraphQLToolSet">
+            <!-- 向prompt传入所需变量 -->
+            <input name="fileTree" value="${fileTree}"/>
+            <input name="gitRepository" value="${gitRepository}"/>
+            <!-- 将AI的最终返回结果导出为变量readmeContent -->
+            <output name="RESULT" exportAs="readmeContent"/>
+        </step>
+
+        <!-- 步骤5: 将生成的README内容写入文件 -->
+        <step name="saveReadmeFile" customType="file-utils:WriteText">
+            <input name="outputDir" value="${projectDir}"/>
+            <input name="fileName" value="${outputFile}"/>
+            <input name="text" value="${readmeContent}"/>
+        </step>
+    </steps>
+</task>

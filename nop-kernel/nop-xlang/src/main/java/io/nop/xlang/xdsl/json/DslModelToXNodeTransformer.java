@@ -19,6 +19,7 @@ import io.nop.core.lang.json.JsonEncodeString;
 import io.nop.core.lang.xml.IObjectToXNodeTransformer;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.XNodeValuePosition;
+import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.reflect.bean.IBeanModel;
@@ -69,6 +70,7 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
 
     private final Map<Object, XNode> objCache = new IdentityHashMap<>();
     private boolean defaultValueAsNull = true;
+    private XDslKeys dslKeys = XDslKeys.DEFAULT;
 
     public DslModelToXNodeTransformer(IObjMeta objMeta) {
         this.objMeta = objMeta;
@@ -171,6 +173,11 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
         } else if (schema.getUnknownAttrSchema() != null) {
             node.setAttr(getLocation(map, key, value), key, value);
         } else if (key.indexOf(':') > 0) {
+            if (dslKeys.isXplValue(key) || dslKeys.CONFIG.equals(key)) {
+                addDslXmlBody(node, map, key, value);
+                return;
+            }
+
             // 具有名字空间的属性
             if (value instanceof Map<?, ?>) {
                 Map<String, Object> mapValue = (Map<String, Object>) value;
@@ -196,6 +203,36 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
                 LOG.trace("nop.dsl.ignore-unknown-prop:key={},value={},loc={},class={}", key, value,
                         getLocation(map, key, value), map.getClass());
         }
+    }
+
+    void addDslXmlBody(XNode node, Object map, String key, Object value) {
+        XNode body = parseXpl(getLocation(map, key, value), value);
+        if (body != null) {
+            if (body.isDummyNode() && body.getChildCount() == 1)
+                body = body.child(0).detach();
+
+            if (body.isDummyNode() || key.equals(body.getTagName())) {
+                body.setTagName(key);
+                node.appendChild(body);
+            } else {
+                XNode data = XNode.make(key);
+                data.appendChild(body);
+                node.appendChild(data);
+            }
+        }
+    }
+
+    XNode parseXpl(SourceLocation loc, Object value) {
+        if (value instanceof String) {
+            String str = value.toString().trim();
+            if (!str.startsWith("<") || !str.endsWith(">")) {
+                XNode ret = XNode.makeDummyNode();
+                ret.content(loc, value);
+                return ret;
+            }
+            return XNodeParser.instance().forFragments(true).parseFromText(loc, value.toString());
+        }
+        return XNode.fromValue(value);
     }
 
     protected String serialize(IObjPropMeta propMeta, Object value) {

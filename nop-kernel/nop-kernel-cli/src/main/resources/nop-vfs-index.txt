@@ -42,6 +42,7 @@
 /nop/core/xlib/meta-prop.xlib
 /nop/record/imp/record-mappings.imp.xml
 /nop/record/imp/template.record-mappings.xlsx
+/nop/record/xlib/record-mapping-gen.xlib
 /nop/schema/action-auth.xdef
 /nop/schema/ai/chat-options.xdef
 /nop/schema/ai/llm.xdef
@@ -283,4 +284,5 @@
 /nop/templates/xdsl/@lib/gen-xdsl.xlib
 /nop/templates/xdsl/src/main/java/{objMeta.packagePath}/_gen/_{objSchema.simpleClassName}.java.xgen
 /nop/templates/xdsl/src/main/java/{objMeta.packagePath}/{objSchema.simpleClassName}.java.xgen
+/test/demo.orm.xml
 /xdef.register-model.xml

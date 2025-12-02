@@ -104,7 +104,7 @@ public class ResourceDocumentTool {
     }
 
     public ResourceDocument parseFromHtml(IResource resource) {
-        return new ResourceDocumentHtmlParser().parseFromResource(resource);
+        return new ResourceDocumentHtmlParser().loadObjectFromResource(resource);
     }
 
     public TableBlock mergeTable(ResourceDocument doc, TableBlock tableA, TableBlock tableB) {

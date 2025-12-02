@@ -2,10 +2,10 @@
        name="batch-gen">
 
     <loaders>
-        <loader fileType="batch-gen.json" class="io.nop.batch.gen.model.BatchGenModelParser"/>
-        <loader fileType="batch-gen.json5" class="io.nop.batch.gen.model.BatchGenModelParser"/>
-        <loader fileType="batch-gen.yaml" class="io.nop.batch.gen.model.BatchGenModelParser"/>
         <xlsx-loader fileType="batch-gen.xlsx" impPath="/nop/batch/imp/batch-gen.imp.xml"/>
+        <loader fileType="batch-gen.json" class="io.nop.batch.gen.model.BatchGenModelLoader"/>
+        <loader fileType="batch-gen.json5" class="io.nop.batch.gen.model.BatchGenModelLoader"/>
+        <loader fileType="batch-gen.yaml" class="io.nop.batch.gen.model.BatchGenModelLoader"/>
     </loaders>
 
 </model>
