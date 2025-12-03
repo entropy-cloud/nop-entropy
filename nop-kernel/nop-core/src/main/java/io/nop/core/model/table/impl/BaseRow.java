@@ -112,6 +112,10 @@ public class BaseRow extends AbstractRow implements IRow {
         return cell;
     }
 
+    public void addCell(BaseCell cell) {
+        internalAddCell(cell);
+    }
+
     @Override
     public @Nonnull List<? extends ICell> getCells() {
         return cells;

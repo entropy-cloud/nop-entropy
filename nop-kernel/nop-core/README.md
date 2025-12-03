@@ -212,9 +212,7 @@ Tests with usage examples:
 
 Not provided in repository files. If you plan to contribute, consider opening an issue or PR in this repository and follow standard GitHub contribution practices.
 
-## License
 
-Apache License 2.0. See [LICENSE](LICENSE). License type derived from the `LICENSE` file and `pom.xml`.
 
 ## Sources
 

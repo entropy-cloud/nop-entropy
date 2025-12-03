@@ -7,6 +7,7 @@ import io.nop.commons.util.StringHelper;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -58,7 +59,11 @@ public class SimpleTextTemplate {
         return null;
     }
 
-    public String render(Function<String, ?> fn) {
+    public String render(Map<String, Object> vars) {
+        return renderBy(vars::get);
+    }
+
+    public String renderBy(Function<String, ?> fn) {
         StringBuilder sb = new StringBuilder();
         for (Object part : parts) {
             if (part instanceof Symbol) {

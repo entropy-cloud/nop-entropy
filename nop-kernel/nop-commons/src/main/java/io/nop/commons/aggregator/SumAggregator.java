@@ -6,12 +6,12 @@ public class SumAggregator implements IAggregator {
     private Number result = 0;
 
     @Override
-    public void aggregate(Object value) {
+    public void update(Object value) {
         this.result = MathHelper.add(this.result, value);
     }
 
     @Override
-    public Number getResult() {
+    public Number getValue() {
         return result;
     }
 

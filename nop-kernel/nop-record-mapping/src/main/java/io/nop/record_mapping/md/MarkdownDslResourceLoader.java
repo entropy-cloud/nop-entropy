@@ -1,6 +1,5 @@
 package io.nop.record_mapping.md;
 
-import io.nop.api.core.ioc.BeanContainer;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
@@ -9,7 +8,7 @@ import io.nop.markdown.model.MarkdownDocument;
 import io.nop.markdown.utils.MarkdownTool;
 import io.nop.record_mapping.IRecordMappingManager;
 import io.nop.record_mapping.RecordMappingContext;
-import io.nop.record_mapping.impl.RecordMappingManagerImpl;
+import io.nop.record_mapping.RecordMappingManager;
 import io.nop.record_mapping.model.RecordMappingConfig;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdsl.AbstractDslResourcePersister;
@@ -27,9 +26,7 @@ public class MarkdownDslResourceLoader extends AbstractDslResourcePersister {
 
     @Override
     public XNode loadDslNodeFromResource(IResource resource, ResolvePhase phase) {
-        IRecordMappingManager manager = BeanContainer.isInitialized() ?
-                BeanContainer.getBeanByType(IRecordMappingManager.class)
-                : new RecordMappingManagerImpl();
+        IRecordMappingManager manager = RecordMappingManager.instance();
 
         MarkdownDocument doc = MarkdownTool.instance().parseFromResource(resource);
 
@@ -46,9 +43,7 @@ public class MarkdownDslResourceLoader extends AbstractDslResourcePersister {
 
     @Override
     public void saveObjectToResource(IResource resource, Object obj) {
-        IRecordMappingManager manager = BeanContainer.isInitialized() ?
-                BeanContainer.getBeanByType(IRecordMappingManager.class)
-                : new RecordMappingManagerImpl();
+        IRecordMappingManager manager = RecordMappingManager.instance();
 
         RecordMappingConfig mapping = manager.getRecordMappingConfig(reverseMappingName);
 

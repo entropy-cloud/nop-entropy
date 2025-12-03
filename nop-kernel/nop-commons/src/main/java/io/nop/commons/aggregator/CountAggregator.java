@@ -4,12 +4,12 @@ public class CountAggregator implements IAggregator {
     private int result = 0;
 
     @Override
-    public void aggregate(Object value) {
+    public void update(Object value) {
         this.result++;
     }
 
     @Override
-    public Integer getResult() {
+    public Integer getValue() {
         return result;
     }
 

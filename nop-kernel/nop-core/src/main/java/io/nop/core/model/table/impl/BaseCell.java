@@ -19,6 +19,13 @@ public class BaseCell extends AbstractCell {
     private int mergeAcross;
     private int mergeDown;
 
+    public BaseCell() {
+    }
+
+    public BaseCell(Object value) {
+        setValue(value);
+    }
+
     protected void copyTo(BaseCell cell) {
         super.copyTo(cell);
         cell.value = value;

@@ -6,7 +6,7 @@ public class MinAggregator implements IAggregator {
     private Object result = null;
 
     @Override
-    public void aggregate(Object value) {
+    public void update(Object value) {
         if (result == null) {
             result = value;
         } else if (value != null) {
@@ -15,7 +15,7 @@ public class MinAggregator implements IAggregator {
     }
 
     @Override
-    public Object getResult() {
+    public Object getValue() {
         return result;
     }
 

@@ -7,13 +7,13 @@ public class AverageAggregator implements IAggregator {
     private int count = 0;
 
     @Override
-    public void aggregate(Object value) {
+    public void update(Object value) {
         this.sum = MathHelper.add(this.sum, value);
         this.count++;
     }
 
     @Override
-    public Number getResult() {
+    public Number getValue() {
         if (this.count == 0)
             return null;
         return MathHelper.divide(sum, count);

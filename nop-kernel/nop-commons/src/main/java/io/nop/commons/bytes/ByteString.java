@@ -87,6 +87,10 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
         throw errorFactory.apply(ERR_BYTES_CONVERT_TO_BYTE_STRING_FAIL).param(ARG_SRC_TYPE, value.getClass());
     }
 
+    public static ByteString fromUtf8(String str) {
+        return new ByteString(str);
+    }
+
     public static ByteString fromUUID(UUID uuid) {
         ByteBuffer buffer = ByteBuffer.wrap(new byte[16]);
         buffer.putLong(uuid.getMostSignificantBits());

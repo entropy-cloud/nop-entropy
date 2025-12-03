@@ -1,9 +1,9 @@
 package io.nop.commons.aggregator;
 
 public interface IAggregator {
-    void aggregate(Object value);
+    void update(Object value);
 
-    Object getResult();
+    Object getValue();
 
     default void reset() {
 

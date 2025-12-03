@@ -168,6 +168,10 @@ public class XLangCompileTool implements IStdDomainRegistry {
         return buildEvalAction(expr);
     }
 
+    public ExprEvalAction compileTemplateExpr(SourceLocation loc, String source) {
+        return compileTemplateExpr(loc, source, false, ExprPhase.eval);
+    }
+
     public ExprEvalAction compileTag(XNode node) {
         ValueWithLocation vl = scope.recordValueLocation(ExprConstants.SCOPE_VAR_XPL_NODE);
         scope.setLocalValue(null, ExprConstants.SCOPE_VAR_XPL_NODE, node);

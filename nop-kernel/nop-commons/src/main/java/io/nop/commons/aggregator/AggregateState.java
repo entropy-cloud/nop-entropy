@@ -30,24 +30,24 @@ public class AggregateState {
 
     public void aggregate(String name, Object value) {
         IAggregator aggregator = aggregators.get(name);
-        aggregator.aggregate(value);
+        aggregator.update(value);
     }
 
     public Object getResult(String name) {
-        return aggregators.get(name).getResult();
+        return aggregators.get(name).getValue();
     }
 
     public Map<String, Object> getResults() {
         Map<String, Object> ret = new HashMap<>();
         for (Map.Entry<String, IAggregator> entry : aggregators.entrySet()) {
-            ret.put(entry.getKey(), entry.getValue().getResult());
+            ret.put(entry.getKey(), entry.getValue().getValue());
         }
         return ret;
     }
 
     public void forEachResult(BiConsumer<String, Object> consumer) {
         aggregators.forEach((name, aggregator) -> {
-            consumer.accept(name, aggregator.getResult());
+            consumer.accept(name, aggregator.getValue());
         });
     }
 }
