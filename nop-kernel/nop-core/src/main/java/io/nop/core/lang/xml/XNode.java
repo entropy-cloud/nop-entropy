@@ -2620,7 +2620,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         if (value instanceof Map)
             return fromTreeBean(TreeBean.createFromJson((Map<String, Object>) value));
         if (value instanceof String)
-            return XNodeParser.instance().forFragments(true).parseFromText(loc, value.toString());
+            return XNodeParser.instance().parseFromText(loc, value.toString());
         throw new NopException(ERR_XML_NOT_NODE_VALUE)
                 .param(ARG_VALUE, value);
     }
