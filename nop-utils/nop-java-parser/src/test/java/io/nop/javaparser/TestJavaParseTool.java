@@ -6,13 +6,11 @@ import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.FieldAccessExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.resolution.types.ResolvedType;
-import io.nop.api.core.annotations.autotest.NopTestConfig;
-import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.unittest.BaseTestCase;
 import io.nop.javaparser.parse.JavaParserParseResult;
 import org.junit.jupiter.api.Test;
 
-@NopTestConfig(localDb = true)
-public class TestJavaParseTool extends JunitBaseTestCase {
+public class TestJavaParseTool extends BaseTestCase {
 
     @Test
     public void testParse() {
