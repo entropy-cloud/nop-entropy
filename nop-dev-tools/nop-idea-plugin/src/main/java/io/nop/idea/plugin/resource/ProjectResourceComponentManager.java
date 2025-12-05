@@ -39,10 +39,6 @@ public class ProjectResourceComponentManager implements IResourceComponentManage
         this.getImpl().removeCachedModel(path);
     }
 
-    @Override
-    public Runnable registerComponentModelLoader(String modelType, String fileType, IResourceObjectLoader<? extends IComponentModel> loader, boolean replace) {
-        return getImpl().registerComponentModelLoader(modelType, fileType, loader, replace);
-    }
 
     @Override
     public ComponentModelConfig getModelConfigByFileType(String fileType) {
@@ -54,10 +50,6 @@ public class ProjectResourceComponentManager implements IResourceComponentManage
         return getImpl().getAllModelConfigs();
     }
 
-    @Override
-    public Runnable registerComponentModelTransformer(String fromModelType, String toModelType, IComponentTransformer<?, ?> transformer, boolean replace) {
-        return getImpl().registerComponentModelTransformer(fromModelType, toModelType, transformer, replace);
-    }
 
     @Override
     public ComponentModelConfig getModelConfigByModelPath(String path) {
@@ -75,33 +67,28 @@ public class ProjectResourceComponentManager implements IResourceComponentManage
     }
 
     @Override
-    public IComponentModel loadComponentModel(String modelPath) {
+    public Object loadComponentModel(String modelPath) {
         return getImpl().loadComponentModel(modelPath);
     }
 
     @Override
-    public IComponentModel loadComponentModel(String modelPath, String transform) {
+    public Object loadComponentModel(String modelPath, String transform) {
         return getImpl().loadComponentModel(modelPath, transform);
     }
 
     @Override
-    public IComponentModel loadComponentModelByUrl(String modelUrl) {
+    public Object loadComponentModelByUrl(String modelUrl) {
         return getImpl().loadComponentModelByUrl(modelUrl);
     }
 
     @Override
-    public IComponentModel parseComponentModel(IResource resource) {
+    public Object parseComponentModel(IResource resource) {
         return getImpl().parseComponentModel(resource);
     }
 
     @Override
-    public IComponentModel parseComponentModel(IResource resource, String transform) {
+    public Object parseComponentModel(IResource resource, String transform) {
         return getImpl().parseComponentModel(resource, transform);
-    }
-
-    @Override
-    public String buildComponentPath(String modelPath, String genFormat) {
-        return getImpl().buildComponentPath(modelPath, genFormat);
     }
 
     @Override

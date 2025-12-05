@@ -19,8 +19,8 @@ import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.idea.plugin.resource.ProjectDictProvider;
 import io.nop.idea.plugin.resource.ProjectEnv;
 import io.nop.xlang.XLangConstants;
+import io.nop.xlang.initialize.DslXmlResourceLoader;
 import io.nop.xlang.initialize.XLangCoreInitializer;
-import io.nop.xlang.xdsl.DslModelParser;
 
 @Service
 public final class NopProjectService implements Disposable {
@@ -30,8 +30,8 @@ public final class NopProjectService implements Disposable {
     private final Cancellable cleanup = new Cancellable();
 
     private final ResourceLoadingCache<DictModel> dictCache = new ResourceLoadingCache<>("project-dict-cache",
-                                                                                         ProjectDictProvider::loadDictModel,
-                                                                                         null);
+            ProjectDictProvider::loadDictModel,
+            null);
 
     public NopProjectService() {
     }
@@ -80,8 +80,9 @@ public final class NopProjectService implements Disposable {
     private void registerXlib() {
         ComponentModelConfig config = new ComponentModelConfig();
         config.modelType(XLangConstants.MODEL_TYPE_XLIB);
-        config.loader(XLangConstants.FILE_TYPE_XLIB,
-                      path -> new DslModelParser(XLangConstants.XDSL_SCHEMA_XLIB).parseFromVirtualPath(path));
+        ComponentModelConfig.LoaderConfig loaderConfig = new ComponentModelConfig.LoaderConfig("xdsl-loader",
+                null, XLangConstants.XDSL_SCHEMA_XLIB, null, new DslXmlResourceLoader(XLangConstants.XDSL_SCHEMA_XLIB, null));
+        config.loader(XLangConstants.FILE_TYPE_XLIB, loaderConfig);
 
         cleanup.append(ResourceComponentManager.instance().registerComponentModelConfig(config));
     }
