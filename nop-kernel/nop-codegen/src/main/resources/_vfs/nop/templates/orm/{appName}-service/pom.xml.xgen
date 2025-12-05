@@ -40,7 +40,7 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-file-core</artifactId>
+            <artifactId>nop-biz-file-core</artifactId>
         </dependency>
 
         <dependency>
