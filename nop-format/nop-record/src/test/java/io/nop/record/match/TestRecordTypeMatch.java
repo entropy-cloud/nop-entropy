@@ -1,10 +1,13 @@
 package io.nop.record.match;
 
+import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.dataset.record.IRecordInput;
 import io.nop.record.resource.ModelBasedResourceRecordIO;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -13,6 +16,16 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestRecordTypeMatch extends BaseTestCase {
 
+    @BeforeAll
+    public static void init(){
+        CoreInitialization.initialize();
+    }
+
+    @AfterAll
+    public static void destroy(){
+        CoreInitialization.destroy();
+    }
+    
     @Test
     public void testMatchRule() {
         ModelBasedResourceRecordIO<Map<String, Object>> recordIO = new ModelBasedResourceRecordIO<>();

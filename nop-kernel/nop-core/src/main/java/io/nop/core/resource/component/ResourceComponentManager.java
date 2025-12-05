@@ -221,7 +221,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         Guard.notEmpty(config.getModelType(), "modelType");
         Guard.checkArgument(!modelTypeConfigs.containsKey(modelType),
                 "component with the same model type already exists", modelType);
-        Guard.notEmpty(config.getLoaders(), "model type loaders");
+        //Guard.notEmpty(config.getLoaders(), "model type loaders:"+config.getModelType());
         modelTypeConfigs.put(modelType, config);
 
         cancellable.appendOnCancel(r -> modelTypeConfigs.remove(modelType, config));

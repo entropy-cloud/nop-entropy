@@ -3,11 +3,14 @@ package io.nop.record.serialization;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
 import io.nop.commons.util.IoHelper;
+import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.IResource;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.dataset.record.IRecordInput;
 import io.nop.dataset.record.IRecordOutput;
 import io.nop.record.resource.ModelBasedResourceRecordIO;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -18,6 +21,15 @@ import static io.nop.record.RecordConstants.VAR_TOTAL_COUNT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestStreamingDeserializer extends BaseTestCase {
+    @BeforeAll
+    public static void init(){
+        CoreInitialization.initialize();
+    }
+
+    @AfterAll
+    public static void destroy(){
+        CoreInitialization.destroy();
+    }
 
     @Test
     public void tesStreaming() {

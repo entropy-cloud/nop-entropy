@@ -21,7 +21,7 @@ public class FixDocLinks extends BaseTestCase {
     @Test
     public void testFix() {
         File rootDir = getProjectDir();
-        File dir = new File(rootDir, "docs-en");
+        File dir = new File(rootDir, "docs");
 
         Map<String, String> map = collectPaths();
 

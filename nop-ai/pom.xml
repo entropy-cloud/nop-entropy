@@ -11,6 +11,7 @@
     </parent>
 
     <artifactId>nop-ai</artifactId>
+
     <name>27-nop-ai</name>
 
     <packaging>pom</packaging>

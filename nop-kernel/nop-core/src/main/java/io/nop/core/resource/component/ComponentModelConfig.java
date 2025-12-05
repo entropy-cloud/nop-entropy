@@ -33,7 +33,7 @@ public class ComponentModelConfig {
      * fileType与fileExt的区别在于fileExt是最后一个dot字符后面的部分，而fileType是文件名中第一个dot字符后面的部分， 例如my.xpt.xlsx对应的fileType为xpt.xlsx,
      * my.xml对应的fileType为xml。
      */
-    private Map<String, LoaderConfig> loaders;
+    private Map<String, LoaderConfig> loaders = new LinkedHashMap<>();
 
     private String primaryLoaderFileType;
     private String primarySaverFileType;

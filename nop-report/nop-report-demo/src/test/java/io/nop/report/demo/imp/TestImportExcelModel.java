@@ -7,7 +7,9 @@
  */
 package io.nop.report.demo.imp;
 
+import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.util.CloneHelper;
+import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.util.FileHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.eval.IEvalScope;
@@ -26,16 +28,8 @@ import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TestImportExcelModel extends BaseTestCase {
-    @BeforeAll
-    public static void beforeAll() {
-        CoreInitialization.initialize();
-    }
-
-    @AfterAll
-    public static void afterAll() {
-        CoreInitialization.destroy();
-    }
+@NopTestConfig(localDb = true)
+public class TestImportExcelModel extends JunitBaseTestCase {
 
     @Test
     public void testParse() {

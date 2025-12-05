@@ -1,28 +1,23 @@
 package io.nop.converter;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.converter.registration.ConverterRegistrationBean;
 import io.nop.converter.utils.DocConvertHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 
 //@Disabled
-//@NopTestConfig(localDb = true, debug = true)
-public class DocumentConverterTest extends JunitBaseTestCase {
+@NopTestConfig(localDb = true, debug = true)
+public class DocumentConverterTest extends JunitAutoTestCase {
 
     @Inject
     ConverterRegistrationBean registrationBean;
-
-    @BeforeEach
-    public void init() {
-        registrationBean = new ConverterRegistrationBean();
-        registrationBean.register();
-    }
 
     @EnableSnapshot
     @Test

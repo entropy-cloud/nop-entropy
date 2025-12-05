@@ -13,6 +13,7 @@
     </parent>
 
     <artifactId>nop-job</artifactId>
+
     <name>26-nop-job</name>
 
     <modules>

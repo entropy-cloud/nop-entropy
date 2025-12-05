@@ -99,7 +99,7 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-auth-api</artifactId>
+            <artifactId>nop-biz-auth-api</artifactId>
             <version>${nop-entropy.version}</version>
         </dependency>
 
@@ -345,7 +345,7 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-file-core</artifactId>
+            <artifactId>nop-biz-file-core</artifactId>
             <version>${nop-entropy.version}</version>
         </dependency>
 
@@ -375,13 +375,13 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-file-quarkus</artifactId>
+            <artifactId>nop-quarkus-file</artifactId>
             <version>${nop-entropy.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-file-spring</artifactId>
+            <artifactId>nop-spring-file</artifactId>
             <version>${nop-entropy.version}</version>
         </dependency>
 
@@ -640,7 +640,7 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-auth-core</artifactId>
+            <artifactId>nop-biz-auth-core</artifactId>
             <version>${nop-entropy.version}</version>
         </dependency>
 
@@ -772,7 +772,7 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-dbtool-exp</artifactId>
+            <artifactId>nop-batch-exp</artifactId>
             <version>${nop-entropy.version}</version>
         </dependency>
 

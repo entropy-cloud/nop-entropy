@@ -2,12 +2,15 @@ package io.nop.record.codec;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.UnpooledByteBufAllocator;
+import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.record.codec.impl.ModelBasedPacketCodec;
 import io.nop.record.model.PacketCodecModel;
 import io.nop.record.netty.ByteBufBinaryDataReader;
 import io.nop.record.netty.ByteBufBinaryDataWriter;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -17,6 +20,16 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestModelBasedPacketCodec extends BaseTestCase {
+    @BeforeAll
+    public static void init(){
+        CoreInitialization.initialize();
+    }
+
+    @AfterAll
+    public static void destroy(){
+        CoreInitialization.destroy();
+    }
+
     @Test
     public void testByteBuf() {
         ByteBuf buf = UnpooledByteBufAllocator.DEFAULT.buffer();

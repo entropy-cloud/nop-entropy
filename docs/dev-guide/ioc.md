@@ -181,7 +181,7 @@ NopIoc还规定了一个特殊的语法节点ioc:config
 ### 3.9 自动配置发现
 
 NopIoC提供了类似SpringBoot的AutoConfiguration的机制。NopIoC在初始化的时候会自动查找虚拟文件系统中`/nop/autoconfig`
-目录下所有后缀为beans的文件，并自动装载其中定义的beans.xml文件。例如[/nop/autoconfig/nop-auth-core.beans](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-core/src/main/resources/_vfs/nop/autoconfig/nop-auth-core.beans)
+目录下所有后缀为beans的文件，并自动装载其中定义的beans.xml文件。例如[/nop/autoconfig/nop-auth-core.beans](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-service-framework/nop-biz-auth-core/src/main/resources/_vfs/nop/autoconfig/nop-auth-core.beans)
 文件中的内容为/nop/auth/beans/auth-core-defaults.beans.xml。一般情况下beans文件的文件名为对应的java模块名，这样当多个模块被打包为一个fat-jar的时候不会出现文件冲突。
 
 与SpringBoot不同的是，NopIoC不是一边加载配置文件一边执行bean的注册过程。NopIoC只会在收集到所有bean的定义之后统一执行一次条件判断逻辑。因此，在NopIoC中bean定义的先后顺序原则上并不影响IoC容器动态计算的结果。
