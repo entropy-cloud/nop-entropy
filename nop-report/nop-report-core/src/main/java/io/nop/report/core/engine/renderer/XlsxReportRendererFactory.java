@@ -10,8 +10,8 @@ package io.nop.report.core.engine.renderer;
 import io.nop.core.resource.tpl.IBinaryTemplateOutput;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.xlsx.output.ExcelTemplate;
-import io.nop.ooxml.xlsx.output.IExcelSheetGenerator;
-import io.nop.report.core.engine.IReportRendererFactory;
+import io.nop.excel.renderer.IExcelSheetGenerator;
+import io.nop.excel.renderer.IReportRendererFactory;
 
 public class XlsxReportRendererFactory implements IReportRendererFactory {
 

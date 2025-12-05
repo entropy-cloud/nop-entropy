@@ -9,8 +9,8 @@ package io.nop.report.pdf.renderer;
 
 import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.excel.model.ExcelWorkbook;
-import io.nop.ooxml.xlsx.output.IExcelSheetGenerator;
-import io.nop.report.core.engine.IReportRendererFactory;
+import io.nop.excel.renderer.IExcelSheetGenerator;
+import io.nop.excel.renderer.IReportRendererFactory;
 
 public class PdfReportRendererFactory implements IReportRendererFactory {
 

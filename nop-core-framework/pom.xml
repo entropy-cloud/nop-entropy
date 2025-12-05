@@ -3,6 +3,8 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <packaging>pom</packaging>
+
     <parent>
         <groupId>io.github.entropy-cloud</groupId>
         <artifactId>nop-entropy</artifactId>
@@ -10,18 +12,16 @@
     </parent>
 
     <artifactId>nop-core-framework</artifactId>
-    <packaging>pom</packaging>
+    <name>04-nop-core-framework</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <modules>
+        <module>nop-log</module>
         <module>nop-config</module>
         <module>nop-ioc</module>
-        <module>nop-graphql</module>
-        <module>nop-biz</module>
-        <module>nop-biz-report</module>
         <module>nop-boot</module>
         <module>nop-plugin</module>
         <module>nop-security</module>

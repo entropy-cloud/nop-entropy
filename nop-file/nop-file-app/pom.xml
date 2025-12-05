@@ -20,10 +20,10 @@
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-quarkus-web-orm-starter</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>io.github.entropy-cloud</groupId>-->
+<!--            <artifactId>nop-quarkus-web-orm-starter</artifactId>-->
+<!--        </dependency>-->
         <dependency>
             <artifactId>nop-file-service</artifactId>
             <groupId>io.github.entropy-cloud</groupId>
@@ -36,16 +36,14 @@
         </dependency>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-auth-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-auth-service</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-web-amis-editor</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-boot</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-web-site</artifactId>

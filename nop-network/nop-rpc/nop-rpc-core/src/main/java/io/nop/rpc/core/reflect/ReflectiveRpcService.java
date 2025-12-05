@@ -19,7 +19,7 @@ import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.IMethodModelCollection;
 import io.nop.core.reflect.ReflectionManager;
-import io.nop.rpc.api.IRpcService;
+import io.nop.api.core.rpc.IRpcService;
 
 import java.util.concurrent.CompletionStage;
 

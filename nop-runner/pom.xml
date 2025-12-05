@@ -11,6 +11,7 @@
 
     <artifactId>nop-runner</artifactId>
     <packaging>pom</packaging>
+    <name>31-nop-runner</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -20,5 +21,6 @@
         <module>nop-cli-core</module>
         <module>nop-cli</module>
         <module>nop-cli-jdk11</module>
+        <module>nop-tool</module>
     </modules>
 </project>

@@ -5,7 +5,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.markdown.model.MarkdownDocument;
 import io.nop.markdown.utils.MarkdownTool;
-import io.nop.report.core.engine.renderer.SimpleHtmlSplitter;
+import io.nop.excel.renderer.SimpleHtmlSplitter;
 import picocli.CommandLine;
 
 import java.io.File;

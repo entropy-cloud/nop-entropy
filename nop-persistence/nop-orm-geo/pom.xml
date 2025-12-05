@@ -23,12 +23,6 @@
         </dependency>
 
         <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-autotest-junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.orbisgis</groupId>
             <artifactId>h2gis</artifactId>
             <optional>true</optional>
@@ -75,6 +69,12 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>mssqlserver</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

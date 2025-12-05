@@ -27,7 +27,7 @@ import io.nop.excel.model.ILoopModel;
 import io.nop.excel.model.XptCellModel;
 import io.nop.excel.model.XptSheetModel;
 import io.nop.excel.model.XptWorkbookModel;
-import io.nop.ooxml.xlsx.output.IExcelSheetGenerator;
+import io.nop.excel.renderer.IExcelSheetGenerator;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.engine.expand.TableExpander;
 import io.nop.report.core.expr.ReportFormulaGenerator;

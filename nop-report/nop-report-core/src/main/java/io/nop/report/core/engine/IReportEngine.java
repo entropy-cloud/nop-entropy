@@ -13,13 +13,14 @@ import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.excel.renderer.IReportRendererRegistry;
 import io.nop.ooxml.xlsx.XlsxConstants;
 import io.nop.ooxml.xlsx.util.ExcelSheetData;
 import io.nop.report.core.XptConstants;
 
 import java.util.Iterator;
 
-public interface IReportEngine {
+public interface IReportEngine extends IReportRendererRegistry {
     /**
      * 获取xpt报表模型
      */

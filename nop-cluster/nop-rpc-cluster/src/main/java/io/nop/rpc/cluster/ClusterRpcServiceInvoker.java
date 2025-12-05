@@ -9,9 +9,9 @@ import io.nop.cluster.chooser.IServerChooser;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.rpc.api.AopRpcService;
-import io.nop.rpc.api.IRpcService;
-import io.nop.rpc.api.IRpcServiceInterceptor;
-import io.nop.rpc.api.IRpcServiceInvoker;
+import io.nop.api.core.rpc.IRpcService;
+import io.nop.api.core.rpc.IRpcServiceInterceptor;
+import io.nop.api.core.rpc.IRpcServiceInvoker;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 

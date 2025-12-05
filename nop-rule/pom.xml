@@ -14,6 +14,8 @@
 
     <artifactId>nop-rule</artifactId>
 
+    <name>20-nop-rule</name>
+
     <modules>
         <module>nop-rule-core</module>
         <module>nop-rule-api</module>

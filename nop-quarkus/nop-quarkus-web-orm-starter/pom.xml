@@ -28,7 +28,7 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-file-dao</artifactId>
+            <artifactId>nop-quarkus-file</artifactId>
         </dependency>
 
         <dependency>

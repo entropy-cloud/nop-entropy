@@ -4,7 +4,7 @@ import io.nop.core.context.IEvalContext;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.util.ExcelModelHelper;
-import io.nop.ooxml.xlsx.output.IExcelSheetGenerator;
+import io.nop.excel.renderer.IExcelSheetGenerator;
 
 import java.util.ArrayList;
 

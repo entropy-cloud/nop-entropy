@@ -14,7 +14,7 @@ import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.util.StringHelper;
-import io.nop.rpc.api.IRpcService;
+import io.nop.api.core.rpc.IRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

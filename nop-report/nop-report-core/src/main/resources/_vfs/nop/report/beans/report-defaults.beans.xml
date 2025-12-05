@@ -11,8 +11,8 @@
 
     <bean id="nopReportRenderer_xlsx" class="io.nop.report.core.engine.renderer.XlsxReportRendererFactory"/>
 
-    <bean id="nopReportRenderer_html" class="io.nop.report.core.engine.renderer.HtmlReportRendererFactory"/>
+    <bean id="nopReportRenderer_html" class="io.nop.excel.renderer.HtmlReportRendererFactory"/>
 
-    <bean id="nopReportRenderer_shtml" class="io.nop.report.core.engine.renderer.SimpleHtmlReportRendererFactory"/>
+    <bean id="nopReportRenderer_shtml" class="io.nop.excel.renderer.SimpleHtmlReportRendererFactory"/>
 
 </beans>

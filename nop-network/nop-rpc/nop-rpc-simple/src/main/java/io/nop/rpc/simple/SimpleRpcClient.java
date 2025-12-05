@@ -15,7 +15,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.rpc.api.IRpcService;
+import io.nop.api.core.rpc.IRpcService;
 import io.nop.rpc.core.RpcConstants;
 import io.nop.rpc.core.message.RpcChannelState;
 import io.nop.socket.BinaryCommand;

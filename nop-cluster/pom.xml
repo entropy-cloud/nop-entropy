@@ -14,7 +14,7 @@
 
     <artifactId>nop-cluster</artifactId>
 
-    <name>nop-cluster</name>
+    <name>13-nop-cluster</name>
 
     <modules>
         <module>nop-cluster-core</module>

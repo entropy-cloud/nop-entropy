@@ -13,12 +13,15 @@
     <artifactId>nop-quarkus</artifactId>
     <packaging>pom</packaging>
 
+    <name>16-nop-quarkus</name>
+
     <modules>
         <module>nop-quarkus-core-starter</module>
+        <module>nop-quarkus-file</module>
+        <module>nop-quarkus-web</module>
         <module>nop-quarkus-web-starter</module>
         <module>nop-quarkus-grpc</module>
         <module>nop-quarkus-web-orm-starter</module>
-        <module>nop-quarkus-web</module>
         <module>nop-quarkus-mcp</module>
     </modules>
 

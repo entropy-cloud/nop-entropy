@@ -6,15 +6,15 @@ import io.nop.converter.IDocumentObject;
 import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
+import io.nop.excel.ExcelConstants;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.excel.renderer.IReportRendererRegistry;
 import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
-import io.nop.report.core.XptConstants;
-import io.nop.report.core.engine.IReportEngine;
 import io.nop.xlang.xdsl.DslModelParser;
 
 public class ExcelDocHelper {
     public static ITemplateOutput getExcelRenderer(IDocumentObject doc, String renderType) {
-        IReportEngine reportEngine = BeanContainer.getBeanByType(IReportEngine.class);
+        IReportRendererRegistry reportEngine = BeanContainer.getBeanByType(IReportRendererRegistry.class);
         ExcelWorkbook wk = loadExcel(doc);
         return reportEngine.getRendererForExcel(wk, renderType);
     }
@@ -27,7 +27,7 @@ public class ExcelDocHelper {
     public static ExcelWorkbook loadExcel(IDocumentObject doc) {
         String fileExt = doc.getFileExt();
         if (DocConvertConstants.FILE_TYPE_XML.equals(fileExt)) {
-            return (ExcelWorkbook) new DslModelParser(XptConstants.XDSL_SCHEMA_WORKBOOK).parseFromResource(doc.getResource());
+            return (ExcelWorkbook) new DslModelParser(ExcelConstants.XDSL_SCHEMA_WORKBOOK).parseFromResource(doc.getResource());
         }
         if (!DocConvertConstants.FILE_TYPE_XLSX.equals(fileExt)) {
             throw new IllegalArgumentException("Document format must be xlsx");

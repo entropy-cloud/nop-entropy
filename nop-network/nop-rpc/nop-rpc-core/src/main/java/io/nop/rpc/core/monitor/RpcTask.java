@@ -8,7 +8,7 @@
 package io.nop.rpc.core.monitor;
 
 import io.nop.api.core.beans.ApiRequest;
-import io.nop.rpc.api.IRpcService;
+import io.nop.api.core.rpc.IRpcService;
 
 public class RpcTask {
     private String taskId;

@@ -1,6 +1,6 @@
 package io.nop.record.resource;
 
-import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.unittest.BaseTestCase;
 import io.nop.record.model.RecordFileMeta;
 import io.nop.record.reader.ITextDataReader;
 import io.nop.record.reader.SimpleTextDataReader;
@@ -13,7 +13,7 @@ import java.util.HashMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-public class TestModelBasedRecordInpur extends JunitBaseTestCase {
+public class TestModelBasedRecordInpur extends BaseTestCase {
     @Test
     public void testInput() throws IOException {
         ITextDataReader in = new SimpleTextDataReader("5    aa12345678901234567890123");

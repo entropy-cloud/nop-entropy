@@ -21,7 +21,7 @@ import io.nop.api.core.util.ICancellable;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.service.LifeCycleSupport;
 import io.nop.rpc.api.IRpcMessageAdapter;
-import io.nop.rpc.api.IRpcService;
+import io.nop.api.core.rpc.IRpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

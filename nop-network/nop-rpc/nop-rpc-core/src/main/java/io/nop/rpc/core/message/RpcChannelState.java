@@ -13,7 +13,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.rpc.core.RpcErrors;
-import io.nop.rpc.api.exceptions.RpcTimeoutException;
+import io.nop.api.core.exceptions.RpcTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

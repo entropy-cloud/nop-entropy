@@ -8,6 +8,7 @@
 package io.nop.xlang.xdsl;
 
 import io.nop.api.core.util.Guard;
+import io.nop.api.core.util.OrderedComparator;
 import io.nop.commons.functional.Lazy;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
@@ -27,7 +28,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
 
@@ -119,9 +119,10 @@ public class DslModelHelper {
     static final Lazy<IExcelModelLoaderFactory> g_excelModelLoaderFactory = Lazy.of(() -> {
         try {
             ServiceLoader<IExcelModelLoaderFactory> loader = ServiceLoader.load(IExcelModelLoaderFactory.class);
-            Optional<IExcelModelLoaderFactory> first = loader.findFirst();
-            if (first.isPresent())
-                return first.get();
+            List<IExcelModelLoaderFactory> factories = loader.stream().map(ServiceLoader.Provider::get).collect(Collectors.toList());
+            factories.sort(OrderedComparator.instance());
+            if (!factories.isEmpty())
+                return factories.get(0);
             return null;
         } catch (Exception e) {
             LOG.warn("nop.xlang.not-support-excel-model-loader:missing-lib={}", "nop-ooxml-xlsx.jar");

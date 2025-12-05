@@ -14,7 +14,6 @@
     <modules>
         <module>nop-dbtool-core</module>
         <module>nop-dbtool-web</module>
-        <module>nop-dbtool-exp</module>
     </modules>
 
 

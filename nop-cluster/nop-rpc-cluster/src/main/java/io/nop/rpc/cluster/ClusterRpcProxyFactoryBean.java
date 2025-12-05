@@ -11,7 +11,7 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.cluster.chooser.IServerChooser;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
-import io.nop.rpc.api.IRpcService;
+import io.nop.api.core.rpc.IRpcService;
 import io.nop.rpc.core.reflect.RpcServiceProxyFactoryBean;
 
 import jakarta.annotation.PostConstruct;

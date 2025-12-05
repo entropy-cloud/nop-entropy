@@ -11,6 +11,7 @@
 
     <artifactId>nop-stream</artifactId>
     <packaging>pom</packaging>
+    <name>30-nop-stream</name>
 
     <modules>
         <module>nop-stream-api</module>

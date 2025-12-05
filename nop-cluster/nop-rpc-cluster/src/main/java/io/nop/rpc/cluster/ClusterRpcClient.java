@@ -17,7 +17,7 @@ import io.nop.api.core.util.ICancelToken;
 import io.nop.cluster.chooser.IServerChooser;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
-import io.nop.rpc.api.IRpcService;
+import io.nop.api.core.rpc.IRpcService;
 import io.nop.rpc.core.composite.CancellableRpcClient;
 import io.nop.rpc.core.composite.PollingRpcClient;
 import io.nop.rpc.core.utils.RpcHelper;

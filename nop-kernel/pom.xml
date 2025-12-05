@@ -10,6 +10,7 @@
     <version>2.0.0-SNAPSHOT</version>
 
     <packaging>pom</packaging>
+    <name>01-nop-kernel</name>
 
     <licenses>
         <license>
@@ -19,7 +20,6 @@
     </licenses>
 
     <properties>
-        <revision>2.0.0-SNAPSHOT</revision>
 
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -256,6 +256,19 @@
 
         <pluginManagement>
             <plugins>
+                <plugin>
+                    <groupId>org.jboss.jandex</groupId>
+                    <artifactId>jandex-maven-plugin</artifactId>
+                    <version>1.2.3</version>
+                    <executions>
+                        <execution>
+                            <id>make-index</id>
+                            <goals>
+                                <goal>jandex</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
 
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -366,6 +379,7 @@
     </build>
 
     <modules>
+        <module>nop-dependencies</module>
         <module>nop-commons</module>
         <module>nop-codegen</module>
         <module>nop-javac</module>
@@ -373,7 +387,6 @@
         <module>nop-antlr4</module>
         <module>nop-api-core</module>
         <module>nop-core</module>
-        <module>nop-dependencies</module>
         <module>nop-xlang</module>
         <module>nop-xdefs</module>
         <module>nop-markdown</module>

@@ -179,9 +179,10 @@ public class RegisterModelDiscovery {
                     }
                 } else if ("xlsx-loader".equals(type)) {
                     impPath = (String) loader.get("impPath");
+                    schemaPath = (String) loader.get("schemaPath");
                     if (config.getImpPath() == null)
                         config.setImpPath(impPath);
-                    
+
                     if (DslModelHelper.supportExcelModelLoader()) {
                         config.loader(fileType, makeLoaderConfig(type, impPath, schemaPath, loader,
                                 DslModelHelper.newExcelModelLoader(impPath)));

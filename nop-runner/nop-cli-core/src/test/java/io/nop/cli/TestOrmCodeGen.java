@@ -22,7 +22,7 @@ import io.nop.orm.model.OrmColumnModel;
 import io.nop.orm.model.OrmEntityModel;
 import io.nop.orm.model.OrmModel;
 import io.nop.report.core.engine.IReportEngine;
-import io.nop.report.core.engine.IReportRendererFactory;
+import io.nop.excel.renderer.IReportRendererFactory;
 import io.nop.report.core.engine.ReportEngine;
 import io.nop.report.core.engine.renderer.XlsxReportRendererFactory;
 import io.nop.xlang.api.XLang;

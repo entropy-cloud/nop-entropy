@@ -7,8 +7,9 @@
  */
 package io.nop.xlang.xdsl;
 
+import io.nop.api.core.util.IOrdered;
 import io.nop.core.resource.IResourceObjectLoader;
 
-public interface IExcelModelLoaderFactory {
+public interface IExcelModelLoaderFactory extends IOrdered {
     IResourceObjectLoader<Object> newExcelModelLoader(String impPath);
 }

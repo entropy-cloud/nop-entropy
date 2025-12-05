@@ -30,7 +30,7 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-http-client-jdk</artifactId>
-            <scope>optional</scope>
+            <optional>true</optional>
         </dependency>
 
         <dependency>

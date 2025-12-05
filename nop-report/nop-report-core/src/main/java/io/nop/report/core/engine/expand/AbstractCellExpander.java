@@ -9,7 +9,6 @@ package io.nop.report.core.engine.expand;
 
 import io.nop.commons.collections.iterator.FillMinIterator;
 import io.nop.commons.collections.iterator.LimitIterator;
-import io.nop.commons.mutable.MutableInt;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;

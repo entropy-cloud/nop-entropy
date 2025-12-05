@@ -11,6 +11,7 @@
     </parent>
 
     <artifactId>nop-ai</artifactId>
+    <name>27-nop-ai</name>
 
     <packaging>pom</packaging>
 
@@ -31,5 +32,7 @@
         <module>nop-ai-tools</module>
         <module>nop-ai-skills</module>
         <module>nop-ai-rag</module>
+        <module>nop-spring-mcp-server</module>
+        <module>nop-spring-mcp-server-support</module>
     </modules>
 </project>

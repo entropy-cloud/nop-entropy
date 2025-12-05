@@ -10,8 +10,8 @@ package io.nop.rpc.core.interceptors;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.util.ApiHeaders;
-import io.nop.rpc.api.IRpcServiceInterceptor;
-import io.nop.rpc.api.IRpcServiceInvocation;
+import io.nop.api.core.rpc.IRpcServiceInterceptor;
+import io.nop.api.core.rpc.IRpcServiceInvocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

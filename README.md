@@ -141,7 +141,7 @@ Nop平台的前端代码在[nop-chaos项目](https://gitee.com/canonical-entropy
 ```shell
 git clone https://gitee.com/canonical-entropy/nop-entropy.git
 cd nop-entropy
-mvn clean install -DskipTests -Dquarkus.package.type=uber-jar
+mvn install -DskipTests -Dquarkus.package.type=uber-jar
 ```
 
 注意: **编译运行需要JDK17以上版本，不支持JDK8**, **在PowerShell中执行的时候需要用引号将参数包裹起来**
@@ -298,12 +298,12 @@ switch(贵公司很有钱吗()){
 > 网友：
 > 我们是30人的小公司，一个大半年的项目试着用了效果还可以，效果质量各方面都有提升，后面准备深度使用。
 > 现在回过头来看最大的2个感受：
-> 
+>
 > 1. 下层基础决定上层建筑，一定程度上拉高了开发人员的技术水平下限
 > 2. 往年维护的各种解决方案的基础框架，通过这种思想是能够形成统一，让沉淀有深度不仅仅是广度
 
 > 而且现在发现之前都用错了 有一些个性的代码直接在clone分支重写了 目前看都完全可以不动Nop底层代码达到个性化的需求。如果开源项目都这样去规划 就没有那么多冗余的衍生版本了
-> 
+>
 > canonical:
 > 一个小众的框架，你们在不熟悉的情况下直接用于开发产品上线，当时是怎么想的？
 

@@ -9,8 +9,8 @@ package io.nop.orm.interceptor;
 
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.orm.IOrmTemplate;
-import io.nop.rpc.api.IRpcServiceInterceptor;
-import io.nop.rpc.api.IRpcServiceInvocation;
+import io.nop.api.core.rpc.IRpcServiceInterceptor;
+import io.nop.api.core.rpc.IRpcServiceInvocation;
 
 import java.util.concurrent.CompletionStage;
 

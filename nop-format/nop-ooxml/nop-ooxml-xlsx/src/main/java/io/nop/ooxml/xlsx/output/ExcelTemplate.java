@@ -18,6 +18,7 @@ import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.IExcelSheet;
+import io.nop.excel.renderer.IExcelSheetGenerator;
 import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.common.OfficeConstants;
 import io.nop.ooxml.common.constants.ContentTypes;

@@ -2,3 +2,9 @@ nop:
   dao:
     config:
       query-space-to-dialect:  test=h2gis
+
+  datasource:
+    driver-class-name: org.h2.Driver
+    jdbc-url: jdbc:h2:mem:test
+    username: sa
+    password:

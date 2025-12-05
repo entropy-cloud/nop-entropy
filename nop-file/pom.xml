@@ -12,18 +12,17 @@
 
     <artifactId>nop-file</artifactId>
 
+    <name>15-nop-file</name>
+
     <packaging>pom</packaging>
 
     <modules>
-        <module>nop-file-core</module>
         <module>nop-file-codegen</module>
         <module>nop-file-api</module>
         <module>nop-file-dao</module>
         <module>nop-file-service</module>
         <module>nop-file-web</module>
         <module>nop-file-app</module>
-        <module>nop-file-quarkus</module>
-        <module>nop-file-spring</module>
         <module>nop-file-meta</module>
     </modules>
 </project>

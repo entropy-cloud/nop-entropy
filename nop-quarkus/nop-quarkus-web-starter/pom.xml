@@ -27,10 +27,10 @@
             <artifactId>nop-http-client-jdk</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-auth-core</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>io.github.entropy-cloud</groupId>-->
+<!--            <artifactId>nop-auth-core</artifactId>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
@@ -39,7 +39,7 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-file-quarkus</artifactId>
+            <artifactId>nop-quarkus-file</artifactId>
         </dependency>
 
         <dependency>

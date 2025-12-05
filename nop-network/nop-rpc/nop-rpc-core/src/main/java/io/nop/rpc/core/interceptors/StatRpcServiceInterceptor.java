@@ -5,8 +5,8 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.stat.GlobalStatManager;
 import io.nop.core.stat.IRpcClientStatManager;
 import io.nop.core.stat.RpcClientStat;
-import io.nop.rpc.api.IRpcServiceInterceptor;
-import io.nop.rpc.api.IRpcServiceInvocation;
+import io.nop.api.core.rpc.IRpcServiceInterceptor;
+import io.nop.api.core.rpc.IRpcServiceInvocation;
 
 import java.util.concurrent.CompletionStage;
 

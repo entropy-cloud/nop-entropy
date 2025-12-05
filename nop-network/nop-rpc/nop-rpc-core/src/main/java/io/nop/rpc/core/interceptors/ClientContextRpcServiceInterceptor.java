@@ -14,8 +14,8 @@ import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ApiHeaders;
-import io.nop.rpc.api.IRpcServiceInterceptor;
-import io.nop.rpc.api.IRpcServiceInvocation;
+import io.nop.api.core.rpc.IRpcServiceInterceptor;
+import io.nop.api.core.rpc.IRpcServiceInvocation;
 
 import java.util.Map;
 import java.util.concurrent.CompletionStage;

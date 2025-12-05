@@ -11,7 +11,7 @@ import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.http.api.client.IHttpClient;
 import io.nop.rpc.http.DefaultRpcUrlBuilder;
 import io.nop.rpc.http.HttpRpcService;
-import io.nop.rpc.api.IRpcService;
+import io.nop.api.core.rpc.IRpcService;
 import io.nop.rpc.cluster.IRpcClientInstanceProvider;
 
 import jakarta.inject.Inject;

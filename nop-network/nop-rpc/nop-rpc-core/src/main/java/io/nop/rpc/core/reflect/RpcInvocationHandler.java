@@ -18,9 +18,9 @@ import io.nop.core.reflect.impl.MethodModelBuilder;
 import io.nop.rpc.api.AopRpcServiceInvocation;
 import io.nop.rpc.api.DefaultRpcServiceInvocation;
 import io.nop.rpc.api.IRpcProxy;
-import io.nop.rpc.api.IRpcService;
-import io.nop.rpc.api.IRpcServiceInterceptor;
-import io.nop.rpc.api.IRpcServiceInvocation;
+import io.nop.api.core.rpc.IRpcService;
+import io.nop.api.core.rpc.IRpcServiceInterceptor;
+import io.nop.api.core.rpc.IRpcServiceInvocation;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;

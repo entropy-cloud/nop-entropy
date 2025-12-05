@@ -8,7 +8,7 @@
 package io.nop.rpc.cluster;
 
 import io.nop.cluster.discovery.ServiceInstance;
-import io.nop.rpc.api.IRpcService;
+import io.nop.api.core.rpc.IRpcService;
 
 /**
  * 管理所有到具体服务器的连接

@@ -11,8 +11,8 @@ import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.beans.ApiResponse;
 
 import io.nop.dao.txn.ITransactionTemplate;
-import io.nop.rpc.api.IRpcServiceInterceptor;
-import io.nop.rpc.api.IRpcServiceInvocation;
+import io.nop.api.core.rpc.IRpcServiceInterceptor;
+import io.nop.api.core.rpc.IRpcServiceInvocation;
 
 import java.util.concurrent.CompletionStage;
 

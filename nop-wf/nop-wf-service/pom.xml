@@ -29,7 +29,7 @@
         </dependency>
 
         <dependency>
-            <artifactId>nop-auth-core</artifactId>
+            <artifactId>nop-biz-auth-core</artifactId>
             <groupId>io.github.entropy-cloud</groupId>
         </dependency>
 

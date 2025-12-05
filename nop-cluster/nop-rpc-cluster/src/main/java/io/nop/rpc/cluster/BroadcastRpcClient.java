@@ -15,7 +15,7 @@ import io.nop.api.core.util.ICancelToken;
 import io.nop.cluster.chooser.IServerChooser;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.commons.lang.impl.Cancellable;
-import io.nop.rpc.api.IRpcService;
+import io.nop.api.core.rpc.IRpcService;
 
 import jakarta.inject.Inject;
 import java.util.ArrayList;

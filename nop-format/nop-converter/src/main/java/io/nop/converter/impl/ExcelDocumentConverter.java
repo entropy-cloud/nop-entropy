@@ -5,11 +5,12 @@ import io.nop.converter.DocConvertConstants;
 import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.IDocumentConverter;
 import io.nop.converter.IDocumentObject;
+import io.nop.core.resource.component.ComponentModelConfig;
+import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.xlsx.util.ExcelHelper;
-import io.nop.report.core.build.XptModelLoader;
 import io.nop.xlang.api.XLang;
 
 import java.io.IOException;
@@ -30,7 +31,7 @@ public class ExcelDocumentConverter implements IDocumentConverter {
     public String convertToText(IDocumentObject doc, String toFileType, DocumentConvertOptions options) {
         if (toFileType.equals(FILE_TYPE_XPT_XML)) {
             if (doc.getFileType().equals(FILE_TYPE_XPT_XLSX)) {
-                return convertXptModelToXml(doc,options);
+                return convertXptModelToXml(doc, options);
             }
         }
         String renderType = StringHelper.lastPart(toFileType, '.');
@@ -59,7 +60,8 @@ public class ExcelDocumentConverter implements IDocumentConverter {
     }
 
     protected String convertXptModelToXml(IDocumentObject doc, DocumentConvertOptions options) {
-        return XptModelLoader.instance().loadDslNodeFromResource(doc.getResource(), options.getDslNodeResolvePhase()).xml();
+        ComponentModelConfig config = ResourceComponentManager.instance().requireModelConfigByFileType(FILE_TYPE_XPT_XLSX);
+        return config.getPrimaryDslNodeLoader().loadDslNodeFromResource(doc.getResource(), options.getDslNodeResolvePhase()).xml();
     }
 
     @Override

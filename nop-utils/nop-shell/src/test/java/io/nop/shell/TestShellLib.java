@@ -1,5 +1,8 @@
 package io.nop.shell;
 
+import io.nop.api.core.ioc.BeanContainer;
+import io.nop.api.core.ioc.IBeanContainer;
+import io.nop.api.core.ioc.StaticBeanContainer;
 import io.nop.commons.env.PlatformEnv;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.json.JsonTool;
@@ -8,9 +11,13 @@ import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.ast.XLangOutputMode;
+import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import java.lang.annotation.Annotation;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -18,6 +25,9 @@ public class TestShellLib {
     @BeforeAll
     public static void init() {
         CoreInitialization.initialize();
+        StaticBeanContainer container = new StaticBeanContainer();
+        container.registerBean("nopShellRunner", new ShellRunner());
+        BeanContainer.registerInstance(container);
     }
 
     @AfterAll

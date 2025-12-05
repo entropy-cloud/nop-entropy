@@ -16,7 +16,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
-import io.nop.rpc.api.IRpcService;
+import io.nop.api.core.rpc.IRpcService;
 
 import java.util.Map;
 import java.util.concurrent.CompletionStage;

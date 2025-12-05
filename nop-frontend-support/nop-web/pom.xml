@@ -27,7 +27,7 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-auth-api</artifactId>
+            <artifactId>nop-biz-auth-api</artifactId>
         </dependency>
 
         <dependency>

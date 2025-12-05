@@ -2,8 +2,8 @@ package io.nop.record.codec;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.UnpooledByteBufAllocator;
-import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.resource.component.ResourceComponentManager;
+import io.nop.core.unittest.BaseTestCase;
 import io.nop.record.codec.impl.ModelBasedPacketCodec;
 import io.nop.record.model.PacketCodecModel;
 import io.nop.record.netty.ByteBufBinaryDataReader;
@@ -16,7 +16,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TestModelBasedPacketCodec extends JunitBaseTestCase {
+public class TestModelBasedPacketCodec extends BaseTestCase {
     @Test
     public void testByteBuf() {
         ByteBuf buf = UnpooledByteBufAllocator.DEFAULT.buffer();

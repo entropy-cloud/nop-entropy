@@ -11,6 +11,7 @@
 
     <artifactId>nop-search</artifactId>
     <packaging>pom</packaging>
+    <name>29-nop-search</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

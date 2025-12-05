@@ -24,10 +24,10 @@
             <artifactId>nop-xlang</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-rpc-api</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>io.github.entropy-cloud</groupId>-->
+<!--            <artifactId>nop-rpc-api</artifactId>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>

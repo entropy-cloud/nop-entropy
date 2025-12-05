@@ -1,6 +1,6 @@
 package io.nop.record.resource;
 
-import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.unittest.BaseTestCase;
 import io.nop.record.model.RecordFileMeta;
 import io.nop.record.writer.AppendableTextDataWriter;
 import io.nop.record.writer.ITextDataWriter;
@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.util.Map;
 
-public class TestModelBasedRecordOutput extends JunitBaseTestCase {
+public class TestModelBasedRecordOutput extends BaseTestCase {
     @Test
     public void testOutput() throws IOException {
         ITextDataWriter out = new AppendableTextDataWriter();

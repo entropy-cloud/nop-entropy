@@ -8,6 +8,8 @@
 package io.nop.rpc.api;
 
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.rpc.IRpcServiceInterceptor;
+import io.nop.api.core.rpc.IRpcServiceInvocation;
 
 import java.util.concurrent.CompletionStage;
 

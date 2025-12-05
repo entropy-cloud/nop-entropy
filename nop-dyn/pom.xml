@@ -13,6 +13,7 @@
     <packaging>pom</packaging>
 
     <artifactId>nop-dyn</artifactId>
+    <name>28-nop-dyn</name>
 
     <modules>
         <module>nop-dyn-codegen</module>

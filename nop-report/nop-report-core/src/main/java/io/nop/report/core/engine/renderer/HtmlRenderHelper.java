@@ -8,6 +8,7 @@ import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.IExcelSheet;
+import io.nop.excel.renderer.HtmlReportRendererFactory;
 import io.nop.report.core.coordinate.CellLayerCoordinate;
 import io.nop.report.core.model.ExpandedCell;
 import io.nop.report.core.model.ExpandedSheet;

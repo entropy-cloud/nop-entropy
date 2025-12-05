@@ -11,9 +11,12 @@
 
     <artifactId>nop-autotest</artifactId>
     <packaging>pom</packaging>
+    <name>08-nop-autotest</name>
+
     <modules>
         <module>nop-autotest-core</module>
         <module>nop-autotest-junit</module>
+        <module>nop-autotest-dbtool</module>
     </modules>
 
 

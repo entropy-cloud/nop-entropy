@@ -1,9 +1,9 @@
 <model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        name="orm">
     <loaders>
-        <xlsx-loader fileType="orm.xlsx" impPath="/nop/orm/imp/orm.imp.xml"/>
         <xdsl-loader fileType="orm.xml" schemaPath="/nop/schema/orm/orm.xdef"/>
         <xdsl-loader fileType="orm.json" schemaPath="/nop/schema/orm/orm.xdef"/>
         <xdsl-loader fileType="orm.yaml" schemaPath="/nop/schema/orm/orm.xdef"/>
+        <xlsx-loader fileType="orm.xlsx" impPath="/nop/orm/imp/orm.imp.xml"/>
     </loaders>
 </model>

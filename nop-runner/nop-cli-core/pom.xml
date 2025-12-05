@@ -87,7 +87,7 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-dbtool-exp</artifactId>
+            <artifactId>nop-batch-exp</artifactId>
         </dependency>
 
         <dependency>

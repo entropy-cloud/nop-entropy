@@ -18,7 +18,6 @@
         <module>nop-rpc-core</module>
         <module>nop-rpc-simple</module>
         <module>nop-rpc-http</module>
-        <module>nop-rpc-grpc</module>
         <module>nop-rpc-model</module>
     </modules>
 

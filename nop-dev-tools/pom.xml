@@ -11,6 +11,7 @@
 
     <artifactId>nop-dev-tools</artifactId>
     <packaging>pom</packaging>
+    <name>09-nop-dev-tools</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -19,7 +20,7 @@
     <modules>
         <module>build-tools</module>
         <module>nop-api-debugger</module>
-        <module>nop-maven</module>
+        <module>nop-maven-shaded-plugin</module>
         <module>nop-xlang-debugger</module>
     </modules>
 

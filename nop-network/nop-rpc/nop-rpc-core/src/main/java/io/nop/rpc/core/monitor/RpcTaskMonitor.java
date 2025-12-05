@@ -18,7 +18,7 @@ import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.service.LifeCycleSupport;
 import io.nop.commons.util.StringHelper;
-import io.nop.rpc.api.IRpcService;
+import io.nop.api.core.rpc.IRpcService;
 import io.nop.rpc.core.utils.RpcHelper;
 
 import java.util.Map;

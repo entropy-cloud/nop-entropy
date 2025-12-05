@@ -13,8 +13,7 @@
     </parent>
 
     <artifactId>nop-job</artifactId>
-
-    <dependencies/>
+    <name>26-nop-job</name>
 
     <modules>
         <module>nop-job-api</module>

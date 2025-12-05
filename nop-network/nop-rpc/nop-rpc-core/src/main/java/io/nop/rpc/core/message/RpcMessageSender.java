@@ -14,7 +14,7 @@ import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.ApiInvokeHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.rpc.api.IRpcService;
+import io.nop.api.core.rpc.IRpcService;
 
 import java.util.Collections;
 import java.util.Map;

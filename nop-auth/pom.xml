@@ -12,14 +12,12 @@
 
     <artifactId>nop-auth</artifactId>
 
-    <version>2.0.0-SNAPSHOT</version>
+    <name>19-nop-auth</name>
 
     <packaging>pom</packaging>
 
     <modules>
         <module>nop-auth-codegen</module>
-        <module>nop-auth-api</module>
-        <module>nop-auth-core</module>
         <module>nop-auth-sso</module>
         <module>nop-auth-dao</module>
         <module>nop-auth-service</module>
@@ -27,5 +25,6 @@
         <module>nop-auth-app</module>
         <module>nop-auth-meta</module>
         <module>nop-oauth</module>
+        <module>nop-auth-api</module>
     </modules>
 </project>

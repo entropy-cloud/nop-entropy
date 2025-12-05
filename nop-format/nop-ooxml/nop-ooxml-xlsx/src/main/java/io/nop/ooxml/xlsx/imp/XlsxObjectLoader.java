@@ -41,6 +41,10 @@ public class XlsxObjectLoader implements IResourceObjectLoader<Object> {
         return importModel;
     }
 
+    public String getImpPath(){
+        return impPath;
+    }
+
     public boolean isReturnDynamicObject() {
         return returnDynamicObject;
     }

@@ -12,9 +12,9 @@
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>io.github.entropy-cloud</groupId>
-
     <artifactId>nop-batch</artifactId>
+
+    <name>23-nop-batch</name>
 
     <modules>
         <module>nop-batch-core</module>
@@ -29,5 +29,6 @@
         <module>nop-batch-jdbc</module>
         <module>nop-batch-meta</module>
         <module>nop-batch-dsl</module>
+        <module>nop-batch-exp</module>
     </modules>
 </project>

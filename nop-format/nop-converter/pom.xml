@@ -42,16 +42,17 @@
             <artifactId>nop-markdown</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-report-core</artifactId>
-        </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>io.github.entropy-cloud</groupId>-->
+        <!--            <artifactId>nop-report-core</artifactId>-->
+        <!--        </dependency>-->
 
         <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-autotest-junit</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>

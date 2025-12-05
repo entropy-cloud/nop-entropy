@@ -11,6 +11,7 @@
 
     <artifactId>nop-integration</artifactId>
     <packaging>pom</packaging>
+    <name>12-nop-integration</name>
 
     <modules>
         <module>nop-integration-sftp</module>

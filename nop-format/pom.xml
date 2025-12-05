@@ -11,13 +11,13 @@
 
     <artifactId>nop-format</artifactId>
     <packaging>pom</packaging>
+    <name>06-nop-format</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <modules>
-        <module>nop-codec</module>
         <module>nop-converter</module>
         <module>nop-excel</module>
         <module>nop-mermaid</module>
@@ -26,6 +26,8 @@
         <module>nop-svg</module>
         <module>nop-record</module>
         <module>nop-markdown-ext</module>
+        <module>nop-tablesaw</module>
+        <module>nop-record-netty</module>
     </modules>
 
 </project>

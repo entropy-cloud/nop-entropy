@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="ioc" xmlns:feature="feature"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <bean id="nopGrpcAutoRegistration" class="io.nop.cluster.naming.AutoRegistration"
+          feature:on="nop.cluster.registration.enabled">
+        <ioc:condition>
+            <on-class>io.nop.cluster.naming.AutoRegistration</on-class>
+        </ioc:condition>
+
+        <property name="addr" value="@cfg:nop.server.addr|"/>
+        <property name="port" value="@cfg:nop.server.grpc-port|9000"/>
+        <property name="serviceName" value="${nop.application.name}-grpc"/>
+        <property name="tags" value="@cfg:nop.cluster.registration.tags|"/>
+        <property name="metadata">
+            <map>
+                <entry key="version" value="@cfg:nop.application.version|1.0.0"/>
+                <entry key="group" value="@cfg:nop.application.group|default"/>
+                <entry key="zone" value="@cfg:nop.application.zone|"/>
+                <entry key="kind" value="grpc"/>
+            </map>
+        </property>
+    </bean>
+
+    <bean id="nopGrpcServer" class="io.nop.graphql.grpc.server.GrpcServer">
+        <property name="config" ref="nopGrpcServerConfig"/>
+    </bean>
+
+    <bean id="nopGrpcSchemaManager" class="io.nop.graphql.grpc.server.ServiceSchemaManager">
+    </bean>
+
+    <bean id="nopGrpcStatusMapping" class="io.nop.graphql.grpc.status.GrpcStatusMapping"/>
+
+    <ioc:config id="nopGrpcServerConfig" class="io.nop.graphql.grpc.server.GrpcServerConfig"
+                ioc:config-prefix="nop.grpc.server">
+        <property name="port" value="@cfg:nop.server.grpc-port|9000"/>
+    </ioc:config>
+
+    <bean id="nopDevDocGrpcBizModel" class="io.nop.graphql.grpc.service.DevDocGrpcBizModel">
+        <ioc:condition>
+            <if-property name="nop.debug"/>
+        </ioc:condition>
+    </bean>
+
+    <bean id="nopDevModelGrpcBizModel" class="io.nop.graphql.grpc.service.DevModelGrpcBizModel">
+        <ioc:condition>
+            <if-property name="nop.dev-model.enabled" enableIfMissing="false" enableIfDebug="true"/>
+        </ioc:condition>
+    </bean>
+
+</beans>

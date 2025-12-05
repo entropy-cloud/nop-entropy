@@ -8,6 +8,7 @@
     <groupId>io.github.entropy-cloud</groupId>
     <artifactId>nop-bom</artifactId>
     <version>2.0.0-SNAPSHOT</version>
+    <name>02-nop-bom</name>
 
     <description>define versions of all modules in Nop Platform</description>
 
@@ -120,7 +121,7 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-auth-api</artifactId>
+                <artifactId>nop-biz-auth-api</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
@@ -206,7 +207,7 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-rpc-grpc</artifactId>
+                <artifactId>nop-graphql-grpc</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
@@ -407,7 +408,7 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-file-core</artifactId>
+                <artifactId>nop-biz-file-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
@@ -437,13 +438,13 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-file-quarkus</artifactId>
+                <artifactId>nop-quarkus-file</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-file-spring</artifactId>
+                <artifactId>nop-spring-file</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
@@ -712,7 +713,7 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-biz-report</artifactId>
+                <artifactId>nop-batch-biz</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
@@ -785,7 +786,7 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-auth-core</artifactId>
+                <artifactId>nop-biz-auth-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
@@ -923,7 +924,7 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-dbtool-exp</artifactId>
+                <artifactId>nop-batch-exp</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 

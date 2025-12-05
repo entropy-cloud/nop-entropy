@@ -57,4 +57,14 @@ public interface ExcelConstants {
     String ORIENTATION_PORTRAIT = "portrait";
 
     String DATA_VALIDATION_TYPE_LIST = "list";
+
+
+    String CSS_PREFIX_XPT = "xpt-";
+    String CSS_PREFIX_SCOPED = "xpt-s-";
+
+    String VAR_SCOPED_CSS_PREFIX = "scopedCssPrefix";
+
+    String VAR_XPT_REPORT_ID = "xptReportId";
+
+    String DEFAULT_XPT_REPORT_ID = "xpt-report";
 }

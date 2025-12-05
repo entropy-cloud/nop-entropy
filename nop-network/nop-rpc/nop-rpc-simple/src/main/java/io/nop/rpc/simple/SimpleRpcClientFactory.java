@@ -15,7 +15,7 @@ import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.lang.IDestroyable;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.rpc.api.IRpcProxy;
-import io.nop.rpc.api.IRpcServiceInterceptor;
+import io.nop.api.core.rpc.IRpcServiceInterceptor;
 import io.nop.rpc.core.interceptors.LogRpcServiceInterceptor;
 import io.nop.rpc.core.reflect.DefaultRpcMessageTransformer;
 import io.nop.rpc.core.reflect.IRpcMessageTransformer;

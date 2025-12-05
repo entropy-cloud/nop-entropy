@@ -12,8 +12,8 @@
     <modelVersion>4.0.0</modelVersion>
     <packaging>pom</packaging>
 
-    <groupId>io.github.entropy-cloud</groupId>
     <artifactId>nop-message</artifactId>
+    <name>14-nop-message</name>
 
     <modules>
         <module>nop-message-pulsar</module>

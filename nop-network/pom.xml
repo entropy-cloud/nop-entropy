@@ -11,16 +11,17 @@
 
     <artifactId>nop-network</artifactId>
     <packaging>pom</packaging>
+    <name>03-nop-network</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <modules>
+        <module>nop-codec</module>
         <module>nop-http</module>
         <module>nop-rpc</module>
         <module>nop-netty</module>
-        <module>nop-netty-ext</module>
         <module>nop-socket</module>
         <module>nop-vertx</module>
     </modules>

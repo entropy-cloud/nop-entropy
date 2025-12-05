@@ -9,9 +9,7 @@ package io.nop.core.resource.component;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancellable;
-import io.nop.api.core.util.IComponentModel;
 import io.nop.core.resource.IResource;
-import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.deps.ResourceDependencySet;
 
 import java.util.Collection;
@@ -49,6 +47,13 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
             throw new NopException(ERR_COMPONENT_UNKNOWN_MODEL_FILE_TYPE)
                     .param(ARG_FILE_TYPE, fileType);
         return config;
+    }
+
+    default ComponentModelConfig.LoaderConfig getModelLoaderConfigByFileType(String fileType) {
+        ComponentModelConfig config = getModelConfigByFileType(fileType);
+        if (config == null)
+            return null;
+        return config.getLoader(fileType);
     }
 
     Map<String, ComponentModelConfig> getAllModelConfigs();

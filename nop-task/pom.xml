@@ -12,6 +12,8 @@
 
     <artifactId>nop-task</artifactId>
 
+    <name>22-nop-task</name>
+
     <packaging>pom</packaging>
 
     <modules>

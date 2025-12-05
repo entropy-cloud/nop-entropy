@@ -12,7 +12,7 @@ import io.nop.core.context.IEvalContext;
 import io.nop.core.resource.tpl.IBinaryTemplateOutput;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.IExcelSheet;
-import io.nop.ooxml.xlsx.output.IExcelSheetGenerator;
+import io.nop.excel.renderer.IExcelSheetGenerator;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

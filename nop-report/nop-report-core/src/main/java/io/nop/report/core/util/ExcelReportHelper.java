@@ -27,7 +27,7 @@ import io.nop.report.core.XptConstants;
 import io.nop.report.core.build.XptModelInitializer;
 import io.nop.report.core.engine.ExpandedSheetGenerator;
 import io.nop.report.core.engine.IReportEngine;
-import io.nop.report.core.engine.renderer.HtmlReportRendererFactory;
+import io.nop.excel.renderer.HtmlReportRendererFactory;
 import io.nop.report.core.engine.renderer.ReportRenderHelper;
 import io.nop.report.core.engine.renderer.XlsxReportRendererFactory;
 import io.nop.report.core.imp.ExcelTemplateToXptModelTransformer;

@@ -61,7 +61,7 @@ public class ExcelHelper {
 
     public static List<ExcelSheetData> readAllSheets(IResource xlsx) {
         List<ExcelSheetData> ret = new ArrayList<>();
-        new XlsxToRecordOutput(sheetName -> new HeaderListRecordOutput<>(1, CollectionHelper::toNonEmptyKeyMap) {
+        new XlsxToRecordOutput(sheetName -> new HeaderListRecordOutput<Map<String,Object>>(1, CollectionHelper::toNonEmptyKeyMap) {
             @Override
             public void close() {
                 ExcelSheetData data = new ExcelSheetData();

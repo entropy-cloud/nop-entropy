@@ -22,7 +22,7 @@ import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.util.StringHelper;
-import io.nop.rpc.api.IRpcService;
+import io.nop.api.core.rpc.IRpcService;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;

@@ -10,8 +10,8 @@ package io.nop.rpc.core.reflect;
 import io.nop.api.core.util.Guard;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.rpc.api.IAopDynamicProxy;
-import io.nop.rpc.api.IRpcService;
-import io.nop.rpc.api.IRpcServiceInterceptor;
+import io.nop.api.core.rpc.IRpcService;
+import io.nop.api.core.rpc.IRpcServiceInterceptor;
 import io.nop.rpc.api.IRpcProxyFactory;
 import jakarta.annotation.PostConstruct;
 

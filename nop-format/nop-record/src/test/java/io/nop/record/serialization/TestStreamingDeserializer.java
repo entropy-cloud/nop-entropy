@@ -2,9 +2,9 @@ package io.nop.record.serialization;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
-import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.resource.IResource;
+import io.nop.core.unittest.BaseTestCase;
 import io.nop.dataset.record.IRecordInput;
 import io.nop.dataset.record.IRecordOutput;
 import io.nop.record.resource.ModelBasedResourceRecordIO;
@@ -17,7 +17,7 @@ import java.util.Map;
 import static io.nop.record.RecordConstants.VAR_TOTAL_COUNT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TestStreamingDeserializer extends JunitBaseTestCase {
+public class TestStreamingDeserializer extends BaseTestCase {
 
     @Test
     public void tesStreaming() {
