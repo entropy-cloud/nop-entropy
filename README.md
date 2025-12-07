@@ -155,6 +155,28 @@ mvn clean install "-DskipTests" "-Dquarkus.package.type=uber-jar"
 quarkus.package.type参数是quarkus框架所识别的一个参数，指定它为uber-jar将会把nop-quarkus-demo等项目打包成一个包含所有依赖类的单一jar包。可以通过java
 -jar XXX-runner.jar的方式直接运行。
 
+### Windows目录名长度限制
+
+- 避免把仓库放在深层“Downloads”路径（如 `C:\Users\<用户名>\Downloads\...`）。建议使用短路径，如 `D:\nop` 或 `C:\nop`，尽量让项目的完整绝对路径保持较短。
+- 本仓库的 `2.0.0-SNAPSHOT` 模块需要先在本地构建安装，不能从公共仓库下载。请先在仓库根目录执行一次完整安装：
+
+```powershell
+./mvnw clean install "-DskipTests" "-T 1C"
+```
+
+若看到“Could not resolve dependencies … (absent)”等错误，通常是因为未进行本地安装或之前的失败被缓存。可尝试：
+
+```powershell
+./mvnw clean install "-DskipTests" "-U"
+```
+
+仍不行时，清理本地缓存后重试（默认仓库：`C:\Users\<用户名>\.m2\repository`）：
+
+```powershell
+Remove-Item -Recurse -Force "$env:USERPROFILE\.m2\repository\io\github\entropy-cloud"; 
+./mvnw clean install "-DskipTests"
+```
+
 ## PowerShell乱码问题解决
 
 可以将PowerShell的编码设置为UTF8
