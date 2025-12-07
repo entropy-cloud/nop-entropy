@@ -83,4 +83,8 @@ public interface ITextDataReader extends IDataReaderBase {
     ITextDataReader detach() throws IOException;
 
     boolean isDetached();
+
+    default long currentLineNumber(){
+        return -1L;
+    }
 }

@@ -4,6 +4,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.IoHelper;
 
 import java.io.IOException;
+import java.io.LineNumberReader;
 import java.io.Reader;
 
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_ENOUGH_DATA;
@@ -14,7 +15,7 @@ import static io.nop.record.RecordErrors.ERR_RECORD_NO_ENOUGH_DATA;
  */
 public class ReaderTextDataReader implements ITextDataReader {
 
-    private final Reader reader;
+    private final LineNumberReader reader;
     private long position = 0;
     private boolean closed = false;
     private final boolean markSupported;
@@ -22,10 +23,11 @@ public class ReaderTextDataReader implements ITextDataReader {
     // 单字符回退缓存
     private int pushedBackChar = -1;
     private boolean hasPushedBack = false;
+    private char[] buffer = new char[1];
 
     public ReaderTextDataReader(Reader reader) {
         if (reader == null) throw new IllegalArgumentException("reader cannot be null");
-        this.reader = reader;
+        this.reader = new LineNumberReader(reader);
         this.markSupported = reader.markSupported();
     }
 
@@ -94,7 +96,7 @@ public class ReaderTextDataReader implements ITextDataReader {
         }
 
         try {
-            int ch = reader.read();
+            int ch = read();
             if (ch == -1) {
                 return true;
             } else {
@@ -104,6 +106,16 @@ public class ReaderTextDataReader implements ITextDataReader {
             }
         } catch (IOException e) {
             return true;
+        }
+    }
+
+    private int read() throws IOException {
+        // LineNumberReader的read()对于\r会直接认为是\n，导致行数错乱。
+        int readCount = reader.read(buffer, 0, 1);
+        if (readCount == -1) {
+            return -1;
+        } else {
+            return buffer[0];
         }
     }
 
@@ -159,7 +171,7 @@ public class ReaderTextDataReader implements ITextDataReader {
                 ch = pushedBackChar;
                 clearPushedBackChar();
             } else {
-                ch = reader.read();
+                ch = read();
             }
 
             if (ch != -1) {
@@ -190,7 +202,7 @@ public class ReaderTextDataReader implements ITextDataReader {
                     ch = pushedBackChar;
                     clearPushedBackChar();
                 } else {
-                    ch = reader.read();
+                    ch = read();
                 }
 
                 if (ch == -1) {
@@ -201,7 +213,7 @@ public class ReaderTextDataReader implements ITextDataReader {
                 charsRead++;
 
                 if (ch == '\r') {
-                    int nextCh = reader.read();
+                    int nextCh = read();
                     if (nextCh == '\n') {
                         position++;
                     } else if (nextCh != -1) {
@@ -274,6 +286,11 @@ public class ReaderTextDataReader implements ITextDataReader {
     @Override
     public boolean isDetached() {
         return false;
+    }
+
+    @Override
+    public long currentLineNumber() {
+        return reader.getLineNumber();
     }
 
     @Override

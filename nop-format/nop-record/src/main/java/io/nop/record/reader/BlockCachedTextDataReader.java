@@ -337,11 +337,9 @@ public class BlockCachedTextDataReader implements ITextDataReader {
                 if (currentBlock.contains(endPos) && currentBlock.getContent().charAt(currentBlock.getRelativeOffset(endPos)) == '\r') {
 
                     // 检查下一个字符是否是\n
-                    if (endPos + 1 < maxReadPosition) {
-                        char nextChar = peekChar(endPos + 1);
-                        if (nextChar == '\n') {
-                            currentPosition++; // 跳过\n
-                        }
+                    char nextChar = peekChar(endPos + 1);
+                    if (nextChar == '\n') {
+                        currentPosition++; // 跳过\n
                     }
                 }
 
