@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>可逆计算理论——统一软件构造与演化的新范式</title>
+    <!-- External Libraries: Font Awesome & html2pdf.js -->
+   <link rel="stylesheet" href="../assets/css/all.min.css">
+    <script src="../assets/js/html2pdf.bundle.min.js"></script>
+    <script src="../assets/js/mermaid.min.js"></script>
+    
+    <style>
+        /* --- 1. Global Styles & Variables --- */
+        :root {
+            --color-primary: #2563eb;
+            --color-primary-dark: #1d4ed8;
+            --color-secondary: #059669;
+            --color-secondary-dark: #047857;
+            --color-accent: #7c3aed;
+            --color-warning: #d97706;
+            --color-text-dark: #1f2937;
+            --color-text-medium: #4b5563;
+            --color-text-light: #6b7280;
+            --color-bg-main: #f8fafc;
+            --color-bg-slide: #ffffff;
+            --color-border: #e5e7eb;
+            --color-code-bg: #f1f5f9;
+            --color-highlight-bg: #eff6ff;
+            --color-quote-bg: #fffbeb;
+            --font-main: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            --font-code: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+            --font-size-base: 1.25rem;
+            --line-height-base: 1.7;
+            --controls-area-height: 40px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--color-bg-main);
+            color: var(--color-text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            line-height: var(--line-height-base);
+        }
+
+        /* --- 2. Core Layout & Container --- */
+        #presentation-container {
+            width: 90vw;
+            height: 90vh;
+            max-width: 1400px;
+            background: var(--color-bg-slide);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            padding-bottom: var(--controls-area-height);
+        }
+
+        .slides-viewport { 
+            flex-grow: 1; 
+            position: relative; 
+            overflow: hidden; 
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 40px 60px; /* Reduced vertical padding */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            transform: translateY(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            overflow: hidden; /* Changed from auto to hidden to enforce fit */
+            background-color: var(--color-bg-slide);
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            z-index: 1;
+        }
+
+        /* --- 3. Typography --- */
+        h1, h2, h3 { font-weight: 700; line-height: 1.2; }
+        h1 { font-size: 3rem; margin-bottom: 1rem; }
+        h2 { 
+            font-size: 2.2rem; 
+            color: var(--color-text-dark); 
+            border-bottom: 3px solid var(--color-primary); 
+            padding-bottom: 0.75rem; 
+            margin-bottom: 2.2rem; 
+            font-weight: 600; 
+        }
+        h3 { font-size: 1.5rem; color: var(--color-primary); margin-bottom: 1rem; }
+        h4 { font-size: 1.25rem; font-weight: 600; color: var(--color-text-dark); margin-bottom: 0.5rem; }
+        p, li { font-size: var(--font-size-base); color: var(--color-text-medium); margin-bottom: 1rem; }
+        strong { color: var(--color-primary); font-weight: 600; }
+        ul { list-style: none; padding-left: 0; }
+        li p { margin-bottom: 0.25rem; }
+
+        .font-bold {
+            font-weight: bold;
+        }
+
+        /* --- 4. UI Components --- */
+        #progress-bar { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            height: 4px; 
+            background-color: var(--color-primary); 
+            width: 0%; 
+            transition: width 0.4s ease; 
+            z-index: 10; 
+        }
+        
+        .controls { 
+            position: absolute; 
+            bottom: 20px; 
+            right: 20px; 
+            display: flex; 
+            gap: 10px; 
+            z-index: 10; 
+        }
+        
+        .btn { 
+            background-color: var(--color-primary); 
+            color: white; 
+            border: none; 
+            padding: 10px 18px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            transition: all 0.2s ease; 
+            box-shadow: var(--shadow-md); 
+        }
+        
+        .btn:hover:not(:disabled) { 
+            background-color: var(--color-primary-dark); 
+            transform: translateY(-2px); 
+            box-shadow: var(--shadow-lg); 
+        }
+        
+        .btn:disabled { 
+            background-color: #9ca3af; 
+            cursor: not-allowed; 
+            transform: none; 
+            box-shadow: var(--shadow-md); 
+        }
+        
+        #pdf-btn { 
+            background-color: var(--color-secondary); 
+        }
+        
+        #pdf-btn:hover:not(:disabled) { 
+            background-color: var(--color-secondary-dark); 
+        }
+        
+        #print-btn { 
+            background-color: #6366f1; 
+        }
+        
+        #print-btn:hover:not(:disabled) { 
+            background-color: #4f46e5; 
+        }
+        
+        #slide-counter { 
+            position: absolute; 
+            bottom: 20px; 
+            left: 20px; 
+            background: rgba(255, 255, 255, 0.8); 
+            backdrop-filter: blur(5px); 
+            padding: 8px 14px; 
+            border-radius: 8px; 
+            font-size: 0.9rem; 
+            font-weight: 600; 
+            color: var(--color-text-dark); 
+            box-shadow: var(--shadow-md); 
+            z-index: 10; 
+        }
+
+        /* --- 5. Content Modules --- */
+        .title-slide { 
+            text-align: center; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        
+        .title-slide h1 { 
+            font-size: 3.5rem; 
+            color: var(--color-text-dark); 
+            margin-bottom: 1.5rem;
+        }
+        
+        .title-slide .subtitle { 
+            font-size: 1.5rem; 
+            color: var(--color-text-medium); 
+            font-weight: 400; 
+            margin-bottom: 0.5rem;
+        }
+        
+        .title-slide .presenter { 
+            font-size: 1.25rem; 
+            color: var(--color-text-light); 
+            margin-bottom: 1rem;
+        }
+        
+        .title-slide .time { 
+            font-size: 1.1rem; 
+            color: var(--color-text-light); 
+            font-style: italic;
+        }
+
+        .icon-list { 
+            list-style: none; 
+            padding: 0; 
+            margin: 1.5rem 0; 
+        }
+        
+        .icon-bullet { 
+            display: flex; 
+            gap: 16px; 
+            background-color: var(--color-code-bg); 
+            padding: 16px; 
+            border-radius: 10px; 
+            margin-bottom: 12px; 
+            border: 1px solid var(--color-border); 
+            transition: all 0.3s ease; 
+        }
+        
+        .icon-bullet:hover { 
+            transform: translateX(5px); 
+            box-shadow: var(--shadow-md); 
+        }
+        
+        .icon-bullet i { 
+            font-size: 1.25rem; 
+            color: var(--color-primary); 
+            margin-top: 5px; 
+            flex-shrink: 0; 
+            width: 24px; 
+            text-align: center; 
+        }
+        
+        .icon-bullet div { 
+            flex-grow: 1; 
+        }
+        
+        .icon-bullet p { 
+            margin-bottom: 0.25rem; 
+            color: var(--color-text-dark); 
+            font-weight: 500; 
+        }
+        
+        .icon-bullet .details { 
+            font-size: calc(var(--font-size-base) - 0.2rem); 
+            color: var(--color-text-medium); 
+            font-weight: 400; 
+        }
+        
+        .sub-items { 
+            margin-top: 0.5rem; 
+            margin-left: 1rem; 
+        }
+        
+        .sub-item { 
+            font-size: calc(var(--font-size-base) - 0.1rem); 
+            color: var(--color-text-medium); 
+            margin-bottom: 0.25rem; 
+            position: relative; 
+            padding-left: 1rem; 
+        }
+        
+        .sub-item::before { 
+            content: "•"; 
+            color: var(--color-secondary); 
+            position: absolute; 
+            left: 0; 
+        }
+        
+        .sub-items-split {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .sub-items-split .sub-item {
+            flex: 1 1 0;   
+        }
+
+        .two-column { 
+            display: flex; 
+            gap: 40px; 
+            align-items: flex-start; 
+            width: 100%; 
+        }
+        
+        .column { 
+            flex: 1; 
+        }
+        
+        .column-narrow { 
+            flex: 0.7; 
+        }
+        
+        .column-wide { 
+            flex: 1.3; 
+        }
+
+        .code-block { 
+            background-color: var(--color-code-bg); 
+            color: var(--color-text-dark); 
+            padding: 1em 1.5em; 
+            border-radius: 8px; 
+            overflow-x: auto; 
+            font-family: var(--font-code); 
+            font-size: 1.1rem; 
+            line-height: 1.6; 
+            border: 1px solid var(--color-border); 
+            margin: 1.5rem 0; 
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .code-block > code { 
+            font-size: inherit; 
+            background: transparent; 
+            padding: 0; 
+            border-radius: 0; 
+        }
+        
+        .code-block.is-centered { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+        }
+
+        .code-comment {
+            color: #64748b;
+            font-style: normal;
+        }
+
+        .code-keyword {
+            color: #be185d;
+            font-weight: 600;
+        }
+
+        .code-string {
+            color: #057a55;
+        }
+
+        .code-attr {
+            color: #9333ea;
+        }
+
+        .highlight-box { 
+            background-color: var(--color-highlight-bg); 
+            border-left: 4px solid var(--color-primary); 
+            padding: 20px; 
+            margin: 1.5rem 0; 
+            border-radius: 0 8px 8px 0; 
+        }
+        
+        .highlight-box p {
+            margin-bottom: 0;
+            color: var(--color-text-dark);
+        }
+        
+        .quote { 
+            background: var(--color-quote-bg); 
+            border-left: 4px solid var(--color-warning); 
+            padding: 20px; 
+            margin: 1.5rem 0; 
+            border-radius: 0 8px 8px 0; 
+            font-style: italic; 
+            color: #92400e; 
+        }
+        
+        .quote p { 
+            font-size: calc(var(--font-size-base) + 0.1rem); 
+            margin-bottom: 0;
+        }
+
+        .stat-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
+            gap: 20px; 
+            margin: 2rem 0; 
+        }
+        
+        .stat-card { 
+            background: var(--color-code-bg); 
+            padding: 20px; 
+            border-radius: 12px; 
+            text-align: center; 
+            border: 1px solid var(--color-border); 
+            transition: all 0.3s ease; 
+        }
+        
+        .stat-card:hover { 
+            transform: translateY(-5px); 
+            box-shadow: var(--shadow-md); 
+        }
+        
+        .stat-number { 
+            font-size: 2.5rem; 
+            font-weight: 700; 
+            color: var(--color-primary); 
+            display: block; 
+        }
+        
+        .stat-label { 
+            font-size: 0.9rem; 
+            color: var(--color-text-medium); 
+            margin-top: 0.25rem; 
+        }
+
+        /* Table styling */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+        
+        .comparison-table th, .comparison-table td {
+            padding: 16px 20px;
+            text-align: left;
+            border: 1px solid var(--color-border);
+        }
+        
+        .comparison-table th {
+            background-color: var(--color-code-bg);
+            font-weight: 600;
+            color: var(--color-text-dark);
+        }
+        
+        .comparison-table tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+
+        /* Formula styling */
+        .formula-block {
+            background-color: var(--color-code-bg);
+            padding: 1.5em;
+            border-radius: 8px;
+            text-align: center;
+            margin: 1.5rem 0;
+            font-family: var(--font-code);
+            font-size: 1.4rem;
+            border: 1px solid var(--color-border);
+        }
+        
+        .formula-equation {
+            margin: 0.5rem 0;
+        }
+
+        /* Mermaid diagram styling */
+        .mermaid-container {
+            background-color: var(--color-code-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+            margin: 1.5rem 0;
+            overflow: auto;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+		
+
+		
+		        .stage-list { list-style: none; padding: 0; margin: 1.2rem 0; }
+        .stage-item { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 1rem; padding: 14px; background-color: var(--color-code-bg); border-radius: 10px; border-left: 4px solid var(--color-secondary); }
+        .stage-number { font-size: 1.3rem; font-weight: 700; color: var(--color-secondary); min-width: 40px; margin-top: 2px; }
+        .stage-content h4 { color: var(--color-text-dark); margin-bottom: 0.3rem; }
+        .stage-content .formula-inline { font-family: var(--font-code); background-color: white; padding: 6px 10px; border-radius: 6px; display: inline-block; margin: 0.4rem 0; border: 1px solid var(--color-border); font-size: 0.95rem; }
+
+        .case-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin: 1rem 0; }
+        .case-card { background: var(--color-code-bg); padding: 16px; border-radius: 12px; border: 1px solid var(--color-border); }
+        .case-card h4 { color: var(--color-primary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 10px; }
+        .case-card h4 i { font-size: 1.2rem; }
+        .case-card .formula-inline { font-family: var(--font-code); font-size: 0.9rem; background-color: white; padding: 6px 8px; border-radius: 6px; display: block; margin: 0.5rem 0; border: 1px solid var(--color-border); }
+		
+        /* --- 6. Responsive & Print Styles --- */
+        @media (max-width: 768px) {
+            .slide { padding: 30px; }
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.5rem; }
+            .two-column, .stat-grid { flex-direction: column; grid-template-columns: 1fr; }
+            .controls { right: auto; left: 50%; transform: translateX(-50%); }
+            #slide-counter { display: none; }
+        }
+
+        @media print {
+            body { 
+                background: #fff !important; 
+                height: auto; 
+                overflow: visible; 
+                display: block; 
+            }
+            
+            .controls, #progress-bar, #slide-counter { 
+                display: none !important; 
+            }
+            
+            #presentation-container { 
+                display: block; 
+                width: 100%; 
+                height: auto; 
+                box-shadow: none; 
+                border: none; 
+                padding: 0; 
+            }
+            
+            .slides-viewport { 
+                overflow: visible; 
+                height: auto; 
+            }
+            
+            .slide { 
+                display: flex !important; 
+                opacity: 1 !important; 
+                visibility: visible !important; 
+                transform: none !important; 
+                position: relative; 
+                page-break-after: always; 
+                page-break-inside: avoid; 
+                width: 100%; 
+                height: auto; 
+                aspect-ratio: 16 / 12; 
+                border: 1px solid #ddd; 
+                margin-bottom: 20px; 
+                box-shadow: none; 
+                border-radius: 0; 
+                overflow: hidden; 
+            }
+            
+            .slide:last-of-type { 
+                page-break-after: avoid; 
+            }
+            
+            svg * { 
+                animation-play-state: paused !important; 
+            }
+        }
+        
+        .pdf-page-container { 
+            width: 100%; 
+            height: auto; 
+            background: white; 
+            color: black; 
+            box-shadow: none; 
+        }
+        
+        .pdf-slide { 
+            position: relative !important; 
+            opacity: 1 !important; 
+            visibility: visible !important; 
+            transform: none !important; 
+            height: auto !important; 
+            width: 100%; 
+            background: white; 
+            border: 1px solid #eeeeee; 
+            padding: 40px 50px; 
+            box-shadow: none; 
+            margin-bottom: 0; 
+            overflow: hidden; 
+            page-break-after: always; 
+            page-break-inside: avoid; 
+            aspect-ratio: 16 / 12; 
+        }
+        
+        .pdf-slide:last-of-type { 
+            page-break-after: avoid; 
+        }
+    </style>
+</head>
+<body>
+    <div id="presentation-container">
+        <!-- UI Elements -->
+        <div id="progress-bar"></div>
+        <div id="slide-counter">1 / 20</div>
+
+        <!-- Slides Viewport -->
+        <div class="slides-viewport">
+            
+            <!-- Slide 1: Title Slide -->
+            <section class="slide active title-slide">
+                <h1>可逆计算理论</h1>
+                <h2>统一软件构造与演化的新范式</h2>
+                <p class="subtitle">从"粒子"到"波动"的软件世界观变革</p>
+                <p class="presenter">演讲者：Canonical</p>
+                <p class="time">时间：2025</p>
+            </section>
+
+            <!-- Slide 2: 我们面临的核心矛盾 -->
+            <section class="slide">
+                <h2>我们面临的核心矛盾</h2>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-scale-balanced"></i>
+                        <div>
+                            <p>标准化 vs. 灵活性</p>
+                            <span class="details">如何同时实现？</span>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-robot"></i>
+                        <div>
+                            <p>自动化 vs. 定制化</p>
+                            <span class="details">生成代码后如何修改？</span>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-recycle"></i>
+                        <div>
+                            <p>复用 vs. 扭曲</p>
+                            <span class="details">为了复用而扭曲业务设计？</span>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <div>
+                            <p>演化 vs. 稳定</p>
+                            <span class="details">架构如何应对无法预见的变化？</span>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Slide 3: 现有范式的局限 -->
+            <section class="slide">
+                <h2>现有范式的局限</h2>
+                <div class="slide-content">
+                    <div class="content-container">
+                        <div class="two-column">
+                            <div class="column">
+                                <h3>MDA的困境</h3>
+                                <p>模型与代码割裂，"胖模型"问题</p>
+                                <div class="highlight-box">
+                                    <p><strong>传统MDA：</strong>App = Transformer(Model)</p>
+                                    <p>模型与转换器刚性绑定，难以应对意外变化</p>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <h3>其他范式的挑战</h3>
+                                <ul class="icon-list">
+                                    <li class="icon-bullet">
+                                        <i class="fa-solid fa-object-group"></i>
+                                        <div>
+                                            <p>OO/组件的局限</p>
+                                            <span class="details">侵入式组装，复用成本高</span>
+                                        </div>
+                                    </li>
+                                    <li class="icon-bullet">
+                                        <i class="fa-solid fa-code"></i>
+                                        <div>
+                                            <p>低代码的尴尬</p>
+                                            <span class="details">遇到"意外需求"怎么办？</span>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="quote">
+                            <p><strong>问题的本质：</strong>缺乏统一的理论框架来系统化应对这些矛盾</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+			
+            <!-- Slide 4: 理论脉络与定位 -->
+            <section class="slide">
+                <h2>理论脉络与定位</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <ul class="stage-list">
+                            <li class="stage-item">
+                                <div class="stage-number">1997</div>
+                                <div class="stage-content"><h4>FOP(1997)</h4><p>特征导向编程的早期萌芽</p></div>
+                            </li>
+                            <li class="stage-item">
+                                <div class="stage-number">2010</div>
+                                <div class="stage-content"><h4>DOP(2010)</h4><p>差量思想的系统化实践</p></div>
+                            </li>
+                            <li class="stage-item">
+                                <div class="stage-number">现在</div>
+                                <div class="stage-content"><h4>广义可逆计算(GRC)</h4><p>统一的理论框架形成</p></div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="column">
+                        <div class="highlight-box">
+                            <h3><i class="fa-solid fa-crosshairs"></i> 理论定位</h3>
+                            <p><strong>软件产品线工程（SPL）</strong>领域的重大进展，为其提供坚实的理论基础和系统化实现方案。</p>
+                        </div>
+                        <div class="highlight-box" style="background-color: #fef3c7; border-left-color: var(--color-warning);">
+                            <h3><i class="fa-solid fa-atom"></i> 思想来源</h3>
+                            <p>由 <strong>canonical (2007)</strong> 提出，思想源于理论物理学，将软件视为可叠加的"波"而非孤立的"粒子"。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>			
+
+
+           <!-- Slide 5: 核心公式：软件构造的统一理论 -->
+            <section class="slide">
+                <h2>核心公式：软件构造的统一理论</h2>
+                <div class="slide-content">
+                    <div class="content-container">
+                        <div class="formula-block">
+                            <div class="formula-equation">App = Delta x-extends Generator&lt;DSL&gt;</div>
+                            <div class="formula-equation">即 Y = F(X) ⊕ Δ</div>
+                        </div>
+                        
+                        <h3>公式解读：</h3>
+                        <div class="two-column">
+                            <div class="column">
+                                <ul class="icon-list">
+                                    <li class="icon-bullet">
+                                        <i class="fa-solid fa-y"></i>
+                                        <div>
+                                            <p>Y：目标系统（最终应用）</p>
+                                        </div>
+                                    </li>
+                                    <li class="icon-bullet">
+                                        <i class="fa-solid fa-f"></i>
+                                        <div>
+                                            <p>F(X)：由生成器（Generator）根据领域特定语言（DSL）描述的模型（X）生成的主体部分</p>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="column">
+                                <ul class="icon-list">
+                                    <li class="icon-bullet">
+                                        <i class="fa-solid fa-delta"></i>
+                                        <div>
+                                            <p>Δ (Delta)：差量，用于定制、调整、补充的部分</p>
+                                        </div>
+                                    </li>
+                                    <li class="icon-bullet">
+                                        <i class="fa-solid fa-circle-plus"></i>
+                                        <div>
+                                            <p>⊕：差量合并运算，具有明确定义的代数属性（如结合律）</p>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 6: 核心思想的三种理解 -->
+            <section class="slide">
+                <h2>核心思想的三种理解</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <div class="highlight-box">
+                            <h3>1. 工程视角</h3>
+                            <p><code>结果 = 生成的主体 + 可控的差量</code></p>
+                            <p>分离自动化生成与人工定制，实现非侵入式修改</p>
+                        </div>
+                        <div class="highlight-box">
+                            <h3>2. 数学视角</h3>
+                            <p>类似于<strong>小波分析</strong>（近似部分 + 细节部分）</p>
+                            <p>将系统分解为基础模式与细节扰动</p>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="highlight-box">
+                            <h3>3. 哲学视角</h3>
+                            <p>从"存在"的本体论转向"生成"的演化论</p>
+                            <p>关注过程而非静态结构，强调变化作为一等公民</p>
+                        </div>
+                        <div class="quote">
+                            <p>"可逆计算提供了一种将变化系统化的理论框架，使软件演化变得可预测、可管理。"</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 7: 1. 模型驱动架构（MDA）的演进 -->
+            <section class="slide">
+                <h2>1. 模型驱动架构（MDA）的演进</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <h3>传统MDA</h3>
+                        <pre class="code-block"><code>App = Transformer(Model)</code></pre>
+                        <p style="min-height:3em">模型与转换器刚性绑定，难以应对意外变化。</p>
+                        <div class="highlight-box">
+                            <p><strong>问题：</strong>生成后修改困难，模型易变成"胖模型"</p>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <h3>可逆计算的改进</h3>
+                        <pre class="code-block"><code>App = Generator(Model) ⊕ Δ</code></pre>
+                        <p style="min-height:3em">引入Δ机制，将DOP的差量思想与MDA的生成思想深度融合。</p>
+                        <div class="highlight-box">
+                            <p><strong>意义：</strong>支持生成过程中的非侵入式定制，适应渐进式演化。</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="icon-bullet" style="margin-top: 1.5rem;">
+                    <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                    <div>
+                        <p>核心转变</p>
+                        <span class="details">从"一次性转换"到"生成+差量调整"的双阶段模式</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 8: 软件复用理念的深化 -->
+            <section class="slide">
+                <h2>2. 软件复用理念的深化</h2>
+                <h3>复用演进三阶段</h3>
+                <ul class="stage-list" style="margin-bottom: 1rem;">
+                    <li class="stage-item"><div class="stage-number">1</div><div class="stage-content"><h4>面向对象 (OO)</h4><p>A > B (继承，模糊的"多")</p></div></li>
+                    <li class="stage-item"><div class="stage-number">2</div><div class="stage-content"><h4>组件化 (Component)</h4><p>A = B + C (组合，明确的"多")</p></div></li>
+                    <li class="stage-item"><div class="stage-number">3</div><div class="stage-content"><h4>可逆计算 (Reversible)</h4><p>B = A + (-C) (差量，可增可减的"多")</p></div></li>
+                </ul>
+                <div class="highlight-box">
+                    <h3>关键突破：从"相同可复用"到"相关即可复用"</h3>
+                    <p>通过差量叠加，隔离核心产品演进与客户定制需求。<code>System = Base ⊕ Δ_Industry ⊕ Δ_Region</code></p>
+                </div>
+            </section>
+			
+            <!-- Slide 9: DSL的整合 -->
+            <section class="slide">
+                <h2>3. 领域特定语言（DSL）的整合</h2>
+                <div class="slide-content-wrapper">
+                    <p>通过DSL图册(Atlas)与差量结合，解决单一DSL表达力有限和"胖模型"问题。</p>
+                    <div class="two-column">
+                        <div class="column">
+                            <h3><i class="fa-solid fa-arrows-left-right"></i> 横向分解 (多DSL协作)</h3>
+                            <pre class="code-block"><code>App = G1(DSL1) ⊕ G2(DSL2) ⊕ Delta</code></pre>
+                        </div>
+                        <div class="column">
+                            <h3><i class="fa-solid fa-arrows-up-down"></i> 纵向分解 (多阶段生成)</h3>
+                            <pre class="code-block"><code>XMeta = Generator&lt;XORM&gt; ⊕ Δ_meta
+XView = Generator&lt;XMeta&gt; ⊕ Δ_view
+...</code></pre>
+                        </div>
+                    </div>
+                    <div class="highlight-box" style="background-color: #ecfdf5; border-left-color: var(--color-secondary);">
+                        <p><strong>优势：</strong>信息逐层注入，每一层只关注特定抽象级别的信息，避免单一模型承载过多职责。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 10: 4. 语言工作台（Language Workbench）的实用化 -->
+            <section class="slide">
+                <h2>4. 语言工作台（Language Workbench）的实用化</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <h3>统一元模型（XDef）</h3>
+                        <p>所有DSL基于同一元模型定义，实现无缝嵌入与协同。</p>
+                        <div class="highlight-box">
+                            <p><strong>实现：</strong>消除DSL间的语义鸿沟，保证互操作性</p>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <h3>内置差量机制（x-extends）</h3>
+                        <p>"变化"成为所有DSL的语言级一等公民，保证合并语义一致性。</p>
+                    </div>
+                </div>
+                
+                <h3>多重表象支持：</h3>
+                <p>同一模型可在XML、JSON、Excel、可视化设计器间无损转换。</p>
+                
+                <div class="formula-block">
+                    <div class="formula-equation">"推导+修正"工作模式</div>
+                </div>
+                
+                <div class="icon-bullet">
+                    <i class="fa-solid fa-sync-alt"></i>
+                    <div>
+                        <p>核心价值</p>
+                        <span class="details">在保持模型一致性的前提下，支持多角度、多粒度的编辑与演化</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 11: DDD的重新解读 -->
+            <section class="slide">
+                <h2>5. 领域驱动设计（DDD）的重新解读</h2>
+                <div class="slide-content-wrapper">
+                    <div class="highlight-box">
+                        <h3>新框架："空间-时间-语言-变化" 四维思维</h3>
+                    </div>
+                    <ul class="icon-list">
+                        <li class="icon-bullet"><i class="fa-solid fa-cube"></i><div><p><strong>空间：</strong>限界上下文是"相对空间"，防腐层是"坐标变换"。</p></div></li>
+                        <li class="icon-bullet"><i class="fa-solid fa-clock"></i><div><p><strong>时间：</strong>领域事件是状态空间的差量Δ (<code>NewState = OldState ⊕ Event</code>)。</p></div></li>
+                        <li class="icon-bullet"><i class="fa-solid fa-language"></i><div><p><strong>语言：</strong>通用语言/DSL是描述空间的"坐标系"。</p></div></li>
+                        <li class="icon-bullet"><i class="fa-solid fa-wave-square"></i><div><p><strong>变化：</strong>演化是坐标系上任意点的"差量扰动" (增与减)。</p></div></li>
+                    </ul>
+                    <div class="highlight-box" style="background-color: #fef3c7; border-left-color: var(--color-warning);">
+                        <p><strong>认知转变：</strong>从"先有对象，后有关系"到"<strong>先有空间，后有对象</strong>"。</p>
+                    </div>
+                </div>
+            </section>
+			
+            <!-- Slide 12: 从粒子视角到波动视角 -->
+            <section class="slide">
+                <h2>从粒子视角到波动视角</h2>
+                
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>维度</th>
+                            <th>传统世界观（粒子视角）</th>
+                            <th>新世界观（波动视角）</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>基本单元</strong></td>
+                            <td>对象、组件、模块</td>
+                            <td>连续模式（场）+ 扰动（Δ）</td>
+                        </tr>
+                        <tr>
+                            <td><strong>构造方式</strong></td>
+                            <td>侵入式组装</td>
+                            <td>非侵入式叠加</td>
+                        </tr>
+                        <tr>
+                            <td><strong>关注焦点</strong></td>
+                            <td>"这个对象是什么？"</td>
+                            <td>"在哪个坐标系下发生了什么变化？"</td>
+                        </tr>
+                        <tr>
+                            <td><strong>演化模式</strong></td>
+                            <td>替换与重构</td>
+                            <td>叠加与干涉</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="highlight-box" style="margin-top: 1.5rem;">
+                    <p><strong>隐喻转变：</strong>从"乐高积木"（离散组装）到"水波干涉"（连续叠加）</p>
+                </div>
+            </section>
+
+            <!-- Slide 13: 可逆计算在实践中的广泛体现 -->
+            <section class="slide">
+                <h2>可逆计算在实践中的广泛体现</h2>
+                <div class="slide-content-wrapper">
+                    <div class="highlight-box">
+                        <p><strong>核心理念：</strong><code>结果 = Generator<DSL> ⊕ Δ</code> 的范式在多种先进技术中复用。</p>
+                    </div>
+                    <div class="case-grid">
+                        <div class="case-card"><h4><i class="fa-brands fa-docker"></i> Docker</h4><p>联合文件系统 (UnionFS) 即 ⊕ 操作，每一层都是对上一层的差量补充。</p></div>
+                        <div class="case-card"><h4><i class="fa-solid fa-layer-group"></i> Kustomize</h4><p>通过补丁 (Patch) 实现配置的差量化管理，无需修改基础配置。</p></div>
+                        <div class="case-card"><h4><i class="fa-brands fa-react"></i> React VDOM</h4><p>虚拟DOM差分 (Diff) 算法即 Δ 计算，只更新变化部分。</p></div>
+                        <div class="case-card"><h4><i class="fa-brands fa-git-alt"></i> Git</h4><p>版本控制本质是差量管理，每次提交都是对前一状态的差量。</p></div>
+                    </div>
+                    <p style="text-align:center; font-weight:600; color: var(--color-text-dark);">可逆计算是对这些实践背后<strong>共性</strong>的理论提炼，将隐性模式显性化、系统化。</p>
+                </div>
+            </section>
+
+            <!-- Slide 14: Delta导向架构的数学不变式 -->
+            <section class="slide">
+                <h2>Delta导向架构的数学不变式</h2>
+                <div class="slide-content">
+                    <div class="content-container">
+                        <div class="formula-block" style="font-size: 1.6rem;">
+                            <div class="formula-equation">基本公式：Y = F(X) ⊕ Delta</div>
+                        </div>
+                        
+                        <p>取代传统的 <code>App = Generator(Model) + ManualAdjustment</code>。</p>
+                        
+                        <div class="highlight-box">
+                            <p><strong>⊕ 是形式化的、可控的合并运算，使"手动调整"可追踪、可组合。</strong></p>
+                        </div>
+                        
+                        <h3>核心公理：</h3>
+                        <div class="formula-block">
+                            <div class="formula-equation">"一切皆差量（Everything is a Delta）"</div>
+                        </div>
+                        
+                        <div class="two-column">
+                            <div class="column">
+                                <ul class="icon-list">
+                                    <li class="icon-bullet">
+                                        <i class="fa-solid fa-infinity"></i>
+                                        <div>
+                                            <p>完整程序</p>
+                                            <span class="details">可视为从"无"到"有"的特殊Δ</span>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="column">
+                                <ul class="icon-list">
+                                    <li class="icon-bullet">
+                                        <i class="fa-solid fa-universal-access"></i>
+                                        <div>
+                                            <p>统一性</p>
+                                            <span class="details">统一了"初始构造"与"后续演化"</span>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- Slide 15: 递归分解应对复杂性 -->
+            <section class="slide">
+                <h2>递归分解应对复杂性</h2>
+                <div class="slide-content">
+                    <div class="content-container">
+                        <h3>1. 纵向分解（对抗"模型膨胀"）：</h3>
+                        <pre class="code-block"><code>Y = F1(X) ⊕ Δ1
+X = F2(Z) ⊕ Δ2
+=&gt; Y = F1(F2(Z) ⊕ Δ2) ⊕ Δ1</code></pre>
+                        
+                        <div class="icon-bullet">
+                            <i class="fa-solid fa-layer-group"></i>
+                            <div>
+                                <p>意义</p>
+                                <span class="details">信息可沿转换链逐层注入Δ，降低单层模型复杂度</span>
+                            </div>
+                        </div>
+                        
+                        <h3>2. 横向分解（多关注点集成）：</h3>
+                        <pre class="code-block"><code>App = F1(DSL1) ⊕ F2(DSL2) ⊕ ... ⊕ Δ_extra</code></pre>
+                        
+                        <h3>3. 元编程空间分解（工具自身演化）：</h3>
+                        <pre class="code-block"><code>Generator2 = Generator1 ⊕ Δ_Generator</code></pre>
+                        
+                        <div class="highlight-box">
+                            <p><strong>生成工具也可以差量演进</strong>——实现工具与产出物的协同演化</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 16: 与AI及元模型的结合 -->
+            <section class="slide">
+                <h2>与AI及元模型的结合</h2>
+                
+                <div class="two-column">
+                    <div class="column">
+                        <h3>元模型即类型</h3>
+                        <pre class="code-block"><code>M : MM</code></pre>
+                        <p>（模型M是元模型MM的实例）</p>
+                        
+                        <div class="highlight-box" style="margin-top: 1.5rem;">
+                            <h3>AI驱动的生成式构造</h3>
+                            <pre class="code-block"><code>Model = AIGenerator(Metamodel, Requirements)</code></pre>
+                            <p>元模型作为<strong>结构化约束</strong>，引导AI输出合法结构。</p>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <h3>元模型的差量演化</h3>
+                        <pre class="code-block"><code>Metamodel' = Metamodel ⊕ Delta_Metamodel</code></pre>
+                        
+                        <div class="highlight-box" style="margin-top: 1.5rem;">
+                            <p><strong>自相似性：</strong>语言（元模型）本身也可以通过差量进行非侵入式升级。</p>
+                        </div>
+                        
+                        <div class="icon-bullet">
+                            <i class="fa-solid fa-sitemap"></i>
+                            <div>
+                                <p>递归结构</p>
+                                <span class="details">工具、语言、应用在同一Δ代数框架下统一</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 17: 理论意义——系统化解决矛盾 -->
+            <section class="slide">
+                <h2>理论意义——系统化解决矛盾</h2>
+                
+                <div class="two-column">
+                    <div class="column">
+                        <div class="highlight-box">
+                            <h3>不是"妥协平衡"</h3>
+                            <p>（各让一步的两难）</p>
+                        </div>
+                        <div class="icon-list">
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-arrow-down-arrow-up"></i>
+                                <div>
+                                    <p>传统方式</p>
+                                    <span class="details">在自动化与灵活性之间寻找折中点</span>
+                                </div>
+                            </li>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="highlight-box">
+                            <h3>而是"分层与叠加"</h3>
+                            <p>（在更高维度解决问题）</p>
+                        </div>
+                        <div class="icon-list">
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-layer-group"></i>
+                                <div>
+                                    <p>可逆计算方式</p>
+                                    <span class="details">在不同层次分别追求极致，然后叠加</span>
+                                </div>
+                            </li>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="two-column">
+                    <div class="column">
+                        <h3 style="color: var(--color-primary);"><i class="fa-solid fa-layer-group"></i> 生成层</h3>
+                        <p>追求极致的自动化与标准化。</p>
+                    </div>
+                    <div class="column">
+                        <h3 style="color: var(--color-secondary);"><i class="fa-solid fa-delta"></i> 差量层</h3>
+                        <p>允许极致的灵活性与定制化。</p>
+                    </div>
+                    <div class="column">
+                        <h3 style="color: var(--color-purple);"><i class="fa-solid-circle-plus"></i> 合并运算⊕</h3>
+                        <p>将两者可控地结合。</p>
+                    </div>
+                </div>
+                
+                <div class="quote">
+                    <p><strong>统一解释力：</strong>MDA、DOP、DDD、DSL等在Δ代数下获得统一框架。</p>
+                </div>
+            </section>
+
+            <!-- Slide 18: 面对的挑战 -->
+            <section class="slide">
+                <h2>面对的挑战</h2>
+                
+                <div class="two-column">
+                    <div class="column">
+                        <ul class="icon-list">
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-pen-ruler"></i>
+                                <div>
+                                    <p>1. 设计复杂度</p>
+                                    <span class="details">如何设计恰当的DSL、生成器、合并语义？</span>
+                                    <div class="sub-items">
+                                        <div class="sub-item">需要深度的领域分析</div>
+                                        <div class="sub-item">合并语义的数学形式化</div>
+                                        <div class="sub-item">差量冲突的检测与解决</div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                                <div>
+                                    <p>2. 学习曲线</p>
+                                    <span class="details">需要理解新的世界观和抽象概念</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="column">
+                        <ul class="icon-list">
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-toolbox"></i>
+                                <div>
+                                    <p>3. 工具链成熟度</p>
+                                    <span class="details">需要Nop这样的平台完整实现</span>
+                                    <div class="sub-items">
+                                        <div class="sub-item">可视化设计器的支持</div>
+                                        <div class="sub-item">调试与测试工具</div>
+                                        <div class="sub-item">性能分析与优化</div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-people-group"></i>
+                                <div>
+                                    <p>4. 团队接受度</p>
+                                    <span class="details">思维模式的根本转变</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 19: 总结 -->
+            <section class="slide">
+                <h2>总结</h2>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-equals"></i>
+                        <div><p>一个核心公式</p><span class="details"><code>Y = F(X) ⊕ Δ</code>，统一了生成与演化。</span></div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-key"></i>
+                        <div><p>两个关键概念</p><span class="details"><strong>差量(Δ)</strong>作为一等公民，<strong>合并(⊕)</strong>作为核心操作。</span></div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-globe-americas"></i>
+                        <div><p>一次世界观转变</p><span class="details">从<strong>“粒子视角”</strong>到<strong>“波动视角”</strong>。</span></div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-bullseye"></i>
+                        <div><p>一个终极目标</p><span class="details">构建既具备机器级效率(生成)，又保留人类级智慧(差量)的软件系统。</span></div>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Slide 20: Q&A -->
+            <section class="slide title-slide">
+                <h1><i class="fa-solid fa-comments"></i> 提问与交流</h1>
+                <p class="subtitle" style="margin-top: 2rem;">感谢聆听！</p>
+                <div class="meta-info" style="font-size: 1.1rem; text-align: left; max-width: 600px; margin-top: 2.5rem;">
+                    <p style="margin-bottom: 1rem;"><i class="fa-solid fa-envelope" style="margin-right: 10px; color: var(--color-primary);"></i> canonical_entropy@163.com</p>
+                    <p><i class="fa-solid fa-link" style="margin-right: 10px; color: var(--color-primary);"></i> 参考文献: <a href="https://www.zhihu.com/column/reversible-computation">知乎可逆计算专栏</a></p>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn" id="home-btn" title="First Slide"><i class="fa-solid fa-home"></i></button>
+            <button class="btn" id="prev-btn" title="Previous"><i class="fa-solid fa-arrow-left"></i></button>
+            <button class="btn" id="next-btn" title="Next"><i class="fa-solid fa-arrow-right"></i></button>
+            <button class="btn" id="fullscreen-btn" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+            <button class="btn" id="print-btn" title="Print"><i class="fa-solid fa-print"></i></button>
+            <button class="btn" id="pdf-btn" title="Export to PDF"><i class="fa-solid fa-file-pdf"></i></button>
+        </div>
+    </div>
+
+    <script>
+    // Mermaid图表配置和初始化
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'default',
+        securityLevel: 'loose',
+        fontFamily: 'var(--font-main)',
+        flowchart: {
+            useMaxWidth: false,
+            htmlLabels: true,
+            curve: 'basis'
+        }
+    });
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('presentation-container');
+        const allSlides = document.querySelectorAll('.slide');
+        const homeBtn = document.getElementById('home-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const printBtn = document.getElementById('print-btn');
+        const pdfBtn = document.getElementById('pdf-btn');
+        const slideCounter = document.getElementById('slide-counter');
+        const progressBar = document.getElementById('progress-bar');
+        
+        let currentSlide = 0;
+        const totalSlides = allSlides.length;
+
+        function showSlide(index, skipHashUpdate = false) {
+            if (index < 0 || index >= totalSlides) return;
+            allSlides.forEach((slide, i) => slide.classList.toggle('active', i === index));
+            currentSlide = index;
+            updateControls();
+            if (!skipHashUpdate) {
+                updateHash(index);
+            }
+        }
+        
+        function updateControls() {
+            slideCounter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+            progressBar.style.width = `${((currentSlide + 1) / totalSlides) * 100}%`;
+            prevBtn.disabled = currentSlide === 0;
+            nextBtn.disabled = currentSlide === totalSlides - 1;
+        }
+        
+        function nextSlide() { 
+            showSlide(currentSlide + 1); 
+        }
+        
+        function prevSlide() { 
+            showSlide(currentSlide - 1); 
+        }
+        
+        function goToFirstSlide() { 
+            showSlide(0); 
+        }
+        
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => alert(`Cannot enter fullscreen mode: ${err.message}`));
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        
+        function updateHash(index) {
+            const hash = `#slide-${index + 1}`;
+            if (location.hash !== hash) {
+                history.pushState(null, null, hash);
+            }
+        }
+        
+        function parseHashToIndex() {
+            const h = location.hash;
+            const m = h.match(/slide-(\d+)/i);
+            if (m) {
+                const idx = parseInt(m[1], 10) - 1;
+                if (!isNaN(idx) && idx >= 0 && idx < totalSlides) {
+                    return idx;
+                }
+            }
+            return null;
+        }
+
+        function printPresentation() {
+            window.print();
+        }
+
+        async function prepareForPdf() {
+            const pdfContainer = document.createElement('div');
+            pdfContainer.className = 'pdf-page-container';
+            allSlides.forEach(slide => {
+                const clone = slide.cloneNode(true);
+                clone.classList.remove('active');
+                clone.classList.add('pdf-slide');
+                pdfContainer.appendChild(clone);
+            });
+            document.body.appendChild(pdfContainer);
+            return pdfContainer;
+        }
+        
+        function exportToPDF() {
+            console.log('Starting PDF export...');
+            const originalButtonContent = pdfBtn.innerHTML;
+            pdfBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+            pdfBtn.disabled = true;
+            
+            prepareForPdf().then(pdfContainer => {
+                const options = {
+                    margin: 0,
+                    filename: '可逆计算理论-统一软件构造与演化的新范式.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { 
+                        scale: 2, 
+                        useCORS: true, 
+                        allowTaint: true, 
+                        letterRendering: true,
+                        backgroundColor: '#ffffff'
+                    },
+                    jsPDF: { 
+                        unit: 'in', 
+                        format: 'letter', 
+                        orientation: 'landscape' 
+                    },
+                    pagebreak: { 
+                        mode: ['css']
+                    }
+                };
+
+                html2pdf().set(options).from(pdfContainer).save().then(() => {
+                    console.log('PDF export successful!');
+                    document.body.removeChild(pdfContainer);
+                    pdfBtn.innerHTML = originalButtonContent;
+                    pdfBtn.disabled = false;
+                }).catch(err => {
+                    console.error('PDF export failed:', err);
+                    document.body.removeChild(pdfContainer);
+                    pdfBtn.innerHTML = originalButtonContent;
+                    pdfBtn.disabled = false;
+                    alert('PDF export failed. Check the console for details.');
+                });
+            });
+        }
+
+        // Event listeners
+        homeBtn.addEventListener('click', goToFirstSlide);
+        nextBtn.addEventListener('click', nextSlide);
+        prevBtn.addEventListener('click', prevSlide);
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+        printBtn.addEventListener('click', printPresentation);
+        pdfBtn.addEventListener('click', exportToPDF);
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { 
+                e.preventDefault(); 
+                nextSlide(); 
+            }
+            if (e.key === 'ArrowLeft' || e.key === 'PageUp') { 
+                e.preventDefault(); 
+                prevSlide(); 
+            }
+            if (e.key === 'Home') { 
+                e.preventDefault(); 
+                goToFirstSlide(); 
+            }
+            if (e.key === 'End') { 
+                e.preventDefault(); 
+                showSlide(totalSlides - 1); 
+            }
+        });
+
+        // Touch navigation
+        let touchStartX = 0;
+        container.addEventListener('touchstart', e => { 
+            touchStartX = e.changedTouches[0].screenX; 
+        }, { passive: true });
+        
+        container.addEventListener('touchend', e => {
+            const touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 50) nextSlide();
+            if (touchEndX - touchStartX > 50) prevSlide();
+        });
+
+        // Hash-based navigation
+        window.addEventListener('popstate', () => {
+            const idx = parseHashToIndex();
+            if (idx !== null && idx !== currentSlide) {
+                showSlide(idx, true);
+            }
+        });
+
+        // Initial slide setup
+        const initialIndexFromHash = parseHashToIndex();
+        if (initialIndexFromHash !== null) {
+            showSlide(initialIndexFromHash, true);
+        } else {
+            showSlide(0);
+        }
+    });
+    </script>
+</body>
+</html>
