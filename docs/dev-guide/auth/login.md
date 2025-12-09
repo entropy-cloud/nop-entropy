@@ -75,3 +75,17 @@ authFilter中实际执行登录验证操作时使用的是ILoginService接口，
 
 3. nop.auth.refresh-token-expire-seconds
    刷新令牌(refresh token)的超时时间，缺省为300\*60，即5个小时
+
+## 会话并发开关
+
+为了控制同一用户名是否允许同时存在多个登录会话，提供如下配置项：
+
+- `nop.auth.login.allow-multiple-sessions-same-user`（缺省：false）
+
+行为说明：
+- 当为 `false`（默认）时：用户再次登录会自动退出该用户名下的其他活动会话（在 `LoginServiceImpl.autoLogout` 中执行）。
+- 当为 `true` 时：允许同一用户名同时存在多个会话，登录时不会自动登出其他会话。
+
+实现说明：
+- 该参数通过 `LoginServiceImpl` 中的 `@InjectValue("@cfg:nop.auth.login.allow-multiple-sessions-same-user|false")` 注入，属于启动时生效的静态配置，不支持运行时动态修改。
+

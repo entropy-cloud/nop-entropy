@@ -75,3 +75,16 @@ Currently, integration with Keycloak single sign-on is implemented by adding the
    Refresh token expiration time in seconds; defaults to 300\*60, i.e., 5 hours.
 
 <!-- SOURCE_MD5:525bacb5974244c2b0c11f735249725a-->
+
+## Concurrent Session Switch
+
+To control whether the same username can have multiple concurrent login sessions, use the following configuration:
+
+- `nop.auth.login.allow-multiple-sessions-same-user` (default: false)
+
+Behavior:
+- When `false` (default): logging in will automatically log out other active sessions under the same username (handled in `LoginServiceImpl.autoLogout`).
+- When `true`: allows multiple concurrent sessions for the same username; logging in will not auto-logout other sessions.
+
+Implementation notes:
+- This parameter is injected in `LoginServiceImpl` via `@InjectValue("@cfg:nop.auth.login.allow-multiple-sessions-same-user|false")` and is a static, startup-time configuration. It is not dynamically changeable at runtime.

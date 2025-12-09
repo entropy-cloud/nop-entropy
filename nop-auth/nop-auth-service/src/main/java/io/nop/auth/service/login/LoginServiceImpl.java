@@ -99,6 +99,8 @@ public class LoginServiceImpl extends AbstractLoginService {
     protected IAuthTokenProvider authTokenProvider;
 
     private boolean returnDeptName;
+    // 是否允许同一用户名同时存在多个登录会话（不可动态修改），默认 false
+    private boolean allowMultipleSessionsSameUser;
 
     public boolean isReturnDeptName() {
         return returnDeptName;
@@ -107,6 +109,11 @@ public class LoginServiceImpl extends AbstractLoginService {
     @InjectValue("@cfg:nop.login.return-dept-name|false")
     public void setReturnDeptName(boolean returnDeptName) {
         this.returnDeptName = returnDeptName;
+    }
+
+    @InjectValue("@cfg:nop.auth.login.allow-multiple-sessions-same-user|false")
+    public void setAllowMultipleSessionsSameUser(boolean allowMultipleSessionsSameUser) {
+        this.allowMultipleSessionsSameUser = allowMultipleSessionsSameUser;
     }
 
     public Set<String> getAllowedLoginMethods() {
@@ -332,6 +339,10 @@ public class LoginServiceImpl extends AbstractLoginService {
      */
     protected void autoLogout(IUserContext userContext) {
         if (loginSessionStore == null)
+            return;
+
+        // 如果允许同一用户名存在多个登录会话，则不自动登出其他会话
+        if (allowMultipleSessionsSameUser)
             return;
 
         List<String> sessionIds = loginSessionStore.getActionSessions(userContext.getUserName());

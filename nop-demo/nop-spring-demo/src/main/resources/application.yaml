@@ -14,6 +14,7 @@ nop:
     login:
       allow-create-default-user: true # 如果用户表为空，则自动创建缺省账户nop, 密码nop-test
       use-dao-user-context-cache: true
+      allow-multiple-sessions-same-user: true
 
     jwt:
       enc-key: dij3)(4ldt[]erq=2mfKID
@@ -25,6 +26,7 @@ nop:
     init-database-schema: true
     enable-tenant-by-default: true
     auto-add-tenant-col: true
+
 
   # 使用Spring所管理的数据源和事务管理器
   dao:
