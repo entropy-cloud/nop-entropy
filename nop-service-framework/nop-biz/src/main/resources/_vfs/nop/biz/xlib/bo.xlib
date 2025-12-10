@@ -186,7 +186,7 @@
 
             <source>
                 <c:script>
-                    thisObj.invoke('doSave',{data,inputSelection,prepareUpdate:slot_prepareSave}, null,svcCtx);
+                    thisObj.invoke('doSave',{data,inputSelection,prepareSave:slot_prepareSave}, null,svcCtx);
                 </c:script>
             </source>
         </DoSave>
