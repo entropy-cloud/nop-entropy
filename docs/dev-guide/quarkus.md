@@ -51,9 +51,9 @@ jar包中的bean。
 
 ```
  <plugin>
-    <groupId>org.jboss.jandex</groupId>
+    <groupId>io.smallrye</groupId>
     <artifactId>jandex-maven-plugin</artifactId>
-    <version>1.2.3</version>
+    <version>3.5.2</version>
     <executions>
         <execution>
             <id>make-index</id>

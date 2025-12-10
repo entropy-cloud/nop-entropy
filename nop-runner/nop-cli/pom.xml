@@ -124,7 +124,7 @@
                             <properties>
                                 <quarkus.package.type>uber-jar</quarkus.package.type>
                                 <quarkus.package.main-class>io.nop.cli.NopCliApplication</quarkus.package.main-class>
-                                <quarkus.package.add-runner-suffix>false</quarkus.package.add-runner-suffix>
+                                <quarkus.package.jar.add-runner-suffix>false</quarkus.package.jar.add-runner-suffix>
                                 <skipTests>true</skipTests>
                             </properties>
                         </configuration>
