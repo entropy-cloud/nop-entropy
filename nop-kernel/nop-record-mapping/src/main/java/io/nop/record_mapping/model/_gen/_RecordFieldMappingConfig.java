@@ -137,6 +137,13 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     
     /**
      *  
+     * xml name: processor
+     * 如果设置为flatten-from，则认为来源数据中{from}-{index}.{fieldName}这种形式的字段需要被整理为from对应的列表，然后按照列表格式进行映射。flatten-to则反过来处理。
+     */
+    private java.lang.String _processor ;
+    
+    /**
+     *  
      * xml name: schema
      * schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
      * Map对应props配置,  List对应item配置, Union对应oneOf配置
@@ -170,6 +177,13 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
      * 
      */
     private io.nop.core.model.mapper.IValueMapper<java.lang.String,java.lang.Object> _valueMapper ;
+    
+    /**
+     *  
+     * xml name: varName
+     * 如果设置此属性，映射结果不会保存到实体属性，而是以指定名称存储到解析上下文中。后续字段可以通过上下文变量访问该值，常用于条件解析或字段间依赖处理。
+     */
+    private java.lang.String _varName ;
     
     /**
      *  
@@ -510,6 +524,25 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     
     /**
      * 
+     * xml name: processor
+     *  如果设置为flatten-from，则认为来源数据中{from}-{index}.{fieldName}这种形式的字段需要被整理为from对应的列表，然后按照列表格式进行映射。flatten-to则反过来处理。
+     */
+    
+    public java.lang.String getProcessor(){
+      return _processor;
+    }
+
+    
+    public void setProcessor(java.lang.String value){
+        checkAllowChange();
+        
+        this._processor = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: schema
      *  schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
      * Map对应props配置,  List对应item配置, Union对应oneOf配置
@@ -606,6 +639,25 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     
     /**
      * 
+     * xml name: varName
+     *  如果设置此属性，映射结果不会保存到实体属性，而是以指定名称存储到解析上下文中。后续字段可以通过上下文变量访问该值，常用于条件解析或字段间依赖处理。
+     */
+    
+    public java.lang.String getVarName(){
+      return _varName;
+    }
+
+    
+    public void setVarName(java.lang.String value){
+        checkAllowChange();
+        
+        this._varName = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: virtual
      *  
      */
@@ -676,11 +728,13 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         out.putNotNull("newInstanceExpr",this.getNewInstanceExpr());
         out.putNotNull("newItemExpr",this.getNewItemExpr());
         out.putNotNull("optional",this.isOptional());
+        out.putNotNull("processor",this.getProcessor());
         out.putNotNull("schema",this.getSchema());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("type",this.getType());
         out.putNotNull("valueExpr",this.getValueExpr());
         out.putNotNull("valueMapper",this.getValueMapper());
+        out.putNotNull("varName",this.getVarName());
         out.putNotNull("virtual",this.isVirtual());
         out.putNotNull("when",this.getWhen());
     }
@@ -711,11 +765,13 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         instance.setNewInstanceExpr(this.getNewInstanceExpr());
         instance.setNewItemExpr(this.getNewItemExpr());
         instance.setOptional(this.isOptional());
+        instance.setProcessor(this.getProcessor());
         instance.setSchema(this.getSchema());
         instance.setTagSet(this.getTagSet());
         instance.setType(this.getType());
         instance.setValueExpr(this.getValueExpr());
         instance.setValueMapper(this.getValueMapper());
+        instance.setVarName(this.getVarName());
         instance.setVirtual(this.isVirtual());
         instance.setWhen(this.getWhen());
     }

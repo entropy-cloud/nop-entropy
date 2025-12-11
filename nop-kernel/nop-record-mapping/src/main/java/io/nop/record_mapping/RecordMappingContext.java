@@ -52,6 +52,14 @@ public class RecordMappingContext implements IEvalContext {
         this.compileTool = compileTool;
     }
 
+    public Object getValue(String varName) {
+        return scope.getValue(varName);
+    }
+
+    public void setValue(String varName, Object varValue) {
+        scope.setLocalValue(varName, varValue);
+    }
+
     public boolean isForceUseMap() {
         return forceUseMap;
     }

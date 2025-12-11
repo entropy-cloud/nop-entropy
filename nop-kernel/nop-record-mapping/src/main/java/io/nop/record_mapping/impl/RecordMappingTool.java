@@ -212,6 +212,10 @@ public class RecordMappingTool {
     public void setTargetValue(RecordFieldMappingConfig field,
                                Object target, Object value,
                                RecordMappingContext ctx) {
+        if (field.getVarName() != null) {
+            ctx.setValue(field.getVarName(), value);
+            return;
+        }
         BeanTool.setComplexProperty(target, field.getName(), value);
     }
 
@@ -221,6 +225,12 @@ public class RecordMappingTool {
                                    Object source, Object target,
                                    RecordMappingContext ctx) {
         Supplier<Object> constructor = field.getObjectConstructor(false, source, target, ctx);
+        if (field.getVarName() != null) {
+            Object toValue = constructor.get();
+            ctx.setValue(field.getVarName(), toValue);
+            return toValue;
+        }
+
         Object toValue = BeanTool.makeComplexProperty(target, field.getName(), constructor);
         if (toValue == null) {
             toValue = new LinkedHashMap<>();
@@ -244,6 +254,11 @@ public class RecordMappingTool {
                                               Object source, Object target,
                                               RecordMappingContext ctx) {
         Supplier<Object> constructor = field.getObjectConstructor(true, source, target, ctx);
+        if (field.getVarName() != null) {
+            Object toItemValue = constructor.get();
+            ctx.setValue(field.getVarName(), toItemValue);
+            return (Collection<?>) toItemValue;
+        }
         Collection<?> toValue = (Collection<?>) BeanTool.makeComplexProperty(target, field.getName(), constructor);
         if (toValue == null) {
             toValue = new ArrayList<>();
