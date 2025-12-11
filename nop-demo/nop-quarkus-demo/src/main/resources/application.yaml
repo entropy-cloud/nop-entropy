@@ -67,8 +67,6 @@ nop:
   web:
     page-validation-thread-count: 4
 
-  cluster:
-    use-empty-naming-service: true
 # 开发模式配置
 
 "%dev":
@@ -140,7 +138,7 @@ quarkus:
           level: INFO
 
     file:
-      enable: false
+      enabled: false
       path: log/app-demo.log
       #      # 输出格式
       #      format: %d{yyyy-MM-dd HH:mm:ss,SSS} %h %N[%i] %-5p [%c{3.}] (%t) %s%e%n

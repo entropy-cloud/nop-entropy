@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc" xmlns:feature="feature" x:dump="true">
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc" xmlns:feature="feature"
+       x:dump="true">
 
     <import resource="_dao.beans.xml"/>
 
@@ -24,16 +25,22 @@
 
     <bean id="nopSysDaoLeaderElector" class="io.nop.sys.dao.elector.SysDaoLeaderElector" ioc:default="true">
         <ioc:condition>
-            <if-property name="nop.cluster.leader-elector.enable-sys-dao-elector"/>
+            <if-property name="nop.cluster.leader-elector.sys-dao-elector.enabled"/>
         </ioc:condition>
     </bean>
 
     <bean id="nopSysDaoMessageService" class="io.nop.sys.dao.message.SysDaoMessageService" ioc:default="true">
         <ioc:condition>
-            <if-property name="nop.cluster.message-service.enable-sys-dao-message-service"/>
+            <if-property name="nop.cluster.message-service.sys-dao-message-service.enabled"/>
         </ioc:condition>
     </bean>
 
     <bean id="nopOrmEntityChangeLogInterceptor" class="io.nop.sys.dao.log.OrmEntityChangeLogInterceptor"
           feature:on="nop.orm.audit.enabled == '' or nop.orm.audit.enabled"/>
+
+    <bean id="nopNamingService" class="io.nop.sys.dao.naming.SysDaoNamingService" ioc:default="true">
+        <ioc:condition>
+            <if-property name="nop.cluster.discovery.sys-dao-naming-service.enabled" enableIfMissing="false"/>
+        </ioc:condition>
+    </bean>
 </beans>

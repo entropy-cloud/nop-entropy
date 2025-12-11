@@ -74,7 +74,8 @@
 
     <bean id="nopEmptyNamingService" class="io.nop.cluster.naming.EmptyNamingService">
         <ioc:condition>
-            <if-property name="nop.cluster.use-empty-naming-service"/>
+            <if-property name="nop.cluster.use-empty-naming-service" enableIfMissing="true"/>
+            <missing-bean>nopNamingService</missing-bean>
         </ioc:condition>
     </bean>
 
