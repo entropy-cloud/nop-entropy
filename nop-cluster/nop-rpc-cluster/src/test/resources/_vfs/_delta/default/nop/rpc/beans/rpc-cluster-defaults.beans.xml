@@ -7,7 +7,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="mockDiscoveryClient"
+    <bean id="nopNamingService"
           class="io.nop.rpc.cluster.MockDiscoveryClient"/>
 
     <bean id="testRpcClient" parent="AbstractClusterRpcProxyFactoryBean"
