@@ -123,7 +123,7 @@ public interface ApiErrors {
                     "ContextProvider尚未初始化或者已经被销毁");
 
     ErrorCode ERR_CONTEXT_ALREADY_CLOSED =
-            define("nop.err.api.context-already-closed", "上下文对象已经被关闭，不允许再更新：seq={}", ARG_SEQ);
+            define("nop.err.api.context-already-closed", "上下文对象已经被关闭，不允许再更新：seq={seq}", ARG_SEQ);
 
     ErrorCode ERR_IOC_BEAN_CONTAINER_NOT_INITIALIZED =
             define("nop.err.api.ioc.bean-container-not-initialized",

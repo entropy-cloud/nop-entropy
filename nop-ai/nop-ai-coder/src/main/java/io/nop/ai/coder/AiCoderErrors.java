@@ -14,7 +14,7 @@ public interface AiCoderErrors {
             "未知的SQL类型: {sqlType}", ARG_SQL_TYPE);
 
     ErrorCode ERR_AI_CODER_HEADERS_AND_DATA_NOT_MATCH =
-            define("nop.err.ai.coder.headers-and-data-not-match", "表头和数据的列数不匹配:headers={},data={}",
+            define("nop.err.ai.coder.headers-and-data-not-match", "表头和数据的列数不匹配:headers={headers},data={data}",
                     ARG_HEADERS, ARG_DATA);
 
 

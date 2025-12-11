@@ -330,7 +330,7 @@ public interface CommonErrors {
             "读取文件失败: {path}", ARG_PATH);
 
     ErrorCode ERR_FILE_INVALID_REGEX_PATTERN = define("nop.err.file.invalid-regex-pattern",
-            "文件匹配正则表达式格式不正确：{}", ARG_REGEX);
+            "文件匹配正则表达式格式不正确：{regex}", ARG_REGEX);
 
     ErrorCode ERR_FILE_WRITE_FAIL = define("nop.err.file.write-fail",
             "写入文件失败: {path}", ARG_PATH);

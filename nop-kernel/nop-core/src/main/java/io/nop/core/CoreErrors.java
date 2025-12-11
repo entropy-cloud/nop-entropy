@@ -328,7 +328,7 @@ public interface CoreErrors {
             "动态对象不支持属性:{propName}", ARG_PROP_NAME);
 
     ErrorCode ERR_LANG_DYNAMIC_OBJECT_DUPLICATE_PROP = define("nop.err.core.dynamic.object-duplicate-prop",
-            "动态对象的属性不允许重名：propName={},oldValue={},newValue={}", ARG_PROP_NAME, ARG_OLD_VALUE, ARG_NEW_VALUE);
+            "动态对象的属性不允许重名：propName={propName},oldValue={oldValue},newValue={newValue}", ARG_PROP_NAME, ARG_OLD_VALUE, ARG_NEW_VALUE);
 
     ErrorCode ERR_LANG_DYNAMIC_OBJECT_EMPTY_PROP_NAME = define("nop.err.core.dynamic.object-empty-prop-name",
             "动态对象的属性名不能为空");
@@ -707,7 +707,7 @@ public interface CoreErrors {
             "类[{className}]没有缺省构造器", ARG_CLASS_NAME);
 
     ErrorCode ERR_REFLECT_TREE_BEAN_NOT_SIMPLE_VALUE = define("nop.err.core.reflect.tree-bean-not-simple-value",
-            "TreeBean具有属性或者子节点，不是简单数据类型:{}", ARG_BEAN);
+            "TreeBean具有属性或者子节点，不是简单数据类型:{bean}", ARG_BEAN);
     ErrorCode ERR_REFLECT_BEAN_NOT_SUPPORT_GET_BY_INDEX = define("nop.err.core.reflect.not-support-get-by-index",
             "[{className}]不是数组或者列表类型，不支持按照下标获取", ARG_CLASS_NAME);
 
@@ -922,7 +922,7 @@ public interface CoreErrors {
 
     ErrorCode ERR_TREE_DUPLICATE_NODE_ID =
             define("nop.err.tree.duplicate-node-id",
-                    "多个节点具有同样的id:{}", ARG_NODE_ID);
+                    "多个节点具有同样的id:{nodeId}", ARG_NODE_ID);
 
     ErrorCode ERR_CORE_NO_TENANT_ID =
             define("nop.err.core.no-tenant-id", "上下文环境没有设置租户id");

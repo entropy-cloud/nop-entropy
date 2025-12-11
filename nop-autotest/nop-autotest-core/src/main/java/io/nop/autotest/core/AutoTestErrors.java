@@ -46,7 +46,7 @@ public interface AutoTestErrors {
             "输出结果[{fileName}]与录制的文件不匹配");
 
     ErrorCode ERR_AUTOTEST_NOT_EXPECTED_DATA = define("nop.err.autotest.not-expect-data",
-            "输出[{fileName}]不是期望的结果:expected={},output={}", ARG_FILE_NAME, ARG_EXPECTED, ARG_OUTPUT);
+            "输出[{fileName}]不是期望的结果:expected={expected},output={output}", ARG_FILE_NAME, ARG_EXPECTED, ARG_OUTPUT);
 
     ErrorCode ERR_AUTOTEST_NO_DAO_FOR_TABLE = define("nop.err.autotest.no-dao-for-table",
             "没有找到数据库表[{tableName}]所对应的DAO对象", ARG_TABLE_NAME);

@@ -60,5 +60,5 @@ public interface XuiErrors {
                     ARG_VIEW_PATH);
 
     ErrorCode ERR_XUI_UNKNOWN_JSON_COMPONENT_PROP =
-            define("nop.err.xui.unknown-json-component-prop", "没有找到对应的json组件属性:{}", ARG_PROP_NAME);
+            define("nop.err.xui.unknown-json-component-prop", "没有找到对应的json组件属性:{propName}", ARG_PROP_NAME);
 }

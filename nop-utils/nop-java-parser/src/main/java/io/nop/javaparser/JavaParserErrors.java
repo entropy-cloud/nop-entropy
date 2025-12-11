@@ -8,5 +8,5 @@ public interface JavaParserErrors {
     String ARG_PARSE_RESULT = "parseResult";
 
     ErrorCode ERR_JAVA_PARSER_PARSE_FAILED =
-            define("nop.err.javaparser.parse-failed", "Java解析失败:{}", ARG_PARSE_RESULT);
+            define("nop.err.javaparser.parse-failed", "Java解析失败:{parseResult}", ARG_PARSE_RESULT);
 }

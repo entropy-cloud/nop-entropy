@@ -87,10 +87,10 @@ public interface RecordErrors {
             "字段[{fieldName}]的值不允许为空", ARG_FIELD_NAME);
 
     ErrorCode ERR_RECORD_VALUE_NOT_MATCH_STRING = define("nop.err.record.value-not-match-string",
-            "值与预想的情况不匹配:pos={},expected={}", ARG_POS, ARG_EXPECTED);
+            "值与预想的情况不匹配:pos={pos},expected={expected}", ARG_POS, ARG_EXPECTED);
 
     ErrorCode ERR_RECORD_UNSUPPORTED_PACKET_LENGTH_FIELD_LENGTH =
-            define("nop.err.record.unspported-packet-field-length-field",
+            define("nop.err.record.unsupported-packet-field-length-field",
                     "不支持的包长度字段长度:{lengthFieldLength} (期望: 1, 2, 3, 4, 或 8)", ARG_LENGTH_FIELD_LENGTH);
 
     ErrorCode ERR_RECORD_FIELD_LENGTH_IS_TOO_LARGE = define("nop.err.record.field-length-is-too-large",

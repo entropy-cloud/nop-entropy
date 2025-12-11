@@ -24,6 +24,6 @@ public interface RpcModelErrors {
             define("nop.err.rpc.invalid-import-path", "无效的导入路径: {path}", ARG_PATH);
 
     ErrorCode ERR_PROTO_NOT_SUPPORT_DATA_TYPE =
-            define("nop.err.proto.not-support-data-type", "不支持的类型:{}", ARG_DATA_TYPE);
+            define("nop.err.proto.not-support-data-type", "不支持的类型:{dataType}", ARG_DATA_TYPE);
 
 }

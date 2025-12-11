@@ -158,7 +158,7 @@ public interface DaoErrors {
 
     ErrorCode ERR_DAO_INVALID_TIMESTAMP =
             define("nop.err.dao.invalid-snowflake-timestamp",
-                    "非法的时间戳，系统时钟不允许回拨；ts={},lastTs={}", ARG_TS, ARG_LAST_TS);
+                    "非法的时间戳，系统时钟不允许回拨；ts={ts},lastTs={lastTs}", ARG_TS, ARG_LAST_TS);
 
     ErrorCode ERR_DAO_INVALID_SQL_DATA_TYPE =
             define("nop.err.dao.invalid-sql-data-type", "非法的SQL数据类型：{sqlDataType}", ARG_SQL_DATA_TYPE);

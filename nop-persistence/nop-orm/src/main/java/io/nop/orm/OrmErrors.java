@@ -248,10 +248,10 @@ public interface OrmErrors {
             "nop.err.orm.collection-element-not-allow-multiple-owner",
             "需要先把[{ownerProp}]属性设置为null，然后才能加入到[{collectionName}]集合中", ARG_OWNER_PROP, ARG_COLLECTION_NAME);
 
-    ErrorCode ERR_ORM_ENTITY_IS_READONLY = define("nop.err.orm.entity-is-readonly", "只读对象不允许被修改:{}", ARG_ENTITY);
+    ErrorCode ERR_ORM_ENTITY_IS_READONLY = define("nop.err.orm.entity-is-readonly", "只读对象不允许被修改:{entity}", ARG_ENTITY);
 
     ErrorCode ERR_ORM_COLLECTION_IS_READONLY = define("nop.err.orm.collection-is-readonly",
-            "只读集合不允许被修改:collectionName={collectionName},owner={}", ARG_COLLECTION_NAME, ARG_OWNER);
+            "只读集合不允许被修改:collectionName={collectionName},owner={owner}", ARG_COLLECTION_NAME, ARG_OWNER);
 
     ErrorCode ERR_ORM_COLLECTION_NOT_ALLOW_NULL = define("nop.err.orm.collection-not-allow-null",
             "对象[{entityName}]的集合属性[{propName}]不允许为null");
@@ -311,7 +311,7 @@ public interface OrmErrors {
             "SQL语句的参数个数不正确，当前值:{count}，期待值:{expected}", ARG_COUNT, ARG_EXPECTED);
 
     ErrorCode ERR_ORM_NOT_SUPPORT_MULTIPLE_QUERY_SPACE_IN_ONE_SQL = define(
-            "nop.err.orm.not-support-multiple-query-space-in-one-sql", "一条SQL语句只允许访问一个数据源:sql={},querySpace={}",
+            "nop.err.orm.not-support-multiple-query-space-in-one-sql", "一条SQL语句只允许访问一个数据源:sql={sql},querySpace={querySpace}",
             ARG_SQL, ARG_QUERY_SPACE);
 
 

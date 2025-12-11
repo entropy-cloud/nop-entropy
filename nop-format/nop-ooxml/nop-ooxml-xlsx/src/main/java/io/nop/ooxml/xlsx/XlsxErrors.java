@@ -16,9 +16,9 @@ public interface XlsxErrors {
     String ARG_REL_ID = "relId";
     String ARG_SHEET_NAME = "sheetName";
 
-    ErrorCode ERR_XLSX_NULL_REL_PART = define("nop.err.xlsx.null-rel-part", "没有关联文件:type={},relId={}", ARG_TYPE,
+    ErrorCode ERR_XLSX_NULL_REL_PART = define("nop.err.xlsx.null-rel-part", "没有关联文件:type={type},relId={relId}", ARG_TYPE,
             ARG_REL_ID);
 
     ErrorCode ERR_XLSX_UNKNOWN_SHEET_NAME = define("nop.err.xlsx.unknown-sheet-name",
-            "找不到sheet名称为:{}", ARG_SHEET_NAME);
+            "找不到sheet名称为:{sheetName}", ARG_SHEET_NAME);
 }

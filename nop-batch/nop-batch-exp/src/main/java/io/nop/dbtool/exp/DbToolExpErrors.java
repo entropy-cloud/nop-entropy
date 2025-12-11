@@ -17,7 +17,7 @@ public interface DbToolExpErrors {
     String ARG_FIELD_NAMES = "fieldNames";
 
     ErrorCode ERR_EXP_UNDEFINED_TABLE = define("nop.err.exp.undefined-table",
-            "未定义的数据库表:{}", ARG_TABLE_NAME);
+            "未定义的数据库表:{tableName}", ARG_TABLE_NAME);
 
     ErrorCode ERR_EXP_UNKNOWN_KEY_FIELD = define("nop.err.exp.unknown-key-field",
             "数据表[{tableName}]没有定义唯一键字段:{fieldName},已定义的字段名为：{fieldNames}",

@@ -37,7 +37,7 @@ public class CodeGen {
             XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-batch/nop-batch-dsl"), "", false);
 
             XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-utils/nop-fsm"), "", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-core-framework/nop-biz"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-service-framework/nop-biz"), "", false);
             XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-persistence/nop-dao"), "", false);
             //
             XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-persistence/nop-orm-model"), "", false);
@@ -52,12 +52,12 @@ public class CodeGen {
             // XCodeGenerator.runProjectFile(new File(projectDir, "../nop-orm"),
             // "/src/test/resources/gen-demo-entity.xgen", true);
 
-            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-core-framework/nop-graphql/nop-graphql-core"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-service-framework/nop-graphql/nop-graphql-core"), "", false);
             XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-rule/nop-rule-core"), "", false);
             XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-stream/nop-stream-cep"), "", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-auth/nop-auth-core"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-service-framework/nop-biz-auth-core"), "", false);
 
-            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-persistence/nop-dbtool/nop-dbtool-exp"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-batch/nop-batch-exp"), "", false);
 
             XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-ai/nop-ai-core"), "", false);
 

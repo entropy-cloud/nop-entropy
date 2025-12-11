@@ -97,7 +97,7 @@ public interface TaskErrors {
 
     ErrorCode ERR_TASK_REQUEST_RATE_EXCEED_LIMIT =
             define("nop.err.task.request-rate-exceed-limit",
-                    "访问速率超过限制：TPS={}", ARG_REQUEST_PER_SECOND);
+                    "访问速率超过限制：TPS={requestPerSecond}", ARG_REQUEST_PER_SECOND);
 
     ErrorCode ERR_TASK_UNSUPPORTED_STEP_TYPE =
             define("nop.err.task.unsupported-step-type",

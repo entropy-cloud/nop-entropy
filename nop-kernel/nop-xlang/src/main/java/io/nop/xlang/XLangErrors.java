@@ -316,7 +316,7 @@ public interface XLangErrors {
 
     ErrorCode ERR_XPATH_UNKNOWN_OPERATOR = define("nop.err.xlang.xpath.unknown-operator", "未定义的XPath选择符:{op}", ARG_OP);
 
-    ErrorCode ERR_XPL_UNKNOWN_OUTPUT_MODE = define("nop.err.xlang.xpl.unknown-output-mode", "非法的XPL输出模式:{}",
+    ErrorCode ERR_XPL_UNKNOWN_OUTPUT_MODE = define("nop.err.xlang.xpl.unknown-output-mode", "非法的XPL输出模式:{outputMode}",
             ARG_OUTPUT_MODE);
 
     ErrorCode ERR_XPL_UNKNOWN_TAG_ATTR = define("nop.err.xlang.xpl.unknown-tag-attr",
@@ -995,7 +995,7 @@ public interface XLangErrors {
 
     ErrorCode ERR_LAYOUT_INVALID_LINE = define("nop.err.layout.invalid-line", "行描述不符合要求");
 
-    ErrorCode ERR_XPL_DISALLOW_OUTPUT_INVALID_XML_NAME = define("nop.err.xpl.invalid-xml-name", "不允许输出非法的XML名称:{}",
+    ErrorCode ERR_XPL_DISALLOW_OUTPUT_INVALID_XML_NAME = define("nop.err.xpl.invalid-xml-name", "不允许输出非法的XML名称:{name}",
             ARG_NAME);
 
     ErrorCode ERR_SCHEMA_PROP_CONVERT_TO_TYPE_FAIL =

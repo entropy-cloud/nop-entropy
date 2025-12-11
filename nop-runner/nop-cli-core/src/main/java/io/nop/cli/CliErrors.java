@@ -28,7 +28,7 @@ public interface CliErrors {
                     "模型对象没有设置x:schema属性，不支持转换为XML格式");
 
     ErrorCode ERR_CLI_FILE_NOT_EXISTS =
-            define("nop.err.cli.file-not-exists", "文件不存在:{}", ARG_PATH);
+            define("nop.err.cli.file-not-exists", "文件不存在:{path}", ARG_PATH);
 
     ErrorCode ERR_CLI_FILE_NOT_TASK_FILE =
             define("nop.err.cli.file-not-task-file", "任务文件的后缀名必须是xrun", ARG_PATH);
