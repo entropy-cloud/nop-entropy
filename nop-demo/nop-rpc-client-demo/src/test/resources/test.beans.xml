@@ -1,3 +1,3 @@
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
-    <bean id="mockDiscoveryClient" class="io.nop.rpc.client.MockDiscoveryClient"/>
+    <bean id="nopNamingService" class="io.nop.rpc.client.MockDiscoveryClient"/>
 </beans>
