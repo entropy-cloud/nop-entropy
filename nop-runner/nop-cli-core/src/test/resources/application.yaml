@@ -7,6 +7,9 @@ quarkus:
         level: INFO
 
 nop:
+  application:
+    locale: en
+
   orm:
     init-database-schema: true
 

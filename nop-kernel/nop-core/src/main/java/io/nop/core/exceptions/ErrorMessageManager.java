@@ -110,6 +110,15 @@ public class ErrorMessageManager implements IErrorMessageManager {
         this.addErrorCodeMappings(mappings);
     }
 
+    public ErrorMessageManager(){
+        NopException.registerErrorMessageManager(this);
+    }
+
+    @Override
+    public String getLocalizedDescription(String locale, String errorCode) {
+        return I18nMessageManager.instance().getMessage(locale, errorCode, null);
+    }
+
     public String getErrorDescription(String locale, String errorCode, Map<String, ?> params) {
         String message = I18nMessageManager.instance().getMessage(locale, errorCode, null);
         if (message == null)
@@ -412,7 +421,7 @@ public class ErrorMessageManager implements IErrorMessageManager {
     }
 
     protected void mapError(String locale, ErrorCodeMapping mapping, ErrorBean error) {
-        if(mapping.getStatus() != null)
+        if (mapping.getStatus() != null)
             error.setStatus(mapping.getStatus());
 
         if (!StringHelper.isEmpty(mapping.getMessageKey())) {

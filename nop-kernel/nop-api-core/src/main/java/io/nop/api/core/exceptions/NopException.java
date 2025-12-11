@@ -9,6 +9,7 @@ package io.nop.api.core.exceptions;
 
 import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.beans.ErrorBean;
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.util.ApiStringHelper;
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.SourceLocation;
@@ -29,6 +30,28 @@ import java.util.function.Consumer;
 @SuppressWarnings("java:S1165")
 public class NopException extends RuntimeException implements IException {
     private static final long serialVersionUID = 618317480866467022L;
+
+    static IErrorMessageManager s_errorMessageManager;
+
+    public static void registerErrorMessageManager(IErrorMessageManager errorMessageManager) {
+        s_errorMessageManager = errorMessageManager;
+    }
+
+    public static IErrorMessageManager getErrorMessageManager() {
+        return s_errorMessageManager;
+    }
+
+    public static String getDefaultErrorDescription(String errorCode, String description) {
+        IErrorMessageManager manager = s_errorMessageManager;
+        if (manager == null)
+            return description;
+
+        String locale = AppConfig.defaultLocale();
+        String desc = manager.getLocalizedDescription(locale, errorCode);
+        if (desc == null)
+            desc = description;
+        return desc;
+    }
 
     static final AtomicLong s_seq = new AtomicLong();
 
@@ -51,18 +74,19 @@ public class NopException extends RuntimeException implements IException {
 
     public NopException(ErrorCode errorCode, Throwable cause) {
         super(errorCode.getErrorCode(), cause);
-        this.description(errorCode.getDescription());
+        this.description(getDefaultErrorDescription(errorCode.getErrorCode(), errorCode.getDescription()));
         this.status(errorCode.getStatus());
     }
 
     public NopException(ErrorCode errorCode) {
         super(errorCode.getErrorCode());
-        this.description(errorCode.getDescription());
+        this.description(getDefaultErrorDescription(errorCode.getErrorCode(), errorCode.getDescription()));
         this.status(errorCode.getStatus());
     }
 
     public NopException(String errorCode, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
         super(errorCode, cause, enableSuppression, writableStackTrace);
+        this.description(getDefaultErrorDescription(errorCode, null));
     }
 
     /**

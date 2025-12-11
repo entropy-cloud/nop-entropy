@@ -23,6 +23,8 @@ public interface IErrorMessageManager {
         return buildErrorMessage(locale, e, includeStack, onlyPublic, true);
     }
 
+    String getLocalizedDescription(String locale, String message);
+
     String resolveDescription(String locale, String message, Map<String, ?> params);
 
     ErrorBean resolveErrorBean(ErrorBean error, boolean onlyPublic);
