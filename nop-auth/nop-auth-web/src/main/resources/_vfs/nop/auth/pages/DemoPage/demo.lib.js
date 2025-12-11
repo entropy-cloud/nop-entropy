@@ -1,5 +1,5 @@
 //generate from /nop/auth/pages/DemoPage/demo.lib.xjs
-System.register(['@nop/utils', './sub.lib.js'], (function (exports) {
+System.register(['@nop-chaos/sdk', './sub.lib.js'], (function (exports) {
     'use strict';
     var ajaxFetch, ajaxRequest, myAction;
     return {
