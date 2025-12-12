@@ -35,6 +35,6 @@ public class ChildIndexSelector<E> implements IXPathElementSelector<E> {
         E result = CollectionHelper.getByIndex(children, index);
         if (result == null)
             return SelectResult.NOT_FOUND;
-        return SelectResult.FOUND;
+        return collector.collect(result);
     }
 }
