@@ -1,0 +1,1 @@
+mvn package -Dquarkus.package.jar.type=uber-jar
