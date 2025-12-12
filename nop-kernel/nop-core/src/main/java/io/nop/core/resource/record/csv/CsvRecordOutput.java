@@ -11,6 +11,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.bytes.ByteString;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
@@ -24,6 +25,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+
+import static io.nop.core.CoreConstants.JSON_PREFIX;
 
 public class CsvRecordOutput<T> implements IRecordOutput<T> {
     private List<String> headers;
@@ -128,9 +131,11 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
         writeCount++;
     }
 
-    private String toString(Object value) {
+    protected String toString(Object value) {
         if (value instanceof ByteString)
             return ((ByteString) value).hex();
+        if (value instanceof Map || value instanceof Collection)
+            return JSON_PREFIX + JsonTool.stringify(value);
         return StringHelper.toString(value, "");
     }
 

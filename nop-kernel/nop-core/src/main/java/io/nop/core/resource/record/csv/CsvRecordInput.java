@@ -10,6 +10,7 @@ package io.nop.core.resource.record.csv;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import static io.nop.core.CoreConstants.JSON_PREFIX;
 import static io.nop.core.CoreErrors.ARG_READ_COUNT;
 import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_READ_CSV_ROW_FAIL;
@@ -53,6 +55,8 @@ public class CsvRecordInput<T> implements IRecordInput<T> {
     private List<String> normalizedHeaders;
 
     private Function<List<String>, List<String>> headerNormalizer;
+
+    private boolean useJsonPrefix;
 
     public CsvRecordInput(IResource resource, String encoding, CSVFormat format, IGenericType beanType,
                           boolean trimValue, boolean supportZip) {
@@ -82,6 +86,11 @@ public class CsvRecordInput<T> implements IRecordInput<T> {
             throw NopException.adapt(e);
         }
         this.normalizedHeaders = fileHeaders;
+    }
+
+    public CsvRecordInput<T> useJsonPrefix(boolean b) {
+        this.useJsonPrefix = b;
+        return this;
     }
 
     public void setHeaderNormalizer(Function<List<String>, List<String>> headerNormalizer) {
@@ -190,9 +199,17 @@ public class CsvRecordInput<T> implements IRecordInput<T> {
             } else if (StringHelper.isEmpty(value)) {
                 value = null;
             }
-            BeanTool.setComplexProperty(bean, header, value);
+            Object data = normalizeValue(value);
+            BeanTool.setComplexProperty(bean, header, data);
         }
         return bean;
+    }
+
+    protected Object normalizeValue(String value) {
+        if (useJsonPrefix && value != null && value.startsWith(JSON_PREFIX)) {
+            return JsonTool.parseNonStrict(value.substring(JSON_PREFIX.length()));
+        }
+        return value;
     }
 
     String[] getValues(CSVRecord record) {
