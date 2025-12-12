@@ -11,6 +11,7 @@
       xmlns:xdef="/nop/schema/xdef.xdef"
       xdef:name="RecordFileMeta" xdef:bean-package="io.nop.record.model"
       xdef:ref="record-definitions.xdef">
+
     <doc xdef:value="string"/>
 
     <!--
@@ -43,16 +44,19 @@
     <!--
     分页生成，每页包含指定条目数，并且有可能会具有页头和页尾
     @pageSize 分页条目数
+    @groupByExpr 如果分组表达式不为空，则以返回的分组值进行分页处理。这里假定了record按照顺序处理，当分组值发生变化的时候分页结束
     -->
-    <pagination pageSize="!int" xdef:name="RecordPaginationMeta">
+    <pagination pageSize="!int=0" xdef:name="RecordPaginationMeta">
         <pageHeader xdef:ref="record-object.xdef"/>
         <pageFooter xdef:ref="record-object.xdef"/>
+        <groupByExpr xdef:value="xpl-fn:(record,ctx)=>any"/>
 
         <aggregates xdef:body-type="list" xdef:key-attr="name">
             <!-- 输出时自动计算一些汇总值 -->
             <aggregate name="!prop-name" aggFunc="var-name" xdef:name="RecordAggregateFieldMeta"
                        prop="string">
                 <valueExpr xdef:value="xpl-fn:(record,ctx)=>any"/>
+                <aggregator xdef:value="xpl-fn:(aggValue, value, ctx)=>any" />
             </aggregate>
         </aggregates>
     </pagination>

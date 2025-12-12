@@ -82,6 +82,10 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
 
     @Override
     public void endWrite(Map<String, Object> trailerMeta) throws IOException {
+        if (aggregateState.getIndexInPage() > 0) {
+            flushPageFooter();
+        }
+
         if (trailerMeta != null)
             context.getEvalScope().setLocalValues(trailerMeta);
 
@@ -102,6 +106,11 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
     }
 
     protected void beforeWriteRecord(T record) throws IOException {
+        if (aggregateState.checkPageChanged(record)) {
+            flushPageFooter();
+            aggregateState.newPage();
+        }
+
         aggregateState.onWriteRecord(record);
 
         if (fileMeta.getPagination() != null) {
@@ -115,15 +124,14 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
     }
 
     protected void afterWriteRecord(T record) throws IOException {
-        if (fileMeta.getPagination() != null) {
-            if (aggregateState.isPageEnd()) {
-                RecordPaginationMeta pagination = fileMeta.getPagination();
-                if (pagination.getPageFooter() != null) {
-                    context.getEvalScope().setLocalValues(aggregateState.getPageResults());
-                    writeObject(baseOut, pagination.getPageFooter(), context);
-                }
-                aggregateState.newPage();
-            }
+
+    }
+
+    protected void flushPageFooter() throws IOException {
+        RecordPaginationMeta pagination = fileMeta.getPagination();
+        if (pagination != null && pagination.getPageFooter() != null) {
+            context.getEvalScope().setLocalValues(aggregateState.getPageResults());
+            writeObject(baseOut, pagination.getPageFooter(), context);
         }
     }
 

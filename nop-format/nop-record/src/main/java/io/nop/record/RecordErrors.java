@@ -113,4 +113,8 @@ public interface RecordErrors {
 
     ErrorCode ERR_RECORD_NOT_END_OF_LINE = define("nop.err.record.not-enough-of-line",
             "不是换行符", ARG_POS);
+
+    ErrorCode ERR_RECORD_AGGREGATE_FIELD_NO_AGG_FUNC =
+            define("nop.err.record.aggregate-field-no-agg-func", "汇总字段没有设置aggFunc属性:{fieldName}",
+                    ARG_FIELD_NAME);
 }

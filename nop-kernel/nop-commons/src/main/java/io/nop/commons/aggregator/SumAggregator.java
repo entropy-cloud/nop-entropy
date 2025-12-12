@@ -7,7 +7,8 @@ public class SumAggregator implements IAggregator {
 
     @Override
     public void update(Object value) {
-        this.result = MathHelper.add(this.result, value);
+        if(value != null)
+            this.result = MathHelper.add(this.result, value);
     }
 
     @Override

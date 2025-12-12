@@ -24,6 +24,10 @@ public class AggregateState {
         aggregators.put(name, aggregator);
     }
 
+    public void setAggregator(String name, IAggregator aggregator) {
+        aggregators.put(name, aggregator);
+    }
+
     public void reset() {
         aggregators.values().forEach(IAggregator::reset);
     }

@@ -1,0 +1,36 @@
+<file x:schema="/nop/schema/record/record-file.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <body>
+        <fields>
+            <field name="a" type="int" padding=" " length="5"/>
+            <field name="b" type="String" length="10"/>
+            <field name="end" type="String" content="0x0A" />
+        </fields>
+    </body>
+
+    <pagination>
+        <groupByExpr>$Math.floor(record.a/10)</groupByExpr>
+        <aggregates>
+            <aggregate name="sumA" prop="a" aggFunc="sum"/>
+        </aggregates>
+
+        <pageHeader>
+            <template>Page Begin: {{index}}{{end}}</template>
+            <fields>
+                <field name="index">
+                    <exportExpr>aggState.pageIndex</exportExpr>
+                </field>
+                <field name="end" content="0x0A" />
+            </fields>
+        </pageHeader>
+
+        <pageFooter>
+            <template>PageE End: sum={{sumA}}{{end}}</template>
+            <fields>
+                <field name="sumA">
+                    <exportExpr>sumA</exportExpr>
+                </field>
+                <field name="end" content="0x0A" />
+            </fields>
+        </pageFooter>
+    </pagination>
+</file>

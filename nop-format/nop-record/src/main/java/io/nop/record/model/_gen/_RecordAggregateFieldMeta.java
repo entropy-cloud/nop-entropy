@@ -25,6 +25,13 @@ public abstract class _RecordAggregateFieldMeta extends io.nop.core.resource.com
     
     /**
      *  
+     * xml name: aggregator
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _aggregator ;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -59,6 +66,25 @@ public abstract class _RecordAggregateFieldMeta extends io.nop.core.resource.com
         checkAllowChange();
         
         this._aggFunc = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: aggregator
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getAggregator(){
+      return _aggregator;
+    }
+
+    
+    public void setAggregator(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._aggregator = value;
            
     }
 
@@ -136,6 +162,7 @@ public abstract class _RecordAggregateFieldMeta extends io.nop.core.resource.com
         super.outputJson(out);
         
         out.putNotNull("aggFunc",this.getAggFunc());
+        out.putNotNull("aggregator",this.getAggregator());
         out.putNotNull("name",this.getName());
         out.putNotNull("prop",this.getProp());
         out.putNotNull("valueExpr",this.getValueExpr());
@@ -151,6 +178,7 @@ public abstract class _RecordAggregateFieldMeta extends io.nop.core.resource.com
         super.copyTo(instance);
         
         instance.setAggFunc(this.getAggFunc());
+        instance.setAggregator(this.getAggregator());
         instance.setName(this.getName());
         instance.setProp(this.getProp());
         instance.setValueExpr(this.getValueExpr());

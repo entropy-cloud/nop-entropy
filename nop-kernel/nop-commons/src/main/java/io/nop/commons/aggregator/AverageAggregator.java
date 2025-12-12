@@ -8,7 +8,9 @@ public class AverageAggregator implements IAggregator {
 
     @Override
     public void update(Object value) {
-        this.sum = MathHelper.add(this.sum, value);
+        if(value != null)
+            this.sum = MathHelper.add(this.sum, value);
+
         this.count++;
     }
 

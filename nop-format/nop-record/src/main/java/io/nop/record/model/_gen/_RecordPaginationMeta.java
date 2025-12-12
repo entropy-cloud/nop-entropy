@@ -25,6 +25,13 @@ public abstract class _RecordPaginationMeta extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: groupByExpr
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _groupByExpr ;
+    
+    /**
+     *  
      * xml name: pageFooter
      * 
      */
@@ -42,7 +49,7 @@ public abstract class _RecordPaginationMeta extends io.nop.core.resource.compone
      * xml name: pageSize
      * 分页条目数
      */
-    private int _pageSize ;
+    private int _pageSize  = 0;
     
     /**
      * 
@@ -88,6 +95,25 @@ public abstract class _RecordPaginationMeta extends io.nop.core.resource.compone
     public boolean hasAggregates(){
         return !this._aggregates.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: groupByExpr
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getGroupByExpr(){
+      return _groupByExpr;
+    }
+
+    
+    public void setGroupByExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._groupByExpr = value;
+           
+    }
+
     
     /**
      * 
@@ -168,6 +194,7 @@ public abstract class _RecordPaginationMeta extends io.nop.core.resource.compone
         super.outputJson(out);
         
         out.putNotNull("aggregates",this.getAggregates());
+        out.putNotNull("groupByExpr",this.getGroupByExpr());
         out.putNotNull("pageFooter",this.getPageFooter());
         out.putNotNull("pageHeader",this.getPageHeader());
         out.putNotNull("pageSize",this.getPageSize());
@@ -183,6 +210,7 @@ public abstract class _RecordPaginationMeta extends io.nop.core.resource.compone
         super.copyTo(instance);
         
         instance.setAggregates(this.getAggregates());
+        instance.setGroupByExpr(this.getGroupByExpr());
         instance.setPageFooter(this.getPageFooter());
         instance.setPageHeader(this.getPageHeader());
         instance.setPageSize(this.getPageSize());
