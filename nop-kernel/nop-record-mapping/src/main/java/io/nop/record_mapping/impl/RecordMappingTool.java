@@ -149,6 +149,11 @@ public class RecordMappingTool {
         if (field.getComputeExpr() != null)
             return field.getComputeExpr().call3(null, source, target, ctx, ctx.getEvalScope());
 
+        if (field.isFlattenFrom()) {
+            return FlattenListProcessor.instance().parseFromFlattenObj(source, field.getFromOrName(),
+                    field.isDisableFromPropPath());
+        }
+
         if (field.getFrom() != null) {
             Object value = getSourceValue(field, source, field.getFrom(), ctx);
             if (value != null) {
@@ -270,6 +275,11 @@ public class RecordMappingTool {
             ctx.setValue(field.getVarName(), toItemValue);
             return (Collection<?>) toItemValue;
         }
+
+        if (field.isFlattenTo()) {
+            return (Collection<?>) constructor.get();
+        }
+
         Collection<?> toValue = (Collection<?>) BeanTool.makeComplexProperty(target, field.getName(), constructor);
         if (toValue == null) {
             toValue = new ArrayList<>();
@@ -319,7 +329,7 @@ public class RecordMappingTool {
                                      BiConsumer<Object, Object> action) {
         if (items == null) return null;
 
-        Object toValue = makeTargetCollection(field, source, target, ctx);
+        Collection<?> toValue = makeTargetCollection(field, source, target, ctx);
 
         int index = 0;
 
@@ -334,7 +344,25 @@ public class RecordMappingTool {
             addToList(field, toValue, itemValue);
             index++;
         }
+
+        if (field.isFlattenTo()) {
+            FlattenListProcessor.instance().generateFlattenObj(source, toValue, field.getName(), field.isDisableToPropPath(),
+                    row -> getRowValues(row, field.getResolvedItemMapping()));
+        }
         return toValue;
+    }
+
+    protected Map<String, Object> getRowValues(Object row, RecordMappingConfig itemMapping) {
+        if (row instanceof Map)
+            return (Map<String, Object>) row;
+
+        Map<String, Object> ret = new LinkedHashMap<>();
+        for (RecordFieldMappingConfig field : itemMapping.getFields()) {
+            String name = field.getName();
+            Object value = BeanTool.getProperty(row, name);
+            ret.put(name, value);
+        }
+        return ret;
     }
 
     // ========== 验证相关 ==========

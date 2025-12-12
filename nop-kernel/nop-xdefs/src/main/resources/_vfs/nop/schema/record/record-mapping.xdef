@@ -21,14 +21,15 @@
         @itemMapping 如果to和from对应的属性是Map类型或者List类型，可以通过itemMapping来指定每个条目所对应的映射规则
         @ignoreWhenEmpty 当数据为空的时候自动忽略该字段，不设置到record对象上
         @optional 如果设置为true，则获取属性前会判断属性是否存在
-        @processor 如果设置为flatten-from，则认为来源数据中{from}-{index}.{fieldName}这种形式的字段需要被整理为from对应的列表，然后按照列表格式进行映射。flatten-to则反过来处理。
+        @flattenFrom 来源数据中{from}-{index}-{fieldName}这种形式的字段需要被整理为from对应的列表, 然后按照列表格式进行映射。
+        @flattenTo 映射得到的列表数据，不直接设置到target对象上，而是按照{from}-{index}-{fieldName}展平
         @varName 如果设置此属性，映射结果不会保存到实体属性，而是以指定名称存储到解析上下文中。后续字段可以通过上下文变量访问该值，常用于条件解析或字段间依赖处理。
         @disableToPropPath 如果禁用propPath，则对于a.b.c这种复合路径，会作为一个完整的key去设置，否则会认为是嵌套对象上的属性
         -->
         <field name="!xml-name" from="xml-name" displayName="string" tagSet="csv-set"
                defaultValue="string" mapping="var-name" virtual="!boolean=false" alias="csv-set"
                type="generic-type" mandatory="!boolean=false" itemMapping="var-name" optional="!boolean=false"
-               ignoreWhenEmpty="!boolean=false" processor="xml-name"
+               ignoreWhenEmpty="!boolean=false" flattenFrom="!boolean=false" flattenTo="!boolean=false"
                keyProp="xml-name" xdef:name="RecordFieldMappingConfig"
                varName="var-name" disableFromPropPath="!boolean=false" disableToPropPath="!boolean=false"
                md:format="string" md:titleField="xml-name">

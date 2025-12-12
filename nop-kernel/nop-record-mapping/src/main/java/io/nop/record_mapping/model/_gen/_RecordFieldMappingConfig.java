@@ -74,6 +74,20 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     
     /**
      *  
+     * xml name: flattenFrom
+     * 来源数据中{from}-{index}-{fieldName}这种形式的字段需要被整理为from对应的列表, 然后按照列表格式进行映射。
+     */
+    private boolean _flattenFrom  = false;
+    
+    /**
+     *  
+     * xml name: flattenTo
+     * 映射得到的列表数据，不直接设置到target对象上，而是按照{from}-{index}-{fieldName}展平
+     */
+    private boolean _flattenTo  = false;
+    
+    /**
+     *  
      * xml name: from
      * 
      */
@@ -148,13 +162,6 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
      * 如果设置为true，则获取属性前会判断属性是否存在
      */
     private boolean _optional  = false;
-    
-    /**
-     *  
-     * xml name: processor
-     * 如果设置为flatten-from，则认为来源数据中{from}-{index}.{fieldName}这种形式的字段需要被整理为from对应的列表，然后按照列表格式进行映射。flatten-to则反过来处理。
-     */
-    private java.lang.String _processor ;
     
     /**
      *  
@@ -361,6 +368,44 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         checkAllowChange();
         
         this._displayName = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: flattenFrom
+     *  来源数据中{from}-{index}-{fieldName}这种形式的字段需要被整理为from对应的列表, 然后按照列表格式进行映射。
+     */
+    
+    public boolean isFlattenFrom(){
+      return _flattenFrom;
+    }
+
+    
+    public void setFlattenFrom(boolean value){
+        checkAllowChange();
+        
+        this._flattenFrom = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: flattenTo
+     *  映射得到的列表数据，不直接设置到target对象上，而是按照{from}-{index}-{fieldName}展平
+     */
+    
+    public boolean isFlattenTo(){
+      return _flattenTo;
+    }
+
+    
+    public void setFlattenTo(boolean value){
+        checkAllowChange();
+        
+        this._flattenTo = value;
            
     }
 
@@ -576,25 +621,6 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     
     /**
      * 
-     * xml name: processor
-     *  如果设置为flatten-from，则认为来源数据中{from}-{index}.{fieldName}这种形式的字段需要被整理为from对应的列表，然后按照列表格式进行映射。flatten-to则反过来处理。
-     */
-    
-    public java.lang.String getProcessor(){
-      return _processor;
-    }
-
-    
-    public void setProcessor(java.lang.String value){
-        checkAllowChange();
-        
-        this._processor = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: schema
      *  schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
      * Map对应props配置,  List对应item配置, Union对应oneOf配置
@@ -771,6 +797,8 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         out.putNotNull("disableFromPropPath",this.isDisableFromPropPath());
         out.putNotNull("disableToPropPath",this.isDisableToPropPath());
         out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("flattenFrom",this.isFlattenFrom());
+        out.putNotNull("flattenTo",this.isFlattenTo());
         out.putNotNull("from",this.getFrom());
         out.putNotNull("ignoreWhenEmpty",this.isIgnoreWhenEmpty());
         out.putNotNull("itemFilterExpr",this.getItemFilterExpr());
@@ -782,7 +810,6 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         out.putNotNull("newInstanceExpr",this.getNewInstanceExpr());
         out.putNotNull("newItemExpr",this.getNewItemExpr());
         out.putNotNull("optional",this.isOptional());
-        out.putNotNull("processor",this.getProcessor());
         out.putNotNull("schema",this.getSchema());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("type",this.getType());
@@ -810,6 +837,8 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         instance.setDisableFromPropPath(this.isDisableFromPropPath());
         instance.setDisableToPropPath(this.isDisableToPropPath());
         instance.setDisplayName(this.getDisplayName());
+        instance.setFlattenFrom(this.isFlattenFrom());
+        instance.setFlattenTo(this.isFlattenTo());
         instance.setFrom(this.getFrom());
         instance.setIgnoreWhenEmpty(this.isIgnoreWhenEmpty());
         instance.setItemFilterExpr(this.getItemFilterExpr());
@@ -821,7 +850,6 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         instance.setNewInstanceExpr(this.getNewInstanceExpr());
         instance.setNewItemExpr(this.getNewItemExpr());
         instance.setOptional(this.isOptional());
-        instance.setProcessor(this.getProcessor());
         instance.setSchema(this.getSchema());
         instance.setTagSet(this.getTagSet());
         instance.setType(this.getType());

@@ -90,6 +90,8 @@ public interface CoreConstants extends ResourceConstants {
 
     String BASE_64_PREFIX = "@base64:";
 
+    String JSON_PREFIX = "@json:";
+
     String I18N_VAR_PREFIX = "@i18n:";
     String I18N_VAR_START = "{@i18n:";
     String I18N_VAR_END = "}";
