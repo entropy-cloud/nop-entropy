@@ -13,7 +13,7 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.core.reflect.bean.BeanTool;
 
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -84,7 +84,7 @@ public class SerializableExtensibleObject implements IExtensibleObject {
                     .param(ARG_NAME, name);
 
         if (CollectionHelper.isFixedEmptyMap(extProps)) {
-            extProps = new HashMap<>();
+            extProps = new LinkedHashMap<>();
         }
         extProps.put(name, value);
     }

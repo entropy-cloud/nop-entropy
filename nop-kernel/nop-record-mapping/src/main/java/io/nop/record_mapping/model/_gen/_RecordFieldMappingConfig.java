@@ -53,6 +53,20 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     
     /**
      *  
+     * xml name: disableFromPropPath
+     * 
+     */
+    private boolean _disableFromPropPath  = false;
+    
+    /**
+     *  
+     * xml name: disableToPropPath
+     * 如果禁用propPath，则对于a.b.c这种复合路径，会作为一个完整的key去设置，否则会认为是嵌套对象上的属性
+     */
+    private boolean _disableToPropPath  = false;
+    
+    /**
+     *  
      * xml name: displayName
      * 
      */
@@ -290,6 +304,44 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         checkAllowChange();
         
         this._defaultValue = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: disableFromPropPath
+     *  
+     */
+    
+    public boolean isDisableFromPropPath(){
+      return _disableFromPropPath;
+    }
+
+    
+    public void setDisableFromPropPath(boolean value){
+        checkAllowChange();
+        
+        this._disableFromPropPath = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: disableToPropPath
+     *  如果禁用propPath，则对于a.b.c这种复合路径，会作为一个完整的key去设置，否则会认为是嵌套对象上的属性
+     */
+    
+    public boolean isDisableToPropPath(){
+      return _disableToPropPath;
+    }
+
+    
+    public void setDisableToPropPath(boolean value){
+        checkAllowChange();
+        
+        this._disableToPropPath = value;
            
     }
 
@@ -716,6 +768,8 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         out.putNotNull("beforeFieldMapping",this.getBeforeFieldMapping());
         out.putNotNull("computeExpr",this.getComputeExpr());
         out.putNotNull("defaultValue",this.getDefaultValue());
+        out.putNotNull("disableFromPropPath",this.isDisableFromPropPath());
+        out.putNotNull("disableToPropPath",this.isDisableToPropPath());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("from",this.getFrom());
         out.putNotNull("ignoreWhenEmpty",this.isIgnoreWhenEmpty());
@@ -753,6 +807,8 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         instance.setBeforeFieldMapping(this.getBeforeFieldMapping());
         instance.setComputeExpr(this.getComputeExpr());
         instance.setDefaultValue(this.getDefaultValue());
+        instance.setDisableFromPropPath(this.isDisableFromPropPath());
+        instance.setDisableToPropPath(this.isDisableToPropPath());
         instance.setDisplayName(this.getDisplayName());
         instance.setFrom(this.getFrom());
         instance.setIgnoreWhenEmpty(this.isIgnoreWhenEmpty());

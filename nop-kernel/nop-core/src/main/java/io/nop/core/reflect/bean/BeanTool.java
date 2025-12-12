@@ -144,6 +144,12 @@ public class BeanTool {
         return BeanPropHelper.tryGetIn(instance(), bean, propPath);
     }
 
+    public static Object tryGetProperty(Object bean, String propName) {
+        if (bean == null)
+            return null;
+        return BeanPropHelper.tryGetSimple(instance(), bean, propName);
+    }
+
     public static Object makeComplexProperty(Object bean, String propPath, Supplier<?> constructor) {
         if (bean == null)
             return null;

@@ -203,10 +203,17 @@ public class RecordMappingTool {
     public Object getSourceValue(RecordFieldMappingConfig field,
                                  Object source, String propName,
                                  RecordMappingContext ctx) {
-        if (field.isOptional()) {
-            return BeanTool.tryGetComplexProperty(source, propName);
+        if (field.isDisableFromPropPath()) {
+            if (field.isOptional())
+                return BeanTool.tryGetProperty(source, propName);
+            return BeanTool.getProperty(source, propName);
+        } else {
+            if (field.isOptional()) {
+                return BeanTool.tryGetComplexProperty(source, propName);
+            }
+
+            return BeanTool.getComplexProperty(source, propName);
         }
-        return BeanTool.getComplexProperty(source, propName);
     }
 
     public void setTargetValue(RecordFieldMappingConfig field,
@@ -216,7 +223,11 @@ public class RecordMappingTool {
             ctx.setValue(field.getVarName(), value);
             return;
         }
-        BeanTool.setComplexProperty(target, field.getName(), value);
+        if (field.isDisableToPropPath()) {
+            BeanTool.setProperty(target, field.getName(), value);
+        } else {
+            BeanTool.setComplexProperty(target, field.getName(), value);
+        }
     }
 
     // ========== 对象创建 ==========
@@ -453,7 +464,6 @@ public class RecordMappingTool {
 
     public boolean isCollectionLikeField(RecordFieldMappingConfig field, Object value) {
         return field.getItemMapping() != null &&
-                value != null &&
                 (value instanceof Map || value instanceof Collection);
     }
 }

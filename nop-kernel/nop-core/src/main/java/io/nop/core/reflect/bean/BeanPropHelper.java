@@ -77,7 +77,7 @@ public class BeanPropHelper {
         return beanTool.getProperty(obj, name);
     }
 
-    static Object tryGetSimple(IBeanObjectAdapter beanTool, Object obj, String name) {
+    public static Object tryGetSimple(IBeanObjectAdapter beanTool, Object obj, String name) {
         if (!beanTool.hasProperty(obj, name))
             return null;
         return beanTool.getProperty(obj, name);

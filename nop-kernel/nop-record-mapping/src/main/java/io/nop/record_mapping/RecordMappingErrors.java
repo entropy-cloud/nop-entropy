@@ -62,4 +62,9 @@ public interface RecordMappingErrors {
     ErrorCode ERR_RECORD_MD_MISSING_FIELD =
             define("nop.err.record.md-missing-field-not-optional", "缺少字段[{fieldName}]",
                     ARG_MAPPING_NAME, ARG_FIELD_NAME);
+
+    ErrorCode ERR_RECORD_INVALID_FLATTEN_LIST_FIELD_NAME =
+            define("nop.err.record.invalid-flatten-list-field-name",
+                    "非法的列表字段名：{fieldName}。列表字段名格式为[fromName]-[index]-[subFieldName]",
+                    ARG_FIELD_NAME);
 }
