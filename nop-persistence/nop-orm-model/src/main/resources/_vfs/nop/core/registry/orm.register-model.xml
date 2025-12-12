@@ -5,5 +5,7 @@
         <xdsl-loader fileType="orm.json" schemaPath="/nop/schema/orm/orm.xdef"/>
         <xdsl-loader fileType="orm.yaml" schemaPath="/nop/schema/orm/orm.xdef"/>
         <xlsx-loader fileType="orm.xlsx" impPath="/nop/orm/imp/orm.imp.xml"/>
+        <loader fileType="orm.md" mappingName="orm.Md_to_OrmModel" optional="true"
+                class="io.nop.record_mapping.md.MarkdownDslResourceLoaderFactory"/>
     </loaders>
 </model>
