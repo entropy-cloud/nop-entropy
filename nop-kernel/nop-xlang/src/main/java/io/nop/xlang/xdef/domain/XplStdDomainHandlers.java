@@ -136,7 +136,7 @@ public class XplStdDomainHandlers {
         }
 
         protected Object doCompileBody(String options, XLangCompileTool cp, XNode node) {
-            return cp.compileTagBody(node, cp.getOutputMode());
+            return cp.compileTagBody(node);
         }
 
         protected Object doCompileContent(String options, XLangCompileTool cp, XNode node) {

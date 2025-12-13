@@ -245,15 +245,12 @@ public class XLangCompileTool implements IStdDomainRegistry {
     }
 
     public ExprEvalAction compileTagBody(XNode node, XLangOutputMode outputMode) {
-        ValueWithLocation vl = scope.recordValueLocation(ExprConstants.SCOPE_VAR_XPL_NODE);
-        scope.setLocalValue(null, ExprConstants.SCOPE_VAR_XPL_NODE, node);
         XLangOutputMode oldMode = scope.getOutputMode();
         scope.setOutputMode(outputMode);
         try {
             return compileTagBody(node);
         } finally {
             scope.setOutputMode(oldMode);
-            scope.restoreValueLocation(ExprConstants.SCOPE_VAR_XPL_NODE, vl);
         }
     }
 
