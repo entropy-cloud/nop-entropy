@@ -7,7 +7,7 @@ import java.util.function.Predicate;
 
 public class MatchFlagPredicate implements Predicate<Set<String>> {
     public static final String FLAG_EMPTY = "EMPTY";
-    public static final String FLAG_ALL = "ALL";
+    public static final String FLAG_ANY = "ANY";
 
     private final String flag;
 
@@ -17,8 +17,11 @@ public class MatchFlagPredicate implements Predicate<Set<String>> {
 
     @Override
     public boolean test(Set<String> flags) {
-        if (flag.equals(FLAG_EMPTY) || flag.equals(FLAG_ALL))
+        if (flag.equals(FLAG_EMPTY))
             return flags.isEmpty();
+
+        if(flag.equals(FLAG_ANY))
+            return !flags.isEmpty();
 
         return flags.contains(flag);
     }
