@@ -536,8 +536,270 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "addSystemPrompt",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.Prompt",
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "addTools",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.Prompt"
+        ]
+      },
+      {
+        "name": "adjustTemperature",
+        "parameterTypes": [
+          "io.nop.ai.core.api.chat.AiChatOptions",
+          "int"
+        ]
+      },
+      {
+        "name": "executeTools",
+        "parameterTypes": [
+          "int",
+          "java.util.List",
+          "io.nop.ai.core.api.messages.Prompt",
+          "io.nop.ai.core.api.chat.AiChatOptions",
+          "io.nop.core.lang.eval.IEvalScope",
+          "io.nop.api.core.util.ICancelToken"
+        ]
+      },
+      {
+        "name": "executeWithTools",
+        "parameterTypes": [
+          "int",
+          "io.nop.ai.core.api.messages.Prompt",
+          "io.nop.ai.core.api.chat.AiChatOptions",
+          "io.nop.core.lang.eval.IEvalScope",
+          "io.nop.api.core.util.ICancelToken"
+        ]
+      },
+      {
+        "name": "logCachedResponse",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.AiChatExchange"
+        ]
+      },
+      {
+        "name": "newPrompt",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "postProcess",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.AiChatExchange"
+        ]
+      },
+      {
+        "name": "prepareInputs",
+        "parameterTypes": [
+          "java.util.Map",
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.ai.core.command.AiCommand"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.ai.core.initialize.AiCoreInitializer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "isAllowParse",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.AiChatExchange",
+          "io.nop.ai.core.model.PromptOutputModel",
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "parseOutput",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.AiChatExchange",
+          "io.nop.ai.core.model.PromptOutputModel",
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "transformNodeToMap",
+        "parameterTypes": [
+          "io.nop.core.lang.xml.XNode",
+          "io.nop.ai.core.model.PromptOutputModel"
+        ]
+      },
+      {
+        "name": "validateMarkdown",
+        "parameterTypes": [
+          "io.nop.markdown.model.MarkdownDocument",
+          "io.nop.ai.core.model.PromptOutputModel"
+        ]
+      },
+      {
+        "name": "validateValue",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.AiChatExchange",
+          "io.nop.ai.core.model.PromptOutputModel",
+          "java.lang.Object",
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "validateXml",
+        "parameterTypes": [
+          "io.nop.core.lang.xml.XNode",
+          "io.nop.ai.core.model.PromptOutputModel"
+        ]
+      },
+      {
+        "name": "validateYaml",
+        "parameterTypes": [
+          "java.util.Map",
+          "io.nop.ai.core.model.PromptOutputModel"
+        ]
+      }
+    ],
+    "name": "io.nop.ai.core.model.ModelBasedPromptTemplate"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.ai.core.model.PromptInputModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.ai.core.model.PromptModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.ai.core.model.PromptOutputFormat"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.ai.core.model.PromptOutputModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.ai.core.model.PromptInputModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.ai.core.model._gen._PromptInputModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.ai.core.model.PromptModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.ai.core.model._gen._PromptModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.ai.core.model.PromptOutputModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.ai.core.model._gen._PromptOutputModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -1748,6 +2010,43 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.api.core.exceptions.NopEvalException"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "appendInfo",
+        "parameterTypes": [
+          "java.lang.StringBuilder"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.exceptions.NopException"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.exceptions.NopScriptError"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.api.core.json.IJsonString"
   },
   {
@@ -2855,6 +3154,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.batch.gen.model.BatchGenModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.gen.model.BatchGenModelLoader"
   },
   {
     "allDeclaredConstructors": true,
@@ -6700,6 +7009,24 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "newValueWithLocation",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.commons.util.objects.ValueWithLocation"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.config.initialize.ConfigInitializer"
   },
@@ -10252,6 +10579,26 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.core.resource.IResourceDslNodeLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.resource.IResourceDslNodeSaver"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "getChildren",
@@ -10277,6 +10624,26 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.core.resource.IResourceLocator"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.resource.IResourceObjectLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.resource.IResourceObjectSaver"
   },
   {
     "allDeclaredConstructors": true,
@@ -11138,6 +11505,24 @@
         "name": "findModelTypeFromPath",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "registerComponentModelLoader",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.core.resource.IResourceObjectLoader",
+          "boolean"
+        ]
+      },
+      {
+        "name": "registerComponentModelTransformer",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.core.resource.component.IComponentTransformer",
+          "boolean"
         ]
       }
     ],
@@ -17735,6 +18120,26 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.excel.renderer.HtmlReportRendererFactory"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.excel.renderer.SimpleHtmlReportRendererFactory"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.graphql.core.initialize.GraphQLCoreInitializer"
   },
   {
@@ -19913,6 +20318,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.log.java.JavaLoggerConfiguratorInitializer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.markdown.simple.MarkdownDocumentLoader"
   },
   {
     "allDeclaredConstructors": true,
@@ -24818,6 +25233,16 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.pdm.PdmModelLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "name": "LOG"
@@ -26297,6 +26722,16 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.record_mapping.md.MarkdownDslResourceLoaderFactory"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowWrite": true,
@@ -27162,6 +27597,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.rpc.model.proto.ProtoApiModelLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "doParseText",
@@ -27653,6 +28098,26 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.task.model.CallTaskStepModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.task.model.ForkTaskStepModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "getType",
@@ -27660,6 +28125,16 @@
       }
     ],
     "name": "io.nop.task.model.TaskExecutableModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.task.model.TaskFlagsModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -27813,6 +28288,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.task.model.TaskThrottleModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "getType",
@@ -27820,6 +28305,60 @@
       }
     ],
     "name": "io.nop.task.model.XplTaskStepModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.task.model.CallTaskStepModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.task.model._gen._CallTaskStepModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.task.model.ForkTaskStepModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.task.model._gen._ForkTaskStepModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -28141,6 +28680,33 @@
       }
     ],
     "name": "io.nop.task.model._gen._TaskExecutableModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.task.model.TaskFlagsModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.task.model._gen._TaskFlagsModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -28722,6 +29288,33 @@
     "fields": [],
     "methods": [
       {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.task.model.TaskThrottleModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.task.model._gen._TaskThrottleModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "cloneInstance",
         "parameterTypes": []
       },
@@ -28843,7 +29436,27 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.web.page.DynamicCssModelLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.web.page.DynamicJsLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.web.page.DynamicJsModelLoader"
   },
   {
     "allDeclaredConstructors": true,
@@ -28863,6 +29476,16 @@
     ],
     "methods": [],
     "name": "io.nop.web.page.DynamicWebFileProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.web.page.PageModelLoaderFactory"
   },
   {
     "allDeclaredConstructors": true,
@@ -28932,6 +29555,16 @@
       }
     ],
     "name": "io.nop.web.page.ResourceWithHistoryProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.web.page.ViewModelLoaderFactory"
   },
   {
     "allDeclaredConstructors": true,
@@ -29596,6 +30229,54 @@
     "allPublicMethods": true,
     "fields": [
       {
+        "name": "dynamic"
+      },
+      {
+        "name": "resolveInDir"
+      },
+      {
+        "name": "schemaPath"
+      }
+    ],
+    "methods": [
+      {
+        "name": "loadXDef",
+        "parameterTypes": []
+      },
+      {
+        "name": "loadXmlFile",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "io.nop.core.resource.IResourceDslNodeLoader$ResolvePhase"
+        ]
+      },
+      {
+        "name": "transformBeanToNode",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.xlang.xdsl.AbstractDslResourceLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xdsl.AbstractDslResourcePersister"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
         "name": "LOG"
       },
       {
@@ -29701,6 +30382,26 @@
       }
     ],
     "name": "io.nop.xlang.xdsl.DslModelHelper"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xdsl.IDslResourceLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xdsl.IDslResourcePersister"
   },
   {
     "allDeclaredConstructors": true,
@@ -30791,6 +31492,16 @@
       }
     ],
     "name": "io.nop.xlang.xmeta.xjava.JaninoParser"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xmeta.xjava.JavaObjMetaLoader"
   },
   {
     "allDeclaredConstructors": true,
@@ -32220,6 +32931,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "java.lang.Exception"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "java.lang.Integer"
   },
   {
@@ -32281,6 +33002,16 @@
       }
     ],
     "name": "java.lang.Object"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.lang.RuntimeException"
   },
   {
     "allDeclaredConstructors": true,
@@ -32807,6 +33538,16 @@
       }
     ],
     "name": "java.lang.String"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.lang.Throwable"
   },
   {
     "allDeclaredConstructors": true,

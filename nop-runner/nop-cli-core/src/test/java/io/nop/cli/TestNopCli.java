@@ -12,7 +12,6 @@ import io.nop.commons.util.FileHelper;
 import io.nop.core.CoreConfigs;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
-import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -25,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Disabled
-@QuarkusTest
+//@QuarkusTest
 public class TestNopCli extends BaseTestCase {
 
     @Inject
@@ -181,6 +180,33 @@ public class TestNopCli extends BaseTestCase {
 
         args = new String[]{"convert", "target/app.orm.xlsx",
                 "-o", "target/app.orm.xml"};
+
+        app = new NopCliApplication();
+        app.setFactory(factory);
+        ret = app.run(args);
+        assertEquals(0, ret);
+
+        args = new String[]{"convert", "target/app.orm.xlsx",
+                "-o", "target/app.orm.md"};
+
+        app = new NopCliApplication();
+        app.setFactory(factory);
+        ret = app.run(args);
+        assertEquals(0, ret);
+    }
+
+    @Test
+    public void testConvertMd() {
+        String[] args = new String[]{"convert", "../nop-cli/demo/_vfs/app/demo/orm/app.orm.xml",
+                "-o", "target/app.orm.md"};
+
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        int ret = app.run(args);
+        assertEquals(0, ret);
+
+        args = new String[]{"convert", "target/app.orm.md",
+                "-o", "target/app2.orm.xml"};
 
         app = new NopCliApplication();
         app.setFactory(factory);

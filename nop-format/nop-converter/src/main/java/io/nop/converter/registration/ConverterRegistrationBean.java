@@ -131,8 +131,6 @@ public class ConverterRegistrationBean {
                     IDocumentObjectBuilder builder = ExcelAdapter.newXlsxDslDocumentObjectBuilder();
                     registry.registerDocumentObjectBuilder(fromFileType, builder);
                 } else {
-                    if (fromConfig.getXdefPath() == null)
-                        continue;
                     IDocumentObjectBuilder builder = new DslDocumentObjectBuilder();
                     registry.registerDocumentObjectBuilder(fromFileType, builder);
                 }
@@ -169,8 +167,7 @@ public class ConverterRegistrationBean {
                 return null;
             return ExcelAdapter.newDslToExcelDocumentConverter();
         } else {
-            String xdefPath = toConfig.getXdefPath();
-            if (xdefPath == null)
+            if (toConfig.getSaver() == null)
                 return null;
 
             return new DslDocumentConverter();

@@ -135,17 +135,15 @@ public class RecordMappingTool {
     }
 
     // ========== 值获取和处理 ==========
-    public Object getFromValue(RecordFieldMappingConfig field, Object source, Object target, RecordMappingContext ctx) {
-        Object value = getFromValue0(field, source, target, ctx);
-        if (field.getValueExpr() != null) {
-            value = field.getValueExpr().call2(null, value, ctx, ctx.getEvalScope());
-        }
-        return value;
+    public Object getProcessedFromValue(RecordMappingConfig mapping, RecordFieldMappingConfig field,
+                                        Object source, Object target, RecordMappingContext ctx) {
+        Object value = getFromValue(field, source, target, ctx);
+        return processFieldValue(mapping, field, value, ctx);
     }
 
-    protected Object getFromValue0(RecordFieldMappingConfig field,
-                                   Object source, Object target,
-                                   RecordMappingContext ctx) {
+    public Object getFromValue(RecordFieldMappingConfig field,
+                               Object source, Object target,
+                               RecordMappingContext ctx) {
         if (field.getComputeExpr() != null)
             return field.getComputeExpr().call3(null, source, target, ctx, ctx.getEvalScope());
 
@@ -178,6 +176,10 @@ public class RecordMappingTool {
                                     RecordFieldMappingConfig field,
                                     Object value,
                                     RecordMappingContext ctx) {
+        if (field.getValueExpr() != null) {
+            value = field.getValueExpr().call2(null, value, ctx, ctx.getEvalScope());
+        }
+
         // 1. 对源对象返回的值进行映射，如果为null，则返回defaultValue
         value = applyValueMapper(field, value);
 

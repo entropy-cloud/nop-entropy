@@ -48,7 +48,7 @@ public class ModelBasedRecordMapping implements IRecordMapping {
         } else {
             String mappingName = mapping.getName();
             // 1. 从源对象上获取值，或者动态计算值
-            Object value = tool.getFromValue(field, source, target, ctx);
+            Object value = tool.getProcessedFromValue(mapping, field, source, target, ctx);
 
             if (field.getItemMapping() != null) {
                 // 映射Map或者List
@@ -69,7 +69,6 @@ public class ModelBasedRecordMapping implements IRecordMapping {
                 }
             } else {
                 // 2. 对源对象返回的值进行映射，如果为null，则返回defaultValue
-                value = tool.processFieldValue(mapping, field, value, ctx);
                 if (field.isIgnoreWhenEmpty() && StringHelper.isEmptyObject(value))
                     return;
 
@@ -101,7 +100,7 @@ public class ModelBasedRecordMapping implements IRecordMapping {
         if (field.isVirtual()) {
             mapObject(field.getResolvedMapping(), source, target, ctx);
         } else {
-            Object fromValue = tool.getFromValue(field, source, target, ctx);
+            Object fromValue = tool.getProcessedFromValue(field.getResolvedMapping(), field, source, target, ctx);
             Object toValue = tool.makeTargetObject(field, source, target, ctx);
 
             mapObject(field.getResolvedMapping(), fromValue, toValue, ctx);

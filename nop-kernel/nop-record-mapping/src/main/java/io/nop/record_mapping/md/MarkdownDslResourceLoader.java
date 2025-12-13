@@ -11,10 +11,13 @@ import io.nop.record_mapping.RecordMappingContext;
 import io.nop.record_mapping.RecordMappingManager;
 import io.nop.record_mapping.model.RecordMappingConfig;
 import io.nop.xlang.api.XLang;
+import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdsl.AbstractDslResourcePersister;
+import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.DslNodeLoader;
+import io.nop.xlang.xdsl.IDslNodeTextSerializer;
 
-public class MarkdownDslResourceLoader extends AbstractDslResourcePersister {
+public class MarkdownDslResourceLoader extends AbstractDslResourcePersister implements IDslNodeTextSerializer {
     private final String mappingName;
     private final String reverseMappingName;
 
@@ -39,6 +42,19 @@ public class MarkdownDslResourceLoader extends AbstractDslResourcePersister {
         Object model = new MappingBasedMarkdownParser(mapping).map(doc.getRootSection(), ctx);
         XNode node = transformBeanToNode(model);
         return DslNodeLoader.INSTANCE.processDslNode(node, schemaPath, phase);
+    }
+
+    @Override
+    public String serializeDslNodeToText(String fileType, XNode node) {
+        IXDefinition xdef = loadXDef();
+        Object bean = DslModelHelper.dslNodeToJson(xdef, node);
+
+        IRecordMappingManager manager = RecordMappingManager.instance();
+
+        RecordMappingConfig mapping = manager.getRecordMappingConfig(reverseMappingName);
+
+        IEvalScope scope = XLang.newEvalScope();
+        return new MappingBasedMarkdownGenerator(mapping, bean, scope).generateText(scope);
     }
 
     @Override

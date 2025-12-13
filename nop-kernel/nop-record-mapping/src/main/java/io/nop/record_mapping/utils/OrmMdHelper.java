@@ -45,6 +45,8 @@ public class OrmMdHelper {
 
         StringBuilder sb = new StringBuilder();
         for (Object on : join) {
+            if (sb.length() > 0)
+                sb.append(',');
             String leftProp = (String) BeanTool.getProperty(on, "leftProp");
             String rightProp = (String) BeanTool.getProperty(on, "rightProp");
             Object leftValue = BeanTool.getProperty(on, "leftValue");
@@ -67,9 +69,6 @@ public class OrmMdHelper {
                     sb.append('=').append(encodeValue(rightValue));
                 }
             }
-
-            if (sb.length() > 0)
-                sb.append(',');
         }
         return sb.toString();
     }

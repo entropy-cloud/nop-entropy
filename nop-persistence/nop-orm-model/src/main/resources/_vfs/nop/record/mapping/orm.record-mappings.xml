@@ -563,7 +563,7 @@
                 <schema stdDomain="boolean"/>
                 <valueExpr>
                     <c:script>
-                        value == 'PK' || value == 'Y' || value == true
+                        value == 'PK' || value == 'Y' || value?.$toBoolean()
                     </c:script>
                 </valueExpr>
             </field>
@@ -572,7 +572,7 @@
                 <schema stdDomain="boolean"/>
                 <valueExpr>
                     <c:script>
-                        value == 'M' || value == 'Y' || value == true
+                        value == 'M' || value == 'Y' || value?.$toBoolean()
                     </c:script>
                 </valueExpr>
             </field>

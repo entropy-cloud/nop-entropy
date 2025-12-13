@@ -1,4 +1,4 @@
-nop.err.ai.coder.headers-and-data-not-match: 表头和数据的列数不匹配:headers={headers},data={data}
+nop.err.ai.coder.headers-and-data-not-match: 表头和数据的列数不匹配:headers={},data={}
 nop.err.ai.coder.unknown-sql-type: '未知的SQL类型: {sqlType}'
 nop.err.ai.file-content.no-path: 文件对象没有指定路径属性
 nop.err.ai.invalid-expr-var-name: 提示词表达式中的变量名无效:{varName}
@@ -567,7 +567,7 @@ nop.err.excel.import.unknown-group-field: 未知的分组字段:{fieldName}
 nop.err.excel.import.unknown-sheet: 未定义的Excel表格:[{sheetName}],允许的名称为{allowedNames}
 nop.err.excel.invalid-paper-size: 页面大小[{paperSize}]不是允许的值
 nop.err.excel.unknown-sheet: Excel文件中没有找到表格:[{sheetName}]
-nop.err.exp.undefined-table: 未定义的数据库表:{tableName}
+nop.err.exp.undefined-table: 未定义的数据库表:{}
 nop.err.exp.unknown-key-field: 数据表[{tableName}]没有定义唯一键字段:{fieldName},已定义的字段名为：{fieldNames}
 nop.err.file.already-exists: 文件已经存在:{path}
 nop.err.file.copy-fail: '复制文件失败: 从 {sourcePath} 到 {targetPath}'
@@ -714,7 +714,7 @@ nop.err.ioc.unknown-parent-ref: bean[{beanName}]的parent属性值[{parent}]没�
 nop.err.ioc.unresolved-alias: alias[{alias}]对应的bean[{beanName}]未定义
 nop.err.javac.not-support-transform-to-xlang-ast-fail: 不支持转换到XLang AST语法树节点
 nop.err.javac.parse-fail: 解析java文件失败
-nop.err.javaparser.parse-failed: Java解析失败:{parseResult}
+nop.err.javaparser.parse-failed: Java解析失败:{}
 nop.err.json.unknown-bind-expr-type: 未知的绑定表达式类型:{type}
 nop.err.json.unknown-value-pattern-type: 未知的模式类型:{type}
 nop.err.jsonrpc.exceed-max-command-count: JsonRpc单次请求包含的命令过多，超过最大个数限制。最大个数为{maxCount}
@@ -908,9 +908,9 @@ nop.err.record.unknown-field-codec:{codec}: fieldName
 nop.err.record.unknown-field-type: 未知的字段类型:{typeName}
 nop.err.record.unknown-from-field: 未知的字段[{fieldName}]
 nop.err.record.unknown-obj-type: 未知的对象类型:{typeName}
-nop.err.record.unsupported-packet-field-length-field: '不支持的包长度字段长度:{lengthFieldLength}
+nop.err.record.unspported-packet-field-length-field: '不支持的包长度字段长度:{lengthFieldLength}
   (期望: 1, 2, 3, 4, 或 8)'
-nop.err.record.value-not-match-string: 值与预想的情况不匹配:pos={pos},expected={expected}
+nop.err.record.value-not-match-string: 值与预想的情况不匹配:pos={},expected={}
 nop.err.rpc.cancelled: RPC调用已取消，原因:{reason}
 nop.err.rpc.channel-closed: RPC连接已关闭
 nop.err.rpc.empty-request: 请求对象为空
@@ -966,7 +966,7 @@ nop.err.task.invalid-custom-type: 节点的扩展类型属性必须包含名字�
 nop.err.task.loop-step-invalid-loop-var: 循环步骤的循环变量设置不正确：begin={begin},end={end},step={step}
 nop.err.task.mandatory-input-not-allow-empty: 步骤[{stepPath}]的输入[{inputName}]不允许为空
 nop.err.task.nop-persist-state-store: 没有定义持久化任务状态存储
-nop.err.task.request-rate-exceed-limit: 访问速率超过限制：TPS={requestPerSecond}
+nop.err.task.request-rate-exceed-limit: 访问速率超过限制：TPS={}
 nop.err.task.static-method-not-found: 类[{className}]中没有找到静态方法[{methodName}({argCount})]
 nop.err.task.step-mandatory-output-is-empty: 步骤[{stepPath}]的输出[{output}]不允许为空
 nop.err.task.step-timeout: 步骤已超时

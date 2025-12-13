@@ -68,7 +68,7 @@ public class MappingBasedMarkdownGenerator implements ITextTemplateOutput {
                 RecordFieldMappingConfig titleField = getTitleField(mapping);
                 if (titleField != null) {
                     processedFields.add(titleField.getName());
-                    writeHeader(out, levelCounters, getObjProp(titleField, obj, out));
+                    writeHeader(out, levelCounters, getObjProp(mapping, titleField, obj, out));
                 }
 
                 // 2. 先处理所有列表项字段
@@ -106,7 +106,7 @@ public class MappingBasedMarkdownGenerator implements ITextTemplateOutput {
                     continue;
 
                 tool.executeForField(mapping, field, obj, out, ctx, f -> {
-                    Object value = getObjProp(field, obj, out);
+                    Object value = getObjProp(mapping, field, obj, out);
                     if (value == null)
                         return;
 
@@ -147,7 +147,7 @@ public class MappingBasedMarkdownGenerator implements ITextTemplateOutput {
 
                 tool.executeForField(mapping, field, obj, out, ctx, f -> {
 
-                    Object value = getObjProp(field, obj, out);
+                    Object value = getObjProp(mapping, field, obj, out);
 
                     hasSections.set(true);
                     // 为子章节增加层级计数
@@ -245,7 +245,7 @@ public class MappingBasedMarkdownGenerator implements ITextTemplateOutput {
         for (Object row : records) {
             out.write("| ");
             for (RecordFieldMappingConfig field : itemMapping.getFields()) {
-                Object fieldValue = getObjProp(field, row, out);
+                Object fieldValue = getObjProp(itemMapping, field, row, out);
                 out.write(encodeValue(fieldValue) + " | ");
             }
             out.write("\n");
@@ -303,8 +303,9 @@ public class MappingBasedMarkdownGenerator implements ITextTemplateOutput {
         return null;
     }
 
-    protected Object getObjProp(RecordFieldMappingConfig field, Object obj, Writer out) {
-        return tool.getFromValue(field, obj, out, ctx);
+    protected Object getObjProp(RecordMappingConfig mapping, RecordFieldMappingConfig field, Object obj, Writer out) {
+        Object value = tool.getProcessedFromValue(mapping, field, obj, out, ctx);
+        return value;
     }
 
     /**

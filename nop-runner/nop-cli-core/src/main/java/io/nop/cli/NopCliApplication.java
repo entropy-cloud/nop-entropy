@@ -33,9 +33,19 @@ public class NopCliApplication implements QuarkusApplication {
     @Override
     public int run(String... args) {
         if (args.length == 0) {
-            new CommandLine(new MainCommand(), factory).usage(System.out);
+            new CommandLine(new MainCommand()).usage(System.out);
             return 0;
         }
+
+        if (factory == null) {
+            CommandLine cmd = new CommandLine(new MainCommand());
+            cmd.setExitCodeExceptionMapper(new NopExitCodeExceptionMapper());
+
+            int ret = new NopApplication().run(args, () -> cmd.execute(args));
+            CoreInitialization.destroy();
+            return ret;
+        }
+
         QuarkusIntegration.start();
         CommandLine cmd = new CommandLine(new MainCommand(), factory);
         cmd.setExitCodeExceptionMapper(new NopExitCodeExceptionMapper());
