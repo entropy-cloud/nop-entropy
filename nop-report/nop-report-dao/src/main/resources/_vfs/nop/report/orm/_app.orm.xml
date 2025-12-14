@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<orm ext:mavenArtifactId="nop-report" ext:entityPackageName="io.nop.report.dao.entity" ext:registerShortName="true"
-     ext:mavenGroupId="io.github.entropy-cloud" ext:basePackageName="io.nop.report" ext:appName="nop-report"
-     ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql" ext:mavenVersion="2.0.0-SNAPSHOT"
+<orm ext:registerShortName="true" ext:appName="nop-report" ext:entityPackageName="io.nop.report.dao.entity"
+     ext:basePackageName="io.nop.report" ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-report"
+     ext:mavenVersion="2.0.0-SNAPSHOT" ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql"
      x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
      xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:ui="ui">
 
@@ -41,8 +41,8 @@
                 updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Report Definition">
             <columns>
                 <column code="RPT_ID" displayName="主键" mandatory="true" name="rptId" precision="32" primary="true"
-                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
-                        i18n-en:displayName="Report ID" ui:show="X"/>
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
+                        i18n-en:displayName="Report ID"/>
                 <column code="RPT_NO" displayName="报表编号" mandatory="true" name="rptNo" precision="200" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Report No."/>
                 <column code="RPT_NAME" displayName="报表名称" mandatory="true" name="rptName" precision="200" propId="3"
@@ -55,7 +55,7 @@
                 <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="6" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="core/active-status"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="7"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -67,7 +67,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="12"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
             </columns>
             <relations>
                 <to-many cascadeDelete="true" displayName="报表访问权限" name="reportAuths"
@@ -92,13 +92,13 @@
                 updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Report Auth">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID" ui:show="X"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
                 <column code="RPT_ID" displayName="报表ID" mandatory="true" name="rptId" precision="32" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Report ID"/>
                 <column code="ROLE_ID" displayName="角色ID" mandatory="true" name="roleId" precision="200" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Role Id"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="4"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="5" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -110,7 +110,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="9"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
             </columns>
             <comment>配置角色对指定报表的访问权限</comment>
             <relations>
@@ -134,7 +134,7 @@
                 <column code="DS_ID" displayName="数据集ID" mandatory="true" name="dsId" precision="32" primary="true"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dataset ID"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="3"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="4" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -146,7 +146,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="7" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="8"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
             </columns>
             <relations>
                 <to-one displayName="报表定义" name="reportDefinition" refDisplayName="报表引用数据源"
@@ -166,7 +166,7 @@
             <columns>
                 <column code="SID" comment="采用类似java包名的命名规则" displayName="主键" mandatory="true" name="sid"
                         precision="200" primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
-                        i18n-en:displayName="Dataset ID" ui:show="X"/>
+                        ui:show="X" i18n-en:displayName="Dataset ID"/>
                 <column code="DS_NAME" displayName="数据集名称" mandatory="true" name="dsName" precision="200" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Dataset Name"/>
                 <column code="IS_SINGLE_ROW" displayName="是否单行" mandatory="true" name="isSingleRow" propId="3"
@@ -192,7 +192,7 @@
                 <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="11" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="core/active-status"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="12"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -204,7 +204,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="17"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
             </columns>
         </entity>
         <entity className="io.nop.report.dao.entity.NopReportSubDataset" createTimeProp="createTime"
@@ -223,7 +223,7 @@
                 <column code="DS_PARAMS" displayName="子数据集参数" name="dsParams" precision="500" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dataset Params"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="6"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="7" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -235,7 +235,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="11"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
             </columns>
             <relations>
                 <to-one displayName="数据集定义" name="reportDataset"
@@ -262,8 +262,8 @@
                 updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Report DataSource">
             <columns>
                 <column code="SID" displayName="主键ID" mandatory="true" name="sid" precision="32" primary="true"
-                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"
-                        ui:show="X"/>
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
+                        i18n-en:displayName="SID"/>
                 <column code="NAME" displayName="数据源名称" mandatory="true" name="name" precision="100" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Name"/>
                 <column code="DATASOURCE_TYPE" displayName="数据源类型" mandatory="true" name="datasourceType" precision="20"
@@ -276,7 +276,7 @@
                 <column code="REMARK" displayName="备注说明" name="remark" precision="500" propId="6" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="7"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -304,13 +304,13 @@
                 updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Datasource Auth">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID" ui:show="X"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
                 <column code="DATASOURCE_ID" displayName="数据源ID" mandatory="true" name="datasourceId" precision="32"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="DataSource ID"/>
                 <column code="ROLE_ID" displayName="角色ID" mandatory="true" name="roleId" precision="200" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Role Id"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="4"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="5" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -322,7 +322,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="9"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
             </columns>
             <comment>配置角色对指定数据源的访问权限</comment>
             <relations>
@@ -342,7 +342,7 @@
                 updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Report Result File">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="50" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID" ui:show="X"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
                 <column code="FILE_NAME" displayName="文件名称" mandatory="true" name="fileName" precision="200" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="File Name"/>
                 <column code="FILE_TYPE" displayName="文件类型" mandatory="true" name="fileType" precision="10" propId="3"
@@ -362,7 +362,7 @@
                 <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="10"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="11"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -374,7 +374,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="16"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
             </columns>
             <comment>用于缓存或者历史结果记录</comment>
             <relations>

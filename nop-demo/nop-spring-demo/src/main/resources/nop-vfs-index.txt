@@ -1,3 +1,5 @@
+/_delta/default/nop/spring/beans/spring-demo.beans.xml
+/_delta/default/nop/spring/mapper/SysUser.mapper.xml
 /dict/auth/gender.dict.yaml
 /dict/auth/login-status.dict.yaml
 /dict/auth/login-type.dict.yaml
@@ -352,6 +354,7 @@
 /nop/orm/xlib/orm-gen.xlib
 /nop/orm/xlib/pdman.xlib
 /nop/orm/xlib/sql.xlib
+/nop/record/mapping/orm.record-mappings.xml
 /nop/report/_module
 /nop/report/beans/app-report-demo.beans.xml
 /nop/report/beans/report-defaults.beans.xml
@@ -478,6 +481,9 @@
 /nop/schema/xui/xview.xdef
 /nop/spring/_module
 /nop/spring/beans/spring-base.beans.xml
+/nop/spring/beans/spring-demo.beans.xml
+/nop/spring/mapper/SysUser.mapper.xml
+/nop/spring/mapper/_gen/_SysUser.mapper.xml
 /nop/spring/schema/mapper.xdef
 /nop/sys/_module
 /nop/sys/auth/_nop-sys.action-auth.xml

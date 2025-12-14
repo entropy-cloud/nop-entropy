@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<orm ext:mavenArtifactId="nop-ai" ext:entityPackageName="nop.ai.dao.entity" ext:allowIdAsColName="true"
-     ext:basePackageName="nop.ai" ext:appName="nop-ai" ext:registerShortName="true"
-     ext:mavenGroupId="io.github.entropy-cloud" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+<orm ext:registerShortName="true" ext:appName="nop-ai" ext:entityPackageName="nop.ai.dao.entity"
+     ext:basePackageName="nop.ai" ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-ai"
+     ext:allowIdAsColName="true" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
      xmlns:i18n-en="i18n-en" xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl"
      xmlns:ui="ui">
 

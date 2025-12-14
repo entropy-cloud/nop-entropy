@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<orm ext:mavenArtifactId="nop-file" ext:entityPackageName="io.nop.file.dao.entity" ext:registerShortName="true"
-     ext:mavenGroupId="io.github.entropy-cloud" ext:basePackageName="io.nop.file" ext:appName="nop-file"
-     ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql" ext:mavenVersion="2.0.0-SNAPSHOT"
+<orm ext:registerShortName="true" ext:appName="nop-file" ext:entityPackageName="io.nop.file.dao.entity"
+     ext:basePackageName="io.nop.file" ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-file"
+     ext:mavenVersion="2.0.0-SNAPSHOT" ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql"
      x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
      xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:ui="ui">
 
@@ -66,8 +66,8 @@
                 <column code="IS_PUBLIC" displayName="是否允许公开访问" mandatory="true" name="isPublic" propId="13"
                         stdDataType="boolean" stdSqlType="BOOLEAN" i18n-en:displayName="Is Public"/>
                 <column code="DEL_FLAG" displayName="删除标识" domain="delFlag" mandatory="true" name="delFlag" propId="14"
-                        stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Deleted"
-                        ui:show="X"/>
+                        stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" ui:show="X"
+                        i18n-en:displayName="Deleted"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
