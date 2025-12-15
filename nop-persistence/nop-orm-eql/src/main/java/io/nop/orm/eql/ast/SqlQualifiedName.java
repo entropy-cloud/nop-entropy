@@ -12,6 +12,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.objects.PropPath;
 import io.nop.core.lang.ast.ASTNode;
 import io.nop.orm.eql.ast._gen._SqlQualifiedName;
+import io.nop.orm.eql.enums.SqlCollectionOperator;
 
 public class SqlQualifiedName extends _SqlQualifiedName {
     private SqlTableSource resolvedSource;
@@ -23,6 +24,19 @@ public class SqlQualifiedName extends _SqlQualifiedName {
         ret.setName(name);
         ret.setNext(next);
         return ret;
+    }
+
+    public SqlCollectionOperator asCollectorOperator() {
+        String name = getName();
+        return SqlCollectionOperator.fromText(name);
+    }
+
+    public boolean containsCollectorOperator() {
+        if (asCollectorOperator() != null)
+            return true;
+        if (getNext() != null)
+            return getNext().containsCollectorOperator();
+        return false;
     }
 
     public SqlTableSource getResolvedSource() {
