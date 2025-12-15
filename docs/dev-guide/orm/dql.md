@@ -88,9 +88,6 @@ LEFT JOIN 库存表 BY 日期
 SELECT 销售员.count(1),合同表.sum(金额) ON 地区
 FROM 销售员 BY 地区
 JOIN 合同表 BY 客户表.地区
-SELECT 销售员.count(1),合同表.sum(金额) ON 地区
-FROM 销售员 BY 地区
-JOIN 合同表 BY 客户表.地区
 ```
 
 如果从NopOrm的角度去看DQL的设计，则显然DQL本质上也是一种ORM的设计。
