@@ -64,13 +64,11 @@ query{
 
 `@action:demo.myAction`表示调用demo.lib.js库中的myAction方法。作为api的url来触发时，传给函数的参数为[FetcherRequest](https://gitee.com/canonical-entropy/nop-chaos/blob/master/packages/nop-core/src/core/types.ts)类型
 
-### `@fn`
-
-直接定义的匿名函数
-
 ## 自定义事件动作
 
 前台引入了一个特殊的page-action类型的动作，它的参数中必须包含一个特殊的参数`@action`用于指定触发的动作名称。
+
+对应函数接口为`function(args,page,{action,renderer,mergeData})`
 
 ```json5
 {
@@ -79,8 +77,8 @@ query{
           "actions": [ // 执行的动作列表
             {
               "actionType": "page-action", // 执行自定义action
-              "args": { // 
-                "@action": "demo.myAction",
+              "actionName": "@action:demo.myAction",
+              "args": { //
                 "msg": "派发点击事件"
               }
             }

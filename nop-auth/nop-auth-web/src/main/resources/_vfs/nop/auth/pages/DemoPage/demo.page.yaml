@@ -11,3 +11,17 @@ body:
       label: TestActionInLib
       actionType: submit
 
+    - type: input-text
+      name: myVar
+      value: 3
+
+    - type: action
+      label: Action Flow
+      level: success
+      onEvent:
+        click:
+          actions:
+            - actionType: page-action
+              actionName: '@action:demo.handlePageAction'
+              args:
+                a: '${myVar}'

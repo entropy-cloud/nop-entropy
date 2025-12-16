@@ -131,6 +131,18 @@ XML格式将按照前面介绍的转换规则转换为对应的json. 在`gen-con
 </gen-control>
 ```
 
+**注意**: gen-control是代码生成段，其中的表达式是在后台执行的，因此如果要输出AMIS的前端表达式，必须要转义。比如
+`${'$}{id}`在代码生成阶段会被执行，输出的结果是`${id}`
+
+```xml
+
+<gen-control>
+  <dialog>
+    <api url="sss?id=${'$'}{id}" />
+  </dialog>
+</gen-control>
+```
+
 ## 1.2 可逆计算分解
 
 Nop平台基于可逆计算理论针对JSON和XML实现了通用的分解合并机制，可以按照通用的规则将很大的JSON文件分解为多个小型文件，相当于是为AMIS补充了某种模块组织语法。最常用的是两个语法，`x:extends`用于表示继承外部的某个文件，`x:gen-extends`表示动态生成可以被继承的JSON对象。
@@ -167,7 +179,7 @@ AMIS的DSL本身只支持编写嵌入在页面中的JS片段代码，并不直�
 
 > 这一机制是通用的，可以用于集成其他的低代码引擎
 
-```
+```yaml
 type: page
 xui:import: /nop/auth/pages/DemoPage/demo.lib.js
 body:
@@ -183,6 +195,26 @@ body:
 `url: "@action:demo.testAction"`这一语法是我们在AMIS的环境抽象基础上所提供的一个`action`触发机制。它通过拦截AMIS的`fetcher`调用，识别`@action:`前缀，然后映射到已加载的JS函数上，调用时传入`data`指定的参数。
 
 脚本库的代码存放在`demo.lib.xjs`中（注意后缀名是xjs而不是js，我们会通过graalvm-js脚本引擎调用rollup打包工具将xjs转换为js文件，并打包成SystemJs模块结构）。
+也可以直接手写`demo.lib.js`，js库必须采用SystemJs格式，可以用AI去转换。
+
+在Action编排中也可以使用上述语法，例如
+
+```yaml
+    - type: action
+      label: Action Flow
+      level: success
+      onEvent:
+        click:
+          actions:
+            - actionType: page-action
+              actionName: '@action:demo.handlePageAction'
+              args:
+                a: '${myVar}'
+```
+
+Nop平台内置了一个测试页面: `http://localhost:8080/#/amis/nop/auth/pages/DemoPage/demo.page.yaml`
+
+### XJS
 
 ```javascript
 /* @x:gen-extends:
@@ -198,8 +230,6 @@ import {ajaxRequest} from '@nop/utils'
 
 export function testAction(options, page){
     page.env.alert("xx");
-    ajaxFetch(options)
-    ajaxRequest(options)
     myAction(options,page)
     myAction2(options,page)
 

@@ -741,6 +741,7 @@
 /nop/orm/xlib/sql.xlib
 /nop/plugin/xlib/plugin.xlib
 /nop/quarkus/beans/quarkus-defaults.beans.xml
+/nop/record/mapping/orm.record-mappings.xml
 /nop/report/_module
 /nop/report/auth/_nop-report.action-auth.xml
 /nop/report/auth/nop-report.action-auth.xml

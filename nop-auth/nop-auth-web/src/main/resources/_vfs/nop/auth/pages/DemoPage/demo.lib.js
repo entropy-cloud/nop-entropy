@@ -12,6 +12,11 @@ System.register(['@nop-chaos/sdk', './sub.lib.js'], (function (exports) {
         execute: (function () {
 
             exports('testAction', testAction);
+            exports('handlePageAction', handlePageAction)
+
+            function handlePageAction(args, page){
+              page.env.alert('pageAction:'+args.a)
+            }
 
             function myAction2(options, page){
                 page.env.alert("in sub2 lib");
@@ -19,10 +24,9 @@ System.register(['@nop-chaos/sdk', './sub.lib.js'], (function (exports) {
 
             function testAction(options, page){
             page.env.alert("xx");
-            ajaxFetch(options);
-            ajaxRequest(options);
-            myAction(options,page);
-            myAction2(options,page);
+            ajaxFetch({url:'/r/NopAuthUser__findPage'});
+           // myAction(options,page);
+           // myAction2(options,page);
             return Promise.resolve({
             status: 200 ,
             data: {

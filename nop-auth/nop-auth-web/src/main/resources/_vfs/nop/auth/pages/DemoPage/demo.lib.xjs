@@ -8,8 +8,7 @@ import {ajaxRequest} from '@nop/utils'
 
 export function testAction(options, page){
     page.env.alert("xx");
-    ajaxFetch(options)
-    ajaxRequest(options)
+    ajaxFetch({url:'/r/NopAuthUser__findPage'});
     myAction(options,page)
     myAction2(options,page)
 
@@ -19,4 +18,8 @@ export function testAction(options, page){
             status: 0
         }
     })
+}
+
+export function handlePageAction(args, page){
+  page.env.alert('pageAction:'+args.a)
 }
