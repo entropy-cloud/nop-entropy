@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <forms>
+        <form id="test" editMode="edit">
+            <layout>
+                fldA fldB
+            </layout>
+
+            <cells>
+                <cell id="fldA" label="FieldA" stdDomain="string"/>
+                <cell id="fldB" label="FieldB" stdDomain="int" />
+            </cells>
+        </form>
+    </forms>
+
+    <pages>
+        <simple name="test" form="test" useFormActions="true">
+            <actions>
+                <action id="test" label="TestDemoAction" actionType="custom">
+                    <onEvent>
+                        <click>
+                            <actions j:list="true">
+                                <action actionType="page-action" actionName="@action:demo.handlePageAction">
+                                    <args>
+                                        <a>${fldA}</a>
+                                    </args>
+                                </action>
+                            </actions>
+                        </click>
+                    </onEvent>
+                </action>
+            </actions>
+        </simple>
+    </pages>
+</view>

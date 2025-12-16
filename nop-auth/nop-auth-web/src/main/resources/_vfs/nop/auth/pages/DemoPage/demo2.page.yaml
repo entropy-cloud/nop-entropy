@@ -1,0 +1,5 @@
+type: page
+xui:import: /nop/auth/pages/DemoPage/demo.lib.js
+
+x:gen-extends: |
+  <web:GenPage view="DemoPage.view.xml" page="test" xpl:lib="/nop/web/xlib/web.xlib" />
