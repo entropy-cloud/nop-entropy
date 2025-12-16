@@ -19,7 +19,9 @@
     ]]></c:script>
 
     <c:if test="${pageModel.type == 'picker'}">
+       <!-- 兼容6.8.0, 6.13.0开始已经改成modalSize -->
         <size>${pageModel.size || 'lg'}</size>
+        <modalSize>${pageModel.size || 'lg'}</modalSize>
         <!--
         amis的picker控件要求source同时提供获取初始值和查询列表的功能，而没有使用pickerSchema中定义的api
         -->
