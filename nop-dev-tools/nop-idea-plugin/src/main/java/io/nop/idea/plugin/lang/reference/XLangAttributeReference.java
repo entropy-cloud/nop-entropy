@@ -32,6 +32,7 @@ import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefComment;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.XDefKeys;
+import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdsl.XDslKeys;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -157,6 +158,7 @@ public class XLangAttributeReference extends XLangReferenceBase {
 
             if ((!onlyNs.isEmpty() && !attrName.startsWith(onlyNs + ':')) //
                 || excludeNames.contains(attrName) //
+                || isIgnoredAttr(defAttr) //
             ) {
                 continue;
             }
@@ -178,7 +180,9 @@ public class XLangAttributeReference extends XLangReferenceBase {
 
         for (XlibXDefAttribute defAttr : xlibTag.getAttributes().values()) {
             String attrName = defAttr.getName();
-            if (excludeNames.contains(attrName)) {
+            if (excludeNames.contains(attrName) //
+                || isIgnoredAttr(defAttr) //
+            ) {
                 continue;
             }
 
@@ -202,6 +206,14 @@ public class XLangAttributeReference extends XLangReferenceBase {
 //                                   // presentable text 将替换 lookup string 作为最终的显示文本
 //                                   .withPresentableText(label) //
                                    .withInsertHandler(new XmlAttributeInsertHandler());
+    }
+
+    /** 已废弃或内部属性需被忽略 */
+    private static boolean isIgnoredAttr(IXDefAttribute defAttr) {
+        XDefTypeDecl defAttrType = defAttr.getType();
+
+        return defAttrType != null //
+               && (defAttrType.isInternal() || defAttrType.isDeprecated());
     }
 
     private record DefAttrWithLabel(String name, IXDefAttribute def, String label) {}

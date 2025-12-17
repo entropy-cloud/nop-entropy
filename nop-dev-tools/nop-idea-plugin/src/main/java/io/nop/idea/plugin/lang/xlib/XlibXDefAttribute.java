@@ -35,7 +35,7 @@ public class XlibXDefAttribute extends XDefAttribute {
         if (attr.isMandatory()) {
             sb.append(XDefConstants.XDEF_TYPE_PREFIX_MANDATORY);
         }
-        if (attr.isInternal() || attr.isDeprecated()) {
+        if (attr.isInternal() || attr.isDeprecated() || attr.isImplicit()) {
             sb.append(XDefConstants.XDEF_TYPE_PREFIX_DEPRECATED);
         }
         if (attr.getStdDomain() != null) {
