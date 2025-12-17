@@ -7,8 +7,8 @@
             </layout>
 
             <cells>
-                <cell id="fldA" label="FieldA" stdDomain="string"/>
-                <cell id="fldB" label="FieldB" stdDomain="int" />
+                <cell id="fldA" label="FieldA" domain="string"/>
+                <cell id="fldB" label="FieldB" domain="int" />
             </cells>
         </form>
     </forms>
@@ -16,6 +16,7 @@
     <pages>
         <simple name="test" form="test" useFormActions="true">
             <actions>
+                <action id="submit" label="Submit" actionType="submit" />
                 <action id="test" label="TestDemoAction" actionType="custom">
                     <onEvent>
                         <click>
