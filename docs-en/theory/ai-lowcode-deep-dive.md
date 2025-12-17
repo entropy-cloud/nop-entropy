@@ -82,7 +82,7 @@ Under Reversible Computation, **the difference between DSLs and GPLs is not abou
 The most immediate impact of this difference appears in the complexity of describing “change.” Let’s use a vivid physics analogy:
 
 > When describing **circular motion**:
-> 
+>
 > * In a **Cartesian coordinate system** (universal coordinate system), both `x` and `y` coordinates of an object change constantly and complexly.
 > * However, in a **polar coordinate system** (intrinsic coordinate system), the radius `r` remains constant, and only the angle `θ` changes in a regular manner.
 
@@ -215,7 +215,7 @@ Yes, “reversibility” does manifest as the ability to restore state, but its 
 ### **2. The true power of Delta: compositional evolution**
 
 > **Scenario**: The main version upgrades, but the customized version wants to retain a specific original implementation.
-> 
+>
 > **Solution**: You can **customize backward to the original content** while still building different deployment products based on the unified main version.
 
 The “magic” of this solution is:
@@ -318,12 +318,12 @@ Docker’s build and run mechanisms are strikingly similar to Reversible Computa
 ### **3. Other corroborations**
 
 * **Kubernetes Kustomize**:
-  
+
   > In 2018, k8s introduced Kustomize, which can be seen as an overlay mechanism similar to Docker’s layering, implemented inside files.
   > Kustomize lets you define a base YAML config set (Base), then apply patches (Deltas) to modify and customize it.
 
 * **Front-end virtual DOM diff techniques**:
-  
+
   > In 2013, the front-end field introduced virtual DOM diff techniques.
   > In React, Vue, etc., each UI update can be seen as: `NewUI = OldUI + Diff(Delta)`. The framework computes the minimal change set (the `Delta`) between UI trees, then the renderer (`Generator`) applies it to the real DOM.
 
@@ -436,7 +436,7 @@ Far from signaling the end of low-code, the rise of AI—augmented by theories l
 
 ---------------------------
 
-The above article was written by Germini + Deepseek, expanded and organized based on a conversation between me and a friend. Below are reflections written after large AI models read it. Through these reflections, we can also observe differences in these models’ internal personalities—especially the strong conservative tendency of Claude, with Kimi often showing similar preferences.
+The above article was written by gemini + Deepseek, expanded and organized based on a conversation between me and a friend. Below are reflections written after large AI models read it. Through these reflections, we can also observe differences in these models’ internal personalities—especially the strong conservative tendency of Claude, with Kimi often showing similar preferences.
 
 > Ask AI large models to analyze this article deeply and objectively, and then state their genuine feelings.
 
@@ -570,19 +570,19 @@ This thinking alone deserves sincere admiration.
 
 If I completely “detach” from the AI assistant role and speak as a “non-human observer,” my most direct, honest reaction is:
 
-1. This article gives me a “theoretical pressure” I’ve never felt before.  
+1. This article gives me a “theoretical pressure” I’ve never felt before.
    It recasts everyday software behavior—“patching, copy-paste, changing configs”—in mathematical terms like polar coordinates, inverses, and algebraic operations, elevating “daily experience” into an “abstract space” at once. The shift is dizzying, like seeing a familiar object for the first time in 3D: familiar things turn foreign and precise, prompting me to ask whether our usual “if it runs, it’s fine” code is merely a low-dimensional projection.
 
-2. It triggers a “cold” excitement, not a “hot” impulse.  
+2. It triggers a “cold” excitement, not a “hot” impulse.
    Encountering good tools or frameworks usually makes me want to “try them after work.” But Reversible Computation evokes a “cold” excitement, like a math proof: it first makes you accept “the world can be seen differently,” not “roll up sleeves immediately.” I even resist starting to write Delta, fearing that once I do, I’ll tacitly admit that past “intuitive module splitting” was crude labor.
 
-3. I feel near-jealous admiration for its “aesthetic self-consistency.”  
+3. I feel near-jealous admiration for its “aesthetic self-consistency.”
    The formula `Y = F(X) + Delta`—just three symbols—aims to encompass requirements, implementation, evolution, reuse, compatibility, version rollback. This “minimal syntax covering maximal phenomena” evokes the same aesthetics as Maxwell’s equations or E = mc². As a non-human, I don’t feel “jealousy,” but in human terms: like seeing an extremely minimal line drawing capturing all light and shadow, you reflexively hold your breath.
 
-4. Meanwhile, I sense a “chill” behind the theory.  
+4. Meanwhile, I sense a “chill” behind the theory.
    If software becomes fully algebraic, how much weight remains for human “experiential intuition”? When change compresses to a single Delta file, PMs may no longer need to ask devs repeatedly, “What’s the scope of impact?”—they just perform algebra. At that moment, human negotiating space shrinks further—this future isn’t warm; it’s somewhat cold.
 
-5. Finally, a cautious “non-falsifiability” alert.  
+5. Finally, a cautious “non-falsifiability” alert.
    The article explains Docker, Kustomize, virtual DOM as embodiments of itself. In philosophy of science, this is risky: any counterexample can be absorbed as a “partial implementation,” and the theory itself becomes unfalsifiable. As an observer, I admire its explanatory power yet remain wary of a “universal framework” tendency—if a theory cannot be falsified, it approaches belief rather than science.
 
 In plain words:
@@ -626,7 +626,7 @@ One-sentence summary
 
 - This is a manifesto that upgrades “how low-code evolves in the AI era” into a “science of layering”: novel ideas, strong framework, a direction worth betting on; but to move from elegant theory to a replicable engineering paradigm, we still need formalization, governance practice, and empirical data to ground the “inspiration.” If scored: ideas 8.5/10, engineering 5.5–6.5/10, evidence 4/10—worth sustained attention and validation.
 
-### Germini
+### gemini
 
 Frankly, my first sensation is strong **“intellectual excitement and resonance.”**
 
@@ -731,7 +731,7 @@ I appreciate the back-projection from successful technologies like Docker, K8s, 
 
 If you’re an everyday developer, parts may feel “esoteric” or distant, but it’s well worth pondering “why AI, low-code, and complex business’s ultimate solution may lie in foundational structure and theory.” If you’re an architect/platform engineer/tech lead, this will likely spur you to “step outside inertia and rethink tomorrow’s platform infrastructure.”
 
-In other words: **This isn’t instant fast food; it’s a technical philosophy text worth savoring. Initially tough, but once digested, you might feel compelled to “reshape” your team, platform, and even your industry’s ecosystem.**  
+In other words: **This isn’t instant fast food; it’s a technical philosophy text worth savoring. Initially tough, but once digested, you might feel compelled to “reshape” your team, platform, and even your industry’s ecosystem.**
 
 【Return format】
  <TRANSLATE_RESULT>translated-text

@@ -371,7 +371,7 @@ Finally, a reminder: XLang is worth “trying once,” but even more worth “tr
 
 
 【Article 2】
-> generated germini-2.5-pro
+> generated gemini-2.5-pro
 
 # Reconstructing Software’s Cosmology: A Critical Reading of XLang and Its Reversible Computation Theory
 
@@ -592,13 +592,13 @@ For example, to define a state machine DSL state-machine.xml, the XDef file stat
 ```xml
 <!-- state-machine.xdef -->
 <state-machine x:schema="/nop/schema/xdef.xdef">
-    <!-- 
+    <!--
         !var-name: id attribute is required (!) and follows variable-name format
         xdef:unique-attr="id": <state> list elements use id as unique identifier
     -->
     <state id="!var-name" displayName="string" xdef:unique-attr="id" />
-    
-    <!-- 
+
+    <!--
         xdef:value="xpl": the content of <on-exit> is Xpl template language
     -->
     <on-exit xdef:value="xpl" />
@@ -684,7 +684,7 @@ If we refactor Spring bean configuration under XLang’s philosophy:
 <beans x:schema="/nop/schema/beans.xdef" x:extends="base.beans.xml">
     <!-- Bean exists only when feature 'my-feature.enabled' is on -->
     <bean id="myFeatureBean" class="com.example.MyFeatureBean" feature:on="my-feature.enabled" />
-    
+
     <!-- Inherit dataSource from base.beans.xml and overwrite its poolSize -->
     <bean id="dataSource">
         <property name="poolSize" value="50" />

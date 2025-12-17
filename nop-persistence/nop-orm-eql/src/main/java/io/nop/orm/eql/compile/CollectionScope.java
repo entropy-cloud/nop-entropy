@@ -1,6 +1,6 @@
 package io.nop.orm.eql.compile;
 
-import io.nop.orm.eql.ast.EqlASTNode;
+import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.enums.SqlCollectionOperator;
 
 import java.util.HashMap;
@@ -8,26 +8,36 @@ import java.util.Map;
 
 public class CollectionScope {
     private final SqlCollectionOperator operator;
-    private final String propPath;
-    private EqlASTNode node;
+    private final String collectionPrefix;
+    private SqlExpr node;
+
+    private CollectionScope parent;
 
     private Map<String, CollectionScope> children;
 
-    public CollectionScope(SqlCollectionOperator operator, String propPath) {
+    public CollectionScope(SqlCollectionOperator operator, String collectionPrefix) {
         this.operator = operator;
-        this.propPath = propPath;
+        this.collectionPrefix = collectionPrefix;
     }
 
     public CollectionScope of(SqlCollectionOperator operator, String propPath) {
         return new CollectionScope(operator, propPath);
     }
 
+    public CollectionScope getParent() {
+        return parent;
+    }
+
+    public void setParent(CollectionScope parent) {
+        this.parent = parent;
+    }
+
     public SqlCollectionOperator getOperator() {
         return operator;
     }
 
-    public String getPropPath() {
-        return propPath;
+    public String getCollectionPrefix() {
+        return collectionPrefix;
     }
 
     public CollectionScope getChildScope(String propPath) {
@@ -37,6 +47,8 @@ public class CollectionScope {
     public void addChildScope(CollectionScope scope) {
         if (children == null)
             children = new HashMap<>();
-        children.put(scope.getPropPath(), scope);
+        children.put(scope.getCollectionPrefix(), scope);
     }
+
+
 }
