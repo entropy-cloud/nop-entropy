@@ -127,11 +127,13 @@
 /nop/auth/model/NopAuthUserSubstitution/_NopAuthUserSubstitution.xmeta
 /nop/auth/orm/_app.orm.xml
 /nop/auth/orm/app.orm.xml
+/nop/auth/pages/DemoPage/DemoPage.view.xml
 /nop/auth/pages/DemoPage/action.js
 /nop/auth/pages/DemoPage/demo-plain.page.yaml
 /nop/auth/pages/DemoPage/demo.lib.js
 /nop/auth/pages/DemoPage/demo.lib.xjs
 /nop/auth/pages/DemoPage/demo.page.yaml
+/nop/auth/pages/DemoPage/demo2.page.yaml
 /nop/auth/pages/DemoPage/parts/sub2.lib.js
 /nop/auth/pages/DemoPage/sub.lib.js
 /nop/auth/pages/DemoPage/sub.lib.xjs

@@ -50,7 +50,9 @@ public class RetryConsumeHelper {
                 context.getTaskContext().fireChunkTryEnd(context, e);
                 throw e;
             } catch (Throwable e) {
-                LOG.error("nop.err.batch.retry-consume-fail:retryCount={}", retryCount, e);
+                LOG.error("nop.err.batch.retry-consume-fail:taskName={},taskId={},taskKey={},retryCount={}",
+                        context.getTaskName(), context.getTaskId(),
+                        context.getTaskKey(), retryCount, e);
                 context.getTaskContext().fireChunkTryEnd(context, e);
 
                 if (snapshot != null)

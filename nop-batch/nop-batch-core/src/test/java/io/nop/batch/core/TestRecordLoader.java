@@ -31,6 +31,7 @@ public class TestRecordLoader {
         builder.batchSize(2000);
 
         IBatchTaskContext context = new BatchTaskContextImpl();
+        context.setTaskKey("test-record-loader");
         context.onChunkBegin(chunkCtx -> {
             if (chunkCtx.getThreadIndex() % 2 == 0)
                 ThreadHelper.sleep(MathHelper.random().nextInt(500));

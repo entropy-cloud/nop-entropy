@@ -21,6 +21,12 @@ public interface BatchErrors {
 
     String ARG_READ_COUNT = "readCount";
 
+    String ARG_PROCESSING_ITEMS = "processingItems";
+
+    String ARG_TASK_NAME = "taskName";
+    String ARG_TASK_ID = "taskId";
+    String ARG_TASK_KEY = "taskKey";
+
     ErrorCode ERR_BATCH_PERSIST_VAR_CONVERT_TYPE_FAIL = define("nop.err.batch.persist-var-convert-type-fail",
             "状态变量[{varName}]的类型转换失败", ARG_VAR_NAME);
 

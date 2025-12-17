@@ -18,6 +18,18 @@ import java.util.concurrent.CountDownLatch;
  * 批处理的一个执行单元。例如100条记录组成一个chunk，一个chunk全部执行完毕之后才提交一次，而不是每处理一条记录就提交一次事务。
  */
 public interface IBatchChunkContext extends IExecutionContext {
+    default String getTaskName() {
+        return getTaskContext().getTaskName();
+    }
+
+    default String getTaskId() {
+        return getTaskContext().getTaskId();
+    }
+
+    default String getTaskKey() {
+        return getTaskContext().getTaskKey();
+    }
+
     <T> List<T> getChunkItems();
 
     <T> void setChunkItems(List<T> items);

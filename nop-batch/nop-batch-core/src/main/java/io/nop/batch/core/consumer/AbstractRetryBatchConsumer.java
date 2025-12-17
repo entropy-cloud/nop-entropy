@@ -38,7 +38,9 @@ public abstract class AbstractRetryBatchConsumer<R> implements IBatchConsumer<R>
         } catch (BatchCancelException e) {
             throw e;
         } catch (Exception e) {
-            LOG.error("nop.err.batch.consume-fail", e);
+            LOG.error("nop.err.batch.consume-fail:taskName={},taskId={},taskKey={}",
+                    context.getTaskName(), context.getTaskId(),
+                    context.getTaskKey(), e);
 
             // 有可能部分记录已经被处理，不需要被重试
             if (context.getCompletedItemCount() > 0) {

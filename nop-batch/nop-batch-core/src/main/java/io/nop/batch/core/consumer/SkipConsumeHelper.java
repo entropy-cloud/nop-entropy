@@ -33,7 +33,9 @@ public class SkipConsumeHelper {
         } catch (Throwable e) {
             if (skipPolicy.shouldSkip(e, context.getTaskContext().getSkipItemCount(), context)) {
                 int count = items.size() - context.getCompletedItemCount() + completedCount;
-                LOG.info("nop.batch.skip-error:skipCount={},totalSkipCount={}", count,
+                LOG.info("nop.batch.skip-error:taskName={},taskId={},taskKey={},skipCount={},totalSkipCount={}",
+                        context.getTaskName(),
+                        context.getTaskId(), context.getTaskKey(), count,
                         context.getTaskContext().getSkipItemCount(), e);
 
                 if (metrics != null) {

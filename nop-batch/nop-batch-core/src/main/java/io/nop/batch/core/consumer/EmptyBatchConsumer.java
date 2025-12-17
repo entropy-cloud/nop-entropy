@@ -31,6 +31,7 @@ public class EmptyBatchConsumer<R> implements IBatchConsumerProvider.IBatchConsu
 
     @Override
     public void consume(Collection<R> items, IBatchChunkContext context) {
-        LOG.debug("batch.consumer.ignore:items={}", items);
+        LOG.debug("batch.consumer.ignore:taskName={},taskId={},taskKey={},items={}",
+                context.getTaskName(), context.getTaskId(), context.getTaskKey(), items);
     }
 }

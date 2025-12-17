@@ -8,13 +8,14 @@
 package io.nop.batch.core.loader;
 
 import io.nop.api.core.convert.ConvertHelper;
-import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.batch.core.IBatchAggregator;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.IBatchRecordFilter;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.common.AbstractBatchResourceHandler;
+import io.nop.batch.core.utils.BatchTaskHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.resource.IResource;
@@ -29,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static io.nop.batch.core.BatchErrors.ARG_ITEM_COUNT;
+import static io.nop.batch.core.BatchErrors.ARG_PROCESSING_ITEMS;
 import static io.nop.batch.core.BatchErrors.ARG_READ_COUNT;
 import static io.nop.batch.core.BatchErrors.ARG_RESOURCE_PATH;
 import static io.nop.batch.core.BatchErrors.ERR_BATCH_TOO_MANY_PROCESSING_ITEMS;
@@ -61,7 +62,12 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
      */
     long skipCount;
 
-    int maxProcessingItems = 100000;
+    int maxProcessingItems = 50000;
+
+    /**
+     * 当 processingItems 超过最大限制时等待的时间（毫秒）。等待结束后若仍超过则抛错。
+     */
+    long overLimitWaitMillis = 60000L;
 
     /**
      * 是否确保返回的记录实现{@link IRowNumberRecord}接口，并设置rowNumber为当前读取记录条目数，从1开始
@@ -139,11 +145,24 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         this.maxProcessingItems = maxProcessingItems;
     }
 
+    /**
+     * 设置当超过最大处理条目限制时等待的毫秒数。
+     *
+     * @param overLimitWaitMillis 等待毫秒数，<=0 则不等待，直接按当前逻辑处理
+     */
+    public void setOverLimitWaitMillis(long overLimitWaitMillis) {
+        this.overLimitWaitMillis = overLimitWaitMillis;
+    }
+
     @Override
     public IBatchLoader<S> setup(IBatchTaskContext context) {
         LoaderState<S> state = newLoaderState(context);
         return (batchSize, ctx) -> {
             ctx.onAfterComplete(err -> onChunkEnd(ctx, err, state));
+            ctx.getTaskContext().onBeforeComplete(() -> {
+                if (state.processingItems != null && !state.processingItems.isEmpty())
+                    throw new IllegalStateException("processingItems must be empty");
+            });
             return load(batchSize, state, ctx);
         };
     }
@@ -232,7 +251,8 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
                 }
             }
 
-            // 如果最小的rowNumber已经完成，则记录处理历史
+            // 如果最小的rowNumber已经完成，则记录处理历史。
+            // 如果有线程处理的过慢，这里会出现积压，实际已经处理过的item因为前面的item尚未结束无法被标记为结束
             Iterator<Map.Entry<Long, Boolean>> it = state.processingItems.entrySet().iterator();
             long completedRow = -1L;
             while (it.hasNext()) {
@@ -245,17 +265,30 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
                 }
             }
 
-            LOG.info("nop.batch.loader.chunk-end:minRowNumber={},maxRowNumber={},completedIndex={},processingItems={}",
-                    minRowNumber, maxRowNumber, completedRow, state.processingItems.size());
+            LOG.info("nop.batch.loader.chunk-end:taskKey={},chunkMinRowNumber={},chunkMaxRowNumber={}," +
+                            "chunkCompletedRow={},completedIndex={},processingItems={}",
+                    state.context.getTaskKey(), minRowNumber, maxRowNumber, completedRow,
+                    state.context.getCompletedIndex(), state.processingItems.size());
 
             // 如果处理阶段异常，则不会保存到状态变量中，这样下次处理的时候仍然会处理到这些记录
             if (completedRow > 0 && exception == null) {
                 context.getTaskContext().setCompletedIndex(completedRow);
             }
+
+            // 通知可能在load中等待容量恢复的线程
+            this.notifyAll();
         }
     }
 
     synchronized List<S> load(int batchSize, LoaderState<S> state, IBatchChunkContext chunkCtx) {
+        // 进入时如果发现处理中的条目已经超过限制，则等待一段时间；若等待后仍超过，则不读取，直接抛错
+        if (!waitUntilUnderLimit(state)) {
+            throw BatchTaskHelper.newTaskError(state.context, ERR_BATCH_TOO_MANY_PROCESSING_ITEMS)
+                    .param(ARG_PROCESSING_ITEMS, state.processingItems == null ? 0 : state.processingItems.size())
+                    .param(ARG_READ_COUNT, state.input.getReadCount())
+                    .param(ARG_RESOURCE_PATH, getResourcePath());
+        }
+
         long readCount = state.input.getReadCount();
 
         List<S> items = loadItems(batchSize, state);
@@ -276,10 +309,16 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
                 if (state.processingItems != null && rowNumber > 0)
                     state.processingItems.put(rowNumber, false);
             }
-            if (state.processingItems != null && state.processingItems.size() > maxProcessingItems)
-                throw new NopException(ERR_BATCH_TOO_MANY_PROCESSING_ITEMS)
-                        .param(ARG_ITEM_COUNT, state.processingItems.size()).param(ARG_READ_COUNT, state.input.getReadCount())
-                        .param(ARG_RESOURCE_PATH, getResourcePath());
+
+            if (state.processingItems != null && state.processingItems.size() > maxProcessingItems) {
+                // 放入processingItems后如果超过最大限制，则先等待一段时间，再决定是否报错
+                if (!waitUntilUnderLimit(state)) {
+                    throw BatchTaskHelper.newTaskError(state.context, ERR_BATCH_TOO_MANY_PROCESSING_ITEMS)
+                            .param(ARG_PROCESSING_ITEMS, state.processingItems.size())
+                            .param(ARG_READ_COUNT, state.input.getReadCount())
+                            .param(ARG_RESOURCE_PATH, getResourcePath());
+                }
+            }
         }
 
         if (aggregator != null) {
@@ -288,6 +327,42 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
             }
         }
         return items;
+    }
+
+    /**
+     * 如果当前 processingItems 超过最大限制，则在 overLimitWaitMillis 时间窗口内循环等待直到恢复到限制以内或超时。
+     * 返回 true 表示当前已不超过限制，可以继续；false 表示超时后仍然超过限制。
+     */
+    private boolean waitUntilUnderLimit(LoaderState<S> state) {
+        if (state.processingItems == null)
+            return true; // 未启用processingItems，无需限制
+
+        if (state.processingItems.size() <= maxProcessingItems)
+            return true;
+
+        long waitMs = this.overLimitWaitMillis;
+        if (waitMs <= 0)
+            return false; // 不等待则立即认为超时
+
+        final long deadline = CoreMetrics.currentTimeMillis() + waitMs;
+        long remaining;
+        do {
+            remaining = deadline - System.currentTimeMillis();
+            if (remaining <= 0)
+                break;
+            try {
+                LOG.warn("nop.batch.loader.over-limit:taskName={},taskId={},taskKey={}, processingItems={} > max={}, wait={}ms",
+                        state.context.getTaskName(), state.context.getTaskId(), state.context.getTaskKey(),
+                        state.processingItems.size(), maxProcessingItems, remaining);
+                this.wait(remaining);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                LOG.warn("nop.batch.loader.wait-interrupted");
+                break;
+            }
+        } while (state.processingItems.size() > maxProcessingItems);
+
+        return state.processingItems.size() <= maxProcessingItems;
     }
 
     private List<S> loadItems(int batchSize, LoaderState<S> state) {
