@@ -524,6 +524,7 @@
             "valueField": "roleId",
             "labelField": "roleName",
             "size": "lg",
+            "modalSize": "lg",
             "source": {
               "valueField": "roleId",
               "labelField": "roleName",
@@ -663,6 +664,7 @@
             "valueField": "userId",
             "labelField": "userName",
             "size": "lg",
+            "modalSize": "lg",
             "source": {
               "valueField": "userId",
               "labelField": "userName",
