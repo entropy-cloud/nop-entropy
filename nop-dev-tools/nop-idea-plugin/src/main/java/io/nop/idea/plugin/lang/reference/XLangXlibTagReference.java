@@ -82,7 +82,7 @@ public class XLangXlibTagReference extends XLangReferenceBase {
             // Note: 标签函数允许递归引用，不需要排除当前标签
             return xlib.getTags().keySet().stream() //
                        .sorted() //
-                       .map((name) -> LookupElementHelper.lookupXmlTag(name, null)) //
+                       .map((name) -> LookupElementHelper.lookupXmlTag(name, null, false)) //
                        .toArray();
         }, LookupElement.EMPTY_ARRAY);
     }

@@ -30,12 +30,12 @@ import one.util.streamex.StreamEx;
  */
 public class LookupElementHelper {
 
-    public static LookupElement lookupXmlTag(String tagName, String label) {
+    public static LookupElement lookupXmlTag(String tagName, String label, boolean multiple) {
         return LookupElementBuilder.create(tagName)
                                    // icon 靠左布局
                                    .withIcon(PlatformIcons.XML_TAG_ICON)
                                    // type text 靠后布局
-                                   .withTypeText(label)
+                                   .withTypeText(label, multiple ? PlatformIcons.METHOD_ICON : null, false)
 //                                   // tail text 与 lookup string 紧挨着
 //                                   .withTailText(label) //
 //                                   // presentable text 将替换 lookup string 作为最终的显示文本
@@ -70,8 +70,7 @@ public class LookupElementHelper {
     }
 
     public static StreamEx<LookupElement> lookupPsiPackagesStream(
-            StreamEx<PsiPackage> stream, Function<PsiPackage, LookupElement> builder
-    ) {
+            StreamEx<PsiPackage> stream, Function<PsiPackage, LookupElement> builder) {
         return stream.distinct(PsiPackage::getQualifiedName)
                      .sorted(Comparator.comparing(PsiPackage::getQualifiedName))
                      .map(builder);
@@ -83,8 +82,7 @@ public class LookupElementHelper {
     }
 
     public static StreamEx<LookupElement> lookupPsiClassesStream(
-            StreamEx<PsiClass> stream, Function<PsiClass, LookupElement> builder
-    ) {
+            StreamEx<PsiClass> stream, Function<PsiClass, LookupElement> builder) {
         return stream.filter(c -> c.getQualifiedName() != null && StringUtil.isNotEmpty(c.getName()))
                      .distinct(PsiClass::getQualifiedName)
                      .sorted(Comparator.comparing(PsiClass::getQualifiedName))

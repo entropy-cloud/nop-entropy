@@ -87,16 +87,17 @@ public class XLangTagReference extends XLangReferenceBase {
                         rootDefNode != null && !rootDefNode.isUnknownTag() //
                         ? lookupTag(rootDefNode, trimLookupTagNs)
                         // 若根节点被定义为 xdef:unknown-tag，则以文件名作为其标签名
-                        : lookupTag(tagName, null, trimLookupTagNs),
+                        : lookupTag(tagName, null, trimLookupTagNs, false),
                         };
             } else {
                 return new LookupElement[] {
                         // 对于元模型的根节点，则一般以文件名作为其标签名
-                        lookupTag(tagName, null, trimLookupTagNs),
+                        lookupTag(tagName, null, trimLookupTagNs, false),
                         // 或者为 xdef:unknown-tag
                         lookupTag(tagXdefKeys != null ? tagXdefKeys.UNKNOWN_TAG : XDefKeys.DEFAULT.UNKNOWN_TAG,
                                   null,
-                                  trimLookupTagNs),
+                                  trimLookupTagNs,
+                                  false),
                         };
             }
         }
@@ -158,14 +159,14 @@ public class XLangTagReference extends XLangReferenceBase {
 
         String tagName = defNode.getTagName();
 
-        return lookupTag(tagName, label, trimNs);
+        return lookupTag(tagName, label, trimNs, defNode.isAllowMultiple());
     }
 
     /** 注意，若当前标签已经包含完整的名字空间，则补全项必须移除其名字空间，否则，补全项的插入位置将会发生偏移 */
-    private static LookupElement lookupTag(String tagName, String label, boolean trimNs) {
+    private static LookupElement lookupTag(String tagName, String label, boolean trimNs, boolean multiple) {
         if (trimNs) {
             tagName = tagName.substring(tagName.indexOf(':') + 1);
         }
-        return LookupElementHelper.lookupXmlTag(tagName, label);
+        return LookupElementHelper.lookupXmlTag(tagName, label, multiple);
     }
 }
