@@ -20,7 +20,7 @@ import static io.nop.codegen.CodeGenConfigs.CFG_CODEGEN_TRACE_ENABLED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Disabled
-@QuarkusTest
+//@QuarkusTest
 public class NopCliTasks {
     @Inject
     CommandLine.IFactory factory;
@@ -185,7 +185,7 @@ public class NopCliTasks {
     public void testPaths() {
         String[] args = new String[]{
                 "file", "find", "-b", "c:/can/nop/nop-entropy",
-                "-d","nop-core",
+                "-d","nop-kernel/nop-core",
                 "-o", "target/find.txt"
         };
         NopCliApplication app = new NopCliApplication();

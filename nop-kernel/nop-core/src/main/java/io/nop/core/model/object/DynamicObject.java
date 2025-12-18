@@ -62,6 +62,7 @@ import static io.nop.core.CoreErrors.ERR_REFLECT_INVALID_EXT_PROP_NAME;
 public class DynamicObject extends AbstractFreezable implements IComponentModel, IMethodMissingHook,
         IPropGetMissingHook, IPropSetMissingHook, IPropMakeMissingHook, IJsonSerializable, IKeyedElement,
         IMapLike, IDeepCloneable {
+
     private static final AtomicLong s_seq = new AtomicLong();
 
     private final long seq = s_seq.incrementAndGet();

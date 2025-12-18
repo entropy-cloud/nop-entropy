@@ -198,7 +198,7 @@ public class BuildObjectJsonHandler implements IJsonHandler {
      */
     public IJsonHandler key(String name) {
         if (name == null) {
-            throw new NullPointerException("name == null");
+            name = "null";
         }
         if (deferredName != null) {
             throw new IllegalStateException("Dangling name: " + deferredName);
