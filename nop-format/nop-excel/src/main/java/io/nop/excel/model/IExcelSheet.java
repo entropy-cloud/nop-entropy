@@ -28,7 +28,7 @@ public interface IExcelSheet {
 
     List<ExcelDataValidation> getDataValidations();
 
-    ExcelDataValidation addDataValidation(String id);
+    ExcelDataValidation buildDataValidation(String id);
 
     Double getDefaultRowHeight();
 

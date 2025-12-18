@@ -9,6 +9,7 @@ package io.nop.ooxml.xlsx.parse;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.core.resource.impl.FileResource;
@@ -18,6 +19,7 @@ import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelTable;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.xlsx.output.ExcelTemplate;
+import io.nop.ooxml.xlsx.util.ExcelHelper;
 import io.nop.xlang.api.XLang;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -91,5 +93,16 @@ public class TestExcelWorkbookParser extends BaseTestCase {
 
         ExcelTable table = wk.getSheets().get(0).getTable();
         assertEquals("ref:nop_wf_instance!A1", table.getCell(1, 1).getLinkUrl());
+    }
+
+    @Test
+    public void testValidation() {
+        IResource resource = new ClassPathResource("classpath:xlsx/data-validation.xlsx");
+        ExcelWorkbook wk = new ExcelWorkbookParser().parseFromResource(resource);
+        File targetFile = getTargetFile("test-link.xlsx");
+        new ExcelTemplate(wk).generateToFile(targetFile, XLang.newEvalScope());
+
+        XNode node = ExcelHelper.toWorkbookXmlNode(wk);
+        node.dump();
     }
 }

@@ -407,8 +407,29 @@ public class ExcelWriteSupport {
             int allowBlank = Boolean.FALSE.equals(validation.getAllowBlank()) ? 0 : 1;
             int showInputMessage = Boolean.FALSE.equals(validation.getShowInputMessage()) ? 0 : 1;
             int showErrorMessage = Boolean.FALSE.equals(validation.getShowErrorMessage()) ? 0 : 1;
+            Integer showDropDown = validation.getShowDropDown() == null ? null :
+                    (Boolean.TRUE.equals(validation.getShowDropDown()) ? 1 : 0);
+            
+            String id = validation.getId();
+            if(id != null && !id.startsWith("{")){
+                id = "{" + UUID.fromString(id) + "}";
+            }
+
             out.beginNode(null, "dataValidation", attrs("type", validation.getType(),
-                    "allowBlank", allowBlank, "showInputMessage", showInputMessage, "showErrorMessage", showErrorMessage, "sqref", validation.getSqref()));
+                    "allowBlank", allowBlank,
+                    "showInputMessage", showInputMessage,
+                    "showErrorMessage", showErrorMessage,
+                    "sqref", validation.getSqref(),
+                    "operator", validation.getOperator(),
+                    "xr:uid", id,
+                    "showDropDown", showDropDown ,
+                    "promptTitle", validation.getPromptTitle(),
+                    "prompt", validation.getPrompt(),
+                    "errorStyle", validation.getErrorStyle() ,
+                    "errorTitle", validation.getErrorTitle(),
+                    "error", validation.getError(),
+                    "imeMode", validation.getImeMode()));
+
             if (validation.getFormula1() != null) {
                 out.beginNode("formula1");
                 out.value(null, validation.getFormula1());

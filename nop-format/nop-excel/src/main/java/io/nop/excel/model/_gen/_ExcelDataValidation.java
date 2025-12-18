@@ -1,5 +1,6 @@
 package io.nop.excel.model._gen;
 
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 import io.nop.excel.model.ExcelDataValidation;
 import io.nop.commons.util.ClassHelper;
@@ -18,119 +19,135 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     /**
      *  
      * xml name: allowBlank
-     * 可选。如果为 true (默认值)，则允许单元格为空。
+     * 可选。允许为空，"1" 表示 true。
      */
     private java.lang.Boolean _allowBlank ;
     
     /**
      *  
-     * xml name: errorMessage
-     * 可选。错误提示框的正文内容。
+     * xml name: error
+     * 必需（当showErrorMessage="1"时）。错误消息内容。
      */
-    private java.lang.String _errorMessage ;
+    private java.lang.String _error ;
     
     /**
      *  
      * xml name: errorStyle
-     * 可选。错误提示框的样式，可选值为 'stop' (默认), 'warning', 'information'。
+     * 可选。错误样式：'stop', 'warning', 'information'。
      */
     private io.nop.excel.model.constants.ExcelDataValidationErrorStyle _errorStyle ;
     
     /**
      *  
      * xml name: errorTitle
-     * 可选。错误提示框的标题。
+     * 可选。错误标题。
      */
     private java.lang.String _errorTitle ;
     
     /**
      *  
      * xml name: formula1
-     * <formula1> 可选。第一个公式或值。用于定义验证规则的边界或列表源。
+     * <formula1> 必需。第一个公式或值。
+     * - 对于数值类型：表示最小值或比较值
+     * - 对于 list 类型：表示列表源，如 "选项1,选项2,选项3" 或 Sheet1!$A$1:$A$5
+     * - 对于 textLength：表示文本长度限制
      */
     private java.lang.String _formula1 ;
     
     /**
      *  
      * xml name: formula2
-     * <formula2> 可选。第二个公式或值。主要与 'between' 和 'notBetween' 运算符配合使用。
+     * <formula2> 可选。第二个公式或值。
+     * - 主要用于 between 和 notBetween 操作符，表示最大值
+     * - 对于其他操作符通常为空
      */
     private java.lang.String _formula2 ;
     
     /**
      *  
      * xml name: id
-     * 可选。数据有效性规则的唯一标识符。
+     * 可选。Excel内部使用的GUID标识符。
      */
     private java.lang.String _id ;
     
     /**
      *  
      * xml name: imeMode
-     * 可选。控制输入法编辑器 (IME) 的默认状态，主要用于东亚语言。
+     * 可选。输入法模式，主要用于东亚语言输入法控制。
+     * - 'noControl'：不控制IME（默认）
+     * - 'off'：关闭IME（英文模式）
+     * - 'on'：开启IME（中文/日文/韩文输入模式）
+     * - 'disabled'：禁用IME
+     * - 'hiragana'：平假名模式（日文）
+     * - 'fullKatakana'：全角片假名模式（日文）
+     * - 'halfKatakana'：半角片假名模式（日文）
+     * - 'fullAlpha'：全角字母模式
+     * - 'halfAlpha'：半角字母模式
+     * - 'fullHangul'：全角韩文模式
+     * - 'halfHangul'：半角韩文模式
      */
     private io.nop.excel.model.constants.ExcelDataValidationImeMode _imeMode ;
     
     /**
      *  
      * xml name: operator
-     * 可选。比较运算符，如 'between', 'equal', 'greaterThan' 等。
+     * 
      */
     private io.nop.excel.model.constants.ExcelDataValidationOperator _operator ;
     
     /**
      *  
      * xml name: prompt
-     * 可选。输入提示框的正文内容。
+     * 可选。输入提示内容。
      */
     private java.lang.String _prompt ;
     
     /**
      *  
      * xml name: promptTitle
-     * 可选。输入提示框的标题。
+     * 可选。输入提示标题。
      */
     private java.lang.String _promptTitle ;
     
     /**
      *  
      * xml name: showDropDown
-     * 
+     * 可选。显示下拉列表，"1" 表示 true（仅对list类型有效）。
      */
     private java.lang.Boolean _showDropDown ;
     
     /**
      *  
      * xml name: showErrorMessage
-     * 可选。如果为 true (默认值)，则在输入无效数据时显示错误消息。
+     * 可选。显示错误消息，"1" 表示 true。
      */
     private java.lang.Boolean _showErrorMessage ;
     
     /**
      *  
      * xml name: showInputMessage
-     * 可选。如果为 true (默认值)，则在选中单元格时显示输入提示。
+     * 可选。显示输入消息，"1" 表示 true。
      */
     private java.lang.Boolean _showInputMessage ;
     
     /**
      *  
      * xml name: sqref
-     * 必需。应用此验证规则的单元格或范围，例如 "A1" 或 "A1:C5 B2:B10"。
+     * 必需。应用此验证规则的单元格或范围。
      */
     private java.lang.String _sqref ;
     
     /**
      *  
      * xml name: type
-     * 必需。指定验证的类型，如 'whole', 'decimal', 'list', 'date', 'time', 'textLength', 'custom'。
+     * 必需。验证类型：'whole', 'decimal', 'list', 'date', 'time', 'textLength', 'custom'。
      */
     private io.nop.excel.model.constants.ExcelDataValidationType _type ;
     
     /**
      * 
      * xml name: allowBlank
-     *  可选。如果为 true (默认值)，则允许单元格为空。
+     *  可选。允许为空，"1" 表示 true。
      */
     
     public java.lang.Boolean getAllowBlank(){
@@ -148,19 +165,19 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     
     /**
      * 
-     * xml name: errorMessage
-     *  可选。错误提示框的正文内容。
+     * xml name: error
+     *  必需（当showErrorMessage="1"时）。错误消息内容。
      */
     
     public java.lang.String getError(){
-      return _errorMessage;
+      return _error;
     }
 
     
     public void setError(java.lang.String value){
         checkAllowChange();
         
-        this._errorMessage = value;
+        this._error = value;
            
     }
 
@@ -168,7 +185,7 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     /**
      * 
      * xml name: errorStyle
-     *  可选。错误提示框的样式，可选值为 'stop' (默认), 'warning', 'information'。
+     *  可选。错误样式：'stop', 'warning', 'information'。
      */
     
     public io.nop.excel.model.constants.ExcelDataValidationErrorStyle getErrorStyle(){
@@ -187,7 +204,7 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     /**
      * 
      * xml name: errorTitle
-     *  可选。错误提示框的标题。
+     *  可选。错误标题。
      */
     
     public java.lang.String getErrorTitle(){
@@ -206,7 +223,10 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     /**
      * 
      * xml name: formula1
-     *  <formula1> 可选。第一个公式或值。用于定义验证规则的边界或列表源。
+     *  <formula1> 必需。第一个公式或值。
+     * - 对于数值类型：表示最小值或比较值
+     * - 对于 list 类型：表示列表源，如 "选项1,选项2,选项3" 或 Sheet1!$A$1:$A$5
+     * - 对于 textLength：表示文本长度限制
      */
     
     public java.lang.String getFormula1(){
@@ -225,7 +245,9 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     /**
      * 
      * xml name: formula2
-     *  <formula2> 可选。第二个公式或值。主要与 'between' 和 'notBetween' 运算符配合使用。
+     *  <formula2> 可选。第二个公式或值。
+     * - 主要用于 between 和 notBetween 操作符，表示最大值
+     * - 对于其他操作符通常为空
      */
     
     public java.lang.String getFormula2(){
@@ -244,7 +266,7 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     /**
      * 
      * xml name: id
-     *  可选。数据有效性规则的唯一标识符。
+     *  可选。Excel内部使用的GUID标识符。
      */
     
     public java.lang.String getId(){
@@ -263,7 +285,18 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     /**
      * 
      * xml name: imeMode
-     *  可选。控制输入法编辑器 (IME) 的默认状态，主要用于东亚语言。
+     *  可选。输入法模式，主要用于东亚语言输入法控制。
+     * - 'noControl'：不控制IME（默认）
+     * - 'off'：关闭IME（英文模式）
+     * - 'on'：开启IME（中文/日文/韩文输入模式）
+     * - 'disabled'：禁用IME
+     * - 'hiragana'：平假名模式（日文）
+     * - 'fullKatakana'：全角片假名模式（日文）
+     * - 'halfKatakana'：半角片假名模式（日文）
+     * - 'fullAlpha'：全角字母模式
+     * - 'halfAlpha'：半角字母模式
+     * - 'fullHangul'：全角韩文模式
+     * - 'halfHangul'：半角韩文模式
      */
     
     public io.nop.excel.model.constants.ExcelDataValidationImeMode getImeMode(){
@@ -282,7 +315,7 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     /**
      * 
      * xml name: operator
-     *  可选。比较运算符，如 'between', 'equal', 'greaterThan' 等。
+     *  
      */
     
     public io.nop.excel.model.constants.ExcelDataValidationOperator getOperator(){
@@ -301,7 +334,7 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     /**
      * 
      * xml name: prompt
-     *  可选。输入提示框的正文内容。
+     *  可选。输入提示内容。
      */
     
     public java.lang.String getPrompt(){
@@ -320,7 +353,7 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     /**
      * 
      * xml name: promptTitle
-     *  可选。输入提示框的标题。
+     *  可选。输入提示标题。
      */
     
     public java.lang.String getPromptTitle(){
@@ -339,7 +372,7 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     /**
      * 
      * xml name: showDropDown
-     *  
+     *  可选。显示下拉列表，"1" 表示 true（仅对list类型有效）。
      */
     
     public java.lang.Boolean getShowDropDown(){
@@ -358,7 +391,7 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     /**
      * 
      * xml name: showErrorMessage
-     *  可选。如果为 true (默认值)，则在输入无效数据时显示错误消息。
+     *  可选。显示错误消息，"1" 表示 true。
      */
     
     public java.lang.Boolean getShowErrorMessage(){
@@ -377,7 +410,7 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     /**
      * 
      * xml name: showInputMessage
-     *  可选。如果为 true (默认值)，则在选中单元格时显示输入提示。
+     *  可选。显示输入消息，"1" 表示 true。
      */
     
     public java.lang.Boolean getShowInputMessage(){
@@ -396,7 +429,7 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     /**
      * 
      * xml name: sqref
-     *  必需。应用此验证规则的单元格或范围，例如 "A1" 或 "A1:C5 B2:B10"。
+     *  必需。应用此验证规则的单元格或范围。
      */
     
     public java.lang.String getSqref(){
@@ -415,7 +448,7 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     /**
      * 
      * xml name: type
-     *  必需。指定验证的类型，如 'whole', 'decimal', 'list', 'date', 'time', 'textLength', 'custom'。
+     *  必需。验证类型：'whole', 'decimal', 'list', 'date', 'time', 'textLength', 'custom'。
      */
     
     public io.nop.excel.model.constants.ExcelDataValidationType getType(){
@@ -447,7 +480,7 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
         super.outputJson(out);
         
         out.putNotNull("allowBlank",this.getAllowBlank());
-        out.putNotNull("errorMessage",this.getError());
+        out.putNotNull("error",this.getError());
         out.putNotNull("errorStyle",this.getErrorStyle());
         out.putNotNull("errorTitle",this.getErrorTitle());
         out.putNotNull("formula1",this.getFormula1());

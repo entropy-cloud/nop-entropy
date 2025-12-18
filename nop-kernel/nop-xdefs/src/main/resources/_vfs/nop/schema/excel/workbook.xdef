@@ -95,9 +95,10 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                 -->
                 <dataValidation xdef:name="ExcelDataValidation" sqref="!string"
                                 type="enum:io.nop.excel.model.constants.ExcelDataValidationType"
-                                allowBlank="string" showInputMessage="string"
+                                operator="enum:io.nop.excel.model.constants.ExcelDataValidationOperator"
+                                allowBlank="boolean" showInputMessage="boolean"
                                 promptTitle="string" prompt="string"
-                                showErrorMessage="string" showDropDown="string"
+                                showErrorMessage="boolean" showDropDown="boolean"
                                 errorStyle="enum:io.nop.excel.model.constants.ExcelDataValidationErrorStyle"
                                 errorTitle="string" error="string"
                                 imeMode="enum:io.nop.excel.model.constants.ExcelDataValidationImeMode"

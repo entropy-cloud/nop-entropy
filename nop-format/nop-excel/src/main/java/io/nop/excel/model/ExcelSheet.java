@@ -18,16 +18,20 @@ public class ExcelSheet extends _ExcelSheet implements IExcelSheet, INeedInit {
         setTable(new ExcelTable());
     }
 
-    @Override
-    public ExcelDataValidation addDataValidation(String id) {
-        ExcelDataValidation validation = new ExcelDataValidation();
-        validation.setId(id);
+    public void addDataValidation(ExcelDataValidation validation) {
         List<ExcelDataValidation> validations = getDataValidations();
-        if (validations == null) {
+        if (validations == null || validations.isEmpty()) {
             validations = new ArrayList<>();
             setDataValidations(validations);
         }
         validations.add(validation);
+    }
+
+    @Override
+    public ExcelDataValidation buildDataValidation(String id) {
+        ExcelDataValidation validation = new ExcelDataValidation();
+        validation.setId(id);
+        this.addDataValidation(validation);
         return validation;
     }
 

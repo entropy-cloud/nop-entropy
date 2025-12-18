@@ -32,6 +32,10 @@ import io.nop.excel.model.ExcelDataValidation;
 import io.nop.excel.model.ExcelPageMargins;
 import io.nop.excel.model.ExcelPageSetup;
 import io.nop.excel.model.ExcelSheetProtection;
+import io.nop.excel.model.constants.ExcelDataValidationErrorStyle;
+import io.nop.excel.model.constants.ExcelDataValidationImeMode;
+import io.nop.excel.model.constants.ExcelDataValidationOperator;
+import io.nop.excel.model.constants.ExcelDataValidationType;
 import io.nop.excel.util.UnitsHelper;
 import io.nop.ooxml.xlsx.model.SharedStringsPart;
 
@@ -293,15 +297,34 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             boolean allowBlank = getAttrBoolean(attrs, "allowBlank", true);
             boolean showInputMessage = getAttrBoolean(attrs, "showInputMessage", true);
             boolean showErrorMessage = getAttrBoolean(attrs, "showErrorMessage", true);
+            boolean showDropDown = getAttrBoolean(attrs, "showDropDown", false);
             String id = getAttr(attrs, "xr:uid");
+            String operator = getAttr(attrs, "operator");
+            String promptTitle = getAttr(attrs, "promptTitle");
+            String prompt = getAttr(attrs, "prompt");
+            String errorStyle = getAttr(attrs, "errorStyle");
+            String errorTitle = getAttr(attrs, "errorTitle");
+            String error = getAttr(attrs, "error");
+            String imeMode = getAttr(attrs, "imeMode");
 
             dataValidation = new ExcelDataValidation();
-            dataValidation.setType(type);
+            dataValidation.setType(ExcelDataValidationType.fromText(type));
             dataValidation.setSqref(sqref);
             dataValidation.setAllowBlank(allowBlank);
             dataValidation.setShowInputMessage(showInputMessage);
             dataValidation.setShowErrorMessage(showErrorMessage);
+            dataValidation.setShowDropDown(showDropDown);
             dataValidation.setId(id);
+
+            dataValidation.setOperator(ExcelDataValidationOperator.fromText(operator));
+            dataValidation.setPromptTitle(promptTitle);
+            dataValidation.setPrompt(prompt);
+
+            dataValidation.setErrorStyle(ExcelDataValidationErrorStyle.fromText(errorStyle));
+            dataValidation.setErrorTitle(errorTitle);
+            dataValidation.setError(error);
+
+            dataValidation.setImeMode(ExcelDataValidationImeMode.fromText(imeMode));
         } else if ("formula1".equals(localName) || "formula2".equals(localName)) {
             validationFormula.setLength(0);
             vfOpen = true;
