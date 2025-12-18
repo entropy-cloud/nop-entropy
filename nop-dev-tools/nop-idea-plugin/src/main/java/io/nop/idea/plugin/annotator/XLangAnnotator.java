@@ -7,8 +7,6 @@
  */
 package io.nop.idea.plugin.annotator;
 
-import java.util.Objects;
-
 import com.intellij.codeInsight.daemon.impl.HighlightRangeExtension;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.lang.annotation.AnnotationHolder;
@@ -147,18 +145,22 @@ public class XLangAnnotator implements Annotator {
     }
 
     private void checkTagBySchemaDefNode(@NotNull AnnotationHolder holder, @NotNull XLangTag tag) {
+        XLangTag parentTag = tag.getParentTag();
         XLangTagMeta tagMeta = tag.getTagMeta();
-        // 检查标签可重复性
-        if (!tagMeta.canBeMultipleTag() && tag.getParentTag() != null) {
-            for (PsiElement child : tag.getParentTag().getChildren()) {
-                // 检查在其之前的重复节点
-                if (child == tag) {
-                    break;
-                }
 
-                if (child instanceof XLangTag t //
-                    && Objects.equals(t.getName(), tag.getName()) //
-                ) {
+        if (parentTag != null) {
+            XLangTagMeta parentTagMeta = parentTag.getTagMeta();
+            switch (parentTagMeta.checkChildTagAllowed(tagMeta)) {
+                // 父标签不允许多个子标签
+                case only_at_most_one -> {
+                    tagErrorAnnotation(holder,
+                                       tag,
+                                       "xlang.annotation.tag.only-at-most-one-child-tag",
+                                       parentTag.getName());
+                    return;
+                }
+                // 标签自身不可重复
+                case can_not_be_multiple -> {
                     tagErrorAnnotation(holder, tag, "xlang.annotation.tag.multiple-tag-not-allowed", tag.getName());
                     return;
                 }

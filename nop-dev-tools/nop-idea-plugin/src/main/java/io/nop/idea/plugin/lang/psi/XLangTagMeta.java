@@ -11,6 +11,7 @@ package io.nop.idea.plugin.lang.psi;
 import java.util.Objects;
 import java.util.Set;
 
+import com.intellij.psi.PsiElement;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
@@ -24,6 +25,7 @@ import io.nop.xlang.xdef.IXDefComment;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefSubComment;
 import io.nop.xlang.xdef.IXDefinition;
+import io.nop.xlang.xdef.XDefBodyType;
 import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefKeys;
 import io.nop.xlang.xdef.XDefTypeDecl;
@@ -215,6 +217,50 @@ public class XLangTagMeta {
         IXDefNode defNode = getDefNodeInSchema();
 
         return (defNode != null && defNode.isAllowMultiple()) || isXplNode();
+    }
+
+    /** 当前标签是否允许有多个子标签 */
+    public boolean canHasMultipleChildTag() {
+        IXDefNode defNode = getDefNodeInSchema();
+
+        // xdef:body-type="union" 的节点只能有一个子节点
+        return defNode != null && !XDefBodyType.union.equals(defNode.getXdefBodyType());
+    }
+
+    /** 检查是否允许包含指定的子标签，并返回检查结果 */
+    public ChildTagAllowedMode checkChildTagAllowed(XLangTagMeta childTagMeta) {
+        boolean allowMultipleChild = canHasMultipleChildTag();
+        boolean allowMultipleSelf = childTagMeta.canBeMultipleTag();
+        if (allowMultipleChild && allowMultipleSelf) {
+            return ChildTagAllowedMode.allowed;
+        }
+
+        String childTagName = childTagMeta.tag.getName();
+        for (PsiElement child : tag.getChildren()) {
+            // 仅检查在指定标签之前的标签
+            if (child == childTagMeta.tag) {
+                break;
+            } else if (!(child instanceof XLangTag)) {
+                continue;
+            }
+
+            XLangTag t = (XLangTag) child;
+            String tName = t.getName();
+            if (!allowMultipleSelf //
+                && Objects.equals(tName, childTagName) //
+            ) {
+                return ChildTagAllowedMode.can_not_be_multiple;
+            } //
+            else if (!allowMultipleChild
+                     // 若已出现过定义的子标签，则不能再出现其他定义的子标签
+                     && defNodeInSchema != null //
+                     && defNodeInSchema.getChild(tName) != null //
+                     && defNodeInSchema.getChild(childTagName) != null //
+            ) {
+                return ChildTagAllowedMode.only_at_most_one;
+            }
+        }
+        return ChildTagAllowedMode.allowed;
     }
 
     /**
@@ -771,5 +817,14 @@ public class XLangTagMeta {
             childDefNode = null;
         }
         return childDefNode;
+    }
+
+    public enum ChildTagAllowedMode {
+        /** 允许 */
+        allowed,
+        /** 最多只能有一个子标签 */
+        only_at_most_one,
+        /** 子标签不能重复 */
+        can_not_be_multiple,
     }
 }

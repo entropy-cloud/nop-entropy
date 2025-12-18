@@ -9,4 +9,13 @@
     <refs xdef:value="v-path-list"/>
 
     <xjson xdef:value="xjson"/>
+
+    <union xdef:body-type="union" xdef:bean-sub-type-prop="type">
+        <u1 xdef:bean-tag-prop="type"/>
+        <u2 xdef:bean-tag-prop="type"/>
+    </union>
+    <list xdef:body-type="list" xdef:key-attr="name" xdef:bean-sub-type-prop="type">
+        <l1 name="string" xdef:allow-multiple="false" xdef:bean-tag-prop="type"/>
+        <l2 name="string" xdef:bean-tag-prop="type"/>
+    </list>
 </example>

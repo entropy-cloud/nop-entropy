@@ -1029,6 +1029,262 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
         );
     }
 
+    public void testMultipleChildTagsByTagMeta() {
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <u<caret>1/>
+                                  <u2/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <u1/>
+                                  <u<caret>2/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.only_at_most_one,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <x:gen-extends/>
+                                  <u<caret>2/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <abc/>
+                                  <u<caret>2/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <a<caret>bc/>
+                                  <u2/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <xui:abc/>
+                                  <u<caret>2/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <xui:a<caret>bc/>
+                                  <u2/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <u1/>
+                                  <a<caret>bc/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <u1/>
+                                  <xui:a<caret>bc/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <list>
+                                  <l<caret>1/>
+                                  <l2/>
+                                  <l1/>
+                                </list>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <list>
+                                  <l1/>
+                                  <l<caret>2/>
+                                  <l1/>
+                                </list>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <list>
+                                  <l1/>
+                                  <l2/>
+                                  <l<caret>1/>
+                                </list>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.can_not_be_multiple,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <list>
+                                  <l1/>
+                                  <l2/>
+                                  <l1/>
+                                  <l<caret>2/>
+                                </list>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+    }
+
     private void assertTagMeta(String text, BiConsumer<XLangTag, XLangTagMeta> consumer) {
         configureByXLangText(text);
         assertCaretExists();

@@ -55,6 +55,11 @@ public class XLangTag extends XmlTagImpl {
         return getClass().getSimpleName() + ':' + getElementType() + "('" + getName() + "')";
     }
 
+    /**
+     * 此接口涉及 {@link XLangTagMeta} 重建，需避免在其他接口内重复调用
+     *
+     * @return 始终不为 {@code null}
+     */
     public synchronized XLangTagMeta getTagMeta() {
         String tagName = getName();
 
