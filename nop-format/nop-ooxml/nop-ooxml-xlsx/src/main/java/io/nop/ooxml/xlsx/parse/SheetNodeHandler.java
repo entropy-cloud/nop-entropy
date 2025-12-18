@@ -297,7 +297,9 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             boolean allowBlank = getAttrBoolean(attrs, "allowBlank", true);
             boolean showInputMessage = getAttrBoolean(attrs, "showInputMessage", true);
             boolean showErrorMessage = getAttrBoolean(attrs, "showErrorMessage", true);
-            boolean showDropDown = getAttrBoolean(attrs, "showDropDown", false);
+            Boolean showDropDown = attrs.containsKey("showDropDown") ?
+                    getAttrBoolean(attrs, "showDropDown", false): null;
+
             String id = getAttr(attrs, "xr:uid");
             String operator = getAttr(attrs, "operator");
             String promptTitle = getAttr(attrs, "promptTitle");

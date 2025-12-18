@@ -99,7 +99,7 @@ public class TestExcelWorkbookParser extends BaseTestCase {
     public void testValidation() {
         IResource resource = new ClassPathResource("classpath:xlsx/data-validation.xlsx");
         ExcelWorkbook wk = new ExcelWorkbookParser().parseFromResource(resource);
-        File targetFile = getTargetFile("test-link.xlsx");
+        File targetFile = getTargetFile("test-validation.xlsx");
         new ExcelTemplate(wk).generateToFile(targetFile, XLang.newEvalScope());
 
         XNode node = ExcelHelper.toWorkbookXmlNode(wk);
