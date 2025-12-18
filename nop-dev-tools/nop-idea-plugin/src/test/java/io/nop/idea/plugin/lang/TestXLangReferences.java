@@ -1006,6 +1006,143 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                 """,  //
                         "/test/reference/a.xlib" //
         );
+
+        // 对泛型、函数参数、数组的识别
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop xdef:bean-body-type="Li<caret>st&lt;io.nop.xui.initialize.VueNodeStdDomainHandler>"/>
+                                </example>
+                                """,  //
+                        "java.util.List" //
+        );
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop xdef:bean-body-type="List&lt; io.nop.xui.initialize.VueNode<caret>StdDomainHandler>"/>
+                                </example>
+                                """,  //
+                        "io.nop.xui.initialize.VueNodeStdDomainHandler" //
+        );
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop xdef:bean-body-type="Ma<caret>p&lt; String,io.nop.xui.initialize.VueNodeStdDomainHandler>"/>
+                                </example>
+                                """,  //
+                        "java.util.Map" //
+        );
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop xdef:bean-body-type="Map&lt;Str<caret>ing ,io.nop.xui.initialize.VueNodeStdDomainHandler>"/>
+                                </example>
+                                """,  //
+                        "java.lang.String" //
+        );
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop xdef:bean-body-type="Map&lt; String, io.nop.xui.initialize.VueNode<caret>StdDomainHandler>"/>
+                                </example>
+                                """,  //
+                        "io.nop.xui.initialize.VueNodeStdDomainHandler" //
+        );
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop xdef:bean-body-type="(ar<caret>g1:int,arg2:Map<String,Integer>) => boolean"/>
+                                </example>
+                                """,  //
+                        null //
+        );
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop xdef:bean-body-type="(arg1:i<caret>nt,arg2:Map<String,Integer>) => boolean"/>
+                                </example>
+                                """,  //
+                        "java.lang.Integer" //
+        );
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop xdef:bean-body-type="(arg1:int,arg2:Ma<caret>p<String,Integer>) => boolean"/>
+                                </example>
+                                """,  //
+                        "java.util.Map" //
+        );
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop xdef:bean-body-type="(arg1:int,arg2:Map< String, Int<caret>eger>) => boolean"/>
+                                </example>
+                                """,  //
+                        "java.lang.Integer" //
+        );
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop xdef:bean-body-type="(arg1:int,arg2:Map<String,Integer>) => boo<caret>lean"/>
+                                </example>
+                                """,  //
+                        "java.lang.Boolean" //
+        );
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop xdef:bean-body-type="in<caret>t[]"/>
+                                </example>
+                                """,  //
+                        "java.lang.Integer" //
+        );
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop xdef:bean-body-type="Ma<caret>p []"/>
+                                </example>
+                                """,  //
+                        "java.util.Map" //
+        );
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop xdef:bean-body-type="io.nop.xui.initialize.VueNode<caret>StdDomainHandler[]"/>
+                                </example>
+                                """,  //
+                        "io.nop.xui.initialize.VueNodeStdDomainHandler" //
+        );
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop xdef:bean-body-type="Li<caret>st&lt;io.nop.xui.initialize.VueNodeStdDomainHandler>[]"/>
+                                </example>
+                                """,  //
+                        "java.util.List" //
+        );
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop xdef:bean-body-type="List&lt;io.nop.xui.initialize.VueNode<caret>StdDomainHandler>[]"/>
+                                </example>
+                                """,  //
+                        "io.nop.xui.initialize.VueNodeStdDomainHandler" //
+        );
     }
 
     public void testAttributeValueDefTypeReferences() {
