@@ -10,6 +10,7 @@ package io.nop.excel.model;
 import io.nop.api.core.convert.IByteArrayView;
 import io.nop.commons.bytes.ByteString;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.xml.XNode;
 import io.nop.excel.model._gen._ExcelImage;
 
 public class ExcelImage extends _ExcelImage {
@@ -22,6 +23,8 @@ public class ExcelImage extends _ExcelImage {
     private double top;
     private double width;
     private double height;
+
+    private XNode shape;
 
     public ExcelImage() {
 
@@ -115,5 +118,13 @@ public class ExcelImage extends _ExcelImage {
 
     public void setEmbedId(String embedId) {
         this.embedId = embedId;
+    }
+
+    public XNode getShape() {
+        return shape;
+    }
+
+    public void setShape(XNode shape) {
+        this.shape = shape;
     }
 }

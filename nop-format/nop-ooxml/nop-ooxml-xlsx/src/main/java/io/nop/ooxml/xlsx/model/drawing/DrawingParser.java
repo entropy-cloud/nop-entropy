@@ -62,7 +62,7 @@ public class DrawingParser {
         XNode cNvPicPr = picPr != null ? picPr.childByTag("xdr:cNvPicPr") : null;
         XNode picLocks = cNvPicPr != null ? cNvPicPr.childByTag("a:picLocks") : null;
 
-        XNode blipFill = pic != null ? pic.childByTag("xdr:blipFill") :null;
+        XNode blipFill = pic != null ? pic.childByTag("xdr:blipFill") : null;
         XNode blip = blipFill != null ? blipFill.childByTag("a:blip") : null;
 
         XNode spPr = pic != null ? pic.childByTag("xdr:spPr") : null;
@@ -71,6 +71,11 @@ public class DrawingParser {
         ExcelImage image = new ExcelImage();
         ExcelClientAnchor anchor = parseAnchor0(anchorNode);
         image.setAnchor(anchor);
+
+        XNode xdrShape = anchorNode.childByTag("xdr:sp");
+        if (xdrShape != null) {
+            image.setShape(xdrShape.cloneInstance());
+        }
 
         if (cNvPr != null) {
             String name = cNvPr.attrText("name");

@@ -29,6 +29,14 @@ public class DrawingBuilder {
 
     public XNode buildAnchor(ExcelImage image, int index) {
         XNode anchor = buildAnchor0(image.getAnchor());
+        if (image.getShape() != null) {
+            XNode shape = image.getShape().cloneInstance();
+            anchor.appendChild(shape);
+            shape.setTagName("xdr:sp");
+            XNode clientData = anchor.addChild("xdr:clientData");
+            clientData.setAttr("fPrintsWithSheet", image.isPrint() ? 1 : 0);
+            return anchor;
+        }
 
         XNode pic = anchor.addChild("xdr:pic");
         XNode nvPicPr = pic.addChild("xdr:nvPicPr");
@@ -46,7 +54,7 @@ public class DrawingBuilder {
             blipFill.setAttr("rotWithShape", 1);
         }
         XNode blip = blipFill.addChild("a:blip");
-        blip.setAttr("xmlns:r","http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+        blip.setAttr("xmlns:r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
         blip.setAttr("r:embed", image.getEmbedId());
         blipFill.addChild("a:stretch");
 

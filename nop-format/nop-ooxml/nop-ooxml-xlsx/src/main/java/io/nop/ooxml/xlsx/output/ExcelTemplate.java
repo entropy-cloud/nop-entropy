@@ -144,7 +144,7 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
 
         OfficeRelsPart drawingRelPart = pkg.makeRelsForPartPath(drawingPath);
         for (ExcelImage image : images) {
-            if (image.getData() == null)
+            if (image.getData() == null && image.getShape() == null)
                 continue;
             String path = addImageData(pkg, image.getData(), image.getImgType(), genState);
             String id = drawingRelPart.addImage("/" + path).getId();
