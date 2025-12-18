@@ -174,6 +174,13 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         String encoding = this.encodingExpr == null ? null : ConvertHelper.toString(this.encodingExpr.invoke(context));
         IRecordInput<S> input = recordIO.openInput(resource, encoding);
 
+        // 先临时设置，后面会修改state.input。这里是要确保aggregator或者beforeRead报错时input也被关闭
+        state.input = input;
+
+        context.onAfterComplete(err -> {
+            IoHelper.safeCloseObject(state.input);
+        });
+
         input.beforeRead(context.getAttributes());
 
         long skipCount = getSkipCount(context);
@@ -196,10 +203,6 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         }
 
         state.input = input;
-
-        context.onAfterComplete(err -> {
-            IoHelper.safeCloseObject(state.input);
-        });
 
         if (saveState)
             state.processingItems = new TreeMap<>();

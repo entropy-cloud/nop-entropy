@@ -97,6 +97,11 @@ public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHand
         IResource resource = getResource(context);
         String encoding = this.encodingExpr == null ? null : ConvertHelper.toString(this.encodingExpr.invoke(context));
         state.output = recordIO.openOutput(resource, encoding);
+
+        context.onAfterComplete(err -> {
+            IoHelper.safeCloseObject(state.output);
+        });
+
         Map<String, Object> header;
         if (metaProvider != null) {
             // 写入header
@@ -140,9 +145,6 @@ public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHand
             });
         }
 
-        context.onAfterComplete(err -> {
-            IoHelper.safeCloseObject(state.output);
-        });
         return state;
     }
 
