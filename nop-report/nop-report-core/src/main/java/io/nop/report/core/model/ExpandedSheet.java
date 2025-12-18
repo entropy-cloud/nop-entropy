@@ -60,6 +60,17 @@ public class ExpandedSheet implements IExcelSheet {
     }
 
     @Override
+    public ExcelDataValidation addDataValidation(String id) {
+        if (dataValidations == null) {
+            dataValidations = new ArrayList<>();
+        }
+        ExcelDataValidation validation = new ExcelDataValidation();
+        validation.setId(id);
+        dataValidations.add(validation);
+        return validation;
+    }
+
+    @Override
     public ExcelSheetProtection getSheetProtection() {
         return sheetProtection;
     }

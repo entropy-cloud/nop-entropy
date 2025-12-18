@@ -28,6 +28,8 @@ public interface IExcelSheet {
 
     List<ExcelDataValidation> getDataValidations();
 
+    ExcelDataValidation addDataValidation(String id);
+
     Double getDefaultRowHeight();
 
     Double getDefaultColumnWidth();

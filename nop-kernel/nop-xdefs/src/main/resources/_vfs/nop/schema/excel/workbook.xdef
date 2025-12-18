@@ -64,19 +64,58 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
             <sheetOptions xdef:name="ExcelSheetOptions" splitHorizontal="int" splitVertical="int"
                           fitToPage="!boolean=false"/>
 
-            <sheetProtection xdef:ref="sheet-protection.xdef" />
+            <sheetProtection xdef:ref="sheet-protection.xdef"/>
 
-            <dataValidations xdef:body-type="list" xdef:key-attr="id">
-                <!--
-                @allowBlank 是否允许为空
-                @showInputMessage 是否显示输入提示
-                @showErrorMessage 是否显示错误提示
-                @sqref 指定数据验证的单元格范围
+            <dataValidations xdef:body-type="list">
+                <!---
+                  @sqref 必需。应用此验证规则的单元格或范围。
+                  @type 必需。验证类型：'whole', 'decimal', 'list', 'date', 'time', 'textLength', 'custom'。
+                  @allowBlank 可选。允许为空，"1" 表示 true。
+                  @showInputMessage 可选。显示输入消息，"1" 表示 true。
+                  @promptTitle 可选。输入提示标题。
+                  @prompt 可选。输入提示内容。
+                  @showErrorMessage 可选。显示错误消息，"1" 表示 true。
+                  @errorStyle 可选。错误样式：'stop', 'warning', 'information'。
+                  @errorTitle 可选。错误标题。
+                  @error 必需（当showErrorMessage="1"时）。错误消息内容。
+                  @imeMode 可选。输入法模式，主要用于东亚语言输入法控制。
+                      - 'noControl'：不控制IME（默认）
+                      - 'off'：关闭IME（英文模式）
+                      - 'on'：开启IME（中文/日文/韩文输入模式）
+                      - 'disabled'：禁用IME
+                      - 'hiragana'：平假名模式（日文）
+                      - 'fullKatakana'：全角片假名模式（日文）
+                      - 'halfKatakana'：半角片假名模式（日文）
+                      - 'fullAlpha'：全角字母模式
+                      - 'halfAlpha'：半角字母模式
+                      - 'fullHangul'：全角韩文模式
+                      - 'halfHangul'：半角韩文模式
+                  @showDropDown 可选。显示下拉列表，"1" 表示 true（仅对list类型有效）。
+                  @id 可选。Excel内部使用的GUID标识符。
                 -->
-                <dataValidation xdef:name="ExcelDataValidation" id="!string"
-                                type="!string" allowBlank="boolean" showInputMessage="boolean"
-                                showErrorMessage="boolean" sqref="!string">
+                <dataValidation xdef:name="ExcelDataValidation" sqref="!string"
+                                type="enum:io.nop.excel.model.constants.ExcelDataValidationType"
+                                allowBlank="string" showInputMessage="string"
+                                promptTitle="string" prompt="string"
+                                showErrorMessage="string" showDropDown="string"
+                                errorStyle="enum:io.nop.excel.model.constants.ExcelDataValidationErrorStyle"
+                                errorTitle="string" error="string"
+                                imeMode="enum:io.nop.excel.model.constants.ExcelDataValidationImeMode"
+                                id="string"
+                >
+                    <!--
+                        <formula1> 必需。第一个公式或值。
+                        - 对于数值类型：表示最小值或比较值
+                        - 对于 list 类型：表示列表源，如 "选项1,选项2,选项3" 或 Sheet1!$A$1:$A$5
+                        - 对于 textLength：表示文本长度限制
+                    -->
                     <formula1 xdef:value="string"/>
+
+                    <!--
+                        <formula2> 可选。第二个公式或值。
+                        - 主要用于 between 和 notBetween 操作符，表示最大值
+                        - 对于其他操作符通常为空
+                    -->
                     <formula2 xdef:value="string"/>
                 </dataValidation>
             </dataValidations>

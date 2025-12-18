@@ -35,7 +35,7 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
      * xml name: dataValidations
      * 
      */
-    private KeyedList<io.nop.excel.model.ExcelDataValidation> _dataValidations = KeyedList.emptyList();
+    private java.util.List<io.nop.excel.model.ExcelDataValidation> _dataValidations = java.util.Collections.emptyList();
     
     /**
      *  
@@ -219,36 +219,10 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
     public void setDataValidations(java.util.List<io.nop.excel.model.ExcelDataValidation> value){
         checkAllowChange();
         
-        this._dataValidations = KeyedList.fromList(value, io.nop.excel.model.ExcelDataValidation::getId);
+        this._dataValidations = value;
            
     }
 
-    
-    public io.nop.excel.model.ExcelDataValidation getDataValidation(String name){
-        return this._dataValidations.getByKey(name);
-    }
-
-    public boolean hasDataValidation(String name){
-        return this._dataValidations.containsKey(name);
-    }
-
-    public void addDataValidation(io.nop.excel.model.ExcelDataValidation item) {
-        checkAllowChange();
-        java.util.List<io.nop.excel.model.ExcelDataValidation> list = this.getDataValidations();
-        if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.excel.model.ExcelDataValidation::getId);
-            setDataValidations(list);
-        }
-        list.add(item);
-    }
-    
-    public java.util.Set<String> keySet_dataValidations(){
-        return this._dataValidations.keySet();
-    }
-
-    public boolean hasDataValidations(){
-        return !this._dataValidations.isEmpty();
-    }
     
     /**
      * 

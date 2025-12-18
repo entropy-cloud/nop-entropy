@@ -11,10 +11,24 @@ import io.nop.api.core.util.INeedInit;
 import io.nop.excel.model._gen._ExcelSheet;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class ExcelSheet extends _ExcelSheet implements IExcelSheet, INeedInit {
     public ExcelSheet() {
         setTable(new ExcelTable());
+    }
+
+    @Override
+    public ExcelDataValidation addDataValidation(String id) {
+        ExcelDataValidation validation = new ExcelDataValidation();
+        validation.setId(id);
+        List<ExcelDataValidation> validations = getDataValidations();
+        if (validations == null) {
+            validations = new ArrayList<>();
+            setDataValidations(validations);
+        }
+        validations.add(validation);
+        return validation;
     }
 
     public String toString() {
