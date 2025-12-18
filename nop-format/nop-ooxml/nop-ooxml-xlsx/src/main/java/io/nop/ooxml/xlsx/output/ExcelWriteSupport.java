@@ -108,7 +108,7 @@ public class ExcelWriteSupport {
         attrs.put("xmlns:xr", value("http://schemas.microsoft.com/office/spreadsheetml/2014/revision"));
         attrs.put("xmlns:xr2", value("http://schemas.microsoft.com/office/spreadsheetml/2015/revision2"));
         attrs.put("xmlns:xr3", value("http://schemas.microsoft.com/office/spreadsheetml/2016/revision3"));
-        attrs.put("xr:uid", value("{" + UUID.randomUUID() + "}"));
+        //attrs.put("xr:uid", value("{" + UUID.randomUUID() + "}"));
 
         out.beginNode(null, "worksheet", attrs);
         out.simpleNode(null, "dimension", attrs("ref", cellRange.toABString()));
@@ -410,18 +410,13 @@ public class ExcelWriteSupport {
             Integer showDropDown = validation.getShowDropDown() == null ? null :
                     (Boolean.TRUE.equals(validation.getShowDropDown()) ? 1 : 0);
             
-            String id = validation.getId();
-            if(id != null && !id.startsWith("{")){
-                id = "{" + UUID.fromString(id) + "}";
-            }
-
             out.beginNode(null, "dataValidation", attrs("type", validation.getType(),
                     "allowBlank", allowBlank,
                     "showInputMessage", showInputMessage,
                     "showErrorMessage", showErrorMessage,
                     "sqref", validation.getSqref(),
                     "operator", validation.getOperator(),
-                    "xr:uid", id,
+                    //"xr:uid", id,
                     "showDropDown", showDropDown ,
                     "promptTitle", validation.getPromptTitle(),
                     "prompt", validation.getPrompt(),
