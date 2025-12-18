@@ -9,17 +9,30 @@ package io.nop.record.model;
 
 import io.nop.commons.collections.bit.IBitSet;
 import io.nop.record.model._gen._RecordFieldMeta;
+import io.nop.xlang.xmeta.ISchema;
 
 import java.util.Map;
+
+import static io.nop.record.RecordConstants.DEFAULT_MAX_COLLECTION_SIZE;
 
 public class RecordFieldMeta extends _RecordFieldMeta {
     private boolean firstField;
     private boolean lastField;
 
 
-
     public RecordFieldMeta() {
 
+    }
+
+    public int getMaxCollectionSize() {
+        ISchema schema = getSchema();
+        if (schema == null)
+            return DEFAULT_MAX_COLLECTION_SIZE;
+
+        Integer items = schema.getMaxItems();
+        if (items == null)
+            items = DEFAULT_MAX_COLLECTION_SIZE;
+        return items;
     }
 
     public boolean isFirstField() {

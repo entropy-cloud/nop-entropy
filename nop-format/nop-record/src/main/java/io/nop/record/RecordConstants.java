@@ -37,4 +37,6 @@ public interface RecordConstants {
     String VAR_FILE_NAME_PREFIX = "fileNamePrefix";
 
     String VAR_FILE_NAME_SUFFIX = "fileNameSuffix";
+
+    int DEFAULT_MAX_COLLECTION_SIZE = 1000000;
 }

@@ -315,6 +315,9 @@ public class StreamingRecordDeserializer<Input extends IDataReaderBase> {
             if (!hasMoreItems)
                 break;
 
+            if (frame.getCollectionIndex() >= field.getMaxCollectionSize())
+                throw new IllegalStateException("collection size exceed limit:field=" + field.getName() + ",count=" + frame.getCollectionIndex());
+
             // 直接处理集合项的内容，不改变field stage
             StreamingReadResult itemResult = processSwitchFieldStreaming(frame, in, context);
 

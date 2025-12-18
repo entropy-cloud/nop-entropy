@@ -209,6 +209,9 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
             while (!checkUntil(repeatUntil, in, record, context)) {
                 Object value = readSwitch(in, field, coll, context);
                 coll.add(value);
+
+                if (coll.size() >= field.getMaxCollectionSize())
+                    throw new IllegalStateException("collection size exceed limit:field=" + field.getName() + ",size=" + coll.size());
             }
         } else if (field.getRepeatKind() == FieldRepeatKind.fixed) {
             int length = getFieldLength(in, field, record, context);
@@ -220,9 +223,16 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
                 if (value == null)
                     break;
                 coll.add(value);
+
+
+                if (coll.size() >= field.getMaxCollectionSize())
+                    throw new IllegalStateException("collection size exceed limit:field=" + field.getName() + ",size=" + coll.size());
             } while (!in.isEof());
         } else {
             int count = readRepeatCount(in, field, record, context);
+            if (count >= field.getMaxCollectionSize())
+                throw new IllegalStateException("collection size exceed limit:field=" + field.getName() + ",size=" + count);
+
             for (int i = 0; i < count; i++) {
                 Object value = readSwitch(in, field, coll, context);
                 coll.add(value);
