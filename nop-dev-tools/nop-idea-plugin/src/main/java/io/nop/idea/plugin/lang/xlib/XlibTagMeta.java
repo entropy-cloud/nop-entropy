@@ -116,7 +116,7 @@ public class XlibTagMeta {
             PsiElement refElement, String xlibPath, //
             Function<IXplTagLib, T> consumer, T defaultValue
     ) {
-        if (XmlPsiHelper.findPsiFilesByNopVfsPath(refElement, xlibPath).isEmpty()) {
+        if (XmlPsiHelper.findPsiFilesByNopVfsPath(xlibPath, refElement).isEmpty()) {
             return defaultValue;
         }
 

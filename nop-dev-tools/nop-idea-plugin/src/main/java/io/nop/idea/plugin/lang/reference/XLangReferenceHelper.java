@@ -36,6 +36,7 @@ import io.nop.idea.plugin.vfs.NopVirtualFile;
 import io.nop.idea.plugin.vfs.NopVirtualFileReference;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
+import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xdsl.XDslParseHelper;
 import org.jetbrains.yaml.psi.YAMLKeyValue;
 
@@ -250,6 +251,10 @@ public class XLangReferenceHelper {
 
     /** 识别对 vfs 资源路径的引用 */
     public static PsiReference[] getReferencesByVfsPath(XmlElement refElement, String path, TextRange textRange) {
+        // Note: none 表示忽略 xdef:default-extends 所指定的缺省继承模型
+        if (XDslConstants.EXTENDS_NONE.equals(path)) {
+            return PsiReference.EMPTY_ARRAY;
+        }
         return new PsiReference[] {
                 new NopVirtualFileReference(refElement, textRange, path)
         };

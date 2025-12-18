@@ -55,7 +55,6 @@ public class NopVirtualFile extends PsiElementBase implements PsiNamedElement {
     public NopVirtualFile(PsiElement srcElement, String path, Function<PsiFile, PsiElement> targetResolver) {
         this.srcElement = srcElement;
         this.path = path;
-        assert path.startsWith("/");
 
         this.targetResolver = targetResolver;
     }
@@ -125,7 +124,7 @@ public class NopVirtualFile extends PsiElementBase implements PsiNamedElement {
             PsiFile srcFile = srcElement.getContainingFile();
             String srcVfsPath = XmlPsiHelper.getNopVfsPath(srcElement);
 
-            children = XmlPsiHelper.findPsiFilesByNopVfsPath(this, path)
+            children = XmlPsiHelper.findPsiFilesByNopVfsPath(path, this)
                                    .stream()
                                    // Note: 如果是同名的 vfs，则仅对同一文件做引用识别
                                    .filter(file -> !path.equals(srcVfsPath) || srcFile == file)

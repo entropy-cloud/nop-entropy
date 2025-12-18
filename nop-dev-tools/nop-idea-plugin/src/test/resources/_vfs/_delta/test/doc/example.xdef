@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<example xmlns:x="/nop/schema/xdsl.xdef"
+         x:schema="/nop/schema/xdef.xdef"
+         x:extends="super"
+/>

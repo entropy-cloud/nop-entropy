@@ -39,6 +39,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class XmlPsiHelper {
 
+    /** @return 结果包含 {@code /_tenant/}、{@code /_delta/} */
     public static String getNopVfsPath(ISourceLocationGetter locGetter) {
         SourceLocation loc = locGetter != null ? locGetter.getLocation() : null;
         String path = loc != null ? loc.getPath() : null;
@@ -47,6 +48,7 @@ public class XmlPsiHelper {
         return path != null ? path.replace("classpath:_vfs", "") : null;
     }
 
+    /** @return 结果包含 {@code /_tenant/}、{@code /_delta/} */
     public static String getNopVfsPath(PsiElement element) {
         PsiFile file = element.getContainingFile();
         if (file == null) {
@@ -57,6 +59,7 @@ public class XmlPsiHelper {
         return getNopVfsPath(vf, file);
     }
 
+    /** @return 结果包含 {@code /_tenant/}、{@code /_delta/} */
     private static String getNopVfsPath(VirtualFile vf, PsiFile file) {
         // Note: 在编辑过程中得到的 VirtualFile 可能为 null，需尝试通过
         // PsiFile#getOriginalFile 获得 VirtualFile
@@ -87,7 +90,8 @@ public class XmlPsiHelper {
         return StringHelper.absolutePath(filePath, path);
     }
 
-    public static List<PsiFile> findPsiFileList(Project project, String path) {
+    /** @return 结果包含 tenant 和 delta 资源 */
+    public static List<PsiFile> findPsiFileList(String path, Project project) {
         GlobalSearchScope scope = ProjectFileHelper.getSearchScope(project);
         String fileName = StringHelper.fileFullName(path);
 
@@ -110,7 +114,8 @@ public class XmlPsiHelper {
         return ret;
     }
 
-    public static List<PsiFile> findPsiFilesByNopVfsPath(PsiElement element, String path) {
+    /** @return 结果包含 tenant 和 delta 资源 */
+    public static List<PsiFile> findPsiFilesByNopVfsPath(String path, PsiElement element) {
         if (element == null || path == null) {
             return List.of();
         }
@@ -118,7 +123,7 @@ public class XmlPsiHelper {
         Project project = element.getProject();
         String absPath = getNopVfsAbsolutePath(path, element);
 
-        return findPsiFileList(project, absPath);
+        return findPsiFileList(absPath, project);
     }
 
     /** 获取指定行列的 {@link PsiElement 元素} */
@@ -284,16 +289,6 @@ public class XmlPsiHelper {
             return true; // 继续遍历
         });
         return (T) result[0];
-    }
-
-    public static XmlTag getRoot(XmlTag tag) {
-        do {
-            XmlTag parent = tag.getParentTag();
-            if (parent == null) {
-                return tag;
-            }
-            tag = parent;
-        } while (true);
     }
 
     public static String getXmlnsForUrl(XmlTag rootTag, String url) {
