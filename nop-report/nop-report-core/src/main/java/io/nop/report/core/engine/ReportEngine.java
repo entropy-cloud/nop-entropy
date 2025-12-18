@@ -16,13 +16,14 @@ import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.IExcelSheet;
+import io.nop.excel.renderer.IExcelSheetGenerator;
 import io.nop.excel.renderer.IReportRendererFactory;
 import io.nop.ooxml.xlsx.output.ExcelSheetBuilder;
 import io.nop.ooxml.xlsx.output.ExcelTemplate;
-import io.nop.excel.renderer.IExcelSheetGenerator;
 import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.ooxml.xlsx.util.ExcelSheetData;
 import io.nop.report.core.XptConstants;
+import io.nop.report.core.build.XptModelLoader;
 import io.nop.report.core.engine.renderer.ReportRenderHelper;
 import io.nop.report.core.util.ExcelReportHelper;
 
@@ -45,6 +46,11 @@ public class ReportEngine implements IReportEngine {
 
     public void setRenderers(Map<String, IReportRendererFactory> renderers) {
         this.renderers = renderers;
+    }
+
+    @Override
+    public ExcelWorkbook parseXptModelFromResource(IResource resource) {
+        return new XptModelLoader().loadObjectFromResource(resource);
     }
 
     @Override

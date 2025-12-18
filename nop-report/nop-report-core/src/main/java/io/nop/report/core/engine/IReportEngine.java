@@ -26,6 +26,8 @@ public interface IReportEngine extends IReportRendererRegistry {
      */
     ExcelWorkbook getXptModel(String reportPath);
 
+    ExcelWorkbook parseXptModelFromResource(IResource resource);
+
     ExcelWorkbook generateFromXptModel(ExcelWorkbook workbook, IEvalContext ctx);
 
     ITemplateOutput getRendererForXptModel(ExcelWorkbook workbook, String renderType);
