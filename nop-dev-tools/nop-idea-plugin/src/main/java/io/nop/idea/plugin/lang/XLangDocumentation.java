@@ -71,7 +71,7 @@ public class XLangDocumentation {
         if (type != null) {
             this.modifiers = new String[] {
                     type.isMandatory()
-                    ? NopPluginBundle.message("xlang.doc.flag.required")
+                    ? NopPluginBundle.message("xlang.doc.flag.mandatory")
                     : NopPluginBundle.message("xlang.doc.flag.option"), //
                     type.isInternal() || type.isDeprecated()
                     ? NopPluginBundle.message("xlang.doc.flag.internal")

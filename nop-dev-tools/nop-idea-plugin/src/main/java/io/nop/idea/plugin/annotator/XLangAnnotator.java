@@ -148,10 +148,12 @@ public class XLangAnnotator implements Annotator {
     private void checkTagBySchemaDefNode(@NotNull AnnotationHolder holder, @NotNull XLangTag tag) {
         XLangTag parentTag = tag.getParentTag();
         XLangTagMeta tagMeta = tag.getTagMeta();
+        XLangTagMeta parentTagMeta = null;
 
         // 检查是否可包含节点
         if (parentTag != null) {
-            XLangTagMeta parentTagMeta = parentTag.getTagMeta();
+            parentTagMeta = parentTag.getTagMeta();
+
             switch (parentTagMeta.checkChildTagAllowed(tagMeta)) {
                 // 父标签不允许多个子标签
                 case only_at_most_one -> {
@@ -177,15 +179,15 @@ public class XLangAnnotator implements Annotator {
             }
         }
 
-        // 检查节点必填属性是否已设置。Note: 值的有效性由属性值检查过程处理
-        Set<String> mandatoryAttrs = //
-                tagMeta.filterMandatoryAttrs((attr) -> tag.getAttributeValue(attr) == null, true);
-        if (!mandatoryAttrs.isEmpty()) {
+        // 检查节点必需属性是否已设置。Note: 值的有效性由属性值检查过程处理
+        Set<String> requiredAttrs = //
+                tagMeta.filterRequiredAttrs(parentTagMeta, (attr) -> tag.getAttributeValue(attr) == null, true);
+        if (!requiredAttrs.isEmpty()) {
             tagErrorAnnotation(holder,
                                tag,
-                               "xlang.annotation.tag.has-unset-mandatory-attrs",
+                               "xlang.annotation.tag.has-unset-required-attrs",
                                tag.getName(),
-                               StringHelper.join(mandatoryAttrs, ","));
+                               StringHelper.join(requiredAttrs, ","));
             return;
         }
 
@@ -203,7 +205,7 @@ public class XLangAnnotator implements Annotator {
         }
 
         if (xdefValue.isMandatory() && blankBodyText) {
-            tagErrorAnnotation(holder, tag, "xlang.annotation.tag.body-required", tag.getName());
+            tagErrorAnnotation(holder, tag, "xlang.annotation.tag.mandatory-body", tag.getName());
             return;
         }
 
@@ -254,7 +256,7 @@ public class XLangAnnotator implements Annotator {
         XDefTypeDecl defAttrType = defAttr.getType();
         if (StringHelper.isEmpty(attrValueText)) {
             if (defAttrType.isMandatory()) {
-                errorAnnotation(holder, attrValue.getTextRange(), "xlang.annotation.attr.value-required", attrName);
+                errorAnnotation(holder, attrValue.getTextRange(), "xlang.annotation.attr.mandatory-value", attrName);
             }
             return;
         }

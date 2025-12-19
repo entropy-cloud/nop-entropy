@@ -8,6 +8,7 @@
 
 package io.nop.idea.plugin.lang.psi;
 
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -215,17 +216,33 @@ public class XLangTagMeta {
         return defNode != null ? defNode.getXdefValue() : null;
     }
 
-    /** 过滤当前标签上的必填属性列表 */
-    public Set<String> filterMandatoryAttrs(Predicate<String> filter, boolean excludeHasDefaultValue) {
+    /** 过滤当前标签上的必需属性（如 {@link XDefKeys#UNIQUE_ATTR}、{@link XDefKeys#KEY_ATTR} 指向的属性）列表 */
+    public Set<String> filterRequiredAttrs(
+            XLangTagMeta parentTagMeta, Predicate<String> filter, boolean excludeHasDefaultValue) {
         IXDefNode defNode = getDefNodeInSchema();
         if (defNode == null) {
             return Set.of();
         }
 
+        Set<String> required = new HashSet<>();
+        if (xdefKeys != null && xdefKeys.DEFINE.equals(getTagName())) {
+            required.add(xdefKeys.NAME);
+        } else if (defNode.getXdefUniqueAttr() != null) {
+            required.add(defNode.getXdefUniqueAttr());
+        } else if (parentTagMeta != null) {
+            IXDefNode parentDefNode = parentTagMeta.getDefNodeInSchema();
+            if (parentDefNode != null
+                && XDefBodyType.list.equals(parentDefNode.getXdefBodyType())
+                && parentDefNode.getXdefKeyAttr() != null //
+            ) {
+                required.add(parentDefNode.getXdefKeyAttr());
+            }
+        }
+
         return defNode.getAttributes().values().stream().filter((defAttr) -> {
             XDefTypeDecl attrType = defAttr.getType();
-            return attrType != null && attrType.isMandatory() //
-                   && !attrType.isInternal() && !attrType.isDeprecated() //
+            return attrType != null //
+                   && required.contains(defAttr.getName()) //
                    && (!excludeHasDefaultValue //
                        || (attrType.getDefaultValue() == null //
                            && attrType.getDefaultAttrNames() == null)) //
@@ -525,14 +542,16 @@ public class XLangTagMeta {
     }
 
     protected static XLangTagMeta errorTag(
-            @NotNull XLangTag tag, @NotNull @PropertyKey(resourceBundle = BUNDLE) String msgKey,
+            @NotNull XLangTag tag,
+            @NotNull @PropertyKey(resourceBundle = BUNDLE) String msgKey,
             Object @NotNull ... msgParams
     ) {
         return new XLangTagMeta(tag, NopPluginBundle.message(msgKey, msgParams));
     }
 
     private static XDefAttribute errorAttr(
-            @NotNull XLangAttribute attr, @NotNull @PropertyKey(resourceBundle = BUNDLE) String msgKey,
+            @NotNull XLangAttribute attr,
+            @NotNull @PropertyKey(resourceBundle = BUNDLE) String msgKey,
             Object @NotNull ... msgParams
     ) {
         return new XLangAttribute.XDefAttributeWithError(attr.getName(), NopPluginBundle.message(msgKey, msgParams));
