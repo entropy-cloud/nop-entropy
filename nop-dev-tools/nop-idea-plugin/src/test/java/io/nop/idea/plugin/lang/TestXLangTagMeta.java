@@ -870,7 +870,7 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                           assertFalse(tagMeta.isInXdefSchema());
 
                           assertEquals("example", tagMeta.getTagName());
-                          assertTrue(tagMeta.getErrorMsg().contains("parse-missing-resource"));
+                          assertTrue(tagMeta.getErrorMsg().contains("/xxx/xxx/example.xdef"));
                       } //
         );
         assertTagMeta("""

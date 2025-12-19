@@ -591,7 +591,7 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
 
     /** 通过在 <code>text</code> 中插入 <code>&lt;caret&gt;</code> 代表光标位置 */
     private void assertDoc(String suffix, String text, Consumer<String> checker) {
-        configureByXLangText(text, suffix);
+        configureByText(text, suffix);
 
         String genDoc = getDocAtCaret();
 

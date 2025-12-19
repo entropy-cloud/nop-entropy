@@ -152,5 +152,10 @@
         <lang.elementManipulator forClass="io.nop.idea.plugin.lang.script.psi.RuleSpecNode"
                                  implementationClass="io.nop.idea.plugin.lang.script.XLangScriptNodeManipulator"/>
         <renamePsiElementProcessor implementation="io.nop.idea.plugin.lang.script.XLangScriptNodeRenameProcessor"/>
+
+        <!-- 从 Java 代码中识别引用 -->
+        <psi.referenceContributor
+                language="JAVA"
+                implementation="io.nop.idea.plugin.lang.reference.XLangVfsPathInJavaReferenceContributor"/>
     </extensions>
 </idea-plugin>

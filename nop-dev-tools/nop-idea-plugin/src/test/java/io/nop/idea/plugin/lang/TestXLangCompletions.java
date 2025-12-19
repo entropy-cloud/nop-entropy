@@ -841,7 +841,7 @@ public class TestXLangCompletions extends BaseXLangPluginTestCase {
     }
 
     protected void assertCompletion(String suffix, String selectedItem, String text, String expectedText) {
-        configureByXLangText(text, suffix);
+        configureByText(text, suffix);
         myFixture.completeBasic();
 
         doAssertCompletion(selectedItem, expectedText);

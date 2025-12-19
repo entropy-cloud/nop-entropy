@@ -1353,9 +1353,26 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         );
     }
 
+    public void testVfsPathReferencesInJava() {
+        assertReference("""
+                                package io.nop.xlang.xdef;
+                                public interface XDefConstants {
+                                  String XDEF_XDSL_PATH = "/nop/sche<caret>ma/xdsl.xdef";
+                                }
+                                """, //
+                        "java",  //
+                        "/nop/schema/xdsl.xdef" //
+        );
+    }
+
     /** 通过在 <code>text</code> 中插入 <code>&lt;caret&gt;</code> 代表光标位置 */
     private void assertReference(String text, String expected) {
-        configureByXLangText(text);
+        assertReference(text, null, expected);
+    }
+
+    /** 通过在 <code>text</code> 中插入 <code>&lt;caret&gt;</code> 代表光标位置 */
+    private void assertReference(String text, String suffix, String expected) {
+        configureByText(text, suffix);
 
         PsiReference ref = findReferenceAtCaret();
         PsiElement target = ref != null ? ref.resolve() : null;
