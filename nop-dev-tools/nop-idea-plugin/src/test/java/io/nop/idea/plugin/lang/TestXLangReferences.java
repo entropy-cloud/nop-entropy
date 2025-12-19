@@ -1363,6 +1363,33 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                         "java",  //
                         "/nop/schema/xdsl.xdef" //
         );
+        assertReference("""
+                                package io.nop.xlang.xdef;
+                                public interface XDefConstants {
+                                  String XDEF_XDSL_PATH = "nop/sche<caret>ma/xdsl.xdef";
+                                }
+                                """, //
+                        "java",  //
+                        null //
+        );
+        assertReference("""
+                                package io.nop.xlang.xdef;
+                                public interface XDefConstants {
+                                  String XDEF_XDSL_PATH = "nop/sche<caret>ma/";
+                                }
+                                """, //
+                        "java",  //
+                        null //
+        );
+        assertReference("""
+                                package io.nop.xlang.xdef;
+                                public interface XDefConstants {
+                                  String XDEF_XDSL_PATH = "nop/sche<caret>ma/xdsl";
+                                }
+                                """, //
+                        "java",  //
+                        null //
+        );
     }
 
     /** 通过在 <code>text</code> 中插入 <code>&lt;caret&gt;</code> 代表光标位置 */

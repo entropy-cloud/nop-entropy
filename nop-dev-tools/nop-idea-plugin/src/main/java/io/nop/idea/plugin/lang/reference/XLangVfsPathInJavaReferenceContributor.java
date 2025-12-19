@@ -18,6 +18,7 @@ import com.intellij.psi.PsiReferenceProvider;
 import com.intellij.psi.PsiReferenceRegistrar;
 import com.intellij.util.ProcessingContext;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.resource.ResourceHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFileReference;
 import org.jetbrains.annotations.NotNull;
 
@@ -44,8 +45,9 @@ public class XLangVfsPathInJavaReferenceContributor extends PsiReferenceContribu
             Object value = ((PsiLiteralExpression) element).getValue();
 
             if (value instanceof String text //
-                && text.startsWith("/") //
-                && StringHelper.isValidVPath(text) //
+                && !text.endsWith("/") //
+                && ResourceHelper.isNormalVirtualPath(text) //
+                && !StringHelper.fileExt(text).isEmpty() //
             ) {
                 // Note: 有效范围需排除引号
                 TextRange textRange = TextRange.create(0, text.length()).shiftRight(1);
