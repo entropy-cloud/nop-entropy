@@ -164,6 +164,14 @@ public class XLangAnnotator implements Annotator {
                     tagErrorAnnotation(holder, tag, "xlang.annotation.tag.multiple-tag-not-allowed", tag.getName());
                     return;
                 }
+                // 标签自身不能被同名标签嵌套
+                case can_not_be_nested_by_same_name_tag -> {
+                    tagErrorAnnotation(holder,
+                                       tag,
+                                       "xlang.annotation.tag.nested-by-same-name-tag-not-allowed",
+                                       tag.getName());
+                    return;
+                }
             }
         }
 

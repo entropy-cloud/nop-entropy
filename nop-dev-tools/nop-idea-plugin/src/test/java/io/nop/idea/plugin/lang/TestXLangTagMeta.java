@@ -1029,7 +1029,8 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
         );
     }
 
-    public void testMultipleChildTagsByTagMeta() {
+    public void testAllowedChildTagByTagMeta() {
+        // 检查父节点是否允许多个子节点
         assertTagMeta("""
                               <example
                                 xmlns:x="/nop/schema/xdsl.xdef"
@@ -1202,6 +1203,7 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                       } //
         );
 
+        // 检查节点自身的可重复性
         assertTagMeta("""
                               <example
                                 xmlns:x="/nop/schema/xdsl.xdef"
@@ -1273,6 +1275,85 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                                   <l1/>
                                   <l<caret>2/>
                                 </list>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+
+        // 检查节点可嵌套性
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                              >
+                                <xdef:def<caret>ine xdef:name="A">
+                                  <xdef:define xdef:name="B"/>
+                                </xdef:define>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                              >
+                                <xdef:define xdef:name="A">
+                                  <xdef:de<caret>fine xdef:name="B"/>
+                                </xdef:define>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.can_not_be_nested_by_same_name_tag,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                              >
+                                <xdef:define xdef:name="A">
+                                  <child>
+                                    <xdef:de<caret>fine xdef:name="B"/>
+                                  </child>
+                                </xdef:define>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.can_not_be_nested_by_same_name_tag,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        // - 在非 *.xdef 中，不检查 xdef:define 的嵌套性
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <xdef:define xdef:name="A">
+                                  <child>
+                                    <xdef:de<caret>fine xdef:name="B"/>
+                                  </child>
+                                </xdef:define>
                               </example>
                               """, //
                       (tag, tagMeta) -> {

@@ -229,13 +229,27 @@ public class XLangTagMeta {
 
     /** 检查是否允许包含指定的子标签，并返回检查结果 */
     public ChildTagAllowedMode checkChildTagAllowed(XLangTagMeta childTagMeta) {
+        String xdefDefineTagName = childTagMeta.xdefKeys != null ? childTagMeta.xdefKeys.DEFINE : null;
+        // 在元模型中不能在 xdef:define 中嵌套 xdef:define
+        if (xdefDefineTagName != null //
+            && xdefDefineTagName.equals(childTagMeta.getTagName()) //
+        ) {
+            XLangTag parentTag = tag;
+            do {
+                if (xdefDefineTagName.equals(parentTag.getName())) {
+                    return ChildTagAllowedMode.can_not_be_nested_by_same_name_tag;
+                }
+                parentTag = parentTag.getParentTag();
+            } while (parentTag != null);
+        }
+
         boolean allowMultipleChild = canHasMultipleChildTag();
         boolean allowMultipleSelf = childTagMeta.canBeMultipleTag();
         if (allowMultipleChild && allowMultipleSelf) {
             return ChildTagAllowedMode.allowed;
         }
 
-        String childTagName = childTagMeta.tag.getName();
+        String childTagName = childTagMeta.getTagName();
         for (PsiElement child : tag.getChildren()) {
             // 仅检查在指定标签之前的标签
             if (child == childTagMeta.tag) {
@@ -826,5 +840,7 @@ public class XLangTagMeta {
         only_at_most_one,
         /** 子标签不能重复 */
         can_not_be_multiple,
+        /** 子标签不能被同名子标签嵌套 */
+        can_not_be_nested_by_same_name_tag,
     }
 }
