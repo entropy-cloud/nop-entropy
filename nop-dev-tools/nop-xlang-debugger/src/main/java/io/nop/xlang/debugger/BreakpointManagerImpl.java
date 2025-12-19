@@ -13,8 +13,10 @@ import io.nop.api.debugger.IBreakpointManager;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.collections.IntHashMap;
+import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,6 +105,9 @@ public class BreakpointManagerImpl implements IBreakpointManager {
     private final ICache<String, String> externalPathCache = LocalCache.newCache("external-path-cache", newConfig(1000),
             path -> {
                 if (!VirtualFileSystem.isInitialized())
+                    return path;
+
+                if(!StringHelper.isCanonicalFilePath(path))
                     return path;
 
                 IResource res = VirtualFileSystem.instance().getRawResource(path, true);
