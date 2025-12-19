@@ -7,6 +7,8 @@
  */
 package io.nop.idea.plugin.annotator;
 
+import java.util.Set;
+
 import com.intellij.codeInsight.daemon.impl.HighlightRangeExtension;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.lang.annotation.AnnotationHolder;
@@ -20,11 +22,9 @@ import com.intellij.psi.xml.XmlElement;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.psi.xml.XmlToken;
 import com.intellij.xml.util.XmlTagUtil;
-import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.idea.plugin.lang.psi.XLangAttribute;
 import io.nop.idea.plugin.lang.psi.XLangAttributeValue;
 import io.nop.idea.plugin.lang.psi.XLangTag;
@@ -34,6 +34,7 @@ import io.nop.idea.plugin.lang.psi.XLangTextToken;
 import io.nop.idea.plugin.lang.reference.XLangReference;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.resource.ProjectEnv;
+import io.nop.idea.plugin.utils.ExceptionHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFile;
 import io.nop.xlang.xdef.IStdDomainHandler;
@@ -136,18 +137,19 @@ public class XLangAnnotator implements Annotator {
 
     private void checkTag(@NotNull AnnotationHolder holder, @NotNull XLangTag tag) {
         XLangTagMeta tagMeta = tag.getTagMeta();
-        if (!tagMeta.hasError()) {
-            checkTagBySchemaDefNode(holder, tag);
-            return;
-        }
 
-        tagErrorAnnotation(holder, tag, tagMeta.getErrorMsg());
+        if (tagMeta.hasError()) {
+            tagErrorAnnotation(holder, tag, tagMeta.getErrorMsg());
+        } else {
+            checkTagBySchemaDefNode(holder, tag);
+        }
     }
 
     private void checkTagBySchemaDefNode(@NotNull AnnotationHolder holder, @NotNull XLangTag tag) {
         XLangTag parentTag = tag.getParentTag();
         XLangTagMeta tagMeta = tag.getTagMeta();
 
+        // 检查是否可包含节点
         if (parentTag != null) {
             XLangTagMeta parentTagMeta = parentTag.getTagMeta();
             switch (parentTagMeta.checkChildTagAllowed(tagMeta)) {
@@ -173,6 +175,18 @@ public class XLangAnnotator implements Annotator {
                     return;
                 }
             }
+        }
+
+        // 检查节点必填属性是否已设置。Note: 值的有效性由属性值检查过程处理
+        Set<String> mandatoryAttrs = //
+                tagMeta.filterMandatoryAttrs((attr) -> tag.getAttributeValue(attr) == null, true);
+        if (!mandatoryAttrs.isEmpty()) {
+            tagErrorAnnotation(holder,
+                               tag,
+                               "xlang.annotation.tag.has-unset-mandatory-attrs",
+                               tag.getName(),
+                               StringHelper.join(mandatoryAttrs, ","));
+            return;
         }
 
         // 检查节点内容
@@ -235,7 +249,7 @@ public class XLangAnnotator implements Annotator {
 
         String attrName = attr.getName();
         String attrValueText = attrValue.getValue();
-        TextRange attrValueTextRange = attrValue.getValueTextRange();
+        TextRange attrValueRange = attrValue.getTextRange(); // 包含引号
 
         XDefTypeDecl defAttrType = defAttr.getType();
         if (StringHelper.isEmpty(attrValueText)) {
@@ -247,7 +261,7 @@ public class XLangAnnotator implements Annotator {
 
         // Note: dict/enum 的有效值检查由 PsiReference 处理
         SourceLocation loc = XmlPsiHelper.getLocation(attrValue);
-        checkStdDomain(holder, attrValueTextRange, defAttrType.getStdDomain(), loc, attrName, attrValueText);
+        checkStdDomain(holder, attrValueRange, defAttrType.getStdDomain(), loc, attrName, attrValueText);
     }
 
     private void checkStdDomain(
@@ -295,12 +309,7 @@ public class XLangAnnotator implements Annotator {
     }
 
     private void errorAnnotation(AnnotationHolder holder, TextRange textRange, Exception e) {
-        String msg = ErrorMessageManager.instance()
-                                        .buildErrorMessage(AppConfig.defaultLocale(), e, false, false, false)
-                                        .getDescription();
-        if (msg == null) {
-            msg = e.getMessage();
-        }
+        String msg = ExceptionHelper.getExceptionMessage(e);
 
         _errorAnnotation(holder, textRange, msg);
     }

@@ -10,15 +10,17 @@ package io.nop.idea.plugin.lang.psi;
 
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.psi.PsiElement;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.idea.plugin.lang.XLangDocumentation;
 import io.nop.idea.plugin.lang.xlib.XlibTagMeta;
 import io.nop.idea.plugin.messages.NopPluginBundle;
+import io.nop.idea.plugin.utils.ExceptionHelper;
 import io.nop.idea.plugin.utils.XDefPsiHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.xlang.xdef.IXDefAttribute;
@@ -211,6 +213,24 @@ public class XLangTagMeta {
         IXDefNode defNode = getDefNodeInSchema();
 
         return defNode != null ? defNode.getXdefValue() : null;
+    }
+
+    /** 过滤当前标签上的必填属性列表 */
+    public Set<String> filterMandatoryAttrs(Predicate<String> filter, boolean excludeHasDefaultValue) {
+        IXDefNode defNode = getDefNodeInSchema();
+        if (defNode == null) {
+            return Set.of();
+        }
+
+        return defNode.getAttributes().values().stream().filter((defAttr) -> {
+            XDefTypeDecl attrType = defAttr.getType();
+            return attrType != null && attrType.isMandatory() //
+                   && !attrType.isInternal() && !attrType.isDeprecated() //
+                   && (!excludeHasDefaultValue //
+                       || (attrType.getDefaultValue() == null //
+                           && attrType.getDefaultAttrNames() == null)) //
+                    ;
+        }).map(IXDefAttribute::getName).filter(filter).collect(Collectors.toUnmodifiableSet());
     }
 
     /** 当前标签是否允许重复 */
@@ -498,7 +518,8 @@ public class XLangTagMeta {
         } catch (ProcessCanceledException e) {
             throw e; // 操作被中断
         } catch (Exception e) {
-            String msg = ErrorMessageManager.instance().getRootCause(e).getMessage();
+            String msg = ExceptionHelper.getExceptionMessage(e);
+
             return errorTag(tag, "xlang.parser.tag-meta.creating-exception", msg);
         }
     }
