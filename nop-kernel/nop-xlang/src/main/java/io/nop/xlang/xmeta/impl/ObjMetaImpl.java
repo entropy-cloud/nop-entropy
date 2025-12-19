@@ -247,6 +247,16 @@ public class ObjMetaImpl extends _ObjMetaImpl implements IObjMeta, ISchema {
     }
 
     @Override
+    public String getMinValue() {
+        return null;
+    }
+
+    @Override
+    public String getMaxValue() {
+        return null;
+    }
+
+    @Override
     public boolean isExplicitDefine() {
         return false;
     }

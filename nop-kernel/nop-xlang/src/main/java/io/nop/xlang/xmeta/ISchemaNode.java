@@ -12,6 +12,7 @@ import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.commons.type.StdDataType;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.reflect.hook.IPropGetMissingHook;
 import io.nop.core.type.IGenericType;
 import io.nop.xlang.xdef.SchemaKind;
 import io.nop.xlang.xdef.impl.XDefHelper;
@@ -21,7 +22,7 @@ import java.util.Map;
 /**
  * 对应于类型定义
  */
-public interface ISchemaNode extends ISourceLocationGetter, IFreezable {
+public interface ISchemaNode extends ISourceLocationGetter, IFreezable , IPropGetMissingHook {
     SchemaKind getSchemaKind();
 
     String getBizObjName();

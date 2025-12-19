@@ -4,10 +4,10 @@ import io.nop.api.core.beans.DictBean;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.model.table.CellRange;
 import io.nop.excel.model._gen._ExcelDataValidation;
-import io.nop.excel.model.constants.ExcelDataValidationType;
-import io.nop.excel.model.constants.ExcelDataValidationOperator;
 import io.nop.excel.model.constants.ExcelDataValidationErrorStyle;
 import io.nop.excel.model.constants.ExcelDataValidationImeMode;
+import io.nop.excel.model.constants.ExcelDataValidationOperator;
+import io.nop.excel.model.constants.ExcelDataValidationType;
 
 import java.util.Collections;
 import java.util.List;
@@ -20,6 +20,16 @@ public class ExcelDataValidation extends _ExcelDataValidation {
 
     public ExcelDataValidation() {
 
+    }
+
+    public String getFirstCellRef() {
+        String sqref = getSqref();
+        if (sqref == null)
+            return sqref;
+        int pos = sqref.indexOf(':');
+        if (pos < 0)
+            return sqref;
+        return sqref.substring(0, pos);
     }
 
     public static ExcelDataValidation buildFromDict(DictBean dict, boolean useLabels) {

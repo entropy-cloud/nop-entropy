@@ -14,6 +14,7 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.util.ApiStringHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.cache.ResourceLoadingCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -155,6 +156,9 @@ public class I18nMessageManager implements II18nMessageManager {
         String defaultLocale = getDefaultLocale();
         if (locale == null)
             locale = defaultLocale;
+
+        if (!VirtualFileSystem.isInitialized())
+            return Collections.emptyMap();
 
         Map<String, String> messages = localeToMessages.get(locale).getMessages();
         if (messages == null && !Objects.equals(locale, defaultLocale)) {

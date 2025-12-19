@@ -27,14 +27,6 @@ public class ExcelSheet extends _ExcelSheet implements IExcelSheet, INeedInit {
         validations.add(validation);
     }
 
-    @Override
-    public ExcelDataValidation buildDataValidation(String id) {
-        ExcelDataValidation validation = new ExcelDataValidation();
-        validation.setId(id);
-        this.addDataValidation(validation);
-        return validation;
-    }
-
     public String toString() {
         return getClass().getSimpleName() + "[name=" + getName() + ",loc=" + getLocation() + "]";
     }

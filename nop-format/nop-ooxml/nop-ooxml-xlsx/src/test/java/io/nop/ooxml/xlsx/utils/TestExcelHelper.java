@@ -2,19 +2,24 @@ package io.nop.ooxml.xlsx.utils;
 
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.IComponentModel;
+import io.nop.commons.type.StdDataType;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.excel.model.ExcelCell;
+import io.nop.excel.model.ExcelDataValidation;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelTable;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.excel.util.ExcelDataValidationHelper;
 import io.nop.ooxml.xlsx.util.ExcelHelper;
 import io.nop.ooxml.xlsx.util.ExcelSheetData;
 import io.nop.xlang.xdsl.DslModelHelper;
+import io.nop.xlang.xmeta.impl.SchemaImpl;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -96,5 +101,31 @@ public class TestExcelHelper extends BaseTestCase {
         XNode node = DslModelHelper.dslModelToXNode(xdefPath, model);
         node.dump();
         assertTrue(node.xml().contains("packageName=\"abc\""));
+    }
+
+    @Test
+    public void testGenXlsx() {
+        ExcelWorkbook wk = new ExcelWorkbook();
+        ExcelSheet sheet = new ExcelSheet();
+        sheet.setName("Sheet1");
+        wk.addSheet(sheet);
+
+        char c = 'A';
+        for (StdDataType dataType : StdDataType.values()) {
+            if(dataType.ordinal() > 15)
+                break;
+
+            SchemaImpl schema = new SchemaImpl();
+            schema.setType(ReflectionManager.instance().buildRawType(dataType.getJavaClass()));
+            if(dataType == StdDataType.STRING)
+                schema.setMaxLength(20);
+
+            String sqref = c +"2:" + c + "5";
+            c++;
+            ExcelDataValidation validation = ExcelDataValidationHelper.newDataValidation(schema, true, "Field_" + dataType, sqref);
+            sheet.addDataValidation(validation);
+        }
+
+        ExcelHelper.saveExcel(getTargetResource("validation-result.xlsx"), wk);
     }
 }

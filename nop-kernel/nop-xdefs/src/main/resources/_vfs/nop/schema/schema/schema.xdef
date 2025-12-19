@@ -31,6 +31,7 @@
         precision="int" scale="int" pattern="regex" min="double" max="double"
         utf8Length="int"
         excludeMin="boolean" excludeMax="boolean"
+        minValue="string" maxValue="string"
         minLength="int" maxLength="int" multipleOf="int"
 
         x:schema="/nop/schema/xdef.xdef" xmlns:biz="biz" xdef:check-ns="graphql,ui,biz,orm"
@@ -72,7 +73,7 @@
               allowFilterOp="word-set" kind="enum:io.nop.xlang.xmeta.ObjPropKind"
               ui:control="xml-name" ui:show="string" ui:labelProp="prop-path" ui:filterOp="xml-name"
               ui:maxUploadSize="long-size" ui:supportFileLink="boolean" ui:uploadAccept="string"
-              ui:editGrid="string" ui:viewGrid="string" ui:maskPattern="string"
+              ui:editGrid="string" ui:viewGrid="string" ui:maskPattern="string" ui:placeholder="string"
               orm:manyToManyRefProp="string"
               xml:mapper="string" graphql:mapper="string" biz:codeRule="string" graphql:datePattern="string"
               graphql:type="string" graphql:jsonComponentProp="string"

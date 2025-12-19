@@ -40,6 +40,12 @@ public class DateHelper {
 
     public static final LocalDate INVALID_DATE = ApiStringHelper.INVALID_DATE;
 
+    public static final LocalDate FUTURE_DATE =  ApiStringHelper.FUTURE_DATE;
+
+    public static final LocalDate MIN_EXCEL_DATE = LocalDate.of(1900,1,1);
+
+    public static final LocalDateTime MIN_EXCEL_DATE_TIME = LocalDateTime.of(MIN_EXCEL_DATE,LocalTime.MIN);
+
     public static final String PATTERN_MS = "ms";
 
     public static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");

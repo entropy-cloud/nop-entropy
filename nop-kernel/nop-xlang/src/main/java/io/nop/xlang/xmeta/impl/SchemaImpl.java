@@ -232,6 +232,8 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
         Integer maxLength;
         Integer multipleOf;
         Integer utf8Length;
+        String minValue;
+        String maxValue;
 
         public SimpleSchemaData cloneInstance() {
             SimpleSchemaData ret = new SimpleSchemaData();
@@ -248,6 +250,8 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
             ret.maxLength = maxLength;
             ret.multipleOf = multipleOf;
             ret.utf8Length = utf8Length;
+            ret.minValue = minValue;
+            ret.maxValue = maxValue;
             return ret;
         }
 
@@ -287,6 +291,14 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
             }
             if (multipleOf != null) {
                 node.setAttr(node.getLocation(), "multipleOf", multipleOf);
+            }
+
+            if(minValue != null){
+                node.setAttr(node.getLocation(),"minValue",minValue);
+            }
+
+            if(maxValue != null){
+                node.setAttr(node.getLocation(),"maxValue",maxValue);
             }
         }
     }
@@ -553,6 +565,30 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
             return simpleSchema.regex.test(str);
         }
         return true;
+    }
+
+    @Override
+    public String getMinValue() {
+        return simpleSchema == null ? null : simpleSchema.minValue;
+    }
+
+    public void setMinValue(String minValue) {
+        checkAllowChange();
+        if (minValue == null && simpleSchema == null)
+            return;
+        makeSimpleSchemaData().minValue = minValue;
+    }
+
+    @Override
+    public String getMaxValue() {
+        return simpleSchema == null ? null : simpleSchema.maxValue;
+    }
+
+    public void setMaxValue(String maxValue) {
+        checkAllowChange();
+        if (maxValue == null && simpleSchema == null)
+            return;
+        makeSimpleSchemaData().maxValue = maxValue;
     }
 
     @Override

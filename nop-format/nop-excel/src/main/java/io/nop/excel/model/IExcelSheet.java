@@ -28,7 +28,18 @@ public interface IExcelSheet {
 
     List<ExcelDataValidation> getDataValidations();
 
-    ExcelDataValidation buildDataValidation(String id);
+    default ExcelDataValidation buildDataValidation(String id){
+        ExcelDataValidation validation = new ExcelDataValidation();
+        validation.setId(id);
+        addDataValidation(validation);
+        return validation;
+    }
+
+    default ExcelDataValidation buildDataValidation() {
+        return buildDataValidation(null);
+    }
+
+    void addDataValidation(ExcelDataValidation validation);
 
     Double getDefaultRowHeight();
 

@@ -67,4 +67,8 @@ public interface ExcelConstants {
     String VAR_XPT_REPORT_ID = "xptReportId";
 
     String DEFAULT_XPT_REPORT_ID = "xpt-report";
+
+    String KEY_UI_PLACEHOLDER = "ui:placeholder";
+
+    String KEY_EXCEL_VALIDATION_FORMULA = "excel:validationFormula";
 }

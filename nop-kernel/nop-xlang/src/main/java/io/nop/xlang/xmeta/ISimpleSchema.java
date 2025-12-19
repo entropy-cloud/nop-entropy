@@ -64,4 +64,8 @@ public interface ISimpleSchema extends ISchemaNode {
     Integer getMaxLength();
 
     Integer getMultipleOf();
+
+    String getMinValue();
+
+    String getMaxValue();
 }
