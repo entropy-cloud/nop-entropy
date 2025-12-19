@@ -698,25 +698,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                           assertTrue(tagMeta.getErrorMsg().contains("No schema path is specified"));
                       } //
         );
-        assertTagMeta("""
-                              <exam<caret>ple
-                                xmlns:x="/nop/schema/xdsl.xdef"
-                                x:schema="/xx/xx/example.xdef"
-                              >
-                              </example>
-                              """, //
-                      (tag, tagMeta) -> {
-                          // 标签由 xdsl.xdef 定义
-                          assertFalse(tagMeta.hasError());
-                          assertFalse(tagMeta.isXplNode());
-                          assertFalse(tagMeta.isInAnySchema());
-                          assertFalse(tagMeta.isInXdefSchema());
-
-                          assertEquals("example", tagMeta.getTagName());
-                          assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
-                          assertEquals("/nop/schema/xdsl.xdef", defNodeVfsPath(tagMeta));
-                      } //
-        );
 
         assertTagMeta("""
                               <meta:un<caret>known
@@ -873,6 +854,42 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
 
                           assertEquals("xui:child", tagMeta.getTagName());
                           assertTrue(tagMeta.getErrorMsg().contains("'xui:parent' isn't defined"));
+                      } //
+        );
+        assertTagMeta("""
+                              <exa<caret>mple
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/xxx/xxx/example.xdef"
+                              />
+                              """, //
+                      (tag, tagMeta) -> {
+                          // 元模型加载失败
+                          assertTrue(tagMeta.hasError());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
+                          assertEquals("example", tagMeta.getTagName());
+                          assertTrue(tagMeta.getErrorMsg().contains("parse-missing-resource"));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/xxx/xxx/example.xdef"
+                              >
+                                <chi<caret>ld/>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          // 元模型加载失败
+                          assertTrue(tagMeta.hasError());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
+                          assertEquals("child", tagMeta.getTagName());
+                          assertTrue(tagMeta.getErrorMsg().contains("'example' isn't defined"));
                       } //
         );
     }

@@ -81,7 +81,7 @@ public class XLangTag extends XmlTagImpl {
         // Note: 避免后续访问出现 NPE 问题
         return Objects.requireNonNullElseGet(tagMeta,
                                              () -> XLangTagMeta.errorTag(this,
-                                                                         "xlang.parser.tag-meta.creating-failed",
+                                                                         "xlang.parser.tag-meta.creating-canceled",
                                                                          tagName));
     }
 
@@ -261,6 +261,7 @@ public class XLangTag extends XmlTagImpl {
         return new XlibTagMeta(ref, tagNs, tagName, lib);
     }
 
+    /** @return 操作被中断时返回 {@code null} */
     private XLangTagMeta createTagMeta() {
         Project project = getProject();
 

@@ -11,6 +11,7 @@ package io.nop.idea.plugin.lang.psi;
 import java.util.Objects;
 import java.util.Set;
 
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.psi.PsiElement;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
@@ -494,6 +495,8 @@ public class XLangTagMeta {
                 return createForRootTag(tag);
             }
             return createForChildTag(tag, parentTag);
+        } catch (ProcessCanceledException e) {
+            throw e; // 操作被中断
         } catch (Exception e) {
             String msg = ErrorMessageManager.instance().getRootCause(e).getMessage();
             return errorTag(tag, "xlang.parser.tag-meta.creating-exception", msg);
@@ -527,21 +530,13 @@ public class XLangTagMeta {
             return errorTag(tag, "xlang.parser.tag-meta.schema-not-specified", xdslKeys.SCHEMA, tagName);
         }
 
+        // Note: 若元模型加载失败，将直接抛异常，由上层包装异常，所以，schema 将始终不为 null
         IXDefinition schema = XDefPsiHelper.loadSchema(schemaPath);
         IXDefinition xdslSchema = XDefPsiHelper.getXDslDef();
 
         // 若其元模型为 /nop/schema/xdef.xdef，则其自身也为元模型（*.xdef）
         boolean inSchema = XDslConstants.XDSL_SCHEMA_XDEF.equals(schemaPath) //
                            || isXdefFile(tag.getContainingFile().getName());
-
-        // 非 xdef/xpl 模型，全部视为 xdsl
-        if (schema == null && !inSchema && !isXplXdefFile(schemaPath)) {
-            schema = xdslSchema;
-        }
-        // 若元模型加载失败，则不做识别
-        if (schema == null) {
-            return errorTag(tag, "xlang.parser.tag-meta.schema-loading-failed", schemaPath);
-        }
 
         String xdefNs = XmlPsiHelper.getXmlnsForUrl(tag, XDslConstants.XDSL_SCHEMA_XDEF);
         XDefKeys xdefKeys = XDefKeys.of(xdefNs);
@@ -575,11 +570,11 @@ public class XLangTagMeta {
         if (inSchema) {
             String vfsPath = XmlPsiHelper.getNopVfsPath(tag);
             if (vfsPath != null) {
-                selfSchema = XDefPsiHelper.loadSchema(vfsPath);
+                selfSchema = XDefPsiHelper.tryLoadSchema(vfsPath);
             }
             // 支持非标准的 vfs 资源，以适应单元测试等环境
             else {
-                selfSchema = XDefPsiHelper.loadSchema(tag.getContainingFile());
+                selfSchema = XDefPsiHelper.tryLoadSchema(tag.getContainingFile());
             }
         }
 
