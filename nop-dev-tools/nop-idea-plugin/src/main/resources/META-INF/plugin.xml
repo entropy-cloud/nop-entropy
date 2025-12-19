@@ -15,7 +15,19 @@
     ]]></description>
 
     <change-notes><![CDATA[
-
+    <ul>
+    <li>修复在 xrun 脚本中的根节点直接引用 xlib 函数时未识别其引用的缺陷；</li>
+    <li>修复启动 XLang 调试器时出现异常 Running sync tasks on pure EDT (w/o IW lock) is dangerous for several reasons 的问题；</li>
+    <li>改进 XLang 文件解析过程中的异常处理逻辑，确保异常信息能够以告警形式显示，以便于排查；</li>
+    <li>去掉 xchema 模版生成指令中的 xdef 路径补全宏，其性能太差，影响体验；</li>
+    <li>不在属性的代码补全列表中包含内部的、已废弃的属性，且 xlib 函数中定义的隐式属性也不显示；</li>
+    <li>支持对 xdef:key-attr、xdef:unique-attr 指向的属性是否存在进行检查，并在该属性未设置时给予告警提示；</li>
+    <li>支持对 XML 转义后的 generic-type 类型字符串中的 class、数组、泛型参数以及预定义类型的识别；</li>
+    <li>支持对 x:extends 中的 super 和 none 做特殊识别，确保前者可跳转到差量的上层 vfs 资源，而后者则不指向任何资源；</li>
+    <li>支持对 xdef:body-type="union" 的节点的子节点做唯一性检查，并对多余的子节点给予告警提示；</li>
+    <li>支持对 &lt;xdef:define/> 是否嵌套 &lt;xdef:define/> 进行检查，并对被嵌套的节点给予告警提示；</li>
+    <li>支持对 Java 代码中的有效 vfs 资源路径字面量做引用跳转，可在代码中通过「Ctrl + 点击」直接跳转到 vfs 资源；</li>
+    </ul>
     ]]></change-notes>
 
     <depends>com.intellij.modules.lang</depends>
