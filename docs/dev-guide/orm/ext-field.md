@@ -2,7 +2,9 @@
 
 [视频演示](https://www.bilibili.com/video/BV1wL411D7g7)
 
-在Excel数据模型中为数据表增加`use-ext-field`标签，即可启用全局扩展字段支持。扩展字段将保存到`nop_sys_ext_field`表中。
+基于Nop平台中内置的NopOrm引擎，可以很方便的为任意实体增加扩展属性，而且这些属性支持查询和排序，在使用层面和实体内置属性完全一致。
+
+具体做法非常简单，只需要在Excel数据模型中为数据表增加`use-ext-field`标签，即可启用全局扩展字段支持。扩展字段将保存到`nop_sys_ext_field`表中。
 
 ![](use-ext-field.png)
 
@@ -74,7 +76,7 @@ entity.getExtFields().prop_set("fldA",value);
 在XScript中可以通过`entity.extFldA`这种属性方式来存取，与普通实体属性完全一致。
 
 > 如果是根据定义了`alias`的orm模型文件来生成代码，则会自动生成对应get/set方法，这样在java中我们就可以通过`entity.getExtFldA()`和`entity.setExtFldA(value)`这两个方法来访问扩展属性。
-> 
+>
 > 如果生成了get/set方法，就不能再使用`entity.prop_get`方法来获取属性值了。因为`prop_get`是用于获取实体上不存在的扩展属性的方法。如果希望通过统一的方式来获取实体内置字段和扩展字段，可以使用`entity.orm_propValueByName(name)`方法，或者使用`BeanTool.getProperty(entity, propName)`反射机制来获取。
 
 不仅如此，在EQL查询语法中，可以直接使用扩展字段来进行过滤和排序，扩展字段的使用方式与实体上的内置字段完全一致

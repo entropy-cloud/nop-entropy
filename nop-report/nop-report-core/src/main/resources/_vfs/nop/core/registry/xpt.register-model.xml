@@ -1,5 +1,5 @@
 <model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-       name="xpt">
+       name="xpt" xdefPath="/nop/schema/excel/workbook.xdef">
 
     <loaders>
         <loader fileType="xpt.xml" class="io.nop.report.core.build.XptModelLoader"/>

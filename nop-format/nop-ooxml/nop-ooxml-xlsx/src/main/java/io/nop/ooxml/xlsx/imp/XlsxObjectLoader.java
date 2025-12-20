@@ -10,11 +10,12 @@ package io.nop.ooxml.xlsx.imp;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceObjectLoader;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.excel.imp.ImportExcelParser;
 import io.nop.excel.imp.model.ImportModel;
 import io.nop.excel.model.ExcelWorkbook;
-import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
+import io.nop.ooxml.xlsx.util.ExcelHelper;
 import io.nop.xlang.api.XLang;
 
 public class XlsxObjectLoader implements IResourceObjectLoader<Object> {
@@ -41,7 +42,7 @@ public class XlsxObjectLoader implements IResourceObjectLoader<Object> {
         return importModel;
     }
 
-    public String getImpPath(){
+    public String getImpPath() {
         return impPath;
     }
 
@@ -55,11 +56,8 @@ public class XlsxObjectLoader implements IResourceObjectLoader<Object> {
 
     @Override
     public Object loadObjectFromPath(String path) {
-        ImportModel importModel = getImportModel();
-        ExcelWorkbook wk = new ExcelWorkbookParser().parseFromVirtualPath(path);
-        ImportExcelParser parser = new ImportExcelParser(importModel);
-        parser.setReturnDynamicObject(returnDynamicObject);
-        return parser.parseFromWorkbook(wk);
+        IResource resource = VirtualFileSystem.instance().getResource(path);
+        return loadObjectFromResource(resource);
     }
 
     @Override
@@ -69,7 +67,7 @@ public class XlsxObjectLoader implements IResourceObjectLoader<Object> {
 
     public Object parseFromResource(IResource resource, IEvalScope scope) {
         ImportModel importModel = getImportModel();
-        ExcelWorkbook wk = new ExcelWorkbookParser().parseFromResource(resource);
+        ExcelWorkbook wk = ExcelHelper.parseExcel(resource);
         ImportExcelParser parser = new ImportExcelParser(importModel, XLang.newCompileTool().allowUnregisteredScopeVar(true), scope);
         parser.setReturnDynamicObject(returnDynamicObject);
         return parser.parseFromWorkbook(wk);

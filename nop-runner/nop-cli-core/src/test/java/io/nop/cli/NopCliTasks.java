@@ -207,4 +207,15 @@ public class NopCliTasks {
         };
         assertEquals(0, app.run(args));
     }
+
+    @Test
+    public void testConvertXlsx(){
+        String[] args = new String[]{"convert", "../../nop-report/nop-report-demo/src/main/" +
+                "resources/_vfs/nop/report/demo/base/17-动态Sheet和动态列.xpt.xlsx",
+                "-o", "target/test-report.xpt.xml"
+        };
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        assertEquals(0, app.run(args));
+    }
 }

@@ -25,6 +25,7 @@ import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.ooxml.xlsx.parse.XlsxToRecordOutput;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdsl.DslModelHelper;
+import io.nop.xlang.xdsl.DslModelParser;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -34,11 +35,18 @@ import java.util.function.BiFunction;
 
 public class ExcelHelper {
     public static ExcelWorkbook parseExcel(IResource resource) {
+        if (resource.getName().endsWith(".xml")) {
+            return (ExcelWorkbook) new DslModelParser(ExcelConstants.XDSL_SCHEMA_WORKBOOK).parseFromResource(resource);
+        }
         return new ExcelWorkbookParser().parseFromResource(resource);
     }
 
     public static void saveExcel(IResource resource, ExcelWorkbook workbook) {
-        new ExcelTemplate(workbook, null).generateToResource(resource, XLang.newEvalScope());
+        if (resource.getName().endsWith(".xml")) {
+            DslModelHelper.saveDslModel(ExcelConstants.XDSL_SCHEMA_WORKBOOK, workbook, resource);
+        } else {
+            new ExcelTemplate(workbook, null).generateToResource(resource, XLang.newEvalScope());
+        }
     }
 
     public static XNode toWorkbookXmlNode(ExcelWorkbook wk) {
@@ -61,7 +69,7 @@ public class ExcelHelper {
 
     public static List<ExcelSheetData> readAllSheets(IResource xlsx) {
         List<ExcelSheetData> ret = new ArrayList<>();
-        new XlsxToRecordOutput(sheetName -> new HeaderListRecordOutput<Map<String,Object>>(1, CollectionHelper::toNonEmptyKeyMap) {
+        new XlsxToRecordOutput(sheetName -> new HeaderListRecordOutput<Map<String, Object>>(1, CollectionHelper::toNonEmptyKeyMap) {
             @Override
             public void close() {
                 ExcelSheetData data = new ExcelSheetData();

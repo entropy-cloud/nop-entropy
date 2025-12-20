@@ -32,8 +32,12 @@ public class XlsxDslDocumentObjectBuilder implements IDocumentObjectBuilder {
 
     static String getXdefPathFromFileType(String fileType) {
         ComponentModelConfig config = ResourceComponentManager.instance().getModelConfigByFileType(fileType);
+        if(config.getXdefPath() != null)
+            return config.getXdefPath();
+
         ComponentModelConfig.LoaderConfig loaderConfig = config.getLoader(fileType);
         Guard.notNull(loaderConfig, "loaderConfig");
+
         Guard.notEmpty(loaderConfig.getImpPath(), "impPath");
 
         ImportModel importModel = (ImportModel) ResourceComponentManager.instance()
@@ -52,14 +56,19 @@ public class XlsxDslDocumentObjectBuilder implements IDocumentObjectBuilder {
             ComponentModelConfig config = ResourceComponentManager.instance().getModelConfigByFileType(fileType);
             ComponentModelConfig.LoaderConfig loaderConfig = config.getLoader(fileType);
             Guard.notNull(loaderConfig, "loaderConfig");
-            Guard.notEmpty(loaderConfig.getImpPath(), "impPath");
 
-            ImportModel importModel = (ImportModel) ResourceComponentManager.instance()
-                    .loadComponentModel(loaderConfig.getImpPath());
-            ImportExcelParser parser = new ImportExcelParser(importModel);
-            parser.setReturnDynamicObject(true);
-            ExcelWorkbook wk = ExcelDocHelper.loadExcel(this);
-            return parser.parseFromWorkbook(wk);
+            if(loaderConfig.getImpPath() != null) {
+                Guard.notEmpty(loaderConfig.getImpPath(), "impPath");
+
+                ImportModel importModel = (ImportModel) ResourceComponentManager.instance()
+                        .loadComponentModel(loaderConfig.getImpPath());
+                ImportExcelParser parser = new ImportExcelParser(importModel);
+                parser.setReturnDynamicObject(true);
+                ExcelWorkbook wk = ExcelDocHelper.loadExcel(this);
+                return parser.parseFromWorkbook(wk);
+            }else{
+                return loaderConfig.getLoader().loadObjectFromResource(getResource());
+            }
         }
 
         @Override

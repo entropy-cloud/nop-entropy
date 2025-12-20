@@ -24,13 +24,13 @@ public class DslToExcelDocumentConverter implements IDocumentConverter {
         ComponentModelConfig config = ResourceComponentManager.instance().requireModelConfigByFileType(doc.getFileType());
         ComponentModelConfig.LoaderConfig loader = config.getLoader(doc.getFileType());
 
-        if (config.getImpPath() != null) {
-            if (DocConvertConstants.FILE_TYPE_WORKBOOK_XML.equals(toFileType) && loader instanceof IExcelWorkbookGenerator) {
-                IExcelWorkbookGenerator generator = (IExcelWorkbookGenerator) loader;
-                ExcelWorkbook wk = generator.generateWorkbook(doc.getModelObject(options), XLang.newEvalScope());
-                return ExcelHelper.toWorkbookXmlNode(wk).xml();
-            }
+
+        if (DocConvertConstants.FILE_TYPE_WORKBOOK_XML.equals(toFileType) && loader.getLoader() instanceof IExcelWorkbookGenerator) {
+            IExcelWorkbookGenerator generator = (IExcelWorkbookGenerator) loader.getLoader();
+            ExcelWorkbook wk = generator.generateWorkbook(doc.getModelObject(options), XLang.newEvalScope());
+            return ExcelHelper.toWorkbookXmlNode(wk).xml();
         }
+
         throw new UnsupportedOperationException("DSL to XLSX conversion is not supported yet");
     }
 
@@ -39,19 +39,17 @@ public class DslToExcelDocumentConverter implements IDocumentConverter {
         ComponentModelConfig config = ResourceComponentManager.instance().requireModelConfigByFileType(doc.getFileType());
         ComponentModelConfig.LoaderConfig loader = config.getLoader(doc.getFileType());
 
-        if (config.getImpPath() != null) {
-            if (DocConvertConstants.FILE_TYPE_WORKBOOK_XML.equals(toFileType) && loader instanceof IExcelWorkbookGenerator) {
-                IExcelWorkbookGenerator generator = (IExcelWorkbookGenerator) loader;
-                ExcelWorkbook wk = generator.generateWorkbook(doc.getModelObject(options), XLang.newEvalScope());
-                ExcelHelper.toWorkbookXmlNode(wk).saveToStream(out, null);
+        if (DocConvertConstants.FILE_TYPE_WORKBOOK_XML.equals(toFileType) && loader.getLoader() instanceof IExcelWorkbookGenerator) {
+            IExcelWorkbookGenerator generator = (IExcelWorkbookGenerator) loader.getLoader();
+            ExcelWorkbook wk = generator.generateWorkbook(doc.getModelObject(options), XLang.newEvalScope());
+            ExcelHelper.toWorkbookXmlNode(wk).saveToStream(out, null);
+            return;
+        } else if (DocConvertConstants.FILE_TYPE_XLSX.equals(StringHelper.lastPart(toFileType, '.'))) {
+            IResource resource = new OutputStreamResource("/out.xlsx", out);
+            ComponentModelConfig.LoaderConfig loaderConfig = config.getLoader(toFileType);
+            if (loaderConfig != null && loaderConfig.getSaver() != null) {
+                loaderConfig.getSaver().saveObjectToResource(resource, doc.getModelObject(options));
                 return;
-            } else if (DocConvertConstants.FILE_TYPE_XLSX.equals(StringHelper.lastPart(toFileType, '.'))) {
-                IResource resource = new OutputStreamResource("/out.xlsx", out);
-                ComponentModelConfig.LoaderConfig loaderConfig = config.getLoader(toFileType);
-                if (loaderConfig != null && loaderConfig.getSaver() != null) {
-                    loaderConfig.getSaver().saveObjectToResource(resource, doc.getModelObject(options));
-                    return;
-                }
             }
         }
         throw new UnsupportedOperationException("DSL to XLSX conversion is not supported yet: " + doc.getFileType() + " to " + toFileType);

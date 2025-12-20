@@ -126,8 +126,6 @@ public class ConverterRegistrationBean {
                     if (!DslModelHelper.supportExcelModelLoader()) {
                         continue;
                     }
-                    if (fromConfig.getImpPath() == null)
-                        continue;
                     IDocumentObjectBuilder builder = ExcelAdapter.newXlsxDslDocumentObjectBuilder();
                     registry.registerDocumentObjectBuilder(fromFileType, builder);
                 } else {
@@ -163,8 +161,6 @@ public class ConverterRegistrationBean {
             if (!DslModelHelper.supportExcelModelLoader()) {
                 return null;
             }
-            if (toConfig.getImpPath() == null)
-                return null;
             return ExcelAdapter.newDslToExcelDocumentConverter();
         } else {
             if (toConfig.getSaver() == null)
