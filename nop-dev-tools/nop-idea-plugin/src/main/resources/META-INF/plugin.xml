@@ -18,6 +18,7 @@
     <ul>
     <li>修复在 xrun 脚本中的根节点直接引用 xlib 函数时未识别其引用的缺陷；</li>
     <li>修复启动 XLang 调试器时出现异常 Running sync tasks on pure EDT (w/o IW lock) is dangerous for several reasons 的问题；</li>
+    <li>修复后缀 *.xdsl 未关联 XLang 类型时，从 XLang DSL 模版创建的文件名始终带 .xdsl 后缀的问题；</li>
     <li>改进 XLang 文件解析过程中的异常处理逻辑，确保异常信息能够以告警形式显示，以便于排查；</li>
     <li>去掉 xchema 模版生成指令中的 xdef 路径补全宏，其性能太差，影响体验；</li>
     <li>不在属性的代码补全列表中包含内部的、已废弃的属性，且 xlib 函数中定义的隐式属性也不显示；</li>

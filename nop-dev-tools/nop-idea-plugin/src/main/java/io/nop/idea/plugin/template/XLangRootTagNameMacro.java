@@ -38,6 +38,7 @@ import org.jetbrains.annotations.Nullable;
  * @date 2025-08-06
  */
 public class XLangRootTagNameMacro extends Macro {
+    private static final String XDEF_SUFFIX = ".xdef";
     private static final Pattern REGEX_SCHEMA = Pattern.compile(".+ \\S+:schema=\"([^\"]+)\".+",
                                                                 Pattern.DOTALL | Pattern.MULTILINE);
 
@@ -60,32 +61,33 @@ public class XLangRootTagNameMacro extends Macro {
             return null;
         }
 
-        String vfsPath = matcher.group(1);
-        if (StringHelper.isBlank(vfsPath) || !vfsPath.endsWith(".xdef")) {
+        String schemaPath = matcher.group(1);
+        if (StringHelper.isBlank(schemaPath) || !schemaPath.endsWith(XDEF_SUFFIX)) {
             return null;
         }
 
-        String resourcePath = XmlPsiHelper.getNopVfsAbsolutePath(vfsPath, file);
+        String schemaAbsPath = XmlPsiHelper.getNopVfsAbsolutePath(schemaPath, file);
         String charset = XLangFileType.INSTANCE.getCharset(file, text.getBytes());
 
         String tagName = ProjectEnv.withProject(context.getProject(), () -> {
-            IResource resource = VirtualFileSystem.instance().getResource(resourcePath);
-            XNode node = XLangLanguageSubstitutor.parseRootNode(resource.getReader(charset));
-            if (node == null) {
-                return null;
+            IResource resource = VirtualFileSystem.instance().getResource(schemaAbsPath);
+            XNode node = null;
+            try {
+                node = XLangLanguageSubstitutor.parseRootNode(resource.getReader(charset));
+            } catch (Exception ignore) {
             }
 
-            String name = node.getTagName();
-            if (name.endsWith(":unknown-tag")) {
-                name = file.getName();
-
-                int index = name.indexOf('.');
-                name = index <= 0 ? name : name.substring(0, index);
-            }
-            return name;
+            String name = node != null ? node.getTagName() : null;
+            return name == null || name.endsWith(":unknown-tag") ? null : name;
         });
 
-        return tagName != null ? new TextResult(tagName) : null;
+        if (tagName == null) {
+            String fileName = file.getName();
+            String schemaName = fileName.endsWith(XDEF_SUFFIX) ? fileName : StringHelper.fileName(schemaPath);
+            tagName = StringHelper.removeFileExt(schemaName);
+        }
+
+        return new TextResult(tagName);
     }
 
     @Override
