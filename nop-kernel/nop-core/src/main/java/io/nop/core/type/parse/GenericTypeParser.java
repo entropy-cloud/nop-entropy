@@ -109,10 +109,12 @@ public class GenericTypeParser implements IGenericTypeParser {
         IGenericType type = buildType(typeName);
 
         sc.skipBlank();
-        if (sc.cur == '<') {
-            List<IGenericType> argTypes = parseArguments(sc);
+
+        List<IGenericType> argTypes = parseArguments(sc);
+        if (argTypes != null) {
             type = GenericTypeHelper.buildParameterizedType(type, argTypes);
         }
+
         return type;
     }
 
@@ -122,6 +124,7 @@ public class GenericTypeParser implements IGenericTypeParser {
 
     public IFunctionType parseFunctionType(TextScanner sc) {
         sc.skipBlank();
+
         sc.match('(');
         List<String> argNames = Collections.emptyList();
         List<IGenericType> argTypes = Collections.emptyList();
@@ -141,7 +144,8 @@ public class GenericTypeParser implements IGenericTypeParser {
             } while (sc.tryMatch(','));
             sc.match(')');
         }
-        sc.match("=>");
+        matchFunctionArrow(sc);
+
         IGenericType returnType = parseGenericType(sc);
         return new GenericFunctionTypeImpl(argNames, argTypes, returnType);
     }
@@ -183,13 +187,17 @@ public class GenericTypeParser implements IGenericTypeParser {
     }
 
     List<IGenericType> parseArguments(TextScanner sc) {
-        sc.match('<');
+        if (!tryMatchLessThan(sc)) {
+            return null;
+        }
+
         List<IGenericType> ret = new ArrayList<>();
         do {
             IGenericType argType = parseArgument(sc);
             ret.add(argType);
         } while (sc.tryMatch(','));
-        sc.match('>');
+        matchGreaterThan(sc);
+
         return CollectionHelper.immutableList(ret);
     }
 
@@ -214,7 +222,7 @@ public class GenericTypeParser implements IGenericTypeParser {
     IGenericType parseUpperBound(TextScanner sc) {
         IGenericType type = parseGenericType(sc);
         List<IGenericType> types = null;
-        while (sc.tryMatch('&')) {
+        while (tryMatchAmpersand(sc)) {
             IGenericType type2 = parseGenericType(sc);
             if (types == null) {
                 types = new ArrayList<>();
@@ -225,5 +233,31 @@ public class GenericTypeParser implements IGenericTypeParser {
         if (types != null)
             return new GenericIntersectionTypeImpl(CollectionHelper.immutableList(types));
         return type;
+    }
+
+    // ///////////// 支持对已转义 xml 字符串的解析 ////////////
+
+    /** 尝试匹配小于号（<） */
+    boolean tryMatchLessThan(TextScanner sc) {
+        return sc.tryMatch("&lt;") || sc.tryMatch('<');
+    }
+
+    /** 匹配大于号（>） */
+    void matchGreaterThan(TextScanner sc) {
+        if (!sc.tryMatch("&gt;")) {
+            sc.match('>');
+        }
+    }
+
+    /** 尝试匹配和号（&） */
+    boolean tryMatchAmpersand(TextScanner sc) {
+        return sc.tryMatch("&amp;") || sc.tryMatch('&');
+    }
+
+    /** 匹配函数箭头（=>） */
+    void matchFunctionArrow(TextScanner sc) {
+        if (!sc.tryMatch("=&gt;")) {
+            sc.match("=>");
+        }
     }
 }

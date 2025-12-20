@@ -10,9 +10,9 @@ package io.nop.idea.plugin.lang.reference;
 
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
+import io.nop.core.type.IArrayType;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.impl.PredefinedPrimitiveType;
-import io.nop.core.type.parse.GenericTypeParser;
 import io.nop.idea.plugin.utils.PsiClassHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -24,28 +24,17 @@ import org.jetbrains.annotations.Nullable;
  * @date 2025-07-15
  */
 public class XLangStdDomainGenericTypeReference extends XLangReferenceBase {
-    private final String attrValue;
+    private final IGenericType type;
 
-    public XLangStdDomainGenericTypeReference(PsiElement myElement, TextRange myRangeInElement, String attrValue) {
+    public XLangStdDomainGenericTypeReference(PsiElement myElement, TextRange myRangeInElement, IGenericType type) {
         super(myElement, myRangeInElement);
-        this.attrValue = attrValue;
+        this.type = type;
     }
 
     @Override
     public @Nullable PsiElement resolveInner() {
-        IGenericType type = null;
-        try {
-            type = new GenericTypeParser().parseFromText(null, attrValue);
-        } catch (Exception ignore) {
-        }
+        String className = resolveClassName(type);
 
-        if (type == null) {
-            return null;
-        }
-
-        String className = type instanceof PredefinedPrimitiveType p
-                           ? p.getStdDataType().getJavaClass().getName()
-                           : type.getClassName();
         return PsiClassHelper.findClass(myElement, className);
     }
 
@@ -53,5 +42,14 @@ public class XLangStdDomainGenericTypeReference extends XLangReferenceBase {
     public Object @NotNull [] getVariants() {
         // TODO generic-type 类型的属性值补全较复杂，暂不处理
         return new Object[0];
+    }
+
+    private String resolveClassName(IGenericType type) {
+        if (type instanceof PredefinedPrimitiveType p) {
+            return p.getStdDataType().getJavaClass().getName();
+        } else if (type instanceof IArrayType pa) {
+            return resolveClassName(pa.getComponentType());
+        }
+        return type.getClassName();
     }
 }

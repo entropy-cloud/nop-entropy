@@ -25,15 +25,15 @@ public class XDefPsiHelper {
     static final Logger LOG = LoggerFactory.getLogger(XDefPsiHelper.class);
 
     public static IXDefinition getXdefDef() {
-        return loadSchema(XDslConstants.XDSL_SCHEMA_XDEF);
+        return SchemaLoader.loadXDefinition(XDslConstants.XDSL_SCHEMA_XDEF);
     }
 
     public static IXDefinition getXDslDef() {
-        return loadSchema(XDslConstants.XDSL_SCHEMA_XDSL);
+        return SchemaLoader.loadXDefinition(XDslConstants.XDSL_SCHEMA_XDSL);
     }
 
     public static IXDefinition getXplDef() {
-        return loadSchema(XDslConstants.XDSL_SCHEMA_XPL);
+        return SchemaLoader.loadXDefinition(XDslConstants.XDSL_SCHEMA_XPL);
     }
 
     /**
@@ -62,8 +62,13 @@ public class XDefPsiHelper {
 
     /** Note: 已加载且自身及其依赖未变更的模型，将被缓存起来，不会重复解析 */
     public static IXDefinition loadSchema(String schemaUrl) {
+        return SchemaLoader.loadXDefinition(schemaUrl);
+    }
+
+    /** Note: 已加载且自身及其依赖未变更的模型，将被缓存起来，不会重复解析 */
+    public static IXDefinition tryLoadSchema(String schemaUrl) {
         try {
-            return SchemaLoader.loadXDefinition(schemaUrl);
+            return loadSchema(schemaUrl);
         } catch (Exception e) {
             LOG.debug("nop.load-schema-fail", e);
             return null;
@@ -71,7 +76,7 @@ public class XDefPsiHelper {
     }
 
     /** Note: 直接解析内容，且不缓存解析结果 */
-    public static IXDefinition loadSchema(PsiFile file) {
+    public static IXDefinition tryLoadSchema(PsiFile file) {
         String content = file.getText();
         // Note: 解析过程中，会检查路径的有效性，需保证以 / 开头，并添加 .xdef 后缀
         IResource resource = new InMemoryTextResource("/" + file.getText().hashCode() + ".xdef", content);

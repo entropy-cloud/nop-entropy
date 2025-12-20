@@ -7,7 +7,7 @@
  */
 package io.nop.idea.plugin.annotator;
 
-import java.util.Objects;
+import java.util.Set;
 
 import com.intellij.codeInsight.daemon.impl.HighlightRangeExtension;
 import com.intellij.codeInspection.ProblemHighlightType;
@@ -22,11 +22,9 @@ import com.intellij.psi.xml.XmlElement;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.psi.xml.XmlToken;
 import com.intellij.xml.util.XmlTagUtil;
-import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.idea.plugin.lang.psi.XLangAttribute;
 import io.nop.idea.plugin.lang.psi.XLangAttributeValue;
 import io.nop.idea.plugin.lang.psi.XLangTag;
@@ -36,6 +34,7 @@ import io.nop.idea.plugin.lang.psi.XLangTextToken;
 import io.nop.idea.plugin.lang.reference.XLangReference;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.resource.ProjectEnv;
+import io.nop.idea.plugin.utils.ExceptionHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFile;
 import io.nop.xlang.xdef.IStdDomainHandler;
@@ -44,8 +43,11 @@ import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import io.nop.xlang.xpl.utils.XplParseHelper;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class XLangAnnotator implements Annotator {
+    static final Logger LOG = LoggerFactory.getLogger(XLangAnnotator.class);
 
     /**
      * 注意事项：
@@ -79,6 +81,7 @@ public class XLangAnnotator implements Annotator {
                 doAnnotate(holder, element);
             } catch (Exception e) {
                 String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getName();
+                LOG.debug("nop.validate-xlang-fail", e);
 
                 holder.newAnnotation(HighlightSeverity.WARNING, msg)
                       .highlightType(ProblemHighlightType.WARNING)
@@ -134,31 +137,58 @@ public class XLangAnnotator implements Annotator {
 
     private void checkTag(@NotNull AnnotationHolder holder, @NotNull XLangTag tag) {
         XLangTagMeta tagMeta = tag.getTagMeta();
-        if (!tagMeta.hasError()) {
-            checkTagBySchemaDefNode(holder, tag);
-            return;
-        }
 
-        tagErrorAnnotation(holder, tag, tagMeta.getErrorMsg());
+        if (tagMeta.hasError()) {
+            tagErrorAnnotation(holder, tag, tagMeta.getErrorMsg());
+        } else {
+            checkTagBySchemaDefNode(holder, tag);
+        }
     }
 
     private void checkTagBySchemaDefNode(@NotNull AnnotationHolder holder, @NotNull XLangTag tag) {
+        XLangTag parentTag = tag.getParentTag();
         XLangTagMeta tagMeta = tag.getTagMeta();
-        // 检查标签可重复性
-        if (!tagMeta.canBeMultipleTag() && tag.getParentTag() != null) {
-            for (PsiElement child : tag.getParentTag().getChildren()) {
-                // 检查在其之前的重复节点
-                if (child == tag) {
-                    break;
-                }
+        XLangTagMeta parentTagMeta = null;
 
-                if (child instanceof XLangTag t //
-                    && Objects.equals(t.getName(), tag.getName()) //
-                ) {
+        // 检查是否可包含节点
+        if (parentTag != null) {
+            parentTagMeta = parentTag.getTagMeta();
+
+            switch (parentTagMeta.checkChildTagAllowed(tagMeta)) {
+                // 父标签不允许多个子标签
+                case only_at_most_one -> {
+                    tagErrorAnnotation(holder,
+                                       tag,
+                                       "xlang.annotation.tag.only-at-most-one-child-tag",
+                                       parentTag.getName());
+                    return;
+                }
+                // 标签自身不可重复
+                case can_not_be_multiple -> {
                     tagErrorAnnotation(holder, tag, "xlang.annotation.tag.multiple-tag-not-allowed", tag.getName());
                     return;
                 }
+                // 标签自身不能被同名标签嵌套
+                case can_not_be_nested_by_same_name_tag -> {
+                    tagErrorAnnotation(holder,
+                                       tag,
+                                       "xlang.annotation.tag.nested-by-same-name-tag-not-allowed",
+                                       tag.getName());
+                    return;
+                }
             }
+        }
+
+        // 检查节点必需属性是否已设置。Note: 值的有效性由属性值检查过程处理
+        Set<String> requiredAttrs = //
+                tagMeta.filterRequiredAttrs(parentTagMeta, (attr) -> tag.getAttributeValue(attr) == null, true);
+        if (!requiredAttrs.isEmpty()) {
+            tagErrorAnnotation(holder,
+                               tag,
+                               "xlang.annotation.tag.has-unset-required-attrs",
+                               tag.getName(),
+                               StringHelper.join(requiredAttrs, ","));
+            return;
         }
 
         // 检查节点内容
@@ -175,7 +205,7 @@ public class XLangAnnotator implements Annotator {
         }
 
         if (xdefValue.isMandatory() && blankBodyText) {
-            tagErrorAnnotation(holder, tag, "xlang.annotation.tag.body-required", tag.getName());
+            tagErrorAnnotation(holder, tag, "xlang.annotation.tag.mandatory-body", tag.getName());
             return;
         }
 
@@ -221,19 +251,19 @@ public class XLangAnnotator implements Annotator {
 
         String attrName = attr.getName();
         String attrValueText = attrValue.getValue();
-        TextRange attrValueTextRange = attrValue.getValueTextRange();
+        TextRange attrValueRange = attrValue.getTextRange(); // 包含引号
 
         XDefTypeDecl defAttrType = defAttr.getType();
         if (StringHelper.isEmpty(attrValueText)) {
             if (defAttrType.isMandatory()) {
-                errorAnnotation(holder, attrValue.getTextRange(), "xlang.annotation.attr.value-required", attrName);
+                errorAnnotation(holder, attrValue.getTextRange(), "xlang.annotation.attr.mandatory-value", attrName);
             }
             return;
         }
 
         // Note: dict/enum 的有效值检查由 PsiReference 处理
         SourceLocation loc = XmlPsiHelper.getLocation(attrValue);
-        checkStdDomain(holder, attrValueTextRange, defAttrType.getStdDomain(), loc, attrName, attrValueText);
+        checkStdDomain(holder, attrValueRange, defAttrType.getStdDomain(), loc, attrName, attrValueText);
     }
 
     private void checkStdDomain(
@@ -281,12 +311,7 @@ public class XLangAnnotator implements Annotator {
     }
 
     private void errorAnnotation(AnnotationHolder holder, TextRange textRange, Exception e) {
-        String msg = ErrorMessageManager.instance()
-                                        .buildErrorMessage(AppConfig.defaultLocale(), e, false, false, false)
-                                        .getDescription();
-        if (msg == null) {
-            msg = e.getMessage();
-        }
+        String msg = ExceptionHelper.getExceptionMessage(e);
 
         _errorAnnotation(holder, textRange, msg);
     }

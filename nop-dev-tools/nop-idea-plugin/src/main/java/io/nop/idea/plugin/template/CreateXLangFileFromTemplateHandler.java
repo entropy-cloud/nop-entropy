@@ -35,10 +35,11 @@ public class CreateXLangFileFromTemplateHandler extends DefaultCreateFromTemplat
 
     @Override
     public boolean handlesTemplate(@NotNull FileTemplate template) {
-        return template.isTemplateOfType(XLangFileType.INSTANCE) //
-               && ArrayUtil.contains(template.getName(),
-                                     CreateXLangFileFromTemplateAction.TEMPLATE_XDSL_NAME,
-                                     CreateXLangFileFromTemplateAction.TEMPLATE_XDEF_NAME);
+        // Note: 默认情况下模版的后缀名不会关联 XLang 类型，因此，只能检查文件名是否匹配，不能检查其关联类型
+        return /*template.isTemplateOfType(XLangFileType.INSTANCE) //
+               && */ArrayUtil.contains(template.getName(),
+                                       CreateXLangFileFromTemplateAction.TEMPLATE_XDSL_NAME,
+                                       CreateXLangFileFromTemplateAction.TEMPLATE_XDEF_NAME);
     }
 
     @Override

@@ -698,25 +698,6 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                           assertTrue(tagMeta.getErrorMsg().contains("No schema path is specified"));
                       } //
         );
-        assertTagMeta("""
-                              <exam<caret>ple
-                                xmlns:x="/nop/schema/xdsl.xdef"
-                                x:schema="/xx/xx/example.xdef"
-                              >
-                              </example>
-                              """, //
-                      (tag, tagMeta) -> {
-                          // 标签由 xdsl.xdef 定义
-                          assertFalse(tagMeta.hasError());
-                          assertFalse(tagMeta.isXplNode());
-                          assertFalse(tagMeta.isInAnySchema());
-                          assertFalse(tagMeta.isInXdefSchema());
-
-                          assertEquals("example", tagMeta.getTagName());
-                          assertTrue(tagMeta.getDefNodeInSchema().isUnknownTag());
-                          assertEquals("/nop/schema/xdsl.xdef", defNodeVfsPath(tagMeta));
-                      } //
-        );
 
         assertTagMeta("""
                               <meta:un<caret>known
@@ -875,6 +856,42 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                           assertTrue(tagMeta.getErrorMsg().contains("'xui:parent' isn't defined"));
                       } //
         );
+        assertTagMeta("""
+                              <exa<caret>mple
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/xxx/xxx/example.xdef"
+                              />
+                              """, //
+                      (tag, tagMeta) -> {
+                          // 元模型加载失败
+                          assertTrue(tagMeta.hasError());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
+                          assertEquals("example", tagMeta.getTagName());
+                          assertTrue(tagMeta.getErrorMsg().contains("/xxx/xxx/example.xdef"));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/xxx/xxx/example.xdef"
+                              >
+                                <chi<caret>ld/>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          // 元模型加载失败
+                          assertTrue(tagMeta.hasError());
+                          assertFalse(tagMeta.isXplNode());
+                          assertFalse(tagMeta.isInAnySchema());
+                          assertFalse(tagMeta.isInXdefSchema());
+
+                          assertEquals("child", tagMeta.getTagName());
+                          assertTrue(tagMeta.getErrorMsg().contains("'example' isn't defined"));
+                      } //
+        );
     }
 
     public void testDefAttrByTagMeta() {
@@ -1025,6 +1042,343 @@ public class TestXLangTagMeta extends BaseXLangPluginTestCase {
                           assertNotNull(defAttr);
                           assertNotNull(defAttr.getType());
                           assertEquals("xdef-attr", defAttr.getType().getStdDomain());
+                      } //
+        );
+    }
+
+    public void testAllowedChildTagByTagMeta() {
+        // 检查父节点是否允许多个子节点
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <u<caret>1/>
+                                  <u2/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <u1/>
+                                  <u<caret>2/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.only_at_most_one,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <x:gen-extends/>
+                                  <u<caret>2/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <abc/>
+                                  <u<caret>2/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <a<caret>bc/>
+                                  <u2/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <xui:abc/>
+                                  <u<caret>2/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <xui:a<caret>bc/>
+                                  <u2/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <u1/>
+                                  <a<caret>bc/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <union>
+                                  <u1/>
+                                  <xui:a<caret>bc/>
+                                </union>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+
+        // 检查节点自身的可重复性
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <list>
+                                  <l<caret>1/>
+                                  <l2/>
+                                  <l1/>
+                                </list>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <list>
+                                  <l1/>
+                                  <l<caret>2/>
+                                  <l1/>
+                                </list>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <list>
+                                  <l1/>
+                                  <l2/>
+                                  <l<caret>1/>
+                                </list>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.can_not_be_multiple,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <list>
+                                  <l1/>
+                                  <l2/>
+                                  <l1/>
+                                  <l<caret>2/>
+                                </list>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+
+        // 检查节点可嵌套性
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                              >
+                                <xdef:def<caret>ine xdef:name="A">
+                                  <xdef:define xdef:name="B"/>
+                                </xdef:define>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                              >
+                                <xdef:define xdef:name="A">
+                                  <xdef:de<caret>fine xdef:name="B"/>
+                                </xdef:define>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.can_not_be_nested_by_same_name_tag,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                              >
+                                <xdef:define xdef:name="A">
+                                  <child>
+                                    <xdef:de<caret>fine xdef:name="B"/>
+                                  </child>
+                                </xdef:define>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.can_not_be_nested_by_same_name_tag,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
+                      } //
+        );
+        // - 在非 *.xdef 中，不检查 xdef:define 的嵌套性
+        assertTagMeta("""
+                              <example
+                                xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/lang/lang.xdef"
+                              >
+                                <xdef:define xdef:name="A">
+                                  <child>
+                                    <xdef:de<caret>fine xdef:name="B"/>
+                                  </child>
+                                </xdef:define>
+                              </example>
+                              """, //
+                      (tag, tagMeta) -> {
+                          assertNotNull(tag.getParentTag());
+
+                          XLangTagMeta parentTagMeta = tag.getParentTag().getTagMeta();
+                          assertEquals(XLangTagMeta.ChildTagAllowedMode.allowed,
+                                       parentTagMeta.checkChildTagAllowed(tagMeta));
                       } //
         );
     }

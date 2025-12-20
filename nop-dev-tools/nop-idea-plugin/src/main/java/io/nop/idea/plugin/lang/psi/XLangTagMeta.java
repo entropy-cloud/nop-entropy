@@ -8,14 +8,20 @@
 
 package io.nop.idea.plugin.lang.psi;
 
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
+import com.intellij.openapi.progress.ProcessCanceledException;
+import com.intellij.psi.PsiElement;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.idea.plugin.lang.XLangDocumentation;
 import io.nop.idea.plugin.lang.xlib.XlibTagMeta;
 import io.nop.idea.plugin.messages.NopPluginBundle;
+import io.nop.idea.plugin.utils.ExceptionHelper;
 import io.nop.idea.plugin.utils.XDefPsiHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.xlang.xdef.IXDefAttribute;
@@ -23,6 +29,7 @@ import io.nop.xlang.xdef.IXDefComment;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefSubComment;
 import io.nop.xlang.xdef.IXDefinition;
+import io.nop.xlang.xdef.XDefBodyType;
 import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefKeys;
 import io.nop.xlang.xdef.XDefTypeDecl;
@@ -209,11 +216,103 @@ public class XLangTagMeta {
         return defNode != null ? defNode.getXdefValue() : null;
     }
 
+    /** 过滤当前标签上的必需属性（如 {@link XDefKeys#UNIQUE_ATTR}、{@link XDefKeys#KEY_ATTR} 指向的属性）列表 */
+    public Set<String> filterRequiredAttrs(
+            XLangTagMeta parentTagMeta, Predicate<String> filter, boolean excludeHasDefaultValue) {
+        IXDefNode defNode = getDefNodeInSchema();
+        if (defNode == null) {
+            return Set.of();
+        }
+
+        Set<String> required = new HashSet<>();
+        if (xdefKeys != null && xdefKeys.DEFINE.equals(getTagName())) {
+            required.add(xdefKeys.NAME);
+        } else if (defNode.getXdefUniqueAttr() != null) {
+            required.add(defNode.getXdefUniqueAttr());
+        } else if (parentTagMeta != null) {
+            IXDefNode parentDefNode = parentTagMeta.getDefNodeInSchema();
+            if (parentDefNode != null
+                && XDefBodyType.list.equals(parentDefNode.getXdefBodyType())
+                && parentDefNode.getXdefKeyAttr() != null //
+            ) {
+                required.add(parentDefNode.getXdefKeyAttr());
+            }
+        }
+
+        return defNode.getAttributes().values().stream().filter((defAttr) -> {
+            XDefTypeDecl attrType = defAttr.getType();
+            return attrType != null //
+                   && required.contains(defAttr.getName()) //
+                   && (!excludeHasDefaultValue //
+                       || (attrType.getDefaultValue() == null //
+                           && attrType.getDefaultAttrNames() == null)) //
+                    ;
+        }).map(IXDefAttribute::getName).filter(filter).collect(Collectors.toUnmodifiableSet());
+    }
+
     /** 当前标签是否允许重复 */
     public boolean canBeMultipleTag() {
         IXDefNode defNode = getDefNodeInSchema();
 
         return (defNode != null && defNode.isAllowMultiple()) || isXplNode();
+    }
+
+    /** 当前标签是否允许有多个子标签 */
+    public boolean canHasMultipleChildTag() {
+        IXDefNode defNode = getDefNodeInSchema();
+
+        // xdef:body-type="union" 的节点只能有一个子节点
+        return defNode != null && !XDefBodyType.union.equals(defNode.getXdefBodyType());
+    }
+
+    /** 检查是否允许包含指定的子标签，并返回检查结果 */
+    public ChildTagAllowedMode checkChildTagAllowed(XLangTagMeta childTagMeta) {
+        String xdefDefineTagName = childTagMeta.xdefKeys != null ? childTagMeta.xdefKeys.DEFINE : null;
+        // 在元模型中不能在 xdef:define 中嵌套 xdef:define
+        if (xdefDefineTagName != null //
+            && xdefDefineTagName.equals(childTagMeta.getTagName()) //
+        ) {
+            XLangTag parentTag = tag;
+            do {
+                if (xdefDefineTagName.equals(parentTag.getName())) {
+                    return ChildTagAllowedMode.can_not_be_nested_by_same_name_tag;
+                }
+                parentTag = parentTag.getParentTag();
+            } while (parentTag != null);
+        }
+
+        boolean allowMultipleChild = canHasMultipleChildTag();
+        boolean allowMultipleSelf = childTagMeta.canBeMultipleTag();
+        if (allowMultipleChild && allowMultipleSelf) {
+            return ChildTagAllowedMode.allowed;
+        }
+
+        String childTagName = childTagMeta.getTagName();
+        for (PsiElement child : tag.getChildren()) {
+            // 仅检查在指定标签之前的标签
+            if (child == childTagMeta.tag) {
+                break;
+            } else if (!(child instanceof XLangTag)) {
+                continue;
+            }
+
+            XLangTag t = (XLangTag) child;
+            String tName = t.getName();
+            if (!allowMultipleSelf //
+                && Objects.equals(tName, childTagName) //
+            ) {
+                return ChildTagAllowedMode.can_not_be_multiple;
+            } //
+            else if (!allowMultipleChild
+                     // 若已出现过定义的子标签，则不能再出现其他定义的子标签
+                     && defNodeInSchema != null //
+                     && defNodeInSchema.getChild(tName) != null //
+                     && defNodeInSchema.getChild(childTagName) != null //
+            ) {
+                return ChildTagAllowedMode.only_at_most_one;
+            }
+        }
+        return ChildTagAllowedMode.allowed;
     }
 
     /**
@@ -427,22 +526,32 @@ public class XLangTagMeta {
     public static XLangTagMeta create(XLangTag tag) {
         XLangTag parentTag = tag.getParentTag();
 
-        // 根节点
-        if (parentTag == null) {
-            return createForRootTag(tag);
+        try {
+            // 根节点
+            if (parentTag == null) {
+                return createForRootTag(tag);
+            }
+            return createForChildTag(tag, parentTag);
+        } catch (ProcessCanceledException e) {
+            throw e; // 操作被中断
+        } catch (Exception e) {
+            String msg = ExceptionHelper.getExceptionMessage(e);
+
+            return errorTag(tag, "xlang.parser.tag-meta.creating-exception", msg);
         }
-        return createForChildTag(tag, parentTag);
     }
 
     protected static XLangTagMeta errorTag(
-            @NotNull XLangTag tag, @NotNull @PropertyKey(resourceBundle = BUNDLE) String msgKey,
+            @NotNull XLangTag tag,
+            @NotNull @PropertyKey(resourceBundle = BUNDLE) String msgKey,
             Object @NotNull ... msgParams
     ) {
         return new XLangTagMeta(tag, NopPluginBundle.message(msgKey, msgParams));
     }
 
     private static XDefAttribute errorAttr(
-            @NotNull XLangAttribute attr, @NotNull @PropertyKey(resourceBundle = BUNDLE) String msgKey,
+            @NotNull XLangAttribute attr,
+            @NotNull @PropertyKey(resourceBundle = BUNDLE) String msgKey,
             Object @NotNull ... msgParams
     ) {
         return new XLangAttribute.XDefAttributeWithError(attr.getName(), NopPluginBundle.message(msgKey, msgParams));
@@ -461,21 +570,13 @@ public class XLangTagMeta {
             return errorTag(tag, "xlang.parser.tag-meta.schema-not-specified", xdslKeys.SCHEMA, tagName);
         }
 
+        // Note: 若元模型加载失败，将直接抛异常，由上层包装异常，所以，schema 将始终不为 null
         IXDefinition schema = XDefPsiHelper.loadSchema(schemaPath);
         IXDefinition xdslSchema = XDefPsiHelper.getXDslDef();
 
         // 若其元模型为 /nop/schema/xdef.xdef，则其自身也为元模型（*.xdef）
         boolean inSchema = XDslConstants.XDSL_SCHEMA_XDEF.equals(schemaPath) //
                            || isXdefFile(tag.getContainingFile().getName());
-
-        // 非 xdef/xpl 模型，全部视为 xdsl
-        if (schema == null && !inSchema && !isXplXdefFile(schemaPath)) {
-            schema = xdslSchema;
-        }
-        // 若元模型加载失败，则不做识别
-        if (schema == null) {
-            return errorTag(tag, "xlang.parser.tag-meta.schema-loading-failed", schemaPath);
-        }
 
         String xdefNs = XmlPsiHelper.getXmlnsForUrl(tag, XDslConstants.XDSL_SCHEMA_XDEF);
         XDefKeys xdefKeys = XDefKeys.of(xdefNs);
@@ -509,11 +610,11 @@ public class XLangTagMeta {
         if (inSchema) {
             String vfsPath = XmlPsiHelper.getNopVfsPath(tag);
             if (vfsPath != null) {
-                selfSchema = XDefPsiHelper.loadSchema(vfsPath);
+                selfSchema = XDefPsiHelper.tryLoadSchema(vfsPath);
             }
             // 支持非标准的 vfs 资源，以适应单元测试等环境
             else {
-                selfSchema = XDefPsiHelper.loadSchema(tag.getContainingFile());
+                selfSchema = XDefPsiHelper.tryLoadSchema(tag.getContainingFile());
             }
         }
 
@@ -765,5 +866,16 @@ public class XLangTagMeta {
             childDefNode = null;
         }
         return childDefNode;
+    }
+
+    public enum ChildTagAllowedMode {
+        /** 允许 */
+        allowed,
+        /** 最多只能有一个子标签 */
+        only_at_most_one,
+        /** 子标签不能重复 */
+        can_not_be_multiple,
+        /** 子标签不能被同名子标签嵌套 */
+        can_not_be_nested_by_same_name_tag,
     }
 }

@@ -55,6 +55,11 @@ public class XLangTag extends XmlTagImpl {
         return getClass().getSimpleName() + ':' + getElementType() + "('" + getName() + "')";
     }
 
+    /**
+     * 此接口涉及 {@link XLangTagMeta} 重建，需避免在其他接口内重复调用
+     *
+     * @return 始终不为 {@code null}
+     */
     public synchronized XLangTagMeta getTagMeta() {
         String tagName = getName();
 
@@ -76,7 +81,7 @@ public class XLangTag extends XmlTagImpl {
         // Note: 避免后续访问出现 NPE 问题
         return Objects.requireNonNullElseGet(tagMeta,
                                              () -> XLangTagMeta.errorTag(this,
-                                                                         "xlang.parser.tag-meta.creating-failed",
+                                                                         "xlang.parser.tag-meta.creating-canceled",
                                                                          tagName));
     }
 
@@ -206,8 +211,8 @@ public class XLangTag extends XmlTagImpl {
             return null;
         }
 
-        XLangTag parentTag = getParentTag();
-        if (parentTag == null || !parentTag.getTagMeta().isXplNode()) {
+        XLangTagMeta tagMeta = getTagMeta();
+        if (!tagMeta.isXplNode()) {
             return null;
         }
 
@@ -256,6 +261,7 @@ public class XLangTag extends XmlTagImpl {
         return new XlibTagMeta(ref, tagNs, tagName, lib);
     }
 
+    /** @return 操作被中断时返回 {@code null} */
     private XLangTagMeta createTagMeta() {
         Project project = getProject();
 

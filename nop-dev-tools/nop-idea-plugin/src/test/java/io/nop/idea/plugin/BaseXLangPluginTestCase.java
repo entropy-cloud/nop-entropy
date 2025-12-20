@@ -138,7 +138,11 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
     }
 
     protected PsiFile configureByXLangText(String text) {
-        String fileName = "unit-" + StringHelper.randomDigits(8) + '.' + XLANG_EXT;
+        return configureByText(text, null);
+    }
+
+    protected PsiFile configureByText(String text, String suffix) {
+        String fileName = "unit-" + StringHelper.randomDigits(8) + '.' + (suffix != null ? suffix : XLANG_EXT);
         return myFixture.configureByText(fileName, text);
     }
 

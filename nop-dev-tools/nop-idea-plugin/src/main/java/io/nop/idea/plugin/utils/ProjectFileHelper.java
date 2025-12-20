@@ -39,6 +39,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.debugger.LineLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.dict.DictProvider;
+import io.nop.core.resource.ResourceConstants;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.idea.plugin.resource.ProjectEnv;
 import org.jetbrains.annotations.NotNull;
@@ -78,6 +79,7 @@ public class ProjectFileHelper {
         return new LineLocation(fileURL, pos.getLine() + 1);
     }
 
+    /** @return 结果包含 {@code /_tenant/}、{@code /_delta/} */
     public static String getNopVfsPath(VirtualFile file) {
         if (file == null) {
             return null;
@@ -91,13 +93,16 @@ public class ProjectFileHelper {
                 path = path.substring(pos + ".jar!".length());
             }
         }
-        int pos = path.indexOf("/_vfs/");
+
+        String prefix = "/" + ResourceConstants.CLASS_PATH_VFS_DIR;
+        int pos = path.indexOf(prefix);
         if (pos < 0) {
             return null;
         }
-        return path.substring(pos + "/_vfs/".length() - 1);
+        return path.substring(pos + prefix.length() - 1);
     }
 
+    /** @return 结果为去掉 {@code /_tenant/}、{@code /_delta/} 之后的 {@link #getNopVfsPath} 路径 */
     public static String getNopVfsStdPath(VirtualFile file) {
         String path = getNopVfsPath(file);
         if (path == null) {

@@ -70,7 +70,7 @@ public class XLangStdDomainReference extends XLangReferenceBase {
         DictOptionBean[] modifiers = allowModifiers ? new DictOptionBean[] {
                 new DictOptionBean() {{
                     setValue("!");
-                    setLabel(NopPluginBundle.message("xlang.completion.domain.modifier.required"));
+                    setLabel(NopPluginBundle.message("xlang.completion.domain.modifier.mandatory"));
                 }}, //
                 new DictOptionBean() {{
                     setValue("~");

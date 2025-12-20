@@ -186,6 +186,15 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
                       assertTrue(doc.contains("/test/reference/a.xlib"));
                   } //
         );
+        assertDoc("xrun", """
+                          <a:DoFin<caret>dByMdxQuery xpl:lib="/test/reference/a.xlib"/>
+                          """, //
+                  (doc) -> {
+                      assertTrue(doc.contains("Find by MDX Query"));
+                      assertTrue(doc.contains("for DoFindByMdxQuery"));
+                      assertTrue(doc.contains("/test/reference/a.xlib"));
+                  } //
+        );
 
         // xpl 节点
         assertDoc("""
@@ -576,9 +585,13 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
         );
     }
 
-    /** 通过在 <code>text</code> 中插入 <code>&lt;caret&gt;</code> 代表光标位置 */
     private void assertDoc(String text, Consumer<String> checker) {
-        configureByXLangText(text);
+        assertDoc(null, text, checker);
+    }
+
+    /** 通过在 <code>text</code> 中插入 <code>&lt;caret&gt;</code> 代表光标位置 */
+    private void assertDoc(String suffix, String text, Consumer<String> checker) {
+        configureByText(text, suffix);
 
         String genDoc = getDocAtCaret();
 

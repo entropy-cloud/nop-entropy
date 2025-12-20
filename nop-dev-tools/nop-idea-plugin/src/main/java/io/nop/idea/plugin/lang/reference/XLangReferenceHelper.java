@@ -29,12 +29,14 @@ import io.nop.commons.text.MutableString;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.type.IGenericType;
+import io.nop.core.type.parse.GenericTypeParser;
 import io.nop.idea.plugin.utils.PsiClassHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFile;
 import io.nop.idea.plugin.vfs.NopVirtualFileReference;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
+import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xdsl.XDslParseHelper;
 import org.jetbrains.yaml.psi.YAMLKeyValue;
 
@@ -249,6 +251,10 @@ public class XLangReferenceHelper {
 
     /** 识别对 vfs 资源路径的引用 */
     public static PsiReference[] getReferencesByVfsPath(XmlElement refElement, String path, TextRange textRange) {
+        // Note: none 表示忽略 xdef:default-extends 所指定的缺省继承模型
+        if (XDslConstants.EXTENDS_NONE.equals(path)) {
+            return PsiReference.EMPTY_ARRAY;
+        }
         return new PsiReference[] {
                 new NopVirtualFileReference(refElement, textRange, path)
         };
@@ -257,17 +263,20 @@ public class XLangReferenceHelper {
     /** 从 csv 文本中识别对 {@link IGenericType} 的引用 */
     public static PsiReference[] getReferencesFromGenericTypeCsv(
             XmlElement refElement, String refValue, int textRangeOffset) {
-        Map<TextRange, String> rangeMap = extractValuesFromCsv(refValue);
+        XLangGenericTypeParser parser = new XLangGenericTypeParser();
+        try {
+            parser.parseGenericTypeList(null, refValue);
+        } catch (Exception ignore) {
+        }
 
-        List<PsiReference> list = new ArrayList<>(rangeMap.size());
-        rangeMap.forEach((textRange, value) -> {
-            TextRange range = textRange.shiftRight(textRangeOffset);
-            PsiReference ref = new XLangStdDomainGenericTypeReference(refElement, range, value);
+        if (parser.textRangeTypes.isEmpty()) {
+            return PsiReference.EMPTY_ARRAY;
+        }
 
-            list.add(ref);
-        });
-
-        return list.toArray(PsiReference[]::new);
+        return parser.textRangeTypes.entrySet().stream().map((entry) -> {
+            TextRange range = entry.getKey().shiftRight(textRangeOffset);
+            return new XLangStdDomainGenericTypeReference(refElement, range, entry.getValue());
+        }).toArray(PsiReference[]::new);
     }
 
     public static NopVirtualFile createNopVfsForDict(PsiElement refElement, String dictName, Object dictOptionValue) {
@@ -307,23 +316,39 @@ public class XLangReferenceHelper {
     }
 
     private static Map<TextRange, String> extractValuesFromCsv(String csv) {
-        Map<TextRange, String> rangePathMap = new HashMap<>();
-
         TextScanner sc = TextScanner.fromString(null, csv);
-
         sc.skipBlank();
+
+        Map<TextRange, String> rangeTextMap = new HashMap<>();
         while (!sc.isEnd()) {
             int offset = sc.pos;
-            MutableString buf = sc.getReusableBuffer();
-            sc.nextUntil(s -> s.cur == ',' || StringHelper.isSpace(sc.cur), sc::appendToBuf);
 
+            MutableString buf = sc.nextUntil(s -> s.cur == ',' || StringHelper.isSpace(sc.cur), true, null);
             String value = buf.toString();
-            rangePathMap.put(new TextRange(offset, sc.pos), value);
+            rangeTextMap.put(new TextRange(offset, sc.pos), value);
 
             sc.next();
             sc.skipBlank();
         }
 
-        return rangePathMap;
+        return rangeTextMap;
+    }
+
+    private static class XLangGenericTypeParser extends GenericTypeParser {
+        private final Map<TextRange, IGenericType> textRangeTypes = new HashMap<>();
+
+        @Override
+        public IGenericType parseGenericType(TextScanner sc) {
+            int offset = sc.pos;
+            IGenericType type = super.parseGenericType(sc);
+
+            switch (type.getKind()) {
+                case RAW_TYPE, RAW_TYPE_REF, CLASS_TYPE, ARRAY, PARAMETERIZED_TYPE -> {
+                    textRangeTypes.put(new TextRange(offset, sc.pos), type);
+                }
+            }
+
+            return type;
+        }
     }
 }
