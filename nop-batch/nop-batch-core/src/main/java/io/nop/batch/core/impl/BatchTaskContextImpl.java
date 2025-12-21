@@ -56,6 +56,7 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private final AtomicLong completeItemCount = new AtomicLong();
     private final AtomicLong processItemCount = new AtomicLong();
     private final AtomicLong retryItemCount = new AtomicLong();
+    private final AtomicLong historyItemCount = new AtomicLong();
     private final AtomicLong loadRetryCount = new AtomicLong();
     private final AtomicLong loadSkipCount = new AtomicLong();
     private final AtomicLong errorCount = new AtomicLong();
@@ -294,6 +295,21 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
 
     @Override
     public void incProcessItemCount(int count) {
+        processItemCount.addAndGet(count);
+    }
+
+    @Override
+    public long getHistoryItemCount() {
+        return historyItemCount.get();
+    }
+
+    @Override
+    public void setHistoryItemCount(long count) {
+        processItemCount.set(count);
+    }
+
+    @Override
+    public void incHistoryItemCount(int count) {
         processItemCount.addAndGet(count);
     }
 

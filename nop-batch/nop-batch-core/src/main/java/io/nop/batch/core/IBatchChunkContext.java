@@ -34,6 +34,12 @@ public interface IBatchChunkContext extends IExecutionContext {
 
     <T> void setChunkItems(List<T> items);
 
+    <T> Set<T> getHistoryItems();
+
+    <T> void addHistoryItem(T item);
+
+    <T> void addHistoryItems(Collection<T> items);
+
     /**
      * 当多线程执行时，这里对应线程的顺序编号，范围在[0,concurrency)之内。可以用于内部数据分区时的依据
      */
@@ -51,6 +57,11 @@ public interface IBatchChunkContext extends IExecutionContext {
 
     default int getCompletedItemCount() {
         Set<?> items = getCompletedItems();
+        return items == null ? 0 : items.size();
+    }
+
+    default int getHistoryItemCount() {
+        Set<?> items = getHistoryItems();
         return items == null ? 0 : items.size();
     }
 

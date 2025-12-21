@@ -38,15 +38,17 @@ public class WithHistoryBatchConsumer<R> implements IBatchConsumer<R> {
                     List<R> history = new ArrayList<>();
                     for (R item : items) {
                         if (!filtered.contains(item)) {
-                            context.addCompletedItem(item);
                             history.add(item);
                         }
                     }
+                    context.addCompletedItems(history);
+                    context.addHistoryItems(history);
                     historyConsumer.consume(history, context);
                 } else {
                     for (R item : items) {
                         if (!filtered.contains(item)) {
                             context.addCompletedItem(item);
+                            context.addHistoryItem(item);
                         }
                     }
                 }
@@ -63,7 +65,8 @@ public class WithHistoryBatchConsumer<R> implements IBatchConsumer<R> {
         } else {
             // 全部记录都被过滤，没有需要处理的记录
             context.addCompletedItems(items);
-            
+            context.addHistoryItems(items);
+
             if (historyConsumer != null) {
                 historyConsumer.consume(items, context);
             }

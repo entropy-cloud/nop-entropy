@@ -278,7 +278,8 @@ public class BatchTask<S> implements IBatchTask {
 
             chunkContext.getTaskContext().fireBeforeChunkEnd(chunkContext);
 
-            context.incCompleteItemCount(chunkContext.getCompletedItemCount());
+            incCount(context, chunkContext);
+
             syncCount = true;
 
             if (stateStore != null)
@@ -293,8 +294,9 @@ public class BatchTask<S> implements IBatchTask {
                     context.getTaskName(), context.getTaskId(), context.getTaskKey(), threadIndex,
                     e);
 
-            if (!syncCount)
-                context.incCompleteItemCount(chunkContext.getCompletedItemCount());
+            if (!syncCount) {
+                incCount(context, chunkContext);
+            }
 
             try {
                 chunkContext.getTaskContext().fireChunkEnd(chunkContext, e);
@@ -309,15 +311,21 @@ public class BatchTask<S> implements IBatchTask {
             throw e;
         } finally {
             long endTime = CoreMetrics.currentTimeMillis();
-            LOG.info("nop.batch.process-chunk-end:taskName={},taskId={},taskKey={},threadIndex={},usedTime={},processCount={}.skipCount={},retryCount={},completeCount={},completedIndex={}", context.getTaskName(),
+            LOG.info("nop.batch.process-chunk-end:taskName={},taskId={},taskKey={},threadIndex={},usedTime={}," +
+                            "processCount={}.skipCount={},retryCount={},completeCount={},historyCount={},completedIndex={}", context.getTaskName(),
                     context.getTaskId(), context.getTaskKey(), threadIndex, endTime - beginTime,
                     context.getProcessItemCount(), context.getSkipItemCount(), context.getRetryItemCount(),
-                    context.getCompleteItemCount(), context.getCompletedIndex());
+                    context.getCompleteItemCount(), context.getHistoryItemCount(), context.getCompletedIndex());
 
             if (metrics != null)
                 metrics.endChunk(meter, success);
         }
 
         return result;
+    }
+
+    void incCount(IBatchTaskContext context, IBatchChunkContext chunkContext) {
+        context.incCompleteItemCount(chunkContext.getCompletedItemCount() - chunkContext.getHistoryItemCount());
+        context.incHistoryItemCount(chunkContext.getHistoryItemCount());
     }
 }

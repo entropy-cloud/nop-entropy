@@ -24,6 +24,7 @@ public class BatchChunkContextImpl extends ExecutionContextImpl implements IBatc
     private final IBatchTaskContext context;
     private List<?> chunkItems;
     private Set<Object> completedItems;
+    private Set<Object> historyItems;
     private int retryCount;
     private int loadRetryCount;
     private int threadIndex;
@@ -93,6 +94,25 @@ public class BatchChunkContextImpl extends ExecutionContextImpl implements IBatc
         if (completedItems == null)
             completedItems = new HashSet<>();
         completedItems.addAll(items);
+    }
+
+    @Override
+    public <T> Set<T> getHistoryItems() {
+        return (Set<T>) historyItems;
+    }
+
+    @Override
+    public <T> void addHistoryItem(T item) {
+        if (historyItems == null)
+            historyItems = new HashSet<>();
+        historyItems.add(item);
+    }
+
+    @Override
+    public <T> void addHistoryItems(Collection<T> items) {
+        if (historyItems == null)
+            historyItems = new HashSet<>();
+        historyItems.addAll(items);
     }
 
     @Override

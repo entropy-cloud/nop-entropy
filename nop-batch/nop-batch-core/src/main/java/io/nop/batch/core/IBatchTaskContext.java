@@ -147,6 +147,12 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     void incProcessItemCount(int count);
 
+    long getHistoryItemCount();
+
+    void setHistoryItemCount(long count);
+
+    void incHistoryItemCount(int count);
+
     long getErrorCount();
 
     void setErrorCount(long errorCount);
