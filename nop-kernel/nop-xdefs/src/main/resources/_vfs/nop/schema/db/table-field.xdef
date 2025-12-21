@@ -2,7 +2,7 @@
 @ignore 如果设置为true，则该字段不会参与导出导出处理
 -->
 <field x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
-       xdef:name="TableFieldConfig" xdef:bean-package="io.nop.dbtool.exp.config"
+       xdef:name="TableFieldConfig" xdef:bean-package="io.nop.batch.exp.config"
        name="!string" from="string" stdDataType="std-data-type" stdSqlType="std-sql-type" ignore="!boolean=false">
 
     <!-- 每个字段也可以配置转换函数，实际导出的是转换以后的值。input对应于当前行，value对应于当前字段值 -->

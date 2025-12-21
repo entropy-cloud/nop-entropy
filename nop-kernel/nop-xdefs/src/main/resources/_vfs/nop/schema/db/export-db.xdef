@@ -10,7 +10,7 @@
 
            threadCount="!int=0" batchSize="!int=0" concurrencyPerTable="int"
            schemaPattern="string" tableNamePattern="string" exportAllTables="!boolean=false"
-           xdef:name="ExportDbConfig" xdef:bean-package="io.nop.dbtool.exp.config"
+           xdef:name="ExportDbConfig" xdef:bean-package="io.nop.batch.exp.config"
            exportFormats="csv-set" fetchSize="int"
 >
     <jdbc-connection xdef:ref="jdbc-connection.xdef" xdef:support-extends="true"/>

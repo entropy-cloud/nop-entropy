@@ -1,7 +1,7 @@
 <jdbc-connection x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
                  username="string" password="string"
                  dialect="string" catalog="string"  maxConnections="int"
-                 xdef:name="JdbcConnectionConfig" xdef:bean-package="io.nop.dbtool.exp.config"
+                 xdef:name="JdbcConnectionConfig" xdef:bean-package="io.nop.batch.exp.config"
 >
     <driverClassName xdef:value="string"/>
     <jdbcUrl xdef:value="string"/>

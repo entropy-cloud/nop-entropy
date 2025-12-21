@@ -6,7 +6,7 @@
            xmlns:xdef="/nop/schema/xdef.xdef"
            threadCount="!int=0" batchSize="!int=0" concurrencyPerTable="int"
            schemaPattern="string" tableNamePattern="string" importAllTables="!boolean=true"
-           xdef:name="ImportDbConfig" xdef:bean-package="io.nop.dbtool.exp.config"
+           xdef:name="ImportDbConfig" xdef:bean-package="io.nop.batch.exp.config"
            checkKeyFields="!boolean=true"
 >
     <jdbc-connection xdef:ref="jdbc-connection.xdef" xdef:support-extends="true"/>
