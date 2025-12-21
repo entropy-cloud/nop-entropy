@@ -3,7 +3,7 @@
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xmlns="http://www.springframework.org/schema/beans">
 
-    <bean id="nopDefaultBizEntityExporter" class="io.nop.biz.report.importexport.DefaultBizEntityExporter"/>
+    <bean id="nopDefaultBizEntityExporter" class="io.nop.batch.biz.importexport.DefaultBizEntityExporter"/>
 
-    <bean id="nopDefaultBizEntityImporter" class="io.nop.biz.report.importexport.DefaultBizEntityImporter"/>
+    <bean id="nopDefaultBizEntityImporter" class="io.nop.batch.biz.importexport.DefaultBizEntityImporter"/>
 </beans>

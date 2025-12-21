@@ -144,7 +144,7 @@ Map = Map extends Map<Map>
 From the compiler’s perspective, classes, template classes, and template parameters can all be treated as Maps, and practically they are typically managed as Maps. As for standalone function definitions and variable definitions, they too belong to some Map: for instance, a module object can be viewed as a Map containing a set of variables, functions, and types defined within the module. Even if they do not belong to any module, standalone functions belong to some implicitly existing global namespace.
 
 > Lisp’s internal structure is List, essentially managing elements by index (the original Lisp had no indices, only car/cdr for stepwise traversal), but modern Lisp variants have long introduced Map-like associative lists, locating sub-elements by name rather than index. Conceptually (ignoring the index-based performance advantages of von Neumann machines), a List can be seen as a special Map using indices as keys.
-> 
+>
 > Lisp’s core invention, S-expressions, can be seen as a general Tree structure, and Lisp provides macros and other built-in mechanisms for operating on these Tree structures. However, Lisp does not establish a delta concept for Trees. XLang can be viewed as a further deepening of Lisp’s general S-expression processing.
 
 The myriad syntactic facilities provided by mainstream programming languages can be viewed as rules for continuously constructing new Maps within a Map-based structural space. XLang innovates by extending Maps into Trees and rethinking software structural construction on Tree structures, generalizing the construction formula:
@@ -931,8 +931,8 @@ Broadly, yes. But you also need to understand the roles of `x:gen-extends` and `
 
 ## 6. Will XLang’s approach pose challenges for secondary development and ISV ecosystem development? For example, when debugging bugs, since different teams don’t have each other’s deltas, how do you diagnose where a piece of logic changed?
 
-First, all model files are uniformly managed under the `_vfs` virtual file directory, and all of them have XDef meta-model definitions. Generally, you only need to inspect the meta-model definition to know the specific syntax structure of the DSL. The IntelliJ IDEA plugin can also provide syntax hints, support breakpoints, etc.  
-When the system starts, all Delta merge results are output to the dump directory, where you can see the final merge result of each model file and the source locations of each attribute and node. If you need to further trace the merging process, you can mark the root node with `x:dump="true"`.  
+First, all model files are uniformly managed under the `_vfs` virtual file directory, and all of them have XDef meta-model definitions. Generally, you only need to inspect the meta-model definition to know the specific syntax structure of the DSL. The IntelliJ IDEA plugin can also provide syntax hints, support breakpoints, etc.
+When the system starts, all Delta merge results are output to the dump directory, where you can see the final merge result of each model file and the source locations of each attribute and node. If you need to further trace the merging process, you can mark the root node with `x:dump="true"`.
 For detailed debugging methods, see [debug.md](../dev-guide/debug.md)
 
 # Further explanation of “Why XLang is an innovative programming language”
@@ -1031,9 +1031,9 @@ Each step allows stashing and passthrough of extension info not used in that ste
 
 During model derivation, we only derive a candidate result (normally stored in a file whose name starts with an underscore), then choose to inherit this candidate model, adding manual corrections and Delta inference dependent on extra information (stored in files not starting with an underscore). Each step in the entire inference chain is optional: we can start at any step directly, or discard all info derived by previous steps. For example, we can manually add an xview model without needing a specific xmeta support, or directly create a page.yaml and write JSON according to AMIS, with AMIS unaffected by the pipeline. Using this deep decomposition—akin to deep learning—we can fully unleash the power of model-driven development while introducing additional info via Delta where necessary, so the final product’s capabilities are not limited by model expressiveness. This frees us from chasing coverage of all detail requirements; we can instead focus on core, universal needs.
 
-> `XORM = Generator<ExcelModel> + Delta`  
-> `XMeta = Generator<XORM> + Delta`  
-> `XView = Generator<XMeta> + Delta`  
+> `XORM = Generator<ExcelModel> + Delta`
+> `XMeta = Generator<XORM> + Delta`
+> `XView = Generator<XMeta> + Delta`
 > `XPage = Generator<XView> + Delta`
 
 Mapped to traditional CS concepts, XLang provides a kind of multi-stage compilation. Traditionally, compilation rules are hardwired in the compiler; the compilation process is a black box and a single step. XLang uses compile-time metaprogramming to open the compile-time space, allowing domain-specific construction rules in a Turing-complete compile-time space, and then augments with Delta to form multi-stage layered inference.
@@ -1286,8 +1286,8 @@ A phonon is a key concept in condensed matter physics, describing the quantizati
 
 #### I. Physical essence
 
-1. Quantization of collective vibrations  
-When atoms/ions in a crystal vibrate collectively near equilibrium (like a mass-spring network), quantum mechanics discretizes the vibration energy into packets; each packet is a phonon.  
+1. Quantization of collective vibrations
+When atoms/ions in a crystal vibrate collectively near equilibrium (like a mass-spring network), quantum mechanics discretizes the vibration energy into packets; each packet is a phonon.
 Mathematically: via normal mode transformation, N atoms’ 3N vibrations reduce to 3N independent harmonic oscillators; each oscillator’s energy quantum corresponds to a phonon.
 
 2. Quasi-particle characteristics
@@ -1319,7 +1319,7 @@ graph LR
     D --> G
 ```
 
-1. Dynamic priority  
+1. Dynamic priority
 Just as physicists use phonons rather than tracking every atom’s displacement to describe heat conduction, XLang uses Delta rather than full states to describe system evolution. For example:
 
 ```python
@@ -1494,7 +1494,7 @@ The entire Nop implementation can be viewed as a concrete realization of this fo
 
 Reversible Computation can be viewed as a complete systematic theory of delta, so common delta-based practices can be understood within this framework. I often mention git and docker:
 
-> Q: What is Delta? Is each git commit a delta?  
+> Q: What is Delta? Is each git commit a delta?
 > A: git is defined on a generic line space, so it is unstable for domain problems; domain-equivalent adjustments lead to conflicts in line-space merging. Docker is similar in this respect. Many years ago, Python tools could manage dependencies and dynamically generate VMs. The essential difference is that the VM’s delta is defined in an unstructured byte space, whereas Docker is defined in a structured file space.
 
 Some readers felt confused: “is Docker similar or different in essence?” This requires more detailed explanation. Although both involve delta, their essence differs; subtle distinctions require mathematical clarity. People’s understanding of delta is often fuzzy, being merely intuitive. Many debates arise because definitions are unclear rather than due to intrinsic contradictions.
@@ -1766,7 +1766,7 @@ Docker’s coordinate system only goes down to the file level. If we want unique
 You might ask: do we necessarily have to use a tree structural space? Not necessarily. For example, the structural space used by AOP can be seen as a fixed three-layer structure space of package-class-method, rather than a tree that supports arbitrarily deep nesting. Similarly, in the relational database domain, we use the three-layer structure of table-row-column. As long as the positioning coordinates are stable, we can develop systematic Delta operations based on them.
 
 > Tree structures have many advantages. First, they unify relative and absolute coordinates: from the root to any node there is only a single unique path, which can serve as the node’s absolute coordinate. Conversely, within a subtree, each node has a unique path within that subtree, which serves as the node’s relative coordinate in the subtree. Given a node’s relative coordinate and the subtree root’s absolute coordinate, we can easily compute the node’s absolute coordinate (just concatenate them).
-> 
+>
 > Another advantage of tree structures is ease of governance: every parent node can serve as a governance node, automatically propagating some shared properties and operations down to each child node.
 
 There is another detail to note about Delta structural space: when inverse elements exist, the Delta structural space must be an extended space composed of a mixture of positive and negative elements, rather than the positive-only space we’re used to. When we say “Docker’s Delta operations are defined in file system space,” this file system must support the concept of negative files. Docker achieves this by using a specially agreed-upon Whiteout file to represent the deletion of a file or directory. That is, we transform the fleeting action of deletion into a static, persistent, operable object (a file or directory). Mathematically, this is equivalent to transforming `A - B` into `A + (-B)`, a subtle but crucial conceptual conversion.
@@ -2072,11 +2072,11 @@ Early FOP did not realize the generality of tree structures and tree merge algor
 Apel published a series of works around 2008–2009 <sup>[\[4\]](#f4)</sup><sup>[\[5\]](#f5)</sup><sup>[\[6\]](#f6)</sup> that elevated FOP to a new level of abstraction. Not limited to code files, all artifacts such as documents and test cases can be brought under the governance of the Feature Structure Tree. FeatureHouse <sup>[\[6\]](#f6)</sup> adds FOP annotations to EBNF grammar rules, allowing generic merge rules for arbitrary grammars (no longer needing to introduce a specific programming language for FOP), thus greatly expanding FOP’s application scope.
 
 > FEATUREHOUSE relies  on  three  ingredients:
-> 
+>
 > (1) a  language-independent  model  of  software  artifacts
-> 
+>
 > (2) superimposition  as  a  language-independent  composition paradigm
-> 
+>
 > (3)  an artifact language specification based on attribute grammars.
 
 ![featurehouse](dop/featurehouse.png)
@@ -2393,7 +2393,7 @@ $$
 A linear function on a vector space can be seen as a single-parameter function: it takes a vector and produces a value. Analogous to generalizing single-parameter functions to multi-parameter functions, a multilinear function has multiple parameters, each belonging to a vector space (an independent dimension of variation). When examining one parameter at a time (e.g., fix u and vary v, or fix v and vary u), it satisfies the superposition principle. As with linear functions, a multilinear function is determined by its values on basis vectors:
 
 $$
-f(\sum_i \lambda_i \mathbf u_i,\sum_j \beta_j \mathbf v_j)= 
+f(\sum_i \lambda_i \mathbf u_i,\sum_j \beta_j \mathbf v_j)=
 \sum_{ij} \lambda_i \beta_j f(\mathbf u_i,\mathbf v_j)
 $$
 
@@ -2410,8 +2410,8 @@ f(\mathbf u\otimes \mathbf v)=\sum _{ij} \lambda_i \beta_j f(\mathbf u_i \otimes
 $$
 
 $$
-\mathbf u \otimes \mathbf v = (\sum_i \mathbf \lambda_i \mathbf u_i) 
-\otimes (\sum_j \beta _j \mathbf v_j)  
+\mathbf u \otimes \mathbf v = (\sum_i \mathbf \lambda_i \mathbf u_i)
+\otimes (\sum_j \beta _j \mathbf v_j)
 = \sum _{ij} \lambda_i \beta_j \mathbf u_i \otimes \mathbf v_j
 $$
 
@@ -2422,7 +2422,7 @@ $\mathbf u \otimes \mathbf v$ is the tensor product of vectors $\mathbf u$ and $
 If $\mathbf u \in U$ is an m-dimensional vector space and $\mathbf v \in V$ is an n-dimensional vector space, then the tensor space $U\otimes V$ contains all vectors of the form \\sum _i T_{ij} \\mathbf u\_i \\otimes \\mathbf v\_j, corresponding to an $m\\times n$-dimensional vector space (also called the tensor product space of $U$ and $V$).
 
 > $U\otimes V$ is the space spanned by all tensor products $\mathbf u\otimes \mathbf v$—here “spanned” refers to linear span, i.e., the set of all linear combinations of these vectors. There are more elements in this space than just those of the form $\mathbf u \otimes \mathbf v$; not every vector in the tensor space can be written as $\mathbf u \otimes \mathbf v$. For example:
-> 
+>
 > $$
 > \\begin{aligned}
 > \\mathbf u\_1 \\otimes \\mathbf v\_1 + 4 \\mathbf u\_1 \\otimes \\mathbf v\_2
@@ -2436,9 +2436,9 @@ If $\mathbf u \in U$ is an m-dimensional vector space and $\mathbf v \in V$ is a
    \\end{aligned}
 
 > $$
-> 
+>
 > But $2 \mathbf u_1 \otimes \mathbf v_1 + 3 \mathbf u_2 \otimes \mathbf v_2$ cannot be decomposed into the form $\mathbf u \otimes \mathbf v$ and must remain a linear combination.
-> 
+>
 > In physics, this corresponds to the so-called quantum entangled states.
 
 Tensor product is a “free” strategy for constructing complex structures from simple ones (free has a rigorous meaning in category theory): the construction adds no new operational rules; it merely pairs elements from two sets.
@@ -2468,7 +2468,7 @@ Reversible Computation provides a theoretical re-interpretation of the Loader fu
 ## III. Everything is Loader
 
 > Programmer asks the function: Whence do you come, and whither goest thou?
-> 
+>
 > The function answers: Born of Loader, returns to data.
 
 The maxim of functional programming is “everything is a function.” However, considering extensibility, that function cannot be static; in different scenarios, the function we actually apply must differ. If a program’s basic structure is f(data), we can systematically transform it into:
@@ -2476,25 +2476,25 @@ The maxim of functional programming is “everything is a function.” However, 
 loader("f")(data). Many frameworks and plugins can be examined from this angle.
 
 * IoC container:
-  
+
   buildBeanContainer(beansFile).getBean(beanName, beanScope).methodA(data)
-  
+
   $$
   Loader(beansFile\otimes beanName\otimes beanScope \otimes methodName)
 $$
 
 * Plugin system
-  
+
   serviceLoader(extensionPoint).methodA(data)
-  
+
   $$
   Loader(extensionPoint \otimes methodName)
 $$
 
 * Workflow:
-  
+
   getWorkflow(wfName).getStep(stepName).getAction(actionName).invoke(data)
-  
+
   $$
   Loader(wfName\otimes stepName \otimes actionName)
 $$
@@ -2609,7 +2609,7 @@ stdPath denotes the standard path for the model file, and deltaPath denotes the 
 If we only want to tweak the original model rather than replace it entirely, we can use x:extends to inherit the original model.
 
 ```java
-Loader<Possible Path> = Loader<stdPath + deltaPath> 
+Loader<Possible Path> = Loader<stdPath + deltaPath>
                       = Loader<deltaPath> x-extends Loader<stdPath>
                       = DeltaModel x-extends Model
                       = Possible Model
@@ -4151,7 +4151,7 @@ Given a’s inverse and b’s inverse, we automatically derive (ab)^{-1} = b^{-1
 Note that in practice we often encounter similarity transforms, not exact equivalence. For example, in DSL visual editing, for presentation aesthetics the visual representation may include layout information used exclusively for visualization, which is superfluous in the DSL text representation. To preserve free switching between text and visual editing, we can apply Reversible Computation’s Delta-centric design: augment the text representation with an extended Delta structure to store these extras, converting an approximate relationship into strict equality.
 
 $$
-B \approx G (A) , A \approx F(B) \Longrightarrow 
+B \approx G (A) , A \approx F(B) \Longrightarrow
 B + dB = G(A + dA), A + dA = F(B + dB)
 $$
 
@@ -4503,7 +4503,7 @@ The NopAutoTest framework is a data-driven testing framework. This means that, i
 
 [nop-auth/nop-auth-service/src/test/io/nop/auth/service/TestLoginApi.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestLoginApi.java)
 
-[nop-auth/nop-auth-service/cases/io/nop/auth/service/TestLoginApi](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-auth/nop-auth-service/cases/io/nop/auth/service/TestLoginApi)
+[nop-auth/nop-auth-service/_cases/io/nop/auth/service/TestLoginApi](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-auth/nop-auth-service/_cases/io/nop/auth/service/TestLoginApi)
 
 ```java
 class TestLoginApi extends JunitAutoTestCase {
@@ -5396,12 +5396,12 @@ public class NopAuthUserExBizModel extends NopAuthUserBizModel {
 ```
 
 #### 2. Override the original bean definition in `beans.xml`.
-   
+
    ```xml
     <bean id="io.nop.auth.service.entity.NopAuthUserBizModel"
           class="app.mall.delta.biz.NopAuthUserExBizModel"/>
    ```
-   
+
 Automatically generated bean definitions are marked with `ioc:default="true"`, so re-registering with the same `id` overrides the default definition.
 
 Apart from extending existing `BizModel` classes, we can override service methods defined in Java using the `XBiz` model. For example, customize the `NopAuthUser.xbiz` file and add method definitions:
@@ -5491,7 +5491,7 @@ Nop platform open-source addresses:
 
 I have long held deep skepticism toward many design principles and so-called methodologies in software. Why do these principles exist, and can their effectiveness be scientifically proven? The theory of Reversible Computation seeks to provide a more solid theoretical foundation for software construction. It explicitly proposes elevating “Delta” to a first-class concept and viewing the totality as a special case of the delta (totality = identity element + totality), rebuilding the entire domain concept system around delta. The ideas behind Reversible Computation are not derived from computer science itself, but from theoretical physics. It views software as an abstract entity in a continuous process of evolution, described by different rules at different levels of complexity. It focuses on how small deltas generated during evolution propagate in an orderly manner within the system and interact with each other. This article introduces the inspiration Reversible Computation draws from statistical physics and quantum mechanics.
 
-(I) Principle of Entropy Increase  
+(I) Principle of Entropy Increase
 In Shannon’s original definition, information is something that can reduce uncertainty. In physics, uncertainty is the disorder of a system, and the physical quantity used to measure the degree of disorder is entropy. Upon receiving information, uncertainty decreases, implying a reduction in disorder; therefore, information is considered negative entropy.
 
 Entropy is a core concept in physics—arguably even more important than energy. The first law of thermodynamics is the law of conservation of energy: energy can only be transformed, neither created nor destroyed. The second law of thermodynamics states that even with energy present, work cannot necessarily be performed externally; the inherent irreversibility of thermodynamic processes must be considered: in a thermodynamic system evolving from one equilibrium state to another, entropy never decreases. If the process is reversible, entropy remains unchanged; if irreversible, entropy increases—this is the principle of entropy increase.
@@ -5508,7 +5508,7 @@ Each Command contains paired execute and undo operations; a sequence of Commands
 
 In the real world, entropy increase is unavoidable. But even if it cannot be eliminated, we can still choose where it happens—for example, concentrating entropy increase in the Delta (△). A specific customer’s requirements always contain many random, contingent factors. Incorporating them into the system inevitably destroys the previously uniform and balanced system structure. If these contingencies can be concentrated into a disposable Delta (△), the core architecture can be protected from erosion. When the system is delivered to a new customer, we do not need to carry the previous customer’s individualized needs; we can always start from a low-entropy state.
 
-(II) The Worldview in Quantum Mechanics  
+(II) The Worldview in Quantum Mechanics
 Quantum mechanics is the fundamental theory describing the universe. It studies how operators act on the so-called state vector to drive system evolution.
 
 In 1925, Heisenberg proposed the first formulation of quantum mechanics: matrix mechanics, also known as the Heisenberg picture. In this picture, the state vector ψ is fixed, does not evolve in time, while the evolution of an observable operator A satisfies an equation.
@@ -5527,20 +5527,20 @@ The interaction picture is the one physicists use most in practice. In fact, mat
 
 Comparing quantum mechanics with computer theory, we find an interesting correspondence between quantum mechanical worldviews and the computer science worldview:
 
-Schrödinger picture <--> Turing machine  
-Heisenberg picture <--> lambda calculus  
+Schrödinger picture <--> Turing machine
+Heisenberg picture <--> lambda calculus
 Dirac picture <--> Reversible Computation
 
 Turing machines and lambda calculus established the conceptual foundations of the universal computer, theoretically solving the problem of computability—why a universal machine can perform mechanized operations and, using finite resources, complete all computations we can conceive. Now that universal computers are ubiquitous, our biggest practical challenge is performing computations efficiently. Improving computational efficiency depends on discovering “shortcuts” in computation, which depends on insight into the essence of the problem—and insight is deeply tied to the problem’s representation. Representation transformation itself can be a way to solve problems, because the transformed representation may make the solution obvious. Reversible Computation leverages domain models and delta descriptions to focus our attention on the new problems that need to be solved.
 
-(III) Groups and Structuralism  
+(III) Groups and Structuralism
 Since Einstein’s discovery of relativity, most fundamental principles of modern physics are built on the concept of groups. For example, special relativity corresponds to the Lorentz group; quantum electrodynamics corresponds to the U(1) gauge group.
 
 A group is a nonempty set G with a binary operation (denote it as +) satisfying the following four axioms:
 
-Closure. The operation result of any two elements in the set still belongs to the set.  
-Associativity. Operations can be performed locally; the final result does not depend on the grouping order.  
-Identity (unit) element. There exists an identity element 0 in the set that has no effect on any element.  
+Closure. The operation result of any two elements in the set still belongs to the set.
+Associativity. Operations can be performed locally; the final result does not depend on the grouping order.
+Identity (unit) element. There exists an identity element 0 in the set that has no effect on any element.
 Inverse element. For every element a in the set, there exists a corresponding inverse element -a that completely cancels the effect of a.
 
 These four axioms look simple but contain profound mathematics. For example, if we only consider finite groups (with a finite number of elements), without adding any other assumptions and relying solely on these four axioms, we can derive a large number of mathematical theorems. It took more than 100 mathematicians and over 500 journal articles from 1955 to 2004—tens of thousands of pages—to complete the classification of finite groups.

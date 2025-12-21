@@ -11,8 +11,8 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.component.ResourceComponentManager;
-import io.nop.dbtool.exp.ExportDbTool;
-import io.nop.dbtool.exp.config.ExportDbConfig;
+import io.nop.batch.exp.ExportDbTool;
+import io.nop.batch.exp.config.ExportDbConfig;
 import picocli.CommandLine;
 
 import java.io.File;

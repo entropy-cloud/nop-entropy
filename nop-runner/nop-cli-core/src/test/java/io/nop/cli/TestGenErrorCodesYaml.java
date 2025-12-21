@@ -1,5 +1,6 @@
 package io.nop.cli;
 
+import io.nop.batch.exp.DbToolExpErrors;
 import io.nop.core.exceptions.ErrorCodeExtracter;
 import io.nop.core.unittest.BaseTestCase;
 import org.junit.jupiter.api.Test;
@@ -56,7 +57,7 @@ public class TestGenErrorCodesYaml extends BaseTestCase {
                 io.nop.ioc.IocErrors.class,
                 io.nop.log.core.LogErrors.class,
                 io.nop.config.ConfigErrors.class,
-                io.nop.dbtool.exp.DbToolExpErrors.class,
+                DbToolExpErrors.class,
                 io.nop.ai.core.AiCoreErrors.class,
                 io.nop.ai.coder.AiCoderErrors.class,
                 io.nop.batch.dsl.BatchDslErrors.class,

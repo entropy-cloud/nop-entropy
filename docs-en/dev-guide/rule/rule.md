@@ -127,14 +127,14 @@ Sometimes after a Rule expression matches, we want to dynamically generate outpu
 
 ## 2.3 Decision Table Configuration
 
-For an example configuration, see [decision-tree.rule.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rule/nop-rule-service/cases/io/nop/rule/service/entity/TestNopRuleDefinitionBizModel/testImport/input/decision-tree.rule.xlsx)
+For an example configuration, see [decision-tree.rule.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rule/nop-rule-service/_cases/io/nop/rule/service/entity/TestNopRuleDefinitionBizModel/testImport/input/decision-tree.rule.xlsx)
 ![](decision-tree.png)
 
 The top-left cell of a decision table must be the letter T (Table). It is followed by input columns and output columns. Each column in the input and output sections corresponds to an input or output variable name.
 
 ## 2.4 Decision Matrix Configuration
 
-For an example configuration, see [decision-matrix.rule.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rule/nop-rule-service/cases/io/nop/rule/service/entity/TestNopRuleDefinitionBizModel/testDecisionMatrix/input/decision-matrix.rule.xlsx)
+For an example configuration, see [decision-matrix.rule.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rule/nop-rule-service/_cases/io/nop/rule/service/entity/TestNopRuleDefinitionBizModel/testDecisionMatrix/input/decision-matrix.rule.xlsx)
 
 ![](decision-matrix.png)
 

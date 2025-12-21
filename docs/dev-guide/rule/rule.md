@@ -134,14 +134,14 @@ Excel规则模型必须包含两个Sheet，其中Rule表单配置决策规则，
 
 ## 2.3 决策表配置
 
-决策表的配置示例可以参见 [decision-tree.rule.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rule/nop-rule-service/cases/io/nop/rule/service/entity/TestNopRuleDefinitionBizModel/testImport/input/decision-tree.rule.xlsx)
+决策表的配置示例可以参见 [decision-tree.rule.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rule/nop-rule-service/_cases/io/nop/rule/service/entity/TestNopRuleDefinitionBizModel/testImport/input/decision-tree.rule.xlsx)
 ![](decision-tree.png)
 
 决策表的左上角的内容必须是字母T，表示Table。然后是输入列和输出列。输入列和输出列的每一列都是对应的输入输出变量名。
 
 ## 2.4 决策矩阵配置
 
-决策矩阵的配置示例可以参见 [decision-matrix.rule.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rule/nop-rule-service/cases/io/nop/rule/service/entity/TestNopRuleDefinitionBizModel/testDecisionMatrix/input/decision-matrix.rule.xlsx)
+决策矩阵的配置示例可以参见 [decision-matrix.rule.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rule/nop-rule-service/_cases/io/nop/rule/service/entity/TestNopRuleDefinitionBizModel/testDecisionMatrix/input/decision-matrix.rule.xlsx)
 
 ![](decision-matrix.png)
 

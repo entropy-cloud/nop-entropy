@@ -159,7 +159,7 @@ Map = Map extends Map<Map>
 在编译器看来，所谓的类、模板类、模板参数都可以被看作是Map，而且实际情况也一般是按照Map结构来管理的。至于孤立的函数定义和变量定义，实际上也会属于某种Map，比如模块对象可以看作是一个Map，它包含一组模块内定义的变量、函数和类型等。即使不从属于任何模块，那些独立的函数也会属于某个隐式存在的全局命名空间。
 
 > Lisp语言的内在结构是List，本质上是利用下标来管理元素（原始的Lisp甚至没有下标，只有car、cdr这种逐个遍历的处理机制），但是现在流行的Lisp变种早就引入了类似Map的Associated List结构，使用名称来定位子元素，而不是按照下标去定位。在概念层面上（不考虑冯诺依曼机器按照下标取值的性能优势），List可以看作是用下标来做key的一种特殊的Map。
-> 
+>
 > Lisp的核心创造S表达式可以看作是一种通用的Tree结构，而Lisp也提供了宏等操作这些Tree结构的内置机制，但是Lisp并没有建立Tree的差量的概念。XLang可以看作是对S表达式这一通用处理机制的进一步深化发展。
 
 现有主流程序语言提供的各种语法可以看作是在以Map为基础的结构空间中不断构造新的Map的各种规则。XLang语言的创新点在于它选择将Map结构扩展为Tree结构，在Tree结构的基础上重新思考软件结构的构造问题。也就是将软件结构的构造公式推广为：
@@ -1527,7 +1527,7 @@ Nop平台的整个实现可以看作是对这个公式的一种具体落地实�
 可逆计算可以看作是针对差量概念的一个系统化的完整理论，所以业内目前常见的基于差量概念的实践都可以在可逆计算理论的框架下得到诠释。我在举例时经常会提到git和docker，比如
 
 > 问: 什么是Delta? 每一次git的commit是不是一个delta？
-> 
+>
 > 答：git是定义在通用的行空间上，所以它用于领域问题是不稳定的，领域上的等价调整会导致行空间中的合并冲突。类似的还有Docker技术。很多年以前就有python工具能管理依赖，动态生成虚拟机。这里本质性的差异就在于虚拟机的差量是定义在无结构的字节空间中，而docker是定义在结构化的文件空间中。
 
 有些人读到上面的文字后感觉有点被绕晕了。"类似的还有Docker技术" 这句话到底是在说这两种本质上是一样的？还是想说它们本质上不一样?
@@ -1621,7 +1621,7 @@ JSON Patch的格式与原始JSON的格式是完全不同的，而且只能使用
 群定义中的`*`仅仅是一种抽象的符号标识，它并不代表乘法。在不同的空间中我们可以定义不同的运算，而在不同的运算中单位元和逆元的定义也是不同的。比如说，实数空间$\mathbb{R}$ 上的加法和乘法各自构成群，但它们不是同一个群的运算。下面是智谱清言AI给出的详细定义，
 
 1. **加法群** $(\mathbb{R}, +)$：
-   
+
    - 封闭性：对于所有$a, b \in \mathbb{R}$，a + b 也在$\mathbb{R}$ 中。
    - 结合性：对于所有$a, b, c \in \mathbb{R}$，有$(a + b) + c = a + (b + c)$。
    - 单位元：存在一个元素$0 \in \mathbb{R}$，对于所有$a \in \mathbb{R}$，有$0 + a = a + 0 = a$。这个元素$0$ 是加法的单位元。
@@ -1629,9 +1629,9 @@ JSON Patch的格式与原始JSON的格式是完全不同的，而且只能使用
      因此，实数空间$\mathbb{R}$ 在加法运算下构成了一个群，称为加法群。
 
 2. **乘法群** $(\mathbb{R}^*, \cdot$)：
-   
+
    > 注意，乘法群不包括零，因为零没有乘法逆元。因此，我们考虑的是非零实数构成的集合$\mathbb{R}^*$。
-   
+
    - 封闭性：对于所有$a, b \in \mathbb{R}^*$，$a \cdot b$ 也在$\mathbb{R}^*$ 中。
    - 结合性：对于所有$a, b, c \in \mathbb{R}^*$，有$(a \cdot b) \cdot c = a \cdot (b \cdot c)$。
    - 单位元：存在一个元素$1 \in \mathbb{R}^*$，对于所有$a \in \mathbb{R}^*$，有$1 \cdot a = a \cdot 1 = a$。这个元素$1$ 是乘法的单位元。
@@ -1807,7 +1807,7 @@ Docker所依赖的核心技术之一是所谓的堆叠文件系统OverlayFS，�
 有人可能要问，是不是一定要采用树形结构空间？也不一定。比如说，AOP技术所应用的结构空间可以看作是`包-类-方法`这样一个固定的三层结构空间，而不是支持任意深度嵌套的树形结构空间。类似的，在关系数据库领域，我们使用的是`表-行-列`这样一种三层结构空间。只要定位坐标是稳定的，我们都可以基于它们发展一些系统化的差量运算机制。
 
 > Tree结构具有很多优点。首先，它**实现了相对坐标与绝对坐标的统一**：从根节点开始到达任意节点只存在唯一的一条路径，它可以作为节点的绝对坐标，而另一方面，在某一个子树范围内，每一个节点都具有一个子树内的唯一路径，可以作为节点在子树内的相对坐标。根据节点的相对坐标和子树根节点的绝对坐标，我们可以很容易的计算得到节点的绝对坐标（直接拼接在一起就可以了）。
-> 
+>
 > Tree结构的另一个优点是**便于管控，每一个父节点都可以作为一个管控节点**，可以将一些共享属性和操作自动向下传播到每个子节点。
 
 关于差量结构空间，还有一个需要注意的细节：当存在逆元的情况下，差量结构空间必然是一种正元素和负元素混合产生的扩展空间，而不是我们习惯的正元素空间。当我们说”Docker的差量运算是定义在文件系统空间中"的时候，这个文件系统一定是需要支持负文件这个概念的。Docker具体的做法是通过一个特殊约定的Whiteout文件来表示删除一个文件或者目录。也即是说，**我们将删除这个转瞬即逝的动作转换为了一个静态的、持久存在的、可操作的对象（文件或目录）**。在数学上相当于是将 `A - B`转换为 `A + (-B)`，这是一个非常不起眼但又非常关键的概念转换。
@@ -2114,11 +2114,11 @@ FOP对于软件产品线工程的贡献在于，它提供了更为规范和强�
 Apel在2008-2009年左右发表的一系列工作<sup>[\[4\]](#f4)</sup><sup>[\[5\]](#f5)</sup><sup>[\[6\]](#f6)</sup>将FOP推进到一个新的抽象高度。不仅仅限于代码文件，文档、测试用例等等一切相关artifact都可以纳入特征结构树的管辖范围。FeatureHouse<sup>[\[6\]](#f6)</sup>通过为EBNF语法规则增加FOP相关标注的方式，允许为任意语法结构引入通用的合并规则（不再需要为FOP引入特定的程序语言），从而极大的扩展了FOP的应用范围。
 
 > FEATUREHOUSE relies  on  three  ingredients:
-> 
+>
 > (1) a  language-independent  model  of  software  artifacts
-> 
+>
 > (2) superimposition  as  a  language-independent  composition paradigm
-> 
+>
 > (3)  an artifact language specification based on attribute grammars.
 
 ![featurehouse](dop/featurehouse.png)
@@ -2451,7 +2451,7 @@ $$
 作用于向量空间上的线性函数可以看作一个单参数函数，它接收一个向量，产生一个值。而类似于单参数函数向多参数函数的推广，多重线性函数具有多个参数，每个参数都对应一个向量空间（可以看作是一个独立的变化维度），当固定考察某个参数时（例如固定参数u，考察参数v或者固定参数v，考察参数u），它都满足线性叠加规律。类似于线性函数，多重线性函数的值同样由它在基向量上的值所决定
 
 $$
-f(\sum_i \lambda_i \mathbf u_i,\sum_j \beta_j \mathbf v_j)= 
+f(\sum_i \lambda_i \mathbf u_i,\sum_j \beta_j \mathbf v_j)=
 \sum_{ij} \lambda_i \beta_j f(\mathbf u_i,\mathbf v_j)
 $$
 
@@ -2468,8 +2468,8 @@ f(\mathbf u\otimes \mathbf v)=\sum _{ij} \lambda_i \beta_j f(\mathbf u_i \otimes
 $$
 
 $$
-\mathbf u \otimes \mathbf v = (\sum_i \mathbf \lambda_i \mathbf u_i) 
-\otimes (\sum_j \beta _j \mathbf v_j)  
+\mathbf u \otimes \mathbf v = (\sum_i \mathbf \lambda_i \mathbf u_i)
+\otimes (\sum_j \beta _j \mathbf v_j)
 = \sum _{ij} \lambda_i \beta_j \mathbf u_i \otimes \mathbf v_j
 $$
 
@@ -2480,7 +2480,7 @@ $\mathbf u \otimes \mathbf v$被称作是向量$\mathbf u$和向量$\mathbf v$�
 如果$\mathbf u \in U$ 是m维向量空间，而$\mathbf v \in V$是n维向量空间，则张量空间$U\otimes V$包含了所有形如\\sum _i T_{ij} \\mathbf u\_i \\otimes \\mathbf v\_j$的向量，它对应于一个$m\\times n$维的向量空间（它也被称为是$U$和$V的张量积空间）。
 
 > $U\otimes V$是由所有形如$\mathbf u\otimes \mathbf v$这样的张量积所张成的空间，这里的张成指的是线性张成，即这些向量的所有线性组合所构成的集合。这个空间中的元素比单纯的$\mathbf u \otimes \mathbf v$这种形式的向量要多，即不是所有张量空间中的向量都能写成$\mathbf u \otimes \mathbf v$的形式。例如
-> 
+>
 > $$
 > \\begin{aligned}
 > \\mathbf u\_1 \\otimes \\mathbf v\_1 + 4 \\mathbf u\_1 \\otimes \\mathbf v\_2
@@ -2494,9 +2494,9 @@ $\mathbf u \otimes \mathbf v$被称作是向量$\mathbf u$和向量$\mathbf v$�
    \\end{aligned}
 
 > $$
-> 
+>
 > 但是 $2 \mathbf u_1 \otimes \mathbf v_1 + 3 \mathbf u_2 \otimes \mathbf v_2$无法被分解为$\mathbf u \otimes \mathbf v$这种形式，只能保持线性组合的形式。
-> 
+>
 > 在物理上，这对应于所谓的量子纠缠态。
 
 张量积是从简单结构出发构造复杂结构的一种免费的策略（Free），这里的免费（在范畴论中具有严格的数学意义）指的是这个构造过程没有添加任何新的运算规则，就是从两个集合中各取一个组成一对放在那里而已。
@@ -2526,7 +2526,7 @@ $$
 ## 三. Everything is Loader
 
 > 程序员问函数：汝从哪里来，欲往哪里去？
-> 
+>
 > 函数答曰：生于Loader，归于data
 
 函数式编程的箴言是一切都是函数，everything is function。但是考虑到可扩展性，这个function就不可能是变动不居的，在不同的场景下，我们最终实际应用的必然是不同的函数。如果程序的基本结构是 f(data)，我们可以用一种系统化的方式将其改造为
@@ -2534,25 +2534,25 @@ $$
 loader("f")(data)。很多框架、插件的设计都可以从这个角度去审视。
 
 * Ioc容器：
-  
+
   buildBeanContainer(beansFile).getBean(beanName, beanScope).methodA(data)
-  
+
   $$
   Loader(beansFile\otimes beanName\otimes beanScope \otimes methodName)
 $$
 
 * 插件系统
-  
+
   serviceLoader(extensionPoint).methodA(data)
-  
+
   $$
   Loader(extensionPoint \otimes methodName)
 $$
 
 * 工作流：
-  
+
   getWorkflow(wfName).getStep(stepName).getAction(actionName).invoke(data)
-  
+
   $$
   Loader(wfName\otimes stepName \otimes actionName)
 $$
@@ -2667,7 +2667,7 @@ stdPath指模型文件所对应的标准路径，而deltaPath指对已有的模�
 如果我们只是想对原有的模型进行微调，而不是要完全取代原有模型，则可以使用x:extends继承机制来继承原有模型。
 
 ```java
-Loader<Possible Path> = Loader<stdPath + deltaPath> 
+Loader<Possible Path> = Loader<stdPath + deltaPath>
                       = Loader<deltaPath> x-extends Loader<stdPath>
                       = DeltaModel x-extends Model
                       = Possible Model
@@ -4198,7 +4198,7 @@ $$
 需要注意的是，在实际应用中，我们很多情况下遇到的只是相似变换，并不是完全一致的等价变换。比如说，在DSL的可视化编辑中，为了展示美观，可视化表象中可能会包含一些专用于可视化表象的布局信息，这些信息对于DSL文本表象而言是完全多余的内容。在这种情况下，为了保证我们在DSL文本编辑和可视化编辑之间自由切换，我们可以应用可逆计算理论的差量化思想，为文本表象补充一些扩展的Delta结构，专用于存储这些额外的信息，将约等于的相似关系转化为严格的相等关系。
 
 $$
-B \approx G (A) , A \approx F(B) \Longrightarrow 
+B \approx G (A) , A \approx F(B) \Longrightarrow
 B + dB = G(A + dA), A + dA = F(B + dB)
 $$
 
@@ -4551,7 +4551,7 @@ NopAutoTest测试框架是一个数据驱动的测试框架，这意味着一般
 
 [nop-auth/nop-auth-service/src/test/io/nop/auth/service/TestLoginApi.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestLoginApi.java)
 
-[nop-auth/nop-auth-service/cases/io/nop/auth/service/TestLoginApi](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-auth/nop-auth-service/cases/io/nop/auth/service/TestLoginApi)
+[nop-auth/nop-auth-service/_cases/io/nop/auth/service/TestLoginApi](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-auth/nop-auth-service/_cases/io/nop/auth/service/TestLoginApi)
 
 ```java
 class TestLoginApi extends JunitAutoTestCase {
@@ -5420,7 +5420,7 @@ Nop平台内置了一个兼容Spring1.0配置语法的IoC容器[NopIoC](https://
 
 #### 2. 缺省实现
    NopIoC可以为指定名称的bean提供一个缺省实现，如果在容器中存在其他同名的bean，则缺省实现会被自动忽略，这一点类似于SpringBoot中的`ConditionOnMissingBean`机制。
-   
+
 ```xml
 <bean id="nopActionAuthChecker" class="io.nop.auth.service.auth.DefaultActionAuthChecker" ioc:default="true"/>
 
@@ -5485,12 +5485,12 @@ public class NopAuthUserExBizModel extends NopAuthUserBizModel {
 ```
 
 #### 2. 在`beans.xml`中覆盖原有的bean定义。
-   
+
    ```xml
     <bean id="io.nop.auth.service.entity.NopAuthUserBizModel"
           class="app.mall.delta.biz.NopAuthUserExBizModel"/>
    ```
-   
+
    自动生成的bean定义上标记了`ioc:default="true"`，所以只要重新按照同样的`id`注册，就会覆盖缺省的定义。
 
 除了扩展已有的`BizModel`类之外，我们可以通过`XBiz`模型来覆盖Java对象中定义的服务方法。例如定制`NopAuthUser.xbiz`文件，在其中增加方法定义
