@@ -6,13 +6,19 @@ public enum SqlCollectionOperator {
     SOME("_some"), ALL("_all");
 
     private final String text;
+    private final String pathPattern;
 
     SqlCollectionOperator(String text) {
         this.text = text;
+        this.pathPattern = "." + text + ".";
     }
 
     public String getText() {
         return text;
+    }
+
+    public String getPathPattern() {
+        return pathPattern;
     }
 
     @Override

@@ -10,5 +10,7 @@ package io.nop.orm.eql.ast;
 import io.nop.orm.eql.ast._gen._SqlSubQueryExpr;
 
 public class SqlSubQueryExpr extends _SqlSubQueryExpr {
-
+    public SqlWhere getWhere(){
+        return ((SqlQuerySelect)getSelect()).getWhere();
+    }
 }

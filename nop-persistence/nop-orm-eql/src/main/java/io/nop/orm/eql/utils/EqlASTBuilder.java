@@ -8,6 +8,7 @@
 package io.nop.orm.eql.utils;
 
 import io.nop.commons.util.StringHelper;
+import io.nop.orm.eql.ast.SqlAlias;
 import io.nop.orm.eql.ast.SqlBooleanLiteral;
 import io.nop.orm.eql.ast.SqlColumnName;
 import io.nop.orm.eql.ast.SqlDateTimeLiteral;
@@ -16,6 +17,7 @@ import io.nop.orm.eql.ast.SqlNullLiteral;
 import io.nop.orm.eql.ast.SqlNumberLiteral;
 import io.nop.orm.eql.ast.SqlQualifiedName;
 import io.nop.orm.eql.ast.SqlStringLiteral;
+import io.nop.orm.eql.ast.SqlTableName;
 import io.nop.orm.eql.enums.SqlDateTimeType;
 
 import java.time.LocalDate;
@@ -23,6 +25,34 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 public class EqlASTBuilder {
+
+    public static SqlAlias alias(String name, boolean gen){
+        SqlAlias alias = new SqlAlias();
+        alias.setAlias(name);
+        alias.setGenerated(gen);
+        return alias;
+    }
+
+    public static SqlTableName tableName(String fullName) {
+        SqlTableName ret = new SqlTableName();
+        int pos = fullName.lastIndexOf('.');
+        if (pos < 0) {
+            ret.setName(fullName);
+        } else {
+            String name = fullName.substring(pos + 1);
+            String owner = fullName.substring(0, pos);
+            ret.setName(name);
+            ret.setOwner(qualifier(owner));
+        }
+        return ret;
+    }
+
+    public static SqlColumnName colName(String fullName) {
+        int pos = fullName.lastIndexOf('.');
+        if (pos < 0)
+            return colName(null, fullName);
+        return colName(fullName.substring(0, pos), fullName.substring(pos + 1));
+    }
 
     public static SqlColumnName colName(String owner, String colName) {
         SqlColumnName col = new SqlColumnName();

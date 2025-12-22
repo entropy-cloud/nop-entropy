@@ -67,6 +67,14 @@ public interface OrmEqlErrors {
 
     String ARG_EXPR = "expr";
 
+    String ARG_OPERATOR1 = "operator1";
+    String ARG_OPERATOR2 = "operator2";
+    String ARG_COLLECTION_PREFIX1 = "collectionPrefix1";
+    String ARG_COLLECTION_PREFIX2 = "collectionPrefix2";
+    String ARG_COLLECTION1 = "collection1";
+    String ARG_COLLECTION2 = "collection2";
+    String ARG_REASON = "reason";
+
     ErrorCode ERR_ORM_NULL_BINDER_FOR_COLUMN = define("nop.err.orm.null-binder-for-column",
             "对象[{entityName}]的列[{colName}]的类型为[{sqlType}],没有找到对应的数据绑定接口",
             ARG_ENTITY_NAME, ARG_COL_NAME, ARG_SQL_TYPE, ARG_DATA_TYPE);
@@ -189,4 +197,16 @@ public interface OrmEqlErrors {
 
     ErrorCode ERR_EQL_NOT_SINGLE_EXPR =
             define("nop.err.eql.not-single-expr", "不是合法SQL表达式", ARG_SQL);
+
+    ErrorCode ERR_EQL_COLLECTION_PREFIX_MISMATCH = define("nop.err.eql.collection-prefix-mismatch",
+            "集合操作符的collectionPrefix不匹配: scope1=[{collectionPrefix1}], scope2=[{collectionPrefix2}]",
+            ARG_COLLECTION_PREFIX1, ARG_COLLECTION_PREFIX2);
+
+    ErrorCode ERR_EQL_MULTIPLE_COLLECTION_IN_SAME_BRANCH = define("nop.err.eql.multiple-collection-in-same-branch",
+            "同一个逻辑分支不支持多个集合表达式: collection1=[{collection1}], collection2=[{collection2}]",
+            ARG_COLLECTION1, ARG_COLLECTION2);
+
+    ErrorCode ERR_EQL_CANNOT_MERGE_COLLECTION_SCOPES = define("nop.err.eql.cannot-merge-collection-scopes",
+            "无法合并集合操作符作用域: operator1={operator1}, operator2={operator2}",
+            ARG_OPERATOR1, ARG_OPERATOR2);
 }
