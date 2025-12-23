@@ -82,9 +82,10 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
     /**
      *  
      * xml name: margin
-     * 
+     * Chart layout and spacing
+     * 对应 Excel POI 中的 ChartSpace 和 PlotArea 的边距设置
      */
-    private io.nop.excel.chart.model.ChartMarginModel _margin ;
+    private io.nop.excel.chart.model.ChartSpacingModel _margin ;
     
     /**
      *  
@@ -99,7 +100,7 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
      * Chart layout and spacing
      * 对应 Excel POI 中的 ChartSpace 和 PlotArea 的边距设置
      */
-    private io.nop.excel.chart.model.ChartPaddingModel _padding ;
+    private io.nop.excel.chart.model.ChartSpacingModel _padding ;
     
     /**
      *  
@@ -340,15 +341,16 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
     /**
      * 
      * xml name: margin
-     *  
+     *  Chart layout and spacing
+     * 对应 Excel POI 中的 ChartSpace 和 PlotArea 的边距设置
      */
     
-    public io.nop.excel.chart.model.ChartMarginModel getMargin(){
+    public io.nop.excel.chart.model.ChartSpacingModel getMargin(){
       return _margin;
     }
 
     
-    public void setMargin(io.nop.excel.chart.model.ChartMarginModel value){
+    public void setMargin(io.nop.excel.chart.model.ChartSpacingModel value){
         checkAllowChange();
         
         this._margin = value;
@@ -382,12 +384,12 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
      * 对应 Excel POI 中的 ChartSpace 和 PlotArea 的边距设置
      */
     
-    public io.nop.excel.chart.model.ChartPaddingModel getPadding(){
+    public io.nop.excel.chart.model.ChartSpacingModel getPadding(){
       return _padding;
     }
 
     
-    public void setPadding(io.nop.excel.chart.model.ChartPaddingModel value){
+    public void setPadding(io.nop.excel.chart.model.ChartSpacingModel value){
         checkAllowChange();
         
         this._padding = value;

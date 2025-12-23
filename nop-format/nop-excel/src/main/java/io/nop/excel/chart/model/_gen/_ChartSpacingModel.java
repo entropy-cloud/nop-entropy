@@ -2,7 +2,7 @@ package io.nop.excel.chart.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.excel.chart.model.ChartMarginModel;
+import io.nop.excel.chart.model.ChartSpacingModel;
 import io.nop.commons.util.ClassHelper;
 
 
@@ -10,11 +10,12 @@ import io.nop.commons.util.ClassHelper;
 // tell cpd to start ignoring code - CPD-OFF
 /**
  * generate from /nop/schema/excel/chart.xdef <p>
- * 
+ * Chart layout and spacing
+ * 对应 Excel POI 中的 ChartSpace 和 PlotArea 的边距设置
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
-public abstract class _ChartMarginModel extends io.nop.core.resource.component.AbstractComponentModel {
+public abstract class _ChartSpacingModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
      *  
@@ -141,13 +142,13 @@ public abstract class _ChartMarginModel extends io.nop.core.resource.component.A
         out.putNotNull("top",this.getTop());
     }
 
-    public ChartMarginModel cloneInstance(){
-        ChartMarginModel instance = newInstance();
+    public ChartSpacingModel cloneInstance(){
+        ChartSpacingModel instance = newInstance();
         this.copyTo(instance);
         return instance;
     }
 
-    protected void copyTo(ChartMarginModel instance){
+    protected void copyTo(ChartSpacingModel instance){
         super.copyTo(instance);
         
         instance.setBottom(this.getBottom());
@@ -156,8 +157,8 @@ public abstract class _ChartMarginModel extends io.nop.core.resource.component.A
         instance.setTop(this.getTop());
     }
 
-    protected ChartMarginModel newInstance(){
-        return (ChartMarginModel) ClassHelper.newInstance(getClass());
+    protected ChartSpacingModel newInstance(){
+        return (ChartSpacingModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON
