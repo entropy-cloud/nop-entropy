@@ -1,7 +1,5 @@
 package io.nop.batch.exp.config._gen;
 
-import io.nop.batch.exp.config.ExportTableConfig;
-import io.nop.batch.exp.config.JdbcConnectionConfig;
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 import io.nop.batch.exp.config.ExportDbConfig;
@@ -86,7 +84,7 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
      * xml name: jdbc-connection
      * 
      */
-    private JdbcConnectionConfig _jdbcConnection ;
+    private io.nop.batch.exp.config.JdbcConnectionConfig _jdbcConnection ;
     
     /**
      *  
@@ -121,7 +119,7 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
      * xml name: tables
      * 
      */
-    private KeyedList<ExportTableConfig> _tables = KeyedList.emptyList();
+    private KeyedList<io.nop.batch.exp.config.ExportTableConfig> _tables = KeyedList.emptyList();
     
     /**
      *  
@@ -307,12 +305,12 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
      *  
      */
     
-    public JdbcConnectionConfig getJdbcConnection(){
+    public io.nop.batch.exp.config.JdbcConnectionConfig getJdbcConnection(){
       return _jdbcConnection;
     }
 
     
-    public void setJdbcConnection(JdbcConnectionConfig value){
+    public void setJdbcConnection(io.nop.batch.exp.config.JdbcConnectionConfig value){
         checkAllowChange();
         
         this._jdbcConnection = value;
@@ -402,20 +400,20 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
      *  
      */
     
-    public java.util.List<ExportTableConfig> getTables(){
+    public java.util.List<io.nop.batch.exp.config.ExportTableConfig> getTables(){
       return _tables;
     }
 
     
-    public void setTables(java.util.List<ExportTableConfig> value){
+    public void setTables(java.util.List<io.nop.batch.exp.config.ExportTableConfig> value){
         checkAllowChange();
         
-        this._tables = KeyedList.fromList(value, ExportTableConfig::getName);
+        this._tables = KeyedList.fromList(value, io.nop.batch.exp.config.ExportTableConfig::getName);
            
     }
 
     
-    public ExportTableConfig getTable(String name){
+    public io.nop.batch.exp.config.ExportTableConfig getTable(String name){
         return this._tables.getByKey(name);
     }
 
@@ -423,11 +421,11 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
         return this._tables.containsKey(name);
     }
 
-    public void addTable(ExportTableConfig item) {
+    public void addTable(io.nop.batch.exp.config.ExportTableConfig item) {
         checkAllowChange();
-        java.util.List<ExportTableConfig> list = this.getTables();
+        java.util.List<io.nop.batch.exp.config.ExportTableConfig> list = this.getTables();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(ExportTableConfig::getName);
+            list = new KeyedList<>(io.nop.batch.exp.config.ExportTableConfig::getName);
             setTables(list);
         }
         list.add(item);

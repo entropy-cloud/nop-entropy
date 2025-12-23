@@ -717,6 +717,40 @@ public class SimpleStdDomainHandlers {
         }
     }
 
+    public static class JsonMapType extends SimpleStdDomainHandler {
+        @Override
+        public boolean isFixedType() {
+            return true;
+        }
+
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_JSON_MAP;
+        }
+
+        @Override
+        public IGenericType getGenericType(boolean mandatory, String options) {
+            return PredefinedGenericTypes.MAP_STRING_ANY_TYPE;
+        }
+
+        @Override
+        public Map<String, Object> parseProp(String options, SourceLocation loc, String propName, Object text,
+                                             XLangCompileTool cp) {
+            if (text instanceof Map)
+                return (Map<String, Object>) text;
+
+            JsonParseOptions opts = new JsonParseOptions();
+            opts.setKeepLocation(true);
+            opts.setStrictMode(false);
+            try {
+                return (Map<String, Object>) JsonTool.instance().parseFromText(loc, text.toString(), opts);
+            } catch (Exception e) {
+                throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN, e).loc(loc)
+                        .param(ARG_STD_DOMAIN, getName()).param(ARG_PROP_NAME, propName).param(ARG_VALUE, text);
+            }
+        }
+    }
+
     public static class XmlType extends SimpleStdDomainHandler {
         @Override
         public String getName() {

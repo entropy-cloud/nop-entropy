@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+Enhanced Chart Metamodel Definition
+Supports comprehensive chart configuration for Apache POI, PDF, and ECharts output formats
+
+参考 Apache POI XSSFChart 和 Excel Chart API 设计
+对应 Excel 中的 Chart 对象和相关属性
+-->
+<chart x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xdef:name="ChartModel"
+       xdef:bean-package="io.nop.excel.chart.model" xmlns:xdef="/nop/schema/xdef.xdef"
+       name="string" id="string" type="enum:io.nop.excel.chart.constants.ChartType"
+       width="double" height="double" autoFit="boolean=true"
+>
+    <!--
+    Chart title configuration
+    对应 Excel POI 中的 XSSFChart.getTitle() 和 ChartTitle
+    -->
+    <title text="string" visible="boolean=true" 
+           position="enum:io.nop.excel.chart.constants.ChartTitlePosition"
+           xdef:name="ChartTitleModel">
+        <!--
+        Title font styling
+        对应 Excel POI 中的 ChartTitle.getTextRun().setFontSize() 等字体属性
+        -->
+        <font xdef:ref="font.xdef"/>
+    </title>
+    
+    <!--
+    Chart description for documentation
+    对应 Excel 中图表的描述信息
+    -->
+    <description>string</description>
+    
+    <!--
+    Chart layout and spacing
+    对应 Excel POI 中的 ChartSpace 和 PlotArea 的边距设置
+    -->
+    <padding left="double" right="double" top="double" bottom="double" xdef:name="ChartPaddingModel"/>
+    <margin left="double" right="double" top="double" bottom="double" xdef:name="ChartMarginModel"/>
+    
+    <!--
+    Common shape style model based on POI CTShapeProperties
+    通用形状样式模型，基于 POI 的 CTShapeProperties
+    对应 Excel POI 中的 CTShapeProperties，用于 Legend、DataLabel、Tooltip 等元素的样式
+    -->
+    <xdef:define backgroundColor="string" borderColor="string" borderWidth="double" 
+               padding="double" xdef:name="ChartShapeStyleModel">
+        <font xdef:ref="font.xdef"/>
+    </xdef:define>
+    
+    <!--
+    Extended shape style model for elements with text color
+    扩展形状样式模型，用于需要文本颜色的元素如 Tooltip
+    -->
+    <xdef:define backgroundColor="string" borderColor="string" borderWidth="double"
+                       textColor="string" padding="double" xdef:name="ChartExtendedShapeStyleModel">
+        <font xdef:ref="font.xdef"/>
+    </xdef:define>
+    
+    <!--
+    Data series collection
+    对应 Excel POI 中的 XSSFChart.getChartSeries() 集合
+    每个 series 对应一个 ChartSeries 对象
+    -->
+    <series xdef:body-type="list" xdef:key-attr="name" xdef:name="ChartSeriesListModel">
+        <series name="!string" type="enum:io.nop.excel.chart.constants.ChartType" 
+                visible="boolean=true" xdef:name="ChartSeriesModel">
+            
+            <!--
+            Data source configuration
+            对应 Excel POI 中的 ChartDataSource，支持多种数据来源
+            -->
+            <dataSource type="enum:io.nop.excel.chart.constants.ChartDataSourceType" xdef:mandatory="true"
+                        xdef:name="ChartDataSourceModel">
+                <!--
+                Static inline data
+                对应 POI 中直接设置数据值的方式
+                -->
+                <static xdef:name="ChartStaticDataModel">
+                    <data>json-map</data>
+                </static>
+                              
+                <!--
+                REST API data source
+                对应外部 API 数据获取
+                -->
+                <api url="!string" method="string" refresh="long" xdef:name="ChartApiDataModel">
+                    <headers>json-map</headers>
+                    <body>json-map</body>
+                </api>
+                
+                <!--
+                Excel cell/range reference
+                对应 Excel POI 中的 CellRangeAddress 和 AreaReference
+                支持 Excel 单元格引用格式如 A1, B2:C10
+                -->
+                <excel sheetName="!string" cellRangeRef="!string" xdef:name="ChartExcelDataModel"/>
+                
+                <!--
+                Dynamic expression data source
+                对应计算字段和动态数据
+                -->
+                <expression>string</expression>
+            </dataSource>
+            
+            <!--
+            Series visual styling
+            对应 Excel POI 中的 ChartSeries 的样式属性
+            -->
+            <style xdef:name="ChartSeriesStyleModel" 
+                   color="string" opacity="double" lineWidth="double" fillOpacity="double">
+                <!--
+                Fill pattern configuration
+                对应 Excel POI 中的 FillProperties
+                -->
+                <fill pattern="string" color="string" opacity="double" xdef:name="ChartFillModel">
+                    <!--
+                    Gradient fill support
+                    对应 Excel 中的渐变填充
+                    -->
+                    <gradient enabled="boolean" startColor="string" endColor="string" 
+                             direction="string" angle="double" xdef:name="ChartGradientModel"/>
+                </fill>
+                
+                <!--
+                Line/border styling
+                对应 Excel POI 中的 LineProperties
+                -->
+                <line width="double" color="string" style="string" opacity="double" xdef:name="ChartLineModel"/>
+            </style>
+            
+            <!--
+            Data point markers
+            对应 Excel POI 中线图和散点图的 Marker 设置
+            -->
+            <markers enabled="boolean=false" type="string" size="double" 
+                     color="string" borderColor="string" borderWidth="double"
+                     xdef:name="ChartMarkersModel"/>
+            
+            <!--
+            Data labels configuration
+            对应 Excel POI 中的 DataLabels
+            -->
+            <labels enabled="boolean=false" position="string" 
+                    format="string" rotation="double" xdef:name="ChartLabelsModel">
+                <font xdef:ref="font.xdef"/>
+            </labels>
+            
+            <!--
+            Animation settings for series
+            对应图表动画效果配置
+            -->
+            <animation enabled="boolean=true" duration="long" easing="string" 
+                      delay="long" xdef:name="ChartAnimationModel"/>
+        </series>
+    </series>
+    
+    <!--
+    Chart axes configuration
+    对应 Excel POI 中的 ChartAxis 集合，包括 CategoryAxis 和 ValueAxis
+    -->
+    <axes xdef:body-type="list" xdef:name="ChartAxesModel" xdef:key-attr="id">
+        <axis type="enum:io.nop.excel.chart.constants.ChartAxisType" 
+              position="enum:io.nop.excel.chart.constants.ChartAxisPosition" 
+              id="!string" xdef:name="ChartAxisModel">
+            
+            <!--
+            Axis title
+            对应 Excel POI 中的 AxisTitle
+            -->
+            <title text="string" visible="boolean=true" xdef:name="ChartAxisTitleModel">
+                <font xdef:ref="font.xdef"/>
+            </title>
+            
+            <!--
+            Axis scaling configuration
+            对应 Excel POI 中的 ValueAxis.setMinimum(), setMaximum() 等
+            -->
+            <scale type="string" min="double" max="double" interval="double"
+                   base="double" nice="boolean=true" xdef:name="ChartAxisScaleModel"/>
+            
+            <!--
+            Axis labels styling
+            对应 Excel POI 中的 AxisTickLabels
+            -->
+            <labels visible="boolean=true" format="string" rotation="double" 
+                    interval="int" margin="double" xdef:name="ChartAxisLabelsModel">
+                <font xdef:ref="font.xdef"/>
+            </labels>
+            
+            <!--
+            Grid lines configuration
+            对应 Excel POI 中的 ChartGridLines
+            -->
+            <grid visible="boolean=true" style="string" color="string" 
+                  width="double" dashArray="string" xdef:name="ChartGridModel"/>
+            
+            <!--
+            Axis tick marks
+            对应 Excel POI 中的 AxisTickMark
+            -->
+            <ticks visible="boolean=true" length="double" color="string" 
+                   width="double" xdef:name="ChartTicksModel"/>
+            
+            <!--
+            Axis line styling
+            对应 Excel POI 中的 AxisLine
+            -->
+            <line visible="boolean=true" color="string" width="double" 
+                  xdef:name="ChartAxisLineModel"/>
+        </axis>
+    </axes>
+    
+    <!--
+    Chart legend configuration
+    对应 Excel POI 中的 ChartLegend
+    -->
+    <legend visible="boolean=true" 
+            position="enum:io.nop.excel.chart.constants.ChartLegendPosition" 
+            orientation="enum:io.nop.excel.chart.constants.ChartOrientation"
+            align="enum:io.nop.excel.model.constants.ExcelHorizontalAlignment" 
+            verticalAlign="enum:io.nop.excel.model.constants.ExcelVerticalAlignment" xdef:name="ChartLegendModel">
+        
+        <!--
+        Legend styling
+        对应 Excel POI 中 Legend 的字体和背景样式，基于 CTShapeProperties
+        -->
+        <style xdef:ref="ChartShapeStyleModel"/>
+        
+        <!--
+        Legend items configuration
+        对应 Legend 中各项的显示设置
+        -->
+        <items selectable="boolean=true" spacing="double" 
+               itemWidth="double" itemHeight="double" xdef:name="ChartLegendItemsModel"/>
+        
+        <!--
+        Legend pagination for large datasets
+        -->
+        <paging enabled="boolean=false" pageSize="int" xdef:name="ChartLegendPagingModel"/>
+    </legend>
+    
+    <!--
+    Global chart styling and theming
+    对应 Excel 图表的整体样式主题
+    -->
+    <style theme="string" xdef:name="ChartStyleModel" colors="csv-list" colorPalette="string">
+
+        <!--
+        Font configurations for different chart elements
+        对应 Excel 中不同元素的字体设置
+        -->
+        <fonts xdef:name="ChartFontsModel">
+            <default xdef:ref="font.xdef"/>
+            <title xdef:ref="font.xdef"/>
+            <axis xdef:ref="font.xdef"/>
+            <legend xdef:ref="font.xdef"/>
+            <label xdef:ref="font.xdef"/>
+        </fonts>
+        
+        <!--
+        Chart background styling
+        对应 Excel POI 中的 ChartSpace 背景设置
+        -->
+        <background color="string" pattern="string" image="string" 
+                   xdef:name="ChartBackgroundModel"/>
+        
+        <!--
+        Chart border styling
+        对应 Excel 图表边框设置
+        -->
+        <border color="string" width="double" style="string" radius="double" 
+                xdef:name="ChartBorderModel"/>
+    </style>
+    
+    <!--
+    Interactive features configuration
+    主要用于 Web 图表（ECharts），Excel 图表部分支持
+    -->
+    <interactions xdef:name="ChartInteractionsModel">
+        <!--
+        Tooltip configuration
+        对应 Excel 图表的数据标签显示
+        -->
+        <tooltip enabled="boolean=true" trigger="string" format="string"
+                 showDelay="long" hideDelay="long" xdef:name="ChartTooltipModel">
+            <!--
+            Tooltip styling with extended properties
+            对应 Excel POI 中 Tooltip 的样式，基于 CTShapeProperties 并扩展 textColor
+            -->
+            <style xdef:ref="ChartExtendedShapeStyleModel"/>
+
+        </tooltip>
+        
+        <!--
+        Zoom and pan capabilities
+        主要用于 Web 图表
+        -->
+        <zoom enabled="boolean=false" type="string" 
+              wheelZoom="boolean=true" panZoom="boolean=true" xdef:name="ChartZoomModel"/>
+        
+        <!--
+        Selection capabilities
+        主要用于 Web 图表
+        -->
+        <selection enabled="boolean=false" type="string" 
+                   multiple="boolean=false" brushStyle="string" xdef:name="ChartSelectionModel"/>
+        
+        <!--
+        Hover effects
+        主要用于 Web 图表
+        -->
+        <hover enabled="boolean=true" highlightPolicy="string" xdef:name="ChartHoverModel"/>
+        
+        <!--
+        Animation configuration
+        主要用于 Web 图表
+        -->
+        <animation enabled="boolean=true" appear="string" 
+                   update="string" enter="string" leave="string" xdef:name="ChartGlobalAnimationModel"/>
+    </interactions>
+    
+    <!--
+    Chart type specific configurations
+    -->
+    
+    <!--
+    Pie chart specific settings
+    对应 Excel POI 中 PieChart 的特殊属性
+    -->
+    <pieConfig innerRadius="double" outerRadius="double" startAngle="double" 
+               endAngle="double" padAngle="double" xdef:name="ChartPieConfigModel"/>
+    
+    <!--
+    Radar chart specific settings
+    -->
+    <radarConfig radius="double" startAngle="double" endAngle="double" 
+                 xdef:name="ChartRadarConfigModel"/>
+    
+    <!--
+    Heatmap chart specific settings
+    -->
+    <heatmapConfig cellSize="double" colorRange="csv-list" 
+                   missingDataColor="string" xdef:name="ChartHeatmapConfigModel"/>
+        
+    
+
+</chart>

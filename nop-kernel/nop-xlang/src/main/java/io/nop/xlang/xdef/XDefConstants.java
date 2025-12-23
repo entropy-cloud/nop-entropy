@@ -103,6 +103,7 @@ public interface XDefConstants {
     String STD_DOMAIN_STD_SQL_TYPE_LIST = "std-sql-type-list";
 
     String STD_DOMAIN_JSON = "json";
+    String STD_DOMAIN_JSON_MAP = "json-map";
     String STD_DOMAIN_XML = "xml";
     String STD_DOMAIN_XML_BODY = "xml-body";
     String STD_DOMAIN_XJSON_NODE = "xjson-node";

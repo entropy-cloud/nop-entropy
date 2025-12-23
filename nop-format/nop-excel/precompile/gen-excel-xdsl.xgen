@@ -6,5 +6,6 @@ codeGenerator.renderModel('/nop/schema/excel/page-margins.xdef','/nop/templates/
 codeGenerator.renderModel('/nop/schema/excel/sheet-protection.xdef','/nop/templates/xdsl', '/',$scope);
 codeGenerator.renderModel('/nop/schema/excel/excel-table.xdef','/nop/templates/xdsl', '/',$scope);
 codeGenerator.renderModel('/nop/schema/excel/workbook.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/excel/chart.xdef','/nop/templates/xdsl', '/',$scope);
 codeGenerator.renderModel('/nop/schema/excel/imp.xdef','/nop/templates/xdsl', '/',$scope);
 </c:script>

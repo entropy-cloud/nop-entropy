@@ -1,6 +1,5 @@
 package io.nop.batch.exp.config._gen;
 
-import io.nop.batch.exp.config.TableFieldConfig;
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 import io.nop.batch.exp.config.ExportTableConfig;
@@ -50,7 +49,7 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
      * xml name: fields
      * 
      */
-    private KeyedList<TableFieldConfig> _fields = KeyedList.emptyList();
+    private KeyedList<io.nop.batch.exp.config.TableFieldConfig> _fields = KeyedList.emptyList();
     
     /**
      *  
@@ -169,20 +168,20 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
      *  
      */
     
-    public java.util.List<TableFieldConfig> getFields(){
+    public java.util.List<io.nop.batch.exp.config.TableFieldConfig> getFields(){
       return _fields;
     }
 
     
-    public void setFields(java.util.List<TableFieldConfig> value){
+    public void setFields(java.util.List<io.nop.batch.exp.config.TableFieldConfig> value){
         checkAllowChange();
         
-        this._fields = KeyedList.fromList(value, TableFieldConfig::getName);
+        this._fields = KeyedList.fromList(value, io.nop.batch.exp.config.TableFieldConfig::getName);
            
     }
 
     
-    public TableFieldConfig getField(String name){
+    public io.nop.batch.exp.config.TableFieldConfig getField(String name){
         return this._fields.getByKey(name);
     }
 
@@ -190,11 +189,11 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
         return this._fields.containsKey(name);
     }
 
-    public void addField(TableFieldConfig item) {
+    public void addField(io.nop.batch.exp.config.TableFieldConfig item) {
         checkAllowChange();
-        java.util.List<TableFieldConfig> list = this.getFields();
+        java.util.List<io.nop.batch.exp.config.TableFieldConfig> list = this.getFields();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(TableFieldConfig::getName);
+            list = new KeyedList<>(io.nop.batch.exp.config.TableFieldConfig::getName);
             setFields(list);
         }
         list.add(item);

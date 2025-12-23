@@ -1,5 +1,6 @@
 package io.nop.batch.exp.config._gen;
 
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 import io.nop.batch.exp.config.TableFieldConfig;
 import io.nop.commons.util.ClassHelper;

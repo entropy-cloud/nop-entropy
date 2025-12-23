@@ -68,6 +68,7 @@ public class StdDomainRegistry implements IStdDomainRegistry {
         registerStdDomainHandler(new SimpleStdDomainHandlers.GenericTypeType());
 
         registerStdDomainHandler(new SimpleStdDomainHandlers.JsonType());
+        registerStdDomainHandler(new SimpleStdDomainHandlers.JsonMapType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.XmlType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.XmlBodyType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.XJsonNodeType());
