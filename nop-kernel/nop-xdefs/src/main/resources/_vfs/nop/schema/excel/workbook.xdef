@@ -44,6 +44,13 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                 </image>
             </images>
 
+            <charts xdef:body-type="list" xdef:key-attr="name">
+                <chart name="!string" xdef:ref="chart.xdef" xdef:name="ExcelChartModel">
+                    <anchor xdef:ref="ExcelClientAnchor" />
+                    <testExpr xdef:value="xpl-predicate"/>
+                </chart>
+            </charts>
+
             <conditionalStyles xdef:body-type="list" xdef:key-attr="range">
                 <!--
                 当条件满足时，将对指定区间单元格的样式进行增量修改

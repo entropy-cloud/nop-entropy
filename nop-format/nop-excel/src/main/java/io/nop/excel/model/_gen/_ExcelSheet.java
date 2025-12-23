@@ -25,6 +25,13 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: charts
+     * 
+     */
+    private KeyedList<io.nop.excel.model.ExcelChartModel> _charts = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: conditionalStyles
      * 
      */
@@ -158,6 +165,51 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
 
     public boolean hasAnnotations(){
         return !this._annotations.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: charts
+     *  
+     */
+    
+    public java.util.List<io.nop.excel.model.ExcelChartModel> getCharts(){
+      return _charts;
+    }
+
+    
+    public void setCharts(java.util.List<io.nop.excel.model.ExcelChartModel> value){
+        checkAllowChange();
+        
+        this._charts = KeyedList.fromList(value, io.nop.excel.model.ExcelChartModel::getName);
+           
+    }
+
+    
+    public io.nop.excel.model.ExcelChartModel getChart(String name){
+        return this._charts.getByKey(name);
+    }
+
+    public boolean hasChart(String name){
+        return this._charts.containsKey(name);
+    }
+
+    public void addChart(io.nop.excel.model.ExcelChartModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.excel.model.ExcelChartModel> list = this.getCharts();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.excel.model.ExcelChartModel::getName);
+            setCharts(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_charts(){
+        return this._charts.keySet();
+    }
+
+    public boolean hasCharts(){
+        return !this._charts.isEmpty();
     }
     
     /**
@@ -470,6 +522,8 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
         
            this._annotations = io.nop.api.core.util.FreezeHelper.deepFreeze(this._annotations);
             
+           this._charts = io.nop.api.core.util.FreezeHelper.deepFreeze(this._charts);
+            
            this._conditionalStyles = io.nop.api.core.util.FreezeHelper.deepFreeze(this._conditionalStyles);
             
            this._dataValidations = io.nop.api.core.util.FreezeHelper.deepFreeze(this._dataValidations);
@@ -498,6 +552,7 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
         super.outputJson(out);
         
         out.putNotNull("annotations",this.getAnnotations());
+        out.putNotNull("charts",this.getCharts());
         out.putNotNull("conditionalStyles",this.getConditionalStyles());
         out.putNotNull("dataValidations",this.getDataValidations());
         out.putNotNull("defaultColumnWidth",this.getDefaultColumnWidth());
@@ -523,6 +578,7 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
         super.copyTo(instance);
         
         instance.setAnnotations(this.getAnnotations());
+        instance.setCharts(this.getCharts());
         instance.setConditionalStyles(this.getConditionalStyles());
         instance.setDataValidations(this.getDataValidations());
         instance.setDefaultColumnWidth(this.getDefaultColumnWidth());
