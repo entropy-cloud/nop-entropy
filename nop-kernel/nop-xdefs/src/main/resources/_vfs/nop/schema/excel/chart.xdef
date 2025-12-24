@@ -36,8 +36,8 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
     Chart layout and spacing
     对应 Excel POI 中的 ChartSpace 和 PlotArea 的边距设置
     -->
-    <padding left="double" right="double" top="double" bottom="double" xdef:name="ChartPaddingModel"/>
-    <margin left="double" right="double" top="double" bottom="double" xdef:name="ChartMarginModel"/>
+    <padding left="double" right="double" top="double" bottom="double" xdef:name="ChartSpacingModel"/>
+    <margin xdef:ref="ChartSpacingModel"/>
     
     <!--
     Common shape style model based on POI CTShapeProperties

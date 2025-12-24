@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" 
+              xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+              xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <c:date1904 val="0"/>
+  <c:lang val="en-US"/>
+  <c:roundedCorners val="0"/>
+  <c:chart>
+    <c:title>
+      <c:tx>
+        <c:rich>
+          <a:bodyPr/>
+          <a:lstStyle/>
+          <a:p>
+            <a:pPr>
+              <a:defRPr sz="1400" b="0"/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="en-US"/>
+              <a:t>Regional Sales Performance</a:t>
+            </a:r>
+          </a:p>
+        </c:rich>
+      </c:tx>
+      <c:layout/>
+    </c:title>
+    <c:plotArea>
+      <c:layout/>
+      <c:barChart>
+        <c:barDir val="col"/>
+        <c:grouping val="clustered"/>
+        <c:ser>
+          <c:idx val="0"/>
+          <c:order val="0"/>
+          <c:tx>
+            <c:v>North Region</c:v>
+          </c:tx>
+          <c:cat>
+            <c:strRef>
+              <c:f>Data!A2:A5</c:f>
+            </c:strRef>
+          </c:cat>
+          <c:val>
+            <c:numRef>
+              <c:f>Data!B2:B5</c:f>
+            </c:numRef>
+          </c:val>
+        </c:ser>
+        <c:ser>
+          <c:idx val="1"/>
+          <c:order val="1"/>
+          <c:tx>
+            <c:v>South Region</c:v>
+          </c:tx>
+          <c:cat>
+            <c:strRef>
+              <c:f>Data!A2:A5</c:f>
+            </c:strRef>
+          </c:cat>
+          <c:val>
+            <c:numRef>
+              <c:f>Data!C2:C5</c:f>
+            </c:numRef>
+          </c:val>
+        </c:ser>
+        <c:axId val="148921728"/>
+        <c:axId val="148923264"/>
+      </c:barChart>
+      <c:catAx>
+        <c:axId val="148921728"/>
+        <c:scaling>
+          <c:orientation val="minMax"/>
+        </c:scaling>
+        <c:axPos val="b"/>
+        <c:majorGridlines/>
+        <c:numFmt formatCode="General" sourceLinked="1"/>
+        <c:tickLblPos val="nextTo"/>
+        <c:majorTickMark val="out"/>
+        <c:minorTickMark val="none"/>
+      </c:catAx>
+      <c:valAx>
+        <c:axId val="148923264"/>
+        <c:scaling>
+          <c:orientation val="minMax"/>
+        </c:scaling>
+        <c:axPos val="l"/>
+        <c:majorGridlines/>
+        <c:numFmt formatCode="General" sourceLinked="1"/>
+        <c:tickLblPos val="nextTo"/>
+        <c:majorTickMark val="out"/>
+        <c:minorTickMark val="none"/>
+      </c:valAx>
+    </c:plotArea>
+    <c:legend>
+      <c:legendPos val="r"/>
+      <c:layout/>
+    </c:legend>
+    <c:plotVisOnly val="1"/>
+  </c:chart>
+  <c:printSettings>
+    <c:headerFooter/>
+    <c:pageMargins b="0.75" l="0.7" r="0.7" t="0.75" header="0.3" footer="0.3"/>
+    <c:pageSetup/>
+  </c:printSettings>
+</c:chartSpace>

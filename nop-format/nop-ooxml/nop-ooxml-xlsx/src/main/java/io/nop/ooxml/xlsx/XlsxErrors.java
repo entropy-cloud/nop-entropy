@@ -15,10 +15,18 @@ public interface XlsxErrors {
     String ARG_TYPE = "type";
     String ARG_REL_ID = "relId";
     String ARG_SHEET_NAME = "sheetName";
+    String ARG_CHART_ID = "chartId";
+    String ARG_PART_NAME = "partName";
 
     ErrorCode ERR_XLSX_NULL_REL_PART = define("nop.err.xlsx.null-rel-part", "没有关联文件:type={type},relId={relId}", ARG_TYPE,
             ARG_REL_ID);
 
     ErrorCode ERR_XLSX_UNKNOWN_SHEET_NAME = define("nop.err.xlsx.unknown-sheet-name",
             "找不到sheet名称为:{sheetName}", ARG_SHEET_NAME);
+
+    ErrorCode ERR_XLSX_CHART_PARSE_FAIL = define("nop.err.xlsx.chart-parse-fail",
+            "解析图表失败:chartId={chartId},partName={partName}", ARG_CHART_ID, ARG_PART_NAME);
+
+    ErrorCode ERR_XLSX_NULL_PACKAGE = define("nop.err.xlsx.null-package",
+            "ExcelOfficePackage不能为null");
 }

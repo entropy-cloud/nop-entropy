@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" 
+              xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+              xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <c:date1904 val="0"/>
+  <c:lang val="en-US"/>
+  <c:roundedCorners val="0"/>
+  <c:chart>
+    <c:title>
+      <c:tx>
+        <c:rich>
+          <a:bodyPr/>
+          <a:lstStyle/>
+          <a:p>
+            <a:pPr>
+              <a:defRPr sz="1600"/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="en-US"/>
+              <a:t>Sales Trend Analysis</a:t>
+            </a:r>
+          </a:p>
+        </c:rich>
+      </c:tx>
+      <c:layout/>
+    </c:title>
+    <c:plotArea>
+      <c:layout/>
+      <c:lineChart>
+        <c:grouping val="standard"/>
+        <c:ser>
+          <c:idx val="0"/>
+          <c:order val="0"/>
+          <c:tx>
+            <c:v>Q1 Sales</c:v>
+          </c:tx>
+          <c:cat>
+            <c:strRef>
+              <c:f>TrendData!A2:A13</c:f>
+            </c:strRef>
+          </c:cat>
+          <c:val>
+            <c:numRef>
+              <c:f>TrendData!B2:B13</c:f>
+            </c:numRef>
+          </c:val>
+          <c:marker>
+            <c:symbol val="circle"/>
+            <c:size val="5"/>
+          </c:marker>
+        </c:ser>
+        <c:ser>
+          <c:idx val="1"/>
+          <c:order val="1"/>
+          <c:tx>
+            <c:v>Q2 Sales</c:v>
+          </c:tx>
+          <c:cat>
+            <c:strRef>
+              <c:f>TrendData!A2:A13</c:f>
+            </c:strRef>
+          </c:cat>
+          <c:val>
+            <c:numRef>
+              <c:f>TrendData!C2:C13</c:f>
+            </c:numRef>
+          </c:val>
+          <c:marker>
+            <c:symbol val="square"/>
+            <c:size val="5"/>
+          </c:marker>
+        </c:ser>
+        <c:ser>
+          <c:idx val="2"/>
+          <c:order val="2"/>
+          <c:tx>
+            <c:v>Q3 Sales</c:v>
+          </c:tx>
+          <c:cat>
+            <c:strRef>
+              <c:f>TrendData!A2:A13</c:f>
+            </c:strRef>
+          </c:cat>
+          <c:val>
+            <c:numRef>
+              <c:f>TrendData!D2:D13</c:f>
+            </c:numRef>
+          </c:val>
+          <c:marker>
+            <c:symbol val="diamond"/>
+            <c:size val="5"/>
+          </c:marker>
+        </c:ser>
+        <c:axId val="249856512"/>
+        <c:axId val="249858048"/>
+      </c:lineChart>
+      <c:catAx>
+        <c:axId val="249856512"/>
+        <c:scaling>
+          <c:orientation val="minMax"/>
+        </c:scaling>
+        <c:axPos val="b"/>
+        <c:title>
+          <c:tx>
+            <c:rich>
+              <a:bodyPr/>
+              <a:lstStyle/>
+              <a:p>
+                <a:pPr>
+                  <a:defRPr sz="1200"/>
+                </a:pPr>
+                <a:r>
+                  <a:rPr lang="en-US"/>
+                  <a:t>Month</a:t>
+                </a:r>
+              </a:p>
+            </a:rich>
+          </c:tx>
+          <c:layout/>
+        </c:title>
+        <c:numFmt formatCode="General" sourceLinked="1"/>
+        <c:majorTickMark val="out"/>
+        <c:minorTickMark val="none"/>
+        <c:tickLblPos val="nextTo"/>
+      </c:catAx>
+      <c:valAx>
+        <c:axId val="249858048"/>
+        <c:scaling>
+          <c:orientation val="minMax"/>
+          <c:min val="0"/>
+          <c:max val="50000"/>
+        </c:scaling>
+        <c:axPos val="l"/>
+        <c:title>
+          <c:tx>
+            <c:rich>
+              <a:bodyPr/>
+              <a:lstStyle/>
+              <a:p>
+                <a:pPr>
+                  <a:defRPr sz="1200"/>
+                </a:pPr>
+                <a:r>
+                  <a:rPr lang="en-US"/>
+                  <a:t>Sales Amount</a:t>
+                </a:r>
+              </a:p>
+            </a:rich>
+          </c:tx>
+          <c:layout/>
+        </c:title>
+        <c:majorGridlines/>
+        <c:numFmt formatCode="#,##0" sourceLinked="0"/>
+        <c:majorTickMark val="out"/>
+        <c:minorTickMark val="none"/>
+        <c:tickLblPos val="nextTo"/>
+        <c:majorUnit val="10000"/>
+      </c:valAx>
+    </c:plotArea>
+    <c:legend>
+      <c:legendPos val="t"/>
+      <c:layout/>
+    </c:legend>
+    <c:plotVisOnly val="1"/>
+  </c:chart>
+  <c:printSettings>
+    <c:headerFooter/>
+    <c:pageMargins b="0.75" l="0.7" r="0.7" t="0.75" header="0.3" footer="0.3"/>
+    <c:pageSetup/>
+  </c:printSettings>
+</c:chartSpace>

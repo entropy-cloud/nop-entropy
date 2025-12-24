@@ -8,6 +8,7 @@
 package io.nop.ooxml.xlsx.model.drawing;
 
 import io.nop.core.lang.xml.XNode;
+import io.nop.excel.chart.model.ChartModel;
 import io.nop.excel.model.ExcelClientAnchor;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.util.UnitsHelper;
@@ -15,6 +16,9 @@ import io.nop.excel.util.UnitsHelper;
 import java.util.List;
 
 public class DrawingBuilder {
+    
+    // Chart builder instance for chart support
+    private final DrawingChartBuilder chartBuilder = DrawingChartBuilder.INSTANCE;
     public XNode build(List<ExcelImage> images) {
         XNode node = XNode.makeDocNode("xdr:wsDr");
         node.setAttr("xmlns:xdr", "http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing");
@@ -25,6 +29,45 @@ public class DrawingBuilder {
             node.appendChild(anchor);
         }
         return node;
+    }
+    
+    /**
+     * Build drawing with charts support.
+     * This method supports both images and charts in the same drawing.
+     */
+    public XNode buildWithCharts(List<ExcelImage> images, List<ChartModel> charts) {
+        XNode node = XNode.makeDocNode("xdr:wsDr");
+        node.setAttr("xmlns:xdr", "http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing");
+        node.setAttr("xmlns:a", "http://schemas.openxmlformats.org/drawingml/2006/main");
+
+        int index = 0;
+        
+        // Add images
+        if (images != null) {
+            for (ExcelImage image : images) {
+                XNode anchor = buildAnchor(image, index++);
+                node.appendChild(anchor);
+            }
+        }
+        
+        // Add charts
+        if (charts != null) {
+            for (ChartModel chart : charts) {
+                XNode anchor = buildChartAnchor(chart, index++);
+                node.appendChild(anchor);
+            }
+        }
+        
+        return node;
+    }
+    
+    /**
+     * Build chart anchor using DrawingChartBuilder.
+     */
+    public XNode buildChartAnchor(ChartModel chart, int index) {
+        // Generate relationship ID for chart (this would be set by the calling context)
+        String relationshipId = "rId" + (index + 1);
+        return chartBuilder.buildChartAnchor(chart, relationshipId, index);
     }
 
     public XNode buildAnchor(ExcelImage image, int index) {
