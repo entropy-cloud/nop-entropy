@@ -104,6 +104,29 @@ public class DrawingChartParser {
      * @return fully populated ChartModel instance or null if parsing fails
      */
     public ChartModel parseChart(XNode anchorNode, XNode chartRefNode, ExcelOfficePackage pkg, IOfficePackagePart worksheetPart) {
+        return parseChart(anchorNode, chartRefNode, pkg, worksheetPart, null);
+    }
+
+    /**
+     * Parses a chart from the given anchor node and chart reference node.
+     * This method loads the chart XML from the package using relationship IDs
+     * and populates the provided ChartModel instance.
+     * 
+     * The parsing process includes:
+     * - Loading chart XML from package relationships
+     * - Parsing chart space and basic properties with model population
+     * - Extracting chart content including series, axes, legends, and titles
+     * - Applying color schemes and styling information to model properties
+     * - Setting all parsed data in appropriate model objects with error handling
+     * 
+     * @param anchorNode the XNode containing chart anchor information
+     * @param chartRefNode the XNode containing chart reference (c:chart element)
+     * @param pkg the Excel office package containing the chart
+     * @param worksheetPart the worksheet part containing the chart reference
+     * @param chart the ChartModel instance to populate (can be ExcelChartModel), or null to create a new instance
+     * @return fully populated ChartModel instance or null if parsing fails
+     */
+    public ChartModel parseChart(XNode anchorNode, XNode chartRefNode, ExcelOfficePackage pkg, IOfficePackagePart worksheetPart, ChartModel chart) {
         if (anchorNode == null || chartRefNode == null) {
             LOG.warn("DrawingChartParser.parseChart: null input nodes provided");
             return null;
@@ -135,7 +158,7 @@ public class DrawingChartParser {
             }
             
             // Parse chart structure
-            return parseChartSpace(chartSpaceNode, anchorNode);
+            return parseChartSpace(chartSpaceNode, anchorNode, chart);
             
         } catch (Exception e) {
             LOG.error("DrawingChartParser.parseChart: error parsing chart", e);
@@ -227,6 +250,28 @@ public class DrawingChartParser {
      * @return fully populated ChartModel instance or null if parsing fails
      */
     private ChartModel parseChartSpace(XNode chartSpaceNode, XNode anchorNode) {
+        return parseChartSpace(chartSpaceNode, anchorNode, null);
+    }
+
+    /**
+     * Parses the chart space XML node to populate a fully populated ChartModel.
+     * This method implements the core functionality for comprehensive chart space parsing.
+     * It handles the c:chartSpace root element and coordinates parsing of all chart components
+     * with complete model population using specialized helper parsers.
+     * 
+     * The parsing process includes:
+     * - Creating ChartModel instances from chart XML with proper initialization
+     * - Parsing chart dimensions (width, height) and setting them in the model
+     * - Parsing chart positioning and anchor information with model property setting
+     * - Extracting chart content and populating all sub-models (series, axes, legends, titles)
+     * - Applying color schemes and styling with complete model property population
+     * 
+     * @param chartSpaceNode the root chart space XML node (c:chartSpace element)
+     * @param anchorNode the anchor node containing positioning information
+     * @param chart the ChartModel instance to populate (can be ExcelChartModel), or null to create a new instance
+     * @return fully populated ChartModel instance or null if parsing fails
+     */
+    private ChartModel parseChartSpace(XNode chartSpaceNode, XNode anchorNode, ChartModel chart) {
         if (chartSpaceNode == null) {
             LOG.warn("DrawingChartParser.parseChartSpace: chart space node is null");
             return null;
@@ -235,8 +280,10 @@ public class DrawingChartParser {
         LOG.debug("DrawingChartParser.parseChartSpace: parsing c:chartSpace root element: {}", chartSpaceNode.getTagName());
         
         try {
-            // Create new ChartModel instance
-            ChartModel chart = new ChartModel();
+            // Create new ChartModel instance if not provided
+            if (chart == null) {
+                chart = new ChartModel();
+            }
             
             // Parse basic chart properties from c:chartSpace and anchor
             parseBasicProperties(chart, chartSpaceNode, anchorNode);

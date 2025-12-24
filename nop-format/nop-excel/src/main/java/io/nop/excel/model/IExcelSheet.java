@@ -28,6 +28,8 @@ public interface IExcelSheet {
 
     List<ExcelDataValidation> getDataValidations();
 
+    List<ExcelChartModel> getCharts();
+
     default ExcelDataValidation buildDataValidation(String id){
         ExcelDataValidation validation = new ExcelDataValidation();
         validation.setId(id);

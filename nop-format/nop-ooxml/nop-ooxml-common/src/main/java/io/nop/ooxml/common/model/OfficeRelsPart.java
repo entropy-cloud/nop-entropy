@@ -117,6 +117,13 @@ public class OfficeRelsPart implements Serializable, IOfficePackagePart {
         return rel;
     }
 
+    public OfficeRelationship addChart(String target) {
+        String id = newId();
+        OfficeRelationship rel = new OfficeRelationship(null, id, OfficeConstants.NS_CHART, target, null);
+        addRelationship(rel);
+        return rel;
+    }
+
     public String newId() {
         String id;
         do {

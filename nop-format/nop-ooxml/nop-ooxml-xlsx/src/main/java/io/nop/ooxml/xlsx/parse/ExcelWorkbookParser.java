@@ -14,6 +14,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.model.table.ICellView;
 import io.nop.excel.model.ExcelCell;
+import io.nop.excel.model.ExcelChartModel;
 import io.nop.excel.model.ExcelClientAnchor;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelSheet;
@@ -111,6 +112,11 @@ public class ExcelWorkbookParser extends AbstractXlsxParser {
                     sheet.getTable().makeCell(anchor.getRow2(), anchor.getCol2());
                 }
                 sheet.setImages(images);
+
+                List<ExcelChartModel> charts = new DrawingParser().parseCharts(drawing.loadXml(), pkg, drawing);
+                if (!charts.isEmpty()) {
+                    sheet.setCharts(charts);
+                }
             }
         }
 

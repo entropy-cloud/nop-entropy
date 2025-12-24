@@ -10,10 +10,14 @@ package io.nop.ooxml.xlsx.model.drawing;
 import io.nop.commons.collections.KeyedList;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
+import io.nop.excel.chart.model.ChartModel;
+import io.nop.excel.model.ExcelChartModel;
 import io.nop.excel.model.ExcelClientAnchor;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.constants.ExcelAnchorType;
 import io.nop.excel.util.UnitsHelper;
+import io.nop.ooxml.common.IOfficePackagePart;
+import io.nop.ooxml.xlsx.model.ExcelOfficePackage;
 
 import java.util.List;
 
@@ -48,6 +52,30 @@ public class DrawingParser {
                     image.setName(StringHelper.nextName(image.getName()));
                 }
                 ret.add(image);
+            }
+        }
+        return ret;
+    }
+
+    public List<ExcelChartModel> parseCharts(XNode node, ExcelOfficePackage pkg, IOfficePackagePart drawingPart) {
+        KeyedList<ExcelChartModel> ret = new KeyedList<>(ExcelChartModel::getName);
+
+        for (XNode child : node.getChildren()) {
+            if (child.getTagName().equals("xdr:twoCellAnchor")) {
+                XNode graphicFrame = child.childByTag("xdr:graphicFrame");
+                if (graphicFrame != null) {
+                    XNode chartRef = graphicFrame.childByTag("a:graphic").childByTag("a:graphicData").childByTag("c:chart");
+                    if (chartRef != null) {
+                        ExcelChartModel excelChart = new ExcelChartModel();
+                        ChartModel chart = DrawingChartParser.INSTANCE.parseChart(child, chartRef, pkg, drawingPart, excelChart);
+                        if (chart != null) {
+                            while (ret.getByKey(excelChart.getName()) != null) {
+                                excelChart.setName(StringHelper.nextName(excelChart.getName()));
+                            }
+                            ret.add(excelChart);
+                        }
+                    }
+                }
             }
         }
         return ret;

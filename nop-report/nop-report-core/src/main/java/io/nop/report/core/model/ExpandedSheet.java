@@ -7,6 +7,7 @@
  */
 package io.nop.report.core.model;
 
+import io.nop.excel.model.ExcelChartModel;
 import io.nop.excel.model.ExcelDataValidation;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelPageBreaks;
@@ -30,6 +31,7 @@ public class ExpandedSheet implements IExcelSheet {
     private Double defaultColumnWidth;
 
     private List<ExcelImage> images;
+    private List<ExcelChartModel> charts;
     private List<ExcelDataValidation> dataValidations;
     private ExcelSheetProtection sheetProtection;
 
@@ -89,6 +91,21 @@ public class ExpandedSheet implements IExcelSheet {
         if (images == null)
             images = new ArrayList<>();
         return images;
+    }
+
+    @Override
+    public List<ExcelChartModel> getCharts() {
+        return charts;
+    }
+
+    public void setCharts(List<ExcelChartModel> charts) {
+        this.charts = charts;
+    }
+
+    public List<ExcelChartModel> makeCharts() {
+        if (charts == null)
+            charts = new ArrayList<>();
+        return charts;
     }
 
     public XptSheetModel getModel() {

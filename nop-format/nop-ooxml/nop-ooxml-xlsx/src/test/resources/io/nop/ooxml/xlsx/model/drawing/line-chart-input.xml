@@ -114,7 +114,7 @@
                   <a:t>Month</a:t>
                 </a:r>
               </a:p>
-            </a:rich>
+            </c:rich>
           </c:tx>
           <c:layout/>
         </c:title>
@@ -145,7 +145,7 @@
                   <a:t>Sales Amount</a:t>
                 </a:r>
               </a:p>
-            </a:rich>
+            </c:rich>
           </c:tx>
           <c:layout/>
         </c:title>

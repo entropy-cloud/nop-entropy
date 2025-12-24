@@ -14,6 +14,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.ByteArrayResource;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.excel.ExcelConstants;
+import io.nop.excel.model.ExcelChartModel;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
@@ -30,6 +31,7 @@ import io.nop.ooxml.xlsx.XSSFRelation;
 import io.nop.ooxml.xlsx.model.ExcelOfficePackage;
 import io.nop.ooxml.xlsx.model.StylesPart;
 import io.nop.ooxml.xlsx.model.drawing.DrawingBuilder;
+import io.nop.ooxml.xlsx.model.drawing.DrawingChartBuilder;
 
 import java.io.File;
 import java.util.List;
@@ -103,7 +105,7 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         writer.indent(isIndent()).generateToResource(resource, context);
         IOfficePackagePart sheetPart = pkg.addFile(sheetPath, resource);
 
-        generateDrawings(sheet.getImages(), writer.getDrawingRelId(), sheetPart, genState);
+        generateDrawings(sheet.getImages(), sheet.getCharts(), writer.getDrawingRelId(), sheetPart, genState);
 
         IResource commentResource = new FileResource(new File(dir, commentPath));
         new ExcelCommentsWriter(sheet).indent(isIndent()).generateToResource(commentResource, context);
@@ -126,8 +128,9 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
     }
 
     public void generateDrawings(List<ExcelImage> images,
+                                 List<ExcelChartModel> charts,
                                  String drawingRelId, IOfficePackagePart sheetPart, GenState genState) {
-        if (images == null || images.isEmpty())
+        if ((images == null || images.isEmpty()) && (charts == null || charts.isEmpty()))
             return;
 
         ExcelOfficePackage pkg = genState.pkg;
@@ -135,26 +138,51 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         int drawingIndex = genState.nextDrawingIndex++;
         String drawingPath = "/xl/drawings/drawing" + (drawingIndex + 1) + ".xml";
 
-        // <Override PartName="/xl/drawings/drawing1.xml"
-        //              ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>
         pkg.getContentTypes().addOverrideContentType(drawingPath, XSSFRelation.DRAWINGS.getType());
 
         OfficeRelsPart relPart = pkg.makeRelsForPart(sheetPart);
         relPart.addRelationship(drawingRelId, XSSFRelation.DRAWINGS.getRelation(), "../drawings/drawing" + (drawingIndex + 1) + ".xml", null);
 
         OfficeRelsPart drawingRelPart = pkg.makeRelsForPartPath(drawingPath);
-        for (ExcelImage image : images) {
-            if (image.getData() == null && image.getShape() == null)
-                continue;
-            String path = addImageData(pkg, image.getData(), image.getImgType(), genState);
-            String id = drawingRelPart.addImage("/" + path).getId();
-            image.setEmbedId(id);
+        
+        if (images != null) {
+            for (ExcelImage image : images) {
+                if (image.getData() == null && image.getShape() == null)
+                    continue;
+                String path = addImageData(pkg, image.getData(), image.getImgType(), genState);
+                String id = drawingRelPart.addImage("/" + path).getId();
+                image.setEmbedId(id);
+            }
         }
 
-        XNode node = new DrawingBuilder().build(images);
+        if (charts != null && !charts.isEmpty()) {
+            for (ExcelChartModel chart : charts) {
+                String chartPath = addChartData(pkg, chart, genState);
+                // 使用addRelationship方法创建图表关系
+                drawingRelPart.addRelationship("rId" + drawingRelPart.newId(), 
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart", 
+                    "../" + chartPath.substring(4), null);
+            }
+        }
+
+        XNode node = new DrawingBuilder().buildWithCharts(images, charts);
         XmlOfficePackagePart part = new XmlOfficePackagePart(drawingPath.substring(1), node);
         pkg.addFile(part);
 
+    }
+
+    private String addChartData(ExcelOfficePackage pkg, ExcelChartModel chart, GenState genState) {
+        String path = genState.charts.get(chart);
+        if (path == null) {
+            int index = genState.nextChartIndex++;
+            XNode chartNode = DrawingChartBuilder.INSTANCE.build(chart);
+            String chartPath = "/xl/charts/chart" + (index + 1) + ".xml";
+            XmlOfficePackagePart part = new XmlOfficePackagePart(chartPath.substring(1), chartNode);
+            pkg.addFile(part);
+            genState.charts.put(chart, chartPath);
+            return chartPath;
+        }
+        return path;
     }
 
     private String addImageData(ExcelOfficePackage pkg, ByteString data, String imgType, GenState genState) {

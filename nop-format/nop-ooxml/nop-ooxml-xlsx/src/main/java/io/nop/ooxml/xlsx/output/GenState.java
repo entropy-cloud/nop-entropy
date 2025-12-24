@@ -1,6 +1,7 @@
 package io.nop.ooxml.xlsx.output;
 
 import io.nop.commons.bytes.ByteString;
+import io.nop.excel.model.ExcelChartModel;
 import io.nop.ooxml.xlsx.model.ExcelOfficePackage;
 
 import java.util.HashMap;
@@ -13,6 +14,8 @@ public class GenState {
     public int nextImageIndex;
 
     public int nextDrawingIndex;
+    public Map<ExcelChartModel, String> charts = new HashMap<>();
+    public int nextChartIndex;
 
     public GenState(ExcelOfficePackage pkg) {
         this.pkg = pkg;

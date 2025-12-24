@@ -9,6 +9,7 @@ package io.nop.ooxml.xlsx.model.drawing;
 
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.chart.model.ChartModel;
+import io.nop.excel.model.ExcelChartModel;
 import io.nop.excel.model.ExcelClientAnchor;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.util.UnitsHelper;
@@ -35,7 +36,7 @@ public class DrawingBuilder {
      * Build drawing with charts support.
      * This method supports both images and charts in the same drawing.
      */
-    public XNode buildWithCharts(List<ExcelImage> images, List<ChartModel> charts) {
+    public XNode buildWithCharts(List<ExcelImage> images, List<ExcelChartModel> charts) {
         XNode node = XNode.makeDocNode("xdr:wsDr");
         node.setAttr("xmlns:xdr", "http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing");
         node.setAttr("xmlns:a", "http://schemas.openxmlformats.org/drawingml/2006/main");
@@ -52,7 +53,7 @@ public class DrawingBuilder {
         
         // Add charts
         if (charts != null) {
-            for (ChartModel chart : charts) {
+            for (ExcelChartModel chart : charts) {
                 XNode anchor = buildChartAnchor(chart, index++);
                 node.appendChild(anchor);
             }
@@ -64,7 +65,7 @@ public class DrawingBuilder {
     /**
      * Build chart anchor using DrawingChartBuilder.
      */
-    public XNode buildChartAnchor(ChartModel chart, int index) {
+    public XNode buildChartAnchor(ExcelChartModel chart, int index) {
         // Generate relationship ID for chart (this would be set by the calling context)
         String relationshipId = "rId" + (index + 1);
         return chartBuilder.buildChartAnchor(chart, relationshipId, index);

@@ -12,6 +12,8 @@ public interface OfficeConstants {
 
     String NS_IMAGE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image";
 
+    String NS_CHART = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart";
+
     String NS_STYLES = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles";
 
     String NS_FONT_TABLE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable";
