@@ -1,0 +1,83 @@
+<definitions xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/record/record-mappings.xdef"
+             xmlns:record-mapping-gen="record-mapping-gen" xmlns:c="c" xmlns:md="md" x:dump="true">
+
+    <x:post-extends>
+        <c:import from="/nop/record/xlib/record-mapping-gen.xlib"/>
+        <record-mapping-gen:GenReverseMappings/>
+    </x:post-extends>
+
+    <mapping name="Markdown_to_AgentPlanTaskModel" md:titleField="title">
+        <fields>
+            <field name="taskNo" from="任务编号" mandatory="true">
+                <schema stdDomain="string"/>
+            </field>
+
+            <field name="title" from="任务标题" mandatory="true">
+                <schema stdDomain="string"/>
+            </field>
+
+            <field name="overview" from="任务概述">
+                <schema stdDomain="string"/>
+            </field>
+
+            <field name="taskStatus" from="任务状态">
+                <schema dict="io.nop.ai.agent.plan.AgentTaskStatus"/>
+            </field>
+
+            <field name="resultMessage" from="执行结果">
+                <schema stdDomain="string"/>
+            </field>
+
+            <field name="instructions" from="指令" >
+            </field>
+
+            <field name="notes" from="备注" itemMapping="Markdown_to_AgentPlanNoteModel">
+                <schema/>
+            </field>
+
+            <field name="subTasks" from="子任务" keyProp="taskNo"
+                   itemMapping="Markdown_to_AgentPlanTaskModel">
+                <schema/>
+            </field>
+        </fields>
+    </mapping>
+
+
+    <mapping name="Markdown_to_AgentPlanNoteModel">
+        <fields>
+            <field name="name" from="备注名称" mandatory="true">
+                <schema stdDomain="string"/>
+            </field>
+
+            <field name="content" from="备注内容" mandatory="true">
+                <schema stdDomain="string"/>
+            </field>
+        </fields>
+    </mapping>
+
+    <mapping name="Markdown_to_AgentPlanModel" md:titleField="title">
+        <fields>
+            <field name="path" from="存储路径">
+                <schema stdDomain="string"/>
+            </field>
+
+            <field name="title" from="计划标题" mandatory="true">
+                <schema stdDomain="string"/>
+            </field>
+
+            <field name="overview" from="计划概述">
+                <schema stdDomain="string"/>
+            </field>
+
+            <field name="planStatus" from="计划状态">
+                <schema dict="io.nop.ai.agent.plan.AgentPlanStatus"/>
+            </field>
+
+            <field name="tasks" from="任务" keyProp="taskNo"
+                   itemMapping="Markdown_to_AgentPlanTaskModel">
+                <schema/>
+            </field>
+        </fields>
+    </mapping>
+
+</definitions>

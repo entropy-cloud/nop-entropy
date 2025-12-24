@@ -1,0 +1,11 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="agent-plan">
+
+    <loaders>
+        <xdsl-loader fileType="agent-plan.xml" schemaPath="/nop/schema/ai/agent-plan.xdef"/>
+        <xdsl-loader fileType="agent-plan.yaml" schemaPath="/nop/schema/ai/agent-plan.xdef"/>
+        <loader fileType="agent-plan.md" mappingName="agent-plan.Markdown_to_AgentPlanModel" optional="true"
+                class="io.nop.record_mapping.md.MarkdownDslResourceLoaderFactory"/>
+    </loaders>
+
+</model>
