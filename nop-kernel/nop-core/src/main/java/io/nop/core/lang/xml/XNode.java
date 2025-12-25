@@ -2548,6 +2548,10 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return selector.select(this);
     }
 
+    public XNode selectNode(IXSelector<XNode> selector) {
+        return (XNode) selector.select(this);
+    }
+
     public Collection<?> selectMany(IXSelector<XNode> selector) {
         return selector.selectAll(this);
     }
