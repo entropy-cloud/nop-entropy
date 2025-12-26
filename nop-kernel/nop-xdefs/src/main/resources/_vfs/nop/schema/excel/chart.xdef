@@ -15,7 +15,8 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
        width="double-pt" height="double-pt" autoFit="boolean=true"
        dispBlanksAs="enum:io.nop.excel.chart.constants.ChartDispBlankAs"
        showLabelsOverMax="boolean" varyColors="!boolean=true"
-       is3D="boolean=false"
+       is3D="boolean=false" roundedCorners="boolean"
+       styleId="string"
 >
 
     <xdef:define xdef:name="ChartSpacingModel" top="double-pt" right="double-pt" bottom="double-pt" left="double-pt"/>
@@ -336,6 +337,126 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
                 <lineStyle xdef:ref="ChartLineStyleModel"/>
             </axis>
         </axes>
+
+        <!--
+Chart type specific configurations
+-->
+
+        <!--
+        @percentGapWidth 柱间空隙占柱宽百分比：65=65%。
+        @percentOverlap 同一类别中系列重叠比例：100=100% 重叠（堆积效果）。
+        -->
+        <barConfig xdef:name="ChartBarConfigModel"
+                   percentGapWidth="double-percent" percentOverlap="double-percent"
+                   dir="enum:io.nop.excel.chart.constants.ChartBarDirection"
+                   grouping="enum:io.nop.excel.chart.constants.ChartBarGrouping"/>
+
+        <!--
+        Pie chart specific settings
+        对应 Excel POI 中 PieChart 的特殊属性
+        -->
+        <pieConfig innerRadius="double-percent" outerRadius="double-percent" startAngle="double-deg"
+                   endAngle="double-deg" padAngle="double-deg" xdef:name="ChartPieConfigModel"/>
+
+        <!--
+        Line chart specific settings
+        对应 Excel POI 中 LineChart 的特殊属性
+        @grouping 分组方式：standard、stacked、percentStacked
+        @marker 是否显示标记点：true/false
+        @smooth 是否平滑曲线：true/false
+        @dropLines 是否显示垂直线到X轴：true/false
+        @hiLowLines 是否显示高低线：true/false
+        @upDownBars 是否显示涨跌柱：true/false
+        -->
+        <lineConfig grouping="enum:io.nop.excel.chart.constants.ChartBarGrouping"
+                    marker="boolean" smooth="boolean" dropLines="boolean"
+                    hiLowLines="boolean" upDownBars="boolean"
+                    xdef:name="ChartLineConfigModel"/>
+
+        <!--
+        Area chart specific settings
+        对应 Excel POI 中 AreaChart 的特殊属性
+        @grouping 分组方式：standard、stacked、percentStacked
+        @dropLines 是否显示垂直线到X轴：true/false
+        -->
+        <areaConfig grouping="enum:io.nop.excel.chart.constants.ChartBarGrouping"
+                    dropLines="boolean" xdef:name="ChartAreaConfigModel"/>
+
+        <!--
+        Scatter chart specific settings
+        对应 Excel POI 中 ScatterChart 的特殊属性
+        @scatterStyle 散点图样式：none、line、lineMarker、marker、smooth、smoothMarker
+        @showMarkers 是否显示标记点：true/false
+        -->
+        <scatterConfig scatterStyle="string" showMarkers="boolean"
+                       xdef:name="ChartScatterConfigModel"/>
+
+        <!--
+        Bubble chart specific settings
+        对应 Excel POI 中 BubbleChart 的特殊属性
+        @bubble3D 是否3D气泡：true/false
+        @bubbleScale 气泡缩放比例：默认100%
+        @sizeRepresents 气泡大小表示：area/width
+        -->
+        <bubbleConfig bubble3D="boolean" bubbleScale="double-percent"
+                      sizeRepresents="string" xdef:name="ChartBubbleConfigModel"/>
+
+        <!--
+        Radar chart specific settings
+        -->
+        <radarConfig radius="double-percent" startAngle="double-deg" endAngle="double-deg"
+                     xdef:name="ChartRadarConfigModel"/>
+
+        <!--
+        Heatmap chart specific settings
+        -->
+        <heatmapConfig cellSize="double-pt" colorRange="csv-list"
+                       missingDataColor="string" xdef:name="ChartHeatmapConfigModel"/>
+
+        <!-- 需要扩展的配置 -->
+        <stockConfig xdef:name="ChartStockConfigModel">
+            <ohlc open="string" high="string" low="string" close="string" xdef:name="ChartStockOhlcConfigModel"/>
+            <candlestick upColor="string" downColor="string" xdef:name="ChartCandlestickConfigModel"/>
+            <volume enabled="boolean" axisId="string" xdef:name="ChartStockVolumeConfigModel"/> <!-- 成交量使用次要坐标轴 -->
+        </stockConfig>
+
+        <surfaceConfig xdef:name="ChartSurfaceConfigModel">
+            <colorScale min="string" max="string" colors="csv-list" xdef:name="ChartColorScaleModel"/>
+            <wireframe enabled="boolean" width="double-pt" xdef:name="ChartWireframeModel"/>
+            <contour enabled="boolean" interval="double" xdef:name="ChartContourModel"/>
+        </surfaceConfig>
+
+        <hierarchicalConfig xdef:name="ChartHierarchicalConfigModel"
+                            algorithm="enum:io.nop.excel.chart.constants.ChartHierarchicalLayout">
+            <levels visible="boolean" depth="int" xdef:name="ChartHierarchicalLevelModel"/>
+            <leaves visible="boolean" labelPosition="enum:io.nop.excel.chart.constants.ChartLabelPosition"
+                    xdef:name="ChartHierarchicalLeafModel"/>
+        </hierarchicalConfig>
+
+        <waterfallConfig xdef:name="ChartWaterfallConfigModel">
+            <connectorLines xdef:ref="ChartLineStyleModel"/>
+            <subtotal positions="csv-list" labels="csv-list" xdef:name="ChartWaterfallSubtotalModel"/>
+            <total position="int" label="string" xdef:name="ChartWaterfallTotalModel"/>
+        </waterfallConfig>
+
+        <funnelConfig xdef:name="ChartFunnelConfigModel" neckWidth="double-percent" neckHeight="double-percent"
+                      sort="enum:io.nop.excel.chart.constants.ChartFunnelSort" gap="double-percent"/>
+
+        <filters xdef:name="ChartFiltersModel">
+            <!-- 值筛选器 -->
+            <valueFilter axisId="string" min="double" max="double" enabled="boolean" xdef:name="ChartValueFilterModel"/>
+
+            <!-- 类别筛选器 -->
+            <categoryFilter categories="csv-list" exclude="boolean" enabled="boolean"
+                            xdef:name="ChartCategoryFilterModel"/>
+
+            <!-- 系列筛选器 -->
+            <seriesFilter seriesNames="csv-list" exclude="boolean" enabled="boolean" xdef:name="ChartSeriesFilterModel"/>
+
+            <!-- 顶部N筛选器 -->
+            <topNFilter n="int" by="enum:io.nop.excel.chart.constants.ChartTopNBy" enabled="boolean"
+                        xdef:name="ChartTopNFilterModel"/>
+        </filters>
     </plotArea>
 
 
@@ -436,80 +557,5 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
                    update="string" enter="string" leave="string" xdef:name="ChartGlobalAnimationModel"/>
     </interactions>
 
-    <!--
-    Chart type specific configurations
-    -->
 
-    <!--
-    @percentGapWidth 柱间空隙占柱宽百分比：65=65%。
-    @percentOverlap 同一类别中系列重叠比例：100=100% 重叠（堆积效果）。
-    -->
-    <barConfig xdef:name="ChartBarConfigModel"
-               percentGapWidth="double-percent" percentOverlap="double-percent"
-               dir="enum:io.nop.excel.chart.constants.ChartBarDirection"
-               grouping="enum:io.nop.excel.chart.constants.ChartBarGrouping"/>
-
-    <!--
-    Pie chart specific settings
-    对应 Excel POI 中 PieChart 的特殊属性
-    -->
-    <pieConfig innerRadius="double-percent" outerRadius="double-percent" startAngle="double-deg"
-               endAngle="double-deg" padAngle="double-deg" xdef:name="ChartPieConfigModel"/>
-
-    <!--
-    Radar chart specific settings
-    -->
-    <radarConfig radius="double-percent" startAngle="double-deg" endAngle="double-deg"
-                 xdef:name="ChartRadarConfigModel"/>
-
-    <!--
-    Heatmap chart specific settings
-    -->
-    <heatmapConfig cellSize="double-pt" colorRange="csv-list"
-                   missingDataColor="string" xdef:name="ChartHeatmapConfigModel"/>
-
-    <!-- 需要扩展的配置 -->
-    <stockConfig xdef:name="ChartStockConfigModel">
-        <ohlc open="string" high="string" low="string" close="string" xdef:name="ChartStockOhlcConfigModel"/>
-        <candlestick upColor="string" downColor="string" xdef:name="ChartCandlestickConfigModel"/>
-        <volume enabled="boolean" axisId="string" xdef:name="ChartStockVolumeConfigModel"/> <!-- 成交量使用次要坐标轴 -->
-    </stockConfig>
-
-    <surfaceConfig xdef:name="ChartSurfaceConfigModel">
-        <colorScale min="string" max="string" colors="csv-list" xdef:name="ChartColorScaleModel"/>
-        <wireframe enabled="boolean" width="double-pt" xdef:name="ChartWireframeModel"/>
-        <contour enabled="boolean" interval="double" xdef:name="ChartContourModel"/>
-    </surfaceConfig>
-
-    <hierarchicalConfig xdef:name="ChartHierarchicalConfigModel"
-                        algorithm="enum:io.nop.excel.chart.constants.ChartHierarchicalLayout">
-        <levels visible="boolean" depth="int" xdef:name="ChartHierarchicalLevelModel"/>
-        <leaves visible="boolean" labelPosition="enum:io.nop.excel.chart.constants.ChartLabelPosition"
-                xdef:name="ChartHierarchicalLeafModel"/>
-    </hierarchicalConfig>
-
-    <waterfallConfig xdef:name="ChartWaterfallConfigModel">
-        <connectorLines xdef:ref="ChartLineStyleModel"/>
-        <subtotal positions="csv-list" labels="csv-list" xdef:name="ChartWaterfallSubtotalModel"/>
-        <total position="int" label="string" xdef:name="ChartWaterfallTotalModel"/>
-    </waterfallConfig>
-
-    <funnelConfig xdef:name="ChartFunnelConfigModel" neckWidth="double-percent" neckHeight="double-percent"
-                  sort="enum:io.nop.excel.chart.constants.ChartFunnelSort" gap="double-percent"/>
-
-    <filters xdef:name="ChartFiltersModel">
-        <!-- 值筛选器 -->
-        <valueFilter axisId="string" min="double" max="double" enabled="boolean" xdef:name="ChartValueFilterModel"/>
-
-        <!-- 类别筛选器 -->
-        <categoryFilter categories="csv-list" exclude="boolean" enabled="boolean"
-                        xdef:name="ChartCategoryFilterModel"/>
-
-        <!-- 系列筛选器 -->
-        <seriesFilter seriesNames="csv-list" exclude="boolean" enabled="boolean" xdef:name="ChartSeriesFilterModel"/>
-
-        <!-- 顶部N筛选器 -->
-        <topNFilter n="int" by="enum:io.nop.excel.chart.constants.ChartTopNBy" enabled="boolean"
-                    xdef:name="ChartTopNFilterModel"/>
-    </filters>
 </chart>

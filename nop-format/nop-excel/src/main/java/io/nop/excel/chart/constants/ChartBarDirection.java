@@ -29,6 +29,10 @@ public enum ChartBarDirection {
         return value;
     }
 
+    public String toString(){
+        return value;
+    }
+
     /**
      * XML 值 → 枚举
      */

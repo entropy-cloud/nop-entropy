@@ -162,6 +162,10 @@ public class OfficePackage implements Closeable, ISourceLocationGetter {
         return files.get(path);
     }
 
+    public IOfficePackagePart getPart(String path){
+        return getFile(path);
+    }
+
     public ResourceOfficePackagePart addFile(String path, IResource resource) {
         if (path.startsWith("/"))
             path = path.substring(1);

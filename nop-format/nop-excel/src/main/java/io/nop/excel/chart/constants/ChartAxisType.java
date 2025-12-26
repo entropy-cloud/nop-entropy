@@ -43,6 +43,10 @@ public enum ChartAxisType {
         return value;
     }
 
+    public String toString(){
+        return value;
+    }
+
     /**
      * OOXML 值 → 枚举
      */

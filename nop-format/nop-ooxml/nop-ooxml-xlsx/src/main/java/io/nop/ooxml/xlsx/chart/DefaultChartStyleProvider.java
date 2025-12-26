@@ -106,6 +106,89 @@ public class DefaultChartStyleProvider implements IChartStyleProvider {
         return cachedThemeData;
     }
     
+    /**
+     * 设置主题数据
+     * 允许外部动态设置主题数据，覆盖默认主题颜色
+     * 
+     * @param themeData 主题数据
+     */
+    public void setThemeData(ThemeFileParser.ThemeData themeData) {
+        this.cachedThemeData = themeData;
+        this.themeDataLoaded = true;
+        LOG.debug("Theme data set externally");
+    }
+    
+    /**
+     * 添加或更新主题颜色
+     * 
+     * @param colorKey 颜色键（如 "accent1", "tx1" 等）
+     * @param colorValue 颜色值（十六进制格式，如 "#FF0000"）
+     */
+    public void setThemeColor(String colorKey, String colorValue) {
+        if (colorKey == null || colorValue == null) return;
+        
+        // 确保主题数据已初始化
+        ThemeFileParser.ThemeData themeData = getThemeData();
+        if (themeData.getColorScheme() == null) {
+            themeData.setColorScheme(new ThemeFileParser.ColorScheme());
+        }
+        
+        themeData.getColorScheme().addColor(colorKey.toLowerCase(), colorValue);
+        LOG.debug("Theme color set: {} -> {}", colorKey, colorValue);
+    }
+    
+    /**
+     * 批量设置主题颜色
+     * 
+     * @param themeColors 主题颜色映射
+     */
+    public void setThemeColors(Map<String, String> themeColors) {
+        if (themeColors == null || themeColors.isEmpty()) return;
+        
+        for (Map.Entry<String, String> entry : themeColors.entrySet()) {
+            setThemeColor(entry.getKey(), entry.getValue());
+        }
+        
+        LOG.debug("Batch theme colors set: {} colors", themeColors.size());
+    }
+    
+    /**
+     * 设置主题字体
+     * 
+     * @param majorFont 主要字体
+     * @param minorFont 次要字体
+     */
+    public void setThemeFonts(String majorFont, String minorFont) {
+        ThemeFileParser.ThemeData themeData = getThemeData();
+        
+        if (majorFont != null) {
+            themeData.setMajorFont(majorFont);
+            LOG.debug("Major font set: {}", majorFont);
+        }
+        
+        if (minorFont != null) {
+            themeData.setMinorFont(minorFont);
+            LOG.debug("Minor font set: {}", minorFont);
+        }
+    }
+    
+    /**
+     * 获取当前主题颜色映射（用于调试和验证）
+     * 
+     * @return 当前所有主题颜色的映射
+     */
+    public Map<String, String> getCurrentThemeColors() {
+        Map<String, String> allColors = new HashMap<>(DEFAULT_THEME_COLORS);
+        
+        ThemeFileParser.ThemeData themeData = getThemeData();
+        if (themeData != null && themeData.getColorScheme() != null) {
+            // 主题文件中的颜色会覆盖默认颜色
+            allColors.putAll(themeData.getColorScheme().getAllColors());
+        }
+        
+        return allColors;
+    }
+    
     @Override
     public String getThemeColor(String themeColor) {
         if (themeColor == null) return null;

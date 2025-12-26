@@ -47,4 +47,18 @@ public class ChartPropertyHelper {
         String val = getChildVal(node, childTagName);
         return convertToBoolean(val);
     }
+
+    public static Double getChildDoubleVal(XNode node, String childTagName) {
+        XNode childNode = node.childByTag(childTagName);
+        if (childNode == null)
+            return null;
+        return childNode.attrDouble("val");
+    }
+
+    public static Integer getChildIntVal(XNode node, String childTagName) {
+        XNode childNode = node.childByTag(childTagName);
+        if (childNode == null)
+            return null;
+        return childNode.attrInt("val");
+    }
 }
