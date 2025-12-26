@@ -13,6 +13,7 @@ import io.nop.dao.dialect.DialectManager;
 import io.nop.dao.dialect.IDialect;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.OrmIndexModel;
 import io.nop.orm.model.OrmUniqueKeyModel;
 import io.nop.xlang.api.XLang;
 
@@ -159,5 +160,21 @@ public class DdlSqlCreator {
         args.put("uniqueKey", uniqueKey);
         args.put("dialect", dialect);
         return XLang.getTagAction(dmlLibPath, "DropUniqueKey").generateText(XLang.newEvalScope(args));
+    }
+
+    public String addIndex(IEntityModel table, OrmIndexModel index) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("table", table);
+        args.put("index", index);
+        args.put("dialect", dialect);
+        return XLang.getTagAction(dmlLibPath, "AddIndex").generateText(XLang.newEvalScope(args));
+    }
+
+    public String dropIndex(IEntityModel table, OrmIndexModel index) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("table", table);
+        args.put("index", index);
+        args.put("dialect", dialect);
+        return XLang.getTagAction(dmlLibPath, "DropIndex").generateText(XLang.newEvalScope(args));
     }
 }
