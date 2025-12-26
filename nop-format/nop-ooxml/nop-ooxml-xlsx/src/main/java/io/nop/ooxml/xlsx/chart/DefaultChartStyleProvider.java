@@ -496,7 +496,7 @@ public class DefaultChartStyleProvider implements IChartStyleProvider {
         // 图例使用白色背景和浅灰色边框
         ChartFillModel fill = new ChartFillModel();
         fill.setType(ChartFillType.SOLID);
-        fill.setColor("#FFFFFF");
+        fill.setForegroundColor("#FFFFFF");
         style.setFill(fill);
         
         ChartBorderModel border = new ChartBorderModel();
@@ -531,7 +531,7 @@ public class DefaultChartStyleProvider implements IChartStyleProvider {
         // 数据系列使用主题颜色填充
         ChartFillModel fill = new ChartFillModel();
         fill.setType(ChartFillType.SOLID);
-        fill.setColor("#4472C4"); // 默认accent1颜色
+        fill.setForegroundColor("#4472C4"); // 默认accent1颜色
         style.setFill(fill);
         
         return style;
@@ -656,7 +656,7 @@ public class DefaultChartStyleProvider implements IChartStyleProvider {
         if (shapeStyle.getFill() == null) {
             ChartFillModel fill = new ChartFillModel();
             fill.setType(ChartFillType.SOLID);
-            fill.setColor("#FFFFFF"); // 白色背景
+            fill.setForegroundColor("#FFFFFF"); // 白色背景
             shapeStyle.setFill(fill);
         }
         
@@ -690,7 +690,7 @@ public class DefaultChartStyleProvider implements IChartStyleProvider {
             ChartFillModel fill = new ChartFillModel();
             fill.setType(ChartFillType.SOLID);
             // 具体颜色由系列索引决定，这里设置默认值
-            fill.setColor("#4472C4"); // 默认蓝色
+            fill.setForegroundColor("#4472C4"); // 默认蓝色
             shapeStyle.setFill(fill);
         }
     }

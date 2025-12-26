@@ -54,8 +54,8 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
        @offsetY: Y 轴偏移，单位 pt，默认 2
        @opacity: 阴影透明度，默认 0.5
        -->
-        <shadow enabled="boolean=false" color="string='#000000'"
-                blur="double-pt=3" offsetX="double-pt=2" offsetY="double-pt=2"
+        <shadow enabled="boolean=false" color="string=#000000"
+                blur="double-pt=3.0" offsetX="double-pt=2.0" offsetY="double-pt=2.0"
                 opacity="double=0.5" xdef:name="ChartShadowModel"/>
 
         <!--
@@ -264,7 +264,7 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
             -->
             <axis type="enum:io.nop.excel.chart.constants.ChartAxisType"
                   multiLevel="boolean" primary="!boolean=true"
-                  crossAxisId="string" crossAt="double"
+                  crossAxisId="string" crossAt="double" visible="!boolean=true"
                   position="enum:io.nop.excel.chart.constants.ChartAxisPosition"
                   id="!string" xdef:name="ChartAxisModel">
 

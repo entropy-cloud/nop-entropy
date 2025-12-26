@@ -79,7 +79,7 @@ public class ChartGridParser {
             
             // 设置线条样式
             if (border.getStyle() != null) {
-                grid.setStyle(mapLineStyle(border.getStyle()));
+                grid.setStyle(border.getStyle());
             }
             
             // 设置透明度

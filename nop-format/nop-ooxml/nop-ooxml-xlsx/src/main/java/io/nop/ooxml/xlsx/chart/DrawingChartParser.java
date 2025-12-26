@@ -2,11 +2,11 @@ package io.nop.ooxml.xlsx.chart;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
-import io.nop.excel.chart.model.ChartModel;
-import io.nop.excel.chart.model.ChartTitleModel;
-import io.nop.excel.chart.model.ChartLegendModel;
-import io.nop.excel.chart.model.ChartPlotAreaModel;
 import io.nop.excel.chart.constants.ChartType;
+import io.nop.excel.chart.model.ChartLegendModel;
+import io.nop.excel.chart.model.ChartModel;
+import io.nop.excel.chart.model.ChartPlotAreaModel;
+import io.nop.excel.chart.model.ChartTitleModel;
 import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.xlsx.model.ExcelOfficePackage;
 import org.slf4j.Logger;
@@ -20,14 +20,14 @@ import org.slf4j.LoggerFactory;
 public class DrawingChartParser {
     private static final Logger LOG = LoggerFactory.getLogger(DrawingChartParser.class);
     public static final DrawingChartParser INSTANCE = new DrawingChartParser();
-    
+
     /**
      * 解析图表，遵循OOXML chartSpace结构规范
-     * 
+     *
      * @param chartRefNode 图表引用节点
-     * @param pkg Excel包
-     * @param drawingPart 绘图部分
-     * @param excelChart 目标ChartModel对象
+     * @param pkg          Excel包
+     * @param drawingPart  绘图部分
+     * @param excelChart   目标ChartModel对象
      */
     public void parseChartRef(XNode chartRefNode, ExcelOfficePackage pkg, IOfficePackagePart drawingPart, ChartModel excelChart) {
         XNode chartNode = getChartNode(chartRefNode, pkg, drawingPart);
@@ -35,38 +35,76 @@ public class DrawingChartParser {
             LOG.warn("Chart node is null, cannot parse chart");
             return;
         }
-        
+
+        // 创建样式提供者
+        IChartStyleProvider styleProvider = createStyleProvider(pkg);
+        parseChartSpace(chartNode,styleProvider, excelChart);
+    }
+
+    /**
+     * 获取图表节点
+     * 从图表引用节点中提取r:id，通过关系解析获取实际的图表XML节点
+     *
+     * @param chartRefNode 图表引用节点 (c:chart)
+     * @param pkg          Excel包
+     * @param drawingPart  绘图部分
+     * @return 图表XML节点 (chartSpace)
+     */
+    private XNode getChartNode(XNode chartRefNode, ExcelOfficePackage pkg, IOfficePackagePart drawingPart) {
         try {
-            // 验证chartSpace结构
-            validateChartStructure(chartNode);
-            
-            // 创建样式提供者
-            IChartStyleProvider styleProvider = createStyleProvider(pkg);
-            
-            // 查找实际的chart节点 (c:chartSpace/c:chart)
-            XNode actualChartNode = findActualChartNode(chartNode);
-            if (actualChartNode == null) {
-                LOG.warn("No actual chart node found in chartSpace, using chartSpace as chart node");
-                actualChartNode = chartNode;
+            // 从图表引用节点获取关系ID
+            String rId = chartRefNode.attrText("r:id");
+            if (StringHelper.isEmpty(rId)) {
+                LOG.warn("Chart reference node missing r:id attribute");
+                return null;
             }
-            
-            // 解析基础属性
-            parseBasicProperties(excelChart, actualChartNode);
-            
-            // 解析图表组件
-            parseTitle(excelChart, actualChartNode, styleProvider);
-            parseLegend(excelChart, actualChartNode, styleProvider);
-            parsePlotArea(excelChart, actualChartNode, styleProvider);
-            
+
+            // 通过关系ID获取图表文件
+            IOfficePackagePart chartPart = pkg.getRelPart(drawingPart, rId);
+            if (chartPart == null) {
+                LOG.warn("Chart part not found for relationship id: {}", rId);
+                return null;
+            }
+
+            // 加载图表XML
+            XNode chartNode = chartPart.loadXml();
+            if (chartNode == null) {
+                LOG.warn("Failed to load chart XML from part: {}", chartPart.getPath());
+                return null;
+            }
+
+            LOG.debug("Successfully loaded chart node from: {}", chartPart.getPath());
+            return chartNode;
+
         } catch (Exception e) {
-            LOG.warn("Failed to parse chart", e);
-            // 设置默认图表类型，确保图表对象可用
-            if (excelChart.getType() == null) {
-                excelChart.setType(ChartType.COLUMN);
-            }
+            LOG.warn("Failed to get chart node", e);
+            return null;
         }
     }
-    
+
+    public void parseChartSpace(XNode chartNode, IChartStyleProvider styleProvider, ChartModel excelChart) {
+
+        // 验证chartSpace结构
+        validateChartStructure(chartNode);
+
+
+        // 查找实际的chart节点 (c:chartSpace/c:chart)
+        XNode actualChartNode = findActualChartNode(chartNode);
+        if (actualChartNode == null) {
+            LOG.warn("No actual chart node found in chartSpace, using chartSpace as chart node");
+            actualChartNode = chartNode;
+        }
+
+        // 解析基础属性
+        parseBasicProperties(excelChart, actualChartNode);
+
+        // 解析图表组件
+        parseTitle(excelChart, actualChartNode, styleProvider);
+        parseLegend(excelChart, actualChartNode, styleProvider);
+        parsePlotArea(excelChart, actualChartNode, styleProvider);
+
+    }
+
     /**
      * 验证图表结构
      */
@@ -76,7 +114,7 @@ public class DrawingChartParser {
             LOG.warn("Unexpected chart root node: {}, expected c:chartSpace or c:chart", tagName);
         }
     }
-    
+
     /**
      * 创建样式提供者
      */
@@ -90,7 +128,7 @@ public class DrawingChartParser {
             return new DefaultChartStyleProvider();
         }
     }
-    
+
     /**
      * 查找实际的图表节点
      * OOXML结构: c:chartSpace/c:chart 或直接是 c:chart
@@ -104,10 +142,11 @@ public class DrawingChartParser {
         }
         return chartNode;
     }
-    
+
     /**
      * 解析基础属性
-     * @param chart 图表模型
+     *
+     * @param chart     图表模型
      * @param chartNode 图表节点
      */
     private void parseBasicProperties(ChartModel chart, XNode chartNode) {
@@ -117,23 +156,24 @@ public class DrawingChartParser {
             if (plotAreaNode != null) {
                 parseChartType(chart, plotAreaNode);
             }
-            
+
             // 解析其他基础属性
             String roundedCorners = chartNode.attrText("roundedCorners");
             if (!StringHelper.isEmpty(roundedCorners)) {
                 Boolean roundedCornersBool = ChartPropertyHelper.convertToBoolean(roundedCorners);
                 if (roundedCornersBool != null) {
-                    chart.setRoundedCorners(roundedCornersBool);
+                   // chart.setRoundedCorners(roundedCornersBool);
                 }
             }
         } catch (Exception e) {
             LOG.warn("Failed to parse chart basic properties", e);
         }
     }
-    
+
     /**
      * 解析图表类型
-     * @param chart 图表模型
+     *
+     * @param chart        图表模型
      * @param plotAreaNode 绘图区域节点
      */
     private void parseChartType(ChartModel chart, XNode plotAreaNode) {
@@ -143,7 +183,7 @@ public class DrawingChartParser {
                 String tagName = child.getTagName();
                 if (tagName.startsWith("c:")) {
                     String chartType = tagName.substring(2); // 去掉"c:"前缀
-                    
+
                     // 映射到ChartType枚举
                     ChartType type = mapChartType(chartType);
                     if (type != null) {
@@ -154,22 +194,23 @@ public class DrawingChartParser {
                     }
                 }
             }
-            
+
             // 如果没有找到图表类型，设置默认类型
             LOG.warn("No recognized chart type found in plot area, using default COLUMN");
             chart.setType(ChartType.COLUMN);
             chart.setIs3D(false);
-            
+
         } catch (Exception e) {
             LOG.warn("Failed to parse chart type, using default COLUMN", e);
             chart.setType(ChartType.COLUMN);
             chart.setIs3D(false);
         }
     }
-    
+
     /**
      * 映射图表类型字符串到枚举
      * 修复3D图表类型映射，因为ChartType枚举中没有3D类型
+     *
      * @param chartType 图表类型字符串
      * @return 对应的ChartType枚举
      */
@@ -211,20 +252,22 @@ public class DrawingChartParser {
             return null;
         }
     }
-    
+
     /**
      * 检查图表类型是否为3D
+     *
      * @param chartType OOXML图表类型字符串
      * @return 是否为3D图表
      */
     private boolean is3DChartType(String chartType) {
         return chartType != null && chartType.endsWith("3DChart");
     }
-    
+
     /**
      * 解析标题
-     * @param chart 图表模型
-     * @param chartNode 图表节点
+     *
+     * @param chart         图表模型
+     * @param chartNode     图表节点
      * @param styleProvider 样式提供者
      */
     private void parseTitle(ChartModel chart, XNode chartNode, IChartStyleProvider styleProvider) {
@@ -240,11 +283,12 @@ public class DrawingChartParser {
             LOG.warn("Failed to parse chart title", e);
         }
     }
-    
+
     /**
      * 解析图例
-     * @param chart 图表模型
-     * @param chartNode 图表节点
+     *
+     * @param chart         图表模型
+     * @param chartNode     图表节点
      * @param styleProvider 样式提供者
      */
     private void parseLegend(ChartModel chart, XNode chartNode, IChartStyleProvider styleProvider) {
@@ -260,11 +304,12 @@ public class DrawingChartParser {
             LOG.warn("Failed to parse chart legend", e);
         }
     }
-    
+
     /**
      * 解析绘图区域
-     * @param chart 图表模型
-     * @param chartNode 图表节点
+     *
+     * @param chart         图表模型
+     * @param chartNode     图表节点
      * @param styleProvider 样式提供者
      */
     private void parsePlotArea(ChartModel chart, XNode chartNode, IChartStyleProvider styleProvider) {

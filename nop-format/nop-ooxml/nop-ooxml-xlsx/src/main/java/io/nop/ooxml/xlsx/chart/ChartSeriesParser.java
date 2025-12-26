@@ -3,6 +3,7 @@ package io.nop.ooxml.xlsx.chart;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.chart.constants.ChartType;
+import io.nop.excel.chart.constants.ChartDataSourceType;
 import io.nop.excel.chart.model.ChartSeriesModel;
 import io.nop.excel.chart.model.ChartDataLabelsModel;
 import io.nop.excel.chart.model.ChartDataSourceModel;
@@ -189,26 +190,6 @@ public class ChartSeriesParser {
      */
     private void parseBasicProperties(ChartSeriesModel series, XNode serNode) {
         try {
-            // 解析系列索引
-            String idx = ChartPropertyHelper.getChildVal(serNode, "c:idx");
-            if (!StringHelper.isEmpty(idx)) {
-                try {
-                    series.setIndex(Integer.parseInt(idx));
-                } catch (NumberFormatException e) {
-                    LOG.warn("Invalid series index: {}", idx);
-                }
-            }
-            
-            // 解析系列顺序
-            String order = ChartPropertyHelper.getChildVal(serNode, "c:order");
-            if (!StringHelper.isEmpty(order)) {
-                try {
-                    series.setOrder(Integer.parseInt(order));
-                } catch (NumberFormatException e) {
-                    LOG.warn("Invalid series order: {}", order);
-                }
-            }
-            
             // 解析系列名称
             parseSeriesName(series, serNode);
             
@@ -235,13 +216,8 @@ public class ChartSeriesParser {
             }
             
             // 如果没有找到名称，使用默认名称
-            String defaultName = "Series";
-            if (series.getIndex() != null) {
-                defaultName = "Series " + series.getIndex();
-            } else if (series.getOrder() != null) {
-                defaultName = "Series " + series.getOrder();
-            }
-            series.setName(defaultName);
+            // 注意：系列的实际顺序由在列表中的位置决定，不需要index或order字段
+            series.setName("Series");
             
         } catch (Exception e) {
             LOG.warn("Failed to parse series name, using default", e);
@@ -276,34 +252,58 @@ public class ChartSeriesParser {
      */
     private void parseSeriesData(ChartSeriesModel series, XNode serNode) {
         try {
+            // 创建数据源模型
+            ChartDataSourceModel dataSource = new ChartDataSourceModel();
+            dataSource.setType(ChartDataSourceType.CELL_REFERENCE);
+            
             // 解析类别数据 (X轴数据)
             XNode catNode = serNode.childByTag("c:cat");
             if (catNode != null) {
-                parseDataReference(series, catNode, "category");
+                String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(catNode);
+                if (cellRef != null) {
+                    dataSource.setDataCellRef(cellRef);
+                }
             }
             
-            // 解析数值数据 (Y轴数据)
+            // 解析数值数据 (Y轴数据) - 优先级更高
             XNode valNode = serNode.childByTag("c:val");
             if (valNode != null) {
-                parseDataReference(series, valNode, "values");
+                String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(valNode);
+                if (cellRef != null) {
+                    dataSource.setDataCellRef(cellRef);
+                }
             }
             
             // 解析X值数据 (散点图)
             XNode xValNode = serNode.childByTag("c:xVal");
             if (xValNode != null) {
-                parseDataReference(series, xValNode, "xValues");
+                String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(xValNode);
+                if (cellRef != null) {
+                    dataSource.setDataCellRef(cellRef);
+                }
             }
             
             // 解析Y值数据 (散点图)
             XNode yValNode = serNode.childByTag("c:yVal");
             if (yValNode != null) {
-                parseDataReference(series, yValNode, "yValues");
+                String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(yValNode);
+                if (cellRef != null) {
+                    dataSource.setDataCellRef(cellRef);
+                }
             }
             
             // 解析气泡大小数据 (气泡图)
             XNode bubbleSizeNode = serNode.childByTag("c:bubbleSize");
             if (bubbleSizeNode != null) {
-                parseDataReference(series, bubbleSizeNode, "bubbleSize");
+                String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(bubbleSizeNode);
+                if (cellRef != null) {
+                    dataSource.setDataCellRef(cellRef);
+                }
+            }
+            
+            // 如果找到了数据引用，设置数据源
+            if (!StringHelper.isEmpty(dataSource.getDataCellRef())) {
+                series.setDataSource(dataSource);
             }
             
             // 解析系列特定配置
@@ -408,45 +408,6 @@ public class ChartSeriesParser {
     }
     
     /**
-     * 解析数据引用
-     */
-    private void parseDataReference(ChartSeriesModel series, XNode dataNode, String dataType) {
-        try {
-            // 使用ChartTextParser统一处理单元格引用
-            String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(dataNode);
-            if (cellRef != null) {
-                // 根据数据类型设置相应的引用
-                switch (dataType) {
-                    case "categories":
-                        series.setCategoriesRef(cellRef);
-                        break;
-                    case "values":
-                        series.setValuesRef(cellRef);
-                        break;
-                    case "xValues":
-                        series.setXValuesRef(cellRef);
-                        break;
-                    case "yValues":
-                        series.setYValuesRef(cellRef);
-                        break;
-                    case "bubbleSize":
-                        series.setBubbleSizeRef(cellRef);
-                        break;
-                    default:
-                        LOG.warn("Unknown data type: {}", dataType);
-                        break;
-                }
-                return;
-            }
-            
-            LOG.debug("No data reference found for series data type: {}", dataType);
-            
-        } catch (Exception e) {
-            LOG.warn("Failed to parse data reference for type: {}", dataType, e);
-        }
-    }
-    
-    /**
      * 解析系列格式化
      */
     private void parseSeriesFormatting(ChartSeriesModel series, XNode serNode, IChartStyleProvider styleProvider) {
@@ -481,10 +442,10 @@ public class ChartSeriesParser {
     private void parseIndexBasedFormatting(ChartSeriesModel series, XNode serNode, IChartStyleProvider styleProvider) {
         try {
             // 应用基于索引的默认样式
-            if (series.getIndex() != null && styleProvider != null) {
+           // if (series.getIndex() != null && styleProvider != null) {
                 // TODO: 根据系列索引应用默认颜色和样式
-                LOG.debug("Applying index-based formatting for series index: {}", series.getIndex());
-            }
+           //     LOG.debug("Applying index-based formatting for series index: {}", series.getIndex());
+           // }
             
             // 解析系列特定的颜色变化
             Boolean varyColorsBool = ChartPropertyHelper.getChildBoolVal(serNode, "c:varyColors");
