@@ -91,17 +91,25 @@ public abstract class _ChartAxisModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
-     * xml name: tickLabels
-     * Axis labels styling
-     * 对应 Excel POI 中的 AxisTickLabels
+     * xml name: shapeStyle
+     * Common shape style model based on POI CTShapeProperties
+     * 通用形状样式模型，基于 POI 的 CTShapeProperties
+     * 对应 Excel POI 中的 CTShapeProperties，用于 Legend、DataLabel、Tooltip 等元素的样式
      */
-    private io.nop.excel.chart.model.ChartTickLabelsModel _tickLabels ;
+    private io.nop.excel.chart.model.ChartShapeStyleModel _shapeStyle ;
+    
+    /**
+     *  
+     * xml name: textStyle
+     * 文本样式（对应 CTTextBody）
+     */
+    private io.nop.excel.chart.model.ChartTextStyleModel _textStyle ;
     
     /**
      *  
      * xml name: ticks
-     * Axis tick marks
-     * 对应 Excel POI 中的 AxisTickMark
+     * Unified tick configuration (recommended)
+     * 统一的刻度配置，更符合 OOXML 的平级结构
      */
     private io.nop.excel.chart.model.ChartTicksModel _ticks ;
     
@@ -322,20 +330,40 @@ public abstract class _ChartAxisModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
-     * xml name: tickLabels
-     *  Axis labels styling
-     * 对应 Excel POI 中的 AxisTickLabels
+     * xml name: shapeStyle
+     *  Common shape style model based on POI CTShapeProperties
+     * 通用形状样式模型，基于 POI 的 CTShapeProperties
+     * 对应 Excel POI 中的 CTShapeProperties，用于 Legend、DataLabel、Tooltip 等元素的样式
      */
     
-    public io.nop.excel.chart.model.ChartTickLabelsModel getTickLabels(){
-      return _tickLabels;
+    public io.nop.excel.chart.model.ChartShapeStyleModel getShapeStyle(){
+      return _shapeStyle;
     }
 
     
-    public void setTickLabels(io.nop.excel.chart.model.ChartTickLabelsModel value){
+    public void setShapeStyle(io.nop.excel.chart.model.ChartShapeStyleModel value){
         checkAllowChange();
         
-        this._tickLabels = value;
+        this._shapeStyle = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: textStyle
+     *  文本样式（对应 CTTextBody）
+     */
+    
+    public io.nop.excel.chart.model.ChartTextStyleModel getTextStyle(){
+      return _textStyle;
+    }
+
+    
+    public void setTextStyle(io.nop.excel.chart.model.ChartTextStyleModel value){
+        checkAllowChange();
+        
+        this._textStyle = value;
            
     }
 
@@ -343,8 +371,8 @@ public abstract class _ChartAxisModel extends io.nop.core.resource.component.Abs
     /**
      * 
      * xml name: ticks
-     *  Axis tick marks
-     * 对应 Excel POI 中的 AxisTickMark
+     *  Unified tick configuration (recommended)
+     * 统一的刻度配置，更符合 OOXML 的平级结构
      */
     
     public io.nop.excel.chart.model.ChartTicksModel getTicks(){
@@ -434,7 +462,9 @@ public abstract class _ChartAxisModel extends io.nop.core.resource.component.Abs
             
            this._scale = io.nop.api.core.util.FreezeHelper.deepFreeze(this._scale);
             
-           this._tickLabels = io.nop.api.core.util.FreezeHelper.deepFreeze(this._tickLabels);
+           this._shapeStyle = io.nop.api.core.util.FreezeHelper.deepFreeze(this._shapeStyle);
+            
+           this._textStyle = io.nop.api.core.util.FreezeHelper.deepFreeze(this._textStyle);
             
            this._ticks = io.nop.api.core.util.FreezeHelper.deepFreeze(this._ticks);
             
@@ -457,7 +487,8 @@ public abstract class _ChartAxisModel extends io.nop.core.resource.component.Abs
         out.putNotNull("position",this.getPosition());
         out.putNotNull("primary",this.isPrimary());
         out.putNotNull("scale",this.getScale());
-        out.putNotNull("tickLabels",this.getTickLabels());
+        out.putNotNull("shapeStyle",this.getShapeStyle());
+        out.putNotNull("textStyle",this.getTextStyle());
         out.putNotNull("ticks",this.getTicks());
         out.putNotNull("title",this.getTitle());
         out.putNotNull("type",this.getType());
@@ -483,7 +514,8 @@ public abstract class _ChartAxisModel extends io.nop.core.resource.component.Abs
         instance.setPosition(this.getPosition());
         instance.setPrimary(this.isPrimary());
         instance.setScale(this.getScale());
-        instance.setTickLabels(this.getTickLabels());
+        instance.setShapeStyle(this.getShapeStyle());
+        instance.setTextStyle(this.getTextStyle());
         instance.setTicks(this.getTicks());
         instance.setTitle(this.getTitle());
         instance.setType(this.getType());

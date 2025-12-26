@@ -150,13 +150,13 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
    对应 Excel POI 中的 XSSFChart.getChartSeries() 集合
    每个 series 对应一个 ChartSeries 对象
    -->
-        <series xdef:body-type="list" xdef:key-attr="name" xdef:name="ChartSeriesListModel">
+        <series xdef:body-type="list" xdef:key-attr="id" xdef:name="ChartSeriesListModel">
 
             <!--
             @invertIfNegative 当系列中的数据点为负值时，使用反转颜色显示（通常是前景色和背景色交换）。
             @axisId 关联的坐标轴ID，默认使用主坐标轴。
             -->
-            <series name="!string" type="enum:io.nop.excel.chart.constants.ChartType"
+            <series id="!string" name="string" type="enum:io.nop.excel.chart.constants.ChartType"
                     nameCellRef="string" invertIfNegative="boolean=false" axisId="string"
                     visible="boolean=true" xdef:name="ChartSeriesModel">
 
@@ -269,6 +269,9 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
                   position="enum:io.nop.excel.chart.constants.ChartAxisPosition"
                   id="!string" xdef:name="ChartAxisModel">
 
+                <shapeStyle xdef:ref="ChartShapeStyleModel"/>
+                <textStyle xdef:ref="ChartTextStyleModel"/>
+
                 <!--
                 Axis title
                 对应 Excel POI 中的 AxisTitle
@@ -289,25 +292,33 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
                        xdef:name="ChartAxisScaleModel"/>
 
                 <!--
-                Axis labels styling
-                对应 Excel POI 中的 AxisTickLabels
-
-                @show 是否显示刻度标签（默认 true）
-                @position 刻度标签相对于轴的位置：none、low、high、nextTo
-                @numFmt 数字格式串，如"General""#,##0.00""0%"
-                @rotation 文字旋转角度
-                @font 刻度文字字体（复用 Font 模型）
-                @fill 刻度文字填充（复用 Fill 模型）
-                @border 刻度文字边框（复用 Line 模型）
+                Unified tick configuration (recommended)
+                统一的刻度配置，更符合 OOXML 的平级结构
+                
+                @visible 是否显示刻度（包括标记和标签）
+                @majorTickMark 主刻度线位置：none、inside、outside、cross
+                @minorTickMark 次刻度线位置：none、inside、outside、cross
+                @labelPosition 刻度标签相对于轴的位置：none、low、high、nextTo
+                @labelVisible 是否显示刻度标签
+                @labelRotation 标签文字旋转角度
+                @labelNumFmt 标签数字格式串，如"General""#,##0.00""0%"
+                @tickColor 刻度线颜色
+                @tickWidth 刻度线宽度
                 -->
-                <tickLabels visible="boolean=true"
-                            position="enum:io.nop.excel.chart.constants.ChartAxisTickLabelPosition"
-                            numFmt="string"
-                            rotation="int"
-                            xdef:name="ChartTickLabelsModel">
-                    <font xdef:ref="font.xdef"/>
-                </tickLabels>
-
+                <ticks visible="boolean=true"
+                      majorTickMark="enum:io.nop.excel.chart.constants.ChartTickMark"
+                      minorTickMark="enum:io.nop.excel.chart.constants.ChartTickMark"
+                      labelPosition="enum:io.nop.excel.chart.constants.ChartAxisTickLabelPosition"
+                      labelAlignment="enum:io.nop.excel.chart.constants.ChartLabelAlignment"
+                      labelVisible="boolean=true"
+                      labelRotation="double-deg" labelOffset="double-percent"
+                      labelNumFmt="string"
+                      tickColor="string"
+                      tickWidth="double-pt"
+                      xdef:name="ChartTicksModel">
+                    <!-- 刻度标签字体 -->
+                    <labelFont xdef:ref="font.xdef"/>
+                </ticks>
 
                 <!--
                 Grid lines configuration
@@ -318,17 +329,6 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
                            width="double-pt" opacity="double" xdef:name="ChartGridModel"/>
 
                 <minorGrid xdef:ref="ChartGridModel"/>
-
-                <!--
-                Axis tick marks
-                对应 Excel POI 中的 AxisTickMark
-                @majorTick  主刻度线位置：none、inside、outside、cross
-                @minorTick  次刻度线位置：none、inside、outside、cross
-                -->
-                <ticks visible="boolean=true" color="string" width="double-pt"
-                       majorTick="enum:io.nop.excel.chart.constants.ChartTickMark"
-                       minorTick="enum:io.nop.excel.chart.constants.ChartTickMark"
-                       xdef:name="ChartTicksModel"/>
 
                 <!--
                 Axis line styling

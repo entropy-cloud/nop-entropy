@@ -449,7 +449,7 @@ public abstract class _ChartPlotAreaModel extends io.nop.core.resource.component
     public void setSeries(java.util.List<io.nop.excel.chart.model.ChartSeriesModel> value){
         checkAllowChange();
         
-        this._series = KeyedList.fromList(value, io.nop.excel.chart.model.ChartSeriesModel::getName);
+        this._series = KeyedList.fromList(value, io.nop.excel.chart.model.ChartSeriesModel::getId);
            
     }
 
@@ -466,7 +466,7 @@ public abstract class _ChartPlotAreaModel extends io.nop.core.resource.component
         checkAllowChange();
         java.util.List<io.nop.excel.chart.model.ChartSeriesModel> list = this.getSeries();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.excel.chart.model.ChartSeriesModel::getName);
+            list = new KeyedList<>(io.nop.excel.chart.model.ChartSeriesModel::getId);
             setSeries(list);
         }
         list.add(item);

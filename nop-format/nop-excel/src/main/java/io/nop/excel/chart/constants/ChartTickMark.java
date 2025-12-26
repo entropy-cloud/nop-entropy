@@ -39,6 +39,10 @@ public enum ChartTickMark {
         return value;
     }
 
+    public String toString(){
+        return value;
+    }
+
     /**
      * XML 值 → 枚举
      */

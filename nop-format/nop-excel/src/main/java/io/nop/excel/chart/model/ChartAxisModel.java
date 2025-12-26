@@ -7,4 +7,13 @@ public class ChartAxisModel extends _ChartAxisModel implements IChartStyleSuppor
     public ChartAxisModel(){
 
     }
+
+    public ChartTicksModel makeTicks(){
+        ChartTicksModel ticks = getTicks();
+        if(ticks == null){
+            ticks = new ChartTicksModel();
+            setTicks(ticks);
+        }
+        return ticks;
+    }
 }
