@@ -1,13 +1,32 @@
 package io.nop.excel.chart.constants;
 
+import io.nop.api.core.annotations.core.StaticFactoryMethod;
+import io.nop.commons.util.StringHelper;
+
 /**
- * Chart axis position enumeration
+ * 坐标轴位置枚举
+ * 对应 OOXML <c:axPos val="…"/>
  */
 public enum ChartAxisPosition {
-    BOTTOM("bottom"),
-    TOP("top"),
-    LEFT("left"),
-    RIGHT("right");
+    /**
+     * 左侧
+     */
+    LEFT("l"),
+    
+    /**
+     * 右侧
+     */
+    RIGHT("r"),
+    
+    /**
+     * 顶部
+     */
+    TOP("t"),
+    
+    /**
+     * 底部
+     */
+    BOTTOM("b");
 
     private final String value;
 
@@ -15,21 +34,27 @@ public enum ChartAxisPosition {
         this.value = value;
     }
 
-    public String getValue() {
+    public String toString(){
         return value;
     }
 
-    @Override
-    public String toString() {
+    public String value() {
         return value;
     }
 
-    public static ChartAxisPosition fromValue(String value) {
-        for (ChartAxisPosition position : values()) {
-            if (position.value.equals(value)) {
-                return position;
+    /**
+     * XML 值 → 枚举
+     */
+    @StaticFactoryMethod
+    public static ChartAxisPosition fromValue(String v) {
+        if (StringHelper.isEmpty(v))
+            return null;
+
+        for (ChartAxisPosition pos : values()) {
+            if (pos.value.equals(v)) {
+                return pos;
             }
         }
-        throw new IllegalArgumentException("Unknown axis position: " + value);
+        throw new IllegalArgumentException("Illegal axis position value: " + v);
     }
 }

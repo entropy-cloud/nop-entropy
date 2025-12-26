@@ -1,17 +1,52 @@
 package io.nop.excel.chart.constants;
 
+import io.nop.api.core.annotations.core.StaticFactoryMethod;
+import io.nop.commons.util.StringHelper;
+
 /**
- * Chart legend position enumeration
+ * 图表图例位置枚举
+ * 对应 OOXML <c:legendPos val="…"/>
  */
 public enum ChartLegendPosition {
-    TOP("top"),
-    BOTTOM("bottom"),
-    LEFT("left"),
-    RIGHT("right"),
-    TOP_LEFT("top-left"),
-    TOP_RIGHT("top-right"),
-    BOTTOM_LEFT("bottom-left"),
-    BOTTOM_RIGHT("bottom-right");
+    /**
+     * 右侧
+     */
+    RIGHT("r"),
+    
+    /**
+     * 左侧
+     */
+    LEFT("l"),
+    
+    /**
+     * 顶部
+     */
+    TOP("t"),
+    
+    /**
+     * 底部
+     */
+    BOTTOM("b"),
+    
+    /**
+     * 右上角
+     */
+    TOP_RIGHT("tr"),
+    
+    /**
+     * 左上角
+     */
+    TOP_LEFT("tl"),
+    
+    /**
+     * 右下角
+     */
+    BOTTOM_RIGHT("br"),
+    
+    /**
+     * 左下角
+     */
+    BOTTOM_LEFT("bl");
 
     private final String value;
 
@@ -19,21 +54,27 @@ public enum ChartLegendPosition {
         this.value = value;
     }
 
-    public String getValue() {
+    public String value() {
         return value;
     }
 
-    @Override
-    public String toString() {
+    public String toString(){
         return value;
     }
 
-    public static ChartLegendPosition fromValue(String value) {
-        for (ChartLegendPosition position : values()) {
-            if (position.value.equals(value)) {
-                return position;
+    /**
+     * XML 值 → 枚举
+     */
+    @StaticFactoryMethod
+    public static ChartLegendPosition fromValue(String v) {
+        if (StringHelper.isEmpty(v))
+            return null;
+
+        for (ChartLegendPosition pos : values()) {
+            if (pos.value.equals(v)) {
+                return pos;
             }
         }
-        throw new IllegalArgumentException("Unknown legend position: " + value);
+        throw new IllegalArgumentException("Illegal legend position value: " + v);
     }
 }

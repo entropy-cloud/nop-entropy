@@ -12,6 +12,7 @@ import io.nop.commons.util.ClassHelper;
  * generate from /nop/schema/excel/workbook.xdef <p>
  * Enhanced Chart Metamodel Definition
  * Supports comprehensive chart configuration for Apache POI, PDF, and ECharts output formats
+ * 所有的单位统一使用pt(points)，而OOXML中一般是使用EMU
  * 参考 Apache POI XSSFChart 和 Excel Chart API 设计
  * 对应 Excel 中的 Chart 对象和相关属性
  */

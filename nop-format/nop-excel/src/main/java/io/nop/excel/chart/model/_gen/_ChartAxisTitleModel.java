@@ -19,10 +19,12 @@ public abstract class _ChartAxisTitleModel extends io.nop.core.resource.componen
     
     /**
      *  
-     * xml name: font
-     * 
+     * xml name: shapeStyle
+     * Common shape style model based on POI CTShapeProperties
+     * 通用形状样式模型，基于 POI 的 CTShapeProperties
+     * 对应 Excel POI 中的 CTShapeProperties，用于 Legend、DataLabel、Tooltip 等元素的样式
      */
-    private io.nop.excel.model.ExcelFont _font ;
+    private io.nop.excel.chart.model.ChartShapeStyleModel _shapeStyle ;
     
     /**
      *  
@@ -33,6 +35,20 @@ public abstract class _ChartAxisTitleModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: textCellRef
+     * 
+     */
+    private java.lang.String _textCellRef ;
+    
+    /**
+     *  
+     * xml name: textStyle
+     * 文本样式（对应 CTTextBody）
+     */
+    private io.nop.excel.chart.model.ChartTextStyleModel _textStyle ;
+    
+    /**
+     *  
      * xml name: visible
      * 
      */
@@ -40,19 +56,21 @@ public abstract class _ChartAxisTitleModel extends io.nop.core.resource.componen
     
     /**
      * 
-     * xml name: font
-     *  
+     * xml name: shapeStyle
+     *  Common shape style model based on POI CTShapeProperties
+     * 通用形状样式模型，基于 POI 的 CTShapeProperties
+     * 对应 Excel POI 中的 CTShapeProperties，用于 Legend、DataLabel、Tooltip 等元素的样式
      */
     
-    public io.nop.excel.model.ExcelFont getFont(){
-      return _font;
+    public io.nop.excel.chart.model.ChartShapeStyleModel getShapeStyle(){
+      return _shapeStyle;
     }
 
     
-    public void setFont(io.nop.excel.model.ExcelFont value){
+    public void setShapeStyle(io.nop.excel.chart.model.ChartShapeStyleModel value){
         checkAllowChange();
         
-        this._font = value;
+        this._shapeStyle = value;
            
     }
 
@@ -72,6 +90,44 @@ public abstract class _ChartAxisTitleModel extends io.nop.core.resource.componen
         checkAllowChange();
         
         this._text = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: textCellRef
+     *  
+     */
+    
+    public java.lang.String getTextCellRef(){
+      return _textCellRef;
+    }
+
+    
+    public void setTextCellRef(java.lang.String value){
+        checkAllowChange();
+        
+        this._textCellRef = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: textStyle
+     *  文本样式（对应 CTTextBody）
+     */
+    
+    public io.nop.excel.chart.model.ChartTextStyleModel getTextStyle(){
+      return _textStyle;
+    }
+
+    
+    public void setTextStyle(io.nop.excel.chart.model.ChartTextStyleModel value){
+        checkAllowChange();
+        
+        this._textStyle = value;
            
     }
 
@@ -103,7 +159,9 @@ public abstract class _ChartAxisTitleModel extends io.nop.core.resource.componen
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._font = io.nop.api.core.util.FreezeHelper.deepFreeze(this._font);
+           this._shapeStyle = io.nop.api.core.util.FreezeHelper.deepFreeze(this._shapeStyle);
+            
+           this._textStyle = io.nop.api.core.util.FreezeHelper.deepFreeze(this._textStyle);
             
         }
     }
@@ -112,8 +170,10 @@ public abstract class _ChartAxisTitleModel extends io.nop.core.resource.componen
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("font",this.getFont());
+        out.putNotNull("shapeStyle",this.getShapeStyle());
         out.putNotNull("text",this.getText());
+        out.putNotNull("textCellRef",this.getTextCellRef());
+        out.putNotNull("textStyle",this.getTextStyle());
         out.putNotNull("visible",this.getVisible());
     }
 
@@ -126,8 +186,10 @@ public abstract class _ChartAxisTitleModel extends io.nop.core.resource.componen
     protected void copyTo(ChartAxisTitleModel instance){
         super.copyTo(instance);
         
-        instance.setFont(this.getFont());
+        instance.setShapeStyle(this.getShapeStyle());
         instance.setText(this.getText());
+        instance.setTextCellRef(this.getTextCellRef());
+        instance.setTextStyle(this.getTextStyle());
         instance.setVisible(this.getVisible());
     }
 

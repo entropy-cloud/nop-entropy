@@ -48,7 +48,7 @@ public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implI
 
 
     <c:for var="prop" items="${objSchema.localProps}">
-        <c:continue xpl:if="prop.name.indexOf(':')>0" />
+        <c:continue xpl:if="prop.name.indexOf(':')>0" /><c:if test="${!prop.schema.type}"><c:throw errorCode="null type" params="${{prop}}" /></c:if>
     /**
      * ${prop.displayName}
      * xml name: ${prop.xmlName}

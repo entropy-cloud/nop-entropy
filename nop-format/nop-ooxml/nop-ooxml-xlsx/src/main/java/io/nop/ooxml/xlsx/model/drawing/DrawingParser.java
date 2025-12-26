@@ -9,6 +9,7 @@ package io.nop.ooxml.xlsx.model.drawing;
 
 import io.nop.commons.collections.KeyedList;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.xml.IXSelector;
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.chart.model.ChartModel;
 import io.nop.excel.model.ExcelChartModel;
@@ -18,35 +19,35 @@ import io.nop.excel.model.constants.ExcelAnchorType;
 import io.nop.excel.util.UnitsHelper;
 import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.xlsx.model.ExcelOfficePackage;
+import io.nop.xlang.xpath.XPathHelper;
 
 import java.util.List;
 
 import static io.nop.xlang.xdsl.XDslParseHelper.parseAttrEnumValue;
 
 /**
- * -  <xdr:wsDr> 是一个命名空间声明，指定了XML片段中使用的命名空间。
- * -  <xdr:twoCellAnchor> 是一个单元格锚定的元素，表示图片在电子表格中的位置。 editAs 属性设置为"oneCell"，表示将整个图片作为一个单元格处理。
- * -  <xdr:from> 标签表示起始单元格的位置，其中 <xdr:col> 表示列索引， <xdr:row> 表示行索引。
- * -  <xdr:to> 标签表示结束单元格的位置，其中 <xdr:col> 表示列索引， <xdr:row> 表示行索引。
- * -  <xdr:pic> 包含有关图片的信息。
- * -  <xdr:nvPicPr> 包含有关图片的非可视化属性。
- * -  <xdr:cNvPr> 指定图片的非可视化属性，如id和名称。
- * -  <xdr:cNvPicPr> 包含有关图片的非可视化图像属性，如图像锁定。
- * -  <xdr:blipFill> 指定图片的填充属性。
- * -  <a:blip> 指定图片的图像数据，使用 r:embed 属性指定了图片的关联ID。
- * -  <a:stretch> 指定图片的拉伸属性。
- * -  <xdr:spPr> 指定图片的形状属性，如位置和尺寸。
- * -  <a:xfrm> 指定图片的转换属性，如偏移量和扩展。
- * -  <a:prstGeom> 指定图片的预设几何属性，如形状类型。
- * -  <xdr:clientData> 包含有关图片的客户端数据。
+ * DrawingParser handles parsing of Excel drawing elements including images and charts.
+ * Uses SELECTOR mechanism for complex node selection similar to WordDrawing.
  */
 public class DrawingParser {
-    public List<ExcelImage> parseDrawing(XNode node) {
+
+    // SELECTOR机制 - 只用于复杂嵌套节点选择，简单子节点直接用childByTag
+    static final IXSelector<XNode> SELECTOR_CHART_REF = XPathHelper.parseXSelector("a:graphic/a:graphicData/c:chart");
+    static final IXSelector<XNode> SELECTOR_PIC_CNVPR = XPathHelper.parseXSelector("xdr:nvPicPr/xdr:cNvPr");
+    static final IXSelector<XNode> SELECTOR_PIC_LOCKS = XPathHelper.parseXSelector("xdr:nvPicPr/xdr:cNvPicPr/a:picLocks");
+    static final IXSelector<XNode> SELECTOR_BLIP = XPathHelper.parseXSelector("xdr:blipFill/a:blip");
+    static final IXSelector<XNode> SELECTOR_XFRM = XPathHelper.parseXSelector("xdr:spPr/a:xfrm");
+
+    public List<ExcelImage> parseImages(XNode node) {
         KeyedList<ExcelImage> ret = new KeyedList<>(ExcelImage::getName);
 
         for (XNode child : node.getChildren()) {
+            XNode graphicFrame = child.childByTag("xdr:graphicFrame");
+            if (graphicFrame != null)
+                continue;
+
             if (child.getTagName().equals("xdr:twoCellAnchor")) {
-                ExcelImage image = parseAnchor(child);
+                ExcelImage image = parseImage(child);
                 // name重复，需要重命名
                 while (ret.getByKey(image.getName()) != null) {
                     image.setName(StringHelper.nextName(image.getName()));
@@ -64,16 +65,20 @@ public class DrawingParser {
             if (child.getTagName().equals("xdr:twoCellAnchor")) {
                 XNode graphicFrame = child.childByTag("xdr:graphicFrame");
                 if (graphicFrame != null) {
-                    XNode chartRef = graphicFrame.childByTag("a:graphic").childByTag("a:graphicData").childByTag("c:chart");
+                    ExcelClientAnchor anchor = parseAnchor(child);
+
+                    // 使用SELECTOR选择复杂嵌套的chart引用节点
+                    XNode chartRef = (XNode) graphicFrame.selectOne(SELECTOR_CHART_REF);
                     if (chartRef != null) {
                         ExcelChartModel excelChart = new ExcelChartModel();
-                        ChartModel chart = DrawingChartParser.INSTANCE.parseChart(child, chartRef, pkg, drawingPart, excelChart);
-                        if (chart != null) {
-                            while (ret.getByKey(excelChart.getName()) != null) {
-                                excelChart.setName(StringHelper.nextName(excelChart.getName()));
-                            }
-                            ret.add(excelChart);
+                        excelChart.setAnchor(anchor);
+
+                        DrawingChartParser.INSTANCE.parseChart(chartRef, pkg, drawingPart, excelChart);
+                       
+                        while (ret.getByKey(excelChart.getName()) != null) {
+                            excelChart.setName(StringHelper.nextName(excelChart.getName()));
                         }
+                        ret.add(excelChart);
                     }
                 }
             }
@@ -82,22 +87,18 @@ public class DrawingParser {
     }
 
 
-    public ExcelImage parseAnchor(XNode anchorNode) {
+    public ExcelImage parseImage(XNode anchorNode) {
         XNode clientData = anchorNode.childByTag("xdr:clientData");
         XNode pic = anchorNode.childByTag("xdr:pic");
-        XNode picPr = pic != null ? pic.childByTag("xdr:nvPicPr") : null;
-        XNode cNvPr = picPr != null ? picPr.childByTag("xdr:cNvPr") : null;
-        XNode cNvPicPr = picPr != null ? picPr.childByTag("xdr:cNvPicPr") : null;
-        XNode picLocks = cNvPicPr != null ? cNvPicPr.childByTag("a:picLocks") : null;
 
-        XNode blipFill = pic != null ? pic.childByTag("xdr:blipFill") : null;
-        XNode blip = blipFill != null ? blipFill.childByTag("a:blip") : null;
-
-        XNode spPr = pic != null ? pic.childByTag("xdr:spPr") : null;
-        XNode xfrm = spPr != null ? spPr.childByTag("a:xfrm") : null;
+        // 使用SELECTOR选择复杂嵌套节点
+        XNode cNvPr = pic != null ? pic.selectNode(SELECTOR_PIC_CNVPR) : null;
+        XNode picLocks = pic != null ? pic.selectNode(SELECTOR_PIC_LOCKS) : null;
+        XNode blip = pic != null ? pic.selectNode(SELECTOR_BLIP) : null;
+        XNode xfrm = pic != null ? pic.selectNode(SELECTOR_XFRM) : null;
 
         ExcelImage image = new ExcelImage();
-        ExcelClientAnchor anchor = parseAnchor0(anchorNode);
+        ExcelClientAnchor anchor = parseAnchor(anchorNode);
         image.setAnchor(anchor);
 
         XNode xdrShape = anchorNode.childByTag("xdr:sp");
@@ -137,20 +138,37 @@ public class DrawingParser {
         return image;
     }
 
-    ExcelClientAnchor parseAnchor0(XNode anchor) {
+    ExcelClientAnchor parseAnchor(XNode anchor) {
         ExcelAnchorType anchorType = parseAttrEnumValue(anchor, "editAs", ExcelAnchorType.class);
 
         XNode from = anchor.childByTag("xdr:from");
-        int col1 = from.childByTag("xdr:col").contentAsInt(0);
-        int row1 = from.childByTag("xdr:row").contentAsInt(0);
-        int colOff1 = from.childByTag("xdr:colOff").contentAsInt(0);
-        int rowOff1 = from.childByTag("xdr:rowOff").contentAsInt(0);
-
         XNode to = anchor.childByTag("xdr:to");
-        int col2 = to.childByTag("xdr:col").contentAsInt(0);
-        int row2 = to.childByTag("xdr:row").contentAsInt(0);
-        int colOff2 = to.childByTag("xdr:colOff").contentAsInt(0);
-        int rowOff2 = to.childByTag("xdr:rowOff").contentAsInt(0);
+
+        int col1 = 0, row1 = 0, colOff1 = 0, rowOff1 = 0;
+        if (from != null) {
+            XNode colNode = from.childByTag("xdr:col");
+            XNode rowNode = from.childByTag("xdr:row");
+            XNode colOffNode = from.childByTag("xdr:colOff");
+            XNode rowOffNode = from.childByTag("xdr:rowOff");
+
+            col1 = colNode != null ? colNode.contentAsInt(0) : 0;
+            row1 = rowNode != null ? rowNode.contentAsInt(0) : 0;
+            colOff1 = colOffNode != null ? colOffNode.contentAsInt(0) : 0;
+            rowOff1 = rowOffNode != null ? rowOffNode.contentAsInt(0) : 0;
+        }
+
+        int col2 = 0, row2 = 0, colOff2 = 0, rowOff2 = 0;
+        if (to != null) {
+            XNode colNode = to.childByTag("xdr:col");
+            XNode rowNode = to.childByTag("xdr:row");
+            XNode colOffNode = to.childByTag("xdr:colOff");
+            XNode rowOffNode = to.childByTag("xdr:rowOff");
+
+            col2 = colNode != null ? colNode.contentAsInt(0) : 0;
+            row2 = rowNode != null ? rowNode.contentAsInt(0) : 0;
+            colOff2 = colOffNode != null ? colOffNode.contentAsInt(0) : 0;
+            rowOff2 = rowOffNode != null ? rowOffNode.contentAsInt(0) : 0;
+        }
 
         ExcelClientAnchor ret = new ExcelClientAnchor();
         ret.setType(anchorType);

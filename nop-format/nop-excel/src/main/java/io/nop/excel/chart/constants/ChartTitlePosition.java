@@ -1,5 +1,7 @@
 package io.nop.excel.chart.constants;
 
+import io.nop.commons.util.StringHelper;
+
 /**
  * Chart title position enumeration
  */
@@ -16,7 +18,7 @@ public enum ChartTitlePosition {
         this.value = value;
     }
 
-    public String getValue() {
+    public String value() {
         return value;
     }
 
@@ -26,6 +28,9 @@ public enum ChartTitlePosition {
     }
 
     public static ChartTitlePosition fromValue(String value) {
+        if(StringHelper.isEmpty(value))
+            return null;
+
         for (ChartTitlePosition position : values()) {
             if (position.value.equals(value)) {
                 return position;

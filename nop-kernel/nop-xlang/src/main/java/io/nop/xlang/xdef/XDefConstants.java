@@ -27,6 +27,10 @@ public interface XDefConstants {
     String STD_DOMAIN_PROP_PATH = "prop-path";
     String STD_DOMAIN_CONF_NAME = "conf-name";
 
+    String STD_DOMAIN_DOUBLE_PT = "double-pt";
+    String STD_DOMAIN_DOUBLE_PERCENT = "double-percent";
+    String STD_DOMAIN_DOUBLE_DEG = "double-deg";
+
     String STD_DOMAIN_METHOD_REF = "method-ref";
 
     String STD_DOMAIN_VALUE_MAPPER = "value-mapper";

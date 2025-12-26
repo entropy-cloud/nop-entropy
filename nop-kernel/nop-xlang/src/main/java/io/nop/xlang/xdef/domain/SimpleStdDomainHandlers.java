@@ -1808,4 +1808,114 @@ public class SimpleStdDomainHandlers {
             return new LayoutModelParser().parseFromText(loc, ConvertHelper.toString(text));
         }
     }
+
+    public static class DoublePtType extends SimpleStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_DOUBLE_PT;
+        }
+
+        @Override
+        public boolean isFixedType() {
+            return true;
+        }
+
+        @Override
+        public IGenericType getGenericType(boolean mandatory, String options) {
+            return PredefinedGenericTypes.DOUBLE_TYPE;
+        }
+
+        @Override
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
+                                XLangCompileTool cp) {
+            if (StringHelper.isEmptyObject(text))
+                return null;
+
+            String str = text.toString().trim();
+            if (str.endsWith("pt")) {
+                str = str.substring(0, str.length() - 2).trim();
+            }
+
+            Double value = ConvertHelper.toDouble(str,
+                    err -> new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc)
+                            .param(ARG_STD_DOMAIN, this.getName()).param(ARG_PROP_NAME, propName)
+                            .param(ARG_VALUE, text));
+            return value;
+        }
+    }
+
+    public static class DoubleDegType extends SimpleStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_DOUBLE_DEG;
+        }
+
+        @Override
+        public boolean isFixedType() {
+            return true;
+        }
+
+        @Override
+        public IGenericType getGenericType(boolean mandatory, String options) {
+            return PredefinedGenericTypes.DOUBLE_TYPE;
+        }
+
+        @Override
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
+                                XLangCompileTool cp) {
+            if (StringHelper.isEmptyObject(text))
+                return null;
+
+            String str = text.toString().trim();
+            // 处理角度单位，如：90deg, 180°
+            if (str.endsWith("deg")) {
+                str = str.substring(0, str.length() - 3).trim();
+            } else if (str.endsWith("°")) {
+                str = str.substring(0, str.length() - 1).trim();
+            }
+
+            Double value = ConvertHelper.toDouble(str,
+                    err -> new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc)
+                            .param(ARG_STD_DOMAIN, this.getName()).param(ARG_PROP_NAME, propName)
+                            .param(ARG_VALUE, text));
+
+            return value;
+        }
+    }
+
+    public static class DoublePercentType extends SimpleStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_DOUBLE_PERCENT;
+        }
+
+        @Override
+        public boolean isFixedType() {
+            return true;
+        }
+
+        @Override
+        public IGenericType getGenericType(boolean mandatory, String options) {
+            return PredefinedGenericTypes.DOUBLE_TYPE;
+        }
+
+        @Override
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
+                                XLangCompileTool cp) {
+            if (StringHelper.isEmptyObject(text))
+                return null;
+
+            String str = text.toString().trim();
+
+            if (str.endsWith("%")) {
+                str = str.substring(0, str.length() - 1).trim();
+            }
+
+            Double value = ConvertHelper.toDouble(str,
+                    err -> new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc)
+                            .param(ARG_STD_DOMAIN, this.getName()).param(ARG_PROP_NAME, propName)
+                            .param(ARG_VALUE, text));
+            return value;
+        }
+    }
 }

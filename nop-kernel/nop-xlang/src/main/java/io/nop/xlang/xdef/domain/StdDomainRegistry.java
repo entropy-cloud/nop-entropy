@@ -50,6 +50,10 @@ public class StdDomainRegistry implements IStdDomainRegistry {
         registerStdDomainHandler(new SimpleStdDomainHandlers.NopModuleIdType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.NopModuleNameType());
 
+        registerStdDomainHandler(new SimpleStdDomainHandlers.DoublePtType());
+        registerStdDomainHandler(new SimpleStdDomainHandlers.DoubleDegType());
+        registerStdDomainHandler(new SimpleStdDomainHandlers.DoublePercentType());
+
         registerStdDomainHandler(new SimpleStdDomainHandlers.PropNameType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.XmlNameType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.BeanNameType());

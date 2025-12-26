@@ -1,12 +1,36 @@
 package io.nop.excel.chart.constants;
 
+import io.nop.api.core.annotations.core.StaticFactoryMethod;
+import io.nop.commons.util.StringHelper;
+
 /**
- * Chart axis type enumeration
+ * 坐标轴类型枚举
+ * 对应 OOXML <c:axId val="…"/> 和轴类型定义
  */
 public enum ChartAxisType {
+    /**
+     * 分类轴（X轴）
+     */
     CATEGORY("category"),
+
+    /**
+     * 数值轴（Y轴）
+     */
     VALUE("value"),
-    TIME("time"),
+
+    /**
+     * 日期轴
+     */
+    DATE("time"),
+
+    /**
+     * 系列轴（3D图表）
+     */
+    SERIES("series"),
+
+    /**
+     * 对数轴
+     */
     LOG("log");
 
     private final String value;
@@ -15,21 +39,23 @@ public enum ChartAxisType {
         this.value = value;
     }
 
-    public String getValue() {
+    public String value() {
         return value;
     }
 
-    @Override
-    public String toString() {
-        return value;
-    }
+    /**
+     * OOXML 值 → 枚举
+     */
+    @StaticFactoryMethod
+    public static ChartAxisType fromValue(String v) {
+        if (StringHelper.isEmpty(v))
+            return null;
 
-    public static ChartAxisType fromValue(String value) {
         for (ChartAxisType type : values()) {
-            if (type.value.equals(value)) {
+            if (type.value.equals(v)) {
                 return type;
             }
         }
-        throw new IllegalArgumentException("Unknown axis type: " + value);
+        throw new IllegalArgumentException("Illegal axis type OOXML value: " + v);
     }
 }

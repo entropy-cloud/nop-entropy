@@ -96,7 +96,7 @@ public class ExcelWorkbookParser extends AbstractXlsxParser {
         if (includeImages && contentsHandler.getDrawingId() != null) {
             IOfficePackagePart drawing = pkg.getRelPart(sheetPart, contentsHandler.getDrawingId());
             if (drawing != null) {
-                List<ExcelImage> images = new DrawingParser().parseDrawing(drawing.loadXml());
+                List<ExcelImage> images = new DrawingParser().parseImages(drawing.loadXml());
                 for (ExcelImage image : images) {
                     if (image.getEmbedId() == null)
                         continue;

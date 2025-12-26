@@ -57,7 +57,7 @@ public abstract class _ChartMarkersModel extends io.nop.core.resource.component.
      * xml name: type
      * 
      */
-    private java.lang.String _type ;
+    private io.nop.excel.chart.constants.ChartMarkerType _type ;
     
     /**
      * 
@@ -160,12 +160,12 @@ public abstract class _ChartMarkersModel extends io.nop.core.resource.component.
      *  
      */
     
-    public java.lang.String getType(){
+    public io.nop.excel.chart.constants.ChartMarkerType getType(){
       return _type;
     }
 
     
-    public void setType(java.lang.String value){
+    public void setType(io.nop.excel.chart.constants.ChartMarkerType value){
         checkAllowChange();
         
         this._type = value;
