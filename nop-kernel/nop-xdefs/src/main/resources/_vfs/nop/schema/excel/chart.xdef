@@ -15,6 +15,7 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
        width="double-pt" height="double-pt" autoFit="boolean=true"
        dispBlanksAs="enum:io.nop.excel.chart.constants.ChartDispBlankAs"
        showLabelsOverMax="boolean" varyColors="!boolean=true"
+       is3D="boolean=false"
 >
 
     <xdef:define xdef:name="ChartSpacingModel" top="double-pt" right="double-pt" bottom="double-pt" left="double-pt"/>
@@ -30,7 +31,7 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
                Fill pattern configuration
                对应 Excel POI 中的 FillProperties
                -->
-        <fill pattern="enum:io.nop.excel.chart.constants.ChartFillPatternType"
+        <fill type="enum:io.nop.excel.chart.constants.ChartFillType" pattern="enum:io.nop.excel.chart.constants.ChartFillPatternType"
               backgroundColor="string" foregroundColor="string" opacity="double" xdef:name="ChartFillModel">
             <!--
             Gradient fill support

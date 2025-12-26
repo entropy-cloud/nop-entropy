@@ -27,6 +27,8 @@ public enum ChartLineStyle {
      * 短划线加点
      */
     DASH_DOT("dashDot"),
+
+    DASH_DOT_DOT("dashDotDot"),
     
     /**
      * 长划线加点

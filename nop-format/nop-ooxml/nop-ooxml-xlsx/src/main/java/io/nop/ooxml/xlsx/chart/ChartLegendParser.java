@@ -1,17 +1,24 @@
 package io.nop.ooxml.xlsx.chart;
 
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.chart.constants.ChartLegendPosition;
 import io.nop.excel.chart.constants.ChartOrientation;
 import io.nop.excel.chart.model.ChartLegendModel;
+import io.nop.excel.chart.model.ChartShapeStyleModel;
+import io.nop.excel.chart.model.ChartTextStyleModel;
 import io.nop.excel.model.constants.ExcelHorizontalAlignment;
 import io.nop.excel.model.constants.ExcelVerticalAlignment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * ChartLegendParser - 图例解析器
  * 负责解析Excel图表中的图例配置
  */
 public class ChartLegendParser {
+    private static final Logger LOG = LoggerFactory.getLogger(ChartLegendParser.class);
+    
     public static final ChartLegendParser INSTANCE = new ChartLegendParser();
     
     /**
@@ -23,44 +30,54 @@ public class ChartLegendParser {
     public ChartLegendModel parseLegend(XNode legendNode, IChartStyleProvider styleProvider) {
         if (legendNode == null) return null;
         
-        ChartLegendModel legend = new ChartLegendModel();
-        
-        // 解析可见性
-        parseVisibility(legend, legendNode);
-        
-        // 解析位置
-        parsePosition(legend, legendNode);
-        
-        // 解析对齐方式
-        parseAlignment(legend, legendNode);
-        
-        // 解析方向
-        parseOrientation(legend, legendNode);
-        
-        // 解析覆盖选项
-        parseOverlay(legend, legendNode);
-        
-        // 解析样式
-        parseStyles(legend, legendNode, styleProvider);
-        
-        return legend;
+        try {
+            ChartLegendModel legend = new ChartLegendModel();
+            
+            // 解析可见性
+            parseVisibility(legend, legendNode);
+            
+            // 解析位置
+            parsePosition(legend, legendNode);
+            
+            // 解析对齐方式
+            parseAlignment(legend, legendNode);
+            
+            // 解析方向
+            parseOrientation(legend, legendNode);
+            
+            // 解析覆盖选项
+            parseOverlay(legend, legendNode);
+            
+            // 解析样式
+            parseStyles(legend, legendNode, styleProvider);
+            
+            // 解析手动布局
+            parseManualLayout(legend, legendNode);
+            
+            return legend;
+        } catch (Exception e) {
+            LOG.warn("Failed to parse legend configuration, error: {}", e.getMessage());
+            return null;
+        }
     }
     
     /**
      * 解析可见性
      */
     private void parseVisibility(ChartLegendModel legend, XNode legendNode) {
-        // 在OOXML中，图例默认可见，通过<c:legend>元素的存在与否控制
-        // 如果legendNode存在，则图例可见
-        legend.setVisible(true);
-        
-        // 检查是否有显式删除设置
-        XNode deleteNode = legendNode.childByTag("c:delete");
-        if (deleteNode != null) {
-            String delete = deleteNode.attrText("val");
-            if (delete != null && ChartPropertyHelper.convertToBoolean(delete)) {
+        try {
+            // 在OOXML中，图例默认可见，通过<c:legend>元素的存在与否控制
+            // 如果legendNode存在，则图例可见
+            legend.setVisible(true);
+            
+            // 检查是否有显式删除设置
+            Boolean deleteValue = ChartPropertyHelper.getChildBoolVal(legendNode, "c:delete");
+            if (deleteValue != null && deleteValue) {
                 legend.setVisible(false);
             }
+        } catch (Exception e) {
+            LOG.warn("Failed to parse legend visibility, using default visible=true", e);
+            legend.setVisible(true);
         }
     }
     
@@ -68,16 +85,21 @@ public class ChartLegendParser {
      * 解析位置
      */
     private void parsePosition(ChartLegendModel legend, XNode legendNode) {
-        // 从子元素<c:legendPos>获取位置设置
-        XNode legendPosNode = legendNode.childByTag("c:legendPos");
-        if (legendPosNode != null) {
-            String position = legendPosNode.attrText("val");
-            if (position != null) {
+        try {
+            // 从子元素<c:legendPos>获取位置设置
+            String position = ChartPropertyHelper.getChildVal(legendNode, "c:legendPos");
+            if (!StringHelper.isEmpty(position)) {
                 ChartLegendPosition legendPos = mapPosition(position);
                 if (legendPos != null) {
                     legend.setPosition(legendPos);
                 }
+            } else {
+                // 如果没有指定位置，使用默认位置
+                legend.setPosition(ChartLegendPosition.RIGHT);
             }
+        } catch (Exception e) {
+            LOG.warn("Failed to parse legend position, using default RIGHT", e);
+            legend.setPosition(ChartLegendPosition.RIGHT);
         }
     }
     
@@ -85,15 +107,22 @@ public class ChartLegendParser {
      * 映射位置字符串到枚举
      */
     private ChartLegendPosition mapPosition(String position) {
-        if (position == null) return null;
+        if (StringHelper.isEmpty(position)) return null;
         
-        switch (position.toLowerCase()) {
-            case "b": return ChartLegendPosition.BOTTOM;
-            case "tr": return ChartLegendPosition.TOP_RIGHT;
-            case "l": return ChartLegendPosition.LEFT;
-            case "r": return ChartLegendPosition.RIGHT;
-            case "t": return ChartLegendPosition.TOP;
-            default: return ChartLegendPosition.RIGHT; // 默认右侧
+        try {
+            switch (position.toLowerCase()) {
+                case "b": return ChartLegendPosition.BOTTOM;
+                case "tr": return ChartLegendPosition.TOP_RIGHT;
+                case "l": return ChartLegendPosition.LEFT;
+                case "r": return ChartLegendPosition.RIGHT;
+                case "t": return ChartLegendPosition.TOP;
+                default: 
+                    LOG.warn("Unknown legend position: {}, using default RIGHT", position);
+                    return ChartLegendPosition.RIGHT; // 默认右侧
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to map legend position: {}, using default RIGHT", position, e);
+            return ChartLegendPosition.RIGHT;
         }
     }
     
@@ -106,26 +135,20 @@ public class ChartLegendParser {
         // 目前暂时保留默认对齐设置
         
         // 解析水平对齐 - 从子元素获取
-        XNode alignNode = legendNode.childByTag("c:align");
-        if (alignNode != null) {
-            String align = alignNode.attrText("val");
-            if (align != null) {
-                ExcelHorizontalAlignment horizontalAlign = mapHorizontalAlignment(align);
-                if (horizontalAlign != null) {
-                    legend.setAlign(horizontalAlign);
-                }
+        String align = ChartPropertyHelper.getChildVal(legendNode, "c:align");
+        if (align != null) {
+            ExcelHorizontalAlignment horizontalAlign = mapHorizontalAlignment(align);
+            if (horizontalAlign != null) {
+                legend.setAlign(horizontalAlign);
             }
         }
         
         // 解析垂直对齐 - 从子元素获取
-        XNode verticalAlignNode = legendNode.childByTag("c:verticalAlign");
-        if (verticalAlignNode != null) {
-            String verticalAlign = verticalAlignNode.attrText("val");
-            if (verticalAlign != null) {
-                ExcelVerticalAlignment verticalAlignment = mapVerticalAlignment(verticalAlign);
-                if (verticalAlignment != null) {
-                    legend.setVerticalAlign(verticalAlignment);
-                }
+        String verticalAlign = ChartPropertyHelper.getChildVal(legendNode, "c:verticalAlign");
+        if (verticalAlign != null) {
+            ExcelVerticalAlignment verticalAlignment = mapVerticalAlignment(verticalAlign);
+            if (verticalAlignment != null) {
+                legend.setVerticalAlign(verticalAlignment);
             }
         }
     }
@@ -165,14 +188,11 @@ public class ChartLegendParser {
      */
     private void parseOrientation(ChartLegendModel legend, XNode legendNode) {
         // 从子元素获取方向设置
-        XNode orientationNode = legendNode.childByTag("c:orientation");
-        if (orientationNode != null) {
-            String orientation = orientationNode.attrText("val");
-            if (orientation != null) {
-                ChartOrientation chartOrientation = mapOrientation(orientation);
-                if (chartOrientation != null) {
-                    legend.setOrientation(chartOrientation);
-                }
+        String orientation = ChartPropertyHelper.getChildVal(legendNode, "c:orientation");
+        if (orientation != null) {
+            ChartOrientation chartOrientation = mapOrientation(orientation);
+            if (chartOrientation != null) {
+                legend.setOrientation(chartOrientation);
             }
         }
     }
@@ -194,13 +214,14 @@ public class ChartLegendParser {
      * 解析覆盖选项
      */
     private void parseOverlay(ChartLegendModel legend, XNode legendNode) {
-        // 从子元素<c:overlay>获取覆盖设置
-        XNode overlayNode = legendNode.childByTag("c:overlay");
-        if (overlayNode != null) {
-            String overlay = overlayNode.attrText("val");
-            if (overlay != null) {
-                legend.setOverlay(ChartPropertyHelper.convertToBoolean(overlay));
+        try {
+            // 从子元素<c:overlay>获取覆盖设置
+            Boolean overlayValue = ChartPropertyHelper.getChildBoolVal(legendNode, "c:overlay");
+            if (overlayValue != null) {
+                legend.setOverlay(overlayValue);
             }
+        } catch (Exception e) {
+            LOG.warn("Failed to parse legend overlay setting", e);
         }
     }
     
@@ -208,16 +229,44 @@ public class ChartLegendParser {
      * 解析样式
      */
     private void parseStyles(ChartLegendModel legend, XNode legendNode, IChartStyleProvider styleProvider) {
-        // 解析形状样式
-        XNode spPrNode = legendNode.childByTag("c:spPr");
-        if (spPrNode != null) {
-            legend.setShapeStyle(ChartShapeStyleParser.INSTANCE.parseShapeStyle(spPrNode, styleProvider));
+        try {
+            // 解析形状样式
+            XNode spPrNode = legendNode.childByTag("c:spPr");
+            if (spPrNode != null) {
+                ChartShapeStyleModel shapeStyle = ChartShapeStyleParser.INSTANCE.parseShapeStyle(spPrNode, styleProvider);
+                if (shapeStyle != null) {
+                    legend.setShapeStyle(shapeStyle);
+                }
+            }
+            
+            // 解析文本样式
+            XNode txPrNode = legendNode.childByTag("c:txPr");
+            if (txPrNode != null) {
+                ChartTextStyleModel textStyle = ChartTextStyleParser.INSTANCE.parseTextStyle(txPrNode, styleProvider);
+                if (textStyle != null) {
+                    legend.setTextStyle(textStyle);
+                }
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to parse legend styles", e);
         }
-        
-        // 解析文本样式
-        XNode txPrNode = legendNode.childByTag("c:txPr");
-        if (txPrNode != null) {
-            legend.setTextStyle(ChartTextStyleParser.INSTANCE.parseTextStyle(txPrNode, styleProvider));
+    }
+    
+    /**
+     * 解析手动布局
+     */
+    private void parseManualLayout(ChartLegendModel legend, XNode legendNode) {
+        try {
+            // 在OOXML中，图例的手动布局在<c:layout><c:manualLayout>结构中
+            XNode layoutNode = legendNode.childByTag("c:layout");
+            if (layoutNode != null) {
+                io.nop.excel.chart.model.ChartManualLayoutModel manualLayout = ChartManualLayoutParser.INSTANCE.parseManualLayout(layoutNode);
+                if (manualLayout != null) {
+                    legend.setManualLayout(manualLayout);
+                }
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to parse legend manual layout", e);
         }
     }
 }

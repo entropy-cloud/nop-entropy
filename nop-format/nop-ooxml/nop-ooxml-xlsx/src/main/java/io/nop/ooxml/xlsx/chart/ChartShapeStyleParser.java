@@ -1,104 +1,153 @@
 package io.nop.ooxml.xlsx.chart;
 
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.chart.model.ChartShapeStyleModel;
 import io.nop.excel.chart.model.ChartFillModel;
 import io.nop.excel.chart.model.ChartBorderModel;
 import io.nop.excel.chart.model.ChartShadowModel;
+import io.nop.excel.chart.constants.ChartFillType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static io.nop.ooxml.xlsx.XlsxErrors.*;
 
 /**
  * ChartShapeStyleParser - 形状样式解析器
- * 统一处理填充、边框、阴影等样式属性，支持theme颜色解析
+ * 统一处理填充、边框、阴影等样式属性，支持完整的OOXML颜色修改
+ * 修复OOXML结构解析，使用applyColorModifications处理嵌套颜色结构
  */
 public class ChartShapeStyleParser {
+    private static final Logger LOG = LoggerFactory.getLogger(ChartShapeStyleParser.class);
     public static final ChartShapeStyleParser INSTANCE = new ChartShapeStyleParser();
     
     /**
-     * 解析形状样式，支持theme颜色解析
+     * 解析形状样式，支持完整的OOXML颜色修改
      * @param spPrNode 形状属性节点
      * @param styleProvider 样式提供者
      * @return 解析后的形状样式模型
      */
     public ChartShapeStyleModel parseShapeStyle(XNode spPrNode, IChartStyleProvider styleProvider) {
-        if (spPrNode == null) return null;
+        if (spPrNode == null) {
+            LOG.warn("Shape properties node is null, returning null");
+            return null;
+        }
         
-        ChartShapeStyleModel style = new ChartShapeStyleModel();
-        
-        // 解析填充 - 传入样式提供者用于theme颜色解析
-        parseFill(style, spPrNode.childByTag("a:fill"), styleProvider);
-        
-        // 解析边框
-        parseBorder(style, spPrNode.childByTag("a:ln"), styleProvider);
-        
-        // 解析阴影
-        parseShadow(style, spPrNode.childByTag("a:effectLst"), styleProvider);
-        
-        return style;
+        try {
+            ChartShapeStyleModel style = new ChartShapeStyleModel();
+            
+            // 解析填充 - 传入样式提供者用于完整的颜色修改处理
+            parseFill(style, spPrNode, styleProvider);
+            
+            // 解析边框
+            parseBorder(style, spPrNode.childByTag("a:ln"), styleProvider);
+            
+            // 解析阴影
+            parseShadow(style, spPrNode.childByTag("a:effectLst"), styleProvider);
+            
+            return style;
+        } catch (Exception e) {
+            LOG.warn("Failed to parse shape style", e);
+            return new ChartShapeStyleModel(); // 返回基本样式而不是null
+        }
     }
     
     /**
      * 解析填充
+     * 修复OOXML结构解析，正确处理嵌套的<a:solidFill><a:schemeClr>结构
      * @param style 形状样式模型
-     * @param fillNode 填充节点
+     * @param spPrNode 形状属性节点
      * @param styleProvider 样式提供者
      */
-    private void parseFill(ChartShapeStyleModel style, XNode fillNode, IChartStyleProvider styleProvider) {
-        if (fillNode == null) return;
-        
-        ChartFillModel fill = new ChartFillModel();
-        
-        // 解析纯色填充 - 支持theme颜色解析
-        XNode solidFillNode = fillNode.childByTag("a:solidFill");
-        if (solidFillNode != null) {
-            parseSolidFill(fill, solidFillNode, styleProvider);
+    private void parseFill(ChartShapeStyleModel style, XNode spPrNode, IChartStyleProvider styleProvider) {
+        try {
+            ChartFillModel fill = new ChartFillModel();
+            
+            // 检查无填充
+            XNode noFillNode = spPrNode.childByTag("a:noFill");
+            if (noFillNode != null) {
+                fill.setType(ChartFillType.NONE);
+                style.setFill(fill);
+                return;
+            }
+            
+            // 解析纯色填充 - 支持完整的OOXML颜色修改
+            XNode solidFillNode = spPrNode.childByTag("a:solidFill");
+            if (solidFillNode != null) {
+                parseSolidFill(fill, solidFillNode, styleProvider);
+                style.setFill(fill);
+                return;
+            }
+            
+            // 解析渐变填充
+            XNode gradFillNode = spPrNode.childByTag("a:gradFill");
+            if (gradFillNode != null) {
+                parseGradientFill(fill, gradFillNode, styleProvider);
+                style.setFill(fill);
+                return;
+            }
+            
+            // 解析图案填充
+            XNode pattFillNode = spPrNode.childByTag("a:pattFill");
+            if (pattFillNode != null) {
+                parsePatternFill(fill, pattFillNode, styleProvider);
+                style.setFill(fill);
+                return;
+            }
+            
+            // 如果没有找到填充定义，设置默认填充
+            fill.setType(ChartFillType.SOLID);
+            fill.setForegroundColor("#FFFFFF"); // 默认白色
+            style.setFill(fill);
+            
+        } catch (Exception e) {
+            LOG.warn("Failed to parse fill", e);
         }
-        
-        // 解析渐变填充
-        XNode gradFillNode = fillNode.childByTag("a:gradFill");
-        if (gradFillNode != null) {
-            parseGradientFill(fill, gradFillNode, styleProvider);
-        }
-        
-        // 解析图案填充
-        XNode pattFillNode = fillNode.childByTag("a:pattFill");
-        if (pattFillNode != null) {
-            parsePatternFill(fill, pattFillNode, styleProvider);
-        }
-        
-        style.setFill(fill);
     }
     
     /**
      * 解析纯色填充
+     * 使用applyColorModifications处理嵌套的颜色修改结构
      * @param fill 填充模型
      * @param solidFillNode 纯色填充节点
      * @param styleProvider 样式提供者
      */
     private void parseSolidFill(ChartFillModel fill, XNode solidFillNode, IChartStyleProvider styleProvider) {
-        XNode srgbClrNode = solidFillNode.childByTag("a:srgbClr");
-        if (srgbClrNode != null) {
-            String color = srgbClrNode.attrText("val");
-            if (color != null) {
-                fill.setForegroundColor(styleProvider.resolveColor(color));
+        try {
+            fill.setType(ChartFillType.SOLID);
+            
+            // 处理srgbClr颜色（直接RGB）
+            String colorVal = ChartPropertyHelper.getChildVal(solidFillNode, "a:srgbClr");
+            if (!StringHelper.isEmpty(colorVal)) {
+                String baseColor = "#" + colorVal;
+                // 使用applyColorModifications处理嵌套的颜色修改
+                XNode srgbClrNode = solidFillNode.childByTag("a:srgbClr");
+                String finalColor = styleProvider.applyColorModifications(baseColor, srgbClrNode);
+                fill.setForegroundColor(finalColor);
+                return;
             }
-        }
-        
-        XNode schemeClrNode = solidFillNode.childByTag("a:schemeClr");
-        if (schemeClrNode != null) {
-            String themeColor = schemeClrNode.attrText("val");
-            if (themeColor != null) {
-                fill.setForegroundColor(styleProvider.getThemeColor(themeColor));
+            
+            // 处理schemeClr颜色（主题颜色）- 样本中最常见的模式
+            String themeColorName = ChartPropertyHelper.getChildVal(solidFillNode, "a:schemeClr");
+            if (!StringHelper.isEmpty(themeColorName)) {
+                // 先解析基础主题颜色
+                String baseColor = styleProvider.getThemeColor(themeColorName);
+                if (baseColor != null) {
+                    // 使用applyColorModifications处理嵌套的颜色修改
+                    // 这是处理样本中lumMod/lumOff模式的关键
+                    XNode schemeClrNode = solidFillNode.childByTag("a:schemeClr");
+                    String finalColor = styleProvider.applyColorModifications(baseColor, schemeClrNode);
+                    fill.setForegroundColor(finalColor);
+                    return;
+                }
             }
-        }
-        
-        // 解析透明度
-        XNode alphaNode = solidFillNode.childByTag("a:alpha");
-        if (alphaNode != null) {
-            Double alphaVal = alphaNode.attrDouble("val");
-            if (alphaVal != null) {
-                double opacity = alphaVal / 100000.0; // 从0-100000转换为0-1
-                fill.setOpacity(opacity);
-            }
+            
+            // 如果没有找到颜色定义，使用默认颜色
+            fill.setForegroundColor("#000000");
+            
+        } catch (Exception e) {
+            LOG.warn("Failed to parse solid fill, using default color", e);
+            fill.setForegroundColor("#000000");
         }
     }
     
@@ -151,28 +200,23 @@ public class ChartShapeStyleParser {
      * @param isForeground 是否为前景色
      */
     private void parseColorNode(ChartFillModel fill, XNode colorNode, IChartStyleProvider styleProvider, boolean isForeground) {
-        XNode srgbClrNode = colorNode.childByTag("a:srgbClr");
-        if (srgbClrNode != null) {
-            String color = srgbClrNode.attrText("val");
-            if (color != null) {
-                if (isForeground) {
-                    fill.setForegroundColor(styleProvider.resolveColor(color));
-                } else {
-                    fill.setBackgroundColor(styleProvider.resolveColor(color));
-                }
+        String color = ChartPropertyHelper.getChildVal(colorNode, "a:srgbClr");
+        if (color != null) {
+            if (isForeground) {
+                fill.setForegroundColor(styleProvider.resolveColor(color));
+            } else {
+                fill.setBackgroundColor(styleProvider.resolveColor(color));
             }
+            return;
         }
         
-        XNode schemeClrNode = colorNode.childByTag("a:schemeClr");
-        if (schemeClrNode != null) {
-            String themeColor = schemeClrNode.attrText("val");
-            if (themeColor != null) {
-                String color = styleProvider.getThemeColor(themeColor);
-                if (isForeground) {
-                    fill.setForegroundColor(color);
-                } else {
-                    fill.setBackgroundColor(color);
-                }
+        String themeColor = ChartPropertyHelper.getChildVal(colorNode, "a:schemeClr");
+        if (themeColor != null) {
+            String resolvedColor = styleProvider.getThemeColor(themeColor);
+            if (isForeground) {
+                fill.setForegroundColor(resolvedColor);
+            } else {
+                fill.setBackgroundColor(resolvedColor);
             }
         }
     }
@@ -216,20 +260,15 @@ public class ChartShapeStyleParser {
      * @param styleProvider 样式提供者
      */
     private void parseBorderColor(ChartBorderModel border, XNode solidFillNode, IChartStyleProvider styleProvider) {
-        XNode srgbClrNode = solidFillNode.childByTag("a:srgbClr");
-        if (srgbClrNode != null) {
-            String color = srgbClrNode.attrText("val");
-            if (color != null) {
-                border.setColor(styleProvider.resolveColor(color));
-            }
+        String color = ChartPropertyHelper.getChildVal(solidFillNode, "a:srgbClr");
+        if (color != null) {
+            border.setColor(styleProvider.resolveColor(color));
+            return;
         }
         
-        XNode schemeClrNode = solidFillNode.childByTag("a:schemeClr");
-        if (schemeClrNode != null) {
-            String themeColor = schemeClrNode.attrText("val");
-            if (themeColor != null) {
-                border.setColor(styleProvider.getThemeColor(themeColor));
-            }
+        String themeColor = ChartPropertyHelper.getChildVal(solidFillNode, "a:schemeClr");
+        if (themeColor != null) {
+            border.setColor(styleProvider.getThemeColor(themeColor));
         }
     }
     
@@ -249,18 +288,15 @@ public class ChartShapeStyleParser {
         shadow.setEnabled(true);
         
         // 解析阴影颜色
-        XNode srgbClrNode = outerShdwNode.childByTag("a:srgbClr");
-        if (srgbClrNode != null) {
-            String color = srgbClrNode.attrText("val");
-            if (color != null) {
-                shadow.setColor(styleProvider.resolveColor(color));
-            }
+        String color = ChartPropertyHelper.getChildVal(outerShdwNode, "a:srgbClr");
+        if (color != null) {
+            shadow.setColor(styleProvider.resolveColor(color));
         }
         
         // 解析阴影偏移
         Double blurRad = outerShdwNode.attrDouble("blurRad");
         if (blurRad != null) {
-            shadow.setBlurRadius(blurRad);
+            shadow.setBlur(blurRad);
         }
         
         Double dist = outerShdwNode.attrDouble("dist");

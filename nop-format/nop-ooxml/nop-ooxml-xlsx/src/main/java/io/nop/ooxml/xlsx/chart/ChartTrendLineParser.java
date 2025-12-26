@@ -48,14 +48,11 @@ public class ChartTrendLineParser {
      */
     private void parseType(ChartTrendLineModel trendLine, XNode trendlineNode) {
         // 从子元素<c:trendlineType>获取趋势线类型
-        XNode trendlineTypeNode = trendlineNode.childByTag("c:trendlineType");
-        if (trendlineTypeNode != null) {
-            String type = trendlineTypeNode.attrText("val");
-            if (type != null) {
-                ChartTrendLineType trendType = mapTrendLineType(type);
-                if (trendType != null) {
-                    trendLine.setType(trendType);
-                }
+        String type = ChartPropertyHelper.getChildVal(trendlineNode, "c:trendlineType");
+        if (type != null) {
+            ChartTrendLineType trendType = mapTrendLineType(type);
+            if (trendType != null) {
+                trendLine.setType(trendType);
             }
         }
     }
@@ -105,15 +102,12 @@ public class ChartTrendLineParser {
      */
     private void parsePeriod(ChartTrendLineModel trendLine, XNode trendlineNode) {
         // 从子元素<c:period>获取周期设置
-        XNode periodNode = trendlineNode.childByTag("c:period");
-        if (periodNode != null) {
-            String period = periodNode.attrText("val");
-            if (period != null) {
-                try {
-                    trendLine.setPeriod(Integer.parseInt(period));
-                } catch (NumberFormatException e) {
-                    // 忽略格式错误，使用默认值
-                }
+        String period = ChartPropertyHelper.getChildVal(trendlineNode, "c:period");
+        if (period != null) {
+            try {
+                trendLine.setPeriod(Integer.parseInt(period));
+            } catch (NumberFormatException e) {
+                // 忽略格式错误，使用默认值
             }
         }
     }
@@ -123,23 +117,17 @@ public class ChartTrendLineParser {
      */
     private void parseDisplayOptions(ChartTrendLineModel trendLine, XNode trendlineNode) {
         // 是否显示公式 - 从子元素<c:dispRSqr>获取
-        XNode dispRSqrNode = trendlineNode.childByTag("c:dispRSqr");
-        if (dispRSqrNode != null) {
-            String displayEquation = dispRSqrNode.attrText("val");
-            if (displayEquation != null) {
-                trendLine.setDisplayEquation(ChartPropertyHelper.convertToBoolean(displayEquation));
-            }
+        String displayEquation = ChartPropertyHelper.getChildVal(trendlineNode, "c:dispRSqr");
+        if (displayEquation != null) {
+            trendLine.setDisplayEquation(ChartPropertyHelper.convertToBoolean(displayEquation));
         }
         
         // 是否显示R平方值 - 从子元素<c:dispRSqr>获取
         // 注意：dispRSqr通常用于显示R平方值，而不是公式
         // 如果需要支持公式显示，应该检查<c:dispEq>元素
-        XNode dispEqNode = trendlineNode.childByTag("c:dispEq");
-        if (dispEqNode != null) {
-            String displayEquation = dispEqNode.attrText("val");
-            if (displayEquation != null) {
-                // 可以扩展支持公式显示
-            }
+        String displayEq = ChartPropertyHelper.getChildVal(trendlineNode, "c:dispEq");
+        if (displayEq != null) {
+            // 可以扩展支持公式显示
         }
     }
     

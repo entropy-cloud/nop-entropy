@@ -102,6 +102,20 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: is3D
+     * 
+     */
+    private java.lang.Boolean _is3D  = false;
+    
+    /**
+     *  
+     * xml name: is3D
+     * 
+     */
+    private boolean _is3D  = false;
+    
+    /**
+     *  
      * xml name: legend
      * Chart legend configuration
      * 对应 Excel POI 中的 ChartLegend
@@ -418,6 +432,44 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
         checkAllowChange();
         
         this._interactions = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: is3D
+     *  
+     */
+    
+    public java.lang.Boolean getIs3D(){
+      return _is3D;
+    }
+
+    
+    public void setIs3D(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._is3D = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: is3D
+     *  
+     */
+    
+    public boolean isIs3D(){
+      return _is3D;
+    }
+
+    
+    public void setIs3D(boolean value){
+        checkAllowChange();
+        
+        this._is3D = value;
            
     }
 
@@ -772,6 +824,7 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
         out.putNotNull("height",this.getHeight());
         out.putNotNull("hierarchicalConfig",this.getHierarchicalConfig());
         out.putNotNull("interactions",this.getInteractions());
+        out.putNotNull("is3D",this.getIs3D());
         out.putNotNull("legend",this.getLegend());
         out.putNotNull("manualLayout",this.getManualLayout());
         out.putNotNull("name",this.getName());
@@ -809,6 +862,7 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
         instance.setHeight(this.getHeight());
         instance.setHierarchicalConfig(this.getHierarchicalConfig());
         instance.setInteractions(this.getInteractions());
+        instance.setIs3D(this.getIs3D());
         instance.setLegend(this.getLegend());
         instance.setManualLayout(this.getManualLayout());
         instance.setName(this.getName());

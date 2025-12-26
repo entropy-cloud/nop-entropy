@@ -11,15 +11,17 @@ import io.nop.commons.collections.KeyedList;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.IXSelector;
 import io.nop.core.lang.xml.XNode;
-import io.nop.excel.chart.model.ChartModel;
 import io.nop.excel.model.ExcelChartModel;
 import io.nop.excel.model.ExcelClientAnchor;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.constants.ExcelAnchorType;
 import io.nop.excel.util.UnitsHelper;
 import io.nop.ooxml.common.IOfficePackagePart;
+import io.nop.ooxml.xlsx.chart.DrawingChartParser;
 import io.nop.ooxml.xlsx.model.ExcelOfficePackage;
 import io.nop.xlang.xpath.XPathHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -30,6 +32,7 @@ import static io.nop.xlang.xdsl.XDslParseHelper.parseAttrEnumValue;
  * Uses SELECTOR mechanism for complex node selection similar to WordDrawing.
  */
 public class DrawingParser {
+    private static final Logger LOG = LoggerFactory.getLogger(DrawingParser.class);
 
     // SELECTOR机制 - 只用于复杂嵌套节点选择，简单子节点直接用childByTag
     static final IXSelector<XNode> SELECTOR_CHART_REF = XPathHelper.parseXSelector("a:graphic/a:graphicData/c:chart");
@@ -73,7 +76,16 @@ public class DrawingParser {
                         ExcelChartModel excelChart = new ExcelChartModel();
                         excelChart.setAnchor(anchor);
 
-                        DrawingChartParser.INSTANCE.parseChart(chartRef, pkg, drawingPart, excelChart);
+                        try {
+                            DrawingChartParser.INSTANCE.parseChartRef(chartRef, pkg, drawingPart, excelChart);
+                        } catch (Exception e) {
+                            // 使用LOG.warn处理图表解析错误，确保其他图表能继续解析
+                            LOG.warn("Failed to parse chart", e);
+                            // 设置默认图表名称，确保图表对象可用
+                            if (excelChart.getName() == null) {
+                                excelChart.setName("Chart_" + System.currentTimeMillis());
+                            }
+                        }
                        
                         while (ret.getByKey(excelChart.getName()) != null) {
                             excelChart.setName(StringHelper.nextName(excelChart.getName()));

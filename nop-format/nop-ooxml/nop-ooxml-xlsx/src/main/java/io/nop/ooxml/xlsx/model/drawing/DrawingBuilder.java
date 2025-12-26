@@ -13,6 +13,7 @@ import io.nop.excel.model.ExcelChartModel;
 import io.nop.excel.model.ExcelClientAnchor;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.util.UnitsHelper;
+import io.nop.ooxml.xlsx.chart.DrawingChartBuilder;
 
 import java.util.List;
 
@@ -68,7 +69,7 @@ public class DrawingBuilder {
     public XNode buildChartAnchor(ExcelChartModel chart, int index) {
         // Generate relationship ID for chart (this would be set by the calling context)
         String relationshipId = "rId" + (index + 1);
-        return chartBuilder.buildChartAnchor(chart, relationshipId, index);
+        return buildAnchor0(chart.getAnchor());
     }
 
     public XNode buildAnchor(ExcelImage image, int index) {

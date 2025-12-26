@@ -5,13 +5,17 @@ import io.nop.excel.chart.model.ChartTextStyleModel;
 import io.nop.excel.model.ExcelFont;
 import io.nop.excel.model.constants.ExcelHorizontalAlignment;
 import io.nop.excel.model.constants.ExcelVerticalAlignment;
+import io.nop.excel.model.constants.ExcelFontUnderline;
 import io.nop.excel.chart.constants.ChartTextDirection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * ChartTextStyleParser - 文本样式解析器
- * 处理字体大小、粗细、颜色等属性
+ * 处理字体大小、粗细、颜色等属性，支持完整的OOXML颜色修改
  */
 public class ChartTextStyleParser {
+    private static final Logger LOG = LoggerFactory.getLogger(ChartTextStyleParser.class);
     public static final ChartTextStyleParser INSTANCE = new ChartTextStyleParser();
     
     /**
@@ -102,7 +106,7 @@ public class ChartTextStyleParser {
         Double sz = rPrNode.attrDouble("sz");
         if (sz != null) {
             double size = sz / 100.0; // 转换为磅值
-            font.setFontSize(size);
+            font.setFontSize((float)size);
         }
         
         // 解析字体名称
@@ -129,7 +133,8 @@ public class ChartTextStyleParser {
         // 解析下划线
         String u = rPrNode.attrText("u");
         if (u != null) {
-            font.setUnderline(!u.equals("none"));
+            ExcelFontUnderline underlineStyle = mapUnderlineStyle(u);
+            font.setUnderlineStyle(underlineStyle);
         }
         
         // 解析删除线
@@ -141,6 +146,7 @@ public class ChartTextStyleParser {
     
     /**
      * 解析字体颜色
+     * 使用applyColorModifications处理嵌套的颜色修改结构
      * @param font 字体模型
      * @param rPrNode 运行属性节点
      * @param styleProvider 样式提供者
@@ -148,22 +154,40 @@ public class ChartTextStyleParser {
     private void parseFontColor(ExcelFont font, XNode rPrNode, IChartStyleProvider styleProvider) {
         XNode solidFillNode = rPrNode.childByTag("a:solidFill");
         if (solidFillNode != null) {
-            // 解析RGB颜色
-            XNode srgbClrNode = solidFillNode.childByTag("a:srgbClr");
-            if (srgbClrNode != null) {
-                String color = srgbClrNode.attrText("val");
-                if (color != null) {
-                    font.setFontColor(styleProvider.resolveColor(color));
+            try {
+                // 处理srgbClr颜色（直接RGB）
+                String colorVal = ChartPropertyHelper.getChildVal(solidFillNode, "a:srgbClr");
+                if (colorVal != null) {
+                    String baseColor = "#" + colorVal;
+                    // 使用applyColorModifications处理嵌套的颜色修改
+                    XNode srgbClrNode = solidFillNode.childByTag("a:srgbClr");
+                    String finalColor = styleProvider.applyColorModifications(baseColor, srgbClrNode);
+                    font.setFontColor(finalColor);
+                    return;
                 }
-            }
-            
-            // 解析主题颜色
-            XNode schemeClrNode = solidFillNode.childByTag("a:schemeClr");
-            if (schemeClrNode != null) {
-                String themeColor = schemeClrNode.attrText("val");
-                if (themeColor != null) {
-                    font.setFontColor(styleProvider.getThemeColor(themeColor));
+                
+                // 处理schemeClr颜色（主题颜色）- 样本中常见的模式
+                String themeColorName = ChartPropertyHelper.getChildVal(solidFillNode, "a:schemeClr");
+                if (themeColorName != null) {
+                    // 先解析基础主题颜色
+                    String baseColor = styleProvider.getThemeColor(themeColorName);
+                    if (baseColor != null) {
+                        // 使用applyColorModifications处理嵌套的颜色修改
+                        // 这是处理样本中lumMod/lumOff模式的关键
+                        XNode schemeClrNode = solidFillNode.childByTag("a:schemeClr");
+                        String finalColor = styleProvider.applyColorModifications(baseColor, schemeClrNode);
+                        font.setFontColor(finalColor);
+                        return;
+                    }
                 }
+                
+                // 如果没有找到颜色定义，使用默认颜色
+                font.setFontColor("#000000");
+                
+            } catch (Exception e) {
+                // 使用LOG.warn处理解析错误，确保解析继续
+                LOG.warn("Failed to parse font color, using default color", e);
+                font.setFontColor("#000000");
             }
         }
     }
@@ -197,6 +221,35 @@ public class ChartTextStyleParser {
             case "just": return ExcelVerticalAlignment.JUSTIFY;
             case "dist": return ExcelVerticalAlignment.DISTRIBUTED;
             default: return null;
+        }
+    }
+    
+    /**
+     * 映射下划线样式
+     * @param underlineValue OOXML下划线值
+     * @return 对应的下划线枚举
+     */
+    private ExcelFontUnderline mapUnderlineStyle(String underlineValue) {
+        if (underlineValue == null) {
+            return ExcelFontUnderline.NONE;
+        }
+        
+        switch (underlineValue.toLowerCase()) {
+            case "none":
+                return ExcelFontUnderline.NONE;
+            case "single":
+                return ExcelFontUnderline.SINGLE;
+            case "double":
+                return ExcelFontUnderline.DOUBLE;
+            case "singleaccounting":
+            case "single-accounting":
+                return ExcelFontUnderline.SINGLE_ACCOUNTING;
+            case "doubleaccounting":
+            case "double-accounting":
+                return ExcelFontUnderline.DOUBLE_ACCOUNTING;
+            default:
+                // 对于未知值，默认使用单下划线
+                return ExcelFontUnderline.SINGLE;
         }
     }
 }

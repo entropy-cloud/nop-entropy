@@ -91,6 +91,7 @@ public class ChartGridParser {
     
     /**
      * 映射线条样式字符串到枚举
+     * 只映射OOXML ST_PresetLineDashVal规范中的有效值
      */
     private ChartLineStyle mapLineStyle(String style) {
         if (style == null) return null;
@@ -101,9 +102,12 @@ public class ChartGridParser {
             case "dot": return ChartLineStyle.DOT;
             case "dashdot": return ChartLineStyle.DASH_DOT;
             case "dashdotdot": return ChartLineStyle.DASH_DOT_DOT;
-            case "lgray": return ChartLineStyle.LGRAY;
-            case "gray": return ChartLineStyle.GRAY;
-            case "dgray": return ChartLineStyle.DGRAY;
+            case "lgdash": return ChartLineStyle.LONG_DASH;
+            case "lgdashdot": return ChartLineStyle.LONG_DASH_DOT;
+            case "lgdashdotdot": return ChartLineStyle.LONG_DASH_DOT_DOT;
+            case "sysdash": return ChartLineStyle.SYS_DASH;
+            case "sysdot": return ChartLineStyle.SYS_DOT;
+            case "sysdashdot": return ChartLineStyle.SYS_DASH_DOT;
             default: return ChartLineStyle.SOLID;
         }
     }

@@ -28,10 +28,10 @@ import io.nop.ooxml.common.model.ContentTypesPart;
 import io.nop.ooxml.common.model.OfficeRelsPart;
 import io.nop.ooxml.common.output.AbstractOfficeTemplate;
 import io.nop.ooxml.xlsx.XSSFRelation;
+import io.nop.ooxml.xlsx.chart.DrawingChartBuilder;
 import io.nop.ooxml.xlsx.model.ExcelOfficePackage;
 import io.nop.ooxml.xlsx.model.StylesPart;
 import io.nop.ooxml.xlsx.model.drawing.DrawingBuilder;
-import io.nop.ooxml.xlsx.model.drawing.DrawingChartBuilder;
 
 import java.io.File;
 import java.util.List;
@@ -144,7 +144,7 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         relPart.addRelationship(drawingRelId, XSSFRelation.DRAWINGS.getRelation(), "../drawings/drawing" + (drawingIndex + 1) + ".xml", null);
 
         OfficeRelsPart drawingRelPart = pkg.makeRelsForPartPath(drawingPath);
-        
+
         if (images != null) {
             for (ExcelImage image : images) {
                 if (image.getData() == null && image.getShape() == null)
@@ -159,9 +159,9 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
             for (ExcelChartModel chart : charts) {
                 String chartPath = addChartData(pkg, chart, genState);
                 // 使用addRelationship方法创建图表关系
-                drawingRelPart.addRelationship("rId" + drawingRelPart.newId(), 
-                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart", 
-                    "../" + chartPath.substring(4), null);
+                drawingRelPart.addRelationship("rId" + drawingRelPart.newId(),
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
+                        "../" + chartPath.substring(4), null);
             }
         }
 

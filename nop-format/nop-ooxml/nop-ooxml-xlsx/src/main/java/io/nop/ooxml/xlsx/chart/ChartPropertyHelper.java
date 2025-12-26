@@ -7,6 +7,8 @@
  */
 package io.nop.ooxml.xlsx.chart;
 
+import io.nop.core.lang.xml.XNode;
+
 /**
  * Helper class for safely setting properties on chart model objects.
  * Provides type conversion and error handling for chart model property setting.
@@ -32,5 +34,17 @@ public class ChartPropertyHelper {
             default:
                 return null;
         }
+    }
+
+    public static String getChildVal(XNode node, String childTagName) {
+        XNode childNode = node.childByTag(childTagName);
+        if (childNode == null)
+            return null;
+        return childNode.attrText("val");
+    }
+
+    public static Boolean getChildBoolVal(XNode node, String childTagName) {
+        String val = getChildVal(node, childTagName);
+        return convertToBoolean(val);
     }
 }

@@ -61,6 +61,13 @@ public abstract class _ChartFillModel extends io.nop.core.resource.component.Abs
     private io.nop.excel.chart.model.ChartFillPictureModel _picture ;
     
     /**
+     *  
+     * xml name: type
+     * 
+     */
+    private io.nop.excel.chart.constants.ChartFillType _type ;
+    
+    /**
      * 
      * xml name: backgroundColor
      *  
@@ -175,6 +182,25 @@ public abstract class _ChartFillModel extends io.nop.core.resource.component.Abs
     }
 
     
+    /**
+     * 
+     * xml name: type
+     *  
+     */
+    
+    public io.nop.excel.chart.constants.ChartFillType getType(){
+      return _type;
+    }
+
+    
+    public void setType(io.nop.excel.chart.constants.ChartFillType value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -200,6 +226,7 @@ public abstract class _ChartFillModel extends io.nop.core.resource.component.Abs
         out.putNotNull("opacity",this.getOpacity());
         out.putNotNull("pattern",this.getPattern());
         out.putNotNull("picture",this.getPicture());
+        out.putNotNull("type",this.getType());
     }
 
     public ChartFillModel cloneInstance(){
@@ -217,6 +244,7 @@ public abstract class _ChartFillModel extends io.nop.core.resource.component.Abs
         instance.setOpacity(this.getOpacity());
         instance.setPattern(this.getPattern());
         instance.setPicture(this.getPicture());
+        instance.setType(this.getType());
     }
 
     protected ChartFillModel newInstance(){
