@@ -41,7 +41,8 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
             <gradient enabled="boolean" startColor="string" endColor="string"
                       direction="string" angle="double-deg" xdef:name="ChartGradientModel"/>
 
-            <picture title="boolean" stretch="boolean" xdef:name="ChartFillPictureModel">
+            <picture title="boolean" stretch="boolean" xdef:name="ChartFillPictureModel"
+                     imageUrl="string" embedId="string">
                 <data xdef:value="base64-bytes"/>
             </picture>
         </fill>

@@ -25,6 +25,20 @@ public abstract class _ChartFillPictureModel extends io.nop.core.resource.compon
     
     /**
      *  
+     * xml name: embedId
+     * 
+     */
+    private java.lang.String _embedId ;
+    
+    /**
+     *  
+     * xml name: imageUrl
+     * 
+     */
+    private java.lang.String _imageUrl ;
+    
+    /**
+     *  
      * xml name: stretch
      * 
      */
@@ -52,6 +66,44 @@ public abstract class _ChartFillPictureModel extends io.nop.core.resource.compon
         checkAllowChange();
         
         this._data = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: embedId
+     *  
+     */
+    
+    public java.lang.String getEmbedId(){
+      return _embedId;
+    }
+
+    
+    public void setEmbedId(java.lang.String value){
+        checkAllowChange();
+        
+        this._embedId = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: imageUrl
+     *  
+     */
+    
+    public java.lang.String getImageUrl(){
+      return _imageUrl;
+    }
+
+    
+    public void setImageUrl(java.lang.String value){
+        checkAllowChange();
+        
+        this._imageUrl = value;
            
     }
 
@@ -110,6 +162,8 @@ public abstract class _ChartFillPictureModel extends io.nop.core.resource.compon
         super.outputJson(out);
         
         out.putNotNull("data",this.getData());
+        out.putNotNull("embedId",this.getEmbedId());
+        out.putNotNull("imageUrl",this.getImageUrl());
         out.putNotNull("stretch",this.getStretch());
         out.putNotNull("title",this.getTitle());
     }
@@ -124,6 +178,8 @@ public abstract class _ChartFillPictureModel extends io.nop.core.resource.compon
         super.copyTo(instance);
         
         instance.setData(this.getData());
+        instance.setEmbedId(this.getEmbedId());
+        instance.setImageUrl(this.getImageUrl());
         instance.setStretch(this.getStretch());
         instance.setTitle(this.getTitle());
     }

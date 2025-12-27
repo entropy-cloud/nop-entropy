@@ -2,10 +2,13 @@ package io.nop.ooxml.xlsx.chart;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
+import io.nop.excel.chart.constants.ChartFillPatternType;
 import io.nop.excel.chart.constants.ChartFillType;
 import io.nop.excel.chart.constants.ChartLineStyle;
 import io.nop.excel.chart.model.ChartBorderModel;
 import io.nop.excel.chart.model.ChartFillModel;
+import io.nop.excel.chart.model.ChartFillPictureModel;
+import io.nop.excel.chart.model.ChartGradientModel;
 import io.nop.excel.chart.model.ChartShadowModel;
 import io.nop.excel.chart.model.ChartShapeStyleModel;
 import io.nop.excel.util.UnitsHelper;
@@ -97,6 +100,14 @@ public class ChartShapeStyleParser {
                 return;
             }
 
+            // 解析图片填充
+            XNode blipFillNode = spPrNode.childByTag("a:blipFill");
+            if (blipFillNode != null) {
+                parsePictureFill(fill, blipFillNode, styleProvider);
+                style.setFill(fill);
+                return;
+            }
+
             // 如果没有找到填充定义，设置默认填充
             fill.setType(ChartFillType.SOLID);
             fill.setForegroundColor("#FFFFFF"); // 默认白色
@@ -118,6 +129,9 @@ public class ChartShapeStyleParser {
     private void parseSolidFill(ChartFillModel fill, XNode solidFillNode, IChartStyleProvider styleProvider) {
         try {
             fill.setType(ChartFillType.SOLID);
+
+            // 解析透明度
+            parseOpacity(fill, solidFillNode);
 
             // 处理srgbClr颜色（直接RGB）
             String colorVal = ChartPropertyHelper.getChildVal(solidFillNode, "a:srgbClr");
@@ -162,18 +176,123 @@ public class ChartShapeStyleParser {
      * @param styleProvider 样式提供者
      */
     private void parseGradientFill(ChartFillModel fill, XNode gradFillNode, IChartStyleProvider styleProvider) {
-        // 简化处理：只解析线性渐变
-        XNode linNode = gradFillNode.childByTag("a:lin");
-        if (linNode != null) {
-            // 设置渐变类型为线性
-            // 这里可以扩展支持更多渐变类型
+        try {
+            fill.setType(ChartFillType.GRADIENT);
+            
+            ChartGradientModel gradient = new ChartGradientModel();
+            gradient.setEnabled(true);
+
+            // 解析线性渐变
+            XNode linNode = gradFillNode.childByTag("a:lin");
+            if (linNode != null) {
+                // 解析渐变角度
+                Double angle = linNode.attrDouble("ang");
+                if (angle != null) {
+                    // OOXML 角度单位是 1/60000 度，转换为度
+                    double degrees = angle / 60000.0;
+                    gradient.setAngle(degrees);
+                }
+                
+                // 解析渐变方向（缩放标志）
+                Boolean scaled = linNode.attrBoolean("scaled",null);
+                if (scaled != null && scaled) {
+                    gradient.setDirection("scaled");
+                }
+            }
+
+            // 解析径向渐变
+            XNode radNode = gradFillNode.childByTag("a:rad");
+            if (radNode != null) {
+                gradient.setDirection("radial");
+            }
+
+            // 解析路径渐变
+            XNode pathNode = gradFillNode.childByTag("a:path");
+            if (pathNode != null) {
+                String path = pathNode.attrText("path");
+                if (!StringHelper.isEmpty(path)) {
+                    gradient.setDirection("path_" + path);
+                }
+            }
+
+            // 解析渐变停止点
+            XNode gsLstNode = gradFillNode.childByTag("a:gsLst");
+            if (gsLstNode != null) {
+                parseGradientStops(gradient, gsLstNode, styleProvider);
+            }
+
+            fill.setGradient(gradient);
+
+        } catch (Exception e) {
+            LOG.warn("Failed to parse gradient fill, falling back to solid fill", e);
+            // 回退到纯色填充
+            fill.setType(ChartFillType.SOLID);
+            fill.setForegroundColor("#FFFFFF");
+        }
+    }
+
+    /**
+     * 解析渐变停止点
+     *
+     * @param gradient      渐变模型
+     * @param gsLstNode     渐变停止点列表节点
+     * @param styleProvider 样式提供者
+     */
+    private void parseGradientStops(ChartGradientModel gradient, XNode gsLstNode, IChartStyleProvider styleProvider) {
+        try {
+            java.util.List<XNode> gsNodes = gsLstNode.childrenByTag("a:gs");
+            if (gsNodes.isEmpty()) {
+                return;
+            }
+
+            // 简化处理：只取第一个和最后一个停止点作为开始和结束颜色
+            XNode firstGs = gsNodes.get(0);
+            XNode lastGs = gsNodes.get(gsNodes.size() - 1);
+
+            // 解析开始颜色
+            String startColor = parseGradientStopColor(firstGs, styleProvider);
+            if (startColor != null) {
+                gradient.setStartColor(startColor);
+            }
+
+            // 解析结束颜色
+            String endColor = parseGradientStopColor(lastGs, styleProvider);
+            if (endColor != null) {
+                gradient.setEndColor(endColor);
+            }
+
+        } catch (Exception e) {
+            LOG.warn("Failed to parse gradient stops", e);
+        }
+    }
+
+    /**
+     * 解析渐变停止点颜色
+     *
+     * @param gsNode        渐变停止点节点
+     * @param styleProvider 样式提供者
+     * @return 解析后的颜色值
+     */
+    private String parseGradientStopColor(XNode gsNode, IChartStyleProvider styleProvider) {
+        // 处理 srgbClr
+        String srgbColor = ChartPropertyHelper.getChildVal(gsNode, "a:srgbClr");
+        if (!StringHelper.isEmpty(srgbColor)) {
+            String baseColor = "#" + srgbColor;
+            XNode srgbClrNode = gsNode.childByTag("a:srgbClr");
+            return styleProvider.applyColorModifications(baseColor, srgbClrNode);
         }
 
-        // 解析渐变停止点
-        XNode gsLstNode = gradFillNode.childByTag("a:gsLst");
-        if (gsLstNode != null) {
-            // 可以解析渐变停止点，这里简化处理
+        // 处理 schemeClr
+        String schemeColor = ChartPropertyHelper.getChildVal(gsNode, "a:schemeClr");
+        if (!StringHelper.isEmpty(schemeColor)) {
+            String baseColor = styleProvider.getThemeColor(schemeColor);
+            if (baseColor != null) {
+                XNode schemeClrNode = gsNode.childByTag("a:schemeClr");
+                return styleProvider.applyColorModifications(baseColor, schemeClrNode);
+            }
         }
+
+        return null;
     }
 
     /**
@@ -184,16 +303,116 @@ public class ChartShapeStyleParser {
      * @param styleProvider 样式提供者
      */
     private void parsePatternFill(ChartFillModel fill, XNode pattFillNode, IChartStyleProvider styleProvider) {
-        // 解析前景色
-        XNode fgClrNode = pattFillNode.childByTag("a:fgClr");
-        if (fgClrNode != null) {
-            parseColorNode(fill, fgClrNode, styleProvider, true);
+        try {
+            fill.setType(ChartFillType.PATTERN);
+
+            // 解析透明度
+            parseOpacity(fill, pattFillNode);
+
+            // 解析图案类型
+            String prst = pattFillNode.attrText("prst");
+            if (!StringHelper.isEmpty(prst)) {
+                ChartFillPatternType patternType = mapOoxmlPatternType(prst);
+                fill.setPattern(patternType);
+            }
+
+            // 解析前景色
+            XNode fgClrNode = pattFillNode.childByTag("a:fgClr");
+            if (fgClrNode != null) {
+                parseColorNode(fill, fgClrNode, styleProvider, true);
+            }
+
+            // 解析背景色
+            XNode bgClrNode = pattFillNode.childByTag("a:bgClr");
+            if (bgClrNode != null) {
+                parseColorNode(fill, bgClrNode, styleProvider, false);
+            }
+
+        } catch (Exception e) {
+            LOG.warn("Failed to parse pattern fill, falling back to solid fill", e);
+            // 回退到纯色填充
+            fill.setType(ChartFillType.SOLID);
+            fill.setForegroundColor("#FFFFFF");
+        }
+    }
+
+    /**
+     * 映射 OOXML 图案类型到 ChartFillPatternType
+     *
+     * @param ooxmlPattern OOXML 图案类型
+     * @return 对应的 ChartFillPatternType
+     */
+    private ChartFillPatternType mapOoxmlPatternType(String ooxmlPattern) {
+        if (StringHelper.isEmpty(ooxmlPattern)) {
+            return ChartFillPatternType.SOLID;
         }
 
-        // 解析背景色
-        XNode bgClrNode = pattFillNode.childByTag("a:bgClr");
-        if (bgClrNode != null) {
-            parseColorNode(fill, bgClrNode, styleProvider, false);
+        try {
+            // 根据现有的 ChartFillPatternType 枚举值进行映射
+            switch (ooxmlPattern.toLowerCase()) {
+                case "solid":
+                    return ChartFillPatternType.SOLID;
+                case "pct5":
+                    return ChartFillPatternType.PERCENT_5;
+                case "pct10":
+                    return ChartFillPatternType.PERCENT_10;
+                case "pct20":
+                    return ChartFillPatternType.PERCENT_20;
+                case "pct25":
+                    return ChartFillPatternType.PERCENT_25;
+                case "pct30":
+                    return ChartFillPatternType.PERCENT_30;
+                case "pct40":
+                    return ChartFillPatternType.PERCENT_40;
+                case "pct50":
+                    return ChartFillPatternType.PERCENT_50;
+                case "pct60":
+                    return ChartFillPatternType.PERCENT_60;
+                case "pct70":
+                    return ChartFillPatternType.PERCENT_70;
+                case "pct75":
+                    return ChartFillPatternType.PERCENT_75;
+                case "pct80":
+                    return ChartFillPatternType.PERCENT_80;
+                case "pct90":
+                    return ChartFillPatternType.PERCENT_90;
+                case "horz":
+                    return ChartFillPatternType.HORIZONTAL_STRIPE;
+                case "vert":
+                    return ChartFillPatternType.VERTICAL_STRIPE;
+                case "bdiag":
+                    return ChartFillPatternType.BACKWARD_DIAGONAL;
+                case "fdiag":
+                    return ChartFillPatternType.FORWARD_DIAGONAL;
+                case "cross":
+                    return ChartFillPatternType.CROSS;
+                case "diagcross":
+                    return ChartFillPatternType.DIAGONAL_CROSS;
+                case "darkhorz":
+                    return ChartFillPatternType.DARK_HORIZONTAL;
+                case "darkvert":
+                    return ChartFillPatternType.DARK_VERTICAL;
+                case "darkbdiag":
+                    return ChartFillPatternType.DARK_BACKWARD_DIAGONAL;
+                case "darkfdiag":
+                    return ChartFillPatternType.DARK_FORWARD_DIAGONAL;
+                case "darkcross":
+                    return ChartFillPatternType.DARK_CROSS;
+                case "darkdiagcross":
+                    return ChartFillPatternType.DARK_DIAGONAL_CROSS;
+                case "lgspot":
+                    return ChartFillPatternType.LARGE_SPOT;
+                case "opendtl":
+                    return ChartFillPatternType.CHECKER_BOARD;
+                case "none":
+                    return ChartFillPatternType.NONE;
+                default:
+                    LOG.warn("Unknown OOXML pattern type: {}, using SOLID", ooxmlPattern);
+                    return ChartFillPatternType.SOLID;
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to map OOXML pattern type: {}, using SOLID", ooxmlPattern, e);
+            return ChartFillPatternType.SOLID;
         }
     }
 
@@ -208,22 +427,124 @@ public class ChartShapeStyleParser {
     private void parseColorNode(ChartFillModel fill, XNode colorNode, IChartStyleProvider styleProvider, boolean isForeground) {
         String color = ChartPropertyHelper.getChildVal(colorNode, "a:srgbClr");
         if (color != null) {
+            String baseColor = "#" + color;
+            XNode srgbClrNode = colorNode.childByTag("a:srgbClr");
+            String finalColor = styleProvider.applyColorModifications(baseColor, srgbClrNode);
             if (isForeground) {
-                fill.setForegroundColor(styleProvider.resolveColor(color));
+                fill.setForegroundColor(finalColor);
             } else {
-                fill.setBackgroundColor(styleProvider.resolveColor(color));
+                fill.setBackgroundColor(finalColor);
             }
             return;
         }
 
         String themeColor = ChartPropertyHelper.getChildVal(colorNode, "a:schemeClr");
         if (themeColor != null) {
-            String resolvedColor = styleProvider.getThemeColor(themeColor);
-            if (isForeground) {
-                fill.setForegroundColor(resolvedColor);
-            } else {
-                fill.setBackgroundColor(resolvedColor);
+            String baseColor = styleProvider.getThemeColor(themeColor);
+            if (baseColor != null) {
+                XNode schemeClrNode = colorNode.childByTag("a:schemeClr");
+                String finalColor = styleProvider.applyColorModifications(baseColor, schemeClrNode);
+                if (isForeground) {
+                    fill.setForegroundColor(finalColor);
+                } else {
+                    fill.setBackgroundColor(finalColor);
+                }
             }
+        }
+    }
+
+    /**
+     * 解析图片填充
+     *
+     * @param fill          填充模型
+     * @param blipFillNode  图片填充节点
+     * @param styleProvider 样式提供者
+     */
+    private void parsePictureFill(ChartFillModel fill, XNode blipFillNode, IChartStyleProvider styleProvider) {
+        try {
+            fill.setType(ChartFillType.PICTURE);
+
+            // 解析透明度
+            parseOpacity(fill, blipFillNode);
+
+            ChartFillPictureModel picture = new ChartFillPictureModel();
+
+            // 解析图片引用
+            XNode blipNode = blipFillNode.childByTag("a:blip");
+            if (blipNode != null) {
+                String embed = blipNode.attrText("r:embed");
+                if (!StringHelper.isEmpty(embed)) {
+                    picture.setEmbedId(embed);
+                }
+
+                String link = blipNode.attrText("r:link");
+                if (!StringHelper.isEmpty(link)) {
+                    picture.setImageUrl(link);
+                }
+            }
+
+            // 解析拉伸模式
+            XNode stretchNode = blipFillNode.childByTag("a:stretch");
+            if (stretchNode != null) {
+                picture.setStretch(true);
+                
+                // 解析填充矩形
+                XNode fillRectNode = stretchNode.childByTag("a:fillRect");
+                if (fillRectNode != null) {
+                    // 可以解析 l, t, r, b 属性来设置填充区域
+                    LOG.debug("Picture fill rect found but not fully implemented");
+                }
+            }
+
+            // 解析平铺模式
+            XNode tileNode = blipFillNode.childByTag("a:tile");
+            if (tileNode != null) {
+                picture.setTitle(true);
+                
+                // 解析平铺属性
+                Double tx = tileNode.attrDouble("tx");
+                Double ty = tileNode.attrDouble("ty");
+                Double sx = tileNode.attrDouble("sx");
+                Double sy = tileNode.attrDouble("sy");
+                
+                if (tx != null || ty != null || sx != null || sy != null) {
+                    LOG.debug("Picture tile properties found but not fully implemented");
+                }
+            }
+
+            fill.setPicture(picture);
+
+        } catch (Exception e) {
+            LOG.warn("Failed to parse picture fill, falling back to solid fill", e);
+            // 回退到纯色填充
+            fill.setType(ChartFillType.SOLID);
+            fill.setForegroundColor("#FFFFFF");
+        }
+    }
+
+    /**
+     * 解析透明度/不透明度
+     *
+     * @param fill     填充模型
+     * @param fillNode 填充节点
+     */
+    private void parseOpacity(ChartFillModel fill, XNode fillNode) {
+        try {
+            // 查找透明度相关的子节点
+            for (XNode child : fillNode.getChildren()) {
+                String tagName = child.getTagName();
+                if (tagName != null && (tagName.endsWith("alpha") || tagName.endsWith("Alpha"))) {
+                    Double val = child.attrDouble("val");
+                    if (val != null) {
+                        // OOXML 透明度值通常是 0-100000 的范围，转换为 0.0-1.0
+                        double opacity = val / 100000.0;
+                        fill.setOpacity(Math.max(0.0, Math.min(1.0, opacity)));
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOG.debug("Failed to parse opacity", e);
         }
     }
 
@@ -244,6 +565,9 @@ public class ChartShapeStyleParser {
             XNode solidFillNode = lnNode.childByTag("a:solidFill");
             if (solidFillNode != null) {
                 parseBorderColor(border, solidFillNode, styleProvider);
+                
+                // 解析边框透明度
+                parseBorderOpacity(border, solidFillNode);
             }
 
             // 解析边框宽度 - 正确处理EMU单位转换
@@ -264,6 +588,14 @@ public class ChartShapeStyleParser {
             } else {
                 // 如果没有预设虚线，默认为实线
                 border.setStyle(ChartLineStyle.SOLID);
+            }
+
+            // 解析自定义虚线样式
+            XNode custDashNode = lnNode.childByTag("a:custDash");
+            if (custDashNode != null) {
+                // 注意：当前ChartBorderModel可能不支持自定义虚线
+                // 这里记录日志以便将来扩展
+                LOG.debug("Custom dash pattern found but not fully supported");
             }
 
             // 解析线条端点样式 (cap)
@@ -288,6 +620,14 @@ public class ChartShapeStyleParser {
                 // 注意：当前ChartBorderModel可能不支持algn属性
                 // 这里记录日志以便将来扩展
                 LOG.debug("Line alignment: {}", algn);
+            }
+
+            // 解析线条连接样式
+            XNode joinNode = lnNode.childByTag("a:round");
+            if (joinNode == null) joinNode = lnNode.childByTag("a:bevel");
+            if (joinNode == null) joinNode = lnNode.childByTag("a:miter");
+            if (joinNode != null) {
+                LOG.debug("Line join style found: {}", joinNode.getTagName());
             }
 
             style.setBorder(border);
@@ -348,13 +688,49 @@ public class ChartShapeStyleParser {
     private void parseBorderColor(ChartBorderModel border, XNode solidFillNode, IChartStyleProvider styleProvider) {
         String color = ChartPropertyHelper.getChildVal(solidFillNode, "a:srgbClr");
         if (color != null) {
-            border.setColor(styleProvider.resolveColor(color));
+            String baseColor = "#" + color;
+            XNode srgbClrNode = solidFillNode.childByTag("a:srgbClr");
+            String finalColor = styleProvider.applyColorModifications(baseColor, srgbClrNode);
+            border.setColor(finalColor);
             return;
         }
 
         String themeColor = ChartPropertyHelper.getChildVal(solidFillNode, "a:schemeClr");
         if (themeColor != null) {
-            border.setColor(styleProvider.getThemeColor(themeColor));
+            String baseColor = styleProvider.getThemeColor(themeColor);
+            if (baseColor != null) {
+                XNode schemeClrNode = solidFillNode.childByTag("a:schemeClr");
+                String finalColor = styleProvider.applyColorModifications(baseColor, schemeClrNode);
+                border.setColor(finalColor);
+            }
+        }
+    }
+
+    /**
+     * 解析边框透明度
+     *
+     * @param border        边框模型
+     * @param solidFillNode 纯色填充节点
+     */
+    private void parseBorderOpacity(ChartBorderModel border, XNode solidFillNode) {
+        try {
+            // 查找透明度相关的子节点
+            for (XNode child : solidFillNode.getChildren()) {
+                String tagName = child.getTagName();
+                if (tagName != null && (tagName.endsWith("alpha") || tagName.endsWith("Alpha"))) {
+                    Double val = child.attrDouble("val");
+                    if (val != null) {
+                        // OOXML 透明度值通常是 0-100000 的范围，转换为 0.0-1.0
+                        double opacity = val / 100000.0;
+                        // 注意：当前ChartBorderModel可能不支持opacity属性
+                        // 这里记录日志以便将来扩展
+                        LOG.debug("Border opacity: {}", opacity);
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOG.debug("Failed to parse border opacity", e);
         }
     }
 
