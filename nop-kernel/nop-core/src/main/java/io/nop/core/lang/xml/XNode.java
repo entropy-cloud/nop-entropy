@@ -712,6 +712,11 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
             setAttr(name, value);
     }
 
+    public XNode withTagName(String tagName){
+        setTagName(tagName);
+        return this;
+    }
+
     public XNode withAttr(String name, Object value) {
         setAttr(name, value);
         return this;
@@ -2100,6 +2105,11 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
 
     public String getText() {
         return text();
+    }
+
+    public void setText(String text) {
+        this.clearBody();
+        this.content = ValueWithLocation.of(null, text);
     }
 
     public String html() {

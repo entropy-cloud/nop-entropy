@@ -28,7 +28,7 @@ public abstract class _ChartHierarchicalLevelModel extends io.nop.core.resource.
      * xml name: visible
      * 
      */
-    private java.lang.Boolean _visible ;
+    private boolean _visible  = true;
     
     /**
      * 
@@ -55,12 +55,12 @@ public abstract class _ChartHierarchicalLevelModel extends io.nop.core.resource.
      *  
      */
     
-    public java.lang.Boolean getVisible(){
+    public boolean isVisible(){
       return _visible;
     }
 
     
-    public void setVisible(java.lang.Boolean value){
+    public void setVisible(boolean value){
         checkAllowChange();
         
         this._visible = value;
@@ -84,7 +84,7 @@ public abstract class _ChartHierarchicalLevelModel extends io.nop.core.resource.
         super.outputJson(out);
         
         out.putNotNull("depth",this.getDepth());
-        out.putNotNull("visible",this.getVisible());
+        out.putNotNull("visible",this.isVisible());
     }
 
     public ChartHierarchicalLevelModel cloneInstance(){
@@ -97,7 +97,7 @@ public abstract class _ChartHierarchicalLevelModel extends io.nop.core.resource.
         super.copyTo(instance);
         
         instance.setDepth(this.getDepth());
-        instance.setVisible(this.getVisible());
+        instance.setVisible(this.isVisible());
     }
 
     protected ChartHierarchicalLevelModel newInstance(){

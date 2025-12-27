@@ -32,6 +32,13 @@ public abstract class _ChartBarConfigModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: is3D
+     * 
+     */
+    private java.lang.Boolean _is3D ;
+    
+    /**
+     *  
      * xml name: percentGapWidth
      * 柱间空隙占柱宽百分比：65=65%。
      */
@@ -78,6 +85,25 @@ public abstract class _ChartBarConfigModel extends io.nop.core.resource.componen
         checkAllowChange();
         
         this._grouping = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: is3D
+     *  
+     */
+    
+    public java.lang.Boolean getIs3D(){
+      return _is3D;
+    }
+
+    
+    public void setIs3D(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._is3D = value;
            
     }
 
@@ -137,6 +163,7 @@ public abstract class _ChartBarConfigModel extends io.nop.core.resource.componen
         
         out.putNotNull("dir",this.getDir());
         out.putNotNull("grouping",this.getGrouping());
+        out.putNotNull("is3D",this.getIs3D());
         out.putNotNull("percentGapWidth",this.getPercentGapWidth());
         out.putNotNull("percentOverlap",this.getPercentOverlap());
     }
@@ -152,6 +179,7 @@ public abstract class _ChartBarConfigModel extends io.nop.core.resource.componen
         
         instance.setDir(this.getDir());
         instance.setGrouping(this.getGrouping());
+        instance.setIs3D(this.getIs3D());
         instance.setPercentGapWidth(this.getPercentGapWidth());
         instance.setPercentOverlap(this.getPercentOverlap());
     }

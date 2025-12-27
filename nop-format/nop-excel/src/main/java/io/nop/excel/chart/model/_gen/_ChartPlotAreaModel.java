@@ -116,12 +116,12 @@ public abstract class _ChartPlotAreaModel extends io.nop.core.resource.component
     
     /**
      *  
-     * xml name: series
+     * xml name: seriesList
      * Data series collection
      * 对应 Excel POI 中的 XSSFChart.getChartSeries() 集合
      * 每个 series 对应一个 ChartSeries 对象
      */
-    private KeyedList<io.nop.excel.chart.model.ChartSeriesModel> _series = KeyedList.emptyList();
+    private KeyedList<io.nop.excel.chart.model.ChartSeriesModel> _seriesList = KeyedList.emptyList();
     
     /**
      *  
@@ -435,49 +435,49 @@ public abstract class _ChartPlotAreaModel extends io.nop.core.resource.component
     
     /**
      * 
-     * xml name: series
+     * xml name: seriesList
      *  Data series collection
      * 对应 Excel POI 中的 XSSFChart.getChartSeries() 集合
      * 每个 series 对应一个 ChartSeries 对象
      */
     
-    public java.util.List<io.nop.excel.chart.model.ChartSeriesModel> getSeries(){
-      return _series;
+    public java.util.List<io.nop.excel.chart.model.ChartSeriesModel> getSeriesList(){
+      return _seriesList;
     }
 
     
-    public void setSeries(java.util.List<io.nop.excel.chart.model.ChartSeriesModel> value){
+    public void setSeriesList(java.util.List<io.nop.excel.chart.model.ChartSeriesModel> value){
         checkAllowChange();
         
-        this._series = KeyedList.fromList(value, io.nop.excel.chart.model.ChartSeriesModel::getId);
+        this._seriesList = KeyedList.fromList(value, io.nop.excel.chart.model.ChartSeriesModel::getId);
            
     }
 
     
     public io.nop.excel.chart.model.ChartSeriesModel getSeries(String name){
-        return this._series.getByKey(name);
+        return this._seriesList.getByKey(name);
     }
 
     public boolean hasSeries(String name){
-        return this._series.containsKey(name);
+        return this._seriesList.containsKey(name);
     }
 
     public void addSeries(io.nop.excel.chart.model.ChartSeriesModel item) {
         checkAllowChange();
-        java.util.List<io.nop.excel.chart.model.ChartSeriesModel> list = this.getSeries();
+        java.util.List<io.nop.excel.chart.model.ChartSeriesModel> list = this.getSeriesList();
         if (list == null || list.isEmpty()) {
             list = new KeyedList<>(io.nop.excel.chart.model.ChartSeriesModel::getId);
-            setSeries(list);
+            setSeriesList(list);
         }
         list.add(item);
     }
     
-    public java.util.Set<String> keySet_series(){
-        return this._series.keySet();
+    public java.util.Set<String> keySet_seriesList(){
+        return this._seriesList.keySet();
     }
 
-    public boolean hasSeries(){
-        return !this._series.isEmpty();
+    public boolean hasSeriesList(){
+        return !this._seriesList.isEmpty();
     }
     
     /**
@@ -592,7 +592,7 @@ public abstract class _ChartPlotAreaModel extends io.nop.core.resource.component
             
            this._scatterConfig = io.nop.api.core.util.FreezeHelper.deepFreeze(this._scatterConfig);
             
-           this._series = io.nop.api.core.util.FreezeHelper.deepFreeze(this._series);
+           this._seriesList = io.nop.api.core.util.FreezeHelper.deepFreeze(this._seriesList);
             
            this._shapeStyle = io.nop.api.core.util.FreezeHelper.deepFreeze(this._shapeStyle);
             
@@ -622,7 +622,7 @@ public abstract class _ChartPlotAreaModel extends io.nop.core.resource.component
         out.putNotNull("pieConfig",this.getPieConfig());
         out.putNotNull("radarConfig",this.getRadarConfig());
         out.putNotNull("scatterConfig",this.getScatterConfig());
-        out.putNotNull("series",this.getSeries());
+        out.putNotNull("seriesList",this.getSeriesList());
         out.putNotNull("shapeStyle",this.getShapeStyle());
         out.putNotNull("stockConfig",this.getStockConfig());
         out.putNotNull("surfaceConfig",this.getSurfaceConfig());
@@ -651,7 +651,7 @@ public abstract class _ChartPlotAreaModel extends io.nop.core.resource.component
         instance.setPieConfig(this.getPieConfig());
         instance.setRadarConfig(this.getRadarConfig());
         instance.setScatterConfig(this.getScatterConfig());
-        instance.setSeries(this.getSeries());
+        instance.setSeriesList(this.getSeriesList());
         instance.setShapeStyle(this.getShapeStyle());
         instance.setStockConfig(this.getStockConfig());
         instance.setSurfaceConfig(this.getSurfaceConfig());

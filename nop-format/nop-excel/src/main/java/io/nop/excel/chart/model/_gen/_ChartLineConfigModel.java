@@ -40,6 +40,13 @@ public abstract class _ChartLineConfigModel extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: is3D
+     * 
+     */
+    private java.lang.Boolean _is3D ;
+    
+    /**
+     *  
      * xml name: marker
      * 是否显示标记点：true/false
      */
@@ -112,6 +119,25 @@ public abstract class _ChartLineConfigModel extends io.nop.core.resource.compone
         checkAllowChange();
         
         this._hiLowLines = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: is3D
+     *  
+     */
+    
+    public java.lang.Boolean getIs3D(){
+      return _is3D;
+    }
+
+    
+    public void setIs3D(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._is3D = value;
            
     }
 
@@ -191,6 +217,7 @@ public abstract class _ChartLineConfigModel extends io.nop.core.resource.compone
         out.putNotNull("dropLines",this.getDropLines());
         out.putNotNull("grouping",this.getGrouping());
         out.putNotNull("hiLowLines",this.getHiLowLines());
+        out.putNotNull("is3D",this.getIs3D());
         out.putNotNull("marker",this.getMarker());
         out.putNotNull("smooth",this.getSmooth());
         out.putNotNull("upDownBars",this.getUpDownBars());
@@ -208,6 +235,7 @@ public abstract class _ChartLineConfigModel extends io.nop.core.resource.compone
         instance.setDropLines(this.getDropLines());
         instance.setGrouping(this.getGrouping());
         instance.setHiLowLines(this.getHiLowLines());
+        instance.setIs3D(this.getIs3D());
         instance.setMarker(this.getMarker());
         instance.setSmooth(this.getSmooth());
         instance.setUpDownBars(this.getUpDownBars());

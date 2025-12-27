@@ -28,7 +28,7 @@ public abstract class _ChartHierarchicalLeafModel extends io.nop.core.resource.c
      * xml name: visible
      * 
      */
-    private java.lang.Boolean _visible ;
+    private boolean _visible  = true;
     
     /**
      * 
@@ -55,12 +55,12 @@ public abstract class _ChartHierarchicalLeafModel extends io.nop.core.resource.c
      *  
      */
     
-    public java.lang.Boolean getVisible(){
+    public boolean isVisible(){
       return _visible;
     }
 
     
-    public void setVisible(java.lang.Boolean value){
+    public void setVisible(boolean value){
         checkAllowChange();
         
         this._visible = value;
@@ -84,7 +84,7 @@ public abstract class _ChartHierarchicalLeafModel extends io.nop.core.resource.c
         super.outputJson(out);
         
         out.putNotNull("labelPosition",this.getLabelPosition());
-        out.putNotNull("visible",this.getVisible());
+        out.putNotNull("visible",this.isVisible());
     }
 
     public ChartHierarchicalLeafModel cloneInstance(){
@@ -97,7 +97,7 @@ public abstract class _ChartHierarchicalLeafModel extends io.nop.core.resource.c
         super.copyTo(instance);
         
         instance.setLabelPosition(this.getLabelPosition());
-        instance.setVisible(this.getVisible());
+        instance.setVisible(this.isVisible());
     }
 
     protected ChartHierarchicalLeafModel newInstance(){

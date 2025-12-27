@@ -33,6 +33,13 @@ public abstract class _ChartPieConfigModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: is3D
+     * 
+     */
+    private java.lang.Boolean _is3D ;
+    
+    /**
+     *  
      * xml name: outerRadius
      * 
      */
@@ -86,6 +93,25 @@ public abstract class _ChartPieConfigModel extends io.nop.core.resource.componen
         checkAllowChange();
         
         this._innerRadius = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: is3D
+     *  
+     */
+    
+    public java.lang.Boolean getIs3D(){
+      return _is3D;
+    }
+
+    
+    public void setIs3D(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._is3D = value;
            
     }
 
@@ -164,6 +190,7 @@ public abstract class _ChartPieConfigModel extends io.nop.core.resource.componen
         
         out.putNotNull("endAngle",this.getEndAngle());
         out.putNotNull("innerRadius",this.getInnerRadius());
+        out.putNotNull("is3D",this.getIs3D());
         out.putNotNull("outerRadius",this.getOuterRadius());
         out.putNotNull("padAngle",this.getPadAngle());
         out.putNotNull("startAngle",this.getStartAngle());
@@ -180,6 +207,7 @@ public abstract class _ChartPieConfigModel extends io.nop.core.resource.componen
         
         instance.setEndAngle(this.getEndAngle());
         instance.setInnerRadius(this.getInnerRadius());
+        instance.setIs3D(this.getIs3D());
         instance.setOuterRadius(this.getOuterRadius());
         instance.setPadAngle(this.getPadAngle());
         instance.setStartAngle(this.getStartAngle());

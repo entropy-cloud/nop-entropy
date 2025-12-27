@@ -32,7 +32,8 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
                Fill pattern configuration
                对应 Excel POI 中的 FillProperties
                -->
-        <fill type="enum:io.nop.excel.chart.constants.ChartFillType" pattern="enum:io.nop.excel.chart.constants.ChartFillPatternType"
+        <fill type="enum:io.nop.excel.chart.constants.ChartFillType"
+              pattern="enum:io.nop.excel.chart.constants.ChartFillPatternType"
               backgroundColor="string" foregroundColor="string" opacity="double" xdef:name="ChartFillModel">
             <!--
             Gradient fill support
@@ -97,7 +98,7 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
     @overlay 缺省为false，表示元素（标题、图例等）会独占一块区域，绘图区会自动向内收缩，不与它重叠。
          true则表示元素将悬浮在绘图区上方，二者可以重叠，绘图区大小保持不变。
     -->
-    <title text="string" visible="boolean=true" textCellRef="string" overlay="boolean=false"
+    <title text="string" visible="!boolean=true" textCellRef="string" overlay="boolean=false"
            position="enum:io.nop.excel.chart.constants.ChartTitlePosition"
            xdef:name="ChartTitleModel">
         <manualLayout xdef:ref="ChartManualLayoutModel"/>
@@ -105,6 +106,29 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
         <shapeStyle xdef:ref="ChartShapeStyleModel"/>
         <textStyle xdef:ref="ChartTextStyleModel"/>
     </title>
+
+    <dynamicBindings xdef:name="ChartDynamicBindingsModel">
+        <!-- 图表标题引用，返回单个单元格地址 -->
+        <chartTitleCellRefExpr>xpl-fn:(chartModel)=>string</chartTitleCellRefExpr>
+
+        <!-- 图表标题直接计算：返回标题文本字符串，直接作为图表标题 -->
+        <chartTitleExpr>xpl-fn:(chartModel)=>string</chartTitleExpr>
+
+        <!-- 系列名称引用，返回单个单元格地址 -->
+        <seriesNameCellRefExpr>xpl-fn:(seriesModel,chartModel)=>string</seriesNameCellRefExpr>
+
+        <seriesNameExpr>xpl-fn:(seriesModel,chartModel)=>string</seriesNameExpr>
+
+        <!-- 系列数值范围引用，返回单元格区域地址 -->
+        <valuesCellRefExpr>xpl-fn:(seriesModel,chartModel)=>string</valuesCellRefExpr>
+
+        <valuesExpr>xpl-fn:(seriesModel,chartModel)=>any</valuesExpr>
+
+        <!-- 系列分类范围引用，返回单元格区域地址（X轴标签） -->
+        <categoryCellRefExpr>xpl-fn:(seriesModel,chartModel)=>string</categoryCellRefExpr>
+
+        <categoryExpr>xpl-fn:(seriesModel,chartModel)=>any</categoryExpr>
+    </dynamicBindings>
 
     <!--
     Chart description for documentation
@@ -151,7 +175,7 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
    对应 Excel POI 中的 XSSFChart.getChartSeries() 集合
    每个 series 对应一个 ChartSeries 对象
    -->
-        <series xdef:body-type="list" xdef:key-attr="id" xdef:name="ChartSeriesListModel">
+        <seriesList xdef:body-type="list" xdef:key-attr="id">
 
             <!--
             @invertIfNegative 当系列中的数据点为负值时，使用反转颜色显示（通常是前景色和背景色交换）。
@@ -159,35 +183,8 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
             -->
             <series id="!string" name="string" type="enum:io.nop.excel.chart.constants.ChartType"
                     nameCellRef="string" invertIfNegative="boolean=false" axisId="string"
-                    visible="boolean=true" xdef:name="ChartSeriesModel">
-
-                <!--
-                Data source configuration
-                对应 Excel POI 中的 ChartDataSource，支持多种数据来源
-                -->
-                <dataSource type="enum:io.nop.excel.chart.constants.ChartDataSourceType" xdef:mandatory="true"
-                            xdef:name="ChartDataSourceModel" dataCellRef="string">
-                    <!--
-                    Static inline data
-                    对应 POI 中直接设置数据值的方式
-                    -->
-                    <staticData>json</staticData>
-
-                    <!--
-                    REST API data source
-                    对应外部 API 数据获取
-                    -->
-                    <api url="!string" method="string" refresh="long" xdef:name="ChartApiDataModel">
-                        <headers>json-map</headers>
-                        <body>json-map</body>
-                    </api>
-
-                    <!--
-                    Dynamic expression data source
-                    对应计算字段和动态数据
-                    -->
-                    <dataExpr>string</dataExpr>
-                </dataSource>
+                    dataCellRef="string"
+                    visible="!boolean=true" xdef:name="ChartSeriesModel">
 
                 <shapeStyle xdef:ref="ChartShapeStyleModel"/>
 
@@ -253,13 +250,13 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
                     </trendLine>
                 </trendLines>
             </series>
-        </series>
+        </seriesList>
 
         <!--
         Chart axes configuration
         对应 Excel POI 中的 ChartAxis 集合，包括 CategoryAxis 和 ValueAxis
         -->
-        <axes xdef:body-type="list" xdef:name="ChartAxesModel" xdef:key-attr="id">
+        <axes xdef:body-type="list" xdef:key-attr="id">
             <!--
             @multiLevel 对应多级分类轴
             @primary 是否主坐标轴
@@ -268,6 +265,7 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
                   multiLevel="boolean" primary="!boolean=true"
                   crossAxisId="string" crossAt="double" visible="!boolean=true"
                   position="enum:io.nop.excel.chart.constants.ChartAxisPosition"
+                  dataCellRef="string"
                   id="!string" xdef:name="ChartAxisModel">
 
                 <shapeStyle xdef:ref="ChartShapeStyleModel"/>
@@ -277,7 +275,7 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
                 Axis title
                 对应 Excel POI 中的 AxisTitle
                 -->
-                <title text="string" visible="boolean=true" textCellRef="string" xdef:name="ChartAxisTitleModel">
+                <title text="string" visible="!boolean=true" textCellRef="string" xdef:name="ChartAxisTitleModel">
                     <shapeStyle xdef:ref="ChartShapeStyleModel"/>
                     <textStyle xdef:ref="ChartTextStyleModel"/>
                 </title>
@@ -306,17 +304,17 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
                 @tickColor 刻度线颜色
                 @tickWidth 刻度线宽度
                 -->
-                <ticks visible="boolean=true"
-                      majorTickMark="enum:io.nop.excel.chart.constants.ChartTickMark"
-                      minorTickMark="enum:io.nop.excel.chart.constants.ChartTickMark"
-                      labelPosition="enum:io.nop.excel.chart.constants.ChartAxisTickLabelPosition"
-                      labelAlignment="enum:io.nop.excel.chart.constants.ChartLabelAlignment"
-                      labelVisible="boolean=true"
-                      labelRotation="double-deg" labelOffset="double-percent"
-                      labelNumFmt="string"
-                      tickColor="string"
-                      tickWidth="double-pt"
-                      xdef:name="ChartTicksModel">
+                <ticks visible="!boolean=true"
+                       majorTickMark="enum:io.nop.excel.chart.constants.ChartTickMark"
+                       minorTickMark="enum:io.nop.excel.chart.constants.ChartTickMark"
+                       labelPosition="enum:io.nop.excel.chart.constants.ChartAxisTickLabelPosition"
+                       labelAlignment="enum:io.nop.excel.chart.constants.ChartLabelAlignment"
+                       labelVisible="boolean=true"
+                       labelRotation="double-deg" labelOffset="double-percent"
+                       labelNumFmt="string"
+                       tickColor="string"
+                       tickWidth="double-pt"
+                       xdef:name="ChartTicksModel">
                     <!-- 刻度标签字体 -->
                     <labelFont xdef:ref="font.xdef"/>
                 </ticks>
@@ -325,7 +323,7 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
                 Grid lines configuration
                 对应 Excel POI 中的 ChartGridLines
                 -->
-                <majorGrid visible="boolean=true" style="enum:io.nop.excel.chart.constants.ChartLineStyle"
+                <majorGrid visible="!boolean=true" style="enum:io.nop.excel.chart.constants.ChartLineStyle"
                            color="string"
                            width="double-pt" opacity="double" xdef:name="ChartGridModel"/>
 
@@ -347,7 +345,7 @@ Chart type specific configurations
         @percentGapWidth 柱间空隙占柱宽百分比：65=65%。
         @percentOverlap 同一类别中系列重叠比例：100=100% 重叠（堆积效果）。
         -->
-        <barConfig xdef:name="ChartBarConfigModel"
+        <barConfig xdef:name="ChartBarConfigModel" is3D="boolean"
                    percentGapWidth="double-percent" percentOverlap="double-percent"
                    dir="enum:io.nop.excel.chart.constants.ChartBarDirection"
                    grouping="enum:io.nop.excel.chart.constants.ChartBarGrouping"/>
@@ -356,7 +354,7 @@ Chart type specific configurations
         Pie chart specific settings
         对应 Excel POI 中 PieChart 的特殊属性
         -->
-        <pieConfig innerRadius="double-percent" outerRadius="double-percent" startAngle="double-deg"
+        <pieConfig is3D="boolean" innerRadius="double-percent" outerRadius="double-percent" startAngle="double-deg"
                    endAngle="double-deg" padAngle="double-deg" xdef:name="ChartPieConfigModel"/>
 
         <!--
@@ -369,7 +367,7 @@ Chart type specific configurations
         @hiLowLines 是否显示高低线：true/false
         @upDownBars 是否显示涨跌柱：true/false
         -->
-        <lineConfig grouping="enum:io.nop.excel.chart.constants.ChartBarGrouping"
+        <lineConfig is3D="boolean" grouping="enum:io.nop.excel.chart.constants.ChartBarGrouping"
                     marker="boolean" smooth="boolean" dropLines="boolean"
                     hiLowLines="boolean" upDownBars="boolean"
                     xdef:name="ChartLineConfigModel"/>
@@ -380,7 +378,7 @@ Chart type specific configurations
         @grouping 分组方式：standard、stacked、percentStacked
         @dropLines 是否显示垂直线到X轴：true/false
         -->
-        <areaConfig grouping="enum:io.nop.excel.chart.constants.ChartBarGrouping"
+        <areaConfig is3D="boolean" grouping="enum:io.nop.excel.chart.constants.ChartBarGrouping"
                     dropLines="boolean" xdef:name="ChartAreaConfigModel"/>
 
         <!--
@@ -429,8 +427,8 @@ Chart type specific configurations
 
         <hierarchicalConfig xdef:name="ChartHierarchicalConfigModel"
                             algorithm="enum:io.nop.excel.chart.constants.ChartHierarchicalLayout">
-            <levels visible="boolean" depth="int" xdef:name="ChartHierarchicalLevelModel"/>
-            <leaves visible="boolean" labelPosition="enum:io.nop.excel.chart.constants.ChartLabelPosition"
+            <levels visible="!boolean=true" depth="int" xdef:name="ChartHierarchicalLevelModel"/>
+            <leaves visible="!boolean=true" labelPosition="enum:io.nop.excel.chart.constants.ChartLabelPosition"
                     xdef:name="ChartHierarchicalLeafModel"/>
         </hierarchicalConfig>
 
@@ -452,7 +450,8 @@ Chart type specific configurations
                             xdef:name="ChartCategoryFilterModel"/>
 
             <!-- 系列筛选器 -->
-            <seriesFilter seriesNames="csv-list" exclude="boolean" enabled="boolean" xdef:name="ChartSeriesFilterModel"/>
+            <seriesFilter seriesNames="csv-list" exclude="boolean" enabled="boolean"
+                          xdef:name="ChartSeriesFilterModel"/>
 
             <!-- 顶部N筛选器 -->
             <topNFilter n="int" by="enum:io.nop.excel.chart.constants.ChartTopNBy" enabled="boolean"
@@ -465,7 +464,7 @@ Chart type specific configurations
     Chart legend configuration
     对应 Excel POI 中的 ChartLegend
     -->
-    <legend visible="boolean=true" overlay="boolean=false"
+    <legend visible="!boolean=true" overlay="boolean=false"
             position="enum:io.nop.excel.chart.constants.ChartLegendPosition"
             orientation="enum:io.nop.excel.chart.constants.ChartOrientation"
             align="enum:io.nop.excel.model.constants.ExcelHorizontalAlignment"

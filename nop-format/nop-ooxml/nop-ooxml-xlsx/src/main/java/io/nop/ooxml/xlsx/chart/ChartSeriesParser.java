@@ -2,9 +2,7 @@ package io.nop.ooxml.xlsx.chart;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
-import io.nop.excel.chart.constants.ChartDataSourceType;
 import io.nop.excel.chart.model.ChartDataLabelsModel;
-import io.nop.excel.chart.model.ChartDataSourceModel;
 import io.nop.excel.chart.model.ChartSeriesModel;
 import io.nop.excel.chart.model.ChartShapeStyleModel;
 import io.nop.excel.chart.model.ChartTrendLineModel;
@@ -246,58 +244,64 @@ public class ChartSeriesParser {
      */
     private void parseSeriesData(ChartSeriesModel series, XNode serNode) {
         try {
-            // 创建数据源模型
-            ChartDataSourceModel dataSource = new ChartDataSourceModel();
-            dataSource.setType(ChartDataSourceType.CELL_REFERENCE);
+            String dataCellRef = null;
 
-            // 解析类别数据 (X轴数据)
-            XNode catNode = serNode.childByTag("c:cat");
-            if (catNode != null) {
-                String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(catNode);
-                if (cellRef != null) {
-                    dataSource.setDataCellRef(cellRef);
-                }
-            }
-
-            // 解析数值数据 (Y轴数据) - 优先级更高
+            // 解析数值数据 (Y轴数据) - 优先级最高
             XNode valNode = serNode.childByTag("c:val");
             if (valNode != null) {
                 String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(valNode);
                 if (cellRef != null) {
-                    dataSource.setDataCellRef(cellRef);
+                    dataCellRef = cellRef;
                 }
             }
 
-            // 解析X值数据 (散点图)
-            XNode xValNode = serNode.childByTag("c:xVal");
-            if (xValNode != null) {
-                String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(xValNode);
-                if (cellRef != null) {
-                    dataSource.setDataCellRef(cellRef);
+            // 如果没有找到val，尝试解析类别数据 (X轴数据)
+            if (dataCellRef == null) {
+                XNode catNode = serNode.childByTag("c:cat");
+                if (catNode != null) {
+                    String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(catNode);
+                    if (cellRef != null) {
+                        dataCellRef = cellRef;
+                    }
                 }
             }
 
-            // 解析Y值数据 (散点图)
-            XNode yValNode = serNode.childByTag("c:yVal");
-            if (yValNode != null) {
-                String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(yValNode);
-                if (cellRef != null) {
-                    dataSource.setDataCellRef(cellRef);
+            // 如果没有找到，尝试解析X值数据 (散点图)
+            if (dataCellRef == null) {
+                XNode xValNode = serNode.childByTag("c:xVal");
+                if (xValNode != null) {
+                    String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(xValNode);
+                    if (cellRef != null) {
+                        dataCellRef = cellRef;
+                    }
                 }
             }
 
-            // 解析气泡大小数据 (气泡图)
-            XNode bubbleSizeNode = serNode.childByTag("c:bubbleSize");
-            if (bubbleSizeNode != null) {
-                String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(bubbleSizeNode);
-                if (cellRef != null) {
-                    dataSource.setDataCellRef(cellRef);
+            // 如果没有找到，尝试解析Y值数据 (散点图)
+            if (dataCellRef == null) {
+                XNode yValNode = serNode.childByTag("c:yVal");
+                if (yValNode != null) {
+                    String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(yValNode);
+                    if (cellRef != null) {
+                        dataCellRef = cellRef;
+                    }
                 }
             }
 
-            // 如果找到了数据引用，设置数据源
-            if (!StringHelper.isEmpty(dataSource.getDataCellRef())) {
-                series.setDataSource(dataSource);
+            // 如果没有找到，尝试解析气泡大小数据 (气泡图)
+            if (dataCellRef == null) {
+                XNode bubbleSizeNode = serNode.childByTag("c:bubbleSize");
+                if (bubbleSizeNode != null) {
+                    String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(bubbleSizeNode);
+                    if (cellRef != null) {
+                        dataCellRef = cellRef;
+                    }
+                }
+            }
+
+            // 如果找到了数据引用，直接设置到series上
+            if (!StringHelper.isEmpty(dataCellRef)) {
+                series.setDataCellRef(dataCellRef);
             }
 
             // 解析系列特定配置

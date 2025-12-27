@@ -52,6 +52,13 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: dynamicBindings
+     * 
+     */
+    private io.nop.excel.chart.model.ChartDynamicBindingsModel _dynamicBindings ;
+    
+    /**
+     *  
      * xml name: height
      * 
      */
@@ -234,6 +241,25 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
         checkAllowChange();
         
         this._dispBlanksAs = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: dynamicBindings
+     *  
+     */
+    
+    public io.nop.excel.chart.model.ChartDynamicBindingsModel getDynamicBindings(){
+      return _dynamicBindings;
+    }
+
+    
+    public void setDynamicBindings(io.nop.excel.chart.model.ChartDynamicBindingsModel value){
+        checkAllowChange();
+        
+        this._dynamicBindings = value;
            
     }
 
@@ -538,6 +564,8 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
         
            this._dataLabels = io.nop.api.core.util.FreezeHelper.deepFreeze(this._dataLabels);
             
+           this._dynamicBindings = io.nop.api.core.util.FreezeHelper.deepFreeze(this._dynamicBindings);
+            
            this._interactions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._interactions);
             
            this._legend = io.nop.api.core.util.FreezeHelper.deepFreeze(this._legend);
@@ -561,6 +589,7 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
         out.putNotNull("dataLabels",this.getDataLabels());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("dispBlanksAs",this.getDispBlanksAs());
+        out.putNotNull("dynamicBindings",this.getDynamicBindings());
         out.putNotNull("height",this.getHeight());
         out.putNotNull("interactions",this.getInteractions());
         out.putNotNull("is3D",this.getIs3D());
@@ -591,6 +620,7 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
         instance.setDataLabels(this.getDataLabels());
         instance.setDescription(this.getDescription());
         instance.setDispBlanksAs(this.getDispBlanksAs());
+        instance.setDynamicBindings(this.getDynamicBindings());
         instance.setHeight(this.getHeight());
         instance.setInteractions(this.getInteractions());
         instance.setIs3D(this.getIs3D());

@@ -32,6 +32,13 @@ public abstract class _ChartAxisModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: dataCellRef
+     * 
+     */
+    private java.lang.String _dataCellRef ;
+    
+    /**
+     *  
      * xml name: id
      * 
      */
@@ -169,6 +176,25 @@ public abstract class _ChartAxisModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._crossAxisId = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: dataCellRef
+     *  
+     */
+    
+    public java.lang.String getDataCellRef(){
+      return _dataCellRef;
+    }
+
+    
+    public void setDataCellRef(java.lang.String value){
+        checkAllowChange();
+        
+        this._dataCellRef = value;
            
     }
 
@@ -479,6 +505,7 @@ public abstract class _ChartAxisModel extends io.nop.core.resource.component.Abs
         
         out.putNotNull("crossAt",this.getCrossAt());
         out.putNotNull("crossAxisId",this.getCrossAxisId());
+        out.putNotNull("dataCellRef",this.getDataCellRef());
         out.putNotNull("id",this.getId());
         out.putNotNull("lineStyle",this.getLineStyle());
         out.putNotNull("majorGrid",this.getMajorGrid());
@@ -506,6 +533,7 @@ public abstract class _ChartAxisModel extends io.nop.core.resource.component.Abs
         
         instance.setCrossAt(this.getCrossAt());
         instance.setCrossAxisId(this.getCrossAxisId());
+        instance.setDataCellRef(this.getDataCellRef());
         instance.setId(this.getId());
         instance.setLineStyle(this.getLineStyle());
         instance.setMajorGrid(this.getMajorGrid());

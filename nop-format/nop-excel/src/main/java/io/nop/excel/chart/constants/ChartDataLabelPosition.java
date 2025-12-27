@@ -8,11 +8,14 @@ import io.nop.commons.util.StringHelper;
  * 对应 OOXML <c:dLblPos val="…"/>
  */
 public enum ChartDataLabelPosition {
+    BEST_FIT("bestFit"),
 
     /**
      * 居中（柱形/条形内部正中）
      */
     CENTER("ctr"),
+
+    INSIDE_BASE("inBase"),
 
     /**
      * 内侧顶端（柱形顶部内侧）

@@ -267,7 +267,7 @@ public class ChartAxisParser {
             if (ticks.getLabelVisible() == null) {
                 ticks.setLabelVisible(true);
             }
-            if (ticks.getVisible() == null) {
+            if (ticks.isVisible()) {
                 ticks.setVisible(true);
             }
 

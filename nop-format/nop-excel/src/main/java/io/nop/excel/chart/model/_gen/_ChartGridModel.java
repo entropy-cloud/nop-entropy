@@ -43,7 +43,7 @@ public abstract class _ChartGridModel extends io.nop.core.resource.component.Abs
      * xml name: visible
      * 
      */
-    private java.lang.Boolean _visible  = true;
+    private boolean _visible  = true;
     
     /**
      *  
@@ -115,12 +115,12 @@ public abstract class _ChartGridModel extends io.nop.core.resource.component.Abs
      *  
      */
     
-    public java.lang.Boolean getVisible(){
+    public boolean isVisible(){
       return _visible;
     }
 
     
-    public void setVisible(java.lang.Boolean value){
+    public void setVisible(boolean value){
         checkAllowChange();
         
         this._visible = value;
@@ -165,7 +165,7 @@ public abstract class _ChartGridModel extends io.nop.core.resource.component.Abs
         out.putNotNull("color",this.getColor());
         out.putNotNull("opacity",this.getOpacity());
         out.putNotNull("style",this.getStyle());
-        out.putNotNull("visible",this.getVisible());
+        out.putNotNull("visible",this.isVisible());
         out.putNotNull("width",this.getWidth());
     }
 
@@ -181,7 +181,7 @@ public abstract class _ChartGridModel extends io.nop.core.resource.component.Abs
         instance.setColor(this.getColor());
         instance.setOpacity(this.getOpacity());
         instance.setStyle(this.getStyle());
-        instance.setVisible(this.getVisible());
+        instance.setVisible(this.isVisible());
         instance.setWidth(this.getWidth());
     }
 

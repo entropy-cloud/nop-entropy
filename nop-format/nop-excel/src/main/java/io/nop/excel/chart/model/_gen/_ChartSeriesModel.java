@@ -33,19 +33,18 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: dataCellRef
+     * 
+     */
+    private java.lang.String _dataCellRef ;
+    
+    /**
+     *  
      * xml name: dataLabels
      * Data labels configuration
      * 对应 Excel POI 中的 DataLabels
      */
     private io.nop.excel.chart.model.ChartDataLabelsModel _dataLabels ;
-    
-    /**
-     *  
-     * xml name: dataSource
-     * Data source configuration
-     * 对应 Excel POI 中的 ChartDataSource，支持多种数据来源
-     */
-    private io.nop.excel.chart.model.ChartDataSourceModel _dataSource ;
     
     /**
      *  
@@ -122,7 +121,7 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
      * xml name: visible
      * 
      */
-    private java.lang.Boolean _visible  = true;
+    private boolean _visible  = true;
     
     /**
      * 
@@ -165,6 +164,25 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: dataCellRef
+     *  
+     */
+    
+    public java.lang.String getDataCellRef(){
+      return _dataCellRef;
+    }
+
+    
+    public void setDataCellRef(java.lang.String value){
+        checkAllowChange();
+        
+        this._dataCellRef = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: dataLabels
      *  Data labels configuration
      * 对应 Excel POI 中的 DataLabels
@@ -179,26 +197,6 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._dataLabels = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: dataSource
-     *  Data source configuration
-     * 对应 Excel POI 中的 ChartDataSource，支持多种数据来源
-     */
-    
-    public io.nop.excel.chart.model.ChartDataSourceModel getDataSource(){
-      return _dataSource;
-    }
-
-    
-    public void setDataSource(io.nop.excel.chart.model.ChartDataSourceModel value){
-        checkAllowChange();
-        
-        this._dataSource = value;
            
     }
 
@@ -413,12 +411,12 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
      *  
      */
     
-    public java.lang.Boolean getVisible(){
+    public boolean isVisible(){
       return _visible;
     }
 
     
-    public void setVisible(java.lang.Boolean value){
+    public void setVisible(boolean value){
         checkAllowChange();
         
         this._visible = value;
@@ -438,8 +436,6 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
             
            this._dataLabels = io.nop.api.core.util.FreezeHelper.deepFreeze(this._dataLabels);
             
-           this._dataSource = io.nop.api.core.util.FreezeHelper.deepFreeze(this._dataSource);
-            
            this._lineStyle = io.nop.api.core.util.FreezeHelper.deepFreeze(this._lineStyle);
             
            this._markers = io.nop.api.core.util.FreezeHelper.deepFreeze(this._markers);
@@ -457,8 +453,8 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
         
         out.putNotNull("animation",this.getAnimation());
         out.putNotNull("axisId",this.getAxisId());
+        out.putNotNull("dataCellRef",this.getDataCellRef());
         out.putNotNull("dataLabels",this.getDataLabels());
-        out.putNotNull("dataSource",this.getDataSource());
         out.putNotNull("id",this.getId());
         out.putNotNull("invertIfNegative",this.getInvertIfNegative());
         out.putNotNull("lineStyle",this.getLineStyle());
@@ -468,7 +464,7 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
         out.putNotNull("shapeStyle",this.getShapeStyle());
         out.putNotNull("trendLines",this.getTrendLines());
         out.putNotNull("type",this.getType());
-        out.putNotNull("visible",this.getVisible());
+        out.putNotNull("visible",this.isVisible());
     }
 
     public ChartSeriesModel cloneInstance(){
@@ -482,8 +478,8 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
         
         instance.setAnimation(this.getAnimation());
         instance.setAxisId(this.getAxisId());
+        instance.setDataCellRef(this.getDataCellRef());
         instance.setDataLabels(this.getDataLabels());
-        instance.setDataSource(this.getDataSource());
         instance.setId(this.getId());
         instance.setInvertIfNegative(this.getInvertIfNegative());
         instance.setLineStyle(this.getLineStyle());
@@ -493,7 +489,7 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
         instance.setShapeStyle(this.getShapeStyle());
         instance.setTrendLines(this.getTrendLines());
         instance.setType(this.getType());
-        instance.setVisible(this.getVisible());
+        instance.setVisible(this.isVisible());
     }
 
     protected ChartSeriesModel newInstance(){

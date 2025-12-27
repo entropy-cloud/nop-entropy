@@ -96,7 +96,7 @@ public abstract class _ChartLegendModel extends io.nop.core.resource.component.A
      * xml name: visible
      * 
      */
-    private java.lang.Boolean _visible  = true;
+    private boolean _visible  = true;
     
     /**
      * 
@@ -298,12 +298,12 @@ public abstract class _ChartLegendModel extends io.nop.core.resource.component.A
      *  
      */
     
-    public java.lang.Boolean getVisible(){
+    public boolean isVisible(){
       return _visible;
     }
 
     
-    public void setVisible(java.lang.Boolean value){
+    public void setVisible(boolean value){
         checkAllowChange();
         
         this._visible = value;
@@ -346,7 +346,7 @@ public abstract class _ChartLegendModel extends io.nop.core.resource.component.A
         out.putNotNull("shapeStyle",this.getShapeStyle());
         out.putNotNull("textStyle",this.getTextStyle());
         out.putNotNull("verticalAlign",this.getVerticalAlign());
-        out.putNotNull("visible",this.getVisible());
+        out.putNotNull("visible",this.isVisible());
     }
 
     public ChartLegendModel cloneInstance(){
@@ -368,7 +368,7 @@ public abstract class _ChartLegendModel extends io.nop.core.resource.component.A
         instance.setShapeStyle(this.getShapeStyle());
         instance.setTextStyle(this.getTextStyle());
         instance.setVerticalAlign(this.getVerticalAlign());
-        instance.setVisible(this.getVisible());
+        instance.setVisible(this.isVisible());
     }
 
     protected ChartLegendModel newInstance(){

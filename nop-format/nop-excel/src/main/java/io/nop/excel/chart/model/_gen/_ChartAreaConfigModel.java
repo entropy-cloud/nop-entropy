@@ -32,6 +32,13 @@ public abstract class _ChartAreaConfigModel extends io.nop.core.resource.compone
     private io.nop.excel.chart.constants.ChartBarGrouping _grouping ;
     
     /**
+     *  
+     * xml name: is3D
+     * 
+     */
+    private java.lang.Boolean _is3D ;
+    
+    /**
      * 
      * xml name: dropLines
      *  是否显示垂直线到X轴：true/false
@@ -69,6 +76,25 @@ public abstract class _ChartAreaConfigModel extends io.nop.core.resource.compone
     }
 
     
+    /**
+     * 
+     * xml name: is3D
+     *  
+     */
+    
+    public java.lang.Boolean getIs3D(){
+      return _is3D;
+    }
+
+    
+    public void setIs3D(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._is3D = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -86,6 +112,7 @@ public abstract class _ChartAreaConfigModel extends io.nop.core.resource.compone
         
         out.putNotNull("dropLines",this.getDropLines());
         out.putNotNull("grouping",this.getGrouping());
+        out.putNotNull("is3D",this.getIs3D());
     }
 
     public ChartAreaConfigModel cloneInstance(){
@@ -99,6 +126,7 @@ public abstract class _ChartAreaConfigModel extends io.nop.core.resource.compone
         
         instance.setDropLines(this.getDropLines());
         instance.setGrouping(this.getGrouping());
+        instance.setIs3D(this.getIs3D());
     }
 
     protected ChartAreaConfigModel newInstance(){

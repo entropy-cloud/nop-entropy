@@ -66,10 +66,10 @@ public class ChartTrendLineParser {
         switch (type.toLowerCase()) {
             case "linear": return ChartTrendLineType.LINEAR;
             case "movingavg": return ChartTrendLineType.MOVING_AVG;
-            case "polynomial": return ChartTrendLineType.POLYNOMIAL;
+            case "poly": return ChartTrendLineType.POLYNOMIAL;  // 修正：使用"poly"而不是"polynomial"
             case "power": return ChartTrendLineType.POWER;
-            case "exponential": return ChartTrendLineType.EXPONENTIAL;
-            case "logarithmic": return ChartTrendLineType.LOGARITHMIC;
+            case "exp": return ChartTrendLineType.EXPONENTIAL;  // 修正：使用"exp"而不是"exponential"
+            case "log": return ChartTrendLineType.LOGARITHMIC;  // 修正：使用"log"而不是"logarithmic"
             default: return ChartTrendLineType.LINEAR;
         }
     }
@@ -116,19 +116,15 @@ public class ChartTrendLineParser {
      * 解析显示选项
      */
     private void parseDisplayOptions(ChartTrendLineModel trendLine, XNode trendlineNode) {
-        // 是否显示公式 - 从子元素<c:dispRSqr>获取
-        String displayEquation = ChartPropertyHelper.getChildVal(trendlineNode, "c:dispRSqr");
+        // 是否显示公式 - 从子元素<c:dispEq>获取
+        String displayEquation = ChartPropertyHelper.getChildVal(trendlineNode, "c:dispEq");
         if (displayEquation != null) {
             trendLine.setDisplayEquation(ChartPropertyHelper.convertToBoolean(displayEquation));
         }
         
-        // 是否显示R平方值 - 从子元素<c:dispRSqr>获取
-        // 注意：dispRSqr通常用于显示R平方值，而不是公式
-        // 如果需要支持公式显示，应该检查<c:dispEq>元素
-        String displayEq = ChartPropertyHelper.getChildVal(trendlineNode, "c:dispEq");
-        if (displayEq != null) {
-            // 可以扩展支持公式显示
-        }
+        // 注意：当前模型不支持displayRSquaredValue属性
+        // 如果需要支持R平方值显示，需要在chart.xdef中添加相应属性定义
+        // String displayRSqr = ChartPropertyHelper.getChildVal(trendlineNode, "c:dispRSqr");
     }
     
     /**

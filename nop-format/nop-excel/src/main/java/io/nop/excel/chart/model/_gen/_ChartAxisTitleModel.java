@@ -52,7 +52,7 @@ public abstract class _ChartAxisTitleModel extends io.nop.core.resource.componen
      * xml name: visible
      * 
      */
-    private java.lang.Boolean _visible  = true;
+    private boolean _visible  = true;
     
     /**
      * 
@@ -138,12 +138,12 @@ public abstract class _ChartAxisTitleModel extends io.nop.core.resource.componen
      *  
      */
     
-    public java.lang.Boolean getVisible(){
+    public boolean isVisible(){
       return _visible;
     }
 
     
-    public void setVisible(java.lang.Boolean value){
+    public void setVisible(boolean value){
         checkAllowChange();
         
         this._visible = value;
@@ -174,7 +174,7 @@ public abstract class _ChartAxisTitleModel extends io.nop.core.resource.componen
         out.putNotNull("text",this.getText());
         out.putNotNull("textCellRef",this.getTextCellRef());
         out.putNotNull("textStyle",this.getTextStyle());
-        out.putNotNull("visible",this.getVisible());
+        out.putNotNull("visible",this.isVisible());
     }
 
     public ChartAxisTitleModel cloneInstance(){
@@ -190,7 +190,7 @@ public abstract class _ChartAxisTitleModel extends io.nop.core.resource.componen
         instance.setText(this.getText());
         instance.setTextCellRef(this.getTextCellRef());
         instance.setTextStyle(this.getTextStyle());
-        instance.setVisible(this.getVisible());
+        instance.setVisible(this.isVisible());
     }
 
     protected ChartAxisTitleModel newInstance(){

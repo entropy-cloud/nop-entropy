@@ -99,7 +99,7 @@ public abstract class _ChartTicksModel extends io.nop.core.resource.component.Ab
      * xml name: visible
      * 是否显示刻度（包括标记和标签）
      */
-    private java.lang.Boolean _visible  = true;
+    private boolean _visible  = true;
     
     /**
      * 
@@ -316,12 +316,12 @@ public abstract class _ChartTicksModel extends io.nop.core.resource.component.Ab
      *  是否显示刻度（包括标记和标签）
      */
     
-    public java.lang.Boolean getVisible(){
+    public boolean isVisible(){
       return _visible;
     }
 
     
-    public void setVisible(java.lang.Boolean value){
+    public void setVisible(boolean value){
         checkAllowChange();
         
         this._visible = value;
@@ -357,7 +357,7 @@ public abstract class _ChartTicksModel extends io.nop.core.resource.component.Ab
         out.putNotNull("minorTickMark",this.getMinorTickMark());
         out.putNotNull("tickColor",this.getTickColor());
         out.putNotNull("tickWidth",this.getTickWidth());
-        out.putNotNull("visible",this.getVisible());
+        out.putNotNull("visible",this.isVisible());
     }
 
     public ChartTicksModel cloneInstance(){
@@ -380,7 +380,7 @@ public abstract class _ChartTicksModel extends io.nop.core.resource.component.Ab
         instance.setMinorTickMark(this.getMinorTickMark());
         instance.setTickColor(this.getTickColor());
         instance.setTickWidth(this.getTickWidth());
-        instance.setVisible(this.getVisible());
+        instance.setVisible(this.isVisible());
     }
 
     protected ChartTicksModel newInstance(){
