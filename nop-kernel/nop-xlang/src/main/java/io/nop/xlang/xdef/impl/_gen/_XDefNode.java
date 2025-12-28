@@ -208,6 +208,13 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
     
     /**
      *  
+     * xml name: xdef:meta
+     * 
+     */
+    private io.nop.core.lang.xml.XNode _xdefMeta ;
+    
+    /**
+     *  
      * xml name: xdef:name
      * 将本节点注册为xdef片段，其他节点可以通过xdef:ref来引用该片段。一般对应于Java类名，会根据它和根节点上的xdef:bean-package设置
      * 自动生成xdef:bean-class属性。
@@ -828,6 +835,25 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
     
     /**
      * 
+     * xml name: xdef:meta
+     *  
+     */
+    
+    public io.nop.core.lang.xml.XNode getXdefMeta(){
+      return _xdefMeta;
+    }
+
+    
+    public void setXdefMeta(io.nop.core.lang.xml.XNode value){
+        checkAllowChange();
+        
+        this._xdefMeta = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: xdef:name
      *  将本节点注册为xdef片段，其他节点可以通过xdef:ref来引用该片段。一般对应于Java类名，会根据它和根节点上的xdef:bean-package设置
      * 自动生成xdef:bean-class属性。
@@ -1096,6 +1122,7 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
         out.putNotNull("xdefInternal",this.getXdefInternal());
         out.putNotNull("xdefKeyAttr",this.getXdefKeyAttr());
         out.putNotNull("xdefMandatory",this.getXdefMandatory());
+        out.putNotNull("xdefMeta",this.getXdefMeta());
         out.putNotNull("xdefName",this.getXdefName());
         out.putNotNull("xdefOrderAttr",this.getXdefOrderAttr());
         out.putNotNull("xdefProps",this.getXdefProps());
@@ -1144,6 +1171,7 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
         instance.setXdefInternal(this.getXdefInternal());
         instance.setXdefKeyAttr(this.getXdefKeyAttr());
         instance.setXdefMandatory(this.getXdefMandatory());
+        instance.setXdefMeta(this.getXdefMeta());
         instance.setXdefName(this.getXdefName());
         instance.setXdefOrderAttr(this.getXdefOrderAttr());
         instance.setXdefProps(this.getXdefProps());

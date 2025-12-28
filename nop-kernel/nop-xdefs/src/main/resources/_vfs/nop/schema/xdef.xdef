@@ -83,7 +83,10 @@ xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即
         <!--
         xdef转换为objMeta时，objPropMeta上存在的扩展属性
         -->
-        <xdef:prop name="!xml-name" meta:unknown-attr="string" meta:unique-attr="name" meta:name="XDefProp"/>
+        <xdef:prop name="!xml-name" tagSet="csv-set" meta:unknown-attr="string" meta:unique-attr="name"
+                   meta:name="XDefProp"/>
+
+        <xdef:meta meta:value="xml"/>
 
         <!--
            定义xdef片段，可以通过xdef:ref来引用

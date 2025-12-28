@@ -24,6 +24,13 @@ public abstract class _XDefProp extends io.nop.core.resource.component.AbstractC
     private java.lang.String _name ;
     
     /**
+     *  
+     * xml name: tagSet
+     * 
+     */
+    private java.util.Set<java.lang.String> _tagSet ;
+    
+    /**
      * 
      * xml name: name
      *  
@@ -38,6 +45,25 @@ public abstract class _XDefProp extends io.nop.core.resource.component.AbstractC
         checkAllowChange();
         
         this._name = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: tagSet
+     *  
+     */
+    
+    public java.util.Set<java.lang.String> getTagSet(){
+      return _tagSet;
+    }
+
+    
+    public void setTagSet(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._tagSet = value;
            
     }
 
@@ -58,6 +84,7 @@ public abstract class _XDefProp extends io.nop.core.resource.component.AbstractC
         super.outputJson(out);
         
         out.putNotNull("name",this.getName());
+        out.putNotNull("tagSet",this.getTagSet());
     }
 
     public XDefProp cloneInstance(){
@@ -70,6 +97,7 @@ public abstract class _XDefProp extends io.nop.core.resource.component.AbstractC
         super.copyTo(instance);
         
         instance.setName(this.getName());
+        instance.setTagSet(this.getTagSet());
     }
 
     protected XDefProp newInstance(){
