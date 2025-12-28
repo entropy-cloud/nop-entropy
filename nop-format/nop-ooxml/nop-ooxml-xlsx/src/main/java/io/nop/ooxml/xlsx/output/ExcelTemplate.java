@@ -140,6 +140,8 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
 
         pkg.getContentTypes().addOverrideContentType(drawingPath, XSSFRelation.DRAWINGS.getType());
 
+
+
         OfficeRelsPart relPart = pkg.makeRelsForPart(sheetPart);
         relPart.addRelationship(drawingRelId, XSSFRelation.DRAWINGS.getRelation(), "../drawings/drawing" + (drawingIndex + 1) + ".xml", null);
 
@@ -159,7 +161,7 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
             for (ExcelChartModel chart : charts) {
                 String chartPath = addChartData(pkg, chart, genState);
                 // 使用addRelationship方法创建图表关系
-                drawingRelPart.addRelationship("rId" + drawingRelPart.newId(),
+                drawingRelPart.addRelationship(drawingRelPart.newId(),
                         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
                         "../" + chartPath.substring(4), null);
             }
@@ -180,6 +182,9 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
             XmlOfficePackagePart part = new XmlOfficePackagePart(chartPath.substring(1), chartNode);
             pkg.addFile(part);
             genState.charts.put(chart, chartPath);
+
+            // <Override PartName="/xl/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>
+            pkg.getContentTypes().addOverrideContentType(chartPath, XSSFRelation.CHART.getType());
             return chartPath;
         }
         return path;

@@ -87,7 +87,7 @@ public class ExcelWriteSupport {
 
         genPageSetup(out, sheet.getPageSetup());
 
-        if (sheet.getImages() != null && !sheet.getImages().isEmpty()) {
+        if (sheet.hasImage() || sheet.hasChart()) {
             genDrawing(out);
         }
 

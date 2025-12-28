@@ -25,6 +25,13 @@ public abstract class _ChartBarConfigModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: gapWidth
+     * 柱间空隙占柱宽百分比：65=65%。
+     */
+    private java.lang.Integer _gapWidth ;
+    
+    /**
+     *  
      * xml name: grouping
      * 
      */
@@ -39,17 +46,10 @@ public abstract class _ChartBarConfigModel extends io.nop.core.resource.componen
     
     /**
      *  
-     * xml name: percentGapWidth
-     * 柱间空隙占柱宽百分比：65=65%。
-     */
-    private java.lang.Double _percentGapWidth ;
-    
-    /**
-     *  
-     * xml name: percentOverlap
+     * xml name: overlap
      * 同一类别中系列重叠比例：100=100% 重叠（堆积效果）。
      */
-    private java.lang.Double _percentOverlap ;
+    private java.lang.Integer _overlap ;
     
     /**
      *  
@@ -73,6 +73,25 @@ public abstract class _ChartBarConfigModel extends io.nop.core.resource.componen
         checkAllowChange();
         
         this._dir = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: gapWidth
+     *  柱间空隙占柱宽百分比：65=65%。
+     */
+    
+    public java.lang.Integer getGapWidth(){
+      return _gapWidth;
+    }
+
+    
+    public void setGapWidth(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._gapWidth = value;
            
     }
 
@@ -117,38 +136,19 @@ public abstract class _ChartBarConfigModel extends io.nop.core.resource.componen
     
     /**
      * 
-     * xml name: percentGapWidth
-     *  柱间空隙占柱宽百分比：65=65%。
-     */
-    
-    public java.lang.Double getPercentGapWidth(){
-      return _percentGapWidth;
-    }
-
-    
-    public void setPercentGapWidth(java.lang.Double value){
-        checkAllowChange();
-        
-        this._percentGapWidth = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: percentOverlap
+     * xml name: overlap
      *  同一类别中系列重叠比例：100=100% 重叠（堆积效果）。
      */
     
-    public java.lang.Double getPercentOverlap(){
-      return _percentOverlap;
+    public java.lang.Integer getOverlap(){
+      return _overlap;
     }
 
     
-    public void setPercentOverlap(java.lang.Double value){
+    public void setOverlap(java.lang.Integer value){
         checkAllowChange();
         
-        this._percentOverlap = value;
+        this._overlap = value;
            
     }
 
@@ -188,10 +188,10 @@ public abstract class _ChartBarConfigModel extends io.nop.core.resource.componen
         super.outputJson(out);
         
         out.putNotNull("dir",this.getDir());
+        out.putNotNull("gapWidth",this.getGapWidth());
         out.putNotNull("grouping",this.getGrouping());
         out.putNotNull("is3D",this.getIs3D());
-        out.putNotNull("percentGapWidth",this.getPercentGapWidth());
-        out.putNotNull("percentOverlap",this.getPercentOverlap());
+        out.putNotNull("overlap",this.getOverlap());
         out.putNotNull("varyColors",this.getVaryColors());
     }
 
@@ -205,10 +205,10 @@ public abstract class _ChartBarConfigModel extends io.nop.core.resource.componen
         super.copyTo(instance);
         
         instance.setDir(this.getDir());
+        instance.setGapWidth(this.getGapWidth());
         instance.setGrouping(this.getGrouping());
         instance.setIs3D(this.getIs3D());
-        instance.setPercentGapWidth(this.getPercentGapWidth());
-        instance.setPercentOverlap(this.getPercentOverlap());
+        instance.setOverlap(this.getOverlap());
         instance.setVaryColors(this.getVaryColors());
     }
 

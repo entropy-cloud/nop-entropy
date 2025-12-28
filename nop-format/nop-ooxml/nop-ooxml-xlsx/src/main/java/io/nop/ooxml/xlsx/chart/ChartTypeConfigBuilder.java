@@ -104,15 +104,15 @@ public class ChartTypeConfigBuilder {
             buildSeriesForChartType(barChartNode, plotArea);
 
             // 构建间隙宽度
-            if (barConfig.getPercentGapWidth() != null) {
+            if (barConfig.getGapWidth() != null) {
                 XNode gapWidthNode = barChartNode.addChild("c:gapWidth");
-                gapWidthNode.setAttr("val", barConfig.getPercentGapWidth().toString());
+                gapWidthNode.setAttr("val", barConfig.getGapWidth().toString());
             }
 
             // 构建重叠比例
-            if (barConfig.getPercentOverlap() != null) {
+            if (barConfig.getOverlap() != null) {
                 XNode overlapNode = barChartNode.addChild("c:overlap");
-                overlapNode.setAttr("val", barConfig.getPercentOverlap().toString());
+                overlapNode.setAttr("val", barConfig.getOverlap().toString());
             }
 
             // 构建坐标轴ID
@@ -478,7 +478,7 @@ public class ChartTypeConfigBuilder {
      * @param gapWidth 间隙宽度百分比
      * @return 柱状图XNode，如果direction为null则返回null
      */
-    public XNode buildSimpleBarChart(ChartBarDirection direction, ChartBarGrouping grouping, Double gapWidth) {
+    public XNode buildSimpleBarChart(ChartBarDirection direction, ChartBarGrouping grouping, Integer gapWidth) {
         if (direction == null) {
             return null;
         }
@@ -487,7 +487,7 @@ public class ChartTypeConfigBuilder {
         ChartBarConfigModel barConfig = new ChartBarConfigModel();
         barConfig.setDir(direction);
         barConfig.setGrouping(grouping);
-        barConfig.setPercentGapWidth(gapWidth);
+        barConfig.setGapWidth(gapWidth);
 
         // 创建绘图区域模型
         ChartPlotAreaModel plotArea = new ChartPlotAreaModel();

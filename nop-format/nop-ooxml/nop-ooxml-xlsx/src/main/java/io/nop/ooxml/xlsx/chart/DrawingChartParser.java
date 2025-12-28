@@ -22,6 +22,9 @@ public class DrawingChartParser {
     public static final DrawingChartParser INSTANCE = new DrawingChartParser();
 
     public void parseChartRef(XNode chartRefNode, ExcelOfficePackage pkg, IOfficePackagePart drawingPart, ChartModel excelChart) {
+        // 解析 description 信息
+        parseDescription(chartRefNode, excelChart);
+        
         XNode chartNode = getChartSpaceNode(chartRefNode, pkg, drawingPart);
         if (chartNode == null) {
             LOG.warn("Chart node is null, cannot parse chart");
@@ -242,5 +245,24 @@ public class DrawingChartParser {
             LOG.warn("Failed to parse style ID", e);
         }
         return null;
+    }
+
+    private void parseDescription(XNode chartRefNode, ChartModel excelChart) {
+        try {
+            // 查找 xdr:nvGraphicFramePr/xdr:cNvPr 节点
+            XNode nvGraphicFramePr = chartRefNode.childByTag("xdr:nvGraphicFramePr");
+            if (nvGraphicFramePr != null) {
+                XNode cNvPr = nvGraphicFramePr.childByTag("xdr:cNvPr");
+                if (cNvPr != null) {
+                    String descr = cNvPr.attrText("descr");
+                    if (!StringHelper.isEmpty(descr)) {
+                        excelChart.setDescription(descr);
+                        LOG.debug("Parsed chart description: {}", descr);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to parse chart description", e);
+        }
     }
 }

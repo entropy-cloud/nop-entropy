@@ -343,11 +343,11 @@ Chart type specific configurations
 -->
 
         <!--
-        @percentGapWidth 柱间空隙占柱宽百分比：65=65%。
-        @percentOverlap 同一类别中系列重叠比例：100=100% 重叠（堆积效果）。
+        @gapWidth 柱间空隙占柱宽百分比：65=65%。
+        @overlap 同一类别中系列重叠比例：100=100% 重叠（堆积效果）。
         -->
         <barConfig xdef:name="ChartBarConfigModel" is3D="boolean" varyColors="boolean"
-                   percentGapWidth="double-percent" percentOverlap="double-percent"
+                   gapWidth="int" overlap="int"
                    dir="enum:io.nop.excel.chart.constants.ChartBarDirection"
                    grouping="enum:io.nop.excel.chart.constants.ChartBarGrouping"/>
 

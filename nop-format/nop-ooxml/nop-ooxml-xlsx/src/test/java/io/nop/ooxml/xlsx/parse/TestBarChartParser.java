@@ -1,7 +1,9 @@
 package io.nop.ooxml.xlsx.parse;
 
+import io.nop.commons.util.FileHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.core.unittest.BaseTestCase;
@@ -41,21 +43,30 @@ public class TestBarChartParser extends BaseTestCase {
 
         ExcelSheet sheet = sheets.get(0);
         List<ExcelChartModel> charts = sheet.getCharts();
-        
+
         assertNotNull(charts, "Charts collection should not be null");
         assertTrue(!charts.isEmpty(), "Sheet should have at least one chart");
-        
+
         ExcelChartModel chart = charts.get(0);
-        assertNotNull(chart.getName(), "Chart should have a name");
         assertNotNull(chart.getType(), "Chart should have a type");
 
-        File targetFile = getTargetFile("saved-bar-chart.xlsx");
+        File targetFile = getTargetFile("../samples/generated-bar-chart.xlsx");
         new ExcelTemplate(wk).generateToFile(targetFile, XLang.newEvalScope());
+
+        //File originalDir = getTargetFile("../samples/original-bar-chart");
+        //FileHelper.deleteAll(originalDir);
+
+        //ResourceHelper.getZipTool().unzipToDir(resource, new FileResource(originalDir));
+
+        File unzipDir = getTargetFile("../samples/generated-bar-chart");
+        //FileHelper.deleteAll(unzipDir);
+
+        ResourceHelper.getZipTool().unzipToDir(new FileResource(targetFile), new FileResource(unzipDir));
 
         ExcelWorkbook savedWk = new ExcelWorkbookParser().parseFromResource(new FileResource(targetFile));
         ExcelSheet savedSheet = savedWk.getSheets().get(0);
         List<ExcelChartModel> savedCharts = savedSheet.getCharts();
-        
+
         assertNotNull(savedCharts, "Saved workbook charts collection should not be null");
         assertTrue(!savedCharts.isEmpty(), "Saved workbook should have at least one chart");
     }

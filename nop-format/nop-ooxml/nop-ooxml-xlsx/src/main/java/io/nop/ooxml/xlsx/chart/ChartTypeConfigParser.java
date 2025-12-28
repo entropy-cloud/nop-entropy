@@ -114,16 +114,16 @@ public class ChartTypeConfigParser {
             }
 
             // 解析间隙宽度
-            Double gapWidth = ChartPropertyHelper.getChildDoubleVal(barChartNode, "c:gapWidth");
+            Integer gapWidth = ChartPropertyHelper.getChildIntVal(barChartNode, "c:gapWidth");
             if (gapWidth != null) {
-                barConfig.setPercentGapWidth(gapWidth);
+                barConfig.setGapWidth(gapWidth);
                 LOG.debug("Bar chart gap width: {}%", gapWidth);
             }
 
             // 解析重叠比例
-            Double overlap = ChartPropertyHelper.getChildDoubleVal(barChartNode, "c:overlap");
+            Integer overlap = ChartPropertyHelper.getChildIntVal(barChartNode, "c:overlap");
             if (overlap != null) {
-                barConfig.setPercentOverlap(overlap);
+                barConfig.setOverlap(overlap);
                 LOG.debug("Bar chart overlap: {}%", overlap);
             }
 

@@ -61,6 +61,14 @@ public interface IExcelSheet {
 
     List<ExcelImage> getImages();
 
+    default boolean hasImage(){
+        return getImages() != null && !getImages().isEmpty();
+    }
+
+    default boolean hasChart(){
+        return getCharts() != null && !getCharts().isEmpty();
+    }
+
     default double getTotalWidth() {
         return getWidth(0, getTable().getColCount() - 1);
     }

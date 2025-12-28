@@ -205,16 +205,17 @@ public class ChartAxisBuilder {
                 labelPosNode.setAttr("val", mapTickLabelPositionToOoxml(ticks.getLabelPosition()));
             }
 
-            // 构建标签对齐
+            // 构建标签对齐。
+            // @TODO 这里生成的节点不正确，如果有这些节点，则无法正常打开
             if (ticks.getLabelAlignment() != null) {
-                XNode alignmentNode = axisNode.addChild("c:lblAlgn");
-                alignmentNode.setAttr("val", ticks.getLabelAlignment().value());
+                //XNode alignmentNode = axisNode.addChild("c:lblAlgn");
+                //alignmentNode.setAttr("val", ticks.getLabelAlignment().value());
             }
 
             // 构建标签偏移
             if (ticks.getLabelOffset() != null) {
-                XNode offsetNode = axisNode.addChild("c:lblOffset");
-                offsetNode.setAttr("val", ticks.getLabelOffset().toString());
+                //XNode offsetNode = axisNode.addChild("c:lblOffset");
+                //offsetNode.setAttr("val", ticks.getLabelOffset().toString());
             }
 
         } catch (Exception e) {
@@ -314,12 +315,14 @@ public class ChartAxisBuilder {
      */
     private void buildScale(XNode axisNode, ChartAxisModel axis) {
         try {
+
+            // 必须要有scaling节点，否则excel无法正常打开
+            XNode scalingNode = axisNode.addChild("c:scaling");
+
             ChartAxisScaleModel scale = axis.getScale();
             if (scale == null) {
                 return;
             }
-
-            XNode scalingNode = axisNode.addChild("c:scaling");
 
             // 构建对数刻度
             if (scale.getLogBase() != null) {

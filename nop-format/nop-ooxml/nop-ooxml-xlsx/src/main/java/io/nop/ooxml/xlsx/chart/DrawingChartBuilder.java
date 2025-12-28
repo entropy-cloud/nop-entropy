@@ -325,4 +325,33 @@ public class DrawingChartBuilder {
             return false;
         }
     }
+
+    /**
+     * 构建图表锚点的图表内容部分
+     * 此方法专门用于与DrawingBuilder配合，生成嵌入到锚点中的图表XML
+     *
+     * @param chartModel 图表模型
+     * @param relationshipId 关系ID
+     * @return 图表引用节点
+     */
+    public XNode buildChartReference(ChartModel chartModel, String relationshipId) {
+        try {
+            // 创建图表引用节点
+            XNode chartRef = XNode.make("c:chart");
+            chartRef.setAttr("xmlns:c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            chartRef.setAttr("xmlns:r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+            chartRef.setAttr("r:id", relationshipId);
+            
+            LOG.debug("Built chart reference with relationship ID: {}", relationshipId);
+            return chartRef;
+            
+        } catch (Exception e) {
+            LOG.warn("Failed to build chart reference", e);
+            // 返回基本的图表引用
+            XNode fallbackRef = XNode.make("c:chart");
+            fallbackRef.setAttr("xmlns:c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            fallbackRef.setAttr("r:id", relationshipId != null ? relationshipId : "rId1");
+            return fallbackRef;
+        }
+    }
 }

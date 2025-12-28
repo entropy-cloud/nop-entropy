@@ -8,7 +8,6 @@
 package io.nop.ooxml.xlsx.model.drawing;
 
 import io.nop.core.lang.xml.XNode;
-import io.nop.excel.chart.model.ChartModel;
 import io.nop.excel.model.ExcelChartModel;
 import io.nop.excel.model.ExcelClientAnchor;
 import io.nop.excel.model.ExcelImage;
@@ -27,7 +26,7 @@ public class DrawingBuilder {
         node.setAttr("xmlns:a", "http://schemas.openxmlformats.org/drawingml/2006/main");
 
         for (int i = 0, n = images.size(); i < n; i++) {
-            XNode anchor = buildAnchor(images.get(i), i);
+            XNode anchor = buildImageAnchor(images.get(i), i);
             node.appendChild(anchor);
         }
         return node;
@@ -47,7 +46,7 @@ public class DrawingBuilder {
         // Add images
         if (images != null) {
             for (ExcelImage image : images) {
-                XNode anchor = buildAnchor(image, index++);
+                XNode anchor = buildImageAnchor(image, index++);
                 node.appendChild(anchor);
             }
         }
@@ -67,12 +66,54 @@ public class DrawingBuilder {
      * Build chart anchor using DrawingChartBuilder.
      */
     public XNode buildChartAnchor(ExcelChartModel chart, int index) {
+        // Build the basic anchor structure
+        XNode anchor = buildAnchor0(chart.getAnchor());
+        
         // Generate relationship ID for chart (this would be set by the calling context)
         String relationshipId = "rId" + (index + 1);
-        return buildAnchor0(chart.getAnchor());
+        
+        // Create graphic frame for chart
+        XNode graphicFrame = anchor.addChild("xdr:graphicFrame");
+
+        // Non-visual properties
+        XNode nvGraphicFramePr = graphicFrame.addChild("xdr:nvGraphicFramePr");
+        XNode cNvPr = nvGraphicFramePr.addChild("xdr:cNvPr");
+        cNvPr.setAttr("id", index + 1);
+        cNvPr.setAttr("name", chart.getName() != null ? chart.getName() : "Chart " + (index + 1));
+        
+        // Set description if available
+        if (chart.getDescription() != null && !chart.getDescription().trim().isEmpty()) {
+            cNvPr.setAttr("descr", chart.getDescription());
+        }
+        
+        XNode cNvGraphicFramePr = nvGraphicFramePr.addChild("xdr:cNvGraphicFramePr");
+        cNvGraphicFramePr.addChild("a:graphicFrameLocks").setAttr("noGrp", "1");
+        
+        // Transform properties
+        XNode xfrm = graphicFrame.addChild("xdr:xfrm");
+        XNode off = xfrm.addChild("a:off");
+        off.setAttr("x", "0");
+        off.setAttr("y", "0");
+        XNode ext = xfrm.addChild("a:ext");
+        ext.setAttr("cx", "0");
+        ext.setAttr("cy", "0");
+        
+        // Graphic element with chart reference
+        XNode graphic = graphicFrame.addChild("a:graphic");
+        XNode graphicData = graphic.addChild("a:graphicData");
+        graphicData.setAttr("uri", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+        
+        // Chart reference
+        XNode chartRef = chartBuilder.buildChartReference(chart, relationshipId);
+        graphicData.appendChild(chartRef);
+        
+        // Client data
+        XNode clientData = anchor.addChild("xdr:clientData");
+        
+        return anchor;
     }
 
-    public XNode buildAnchor(ExcelImage image, int index) {
+    public XNode buildImageAnchor(ExcelImage image, int index) {
         XNode anchor = buildAnchor0(image.getAnchor());
         if (image.getShape() != null) {
             XNode shape = image.getShape().cloneInstance();
