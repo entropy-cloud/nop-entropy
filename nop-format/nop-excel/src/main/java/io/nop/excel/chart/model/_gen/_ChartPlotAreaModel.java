@@ -49,6 +49,13 @@ public abstract class _ChartPlotAreaModel extends io.nop.core.resource.component
     
     /**
      *  
+     * xml name: doughnutConfig
+     * 
+     */
+    private io.nop.excel.chart.model.ChartDoughnutConfigModel _doughnutConfig ;
+    
+    /**
+     *  
      * xml name: filters
      * 
      */
@@ -254,6 +261,25 @@ public abstract class _ChartPlotAreaModel extends io.nop.core.resource.component
         checkAllowChange();
         
         this._bubbleConfig = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: doughnutConfig
+     *  
+     */
+    
+    public io.nop.excel.chart.model.ChartDoughnutConfigModel getDoughnutConfig(){
+      return _doughnutConfig;
+    }
+
+    
+    public void setDoughnutConfig(io.nop.excel.chart.model.ChartDoughnutConfigModel value){
+        checkAllowChange();
+        
+        this._doughnutConfig = value;
            
     }
 
@@ -574,6 +600,8 @@ public abstract class _ChartPlotAreaModel extends io.nop.core.resource.component
             
            this._bubbleConfig = io.nop.api.core.util.FreezeHelper.deepFreeze(this._bubbleConfig);
             
+           this._doughnutConfig = io.nop.api.core.util.FreezeHelper.deepFreeze(this._doughnutConfig);
+            
            this._filters = io.nop.api.core.util.FreezeHelper.deepFreeze(this._filters);
             
            this._funnelConfig = io.nop.api.core.util.FreezeHelper.deepFreeze(this._funnelConfig);
@@ -613,6 +641,7 @@ public abstract class _ChartPlotAreaModel extends io.nop.core.resource.component
         out.putNotNull("axes",this.getAxes());
         out.putNotNull("barConfig",this.getBarConfig());
         out.putNotNull("bubbleConfig",this.getBubbleConfig());
+        out.putNotNull("doughnutConfig",this.getDoughnutConfig());
         out.putNotNull("filters",this.getFilters());
         out.putNotNull("funnelConfig",this.getFunnelConfig());
         out.putNotNull("heatmapConfig",this.getHeatmapConfig());
@@ -642,6 +671,7 @@ public abstract class _ChartPlotAreaModel extends io.nop.core.resource.component
         instance.setAxes(this.getAxes());
         instance.setBarConfig(this.getBarConfig());
         instance.setBubbleConfig(this.getBubbleConfig());
+        instance.setDoughnutConfig(this.getDoughnutConfig());
         instance.setFilters(this.getFilters());
         instance.setFunnelConfig(this.getFunnelConfig());
         instance.setHeatmapConfig(this.getHeatmapConfig());

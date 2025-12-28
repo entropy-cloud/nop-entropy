@@ -52,6 +52,13 @@ public abstract class _ChartBarConfigModel extends io.nop.core.resource.componen
     private java.lang.Double _percentOverlap ;
     
     /**
+     *  
+     * xml name: varyColors
+     * 
+     */
+    private java.lang.Boolean _varyColors ;
+    
+    /**
      * 
      * xml name: dir
      *  
@@ -146,6 +153,25 @@ public abstract class _ChartBarConfigModel extends io.nop.core.resource.componen
     }
 
     
+    /**
+     * 
+     * xml name: varyColors
+     *  
+     */
+    
+    public java.lang.Boolean getVaryColors(){
+      return _varyColors;
+    }
+
+    
+    public void setVaryColors(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._varyColors = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -166,6 +192,7 @@ public abstract class _ChartBarConfigModel extends io.nop.core.resource.componen
         out.putNotNull("is3D",this.getIs3D());
         out.putNotNull("percentGapWidth",this.getPercentGapWidth());
         out.putNotNull("percentOverlap",this.getPercentOverlap());
+        out.putNotNull("varyColors",this.getVaryColors());
     }
 
     public ChartBarConfigModel cloneInstance(){
@@ -182,6 +209,7 @@ public abstract class _ChartBarConfigModel extends io.nop.core.resource.componen
         instance.setIs3D(this.getIs3D());
         instance.setPercentGapWidth(this.getPercentGapWidth());
         instance.setPercentOverlap(this.getPercentOverlap());
+        instance.setVaryColors(this.getVaryColors());
     }
 
     protected ChartBarConfigModel newInstance(){

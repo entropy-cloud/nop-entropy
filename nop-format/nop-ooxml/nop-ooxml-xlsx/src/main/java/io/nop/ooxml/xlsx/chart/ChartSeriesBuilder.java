@@ -46,14 +46,14 @@ public class ChartSeriesBuilder {
             // 构建基本属性
             buildBasicProperties(serNode, series, index);
 
-            // 构建系列数据
-            buildSeriesData(serNode, series);
-
             // 构建系列格式化
             buildSeriesFormatting(serNode, series);
-
+            
             // 构建数据标签
             buildDataLabels(serNode, series);
+
+            // 构建系列数据
+            buildSeriesData(serNode, series);
 
             // 构建趋势线
             buildTrendLines(serNode, series);

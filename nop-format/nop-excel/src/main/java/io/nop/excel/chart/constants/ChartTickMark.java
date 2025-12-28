@@ -17,12 +17,12 @@ public enum ChartTickMark {
     /**
      * 刻度线朝向绘图区内部
      */
-    INSIDE("inside"),
+    INSIDE("in"),
 
     /**
      * 刻度线朝向绘图区外部
      */
-    OUTSIDE("outside"),
+    OUTSIDE("out"),
 
     /**
      * 刻度线横跨轴线（内外同时出现）

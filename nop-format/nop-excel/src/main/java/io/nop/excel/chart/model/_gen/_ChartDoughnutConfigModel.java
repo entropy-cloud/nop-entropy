@@ -2,7 +2,7 @@ package io.nop.excel.chart.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.excel.chart.model.ChartPieConfigModel;
+import io.nop.excel.chart.model.ChartDoughnutConfigModel;
 import io.nop.commons.util.ClassHelper;
 
 
@@ -10,12 +10,11 @@ import io.nop.commons.util.ClassHelper;
 // tell cpd to start ignoring code - CPD-OFF
 /**
  * generate from /nop/schema/excel/chart.xdef <p>
- * Pie chart specific settings
- * 对应 Excel POI 中 PieChart 的特殊属性
+ * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
-public abstract class _ChartPieConfigModel extends io.nop.core.resource.component.AbstractComponentModel {
+public abstract class _ChartDoughnutConfigModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
      *  
@@ -23,6 +22,13 @@ public abstract class _ChartPieConfigModel extends io.nop.core.resource.componen
      * 
      */
     private java.lang.Double _endAngle ;
+    
+    /**
+     *  
+     * xml name: holeSize
+     * 
+     */
+    private java.lang.Double _holeSize ;
     
     /**
      *  
@@ -81,6 +87,25 @@ public abstract class _ChartPieConfigModel extends io.nop.core.resource.componen
         checkAllowChange();
         
         this._endAngle = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: holeSize
+     *  
+     */
+    
+    public java.lang.Double getHoleSize(){
+      return _holeSize;
+    }
+
+    
+    public void setHoleSize(java.lang.Double value){
+        checkAllowChange();
+        
+        this._holeSize = value;
            
     }
 
@@ -215,6 +240,7 @@ public abstract class _ChartPieConfigModel extends io.nop.core.resource.componen
         super.outputJson(out);
         
         out.putNotNull("endAngle",this.getEndAngle());
+        out.putNotNull("holeSize",this.getHoleSize());
         out.putNotNull("innerRadius",this.getInnerRadius());
         out.putNotNull("is3D",this.getIs3D());
         out.putNotNull("outerRadius",this.getOuterRadius());
@@ -223,16 +249,17 @@ public abstract class _ChartPieConfigModel extends io.nop.core.resource.componen
         out.putNotNull("varyColors",this.getVaryColors());
     }
 
-    public ChartPieConfigModel cloneInstance(){
-        ChartPieConfigModel instance = newInstance();
+    public ChartDoughnutConfigModel cloneInstance(){
+        ChartDoughnutConfigModel instance = newInstance();
         this.copyTo(instance);
         return instance;
     }
 
-    protected void copyTo(ChartPieConfigModel instance){
+    protected void copyTo(ChartDoughnutConfigModel instance){
         super.copyTo(instance);
         
         instance.setEndAngle(this.getEndAngle());
+        instance.setHoleSize(this.getHoleSize());
         instance.setInnerRadius(this.getInnerRadius());
         instance.setIs3D(this.getIs3D());
         instance.setOuterRadius(this.getOuterRadius());
@@ -241,8 +268,8 @@ public abstract class _ChartPieConfigModel extends io.nop.core.resource.componen
         instance.setVaryColors(this.getVaryColors());
     }
 
-    protected ChartPieConfigModel newInstance(){
-        return (ChartPieConfigModel) ClassHelper.newInstance(getClass());
+    protected ChartDoughnutConfigModel newInstance(){
+        return (ChartDoughnutConfigModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

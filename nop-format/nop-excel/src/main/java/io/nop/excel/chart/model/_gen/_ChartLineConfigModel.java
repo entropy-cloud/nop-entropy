@@ -67,6 +67,13 @@ public abstract class _ChartLineConfigModel extends io.nop.core.resource.compone
     private java.lang.Boolean _upDownBars ;
     
     /**
+     *  
+     * xml name: varyColors
+     * 
+     */
+    private java.lang.Boolean _varyColors ;
+    
+    /**
      * 
      * xml name: dropLines
      *  是否显示垂直线到X轴：true/false
@@ -199,6 +206,25 @@ public abstract class _ChartLineConfigModel extends io.nop.core.resource.compone
     }
 
     
+    /**
+     * 
+     * xml name: varyColors
+     *  
+     */
+    
+    public java.lang.Boolean getVaryColors(){
+      return _varyColors;
+    }
+
+    
+    public void setVaryColors(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._varyColors = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -221,6 +247,7 @@ public abstract class _ChartLineConfigModel extends io.nop.core.resource.compone
         out.putNotNull("marker",this.getMarker());
         out.putNotNull("smooth",this.getSmooth());
         out.putNotNull("upDownBars",this.getUpDownBars());
+        out.putNotNull("varyColors",this.getVaryColors());
     }
 
     public ChartLineConfigModel cloneInstance(){
@@ -239,6 +266,7 @@ public abstract class _ChartLineConfigModel extends io.nop.core.resource.compone
         instance.setMarker(this.getMarker());
         instance.setSmooth(this.getSmooth());
         instance.setUpDownBars(this.getUpDownBars());
+        instance.setVaryColors(this.getVaryColors());
     }
 
     protected ChartLineConfigModel newInstance(){

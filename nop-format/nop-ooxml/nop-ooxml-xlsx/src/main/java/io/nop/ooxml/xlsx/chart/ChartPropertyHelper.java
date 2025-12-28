@@ -20,7 +20,7 @@ public class ChartPropertyHelper {
         if (value == null) return null;
         if (value instanceof Boolean) return (Boolean) value;
 
-        String str = value.toString().toLowerCase().trim();
+        String str = value.toString();
         switch (str) {
             case "1":
             case "true":

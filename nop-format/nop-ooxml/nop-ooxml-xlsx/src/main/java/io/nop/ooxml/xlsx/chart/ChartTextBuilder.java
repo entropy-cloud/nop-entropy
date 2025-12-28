@@ -10,6 +10,7 @@ package io.nop.ooxml.xlsx.chart;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.model.ExcelFont;
+import io.nop.excel.model.constants.ExcelFontUnderline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -192,41 +193,67 @@ public class ChartTextBuilder {
                 rPrNode.setAttr("sz", String.valueOf(ooxmlSize));
             }
             
-            // 设置字体名称
-            String fontName = font.getFontName();
-            if (!StringHelper.isEmpty(fontName)) {
-                rPrNode.setAttr("typeface", fontName);
-            }
-            
             // 设置字体粗细
             boolean bold = font.isBold();
-            if (bold) {
-                rPrNode.setAttr("b", "1");
-            }
+            rPrNode.setAttr("b", bold ? "1" : "0");
             
             // 设置斜体
             boolean italic = font.isItalic();
-            if (italic) {
-                rPrNode.setAttr("i", "1");
-            }
+            rPrNode.setAttr("i", italic ? "1" : "0");
             
             // 设置下划线
-            if (font.getUnderlineStyle() != null && font.getUnderlineStyle() != io.nop.excel.model.constants.ExcelFontUnderline.NONE) {
-                String underline = mapUnderlineStyleToOoxml(font.getUnderlineStyle());
+            ExcelFontUnderline underlineStyle = font.getUnderlineStyle();
+            if (underlineStyle != null) {
+                String underline = mapUnderlineStyleToOoxml(underlineStyle);
                 rPrNode.setAttr("u", underline);
+            } else {
+                rPrNode.setAttr("u", "none");
             }
             
             // 设置删除线
             boolean strikeout = font.isStrikeout();
-            if (strikeout) {
-                rPrNode.setAttr("strike", "sngStrike");
-            }
+            rPrNode.setAttr("strike", strikeout ? "sngStrike" : "noStrike");
+            
+            // 设置字距调整
+            rPrNode.setAttr("kern", "1200");
+            
+            // 设置基线
+            rPrNode.setAttr("baseline", "0");
             
             // 构建字体颜色
             buildFontColor(rPrNode, font.getFontColor());
             
+            // 构建字体名称信息
+            buildFontTypefaces(rPrNode, font.getFontName());
+            
         } catch (Exception e) {
             LOG.warn("Failed to build run properties", e);
+        }
+    }
+    
+    /**
+     * 构建字体名称信息
+     * 生成 a:latin、a:ea、a:cs 元素
+     */
+    private void buildFontTypefaces(XNode rPrNode, String fontName) {
+        try {
+            // 如果有具体字体名称，使用它；否则使用主题字体引用
+            String typeface = !StringHelper.isEmpty(fontName) ? fontName : "+mn-lt";
+            
+            // Latin字体（拉丁文字）
+            XNode latinNode = rPrNode.addChild("a:latin");
+            latinNode.setAttr("typeface", typeface.startsWith("+") ? typeface : fontName);
+            
+            // East Asian字体（东亚文字）
+            XNode eaNode = rPrNode.addChild("a:ea");
+            eaNode.setAttr("typeface", "+mn-ea");
+            
+            // Complex Script字体（复杂脚本）
+            XNode csNode = rPrNode.addChild("a:cs");
+            csNode.setAttr("typeface", "+mn-cs");
+            
+        } catch (Exception e) {
+            LOG.warn("Failed to build font typefaces", e);
         }
     }
 

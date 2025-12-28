@@ -11,7 +11,9 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.excel.chart.constants.ChartBarDirection;
 import io.nop.excel.chart.constants.ChartBarGrouping;
 import io.nop.excel.chart.model.ChartAreaConfigModel;
+import io.nop.excel.chart.model.ChartAxisModel;
 import io.nop.excel.chart.model.ChartBarConfigModel;
+import io.nop.excel.chart.model.ChartDoughnutConfigModel;
 import io.nop.excel.chart.model.ChartLineConfigModel;
 import io.nop.excel.chart.model.ChartPieConfigModel;
 import io.nop.excel.chart.model.ChartPlotAreaModel;
@@ -269,6 +271,11 @@ public class ChartTypeConfigBuilder {
                 return buildSurfaceChartConfig(plotArea);
             }
 
+            // 检测并构建环形图配置
+            if (plotArea.getDoughnutConfig() != null) {
+                return buildDoughnutChartConfig(plotArea);
+            }
+
             LOG.debug("No specific chart type configuration found, using default");
             return null;
 
@@ -381,6 +388,49 @@ public class ChartTypeConfigBuilder {
     }
 
     /**
+     * 构建环形图配置
+     */
+    private XNode buildDoughnutChartConfig(ChartPlotAreaModel plotArea) {
+        try {
+            ChartDoughnutConfigModel doughnutConfig = plotArea.getDoughnutConfig();
+            if (doughnutConfig == null) {
+                return null;
+            }
+
+            // 根据是否3D决定元素名称
+            String chartTagName = doughnutConfig.getIs3D() != null && doughnutConfig.getIs3D() ? "c:doughnut3DChart" : "c:doughnutChart";
+            XNode doughnutChartNode = XNode.make(chartTagName);
+
+            // 构建颜色变化
+            if (doughnutConfig.getVaryColors() != null) {
+                XNode varyColorsNode = doughnutChartNode.addChild("c:varyColors");
+                varyColorsNode.setAttr("val", doughnutConfig.getVaryColors() ? "1" : "0");
+            }
+
+            // 构建系列数据
+            buildSeriesForChartType(doughnutChartNode, plotArea);
+
+            // 构建第一个扇区角度
+            if (doughnutConfig.getStartAngle() != null) {
+                XNode firstSliceAngNode = doughnutChartNode.addChild("c:firstSliceAng");
+                firstSliceAngNode.setAttr("val", doughnutConfig.getStartAngle().toString());
+            }
+
+            // 构建内半径（通过 holeSize）
+            if (doughnutConfig.getHoleSize() != null) {
+                XNode holeSizeNode = doughnutChartNode.addChild("c:holeSize");
+                holeSizeNode.setAttr("val", doughnutConfig.getHoleSize().toString());
+            }
+
+            return doughnutChartNode;
+
+        } catch (Exception e) {
+            LOG.warn("Failed to build doughnut chart configuration", e);
+            return null;
+        }
+    }
+
+    /**
      * 为图表类型构建系列数据
      */
     private void buildSeriesForChartType(XNode chartNode, ChartPlotAreaModel plotArea) {
@@ -407,12 +457,12 @@ public class ChartTypeConfigBuilder {
     private void buildAxisIds(XNode chartNode, ChartPlotAreaModel plotArea) {
         try {
             // 构建坐标轴ID引用
-            // 这里简化处理，实际应用中应该从plotArea的axis配置中获取ID
-            XNode axIdNode1 = chartNode.addChild("c:axId");
-            axIdNode1.setAttr("val", "1");
-
-            XNode axIdNode2 = chartNode.addChild("c:axId");
-            axIdNode2.setAttr("val", "2");
+            if(plotArea.getAxes() != null) {
+                for(ChartAxisModel axisModel: plotArea.getAxes()) {
+                    XNode axIdNode1 = chartNode.addChild("c:axId");
+                    axIdNode1.setAttr("val", axisModel.getId());
+                }
+            }
 
         } catch (Exception e) {
             LOG.warn("Failed to build axis IDs", e);

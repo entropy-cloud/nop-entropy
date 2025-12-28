@@ -74,10 +74,10 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
-     * xml name: is3D
+     * xml name: lang
      * 
      */
-    private java.lang.Boolean _is3D  = false;
+    private java.lang.String _lang ;
     
     /**
      *  
@@ -152,13 +152,6 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
      * 
      */
     private io.nop.excel.chart.constants.ChartType _type ;
-    
-    /**
-     *  
-     * xml name: varyColors
-     * 
-     */
-    private boolean _varyColors  = true;
     
     /**
      *  
@@ -305,19 +298,19 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
-     * xml name: is3D
+     * xml name: lang
      *  
      */
     
-    public java.lang.Boolean getIs3D(){
-      return _is3D;
+    public java.lang.String getLang(){
+      return _lang;
     }
 
     
-    public void setIs3D(java.lang.Boolean value){
+    public void setLang(java.lang.String value){
         checkAllowChange();
         
-        this._is3D = value;
+        this._lang = value;
            
     }
 
@@ -518,25 +511,6 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
-     * xml name: varyColors
-     *  
-     */
-    
-    public boolean isVaryColors(){
-      return _varyColors;
-    }
-
-    
-    public void setVaryColors(boolean value){
-        checkAllowChange();
-        
-        this._varyColors = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: width
      *  
      */
@@ -592,7 +566,7 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
         out.putNotNull("dynamicBindings",this.getDynamicBindings());
         out.putNotNull("height",this.getHeight());
         out.putNotNull("interactions",this.getInteractions());
-        out.putNotNull("is3D",this.getIs3D());
+        out.putNotNull("lang",this.getLang());
         out.putNotNull("legend",this.getLegend());
         out.putNotNull("manualLayout",this.getManualLayout());
         out.putNotNull("name",this.getName());
@@ -603,7 +577,6 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
         out.putNotNull("styleId",this.getStyleId());
         out.putNotNull("title",this.getTitle());
         out.putNotNull("type",this.getType());
-        out.putNotNull("varyColors",this.isVaryColors());
         out.putNotNull("width",this.getWidth());
     }
 
@@ -623,7 +596,7 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
         instance.setDynamicBindings(this.getDynamicBindings());
         instance.setHeight(this.getHeight());
         instance.setInteractions(this.getInteractions());
-        instance.setIs3D(this.getIs3D());
+        instance.setLang(this.getLang());
         instance.setLegend(this.getLegend());
         instance.setManualLayout(this.getManualLayout());
         instance.setName(this.getName());
@@ -634,7 +607,6 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
         instance.setStyleId(this.getStyleId());
         instance.setTitle(this.getTitle());
         instance.setType(this.getType());
-        instance.setVaryColors(this.isVaryColors());
         instance.setWidth(this.getWidth());
     }
 

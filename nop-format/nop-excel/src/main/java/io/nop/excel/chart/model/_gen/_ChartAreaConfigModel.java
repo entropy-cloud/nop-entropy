@@ -39,6 +39,13 @@ public abstract class _ChartAreaConfigModel extends io.nop.core.resource.compone
     private java.lang.Boolean _is3D ;
     
     /**
+     *  
+     * xml name: varyColors
+     * 
+     */
+    private java.lang.Boolean _varyColors ;
+    
+    /**
      * 
      * xml name: dropLines
      *  是否显示垂直线到X轴：true/false
@@ -95,6 +102,25 @@ public abstract class _ChartAreaConfigModel extends io.nop.core.resource.compone
     }
 
     
+    /**
+     * 
+     * xml name: varyColors
+     *  
+     */
+    
+    public java.lang.Boolean getVaryColors(){
+      return _varyColors;
+    }
+
+    
+    public void setVaryColors(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._varyColors = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -113,6 +139,7 @@ public abstract class _ChartAreaConfigModel extends io.nop.core.resource.compone
         out.putNotNull("dropLines",this.getDropLines());
         out.putNotNull("grouping",this.getGrouping());
         out.putNotNull("is3D",this.getIs3D());
+        out.putNotNull("varyColors",this.getVaryColors());
     }
 
     public ChartAreaConfigModel cloneInstance(){
@@ -127,6 +154,7 @@ public abstract class _ChartAreaConfigModel extends io.nop.core.resource.compone
         instance.setDropLines(this.getDropLines());
         instance.setGrouping(this.getGrouping());
         instance.setIs3D(this.getIs3D());
+        instance.setVaryColors(this.getVaryColors());
     }
 
     protected ChartAreaConfigModel newInstance(){

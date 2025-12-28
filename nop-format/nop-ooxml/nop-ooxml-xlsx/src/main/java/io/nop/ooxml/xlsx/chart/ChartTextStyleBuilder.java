@@ -60,11 +60,14 @@ public class ChartTextStyleBuilder {
      */
     private void buildBodyProperties(XNode bodyPrNode, ChartTextStyleModel textStyle) {
         try {
-            // 设置文本换行
-            boolean wrapText = textStyle.isWrapText();
-            if (wrapText) {
-                bodyPrNode.setAttr("wrap",  "square" );
-            }
+            // 设置旋转角度（默认为0）
+            bodyPrNode.setAttr("rot", "0");
+            
+            // 设置首末段落间距
+            bodyPrNode.setAttr("spcFirstLastPara", "1");
+            
+            // 设置垂直溢出处理
+            bodyPrNode.setAttr("vertOverflow", "ellipsis");
             
             // 设置文本方向
             ChartTextDirection textDirection = textStyle.getTextDirection();
@@ -77,10 +80,23 @@ public class ChartTextStyleBuilder {
                         bodyPrNode.setAttr("vert", "wordArtVert");
                         break;
                     default:
-                        // LEFT_TO_RIGHT是默认值，不需要设置
+                        // LEFT_TO_RIGHT是默认值
+                        bodyPrNode.setAttr("vert", "horz");
                         break;
                 }
+            } else {
+                bodyPrNode.setAttr("vert", "horz");
             }
+            
+            // 设置文本换行
+            boolean wrapText = textStyle.isWrapText();
+            bodyPrNode.setAttr("wrap", wrapText ? "square" : "square");
+            
+            // 设置内边距（使用OOXML单位：EMU）
+            bodyPrNode.setAttr("lIns", "38100");  // 左内边距
+            bodyPrNode.setAttr("tIns", "19050");  // 上内边距
+            bodyPrNode.setAttr("rIns", "38100");  // 右内边距
+            bodyPrNode.setAttr("bIns", "19050");  // 下内边距
             
             // 设置垂直对齐
             ExcelVerticalAlignment verticalAlign = textStyle.getVerticalAlign();
@@ -89,7 +105,15 @@ public class ChartTextStyleBuilder {
                 if (anchor != null) {
                     bodyPrNode.setAttr("anchor", anchor);
                 }
+            } else {
+                bodyPrNode.setAttr("anchor", "ctr");  // 默认居中
             }
+            
+            // 设置锚点居中
+            bodyPrNode.setAttr("anchorCtr", "1");
+            
+            // 添加自动调整节点
+            bodyPrNode.addChild("a:spAutoFit");
             
         } catch (Exception e) {
             LOG.warn("Failed to build body properties", e);
@@ -105,13 +129,14 @@ public class ChartTextStyleBuilder {
             XNode pPrNode = pNode.addChild("a:pPr");
             buildParagraphProperties(pPrNode, textStyle);
             
-            // 构建运行属性（字体样式）
-            XNode rNode = pNode.addChild("a:r");
-            XNode rPrNode = rNode.addChild("a:rPr");
-            buildRunProperties(rPrNode, textStyle.getFont());
+            // 构建默认运行属性（字体样式）- 使用defRPr而不是rPr
+            if (textStyle.getFont() != null) {
+                XNode defRPrNode = pPrNode.addChild("a:defRPr");
+                buildRunProperties(defRPrNode, textStyle.getFont());
+            }
             
-            // 添加空文本节点
-            rNode.addChild("a:t");
+            // 添加结束段落运行属性
+            pNode.addChild("a:endParaRPr").setAttr("lang", "en-US");
             
         } catch (Exception e) {
             LOG.warn("Failed to build paragraph", e);
@@ -161,42 +186,67 @@ public class ChartTextStyleBuilder {
                 rPrNode.setAttr("sz", String.valueOf(ooxmlSize));
             }
             
-            // 设置字体名称
-            String fontName = font.getFontName();
-            if (!StringHelper.isEmpty(fontName)) {
-                rPrNode.setAttr("typeface", fontName);
-            }
-            
             // 设置字体粗细
             boolean bold = font.isBold();
-            if (bold) {
-                rPrNode.setAttr("b", "1");
-            }
+            rPrNode.setAttr("b", bold ? "1" : "0");
             
             // 设置斜体
             boolean italic = font.isItalic();
-            if (italic) {
-                rPrNode.setAttr("i", "1");
-            }
+            rPrNode.setAttr("i", italic ? "1" : "0");
             
             // 设置下划线
             ExcelFontUnderline underlineStyle = font.getUnderlineStyle();
-            if (underlineStyle != null && underlineStyle != ExcelFontUnderline.NONE) {
+            if (underlineStyle != null) {
                 String underline = mapUnderlineStyleToOoxml(underlineStyle);
                 rPrNode.setAttr("u", underline);
+            } else {
+                rPrNode.setAttr("u", "none");
             }
             
             // 设置删除线
             boolean strikeout = font.isStrikeout();
-            if (strikeout) {
-                rPrNode.setAttr("strike", "1");
-            }
+            rPrNode.setAttr("strike", strikeout ? "sngStrike" : "noStrike");
+            
+            // 设置字距调整
+            rPrNode.setAttr("kern", "1200");
+            
+            // 设置基线
+            rPrNode.setAttr("baseline", "0");
             
             // 构建字体颜色
             buildFontColor(rPrNode, font.getFontColor());
             
+            // 构建字体名称信息
+            buildFontTypefaces(rPrNode, font.getFontName());
+            
         } catch (Exception e) {
             LOG.warn("Failed to build run properties", e);
+        }
+    }
+    
+    /**
+     * 构建字体名称信息
+     * 生成 a:latin、a:ea、a:cs 元素
+     */
+    private void buildFontTypefaces(XNode rPrNode, String fontName) {
+        try {
+            // 如果有具体字体名称，使用它；否则使用主题字体引用
+            String typeface = !StringHelper.isEmpty(fontName) ? fontName : "+mn-lt";
+            
+            // Latin字体（拉丁文字）
+            XNode latinNode = rPrNode.addChild("a:latin");
+            latinNode.setAttr("typeface", typeface.startsWith("+") ? typeface : fontName);
+            
+            // East Asian字体（东亚文字）
+            XNode eaNode = rPrNode.addChild("a:ea");
+            eaNode.setAttr("typeface", "+mn-ea");
+            
+            // Complex Script字体（复杂脚本）
+            XNode csNode = rPrNode.addChild("a:cs");
+            csNode.setAttr("typeface", "+mn-cs");
+            
+        } catch (Exception e) {
+            LOG.warn("Failed to build font typefaces", e);
         }
     }
 

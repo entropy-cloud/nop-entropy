@@ -7,6 +7,7 @@ import io.nop.excel.chart.constants.ChartBarGrouping;
 import io.nop.excel.chart.model.ChartAreaConfigModel;
 import io.nop.excel.chart.model.ChartBarConfigModel;
 import io.nop.excel.chart.model.ChartBubbleConfigModel;
+import io.nop.excel.chart.model.ChartDoughnutConfigModel;
 import io.nop.excel.chart.model.ChartLineConfigModel;
 import io.nop.excel.chart.model.ChartPieConfigModel;
 import io.nop.excel.chart.model.ChartPlotAreaModel;
@@ -423,28 +424,42 @@ public class ChartTypeConfigParser {
     }
 
     /**
-     * 解析环形图特定配置 - 使用饼图配置模型
+     * 解析环形图特定配置
      */
     private void parseDoughnutChartConfig(ChartPlotAreaModel plotArea, XNode doughnutNode) {
         try {
-            ChartPieConfigModel pieConfig = new ChartPieConfigModel();
+            ChartDoughnutConfigModel doughnutConfig = new ChartDoughnutConfigModel();
+
+            // 检测是否为3D环形图
+            Boolean is3D = doughnutNode.childByTag("c:doughnut3DChart") != null;
+            if (is3D) {
+                doughnutConfig.setIs3D(true);
+                LOG.debug("Doughnut chart is 3D");
+            }
+
+            // 解析颜色变化
+            Boolean varyColors = ChartPropertyHelper.getChildBoolVal(doughnutNode, "c:varyColors");
+            if (varyColors != null) {
+                doughnutConfig.setVaryColors(varyColors);
+                LOG.debug("Doughnut chart vary colors: {}", varyColors);
+            }
 
             // 解析第一个扇区角度
             Double firstSliceAng = ChartPropertyHelper.getChildDoubleVal(doughnutNode, "c:firstSliceAng");
             if (firstSliceAng != null) {
-                pieConfig.setStartAngle(firstSliceAng);
+                doughnutConfig.setStartAngle(firstSliceAng);
                 LOG.debug("Doughnut chart first slice angle: {}°", firstSliceAng);
             }
 
             // 解析内半径
             Double holeSize = ChartPropertyHelper.getChildDoubleVal(doughnutNode, "c:holeSize");
             if (holeSize != null) {
-                pieConfig.setInnerRadius(holeSize);
+                doughnutConfig.setHoleSize(holeSize);
                 LOG.debug("Doughnut chart hole size: {}%", holeSize);
             }
 
             // 设置到plotArea
-            plotArea.setPieConfig(pieConfig);
+            plotArea.setDoughnutConfig(doughnutConfig);
 
         } catch (Exception e) {
             LOG.warn("Failed to parse doughnut chart configuration", e);

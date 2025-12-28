@@ -61,6 +61,7 @@ public class ChartShapeStyleBuilder {
             }
 
             LOG.debug("Successfully built shape style XML");
+
             return spPrNode;
 
         } catch (Exception e) {
@@ -432,11 +433,16 @@ public class ChartShapeStyleBuilder {
 
             // 构建线条样式
             ChartLineStyle style = border.getStyle();
-            if (style != null && style != ChartLineStyle.SOLID) {
-                XNode prstDashNode = lnNode.addChild("a:prstDash");
-                String ooxmlStyle = mapLineStyleToOoxml(style);
-                prstDashNode.setAttr("val", ooxmlStyle);
+            if (style != null) {
+                if (style != ChartLineStyle.SOLID) {
+                    XNode prstDashNode = lnNode.addChild("a:prstDash");
+                    String ooxmlStyle = mapLineStyleToOoxml(style);
+                    prstDashNode.setAttr("val", ooxmlStyle);
+                }
             }
+
+            if (Boolean.TRUE.equals(border.getRound()))
+                lnNode.addChild("a:round");
 
             LOG.debug("Built border with width: {}, color: {}, style: {}", width, color, style);
             return true;

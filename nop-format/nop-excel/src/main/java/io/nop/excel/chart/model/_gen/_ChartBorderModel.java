@@ -40,6 +40,13 @@ public abstract class _ChartBorderModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: round
+     * 
+     */
+    private java.lang.Boolean _round ;
+    
+    /**
+     *  
      * xml name: style
      * 
      */
@@ -111,6 +118,25 @@ public abstract class _ChartBorderModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: round
+     *  
+     */
+    
+    public java.lang.Boolean getRound(){
+      return _round;
+    }
+
+    
+    public void setRound(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._round = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: style
      *  
      */
@@ -165,6 +191,7 @@ public abstract class _ChartBorderModel extends io.nop.core.resource.component.A
         out.putNotNull("color",this.getColor());
         out.putNotNull("opacity",this.getOpacity());
         out.putNotNull("radius",this.getRadius());
+        out.putNotNull("round",this.getRound());
         out.putNotNull("style",this.getStyle());
         out.putNotNull("width",this.getWidth());
     }
@@ -181,6 +208,7 @@ public abstract class _ChartBorderModel extends io.nop.core.resource.component.A
         instance.setColor(this.getColor());
         instance.setOpacity(this.getOpacity());
         instance.setRadius(this.getRadius());
+        instance.setRound(this.getRound());
         instance.setStyle(this.getStyle());
         instance.setWidth(this.getWidth());
     }

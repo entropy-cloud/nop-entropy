@@ -65,6 +65,12 @@ public class DrawingChartParser {
     public void parseChartSpace(XNode chartSpaceNode, IChartStyleProvider styleProvider, ChartModel excelChart) {
         validateChartStructure(chartSpaceNode);
 
+        String lang = (String)chartSpaceNode.childAttr("c:lang","val");
+        excelChart.setLang(lang);
+
+        Boolean roundedCorners = "1".equals(chartSpaceNode.childAttr("c:roundedCorners","val"));
+        excelChart.setRoundedCorners(roundedCorners);
+
         XNode actualChartNode = findActualChartNode(chartSpaceNode);
         if (actualChartNode == null) {
             LOG.warn("No actual chart node found in chartSpace, using chartSpace as chart node");
@@ -123,7 +129,6 @@ public class DrawingChartParser {
                     ChartType type = mapChartType(chartType);
                     if (type != null) {
                         chart.setType(type);
-                        chart.setIs3D(is3DChartType(chartType));
                         return;
                     }
                 }
@@ -131,12 +136,10 @@ public class DrawingChartParser {
 
             LOG.warn("No recognized chart type found in plot area, using default COLUMN");
             chart.setType(ChartType.COLUMN);
-            chart.setIs3D(false);
 
         } catch (Exception e) {
             LOG.warn("Failed to parse chart type, using default COLUMN", e);
             chart.setType(ChartType.COLUMN);
-            chart.setIs3D(false);
         }
     }
 

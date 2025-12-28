@@ -32,6 +32,13 @@ public abstract class _ChartScatterConfigModel extends io.nop.core.resource.comp
     private java.lang.Boolean _showMarkers ;
     
     /**
+     *  
+     * xml name: varyColors
+     * 
+     */
+    private java.lang.Boolean _varyColors ;
+    
+    /**
      * 
      * xml name: scatterStyle
      *  散点图样式：none、line、lineMarker、marker、smooth、smoothMarker
@@ -69,6 +76,25 @@ public abstract class _ChartScatterConfigModel extends io.nop.core.resource.comp
     }
 
     
+    /**
+     * 
+     * xml name: varyColors
+     *  
+     */
+    
+    public java.lang.Boolean getVaryColors(){
+      return _varyColors;
+    }
+
+    
+    public void setVaryColors(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._varyColors = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -86,6 +112,7 @@ public abstract class _ChartScatterConfigModel extends io.nop.core.resource.comp
         
         out.putNotNull("scatterStyle",this.getScatterStyle());
         out.putNotNull("showMarkers",this.getShowMarkers());
+        out.putNotNull("varyColors",this.getVaryColors());
     }
 
     public ChartScatterConfigModel cloneInstance(){
@@ -99,6 +126,7 @@ public abstract class _ChartScatterConfigModel extends io.nop.core.resource.comp
         
         instance.setScatterStyle(this.getScatterStyle());
         instance.setShowMarkers(this.getShowMarkers());
+        instance.setVaryColors(this.getVaryColors());
     }
 
     protected ChartScatterConfigModel newInstance(){

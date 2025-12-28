@@ -40,6 +40,12 @@ public class ChartDataLabelsBuilder {
         try {
             XNode dLblsNode = XNode.make("c:dLbls");
 
+            // 构建手动布局
+            buildManualLayout(dLblsNode, dataLabels);
+
+            // 构建样式
+            buildStyles(dLblsNode, dataLabels);
+
             // 构建可见性
             buildVisibility(dLblsNode, dataLabels);
 
@@ -52,11 +58,6 @@ public class ChartDataLabelsBuilder {
             // 构建数字格式
             buildNumberFormat(dLblsNode, dataLabels);
 
-            // 构建手动布局
-            buildManualLayout(dLblsNode, dataLabels);
-
-            // 构建样式
-            buildStyles(dLblsNode, dataLabels);
 
             return dLblsNode;
 
@@ -135,6 +136,11 @@ public class ChartDataLabelsBuilder {
      */
     private void buildDisplayOptions(XNode dLblsNode, ChartDataLabelsModel dataLabels) {
         try {
+            if (dataLabels.getShowLegendKey() != null) {
+                XNode showNode = dLblsNode.addChild("c:showLegendKey");
+                showNode.setAttr("val", dataLabels.getShowLegendKey() ? "1" : "0");
+            }
+
             // 显示值
             if (dataLabels.getShowVal() != null) {
                 XNode showValNode = dLblsNode.addChild("c:showVal");
@@ -157,6 +163,12 @@ public class ChartDataLabelsBuilder {
             if (dataLabels.getShowPercent() != null) {
                 XNode showPercentNode = dLblsNode.addChild("c:showPercent");
                 showPercentNode.setAttr("val", dataLabels.getShowPercent() ? "1" : "0");
+            }
+
+            // 显示气泡大小
+            if (dataLabels.getShowBubbleSize() != null) {
+                XNode showBubbleSizeNode = dLblsNode.addChild("c:showBubbleSize");
+                showBubbleSizeNode.setAttr("val", dataLabels.getShowBubbleSize() ? "1" : "0");
             }
 
             // 显示引导线
@@ -278,6 +290,38 @@ public class ChartDataLabelsBuilder {
         dataLabels.setShowVal(showValue);
         dataLabels.setShowCatName(showCategoryName);
         dataLabels.setShowPercent(showPercent);
+
+        return buildDataLabels(dataLabels);
+    }
+
+    /**
+     * 构建带有完整显示选项的数据标签（包括气泡大小）
+     * 这是一个便利方法，用于快速创建带有完整显示选项的数据标签配置，特别适用于气泡图
+     *
+     * @param position         标签位置
+     * @param showValue        显示值
+     * @param showCategoryName 显示类别名称
+     * @param showPercent      显示百分比
+     * @param showBubbleSize   显示气泡大小
+     * @return 数据标签XNode，如果position为null则返回null
+     */
+    public XNode buildDataLabelsWithFullOptions(ChartDataLabelPosition position,
+                                                Boolean showValue,
+                                                Boolean showCategoryName,
+                                                Boolean showPercent,
+                                                Boolean showBubbleSize) {
+        if (position == null) {
+            return null;
+        }
+
+        // 创建数据标签模型
+        ChartDataLabelsModel dataLabels = new ChartDataLabelsModel();
+        dataLabels.setPosition(position);
+        // dataLabels.setVisible(true);
+        dataLabels.setShowVal(showValue);
+        dataLabels.setShowCatName(showCategoryName);
+        dataLabels.setShowPercent(showPercent);
+        dataLabels.setShowBubbleSize(showBubbleSize);
 
         return buildDataLabels(dataLabels);
     }

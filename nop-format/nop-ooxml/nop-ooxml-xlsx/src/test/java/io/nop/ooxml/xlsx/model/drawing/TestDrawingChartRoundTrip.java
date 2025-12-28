@@ -62,7 +62,7 @@ public class TestDrawingChartRoundTrip extends BaseTestCase {
 
         // Verify plot area has series
         if (chartModel.getPlotArea().getSeriesList() != null) {
-          //  assertEquals(2, chartModel.getPlotArea().getSeries().size(), "Chart should have 2 series");
+            assertEquals(2, chartModel.getPlotArea().getSeriesList().size(), "Chart should have 2 series");
         }
 
         XNode node = DslModelHelper.dslModelToXNode("/nop/schema/excel/chart.xdef", chartModel);
@@ -120,6 +120,8 @@ public class TestDrawingChartRoundTrip extends BaseTestCase {
         XNode inputChartSpace = attachmentXml("bar-chart-input.xml");
         assertNotNull(inputChartSpace, "Input chart XML should be loaded");
 
+        inputChartSpace.dump();
+
         // Parse chart using DrawingChartParser
         DrawingChartParser parser = DrawingChartParser.INSTANCE;
         ChartModel chartModel = parseChartSpace(parser, inputChartSpace);
@@ -138,10 +140,10 @@ public class TestDrawingChartRoundTrip extends BaseTestCase {
                 "Output should be a chartSpace element");
 
         // Verify basic structure
-        assertNotNull(outputChartSpace.childByTag("c:chart"), 
-                     "Output should contain a chart element");
-        assertNotNull(outputChartSpace.childByTag("c:chart").childByTag("c:plotArea"), 
-                     "Output should contain a plotArea element");
+        assertNotNull(outputChartSpace.childByTag("c:chart"),
+                "Output should contain a chart element");
+        assertNotNull(outputChartSpace.childByTag("c:chart").childByTag("c:plotArea"),
+                "Output should contain a plotArea element");
 
         // Log the output for debugging
         System.out.println("Generated chart XML:");

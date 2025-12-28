@@ -14,9 +14,9 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
        name="string" type="enum:io.nop.excel.chart.constants.ChartType"
        width="double-pt" height="double-pt" autoFit="boolean=true"
        dispBlanksAs="enum:io.nop.excel.chart.constants.ChartDispBlankAs"
-       showLabelsOverMax="boolean" varyColors="!boolean=true"
-       is3D="boolean=false" roundedCorners="boolean"
-       styleId="string"
+       showLabelsOverMax="boolean"
+       roundedCorners="boolean"
+       styleId="string" lang="string"
 >
 
     <xdef:define xdef:name="ChartSpacingModel" top="double-pt" right="double-pt" bottom="double-pt" left="double-pt"/>
@@ -66,7 +66,7 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
         对应 Excel 图表边框设置
         -->
         <border color="string" width="double-pt" style="enum:io.nop.excel.chart.constants.ChartLineStyle"
-                radius="double-pt" opacity="double"
+                radius="double-pt" opacity="double" round="boolean"
                 xdef:name="ChartBorderModel"/>
 
     </xdef:define>
@@ -150,16 +150,17 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
     @numberFormat 数字格式串，如"#,##0.00"、"0%"
     @showLeaderLines 是否自动画引导线
     -->
-    <dataLabels xdef:name="ChartDataLabelsModel" showVal="boolean"
+    <dataLabels xdef:name="ChartDataLabelsModel"
+                showLegendKey="boolean"
+                showVal="boolean"
                 showCatName="boolean"
                 showSerName="boolean"
                 showPercent="boolean"
                 showBubbleSize="boolean"
-                showLegendKey="boolean"
+                showLeaderLines="boolean"
                 separator="string"
                 position="enum:io.nop.excel.chart.constants.ChartDataLabelPosition"
-                numberFormat="string" offsetX="double-pt" offsetY="double-pt"
-                showLeaderLines="boolean">
+                numberFormat="string" offsetX="double-pt" offsetY="double-pt">
 
         <shapeStyle xdef:ref="ChartShapeStyleModel"/>
         <textStyle xdef:ref="ChartTextStyleModel"/>
@@ -345,7 +346,7 @@ Chart type specific configurations
         @percentGapWidth 柱间空隙占柱宽百分比：65=65%。
         @percentOverlap 同一类别中系列重叠比例：100=100% 重叠（堆积效果）。
         -->
-        <barConfig xdef:name="ChartBarConfigModel" is3D="boolean"
+        <barConfig xdef:name="ChartBarConfigModel" is3D="boolean" varyColors="boolean"
                    percentGapWidth="double-percent" percentOverlap="double-percent"
                    dir="enum:io.nop.excel.chart.constants.ChartBarDirection"
                    grouping="enum:io.nop.excel.chart.constants.ChartBarGrouping"/>
@@ -354,7 +355,8 @@ Chart type specific configurations
         Pie chart specific settings
         对应 Excel POI 中 PieChart 的特殊属性
         -->
-        <pieConfig is3D="boolean" innerRadius="double-percent" outerRadius="double-percent" startAngle="double-deg"
+        <pieConfig is3D="boolean" varyColors="boolean"
+                   innerRadius="double-percent" outerRadius="double-percent" startAngle="double-deg"
                    endAngle="double-deg" padAngle="double-deg" xdef:name="ChartPieConfigModel"/>
 
         <!--
@@ -367,7 +369,8 @@ Chart type specific configurations
         @hiLowLines 是否显示高低线：true/false
         @upDownBars 是否显示涨跌柱：true/false
         -->
-        <lineConfig is3D="boolean" grouping="enum:io.nop.excel.chart.constants.ChartBarGrouping"
+        <lineConfig is3D="boolean" varyColors="boolean"
+                    grouping="enum:io.nop.excel.chart.constants.ChartBarGrouping"
                     marker="boolean" smooth="boolean" dropLines="boolean"
                     hiLowLines="boolean" upDownBars="boolean"
                     xdef:name="ChartLineConfigModel"/>
@@ -378,7 +381,8 @@ Chart type specific configurations
         @grouping 分组方式：standard、stacked、percentStacked
         @dropLines 是否显示垂直线到X轴：true/false
         -->
-        <areaConfig is3D="boolean" grouping="enum:io.nop.excel.chart.constants.ChartBarGrouping"
+        <areaConfig is3D="boolean" varyColors="boolean"
+                    grouping="enum:io.nop.excel.chart.constants.ChartBarGrouping"
                     dropLines="boolean" xdef:name="ChartAreaConfigModel"/>
 
         <!--
@@ -387,7 +391,8 @@ Chart type specific configurations
         @scatterStyle 散点图样式：none、line、lineMarker、marker、smooth、smoothMarker
         @showMarkers 是否显示标记点：true/false
         -->
-        <scatterConfig scatterStyle="string" showMarkers="boolean"
+        <scatterConfig varyColors="boolean"
+                       scatterStyle="string" showMarkers="boolean"
                        xdef:name="ChartScatterConfigModel"/>
 
         <!--
@@ -399,6 +404,11 @@ Chart type specific configurations
         -->
         <bubbleConfig bubble3D="boolean" bubbleScale="double-percent"
                       sizeRepresents="string" xdef:name="ChartBubbleConfigModel"/>
+
+        <doughnutConfig is3D="boolean" innerRadius="double-percent" outerRadius="double-percent"
+                        startAngle="double-deg" endAngle="double-deg" padAngle="double-deg"
+                        varyColors="boolean" holeSize="double-percent"
+                        xdef:name="ChartDoughnutConfigModel"/>
 
         <!--
         Radar chart specific settings

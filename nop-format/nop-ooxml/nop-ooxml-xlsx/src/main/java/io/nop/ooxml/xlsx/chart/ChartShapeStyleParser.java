@@ -628,6 +628,7 @@ public class ChartShapeStyleParser {
             if (joinNode == null) joinNode = lnNode.childByTag("a:miter");
             if (joinNode != null) {
                 LOG.debug("Line join style found: {}", joinNode.getTagName());
+                border.setRound(true);
             }
 
             style.setBorder(border);
