@@ -48,12 +48,12 @@ public class ChartSeriesBuilder {
 
             // 构建系列格式化
             buildSeriesFormatting(serNode, series);
-            
+
             // 构建数据标签
             buildDataLabels(serNode, series);
 
             // 构建系列数据
-            buildSeriesData(serNode, series);
+            buildSeriesValData(serNode, series);
 
             // 构建趋势线
             buildTrendLines(serNode, series);
@@ -134,15 +134,16 @@ public class ChartSeriesBuilder {
     /**
      * 构建系列数据
      */
-    private void buildSeriesData(XNode serNode, ChartSeriesModel series) {
+    private void buildSeriesValData(XNode serNode, ChartSeriesModel series) {
         try {
-            String dataCellRef = series.getDataCellRef();
-            if (StringHelper.isEmpty(dataCellRef)) {
-                return;
-            }
+            // 构建分类数据
+            buildSeriesCatData(serNode, series);
 
-            // 直接使用dataCellRef构建数据引用
-            buildCellReferenceData(serNode, dataCellRef);
+            // 构建数值数据
+            String dataCellRef = series.getDataCellRef();
+            if (!StringHelper.isEmpty(dataCellRef)) {
+                buildValCellReference(serNode, dataCellRef);
+            }
 
         } catch (Exception e) {
             LOG.warn("Failed to build series data", e);
@@ -150,9 +151,50 @@ public class ChartSeriesBuilder {
     }
 
     /**
+     * 构建系列分类数据
+     */
+    private void buildSeriesCatData(XNode serNode, ChartSeriesModel series) {
+        try {
+            String catCellRef = series.getCatCellRef();
+            if (StringHelper.isEmpty(catCellRef)) {
+                return;
+            }
+
+            // 构建分类数据 (c:cat)
+            XNode catNode = serNode.addChild("c:cat");
+            
+            // 构建字符串引用或数值引用
+            if (isNumericReference(catCellRef)) {
+                // 数值类型的分类数据
+                XNode numRefNode = catNode.addChild("c:numRef");
+                XNode fNode = numRefNode.addChild("c:f");
+                fNode.setText(catCellRef);
+            } else {
+                // 字符串类型的分类数据（更常见）
+                XNode strRefNode = catNode.addChild("c:strRef");
+                XNode fNode = strRefNode.addChild("c:f");
+                fNode.setText(catCellRef);
+            }
+            
+        } catch (Exception e) {
+            LOG.warn("Failed to build series category data", e);
+        }
+    }
+
+    /**
+     * 判断是否为数值引用
+     * 简单的启发式判断，可以根据需要扩展
+     */
+    private boolean isNumericReference(String cellRef) {
+        // 这里可以根据实际需求进行更复杂的判断
+        // 目前简单假设大部分分类数据都是字符串类型
+        return false;
+    }
+
+    /**
      * 构建单元格引用数据
      */
-    private void buildCellReferenceData(XNode serNode, String dataCellRef) {
+    private void buildValCellReference(XNode serNode, String dataCellRef) {
         try {
             if (StringHelper.isEmpty(dataCellRef)) {
                 return;

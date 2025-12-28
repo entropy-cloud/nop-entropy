@@ -184,7 +184,7 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
             -->
             <series id="!string" name="string" type="enum:io.nop.excel.chart.constants.ChartType"
                     nameCellRef="string" invertIfNegative="boolean=false" axisId="string"
-                    dataCellRef="string"
+                    dataCellRef="string" catCellRef="string"
                     visible="!boolean=true" xdef:name="ChartSeriesModel">
 
                 <shapeStyle xdef:ref="ChartShapeStyleModel"/>

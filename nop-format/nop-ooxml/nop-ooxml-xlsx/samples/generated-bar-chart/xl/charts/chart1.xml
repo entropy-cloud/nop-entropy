@@ -30,6 +30,9 @@
                 <c:ser>
                     <c:idx val="0"/>
                     <c:order val="0"/>
+                    <c:tx>
+                        <c:v>Series 1</c:v>
+                    </c:tx>
                     <c:spPr>
                         <a:solidFill>
                             <a:srgbClr val="4472C4"/>
@@ -84,6 +87,9 @@
                 <c:ser>
                     <c:idx val="1"/>
                     <c:order val="1"/>
+                    <c:tx>
+                        <c:v>Series 2</c:v>
+                    </c:tx>
                     <c:spPr>
                         <a:solidFill>
                             <a:srgbClr val="ED7D31"/>

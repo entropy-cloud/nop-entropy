@@ -149,7 +149,7 @@ public class ChartTypeConfigParser {
             }
 
             // 解析第一个扇区角度
-            Double firstSliceAng = ChartPropertyHelper.getChildDoubleVal(pieChartNode, "c:firstSliceAng");
+            Double firstSliceAng = ChartPropertyHelper.getChildAngleVal(pieChartNode, "c:firstSliceAng");
             if (firstSliceAng != null) {
                 pieConfig.setStartAngle(firstSliceAng);
                 LOG.debug("Pie chart first slice angle: {}°", firstSliceAng);
@@ -395,14 +395,14 @@ public class ChartTypeConfigParser {
             }
 
             // 解析起始角度
-            Double startAngle = ChartPropertyHelper.getChildDoubleVal(radarNode, "c:startAngle");
+            Double startAngle = ChartPropertyHelper.getChildAngleVal(radarNode, "c:startAngle");
             if (startAngle != null) {
                 radarConfig.setStartAngle(startAngle);
                 LOG.debug("Radar chart start angle: {}°", startAngle);
             }
 
             // 解析结束角度
-            Double endAngle = ChartPropertyHelper.getChildDoubleVal(radarNode, "c:endAngle");
+            Double endAngle = ChartPropertyHelper.getChildAngleVal(radarNode, "c:endAngle");
             if (endAngle != null) {
                 radarConfig.setEndAngle(endAngle);
                 LOG.debug("Radar chart end angle: {}°", endAngle);
@@ -445,7 +445,7 @@ public class ChartTypeConfigParser {
             }
 
             // 解析第一个扇区角度
-            Double firstSliceAng = ChartPropertyHelper.getChildDoubleVal(doughnutNode, "c:firstSliceAng");
+            Double firstSliceAng = ChartPropertyHelper.getChildAngleVal(doughnutNode, "c:firstSliceAng");
             if (firstSliceAng != null) {
                 doughnutConfig.setStartAngle(firstSliceAng);
                 LOG.debug("Doughnut chart first slice angle: {}°", firstSliceAng);

@@ -102,4 +102,90 @@ public class ChartPropertyHelper {
         
         return new String[]{firstId, secondId};
     }
+
+    // ==================== 角度转换帮助函数 ====================
+
+    /**
+     * OOXML角度转换常量
+     * OOXML中角度值使用1/60000度为单位
+     */
+    private static final double OOXML_ANGLE_UNIT = 60000.0;
+
+    /**
+     * 将度转换为OOXML角度单位（1/60000度）
+     * 
+     * @param degrees 角度值（度）
+     * @return OOXML角度值（1/60000度单位）
+     */
+    public static long degreesToOoxmlAngle(double degrees) {
+        return Math.round(degrees * OOXML_ANGLE_UNIT);
+    }
+
+    /**
+     * 将OOXML角度单位转换为度
+     * 
+     * @param ooxmlAngle OOXML角度值（1/60000度单位）
+     * @return 角度值（度）
+     */
+    public static double ooxmlAngleToDegrees(long ooxmlAngle) {
+        return ooxmlAngle / OOXML_ANGLE_UNIT;
+    }
+
+    /**
+     * 将度转换为OOXML角度字符串（处理null值）
+     * 
+     * @param degrees 角度值（度），可以为null
+     * @return OOXML角度字符串，如果输入为null则返回null
+     */
+    public static String degreesToOoxmlAngleString(Double degrees) {
+        if (degrees == null) {
+            return null;
+        }
+        return String.valueOf(degreesToOoxmlAngle(degrees));
+    }
+
+    /**
+     * 将OOXML角度字符串转换为度（处理null值和解析错误）
+     * 
+     * @param ooxmlAngleStr OOXML角度字符串，可以为null或空
+     * @return 角度值（度），如果输入无效则返回null
+     */
+    public static Double ooxmlAngleStringToDegrees(String ooxmlAngleStr) {
+        if (ooxmlAngleStr == null || ooxmlAngleStr.trim().isEmpty()) {
+            return null;
+        }
+        
+        try {
+            long ooxmlAngle = Long.parseLong(ooxmlAngleStr.trim());
+            return ooxmlAngleToDegrees(ooxmlAngle);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * 获取子节点的角度值并转换为度
+     * 
+     * @param node 父节点
+     * @param childTagName 子节点标签名
+     * @return 角度值（度），如果节点不存在或解析失败则返回null
+     */
+    public static Double getChildAngleVal(XNode node, String childTagName) {
+        String angleStr = getChildVal(node, childTagName);
+        return ooxmlAngleStringToDegrees(angleStr);
+    }
+
+    /**
+     * 设置子节点的角度值（从度转换为OOXML单位）
+     * 
+     * @param node 父节点
+     * @param childTagName 子节点标签名
+     * @param degrees 角度值（度）
+     */
+    public static void setChildAngleVal(XNode node, String childTagName, Double degrees) {
+        if (degrees != null) {
+            String ooxmlAngleStr = degreesToOoxmlAngleString(degrees);
+            setChildVal(node, childTagName, ooxmlAngleStr);
+        }
+    }
 }

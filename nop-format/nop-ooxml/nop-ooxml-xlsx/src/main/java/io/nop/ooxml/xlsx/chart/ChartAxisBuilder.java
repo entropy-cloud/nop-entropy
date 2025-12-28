@@ -218,6 +218,11 @@ public class ChartAxisBuilder {
                 //offsetNode.setAttr("val", ticks.getLabelOffset().toString());
             }
 
+            // 构建标签旋转角度（通过文本属性）
+            if (ticks.getLabelRotation() != null) {
+                //buildTickLabelRotation(axisNode, ticks.getLabelRotation());
+            }
+
         } catch (Exception e) {
             LOG.warn("Failed to build ticks configuration", e);
         }
@@ -243,6 +248,47 @@ public class ChartAxisBuilder {
             default:
                 LOG.warn("Unknown tick label position: {}, using default nextTo", position);
                 return "nextTo";
+        }
+    }
+
+    /**
+     * 构建刻度标签旋转角度
+     */
+    private void buildTickLabelRotation(XNode axisNode, Double labelRotation) {
+        try {
+            // 检查是否已经有c:txPr节点
+            XNode txPrNode = axisNode.childByTag("c:txPr");
+            if (txPrNode == null) {
+                // 创建基本的文本属性节点
+                txPrNode = axisNode.addChild("c:txPr");
+                txPrNode.addChild("a:lstStyle");
+                
+                XNode pNode = txPrNode.addChild("a:p");
+                XNode pPrNode = pNode.addChild("a:pPr");
+                XNode defRPrNode = pPrNode.addChild("a:defRPr");
+                defRPrNode.setAttr("sz", "900");  // 默认字体大小
+                pNode.addChild("a:endParaRPr").setAttr("lang", "en-US");
+            }
+
+            // 获取或创建a:bodyPr节点
+            XNode bodyPrNode = txPrNode.childByTag("a:bodyPr");
+            if (bodyPrNode == null) {
+                bodyPrNode = txPrNode.addChild("a:bodyPr");
+                // 设置基本属性
+                bodyPrNode.setAttr("vert", "horz");
+                bodyPrNode.setAttr("wrap", "square");
+                bodyPrNode.setAttr("anchor", "ctr");
+                bodyPrNode.setAttr("anchorCtr", "1");
+            }
+
+            // 设置旋转角度
+            String rotationStr = ChartPropertyHelper.degreesToOoxmlAngleString(labelRotation);
+            bodyPrNode.setAttr("rot", rotationStr);
+
+            LOG.debug("Set tick label rotation to {}° (OOXML: {})", labelRotation, rotationStr);
+
+        } catch (Exception e) {
+            LOG.warn("Failed to build tick label rotation", e);
         }
     }
 

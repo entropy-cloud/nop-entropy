@@ -33,6 +33,13 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: catCellRef
+     * 
+     */
+    private java.lang.String _catCellRef ;
+    
+    /**
+     *  
      * xml name: dataCellRef
      * 
      */
@@ -158,6 +165,25 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._axisId = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: catCellRef
+     *  
+     */
+    
+    public java.lang.String getCatCellRef(){
+      return _catCellRef;
+    }
+
+    
+    public void setCatCellRef(java.lang.String value){
+        checkAllowChange();
+        
+        this._catCellRef = value;
            
     }
 
@@ -453,6 +479,7 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
         
         out.putNotNull("animation",this.getAnimation());
         out.putNotNull("axisId",this.getAxisId());
+        out.putNotNull("catCellRef",this.getCatCellRef());
         out.putNotNull("dataCellRef",this.getDataCellRef());
         out.putNotNull("dataLabels",this.getDataLabels());
         out.putNotNull("id",this.getId());
@@ -478,6 +505,7 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
         
         instance.setAnimation(this.getAnimation());
         instance.setAxisId(this.getAxisId());
+        instance.setCatCellRef(this.getCatCellRef());
         instance.setDataCellRef(this.getDataCellRef());
         instance.setDataLabels(this.getDataLabels());
         instance.setId(this.getId());

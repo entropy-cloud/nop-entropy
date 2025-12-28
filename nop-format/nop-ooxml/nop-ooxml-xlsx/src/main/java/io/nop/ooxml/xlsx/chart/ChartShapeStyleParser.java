@@ -186,11 +186,12 @@ public class ChartShapeStyleParser {
             XNode linNode = gradFillNode.childByTag("a:lin");
             if (linNode != null) {
                 // 解析渐变角度
-                Double angle = linNode.attrDouble("ang");
-                if (angle != null) {
-                    // OOXML 角度单位是 1/60000 度，转换为度
-                    double degrees = angle / 60000.0;
-                    gradient.setAngle(degrees);
+                String angleStr = linNode.attrText("ang");
+                if (angleStr != null) {
+                    Double degrees = ChartPropertyHelper.ooxmlAngleStringToDegrees(angleStr);
+                    if (degrees != null) {
+                        gradient.setAngle(degrees);
+                    }
                 }
                 
                 // 解析渐变方向（缩放标志）

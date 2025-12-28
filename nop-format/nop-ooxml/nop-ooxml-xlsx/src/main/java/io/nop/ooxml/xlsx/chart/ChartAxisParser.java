@@ -230,6 +230,9 @@ public class ChartAxisParser {
                 }
             }
 
+            // 解析刻度标签旋转角度
+            parseTickLabelRotation(ticks, axisNode);
+
             // 解析数字格式（从轴级别的 numFmt 获取）
             XNode numFmtNode = axisNode.childByTag("c:numFmt");
             if (numFmtNode != null) {
@@ -302,6 +305,30 @@ public class ChartAxisParser {
         } catch (Exception e) {
             LOG.warn("Failed to map tick label position: {}, using default NEXT_TO", position, e);
             return ChartAxisTickLabelPosition.NEXT_TO;
+        }
+    }
+
+    /**
+     * 解析刻度标签旋转角度
+     */
+    private void parseTickLabelRotation(ChartTicksModel ticks, XNode axisNode) {
+        try {
+            XNode txPrNode = axisNode.childByTag("c:txPr");
+            if (txPrNode != null) {
+                XNode bodyPrNode = txPrNode.childByTag("a:bodyPr");
+                if (bodyPrNode != null) {
+                    String rotStr = bodyPrNode.attrText("rot");
+                    if (!StringHelper.isEmpty(rotStr)) {
+                        Double degrees = ChartPropertyHelper.ooxmlAngleStringToDegrees(rotStr);
+                        if (degrees != null) {
+                            ticks.setLabelRotation(degrees);
+                            LOG.debug("Parsed tick label rotation: {}° (OOXML: {})", degrees, rotStr);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to parse tick label rotation", e);
         }
     }
 

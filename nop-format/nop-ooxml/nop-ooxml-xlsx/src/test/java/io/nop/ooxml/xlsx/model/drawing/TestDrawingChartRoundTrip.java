@@ -199,7 +199,7 @@ public class TestDrawingChartRoundTrip extends BaseTestCase {
     public void testSimpleChartBuilding() {
         // Build a simple chart using the convenience method
         DrawingChartBuilder builder = DrawingChartBuilder.INSTANCE;
-        XNode chartSpace = builder.buildSimpleChart("Test Chart", ChartType.COLUMN);
+        XNode chartSpace = builder.buildSimpleChart("Test Chart", ChartType.BAR);
 
         // Verify output XML was generated
         assertNotNull(chartSpace, "Chart XML should be generated");
@@ -232,7 +232,7 @@ public class TestDrawingChartRoundTrip extends BaseTestCase {
         ChartModel chartModel = new ChartModel();
         chartModel.setName("Test Chart");
         chartModel.setDescription("dataRangeRefExpr=Sheet1!A1:B10");
-        chartModel.setType(ChartType.COLUMN);
+        chartModel.setType(ChartType.BAR);
 
         // Build chart XML using DrawingChartBuilder
         DrawingChartBuilder builder = DrawingChartBuilder.INSTANCE;
@@ -251,7 +251,7 @@ public class TestDrawingChartRoundTrip extends BaseTestCase {
         // For this test, we'll verify the chart structure is correct
         assertNotNull(parsedChart, "Chart should be parsed successfully");
         assertEquals("Test Chart", parsedChart.getName(), "Chart name should be preserved");
-        assertEquals(ChartType.COLUMN, parsedChart.getType(), "Chart type should be preserved");
+        assertEquals(ChartType.BAR, parsedChart.getType(), "Chart type should be preserved");
 
         // Log the output for debugging
         System.out.println("Generated chart with description:");

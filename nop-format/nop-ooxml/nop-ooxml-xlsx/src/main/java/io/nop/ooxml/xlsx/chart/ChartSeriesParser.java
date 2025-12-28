@@ -204,16 +204,21 @@ public class ChartSeriesParser {
         try {
             series.setId("ser-" + index);
 
- 			XNode txNode = serNode.childByTag("c:tx");
+            XNode txNode = serNode.childByTag("c:tx");
             if (txNode != null) {
                 String seriesName = ChartTextParser.INSTANCE.extractText(txNode);
                 if (!StringHelper.isEmpty(seriesName)) {
                     series.setName(seriesName);
                     return;
                 }
-            }        } catch (Exception e) {
+            }
+            
+            // 如果没有找到名称，设置默认名称
+            series.setName("Series " + (index + 1));
+            
+        } catch (Exception e) {
             LOG.warn("Failed to parse series name, using default", e);
-            series.setName("Series");
+            series.setName("Series " + (index + 1));
         }
     }
 
@@ -244,6 +249,45 @@ public class ChartSeriesParser {
      */
     private void parseSeriesData(ChartSeriesModel series, XNode serNode) {
         try {
+            // 解析分类数据 (X轴数据)
+            parseSeriesCatData(series, serNode);
+
+            // 解析数值数据 (Y轴数据)
+            parseSeriesValData(series, serNode);
+
+            // 解析系列特定配置
+            parseSeriesSpecificConfig(series, serNode);
+
+        } catch (Exception e) {
+            LOG.warn("Failed to parse series data", e);
+        }
+    }
+
+    /**
+     * 解析系列分类数据
+     */
+    private void parseSeriesCatData(ChartSeriesModel series, XNode serNode) {
+        try {
+            // 解析类别数据 (X轴数据)
+            XNode catNode = serNode.childByTag("c:cat");
+            if (catNode != null) {
+                String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(catNode);
+                if (!StringHelper.isEmpty(cellRef)) {
+                    series.setCatCellRef(cellRef);
+                    LOG.debug("Parsed category data reference: {}", cellRef);
+                }
+            }
+
+        } catch (Exception e) {
+            LOG.warn("Failed to parse series category data", e);
+        }
+    }
+
+    /**
+     * 解析系列数值数据
+     */
+    private void parseSeriesValData(ChartSeriesModel series, XNode serNode) {
+        try {
             String dataCellRef = null;
 
             // 解析数值数据 (Y轴数据) - 优先级最高
@@ -255,18 +299,7 @@ public class ChartSeriesParser {
                 }
             }
 
-            // 如果没有找到val，尝试解析类别数据 (X轴数据)
-            if (dataCellRef == null) {
-                XNode catNode = serNode.childByTag("c:cat");
-                if (catNode != null) {
-                    String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(catNode);
-                    if (cellRef != null) {
-                        dataCellRef = cellRef;
-                    }
-                }
-            }
-
-            // 如果没有找到，尝试解析X值数据 (散点图)
+            // 如果没有找到val，尝试解析X值数据 (散点图)
             if (dataCellRef == null) {
                 XNode xValNode = serNode.childByTag("c:xVal");
                 if (xValNode != null) {
@@ -299,16 +332,14 @@ public class ChartSeriesParser {
                 }
             }
 
-            // 如果找到了数据引用，直接设置到series上
+            // 设置数据引用
             if (!StringHelper.isEmpty(dataCellRef)) {
                 series.setDataCellRef(dataCellRef);
+                LOG.debug("Parsed value data reference: {}", dataCellRef);
             }
 
-            // 解析系列特定配置
-            parseSeriesSpecificConfig(series, serNode);
-
         } catch (Exception e) {
-            LOG.warn("Failed to parse series data", e);
+            LOG.warn("Failed to parse series value data", e);
         }
     }
 

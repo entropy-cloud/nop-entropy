@@ -138,11 +138,11 @@ public class DrawingChartParser {
             }
 
             LOG.warn("No recognized chart type found in plot area, using default COLUMN");
-            chart.setType(ChartType.COLUMN);
+            chart.setType(ChartType.BAR);
 
         } catch (Exception e) {
             LOG.warn("Failed to parse chart type, using default COLUMN", e);
-            chart.setType(ChartType.COLUMN);
+            chart.setType(ChartType.BAR);
         }
     }
 

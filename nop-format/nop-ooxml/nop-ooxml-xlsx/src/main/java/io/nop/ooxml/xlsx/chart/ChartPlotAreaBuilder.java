@@ -8,6 +8,8 @@
 package io.nop.ooxml.xlsx.chart;
 
 import io.nop.core.lang.xml.XNode;
+import io.nop.excel.chart.constants.ChartAxisType;
+import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartAxisModel;
 import io.nop.excel.chart.model.ChartManualLayoutModel;
 import io.nop.excel.chart.model.ChartPlotAreaModel;
@@ -39,27 +41,22 @@ public class ChartPlotAreaBuilder {
             return null;
         }
 
-        try {
-            XNode plotAreaNode = XNode.make("c:plotArea");
 
-            // 构建手动布局
-            buildManualLayout(plotAreaNode, plotArea);
+        XNode plotAreaNode = XNode.make("c:plotArea");
 
-            // 构建图表类型特定配置（包含系列数据）
-            buildChartTypeSpecificConfig(plotAreaNode, plotArea);
+        // 构建手动布局
+        buildManualLayout(plotAreaNode, plotArea);
 
-            // 构建坐标轴
-            buildAxes(plotAreaNode, plotArea);
+        // 构建图表类型特定配置（包含系列数据）
+        XNode chartTypeNode = buildChartTypeSpecificConfig(plotAreaNode, plotArea);
 
-            // 构建形状样式
-            buildShapeStyle(plotAreaNode, plotArea);
+        // 构建坐标轴
+        buildAxes(plotAreaNode, plotArea, chartTypeNode);
 
-            return plotAreaNode;
+        // 构建形状样式
+        buildShapeStyle(plotAreaNode, plotArea);
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build plot area configuration", e);
-            return null;
-        }
+        return plotAreaNode;
     }
 
     /**
@@ -83,7 +80,7 @@ public class ChartPlotAreaBuilder {
     /**
      * 构建图表类型特定配置
      */
-    private void buildChartTypeSpecificConfig(XNode plotAreaNode, ChartPlotAreaModel plotArea) {
+    private XNode buildChartTypeSpecificConfig(XNode plotAreaNode, ChartPlotAreaModel plotArea) {
         try {
             XNode chartTypeNode = ChartTypeConfigBuilder.INSTANCE.buildChartTypeSpecificConfig(plotArea);
             if (chartTypeNode != null) {
@@ -93,39 +90,38 @@ public class ChartPlotAreaBuilder {
                 LOG.debug("No specific chart type configuration found, creating default bar chart");
                 buildDefaultChartType(plotAreaNode, plotArea);
             }
+            return chartTypeNode;
 
         } catch (Exception e) {
             LOG.warn("Failed to build chart type specific configuration", e);
             // 尝试构建默认图表类型
-            buildDefaultChartType(plotAreaNode, plotArea);
+            return buildDefaultChartType(plotAreaNode, plotArea);
         }
     }
 
     /**
      * 构建默认图表类型（柱状图）
      */
-    private void buildDefaultChartType(XNode plotAreaNode, ChartPlotAreaModel plotArea) {
-        try {
-            XNode barChartNode = XNode.make("c:barChart");
+    private XNode buildDefaultChartType(XNode plotAreaNode, ChartPlotAreaModel plotArea) {
 
-            // 添加默认的柱状图配置
-            XNode barDirNode = barChartNode.addChild("c:barDir");
-            barDirNode.setAttr("val", "col");
+        XNode barChartNode = XNode.make("c:barChart");
 
-            XNode groupingNode = barChartNode.addChild("c:grouping");
-            groupingNode.setAttr("val", "clustered");
+        // 添加默认的柱状图配置
+        XNode barDirNode = barChartNode.addChild("c:barDir");
+        barDirNode.setAttr("val", "col");
 
-            // 构建系列数据
-            buildSeriesForChartType(barChartNode, plotArea);
+        XNode groupingNode = barChartNode.addChild("c:grouping");
+        groupingNode.setAttr("val", "clustered");
 
-            // 构建坐标轴ID
-            buildDefaultAxisIds(barChartNode);
+        // 构建系列数据
+        buildSeriesForChartType(barChartNode, plotArea);
 
-            plotAreaNode.appendChild(barChartNode);
+        // 构建坐标轴ID
+        buildDefaultAxisIds(barChartNode);
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build default chart type", e);
-        }
+        plotAreaNode.appendChild(barChartNode);
+
+        return barChartNode;
     }
 
     /**
@@ -168,24 +164,147 @@ public class ChartPlotAreaBuilder {
     /**
      * 构建坐标轴
      */
-    private void buildAxes(XNode plotAreaNode, ChartPlotAreaModel plotArea) {
+    private void buildAxes(XNode plotAreaNode, ChartPlotAreaModel plotArea, XNode chartTypeNode) {
         try {
+            // 如果没有定义坐标轴，根据图表类型创建默认的坐标轴
+            ChartType chartType = detectChartTypeFromNode(chartTypeNode);
+            // 根据图表类型决定需要哪些坐标轴
+            boolean needsCategoryAxis = chartType.hasCategoryAxis();
+            boolean needsValueAxis = chartType.hasValueAxis();
+
             List<ChartAxisModel> axes = plotArea.getAxes();
             if (axes != null && !axes.isEmpty()) {
+                // 如果已经定义了坐标轴，直接构建所有坐标轴
                 for (ChartAxisModel axis : axes) {
+                    if (axis.getType() == ChartAxisType.CATEGORY && !needsCategoryAxis)
+                        continue;
+                    if (axis.getType() == ChartAxisType.VALUE && !needsValueAxis)
+                        continue;
                     XNode axisNode = ChartAxisBuilder.INSTANCE.buildAxis(axis);
                     if (axisNode != null) {
                         plotAreaNode.appendChild(axisNode);
                     }
                 }
             } else {
-                // 如果没有定义坐标轴，创建默认的坐标轴
-                buildDefaultAxes(plotAreaNode);
+
+                buildDefaultAxesByChartType(plotAreaNode, chartType);
             }
 
         } catch (Exception e) {
             LOG.warn("Failed to build plot area axes", e);
             // 尝试构建默认坐标轴
+            buildDefaultAxes(plotAreaNode);
+        }
+    }
+
+    /**
+     * 从chartTypeNode检测图表类型
+     */
+    private ChartType detectChartTypeFromNode(XNode chartTypeNode) {
+        if (chartTypeNode == null) {
+            return ChartType.BAR; // 默认柱状图
+        }
+
+        String tagName = chartTypeNode.getTagName();
+        if (tagName.startsWith("c:")) {
+            String chartType = tagName.substring(2); // 去掉"c:"前缀
+            return mapChartType(chartType);
+        }
+
+        return ChartType.BAR; // 默认柱状图
+    }
+
+    /**
+     * 映射图表类型
+     */
+    private ChartType mapChartType(String chartType) {
+        try {
+            switch (chartType) {
+                case "barChart":
+                case "bar3DChart":
+                    return ChartType.BAR;
+                case "pieChart":
+                case "pie3DChart":
+                    return ChartType.PIE;
+                case "lineChart":
+                case "line3DChart":
+                    return ChartType.LINE;
+                case "areaChart":
+                case "area3DChart":
+                    return ChartType.AREA;
+                case "scatterChart":
+                    return ChartType.SCATTER;
+                case "radarChart":
+                    return ChartType.RADAR;
+                case "surfaceChart":
+                case "surface3DChart":
+                    return ChartType.HEATMAP;
+                case "doughnutChart":
+                    return ChartType.DOUGHNUT;
+                case "bubbleChart":
+                    return ChartType.BUBBLE;
+                case "stockChart":
+                case "ofPieChart":
+                    return ChartType.COMBO;
+                default:
+                    LOG.warn("Unknown chart type: {}, using default BAR", chartType);
+                    return ChartType.BAR;
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to map chart type: {}, using default BAR", chartType, e);
+            return ChartType.BAR;
+        }
+    }
+
+    /**
+     * 根据图表类型构建默认坐标轴
+     */
+    private void buildDefaultAxesByChartType(XNode plotAreaNode, ChartType chartType) {
+        if (chartType == null) {
+            buildDefaultAxes(plotAreaNode);
+            return;
+        }
+
+        try {
+            // 根据图表类型决定需要哪些坐标轴
+            boolean needsCategoryAxis = chartType.hasCategoryAxis();
+            boolean needsValueAxis = chartType.hasValueAxis();
+
+            // 如果图表类型不需要任何坐标轴（如饼图），则不创建坐标轴
+            if (!needsCategoryAxis && !needsValueAxis) {
+                LOG.debug("Chart type {} does not require axes", chartType);
+                return;
+            }
+
+            if (needsCategoryAxis) {
+                // 创建分类轴（X轴）
+                XNode catAxNode = XNode.make("c:catAx");
+                buildDefaultAxisProperties(catAxNode, "1", "2", "b");
+                plotAreaNode.appendChild(catAxNode);
+            }
+
+            if (needsValueAxis) {
+                // 创建数值轴（Y轴）
+                XNode valAxNode = XNode.make("c:valAx");
+                buildDefaultAxisProperties(valAxNode, "2", "1", "l");
+                plotAreaNode.appendChild(valAxNode);
+            }
+
+            // 对于散点图和气泡图，可能需要两个数值轴
+            if (chartType == ChartType.SCATTER || chartType == ChartType.BUBBLE) {
+                if (!needsCategoryAxis) {
+                    // 如果没有分类轴，创建第二个数值轴作为X轴
+                    XNode valAxNode2 = XNode.make("c:valAx");
+                    buildDefaultAxisProperties(valAxNode2, "1", "2", "b");
+                    plotAreaNode.appendChild(valAxNode2);
+                }
+            }
+
+            LOG.debug("Built axes for chart type {}: categoryAxis={}, valueAxis={}",
+                    chartType, needsCategoryAxis, needsValueAxis);
+
+        } catch (Exception e) {
+            LOG.warn("Failed to build axes for chart type {}, falling back to default", chartType, e);
             buildDefaultAxes(plotAreaNode);
         }
     }
@@ -253,9 +372,9 @@ public class ChartPlotAreaBuilder {
     /**
      * 构建简单的绘图区域（仅包含基本配置）
      * 这是一个便利方法，用于快速创建基本的绘图区域配置
-     * 
+     *
      * @param seriesList 系列列表
-     * @param axesList 坐标轴列表
+     * @param axesList   坐标轴列表
      * @return 绘图区域XNode，如果seriesList为null或空则返回null
      */
     public XNode buildSimplePlotArea(List<ChartSeriesModel> seriesList, List<ChartAxisModel> axesList) {
@@ -265,12 +384,12 @@ public class ChartPlotAreaBuilder {
 
         // 创建绘图区域模型
         ChartPlotAreaModel plotArea = new ChartPlotAreaModel();
-        
+
         // 添加系列
         for (ChartSeriesModel series : seriesList) {
             plotArea.addSeries(series);
         }
-        
+
         // 添加坐标轴
         if (axesList != null) {
             for (ChartAxisModel axis : axesList) {
@@ -284,9 +403,9 @@ public class ChartPlotAreaBuilder {
     /**
      * 构建带有手动布局的绘图区域
      * 这是一个便利方法，用于快速创建带有布局的绘图区域配置
-     * 
+     *
      * @param seriesList 系列列表
-     * @param layout 手动布局
+     * @param layout     手动布局
      * @return 绘图区域XNode，如果seriesList为null或空则返回null
      */
     public XNode buildPlotAreaWithLayout(List<ChartSeriesModel> seriesList, ChartManualLayoutModel layout) {
@@ -297,7 +416,7 @@ public class ChartPlotAreaBuilder {
         // 创建绘图区域模型
         ChartPlotAreaModel plotArea = new ChartPlotAreaModel();
         plotArea.setManualLayout(layout);
-        
+
         // 添加系列
         for (ChartSeriesModel series : seriesList) {
             plotArea.addSeries(series);

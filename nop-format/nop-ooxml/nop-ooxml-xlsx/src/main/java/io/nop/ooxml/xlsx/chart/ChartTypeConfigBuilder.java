@@ -149,8 +149,7 @@ public class ChartTypeConfigBuilder {
 
             // 构建第一个扇区角度
             if (pieConfig.getStartAngle() != null) {
-                XNode firstSliceAngNode = pieChartNode.addChild("c:firstSliceAng");
-                firstSliceAngNode.setAttr("val", pieConfig.getStartAngle().toString());
+                ChartPropertyHelper.setChildAngleVal(pieChartNode, "c:firstSliceAng", pieConfig.getStartAngle());
             }
 
             return pieChartNode;
@@ -412,8 +411,7 @@ public class ChartTypeConfigBuilder {
 
             // 构建第一个扇区角度
             if (doughnutConfig.getStartAngle() != null) {
-                XNode firstSliceAngNode = doughnutChartNode.addChild("c:firstSliceAng");
-                firstSliceAngNode.setAttr("val", doughnutConfig.getStartAngle().toString());
+                ChartPropertyHelper.setChildAngleVal(doughnutChartNode, "c:firstSliceAng", doughnutConfig.getStartAngle());
             }
 
             // 构建内半径（通过 holeSize）

@@ -6,7 +6,6 @@ package io.nop.excel.chart.constants;
 public enum ChartType {
     LINE("line"),
     BAR("bar"),
-    COLUMN("column"),
     PIE("pie"),
     DOUGHNUT("doughnut"),
     SCATTER("scatter"),
@@ -38,5 +37,42 @@ public enum ChartType {
             }
         }
         throw new IllegalArgumentException("Unknown chart type: " + value);
+    }
+
+    /**
+     * 是否在c:plotArea段中生成单独的c:catAxis等配置
+     */
+    /**
+     * 是否需要分类轴（Category Axis）
+     */
+    public boolean hasCategoryAxis() {
+        switch (this) {
+            case LINE:
+            case BAR:
+            case AREA:
+            case RADAR:
+            case COMBO:
+                return true;    // 需要分类轴
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * 是否需要数值轴（Value Axis）
+     */
+    public boolean hasValueAxis() {
+        switch (this) {
+            case LINE:
+            case BAR:
+            case AREA:
+            case SCATTER:
+            case BUBBLE:
+            case RADAR:
+            case COMBO:
+                return true;  // 需要数值轴
+            default:
+                return false;
+        }
     }
 }

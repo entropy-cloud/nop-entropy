@@ -229,11 +229,11 @@ public class ChartPlotAreaParser {
                     return ChartType.COMBO; // 复合图表类型
                 default:
                     LOG.warn("Unknown chart type: {}, using default COLUMN", chartType);
-                    return ChartType.COLUMN;
+                    return ChartType.BAR;
             }
         } catch (Exception e) {
             LOG.warn("Failed to map chart type: {}, using default COLUMN", chartType, e);
-            return ChartType.COLUMN;
+            return ChartType.BAR;
         }
     }
 }

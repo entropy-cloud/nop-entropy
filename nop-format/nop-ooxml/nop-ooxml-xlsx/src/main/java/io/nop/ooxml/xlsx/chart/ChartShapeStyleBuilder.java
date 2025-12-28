@@ -203,8 +203,8 @@ public class ChartShapeStyleBuilder {
             Double angle = gradient.getAngle();
             if (angle != null) {
                 // 转换为OOXML角度单位（1/60000度）
-                long ooxmlAngle = Math.round(angle * 60000);
-                linNode.setAttr("ang", String.valueOf(ooxmlAngle));
+                String ooxmlAngleStr = ChartPropertyHelper.degreesToOoxmlAngleString(angle);
+                linNode.setAttr("ang", ooxmlAngleStr);
             }
 
             // 设置缩放标志
@@ -510,8 +510,9 @@ public class ChartShapeStyleBuilder {
 
                 // 计算角度
                 double angle = Math.atan2(offsetY, offsetX);
-                long ooxmlAngle = Math.round(angle * 180 / Math.PI * 60000);
-                outerShdwNode.setAttr("dir", String.valueOf(ooxmlAngle));
+                double degrees = angle * 180 / Math.PI;
+                String ooxmlAngleStr = ChartPropertyHelper.degreesToOoxmlAngleString(degrees);
+                outerShdwNode.setAttr("dir", ooxmlAngleStr);
             }
 
             // 设置模糊半径
