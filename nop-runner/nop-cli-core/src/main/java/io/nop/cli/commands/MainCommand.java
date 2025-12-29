@@ -18,6 +18,7 @@ import picocli.CommandLine;
                 CliGenCommand.class,
                 CliReverseDbCommand.class,
                 CliWatchCommand.class,
+                CliWatchZipCommand.class,
                 CliRunCommand.class,
                 CliRunTaskCommand.class,
                 CliGenOrmExcelCommand.class,
