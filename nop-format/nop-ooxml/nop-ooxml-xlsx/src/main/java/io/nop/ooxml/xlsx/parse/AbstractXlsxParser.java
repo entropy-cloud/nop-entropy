@@ -73,7 +73,7 @@ public abstract class AbstractXlsxParser extends AbstractResourceParser<ExcelWor
     }
 
     protected void endParseWorkbook(ExcelWorkbook wk) {
-
+        wk.init();
     }
 
     protected abstract ExcelSheet parseSheet(ExcelWorkbook workbook, XSSFSheetRef sheetRef, WorkbookPart workbookFile);

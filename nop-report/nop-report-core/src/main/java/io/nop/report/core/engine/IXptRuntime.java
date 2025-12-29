@@ -142,10 +142,11 @@ public interface IXptRuntime extends IEvalContext {
      */
     String expandExcelFormula(String formula);
 
-    default String changeCellRefSize(String cellRef, int rowSize, int colSize) {
-        if (StringHelper.isEmpty(cellRef))
+    default ExcelCellRef buildCellRef(String cellRefTpl, int rowOffset, int colOffset, int rowSize, int colSize) {
+        if (StringHelper.isEmpty(cellRefTpl))
             return null;
-        ExcelCellRef cellRefBean = ExcelCellRef.parse(cellRef);
-        return cellRefBean.changeSize(rowSize, colSize).toString();
+        ExcelCellRef cellRefBean = ExcelCellRef.parse(cellRefTpl);
+        CellRange range = cellRefBean.getCellRange().offset(rowOffset, colOffset).changeSize(rowSize, colSize);
+        return new ExcelCellRef(cellRefBean.getSheetName(), range);
     }
 }

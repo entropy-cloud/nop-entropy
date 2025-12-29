@@ -108,11 +108,16 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
     </title>
 
     <dynamicBindings xdef:name="ChartDynamicBindingsModel">
+        <!-- 决定是否生成chart -->
+        <chartTestExpr>xpl-fn:(chartModel)=>boolean</chartTestExpr>
+
         <!-- 图表标题引用，返回单个单元格地址 -->
         <chartTitleCellRefExpr>xpl-fn:(chartModel)=>string</chartTitleCellRefExpr>
 
         <!-- 图表标题直接计算：返回标题文本字符串，直接作为图表标题 -->
         <chartTitleExpr>xpl-fn:(chartModel)=>string</chartTitleExpr>
+
+        <seriesTestExpr>xpl-fn:(seriesModel,chartModel)=>boolean</seriesTestExpr>
 
         <!-- 系列名称引用，返回单个单元格地址 -->
         <seriesNameCellRefExpr>xpl-fn:(seriesModel,chartModel)=>string</seriesNameCellRefExpr>
@@ -132,6 +137,9 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
         <axisDataCellRefExpr>xpl-fn:(axisModel,chartModel)=>string</axisDataCellRefExpr>
 
         <axisTitleCellRefExpr>xpl-fn:(axisModel,chartModel)=>string</axisTitleCellRefExpr>
+
+        <!-- 坐标轴标题直接计算：返回标题文本字符串，直接作为坐标轴标题 -->
+        <axisTitleExpr>xpl-fn:(axisModel,chartModel)=>string</axisTitleExpr>
     </dynamicBindings>
 
     <!--
@@ -185,8 +193,10 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
             <!--
             @invertIfNegative 当系列中的数据点为负值时，使用反转颜色显示（通常是前景色和背景色交换）。
             @axisId 关联的坐标轴ID，默认使用主坐标轴。
+            @index 在seriesList中的下标，从0开始。解析的时候会自动重新设置
             -->
-            <series id="!string" name="string" type="enum:io.nop.excel.chart.constants.ChartType"
+            <series id="!string" name="string" index="!int=0"
+                    type="enum:io.nop.excel.chart.constants.ChartType"
                     nameCellRef="string" invertIfNegative="boolean=false" axisId="string"
                     dataCellRef="string" catCellRef="string"
                     visible="!boolean=true" xdef:name="ChartSeriesModel">

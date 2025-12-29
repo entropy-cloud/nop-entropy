@@ -9,6 +9,7 @@ package io.nop.ooxml.xlsx.chart;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.model.table.CellPosition;
 import io.nop.excel.chart.model.ChartDataLabelsModel;
 import io.nop.excel.chart.model.ChartSeriesModel;
 import io.nop.excel.chart.model.ChartShapeStyleModel;
@@ -92,7 +93,7 @@ public class ChartSeriesBuilder {
             XNode txNode = serNode.addChild("c:tx");
 
             // 如果有名称单元格引用，使用引用
-            if (!StringHelper.isEmpty(series.getNameCellRef())) {
+            if (!StringHelper.isEmpty(series.getNameCellRef()) && !CellPosition.NONE_STRING.equals(series.getNameCellRef())) {
                 XNode strRefNode = txNode.addChild("c:strRef");
                 XNode fNode = strRefNode.addChild("c:f");
                 fNode.setText(series.getNameCellRef());
@@ -140,7 +141,7 @@ public class ChartSeriesBuilder {
     private void buildSeriesCatData(XNode serNode, ChartSeriesModel series) {
 
         String catCellRef = series.getCatCellRef();
-        if (StringHelper.isEmpty(catCellRef)) {
+        if (StringHelper.isEmpty(catCellRef) || CellPosition.NONE_STRING.equals(catCellRef)) {
             return;
         }
 

@@ -7,8 +7,6 @@
  */
 package io.nop.report.core;
 
-import io.nop.excel.chart.model.ChartDynamicBindingsModel;
-
 import java.util.Arrays;
 import java.util.List;
 
@@ -51,9 +49,9 @@ public interface XptConstants {
 
     String XDEF_NODE_EXCEL_IMAGE = "ExcelImage";
 
-    String XDEF_NODE_EXCEL_CHART = "ExcelChart";
+    String XDEF_NODE_EXCEL_CHART_MODEL = "ExcelChartModel";
 
-    String XDEF_NODE_CHART_DYNAMIC_BINDINGS = "ChartDynamicBindingsModel";
+    String XDEF_NODE_CHILD_BINDINGS = "dynamicBindings";
 
     String STD_DOMAIN_REPORT_EXPR = "report-expr";
 

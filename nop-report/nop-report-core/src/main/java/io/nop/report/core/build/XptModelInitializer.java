@@ -263,7 +263,7 @@ public class XptModelInitializer {
                 if (prevCell == null)
                     continue;
                 ExcelCell ec = (ExcelCell) prevCell.getRealCell();
-                if (ec.getModel().getExpandType() == XptExpandType.r) {
+                if (ec.makeModel().getExpandType() == XptExpandType.r) {
                     return ec;
                 }
             }

@@ -32,6 +32,20 @@ public abstract class _ChartDynamicBindingsModel extends io.nop.core.resource.co
     
     /**
      *  
+     * xml name: axisTitleExpr
+     * 坐标轴标题直接计算：返回标题文本字符串，直接作为坐标轴标题
+     */
+    private io.nop.core.lang.eval.IEvalFunction _axisTitleExpr ;
+    
+    /**
+     *  
+     * xml name: chartTestExpr
+     * 决定是否生成chart
+     */
+    private io.nop.core.lang.eval.IEvalFunction _chartTestExpr ;
+    
+    /**
+     *  
      * xml name: chartTitleCellRefExpr
      * 图表标题引用，返回单个单元格地址
      */
@@ -87,6 +101,13 @@ public abstract class _ChartDynamicBindingsModel extends io.nop.core.resource.co
     private io.nop.core.lang.eval.IEvalFunction _seriesNameExpr ;
     
     /**
+     *  
+     * xml name: seriesTestExpr
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _seriesTestExpr ;
+    
+    /**
      * 
      * xml name: axisDataCellRefExpr
      *  
@@ -120,6 +141,44 @@ public abstract class _ChartDynamicBindingsModel extends io.nop.core.resource.co
         checkAllowChange();
         
         this._axisTitleCellRefExpr = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: axisTitleExpr
+     *  坐标轴标题直接计算：返回标题文本字符串，直接作为坐标轴标题
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getAxisTitleExpr(){
+      return _axisTitleExpr;
+    }
+
+    
+    public void setAxisTitleExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._axisTitleExpr = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: chartTestExpr
+     *  决定是否生成chart
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getChartTestExpr(){
+      return _chartTestExpr;
+    }
+
+    
+    public void setChartTestExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._chartTestExpr = value;
            
     }
 
@@ -276,6 +335,25 @@ public abstract class _ChartDynamicBindingsModel extends io.nop.core.resource.co
     }
 
     
+    /**
+     * 
+     * xml name: seriesTestExpr
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getSeriesTestExpr(){
+      return _seriesTestExpr;
+    }
+
+    
+    public void setSeriesTestExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._seriesTestExpr = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -293,6 +371,8 @@ public abstract class _ChartDynamicBindingsModel extends io.nop.core.resource.co
         
         out.putNotNull("axisDataCellRefExpr",this.getAxisDataCellRefExpr());
         out.putNotNull("axisTitleCellRefExpr",this.getAxisTitleCellRefExpr());
+        out.putNotNull("axisTitleExpr",this.getAxisTitleExpr());
+        out.putNotNull("chartTestExpr",this.getChartTestExpr());
         out.putNotNull("chartTitleCellRefExpr",this.getChartTitleCellRefExpr());
         out.putNotNull("chartTitleExpr",this.getChartTitleExpr());
         out.putNotNull("seriesCatCellRefExpr",this.getSeriesCatCellRefExpr());
@@ -301,6 +381,7 @@ public abstract class _ChartDynamicBindingsModel extends io.nop.core.resource.co
         out.putNotNull("seriesDataExpr",this.getSeriesDataExpr());
         out.putNotNull("seriesNameCellRefExpr",this.getSeriesNameCellRefExpr());
         out.putNotNull("seriesNameExpr",this.getSeriesNameExpr());
+        out.putNotNull("seriesTestExpr",this.getSeriesTestExpr());
     }
 
     public ChartDynamicBindingsModel cloneInstance(){
@@ -314,6 +395,8 @@ public abstract class _ChartDynamicBindingsModel extends io.nop.core.resource.co
         
         instance.setAxisDataCellRefExpr(this.getAxisDataCellRefExpr());
         instance.setAxisTitleCellRefExpr(this.getAxisTitleCellRefExpr());
+        instance.setAxisTitleExpr(this.getAxisTitleExpr());
+        instance.setChartTestExpr(this.getChartTestExpr());
         instance.setChartTitleCellRefExpr(this.getChartTitleCellRefExpr());
         instance.setChartTitleExpr(this.getChartTitleExpr());
         instance.setSeriesCatCellRefExpr(this.getSeriesCatCellRefExpr());
@@ -322,6 +405,7 @@ public abstract class _ChartDynamicBindingsModel extends io.nop.core.resource.co
         instance.setSeriesDataExpr(this.getSeriesDataExpr());
         instance.setSeriesNameCellRefExpr(this.getSeriesNameCellRefExpr());
         instance.setSeriesNameExpr(this.getSeriesNameExpr());
+        instance.setSeriesTestExpr(this.getSeriesTestExpr());
     }
 
     protected ChartDynamicBindingsModel newInstance(){

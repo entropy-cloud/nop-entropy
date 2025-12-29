@@ -4,6 +4,7 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.CellRange;
 
 import static io.nop.excel.ExcelErrors.ARG_CELL_REF;
@@ -66,7 +67,8 @@ public class ExcelCellRef {
             return null;
         }
 
-        text = text.trim();
+        if (text.equals(CellPosition.NONE_STRING))
+            return null;
 
         String sheetName = null;
         String cellRefStr = text;

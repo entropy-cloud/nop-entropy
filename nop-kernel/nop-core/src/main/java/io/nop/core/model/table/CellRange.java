@@ -296,6 +296,9 @@ public class CellRange implements Serializable, Comparable<CellRange>, IJsonStri
     }
 
     public CellRange offset(int rowOffset, int colOffset) {
+        if (rowOffset == 0 && colOffset == 0)
+            return this;
+
         if (isWholeRow()) {
             return new CellRange(this.getFirstRowIndex() + rowOffset, 0, this.getLastRowIndex() + rowOffset, -1);
         }

@@ -69,12 +69,14 @@ public class DrawingParser {
                 XNode graphicFrame = child.childByTag("xdr:graphicFrame");
                 if (graphicFrame != null) {
                     ExcelClientAnchor anchor = parseAnchor(child);
+                    String description = parseDescription(graphicFrame);
 
                     // 使用SELECTOR选择复杂嵌套的chart引用节点
                     XNode chartRef = (XNode) graphicFrame.selectOne(SELECTOR_CHART_REF);
                     if (chartRef != null) {
                         ExcelChartModel excelChart = new ExcelChartModel();
                         excelChart.setAnchor(anchor);
+                        excelChart.setDescription(description);
 
                         try {
                             DrawingChartParser.INSTANCE.parseChartRef(chartRef, pkg, drawingPart, excelChart);
@@ -86,7 +88,7 @@ public class DrawingParser {
                                 excelChart.setName("Chart_" + System.currentTimeMillis());
                             }
                         }
-                       
+
                         while (ret.getByKey(excelChart.getName()) != null) {
                             excelChart.setName(StringHelper.nextName(excelChart.getName()));
                         }
@@ -98,6 +100,21 @@ public class DrawingParser {
         return ret;
     }
 
+    private String parseDescription(XNode graphicFrame) {
+
+        // 查找 xdr:nvGraphicFramePr/xdr:cNvPr 节点
+        XNode nvGraphicFramePr = graphicFrame.childByTag("xdr:nvGraphicFramePr");
+        if (nvGraphicFramePr != null) {
+            XNode cNvPr = nvGraphicFramePr.childByTag("xdr:cNvPr");
+            if (cNvPr != null) {
+                String descr = cNvPr.attrText("descr");
+                if (!StringHelper.isEmpty(descr)) {
+                    return descr;
+                }
+            }
+        }
+        return null;
+    }
 
     public ExcelImage parseImage(XNode anchorNode) {
         XNode clientData = anchorNode.childByTag("xdr:clientData");

@@ -12,10 +12,17 @@ import io.nop.excel.chart.model.ChartTitleModel;
 import io.nop.excel.model.ExcelChartModel;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.report.core.model.ExpandedSheet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 public class ExpandedSheetChartGenerator {
+    static final Logger LOG = LoggerFactory.getLogger(ExpandedSheetChartGenerator.class);
+
     public static ExpandedSheetChartGenerator INSTANCE = new ExpandedSheetChartGenerator();
 
     public void generateCharts(ExpandedSheet sheet, ExcelSheet sheetTpl, IXptRuntime xptRt) {
@@ -30,7 +37,7 @@ public class ExpandedSheetChartGenerator {
 
     void generateChart(ExpandedSheet sheet, ExcelChartModel chartModel, IXptRuntime xptRt) {
         ChartDynamicBindingsModel bindings = chartModel.getDynamicBindings();
-        if (bindings == null || chartModel.getType() == null)
+        if (chartModel.getType() == null)
             return;
 
         ExcelChartModel chart = chartModel.cloneInstance();
@@ -38,33 +45,77 @@ public class ExpandedSheetChartGenerator {
         if (plotArea == null)
             return;
 
+        if (bindings == null) {
+            sheet.makeCharts().add(chart);
+            return;
+        }
+
+        if (bindings.getChartTestExpr() != null) {
+            boolean b = ConvertHelper.toBoolean(bindings.getChartTestExpr().call1(null, chart, xptRt.getEvalScope()));
+            if (!b) {
+                LOG.info("nop.chart.ignore-chart:{},loc={}", chart.getName(), chart.getLocation());
+                return;
+            }
+        }
+
         sheet.makeCharts().add(chart);
 
         ChartTitleModel title = chart.getTitle();
-        if(title != null && title.getTextCellRef() != null){
+        if (title != null) {
+            // 处理单元格引用表达式
             String calcValue = calcChartTitleCellRef(bindings, title.getTextCellRef(), chart, xptRt);
             title.setTextCellRef(calcValue);
+
+            if (calcValue == null) {
+                // 处理直接文本表达式
+                String calcText = calcChartTitleText(bindings, title.getText(), chart, xptRt);
+                if (calcText != null) {
+                    title.setText(calcText);
+                }
+            } else {
+                title.setText(null);
+            }
         }
 
         if (plotArea.getSeriesList() != null) {
-            for (ChartSeriesModel seriesModel : plotArea.getSeriesList()) {
-                String dataCellRef = seriesModel.getDataCellRef();
-                if (dataCellRef != null) {
-                    String calcValue = calcValuesCellRef(bindings, dataCellRef, seriesModel, chart, xptRt);
-                    seriesModel.setDataCellRef(calcValue);
+            Iterator<ChartSeriesModel> it = plotArea.getSeriesList().iterator();
+            while (it.hasNext()) {
+                ChartSeriesModel seriesModel = it.next();
+                if (!passConditions(bindings, seriesModel, chartModel, xptRt)) {
+                    LOG.debug("nop.chart.ignore-series:chart={},seriesIndex={}", chart.getName(), seriesModel.getIndex());
+                    it.remove();
+                    continue;
                 }
 
+                String dataCellRef = seriesModel.getDataCellRef();
+                dataCellRef = calcValuesCellRef(bindings, dataCellRef, seriesModel, chart, xptRt);
+                seriesModel.setDataCellRef(dataCellRef);
+
+                // 处理系列数据直接表达式（如果需要的话，这里可以扩展处理逻辑）
+                // seriesDataExpr 通常用于直接提供数据数组，而不是单元格引用
+                // 这种情况下可能需要在更高层次的处理中使用
+
                 String nameCellRef = seriesModel.getNameCellRef();
-                if (nameCellRef != null) {
-                    String calcValue = calcNameCellRef(bindings, nameCellRef, seriesModel, chart, xptRt);
-                    seriesModel.setNameCellRef(calcValue);
+                nameCellRef = calcNameCellRef(bindings, nameCellRef, seriesModel, chart, xptRt);
+                seriesModel.setNameCellRef(nameCellRef);
+
+                if (nameCellRef == null) {
+                    // 处理系列名称直接文本表达式
+                    String calcName = calcSeriesName(bindings, seriesModel.getName(), seriesModel, chart, xptRt);
+                    if (calcName != null) {
+                        seriesModel.setName(calcName);
+                    }
+                } else {
+                    seriesModel.setName(null);
                 }
 
                 String catCellRef = seriesModel.getCatCellRef();
-                if (catCellRef != null) {
-                    String calcValue = calcCatCellRef(bindings, catCellRef, seriesModel, chart, xptRt);
-                    seriesModel.setCatCellRef(calcValue);
-                }
+                String calcValue = calcCatCellRef(bindings, catCellRef, seriesModel, chart, xptRt);
+                seriesModel.setCatCellRef(calcValue);
+
+                // 处理系列分类直接表达式（如果需要的话，这里可以扩展处理逻辑）
+                // seriesCatExpr 通常用于直接提供分类数组，而不是单元格引用
+                // 这种情况下可能需要在更高层次的处理中使用
             }
         }
 
@@ -72,18 +123,35 @@ public class ExpandedSheetChartGenerator {
         if (plotArea.getAxes() != null) {
             for (ChartAxisModel axisModel : plotArea.getAxes()) {
                 String dataCellRef = axisModel.getDataCellRef();
-                if (dataCellRef != null) {
-                    String calcValue = calcAxisDataCellRef(bindings, dataCellRef, axisModel, chart, xptRt);
-                    axisModel.setDataCellRef(calcValue);
-                }
+                dataCellRef = calcAxisDataCellRef(bindings, dataCellRef, axisModel, chart, xptRt);
+                axisModel.setDataCellRef(dataCellRef);
 
                 ChartAxisTitleModel axisTitle = axisModel.getTitle();
-                if (axisTitle != null && axisTitle.getTextCellRef() != null) {
+                if (axisTitle != null) {
+                    // 处理坐标轴标题单元格引用表达式
                     String calcValue = calcAxisTitleCellRef(bindings, axisTitle.getTextCellRef(), axisModel, chart, xptRt);
                     axisTitle.setTextCellRef(calcValue);
+
+
+                    if (calcValue == null) {
+                        // 处理坐标轴标题直接文本表达式
+                        String calcText = calcAxisTitleText(bindings, axisTitle.getText(), axisModel, chart, xptRt);
+                        if (calcText != null) {
+                            axisTitle.setText(calcText);
+                        }
+                    } else {
+                        axisTitle.setText(null);
+                    }
                 }
             }
         }
+    }
+
+    boolean passConditions(ChartDynamicBindingsModel bindings, ChartSeriesModel seriesModel,
+                           ChartModel chartModel, IXptRuntime xptRt) {
+        if (bindings.getSeriesTestExpr() == null)
+            return true;
+        return ConvertHelper.toBoolean(bindings.getSeriesTestExpr().call2(null, seriesModel, chartModel, xptRt.getEvalScope()));
     }
 
     String calcValuesCellRef(ChartDynamicBindingsModel bindings,
@@ -137,8 +205,44 @@ public class ExpandedSheetChartGenerator {
             return textCellRef;
 
         String value = ConvertHelper.toString(fn.call1(null, chart, xptRt.getEvalScope()));
-        if(value == null)
+        if (value == null)
             value = textCellRef;
+        return value;
+    }
+
+    String calcChartTitleText(ChartDynamicBindingsModel bindings,
+                              String text,
+                              ChartModel chart,
+                              IXptRuntime xptRt) {
+        IEvalFunction fn = bindings.getChartTitleExpr();
+        if (fn == null)
+            return text;
+
+        String value = ConvertHelper.toString(fn.call1(null, chart, xptRt.getEvalScope()));
+        return value;
+    }
+
+    String calcSeriesName(ChartDynamicBindingsModel bindings,
+                          String name,
+                          ChartSeriesModel series, ChartModel chart,
+                          IXptRuntime xptRt) {
+        IEvalFunction fn = bindings.getSeriesNameExpr();
+        if (fn == null)
+            return name;
+
+        String value = ConvertHelper.toString(fn.call2(null, series, chart, xptRt.getEvalScope()));
+        return value;
+    }
+
+    String calcAxisTitleText(ChartDynamicBindingsModel bindings,
+                             String text,
+                             ChartAxisModel axis, ChartModel chart,
+                             IXptRuntime xptRt) {
+        IEvalFunction fn = bindings.getAxisTitleExpr();
+        if (fn == null)
+            return text;
+
+        String value = ConvertHelper.toString(fn.call2(null, axis, chart, xptRt.getEvalScope()));
         return value;
     }
 
@@ -151,7 +255,7 @@ public class ExpandedSheetChartGenerator {
             return dataCellRef;
 
         String value = ConvertHelper.toString(fn.call2(null, axis, chart, xptRt.getEvalScope()));
-        if(value == null)
+        if (value == null)
             value = dataCellRef;
         return value;
     }
@@ -165,7 +269,7 @@ public class ExpandedSheetChartGenerator {
             return textCellRef;
 
         String value = ConvertHelper.toString(fn.call2(null, axis, chart, xptRt.getEvalScope()));
-        if(value == null)
+        if (value == null)
             value = textCellRef;
         return value;
     }

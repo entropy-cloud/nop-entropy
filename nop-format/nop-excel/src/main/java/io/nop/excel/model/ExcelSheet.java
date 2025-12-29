@@ -58,5 +58,9 @@ public class ExcelSheet extends _ExcelSheet implements IExcelSheet, INeedInit {
     @Override
     public void init() {
         getTable().init();
+        List<ExcelChartModel> charts = getCharts();
+        if(charts != null){
+            charts.forEach(ExcelChartModel::init);
+        }
     }
 }

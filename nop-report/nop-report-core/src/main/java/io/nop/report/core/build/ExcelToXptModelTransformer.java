@@ -42,7 +42,7 @@ import io.nop.xlang.xmeta.SchemaLoader;
 
 import java.util.Map;
 
-import static io.nop.report.core.XptConstants.XDEF_NODE_CHART_DYNAMIC_BINDINGS;
+import static io.nop.report.core.XptConstants.XDEF_NODE_CHILD_BINDINGS;
 import static io.nop.report.core.XptErrors.ARG_PROP_NAME;
 import static io.nop.report.core.XptErrors.ERR_XPT_UNDEFINED_CELL_MODEL_PROP;
 import static io.nop.report.core.XptErrors.ERR_XPT_UNDEFINED_CHART_MODEL_PROP;
@@ -60,7 +60,7 @@ public class ExcelToXptModelTransformer {
         IXDefinition tableDef = SchemaLoader.loadXDefinition(XptConstants.XDSL_SCHEMA_EXCEL_TABLE);
         IXDefNode cellModelNode = tableDef.getXdefDefine(XptConstants.XDEF_NODE_EXCEL_CELL).getChild(XptConstants.PROP_MODEL);
         IXDefNode imageNode = xptXDef.getXdefDefine(XptConstants.XDEF_NODE_EXCEL_IMAGE);
-        IXDefNode chartNode = xptXDef.getXdefDefine(XptConstants.XDEF_NODE_EXCEL_CHART);
+        IXDefNode chartNode = xptXDef.getXdefDefine(XptConstants.XDEF_NODE_EXCEL_CHART_MODEL);
 
         XptConfigParseHelper.parseWorkbookModel(workbook, importModel);
 
@@ -219,7 +219,7 @@ public class ExcelToXptModelTransformer {
         if (sheet.getCharts() == null)
             return;
 
-        IXDefNode defNode = chartNode.getChild(XDEF_NODE_CHART_DYNAMIC_BINDINGS);
+        IXDefNode defNode = chartNode.getChild(XDEF_NODE_CHILD_BINDINGS);
 
         for (ExcelChartModel chart : sheet.getCharts()) {
             String desc = chart.getDescription();
@@ -229,6 +229,10 @@ public class ExcelToXptModelTransformer {
             int pos = desc.indexOf("----");
             if (pos < 0)
                 break;
+
+            // ----后面的部分是扩展配置，此前的部分才是需要保留的描述信息
+            String realDesc = desc.substring(0, pos).trim();
+            chart.setDescription(realDesc);
 
             for (; pos < desc.length(); pos++) {
                 if (desc.charAt(pos) != '-')
@@ -253,7 +257,8 @@ public class ExcelToXptModelTransformer {
                     type = attr.getType();
                 } else {
                     IXDefNode child = defNode.getChild(varName);
-                    type = child.getXdefValue();
+                    if (child != null)
+                        type = child.getXdefValue();
                 }
                 if (type != null) {
                     Object value = transformer.parseValue(vl, varName, type);

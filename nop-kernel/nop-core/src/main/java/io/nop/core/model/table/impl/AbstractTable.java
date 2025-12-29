@@ -24,7 +24,15 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static io.nop.core.CoreErrors.*;
+import static io.nop.core.CoreErrors.ARG_CELL;
+import static io.nop.core.CoreErrors.ARG_COL_INDEX;
+import static io.nop.core.CoreErrors.ARG_MERGE_ACROSS;
+import static io.nop.core.CoreErrors.ARG_MERGE_DOWN;
+import static io.nop.core.CoreErrors.ARG_ROW_INDEX;
+import static io.nop.core.CoreErrors.ERR_TABLE_INVALID_PROXY_CELL;
+import static io.nop.core.CoreErrors.ERR_TABLE_MERGE_CELL_EMPTY_OR_PROXY_CELL;
+import static io.nop.core.CoreErrors.ERR_TABLE_NOT_PROXY_CELL;
+import static io.nop.core.CoreErrors.ERR_TABLE_NO_ENOUGH_FREE_SPACE;
 
 public abstract class AbstractTable<T extends IRow> extends AbstractComponentModel implements ITable<T> {
 
@@ -579,7 +587,7 @@ public abstract class AbstractTable<T extends IRow> extends AbstractComponentMod
         if (oldCell == cell)
             return;
 
-        if (oldCell != null) {
+        if (oldCell != null && (cell == null || oldCell.getRealCell() != cell.getRealCell())) {
             this.doRemoveCell(oldCell, rowIndex, colIndex);
         }
         row.internalSetCell(colIndex, cell);

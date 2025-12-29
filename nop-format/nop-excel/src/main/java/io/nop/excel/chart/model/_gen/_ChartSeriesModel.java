@@ -62,6 +62,13 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: index
+     * 在seriesList中的下标，从0开始。解析的时候会自动重新设置
+     */
+    private int _index  = 0;
+    
+    /**
+     *  
      * xml name: invertIfNegative
      * 当系列中的数据点为负值时，使用反转颜色显示（通常是前景色和背景色交换）。
      */
@@ -242,6 +249,25 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._id = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: index
+     *  在seriesList中的下标，从0开始。解析的时候会自动重新设置
+     */
+    
+    public int getIndex(){
+      return _index;
+    }
+
+    
+    public void setIndex(int value){
+        checkAllowChange();
+        
+        this._index = value;
            
     }
 
@@ -483,6 +509,7 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
         out.putNotNull("dataCellRef",this.getDataCellRef());
         out.putNotNull("dataLabels",this.getDataLabels());
         out.putNotNull("id",this.getId());
+        out.putNotNull("index",this.getIndex());
         out.putNotNull("invertIfNegative",this.getInvertIfNegative());
         out.putNotNull("lineStyle",this.getLineStyle());
         out.putNotNull("markers",this.getMarkers());
@@ -509,6 +536,7 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
         instance.setDataCellRef(this.getDataCellRef());
         instance.setDataLabels(this.getDataLabels());
         instance.setId(this.getId());
+        instance.setIndex(this.getIndex());
         instance.setInvertIfNegative(this.getInvertIfNegative());
         instance.setLineStyle(this.getLineStyle());
         instance.setMarkers(this.getMarkers());
