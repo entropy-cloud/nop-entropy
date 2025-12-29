@@ -116,7 +116,6 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
     public void sortChildren() {
         if (children != null) {
             children.sort(Comparator.naturalOrder());
-            children.forEach(SiteResourceBean::sortChildren);
         }
     }
 

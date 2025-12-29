@@ -162,7 +162,7 @@ public class SiteCacheDataBuilder {
             Set<String> roles = resourceToRoles.get(resourceId);
             SiteResourceBean resource = entryMap.get(resourceId);
             if (resource != null) {
-               cascadeResourceToRoles(resource, roles);
+                cascadeResourceToRoles(resource, roles);
             }
         }
 
@@ -189,6 +189,7 @@ public class SiteCacheDataBuilder {
 
     void fixResource() {
         for (SiteResourceBean resource : entryMap.values()) {
+            resource.sortChildren();
             if (!NopAuthConstants.RESOURCE_TYPE_FUNCTION_POINT.equals(resource.getResourceType())) {
                 // 如果是菜单项，则routePath不应该为空
                 if (StringHelper.isEmpty(resource.getRoutePath())) {
@@ -235,6 +236,9 @@ public class SiteCacheDataBuilder {
         entry.setId(resource.getResourceId());
         entry.setResourceType(resource.getResourceType());
         entry.setParentId(resource.getParentId());
+        if (resource.getOrderNo() != null)
+            entry.setOrderNo(resource.getOrderNo());
+
         if (!StringHelper.isEmpty(resource.getRoutePath()))
             entry.setRoutePath(resource.getRoutePath());
         if (entry.getRoutePath() == null)
