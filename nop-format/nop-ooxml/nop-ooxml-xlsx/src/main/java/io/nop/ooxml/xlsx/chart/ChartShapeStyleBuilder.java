@@ -35,39 +35,34 @@ public class ChartShapeStyleBuilder {
             return null;
         }
 
-        try {
-            XNode spPrNode = XNode.make("a:spPr");
-            boolean hasContent = false;
+        XNode spPrNode = XNode.make("a:spPr");
+        boolean hasContent = false;
 
-            // 构建填充
-            if (buildFill(spPrNode, shapeStyle.getFill())) {
-                hasContent = true;
-            }
+        // 构建填充
+        if (buildFill(spPrNode, shapeStyle.getFill())) {
+            hasContent = true;
+        }
 
-            // 构建边框
-            if (buildBorder(spPrNode, shapeStyle.getBorder())) {
-                hasContent = true;
-            }
+        // 构建边框
+        if (buildBorder(spPrNode, shapeStyle.getBorder())) {
+            hasContent = true;
+        }
 
-            // 构建阴影效果
-            if (buildShadow(spPrNode, shapeStyle.getShadow())) {
-                hasContent = true;
-            }
+        // 构建阴影效果
+        if (buildShadow(spPrNode, shapeStyle.getShadow())) {
+            hasContent = true;
+        }
 
-            // 如果没有任何内容，返回null
-            if (!hasContent) {
-                LOG.debug("No style content generated, returning null");
-                return null;
-            }
-
-            LOG.debug("Successfully built shape style XML");
-
-            return spPrNode;
-
-        } catch (Exception e) {
-            LOG.warn("Failed to build shape style XML", e);
+        // 如果没有任何内容，返回null
+        if (!hasContent) {
+            LOG.debug("No style content generated, returning null");
             return null;
         }
+
+        LOG.debug("Successfully built shape style XML");
+
+        return spPrNode;
+
     }
 
     /**
@@ -83,26 +78,23 @@ public class ChartShapeStyleBuilder {
             return false;
         }
 
-        try {
-            switch (fill.getType()) {
-                case NONE:
-                    return buildNoFill(spPrNode);
-                case SOLID:
-                    return buildSolidFill(spPrNode, fill);
-                case GRADIENT:
-                    return buildGradientFill(spPrNode, fill);
-                case PATTERN:
-                    return buildPatternFill(spPrNode, fill);
-                case PICTURE:
-                    return buildPictureFill(spPrNode, fill);
-                default:
-                    LOG.warn("Unknown fill type: {}, skipping fill generation", fill.getType());
-                    return false;
-            }
-        } catch (Exception e) {
-            LOG.warn("Failed to build fill for type: {}", fill.getType(), e);
-            return false;
+
+        switch (fill.getType()) {
+            case NONE:
+                return buildNoFill(spPrNode);
+            case SOLID:
+                return buildSolidFill(spPrNode, fill);
+            case GRADIENT:
+                return buildGradientFill(spPrNode, fill);
+            case PATTERN:
+                return buildPatternFill(spPrNode, fill);
+            case PICTURE:
+                return buildPictureFill(spPrNode, fill);
+            default:
+                LOG.warn("Unknown fill type: {}, skipping fill generation", fill.getType());
+                return false;
         }
+
     }
 
     /**
@@ -366,20 +358,18 @@ public class ChartShapeStyleBuilder {
             return;
         }
 
-        try {
-            // 检查是否为RGB颜色（以#开头）
-            if (color.startsWith("#")) {
-                String rgbValue = color.substring(1).toUpperCase();
-                XNode srgbClrNode = parentNode.addChild("a:srgbClr");
-                srgbClrNode.setAttr("val", rgbValue);
-            } else {
-                // 假设是主题颜色
-                XNode schemeClrNode = parentNode.addChild("a:schemeClr");
-                schemeClrNode.setAttr("val", color);
-            }
-        } catch (Exception e) {
-            LOG.warn("Failed to build color: {}", color, e);
+
+        // 检查是否为RGB颜色（以#开头）
+        if (color.startsWith("#")) {
+            String rgbValue = color.substring(1).toUpperCase();
+            XNode srgbClrNode = parentNode.addChild("a:srgbClr");
+            srgbClrNode.setAttr("val", rgbValue);
+        } else {
+            // 假设是主题颜色
+            XNode schemeClrNode = parentNode.addChild("a:schemeClr");
+            schemeClrNode.setAttr("val", color);
         }
+
     }
 
     /**
@@ -390,16 +380,13 @@ public class ChartShapeStyleBuilder {
             return; // 完全不透明，不需要添加透明度元素
         }
 
-        try {
-            // 转换为OOXML透明度值（0-100000）
-            long ooxmlOpacity = Math.round((1.0 - opacity) * 100000);
-            if (ooxmlOpacity > 0) {
-                XNode alphaNode = parentNode.addChild("a:alpha");
-                alphaNode.setAttr("val", String.valueOf(ooxmlOpacity));
-            }
-        } catch (Exception e) {
-            LOG.warn("Failed to build opacity: {}", opacity, e);
+        // 转换为OOXML透明度值（0-100000）
+        long ooxmlOpacity = Math.round((1.0 - opacity) * 100000);
+        if (ooxmlOpacity > 0) {
+            XNode alphaNode = parentNode.addChild("a:alpha");
+            alphaNode.setAttr("val", String.valueOf(ooxmlOpacity));
         }
+
     }
 
     /**
@@ -411,46 +398,42 @@ public class ChartShapeStyleBuilder {
             return false;
         }
 
-        try {
-            XNode lnNode = spPrNode.addChild("a:ln");
 
-            // 设置边框宽度
-            Double width = border.getWidth();
-            if (width != null && width > 0) {
-                long emuWidth = UnitsHelper.pointsToEMU(width);
-                lnNode.setAttr("w", String.valueOf(emuWidth));
-            }
+        XNode lnNode = spPrNode.addChild("a:ln");
 
-            // 构建边框颜色
-            String color = border.getColor();
-            if (!StringHelper.isEmpty(color)) {
-                XNode solidFillNode = lnNode.addChild("a:solidFill");
-                buildColor(solidFillNode, color);
-
-                // 构建边框透明度
-                buildOpacity(solidFillNode, border.getOpacity());
-            }
-
-            // 构建线条样式
-            ChartLineStyle style = border.getStyle();
-            if (style != null) {
-                if (style != ChartLineStyle.SOLID) {
-                    XNode prstDashNode = lnNode.addChild("a:prstDash");
-                    String ooxmlStyle = mapLineStyleToOoxml(style);
-                    prstDashNode.setAttr("val", ooxmlStyle);
-                }
-            }
-
-            if (Boolean.TRUE.equals(border.getRound()))
-                lnNode.addChild("a:round");
-
-            LOG.debug("Built border with width: {}, color: {}, style: {}", width, color, style);
-            return true;
-
-        } catch (Exception e) {
-            LOG.warn("Failed to build border", e);
-            return false;
+        // 设置边框宽度
+        Double width = border.getWidth();
+        if (width != null && width > 0) {
+            long emuWidth = UnitsHelper.pointsToEMU(width);
+            lnNode.setAttr("w", String.valueOf(emuWidth));
         }
+
+        // 构建边框颜色
+        String color = border.getColor();
+        if (!StringHelper.isEmpty(color)) {
+            XNode solidFillNode = lnNode.addChild("a:solidFill");
+            buildColor(solidFillNode, color);
+
+            // 构建边框透明度
+            buildOpacity(solidFillNode, border.getOpacity());
+        }
+
+        // 构建线条样式
+        ChartLineStyle style = border.getStyle();
+        if (style != null) {
+            if (style != ChartLineStyle.SOLID) {
+                XNode prstDashNode = lnNode.addChild("a:prstDash");
+                String ooxmlStyle = mapLineStyleToOoxml(style);
+                prstDashNode.setAttr("val", ooxmlStyle);
+            }
+        }
+
+        if (Boolean.TRUE.equals(border.getRound()))
+            lnNode.addChild("a:round");
+
+        LOG.debug("Built border with width: {}, color: {}, style: {}", width, color, style);
+        return true;
+
     }
 
     /**
@@ -495,51 +478,47 @@ public class ChartShapeStyleBuilder {
             return false;
         }
 
-        try {
-            XNode effectLstNode = spPrNode.addChild("a:effectLst");
-            XNode outerShdwNode = effectLstNode.addChild("a:outerShdw");
 
-            // 设置阴影距离
-            Double offsetX = shadow.getOffsetX();
-            Double offsetY = shadow.getOffsetY();
-            if (offsetX != null && offsetY != null) {
-                // 计算距离（使用勾股定理）
-                double distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
-                long emuDistance = UnitsHelper.pointsToEMU(distance);
-                outerShdwNode.setAttr("dist", String.valueOf(emuDistance));
+        XNode effectLstNode = spPrNode.addChild("a:effectLst");
+        XNode outerShdwNode = effectLstNode.addChild("a:outerShdw");
 
-                // 计算角度
-                double angle = Math.atan2(offsetY, offsetX);
-                double degrees = angle * 180 / Math.PI;
-                String ooxmlAngleStr = ChartPropertyHelper.degreesToOoxmlAngleString(degrees);
-                outerShdwNode.setAttr("dir", ooxmlAngleStr);
-            }
+        // 设置阴影距离
+        Double offsetX = shadow.getOffsetX();
+        Double offsetY = shadow.getOffsetY();
+        if (offsetX != null && offsetY != null) {
+            // 计算距离（使用勾股定理）
+            double distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+            long emuDistance = UnitsHelper.pointsToEMU(distance);
+            outerShdwNode.setAttr("dist", String.valueOf(emuDistance));
 
-            // 设置模糊半径
-            Double blur = shadow.getBlur();
-            if (blur != null && blur > 0) {
-                long emuBlur = UnitsHelper.pointsToEMU(blur);
-                outerShdwNode.setAttr("blurRad", String.valueOf(emuBlur));
-            }
-
-            // 构建阴影颜色
-            String color = shadow.getColor();
-            if (!StringHelper.isEmpty(color)) {
-                buildColor(outerShdwNode, color);
-            }
-
-            // 构建阴影透明度
-            Double opacity = shadow.getOpacity();
-            if (opacity != null && opacity < 1.0) {
-                buildOpacity(outerShdwNode, opacity);
-            }
-
-            LOG.debug("Built shadow effect");
-            return true;
-
-        } catch (Exception e) {
-            LOG.warn("Failed to build shadow effect", e);
-            return false;
+            // 计算角度
+            double angle = Math.atan2(offsetY, offsetX);
+            double degrees = angle * 180 / Math.PI;
+            String ooxmlAngleStr = ChartPropertyHelper.degreesToOoxmlAngleString(degrees);
+            outerShdwNode.setAttr("dir", ooxmlAngleStr);
         }
+
+        // 设置模糊半径
+        Double blur = shadow.getBlur();
+        if (blur != null && blur > 0) {
+            long emuBlur = UnitsHelper.pointsToEMU(blur);
+            outerShdwNode.setAttr("blurRad", String.valueOf(emuBlur));
+        }
+
+        // 构建阴影颜色
+        String color = shadow.getColor();
+        if (!StringHelper.isEmpty(color)) {
+            buildColor(outerShdwNode, color);
+        }
+
+        // 构建阴影透明度
+        Double opacity = shadow.getOpacity();
+        if (opacity != null && opacity < 1.0) {
+            buildOpacity(outerShdwNode, opacity);
+        }
+
+        LOG.debug("Built shadow effect");
+        return true;
+
     }
 }

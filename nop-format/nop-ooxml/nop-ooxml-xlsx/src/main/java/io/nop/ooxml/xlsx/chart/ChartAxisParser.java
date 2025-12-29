@@ -34,68 +34,59 @@ public class ChartAxisParser {
     public ChartAxisModel parseAxis(XNode axisNode, IChartStyleProvider styleProvider) {
         if (axisNode == null) return null;
 
-        try {
-            ChartAxisModel axis = new ChartAxisModel();
+        ChartAxisModel axis = new ChartAxisModel();
 
-            // 解析坐标轴ID和类型
-            parseBasicProperties(axis, axisNode);
+        // 解析坐标轴ID和类型
+        parseBasicProperties(axis, axisNode);
 
-            // 解析位置和交叉设置
-            parsePositionAndCrossing(axis, axisNode);
+        // 解析位置和交叉设置
+        parsePositionAndCrossing(axis, axisNode);
 
-            // 解析数字格式
-            parseNumberFormat(axis, axisNode);
+        // 解析数字格式
+        parseNumberFormat(axis, axisNode);
 
-            // 解析刻度配置（合并的刻度标记和标签）
-            parseTicksConfig(axis, axisNode, styleProvider);
+        // 解析刻度配置（合并的刻度标记和标签）
+        parseTicksConfig(axis, axisNode, styleProvider);
 
-            // 解析线条样式
-            parseLineStyle(axis, axisNode, styleProvider);
+        // 解析线条样式
+        parseLineStyle(axis, axisNode, styleProvider);
 
-            // 解析文本样式
-            parseTextStyle(axis, axisNode, styleProvider);
+        // 解析文本样式
+        parseTextStyle(axis, axisNode, styleProvider);
 
-            // 解析网格线
-            parseGridLines(axis, axisNode, styleProvider);
+        // 解析网格线
+        parseGridLines(axis, axisNode, styleProvider);
 
-            // 解析比例尺
-            parseScale(axis, axisNode);
+        // 解析比例尺
+        parseScale(axis, axisNode);
 
-            return axis;
-        } catch (Exception e) {
-            LOG.warn("Failed to parse axis configuration", e);
-            return null;
-        }
+        return axis;
     }
 
     /**
      * 解析基本属性
      */
     private void parseBasicProperties(ChartAxisModel axis, XNode axisNode) {
-        try {
-            // 解析坐标轴ID
-            String axisId = ChartPropertyHelper.getChildVal(axisNode, "c:axId");
-            if (!StringHelper.isEmpty(axisId)) {
-                axis.setId(axisId);
-            }
+        // 解析坐标轴ID
+        String axisId = ChartPropertyHelper.getChildVal(axisNode, "c:axId");
+        if (!StringHelper.isEmpty(axisId)) {
+            axis.setId(axisId);
+        }
 
-            // 解析坐标轴类型 - 根据标签名确定
-            String tagName = axisNode.getTagName();
-            ChartAxisType axisType = mapAxisType(tagName);
-            if (axisType != null) {
-                axis.setType(axisType);
-            }
+        // 解析坐标轴类型 - 根据标签名确定
+        String tagName = axisNode.getTagName();
+        ChartAxisType axisType = mapAxisType(tagName);
+        if (axisType != null) {
+            axis.setType(axisType);
+        }
 
-            // 解析删除标记
-            Boolean deleteValue = ChartPropertyHelper.getChildBoolVal(axisNode, "c:delete");
-            if (deleteValue != null && deleteValue) {
-                // 坐标轴被删除，设置为不可见
-                axis.setVisible(false);
-            } else {
-                axis.setVisible(true);
-            }
-        } catch (Exception e) {
-            LOG.warn("Failed to parse axis basic properties", e);
+        // 解析删除标记
+        Boolean deleteValue = ChartPropertyHelper.getChildBoolVal(axisNode, "c:delete");
+        if (deleteValue != null && deleteValue) {
+            // 坐标轴被删除，设置为不可见
+            axis.setVisible(false);
+        } else {
+            axis.setVisible(true);
         }
     }
 
@@ -105,23 +96,18 @@ public class ChartAxisParser {
     private ChartAxisType mapAxisType(String tagName) {
         if (StringHelper.isEmpty(tagName)) return null;
 
-        try {
-            switch (tagName) {
-                case "c:catAx":
-                    return ChartAxisType.CATEGORY;
-                case "c:valAx":
-                    return ChartAxisType.VALUE;
-                case "c:dateAx":
-                    return ChartAxisType.DATE;
-                case "c:serAx":
-                    return ChartAxisType.SERIES;
-                default:
-                    LOG.warn("Unknown axis type: {}, using default VALUE", tagName);
-                    return ChartAxisType.VALUE;
-            }
-        } catch (Exception e) {
-            LOG.warn("Failed to map axis type: {}, using default VALUE", tagName, e);
-            return ChartAxisType.VALUE;
+        switch (tagName) {
+            case "c:catAx":
+                return ChartAxisType.CATEGORY;
+            case "c:valAx":
+                return ChartAxisType.VALUE;
+            case "c:dateAx":
+                return ChartAxisType.DATE;
+            case "c:serAx":
+                return ChartAxisType.SERIES;
+            default:
+                LOG.warn("Unknown axis type: {}, using default VALUE", tagName);
+                return ChartAxisType.VALUE;
         }
     }
 
@@ -157,23 +143,18 @@ public class ChartAxisParser {
     private ChartAxisPosition mapAxisPosition(String position) {
         if (StringHelper.isEmpty(position)) return null;
 
-        try {
-            switch (position.toLowerCase()) {
-                case "b":
-                    return ChartAxisPosition.BOTTOM;
-                case "l":
-                    return ChartAxisPosition.LEFT;
-                case "r":
-                    return ChartAxisPosition.RIGHT;
-                case "t":
-                    return ChartAxisPosition.TOP;
-                default:
-                    LOG.warn("Unknown axis position: {}, using default BOTTOM", position);
-                    return ChartAxisPosition.BOTTOM;
-            }
-        } catch (Exception e) {
-            LOG.warn("Failed to map axis position: {}, using default BOTTOM", position, e);
-            return ChartAxisPosition.BOTTOM;
+        switch (position.toLowerCase()) {
+            case "b":
+                return ChartAxisPosition.BOTTOM;
+            case "l":
+                return ChartAxisPosition.LEFT;
+            case "r":
+                return ChartAxisPosition.RIGHT;
+            case "t":
+                return ChartAxisPosition.TOP;
+            default:
+                LOG.warn("Unknown axis position: {}, using default BOTTOM", position);
+                return ChartAxisPosition.BOTTOM;
         }
     }
 
@@ -181,21 +162,17 @@ public class ChartAxisParser {
      * 解析数字格式
      */
     private void parseNumberFormat(ChartAxisModel axis, XNode axisNode) {
-        try {
-            XNode numFmtNode = axisNode.childByTag("c:numFmt");
-            if (numFmtNode != null) {
-                String formatCode = numFmtNode.attrText("formatCode");
-                if (!StringHelper.isEmpty(formatCode)) {
-                    // axis.setNumberFormat(formatCode);
-                }
-
-                Boolean sourceLinkedValue = ChartPropertyHelper.convertToBoolean(numFmtNode.attrText("sourceLinked"));
-                if (sourceLinkedValue != null) {
-                    // axis.setSourceLinked(sourceLinkedValue);
-                }
+        XNode numFmtNode = axisNode.childByTag("c:numFmt");
+        if (numFmtNode != null) {
+            String formatCode = numFmtNode.attrText("formatCode");
+            if (!StringHelper.isEmpty(formatCode)) {
+                // axis.setNumberFormat(formatCode);
             }
-        } catch (Exception e) {
-            LOG.warn("Failed to parse axis number format", e);
+
+            Boolean sourceLinkedValue = ChartPropertyHelper.convertToBoolean(numFmtNode.attrText("sourceLinked"));
+            if (sourceLinkedValue != null) {
+                // axis.setSourceLinked(sourceLinkedValue);
+            }
         }
     }
 
@@ -203,83 +180,78 @@ public class ChartAxisParser {
      * 解析刻度配置（合并的刻度标记和标签）
      */
     private void parseTicksConfig(ChartAxisModel axis, XNode axisNode, IChartStyleProvider styleProvider) {
-        try {
-            ChartTicksModel ticks = new ChartTicksModel();
+        ChartTicksModel ticks = new ChartTicksModel();
 
-            // 解析主要刻度标记
-            String majorTickMark = ChartPropertyHelper.getChildVal(axisNode, "c:majorTickMark");
-            if (!StringHelper.isEmpty(majorTickMark)) {
-                ticks.setMajorTickMark(ChartTickMark.fromValue(majorTickMark));
-                LOG.debug("Major tick mark: {}", majorTickMark);
-            }
-
-            // 解析次要刻度标记
-            String minorTickMark = ChartPropertyHelper.getChildVal(axisNode, "c:minorTickMark");
-            if (!StringHelper.isEmpty(minorTickMark)) {
-                ticks.setMinorTickMark(ChartTickMark.fromValue(minorTickMark));
-                LOG.debug("Minor tick mark: {}", minorTickMark);
-            }
-
-            // 解析刻度标签位置
-            String position = ChartPropertyHelper.getChildVal(axisNode, "c:tickLblPos");
-            if (!StringHelper.isEmpty(position)) {
-                ChartAxisTickLabelPosition labelPos = mapTickLabelPosition(position);
-                if (labelPos != null) {
-                    ticks.setLabelPosition(labelPos);
-                    LOG.debug("Tick label position: {}", position);
-                }
-            }
-
-            // 解析刻度标签旋转角度
-            parseTickLabelRotation(ticks, axisNode);
-
-            // 解析数字格式（从轴级别的 numFmt 获取）
-            XNode numFmtNode = axisNode.childByTag("c:numFmt");
-            if (numFmtNode != null) {
-                String formatCode = numFmtNode.attrText("formatCode");
-                if (!StringHelper.isEmpty(formatCode)) {
-                    ticks.setLabelNumFmt(formatCode);
-                    LOG.debug("Tick label number format: {}", formatCode);
-                }
-            }
-
-            // 解析标签对齐和偏移
-            String alignment = ChartPropertyHelper.getChildVal(axisNode, "c:lblAlgn");
-            if (!StringHelper.isEmpty(alignment)) {
-                ChartLabelAlignment labelAlignment = ChartLabelAlignment.fromValue(alignment);
-                if (labelAlignment != null) {
-                    ticks.setLabelAlignment(labelAlignment);
-                    LOG.debug("Label alignment: {}", alignment);
-                }
-            }
-
-            Double offset = ChartPropertyHelper.getChildDoubleVal(axisNode, "c:lblOffset");
-            if (offset != null) {
-                ticks.setLabelOffset(offset);
-                LOG.debug("Label offset: {}", offset);
-            }
-
-            // 解析文本属性（字体等）
-            XNode txPrNode = axisNode.childByTag("c:txPr");
-            if (txPrNode != null) {
-                // 这里可以解析字体信息，但需要适配到 labelFont
-                LOG.debug("Found text properties for tick labels");
-            }
-
-            // 设置默认值
-            if (ticks.getLabelVisible() == null) {
-                ticks.setLabelVisible(true);
-            }
-            if (ticks.isVisible()) {
-                ticks.setVisible(true);
-            }
-
-            // 设置到轴模型
-            axis.setTicks(ticks);
-
-        } catch (Exception e) {
-            LOG.warn("Failed to parse ticks configuration", e);
+        // 解析主要刻度标记
+        String majorTickMark = ChartPropertyHelper.getChildVal(axisNode, "c:majorTickMark");
+        if (!StringHelper.isEmpty(majorTickMark)) {
+            ticks.setMajorTickMark(ChartTickMark.fromValue(majorTickMark));
+            LOG.debug("Major tick mark: {}", majorTickMark);
         }
+
+        // 解析次要刻度标记
+        String minorTickMark = ChartPropertyHelper.getChildVal(axisNode, "c:minorTickMark");
+        if (!StringHelper.isEmpty(minorTickMark)) {
+            ticks.setMinorTickMark(ChartTickMark.fromValue(minorTickMark));
+            LOG.debug("Minor tick mark: {}", minorTickMark);
+        }
+
+        // 解析刻度标签位置
+        String position = ChartPropertyHelper.getChildVal(axisNode, "c:tickLblPos");
+        if (!StringHelper.isEmpty(position)) {
+            ChartAxisTickLabelPosition labelPos = mapTickLabelPosition(position);
+            if (labelPos != null) {
+                ticks.setLabelPosition(labelPos);
+                LOG.debug("Tick label position: {}", position);
+            }
+        }
+
+        // 解析刻度标签旋转角度
+        parseTickLabelRotation(ticks, axisNode);
+
+        // 解析数字格式（从轴级别的 numFmt 获取）
+        XNode numFmtNode = axisNode.childByTag("c:numFmt");
+        if (numFmtNode != null) {
+            String formatCode = numFmtNode.attrText("formatCode");
+            if (!StringHelper.isEmpty(formatCode)) {
+                ticks.setLabelNumFmt(formatCode);
+                LOG.debug("Tick label number format: {}", formatCode);
+            }
+        }
+
+        // 解析标签对齐和偏移
+        String alignment = ChartPropertyHelper.getChildVal(axisNode, "c:lblAlgn");
+        if (!StringHelper.isEmpty(alignment)) {
+            ChartLabelAlignment labelAlignment = ChartLabelAlignment.fromValue(alignment);
+            if (labelAlignment != null) {
+                ticks.setLabelAlignment(labelAlignment);
+                LOG.debug("Label alignment: {}", alignment);
+            }
+        }
+
+        Double offset = ChartPropertyHelper.getChildDoubleVal(axisNode, "c:lblOffset");
+        if (offset != null) {
+            ticks.setLabelOffset(offset);
+            LOG.debug("Label offset: {}", offset);
+        }
+
+        // 解析文本属性（字体等）
+        XNode txPrNode = axisNode.childByTag("c:txPr");
+        if (txPrNode != null) {
+            // 这里可以解析字体信息，但需要适配到 labelFont
+            LOG.debug("Found text properties for tick labels");
+        }
+
+        // 设置默认值
+        if (ticks.getLabelVisible() == null) {
+            ticks.setLabelVisible(true);
+        }
+        if (ticks.isVisible()) {
+            ticks.setVisible(true);
+        }
+
+        // 设置到轴模型
+        axis.setTicks(ticks);
     }
 
     /**
@@ -288,23 +260,18 @@ public class ChartAxisParser {
     private ChartAxisTickLabelPosition mapTickLabelPosition(String position) {
         if (StringHelper.isEmpty(position)) return null;
 
-        try {
-            switch (position.toLowerCase()) {
-                case "none":
-                    return ChartAxisTickLabelPosition.NONE;
-                case "low":
-                    return ChartAxisTickLabelPosition.LOW;
-                case "high":
-                    return ChartAxisTickLabelPosition.HIGH;
-                case "nextto":
-                    return ChartAxisTickLabelPosition.NEXT_TO;
-                default:
-                    LOG.warn("Unknown tick label position: {}, using default NEXT_TO", position);
-                    return ChartAxisTickLabelPosition.NEXT_TO;
-            }
-        } catch (Exception e) {
-            LOG.warn("Failed to map tick label position: {}, using default NEXT_TO", position, e);
-            return ChartAxisTickLabelPosition.NEXT_TO;
+        switch (position.toLowerCase()) {
+            case "none":
+                return ChartAxisTickLabelPosition.NONE;
+            case "low":
+                return ChartAxisTickLabelPosition.LOW;
+            case "high":
+                return ChartAxisTickLabelPosition.HIGH;
+            case "nextto":
+                return ChartAxisTickLabelPosition.NEXT_TO;
+            default:
+                LOG.warn("Unknown tick label position: {}, using default NEXT_TO", position);
+                return ChartAxisTickLabelPosition.NEXT_TO;
         }
     }
 
@@ -312,23 +279,19 @@ public class ChartAxisParser {
      * 解析刻度标签旋转角度
      */
     private void parseTickLabelRotation(ChartTicksModel ticks, XNode axisNode) {
-        try {
-            XNode txPrNode = axisNode.childByTag("c:txPr");
-            if (txPrNode != null) {
-                XNode bodyPrNode = txPrNode.childByTag("a:bodyPr");
-                if (bodyPrNode != null) {
-                    String rotStr = bodyPrNode.attrText("rot");
-                    if (!StringHelper.isEmpty(rotStr)) {
-                        Double degrees = ChartPropertyHelper.ooxmlAngleStringToDegrees(rotStr);
-                        if (degrees != null) {
-                            ticks.setLabelRotation(degrees);
-                            LOG.debug("Parsed tick label rotation: {}° (OOXML: {})", degrees, rotStr);
-                        }
+        XNode txPrNode = axisNode.childByTag("c:txPr");
+        if (txPrNode != null) {
+            XNode bodyPrNode = txPrNode.childByTag("a:bodyPr");
+            if (bodyPrNode != null) {
+                String rotStr = bodyPrNode.attrText("rot");
+                if (!StringHelper.isEmpty(rotStr)) {
+                    Double degrees = ChartPropertyHelper.ooxmlAngleStringToDegrees(rotStr);
+                    if (degrees != null) {
+                        ticks.setLabelRotation(degrees);
+                        LOG.debug("Parsed tick label rotation: {}° (OOXML: {})", degrees, rotStr);
                     }
                 }
             }
-        } catch (Exception e) {
-            LOG.warn("Failed to parse tick label rotation", e);
         }
     }
 
@@ -336,17 +299,13 @@ public class ChartAxisParser {
      * 解析线条样式
      */
     private void parseLineStyle(ChartAxisModel axis, XNode axisNode, IChartStyleProvider styleProvider) {
-        try {
-            XNode spPrNode = axisNode.childByTag("c:spPr");
-            if (spPrNode != null) {
-                // 使用ChartShapeStyleParser解析线条样式
-                ChartShapeStyleModel shapeStyle = ChartShapeStyleParser.INSTANCE.parseShapeStyle(spPrNode, styleProvider);
-                if (shapeStyle != null) {
-                    axis.setShapeStyle(shapeStyle);
-                }
+        XNode spPrNode = axisNode.childByTag("c:spPr");
+        if (spPrNode != null) {
+            // 使用ChartShapeStyleParser解析线条样式
+            ChartShapeStyleModel shapeStyle = ChartShapeStyleParser.INSTANCE.parseShapeStyle(spPrNode, styleProvider);
+            if (shapeStyle != null) {
+                axis.setShapeStyle(shapeStyle);
             }
-        } catch (Exception e) {
-            LOG.warn("Failed to parse axis line style", e);
         }
     }
 
@@ -354,20 +313,16 @@ public class ChartAxisParser {
      * 解析网格线
      */
     private void parseGridLines(ChartAxisModel axis, XNode axisNode, IChartStyleProvider styleProvider) {
-        try {
-            // 解析主要网格线
-            ChartGridModel majorGridLines = ChartGridParser.INSTANCE.parseMajorGridLines(axisNode, styleProvider);
-            if (majorGridLines != null) {
-                axis.setMajorGrid(majorGridLines);
-            }
+        // 解析主要网格线
+        ChartGridModel majorGridLines = ChartGridParser.INSTANCE.parseMajorGridLines(axisNode, styleProvider);
+        if (majorGridLines != null) {
+            axis.setMajorGrid(majorGridLines);
+        }
 
-            // 解析次要网格线
-            ChartGridModel minorGridLines = ChartGridParser.INSTANCE.parseMinorGridLines(axisNode, styleProvider);
-            if (minorGridLines != null) {
-                axis.setMinorGrid(minorGridLines);
-            }
-        } catch (Exception e) {
-            LOG.warn("Failed to parse axis grid lines", e);
+        // 解析次要网格线
+        ChartGridModel minorGridLines = ChartGridParser.INSTANCE.parseMinorGridLines(axisNode, styleProvider);
+        if (minorGridLines != null) {
+            axis.setMinorGrid(minorGridLines);
         }
     }
 
@@ -375,16 +330,12 @@ public class ChartAxisParser {
      * 解析文本样式
      */
     private void parseTextStyle(ChartAxisModel axis, XNode axisNode, IChartStyleProvider styleProvider) {
-        try {
-            XNode txPrNode = axisNode.childByTag("c:txPr");
-            if (txPrNode != null) {
-                ChartTextStyleModel textStyle = ChartTextStyleParser.INSTANCE.parseTextStyle(txPrNode, styleProvider);
-                if (textStyle != null) {
-                    axis.setTextStyle(textStyle);
-                }
+        XNode txPrNode = axisNode.childByTag("c:txPr");
+        if (txPrNode != null) {
+            ChartTextStyleModel textStyle = ChartTextStyleParser.INSTANCE.parseTextStyle(txPrNode, styleProvider);
+            if (textStyle != null) {
+                axis.setTextStyle(textStyle);
             }
-        } catch (Exception e) {
-            LOG.warn("Failed to parse axis text style", e);
         }
     }
 
@@ -392,39 +343,35 @@ public class ChartAxisParser {
      * 解析比例尺
      */
     private void parseScale(ChartAxisModel axis, XNode axisNode) {
-        try {
-            XNode scalingNode = axisNode.childByTag("c:scaling");
-            if (scalingNode != null) {
-                io.nop.excel.chart.model.ChartAxisScaleModel scale = new io.nop.excel.chart.model.ChartAxisScaleModel();
+        XNode scalingNode = axisNode.childByTag("c:scaling");
+        if (scalingNode != null) {
+            io.nop.excel.chart.model.ChartAxisScaleModel scale = new io.nop.excel.chart.model.ChartAxisScaleModel();
 
-                // 解析对数刻度
-                Double logBase = scalingNode.attrDouble("logBase");
-                if (logBase != null) {
-                    scale.setLogBase(logBase);
-                }
-
-                // 解析最小值
-                Double minValue = ChartPropertyHelper.getChildDoubleVal(scalingNode, "c:min");
-                if (minValue != null) {
-                    scale.setMin(minValue);
-                }
-
-                // 解析最大值
-                Double maxValue = ChartPropertyHelper.getChildDoubleVal(scalingNode, "c:max");
-                if (maxValue != null) {
-                    scale.setMax(maxValue);
-                }
-
-                // 解析方向
-                String orientation = ChartPropertyHelper.getChildVal(scalingNode, "c:orientation");
-                if ("maxMin".equals(orientation)) {
-                    scale.setReverse(true);
-                }
-
-                axis.setScale(scale);
+            // 解析对数刻度
+            Double logBase = scalingNode.attrDouble("logBase");
+            if (logBase != null) {
+                scale.setLogBase(logBase);
             }
-        } catch (Exception e) {
-            LOG.warn("Failed to parse axis scale", e);
+
+            // 解析最小值
+            Double minValue = ChartPropertyHelper.getChildDoubleVal(scalingNode, "c:min");
+            if (minValue != null) {
+                scale.setMin(minValue);
+            }
+
+            // 解析最大值
+            Double maxValue = ChartPropertyHelper.getChildDoubleVal(scalingNode, "c:max");
+            if (maxValue != null) {
+                scale.setMax(maxValue);
+            }
+
+            // 解析方向
+            String orientation = ChartPropertyHelper.getChildVal(scalingNode, "c:orientation");
+            if ("maxMin".equals(orientation)) {
+                scale.setReverse(true);
+            }
+
+            axis.setScale(scale);
         }
     }
 }

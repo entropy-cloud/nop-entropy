@@ -32,7 +32,7 @@ public class ColorModificationHelper {
             return baseColor;
         }
         
-        try {
+
             String workingColor = normalizeColorFormat(baseColor);
             
             // Apply luminance modulation (multiply brightness)
@@ -48,12 +48,7 @@ public class ColorModificationHelper {
             workingColor = applyShade(workingColor, colorNode);
             
             return ColorHelper.toCssColor(workingColor);
-            
-        } catch (Exception e) {
-            LOG.warn("ColorModificationHelper.applyColorModifications: error applying modifications to {}: {}", 
-                baseColor, e.getMessage());
-            return baseColor;
-        }
+
     }
     
     /**

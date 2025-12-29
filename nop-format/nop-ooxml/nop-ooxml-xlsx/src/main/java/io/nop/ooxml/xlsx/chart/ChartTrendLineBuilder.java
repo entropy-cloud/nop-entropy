@@ -10,7 +10,6 @@ package io.nop.ooxml.xlsx.chart;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.chart.constants.ChartTrendLineType;
-import io.nop.excel.chart.model.ChartShapeStyleModel;
 import io.nop.excel.chart.model.ChartTrendLineModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,72 +35,62 @@ public class ChartTrendLineBuilder {
             return null;
         }
 
-        try {
-            XNode trendlineNode = XNode.make("c:trendline");
 
-            // 构建名称
-            buildName(trendlineNode, trendLine);
+        XNode trendlineNode = XNode.make("c:trendline");
 
-            // 构建趋势线类型
-            buildTrendLineType(trendlineNode, trendLine);
+        // 构建名称
+        buildName(trendlineNode, trendLine);
 
-            // 构建多项式阶数
-            buildPolynomialOrder(trendlineNode, trendLine);
+        // 构建趋势线类型
+        buildTrendLineType(trendlineNode, trendLine);
 
-            // 构建移动平均周期
-            buildMovingAveragePeriod(trendlineNode, trendLine);
+        // 构建多项式阶数
+        buildPolynomialOrder(trendlineNode, trendLine);
 
-            // 构建前向预测
-            buildForward(trendlineNode, trendLine);
+        // 构建移动平均周期
+        buildMovingAveragePeriod(trendlineNode, trendLine);
 
-            // 构建后向预测
-            buildBackward(trendlineNode, trendLine);
+        // 构建前向预测
+        buildForward(trendlineNode, trendLine);
 
-            // 构建截距
-            buildIntercept(trendlineNode, trendLine);
+        // 构建后向预测
+        buildBackward(trendlineNode, trendLine);
 
-            // 构建显示选项
-            buildDisplayOptions(trendlineNode, trendLine);
+        // 构建截距
+        buildIntercept(trendlineNode, trendLine);
 
-            // 构建样式
-            buildStyle(trendlineNode, trendLine);
+        // 构建显示选项
+        buildDisplayOptions(trendlineNode, trendLine);
 
-            return trendlineNode;
+        // 构建样式
+        buildStyle(trendlineNode, trendLine);
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build trend line configuration", e);
-            return null;
-        }
+        return trendlineNode;
+
     }
 
     /**
      * 构建名称
      */
     private void buildName(XNode trendlineNode, ChartTrendLineModel trendLine) {
-        try {
-            if (!StringHelper.isEmpty(trendLine.getName())) {
-                XNode nameNode = trendlineNode.addChild("c:name");
-                nameNode.setText(trendLine.getName());
-            }
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build trend line name", e);
+        if (!StringHelper.isEmpty(trendLine.getName())) {
+            XNode nameNode = trendlineNode.addChild("c:name");
+            nameNode.setText(trendLine.getName());
         }
+
     }
 
     /**
      * 构建趋势线类型
      */
     private void buildTrendLineType(XNode trendlineNode, ChartTrendLineModel trendLine) {
-        try {
-            if (trendLine.getType() != null) {
-                XNode trendlineTypeNode = trendlineNode.addChild("c:trendlineType");
-                trendlineTypeNode.setAttr("val", mapTrendLineTypeToOoxml(trendLine.getType()));
-            }
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build trend line type", e);
+        if (trendLine.getType() != null) {
+            XNode trendlineTypeNode = trendlineNode.addChild("c:trendlineType");
+            trendlineTypeNode.setAttr("val", mapTrendLineTypeToOoxml(trendLine.getType()));
         }
+
     }
 
     /**
@@ -136,30 +125,24 @@ public class ChartTrendLineBuilder {
      * 注意：当前模型不支持polynomialOrder属性，使用默认值
      */
     private void buildPolynomialOrder(XNode trendlineNode, ChartTrendLineModel trendLine) {
-        try {
-            if (trendLine.getType() == ChartTrendLineType.POLYNOMIAL) {
-                XNode orderNode = trendlineNode.addChild("c:order");
-                orderNode.setAttr("val", "2"); // 默认二次多项式
-            }
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build polynomial order", e);
+        if (trendLine.getType() == ChartTrendLineType.POLYNOMIAL) {
+            XNode orderNode = trendlineNode.addChild("c:order");
+            orderNode.setAttr("val", "2"); // 默认二次多项式
         }
+
     }
 
     /**
      * 构建移动平均周期
      */
     private void buildMovingAveragePeriod(XNode trendlineNode, ChartTrendLineModel trendLine) {
-        try {
-            if (trendLine.getPeriod() != null && trendLine.getType() == ChartTrendLineType.MOVING_AVG) {
-                XNode periodNode = trendlineNode.addChild("c:period");
-                periodNode.setAttr("val", trendLine.getPeriod().toString());
-            }
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build moving average period", e);
+        if (trendLine.getPeriod() != null && trendLine.getType() == ChartTrendLineType.MOVING_AVG) {
+            XNode periodNode = trendlineNode.addChild("c:period");
+            periodNode.setAttr("val", trendLine.getPeriod().toString());
         }
+
     }
 
     /**
@@ -167,13 +150,10 @@ public class ChartTrendLineBuilder {
      * 注意：当前模型不支持forward属性，跳过此配置
      */
     private void buildForward(XNode trendlineNode, ChartTrendLineModel trendLine) {
-        try {
-            // 当前模型不支持forward属性，跳过
-            // 如果需要支持，需要在chart.xdef中添加forward属性定义
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build forward forecast", e);
-        }
+        // 当前模型不支持forward属性，跳过
+        // 如果需要支持，需要在chart.xdef中添加forward属性定义
+
     }
 
     /**
@@ -181,13 +161,10 @@ public class ChartTrendLineBuilder {
      * 注意：当前模型不支持backward属性，跳过此配置
      */
     private void buildBackward(XNode trendlineNode, ChartTrendLineModel trendLine) {
-        try {
-            // 当前模型不支持backward属性，跳过
-            // 如果需要支持，需要在chart.xdef中添加backward属性定义
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build backward forecast", e);
-        }
+        // 当前模型不支持backward属性，跳过
+        // 如果需要支持，需要在chart.xdef中添加backward属性定义
+
     }
 
     /**
@@ -195,76 +172,67 @@ public class ChartTrendLineBuilder {
      * 注意：当前模型不支持intercept属性，跳过此配置
      */
     private void buildIntercept(XNode trendlineNode, ChartTrendLineModel trendLine) {
-        try {
-            // 当前模型不支持intercept属性，跳过
-            // 如果需要支持，需要在chart.xdef中添加intercept属性定义
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build intercept", e);
-        }
+        // 当前模型不支持intercept属性，跳过
+        // 如果需要支持，需要在chart.xdef中添加intercept属性定义
+
     }
 
     /**
      * 构建显示选项
      */
     private void buildDisplayOptions(XNode trendlineNode, ChartTrendLineModel trendLine) {
-        try {
-            // 显示方程式
-            if (trendLine.getDisplayEquation() != null) {
-                XNode dispEqNode = trendlineNode.addChild("c:dispEq");
-                dispEqNode.setAttr("val", trendLine.getDisplayEquation() ? "1" : "0");
-            }
 
-            // 注意：当前模型不支持displayRSquaredValue属性
-            // 如果需要支持R平方值显示，需要在chart.xdef中添加相应属性定义
-
-        } catch (Exception e) {
-            LOG.warn("Failed to build display options", e);
+        // 显示方程式
+        if (trendLine.getDisplayEquation() != null) {
+            XNode dispEqNode = trendlineNode.addChild("c:dispEq");
+            dispEqNode.setAttr("val", trendLine.getDisplayEquation() ? "1" : "0");
         }
+
+        // 注意：当前模型不支持displayRSquaredValue属性
+        // 如果需要支持R平方值显示，需要在chart.xdef中添加相应属性定义
+
     }
 
     /**
      * 构建样式
      */
     private void buildStyle(XNode trendlineNode, ChartTrendLineModel trendLine) {
-        try {
-            // 使用lineStyle而不是shapeStyle，因为当前模型只支持lineStyle
-            io.nop.excel.chart.model.ChartLineStyleModel lineStyle = trendLine.getLineStyle();
-            if (lineStyle != null) {
-                // 创建spPr节点来包含线条样式
-                XNode spPrNode = XNode.make("c:spPr");
 
-                // 构建线条属性
-                XNode lnNode = spPrNode.addChild("a:ln");
-                lnNode.setAttr("xmlns:a", "http://schemas.openxmlformats.org/drawingml/2006/main");
+        // 使用lineStyle而不是shapeStyle，因为当前模型只支持lineStyle
+        io.nop.excel.chart.model.ChartLineStyleModel lineStyle = trendLine.getLineStyle();
+        if (lineStyle != null) {
+            // 创建spPr节点来包含线条样式
+            XNode spPrNode = XNode.make("c:spPr");
 
-                // 设置线条宽度（如果有）
-                if (lineStyle.getWidth() != null) {
-                    // OOXML中线条宽度使用EMU单位，1pt = 12700 EMU
-                    int widthEmu = (int) (lineStyle.getWidth() * 12700);
-                    lnNode.setAttr("w", String.valueOf(widthEmu));
-                }
+            // 构建线条属性
+            XNode lnNode = spPrNode.addChild("a:ln");
+            lnNode.setAttr("xmlns:a", "http://schemas.openxmlformats.org/drawingml/2006/main");
 
-                // 设置线条颜色（如果有）
-                if (lineStyle.getColor() != null) {
-                    XNode solidFillNode = lnNode.addChild("a:solidFill");
-                    XNode srgbClrNode = solidFillNode.addChild("a:srgbClr");
-                    srgbClrNode.setAttr("val", lineStyle.getColor().replace("#", ""));
-                }
-
-                // 设置线条样式（如果有）
-                if (lineStyle.getStyle() != null) {
-                    XNode prstDashNode = lnNode.addChild("a:prstDash");
-                    String dashStyle = mapLineStyleToDash(lineStyle.getStyle());
-                    prstDashNode.setAttr("val", dashStyle);
-                }
-
-                trendlineNode.appendChild(spPrNode);
+            // 设置线条宽度（如果有）
+            if (lineStyle.getWidth() != null) {
+                // OOXML中线条宽度使用EMU单位，1pt = 12700 EMU
+                int widthEmu = (int) (lineStyle.getWidth() * 12700);
+                lnNode.setAttr("w", String.valueOf(widthEmu));
             }
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build trend line style", e);
+            // 设置线条颜色（如果有）
+            if (lineStyle.getColor() != null) {
+                XNode solidFillNode = lnNode.addChild("a:solidFill");
+                XNode srgbClrNode = solidFillNode.addChild("a:srgbClr");
+                srgbClrNode.setAttr("val", lineStyle.getColor().replace("#", ""));
+            }
+
+            // 设置线条样式（如果有）
+            if (lineStyle.getStyle() != null) {
+                XNode prstDashNode = lnNode.addChild("a:prstDash");
+                String dashStyle = mapLineStyleToDash(lineStyle.getStyle());
+                prstDashNode.setAttr("val", dashStyle);
+            }
+
+            trendlineNode.appendChild(spPrNode);
         }
+
     }
 
     /**
@@ -274,12 +242,18 @@ public class ChartTrendLineBuilder {
         if (style == null) return "solid";
 
         switch (style) {
-            case SOLID: return "solid";
-            case DASH: return "dash";
-            case DOT: return "dot";
-            case DASH_DOT: return "dashDot";
-            case DASH_DOT_DOT: return "lgDashDotDot";
-            default: return "solid";
+            case SOLID:
+                return "solid";
+            case DASH:
+                return "dash";
+            case DOT:
+                return "dot";
+            case DASH_DOT:
+                return "dashDot";
+            case DASH_DOT_DOT:
+                return "lgDashDotDot";
+            default:
+                return "solid";
         }
     }
 
@@ -306,8 +280,8 @@ public class ChartTrendLineBuilder {
      * 构建带有预测的趋势线
      * 这是一个便利方法，用于快速创建带有预测的趋势线配置
      *
-     * @param type 趋势线类型
-     * @param forward 前向预测周期
+     * @param type     趋势线类型
+     * @param forward  前向预测周期
      * @param backward 后向预测周期
      * @return 趋势线XNode，如果type为null则返回null
      */
@@ -319,7 +293,7 @@ public class ChartTrendLineBuilder {
         // 创建趋势线模型
         ChartTrendLineModel trendLine = new ChartTrendLineModel();
         trendLine.setType(type);
-       // trendLine.setForward(forward);
+        // trendLine.setForward(forward);
         // trendLine.setBackward(backward);
 
         return buildTrendLine(trendLine);

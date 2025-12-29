@@ -31,92 +31,80 @@ public class ChartPlotAreaParser {
             return null;
         }
 
-        try {
-            ChartPlotAreaModel plotArea = new ChartPlotAreaModel();
+        ChartPlotAreaModel plotArea = new ChartPlotAreaModel();
 
-            // 解析形状样式
-            parseShapeStyle(plotArea, plotAreaNode, styleProvider);
+        // 解析形状样式
+        parseShapeStyle(plotArea, plotAreaNode, styleProvider);
 
-            // 解析手动布局
-            ChartManualLayoutModel manualLayout = ChartManualLayoutParser.INSTANCE.parseManualLayout(plotAreaNode);
-            if (manualLayout != null) {
-                plotArea.setManualLayout(manualLayout);
-            }
-
-            // 解析坐标轴
-            parseAxes(plotArea, plotAreaNode, styleProvider);
-
-            // 解析数据系列
-            parseSeries(plotArea, plotAreaNode, styleProvider);
-
-            // 解析图表类型特定配置
-            ChartTypeConfigParser.INSTANCE.parseChartTypeSpecificConfig(plotArea, plotAreaNode);
-
-            return plotArea;
-        } catch (Exception e) {
-            LOG.warn("Failed to parse plot area configuration", e);
-            // 返回基本的plotArea对象而不是null，确保图表解析能继续
-            return new ChartPlotAreaModel();
+        // 解析手动布局
+        ChartManualLayoutModel manualLayout = ChartManualLayoutParser.INSTANCE.parseManualLayout(plotAreaNode);
+        if (manualLayout != null) {
+            plotArea.setManualLayout(manualLayout);
         }
+
+        // 解析坐标轴
+        parseAxes(plotArea, plotAreaNode, styleProvider);
+
+        // 解析数据系列
+        parseSeries(plotArea, plotAreaNode, styleProvider);
+
+        // 解析图表类型特定配置
+        ChartTypeConfigParser.INSTANCE.parseChartTypeSpecificConfig(plotArea, plotAreaNode);
+
+        return plotArea;
+
     }
 
     /**
      * 解析形状样式
      */
     private void parseShapeStyle(ChartPlotAreaModel plotArea, XNode plotAreaNode, IChartStyleProvider styleProvider) {
-        try {
-            XNode spPrNode = plotAreaNode.childByTag("c:spPr");
-            if (spPrNode != null) {
-                ChartShapeStyleModel shapeStyle = ChartShapeStyleParser.INSTANCE.parseShapeStyle(spPrNode, styleProvider);
-                plotArea.setShapeStyle(shapeStyle);
-            }
-        } catch (Exception e) {
-            LOG.warn("Failed to parse plot area shape style", e);
+        XNode spPrNode = plotAreaNode.childByTag("c:spPr");
+        if (spPrNode != null) {
+            ChartShapeStyleModel shapeStyle = ChartShapeStyleParser.INSTANCE.parseShapeStyle(spPrNode, styleProvider);
+            plotArea.setShapeStyle(shapeStyle);
         }
+
     }
 
     /**
      * 解析坐标轴
      */
     private void parseAxes(ChartPlotAreaModel plotArea, XNode plotAreaNode, IChartStyleProvider styleProvider) {
-        try {
-            for (XNode axisNode : plotAreaNode.getChildren()) {
-                String tagName = axisNode.getTagName();
-                if (tagName.startsWith("c:") && (tagName.endsWith("Ax") || tagName.equals("c:serAx"))) {
-                    ChartAxisModel axis = ChartAxisParser.INSTANCE.parseAxis(axisNode, styleProvider);
-                    if (axis != null) {
-                        plotArea.addAxis(axis);
-                    }
+
+        for (XNode axisNode : plotAreaNode.getChildren()) {
+            String tagName = axisNode.getTagName();
+            if (tagName.startsWith("c:") && (tagName.endsWith("Ax") || tagName.equals("c:serAx"))) {
+                ChartAxisModel axis = ChartAxisParser.INSTANCE.parseAxis(axisNode, styleProvider);
+                if (axis != null) {
+                    plotArea.addAxis(axis);
                 }
             }
-        } catch (Exception e) {
-            LOG.warn("Failed to parse plot area axes", e);
         }
+
     }
 
     /**
      * 解析数据系列
      */
     private void parseSeries(ChartPlotAreaModel plotArea, XNode plotAreaNode, IChartStyleProvider styleProvider) {
-        try {
-            // 根据图表类型查找系列节点
-            XNode chartTypeNode = findChartTypeNode(plotAreaNode);
-            if (chartTypeNode == null) {
-                LOG.warn("No chart type node found in plot area, skipping series parsing");
-                return;
-            }
 
-            int index = 0;
-            // 遍历所有系列
-            for (XNode serNode : chartTypeNode.childrenByTag("c:ser")) {
-                ChartSeriesModel series = parseSingleSeries(serNode, index++, styleProvider);
-                if (series != null) {
-                    plotArea.addSeries(series);
-                }
-            }
-        } catch (Exception e) {
-            LOG.warn("Failed to parse plot area series", e);
+        // 根据图表类型查找系列节点
+        XNode chartTypeNode = findChartTypeNode(plotAreaNode);
+        if (chartTypeNode == null) {
+            LOG.warn("No chart type node found in plot area, skipping series parsing");
+            return;
         }
+
+        int index = 0;
+        // 遍历所有系列
+        for (XNode serNode : chartTypeNode.childrenByTag("c:ser")) {
+            ChartSeriesModel series = parseSingleSeries(serNode, index++, styleProvider);
+            if (series != null) {
+                plotArea.addSeries(series);
+            }
+        }
+
     }
 
     /**
@@ -165,14 +153,9 @@ public class ChartPlotAreaParser {
             return null;
         }
 
-        try {
-            // 使用ChartSeriesParser进行完整的系列解析
-            return ChartSeriesParser.INSTANCE.parseSeries(serNode, index, styleProvider);
+        // 使用ChartSeriesParser进行完整的系列解析
+        return ChartSeriesParser.INSTANCE.parseSeries(serNode, index, styleProvider);
 
-        } catch (Exception e) {
-            LOG.warn("Failed to parse series using ChartSeriesParser", e);
-            return null;
-        }
     }
 
     /**
@@ -199,41 +182,38 @@ public class ChartPlotAreaParser {
      * 扩展支持更多OOXML图表类型
      */
     private ChartType mapChartType(String chartType) {
-        try {
-            switch (chartType) {
-                case "barChart":
-                case "bar3DChart":
-                    return ChartType.BAR;
-                case "pieChart":
-                case "pie3DChart":
-                    return ChartType.PIE;
-                case "lineChart":
-                case "line3DChart":
-                    return ChartType.LINE;
-                case "areaChart":
-                case "area3DChart":
-                    return ChartType.AREA;
-                case "scatterChart":
-                    return ChartType.SCATTER;
-                case "radarChart":
-                    return ChartType.RADAR;
-                case "surfaceChart":
-                case "surface3DChart":
-                    return ChartType.HEATMAP; // 映射到热力图
-                case "doughnutChart":
-                    return ChartType.DOUGHNUT;
-                case "bubbleChart":
-                    return ChartType.BUBBLE;
-                case "stockChart":
-                case "ofPieChart":
-                    return ChartType.COMBO; // 复合图表类型
-                default:
-                    LOG.warn("Unknown chart type: {}, using default COLUMN", chartType);
-                    return ChartType.BAR;
-            }
-        } catch (Exception e) {
-            LOG.warn("Failed to map chart type: {}, using default COLUMN", chartType, e);
-            return ChartType.BAR;
+
+        switch (chartType) {
+            case "barChart":
+            case "bar3DChart":
+                return ChartType.BAR;
+            case "pieChart":
+            case "pie3DChart":
+                return ChartType.PIE;
+            case "lineChart":
+            case "line3DChart":
+                return ChartType.LINE;
+            case "areaChart":
+            case "area3DChart":
+                return ChartType.AREA;
+            case "scatterChart":
+                return ChartType.SCATTER;
+            case "radarChart":
+                return ChartType.RADAR;
+            case "surfaceChart":
+            case "surface3DChart":
+                return ChartType.HEATMAP; // 映射到热力图
+            case "doughnutChart":
+                return ChartType.DOUGHNUT;
+            case "bubbleChart":
+                return ChartType.BUBBLE;
+            case "stockChart":
+            case "ofPieChart":
+                return ChartType.COMBO; // 复合图表类型
+            default:
+                LOG.warn("Unknown chart type: {}, using default COLUMN", chartType);
+                return ChartType.BAR;
         }
+
     }
 }

@@ -8,6 +8,7 @@
 package io.nop.ooxml.xlsx.chart;
 
 import io.nop.core.lang.xml.XNode;
+
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -70,10 +71,10 @@ public class ChartPropertyHelper {
 
     /**
      * 生成符合OOXML XLSX chart标准的轴ID
-     * 
+     * <p>
      * 轴ID在OOXML中是一个唯一的数字标识符，用于标识图表中的坐标轴。axId 只需在单个图表内唯一
      * 根据OOXML标准和实际Excel文件分析，轴ID通常是8-9位的正整数。
-     * 
+     *
      * @return 生成的轴ID字符串，范围在10000000到999999999之间
      */
     public static String generateAxisId() {
@@ -85,21 +86,21 @@ public class ChartPropertyHelper {
 
     /**
      * 生成一对相关联的轴ID（通常用于X轴和Y轴）
-     * 
+     * <p>
      * 在图表中，通常需要成对的轴ID来表示主轴和交叉轴的关系。
      * 此方法确保生成的两个ID不相同。
-     * 
+     *
      * @return 包含两个不同轴ID的字符串数组，[0]为第一个轴ID，[1]为第二个轴ID
      */
     public static String[] generateAxisIdPair() {
         String firstId = generateAxisId();
         String secondId;
-        
+
         // 确保两个ID不相同
         do {
             secondId = generateAxisId();
         } while (firstId.equals(secondId));
-        
+
         return new String[]{firstId, secondId};
     }
 
@@ -113,7 +114,7 @@ public class ChartPropertyHelper {
 
     /**
      * 将度转换为OOXML角度单位（1/60000度）
-     * 
+     *
      * @param degrees 角度值（度）
      * @return OOXML角度值（1/60000度单位）
      */
@@ -123,7 +124,7 @@ public class ChartPropertyHelper {
 
     /**
      * 将OOXML角度单位转换为度
-     * 
+     *
      * @param ooxmlAngle OOXML角度值（1/60000度单位）
      * @return 角度值（度）
      */
@@ -133,7 +134,7 @@ public class ChartPropertyHelper {
 
     /**
      * 将度转换为OOXML角度字符串（处理null值）
-     * 
+     *
      * @param degrees 角度值（度），可以为null
      * @return OOXML角度字符串，如果输入为null则返回null
      */
@@ -146,7 +147,7 @@ public class ChartPropertyHelper {
 
     /**
      * 将OOXML角度字符串转换为度（处理null值和解析错误）
-     * 
+     *
      * @param ooxmlAngleStr OOXML角度字符串，可以为null或空
      * @return 角度值（度），如果输入无效则返回null
      */
@@ -154,19 +155,15 @@ public class ChartPropertyHelper {
         if (ooxmlAngleStr == null || ooxmlAngleStr.trim().isEmpty()) {
             return null;
         }
-        
-        try {
-            long ooxmlAngle = Long.parseLong(ooxmlAngleStr.trim());
-            return ooxmlAngleToDegrees(ooxmlAngle);
-        } catch (NumberFormatException e) {
-            return null;
-        }
+
+        long ooxmlAngle = Long.parseLong(ooxmlAngleStr.trim());
+        return ooxmlAngleToDegrees(ooxmlAngle);
     }
 
     /**
      * 获取子节点的角度值并转换为度
-     * 
-     * @param node 父节点
+     *
+     * @param node         父节点
      * @param childTagName 子节点标签名
      * @return 角度值（度），如果节点不存在或解析失败则返回null
      */
@@ -177,10 +174,10 @@ public class ChartPropertyHelper {
 
     /**
      * 设置子节点的角度值（从度转换为OOXML单位）
-     * 
-     * @param node 父节点
+     *
+     * @param node         父节点
      * @param childTagName 子节点标签名
-     * @param degrees 角度值（度）
+     * @param degrees      角度值（度）
      */
     public static void setChildAngleVal(XNode node, String childTagName, Double degrees) {
         if (degrees != null) {

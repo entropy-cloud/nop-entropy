@@ -37,35 +37,29 @@ public class ChartTextBuilder {
             return null;
         }
 
-        try {
-            XNode richNode = XNode.make("c:rich");
+        XNode richNode = XNode.make("c:rich");
 
-            // 构建文本体属性
-            richNode.addChild("a:bodyPr");
+        // 构建文本体属性
+        richNode.addChild("a:bodyPr");
 
-            // 构建列表样式
-            richNode.addChild("a:lstStyle");
+        // 构建列表样式
+        richNode.addChild("a:lstStyle");
 
-            // 构建段落
-            XNode pNode = richNode.addChild("a:p");
-            XNode rNode = pNode.addChild("a:r");
+        // 构建段落
+        XNode pNode = richNode.addChild("a:p");
+        XNode rNode = pNode.addChild("a:r");
 
-            // 构建运行属性（字体样式）
-            if (font != null) {
-                XNode rPrNode = rNode.addChild("a:rPr");
-                buildRunProperties(rPrNode, font);
-            }
-
-            // 设置文本内容
-            XNode tNode = rNode.addChild("a:t");
-            tNode.content(text);
-
-            return richNode;
-
-        } catch (Exception e) {
-            LOG.warn("Failed to build rich text: {}", text, e);
-            return null;
+        // 构建运行属性（字体样式）
+        if (font != null) {
+            XNode rPrNode = rNode.addChild("a:rPr");
+            buildRunProperties(rPrNode, font);
         }
+
+        // 设置文本内容
+        XNode tNode = rNode.addChild("a:t");
+        tNode.content(text);
+
+        return richNode;
     }
 
     /**
@@ -80,15 +74,11 @@ public class ChartTextBuilder {
             return null;
         }
 
-        try {
-            XNode vNode = XNode.make("c:v");
-            vNode.content(value);
-            return vNode;
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build text value: {}", value, e);
-            return null;
-        }
+        XNode vNode = XNode.make("c:v");
+        vNode.content(value);
+        return vNode;
+
     }
 
     /**
@@ -103,17 +93,13 @@ public class ChartTextBuilder {
             return null;
         }
 
-        try {
-            XNode strRefNode = XNode.make("c:strRef");
-            XNode fNode = strRefNode.addChild("c:f");
-            fNode.content(cellRef);
 
-            return strRefNode;
+        XNode strRefNode = XNode.make("c:strRef");
+        XNode fNode = strRefNode.addChild("c:f");
+        fNode.content(cellRef);
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build cell reference text: {}", cellRef, e);
-            return null;
-        }
+        return strRefNode;
+
     }
 
     /**
@@ -129,19 +115,15 @@ public class ChartTextBuilder {
             return null;
         }
 
-        try {
-            XNode ptNode = XNode.make("c:pt");
-            ptNode.setAttr("idx", String.valueOf(index));
-            
-            XNode vNode = ptNode.addChild("c:v");
-            vNode.content(value);
-            
-            return ptNode;
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build text point: index={}, value={}", index, value, e);
-            return null;
-        }
+        XNode ptNode = XNode.make("c:pt");
+        ptNode.setAttr("idx", String.valueOf(index));
+
+        XNode vNode = ptNode.addChild("c:v");
+        vNode.content(value);
+
+        return ptNode;
+
     }
 
     /**
@@ -151,9 +133,9 @@ public class ChartTextBuilder {
      * - 如果有font样式，生成富文本节点
      * - 否则生成简单文本值节点
      *
-     * @param text 文本内容
+     * @param text    文本内容
      * @param cellRef 单元格引用，可以为null
-     * @param font 字体样式，可以为null
+     * @param font    字体样式，可以为null
      * @return 合适的文本XNode，如果text和cellRef都为空则返回null
      */
     public XNode buildText(String text, String cellRef, ExcelFont font) {
@@ -184,77 +166,71 @@ public class ChartTextBuilder {
             return;
         }
 
-        try {
-            // 设置字体大小
-            Float fontSize = font.getFontSize();
-            if (fontSize != null && fontSize > 0) {
-                // 转换为OOXML单位（百分之一磅）
-                int ooxmlSize = Math.round(fontSize * 100);
-                rPrNode.setAttr("sz", String.valueOf(ooxmlSize));
-            }
-            
-            // 设置字体粗细
-            boolean bold = font.isBold();
-            rPrNode.setAttr("b", bold ? "1" : "0");
-            
-            // 设置斜体
-            boolean italic = font.isItalic();
-            rPrNode.setAttr("i", italic ? "1" : "0");
-            
-            // 设置下划线
-            ExcelFontUnderline underlineStyle = font.getUnderlineStyle();
-            if (underlineStyle != null) {
-                String underline = mapUnderlineStyleToOoxml(underlineStyle);
-                rPrNode.setAttr("u", underline);
-            } else {
-                rPrNode.setAttr("u", "none");
-            }
-            
-            // 设置删除线
-            boolean strikeout = font.isStrikeout();
-            rPrNode.setAttr("strike", strikeout ? "sngStrike" : "noStrike");
-            
-            // 设置字距调整
-            rPrNode.setAttr("kern", "1200");
-            
-            // 设置基线
-            rPrNode.setAttr("baseline", "0");
-            
-            // 构建字体颜色
-            buildFontColor(rPrNode, font.getFontColor());
-            
-            // 构建字体名称信息
-            buildFontTypefaces(rPrNode, font.getFontName());
-            
-        } catch (Exception e) {
-            LOG.warn("Failed to build run properties", e);
+
+        // 设置字体大小
+        Float fontSize = font.getFontSize();
+        if (fontSize != null && fontSize > 0) {
+            // 转换为OOXML单位（百分之一磅）
+            int ooxmlSize = Math.round(fontSize * 100);
+            rPrNode.setAttr("sz", String.valueOf(ooxmlSize));
         }
+
+        // 设置字体粗细
+        boolean bold = font.isBold();
+        rPrNode.setAttr("b", bold ? "1" : "0");
+
+        // 设置斜体
+        boolean italic = font.isItalic();
+        rPrNode.setAttr("i", italic ? "1" : "0");
+
+        // 设置下划线
+        ExcelFontUnderline underlineStyle = font.getUnderlineStyle();
+        if (underlineStyle != null) {
+            String underline = mapUnderlineStyleToOoxml(underlineStyle);
+            rPrNode.setAttr("u", underline);
+        } else {
+            rPrNode.setAttr("u", "none");
+        }
+
+        // 设置删除线
+        boolean strikeout = font.isStrikeout();
+        rPrNode.setAttr("strike", strikeout ? "sngStrike" : "noStrike");
+
+        // 设置字距调整
+        rPrNode.setAttr("kern", "1200");
+
+        // 设置基线
+        rPrNode.setAttr("baseline", "0");
+
+        // 构建字体颜色
+        buildFontColor(rPrNode, font.getFontColor());
+
+        // 构建字体名称信息
+        buildFontTypefaces(rPrNode, font.getFontName());
+
     }
-    
+
     /**
      * 构建字体名称信息
      * 生成 a:latin、a:ea、a:cs 元素
      */
     private void buildFontTypefaces(XNode rPrNode, String fontName) {
-        try {
-            // 如果有具体字体名称，使用它；否则使用主题字体引用
-            String typeface = !StringHelper.isEmpty(fontName) ? fontName : "+mn-lt";
-            
-            // Latin字体（拉丁文字）
-            XNode latinNode = rPrNode.addChild("a:latin");
-            latinNode.setAttr("typeface", typeface.startsWith("+") ? typeface : fontName);
-            
-            // East Asian字体（东亚文字）
-            XNode eaNode = rPrNode.addChild("a:ea");
-            eaNode.setAttr("typeface", "+mn-ea");
-            
-            // Complex Script字体（复杂脚本）
-            XNode csNode = rPrNode.addChild("a:cs");
-            csNode.setAttr("typeface", "+mn-cs");
-            
-        } catch (Exception e) {
-            LOG.warn("Failed to build font typefaces", e);
-        }
+
+        // 如果有具体字体名称，使用它；否则使用主题字体引用
+        String typeface = !StringHelper.isEmpty(fontName) ? fontName : "+mn-lt";
+
+        // Latin字体（拉丁文字）
+        XNode latinNode = rPrNode.addChild("a:latin");
+        latinNode.setAttr("typeface", typeface.startsWith("+") ? typeface : fontName);
+
+        // East Asian字体（东亚文字）
+        XNode eaNode = rPrNode.addChild("a:ea");
+        eaNode.setAttr("typeface", "+mn-ea");
+
+        // Complex Script字体（复杂脚本）
+        XNode csNode = rPrNode.addChild("a:cs");
+        csNode.setAttr("typeface", "+mn-cs");
+
     }
 
     /**
@@ -265,23 +241,20 @@ public class ChartTextBuilder {
             return;
         }
 
-        try {
-            XNode solidFillNode = rPrNode.addChild("a:solidFill");
-            
-            // 检查是否为RGB颜色（以#开头）
-            if (fontColor.startsWith("#")) {
-                String rgbValue = fontColor.substring(1).toUpperCase();
-                XNode srgbClrNode = solidFillNode.addChild("a:srgbClr");
-                srgbClrNode.setAttr("val", rgbValue);
-            } else {
-                // 假设是主题颜色
-                XNode schemeClrNode = solidFillNode.addChild("a:schemeClr");
-                schemeClrNode.setAttr("val", fontColor);
-            }
-            
-        } catch (Exception e) {
-            LOG.warn("Failed to build font color: {}", fontColor, e);
+
+        XNode solidFillNode = rPrNode.addChild("a:solidFill");
+
+        // 检查是否为RGB颜色（以#开头）
+        if (fontColor.startsWith("#")) {
+            String rgbValue = fontColor.substring(1).toUpperCase();
+            XNode srgbClrNode = solidFillNode.addChild("a:srgbClr");
+            srgbClrNode.setAttr("val", rgbValue);
+        } else {
+            // 假设是主题颜色
+            XNode schemeClrNode = solidFillNode.addChild("a:schemeClr");
+            schemeClrNode.setAttr("val", fontColor);
         }
+
     }
 
     /**

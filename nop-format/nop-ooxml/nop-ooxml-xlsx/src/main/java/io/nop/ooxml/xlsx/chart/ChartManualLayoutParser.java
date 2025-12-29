@@ -60,30 +60,25 @@ public class ChartManualLayoutParser {
             return null;
         }
 
-        try {
-            ChartManualLayoutModel layout = new ChartManualLayoutModel();
+        ChartManualLayoutModel layout = new ChartManualLayoutModel();
 
-            // 标准化处理：只解析位置和尺寸的百分比值
-            // 忽略OOXML中的复杂模式配置，统一按edge模式处理
+        // 标准化处理：只解析位置和尺寸的百分比值
+        // 忽略OOXML中的复杂模式配置，统一按edge模式处理
 
-            // 解析X位置百分比
-            parsePercentValue(layout, manualLayoutNode, "c:x", "percentX");
+        // 解析X位置百分比
+        parsePercentValue(layout, manualLayoutNode, "c:x", "percentX");
 
-            // 解析Y位置百分比
-            parsePercentValue(layout, manualLayoutNode, "c:y", "percentY");
+        // 解析Y位置百分比
+        parsePercentValue(layout, manualLayoutNode, "c:y", "percentY");
 
-            // 解析宽度百分比
-            parsePercentValue(layout, manualLayoutNode, "c:w", "percentW");
+        // 解析宽度百分比
+        parsePercentValue(layout, manualLayoutNode, "c:w", "percentW");
 
-            // 解析高度百分比
-            parsePercentValue(layout, manualLayoutNode, "c:h", "percentH");
+        // 解析高度百分比
+        parsePercentValue(layout, manualLayoutNode, "c:h", "percentH");
 
-            return layout;
+        return layout;
 
-        } catch (Exception e) {
-            LOG.warn("Failed to parse manual layout configuration", e);
-            return null;
-        }
     }
 
     /**
@@ -97,41 +92,38 @@ public class ChartManualLayoutParser {
      */
     private void parsePercentValue(ChartManualLayoutModel layout, XNode manualLayoutNode,
                                    String childTagName, String propertyName) {
-        try {
-            XNode valueNode = manualLayoutNode.childByTag(childTagName);
-            if (valueNode != null) {
-                Double value = parseLayoutValue(valueNode);
-                if (value != null) {
-                    // 获取对应的模式信息进行规范化
-                    String modeTagName = getModeTagName(childTagName);
-                    String mode = ChartPropertyHelper.getChildVal(manualLayoutNode, modeTagName);
+        XNode valueNode = manualLayoutNode.childByTag(childTagName);
+        if (valueNode != null) {
+            Double value = parseLayoutValue(valueNode);
+            if (value != null) {
+                // 获取对应的模式信息进行规范化
+                String modeTagName = getModeTagName(childTagName);
+                String mode = ChartPropertyHelper.getChildVal(manualLayoutNode, modeTagName);
 
-                    // 规范化：将edge模式转换为factor模式的等效值
-                    Double normalizedValue = normalizeLayoutValue(value, mode, propertyName);
+                // 规范化：将edge模式转换为factor模式的等效值
+                Double normalizedValue = normalizeLayoutValue(value, mode, propertyName);
 
-                    // 设置规范化后的值
-                    switch (propertyName) {
-                        case "percentX":
-                            layout.setPercentX(normalizedValue);
-                            break;
-                        case "percentY":
-                            layout.setPercentY(normalizedValue);
-                            break;
-                        case "percentW":
-                            layout.setPercentW(normalizedValue);
-                            break;
-                        case "percentH":
-                            layout.setPercentH(normalizedValue);
-                            break;
-                        default:
-                            LOG.warn("Unknown property name: {}", propertyName);
-                            break;
-                    }
+                // 设置规范化后的值
+                switch (propertyName) {
+                    case "percentX":
+                        layout.setPercentX(normalizedValue);
+                        break;
+                    case "percentY":
+                        layout.setPercentY(normalizedValue);
+                        break;
+                    case "percentW":
+                        layout.setPercentW(normalizedValue);
+                        break;
+                    case "percentH":
+                        layout.setPercentH(normalizedValue);
+                        break;
+                    default:
+                        LOG.warn("Unknown property name: {}", propertyName);
+                        break;
                 }
             }
-        } catch (Exception e) {
-            LOG.warn("Failed to parse {} value", propertyName, e);
         }
+
     }
 
     /**
@@ -275,20 +267,17 @@ public class ChartManualLayoutParser {
             return null;
         }
 
-        try {
-            Double value = valueNode.attrDouble("val");
-            if (value != null) {
-                // OOXML中的布局值通常是百分比形式
-                // 如果值大于1，则认为是百分比，需要除以100
-                if (value > 1.0) {
-                    return value / 100.0;
-                } else {
-                    return value;
-                }
+        Double value = valueNode.attrDouble("val");
+        if (value != null) {
+            // OOXML中的布局值通常是百分比形式
+            // 如果值大于1，则认为是百分比，需要除以100
+            if (value > 1.0) {
+                return value / 100.0;
+            } else {
+                return value;
             }
-        } catch (Exception e) {
-            LOG.warn("Failed to parse layout value from node: {}", valueNode.getTagName(), e);
         }
+
 
         return null;
     }

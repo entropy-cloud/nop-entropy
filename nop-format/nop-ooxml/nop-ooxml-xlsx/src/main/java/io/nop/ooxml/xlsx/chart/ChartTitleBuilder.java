@@ -38,112 +38,96 @@ public class ChartTitleBuilder {
             return null;
         }
 
-        try {
-            XNode titleNode = XNode.make("c:title");
 
-            // 构建文本内容
-            buildTextContent(titleNode, title);
+        XNode titleNode = XNode.make("c:title");
 
-            // 构建手动布局
-            buildManualLayout(titleNode, title);
+        // 构建文本内容
+        buildTextContent(titleNode, title);
 
-            // 构建形状样式
-            buildShapeStyle(titleNode, title);
+        // 构建手动布局
+        buildManualLayout(titleNode, title);
 
-            // 构建文本样式
-            buildTextStyle(titleNode, title);
+        // 构建形状样式
+        buildShapeStyle(titleNode, title);
 
-            return titleNode;
+        // 构建文本样式
+        buildTextStyle(titleNode, title);
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build title configuration", e);
-            return null;
-        }
+        return titleNode;
+
     }
 
     /**
      * 构建文本内容
      */
     private void buildTextContent(XNode titleNode, ChartTitleModel title) {
-        try {
-            // 检查是否有文本内容
-            if (StringHelper.isEmpty(title.getText()) && StringHelper.isEmpty(title.getTextCellRef())) {
-                return;
-            }
 
-            XNode txNode = titleNode.addChild("c:tx");
-
-            // 使用ChartTextBuilder自动选择合适的文本类型
-            // 从textStyle中提取字体信息
-            ExcelFont font = null;
-            ChartTextStyleModel textStyle = title.getTextStyle();
-            if (textStyle != null && textStyle.getFont() != null) {
-                font = textStyle.getFont();
-            }
-
-            XNode textNode = ChartTextBuilder.INSTANCE.buildText(title.getText(), title.getTextCellRef(), font);
-            if (textNode != null) {
-                txNode.appendChild(textNode);
-            }
-
-        } catch (Exception e) {
-            LOG.warn("Failed to build title text content", e);
+        // 检查是否有文本内容
+        if (StringHelper.isEmpty(title.getText()) && StringHelper.isEmpty(title.getTextCellRef())) {
+            return;
         }
+
+        XNode txNode = titleNode.addChild("c:tx");
+
+        // 使用ChartTextBuilder自动选择合适的文本类型
+        // 从textStyle中提取字体信息
+        ExcelFont font = null;
+        ChartTextStyleModel textStyle = title.getTextStyle();
+        if (textStyle != null && textStyle.getFont() != null) {
+            font = textStyle.getFont();
+        }
+
+        XNode textNode = ChartTextBuilder.INSTANCE.buildText(title.getText(), title.getTextCellRef(), font);
+        if (textNode != null) {
+            txNode.appendChild(textNode);
+        }
+
     }
 
     /**
      * 构建手动布局
      */
     private void buildManualLayout(XNode titleNode, ChartTitleModel title) {
-        try {
-            ChartManualLayoutModel manualLayout = title.getManualLayout();
-            if (manualLayout != null) {
-                XNode layoutNode = ChartManualLayoutBuilder.INSTANCE.buildManualLayout(manualLayout);
-                if (layoutNode != null) {
-                    titleNode.appendChild(layoutNode);
-                }
-            }
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build title manual layout", e);
+        ChartManualLayoutModel manualLayout = title.getManualLayout();
+        if (manualLayout != null) {
+            XNode layoutNode = ChartManualLayoutBuilder.INSTANCE.buildManualLayout(manualLayout);
+            if (layoutNode != null) {
+                titleNode.appendChild(layoutNode);
+            }
         }
+
     }
 
     /**
      * 构建形状样式
      */
     private void buildShapeStyle(XNode titleNode, ChartTitleModel title) {
-        try {
-            ChartShapeStyleModel shapeStyle = title.getShapeStyle();
-            if (shapeStyle != null) {
-                XNode spPrNode = ChartShapeStyleBuilder.INSTANCE.buildShapeStyle(shapeStyle);
-                if (spPrNode != null) {
-                    spPrNode.setTagName("c:spPr");
-                    titleNode.appendChild(spPrNode);
-                }
-            }
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build title shape style", e);
+        ChartShapeStyleModel shapeStyle = title.getShapeStyle();
+        if (shapeStyle != null) {
+            XNode spPrNode = ChartShapeStyleBuilder.INSTANCE.buildShapeStyle(shapeStyle);
+            if (spPrNode != null) {
+                spPrNode.setTagName("c:spPr");
+                titleNode.appendChild(spPrNode);
+            }
         }
+
     }
 
     /**
      * 构建文本样式
      */
     private void buildTextStyle(XNode titleNode, ChartTitleModel title) {
-        try {
-            ChartTextStyleModel textStyle = title.getTextStyle();
-            if (textStyle != null) {
-                XNode txPrNode = ChartTextStyleBuilder.INSTANCE.buildTextStyle(textStyle);
-                if (txPrNode != null) {
-                    titleNode.appendChild(txPrNode.withTagName("c:txPr"));
-                }
-            }
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build title text style", e);
+        ChartTextStyleModel textStyle = title.getTextStyle();
+        if (textStyle != null) {
+            XNode txPrNode = ChartTextStyleBuilder.INSTANCE.buildTextStyle(textStyle);
+            if (txPrNode != null) {
+                titleNode.appendChild(txPrNode.withTagName("c:txPr"));
+            }
         }
+
     }
 
     /**
@@ -154,20 +138,16 @@ public class ChartTitleBuilder {
             return null;
         }
 
-        try {
-            XNode titleNode = XNode.make("c:title");
 
-            // 只构建覆盖相关的属性
-            buildTextContent(titleNode, title);
-            buildShapeStyle(titleNode, title);
-            buildTextStyle(titleNode, title);
+        XNode titleNode = XNode.make("c:title");
 
-            return titleNode;
+        // 只构建覆盖相关的属性
+        buildTextContent(titleNode, title);
+        buildShapeStyle(titleNode, title);
+        buildTextStyle(titleNode, title);
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build title overlay", e);
-            return null;
-        }
+        return titleNode;
+
     }
 
     /**

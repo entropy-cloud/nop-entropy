@@ -31,12 +31,9 @@ public class DrawingChartBuilder {
             return buildMinimalChartSpace();
         }
 
-        try {
-            return buildChartSpace(chartModel);
-        } catch (Exception e) {
-            LOG.warn("Failed to build chart XML, generating minimal chartSpace", e);
-            return buildMinimalChartSpace();
-        }
+
+        return buildChartSpace(chartModel);
+
     }
 
     /**
@@ -51,31 +48,27 @@ public class DrawingChartBuilder {
             return buildMinimalChartSpace();
         }
 
-        try {
-            // 创建根chartSpace节点
-            XNode chartSpaceNode = createChartSpaceRoot();
-            chartSpaceNode.makeChild("c:roundedCorners")
-                    .withAttr("val",Boolean.TRUE.equals(chartModel.getRoundedCorners())?1:0);
 
-            // 添加语言设置
-            addLanguageSettings(chartSpaceNode, chartModel.getLang());
+        // 创建根chartSpace节点
+        XNode chartSpaceNode = createChartSpaceRoot();
+        chartSpaceNode.makeChild("c:roundedCorners")
+                .withAttr("val", Boolean.TRUE.equals(chartModel.getRoundedCorners()) ? 1 : 0);
 
-            // 添加样式设置
-            addStyleSettings(chartSpaceNode, chartModel);
+        // 添加语言设置
+        addLanguageSettings(chartSpaceNode, chartModel.getLang());
 
-            // 创建chart节点
-            XNode chartNode = chartSpaceNode.addChild("c:chart");
+        // 添加样式设置
+        addStyleSettings(chartSpaceNode, chartModel);
 
-            // 构建图表组件
-            buildChartComponents(chartNode, chartModel);
+        // 创建chart节点
+        XNode chartNode = chartSpaceNode.addChild("c:chart");
 
-            LOG.debug("Successfully built chartSpace XML for chart type: {}", chartModel.getType());
-            return chartSpaceNode;
+        // 构建图表组件
+        buildChartComponents(chartNode, chartModel);
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build chartSpace, generating minimal structure", e);
-            return buildMinimalChartSpace();
-        }
+        LOG.debug("Successfully built chartSpace XML for chart type: {}", chartModel.getType());
+        return chartSpaceNode;
+
     }
 
     /**
@@ -97,51 +90,44 @@ public class DrawingChartBuilder {
      * 添加语言设置
      */
     private void addLanguageSettings(XNode chartSpaceNode, String lang) {
-        try {
-            XNode langNode = chartSpaceNode.addChild("c:lang");
-            langNode.setAttr("val", StringHelper.toString(lang, "en-US"));
-        } catch (Exception e) {
-            LOG.warn("Failed to add language settings", e);
-        }
+
+        XNode langNode = chartSpaceNode.addChild("c:lang");
+        langNode.setAttr("val", StringHelper.toString(lang, "en-US"));
+
     }
 
     /**
      * 添加样式设置
      */
     private void addStyleSettings(XNode chartSpaceNode, ChartModel chartModel) {
-        try {
-            String styleId = chartModel.getStyleId();
-            if (StringHelper.isEmpty(styleId)) {
-                styleId = "2"; // 默认样式ID
-            }
 
-            XNode styleNode = chartSpaceNode.addChild("c:style");
-            styleNode.setAttr("val", styleId);
-        } catch (Exception e) {
-            LOG.warn("Failed to add style settings", e);
+        String styleId = chartModel.getStyleId();
+        if (StringHelper.isEmpty(styleId)) {
+            styleId = "2"; // 默认样式ID
         }
+
+        XNode styleNode = chartSpaceNode.addChild("c:style");
+        styleNode.setAttr("val", styleId);
+
     }
 
     /**
      * 构建图表组件
      */
     private void buildChartComponents(XNode chartNode, ChartModel chartModel) {
-        try {
-            // 构建标题
-            buildTitle(chartNode, chartModel.getTitle());
 
-            // 构建图例
-            buildLegend(chartNode, chartModel.getLegend());
+        // 构建标题
+        buildTitle(chartNode, chartModel.getTitle());
 
-            // 构建绘图区域
-            buildPlotArea(chartNode, chartModel.getPlotArea());
+        // 构建图例
+        buildLegend(chartNode, chartModel.getLegend());
 
-            // 添加基本属性
-            addBasicProperties(chartNode, chartModel);
+        // 构建绘图区域
+        buildPlotArea(chartNode, chartModel.getPlotArea());
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build chart components", e);
-        }
+        // 添加基本属性
+        addBasicProperties(chartNode, chartModel);
+
     }
 
     /**
@@ -153,15 +139,13 @@ public class DrawingChartBuilder {
             return;
         }
 
-        try {
-            XNode titleNode = ChartTitleBuilder.INSTANCE.buildTitle(title);
-            if (titleNode != null) {
-                chartNode.appendChild(titleNode);
-                LOG.debug("Built title: {}", title.getText());
-            }
-        } catch (Exception e) {
-            LOG.warn("Failed to build title", e);
+
+        XNode titleNode = ChartTitleBuilder.INSTANCE.buildTitle(title);
+        if (titleNode != null) {
+            chartNode.appendChild(titleNode);
+            LOG.debug("Built title: {}", title.getText());
         }
+
     }
 
     /**
@@ -173,15 +157,13 @@ public class DrawingChartBuilder {
             return;
         }
 
-        try {
-            XNode legendNode = ChartLegendBuilder.INSTANCE.buildLegend(legend);
-            if (legendNode != null) {
-                chartNode.appendChild(legendNode);
-                LOG.debug("Built legend with position: {}", legend.getPosition());
-            }
-        } catch (Exception e) {
-            LOG.warn("Failed to build legend", e);
+
+        XNode legendNode = ChartLegendBuilder.INSTANCE.buildLegend(legend);
+        if (legendNode != null) {
+            chartNode.appendChild(legendNode);
+            LOG.debug("Built legend with position: {}", legend.getPosition());
         }
+
     }
 
     /**
@@ -193,57 +175,43 @@ public class DrawingChartBuilder {
             return;
         }
 
-        try {
-            XNode plotAreaNode = ChartPlotAreaBuilder.INSTANCE.buildPlotArea(plotArea);
-            if (plotAreaNode != null) {
-                chartNode.appendChild(plotAreaNode);
-                LOG.debug("Built plot area with {} series and {} axes",
-                        plotArea.getSeriesList() != null ? plotArea.getSeriesList().size() : 0,
-                        plotArea.getAxes() != null ? plotArea.getAxes().size() : 0);
-            }
-        } catch (Exception e) {
-            LOG.warn("Failed to build plot area", e);
+
+        XNode plotAreaNode = ChartPlotAreaBuilder.INSTANCE.buildPlotArea(plotArea);
+        if (plotAreaNode != null) {
+            chartNode.appendChild(plotAreaNode);
+            LOG.debug("Built plot area with {} series and {} axes",
+                    plotArea.getSeriesList() != null ? plotArea.getSeriesList().size() : 0,
+                    plotArea.getAxes() != null ? plotArea.getAxes().size() : 0);
         }
+
     }
 
     /**
      * 添加基本属性
      */
     private void addBasicProperties(XNode chartNode, ChartModel chartModel) {
-        try {
 
-
-        } catch (Exception e) {
-            LOG.warn("Failed to add basic properties", e);
-        }
     }
 
     /**
      * 生成最小的chartSpace结构
      */
     private XNode buildMinimalChartSpace() {
-        try {
-            XNode chartSpaceNode = createChartSpaceRoot();
-            addLanguageSettings(chartSpaceNode, null);
 
-            // 添加默认样式
-            XNode styleNode = chartSpaceNode.addChild("c:style");
-            styleNode.setAttr("val", "2");
+        XNode chartSpaceNode = createChartSpaceRoot();
+        addLanguageSettings(chartSpaceNode, null);
 
-            // 添加基本chart节点
-            XNode chartNode = chartSpaceNode.addChild("c:chart");
-            XNode plotAreaNode = chartNode.addChild("c:plotArea");
+        // 添加默认样式
+        XNode styleNode = chartSpaceNode.addChild("c:style");
+        styleNode.setAttr("val", "2");
 
-            LOG.debug("Generated minimal chartSpace structure");
-            return chartSpaceNode;
+        // 添加基本chart节点
+        XNode chartNode = chartSpaceNode.addChild("c:chart");
+        XNode plotAreaNode = chartNode.addChild("c:plotArea");
 
-        } catch (Exception e) {
-            LOG.error("Failed to generate minimal chartSpace", e);
-            // 最后的fallback
-            XNode fallbackNode = XNode.make("c:chartSpace");
-            fallbackNode.setAttr("xmlns:c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            return fallbackNode;
-        }
+        LOG.debug("Generated minimal chartSpace structure");
+        return chartSpaceNode;
+
     }
 
     /**
@@ -254,28 +222,24 @@ public class DrawingChartBuilder {
      * @return chartSpace XML节点
      */
     public XNode buildSimpleChart(String title, ChartType chartType) {
-        try {
-            ChartModel chartModel = new ChartModel();
-            chartModel.setType(chartType);
 
-            // 添加标题
-            if (!StringHelper.isEmpty(title)) {
-                ChartTitleModel titleModel = new ChartTitleModel();
-                titleModel.setText(title);
-                titleModel.setVisible(true);
-                chartModel.setTitle(titleModel);
-            }
+        ChartModel chartModel = new ChartModel();
+        chartModel.setType(chartType);
 
-            // 添加基本绘图区域
-            ChartPlotAreaModel plotArea = new ChartPlotAreaModel();
-            chartModel.setPlotArea(plotArea);
-
-            return buildChartSpace(chartModel);
-
-        } catch (Exception e) {
-            LOG.warn("Failed to build simple chart", e);
-            return buildMinimalChartSpace();
+        // 添加标题
+        if (!StringHelper.isEmpty(title)) {
+            ChartTitleModel titleModel = new ChartTitleModel();
+            titleModel.setText(title);
+            titleModel.setVisible(true);
+            chartModel.setTitle(titleModel);
         }
+
+        // 添加基本绘图区域
+        ChartPlotAreaModel plotArea = new ChartPlotAreaModel();
+        chartModel.setPlotArea(plotArea);
+
+        return buildChartSpace(chartModel);
+
     }
 
     /**
@@ -300,58 +264,46 @@ public class DrawingChartBuilder {
             return false;
         }
 
-        try {
-            // 检查基本属性
-            if (chartModel.getType() == null) {
-                LOG.warn("Chart type is not specified");
-            }
 
-            // 检查绘图区域
-            if (chartModel.getPlotArea() == null) {
-                LOG.warn("Plot area is not specified");
-                return false;
-            }
+        // 检查基本属性
+        if (chartModel.getType() == null) {
+            LOG.warn("Chart type is not specified");
+        }
 
-            // 检查系列数据
-            if (chartModel.getPlotArea().getSeriesList() == null ||
-                    chartModel.getPlotArea().getSeriesList().isEmpty()) {
-                LOG.warn("No series data found in plot area");
-            }
-
-            return true;
-
-        } catch (Exception e) {
-            LOG.warn("Failed to validate chart model", e);
+        // 检查绘图区域
+        if (chartModel.getPlotArea() == null) {
+            LOG.warn("Plot area is not specified");
             return false;
         }
+
+        // 检查系列数据
+        if (chartModel.getPlotArea().getSeriesList() == null ||
+                chartModel.getPlotArea().getSeriesList().isEmpty()) {
+            LOG.warn("No series data found in plot area");
+        }
+
+        return true;
+
     }
 
     /**
      * 构建图表锚点的图表内容部分
      * 此方法专门用于与DrawingBuilder配合，生成嵌入到锚点中的图表XML
      *
-     * @param chartModel 图表模型
+     * @param chartModel     图表模型
      * @param relationshipId 关系ID
      * @return 图表引用节点
      */
     public XNode buildChartReference(ChartModel chartModel, String relationshipId) {
-        try {
-            // 创建图表引用节点
-            XNode chartRef = XNode.make("c:chart");
-            chartRef.setAttr("xmlns:c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            chartRef.setAttr("xmlns:r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
-            chartRef.setAttr("r:id", relationshipId);
-            
-            LOG.debug("Built chart reference with relationship ID: {}", relationshipId);
-            return chartRef;
-            
-        } catch (Exception e) {
-            LOG.warn("Failed to build chart reference", e);
-            // 返回基本的图表引用
-            XNode fallbackRef = XNode.make("c:chart");
-            fallbackRef.setAttr("xmlns:c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
-            fallbackRef.setAttr("r:id", relationshipId != null ? relationshipId : "rId1");
-            return fallbackRef;
-        }
+
+        // 创建图表引用节点
+        XNode chartRef = XNode.make("c:chart");
+        chartRef.setAttr("xmlns:c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+        chartRef.setAttr("xmlns:r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+        chartRef.setAttr("r:id", relationshipId);
+
+        LOG.debug("Built chart reference with relationship ID: {}", relationshipId);
+        return chartRef;
+
     }
 }

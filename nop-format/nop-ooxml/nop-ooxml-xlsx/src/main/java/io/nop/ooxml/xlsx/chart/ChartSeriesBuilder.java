@@ -30,9 +30,9 @@ public class ChartSeriesBuilder {
 
     /**
      * 构建系列元素
-     * 
+     *
      * @param series 系列模型对象
-     * @param index 系列索引
+     * @param index  系列索引
      * @return 系列XNode，如果series为null则返回null
      */
     public XNode buildSeries(ChartSeriesModel series, int index) {
@@ -40,145 +40,126 @@ public class ChartSeriesBuilder {
             return null;
         }
 
-        try {
-            XNode serNode = XNode.make("c:ser");
 
-            // 构建基本属性
-            buildBasicProperties(serNode, series, index);
+        XNode serNode = XNode.make("c:ser");
 
-            // 构建系列格式化
-            buildSeriesFormatting(serNode, series);
+        // 构建基本属性
+        buildBasicProperties(serNode, series, index);
 
-            // 构建数据标签
-            buildDataLabels(serNode, series);
+        // 构建系列格式化
+        buildSeriesFormatting(serNode, series);
 
-            // 构建系列数据
-            buildSeriesValData(serNode, series);
+        // 构建数据标签
+        buildDataLabels(serNode, series);
 
-            // 构建趋势线
-            buildTrendLines(serNode, series);
+        // 构建系列数据
+        buildSeriesValData(serNode, series);
 
-            return serNode;
+        // 构建趋势线
+        buildTrendLines(serNode, series);
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build series configuration", e);
-            return null;
-        }
+        return serNode;
+
     }
 
     /**
      * 构建基本属性
      */
     private void buildBasicProperties(XNode serNode, ChartSeriesModel series, int index) {
-        try {
-            // 构建系列索引
-            XNode idxNode = serNode.addChild("c:idx");
-            idxNode.setAttr("val", String.valueOf(index));
 
-            // 构建系列顺序
-            XNode orderNode = serNode.addChild("c:order");
-            orderNode.setAttr("val", String.valueOf(index));
+        // 构建系列索引
+        XNode idxNode = serNode.addChild("c:idx");
+        idxNode.setAttr("val", String.valueOf(index));
 
-            // 构建系列名称
-            buildSeriesName(serNode, series);
+        // 构建系列顺序
+        XNode orderNode = serNode.addChild("c:order");
+        orderNode.setAttr("val", String.valueOf(index));
 
-            // 构建可见性
-            buildVisibility(serNode, series);
+        // 构建系列名称
+        buildSeriesName(serNode, series);
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build series basic properties", e);
-        }
+        // 构建可见性
+        buildVisibility(serNode, series);
+
     }
 
     /**
      * 构建系列名称
      */
     private void buildSeriesName(XNode serNode, ChartSeriesModel series) {
-        try {
-            if (!StringHelper.isEmpty(series.getName())) {
-                XNode txNode = serNode.addChild("c:tx");
-                
-                // 如果有名称单元格引用，使用引用
-                if (!StringHelper.isEmpty(series.getNameCellRef())) {
-                    XNode strRefNode = txNode.addChild("c:strRef");
-                    XNode fNode = strRefNode.addChild("c:f");
-                    fNode.setText(series.getNameCellRef());
-                } else {
-                    // 使用静态文本
-                    XNode vNode = txNode.addChild("c:v");
-                    vNode.setText(series.getName());
-                }
-            }
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build series name", e);
+        if (!StringHelper.isEmpty(series.getName())) {
+            XNode txNode = serNode.addChild("c:tx");
+
+            // 如果有名称单元格引用，使用引用
+            if (!StringHelper.isEmpty(series.getNameCellRef())) {
+                XNode strRefNode = txNode.addChild("c:strRef");
+                XNode fNode = strRefNode.addChild("c:f");
+                fNode.setText(series.getNameCellRef());
+            } else {
+                // 使用静态文本
+                XNode vNode = txNode.addChild("c:v");
+                vNode.setText(series.getName());
+            }
         }
+
     }
 
     /**
      * 构建可见性
      */
     private void buildVisibility(XNode serNode, ChartSeriesModel series) {
-        try {
-            // 如果系列不可见，添加delete元素
-            if (!series.isVisible()) {
-                XNode deleteNode = serNode.addChild("c:delete");
-                deleteNode.setAttr("val", "1");
-            }
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build series visibility", e);
+        // 如果系列不可见，添加delete元素
+        if (!series.isVisible()) {
+            XNode deleteNode = serNode.addChild("c:delete");
+            deleteNode.setAttr("val", "1");
         }
+
     }
 
     /**
      * 构建系列数据
      */
     private void buildSeriesValData(XNode serNode, ChartSeriesModel series) {
-        try {
-            // 构建分类数据
-            buildSeriesCatData(serNode, series);
 
-            // 构建数值数据
-            String dataCellRef = series.getDataCellRef();
-            if (!StringHelper.isEmpty(dataCellRef)) {
-                buildValCellReference(serNode, dataCellRef);
-            }
+        // 构建分类数据
+        buildSeriesCatData(serNode, series);
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build series data", e);
+        // 构建数值数据
+        String dataCellRef = series.getDataCellRef();
+        if (!StringHelper.isEmpty(dataCellRef)) {
+            buildValCellReference(serNode, dataCellRef);
         }
+
     }
 
     /**
      * 构建系列分类数据
      */
     private void buildSeriesCatData(XNode serNode, ChartSeriesModel series) {
-        try {
-            String catCellRef = series.getCatCellRef();
-            if (StringHelper.isEmpty(catCellRef)) {
-                return;
-            }
 
-            // 构建分类数据 (c:cat)
-            XNode catNode = serNode.addChild("c:cat");
-            
-            // 构建字符串引用或数值引用
-            if (isNumericReference(catCellRef)) {
-                // 数值类型的分类数据
-                XNode numRefNode = catNode.addChild("c:numRef");
-                XNode fNode = numRefNode.addChild("c:f");
-                fNode.setText(catCellRef);
-            } else {
-                // 字符串类型的分类数据（更常见）
-                XNode strRefNode = catNode.addChild("c:strRef");
-                XNode fNode = strRefNode.addChild("c:f");
-                fNode.setText(catCellRef);
-            }
-            
-        } catch (Exception e) {
-            LOG.warn("Failed to build series category data", e);
+        String catCellRef = series.getCatCellRef();
+        if (StringHelper.isEmpty(catCellRef)) {
+            return;
         }
+
+        // 构建分类数据 (c:cat)
+        XNode catNode = serNode.addChild("c:cat");
+
+        // 构建字符串引用或数值引用
+        if (isNumericReference(catCellRef)) {
+            // 数值类型的分类数据
+            XNode numRefNode = catNode.addChild("c:numRef");
+            XNode fNode = numRefNode.addChild("c:f");
+            fNode.setText(catCellRef);
+        } else {
+            // 字符串类型的分类数据（更常见）
+            XNode strRefNode = catNode.addChild("c:strRef");
+            XNode fNode = strRefNode.addChild("c:f");
+            fNode.setText(catCellRef);
+        }
+
     }
 
     /**
@@ -195,96 +176,82 @@ public class ChartSeriesBuilder {
      * 构建单元格引用数据
      */
     private void buildValCellReference(XNode serNode, String dataCellRef) {
-        try {
-            if (StringHelper.isEmpty(dataCellRef)) {
-                return;
-            }
 
-            // 构建数值数据 (c:val) - 这是最常用的数据类型
-            XNode valNode = serNode.addChild("c:val");
-            
-            // 直接构建单元格引用
-            XNode numRefNode = valNode.addChild("c:numRef");
-            XNode fNode = numRefNode.addChild("c:f");
-            fNode.setText(dataCellRef);
-            
-        } catch (Exception e) {
-            LOG.warn("Failed to build cell reference data", e);
+        if (StringHelper.isEmpty(dataCellRef)) {
+            return;
         }
-    }
 
+        // 构建数值数据 (c:val) - 这是最常用的数据类型
+        XNode valNode = serNode.addChild("c:val");
+
+        // 直接构建单元格引用
+        XNode numRefNode = valNode.addChild("c:numRef");
+        XNode fNode = numRefNode.addChild("c:f");
+        fNode.setText(dataCellRef);
+
+    }
 
 
     /**
      * 构建系列格式化
      */
     private void buildSeriesFormatting(XNode serNode, ChartSeriesModel series) {
-        try {
-            // 构建形状样式
-            ChartShapeStyleModel shapeStyle = series.getShapeStyle();
-            if (shapeStyle != null) {
-                XNode spPrNode = ChartShapeStyleBuilder.INSTANCE.buildShapeStyle(shapeStyle);
-                if (spPrNode != null) {
-                    serNode.appendChild(spPrNode.withTagName("c:spPr"));
-                }
+        // 构建形状样式
+        ChartShapeStyleModel shapeStyle = series.getShapeStyle();
+        if (shapeStyle != null) {
+            XNode spPrNode = ChartShapeStyleBuilder.INSTANCE.buildShapeStyle(shapeStyle);
+            if (spPrNode != null) {
+                serNode.appendChild(spPrNode.withTagName("c:spPr"));
             }
-
-            // 构建反转负值颜色
-            if (series.getInvertIfNegative() != null && series.getInvertIfNegative()) {
-                XNode invertNode = serNode.addChild("c:invertIfNegative");
-                invertNode.setAttr("val", "1");
-            }
-
-        } catch (Exception e) {
-            LOG.warn("Failed to build series formatting", e);
         }
+
+        // 构建反转负值颜色
+        if (series.getInvertIfNegative() != null && series.getInvertIfNegative()) {
+            XNode invertNode = serNode.addChild("c:invertIfNegative");
+            invertNode.setAttr("val", "1");
+        }
+
     }
 
     /**
      * 构建数据标签
      */
     private void buildDataLabels(XNode serNode, ChartSeriesModel series) {
-        try {
-            ChartDataLabelsModel dataLabels = series.getDataLabels();
-            if (dataLabels != null) {
-                XNode dLblsNode = ChartDataLabelsBuilder.INSTANCE.buildDataLabels(dataLabels);
-                if (dLblsNode != null) {
-                    serNode.appendChild(dLblsNode.withTagName("c:dLbls"));
-                }
-            }
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build data labels", e);
+        ChartDataLabelsModel dataLabels = series.getDataLabels();
+        if (dataLabels != null) {
+            XNode dLblsNode = ChartDataLabelsBuilder.INSTANCE.buildDataLabels(dataLabels);
+            if (dLblsNode != null) {
+                serNode.appendChild(dLblsNode.withTagName("c:dLbls"));
+            }
         }
+
     }
 
     /**
      * 构建趋势线
      */
     private void buildTrendLines(XNode serNode, ChartSeriesModel series) {
-        try {
-            List<ChartTrendLineModel> trendLines = series.getTrendLines();
-            if (trendLines != null && !trendLines.isEmpty()) {
-                for (ChartTrendLineModel trendLine : trendLines) {
-                    XNode trendLineNode = ChartTrendLineBuilder.INSTANCE.buildTrendLine(trendLine);
-                    if (trendLineNode != null) {
-                        serNode.appendChild(trendLineNode);
-                    }
+
+        List<ChartTrendLineModel> trendLines = series.getTrendLines();
+        if (trendLines != null && !trendLines.isEmpty()) {
+            for (ChartTrendLineModel trendLine : trendLines) {
+                XNode trendLineNode = ChartTrendLineBuilder.INSTANCE.buildTrendLine(trendLine);
+                if (trendLineNode != null) {
+                    serNode.appendChild(trendLineNode);
                 }
             }
-
-        } catch (Exception e) {
-            LOG.warn("Failed to build trend lines", e);
         }
+
     }
 
     /**
      * 构建简单的系列（仅包含基本属性）
      * 这是一个便利方法，用于快速创建基本的系列配置
-     * 
-     * @param name 系列名称
+     *
+     * @param name    系列名称
      * @param dataRef 数据单元格引用
-     * @param index 系列索引
+     * @param index   系列索引
      * @return 系列XNode，如果name为null则返回null
      */
     public XNode buildSimpleSeries(String name, String dataRef, int index) {

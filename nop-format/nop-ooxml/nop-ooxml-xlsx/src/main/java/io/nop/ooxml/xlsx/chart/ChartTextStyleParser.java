@@ -196,41 +196,37 @@ public class ChartTextStyleParser {
     private void parseFontColor(ExcelFont font, XNode rPrNode, IChartStyleProvider styleProvider) {
         XNode solidFillNode = rPrNode.childByTag("a:solidFill");
         if (solidFillNode != null) {
-            try {
-                // 处理srgbClr颜色（直接RGB）
-                String colorVal = ChartPropertyHelper.getChildVal(solidFillNode, "a:srgbClr");
-                if (colorVal != null) {
-                    String baseColor = "#" + colorVal;
+
+            // 处理srgbClr颜色（直接RGB）
+            String colorVal = ChartPropertyHelper.getChildVal(solidFillNode, "a:srgbClr");
+            if (colorVal != null) {
+                String baseColor = "#" + colorVal;
+                // 使用applyColorModifications处理嵌套的颜色修改
+                XNode srgbClrNode = solidFillNode.childByTag("a:srgbClr");
+                String finalColor = styleProvider.applyColorModifications(baseColor, srgbClrNode);
+                font.setFontColor(finalColor);
+                return;
+            }
+
+            // 处理schemeClr颜色（主题颜色）- 样本中常见的模式
+            String themeColorName = ChartPropertyHelper.getChildVal(solidFillNode, "a:schemeClr");
+            if (themeColorName != null) {
+                // 先解析基础主题颜色
+                String baseColor = styleProvider.getThemeColor(themeColorName);
+                if (baseColor != null) {
                     // 使用applyColorModifications处理嵌套的颜色修改
-                    XNode srgbClrNode = solidFillNode.childByTag("a:srgbClr");
-                    String finalColor = styleProvider.applyColorModifications(baseColor, srgbClrNode);
+                    // 这是处理样本中lumMod/lumOff模式的关键
+                    XNode schemeClrNode = solidFillNode.childByTag("a:schemeClr");
+                    String finalColor = styleProvider.applyColorModifications(baseColor, schemeClrNode);
                     font.setFontColor(finalColor);
                     return;
                 }
-
-                // 处理schemeClr颜色（主题颜色）- 样本中常见的模式
-                String themeColorName = ChartPropertyHelper.getChildVal(solidFillNode, "a:schemeClr");
-                if (themeColorName != null) {
-                    // 先解析基础主题颜色
-                    String baseColor = styleProvider.getThemeColor(themeColorName);
-                    if (baseColor != null) {
-                        // 使用applyColorModifications处理嵌套的颜色修改
-                        // 这是处理样本中lumMod/lumOff模式的关键
-                        XNode schemeClrNode = solidFillNode.childByTag("a:schemeClr");
-                        String finalColor = styleProvider.applyColorModifications(baseColor, schemeClrNode);
-                        font.setFontColor(finalColor);
-                        return;
-                    }
-                }
-
-                // 如果没有找到颜色定义，使用默认颜色
-                font.setFontColor("#000000");
-
-            } catch (Exception e) {
-                // 使用LOG.warn处理解析错误，确保解析继续
-                LOG.warn("Failed to parse font color, using default color", e);
-                font.setFontColor("#000000");
             }
+
+            // 如果没有找到颜色定义，使用默认颜色
+            font.setFontColor("#000000");
+
+
         }
     }
 

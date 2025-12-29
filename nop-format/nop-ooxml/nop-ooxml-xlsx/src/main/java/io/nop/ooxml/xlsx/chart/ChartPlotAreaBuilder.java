@@ -63,40 +63,32 @@ public class ChartPlotAreaBuilder {
      * 构建手动布局
      */
     private void buildManualLayout(XNode plotAreaNode, ChartPlotAreaModel plotArea) {
-        try {
-            ChartManualLayoutModel manualLayout = plotArea.getManualLayout();
-            if (manualLayout != null) {
-                XNode layoutNode = ChartManualLayoutBuilder.INSTANCE.buildManualLayout(manualLayout);
-                if (layoutNode != null) {
-                    plotAreaNode.appendChild(layoutNode);
-                }
-            }
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build plot area manual layout", e);
+        ChartManualLayoutModel manualLayout = plotArea.getManualLayout();
+        if (manualLayout != null) {
+            XNode layoutNode = ChartManualLayoutBuilder.INSTANCE.buildManualLayout(manualLayout);
+            if (layoutNode != null) {
+                plotAreaNode.appendChild(layoutNode);
+            }
         }
+
     }
 
     /**
      * 构建图表类型特定配置
      */
     private XNode buildChartTypeSpecificConfig(XNode plotAreaNode, ChartPlotAreaModel plotArea) {
-        try {
-            XNode chartTypeNode = ChartTypeConfigBuilder.INSTANCE.buildChartTypeSpecificConfig(plotArea);
-            if (chartTypeNode != null) {
-                plotAreaNode.appendChild(chartTypeNode);
-            } else {
-                // 如果没有特定的图表类型配置，创建默认的柱状图
-                LOG.debug("No specific chart type configuration found, creating default bar chart");
-                buildDefaultChartType(plotAreaNode, plotArea);
-            }
-            return chartTypeNode;
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build chart type specific configuration", e);
-            // 尝试构建默认图表类型
-            return buildDefaultChartType(plotAreaNode, plotArea);
+        XNode chartTypeNode = ChartTypeConfigBuilder.INSTANCE.buildChartTypeSpecificConfig(plotArea);
+        if (chartTypeNode != null) {
+            plotAreaNode.appendChild(chartTypeNode);
+        } else {
+            // 如果没有特定的图表类型配置，创建默认的柱状图
+            LOG.debug("No specific chart type configuration found, creating default bar chart");
+            buildDefaultChartType(plotAreaNode, plotArea);
         }
+        return chartTypeNode;
+
     }
 
     /**
@@ -128,73 +120,63 @@ public class ChartPlotAreaBuilder {
      * 为图表类型构建系列数据
      */
     private void buildSeriesForChartType(XNode chartNode, ChartPlotAreaModel plotArea) {
-        try {
-            List<ChartSeriesModel> seriesList = plotArea.getSeriesList();
-            if (seriesList != null && !seriesList.isEmpty()) {
-                for (int i = 0; i < seriesList.size(); i++) {
-                    ChartSeriesModel series = seriesList.get(i);
-                    XNode seriesNode = ChartSeriesBuilder.INSTANCE.buildSeries(series, i);
-                    if (seriesNode != null) {
-                        chartNode.appendChild(seriesNode);
-                    }
+
+        List<ChartSeriesModel> seriesList = plotArea.getSeriesList();
+        if (seriesList != null && !seriesList.isEmpty()) {
+            for (int i = 0; i < seriesList.size(); i++) {
+                ChartSeriesModel series = seriesList.get(i);
+                XNode seriesNode = ChartSeriesBuilder.INSTANCE.buildSeries(series, i);
+                if (seriesNode != null) {
+                    chartNode.appendChild(seriesNode);
                 }
             }
-
-        } catch (Exception e) {
-            LOG.warn("Failed to build series for chart type", e);
         }
+
     }
 
     /**
      * 构建默认坐标轴ID
      */
     private void buildDefaultAxisIds(XNode chartNode) {
-        try {
-            XNode axIdNode1 = chartNode.addChild("c:axId");
-            axIdNode1.setAttr("val", "1");
 
-            XNode axIdNode2 = chartNode.addChild("c:axId");
-            axIdNode2.setAttr("val", "2");
+        XNode axIdNode1 = chartNode.addChild("c:axId");
+        axIdNode1.setAttr("val", "1");
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build default axis IDs", e);
-        }
+        XNode axIdNode2 = chartNode.addChild("c:axId");
+        axIdNode2.setAttr("val", "2");
+
     }
 
     /**
      * 构建坐标轴
      */
     private void buildAxes(XNode plotAreaNode, ChartPlotAreaModel plotArea, XNode chartTypeNode) {
-        try {
-            // 如果没有定义坐标轴，根据图表类型创建默认的坐标轴
-            ChartType chartType = detectChartTypeFromNode(chartTypeNode);
-            // 根据图表类型决定需要哪些坐标轴
-            boolean needsCategoryAxis = chartType.hasCategoryAxis();
-            boolean needsValueAxis = chartType.hasValueAxis();
 
-            List<ChartAxisModel> axes = plotArea.getAxes();
-            if (axes != null && !axes.isEmpty()) {
-                // 如果已经定义了坐标轴，直接构建所有坐标轴
-                for (ChartAxisModel axis : axes) {
-                    if (axis.getType() == ChartAxisType.CATEGORY && !needsCategoryAxis)
-                        continue;
-                    if (axis.getType() == ChartAxisType.VALUE && !needsValueAxis)
-                        continue;
-                    XNode axisNode = ChartAxisBuilder.INSTANCE.buildAxis(axis);
-                    if (axisNode != null) {
-                        plotAreaNode.appendChild(axisNode);
-                    }
+        // 如果没有定义坐标轴，根据图表类型创建默认的坐标轴
+        ChartType chartType = detectChartTypeFromNode(chartTypeNode);
+        // 根据图表类型决定需要哪些坐标轴
+        boolean needsCategoryAxis = chartType.hasCategoryAxis();
+        boolean needsValueAxis = chartType.hasValueAxis();
+
+        List<ChartAxisModel> axes = plotArea.getAxes();
+        if (axes != null && !axes.isEmpty()) {
+            // 如果已经定义了坐标轴，直接构建所有坐标轴
+            for (ChartAxisModel axis : axes) {
+                if (axis.getType() == ChartAxisType.CATEGORY && !needsCategoryAxis)
+                    continue;
+                if (axis.getType() == ChartAxisType.VALUE && !needsValueAxis)
+                    continue;
+                XNode axisNode = ChartAxisBuilder.INSTANCE.buildAxis(axis);
+                if (axisNode != null) {
+                    plotAreaNode.appendChild(axisNode);
                 }
-            } else {
-
-                buildDefaultAxesByChartType(plotAreaNode, chartType);
             }
+        } else {
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build plot area axes", e);
-            // 尝试构建默认坐标轴
-            buildDefaultAxes(plotAreaNode);
+            buildDefaultAxesByChartType(plotAreaNode, chartType);
         }
+
+
     }
 
     /**
@@ -218,42 +200,39 @@ public class ChartPlotAreaBuilder {
      * 映射图表类型
      */
     private ChartType mapChartType(String chartType) {
-        try {
-            switch (chartType) {
-                case "barChart":
-                case "bar3DChart":
-                    return ChartType.BAR;
-                case "pieChart":
-                case "pie3DChart":
-                    return ChartType.PIE;
-                case "lineChart":
-                case "line3DChart":
-                    return ChartType.LINE;
-                case "areaChart":
-                case "area3DChart":
-                    return ChartType.AREA;
-                case "scatterChart":
-                    return ChartType.SCATTER;
-                case "radarChart":
-                    return ChartType.RADAR;
-                case "surfaceChart":
-                case "surface3DChart":
-                    return ChartType.HEATMAP;
-                case "doughnutChart":
-                    return ChartType.DOUGHNUT;
-                case "bubbleChart":
-                    return ChartType.BUBBLE;
-                case "stockChart":
-                case "ofPieChart":
-                    return ChartType.COMBO;
-                default:
-                    LOG.warn("Unknown chart type: {}, using default BAR", chartType);
-                    return ChartType.BAR;
-            }
-        } catch (Exception e) {
-            LOG.warn("Failed to map chart type: {}, using default BAR", chartType, e);
-            return ChartType.BAR;
+
+        switch (chartType) {
+            case "barChart":
+            case "bar3DChart":
+                return ChartType.BAR;
+            case "pieChart":
+            case "pie3DChart":
+                return ChartType.PIE;
+            case "lineChart":
+            case "line3DChart":
+                return ChartType.LINE;
+            case "areaChart":
+            case "area3DChart":
+                return ChartType.AREA;
+            case "scatterChart":
+                return ChartType.SCATTER;
+            case "radarChart":
+                return ChartType.RADAR;
+            case "surfaceChart":
+            case "surface3DChart":
+                return ChartType.HEATMAP;
+            case "doughnutChart":
+                return ChartType.DOUGHNUT;
+            case "bubbleChart":
+                return ChartType.BUBBLE;
+            case "stockChart":
+            case "ofPieChart":
+                return ChartType.COMBO;
+            default:
+                LOG.warn("Unknown chart type: {}, using default BAR", chartType);
+                return ChartType.BAR;
         }
+
     }
 
     /**
@@ -265,108 +244,96 @@ public class ChartPlotAreaBuilder {
             return;
         }
 
-        try {
-            // 根据图表类型决定需要哪些坐标轴
-            boolean needsCategoryAxis = chartType.hasCategoryAxis();
-            boolean needsValueAxis = chartType.hasValueAxis();
 
-            // 如果图表类型不需要任何坐标轴（如饼图），则不创建坐标轴
-            if (!needsCategoryAxis && !needsValueAxis) {
-                LOG.debug("Chart type {} does not require axes", chartType);
-                return;
-            }
+        // 根据图表类型决定需要哪些坐标轴
+        boolean needsCategoryAxis = chartType.hasCategoryAxis();
+        boolean needsValueAxis = chartType.hasValueAxis();
 
-            if (needsCategoryAxis) {
-                // 创建分类轴（X轴）
-                XNode catAxNode = XNode.make("c:catAx");
-                buildDefaultAxisProperties(catAxNode, "1", "2", "b");
-                plotAreaNode.appendChild(catAxNode);
-            }
-
-            if (needsValueAxis) {
-                // 创建数值轴（Y轴）
-                XNode valAxNode = XNode.make("c:valAx");
-                buildDefaultAxisProperties(valAxNode, "2", "1", "l");
-                plotAreaNode.appendChild(valAxNode);
-            }
-
-            // 对于散点图和气泡图，可能需要两个数值轴
-            if (chartType == ChartType.SCATTER || chartType == ChartType.BUBBLE) {
-                if (!needsCategoryAxis) {
-                    // 如果没有分类轴，创建第二个数值轴作为X轴
-                    XNode valAxNode2 = XNode.make("c:valAx");
-                    buildDefaultAxisProperties(valAxNode2, "1", "2", "b");
-                    plotAreaNode.appendChild(valAxNode2);
-                }
-            }
-
-            LOG.debug("Built axes for chart type {}: categoryAxis={}, valueAxis={}",
-                    chartType, needsCategoryAxis, needsValueAxis);
-
-        } catch (Exception e) {
-            LOG.warn("Failed to build axes for chart type {}, falling back to default", chartType, e);
-            buildDefaultAxes(plotAreaNode);
+        // 如果图表类型不需要任何坐标轴（如饼图），则不创建坐标轴
+        if (!needsCategoryAxis && !needsValueAxis) {
+            LOG.debug("Chart type {} does not require axes", chartType);
+            return;
         }
+
+        if (needsCategoryAxis) {
+            // 创建分类轴（X轴）
+            XNode catAxNode = XNode.make("c:catAx");
+            buildDefaultAxisProperties(catAxNode, "1", "2", "b");
+            plotAreaNode.appendChild(catAxNode);
+        }
+
+        if (needsValueAxis) {
+            // 创建数值轴（Y轴）
+            XNode valAxNode = XNode.make("c:valAx");
+            buildDefaultAxisProperties(valAxNode, "2", "1", "l");
+            plotAreaNode.appendChild(valAxNode);
+        }
+
+        // 对于散点图和气泡图，可能需要两个数值轴
+        if (chartType == ChartType.SCATTER || chartType == ChartType.BUBBLE) {
+            if (!needsCategoryAxis) {
+                // 如果没有分类轴，创建第二个数值轴作为X轴
+                XNode valAxNode2 = XNode.make("c:valAx");
+                buildDefaultAxisProperties(valAxNode2, "1", "2", "b");
+                plotAreaNode.appendChild(valAxNode2);
+            }
+        }
+
+        LOG.debug("Built axes for chart type {}: categoryAxis={}, valueAxis={}",
+                chartType, needsCategoryAxis, needsValueAxis);
+
+
     }
 
     /**
      * 构建默认坐标轴
      */
     private void buildDefaultAxes(XNode plotAreaNode) {
-        try {
-            // 创建默认的类别轴（X轴）
-            XNode catAxNode = XNode.make("c:catAx");
-            buildDefaultAxisProperties(catAxNode, "1", "2", "b");
-            plotAreaNode.appendChild(catAxNode);
 
-            // 创建默认的数值轴（Y轴）
-            XNode valAxNode = XNode.make("c:valAx");
-            buildDefaultAxisProperties(valAxNode, "2", "1", "l");
-            plotAreaNode.appendChild(valAxNode);
+        // 创建默认的类别轴（X轴）
+        XNode catAxNode = XNode.make("c:catAx");
+        buildDefaultAxisProperties(catAxNode, "1", "2", "b");
+        plotAreaNode.appendChild(catAxNode);
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build default axes", e);
-        }
+        // 创建默认的数值轴（Y轴）
+        XNode valAxNode = XNode.make("c:valAx");
+        buildDefaultAxisProperties(valAxNode, "2", "1", "l");
+        plotAreaNode.appendChild(valAxNode);
+
     }
 
     /**
      * 构建默认坐标轴属性
      */
     private void buildDefaultAxisProperties(XNode axisNode, String axisId, String crossAxisId, String position) {
-        try {
-            // 坐标轴ID
-            XNode axIdNode = axisNode.addChild("c:axId");
-            axIdNode.setAttr("val", axisId);
 
-            // 坐标轴位置
-            XNode axPosNode = axisNode.addChild("c:axPos");
-            axPosNode.setAttr("val", position);
+        // 坐标轴ID
+        XNode axIdNode = axisNode.addChild("c:axId");
+        axIdNode.setAttr("val", axisId);
 
-            // 交叉轴ID
-            XNode crossAxNode = axisNode.addChild("c:crossAx");
-            crossAxNode.setAttr("val", crossAxisId);
+        // 坐标轴位置
+        XNode axPosNode = axisNode.addChild("c:axPos");
+        axPosNode.setAttr("val", position);
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build default axis properties", e);
-        }
+        // 交叉轴ID
+        XNode crossAxNode = axisNode.addChild("c:crossAx");
+        crossAxNode.setAttr("val", crossAxisId);
+
     }
 
     /**
      * 构建形状样式
      */
     private void buildShapeStyle(XNode plotAreaNode, ChartPlotAreaModel plotArea) {
-        try {
-            ChartShapeStyleModel shapeStyle = plotArea.getShapeStyle();
-            if (shapeStyle != null) {
-                XNode spPrNode = ChartShapeStyleBuilder.INSTANCE.buildShapeStyle(shapeStyle);
-                if (spPrNode != null) {
-                    plotAreaNode.appendChild(spPrNode.withTagName("c:spPr"));
-                }
-            }
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build plot area shape style", e);
+        ChartShapeStyleModel shapeStyle = plotArea.getShapeStyle();
+        if (shapeStyle != null) {
+            XNode spPrNode = ChartShapeStyleBuilder.INSTANCE.buildShapeStyle(shapeStyle);
+            if (spPrNode != null) {
+                plotAreaNode.appendChild(spPrNode.withTagName("c:spPr"));
+            }
         }
+
     }
 
     /**

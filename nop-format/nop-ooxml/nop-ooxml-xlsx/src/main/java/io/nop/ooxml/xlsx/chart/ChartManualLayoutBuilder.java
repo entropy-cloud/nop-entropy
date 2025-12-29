@@ -34,28 +34,22 @@ public class ChartManualLayoutBuilder {
             return null;
         }
 
-        try {
-            // 检查是否有任何布局属性被设置
-            if (!hasAnyLayoutProperty(layout)) {
-                LOG.debug("No layout properties set, skipping manual layout generation");
-                return null;
-            }
-
-            // 创建c:layout元素
-            XNode layoutNode = XNode.make("c:layout");
-
-            // 创建c:manualLayout子元素
-            XNode manualLayoutNode = layoutNode.addChild("c:manualLayout");
-
-            // 构建布局属性
-            buildLayoutProperties(manualLayoutNode, layout);
-
-            return layoutNode;
-
-        } catch (Exception e) {
-            LOG.warn("Failed to build manual layout configuration", e);
+        // 检查是否有任何布局属性被设置
+        if (!hasAnyLayoutProperty(layout)) {
+            LOG.debug("No layout properties set, skipping manual layout generation");
             return null;
         }
+
+        // 创建c:layout元素
+        XNode layoutNode = XNode.make("c:layout");
+
+        // 创建c:manualLayout子元素
+        XNode manualLayoutNode = layoutNode.addChild("c:manualLayout");
+
+        // 构建布局属性
+        buildLayoutProperties(manualLayoutNode, layout);
+
+        return layoutNode;
     }
 
     /**
@@ -109,20 +103,17 @@ public class ChartManualLayoutBuilder {
             return;
         }
 
-        try {
-            // 创建值元素
-            XNode valueNode = parentNode.addChild(tagName);
 
-            // 设置val属性
-            // OOXML中布局值通常是百分比形式，需要转换
-            Double ooxmlValue = convertToOoxmlValue(value);
-            valueNode.setAttr("val", ooxmlValue.toString());
+        // 创建值元素
+        XNode valueNode = parentNode.addChild(tagName);
 
-            LOG.debug("Built layout value {}: {} -> {}", tagName, value, ooxmlValue);
+        // 设置val属性
+        // OOXML中布局值通常是百分比形式，需要转换
+        Double ooxmlValue = convertToOoxmlValue(value);
+        valueNode.setAttr("val", ooxmlValue.toString());
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build layout value for {}", tagName, e);
-        }
+        LOG.debug("Built layout value {}: {} -> {}", tagName, value, ooxmlValue);
+
     }
 
     /**

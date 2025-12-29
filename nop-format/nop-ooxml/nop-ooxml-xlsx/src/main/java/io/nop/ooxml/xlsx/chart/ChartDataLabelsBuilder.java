@@ -37,65 +37,56 @@ public class ChartDataLabelsBuilder {
             return null;
         }
 
-        try {
-            XNode dLblsNode = XNode.make("c:dLbls");
 
-            // 构建手动布局
-            buildManualLayout(dLblsNode, dataLabels);
+        XNode dLblsNode = XNode.make("c:dLbls");
 
-            // 构建样式
-            buildStyles(dLblsNode, dataLabels);
+        // 构建手动布局
+        buildManualLayout(dLblsNode, dataLabels);
 
-            // 构建可见性
-            buildVisibility(dLblsNode, dataLabels);
+        // 构建样式
+        buildStyles(dLblsNode, dataLabels);
 
-            // 构建位置
-            buildPosition(dLblsNode, dataLabels);
+        // 构建可见性
+        buildVisibility(dLblsNode, dataLabels);
 
-            // 构建显示选项
-            buildDisplayOptions(dLblsNode, dataLabels);
+        // 构建位置
+        buildPosition(dLblsNode, dataLabels);
 
-            // 构建数字格式
-            buildNumberFormat(dLblsNode, dataLabels);
+        // 构建显示选项
+        buildDisplayOptions(dLblsNode, dataLabels);
+
+        // 构建数字格式
+        buildNumberFormat(dLblsNode, dataLabels);
 
 
-            return dLblsNode;
+        return dLblsNode;
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build data labels configuration", e);
-            return null;
-        }
     }
 
     /**
      * 构建可见性
      */
     private void buildVisibility(XNode dLblsNode, ChartDataLabelsModel dataLabels) {
-        try {
-            // 如果数据标签不可见，添加delete元素
+
+        // 如果数据标签不可见，添加delete元素
 //            if (!dataLabels.isVisible()) {
 //                XNode deleteNode = dLblsNode.addChild("c:delete");
 //                deleteNode.setAttr("val", "1");
 //            }
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build data labels visibility", e);
-        }
     }
 
     /**
      * 构建位置
      */
     private void buildPosition(XNode dLblsNode, ChartDataLabelsModel dataLabels) {
-        try {
-            if (dataLabels.getPosition() != null) {
-                XNode dLblPosNode = dLblsNode.addChild("c:dLblPos");
-                dLblPosNode.setAttr("val", mapPositionToOoxml(dataLabels.getPosition()));
-            }
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build data labels position", e);
+        if (dataLabels.getPosition() != null) {
+            XNode dLblPosNode = dLblsNode.addChild("c:dLblPos");
+            dLblPosNode.setAttr("val", mapPositionToOoxml(dataLabels.getPosition()));
         }
+
+
     }
 
     /**
@@ -135,113 +126,102 @@ public class ChartDataLabelsBuilder {
      * 构建显示选项
      */
     private void buildDisplayOptions(XNode dLblsNode, ChartDataLabelsModel dataLabels) {
-        try {
-            if (dataLabels.getShowLegendKey() != null) {
-                XNode showNode = dLblsNode.addChild("c:showLegendKey");
-                showNode.setAttr("val", dataLabels.getShowLegendKey() ? "1" : "0");
-            }
 
-            // 显示值
-            if (dataLabels.getShowVal() != null) {
-                XNode showValNode = dLblsNode.addChild("c:showVal");
-                showValNode.setAttr("val", dataLabels.getShowVal() ? "1" : "0");
-            }
-
-            // 显示类别名称
-            if (dataLabels.getShowCatName() != null) {
-                XNode showCatNameNode = dLblsNode.addChild("c:showCatName");
-                showCatNameNode.setAttr("val", dataLabels.getShowCatName() ? "1" : "0");
-            }
-
-            // 显示系列名称
-            if (dataLabels.getShowSerName() != null) {
-                XNode showSerNameNode = dLblsNode.addChild("c:showSerName");
-                showSerNameNode.setAttr("val", dataLabels.getShowSerName() ? "1" : "0");
-            }
-
-            // 显示百分比
-            if (dataLabels.getShowPercent() != null) {
-                XNode showPercentNode = dLblsNode.addChild("c:showPercent");
-                showPercentNode.setAttr("val", dataLabels.getShowPercent() ? "1" : "0");
-            }
-
-            // 显示气泡大小
-            if (dataLabels.getShowBubbleSize() != null) {
-                XNode showBubbleSizeNode = dLblsNode.addChild("c:showBubbleSize");
-                showBubbleSizeNode.setAttr("val", dataLabels.getShowBubbleSize() ? "1" : "0");
-            }
-
-            // 显示引导线
-            if (dataLabels.getShowLeaderLines() != null) {
-                XNode showLeaderLinesNode = dLblsNode.addChild("c:showLeaderLines");
-                showLeaderLinesNode.setAttr("val", dataLabels.getShowLeaderLines() ? "1" : "0");
-            }
-
-        } catch (Exception e) {
-            LOG.warn("Failed to build data labels display options", e);
+        if (dataLabels.getShowLegendKey() != null) {
+            XNode showNode = dLblsNode.addChild("c:showLegendKey");
+            showNode.setAttr("val", dataLabels.getShowLegendKey() ? "1" : "0");
         }
+
+        // 显示值
+        if (dataLabels.getShowVal() != null) {
+            XNode showValNode = dLblsNode.addChild("c:showVal");
+            showValNode.setAttr("val", dataLabels.getShowVal() ? "1" : "0");
+        }
+
+        // 显示类别名称
+        if (dataLabels.getShowCatName() != null) {
+            XNode showCatNameNode = dLblsNode.addChild("c:showCatName");
+            showCatNameNode.setAttr("val", dataLabels.getShowCatName() ? "1" : "0");
+        }
+
+        // 显示系列名称
+        if (dataLabels.getShowSerName() != null) {
+            XNode showSerNameNode = dLblsNode.addChild("c:showSerName");
+            showSerNameNode.setAttr("val", dataLabels.getShowSerName() ? "1" : "0");
+        }
+
+        // 显示百分比
+        if (dataLabels.getShowPercent() != null) {
+            XNode showPercentNode = dLblsNode.addChild("c:showPercent");
+            showPercentNode.setAttr("val", dataLabels.getShowPercent() ? "1" : "0");
+        }
+
+        // 显示气泡大小
+        if (dataLabels.getShowBubbleSize() != null) {
+            XNode showBubbleSizeNode = dLblsNode.addChild("c:showBubbleSize");
+            showBubbleSizeNode.setAttr("val", dataLabels.getShowBubbleSize() ? "1" : "0");
+        }
+
+        // 显示引导线
+        if (dataLabels.getShowLeaderLines() != null) {
+            XNode showLeaderLinesNode = dLblsNode.addChild("c:showLeaderLines");
+            showLeaderLinesNode.setAttr("val", dataLabels.getShowLeaderLines() ? "1" : "0");
+        }
+
     }
 
     /**
      * 构建数字格式
      */
     private void buildNumberFormat(XNode dLblsNode, ChartDataLabelsModel dataLabels) {
-        try {
-            if (dataLabels.getNumberFormat() != null) {
-                XNode numFmtNode = dLblsNode.addChild("c:numFmt");
-                numFmtNode.setAttr("formatCode", dataLabels.getNumberFormat());
-                numFmtNode.setAttr("sourceLinked", "0");
-            }
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build data labels number format", e);
+        if (dataLabels.getNumberFormat() != null) {
+            XNode numFmtNode = dLblsNode.addChild("c:numFmt");
+            numFmtNode.setAttr("formatCode", dataLabels.getNumberFormat());
+            numFmtNode.setAttr("sourceLinked", "0");
         }
+
     }
 
     /**
      * 构建手动布局
      */
     private void buildManualLayout(XNode dLblsNode, ChartDataLabelsModel dataLabels) {
-        try {
-            ChartManualLayoutModel manualLayout = null; //dataLabels.getManualLayout();
-            if (manualLayout != null) {
-                XNode layoutNode = ChartManualLayoutBuilder.INSTANCE.buildManualLayout(manualLayout);
-                if (layoutNode != null) {
-                    dLblsNode.appendChild(layoutNode);
-                }
-            }
 
-        } catch (Exception e) {
-            LOG.warn("Failed to build data labels manual layout", e);
+        ChartManualLayoutModel manualLayout = null; //dataLabels.getManualLayout();
+        if (manualLayout != null) {
+            XNode layoutNode = ChartManualLayoutBuilder.INSTANCE.buildManualLayout(manualLayout);
+            if (layoutNode != null) {
+                dLblsNode.appendChild(layoutNode);
+            }
         }
+
+
     }
 
     /**
      * 构建样式
      */
     private void buildStyles(XNode dLblsNode, ChartDataLabelsModel dataLabels) {
-        try {
-            // 构建形状样式
-            ChartShapeStyleModel shapeStyle = dataLabels.getShapeStyle();
-            if (shapeStyle != null) {
-                XNode spPrNode = ChartShapeStyleBuilder.INSTANCE.buildShapeStyle(shapeStyle);
-                if (spPrNode != null) {
-                    dLblsNode.appendChild(spPrNode.withTagName("c:spPr"));
-                }
-            }
 
-            // 构建文本样式
-            ChartTextStyleModel textStyle = dataLabels.getTextStyle();
-            if (textStyle != null) {
-                XNode txPrNode = ChartTextStyleBuilder.INSTANCE.buildTextStyle(textStyle);
-                if (txPrNode != null) {
-                    dLblsNode.appendChild(txPrNode.withTagName("c:txPr"));
-                }
+        // 构建形状样式
+        ChartShapeStyleModel shapeStyle = dataLabels.getShapeStyle();
+        if (shapeStyle != null) {
+            XNode spPrNode = ChartShapeStyleBuilder.INSTANCE.buildShapeStyle(shapeStyle);
+            if (spPrNode != null) {
+                dLblsNode.appendChild(spPrNode.withTagName("c:spPr"));
             }
-
-        } catch (Exception e) {
-            LOG.warn("Failed to build data labels styles", e);
         }
+
+        // 构建文本样式
+        ChartTextStyleModel textStyle = dataLabels.getTextStyle();
+        if (textStyle != null) {
+            XNode txPrNode = ChartTextStyleBuilder.INSTANCE.buildTextStyle(textStyle);
+            if (txPrNode != null) {
+                dLblsNode.appendChild(txPrNode.withTagName("c:txPr"));
+            }
+        }
+
     }
 
     /**
