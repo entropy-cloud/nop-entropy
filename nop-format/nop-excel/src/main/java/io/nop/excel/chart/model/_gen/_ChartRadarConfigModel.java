@@ -25,6 +25,13 @@ public abstract class _ChartRadarConfigModel extends io.nop.core.resource.compon
     
     /**
      *  
+     * xml name: radarStyle
+     * 
+     */
+    private io.nop.excel.chart.constants.ChartRadarStyle _radarStyle ;
+    
+    /**
+     *  
      * xml name: radius
      * 
      */
@@ -36,6 +43,13 @@ public abstract class _ChartRadarConfigModel extends io.nop.core.resource.compon
      * 
      */
     private java.lang.Double _startAngle ;
+    
+    /**
+     *  
+     * xml name: varyColors
+     * 
+     */
+    private java.lang.Boolean _varyColors ;
     
     /**
      * 
@@ -52,6 +66,25 @@ public abstract class _ChartRadarConfigModel extends io.nop.core.resource.compon
         checkAllowChange();
         
         this._endAngle = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: radarStyle
+     *  
+     */
+    
+    public io.nop.excel.chart.constants.ChartRadarStyle getRadarStyle(){
+      return _radarStyle;
+    }
+
+    
+    public void setRadarStyle(io.nop.excel.chart.constants.ChartRadarStyle value){
+        checkAllowChange();
+        
+        this._radarStyle = value;
            
     }
 
@@ -94,6 +127,25 @@ public abstract class _ChartRadarConfigModel extends io.nop.core.resource.compon
     }
 
     
+    /**
+     * 
+     * xml name: varyColors
+     *  
+     */
+    
+    public java.lang.Boolean getVaryColors(){
+      return _varyColors;
+    }
+
+    
+    public void setVaryColors(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._varyColors = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -110,8 +162,10 @@ public abstract class _ChartRadarConfigModel extends io.nop.core.resource.compon
         super.outputJson(out);
         
         out.putNotNull("endAngle",this.getEndAngle());
+        out.putNotNull("radarStyle",this.getRadarStyle());
         out.putNotNull("radius",this.getRadius());
         out.putNotNull("startAngle",this.getStartAngle());
+        out.putNotNull("varyColors",this.getVaryColors());
     }
 
     public ChartRadarConfigModel cloneInstance(){
@@ -124,8 +178,10 @@ public abstract class _ChartRadarConfigModel extends io.nop.core.resource.compon
         super.copyTo(instance);
         
         instance.setEndAngle(this.getEndAngle());
+        instance.setRadarStyle(this.getRadarStyle());
         instance.setRadius(this.getRadius());
         instance.setStartAngle(this.getStartAngle());
+        instance.setVaryColors(this.getVaryColors());
     }
 
     protected ChartRadarConfigModel newInstance(){

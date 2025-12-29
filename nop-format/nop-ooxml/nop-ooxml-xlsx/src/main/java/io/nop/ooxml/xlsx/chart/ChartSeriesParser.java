@@ -164,11 +164,17 @@ public class ChartSeriesParser {
 
         XNode txNode = serNode.childByTag("c:tx");
         if (txNode != null) {
+            String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(txNode);
+            if (!StringHelper.isEmpty(cellRef)) {
+                series.setNameCellRef(cellRef);
+            }
+            
+            // 也可以保留提取的文本作为备用
             String seriesName = ChartTextParser.INSTANCE.extractText(txNode);
             if (!StringHelper.isEmpty(seriesName)) {
                 series.setName(seriesName);
-                return;
             }
+            return;
         }
 
         // 如果没有找到名称，设置默认名称
@@ -381,7 +387,8 @@ public class ChartSeriesParser {
         // 应用基于索引的默认样式
         // if (series.getIndex() != null && styleProvider != null) {
         // TODO: 根据系列索引应用默认颜色和样式
-        //     LOG.debug("Applying index-based formatting for series index: {}", series.getIndex());
+        // LOG.debug("Applying index-based formatting for series index: {}",
+        // series.getIndex());
         // }
 
         // 解析系列特定的颜色变化
@@ -409,7 +416,8 @@ public class ChartSeriesParser {
     /**
      * 解析趋势线
      */
-    private List<ChartTrendLineModel> parseTrendLines(ChartSeriesModel series, XNode serNode, IChartStyleProvider styleProvider) {
+    private List<ChartTrendLineModel> parseTrendLines(ChartSeriesModel series, XNode serNode,
+            IChartStyleProvider styleProvider) {
         List<ChartTrendLineModel> trendLines = new ArrayList<>();
 
         for (XNode trendlineNode : serNode.childrenByTag("c:trendline")) {
@@ -422,7 +430,6 @@ public class ChartSeriesParser {
         if (!trendLines.isEmpty()) {
             series.setTrendLines(trendLines);
         }
-
 
         return trendLines;
     }

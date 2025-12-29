@@ -323,6 +323,9 @@ public class ChartAxisBuilder {
 
         ChartAxisScaleModel scale = axis.getScale();
         if (scale == null) {
+            // 即使没有scale配置，也要添加默认的orientation
+            XNode orientationNode = scalingNode.addChild("c:orientation");
+            orientationNode.setAttr("val", "minMax");
             return;
         }
 
@@ -347,6 +350,10 @@ public class ChartAxisBuilder {
         if (scale.getReverse() != null && scale.getReverse()) {
             XNode orientationNode = scalingNode.addChild("c:orientation");
             orientationNode.setAttr("val", "maxMin");
+        } else {
+            // 默认添加minMax方向
+            XNode orientationNode = scalingNode.addChild("c:orientation");
+            orientationNode.setAttr("val", "minMax");
         }
     }
 

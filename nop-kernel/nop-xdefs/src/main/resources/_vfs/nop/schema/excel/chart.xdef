@@ -435,6 +435,8 @@ Chart type specific configurations
         Radar chart specific settings
         -->
         <radarConfig radius="double-percent" startAngle="double-deg" endAngle="double-deg"
+                     radarStyle="enum:io.nop.excel.chart.constants.ChartRadarStyle"
+                     varyColors="boolean"
                      xdef:name="ChartRadarConfigModel"/>
 
         <!--

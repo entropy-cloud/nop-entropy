@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"
+              xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+              xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+
+    <c:date1904 val="0"/>
+
+    <c:roundedCorners val="0"/>
+
+    <c:lang val="zh-CN"/>
+
+    <mc:AlternateContent xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006">
+        <mc:Choice Requires="c14" xmlns:c14="http://schemas.microsoft.com/office/drawing/2007/8/2/chart">
+            <c14:style val="102"/>
+        </mc:Choice>
+        <mc:Fallback>
+            <c:style val="2"/>
+        </mc:Fallback>
+    </mc:AlternateContent>
+
+    <c:spPr>
+        <a:solidFill>
+            <a:srgbClr val="FFFFFF"/>
+        </a:solidFill>
+        <a:ln w="9525">
+            <a:solidFill>
+                <a:srgbClr val="D9D9D9"/>
+            </a:solidFill>
+            <a:round/>
+        </a:ln>
+    </c:spPr>
+
+    <c:txPr>
+        <a:bodyPr rot="0" spcFirstLastPara="1" vertOverflow="ellipsis" vert="horz" wrap="square" lIns="38100"
+                  tIns="19050" rIns="38100" bIns="19050" anchor="ctr" anchorCtr="1">
+            <a:spAutoFit/>
+        </a:bodyPr>
+        <a:lstStyle/>
+        <a:p>
+            <a:pPr>
+                <a:defRPr b="0" i="0" u="none" strike="noStrike" kern="1200" baseline="0">
+                    <a:latin typeface="+mn-lt"/>
+                    <a:ea typeface="+mn-ea"/>
+                    <a:cs typeface="+mn-cs"/>
+                </a:defRPr>
+            </a:pPr>
+            <a:endParaRPr lang="en-US"/>
+        </a:p>
+    </c:txPr>
+
+    <c:chart>
+        <c:autoTitleDeleted val="0"/>
+        <c:title>
+            <c:tx>
+                <c:rich>
+                    <a:bodyPr/>
+                    <a:lstStyle/>
+                    <a:p>
+                        <a:r>
+                            <a:rPr sz="1400" b="0" i="0" u="none" strike="noStrike" kern="1200" baseline="0">
+                                <a:solidFill>
+                                    <a:srgbClr val="595959"/>
+                                </a:solidFill>
+                                <a:latin typeface="+mn-lt"/>
+                                <a:ea typeface="+mn-ea"/>
+                                <a:cs typeface="+mn-cs"/>
+                            </a:rPr>
+                            <a:t>散点连线图</a:t>
+                        </a:r>
+                    </a:p>
+                </c:rich>
+            </c:tx>
+            <c:spPr>
+                <a:noFill/>
+                <a:ln/>
+            </c:spPr>
+            <c:txPr>
+                <a:bodyPr rot="0" spcFirstLastPara="1" vertOverflow="ellipsis" vert="horz" wrap="square" lIns="38100"
+                          tIns="19050" rIns="38100" bIns="19050" anchor="ctr" anchorCtr="1">
+                    <a:spAutoFit/>
+                </a:bodyPr>
+                <a:lstStyle/>
+                <a:p>
+                    <a:pPr>
+                        <a:defRPr sz="1400" b="0" i="0" u="none" strike="noStrike" kern="1200" baseline="0">
+                            <a:solidFill>
+                                <a:srgbClr val="595959"/>
+                            </a:solidFill>
+                            <a:latin typeface="+mn-lt"/>
+                            <a:ea typeface="+mn-ea"/>
+                            <a:cs typeface="+mn-cs"/>
+                        </a:defRPr>
+                    </a:pPr>
+                    <a:endParaRPr lang="en-US"/>
+                </a:p>
+            </c:txPr>
+        </c:title>
+        <c:plotVisOnly val="1"/>
+        <c:dispBlanksAs val="gap"/>
+        <c:showDLblsOverMax val="0"/>
+    </c:chart>
+</c:chartSpace>

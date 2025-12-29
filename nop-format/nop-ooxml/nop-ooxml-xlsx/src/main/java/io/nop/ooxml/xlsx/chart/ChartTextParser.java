@@ -30,14 +30,12 @@ public class ChartTextParser {
             return extractRichText(richNode);
         }
 
-        // 检查是否为简单文本
-        XNode strRefNode = textNode.childByTag("c:strRef");
-        if (strRefNode != null) {
-            return extractCellReference(strRefNode);
+        // 对 <c:v> 标签的处理
+        XNode valueNode = textNode.childByTag("c:v");
+        if (valueNode != null) {
+            return valueNode.getText();
         }
-
-        // 直接获取文本内容
-        return textNode.getText();
+        return null;
 
     }
 

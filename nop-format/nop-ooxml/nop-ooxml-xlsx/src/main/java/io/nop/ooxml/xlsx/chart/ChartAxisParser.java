@@ -359,7 +359,7 @@ public class ChartAxisParser {
 
             // 解析方向
             String orientation = ChartPropertyHelper.getChildVal(scalingNode, "c:orientation");
-            if ("maxMin".equals(orientation)) {
+             if ("maxMin".equals(orientation)) {
                 scale.setReverse(true);
             }
 

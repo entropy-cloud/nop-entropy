@@ -4,6 +4,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.chart.constants.ChartBarDirection;
 import io.nop.excel.chart.constants.ChartBarGrouping;
+import io.nop.excel.chart.constants.ChartRadarStyle;
 import io.nop.excel.chart.model.ChartAreaConfigModel;
 import io.nop.excel.chart.model.ChartBarConfigModel;
 import io.nop.excel.chart.model.ChartBubbleConfigModel;
@@ -370,7 +371,15 @@ public class ChartTypeConfigParser {
         // 解析雷达图样式
         String radarStyle = ChartPropertyHelper.getChildVal(radarNode, "c:radarStyle");
         if (!StringHelper.isEmpty(radarStyle)) {
+            radarConfig.setRadarStyle(ChartRadarStyle.fromValue(radarStyle));
             LOG.debug("Radar chart style: {}", radarStyle);
+        }
+
+        // 解析颜色变化
+        Boolean varyColors = ChartPropertyHelper.getChildBoolVal(radarNode, "c:varyColors");
+        if (varyColors != null) {
+            radarConfig.setVaryColors(varyColors);
+            LOG.debug("Radar chart vary colors: {}", varyColors);
         }
 
         // 解析起始角度

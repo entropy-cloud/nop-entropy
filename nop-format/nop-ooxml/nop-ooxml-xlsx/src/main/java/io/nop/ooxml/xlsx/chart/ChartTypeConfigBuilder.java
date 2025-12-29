@@ -300,8 +300,24 @@ public class ChartTypeConfigBuilder {
 
         XNode radarChartNode = XNode.make("c:radarChart");
 
+        // 构建雷达图样式
+        if (plotArea.getRadarConfig().getRadarStyle() != null) {
+            XNode radarStyleNode = radarChartNode.addChild("c:radarStyle");
+            radarStyleNode.setAttr("val", plotArea.getRadarConfig().getRadarStyle());
+        } else {
+            // 默认使用 filled 样式
+            XNode radarStyleNode = radarChartNode.addChild("c:radarStyle");
+            radarStyleNode.setAttr("val", "filled");
+        }
+
+        // 构建颜色变化
+        ChartPropertyHelper.setChildBoolVal(radarChartNode, "c:varyColors", plotArea.getRadarConfig().getVaryColors());
+
         // 构建系列数据
         buildSeriesForChartType(radarChartNode, plotArea);
+
+        // 构建坐标轴ID
+        buildAxisIds(radarChartNode, plotArea);
 
         return radarChartNode;
 
