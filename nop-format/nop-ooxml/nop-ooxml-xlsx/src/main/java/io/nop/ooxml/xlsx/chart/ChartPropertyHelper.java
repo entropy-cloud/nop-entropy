@@ -50,6 +50,10 @@ public class ChartPropertyHelper {
         childNode.setAttr("val", value);
     }
 
+    public static void setChildBoolVal(XNode node, String childTagName, Boolean value) {
+        setChildVal(node, childTagName, Boolean.TRUE.equals(value) ? "1" : "0");
+    }
+
     public static Boolean getChildBoolVal(XNode node, String childTagName) {
         String val = getChildVal(node, childTagName);
         return convertToBoolean(val);

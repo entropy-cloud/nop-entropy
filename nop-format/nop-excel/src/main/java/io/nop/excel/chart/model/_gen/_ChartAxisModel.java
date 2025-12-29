@@ -32,6 +32,20 @@ public abstract class _ChartAxisModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: crossBetween
+     * 
+     */
+    private io.nop.excel.chart.constants.ChartAxisCrossBetween _crossBetween ;
+    
+    /**
+     *  
+     * xml name: crosses
+     * 
+     */
+    private io.nop.excel.chart.constants.ChartAxisCrosses _crosses ;
+    
+    /**
+     *  
      * xml name: dataCellRef
      * 
      */
@@ -43,6 +57,13 @@ public abstract class _ChartAxisModel extends io.nop.core.resource.component.Abs
      * 
      */
     private java.lang.String _id ;
+    
+    /**
+     *  
+     * xml name: labelAlign
+     * 
+     */
+    private io.nop.excel.chart.constants.ChartLabelAlignment _labelAlign ;
     
     /**
      *  
@@ -182,6 +203,44 @@ public abstract class _ChartAxisModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: crossBetween
+     *  
+     */
+    
+    public io.nop.excel.chart.constants.ChartAxisCrossBetween getCrossBetween(){
+      return _crossBetween;
+    }
+
+    
+    public void setCrossBetween(io.nop.excel.chart.constants.ChartAxisCrossBetween value){
+        checkAllowChange();
+        
+        this._crossBetween = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: crosses
+     *  
+     */
+    
+    public io.nop.excel.chart.constants.ChartAxisCrosses getCrosses(){
+      return _crosses;
+    }
+
+    
+    public void setCrosses(io.nop.excel.chart.constants.ChartAxisCrosses value){
+        checkAllowChange();
+        
+        this._crosses = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: dataCellRef
      *  
      */
@@ -214,6 +273,25 @@ public abstract class _ChartAxisModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._id = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: labelAlign
+     *  
+     */
+    
+    public io.nop.excel.chart.constants.ChartLabelAlignment getLabelAlign(){
+      return _labelAlign;
+    }
+
+    
+    public void setLabelAlign(io.nop.excel.chart.constants.ChartLabelAlignment value){
+        checkAllowChange();
+        
+        this._labelAlign = value;
            
     }
 
@@ -505,8 +583,11 @@ public abstract class _ChartAxisModel extends io.nop.core.resource.component.Abs
         
         out.putNotNull("crossAt",this.getCrossAt());
         out.putNotNull("crossAxisId",this.getCrossAxisId());
+        out.putNotNull("crossBetween",this.getCrossBetween());
+        out.putNotNull("crosses",this.getCrosses());
         out.putNotNull("dataCellRef",this.getDataCellRef());
         out.putNotNull("id",this.getId());
+        out.putNotNull("labelAlign",this.getLabelAlign());
         out.putNotNull("lineStyle",this.getLineStyle());
         out.putNotNull("majorGrid",this.getMajorGrid());
         out.putNotNull("minorGrid",this.getMinorGrid());
@@ -533,8 +614,11 @@ public abstract class _ChartAxisModel extends io.nop.core.resource.component.Abs
         
         instance.setCrossAt(this.getCrossAt());
         instance.setCrossAxisId(this.getCrossAxisId());
+        instance.setCrossBetween(this.getCrossBetween());
+        instance.setCrosses(this.getCrosses());
         instance.setDataCellRef(this.getDataCellRef());
         instance.setId(this.getId());
+        instance.setLabelAlign(this.getLabelAlign());
         instance.setLineStyle(this.getLineStyle());
         instance.setMajorGrid(this.getMajorGrid());
         instance.setMinorGrid(this.getMinorGrid());

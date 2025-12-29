@@ -99,16 +99,26 @@ public class DrawingChartBuilder {
     /**
      * 添加样式设置
      */
-    private void addStyleSettings(XNode chartSpaceNode, ChartModel chartModel) {
+    protected void addStyleSettings(XNode chartSpaceNode, ChartModel chartModel) {
+        // 创建 mc:AlternateContent 节点
+        XNode alternateContentNode = chartSpaceNode.addChild("mc:AlternateContent");
+        alternateContentNode.setAttr("xmlns:mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
 
-        String styleId = chartModel.getStyleId();
-        if (StringHelper.isEmpty(styleId)) {
-            styleId = "2"; // 默认样式ID
-        }
+        // 创建 mc:Choice 节点
+        XNode choiceNode = alternateContentNode.addChild("mc:Choice");
+        choiceNode.setAttr("Requires", "c14");
+        choiceNode.setAttr("xmlns:c14", "http://schemas.microsoft.com/office/drawing/2007/8/2/chart");
 
-        XNode styleNode = chartSpaceNode.addChild("c:style");
-        styleNode.setAttr("val", styleId);
+        // 创建 c14:style 节点
+        XNode c14StyleNode = choiceNode.addChild("c14:style");
+        c14StyleNode.setAttr("val", "102");
 
+        // 创建 mc:Fallback 节点
+        XNode fallbackNode = alternateContentNode.addChild("mc:Fallback");
+
+        // 创建 c:style 节点
+        XNode cStyleNode = fallbackNode.addChild("c:style");
+        cStyleNode.setAttr("val", "2");
     }
 
     /**
@@ -134,11 +144,12 @@ public class DrawingChartBuilder {
      * 构建标题
      */
     private void buildTitle(XNode chartNode, ChartTitleModel title) {
-        if (title == null || !title.isVisible()) {
-            LOG.debug("Title is null or not visible, skipping title generation");
+        if (title == null) {
+            ChartPropertyHelper.setChildVal(chartNode, "c:autoTitleDeleted", "1");
             return;
         }
 
+        ChartPropertyHelper.setChildVal(chartNode, "c:autoTitleDeleted", title.isVisible() ? "0" : "1");
 
         XNode titleNode = ChartTitleBuilder.INSTANCE.buildTitle(title);
         if (titleNode != null) {
@@ -190,7 +201,17 @@ public class DrawingChartBuilder {
      * 添加基本属性
      */
     private void addBasicProperties(XNode chartNode, ChartModel chartModel) {
+        if(chartModel.getPlotVisOnly() != null){
+            ChartPropertyHelper.setChildBoolVal(chartNode, "c:plotVisOnly", chartModel.getPlotVisOnly());
+        }
+        if (chartModel.getDispBlanksAs() != null) {
+            ChartPropertyHelper.setChildVal(chartNode, "c:dispBlanksAs", chartModel.getDispBlanksAs().toString());
+        }
 
+        if (chartModel.getShowLabelsOverMax() != null) {
+            ChartPropertyHelper.setChildBoolVal(chartNode, "c:showDLblsOverMax",
+                    chartModel.getShowLabelsOverMax());
+        }
     }
 
     /**
@@ -250,40 +271,6 @@ public class DrawingChartBuilder {
      */
     public XNode buildChart(ChartModel chartModel) {
         return build(chartModel);
-    }
-
-    /**
-     * 验证图表模型的完整性
-     *
-     * @param chartModel 图表模型
-     * @return 验证结果
-     */
-    public boolean validateChartModel(ChartModel chartModel) {
-        if (chartModel == null) {
-            LOG.warn("Chart model is null");
-            return false;
-        }
-
-
-        // 检查基本属性
-        if (chartModel.getType() == null) {
-            LOG.warn("Chart type is not specified");
-        }
-
-        // 检查绘图区域
-        if (chartModel.getPlotArea() == null) {
-            LOG.warn("Plot area is not specified");
-            return false;
-        }
-
-        // 检查系列数据
-        if (chartModel.getPlotArea().getSeriesList() == null ||
-                chartModel.getPlotArea().getSeriesList().isEmpty()) {
-            LOG.warn("No series data found in plot area");
-        }
-
-        return true;
-
     }
 
     /**

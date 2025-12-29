@@ -180,7 +180,7 @@ public class ChartTextStyleParser {
         // 解析删除线
         String strike = rPrNode.attrText("strike");
         if (strike != null) {
-            boolean bStrike = strike.equals("noStrike");
+            boolean bStrike = !strike.equals("noStrike");
             font.setStrikeout(bStrike);
         }
     }

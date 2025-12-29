@@ -111,6 +111,13 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: plotVisOnly
+     * 
+     */
+    private java.lang.Boolean _plotVisOnly ;
+    
+    /**
+     *  
      * xml name: roundedCorners
      * 
      */
@@ -395,6 +402,25 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
+     * xml name: plotVisOnly
+     *  
+     */
+    
+    public java.lang.Boolean getPlotVisOnly(){
+      return _plotVisOnly;
+    }
+
+    
+    public void setPlotVisOnly(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._plotVisOnly = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: roundedCorners
      *  
      */
@@ -571,6 +597,7 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
         out.putNotNull("manualLayout",this.getManualLayout());
         out.putNotNull("name",this.getName());
         out.putNotNull("plotArea",this.getPlotArea());
+        out.putNotNull("plotVisOnly",this.getPlotVisOnly());
         out.putNotNull("roundedCorners",this.getRoundedCorners());
         out.putNotNull("showLabelsOverMax",this.getShowLabelsOverMax());
         out.putNotNull("style",this.getStyle());
@@ -601,6 +628,7 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
         instance.setManualLayout(this.getManualLayout());
         instance.setName(this.getName());
         instance.setPlotArea(this.getPlotArea());
+        instance.setPlotVisOnly(this.getPlotVisOnly());
         instance.setRoundedCorners(this.getRoundedCorners());
         instance.setShowLabelsOverMax(this.getShowLabelsOverMax());
         instance.setStyle(this.getStyle());

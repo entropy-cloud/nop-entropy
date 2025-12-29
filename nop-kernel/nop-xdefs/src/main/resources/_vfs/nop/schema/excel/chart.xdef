@@ -14,7 +14,7 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
        name="string" type="enum:io.nop.excel.chart.constants.ChartType"
        width="double-pt" height="double-pt" autoFit="boolean=true"
        dispBlanksAs="enum:io.nop.excel.chart.constants.ChartDispBlankAs"
-       showLabelsOverMax="boolean"
+       showLabelsOverMax="boolean" plotVisOnly="boolean"
        roundedCorners="boolean"
        styleId="string" lang="string"
 >
@@ -279,6 +279,9 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
             <axis type="enum:io.nop.excel.chart.constants.ChartAxisType"
                   multiLevel="boolean" primary="!boolean=true"
                   crossAxisId="string" crossAt="double" visible="!boolean=true"
+                  crosses="enum:io.nop.excel.chart.constants.ChartAxisCrosses"
+                  crossBetween="enum:io.nop.excel.chart.constants.ChartAxisCrossBetween"
+                  labelAlign="enum:io.nop.excel.chart.constants.ChartLabelAlignment"
                   position="enum:io.nop.excel.chart.constants.ChartAxisPosition"
                   dataCellRef="string"
                   id="!string" xdef:name="ChartAxisModel">

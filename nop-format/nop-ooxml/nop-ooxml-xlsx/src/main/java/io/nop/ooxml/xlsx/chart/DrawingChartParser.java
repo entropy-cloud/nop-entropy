@@ -2,6 +2,7 @@ package io.nop.ooxml.xlsx.chart;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
+import io.nop.excel.chart.constants.ChartDispBlankAs;
 import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartLegendModel;
 import io.nop.excel.chart.model.ChartModel;
@@ -101,14 +102,11 @@ public class DrawingChartParser {
             parseChartType(chart, plotAreaNode);
         }
 
-        String roundedCorners = chartNode.attrText("roundedCorners");
-        if (!StringHelper.isEmpty(roundedCorners)) {
-            Boolean roundedCornersBool = ChartPropertyHelper.convertToBoolean(roundedCorners);
-            if (roundedCornersBool != null) {
-                chart.setRoundedCorners(roundedCornersBool);
-            }
-        }
+        chart.setPlotVisOnly(ChartPropertyHelper.getChildBoolVal(chartNode, "c:plotVisOnly"));
 
+        chart.setDispBlanksAs(ChartDispBlankAs.fromValue(ChartPropertyHelper.getChildVal(chartNode, "c:dispBlanksAs")));
+
+        chart.setShowLabelsOverMax(ChartPropertyHelper.getChildBoolVal(chartNode, "c:showDLblsOverMax"));
     }
 
     private void parseChartType(ChartModel chart, XNode plotAreaNode) {

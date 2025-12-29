@@ -9,9 +9,17 @@
 
     <c:lang val="zh-CN"/>
 
-    <c:style val="2"/>
+    <mc:AlternateContent xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006">
+        <mc:Choice Requires="c14" xmlns:c14="http://schemas.microsoft.com/office/drawing/2007/8/2/chart">
+            <c14:style val="102"/>
+        </mc:Choice>
+        <mc:Fallback>
+            <c:style val="2"/>
+        </mc:Fallback>
+    </mc:AlternateContent>
 
     <c:chart>
+        <c:autoTitleDeleted val="1"/>
         <c:plotArea>
             <c:layout>
                 <c:manualLayout>
@@ -57,7 +65,7 @@
                             <a:lstStyle/>
                             <a:p>
                                 <a:pPr>
-                                    <a:defRPr sz="900" b="1" i="0" u="none" strike="sngStrike" kern="1200" baseline="0">
+                                    <a:defRPr sz="900" b="1" i="0" u="none" strike="noStrike" kern="1200" baseline="0">
                                         <a:solidFill>
                                             <a:srgbClr val="FFFFFF"/>
                                         </a:solidFill>
@@ -114,7 +122,7 @@
                             <a:lstStyle/>
                             <a:p>
                                 <a:pPr>
-                                    <a:defRPr sz="900" b="1" i="0" u="none" strike="sngStrike" kern="1200" baseline="0">
+                                    <a:defRPr sz="900" b="1" i="0" u="none" strike="noStrike" kern="1200" baseline="0">
                                         <a:solidFill>
                                             <a:srgbClr val="FFFFFF"/>
                                         </a:solidFill>
@@ -149,7 +157,7 @@
                 <c:axId val="1004634784"/>
                 <c:axPos val="b"/>
                 <c:crossAx val="1004635264"/>
-                <c:numFmt formatCode="General" sourceLinked="0"/>
+                <c:numFmt formatCode="General" sourceLinked="1"/>
                 <c:majorTickMark val="none"/>
                 <c:minorTickMark val="none"/>
                 <c:tickLblPos val="nextTo"/>
@@ -170,7 +178,7 @@
                     <a:lstStyle/>
                     <a:p>
                         <a:pPr>
-                            <a:defRPr sz="900" b="0" i="0" u="none" strike="sngStrike" kern="1200" baseline="0">
+                            <a:defRPr sz="900" b="0" i="0" u="none" strike="noStrike" kern="1200" baseline="0">
                                 <a:solidFill>
                                     <a:srgbClr val="000000"/>
                                 </a:solidFill>
@@ -189,7 +197,7 @@
                 <c:delete val="1"/>
                 <c:axPos val="l"/>
                 <c:crossAx val="1004634784"/>
-                <c:numFmt formatCode="General" sourceLinked="0"/>
+                <c:numFmt formatCode="General" sourceLinked="1"/>
                 <c:majorTickMark val="none"/>
                 <c:minorTickMark val="none"/>
                 <c:tickLblPos val="nextTo"/>
@@ -205,5 +213,8 @@
                 <a:ln w="25400"/>
             </c:spPr>
         </c:plotArea>
+        <c:plotVisOnly val="1"/>
+        <c:dispBlanksAs val="gap"/>
+        <c:showDLblsOverMax val="0"/>
     </c:chart>
 </c:chartSpace>
