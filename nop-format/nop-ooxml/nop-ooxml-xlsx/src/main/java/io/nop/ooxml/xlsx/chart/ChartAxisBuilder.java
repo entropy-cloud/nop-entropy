@@ -9,6 +9,7 @@ package io.nop.ooxml.xlsx.chart;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.model.table.CellPosition;
 import io.nop.excel.chart.constants.ChartAxisPosition;
 import io.nop.excel.chart.constants.ChartAxisTickLabelPosition;
 import io.nop.excel.chart.constants.ChartAxisType;
@@ -75,6 +76,12 @@ public class ChartAxisBuilder {
         // 构建比例尺
         buildScale(axisNode, axis);
 
+        // 构建轴标题
+        buildAxisTitle(axisNode, axis);
+
+        // 构建其他缺失的属性
+        buildAdditionalProperties(axisNode, axis);
+
         return axisNode;
     }
 
@@ -138,6 +145,18 @@ public class ChartAxisBuilder {
         if (axis.getCrossAt() != null) {
             XNode crossAtNode = axisNode.addChild("c:crossesAt");
             crossAtNode.setAttr("val", axis.getCrossAt().toString());
+        }
+
+        // 构建crosses属性
+        if (axis.getCrosses() != null) {
+            XNode crossesNode = axisNode.addChild("c:crosses");
+            crossesNode.setAttr("val", axis.getCrosses().value());
+        }
+
+        // 构建crossBetween属性
+        if (axis.getCrossBetween() != null) {
+            XNode crossBetweenNode = axisNode.addChild("c:crossBetween");
+            crossBetweenNode.setAttr("val", axis.getCrossBetween().value());
         }
     }
 
@@ -207,20 +226,7 @@ public class ChartAxisBuilder {
         if (position == null) {
             return "nextTo";
         }
-
-        switch (position) {
-            case NONE:
-                return "none";
-            case LOW:
-                return "low";
-            case HIGH:
-                return "high";
-            case NEXT_TO:
-                return "nextTo";
-            default:
-                LOG.warn("Unknown tick label position: {}, using default nextTo", position);
-                return "nextTo";
-        }
+        return position.value();
     }
 
     /**
@@ -368,5 +374,68 @@ public class ChartAxisBuilder {
         axis.setCrossAxisId(crossAxisId);
 
         return buildAxis(axis);
+    }
+
+    /**
+     * 构建轴标题
+     */
+    private void buildAxisTitle(XNode axisNode, ChartAxisModel axis) {
+        io.nop.excel.chart.model.ChartAxisTitleModel title = axis.getTitle();
+        if (title == null) {
+            return;
+        }
+
+        XNode titleNode = axisNode.addChild("c:title");
+
+        // 构建标题文本
+        if (!StringHelper.isEmpty(title.getText()) || !StringHelper.isEmpty(title.getTextCellRef())) {
+            XNode txNode = titleNode.addChild("c:tx");
+
+            XNode textNode = ChartTextBuilder.INSTANCE.buildText(title.getText(),title.getTextCellRef(), title.getTitleFont());
+            txNode.appendChild(textNode);
+        }
+
+        //ChartPropertyHelper.setChildBoolVal(titleNode, "c:overlay", title.getOverlay());
+
+        // 构建标题样式
+        if (title.getShapeStyle() != null) {
+            XNode spPrNode = ChartShapeStyleBuilder.INSTANCE.buildShapeStyle(title.getShapeStyle());
+            if (spPrNode != null) {
+                titleNode.appendChild(spPrNode.withTagName("c:spPr"));
+            }
+        }
+
+        // 构建标题文本样式
+        if (title.getTextStyle() != null) {
+            XNode txPrNode = ChartTextStyleBuilder.INSTANCE.buildTextStyle(title.getTextStyle());
+            if (txPrNode != null) {
+                titleNode.appendChild(txPrNode.withTagName("c:txPr"));
+            }
+        }
+    }
+
+    /**
+     * 构建其他缺失的属性
+     */
+    private void buildAdditionalProperties(XNode axisNode, ChartAxisModel axis) {
+        // 构建multiLevel属性 (对于分类轴)
+        if (axis.getType() == ChartAxisType.CATEGORY && axis.getMultiLevel() != null && axis.getMultiLevel()) {
+            XNode multiLevelNode = axisNode.addChild("c:multiLvlLbl");
+            multiLevelNode.setAttr("val", "1");
+        }
+
+        // 构建dataCellRef属性
+        if (!StringHelper.isEmpty(axis.getDataCellRef()) && !CellPosition.NONE_STRING.equals(axis.getDataCellRef())) {
+            XNode catNode = axisNode.addChild("c:cat");
+            XNode strRefNode = catNode.addChild("c:strRef");
+            XNode fNode = strRefNode.addChild("c:f");
+            fNode.content(axis.getDataCellRef());
+        }
+
+        // 构建labelAlign属性
+        if (axis.getLabelAlign() != null) {
+            XNode labelAlignNode = axisNode.addChild("c:lblAlgn");
+            labelAlignNode.setAttr("val", axis.getLabelAlign().value());
+        }
     }
 }

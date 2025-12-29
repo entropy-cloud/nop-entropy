@@ -71,11 +71,7 @@ public class ChartTitleBuilder {
 
         // 使用ChartTextBuilder自动选择合适的文本类型
         // 从textStyle中提取字体信息
-        ExcelFont font = null;
-        ChartTextStyleModel textStyle = title.getTextStyle();
-        if (textStyle != null && textStyle.getFont() != null) {
-            font = textStyle.getFont();
-        }
+        ExcelFont font = title.getTitleFont();
 
         XNode textNode = ChartTextBuilder.INSTANCE.buildText(title.getText(), title.getTextCellRef(), font);
         if (textNode != null) {

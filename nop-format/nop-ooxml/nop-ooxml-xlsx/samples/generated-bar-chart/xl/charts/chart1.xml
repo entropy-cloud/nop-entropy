@@ -157,6 +157,7 @@
                 <c:axId val="1004634784"/>
                 <c:axPos val="b"/>
                 <c:crossAx val="1004635264"/>
+                <c:crosses val="autoZero"/>
                 <c:numFmt formatCode="General" sourceLinked="1"/>
                 <c:majorTickMark val="none"/>
                 <c:minorTickMark val="none"/>
@@ -191,12 +192,60 @@
                     </a:p>
                 </c:txPr>
                 <c:scaling/>
+                <c:title>
+                    <c:tx>
+                        <c:rich>
+                            <a:bodyPr/>
+                            <a:lstStyle/>
+                            <a:p>
+                                <a:r>
+                                    <a:rPr sz="900" b="1" i="0" u="none" strike="noStrike" kern="1200" baseline="0">
+                                        <a:solidFill>
+                                            <a:srgbClr val="000000"/>
+                                        </a:solidFill>
+                                        <a:latin typeface="+mn-lt"/>
+                                        <a:ea typeface="+mn-ea"/>
+                                        <a:cs typeface="+mn-cs"/>
+                                    </a:rPr>
+                                    <a:t>X数据</a:t>
+                                </a:r>
+                            </a:p>
+                        </c:rich>
+                    </c:tx>
+                    <c:spPr>
+                        <a:noFill/>
+                        <a:ln/>
+                    </c:spPr>
+                    <c:txPr>
+                        <a:bodyPr rot="0" spcFirstLastPara="1" vertOverflow="ellipsis" vert="horz" wrap="square"
+                                  lIns="38100" tIns="19050" rIns="38100" bIns="19050" anchor="ctr" anchorCtr="1">
+                            <a:spAutoFit/>
+                        </a:bodyPr>
+                        <a:lstStyle/>
+                        <a:p>
+                            <a:pPr>
+                                <a:defRPr sz="900" b="1" i="0" u="none" strike="noStrike" kern="1200" baseline="0">
+                                    <a:solidFill>
+                                        <a:srgbClr val="000000"/>
+                                    </a:solidFill>
+                                    <a:latin typeface="+mn-lt"/>
+                                    <a:ea typeface="+mn-ea"/>
+                                    <a:cs typeface="+mn-cs"/>
+                                </a:defRPr>
+                            </a:pPr>
+                            <a:endParaRPr lang="en-US"/>
+                        </a:p>
+                    </c:txPr>
+                </c:title>
+                <c:lblAlgn val="ctr"/>
             </c:catAx>
             <c:valAx>
                 <c:axId val="1004635264"/>
                 <c:delete val="1"/>
                 <c:axPos val="l"/>
                 <c:crossAx val="1004634784"/>
+                <c:crosses val="autoZero"/>
+                <c:crossBetween val="between"/>
                 <c:numFmt formatCode="General" sourceLinked="1"/>
                 <c:majorTickMark val="none"/>
                 <c:minorTickMark val="none"/>
@@ -207,6 +256,51 @@
                     </c:spPr>
                 </c:majorGridlines>
                 <c:scaling/>
+                <c:title>
+                    <c:tx>
+                        <c:rich>
+                            <a:bodyPr/>
+                            <a:lstStyle/>
+                            <a:p>
+                                <a:r>
+                                    <a:rPr sz="900" b="1" i="0" u="none" strike="noStrike" kern="1200" baseline="0">
+                                        <a:solidFill>
+                                            <a:srgbClr val="000000"/>
+                                        </a:solidFill>
+                                        <a:latin typeface="+mn-lt"/>
+                                        <a:ea typeface="+mn-ea"/>
+                                        <a:cs typeface="+mn-cs"/>
+                                    </a:rPr>
+                                    <a:t>Y数据</a:t>
+                                </a:r>
+                            </a:p>
+                        </c:rich>
+                    </c:tx>
+                    <c:spPr>
+                        <a:noFill/>
+                        <a:ln/>
+                    </c:spPr>
+                    <c:txPr>
+                        <a:bodyPr rot="0" spcFirstLastPara="1" vertOverflow="ellipsis" vert="horz" wrap="square"
+                                  lIns="38100" tIns="19050" rIns="38100" bIns="19050" anchor="ctr" anchorCtr="1">
+                            <a:spAutoFit/>
+                        </a:bodyPr>
+                        <a:lstStyle/>
+                        <a:p>
+                            <a:pPr>
+                                <a:defRPr sz="900" b="1" i="0" u="none" strike="noStrike" kern="1200" baseline="0">
+                                    <a:solidFill>
+                                        <a:srgbClr val="000000"/>
+                                    </a:solidFill>
+                                    <a:latin typeface="+mn-lt"/>
+                                    <a:ea typeface="+mn-ea"/>
+                                    <a:cs typeface="+mn-cs"/>
+                                </a:defRPr>
+                            </a:pPr>
+                            <a:endParaRPr lang="en-US"/>
+                        </a:p>
+                    </c:txPr>
+                </c:title>
             </c:valAx>
             <c:spPr>
                 <a:noFill/>

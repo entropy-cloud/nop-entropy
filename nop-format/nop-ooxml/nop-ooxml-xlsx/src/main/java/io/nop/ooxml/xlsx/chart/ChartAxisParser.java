@@ -2,6 +2,8 @@ package io.nop.ooxml.xlsx.chart;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
+import io.nop.excel.chart.constants.ChartAxisCrossBetween;
+import io.nop.excel.chart.constants.ChartAxisCrosses;
 import io.nop.excel.chart.constants.ChartAxisPosition;
 import io.nop.excel.chart.constants.ChartAxisTickLabelPosition;
 import io.nop.excel.chart.constants.ChartAxisType;
@@ -59,6 +61,12 @@ public class ChartAxisParser {
 
         // 解析比例尺
         parseScale(axis, axisNode);
+
+        // 解析轴标题
+        parseAxisTitle(axis, axisNode, styleProvider);
+
+        // 解析其他缺失的属性
+        parseAdditionalProperties(axis, axisNode);
 
         return axis;
     }
@@ -135,27 +143,25 @@ public class ChartAxisParser {
         if (crossAtValue != null) {
             axis.setCrossAt(crossAtValue);
         }
+
+        // 解析crosses属性
+        String crosses = ChartPropertyHelper.getChildVal(axisNode, "c:crosses");
+        if (crosses != null) {
+            axis.setCrosses(ChartAxisCrosses.fromValue(crosses));
+        }
+
+        // 解析crossBetween属性
+        String crossBetween = ChartPropertyHelper.getChildVal(axisNode, "c:crossBetween");
+        if (crossBetween != null) {
+            axis.setCrossBetween(ChartAxisCrossBetween.fromValue(crossBetween));
+        }
     }
 
     /**
      * 映射坐标轴位置
      */
     private ChartAxisPosition mapAxisPosition(String position) {
-        if (StringHelper.isEmpty(position)) return null;
-
-        switch (position.toLowerCase()) {
-            case "b":
-                return ChartAxisPosition.BOTTOM;
-            case "l":
-                return ChartAxisPosition.LEFT;
-            case "r":
-                return ChartAxisPosition.RIGHT;
-            case "t":
-                return ChartAxisPosition.TOP;
-            default:
-                LOG.warn("Unknown axis position: {}, using default BOTTOM", position);
-                return ChartAxisPosition.BOTTOM;
-        }
+        return ChartAxisPosition.fromValue(position);
     }
 
     /**
@@ -258,21 +264,7 @@ public class ChartAxisParser {
      * 映射刻度标签位置
      */
     private ChartAxisTickLabelPosition mapTickLabelPosition(String position) {
-        if (StringHelper.isEmpty(position)) return null;
-
-        switch (position.toLowerCase()) {
-            case "none":
-                return ChartAxisTickLabelPosition.NONE;
-            case "low":
-                return ChartAxisTickLabelPosition.LOW;
-            case "high":
-                return ChartAxisTickLabelPosition.HIGH;
-            case "nextto":
-                return ChartAxisTickLabelPosition.NEXT_TO;
-            default:
-                LOG.warn("Unknown tick label position: {}, using default NEXT_TO", position);
-                return ChartAxisTickLabelPosition.NEXT_TO;
-        }
+        return ChartAxisTickLabelPosition.fromValue(position);
     }
 
     /**
@@ -372,6 +364,122 @@ public class ChartAxisParser {
             }
 
             axis.setScale(scale);
+        }
+    }
+
+    /**
+     * 解析轴标题
+     */
+    private void parseAxisTitle(ChartAxisModel axis, XNode axisNode, IChartStyleProvider styleProvider) {
+        XNode titleNode = axisNode.childByTag("c:title");
+        if (titleNode != null) {
+            io.nop.excel.chart.model.ChartAxisTitleModel title = new io.nop.excel.chart.model.ChartAxisTitleModel();
+
+            // 解析标题文本
+            XNode txNode = titleNode.childByTag("c:tx");
+            if (txNode != null) {
+                // 使用ChartTextParser提取文本
+                String titleText = ChartTextParser.INSTANCE.extractText(txNode);
+                if (!StringHelper.isEmpty(titleText)) {
+                    title.setText(titleText);
+                }
+
+                // 提取单元格引用
+                String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(txNode);
+                if (!StringHelper.isEmpty(cellRef)) {
+                    title.setTextCellRef(cellRef);
+                }
+            }
+
+            // 解析标题可见性
+            Boolean visible = ChartPropertyHelper.getChildBoolVal(titleNode, "c:overlay");
+            if (visible != null) {
+                title.setVisible(!visible); // overlay为true表示隐藏
+            } else {
+                title.setVisible(true); // 默认可见
+            }
+
+            // 解析标题样式
+            XNode spPrNode = titleNode.childByTag("c:spPr");
+            if (spPrNode != null) {
+                ChartShapeStyleModel shapeStyle = ChartShapeStyleParser.INSTANCE.parseShapeStyle(spPrNode, styleProvider);
+                if (shapeStyle != null) {
+                    title.setShapeStyle(shapeStyle);
+                }
+            }
+
+            // 解析标题文本样式
+            XNode txPrNode = titleNode.childByTag("c:txPr");
+            if (txPrNode != null) {
+                ChartTextStyleModel textStyle = ChartTextStyleParser.INSTANCE.parseTextStyle(txPrNode, styleProvider);
+                if (textStyle != null) {
+                    title.setTextStyle(textStyle);
+                }
+            }
+
+            axis.setTitle(title);
+        }
+    }
+
+    /**
+     * 从rich文本节点中提取纯文本
+     */
+    private String extractTextFromRich(XNode richNode) {
+        StringBuilder text = new StringBuilder();
+        XNode bodyPrNode = richNode.childByTag("a:bodyPr");
+        XNode lstStyleNode = richNode.childByTag("a:lstStyle");
+
+        for (XNode pNode : richNode.childrenByTag("a:p")) {
+            for (XNode rNode : pNode.childrenByTag("a:r")) {
+                XNode tNode = rNode.childByTag("a:t");
+                if (tNode != null && tNode.contentText() != null) {
+                    text.append(tNode.contentText());
+                }
+            }
+        }
+
+        return text.toString();
+    }
+
+    /**
+     * 解析其他缺失的属性
+     */
+    private void parseAdditionalProperties(ChartAxisModel axis, XNode axisNode) {
+        // 解析multiLevel属性 (对于分类轴)
+        if (axis.getType() == ChartAxisType.CATEGORY) {
+            Boolean multiLevel = ChartPropertyHelper.getChildBoolVal(axisNode, "c:multiLvlLbl");
+            if (multiLevel != null) {
+                axis.setMultiLevel(multiLevel);
+            }
+        }
+
+        // 解析primary属性 (通过axPos判断是否为主轴)
+        if (axis.getPosition() != null) {
+            boolean isPrimary = (axis.getPosition() == ChartAxisPosition.BOTTOM ||
+                    axis.getPosition() == ChartAxisPosition.LEFT);
+            axis.setPrimary(isPrimary);
+        }
+
+        // 解析dataCellRef属性
+        XNode catNode = axisNode.childByTag("c:cat");
+        if (catNode != null) {
+            XNode strRefNode = catNode.childByTag("c:strRef");
+            if (strRefNode != null) {
+                String cellRef = strRefNode.childContentText("c:f");
+                if (!StringHelper.isEmpty(cellRef)) {
+                    axis.setDataCellRef(cellRef);
+                }
+            }
+        }
+
+        // 解析labelAlign属性
+        String labelAlign = ChartPropertyHelper.getChildVal(axisNode, "c:lblAlgn");
+        if (!StringHelper.isEmpty(labelAlign)) {
+            try {
+                axis.setLabelAlign(ChartLabelAlignment.fromValue(labelAlign));
+            } catch (Exception e) {
+                LOG.warn("Unknown labelAlign value: {}", labelAlign);
+            }
         }
     }
 }
