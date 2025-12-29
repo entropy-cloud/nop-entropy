@@ -54,7 +54,7 @@ public class ColorModificationEngine {
         }
 
         // 使用解析出的基础颜色，如果有的话
-        String workingColor = !StringHelper.isEmpty(colorInfo.baseColor) ? colorInfo.baseColor : baseColor;
+        String workingColor = baseColor;
 
         // 转换为RGB颜色对象进行处理
         Color color = parseColor(workingColor);

@@ -3,6 +3,7 @@ package io.nop.ooxml.xlsx.chart;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.chart.constants.ChartFillPatternType;
+import io.nop.excel.chart.constants.ChartGradientDirection;
 import io.nop.excel.chart.constants.ChartLineStyle;
 import io.nop.excel.chart.model.ChartBorderModel;
 import io.nop.excel.chart.model.ChartFillModel;
@@ -141,19 +142,22 @@ public class ChartShapeStyleBuilder {
         XNode gradFillNode = spPrNode.addChild("a:gradFill");
 
         // 构建渐变停止点
-        buildGradientStops(gradFillNode, gradient);
+        buildGradientStops(gradFillNode, gradient, fill.getOpacity());
 
-        // 构建渐变方向
+        // 构建渐变方向 - 使用新的枚举
         buildGradientDirection(gradFillNode, gradient);
 
-        LOG.debug("Built gradient fill");
+        // 添加平铺矩形
+        gradFillNode.addChild("a:tileRect");
+
+        LOG.debug("Built gradient fill with direction: {}", gradient.getDirection());
         return true;
     }
 
     /**
      * 构建渐变停止点
      */
-    private void buildGradientStops(XNode gradFillNode, ChartGradientModel gradient) {
+    private void buildGradientStops(XNode gradFillNode, ChartGradientModel gradient, Double opacity) {
         XNode gsLstNode = gradFillNode.addChild("a:gsLst");
 
         // 构建开始颜色停止点
@@ -162,6 +166,9 @@ public class ChartShapeStyleBuilder {
             XNode startGsNode = gsLstNode.addChild("a:gs");
             startGsNode.setAttr("pos", "0");
             buildColor(startGsNode, startColor);
+
+            // 为开始颜色添加透明度
+            buildOpacity(startGsNode, opacity);
         }
 
         // 构建结束颜色停止点
@@ -170,39 +177,80 @@ public class ChartShapeStyleBuilder {
             XNode endGsNode = gsLstNode.addChild("a:gs");
             endGsNode.setAttr("pos", "100000");
             buildColor(endGsNode, endColor);
+
+            // 为结束颜色添加透明度
+            buildOpacity(endGsNode, opacity);
         }
     }
 
     /**
-     * 构建渐变方向
+     * 构建渐变方向 - 重构版本
      */
     private void buildGradientDirection(XNode gradFillNode, ChartGradientModel gradient) {
-        String direction = gradient.getDirection();
+        ChartGradientDirection direction = gradient.getDirection();
+        if (direction == null) {
+            // 默认使用水平渐变
+            direction = ChartGradientDirection.HORIZONTAL;
+        }
 
-        if ("radial".equals(direction)) {
-            // 径向渐变
-            gradFillNode.addChild("a:rad");
-        } else if (direction != null && direction.startsWith("path_")) {
-            // 路径渐变
-            XNode pathNode = gradFillNode.addChild("a:path");
-            String pathType = direction.substring(5); // 去掉"path_"前缀
-            pathNode.setAttr("path", pathType);
-        } else {
-            // 线性渐变（默认）
+        if (direction.isLinear()) {
+            // 线性渐变
             XNode linNode = gradFillNode.addChild("a:lin");
 
-            // 设置角度
-            Double angle = gradient.getAngle();
-            if (angle != null) {
-                // 转换为OOXML角度单位（1/60000度）
-                String ooxmlAngleStr = ChartPropertyHelper.degreesToOoxmlAngleString(angle);
-                linNode.setAttr("ang", ooxmlAngleStr);
+            // 计算实际使用的OOXML角度
+            Double userAngle = gradient.getAngle();
+            int ooxmlAngle = direction.calculateOoxmlAngle(userAngle);
+
+            if (ooxmlAngle >= 0) { // 有效角度
+                linNode.setAttr("ang", String.valueOf(ooxmlAngle));
             }
 
             // 设置缩放标志
-            if ("scaled".equals(direction)) {
-                linNode.setAttr("scaled", "1");
+            if (userAngle != null && direction == ChartGradientDirection.CUSTOM) {
+                linNode.setAttr("scaled", "0");
             }
+        } else if (direction.isPath()) {
+            // 路径渐变
+            XNode pathNode = gradFillNode.addChild("a:path");
+            pathNode.setAttr("path", direction.getPathType());
+
+            // 为路径渐变添加 fillToRect
+            buildPathFillToRect(pathNode, direction);
+        } else {
+            LOG.warn("Unknown gradient direction: {}, defaulting to horizontal", direction);
+            // 默认线性渐变
+            XNode linNode = gradFillNode.addChild("a:lin");
+            linNode.setAttr("ang", "0");
+        }
+    }
+
+    /**
+     * 构建路径渐变的填充矩形
+     */
+    private void buildPathFillToRect(XNode pathNode, ChartGradientDirection direction) {
+        XNode fillToRectNode = pathNode.addChild("a:fillToRect");
+
+        switch (direction) {
+            case FROM_CENTER:
+                // 圆形渐变，从中心向外
+                fillToRectNode.setAttr("l", "50000");
+                fillToRectNode.setAttr("t", "50000");
+                fillToRectNode.setAttr("r", "50000");
+                fillToRectNode.setAttr("b", "50000");
+                break;
+            case FROM_CORNER:
+                // 矩形渐变，从角向外
+                fillToRectNode.setAttr("l", "100000");
+                fillToRectNode.setAttr("t", "100000");
+                fillToRectNode.setAttr("r", "0");
+                fillToRectNode.setAttr("b", "0");
+                break;
+            default:
+                // 默认填充整个区域
+                fillToRectNode.setAttr("l", "0");
+                fillToRectNode.setAttr("t", "0");
+                fillToRectNode.setAttr("r", "100000");
+                fillToRectNode.setAttr("b", "100000");
         }
     }
 
@@ -358,18 +406,12 @@ public class ChartShapeStyleBuilder {
             return;
         }
 
-
         // 检查是否为RGB颜色（以#开头）
         if (color.startsWith("#")) {
-            String rgbValue = color.substring(1).toUpperCase();
-            XNode srgbClrNode = parentNode.addChild("a:srgbClr");
-            srgbClrNode.setAttr("val", rgbValue);
-        } else {
-            // 假设是主题颜色
-            XNode schemeClrNode = parentNode.addChild("a:schemeClr");
-            schemeClrNode.setAttr("val", color);
+            color = color.substring(1).toUpperCase();
         }
-
+        XNode srgbClrNode = parentNode.addChild("a:srgbClr");
+        srgbClrNode.setAttr("val", color);
     }
 
     /**
@@ -477,7 +519,6 @@ public class ChartShapeStyleBuilder {
             LOG.debug("Shadow is null or disabled, skipping shadow generation");
             return false;
         }
-
 
         XNode effectLstNode = spPrNode.addChild("a:effectLst");
         XNode outerShdwNode = effectLstNode.addChild("a:outerShdw");

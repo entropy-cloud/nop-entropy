@@ -40,7 +40,8 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
             对应 Excel 中的渐变填充
             -->
             <gradient enabled="boolean" startColor="string" endColor="string"
-                      direction="string" angle="double-deg" xdef:name="ChartGradientModel"/>
+                      direction="enum:io.nop.excel.chart.constants.ChartGradientDirection"
+                      angle="double-deg" xdef:name="ChartGradientModel"/>
 
             <picture title="boolean" stretch="boolean" xdef:name="ChartFillPictureModel"
                      imageUrl="string" embedId="string">
@@ -91,6 +92,9 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
     <manualLayout percentX="double-percent" percentY="double-percent" percentW="double-percent"
                   percentH="double-percent"
                   xdef:name="ChartManualLayoutModel"/>
+
+    <shapeStyle xdef:ref="ChartShapeStyleModel"/>
+    <textStyle xdef:ref="ChartTextStyleModel"/>
 
     <!--
     Chart title configuration

@@ -125,6 +125,15 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: shapeStyle
+     * Common shape style model based on POI CTShapeProperties
+     * 通用形状样式模型，基于 POI 的 CTShapeProperties
+     * 对应 Excel POI 中的 CTShapeProperties，用于 Legend、DataLabel、Tooltip 等元素的样式
+     */
+    private io.nop.excel.chart.model.ChartShapeStyleModel _shapeStyle ;
+    
+    /**
+     *  
      * xml name: showLabelsOverMax
      * 
      */
@@ -144,6 +153,13 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
      * 
      */
     private java.lang.String _styleId ;
+    
+    /**
+     *  
+     * xml name: textStyle
+     * 文本样式（对应 CTTextBody）
+     */
+    private io.nop.excel.chart.model.ChartTextStyleModel _textStyle ;
     
     /**
      *  
@@ -440,6 +456,27 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
+     * xml name: shapeStyle
+     *  Common shape style model based on POI CTShapeProperties
+     * 通用形状样式模型，基于 POI 的 CTShapeProperties
+     * 对应 Excel POI 中的 CTShapeProperties，用于 Legend、DataLabel、Tooltip 等元素的样式
+     */
+    
+    public io.nop.excel.chart.model.ChartShapeStyleModel getShapeStyle(){
+      return _shapeStyle;
+    }
+
+    
+    public void setShapeStyle(io.nop.excel.chart.model.ChartShapeStyleModel value){
+        checkAllowChange();
+        
+        this._shapeStyle = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: showLabelsOverMax
      *  
      */
@@ -492,6 +529,25 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
         checkAllowChange();
         
         this._styleId = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: textStyle
+     *  文本样式（对应 CTTextBody）
+     */
+    
+    public io.nop.excel.chart.model.ChartTextStyleModel getTextStyle(){
+      return _textStyle;
+    }
+
+    
+    public void setTextStyle(io.nop.excel.chart.model.ChartTextStyleModel value){
+        checkAllowChange();
+        
+        this._textStyle = value;
            
     }
 
@@ -574,7 +630,11 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
             
            this._plotArea = io.nop.api.core.util.FreezeHelper.deepFreeze(this._plotArea);
             
+           this._shapeStyle = io.nop.api.core.util.FreezeHelper.deepFreeze(this._shapeStyle);
+            
            this._style = io.nop.api.core.util.FreezeHelper.deepFreeze(this._style);
+            
+           this._textStyle = io.nop.api.core.util.FreezeHelper.deepFreeze(this._textStyle);
             
            this._title = io.nop.api.core.util.FreezeHelper.deepFreeze(this._title);
             
@@ -599,9 +659,11 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
         out.putNotNull("plotArea",this.getPlotArea());
         out.putNotNull("plotVisOnly",this.getPlotVisOnly());
         out.putNotNull("roundedCorners",this.getRoundedCorners());
+        out.putNotNull("shapeStyle",this.getShapeStyle());
         out.putNotNull("showLabelsOverMax",this.getShowLabelsOverMax());
         out.putNotNull("style",this.getStyle());
         out.putNotNull("styleId",this.getStyleId());
+        out.putNotNull("textStyle",this.getTextStyle());
         out.putNotNull("title",this.getTitle());
         out.putNotNull("type",this.getType());
         out.putNotNull("width",this.getWidth());
@@ -630,9 +692,11 @@ public abstract class _ChartModel extends io.nop.core.resource.component.Abstrac
         instance.setPlotArea(this.getPlotArea());
         instance.setPlotVisOnly(this.getPlotVisOnly());
         instance.setRoundedCorners(this.getRoundedCorners());
+        instance.setShapeStyle(this.getShapeStyle());
         instance.setShowLabelsOverMax(this.getShowLabelsOverMax());
         instance.setStyle(this.getStyle());
         instance.setStyleId(this.getStyleId());
+        instance.setTextStyle(this.getTextStyle());
         instance.setTitle(this.getTitle());
         instance.setType(this.getType());
         instance.setWidth(this.getWidth());

@@ -6,6 +6,8 @@ import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartLegendModel;
 import io.nop.excel.chart.model.ChartModel;
 import io.nop.excel.chart.model.ChartPlotAreaModel;
+import io.nop.excel.chart.model.ChartShapeStyleModel;
+import io.nop.excel.chart.model.ChartTextStyleModel;
 import io.nop.excel.chart.model.ChartTitleModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +61,9 @@ public class DrawingChartBuilder {
 
         // 添加样式设置
         addStyleSettings(chartSpaceNode, chartModel);
+
+        // 添加根级别的样式配置
+        addRootStyles(chartSpaceNode, chartModel);
 
         // 创建chart节点
         XNode chartNode = chartSpaceNode.addChild("c:chart");
@@ -119,6 +124,30 @@ public class DrawingChartBuilder {
         // 创建 c:style 节点
         XNode cStyleNode = fallbackNode.addChild("c:style");
         cStyleNode.setAttr("val", "2");
+    }
+
+    /**
+     * 添加根级别的样式配置
+     * 对应chart.xdef中根节点的shapeStyle和textStyle
+     */
+    private void addRootStyles(XNode chartSpaceNode, ChartModel chartModel) {
+        // 添加chartSpace级别的形状样式
+        if (chartModel.getShapeStyle() != null) {
+            XNode spPrNode = ChartShapeStyleBuilder.INSTANCE.buildShapeStyle(chartModel.getShapeStyle());
+            if (spPrNode != null) {
+                chartSpaceNode.appendChild(spPrNode.withTagName("c:spPr"));
+                LOG.debug("Added root level shape style");
+            }
+        }
+
+        // 添加chartSpace级别的文本样式
+        if (chartModel.getTextStyle() != null) {
+            XNode txPrNode = ChartTextStyleBuilder.INSTANCE.buildTextStyle(chartModel.getTextStyle());
+            if (txPrNode != null) {
+                chartSpaceNode.appendChild(txPrNode.withTagName("c:txPr"));
+                LOG.debug("Added root level text style");
+            }
+        }
     }
 
     /**

@@ -4,6 +4,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.chart.constants.ChartFillPatternType;
 import io.nop.excel.chart.constants.ChartFillType;
+import io.nop.excel.chart.constants.ChartGradientDirection;  // 新增导入
 import io.nop.excel.chart.constants.ChartLineStyle;
 import io.nop.excel.chart.model.ChartBorderModel;
 import io.nop.excel.chart.model.ChartFillModel;
@@ -172,49 +173,130 @@ public class ChartShapeStyleParser {
         ChartGradientModel gradient = new ChartGradientModel();
         gradient.setEnabled(true);
 
-        // 解析线性渐变
-        XNode linNode = gradFillNode.childByTag("a:lin");
-        if (linNode != null) {
-            // 解析渐变角度
-            String angleStr = linNode.attrText("ang");
-            if (angleStr != null) {
-                Double degrees = ChartPropertyHelper.ooxmlAngleStringToDegrees(angleStr);
-                if (degrees != null) {
-                    gradient.setAngle(degrees);
-                }
-            }
-
-            // 解析渐变方向（缩放标志）
-            Boolean scaled = linNode.attrBoolean("scaled", null);
-            if (scaled != null && scaled) {
-                gradient.setDirection("scaled");
-            }
-        }
-
-        // 解析径向渐变
-        XNode radNode = gradFillNode.childByTag("a:rad");
-        if (radNode != null) {
-            gradient.setDirection("radial");
-        }
-
-        // 解析路径渐变
-        XNode pathNode = gradFillNode.childByTag("a:path");
-        if (pathNode != null) {
-            String path = pathNode.attrText("path");
-            if (!StringHelper.isEmpty(path)) {
-                gradient.setDirection("path_" + path);
-            }
-        }
-
         // 解析渐变停止点
         XNode gsLstNode = gradFillNode.childByTag("a:gsLst");
         if (gsLstNode != null) {
             parseGradientStops(gradient, gsLstNode, styleProvider);
         }
 
+        // 解析渐变方向
+        parseGradientDirection(gradient, gradFillNode);
+
+        // 解析透明度
+        parseOpacity(fill, gradFillNode);
+
         fill.setGradient(gradient);
 
+    }
 
+    /**
+     * 解析渐变方向 - 重构版本，使用新的枚举
+     *
+     * @param gradient     渐变模型
+     * @param gradFillNode 渐变填充节点
+     */
+    private void parseGradientDirection(ChartGradientModel gradient, XNode gradFillNode) {
+        // 检查线性渐变
+        XNode linNode = gradFillNode.childByTag("a:lin");
+        if (linNode != null) {
+            parseLinearGradientDirection(gradient, linNode);
+            return;
+        }
+
+        // 检查路径渐变
+        XNode pathNode = gradFillNode.childByTag("a:path");
+        if (pathNode != null) {
+            parsePathGradientDirection(gradient, pathNode);
+            return;
+        }
+
+        // 检查径向渐变（兼容旧版本）
+        XNode radNode = gradFillNode.childByTag("a:rad");
+        if (radNode != null) {
+            // 径向渐变视为特殊类型的路径渐变
+            gradient.setDirection(ChartGradientDirection.FROM_CENTER);
+            return;
+        }
+
+        // 默认方向
+        gradient.setDirection(ChartGradientDirection.HORIZONTAL);
+    }
+
+    /**
+     * 解析线性渐变方向
+     *
+     * @param gradient 渐变模型
+     * @param linNode  线性渐变节点
+     */
+    private void parseLinearGradientDirection(ChartGradientModel gradient, XNode linNode) {
+        // 解析角度
+        String angleStr = linNode.attrText("ang");
+        if (angleStr != null) {
+            Double degrees = ChartPropertyHelper.ooxmlAngleStringToDegrees(angleStr);
+            if (degrees != null) {
+                gradient.setAngle(degrees);
+
+                // 根据角度确定方向
+                ChartGradientDirection direction = determineDirectionFromAngle(degrees);
+                gradient.setDirection(direction);
+                return;
+            }
+        }
+
+        // 如果没有角度或角度解析失败，使用默认方向
+        gradient.setDirection(ChartGradientDirection.HORIZONTAL);
+    }
+
+    /**
+     * 根据角度确定渐变方向
+     *
+     * @param degrees 角度值（度）
+     * @return 对应的渐变方向
+     */
+    private ChartGradientDirection determineDirectionFromAngle(double degrees) {
+        // 规范化角度到0-360范围
+        double normalizedDegrees = ((degrees % 360) + 360) % 360;
+
+        // 检查是否为常见角度
+        if (Math.abs(normalizedDegrees) < 0.001 || Math.abs(normalizedDegrees - 360) < 0.001) {
+            return ChartGradientDirection.HORIZONTAL;  // 0°
+        }
+        if (Math.abs(normalizedDegrees - 90) < 0.001) {
+            return ChartGradientDirection.VERTICAL;  // 90°
+        }
+        if (Math.abs(normalizedDegrees - 135) < 0.001) {
+            return ChartGradientDirection.DIAGONAL_UP;  // 135°
+        }
+        if (Math.abs(normalizedDegrees - 315) < 0.001 || Math.abs(normalizedDegrees + 45) < 0.001) {
+            return ChartGradientDirection.DIAGONAL_DOWN;  // 315° 或 -45°
+        }
+
+        // 其他角度视为自定义
+        return ChartGradientDirection.CUSTOM;
+    }
+
+    /**
+     * 解析路径渐变方向
+     *
+     * @param gradient 渐变模型
+     * @param pathNode 路径渐变节点
+     */
+    private void parsePathGradientDirection(ChartGradientModel gradient, XNode pathNode) {
+        String pathType = pathNode.attrText("path");
+        if (!StringHelper.isEmpty(pathType)) {
+            if ("circle".equalsIgnoreCase(pathType)) {
+                gradient.setDirection(ChartGradientDirection.FROM_CENTER);
+            } else if ("rect".equalsIgnoreCase(pathType)) {
+                gradient.setDirection(ChartGradientDirection.FROM_CORNER);
+            } else {
+                // 其他路径类型，使用自定义
+                gradient.setDirection(ChartGradientDirection.CUSTOM);
+                LOG.debug("Unknown path type: {}, using CUSTOM direction", pathType);
+            }
+        } else {
+            // 没有路径类型，默认从中心
+            gradient.setDirection(ChartGradientDirection.FROM_CENTER);
+        }
     }
 
     /**

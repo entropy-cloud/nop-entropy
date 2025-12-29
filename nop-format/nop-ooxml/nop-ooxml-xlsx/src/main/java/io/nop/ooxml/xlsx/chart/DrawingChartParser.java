@@ -7,6 +7,8 @@ import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartLegendModel;
 import io.nop.excel.chart.model.ChartModel;
 import io.nop.excel.chart.model.ChartPlotAreaModel;
+import io.nop.excel.chart.model.ChartShapeStyleModel;
+import io.nop.excel.chart.model.ChartTextStyleModel;
 import io.nop.excel.chart.model.ChartTitleModel;
 import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.xlsx.model.ExcelOfficePackage;
@@ -65,6 +67,9 @@ public class DrawingChartParser {
 
         Boolean roundedCorners = "1".equals(chartSpaceNode.childAttr("c:roundedCorners", "val"));
         excelChart.setRoundedCorners(roundedCorners);
+
+        // 解析根级别的样式配置
+        parseRootStyles(excelChart, chartSpaceNode, styleProvider);
 
         XNode actualChartNode = findActualChartNode(chartSpaceNode);
         if (actualChartNode == null) {
@@ -217,5 +222,33 @@ public class DrawingChartParser {
         }
 
         return null;
+    }
+
+    /**
+     * 解析根级别的样式配置
+     * 对应chart.xdef中根节点的shapeStyle和textStyle
+     */
+    private void parseRootStyles(ChartModel chart, XNode chartSpaceNode, IChartStyleProvider styleProvider) {
+        // 解析chartSpace级别的形状样式
+        XNode spPrNode = chartSpaceNode.childByTag("c:spPr");
+        if (spPrNode != null) {
+            io.nop.excel.chart.model.ChartShapeStyleModel shapeStyle = 
+                ChartShapeStyleParser.INSTANCE.parseShapeStyle(spPrNode, styleProvider);
+            if (shapeStyle != null) {
+                chart.setShapeStyle(shapeStyle);
+                LOG.debug("Parsed root level shape style");
+            }
+        }
+
+        // 解析chartSpace级别的文本样式
+        XNode txPrNode = chartSpaceNode.childByTag("c:txPr");
+        if (txPrNode != null) {
+            io.nop.excel.chart.model.ChartTextStyleModel textStyle = 
+                ChartTextStyleParser.INSTANCE.parseTextStyle(txPrNode, styleProvider);
+            if (textStyle != null) {
+                chart.setTextStyle(textStyle);
+                LOG.debug("Parsed root level text style");
+            }
+        }
     }
 }

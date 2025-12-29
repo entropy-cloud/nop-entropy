@@ -29,7 +29,7 @@ public abstract class _ChartGradientModel extends io.nop.core.resource.component
      * xml name: direction
      * 
      */
-    private java.lang.String _direction ;
+    private io.nop.excel.chart.constants.ChartGradientDirection _direction ;
     
     /**
      *  
@@ -77,12 +77,12 @@ public abstract class _ChartGradientModel extends io.nop.core.resource.component
      *  
      */
     
-    public java.lang.String getDirection(){
+    public io.nop.excel.chart.constants.ChartGradientDirection getDirection(){
       return _direction;
     }
 
     
-    public void setDirection(java.lang.String value){
+    public void setDirection(io.nop.excel.chart.constants.ChartGradientDirection value){
         checkAllowChange();
         
         this._direction = value;
