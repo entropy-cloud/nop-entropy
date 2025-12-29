@@ -10,12 +10,14 @@ package io.nop.report.core.engine;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.commons.cache.ICache;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.dict.DictProvider;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.model.table.CellRange;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.excel.util.ExcelCellRef;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.dataset.DynamicReportDataSet;
 import io.nop.report.core.model.ExpandedCell;
@@ -139,4 +141,11 @@ public interface IXptRuntime extends IEvalContext {
      * 解析Excel公式，将其中的单元格定义展开，生成展开后的Excel公式
      */
     String expandExcelFormula(String formula);
+
+    default String changeCellRefSize(String cellRef, int rowSize, int colSize) {
+        if (StringHelper.isEmpty(cellRef))
+            return null;
+        ExcelCellRef cellRefBean = ExcelCellRef.parse(cellRef);
+        return cellRefBean.changeSize(rowSize, colSize).toString();
+    }
 }

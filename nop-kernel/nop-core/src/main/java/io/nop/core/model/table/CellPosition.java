@@ -12,6 +12,7 @@ import io.nop.api.core.annotations.core.StaticFactoryMethod;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.IJsonString;
+import io.nop.api.core.util.Guard;
 import io.nop.core.model.table.utils.CellReferenceHelper;
 
 import java.io.Serializable;
@@ -76,6 +77,12 @@ public class CellPosition implements Serializable, Comparable<CellPosition>, IJs
 
     public CellPosition offset(int x, int y) {
         return new CellPosition(rowIndex < 0 ? rowIndex : rowIndex + x, colIndex < 0 ? colIndex : colIndex + y);
+    }
+
+    public CellRange expand(int deltaRow, int deltaCol) {
+        Guard.nonNegativeInt(deltaRow, "deltaRow");
+        Guard.nonNegativeInt(deltaCol, "deltaCol");
+        return new CellRange(rowIndex, colIndex, rowIndex + deltaRow, colIndex + deltaCol);
     }
 
     public int getRowIndex() {

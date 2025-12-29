@@ -12,6 +12,7 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.IJsonString;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
 
 import java.io.Serializable;
@@ -244,6 +245,18 @@ public class CellRange implements Serializable, Comparable<CellRange>, IJsonStri
         if (isWholeRow() || isWholeCol())
             return false;
         return firstRowIndex == lastRowIndex && firstColIndex == lastColIndex;
+    }
+
+    public CellRange expand(int deltaRow, int deltaCol) {
+        Guard.nonNegativeInt(deltaRow, "deltaRow");
+        Guard.nonNegativeInt(deltaCol, "deltaCol");
+        return new CellRange(firstRowIndex, firstColIndex,
+                lastRowIndex + deltaRow, lastColIndex + deltaCol);
+    }
+
+    public CellRange changeSize(int rowSize, int colSize) {
+        return new CellRange(firstRowIndex, firstColIndex,
+                firstRowIndex + rowSize - 1, firstColIndex + colSize - 1);
     }
 
     public boolean intersectWith(CellRange range) {

@@ -120,14 +120,18 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
         <seriesNameExpr>xpl-fn:(seriesModel,chartModel)=>string</seriesNameExpr>
 
         <!-- 系列数值范围引用，返回单元格区域地址 -->
-        <valuesCellRefExpr>xpl-fn:(seriesModel,chartModel)=>string</valuesCellRefExpr>
+        <seriesDataCellRefExpr>xpl-fn:(seriesModel,chartModel)=>string</seriesDataCellRefExpr>
 
-        <valuesExpr>xpl-fn:(seriesModel,chartModel)=>any</valuesExpr>
+        <seriesDataExpr>xpl-fn:(seriesModel,chartModel)=>any</seriesDataExpr>
 
         <!-- 系列分类范围引用，返回单元格区域地址（X轴标签） -->
-        <categoryCellRefExpr>xpl-fn:(seriesModel,chartModel)=>string</categoryCellRefExpr>
+        <seriesCatCellRefExpr>xpl-fn:(seriesModel,chartModel)=>string</seriesCatCellRefExpr>
 
-        <categoryExpr>xpl-fn:(seriesModel,chartModel)=>any</categoryExpr>
+        <seriesCatExpr>xpl-fn:(seriesModel,chartModel)=>any</seriesCatExpr>
+
+        <axisDataCellRefExpr>xpl-fn:(axisModel,chartModel)=>string</axisDataCellRefExpr>
+
+        <axisTitleCellRefExpr>xpl-fn:(axisModel,chartModel)=>string</axisTitleCellRefExpr>
     </dynamicBindings>
 
     <!--

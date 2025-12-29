@@ -98,19 +98,25 @@ public class CellReferenceHelper {
 
         String str = abStr;
 
-        int pos = abStr.indexOf(ABSOLUTE_REFERENCE_MARKER);
-        if (pos > 0)
-            abStr = abStr.substring(pos + 1);
-
+        // 找到列部分和行部分的分界点（第一个数字的位置）
         int p = 0;
         for (int i = 0, n = abStr.length(); i < n; i++, p++) {
             char c = abStr.charAt(i);
             if (c <= '9' && c >= '0')
                 break;
         }
+        
         String colStr = abStr.substring(0, p);
         String rowStr = abStr.substring(p);
 
+        // 处理列部分，去掉可能的$符号
+        if (colStr.startsWith("$")) {
+            colStr = colStr.substring(1);
+        }
+
+        if(colStr.endsWith("$"))
+            colStr = colStr.substring(0,colStr.length()-1);
+        
         int colIndex = convertColStringToIndex(colStr);
         int rowIndex = rowStr.isEmpty() ? -1
                 : ConvertHelper.toInt(rowStr, err -> new NopException(err).param(ARG_CELL_POS, str)) - 1;

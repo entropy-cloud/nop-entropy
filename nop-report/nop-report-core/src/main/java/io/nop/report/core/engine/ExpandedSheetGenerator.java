@@ -133,7 +133,7 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
         String sheetName = sheet.getName();
         xptRt.getEvalScope().setLocalValue(null, XptConstants.VAR_SHEET_NAME, sheetName);
 
-        if (sheetModel != null && sheetModel.getSheetNameExpr() != null) {
+        if (sheetModel.getSheetNameExpr() != null) {
             sheetName = ConvertHelper.toString(sheetModel.getSheetNameExpr().invoke(xptRt));
             sheetName = StringHelper.strip(sheetName);
             if (sheetName == null)
@@ -163,6 +163,8 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
 
         initDataValidations(sheet, expandedSheet, xptRt);
         initExportFormula(expandedSheet, xptRt);
+
+        ExpandedSheetChartGenerator.INSTANCE.generateCharts(expandedSheet, sheet, xptRt);
 
         return expandedSheet;
     }

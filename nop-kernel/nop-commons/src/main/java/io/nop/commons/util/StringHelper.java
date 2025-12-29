@@ -4857,4 +4857,29 @@ public class StringHelper extends ApiStringHelper {
 
         return result.toString();
     }
+
+    /**
+     * 判断字符串是否仅由字母、数字或下划线组成，且不为空。首字母不为数字
+     * 可以用于判断 Excel 工作表名称是否需要加引号。
+     *
+     * @param s 待检查的字符串
+     * @return 如果 s 非空且每个字符都是 ASCII 字母、数字或 '_'，且首字母不是数字，则返回 true；否则 false
+     */
+    @Deterministic
+    public static boolean isSafeWordString(String s) {
+        if (s == null || s.isEmpty()) {
+            return false;
+        }
+
+        if(isDigit(s.charAt(0)))
+            return false;
+
+        for (int i = 0, n = s.length(); i < n; i++) {
+            char c = s.charAt(i);
+            if (!(isAsciiLetter(c) || isDigit(c) || c == '_')) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

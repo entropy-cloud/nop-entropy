@@ -18,17 +18,17 @@ public abstract class _ChartDynamicBindingsModel extends io.nop.core.resource.co
     
     /**
      *  
-     * xml name: categoryCellRefExpr
-     * 系列分类范围引用，返回单元格区域地址（X轴标签）
+     * xml name: axisDataCellRefExpr
+     * 
      */
-    private io.nop.core.lang.eval.IEvalFunction _categoryCellRefExpr ;
+    private io.nop.core.lang.eval.IEvalFunction _axisDataCellRefExpr ;
     
     /**
      *  
-     * xml name: categoryExpr
+     * xml name: axisTitleCellRefExpr
      * 
      */
-    private io.nop.core.lang.eval.IEvalFunction _categoryExpr ;
+    private io.nop.core.lang.eval.IEvalFunction _axisTitleCellRefExpr ;
     
     /**
      *  
@@ -46,6 +46,34 @@ public abstract class _ChartDynamicBindingsModel extends io.nop.core.resource.co
     
     /**
      *  
+     * xml name: seriesCatCellRefExpr
+     * 系列分类范围引用，返回单元格区域地址（X轴标签）
+     */
+    private io.nop.core.lang.eval.IEvalFunction _seriesCatCellRefExpr ;
+    
+    /**
+     *  
+     * xml name: seriesCatExpr
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _seriesCatExpr ;
+    
+    /**
+     *  
+     * xml name: seriesDataCellRefExpr
+     * 系列数值范围引用，返回单元格区域地址
+     */
+    private io.nop.core.lang.eval.IEvalFunction _seriesDataCellRefExpr ;
+    
+    /**
+     *  
+     * xml name: seriesDataExpr
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _seriesDataExpr ;
+    
+    /**
+     *  
      * xml name: seriesNameCellRefExpr
      * 系列名称引用，返回单个单元格地址
      */
@@ -59,53 +87,39 @@ public abstract class _ChartDynamicBindingsModel extends io.nop.core.resource.co
     private io.nop.core.lang.eval.IEvalFunction _seriesNameExpr ;
     
     /**
-     *  
-     * xml name: valuesCellRefExpr
-     * 系列数值范围引用，返回单元格区域地址
-     */
-    private io.nop.core.lang.eval.IEvalFunction _valuesCellRefExpr ;
-    
-    /**
-     *  
-     * xml name: valuesExpr
      * 
-     */
-    private io.nop.core.lang.eval.IEvalFunction _valuesExpr ;
-    
-    /**
-     * 
-     * xml name: categoryCellRefExpr
-     *  系列分类范围引用，返回单元格区域地址（X轴标签）
+     * xml name: axisDataCellRefExpr
+     *  
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getCategoryCellRefExpr(){
-      return _categoryCellRefExpr;
+    public io.nop.core.lang.eval.IEvalFunction getAxisDataCellRefExpr(){
+      return _axisDataCellRefExpr;
     }
 
     
-    public void setCategoryCellRefExpr(io.nop.core.lang.eval.IEvalFunction value){
+    public void setAxisDataCellRefExpr(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
-        this._categoryCellRefExpr = value;
+        this._axisDataCellRefExpr = value;
            
     }
 
     
     /**
      * 
-     * xml name: categoryExpr
+     * xml name: axisTitleCellRefExpr
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getCategoryExpr(){
-      return _categoryExpr;
+    public io.nop.core.lang.eval.IEvalFunction getAxisTitleCellRefExpr(){
+      return _axisTitleCellRefExpr;
     }
 
     
-    public void setCategoryExpr(io.nop.core.lang.eval.IEvalFunction value){
+    public void setAxisTitleCellRefExpr(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
-        this._categoryExpr = value;
+        this._axisTitleCellRefExpr = value;
            
     }
 
@@ -150,6 +164,82 @@ public abstract class _ChartDynamicBindingsModel extends io.nop.core.resource.co
     
     /**
      * 
+     * xml name: seriesCatCellRefExpr
+     *  系列分类范围引用，返回单元格区域地址（X轴标签）
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getSeriesCatCellRefExpr(){
+      return _seriesCatCellRefExpr;
+    }
+
+    
+    public void setSeriesCatCellRefExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._seriesCatCellRefExpr = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: seriesCatExpr
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getSeriesCatExpr(){
+      return _seriesCatExpr;
+    }
+
+    
+    public void setSeriesCatExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._seriesCatExpr = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: seriesDataCellRefExpr
+     *  系列数值范围引用，返回单元格区域地址
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getSeriesDataCellRefExpr(){
+      return _seriesDataCellRefExpr;
+    }
+
+    
+    public void setSeriesDataCellRefExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._seriesDataCellRefExpr = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: seriesDataExpr
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getSeriesDataExpr(){
+      return _seriesDataExpr;
+    }
+
+    
+    public void setSeriesDataExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._seriesDataExpr = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: seriesNameCellRefExpr
      *  系列名称引用，返回单个单元格地址
      */
@@ -186,44 +276,6 @@ public abstract class _ChartDynamicBindingsModel extends io.nop.core.resource.co
     }
 
     
-    /**
-     * 
-     * xml name: valuesCellRefExpr
-     *  系列数值范围引用，返回单元格区域地址
-     */
-    
-    public io.nop.core.lang.eval.IEvalFunction getValuesCellRefExpr(){
-      return _valuesCellRefExpr;
-    }
-
-    
-    public void setValuesCellRefExpr(io.nop.core.lang.eval.IEvalFunction value){
-        checkAllowChange();
-        
-        this._valuesCellRefExpr = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: valuesExpr
-     *  
-     */
-    
-    public io.nop.core.lang.eval.IEvalFunction getValuesExpr(){
-      return _valuesExpr;
-    }
-
-    
-    public void setValuesExpr(io.nop.core.lang.eval.IEvalFunction value){
-        checkAllowChange();
-        
-        this._valuesExpr = value;
-           
-    }
-
-    
 
     @Override
     public void freeze(boolean cascade){
@@ -239,14 +291,16 @@ public abstract class _ChartDynamicBindingsModel extends io.nop.core.resource.co
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("categoryCellRefExpr",this.getCategoryCellRefExpr());
-        out.putNotNull("categoryExpr",this.getCategoryExpr());
+        out.putNotNull("axisDataCellRefExpr",this.getAxisDataCellRefExpr());
+        out.putNotNull("axisTitleCellRefExpr",this.getAxisTitleCellRefExpr());
         out.putNotNull("chartTitleCellRefExpr",this.getChartTitleCellRefExpr());
         out.putNotNull("chartTitleExpr",this.getChartTitleExpr());
+        out.putNotNull("seriesCatCellRefExpr",this.getSeriesCatCellRefExpr());
+        out.putNotNull("seriesCatExpr",this.getSeriesCatExpr());
+        out.putNotNull("seriesDataCellRefExpr",this.getSeriesDataCellRefExpr());
+        out.putNotNull("seriesDataExpr",this.getSeriesDataExpr());
         out.putNotNull("seriesNameCellRefExpr",this.getSeriesNameCellRefExpr());
         out.putNotNull("seriesNameExpr",this.getSeriesNameExpr());
-        out.putNotNull("valuesCellRefExpr",this.getValuesCellRefExpr());
-        out.putNotNull("valuesExpr",this.getValuesExpr());
     }
 
     public ChartDynamicBindingsModel cloneInstance(){
@@ -258,14 +312,16 @@ public abstract class _ChartDynamicBindingsModel extends io.nop.core.resource.co
     protected void copyTo(ChartDynamicBindingsModel instance){
         super.copyTo(instance);
         
-        instance.setCategoryCellRefExpr(this.getCategoryCellRefExpr());
-        instance.setCategoryExpr(this.getCategoryExpr());
+        instance.setAxisDataCellRefExpr(this.getAxisDataCellRefExpr());
+        instance.setAxisTitleCellRefExpr(this.getAxisTitleCellRefExpr());
         instance.setChartTitleCellRefExpr(this.getChartTitleCellRefExpr());
         instance.setChartTitleExpr(this.getChartTitleExpr());
+        instance.setSeriesCatCellRefExpr(this.getSeriesCatCellRefExpr());
+        instance.setSeriesCatExpr(this.getSeriesCatExpr());
+        instance.setSeriesDataCellRefExpr(this.getSeriesDataCellRefExpr());
+        instance.setSeriesDataExpr(this.getSeriesDataExpr());
         instance.setSeriesNameCellRefExpr(this.getSeriesNameCellRefExpr());
         instance.setSeriesNameExpr(this.getSeriesNameExpr());
-        instance.setValuesCellRefExpr(this.getValuesCellRefExpr());
-        instance.setValuesExpr(this.getValuesExpr());
     }
 
     protected ChartDynamicBindingsModel newInstance(){

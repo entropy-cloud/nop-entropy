@@ -13,10 +13,12 @@ import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.excel.chart.model.ChartDynamicBindingsModel;
 import io.nop.excel.imp.ImportModelHelper;
 import io.nop.excel.imp.model.ImportModel;
 import io.nop.excel.imp.model.ImportSheetModel;
 import io.nop.excel.model.ExcelCell;
+import io.nop.excel.model.ExcelChartModel;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelTable;
@@ -34,13 +36,16 @@ import io.nop.xlang.api.source.IWithSourceCode;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
+import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdsl.json.DslXNodeToJsonTransformer;
 import io.nop.xlang.xmeta.SchemaLoader;
 
 import java.util.Map;
 
+import static io.nop.report.core.XptConstants.XDEF_NODE_CHART_DYNAMIC_BINDINGS;
 import static io.nop.report.core.XptErrors.ARG_PROP_NAME;
 import static io.nop.report.core.XptErrors.ERR_XPT_UNDEFINED_CELL_MODEL_PROP;
+import static io.nop.report.core.XptErrors.ERR_XPT_UNDEFINED_CHART_MODEL_PROP;
 import static io.nop.report.core.XptErrors.ERR_XPT_UNDEFINED_IMAGE_MODEL_PROP;
 
 /**
@@ -55,6 +60,7 @@ public class ExcelToXptModelTransformer {
         IXDefinition tableDef = SchemaLoader.loadXDefinition(XptConstants.XDSL_SCHEMA_EXCEL_TABLE);
         IXDefNode cellModelNode = tableDef.getXdefDefine(XptConstants.XDEF_NODE_EXCEL_CELL).getChild(XptConstants.PROP_MODEL);
         IXDefNode imageNode = xptXDef.getXdefDefine(XptConstants.XDEF_NODE_EXCEL_IMAGE);
+        IXDefNode chartNode = xptXDef.getXdefDefine(XptConstants.XDEF_NODE_EXCEL_CHART);
 
         XptConfigParseHelper.parseWorkbookModel(workbook, importModel);
 
@@ -76,6 +82,7 @@ public class ExcelToXptModelTransformer {
                 }
                 parseCellModel(sheet.getTable(), cellModelNode, transformer);
                 parseImageModel(sheet, imageNode, transformer);
+                parseChartModel(sheet, chartNode, transformer);
             }
         }
 
@@ -201,6 +208,61 @@ public class ExcelToXptModelTransformer {
                     BeanTool.setProperty(image, varName, value);
                 } else {
                     throw new NopException(ERR_XPT_UNDEFINED_IMAGE_MODEL_PROP)
+                            .source(vl)
+                            .param(ARG_PROP_NAME, entry.getKey());
+                }
+            }
+        }
+    }
+
+    private void parseChartModel(ExcelSheet sheet, IXDefNode chartNode, DslXNodeToJsonTransformer transformer) {
+        if (sheet.getCharts() == null)
+            return;
+
+        IXDefNode defNode = chartNode.getChild(XDEF_NODE_CHART_DYNAMIC_BINDINGS);
+
+        for (ExcelChartModel chart : sheet.getCharts()) {
+            String desc = chart.getDescription();
+            if (desc == null)
+                continue;
+
+            int pos = desc.indexOf("----");
+            if (pos < 0)
+                break;
+
+            for (; pos < desc.length(); pos++) {
+                if (desc.charAt(pos) != '-')
+                    break;
+            }
+
+            ChartDynamicBindingsModel bindings = new ChartDynamicBindingsModel();
+            bindings.setLocation(chart.getLocation());
+            chart.setDynamicBindings(bindings);
+
+            String str = desc.substring(pos);
+            Map<String, ValueWithLocation> config =
+                    MultiLineConfigParser.INSTANCE.parseConfig(sheet.getLocation(), str);
+
+            for (Map.Entry<String, ValueWithLocation> entry : config.entrySet()) {
+                String varName = entry.getKey();
+                ValueWithLocation vl = entry.getValue();
+
+                IXDefAttribute attr = defNode.getAttribute(varName);
+                XDefTypeDecl type = null;
+                if (attr != null) {
+                    type = attr.getType();
+                } else {
+                    IXDefNode child = defNode.getChild(varName);
+                    type = child.getXdefValue();
+                }
+                if (type != null) {
+                    Object value = transformer.parseValue(vl, varName, type);
+                    value = addSource(vl, value);
+                    BeanTool.setProperty(bindings, varName, value);
+                } else if (varName.indexOf(':') > 0) {
+                    BeanTool.setProperty(bindings, varName, vl.getValue());
+                } else {
+                    throw new NopException(ERR_XPT_UNDEFINED_CHART_MODEL_PROP)
                             .source(vl)
                             .param(ARG_PROP_NAME, entry.getKey());
                 }

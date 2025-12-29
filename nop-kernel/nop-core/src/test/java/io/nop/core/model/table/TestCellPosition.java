@@ -20,8 +20,15 @@ public class TestCellPosition {
     }
 
     @Test
-    public void testMaxRows(){
+    public void testMaxRows() {
         CellPosition pos = CellPosition.fromABString("G1048576");
         assertTrue(pos.isToMaxRows());
+    }
+
+    @Test
+    public void testExpand() {
+        CellPosition pos = CellPosition.fromABString("A1");
+        CellRange range = pos.expand(1, 2);
+        assertEquals("A1:C2", range.toString());
     }
 }

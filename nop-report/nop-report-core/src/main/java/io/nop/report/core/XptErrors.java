@@ -78,6 +78,10 @@ public interface XptErrors {
             define("nop.err.xpt.undefined-image-model-prop",
                     "未定义的图片模型的属性[{propName}]", ARG_PROP_NAME);
 
+    ErrorCode ERR_XPT_UNDEFINED_CHART_MODEL_PROP =
+            define("nop.err.xpt.undefined-chart-model-prop",
+                    "未定义的图表模型的属性[{propName}]", ARG_PROP_NAME);
+
     ErrorCode ERR_XPT_INVALID_DS_NAME =
             define("nop.err.xpt.invalid-ds-name",
                     "非法的数据源名称", ARG_DS_NAME);

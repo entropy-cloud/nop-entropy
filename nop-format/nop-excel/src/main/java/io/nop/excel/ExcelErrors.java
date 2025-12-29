@@ -47,6 +47,8 @@ public interface ExcelErrors {
     String ARG_PRECISION = "precision";
     String ARG_SCALE = "scale";
 
+    String ARG_CELL_REF = "cellRef";
+
     ErrorCode ERR_IMPORT_UNKNOWN_SHEET = define("nop.err.excel.import.unknown-sheet",
             "未定义的Excel表格:[{sheetName}],允许的名称为{allowedNames}", ARG_SHEET_NAME, ARG_ALLOWED_NAMES);
 
@@ -103,52 +105,56 @@ public interface ExcelErrors {
                     ARG_ALIAS, ARG_OLD_NAME, ARG_NEW_NAME);
 
     // Data validation error codes
-    ErrorCode ERR_EXCEL_VALIDATION_INVALID_VALUE = 
+    ErrorCode ERR_EXCEL_VALIDATION_INVALID_VALUE =
             define("nop.err.excel.validation.invalid-value",
                     "[{displayName}]的值不符合要求", ARG_DISPLAY_NAME);
 
-    ErrorCode ERR_EXCEL_VALIDATION_FIELD_VALUE_INVALID = 
+    ErrorCode ERR_EXCEL_VALIDATION_FIELD_VALUE_INVALID =
             define("nop.err.excel.validation.field-value-invalid",
                     "字段[{fieldName}]的值不符合要求", ARG_FIELD_NAME);
 
-    ErrorCode ERR_EXCEL_VALIDATION_PATTERN_MISMATCH = 
+    ErrorCode ERR_EXCEL_VALIDATION_PATTERN_MISMATCH =
             define("nop.err.excel.validation.pattern-mismatch",
                     "输入的值必须符合格式要求：[{pattern}]", ARG_NAME_PATTERN);
 
-    ErrorCode ERR_EXCEL_VALIDATION_INTEGER_REQUIRED = 
+    ErrorCode ERR_EXCEL_VALIDATION_INTEGER_REQUIRED =
             define("nop.err.excel.validation.integer-required",
                     "请输入有效的整数");
 
-    ErrorCode ERR_EXCEL_VALIDATION_TITLE = 
+    ErrorCode ERR_EXCEL_VALIDATION_TITLE =
             define("nop.err.excel.validation.title",
                     "数据验证错误");
 
-    ErrorCode ERR_EXCEL_VALIDATION_DECIMAL_REQUIRED = 
+    ErrorCode ERR_EXCEL_VALIDATION_DECIMAL_REQUIRED =
             define("nop.err.excel.validation.decimal-required",
                     "请输入有效的小数");
 
-    ErrorCode ERR_EXCEL_VALIDATION_DECIMAL_PRECISION_INVALID = 
+    ErrorCode ERR_EXCEL_VALIDATION_DECIMAL_PRECISION_INVALID =
             define("nop.err.excel.validation.decimal-precision-invalid",
                     "请输入有效的小数，最多[{precision}]位数字，其中小数位最多[{scale}]位",
                     ARG_PRECISION, ARG_SCALE);
 
-    ErrorCode ERR_EXCEL_VALIDATION_DATE_REQUIRED = 
+    ErrorCode ERR_EXCEL_VALIDATION_DATE_REQUIRED =
             define("nop.err.excel.validation.date-required",
                     "请输入有效的日期");
 
-    ErrorCode ERR_EXCEL_VALIDATION_DATETIME_REQUIRED = 
+    ErrorCode ERR_EXCEL_VALIDATION_DATETIME_REQUIRED =
             define("nop.err.excel.validation.datetime-required",
                     "请输入有效的日期时间");
 
-    ErrorCode ERR_EXCEL_VALIDATION_TIME_REQUIRED = 
+    ErrorCode ERR_EXCEL_VALIDATION_TIME_REQUIRED =
             define("nop.err.excel.validation.time-required",
                     "请输入有效的时间");
 
-    ErrorCode ERR_EXCEL_VALIDATION_TEXT_LENGTH_INVALID = 
+    ErrorCode ERR_EXCEL_VALIDATION_TEXT_LENGTH_INVALID =
             define("nop.err.excel.validation.text-length-invalid",
                     "文本长度不符合要求");
 
-    ErrorCode ERR_EXCEL_VALIDATION_BOOLEAN_REQUIRED = 
+    ErrorCode ERR_EXCEL_VALIDATION_BOOLEAN_REQUIRED =
             define("nop.err.excel.validation.boolean-required",
                     "请输入TRUE或FALSE");
+
+    ErrorCode ERR_EXCEL_INVALID_CELL_REF =
+            define("nop.err.excel.invalid-cell-ref",
+                    "非法的单元格引用：{cellRef}", ARG_CELL_REF);
 }
