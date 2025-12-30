@@ -28,17 +28,16 @@
 ```
 我的销售图表
 ----
-chartTitleCellRefExpr = `Sheet1!$A$1`
-seriesTestExpr       = `series.index < 3`
-seriesDataCellRefExpr= `xptRt.buildCellRef("Sheet1!$B$2:$B$101", 0, series.index, 0, 0)`
-seriesCatCellRefExpr = `Sheet1!$A$2:$A$101`
+seriesDataCellRefExpr=xptRt.buildCellRef('Sheet1!B3', seriesModel.index,0,1,3)
+seriesTestExpr=seriesModel.index < 2
+seriesNameExpr=xptRt.ds('ds1').group('product')[seriesModel.index].key+'Series'
 ```
 
 上述配置效果：
 
-- 图表标题引用 Sheet1!$A$1
-- 仅生成 index 为 0、1、2 的三个系列
-- X 轴分类统一引用 A2:A101
+- 动态产生单元格引用表达式，比如生成 `Sheet1!B3:D3`
+- 仅生成 index 为 0、1 的两个系列
+- 图表名称使用动态计算得到的字符串
 
 
 ## dynamicBindings 可配置项与签名
@@ -89,28 +88,12 @@ buildCellRef 签名：
 
 - buildCellRef(cellRefTpl, rowOffset, colOffset, rowSize, colSize) ⇒ ExcelCellRef
 
-典型用法：
-
-1) 按列横向扩展系列（多系列共用一段模板区域，每个系列向右偏移一列）
-
-```
-seriesDataCellRefExpr = `xptRt.buildCellRef("Sheet1!$B$2:$B$101", 0, series.index, 0, 0)`
-
-```
-
-2) 按行向下滚动（每个系列向下偏移固定行数）
-
-```
-seriesDataCellRefExpr = `xptRt.buildCellRef("Sheet1!$B$2:$B$21", series.index*20, 0, 0, 0)`
-```
-
 
 ## 标题与坐标轴的动态绑定
 
 ```
-chartTitleCellRefExpr = `Sheet1!$D$1`
-chartTitleExpr        = `销售额走势`
-
+chartTitleCellRefExpr = "Sheet1!$D$1"
+chartTitleExpr        = "销售额走势"
 ```
 
 注意：当 cellRefExpr 返回非空时，titleExpr 将被忽略。
