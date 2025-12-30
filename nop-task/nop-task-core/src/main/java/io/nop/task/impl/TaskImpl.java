@@ -131,8 +131,7 @@ public class TaskImpl implements ITask {
                 Object castedValue = input.getType().getStdDataType().convert(value,
                         err -> new NopException(err).param(ARG_TASK_NAME, taskRt.getTaskName())
                                 .param(ARG_INPUT_NAME, input.getName()));
-                if (castedValue != value)
-                    taskRt.setInput(name, castedValue);
+                taskRt.setInput(name, castedValue);
             }
 
             if (input.isMandatory() && StringHelper.isEmptyObject(value)) {
