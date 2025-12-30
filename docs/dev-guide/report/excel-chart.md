@@ -7,7 +7,6 @@
 - 在表达式中使用 seriesModel.index 获取当前系列的 0 基索引
 - 利用 seriesDataCellRefExpr 等表达式动态计算 Excel 单元格引用；表达式内可直接调用 IXptRuntime.buildCellRef 助手函数
 
-示例截图位于 docs/dev-guide/report/excel-chart 目录（如 excel-chart-config.png）。
 
 ![在图表可选文字里填写动态绑定](./excel-chart/excel-chart-config.png)
 
@@ -29,17 +28,16 @@
 ```
 我的销售图表
 ----
-chartTitleCellRefExpr = `(chart)=> "Sheet1!$A$1"`
-seriesTestExpr       = `(series,chart)=> series.index < 3`
-seriesDataCellRefExpr= `(series,chart)=> xptRt.buildCellRef("Sheet1!$B$2:$B$101", 0, series.index, 0, 0)`
-seriesCatCellRefExpr = `(series,chart)=> "Sheet1!$A$2:$A$101"`
+chartTitleCellRefExpr = `Sheet1!$A$1`
+seriesTestExpr       = `series.index < 3`
+seriesDataCellRefExpr= `xptRt.buildCellRef("Sheet1!$B$2:$B$101", 0, series.index, 0, 0)`
+seriesCatCellRefExpr = `Sheet1!$A$2:$A$101`
 ```
 
 上述配置效果：
 
 - 图表标题引用 Sheet1!$A$1
 - 仅生成 index 为 0、1、2 的三个系列
-- 第一个系列取 B2:B101；第二个系列向右偏移 1 列（C2:C101）；第三个系列向右偏移 2 列（D2:D101）
 - X 轴分类统一引用 A2:A101
 
 
@@ -66,33 +64,12 @@ seriesCatCellRefExpr = `(series,chart)=> "Sheet1!$A$2:$A$101"`
 - 若返回空，则保留模板原值；对于标题/名称，若 cellRef 为空则再尝试 *Expr* 返回直接文本
 
 
-## 通过“可选文字”配置动态数据来源
-
-“可选文字”中“----”之后的 key=value 即 dynamicBindings。常见写法：
-
-```
-----
-seriesTestExpr        = `(series,chart)=> series.index < ds("sales").size()`
-seriesNameExpr        = `(series,chart)=> "产品" + (series.index + 1)`
-seriesDataCellRefExpr = `(series,chart)=> xptRt.buildCellRef("Data!$B$2:$B$100", 0, series.index, 0, 0)`
-seriesCatCellRefExpr  = `(series,chart)=> "Data!$A$2:$A$100"`
-```
-
-- ds(name) 可从运行期数据集中获取数据（由 IXptRuntime 提供）
-- xptRt 变量即 IXptRuntime，已注入表达式作用域，可直接调用其方法
-
-
 ## seriesTestExpr 与“模板需预置最多的 series 数”
 
 - 运行时不会“新增”系列，只会基于模板中已有系列做“保留/删除”。
 - 因此必须在模板中预先设计“最多可能需要”的系列数量（例如最多 5 条线），运行期用 seriesTestExpr 过滤超出的系列。
 - 例：若数据集只有 3 条线，且模板预置 5 个系列，则可以配置
 
-```
-seriesTestExpr = `(series,chart)=> series.index < ds("sales").size()`
-```
-
-引擎将删除 index ≥ ds("sales").size() 的系列。
 
 
 ## seriesModel.index（从 0 开始）
@@ -117,26 +94,23 @@ buildCellRef 签名：
 1) 按列横向扩展系列（多系列共用一段模板区域，每个系列向右偏移一列）
 
 ```
-seriesDataCellRefExpr = `(series,chart)=> xptRt.buildCellRef("Sheet1!$B$2:$B$101", 0, series.index, 0, 0)`
-seriesCatCellRefExpr  = `(series,chart)=> "Sheet1!$A$2:$A$101"`
+seriesDataCellRefExpr = `xptRt.buildCellRef("Sheet1!$B$2:$B$101", 0, series.index, 0, 0)`
+
 ```
 
 2) 按行向下滚动（每个系列向下偏移固定行数）
 
 ```
-seriesDataCellRefExpr = `(series,chart)=> xptRt.buildCellRef("Sheet1!$B$2:$B$21", series.index*20, 0, 0, 0)`
-seriesCatCellRefExpr  = `(series,chart)=> xptRt.buildCellRef("Sheet1!$A$2:$A$21", series.index*20, 0, 0, 0)`
+seriesDataCellRefExpr = `xptRt.buildCellRef("Sheet1!$B$2:$B$21", series.index*20, 0, 0, 0)`
 ```
 
 
 ## 标题与坐标轴的动态绑定
 
 ```
-chartTitleCellRefExpr = `(chart)=> "Sheet1!$D$1"`
-chartTitleExpr        = `(chart)=> "销售额走势"`
+chartTitleCellRefExpr = `Sheet1!$D$1`
+chartTitleExpr        = `销售额走势`
 
-axisTitleCellRefExpr  = `(axis,chart)=> axis.primary ? "Sheet1!$A$1" : null`
-axisTitleExpr         = `(axis,chart)=> axis.primary ? null : "右轴-同比(%)"`
 ```
 
 注意：当 cellRefExpr 返回非空时，titleExpr 将被忽略。

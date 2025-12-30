@@ -63,7 +63,7 @@ public class ExcelCellRef {
      * 解析 SheetName!ABString的格式，支持$C$2这种以及C2这种。可能是A1:C2也可能只是C1，sheetName也是可选的。
      */
     public static ExcelCellRef parse(String text) {
-        if (text == null || text.trim().isEmpty()) {
+        if (text == null || text.isEmpty()) {
             return null;
         }
 

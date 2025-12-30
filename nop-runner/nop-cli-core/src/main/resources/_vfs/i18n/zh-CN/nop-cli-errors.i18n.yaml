@@ -508,6 +508,10 @@ nop.err.dao.txn.rollback-fail: 事务回滚失败
 nop.err.dao.txn.rollback-only-not-allow-commit: 事务标记为只允许回滚，因此不能提交此事务:{txnGroup}
 nop.err.dao.unknown-entity: 类型为[{entityName}]，id为[{entityId}]的记录不存在
 nop.err.dao.unknown-query-space: 未定义的数据源:{querySpace}
+nop.err.eql.cannot-merge-collection-scopes: '无法合并集合操作符作用域: operator1={operator1},
+  operator2={operator2}'
+nop.err.eql.collection-prefix-mismatch: '集合操作符的collectionPrefix不匹配: scope1=[{collectionPrefix1}],
+  scope2=[{collectionPrefix2}]'
 nop.err.eql.decorator-arg-count-is-not-expected: 注解[{decorator}]的参数必须为{expectedCount}
 nop.err.eql.decorator-arg-type-is-not-expected: 注解[{decorator}]的参数[{argIndex}]的类型不是期待的数据类型:{expected}
 nop.err.eql.dialect-not-support-feature: 数据库方言[{dialect}]不支持特性[{feature}]
@@ -524,6 +528,8 @@ nop.err.eql.join-no-condition: 表关联没有指定连接条件
 nop.err.eql.join-prop-path-is-duplicated: 同一关联属性表达式[{propPath}]不能在join语句中多次定义
 nop.err.eql.join-right-source-must-be-prop-path-of-left-source: 关联关系的右侧如果不是实体对象，则必须是左侧对象的关联属性，例如UserInfo
   u left join u.dept
+nop.err.eql.multiple-collection-in-same-branch: '同一个逻辑分支不支持多个集合表达式: collection1=[{collection1}],
+  collection2=[{collection2}]'
 nop.err.eql.not-allow-multiple-query-space: 一条sql语句中的所有表对应的querySpace都必须相同
 nop.err.eql.not-single-expr: 不是合法SQL表达式
 nop.err.eql.not-support-ilike-operator: 数据库不支持ilike运算符
@@ -565,8 +571,21 @@ nop.err.excel.import.multiple-item-with-same-key: 列表属性[{fieldName}]中�
 nop.err.excel.import.unknown-field: 表格[{sheetName}]的单元格[{cellPos}]中指定的字段名[{fieldName}]没有定义，允许的字段名为{allowedNames}
 nop.err.excel.import.unknown-group-field: 未知的分组字段:{fieldName}
 nop.err.excel.import.unknown-sheet: 未定义的Excel表格:[{sheetName}],允许的名称为{allowedNames}
+nop.err.excel.invalid-cell-ref: 非法的单元格引用：{cellRef}
 nop.err.excel.invalid-paper-size: 页面大小[{paperSize}]不是允许的值
 nop.err.excel.unknown-sheet: Excel文件中没有找到表格:[{sheetName}]
+nop.err.excel.validation.boolean-required: 请输入TRUE或FALSE
+nop.err.excel.validation.date-required: 请输入有效的日期
+nop.err.excel.validation.datetime-required: 请输入有效的日期时间
+nop.err.excel.validation.decimal-precision-invalid: 请输入有效的小数，最多[{precision}]位数字，其中小数位最多[{scale}]位
+nop.err.excel.validation.decimal-required: 请输入有效的小数
+nop.err.excel.validation.field-value-invalid: 字段[{fieldName}]的值不符合要求
+nop.err.excel.validation.integer-required: 请输入有效的整数
+nop.err.excel.validation.invalid-value: '[{displayName}]的值不符合要求'
+nop.err.excel.validation.pattern-mismatch: 输入的值必须符合格式要求：[{pattern}]
+nop.err.excel.validation.text-length-invalid: 文本长度不符合要求
+nop.err.excel.validation.time-required: 请输入有效的时间
+nop.err.excel.validation.title: 数据验证错误
 nop.err.exp.undefined-table: 未定义的数据库表:{tableName}
 nop.err.exp.unknown-key-field: 数据表[{tableName}]没有定义唯一键字段:{fieldName},已定义的字段名为：{fieldNames}
 nop.err.file.already-exists: 文件已经存在:{path}
@@ -1275,6 +1294,11 @@ nop.err.xlang.xpl.unknown-slot-arg: slot[{slotName}]不支持变量[{argName}]
 nop.err.xlang.xpl.unknown-tag-attr: 标签[{tagName}]不支持属性:{attrName},允许的属性为{allowedNames}
 nop.err.xlang.xpl.unknown-tag-name: 未知的标签:{tagName}
 nop.err.xlang.xpl.unknown-tag-slot: 未知的子节点:{slotName},允许的节点名为{allowedNames}
+nop.err.xlsx.chart-color-resolve-fail: 解析图表颜色失败:colorName={colorName}
+nop.err.xlsx.chart-parse-fail: 解析图表失败:chartId={chartId},partName={partName}
+nop.err.xlsx.chart-style-parse-fail: 解析图表样式失败:parserName={parserName},elementName={elementName}
+nop.err.xlsx.chart-theme-load-fail: 加载图表主题失败:partName={partName}
+nop.err.xlsx.null-package: ExcelOfficePackage不能为null
 nop.err.xlsx.null-rel-part: 没有关联文件:type={type},relId={relId}
 nop.err.xlsx.unknown-sheet-name: 找不到sheet名称为:{sheetName}
 nop.err.xpl.invalid-xml-name: 不允许输出非法的XML名称:{name}
@@ -1296,6 +1320,7 @@ nop.err.xpt.missing-var-ds: 未定义单元格变量cell
 nop.err.xpt.not-support-expr-in-formula: Excel公式中不支持表达式:{expr}
 nop.err.xpt.row-parent-contains-loop: 表格[{sheetName}]的单元格[{cellPos}]的行父格[{colParent}]不能包含循环指向，必须构成树状结构
 nop.err.xpt.undefined-cell-model-prop: 未定义的单元格模型的属性[{propName}]
+nop.err.xpt.undefined-chart-model-prop: 未定义的图表模型的属性[{propName}]
 nop.err.xpt.undefined-image-model-prop: 未定义的图片模型的属性[{propName}]
 nop.err.xpt.unknown-report-model: 未知的报表模型：{reportName}
 nop.err.xpt.unsupported-render-type: 不支持的报表输出类型：{renderType}

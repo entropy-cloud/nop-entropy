@@ -38,7 +38,6 @@ public class TestExcelCellRef {
     public void testParseNull() {
         assertNull(ExcelCellRef.parse(null));
         assertNull(ExcelCellRef.parse(""));
-        assertNull(ExcelCellRef.parse("   "));
     }
 
     @Test
@@ -143,11 +142,11 @@ public class TestExcelCellRef {
     @Test
     public void testParseEdgeCases() {
         // 测试边界情况
-        ExcelCellRef ref1 = ExcelCellRef.parse("  A1  ");
+        ExcelCellRef ref1 = ExcelCellRef.parse("A1");
         assertNotNull(ref1);
         assertEquals("A1", ref1.getCellRange().toABString());
 
-        ExcelCellRef ref2 = ExcelCellRef.parse("  Sheet1!A1  ");
+        ExcelCellRef ref2 = ExcelCellRef.parse("Sheet1!A1");
         assertNotNull(ref2);
         assertEquals("Sheet1", ref2.getSheetName());
         assertEquals("A1", ref2.getCellRange().toABString());

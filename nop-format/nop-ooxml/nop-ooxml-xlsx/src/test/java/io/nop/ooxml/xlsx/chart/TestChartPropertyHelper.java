@@ -102,7 +102,10 @@ public class TestChartPropertyHelper {
         assertEquals(90.0, ChartPropertyHelper.ooxmlAngleStringToDegrees("5400000"), 0.001);
         assertNull(ChartPropertyHelper.ooxmlAngleStringToDegrees(null));
         assertNull(ChartPropertyHelper.ooxmlAngleStringToDegrees(""));
-        assertNull(ChartPropertyHelper.ooxmlAngleStringToDegrees("invalid"));
+        try {
+            ChartPropertyHelper.ooxmlAngleStringToDegrees("invalid");
+            fail();
+        }catch (Exception e){}
     }
 
     @Test
