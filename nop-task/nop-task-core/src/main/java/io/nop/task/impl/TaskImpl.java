@@ -124,15 +124,14 @@ public class TaskImpl implements ITask {
             if (value == null)
                 value = input.getDefaultValue();
 
-            if (value == null) {
-                // value为null可能是没有设置input，这里强制设置一下，确保scope中的input变量一定存在
-                taskRt.setInput(name, null);
-            } else if (input.getType() != null) {
-                Object castedValue = input.getType().getStdDataType().convert(value,
+            if (input.getType() != null) {
+                value = input.getType().getStdDataType().convert(value,
                         err -> new NopException(err).param(ARG_TASK_NAME, taskRt.getTaskName())
                                 .param(ARG_INPUT_NAME, input.getName()));
-                taskRt.setInput(name, castedValue);
             }
+
+            // 重新设置一下，确保在当前上下文中总是存在此变量。读取时可能是从父scope中读取到的变量
+            taskRt.setInput(name, value);
 
             if (input.isMandatory() && StringHelper.isEmptyObject(value)) {
                 throw new NopException(ERR_TASK_MANDATORY_INPUT_NOT_ALLOW_EMPTY)
