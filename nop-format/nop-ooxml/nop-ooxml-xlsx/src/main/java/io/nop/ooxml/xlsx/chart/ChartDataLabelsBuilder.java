@@ -68,12 +68,6 @@ public class ChartDataLabelsBuilder {
      */
     private void buildVisibility(XNode dLblsNode, ChartDataLabelsModel dataLabels) {
 
-        // 如果数据标签不可见，添加delete元素
-//            if (!dataLabels.isVisible()) {
-//                XNode deleteNode = dLblsNode.addChild("c:delete");
-//                deleteNode.setAttr("val", "1");
-//            }
-
     }
 
     /**

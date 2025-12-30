@@ -9,14 +9,18 @@ import io.nop.commons.util.StringHelper;
  */
 public enum ChartAxisCrossBetween {
     /**
-     * 在刻度线之间
+     * 在分类刻度线之间交叉。
+     * 这是柱状图和条形图的默认行为。
+     * The value axis crosses the category axis between tick marks.
      */
     BETWEEN("between"),
-    
+
     /**
-     * 在刻度线上
+     * 在分类的中点（即刻度线上）交叉。
+     * 这是折线图和散点图的默认行为。
+     * The value axis crosses the category axis at the midpoint of a category.
      */
-    ON_TICK("onTick");
+    MID_CAT("midCat");
 
     private final String value;
 

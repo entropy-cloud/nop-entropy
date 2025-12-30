@@ -11,6 +11,8 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.table.CellPosition;
 import io.nop.excel.chart.model.ChartDataLabelsModel;
+import io.nop.excel.chart.model.ChartDataPointModel;
+import io.nop.excel.chart.model.ChartMarkersModel;
 import io.nop.excel.chart.model.ChartSeriesModel;
 import io.nop.excel.chart.model.ChartShapeStyleModel;
 import io.nop.excel.chart.model.ChartTrendLineModel;
@@ -36,7 +38,7 @@ public class ChartSeriesBuilder {
      * @param index  系列索引
      * @return 系列XNode，如果series为null则返回null
      */
-    public XNode buildSeries(ChartSeriesModel series, int index) {
+    public XNode buildSeries(ChartSeriesModel series, int index, XNode chartNode) {
         if (series == null) {
             return null;
         }
@@ -50,11 +52,20 @@ public class ChartSeriesBuilder {
         // 构建系列格式化
         buildSeriesFormatting(serNode, series);
 
+        // 构建标记配置 (对于散点图等需要标记的图表类型)
+        buildMarkerConfig(serNode, series);
+
         // 构建数据标签
         buildDataLabels(serNode, series);
 
+        // 构建数据点
+        buildDataPoints(serNode, series);
+
         // 构建系列数据
-        buildSeriesValData(serNode, series);
+        buildSeriesValData(serNode, series,chartNode);
+
+        // 构建smooth属性 (折线图、散点图等)
+        buildSmoothConfig(serNode, series);
 
         // 构建趋势线
         buildTrendLines(serNode, series);
@@ -88,20 +99,17 @@ public class ChartSeriesBuilder {
      * 构建系列名称
      */
     private void buildSeriesName(XNode serNode, ChartSeriesModel series) {
+        XNode txNode = serNode.addChild("c:tx");
 
-        if (!StringHelper.isEmpty(series.getName())) {
-            XNode txNode = serNode.addChild("c:tx");
-
-            // 如果有名称单元格引用，使用引用
-            if (!StringHelper.isEmpty(series.getNameCellRef()) && !CellPosition.NONE_STRING.equals(series.getNameCellRef())) {
-                XNode strRefNode = txNode.addChild("c:strRef");
-                XNode fNode = strRefNode.addChild("c:f");
-                fNode.setText(series.getNameCellRef());
-            } else {
-                // 使用静态文本
-                XNode vNode = txNode.addChild("c:v");
-                vNode.setText(series.getName());
-            }
+        // 如果有名称单元格引用，使用引用
+        if (!StringHelper.isEmpty(series.getNameCellRef()) && !CellPosition.NONE_STRING.equals(series.getNameCellRef())) {
+            XNode strRefNode = txNode.addChild("c:strRef");
+            XNode fNode = strRefNode.addChild("c:f");
+            fNode.setText(series.getNameCellRef());
+        } else {
+            // 使用静态文本
+            XNode vNode = txNode.addChild("c:v");
+            vNode.setText(series.getName());
         }
 
     }
@@ -120,10 +128,59 @@ public class ChartSeriesBuilder {
     }
 
     /**
+     * 构建数据点
+     */
+    private void buildDataPoints(XNode serNode, ChartSeriesModel series) {
+        List<ChartDataPointModel> dataPoints = series.getDataPoints();
+        if (dataPoints != null && !dataPoints.isEmpty()) {
+            for (int i = 0; i < dataPoints.size(); i++) {
+                ChartDataPointModel dataPoint = dataPoints.get(i);
+                XNode dPtNode = ChartDataPointBuilder.INSTANCE.buildDataPoint(dataPoint, i);
+                if (dPtNode != null) {
+                    serNode.appendChild(dPtNode);
+                }
+            }
+        }
+    }
+
+    /**
      * 构建系列数据
      */
-    private void buildSeriesValData(XNode serNode, ChartSeriesModel series) {
+    private void buildSeriesValData(XNode serNode, ChartSeriesModel series, XNode chartNode) {
 
+        // 检查父节点类型来确定图表类型
+        String chartType = chartNode != null ? chartNode.getTagName() : "";
+
+        // 对于散点图，使用xVal和yVal
+        if ("c:scatterChart".equals(chartType)) {
+            buildScatterSeriesData(serNode, series);
+        } else {
+            // 对于其他图表类型，使用传统的cat和val
+            buildTraditionalSeriesData(serNode, series);
+        }
+    }
+
+    /**
+     * 构建散点图系列数据
+     */
+    private void buildScatterSeriesData(XNode serNode, ChartSeriesModel series) {
+        // 构建X值数据 (c:xVal) - 对应catCellRef
+        String catCellRef = series.getCatCellRef();
+        if (!StringHelper.isEmpty(catCellRef) && !CellPosition.NONE_STRING.equals(catCellRef)) {
+            buildXValCellReference(serNode, catCellRef);
+        }
+
+        // 构建Y值数据 (c:yVal) - 对应dataCellRef
+        String dataCellRef = series.getDataCellRef();
+        if (!StringHelper.isEmpty(dataCellRef)) {
+            buildYValCellReference(serNode, dataCellRef);
+        }
+    }
+
+    /**
+     * 构建传统图表系列数据
+     */
+    private void buildTraditionalSeriesData(XNode serNode, ChartSeriesModel series) {
         // 构建分类数据
         buildSeriesCatData(serNode, series);
 
@@ -132,7 +189,40 @@ public class ChartSeriesBuilder {
         if (!StringHelper.isEmpty(dataCellRef)) {
             buildValCellReference(serNode, dataCellRef);
         }
+    }
 
+    /**
+     * 构建X值单元格引用 (散点图)
+     */
+    private void buildXValCellReference(XNode serNode, String xValCellRef) {
+        if (StringHelper.isEmpty(xValCellRef)) {
+            return;
+        }
+
+        // 构建X值数据 (c:xVal)
+        XNode xValNode = serNode.addChild("c:xVal");
+
+        // 构建数值引用
+        XNode numRefNode = xValNode.addChild("c:numRef");
+        XNode fNode = numRefNode.addChild("c:f");
+        fNode.setText(xValCellRef);
+    }
+
+    /**
+     * 构建Y值单元格引用 (散点图)
+     */
+    private void buildYValCellReference(XNode serNode, String yValCellRef) {
+        if (StringHelper.isEmpty(yValCellRef)) {
+            return;
+        }
+
+        // 构建Y值数据 (c:yVal)
+        XNode yValNode = serNode.addChild("c:yVal");
+
+        // 构建数值引用
+        XNode numRefNode = yValNode.addChild("c:numRef");
+        XNode fNode = numRefNode.addChild("c:f");
+        fNode.setText(yValCellRef);
     }
 
     /**
@@ -230,6 +320,48 @@ public class ChartSeriesBuilder {
     }
 
     /**
+     * 构建标记配置
+     */
+    private void buildMarkerConfig(XNode serNode, ChartSeriesModel series) {
+        // 检查系列是否有markers配置
+        ChartMarkersModel markers = series.getMarkers();
+        if (markers != null && markers.getEnabled() != null && markers.getEnabled()) {
+            XNode markerNode = serNode.addChild("c:marker");
+            
+            // 构建标记符号
+            if (markers.getType() != null) {
+                XNode symbolNode = markerNode.addChild("c:symbol");
+                symbolNode.setAttr("val", markers.getType().value());
+            }
+            
+            // 构建标记大小
+            if (markers.getSize() != null) {
+                XNode sizeNode = markerNode.addChild("c:size");
+                sizeNode.setAttr("val", String.valueOf(markers.getSize().intValue()));
+            }
+            
+            // 构建标记的形状样式 - 使用现有的ChartShapeStyleBuilder
+            if (markers.getShapeStyle() != null) {
+                XNode spPrNode = ChartShapeStyleBuilder.INSTANCE.buildShapeStyle(markers.getShapeStyle());
+                if (spPrNode != null) {
+                    markerNode.appendChild(spPrNode.withTagName("c:spPr"));
+                }
+            }
+        }
+    }
+
+    /**
+     * 构建smooth配置
+     */
+    private void buildSmoothConfig(XNode serNode, ChartSeriesModel series) {
+        // 构建smooth属性
+        if (series.getSmooth() != null) {
+            XNode smoothNode = serNode.addChild("c:smooth");
+            smoothNode.setAttr("val", series.getSmooth() ? "1" : "0");
+        }
+    }
+
+    /**
      * 构建趋势线
      */
     private void buildTrendLines(XNode serNode, ChartSeriesModel series) {
@@ -244,31 +376,5 @@ public class ChartSeriesBuilder {
             }
         }
 
-    }
-
-    /**
-     * 构建简单的系列（仅包含基本属性）
-     * 这是一个便利方法，用于快速创建基本的系列配置
-     *
-     * @param name    系列名称
-     * @param dataRef 数据单元格引用
-     * @param index   系列索引
-     * @return 系列XNode，如果name为null则返回null
-     */
-    public XNode buildSimpleSeries(String name, String dataRef, int index) {
-        if (StringHelper.isEmpty(name)) {
-            return null;
-        }
-
-        // 创建系列模型
-        ChartSeriesModel series = new ChartSeriesModel();
-        series.setName(name);
-
-        // 设置数据引用
-        if (!StringHelper.isEmpty(dataRef)) {
-            series.setDataCellRef(dataRef);
-        }
-
-        return buildSeries(series, index);
     }
 }

@@ -7,6 +7,7 @@
  */
 package io.nop.ooxml.xlsx.chart;
 
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.chart.constants.ChartBarDirection;
 import io.nop.excel.chart.constants.ChartBarGrouping;
@@ -17,6 +18,7 @@ import io.nop.excel.chart.model.ChartDoughnutConfigModel;
 import io.nop.excel.chart.model.ChartLineConfigModel;
 import io.nop.excel.chart.model.ChartPieConfigModel;
 import io.nop.excel.chart.model.ChartPlotAreaModel;
+import io.nop.excel.chart.model.ChartScatterConfigModel;
 import io.nop.excel.chart.model.ChartSeriesModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -264,7 +266,24 @@ public class ChartTypeConfigBuilder {
      */
     private XNode buildScatterChartConfig(ChartPlotAreaModel plotArea) {
 
+        ChartScatterConfigModel scatterConfig = plotArea.getScatterConfig();
+        if (scatterConfig == null) {
+            return null;
+        }
+
         XNode scatterChartNode = XNode.make("c:scatterChart");
+
+        // 构建散点图样式
+        if (!StringHelper.isEmpty(scatterConfig.getScatterStyle())) {
+            XNode scatterStyleNode = scatterChartNode.addChild("c:scatterStyle");
+            scatterStyleNode.setAttr("val", scatterConfig.getScatterStyle());
+        }
+
+        // 构建颜色变化
+        if (scatterConfig.getVaryColors() != null) {
+            XNode varyColorsNode = scatterChartNode.addChild("c:varyColors");
+            varyColorsNode.setAttr("val", scatterConfig.getVaryColors() ? "1" : "0");
+        }
 
         // 构建系列数据
         buildSeriesForChartType(scatterChartNode, plotArea);
@@ -388,7 +407,7 @@ public class ChartTypeConfigBuilder {
         // 构建内半径（通过 holeSize）
         if (doughnutConfig.getHoleSize() != null) {
             XNode holeSizeNode = doughnutChartNode.addChild("c:holeSize");
-            holeSizeNode.setAttr("val", doughnutConfig.getHoleSize().toString());
+            holeSizeNode.setAttr("val", doughnutConfig.getHoleSize().intValue());
         }
 
         return doughnutChartNode;
@@ -404,7 +423,7 @@ public class ChartTypeConfigBuilder {
         if (seriesList != null && !seriesList.isEmpty()) {
             for (int i = 0; i < seriesList.size(); i++) {
                 ChartSeriesModel series = seriesList.get(i);
-                XNode seriesNode = ChartSeriesBuilder.INSTANCE.buildSeries(series, i);
+                XNode seriesNode = ChartSeriesBuilder.INSTANCE.buildSeries(series, i, chartNode);
                 if (seriesNode != null) {
                     chartNode.appendChild(seriesNode);
                 }

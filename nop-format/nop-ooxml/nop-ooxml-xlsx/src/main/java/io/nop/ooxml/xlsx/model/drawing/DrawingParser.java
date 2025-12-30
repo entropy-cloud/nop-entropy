@@ -78,16 +78,8 @@ public class DrawingParser {
                         excelChart.setAnchor(anchor);
                         excelChart.setDescription(description);
 
-                        try {
-                            DrawingChartParser.INSTANCE.parseChartRef(chartRef, pkg, drawingPart, excelChart);
-                        } catch (Exception e) {
-                            // 使用LOG.warn处理图表解析错误，确保其他图表能继续解析
-                            LOG.warn("Failed to parse chart", e);
-                            // 设置默认图表名称，确保图表对象可用
-                            if (excelChart.getName() == null) {
-                                excelChart.setName("Chart_" + System.currentTimeMillis());
-                            }
-                        }
+
+                        DrawingChartParser.INSTANCE.parseChartRef(chartRef, pkg, drawingPart, excelChart);
 
                         while (ret.getByKey(excelChart.getName()) != null) {
                             excelChart.setName(StringHelper.nextName(excelChart.getName()));

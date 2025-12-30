@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"
+              xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+              xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+    <c:chart>
+        <c:title>
+            <c:tx>
+                <c:rich>
+                    <a:bodyPr/>
+                    <a:lstStyle/>
+                    <a:p>
+                        <a:pPr>
+                            <a:defRPr/>
+                        </a:pPr>
+                        <a:r>
+                            <a:rPr lang="en-US"/>
+                            <a:t>Chart with No Fill Border</a:t>
+                        </a:r>
+                    </a:p>
+                </c:rich>
+            </c:tx>
+            <c:layout/>
+            <!-- 标题边框设置为无填充 -->
+            <c:spPr>
+                <a:ln w="25400">
+                    <a:noFill/>
+                    <a:prstDash val="dash"/>
+                </a:ln>
+            </c:spPr>
+        </c:title>
+        <c:plotArea>
+            <c:layout/>
+            <!-- 绘图区边框也设置为无填充 -->
+            <c:spPr>
+                <a:ln w="12700">
+                    <a:noFill/>
+                </a:ln>
+            </c:spPr>
+            <c:lineChart>
+                <c:grouping val="standard"/>
+                <c:ser>
+                    <c:idx val="0"/>
+                    <c:order val="0"/>
+                    <c:tx>
+                        <c:strRef>
+                            <c:f>Sheet1!$B$1</c:f>
+                        </c:strRef>
+                    </c:tx>
+                    <c:cat>
+                        <c:strRef>
+                            <c:f>Sheet1!$A$2:$A$5</c:f>
+                        </c:strRef>
+                    </c:cat>
+                    <c:val>
+                        <c:numRef>
+                            <c:f>Sheet1!$B$2:$B$5</c:f>
+                        </c:numRef>
+                    </c:val>
+                    <!-- 系列标记边框设置为无填充 -->
+                    <c:marker>
+                        <c:symbol val="circle"/>
+                        <c:size val="7"/>
+                        <c:spPr>
+                            <a:ln w="19050">
+                                <a:noFill/>
+                                <a:prstDash val="dot"/>
+                            </a:ln>
+                        </c:spPr>
+                    </c:marker>
+                </c:ser>
+                <c:axId val="1"/>
+                <c:axId val="2"/>
+            </c:lineChart>
+            <c:catAx>
+                <c:axId val="1"/>
+                <c:scaling>
+                    <c:orientation val="minMax"/>
+                </c:scaling>
+                <c:axPos val="b"/>
+                <c:crossAx val="2"/>
+                <c:crosses val="autoZero"/>
+            </c:catAx>
+            <c:valAx>
+                <c:axId val="2"/>
+                <c:scaling>
+                    <c:orientation val="minMax"/>
+                </c:scaling>
+                <c:axPos val="l"/>
+                <c:crossAx val="1"/>
+                <c:crosses val="autoZero"/>
+            </c:valAx>
+        </c:plotArea>
+        <c:legend>
+            <c:legendPos val="r"/>
+            <c:layout/>
+            <!-- 图例边框设置为无填充 -->
+            <c:spPr>
+                <a:ln w="6350">
+                    <a:noFill/>
+                    <a:prstDash val="dashDot"/>
+                </a:ln>
+            </c:spPr>
+        </c:legend>
+    </c:chart>
+</c:chartSpace>

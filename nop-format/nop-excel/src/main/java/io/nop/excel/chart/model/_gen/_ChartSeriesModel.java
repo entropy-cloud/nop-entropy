@@ -34,14 +34,14 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
     /**
      *  
      * xml name: catCellRef
-     * 
+     * 对于散点图和气泡图，它对应于xVal
      */
     private java.lang.String _catCellRef ;
     
     /**
      *  
      * xml name: dataCellRef
-     * 
+     * 对于散点图和气泡图，它对应于yVal
      */
     private java.lang.String _dataCellRef ;
     
@@ -52,6 +52,13 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
      * 对应 Excel POI 中的 DataLabels
      */
     private io.nop.excel.chart.model.ChartDataLabelsModel _dataLabels ;
+    
+    /**
+     *  
+     * xml name: dataPoints
+     * Collection of individual data points with custom styling.
+     */
+    private KeyedList<io.nop.excel.chart.model.ChartDataPointModel> _dataPoints = KeyedList.emptyList();
     
     /**
      *  
@@ -112,6 +119,13 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
      * 对应 Excel POI 中的 CTShapeProperties，用于 Legend、DataLabel、Tooltip 等元素的样式
      */
     private io.nop.excel.chart.model.ChartShapeStyleModel _shapeStyle ;
+    
+    /**
+     *  
+     * xml name: smooth
+     * 
+     */
+    private java.lang.Boolean _smooth ;
     
     /**
      *  
@@ -179,7 +193,7 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
     /**
      * 
      * xml name: catCellRef
-     *  
+     *  对于散点图和气泡图，它对应于xVal
      */
     
     public java.lang.String getCatCellRef(){
@@ -198,7 +212,7 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
     /**
      * 
      * xml name: dataCellRef
-     *  
+     *  对于散点图和气泡图，它对应于yVal
      */
     
     public java.lang.String getDataCellRef(){
@@ -233,6 +247,51 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
            
     }
 
+    
+    /**
+     * 
+     * xml name: dataPoints
+     *  Collection of individual data points with custom styling.
+     */
+    
+    public java.util.List<io.nop.excel.chart.model.ChartDataPointModel> getDataPoints(){
+      return _dataPoints;
+    }
+
+    
+    public void setDataPoints(java.util.List<io.nop.excel.chart.model.ChartDataPointModel> value){
+        checkAllowChange();
+        
+        this._dataPoints = KeyedList.fromList(value, io.nop.excel.chart.model.ChartDataPointModel::getIndex);
+           
+    }
+
+    
+    public io.nop.excel.chart.model.ChartDataPointModel getDataPoint(String name){
+        return this._dataPoints.getByKey(name);
+    }
+
+    public boolean hasDataPoint(String name){
+        return this._dataPoints.containsKey(name);
+    }
+
+    public void addDataPoint(io.nop.excel.chart.model.ChartDataPointModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.excel.chart.model.ChartDataPointModel> list = this.getDataPoints();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.excel.chart.model.ChartDataPointModel::getIndex);
+            setDataPoints(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_dataPoints(){
+        return this._dataPoints.keySet();
+    }
+
+    public boolean hasDataPoints(){
+        return !this._dataPoints.isEmpty();
+    }
     
     /**
      * 
@@ -392,6 +451,25 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: smooth
+     *  
+     */
+    
+    public java.lang.Boolean getSmooth(){
+      return _smooth;
+    }
+
+    
+    public void setSmooth(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._smooth = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: trendLines
      *  Trend Line Configuration for Chart Series
      * 图表系列趋势线配置 - 简化版，仅包含与 ECharts 双向转换支持的部分
@@ -488,6 +566,8 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
             
            this._dataLabels = io.nop.api.core.util.FreezeHelper.deepFreeze(this._dataLabels);
             
+           this._dataPoints = io.nop.api.core.util.FreezeHelper.deepFreeze(this._dataPoints);
+            
            this._lineStyle = io.nop.api.core.util.FreezeHelper.deepFreeze(this._lineStyle);
             
            this._markers = io.nop.api.core.util.FreezeHelper.deepFreeze(this._markers);
@@ -508,6 +588,7 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
         out.putNotNull("catCellRef",this.getCatCellRef());
         out.putNotNull("dataCellRef",this.getDataCellRef());
         out.putNotNull("dataLabels",this.getDataLabels());
+        out.putNotNull("dataPoints",this.getDataPoints());
         out.putNotNull("id",this.getId());
         out.putNotNull("index",this.getIndex());
         out.putNotNull("invertIfNegative",this.getInvertIfNegative());
@@ -516,6 +597,7 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
         out.putNotNull("name",this.getName());
         out.putNotNull("nameCellRef",this.getNameCellRef());
         out.putNotNull("shapeStyle",this.getShapeStyle());
+        out.putNotNull("smooth",this.getSmooth());
         out.putNotNull("trendLines",this.getTrendLines());
         out.putNotNull("type",this.getType());
         out.putNotNull("visible",this.isVisible());
@@ -535,6 +617,7 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
         instance.setCatCellRef(this.getCatCellRef());
         instance.setDataCellRef(this.getDataCellRef());
         instance.setDataLabels(this.getDataLabels());
+        instance.setDataPoints(this.getDataPoints());
         instance.setId(this.getId());
         instance.setIndex(this.getIndex());
         instance.setInvertIfNegative(this.getInvertIfNegative());
@@ -543,6 +626,7 @@ public abstract class _ChartSeriesModel extends io.nop.core.resource.component.A
         instance.setName(this.getName());
         instance.setNameCellRef(this.getNameCellRef());
         instance.setShapeStyle(this.getShapeStyle());
+        instance.setSmooth(this.getSmooth());
         instance.setTrendLines(this.getTrendLines());
         instance.setType(this.getType());
         instance.setVisible(this.isVisible());

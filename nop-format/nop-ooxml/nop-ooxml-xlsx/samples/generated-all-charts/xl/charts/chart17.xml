@@ -70,9 +70,12 @@
                     </a:p>
                 </c:rich>
             </c:tx>
+            <c:overlay val="0"/>
             <c:spPr>
                 <a:noFill/>
-                <a:ln/>
+                <a:ln>
+                    <a:noFill/>
+                </a:ln>
             </c:spPr>
             <c:txPr>
                 <a:bodyPr rot="0" spcFirstLastPara="1" vertOverflow="ellipsis" vert="horz" wrap="square" lIns="38100"
@@ -102,11 +105,18 @@
                 <c:ser>
                     <c:idx val="0"/>
                     <c:order val="0"/>
+                    <c:tx>
+                        <c:strRef>
+                            <c:f>ChartData!$B$1</c:f>
+                        </c:strRef>
+                    </c:tx>
                     <c:spPr>
                         <a:solidFill>
                             <a:srgbClr val="4472C4"/>
                         </a:solidFill>
-                        <a:ln/>
+                        <a:ln>
+                            <a:noFill/>
+                        </a:ln>
                     </c:spPr>
                     <c:cat>
                         <c:strRef>
@@ -122,11 +132,18 @@
                 <c:ser>
                     <c:idx val="1"/>
                     <c:order val="1"/>
+                    <c:tx>
+                        <c:strRef>
+                            <c:f>ChartData!$C$1</c:f>
+                        </c:strRef>
+                    </c:tx>
                     <c:spPr>
                         <a:solidFill>
                             <a:srgbClr val="ED7D31"/>
                         </a:solidFill>
-                        <a:ln/>
+                        <a:ln>
+                            <a:noFill/>
+                        </a:ln>
                     </c:spPr>
                     <c:cat>
                         <c:strRef>
@@ -142,11 +159,18 @@
                 <c:ser>
                     <c:idx val="2"/>
                     <c:order val="2"/>
+                    <c:tx>
+                        <c:strRef>
+                            <c:f>ChartData!$D$1</c:f>
+                        </c:strRef>
+                    </c:tx>
                     <c:spPr>
                         <a:solidFill>
                             <a:srgbClr val="A5A5A5"/>
                         </a:solidFill>
-                        <a:ln/>
+                        <a:ln>
+                            <a:noFill/>
+                        </a:ln>
                     </c:spPr>
                     <c:cat>
                         <c:strRef>
@@ -166,6 +190,7 @@
             </c:barChart>
             <c:catAx>
                 <c:axId val="1199852495"/>
+                <c:delete val="0"/>
                 <c:axPos val="b"/>
                 <c:crossAx val="1199847215"/>
                 <c:crosses val="autoZero"/>
@@ -209,6 +234,7 @@
             </c:catAx>
             <c:valAx>
                 <c:axId val="1199847215"/>
+                <c:delete val="0"/>
                 <c:axPos val="l"/>
                 <c:crossAx val="1199852495"/>
                 <c:crosses val="autoZero"/>
@@ -219,7 +245,9 @@
                 <c:tickLblPos val="nextTo"/>
                 <c:spPr>
                     <a:noFill/>
-                    <a:ln/>
+                    <a:ln>
+                        <a:noFill/>
+                    </a:ln>
                 </c:spPr>
                 <c:txPr>
                     <a:bodyPr rot="0" spcFirstLastPara="1" vertOverflow="ellipsis" vert="horz" wrap="square"
@@ -256,7 +284,9 @@
             </c:valAx>
             <c:spPr>
                 <a:noFill/>
-                <a:ln/>
+                <a:ln>
+                    <a:noFill/>
+                </a:ln>
             </c:spPr>
         </c:plotArea>
         <c:plotVisOnly val="1"/>

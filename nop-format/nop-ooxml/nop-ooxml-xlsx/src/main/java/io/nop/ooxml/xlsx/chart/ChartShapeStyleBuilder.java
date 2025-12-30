@@ -450,14 +450,20 @@ public class ChartShapeStyleBuilder {
             lnNode.setAttr("w", String.valueOf(emuWidth));
         }
 
-        // 构建边框颜色
-        String color = border.getColor();
-        if (!StringHelper.isEmpty(color)) {
-            XNode solidFillNode = lnNode.addChild("a:solidFill");
-            buildColor(solidFillNode, color);
+        // 检查无填充边框
+        if (Boolean.TRUE.equals(border.getNoFill())) {
+            lnNode.addChild("a:noFill");
+            LOG.debug("Built border with no fill");
+        } else {
+            // 构建边框颜色（仅在非noFill时）
+            String color = border.getColor();
+            if (!StringHelper.isEmpty(color)) {
+                XNode solidFillNode = lnNode.addChild("a:solidFill");
+                buildColor(solidFillNode, color);
 
-            // 构建边框透明度
-            buildOpacity(solidFillNode, border.getOpacity());
+                // 构建边框透明度
+                buildOpacity(solidFillNode, border.getOpacity());
+            }
         }
 
         // 构建线条样式
@@ -473,7 +479,6 @@ public class ChartShapeStyleBuilder {
         if (Boolean.TRUE.equals(border.getRound()))
             lnNode.addChild("a:round");
 
-        LOG.debug("Built border with width: {}, color: {}, style: {}", width, color, style);
         return true;
 
     }

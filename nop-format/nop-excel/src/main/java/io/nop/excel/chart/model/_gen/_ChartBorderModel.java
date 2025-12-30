@@ -26,6 +26,13 @@ public abstract class _ChartBorderModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: noFill
+     * 
+     */
+    private java.lang.Boolean _noFill ;
+    
+    /**
+     *  
      * xml name: opacity
      * 
      */
@@ -74,6 +81,25 @@ public abstract class _ChartBorderModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._color = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: noFill
+     *  
+     */
+    
+    public java.lang.Boolean getNoFill(){
+      return _noFill;
+    }
+
+    
+    public void setNoFill(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._noFill = value;
            
     }
 
@@ -189,6 +215,7 @@ public abstract class _ChartBorderModel extends io.nop.core.resource.component.A
         super.outputJson(out);
         
         out.putNotNull("color",this.getColor());
+        out.putNotNull("noFill",this.getNoFill());
         out.putNotNull("opacity",this.getOpacity());
         out.putNotNull("radius",this.getRadius());
         out.putNotNull("round",this.getRound());
@@ -206,6 +233,7 @@ public abstract class _ChartBorderModel extends io.nop.core.resource.component.A
         super.copyTo(instance);
         
         instance.setColor(this.getColor());
+        instance.setNoFill(this.getNoFill());
         instance.setOpacity(this.getOpacity());
         instance.setRadius(this.getRadius());
         instance.setRound(this.getRound());

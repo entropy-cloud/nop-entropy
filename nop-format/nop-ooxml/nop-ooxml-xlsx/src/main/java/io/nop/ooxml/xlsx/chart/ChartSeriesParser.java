@@ -2,7 +2,10 @@ package io.nop.ooxml.xlsx.chart;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
+import io.nop.excel.chart.constants.ChartMarkerType;
 import io.nop.excel.chart.model.ChartDataLabelsModel;
+import io.nop.excel.chart.model.ChartDataPointModel;
+import io.nop.excel.chart.model.ChartMarkersModel;
 import io.nop.excel.chart.model.ChartSeriesModel;
 import io.nop.excel.chart.model.ChartShapeStyleModel;
 import io.nop.excel.chart.model.ChartTrendLineModel;
@@ -45,8 +48,14 @@ public class ChartSeriesParser {
         // 解析系列格式化
         parseSeriesFormatting(series, serNode, styleProvider);
 
+        // 解析系列特定配置（包括marker等）
+        parseSeriesSpecificConfig(series, serNode, styleProvider);
+
         // 解析数据标签
         parseDataLabels(series, serNode, styleProvider);
+
+        // 解析数据点
+        parseDataPoints(series, serNode, styleProvider);
 
         // 解析趋势线
         parseTrendLines(series, serNode, styleProvider);
@@ -127,6 +136,9 @@ public class ChartSeriesParser {
     private void parseScatterSeriesConfig(ChartSeriesModel series, XNode serNode) {
         // 散点图特定配置
         LOG.debug("Parsing scatter chart series configuration");
+
+        // 解析散点图的xVal和yVal数据
+        parseScatterSeriesData(series, serNode);
     }
 
     /**
@@ -168,7 +180,7 @@ public class ChartSeriesParser {
             if (!StringHelper.isEmpty(cellRef)) {
                 series.setNameCellRef(cellRef);
             }
-            
+
             // 也可以保留提取的文本作为备用
             String seriesName = ChartTextParser.INSTANCE.extractText(txNode);
             if (!StringHelper.isEmpty(seriesName)) {
@@ -206,9 +218,6 @@ public class ChartSeriesParser {
 
         // 解析数值数据 (Y轴数据)
         parseSeriesValData(series, serNode);
-
-        // 解析系列特定配置
-        parseSeriesSpecificConfig(series, serNode);
     }
 
     /**
@@ -241,22 +250,22 @@ public class ChartSeriesParser {
             }
         }
 
-        // 如果没有找到val，尝试解析X值数据 (散点图)
+        // 如果没有找到val，尝试解析Y值数据 (散点图) - 对于散点图，yVal对应dataCellRef
         if (dataCellRef == null) {
-            XNode xValNode = serNode.childByTag("c:xVal");
-            if (xValNode != null) {
-                String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(xValNode);
+            XNode yValNode = serNode.childByTag("c:yVal");
+            if (yValNode != null) {
+                String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(yValNode);
                 if (cellRef != null) {
                     dataCellRef = cellRef;
                 }
             }
         }
 
-        // 如果没有找到，尝试解析Y值数据 (散点图)
+        // 如果没有找到，尝试解析X值数据 (散点图) - 作为备选
         if (dataCellRef == null) {
-            XNode yValNode = serNode.childByTag("c:yVal");
-            if (yValNode != null) {
-                String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(yValNode);
+            XNode xValNode = serNode.childByTag("c:xVal");
+            if (xValNode != null) {
+                String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(xValNode);
                 if (cellRef != null) {
                     dataCellRef = cellRef;
                 }
@@ -282,10 +291,36 @@ public class ChartSeriesParser {
     }
 
     /**
+     * 解析散点图系列数据
+     * 散点图使用xVal和yVal而不是cat和val
+     */
+    private void parseScatterSeriesData(ChartSeriesModel series, XNode serNode) {
+        // 解析X值数据 (散点图的X轴数据) - 对应catCellRef
+        XNode xValNode = serNode.childByTag("c:xVal");
+        if (xValNode != null) {
+            String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(xValNode);
+            if (!StringHelper.isEmpty(cellRef)) {
+                series.setCatCellRef(cellRef);
+                LOG.debug("Parsed scatter chart X value data reference: {}", cellRef);
+            }
+        }
+
+        // 解析Y值数据 (散点图的Y轴数据) - 对应dataCellRef
+        XNode yValNode = serNode.childByTag("c:yVal");
+        if (yValNode != null) {
+            String cellRef = ChartTextParser.INSTANCE.extractCellReferenceFromParent(yValNode);
+            if (!StringHelper.isEmpty(cellRef)) {
+                series.setDataCellRef(cellRef);
+                LOG.debug("Parsed scatter chart Y value data reference: {}", cellRef);
+            }
+        }
+    }
+
+    /**
      * 解析系列特定配置
      * 处理不同图表类型的系列特定属性
      */
-    private void parseSeriesSpecificConfig(ChartSeriesModel series, XNode serNode) {
+    private void parseSeriesSpecificConfig(ChartSeriesModel series, XNode serNode, IChartStyleProvider styleProvider) {
         // 解析爆炸值 (饼图)
         Integer explosion = ChartPropertyHelper.getChildIntVal(serNode, "c:explosion");
         if (explosion != null) {
@@ -295,12 +330,12 @@ public class ChartSeriesParser {
         }
 
         // 解析标记配置 (折线图、散点图)
-        parseMarkerConfig(series, serNode);
+        parseMarkerConfig(series, serNode, styleProvider);
 
         // 解析平滑线配置 (折线图)
         Boolean smoothBool = ChartPropertyHelper.getChildBoolVal(serNode, "c:smooth");
         if (smoothBool != null) {
-            // TODO: 设置到系列的特定配置中
+            series.setSmooth(smoothBool);
             LOG.debug("Series smooth line: {}", smoothBool);
         }
 
@@ -311,31 +346,39 @@ public class ChartSeriesParser {
     /**
      * 解析标记配置
      */
-    private void parseMarkerConfig(ChartSeriesModel series, XNode serNode) {
+    private void parseMarkerConfig(ChartSeriesModel series, XNode serNode, IChartStyleProvider styleProvider) {
         XNode markerNode = serNode.childByTag("c:marker");
         if (markerNode != null) {
+            // 创建ChartMarkersModel对象
+            ChartMarkersModel markers = new ChartMarkersModel();
+            markers.setEnabled(true); // 存在marker节点说明启用了标记
+
             // 解析标记符号
             String symbol = ChartPropertyHelper.getChildVal(markerNode, "c:symbol");
             if (!StringHelper.isEmpty(symbol)) {
-                LOG.debug("Series marker symbol: {}", symbol);
+                ChartMarkerType markerType = ChartMarkerType.fromValue(symbol);
+                markers.setType(markerType);
+
             }
 
             // 解析标记大小
-            String size = ChartPropertyHelper.getChildVal(markerNode, "c:size");
-            if (!StringHelper.isEmpty(size)) {
-                try {
-                    int sizeValue = Integer.parseInt(size);
-                    LOG.debug("Series marker size: {}", sizeValue);
-                } catch (NumberFormatException e) {
-                    LOG.warn("Invalid marker size: {}", size);
+            Double size = ChartPropertyHelper.getChildDoubleVal(markerNode, "c:size");
+            if (size != null) {
+                markers.setSize(size);
+            }
+
+            // 解析标记的形状样式 - 使用现有的ChartShapeStyleParser
+            XNode spPrNode = markerNode.childByTag("c:spPr");
+            if (spPrNode != null) {
+                ChartShapeStyleModel shapeStyle = ChartShapeStyleParser.INSTANCE.parseShapeStyle(spPrNode, styleProvider);
+                if (shapeStyle != null) {
+                    markers.setShapeStyle(shapeStyle);
                 }
             }
 
-            // 解析标记样式
-            XNode spPrNode = markerNode.childByTag("c:spPr");
-            if (spPrNode != null) {
-                LOG.debug("Found marker shape properties");
-            }
+            // 将解析的marker信息保存到series中
+            series.setMarkers(markers);
+            LOG.debug("Series marker configuration parsed and saved");
         }
     }
 
@@ -414,10 +457,33 @@ public class ChartSeriesParser {
     }
 
     /**
+     * 解析数据点
+     */
+    private void parseDataPoints(ChartSeriesModel series, XNode serNode, IChartStyleProvider styleProvider) {
+        List<XNode> dPtNodes = serNode.childrenByTag("c:dPt");
+        if (dPtNodes.isEmpty()) {
+            return;
+        }
+
+        List<ChartDataPointModel> dataPoints = new ArrayList<>();
+        for (XNode dPtNode : dPtNodes) {
+            ChartDataPointModel dataPoint = ChartDataPointParser.INSTANCE.parseDataPoint(dPtNode, styleProvider);
+            if (dataPoint != null) {
+                dataPoints.add(dataPoint);
+            }
+        }
+
+        if (!dataPoints.isEmpty()) {
+            series.setDataPoints(dataPoints);
+            LOG.debug("Parsed {} data points for series", dataPoints.size());
+        }
+    }
+
+    /**
      * 解析趋势线
      */
     private List<ChartTrendLineModel> parseTrendLines(ChartSeriesModel series, XNode serNode,
-            IChartStyleProvider styleProvider) {
+                                                      IChartStyleProvider styleProvider) {
         List<ChartTrendLineModel> trendLines = new ArrayList<>();
 
         for (XNode trendlineNode : serNode.childrenByTag("c:trendline")) {

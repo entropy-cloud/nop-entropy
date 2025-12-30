@@ -323,6 +323,13 @@ public class ChartTypeConfigParser {
             LOG.debug("Scatter chart show markers: {}", showMarkers);
         }
 
+        // 解析颜色变化
+        Boolean varyColors = ChartPropertyHelper.getChildBoolVal(scatterNode, "c:varyColors");
+        if (varyColors != null) {
+            scatterConfig.setVaryColors(varyColors);
+            LOG.debug("Scatter chart vary colors: {}", varyColors);
+        }
+
         // 设置到plotArea
         plotArea.setScatterConfig(scatterConfig);
 

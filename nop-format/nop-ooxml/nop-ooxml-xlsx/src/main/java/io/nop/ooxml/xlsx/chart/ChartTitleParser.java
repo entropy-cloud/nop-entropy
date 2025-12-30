@@ -83,10 +83,11 @@ public class ChartTitleParser {
      * 解析覆盖选项
      */
     private void parseOverlay(ChartTitleModel title, XNode titleNode) {
-        // 在OOXML中，标题没有专门的overlay属性
-        // 覆盖选项通常通过布局设置控制，暂时保留默认设置
-
-        // 如果需要从子元素获取覆盖设置，可以添加相应的解析逻辑
+        // 从子元素<c:overlay>获取覆盖设置
+        Boolean overlayValue = ChartPropertyHelper.getChildBoolVal(titleNode, "c:overlay");
+        if (overlayValue != null) {
+            title.setOverlay(overlayValue);
+        }
     }
 
     /**

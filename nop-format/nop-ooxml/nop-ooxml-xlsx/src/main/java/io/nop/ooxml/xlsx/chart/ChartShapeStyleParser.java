@@ -610,6 +610,13 @@ public class ChartShapeStyleParser {
 
         ChartBorderModel border = new ChartBorderModel();
 
+        // 检查无填充边框
+        XNode noFillNode = lnNode.childByTag("a:noFill");
+        if (noFillNode != null) {
+            border.setNoFill(true);
+            LOG.debug("Border has no fill");
+        }
+
         // 解析边框颜色
         XNode solidFillNode = lnNode.childByTag("a:solidFill");
         if (solidFillNode != null) {

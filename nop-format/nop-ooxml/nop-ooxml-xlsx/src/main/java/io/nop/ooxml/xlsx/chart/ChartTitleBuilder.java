@@ -44,6 +44,9 @@ public class ChartTitleBuilder {
         // 构建文本内容
         buildTextContent(titleNode, title);
 
+        // 构建覆盖选项
+        buildOverlay(titleNode, title);
+
         // 构建手动布局
         buildManualLayout(titleNode, title);
 
@@ -78,6 +81,16 @@ public class ChartTitleBuilder {
             txNode.appendChild(textNode);
         }
 
+    }
+
+    /**
+     * 构建覆盖选项
+     */
+    private void buildOverlay(XNode titleNode, ChartTitleModel title) {
+        if (title.getOverlay() != null) {
+            XNode overlayNode = titleNode.addChild("c:overlay");
+            overlayNode.setAttr("val", title.getOverlay() ? "1" : "0");
+        }
     }
 
     /**
@@ -139,6 +152,7 @@ public class ChartTitleBuilder {
 
         // 只构建覆盖相关的属性
         buildTextContent(titleNode, title);
+        buildOverlay(titleNode, title);
         buildShapeStyle(titleNode, title);
         buildTextStyle(titleNode, title);
 

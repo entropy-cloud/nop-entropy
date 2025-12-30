@@ -96,7 +96,9 @@
                     <c:dLbls>
                         <c:spPr>
                             <a:noFill/>
-                            <a:ln/>
+                            <a:ln>
+                                <a:noFill/>
+                            </a:ln>
                         </c:spPr>
                         <c:txPr>
                             <a:bodyPr rot="0" spcFirstLastPara="1" vertOverflow="ellipsis" vert="horz" wrap="square"
@@ -153,7 +155,9 @@
                     <c:dLbls>
                         <c:spPr>
                             <a:noFill/>
-                            <a:ln/>
+                            <a:ln>
+                                <a:noFill/>
+                            </a:ln>
                         </c:spPr>
                         <c:txPr>
                             <a:bodyPr rot="0" spcFirstLastPara="1" vertOverflow="ellipsis" vert="horz" wrap="square"
@@ -196,6 +200,7 @@
             </c:barChart>
             <c:catAx>
                 <c:axId val="1004634784"/>
+                <c:delete val="0"/>
                 <c:axPos val="b"/>
                 <c:crossAx val="1004635264"/>
                 <c:crosses val="autoZero"/>
@@ -232,7 +237,9 @@
                         <a:endParaRPr lang="en-US"/>
                     </a:p>
                 </c:txPr>
-                <c:scaling/>
+                <c:scaling>
+                    <c:orientation val="minMax"/>
+                </c:scaling>
                 <c:title>
                     <c:tx>
                         <c:rich>
@@ -255,7 +262,9 @@
                     </c:tx>
                     <c:spPr>
                         <a:noFill/>
-                        <a:ln/>
+                        <a:ln>
+                            <a:noFill/>
+                        </a:ln>
                     </c:spPr>
                     <c:txPr>
                         <a:bodyPr rot="0" spcFirstLastPara="1" vertOverflow="ellipsis" vert="horz" wrap="square"
@@ -296,7 +305,9 @@
                         <a:ln w="9525"/>
                     </c:spPr>
                 </c:majorGridlines>
-                <c:scaling/>
+                <c:scaling>
+                    <c:orientation val="minMax"/>
+                </c:scaling>
                 <c:title>
                     <c:tx>
                         <c:rich>
@@ -319,7 +330,9 @@
                     </c:tx>
                     <c:spPr>
                         <a:noFill/>
-                        <a:ln/>
+                        <a:ln>
+                            <a:noFill/>
+                        </a:ln>
                     </c:spPr>
                     <c:txPr>
                         <a:bodyPr rot="0" spcFirstLastPara="1" vertOverflow="ellipsis" vert="horz" wrap="square"
@@ -345,7 +358,9 @@
             </c:valAx>
             <c:spPr>
                 <a:noFill/>
-                <a:ln w="25400"/>
+                <a:ln w="25400">
+                    <a:noFill/>
+                </a:ln>
             </c:spPr>
         </c:plotArea>
         <c:plotVisOnly val="1"/>

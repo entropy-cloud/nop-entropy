@@ -67,7 +67,7 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
         对应 Excel 图表边框设置
         -->
         <border color="string" width="double-pt" style="enum:io.nop.excel.chart.constants.ChartLineStyle"
-                radius="double-pt" opacity="double" round="boolean"
+                radius="double-pt" opacity="double" round="boolean" noFill="boolean"
                 xdef:name="ChartBorderModel"/>
 
     </xdef:define>
@@ -198,14 +198,31 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
             @invertIfNegative 当系列中的数据点为负值时，使用反转颜色显示（通常是前景色和背景色交换）。
             @axisId 关联的坐标轴ID，默认使用主坐标轴。
             @index 在seriesList中的下标，从0开始。解析的时候会自动重新设置
+            @dataCellRef 对于散点图和气泡图，它对应于yVal
+            @catCellRef 对于散点图和气泡图，它对应于xVal
             -->
             <series id="!string" name="string" index="!int=0"
                     type="enum:io.nop.excel.chart.constants.ChartType"
                     nameCellRef="string" invertIfNegative="boolean=false" axisId="string"
-                    dataCellRef="string" catCellRef="string"
+                    dataCellRef="string" catCellRef="string" smooth="boolean"
                     visible="!boolean=true" xdef:name="ChartSeriesModel">
 
                 <shapeStyle xdef:ref="ChartShapeStyleModel"/>
+
+                <!--
+               Collection of individual data points with custom styling.
+               @index 对应与c:idx
+               -->
+                <dataPoints xdef:body-type="list" xdef:key-attr="index">
+                    <dataPoint xdef:name="ChartDataPointModel" bubble3D="boolean" index="!int"
+                               explosion="double-percent"> <!-- for pie/doughnut charts, defines how far a slice is pulled out -->
+
+                        <!--
+                        Shape style specific to this data point, overriding the series-level style.
+                        -->
+                        <shapeStyle xdef:ref="ChartShapeStyleModel"/>
+                    </dataPoint>
+                </dataPoints>
 
                 <!--
                 Line/border styling
@@ -220,9 +237,9 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
                 对应 Excel POI 中线图和散点图的 Marker 设置
                 -->
                 <markers enabled="boolean=false" type="enum:io.nop.excel.chart.constants.ChartMarkerType"
-                         size="double-pt"
-                         color="string" borderColor="string" borderWidth="double-pt"
-                         xdef:name="ChartMarkersModel"/>
+                         size="double-pt" xdef:name="ChartMarkersModel">
+                    <shapeStyle xdef:ref="ChartShapeStyleModel"/>
+                </markers>
 
 
                 <dataLabels xdef:ref="ChartDataLabelsModel"/>
@@ -412,9 +429,11 @@ Chart type specific configurations
         @scatterStyle 散点图样式：none、line、lineMarker、marker、smooth、smoothMarker
         @showMarkers 是否显示标记点：true/false
         -->
-        <scatterConfig varyColors="boolean"
+        <scatterConfig varyColors="boolean" markerSize="double-pt" markerSymbol="string"
                        scatterStyle="string" showMarkers="boolean"
-                       xdef:name="ChartScatterConfigModel"/>
+                       xdef:name="ChartScatterConfigModel">
+            <shapeStyle xdef:ref="ChartShapeStyleModel"/>
+        </scatterConfig>
 
         <!--
         Bubble chart specific settings

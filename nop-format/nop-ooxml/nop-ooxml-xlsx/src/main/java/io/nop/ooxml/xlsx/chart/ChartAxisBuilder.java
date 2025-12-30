@@ -118,11 +118,9 @@ public class ChartAxisBuilder {
             axisIdNode.setAttr("val", axis.getId());
         }
 
-        // 构建删除标记（如果轴不可见）
-        if (!axis.isVisible()) {
-            XNode deleteNode = axisNode.addChild("c:delete");
-            deleteNode.setAttr("val", "1");
-        }
+        // 构建删除标记（如果轴不可见）。这个节点必须存在，否则不显示
+        XNode deleteNode = axisNode.addChild("c:delete");
+        deleteNode.setAttr("val", axis.isVisible() ? "0" : "1");
     }
 
     /**
@@ -398,7 +396,7 @@ public class ChartAxisBuilder {
         if (!StringHelper.isEmpty(title.getText()) || !StringHelper.isEmpty(title.getTextCellRef())) {
             XNode txNode = titleNode.addChild("c:tx");
 
-            XNode textNode = ChartTextBuilder.INSTANCE.buildText(title.getText(),title.getTextCellRef(), title.getTitleFont());
+            XNode textNode = ChartTextBuilder.INSTANCE.buildText(title.getText(), title.getTextCellRef(), title.getTitleFont());
             txNode.appendChild(textNode);
         }
 

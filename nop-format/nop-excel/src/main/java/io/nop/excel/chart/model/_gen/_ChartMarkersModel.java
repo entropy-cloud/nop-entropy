@@ -19,31 +19,19 @@ public abstract class _ChartMarkersModel extends io.nop.core.resource.component.
     
     /**
      *  
-     * xml name: borderColor
-     * 
-     */
-    private java.lang.String _borderColor ;
-    
-    /**
-     *  
-     * xml name: borderWidth
-     * 
-     */
-    private java.lang.Double _borderWidth ;
-    
-    /**
-     *  
-     * xml name: color
-     * 
-     */
-    private java.lang.String _color ;
-    
-    /**
-     *  
      * xml name: enabled
      * 
      */
     private java.lang.Boolean _enabled  = false;
+    
+    /**
+     *  
+     * xml name: shapeStyle
+     * Common shape style model based on POI CTShapeProperties
+     * 通用形状样式模型，基于 POI 的 CTShapeProperties
+     * 对应 Excel POI 中的 CTShapeProperties，用于 Legend、DataLabel、Tooltip 等元素的样式
+     */
+    private io.nop.excel.chart.model.ChartShapeStyleModel _shapeStyle ;
     
     /**
      *  
@@ -61,63 +49,6 @@ public abstract class _ChartMarkersModel extends io.nop.core.resource.component.
     
     /**
      * 
-     * xml name: borderColor
-     *  
-     */
-    
-    public java.lang.String getBorderColor(){
-      return _borderColor;
-    }
-
-    
-    public void setBorderColor(java.lang.String value){
-        checkAllowChange();
-        
-        this._borderColor = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: borderWidth
-     *  
-     */
-    
-    public java.lang.Double getBorderWidth(){
-      return _borderWidth;
-    }
-
-    
-    public void setBorderWidth(java.lang.Double value){
-        checkAllowChange();
-        
-        this._borderWidth = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: color
-     *  
-     */
-    
-    public java.lang.String getColor(){
-      return _color;
-    }
-
-    
-    public void setColor(java.lang.String value){
-        checkAllowChange();
-        
-        this._color = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: enabled
      *  
      */
@@ -131,6 +62,27 @@ public abstract class _ChartMarkersModel extends io.nop.core.resource.component.
         checkAllowChange();
         
         this._enabled = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: shapeStyle
+     *  Common shape style model based on POI CTShapeProperties
+     * 通用形状样式模型，基于 POI 的 CTShapeProperties
+     * 对应 Excel POI 中的 CTShapeProperties，用于 Legend、DataLabel、Tooltip 等元素的样式
+     */
+    
+    public io.nop.excel.chart.model.ChartShapeStyleModel getShapeStyle(){
+      return _shapeStyle;
+    }
+
+    
+    public void setShapeStyle(io.nop.excel.chart.model.ChartShapeStyleModel value){
+        checkAllowChange();
+        
+        this._shapeStyle = value;
            
     }
 
@@ -181,6 +133,8 @@ public abstract class _ChartMarkersModel extends io.nop.core.resource.component.
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._shapeStyle = io.nop.api.core.util.FreezeHelper.deepFreeze(this._shapeStyle);
+            
         }
     }
 
@@ -188,10 +142,8 @@ public abstract class _ChartMarkersModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("borderColor",this.getBorderColor());
-        out.putNotNull("borderWidth",this.getBorderWidth());
-        out.putNotNull("color",this.getColor());
         out.putNotNull("enabled",this.getEnabled());
+        out.putNotNull("shapeStyle",this.getShapeStyle());
         out.putNotNull("size",this.getSize());
         out.putNotNull("type",this.getType());
     }
@@ -205,10 +157,8 @@ public abstract class _ChartMarkersModel extends io.nop.core.resource.component.
     protected void copyTo(ChartMarkersModel instance){
         super.copyTo(instance);
         
-        instance.setBorderColor(this.getBorderColor());
-        instance.setBorderWidth(this.getBorderWidth());
-        instance.setColor(this.getColor());
         instance.setEnabled(this.getEnabled());
+        instance.setShapeStyle(this.getShapeStyle());
         instance.setSize(this.getSize());
         instance.setType(this.getType());
     }

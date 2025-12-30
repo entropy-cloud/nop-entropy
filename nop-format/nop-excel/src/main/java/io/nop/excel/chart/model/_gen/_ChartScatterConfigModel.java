@@ -19,10 +19,33 @@ public abstract class _ChartScatterConfigModel extends io.nop.core.resource.comp
     
     /**
      *  
+     * xml name: markerSize
+     * 
+     */
+    private java.lang.Double _markerSize ;
+    
+    /**
+     *  
+     * xml name: markerSymbol
+     * 
+     */
+    private java.lang.String _markerSymbol ;
+    
+    /**
+     *  
      * xml name: scatterStyle
      * 散点图样式：none、line、lineMarker、marker、smooth、smoothMarker
      */
     private java.lang.String _scatterStyle ;
+    
+    /**
+     *  
+     * xml name: shapeStyle
+     * Common shape style model based on POI CTShapeProperties
+     * 通用形状样式模型，基于 POI 的 CTShapeProperties
+     * 对应 Excel POI 中的 CTShapeProperties，用于 Legend、DataLabel、Tooltip 等元素的样式
+     */
+    private io.nop.excel.chart.model.ChartShapeStyleModel _shapeStyle ;
     
     /**
      *  
@@ -40,6 +63,44 @@ public abstract class _ChartScatterConfigModel extends io.nop.core.resource.comp
     
     /**
      * 
+     * xml name: markerSize
+     *  
+     */
+    
+    public java.lang.Double getMarkerSize(){
+      return _markerSize;
+    }
+
+    
+    public void setMarkerSize(java.lang.Double value){
+        checkAllowChange();
+        
+        this._markerSize = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: markerSymbol
+     *  
+     */
+    
+    public java.lang.String getMarkerSymbol(){
+      return _markerSymbol;
+    }
+
+    
+    public void setMarkerSymbol(java.lang.String value){
+        checkAllowChange();
+        
+        this._markerSymbol = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: scatterStyle
      *  散点图样式：none、line、lineMarker、marker、smooth、smoothMarker
      */
@@ -53,6 +114,27 @@ public abstract class _ChartScatterConfigModel extends io.nop.core.resource.comp
         checkAllowChange();
         
         this._scatterStyle = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: shapeStyle
+     *  Common shape style model based on POI CTShapeProperties
+     * 通用形状样式模型，基于 POI 的 CTShapeProperties
+     * 对应 Excel POI 中的 CTShapeProperties，用于 Legend、DataLabel、Tooltip 等元素的样式
+     */
+    
+    public io.nop.excel.chart.model.ChartShapeStyleModel getShapeStyle(){
+      return _shapeStyle;
+    }
+
+    
+    public void setShapeStyle(io.nop.excel.chart.model.ChartShapeStyleModel value){
+        checkAllowChange();
+        
+        this._shapeStyle = value;
            
     }
 
@@ -103,6 +185,8 @@ public abstract class _ChartScatterConfigModel extends io.nop.core.resource.comp
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._shapeStyle = io.nop.api.core.util.FreezeHelper.deepFreeze(this._shapeStyle);
+            
         }
     }
 
@@ -110,7 +194,10 @@ public abstract class _ChartScatterConfigModel extends io.nop.core.resource.comp
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("markerSize",this.getMarkerSize());
+        out.putNotNull("markerSymbol",this.getMarkerSymbol());
         out.putNotNull("scatterStyle",this.getScatterStyle());
+        out.putNotNull("shapeStyle",this.getShapeStyle());
         out.putNotNull("showMarkers",this.getShowMarkers());
         out.putNotNull("varyColors",this.getVaryColors());
     }
@@ -124,7 +211,10 @@ public abstract class _ChartScatterConfigModel extends io.nop.core.resource.comp
     protected void copyTo(ChartScatterConfigModel instance){
         super.copyTo(instance);
         
+        instance.setMarkerSize(this.getMarkerSize());
+        instance.setMarkerSymbol(this.getMarkerSymbol());
         instance.setScatterStyle(this.getScatterStyle());
+        instance.setShapeStyle(this.getShapeStyle());
         instance.setShowMarkers(this.getShowMarkers());
         instance.setVaryColors(this.getVaryColors());
     }

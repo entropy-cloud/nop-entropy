@@ -70,9 +70,12 @@
                     </a:p>
                 </c:rich>
             </c:tx>
+            <c:overlay val="0"/>
             <c:spPr>
                 <a:noFill/>
-                <a:ln/>
+                <a:ln>
+                    <a:noFill/>
+                </a:ln>
             </c:spPr>
             <c:txPr>
                 <a:bodyPr rot="0" spcFirstLastPara="1" vertOverflow="ellipsis" vert="horz" wrap="square" lIns="38100"
@@ -100,7 +103,9 @@
             <c:overlay val="0"/>
             <c:spPr>
                 <a:noFill/>
-                <a:ln/>
+                <a:ln>
+                    <a:noFill/>
+                </a:ln>
             </c:spPr>
             <c:txPr>
                 <a:bodyPr rot="0" spcFirstLastPara="1" vertOverflow="ellipsis" vert="horz" wrap="square" lIns="38100"
@@ -129,6 +134,81 @@
                 <c:ser>
                     <c:idx val="0"/>
                     <c:order val="0"/>
+                    <c:tx>
+                        <c:strRef>
+                            <c:f>ChartData!$D$1</c:f>
+                        </c:strRef>
+                    </c:tx>
+                    <c:dPt>
+                        <c:idx val="0"/>
+                        <c:bubble3D val="0"/>
+                        <c:spPr>
+                            <a:solidFill>
+                                <a:srgbClr val="4472C4"/>
+                            </a:solidFill>
+                            <a:ln w="19050">
+                                <a:solidFill>
+                                    <a:srgbClr val="FFFFFF"/>
+                                </a:solidFill>
+                            </a:ln>
+                        </c:spPr>
+                    </c:dPt>
+                    <c:dPt>
+                        <c:idx val="1"/>
+                        <c:bubble3D val="0"/>
+                        <c:spPr>
+                            <a:solidFill>
+                                <a:srgbClr val="ED7D31"/>
+                            </a:solidFill>
+                            <a:ln w="19050">
+                                <a:solidFill>
+                                    <a:srgbClr val="FFFFFF"/>
+                                </a:solidFill>
+                            </a:ln>
+                        </c:spPr>
+                    </c:dPt>
+                    <c:dPt>
+                        <c:idx val="2"/>
+                        <c:bubble3D val="0"/>
+                        <c:spPr>
+                            <a:solidFill>
+                                <a:srgbClr val="A5A5A5"/>
+                            </a:solidFill>
+                            <a:ln w="19050">
+                                <a:solidFill>
+                                    <a:srgbClr val="FFFFFF"/>
+                                </a:solidFill>
+                            </a:ln>
+                        </c:spPr>
+                    </c:dPt>
+                    <c:dPt>
+                        <c:idx val="3"/>
+                        <c:bubble3D val="0"/>
+                        <c:spPr>
+                            <a:solidFill>
+                                <a:srgbClr val="FFC000"/>
+                            </a:solidFill>
+                            <a:ln w="19050">
+                                <a:solidFill>
+                                    <a:srgbClr val="FFFFFF"/>
+                                </a:solidFill>
+                            </a:ln>
+                        </c:spPr>
+                    </c:dPt>
+                    <c:dPt>
+                        <c:idx val="4"/>
+                        <c:bubble3D val="0"/>
+                        <c:spPr>
+                            <a:solidFill>
+                                <a:srgbClr val="5B9BD5"/>
+                            </a:solidFill>
+                            <a:ln w="19050">
+                                <a:solidFill>
+                                    <a:srgbClr val="FFFFFF"/>
+                                </a:solidFill>
+                            </a:ln>
+                        </c:spPr>
+                    </c:dPt>
                     <c:cat>
                         <c:strRef>
                             <c:f>ChartData!$A$2:$A$6</c:f>
@@ -141,11 +221,13 @@
                     </c:val>
                 </c:ser>
                 <c:firstSliceAng val="0"/>
-                <c:holeSize val="75.0"/>
+                <c:holeSize val="75"/>
             </c:doughnutChart>
             <c:spPr>
                 <a:noFill/>
-                <a:ln/>
+                <a:ln>
+                    <a:noFill/>
+                </a:ln>
             </c:spPr>
         </c:plotArea>
         <c:plotVisOnly val="1"/>

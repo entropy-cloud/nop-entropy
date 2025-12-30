@@ -125,7 +125,7 @@ public class ChartPlotAreaBuilder {
         if (seriesList != null && !seriesList.isEmpty()) {
             for (int i = 0; i < seriesList.size(); i++) {
                 ChartSeriesModel series = seriesList.get(i);
-                XNode seriesNode = ChartSeriesBuilder.INSTANCE.buildSeries(series, i);
+                XNode seriesNode = ChartSeriesBuilder.INSTANCE.buildSeries(series, i,chartNode);
                 if (seriesNode != null) {
                     chartNode.appendChild(seriesNode);
                 }

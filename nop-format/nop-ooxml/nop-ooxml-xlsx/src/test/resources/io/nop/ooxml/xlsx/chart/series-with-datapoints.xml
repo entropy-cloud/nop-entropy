@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:ser xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" 
+       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+    <c:idx val="0"/>
+    <c:order val="0"/>
+    <c:tx>
+        <c:v>Sample Series with Data Points</c:v>
+    </c:tx>
+    
+    <!-- Data Point 0: Red with border -->
+    <c:dPt>
+        <c:idx val="0"/>
+        <c:bubble3D val="0"/>
+        <c:spPr>
+            <a:solidFill>
+                <a:srgbClr val="FF0000"/>
+            </a:solidFill>
+            <a:ln w="19050">
+                <a:solidFill>
+                    <a:srgbClr val="000000"/>
+                </a:solidFill>
+            </a:ln>
+        </c:spPr>
+    </c:dPt>
+    
+    <!-- Data Point 1: Green with explosion (for pie charts) -->
+    <c:dPt>
+        <c:idx val="1"/>
+        <c:explosion val="20"/>
+        <c:spPr>
+            <a:solidFill>
+                <a:srgbClr val="00FF00"/>
+            </a:solidFill>
+        </c:spPr>
+    </c:dPt>
+    
+    <!-- Data Point 2: Blue with 3D bubble -->
+    <c:dPt>
+        <c:idx val="2"/>
+        <c:bubble3D val="1"/>
+        <c:spPr>
+            <a:solidFill>
+                <a:srgbClr val="0000FF"/>
+            </a:solidFill>
+        </c:spPr>
+    </c:dPt>
+    
+    <c:val>
+        <c:numRef>
+            <c:f>Sheet1!$B$2:$B$5</c:f>
+        </c:numRef>
+    </c:val>
+</c:ser>

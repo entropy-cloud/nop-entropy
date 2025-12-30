@@ -1,0 +1,27 @@
+<c:ser xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"
+       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+    <c:idx val="0"/>
+    <c:order val="0"/>
+    <c:tx>
+        <c:v>Test Series</c:v>
+    </c:tx>
+    <c:marker>
+        <c:symbol val="circle"/>
+        <c:size val="7"/>
+        <c:spPr>
+            <a:solidFill>
+                <a:srgbClr val="FF0000"/>
+            </a:solidFill>
+            <a:ln w="9525">
+                <a:solidFill>
+                    <a:srgbClr val="000000"/>
+                </a:solidFill>
+            </a:ln>
+        </c:spPr>
+    </c:marker>
+    <c:val>
+        <c:numRef>
+            <c:f>Sheet1!$B$2:$B$6</c:f>
+        </c:numRef>
+    </c:val>
+</c:ser>
