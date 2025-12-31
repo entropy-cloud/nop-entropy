@@ -18,6 +18,8 @@
     </properties>
 
     <modules>
+        <module>nop-chart-echarts</module>
+        <module>nop-chart-export</module>
         <module>nop-converter</module>
         <module>nop-excel</module>
         <module>nop-mermaid</module>
