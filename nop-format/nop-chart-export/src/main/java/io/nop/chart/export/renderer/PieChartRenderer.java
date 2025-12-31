@@ -40,7 +40,7 @@ public class PieChartRenderer extends AbstractChartRenderer {
         
         // 创建图表
         JFreeChart chart;
-        if (Boolean.TRUE.equals(pieConfig != null ? pieConfig.getIs3D() : false)) {
+        if (Boolean.TRUE.equals(pieConfig != null ? pieConfig.getIs3D() : Boolean.FALSE)) {
             chart = ChartFactory.createPieChart3D(
                 null, // title will be set later
                 dataset,

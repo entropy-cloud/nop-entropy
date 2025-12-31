@@ -13,7 +13,6 @@ import io.nop.excel.chart.constants.ChartType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -28,7 +27,7 @@ public class ExcelChartExporterTest {
     @BeforeEach
     void setUp() {
         // Create registry with default renderers
-        ChartTypeRendererRegistry registry = ChartTypeRendererRegistry.createDefault();
+        ChartTypeRendererRegistry registry = ChartTypeRendererRegistry.getDefault();
         exporter = new ChartExporter(registry);
     }
     

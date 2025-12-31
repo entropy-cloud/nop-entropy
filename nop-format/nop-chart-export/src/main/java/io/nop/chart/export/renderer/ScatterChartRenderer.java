@@ -1,17 +1,23 @@
 package io.nop.chart.export.renderer;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.chart.export.ICellRefResolver;
 import io.nop.chart.export.model.ChartDataSet;
-import io.nop.api.core.convert.ConvertHelper;
 import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartModel;
+
+import java.util.ArrayList;
+import java.util.List;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.XYItemRenderer;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.chart.renderer.xy.XYShapeRenderer;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
-
-import java.util.List;
 
 /**
  * Scatter chart renderer
@@ -26,6 +32,29 @@ public class ScatterChartRenderer extends AbstractChartRenderer {
     @Override
     protected JFreeChart createChart(ChartModel chartModel, List<ChartDataSet> dataSets, ICellRefResolver resolver) {
         LOG.debug("Creating scatter chart with {} data sets", dataSets.size());
+        
+        // 为散点图准备数据，确保xValues被正确设置
+        for (ChartDataSet dataSet : dataSets) {
+            if (dataSet.getXValues().isEmpty() && !dataSet.getCategories().isEmpty()) {
+                // 如果xValues为空但categories不为空，将categories转换为xValues
+                List<Number> xValues = new ArrayList<>();
+                for (Object category : dataSet.getCategories()) {
+                    if (category != null) {
+                        try {
+                            Number number = ConvertHelper.convertTo(Number.class, category, NopException::new);
+                            xValues.add(number);
+                        } catch (Exception e) {
+                            LOG.warn("Failed to convert category to number: {}", category, e);
+                            xValues.add(0); // 使用0作为默认值
+                        }
+                    } else {
+                        xValues.add(null);
+                    }
+                }
+                dataSet.setXValues(xValues);
+                dataSet.setCategories(null); // 散点图不需要分类
+            }
+        }
         
         // 创建数据集
         XYDataset dataset = createXYDataset(dataSets);
@@ -53,7 +82,7 @@ public class ScatterChartRenderer extends AbstractChartRenderer {
         
         for (int i = 0; i < dataSets.size(); i++) {
             ChartDataSet dataSet = dataSets.get(i);
-            XYSeries series = new XYSeries("Series " + (i + 1));
+            XYSeries series = new XYSeries(dataSet.getName() != null ? dataSet.getName() : "Series " + (i + 1));
             
             // 添加数据点
             List<Number> xValues = dataSet.getXValues();
@@ -81,26 +110,41 @@ public class ScatterChartRenderer extends AbstractChartRenderer {
     }
     
     private void applyScatterConfig(JFreeChart chart, ChartModel chartModel) {
-        // 应用散点图特定配置
+        // 获取绘图区域和渲染器
+        XYPlot plot = chart.getXYPlot();
+        XYItemRenderer renderer = plot.getRenderer();
+        
+        // 确保使用合适的渲染器类型
+        if (!(renderer instanceof XYLineAndShapeRenderer)) {
+            // 如果不是XYLineAndShapeRenderer，替换为XYLineAndShapeRenderer以支持点和线
+            XYLineAndShapeRenderer newRenderer = new XYLineAndShapeRenderer();
+            plot.setRenderer(newRenderer);
+            renderer = newRenderer;
+        }
+        
+        XYLineAndShapeRenderer lineRenderer = (XYLineAndShapeRenderer) renderer;
+        
+        // 设置基本属性：显示点，不显示线
+        lineRenderer.setDefaultShapesVisible(true);
+        lineRenderer.setDefaultLinesVisible(false);
+        
+        // 设置默认标记大小
+        double markerSize = 5.0;
+        
+        // 获取散点图配置
         if (chartModel.getPlotArea() != null && chartModel.getPlotArea().getScatterConfig() != null) {
-            org.jfree.chart.plot.XYPlot plot = chart.getXYPlot();
-            org.jfree.chart.renderer.xy.XYItemRenderer renderer = plot.getRenderer();
-            
-            // 获取散点图配置
             io.nop.excel.chart.model.ChartScatterConfigModel scatterConfig = chartModel.getPlotArea().getScatterConfig();
             
             // 应用标记大小配置
             if (scatterConfig.getMarkerSize() != null) {
-                Double markerSizeDouble = scatterConfig.getMarkerSize();
-                double markerSize = markerSizeDouble != null ? markerSizeDouble : 5.0;
-                // 设置标记点形状和大小
-                java.awt.Shape markerShape = new java.awt.geom.Ellipse2D.Double(-markerSize/2, -markerSize/2, markerSize, markerSize);
-                if (renderer instanceof org.jfree.chart.renderer.xy.XYLineAndShapeRenderer) {
-                    ((org.jfree.chart.renderer.xy.XYLineAndShapeRenderer) renderer).setDefaultShape(markerShape);
-                }
+                markerSize = scatterConfig.getMarkerSize();
             }
-            
-            LOG.debug("Applied scatter chart specific configuration");
         }
+        
+        // 设置标记点形状和大小
+        java.awt.Shape markerShape = new java.awt.geom.Ellipse2D.Double(-markerSize/2, -markerSize/2, markerSize, markerSize);
+        lineRenderer.setDefaultShape(markerShape);
+        
+        LOG.debug("Applied scatter chart configuration");
     }
 }

@@ -27,13 +27,19 @@ public class ChartShapeStyleProcessor {
     public void applyBackgroundStyle(JFreeChart chart, ChartShapeStyleModel shapeStyle) {
         LOG.debug("Applying chart background style");
         
-        // 应用背景填充
+        // 设置默认白色背景
+        Color backgroundColor = Color.WHITE;
+        
+        // 如果有指定背景颜色，则使用指定的颜色
         if (shapeStyle.getFill() != null && shapeStyle.getFill().getBackgroundColor() != null) {
-            Color backgroundColor = JFreeChartStyleAdapter.convertColor(shapeStyle.getFill().getBackgroundColor());
-            if (backgroundColor != null) {
-                chart.setBackgroundPaint(backgroundColor);
+            Color specifiedColor = JFreeChartStyleAdapter.convertColor(shapeStyle.getFill().getBackgroundColor());
+            if (specifiedColor != null) {
+                backgroundColor = specifiedColor;
             }
         }
+        
+        // 应用背景填充
+        chart.setBackgroundPaint(backgroundColor);
         
         // 应用边框
         if (shapeStyle.getBorder() != null) {
@@ -53,13 +59,19 @@ public class ChartShapeStyleProcessor {
     public void applyPlotAreaStyle(Plot plot, ChartShapeStyleModel shapeStyle) {
         LOG.debug("Applying plot area style");
         
-        // 应用背景填充
+        // 设置默认白色背景
+        Color backgroundColor = Color.WHITE;
+        
+        // 如果有指定背景颜色，则使用指定的颜色
         if (shapeStyle.getFill() != null && shapeStyle.getFill().getBackgroundColor() != null) {
-            Color backgroundColor = JFreeChartStyleAdapter.convertColor(shapeStyle.getFill().getBackgroundColor());
-            if (backgroundColor != null) {
-                plot.setBackgroundPaint(backgroundColor);
+            Color specifiedColor = JFreeChartStyleAdapter.convertColor(shapeStyle.getFill().getBackgroundColor());
+            if (specifiedColor != null) {
+                backgroundColor = specifiedColor;
             }
         }
+        
+        // 应用背景填充
+        plot.setBackgroundPaint(backgroundColor);
         
         // 应用边框
         if (shapeStyle.getBorder() != null) {

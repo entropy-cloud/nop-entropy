@@ -2,6 +2,7 @@ package io.nop.chart.export.model;
 
 import io.nop.excel.chart.model.ChartSeriesModel;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -9,11 +10,11 @@ import java.util.List;
  */
 public class ChartDataSet {
     private String name;
-    private List<Object> categories;
-    private List<Number> values;
-    private List<Number> xValues;  // 用于散点图和气泡图
-    private List<Number> bubbleSizes;  // 用于气泡图
-    private List<Number> heatmapValues;  // 用于热力图
+    private List<Object> categories = Collections.emptyList();
+    private List<Number> values = Collections.emptyList();
+    private List<Number> xValues = Collections.emptyList();  // 用于散点图和气泡图
+    private List<Number> bubbleSizes = Collections.emptyList();  // 用于气泡图
+    private List<Number> heatmapValues = Collections.emptyList();  // 用于热力图
     private ChartSeriesModel seriesModel;
     
     public ChartDataSet() {

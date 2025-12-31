@@ -15,14 +15,16 @@ import io.nop.excel.chart.constants.ChartType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Registry for chart type renderers
  */
 public class ChartTypeRendererRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(ChartTypeRendererRegistry.class);
+
+    private static final ChartTypeRendererRegistry _default = createDefault();
     
     private final Map<ChartType, IChartTypeRenderer> renderers = new ConcurrentHashMap<>();
     
@@ -30,10 +32,14 @@ public class ChartTypeRendererRegistry {
      * 创建带有默认渲染器的注册表
      * @return 注册表实例
      */
-    public static ChartTypeRendererRegistry createDefault() {
+    private static ChartTypeRendererRegistry createDefault() {
         ChartTypeRendererRegistry registry = new ChartTypeRendererRegistry();
         registry.registerDefaultRenderers();
         return registry;
+    }
+
+    public static ChartTypeRendererRegistry getDefault(){
+        return _default;
     }
     
     /**

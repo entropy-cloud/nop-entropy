@@ -26,6 +26,14 @@ public class ExcelCellRef {
         return safeSheetName(sheetName) + '!' + cellRange.toABString();
     }
 
+    public int getFirstRowIndex() {
+        return cellRange.getFirstRowIndex();
+    }
+
+    public int getFirstColIndex() {
+        return cellRange.getFirstColIndex();
+    }
+
     /**
      * 必要的时候需要使用引号包裹
      */

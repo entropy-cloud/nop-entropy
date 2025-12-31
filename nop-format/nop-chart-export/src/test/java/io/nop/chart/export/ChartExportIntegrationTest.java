@@ -1,6 +1,5 @@
 package io.nop.chart.export;
 
-import io.nop.chart.export.model.ChartDataSet;
 import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartModel;
 import io.nop.excel.chart.model.ChartTitleModel;
@@ -37,7 +36,7 @@ public class ChartExportIntegrationTest {
     
     @BeforeEach
     void setUp() {
-        ChartTypeRendererRegistry registry = ChartTypeRendererRegistry.createDefault();
+        ChartTypeRendererRegistry registry = ChartTypeRendererRegistry.getDefault();
         exporter = new ChartExporter(registry);
         resolver = new TestCellRefResolver();
     }

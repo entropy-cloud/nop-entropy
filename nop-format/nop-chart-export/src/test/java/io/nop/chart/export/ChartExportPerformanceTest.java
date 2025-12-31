@@ -1,6 +1,5 @@
 package io.nop.chart.export;
 
-import io.nop.chart.export.model.ChartDataSet;
 import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartModel;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +22,7 @@ public class ChartExportPerformanceTest {
     
     @BeforeEach
     void setUp() {
-        ChartTypeRendererRegistry registry = ChartTypeRendererRegistry.createDefault();
+        ChartTypeRendererRegistry registry = ChartTypeRendererRegistry.getDefault();
         exporter = new ChartExporter(registry);
         resolver = new TestCellRefResolver();
     }
