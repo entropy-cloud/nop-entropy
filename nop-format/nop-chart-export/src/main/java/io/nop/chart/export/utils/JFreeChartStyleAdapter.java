@@ -2,7 +2,7 @@ package io.nop.chart.export.utils;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.type.utils.ConvertHelper;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.excel.chart.model.ChartBorderModel;
 import io.nop.excel.chart.model.ChartFillModel;
 import io.nop.excel.chart.model.ChartLineStyleModel;
@@ -127,10 +127,10 @@ public class JFreeChartStyleAdapter {
             return RectangleInsets.ZERO_INSETS;
         }
         
-        Double topDouble = ConvertHelper.convertTo(Double.class, spacing.getTop(), 0.0);
-        Double leftDouble = ConvertHelper.convertTo(Double.class, spacing.getLeft(), 0.0);
-        Double bottomDouble = ConvertHelper.convertTo(Double.class, spacing.getBottom(), 0.0);
-        Double rightDouble = ConvertHelper.convertTo(Double.class, spacing.getRight(), 0.0);
+        Double topDouble = ConvertHelper.convertTo(Double.class, spacing.getTop(), NopException::new);
+        Double leftDouble = ConvertHelper.convertTo(Double.class, spacing.getLeft(), NopException::new);
+        Double bottomDouble = ConvertHelper.convertTo(Double.class, spacing.getBottom(), NopException::new);
+        Double rightDouble = ConvertHelper.convertTo(Double.class, spacing.getRight(), NopException::new);
         
         double top = topDouble != null ? topDouble : 0.0;
         double left = leftDouble != null ? leftDouble : 0.0;
@@ -152,7 +152,7 @@ public class JFreeChartStyleAdapter {
         
         String backgroundColor = fillModel.getBackgroundColor();
         String foregroundColor = fillModel.getForegroundColor();
-        Double opacityDouble = ConvertHelper.convertTo(Double.class, fillModel.getOpacity(), 1.0);
+        Double opacityDouble = ConvertHelper.convertTo(Double.class, fillModel.getOpacity(), NopException::new);
         double opacity = opacityDouble != null ? opacityDouble : 1.0;
         
         // 优先使用前景色，如果没有则使用背景色
@@ -210,7 +210,7 @@ public class JFreeChartStyleAdapter {
             return null;
         }
         
-        Double opacityDouble = ConvertHelper.convertTo(Double.class, borderModel.getOpacity(), 1.0);
+        Double opacityDouble = ConvertHelper.convertTo(Double.class, borderModel.getOpacity(), NopException::new);
         double opacity = opacityDouble != null ? opacityDouble : 1.0;
         return toPaint(borderModel.getColor(), opacity);
     }

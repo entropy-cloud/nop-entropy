@@ -3,7 +3,7 @@ package io.nop.chart.export;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.chart.export.model.ChartDataSet;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.type.utils.ConvertHelper;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.excel.chart.model.ChartPlotAreaModel;
 import io.nop.excel.chart.model.ChartSeriesModel;
 import org.slf4j.Logger;
@@ -176,7 +176,7 @@ public class ChartDataResolver {
                 numbers.add(null);
             } else {
                 try {
-                    Number number = ConvertHelper.convertTo(Number.class, value, 0);
+                    Number number = ConvertHelper.convertTo(Number.class, value, NopException::new);
                     numbers.add(number);
                 } catch (Exception e) {
                     LOG.warn("Failed to convert value to number: {}", value, e);

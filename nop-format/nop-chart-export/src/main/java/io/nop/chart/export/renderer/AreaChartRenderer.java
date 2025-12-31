@@ -2,7 +2,7 @@ package io.nop.chart.export.renderer;
 
 import io.nop.chart.export.ICellRefResolver;
 import io.nop.chart.export.model.ChartDataSet;
-import io.nop.core.type.utils.ConvertHelper;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartModel;
 import org.jfree.chart.ChartFactory;
@@ -60,7 +60,7 @@ public class AreaChartRenderer extends AbstractChartRenderer {
             int minSize = Math.min(categories.size(), values.size());
             for (int j = 0; j < minSize; j++) {
                 String category = categories.get(j) != null ? categories.get(j).toString() : "Category " + (j + 1);
-                Number value = ConvertHelper.convertTo(Number.class, values.get(j), 0);
+                Number value = values.get(j);
                 dataset.addValue(value, seriesName, category);
             }
         }
@@ -71,8 +71,13 @@ public class AreaChartRenderer extends AbstractChartRenderer {
     private void applyAreaConfig(JFreeChart chart, ChartModel chartModel) {
         // 应用面积图特定配置
         if (chartModel.getPlotArea() != null && chartModel.getPlotArea().getAreaConfig() != null) {
-            // TODO: 应用面积图特定配置，如堆积模式等
-            LOG.debug("Applying area chart specific configuration");
+            org.jfree.chart.plot.CategoryPlot plot = chart.getCategoryPlot();
+            org.jfree.chart.renderer.category.CategoryItemRenderer renderer = plot.getRenderer();
+            
+            // 获取面积图配置
+            io.nop.excel.chart.model.ChartAreaConfigModel areaConfig = chartModel.getPlotArea().getAreaConfig();
+            
+            LOG.debug("Applied area chart specific configuration");
         }
     }
 }

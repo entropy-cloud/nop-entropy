@@ -2,7 +2,7 @@ package io.nop.chart.export.renderer;
 
 import io.nop.chart.export.ICellRefResolver;
 import io.nop.chart.export.model.ChartDataSet;
-import io.nop.core.type.utils.ConvertHelper;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartModel;
 import org.jfree.chart.ChartFactory;
@@ -68,9 +68,14 @@ public class HeatmapChartRenderer extends AbstractChartRenderer {
                 double[][] data = new double[3][minSize];
                 
                 for (int j = 0; j < minSize; j++) {
-                    data[0][j] = ConvertHelper.convertTo(Double.class, xValues.get(j), 0.0); // X值
-                    data[1][j] = ConvertHelper.convertTo(Double.class, yValues.get(j), 0.0); // Y值
-                    data[2][j] = ConvertHelper.convertTo(Double.class, zValues.get(j), 0.0); // 热力值
+                    Number xNum = xValues.get(j);
+                    Number yNum = yValues.get(j);
+                    Number zNum = zValues.get(j);
+                    if (xNum != null && yNum != null && zNum != null) {
+                        data[0][j] = xNum.doubleValue(); // X值
+                        data[1][j] = yNum.doubleValue(); // Y值
+                        data[2][j] = zNum.doubleValue(); // 热力值
+                    }
                 }
                 
                 dataset.addSeries(seriesName, data);

@@ -2,7 +2,7 @@ package io.nop.chart.export.renderer;
 
 import io.nop.chart.export.ICellRefResolver;
 import io.nop.chart.export.model.ChartDataSet;
-import io.nop.core.type.utils.ConvertHelper;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartModel;
 import org.jfree.chart.ChartFactory;
@@ -62,11 +62,15 @@ public class ScatterChartRenderer extends AbstractChartRenderer {
             int minSize = Math.min(xValues.size(), yValues.size());
             for (int j = 0; j < minSize; j++) {
                 try {
-                    double x = ConvertHelper.convertTo(Double.class, xValues.get(j), 0.0);
-                    double y = ConvertHelper.convertTo(Double.class, yValues.get(j), 0.0);
-                    series.add(x, y);
+                    Number xNum = xValues.get(j);
+                    Number yNum = yValues.get(j);
+                    if (xNum != null && yNum != null) {
+                        double x = xNum.doubleValue();
+                        double y = yNum.doubleValue();
+                        series.add(x, y);
+                    }
                 } catch (Exception e) {
-                    LOG.warn("Failed to convert data point at index {}: x={}, y={}", j, xValues.get(j), yValues.get(j));
+                    LOG.debug("Failed to add data point at index {}", j, e);
                 }
             }
             
@@ -79,8 +83,24 @@ public class ScatterChartRenderer extends AbstractChartRenderer {
     private void applyScatterConfig(JFreeChart chart, ChartModel chartModel) {
         // 应用散点图特定配置
         if (chartModel.getPlotArea() != null && chartModel.getPlotArea().getScatterConfig() != null) {
-            // TODO: 应用散点图特定配置，如标记样式等
-            LOG.debug("Applying scatter chart specific configuration");
+            org.jfree.chart.plot.XYPlot plot = chart.getXYPlot();
+            org.jfree.chart.renderer.xy.XYItemRenderer renderer = plot.getRenderer();
+            
+            // 获取散点图配置
+            io.nop.excel.chart.model.ChartScatterConfigModel scatterConfig = chartModel.getPlotArea().getScatterConfig();
+            
+            // 应用标记大小配置
+            if (scatterConfig.getMarkerSize() != null) {
+                Double markerSizeDouble = scatterConfig.getMarkerSize();
+                double markerSize = markerSizeDouble != null ? markerSizeDouble : 5.0;
+                // 设置标记点形状和大小
+                java.awt.Shape markerShape = new java.awt.geom.Ellipse2D.Double(-markerSize/2, -markerSize/2, markerSize, markerSize);
+                if (renderer instanceof org.jfree.chart.renderer.xy.XYLineAndShapeRenderer) {
+                    ((org.jfree.chart.renderer.xy.XYLineAndShapeRenderer) renderer).setDefaultShape(markerShape);
+                }
+            }
+            
+            LOG.debug("Applied scatter chart specific configuration");
         }
     }
 }

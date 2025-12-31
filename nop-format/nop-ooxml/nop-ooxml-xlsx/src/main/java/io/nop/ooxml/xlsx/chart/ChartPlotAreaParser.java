@@ -4,6 +4,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartAxisModel;
 import io.nop.excel.chart.model.ChartManualLayoutModel;
+import io.nop.excel.chart.model.ChartModel;
 import io.nop.excel.chart.model.ChartPlotAreaModel;
 import io.nop.excel.chart.model.ChartSeriesModel;
 import io.nop.excel.chart.model.ChartShapeStyleModel;
@@ -25,7 +26,8 @@ public class ChartPlotAreaParser {
      * @param styleProvider 样式提供者
      * @return 绘图区域模型对象
      */
-    public ChartPlotAreaModel parsePlotArea(XNode plotAreaNode, IChartStyleProvider styleProvider) {
+    public ChartPlotAreaModel parsePlotArea(XNode plotAreaNode, IChartStyleProvider styleProvider,
+                                            ChartModel chartModel) {
         if (plotAreaNode == null) {
             LOG.warn("PlotArea node is null, returning null");
             return null;
@@ -46,7 +48,7 @@ public class ChartPlotAreaParser {
         parseAxes(plotArea, plotAreaNode, styleProvider);
 
         // 解析数据系列
-        parseSeries(plotArea, plotAreaNode, styleProvider);
+        parseSeries(plotArea, plotAreaNode, styleProvider,chartModel);
 
         // 解析图表类型特定配置
         ChartTypeConfigParser.INSTANCE.parseChartTypeSpecificConfig(plotArea, plotAreaNode);
@@ -87,7 +89,8 @@ public class ChartPlotAreaParser {
     /**
      * 解析数据系列
      */
-    private void parseSeries(ChartPlotAreaModel plotArea, XNode plotAreaNode, IChartStyleProvider styleProvider) {
+    private void parseSeries(ChartPlotAreaModel plotArea, XNode plotAreaNode, IChartStyleProvider styleProvider,
+                             ChartModel chartModel) {
 
         // 根据图表类型查找系列节点
         XNode chartTypeNode = findChartTypeNode(plotAreaNode);
@@ -99,7 +102,7 @@ public class ChartPlotAreaParser {
         int index = 0;
         // 遍历所有系列
         for (XNode serNode : chartTypeNode.childrenByTag("c:ser")) {
-            ChartSeriesModel series = parseSingleSeries(serNode, index++, styleProvider);
+            ChartSeriesModel series = parseSingleSeries(serNode, index++, styleProvider,chartModel);
             if (series != null) {
                 plotArea.addSeries(series);
             }
@@ -148,13 +151,14 @@ public class ChartPlotAreaParser {
      * 解析单个系列
      * 使用ChartSeriesParser进行完整的系列解析
      */
-    private ChartSeriesModel parseSingleSeries(XNode serNode, int index, IChartStyleProvider styleProvider) {
+    private ChartSeriesModel parseSingleSeries(XNode serNode, int index, IChartStyleProvider styleProvider,
+                                               ChartModel chartModel) {
         if (serNode == null) {
             return null;
         }
 
         // 使用ChartSeriesParser进行完整的系列解析
-        return ChartSeriesParser.INSTANCE.parseSeries(serNode, index, styleProvider);
+        return ChartSeriesParser.INSTANCE.parseSeries(serNode, index, styleProvider, chartModel);
 
     }
 

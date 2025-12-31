@@ -2,7 +2,11 @@ package io.nop.ooxml.xlsx.chart;
 
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.chart.IChartStyleSupportModel;
+import io.nop.excel.chart.model.ChartModel;
+import io.nop.excel.chart.model.ChartSeriesModel;
 import io.nop.excel.chart.model.ChartShapeStyleModel;
+
+import java.util.List;
 
 /**
  * IChartStyleProvider - 图表样式提供者接口
@@ -48,4 +52,25 @@ public interface IChartStyleProvider {
      * @return 默认样式模型
      */
     ChartShapeStyleModel getDefaultStyle(String componentType);
+    
+    /**
+     * 根据系列索引获取对应的主题颜色
+     * @param seriesIndex 系列索引
+     * @return 对应的主题颜色
+     */
+    String getSeriesColor(int seriesIndex);
+    
+    /**
+     * 获取完整的颜色序列
+     * @return 颜色序列数组
+     */
+    List<String> getColorSequence();
+    
+    /**
+     * 根据varyColors属性应用颜色到系列
+     * @param series 系列模型
+     * @param varyColors 是否为每个系列使用不同颜色
+     * @param chartModel 图表模型，用于获取颜色配置
+     */
+    void applyVaryColors(ChartSeriesModel series, boolean varyColors, ChartModel chartModel);
 }

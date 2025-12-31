@@ -2,7 +2,7 @@ package io.nop.chart.export.renderer;
 
 import io.nop.chart.export.ICellRefResolver;
 import io.nop.chart.export.model.ChartDataSet;
-import io.nop.core.type.utils.ConvertHelper;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartModel;
 import org.jfree.chart.JFreeChart;
@@ -52,7 +52,7 @@ public class RadarChartRenderer extends AbstractChartRenderer {
             int minSize = Math.min(categories.size(), values.size());
             for (int j = 0; j < minSize; j++) {
                 String category = categories.get(j) != null ? categories.get(j).toString() : "Category " + (j + 1);
-                Number value = ConvertHelper.convertTo(Number.class, values.get(j), 0);
+                Number value = values.get(j);
                 dataset.addValue(value, seriesName, category);
             }
         }

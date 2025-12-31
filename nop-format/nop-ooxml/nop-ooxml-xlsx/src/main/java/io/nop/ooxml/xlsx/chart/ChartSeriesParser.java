@@ -6,6 +6,7 @@ import io.nop.excel.chart.constants.ChartMarkerType;
 import io.nop.excel.chart.model.ChartDataLabelsModel;
 import io.nop.excel.chart.model.ChartDataPointModel;
 import io.nop.excel.chart.model.ChartMarkersModel;
+import io.nop.excel.chart.model.ChartModel;
 import io.nop.excel.chart.model.ChartSeriesModel;
 import io.nop.excel.chart.model.ChartShapeStyleModel;
 import io.nop.excel.chart.model.ChartTrendLineModel;
@@ -31,7 +32,8 @@ public class ChartSeriesParser {
      * @param styleProvider 样式提供者
      * @return 系列模型对象
      */
-    public ChartSeriesModel parseSeries(XNode serNode, int index, IChartStyleProvider styleProvider) {
+    public ChartSeriesModel parseSeries(XNode serNode, int index, IChartStyleProvider styleProvider,
+                                        ChartModel chartModel) {
         if (serNode == null) {
             LOG.warn("Series node is null, returning null");
             return null;
@@ -46,7 +48,7 @@ public class ChartSeriesParser {
         parseSeriesData(series, serNode);
 
         // 解析系列格式化
-        parseSeriesFormatting(series, serNode, styleProvider);
+        parseSeriesFormatting(series, serNode, styleProvider,chartModel);
 
         // 解析系列特定配置（包括marker等）
         parseSeriesSpecificConfig(series, serNode, styleProvider);
@@ -402,7 +404,8 @@ public class ChartSeriesParser {
     /**
      * 解析系列格式化
      */
-    private void parseSeriesFormatting(ChartSeriesModel series, XNode serNode, IChartStyleProvider styleProvider) {
+    private void parseSeriesFormatting(ChartSeriesModel series, XNode serNode,
+                                       IChartStyleProvider styleProvider, ChartModel chartModel) {
         // 解析形状样式
         XNode spPrNode = serNode.childByTag("c:spPr");
         if (spPrNode != null) {
@@ -419,25 +422,36 @@ public class ChartSeriesParser {
         }
 
         // 解析系列索引和顺序相关的格式化
-        parseIndexBasedFormatting(series, serNode, styleProvider);
+        parseIndexBasedFormatting(series, serNode, styleProvider,chartModel);
     }
 
     /**
      * 解析基于索引的格式化
      * 处理系列索引和顺序相关的样式配置
      */
-    private void parseIndexBasedFormatting(ChartSeriesModel series, XNode serNode, IChartStyleProvider styleProvider) {
+    private void parseIndexBasedFormatting(ChartSeriesModel series, XNode serNode,
+                                           IChartStyleProvider styleProvider, ChartModel chartModel) {
         // 应用基于索引的默认样式
-        // if (series.getIndex() != null && styleProvider != null) {
-        // TODO: 根据系列索引应用默认颜色和样式
-        // LOG.debug("Applying index-based formatting for series index: {}",
-        // series.getIndex());
-        // }
+        if (styleProvider != null) {
+            // 获取系列的默认样式
+            ChartShapeStyleModel shapeStyle = series.getShapeStyle();
+            if (shapeStyle == null) {
+                shapeStyle = styleProvider.getDefaultStyle("series");
+                if (shapeStyle != null) {
+                    series.setShapeStyle(shapeStyle.cloneInstance());
+                }
+            }
+            // 应用主题到系列
+            styleProvider.applyTheme("series", series);
+            LOG.debug("Applying index-based formatting for series index: {}", series.getIndex());
+        }
 
         // 解析系列特定的颜色变化
         Boolean varyColorsBool = ChartPropertyHelper.getChildBoolVal(serNode, "c:varyColors");
-        if (varyColorsBool != null) {
+        if (varyColorsBool != null && styleProvider != null) {
             LOG.debug("Series vary colors: {}", varyColorsBool);
+            // 应用varyColors到系列
+            styleProvider.applyVaryColors(series, varyColorsBool,chartModel);
         }
     }
 

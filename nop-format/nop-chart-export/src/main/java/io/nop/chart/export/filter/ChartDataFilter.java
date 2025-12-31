@@ -1,11 +1,15 @@
 package io.nop.chart.export.filter;
 
 import io.nop.chart.export.model.ChartDataSet;
-import io.nop.excel.chart.model.ChartFilterModel;
+import io.nop.excel.chart.model.ChartFiltersModel;
+import io.nop.excel.chart.model.ChartValueFilterModel;
+import io.nop.excel.chart.model.ChartTopNFilterModel;
+import io.nop.excel.chart.model.ChartCategoryFilterModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -18,20 +22,34 @@ public class ChartDataFilter {
     /**
      * 应用过滤器到数据集
      * @param dataSets 原始数据集
-     * @param filters 过滤器配置列表
+     * @param filters 过滤器配置
      * @return 过滤后的数据集
      */
-    public List<ChartDataSet> applyFilters(List<ChartDataSet> dataSets, List<ChartFilterModel> filters) {
-        if (filters == null || filters.isEmpty()) {
+    public List<ChartDataSet> applyFilters(List<ChartDataSet> dataSets, ChartFiltersModel filters) {
+        if (filters == null) {
             return dataSets;
         }
         
-        LOG.debug("Applying {} filters to {} data sets", filters.size(), dataSets.size());
+        LOG.debug("Applying filters to {} data sets", dataSets.size());
         
         List<ChartDataSet> filteredDataSets = new ArrayList<>(dataSets);
         
-        for (ChartFilterModel filter : filters) {
-            filteredDataSets = applyFilter(filteredDataSets, filter);
+        // 应用值过滤器
+        ChartValueFilterModel valueFilter = filters.getValueFilter();
+        if (valueFilter != null && Boolean.TRUE.equals(valueFilter.getEnabled())) {
+            filteredDataSets = applyValueFilter(filteredDataSets, valueFilter);
+        }
+        
+        // 应用类别过滤器
+        ChartCategoryFilterModel categoryFilter = filters.getCategoryFilter();
+        if (categoryFilter != null && Boolean.TRUE.equals(categoryFilter.getEnabled())) {
+            filteredDataSets = applyCategoryFilter(filteredDataSets, categoryFilter);
+        }
+        
+        // 应用顶部N过滤器
+        ChartTopNFilterModel topNFilter = filters.getTopNFilter();
+        if (topNFilter != null && Boolean.TRUE.equals(topNFilter.getEnabled())) {
+            filteredDataSets = applyTopNFilter(filteredDataSets, topNFilter);
         }
         
         LOG.debug("Filtered data sets: {} -> {}", dataSets.size(), filteredDataSets.size());
@@ -39,42 +57,16 @@ public class ChartDataFilter {
     }
     
     /**
-     * 应用单个过滤器
+     * 应用值过滤器
      * @param dataSets 数据集
-     * @param filter 过滤器配置
+     * @param filter 值过滤器配置
      * @return 过滤后的数据集
      */
-    public List<ChartDataSet> applyFilter(List<ChartDataSet> dataSets, ChartFilterModel filter) {
-        if (filter == null || !filter.isEnabled()) {
-            return dataSets;
-        }
-        
-        LOG.debug("Applying filter: type={}", filter.getType());
-        
-        FilterType filterType = getFilterType(filter);
-        
-        switch (filterType) {
-            case VALUE_RANGE:
-                return applyValueRangeFilter(dataSets, filter);
-            case TOP_N:
-                return applyTopNFilter(dataSets, filter);
-            case BOTTOM_N:
-                return applyBottomNFilter(dataSets, filter);
-            case CATEGORY:
-                return applyCategoryFilter(dataSets, filter);
-            case CUSTOM:
-                return applyCustomFilter(dataSets, filter);
-            default:
-                LOG.warn("Unsupported filter type: {}", filter.getType());
-                return dataSets;
-        }
-    }
-    
-    private List<ChartDataSet> applyValueRangeFilter(List<ChartDataSet> dataSets, ChartFilterModel filter) {
+    private List<ChartDataSet> applyValueFilter(List<ChartDataSet> dataSets, ChartValueFilterModel filter) {
         LOG.debug("Applying value range filter");
         
-        double minValue = getFilterMinValue(filter);
-        double maxValue = getFilterMaxValue(filter);
+        double minValue = filter.getMin() != null ? filter.getMin() : Double.MIN_VALUE;
+        double maxValue = filter.getMax() != null ? filter.getMax() : Double.MAX_VALUE;
         
         List<ChartDataSet> filteredDataSets = new ArrayList<>();
         
@@ -88,10 +80,16 @@ public class ChartDataFilter {
         return filteredDataSets;
     }
     
-    private List<ChartDataSet> applyTopNFilter(List<ChartDataSet> dataSets, ChartFilterModel filter) {
+    /**
+     * 应用顶部N过滤器
+     * @param dataSets 数据集
+     * @param filter 顶部N过滤器配置
+     * @return 过滤后的数据集
+     */
+    private List<ChartDataSet> applyTopNFilter(List<ChartDataSet> dataSets, ChartTopNFilterModel filter) {
         LOG.debug("Applying top N filter");
         
-        int n = getFilterCount(filter);
+        int n = filter.getN() != null ? filter.getN() : 10;
         
         List<ChartDataSet> filteredDataSets = new ArrayList<>();
         
@@ -105,27 +103,19 @@ public class ChartDataFilter {
         return filteredDataSets;
     }
     
-    private List<ChartDataSet> applyBottomNFilter(List<ChartDataSet> dataSets, ChartFilterModel filter) {
-        LOG.debug("Applying bottom N filter");
-        
-        int n = getFilterCount(filter);
-        
-        List<ChartDataSet> filteredDataSets = new ArrayList<>();
-        
-        for (ChartDataSet dataSet : dataSets) {
-            ChartDataSet filteredDataSet = getBottomNFromDataSet(dataSet, n);
-            if (filteredDataSet != null && !filteredDataSet.getValues().isEmpty()) {
-                filteredDataSets.add(filteredDataSet);
-            }
-        }
-        
-        return filteredDataSets;
-    }
-    
-    private List<ChartDataSet> applyCategoryFilter(List<ChartDataSet> dataSets, ChartFilterModel filter) {
+    /**
+     * 应用类别过滤器
+     * @param dataSets 数据集
+     * @param filter 类别过滤器配置
+     * @return 过滤后的数据集
+     */
+    private List<ChartDataSet> applyCategoryFilter(List<ChartDataSet> dataSets, ChartCategoryFilterModel filter) {
         LOG.debug("Applying category filter");
         
-        List<String> allowedCategories = getFilterCategories(filter);
+        List<String> allowedCategories = filter.getCategories();
+        if (allowedCategories == null) {
+            allowedCategories = Collections.emptyList();
+        }
         
         List<ChartDataSet> filteredDataSets = new ArrayList<>();
         
@@ -139,15 +129,13 @@ public class ChartDataFilter {
         return filteredDataSets;
     }
     
-    private List<ChartDataSet> applyCustomFilter(List<ChartDataSet> dataSets, ChartFilterModel filter) {
-        LOG.debug("Applying custom filter");
-        
-        // 自定义过滤器实现
-        // 这里可以根据具体需求实现复杂的过滤逻辑
-        
-        return dataSets;
-    }
-    
+    /**
+     * 根据值范围过滤数据集
+     * @param dataSet 数据集
+     * @param minValue 最小值
+     * @param maxValue 最大值
+     * @return 过滤后的数据集
+     */
     private ChartDataSet filterDataSetByValueRange(ChartDataSet dataSet, double minValue, double maxValue) {
         ChartDataSet filteredDataSet = new ChartDataSet();
         filteredDataSet.setName(dataSet.getName());
@@ -186,18 +174,24 @@ public class ChartDataFilter {
         return filteredDataSet;
     }
     
+    /**
+     * 获取数据集中的前N个最大值
+     * @param dataSet 数据集
+     * @param n 数量
+     * @return 过滤后的数据集
+     */
     private ChartDataSet getTopNFromDataSet(ChartDataSet dataSet, int n) {
         // 获取前N个最大值
         ChartDataSet sortedDataSet = sortDataSetByValue(dataSet, false); // 降序
         return limitDataSetSize(sortedDataSet, n);
     }
     
-    private ChartDataSet getBottomNFromDataSet(ChartDataSet dataSet, int n) {
-        // 获取前N个最小值
-        ChartDataSet sortedDataSet = sortDataSetByValue(dataSet, true); // 升序
-        return limitDataSetSize(sortedDataSet, n);
-    }
-    
+    /**
+     * 根据类别过滤数据集
+     * @param dataSet 数据集
+     * @param allowedCategories 允许的类别列表
+     * @return 过滤后的数据集
+     */
     private ChartDataSet filterDataSetByCategories(ChartDataSet dataSet, List<String> allowedCategories) {
         ChartDataSet filteredDataSet = new ChartDataSet();
         filteredDataSet.setName(dataSet.getName());
@@ -235,12 +229,24 @@ public class ChartDataFilter {
         return filteredDataSet;
     }
     
+    /**
+     * 按值排序数据集
+     * @param dataSet 数据集
+     * @param ascending 是否升序
+     * @return 排序后的数据集
+     */
     private ChartDataSet sortDataSetByValue(ChartDataSet dataSet, boolean ascending) {
         // 简化实现：返回原数据集
         // 实际实现需要根据值排序并保持类别和值的对应关系
         return dataSet;
     }
     
+    /**
+     * 限制数据集大小
+     * @param dataSet 数据集
+     * @param maxSize 最大大小
+     * @return 限制大小后的数据集
+     */
     private ChartDataSet limitDataSetSize(ChartDataSet dataSet, int maxSize) {
         if (dataSet.getValues().size() <= maxSize) {
             return dataSet;
@@ -271,62 +277,5 @@ public class ChartDataFilter {
         return limitedDataSet;
     }
     
-    private FilterType getFilterType(ChartFilterModel filter) {
-        if (filter.getType() != null) {
-            String type = filter.getType().toLowerCase();
-            switch (type) {
-                case "valuerange":
-                case "value_range":
-                    return FilterType.VALUE_RANGE;
-                case "topn":
-                case "top_n":
-                    return FilterType.TOP_N;
-                case "bottomn":
-                case "bottom_n":
-                    return FilterType.BOTTOM_N;
-                case "category":
-                    return FilterType.CATEGORY;
-                case "custom":
-                    return FilterType.CUSTOM;
-                default:
-                    return FilterType.VALUE_RANGE;
-            }
-        }
-        return FilterType.VALUE_RANGE;
-    }
     
-    private double getFilterMinValue(ChartFilterModel filter) {
-        // 从过滤器配置中获取最小值
-        // 这里需要根据实际的ChartFilterModel结构来实现
-        return Double.MIN_VALUE;
-    }
-    
-    private double getFilterMaxValue(ChartFilterModel filter) {
-        // 从过滤器配置中获取最大值
-        // 这里需要根据实际的ChartFilterModel结构来实现
-        return Double.MAX_VALUE;
-    }
-    
-    private int getFilterCount(ChartFilterModel filter) {
-        // 从过滤器配置中获取数量
-        // 这里需要根据实际的ChartFilterModel结构来实现
-        return 10; // 默认值
-    }
-    
-    private List<String> getFilterCategories(ChartFilterModel filter) {
-        // 从过滤器配置中获取允许的类别列表
-        // 这里需要根据实际的ChartFilterModel结构来实现
-        return new ArrayList<>();
-    }
-    
-    /**
-     * 过滤器类型枚举
-     */
-    public enum FilterType {
-        VALUE_RANGE,
-        TOP_N,
-        BOTTOM_N,
-        CATEGORY,
-        CUSTOM
-    }
 }

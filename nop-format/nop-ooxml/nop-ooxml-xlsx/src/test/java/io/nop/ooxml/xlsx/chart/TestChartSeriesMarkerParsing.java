@@ -11,6 +11,7 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.excel.chart.constants.ChartMarkerType;
+import io.nop.excel.chart.model.ChartModel;
 import io.nop.excel.chart.model.ChartSeriesModel;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -43,7 +44,7 @@ public class TestChartSeriesMarkerParsing extends BaseTestCase {
         // Parse the series
         ChartSeriesParser parser = ChartSeriesParser.INSTANCE;
         DefaultChartStyleProvider styleProvider = new DefaultChartStyleProvider();
-        ChartSeriesModel series = parser.parseSeries(seriesNode, 0, styleProvider);
+        ChartSeriesModel series = parser.parseSeries(seriesNode, 0, styleProvider, new ChartModel());
 
         // Verify basic series properties
         assertNotNull(series, "Series should be parsed");

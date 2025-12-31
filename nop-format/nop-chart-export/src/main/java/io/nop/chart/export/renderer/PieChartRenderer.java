@@ -3,12 +3,13 @@ package io.nop.chart.export.renderer;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.chart.export.ICellRefResolver;
 import io.nop.chart.export.model.ChartDataSet;
-import io.nop.core.type.utils.ConvertHelper;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartDataPointModel;
 import io.nop.excel.chart.model.ChartModel;
 import io.nop.excel.chart.model.ChartPieConfigModel;
 import io.nop.excel.chart.model.ChartSeriesModel;
+import io.nop.excel.chart.model.ChartStyleModel;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PiePlot;
@@ -58,7 +59,7 @@ public class PieChartRenderer extends AbstractChartRenderer {
         }
         
         // 应用饼图特定配置
-        applyPieConfiguration(chart, pieConfig, dataSets);
+        applyPieConfiguration(chart, pieConfig, dataSets, chartModel);
         
         return chart;
     }
@@ -114,26 +115,26 @@ public class PieChartRenderer extends AbstractChartRenderer {
         
         // 从数据集获取信息
         List<ChartDataSet> dataSets = java.util.Collections.emptyList(); // 简化处理
-        applyPieConfiguration(chart, pieConfig, dataSets);
+        applyPieConfiguration(chart, pieConfig, dataSets, chartModel);
     }
     
     /**
      * 应用饼图配置
      */
-    private void applyPieConfiguration(JFreeChart chart, ChartPieConfigModel pieConfig, List<ChartDataSet> dataSets) {
+    private void applyPieConfiguration(JFreeChart chart, ChartPieConfigModel pieConfig, List<ChartDataSet> dataSets, ChartModel chartModel) {
         PiePlot plot = (PiePlot) chart.getPlot();
         
         if (pieConfig != null) {
             // 应用起始角度
             if (pieConfig.getStartAngle() != null) {
-                Double startAngleDouble = ConvertHelper.convertTo(Double.class, pieConfig.getStartAngle(), 0.0);
+                Double startAngleDouble = ConvertHelper.toDouble(pieConfig.getStartAngle());
                 double startAngle = startAngleDouble != null ? startAngleDouble : 0.0;
                 plot.setStartAngle(startAngle);
             }
             
             // 应用颜色变化
             if (Boolean.TRUE.equals(pieConfig.getVaryColors())) {
-                applyVaryColors(plot);
+                applyVaryColors(plot, chartModel);
             }
         }
         
@@ -149,20 +150,39 @@ public class PieChartRenderer extends AbstractChartRenderer {
     /**
      * 应用颜色变化
      */
-    private void applyVaryColors(PiePlot plot) {
-        // 设置默认颜色序列
-        Color[] colors = {
-            Color.BLUE, Color.RED, Color.GREEN, Color.ORANGE, 
-            Color.MAGENTA, Color.CYAN, Color.PINK, Color.YELLOW,
-            Color.LIGHT_GRAY, Color.DARK_GRAY
-        };
-        
+    private void applyVaryColors(PiePlot plot, ChartModel chartModel) {
         PieDataset dataset = plot.getDataset();
-        if (dataset != null) {
-            for (int i = 0; i < dataset.getItemCount() && i < colors.length; i++) {
-                Comparable key = dataset.getKey(i);
-                plot.setSectionPaint(key, colors[i % colors.length]);
+        if (dataset == null) {
+            return;
+        }
+        
+        String[] colors = null;
+        
+        // 从图表模型的style.colors中获取颜色序列
+        if (chartModel != null && chartModel.getStyle() != null) {
+            java.util.List<String> colorList = chartModel.getStyle().getColors();
+            if (colorList != null && !colorList.isEmpty()) {
+                colors = colorList.toArray(new String[colorList.size()]);
+                LOG.debug("Using custom colors from chart style: {}", (Object) colors);
             }
+        }
+        
+        // 如果没有自定义颜色，则使用默认的颜色序列
+        if (colors == null || colors.length == 0) {
+            colors = new String[] {
+                "#4472C4", "#ED7D31", "#A5A5A5", "#FFC000", 
+                "#5B9BD5", "#70AD47", "#2F5597", "#9E480E",
+                "#636363", "#997300"
+            };
+            LOG.debug("Using default colors: {}", (Object) colors);
+        }
+        
+        // 应用颜色到每个扇区
+        for (int i = 0; i < dataset.getItemCount(); i++) {
+            Comparable key = dataset.getKey(i);
+            String colorStr = colors[i % colors.length];
+            Color color = java.awt.Color.decode(colorStr);
+            plot.setSectionPaint(key, color);
         }
     }
     
@@ -182,7 +202,7 @@ public class PieChartRenderer extends AbstractChartRenderer {
             
             for (ChartDataPointModel dataPoint : seriesModel.getDataPoints()) {
                 if (dataPoint.getExplosion() != null) {
-                    Double explosionDouble = ConvertHelper.convertTo(Double.class, dataPoint.getExplosion(), 0.0);
+                    Double explosionDouble = ConvertHelper.toDouble(dataPoint.getExplosion());
                     double explosion = explosionDouble != null ? explosionDouble : 0.0;
                     if (explosion > 0 && dataset != null) {
                         int index = dataPoint.getIndex();

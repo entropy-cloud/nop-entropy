@@ -46,7 +46,7 @@ public class TrendLineRenderer {
      * @param index 趋势线索引
      */
     public void addTrendLine(JFreeChart chart, ChartTrendLineModel trendLine, int index) {
-        if (trendLine == null || !trendLine.isVisible()) {
+        if (trendLine == null) {
             return;
         }
         
@@ -170,8 +170,9 @@ public class TrendLineRenderer {
             }
             
             // 设置线条宽度
-            if (trendLine.getLineStyle().getWidth() > 0) {
-                Stroke stroke = new BasicStroke(trendLine.getLineStyle().getWidth());
+            Double width = trendLine.getLineStyle().getWidth();
+            if (width != null && width > 0) {
+                Stroke stroke = new BasicStroke(width.floatValue());
                 // renderer.setSeriesStroke(index, stroke);
             }
         }
@@ -187,8 +188,9 @@ public class TrendLineRenderer {
             }
             
             // 设置线条宽度
-            if (trendLine.getLineStyle().getWidth() > 0) {
-                Stroke stroke = new BasicStroke(trendLine.getLineStyle().getWidth());
+            Double width = trendLine.getLineStyle().getWidth();
+            if (width != null && width > 0) {
+                Stroke stroke = new BasicStroke(width.floatValue());
                 // renderer.setSeriesStroke(index, stroke);
             }
         }
@@ -197,17 +199,20 @@ public class TrendLineRenderer {
     private TrendLineType getTrendLineType(ChartTrendLineModel trendLine) {
         // 根据趋势线模型确定类型
         if (trendLine.getType() != null) {
-            String type = trendLine.getType().toLowerCase();
+            String type = trendLine.getType().name().toLowerCase();
             switch (type) {
                 case "linear":
                     return TrendLineType.LINEAR;
-                case "movingaverage":
-                case "moving_average":
+                case "moving_avg":
                     return TrendLineType.MOVING_AVERAGE;
                 case "exponential":
                     return TrendLineType.EXPONENTIAL;
                 case "polynomial":
                     return TrendLineType.POLYNOMIAL;
+                case "logarithmic":
+                    return TrendLineType.LOGARITHMIC;
+                case "power":
+                    return TrendLineType.POWER;
                 default:
                     return TrendLineType.LINEAR;
             }
@@ -222,6 +227,8 @@ public class TrendLineRenderer {
         LINEAR,
         MOVING_AVERAGE,
         EXPONENTIAL,
-        POLYNOMIAL
+        POLYNOMIAL,
+        LOGARITHMIC,
+        POWER
     }
 }

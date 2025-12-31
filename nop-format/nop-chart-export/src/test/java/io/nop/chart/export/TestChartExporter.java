@@ -41,7 +41,7 @@ public class TestChartExporter {
             
             @Override
             public List<Object> getValues(String cellRangeRef) {
-                return Arrays.asList("Category1", "Category2", "Category3");
+                return Arrays.asList("1", "2", "3");
             }
             
             @Override

@@ -128,6 +128,13 @@ public class ChartTypeConfigParser {
             LOG.debug("Bar chart overlap: {}%", overlap);
         }
 
+        // 解析颜色变化
+        Boolean varyColors = ChartPropertyHelper.getChildBoolVal(barChartNode, "c:varyColors");
+        if (varyColors != null) {
+            barConfig.setVaryColors(varyColors);
+            LOG.debug("Bar chart vary colors: {}", varyColors);
+        }
+
         // 设置到plotArea
         plotArea.setBarConfig(barConfig);
 
@@ -216,6 +223,13 @@ public class ChartTypeConfigParser {
             LOG.debug("Line chart up-down bars: {}", upDownBars);
         }
 
+        // 解析颜色变化
+        Boolean varyColors = ChartPropertyHelper.getChildBoolVal(lineChartNode, "c:varyColors");
+        if (varyColors != null) {
+            lineConfig.setVaryColors(varyColors);
+            LOG.debug("Line chart vary colors: {}", varyColors);
+        }
+
         // 设置到plotArea
         plotArea.setLineConfig(lineConfig);
 
@@ -243,6 +257,13 @@ public class ChartTypeConfigParser {
         if (dropLines != null) {
             areaConfig.setDropLines(dropLines);
             LOG.debug("Area chart drop lines: {}", dropLines);
+        }
+
+        // 解析颜色变化
+        Boolean varyColors = ChartPropertyHelper.getChildBoolVal(areaChartNode, "c:varyColors");
+        if (varyColors != null) {
+            areaConfig.setVaryColors(varyColors);
+            LOG.debug("Area chart vary colors: {}", varyColors);
         }
 
         // 设置到plotArea

@@ -70,7 +70,7 @@ public class BarChartRenderer extends AbstractChartRenderer {
         }
         
         // 应用柱状图特定配置
-        applyBarConfiguration(chart, barConfig);
+        applyBarConfiguration(chart, barConfig, chartModel);
         
         return chart;
     }
@@ -138,7 +138,7 @@ public class BarChartRenderer extends AbstractChartRenderer {
     /**
      * 应用柱状图配置
      */
-    private void applyBarConfiguration(JFreeChart chart, ChartBarConfigModel barConfig) {
+    private void applyBarConfiguration(JFreeChart chart, ChartBarConfigModel barConfig, ChartModel chartModel) {
         if (barConfig == null) {
             return;
         }
@@ -162,7 +162,7 @@ public class BarChartRenderer extends AbstractChartRenderer {
         // 应用颜色变化
         if (Boolean.TRUE.equals(barConfig.getVaryColors())) {
             // 为每个系列设置不同颜色
-            applyVaryColors(renderer);
+            applyVaryColors(renderer, chartModel);
         }
         
         // 应用3D效果
@@ -175,15 +175,33 @@ public class BarChartRenderer extends AbstractChartRenderer {
     /**
      * 应用颜色变化
      */
-    private void applyVaryColors(CategoryItemRenderer renderer) {
-        // 设置默认颜色序列
-        Color[] colors = {
-            Color.BLUE, Color.RED, Color.GREEN, Color.ORANGE, 
-            Color.MAGENTA, Color.CYAN, Color.PINK, Color.YELLOW
-        };
+    private void applyVaryColors(CategoryItemRenderer renderer, ChartModel chartModel) {
+        String[] colorStrings = null;
         
-        for (int i = 0; i < colors.length; i++) {
-            renderer.setSeriesPaint(i, colors[i % colors.length]);
+        // 从图表模型的style.colors中获取颜色序列
+        if (chartModel != null && chartModel.getStyle() != null) {
+            java.util.List<String> colors = chartModel.getStyle().getColors();
+            if (colors != null && !colors.isEmpty()) {
+                colorStrings = colors.toArray(new String[colors.size()]);
+                LOG.debug("Using custom colors from chart style: {}", (Object) colorStrings);
+            }
+        }
+        
+        // 如果没有自定义颜色，则使用默认的颜色序列
+        if (colorStrings == null || colorStrings.length == 0) {
+            colorStrings = new String[] {
+                "#4472C4", "#ED7D31", "#A5A5A5", "#FFC000", 
+                "#5B9BD5", "#70AD47", "#2F5597", "#9E480E",
+                "#636363", "#997300"
+            };
+            LOG.debug("Using default colors: {}", (Object) colorStrings);
+        }
+        
+        // 应用颜色到每个系列
+        for (int i = 0; i < colorStrings.length; i++) {
+            String colorStr = colorStrings[i];
+            Color color = java.awt.Color.decode(colorStr);
+            renderer.setSeriesPaint(i, color);
         }
     }
 }

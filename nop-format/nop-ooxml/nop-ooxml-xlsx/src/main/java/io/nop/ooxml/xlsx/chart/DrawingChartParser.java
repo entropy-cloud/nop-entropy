@@ -59,17 +59,17 @@ public class DrawingChartParser {
         return chartNode;
     }
 
-    public void parseChartSpace(XNode chartSpaceNode, IChartStyleProvider styleProvider, ChartModel excelChart) {
+    public void parseChartSpace(XNode chartSpaceNode, IChartStyleProvider styleProvider, ChartModel chartModel) {
         validateChartStructure(chartSpaceNode);
 
         String lang = (String) chartSpaceNode.childAttr("c:lang", "val");
-        excelChart.setLang(lang);
+        chartModel.setLang(lang);
 
         Boolean roundedCorners = "1".equals(chartSpaceNode.childAttr("c:roundedCorners", "val"));
-        excelChart.setRoundedCorners(roundedCorners);
+        chartModel.setRoundedCorners(roundedCorners);
 
         // 解析根级别的样式配置
-        parseRootStyles(excelChart, chartSpaceNode, styleProvider);
+        parseRootStyles(chartModel, chartSpaceNode, styleProvider);
 
         XNode actualChartNode = findActualChartNode(chartSpaceNode);
         if (actualChartNode == null) {
@@ -77,10 +77,10 @@ public class DrawingChartParser {
             actualChartNode = chartSpaceNode;
         }
 
-        parseBasicProperties(excelChart, actualChartNode);
-        parseTitle(excelChart, actualChartNode, styleProvider);
-        parseLegend(excelChart, actualChartNode, styleProvider);
-        parsePlotArea(excelChart, actualChartNode, styleProvider);
+        parseBasicProperties(chartModel, actualChartNode);
+        parseTitle(chartModel, actualChartNode, styleProvider);
+        parseLegend(chartModel, actualChartNode, styleProvider);
+        parsePlotArea(chartModel, actualChartNode, styleProvider,chartModel);
     }
 
     private void validateChartStructure(XNode chartNode) {
@@ -198,11 +198,12 @@ public class DrawingChartParser {
 
     }
 
-    private void parsePlotArea(ChartModel chart, XNode chartNode, IChartStyleProvider styleProvider) {
+    private void parsePlotArea(ChartModel chart, XNode chartNode, IChartStyleProvider styleProvider,
+                               ChartModel chartModel) {
 
         XNode plotAreaNode = chartNode.childByTag("c:plotArea");
         if (plotAreaNode != null) {
-            ChartPlotAreaModel plotArea = ChartPlotAreaParser.INSTANCE.parsePlotArea(plotAreaNode, styleProvider);
+            ChartPlotAreaModel plotArea = ChartPlotAreaParser.INSTANCE.parsePlotArea(plotAreaNode, styleProvider,chartModel);
             if (plotArea != null) {
                 chart.setPlotArea(plotArea);
             }
