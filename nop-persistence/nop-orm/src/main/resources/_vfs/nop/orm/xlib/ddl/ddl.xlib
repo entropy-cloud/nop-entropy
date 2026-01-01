@@ -368,5 +368,28 @@
                 <c:unit><![CDATA[  drop constraint ${uniqueKey.constraint} ]]></c:unit>
             </source>
         </DropUniqueKey>
+
+        <AddIndex outputMode="text">
+            <attr name="index" type="io.nop.orm.model.OrmIndexModel"/>
+            <attr name="table" type="io.nop.orm.model.IEntityModel"/>
+            <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
+
+            <source>
+                <c:script>
+                    let columns = index.columns.map(col => dialect.escapeSQLName(col.columnCode));
+                </c:script>
+                <c:unit><![CDATA[create ${index.unique ? 'unique ' : ''}index ${dialect.escapeSQLName(index.name)} on ${dialect.escapeSQLName(table.tableName)} (${columns.join(',')}) ]]></c:unit>
+            </source>
+        </AddIndex>
+
+        <DropIndex outputMode="text">
+            <attr name="index" type="io.nop.orm.model.OrmIndexModel"/>
+            <attr name="table" type="io.nop.orm.model.IEntityModel"/>
+            <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
+
+            <source>
+                <c:unit><![CDATA[drop index ${dialect.escapeSQLName(index.name)} on ${dialect.escapeSQLName(table.tableName)} ]]></c:unit>
+            </source>
+        </DropIndex>
     </tags>
 </lib>

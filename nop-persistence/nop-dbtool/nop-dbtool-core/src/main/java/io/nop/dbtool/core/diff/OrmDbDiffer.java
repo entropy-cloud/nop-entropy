@@ -28,6 +28,7 @@ import io.nop.orm.ddl.DdlSqlCreator;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.OrmEntityModel;
+import io.nop.orm.model.OrmIndexModel;
 import io.nop.orm.model.OrmModel;
 import io.nop.orm.model.OrmUniqueKeyModel;
 
@@ -149,17 +150,24 @@ public class OrmDbDiffer {
                     IDiffValue uniqueKeysDiff = getPropDiff(entityDiff, "uniqueKeys");
                     Map<DiffType, List<DiffDdl>> uniqueKeysDiffDdl = createUniqueKeysDiffDdl(newEntity, uniqueKeysDiff);
 
+                    IDiffValue indexesDiff = getPropDiff(entityDiff, "indexes");
+                    Map<DiffType, List<DiffDdl>> indexesDiffDdl = createIndexesDiffDdl(newEntity, indexesDiff);
+
                     IDiffValue columnsDiff = getPropDiff(entityDiff, "columns");
                     Map<DiffType, List<DiffDdl>> columnsDiffDdl = createColumnsDiffDdl(newEntity, columnsDiff);
 
                     results.addAll(columnsDiffDdl.getOrDefault(DiffType.add, new ArrayList<>()));
-                    // 先删除唯一键
+                    // 先删除索引
+                    results.addAll(indexesDiffDdl.getOrDefault(DiffType.remove, new ArrayList<>()));
+                    // 再删除唯一键
                     results.addAll(uniqueKeysDiffDdl.getOrDefault(DiffType.remove, new ArrayList<>()));
                     // 再删除/修改字段
                     results.addAll(columnsDiffDdl.getOrDefault(DiffType.remove, new ArrayList<>()));
                     results.addAll(columnsDiffDdl.getOrDefault(DiffType.update, new ArrayList<>()));
                     // 最后添加唯一键
                     results.addAll(uniqueKeysDiffDdl.getOrDefault(DiffType.add, new ArrayList<>()));
+                    // 最后添加索引
+                    results.addAll(indexesDiffDdl.getOrDefault(DiffType.add, new ArrayList<>()));
                 }
             });
         }
@@ -254,6 +262,46 @@ public class OrmDbDiffer {
         return resultsMap;
     }
 
+    private Map<DiffType, List<DiffDdl>> createIndexesDiffDdl(
+            IEntityModel newEntityModel, IDiffValue indexesDiff
+    ) {
+        if (indexesDiff == null) {
+            return new HashMap<>();
+        }
+
+        // 需要和字段的增删改做排序处理，故而，按变更类型放置 DDL
+        Map<DiffType, List<DiffDdl>> resultsMap = new HashMap<>();
+
+        // Note：在对比的数据是集合时，若某一方为空或 null，则差异类别为 replace，即，用一方直接替换另一方
+        if (indexesDiff.getDiffType() == DiffType.replace) {
+            // 只处理新增的索引，忽略删除操作
+            if (indexesDiff.getNewValue() != null) {
+                ((KeyedList<OrmIndexModel>) indexesDiff.getNewValue()).forEach((newIndex) -> {
+                    DiffDdl[] diffDdls = createIndexDiffDdls(newEntityModel, DiffType.add, null, newIndex);
+                    addDiffDdlsToMap(resultsMap, diffDdls);
+                });
+            }
+        } else {
+            indexesDiff.getKeyedElementDiffs().forEach((indexName, indexDiff) -> {
+                if (isUselessDiff(indexDiff)) {
+                    return;
+                }
+
+                DiffType diffType = indexDiff.getDiffType();
+                OrmIndexModel oldIndex = (OrmIndexModel) indexDiff.getOldValue();
+                OrmIndexModel newIndex = (OrmIndexModel) indexDiff.getNewValue();
+
+                // 只处理新增或修改的情况，忽略删除操作
+                if (diffType == DiffType.add || diffType == DiffType.update) {
+                    DiffDdl[] diffDdls = createIndexDiffDdls(newEntityModel, diffType, oldIndex, newIndex);
+                    addDiffDdlsToMap(resultsMap, diffDdls);
+                }
+            });
+        }
+
+        return resultsMap;
+    }
+
     private IDiffValue getPropDiff(IDiffValue diff, String prop) {
         Map<String, ? extends IDiffValue> propDiffs = diff.getPropDiffs();
 
@@ -297,6 +345,9 @@ public class OrmDbDiffer {
                 }
             }
         } else if (diff.getOldValue() instanceof OrmUniqueKeyModel) {
+            props.remove("name");
+            props.remove("comment");
+        } else if (diff.getOldValue() instanceof OrmIndexModel) {
             props.remove("name");
             props.remove("comment");
         }
@@ -371,19 +422,64 @@ public class OrmDbDiffer {
             // 唯一键不支持修改，只能先删后增
             case update: {
                 if (StringHelper.isEmpty(oldUniqueKey.getConstraint()) //
-                    || StringHelper.isEmpty(newUniqueKey.getConstraint())) {
+                        || StringHelper.isEmpty(newUniqueKey.getConstraint())) {
                     break;
                 }
 
                 return new DiffDdl[] {
                         new DiffDdl(newEntityModel,
-                                    DiffType.remove,
-                                    oldUniqueKey,
-                                    ddlSqlCreator.dropUniqueKey(newEntityModel, oldUniqueKey)),
+                                DiffType.remove,
+                                oldUniqueKey,
+                                ddlSqlCreator.dropUniqueKey(newEntityModel, oldUniqueKey)),
                         new DiffDdl(newEntityModel,
-                                    DiffType.add,
-                                    newUniqueKey,
-                                    ddlSqlCreator.addUniqueKey(newEntityModel, newUniqueKey))
+                                DiffType.add,
+                                newUniqueKey,
+                                ddlSqlCreator.addUniqueKey(newEntityModel, newUniqueKey))
+                };
+            }
+        }
+        return new DiffDdl[0];
+    }
+
+    private DiffDdl[] createIndexDiffDdls(
+            IEntityModel newEntityModel, DiffType diffType, //
+            OrmIndexModel oldIndex, OrmIndexModel newIndex
+    ) {
+        switch (diffType) {
+            // 对索引的新增
+            case add: {
+                if (StringHelper.isEmpty(newIndex.getName())) {
+                    break;
+                }
+
+                String sql = ddlSqlCreator.addIndex(newEntityModel, newIndex);
+                return new DiffDdl[] { new DiffDdl(newEntityModel, diffType, newIndex, sql) };
+            }
+            // 对索引的删除
+            case remove: {
+                if (StringHelper.isEmpty(oldIndex.getName())) {
+                    break;
+                }
+
+                String sql = ddlSqlCreator.dropIndex(newEntityModel, oldIndex);
+                return new DiffDdl[] { new DiffDdl(newEntityModel, diffType, oldIndex, sql) };
+            }
+            // 索引不支持修改，只能先删后增
+            case update: {
+                if (StringHelper.isEmpty(oldIndex.getName()) //
+                        || StringHelper.isEmpty(newIndex.getName())) {
+                    break;
+                }
+
+                return new DiffDdl[] {
+                        new DiffDdl(newEntityModel,
+                                DiffType.remove,
+                                oldIndex,
+                                ddlSqlCreator.dropIndex(newEntityModel, oldIndex)),
+                        new DiffDdl(newEntityModel,
+                                DiffType.add,
+                                newIndex,
+                                ddlSqlCreator.addIndex(newEntityModel, newIndex))
                 };
             }
         }
@@ -419,6 +515,13 @@ public class OrmDbDiffer {
 
             this.targetType = DiffDdlTargetType.uniqueKey;
             this.target = uniqueKeyModel.getConstraint();
+        }
+
+        public DiffDdl(IEntityModel entityModel, DiffType type, OrmIndexModel indexModel, String ddl) {
+            this(entityModel, type, ddl);
+
+            this.targetType = DiffDdlTargetType.index;
+            this.target = indexModel.getName();
         }
 
         public DiffDdl(IEntityModel entityModel, DiffType type, String ddl) {
@@ -457,8 +560,8 @@ public class OrmDbDiffer {
         /** @return 若参数为空，则返回 null */
         public static String toSql(List<DiffDdl> diffDdlList) {
             return diffDdlList.isEmpty()
-                   ? null
-                   : diffDdlList.stream().map(OrmDbDiffer.DiffDdl::getDdl).collect(Collectors.joining(";\n"));
+                    ? null
+                    : diffDdlList.stream().map(OrmDbDiffer.DiffDdl::getDdl).collect(Collectors.joining(";\n"));
         }
     }
 

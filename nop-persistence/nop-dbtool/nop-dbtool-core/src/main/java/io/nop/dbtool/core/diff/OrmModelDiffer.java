@@ -15,6 +15,7 @@ import io.nop.dao.dialect.IDialect;
 import io.nop.dbtool.core.DataBaseMeta;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.OrmIndexModel;
 import io.nop.orm.model.OrmModel;
 import io.nop.orm.model.OrmUniqueKeyModel;
 
@@ -67,6 +68,16 @@ public class OrmModelDiffer {
         entitySelection.addField("uniqueKeys", ukSelection);
         // <<<<<<<<<<
 
+        // >>>>>>>>> 索引
+        FieldSelectionBean indexSelection = FieldSelectionBean.fromProp(
+                "name", "columns", "unique", "comment"
+        );
+        // 索引名作为唯一标识
+        indexSelection.setKeyProp("name");
+
+        entitySelection.addField("indexes", indexSelection);
+        // <<<<<<<<<<
+
         FieldSelectionBean selection = new FieldSelectionBean();
         selection.addField("entities", entitySelection);
         options.setSelection(selection);
@@ -83,9 +94,10 @@ public class OrmModelDiffer {
         if (obj instanceof IEntityModel && "tableName".equals(prop)) {
             return DataBaseMeta.normalizeTableName(dialect, value.toString());
         }
-        // 字段名、唯一键约束名
+        // 字段名、唯一键约束名、索引名
         else if ((obj instanceof IColumnModel && "code".equals(prop)) //
-                 || (obj instanceof OrmUniqueKeyModel && "constraint".equals(prop))) {
+                || (obj instanceof OrmUniqueKeyModel && "constraint".equals(prop))
+                || (obj instanceof OrmIndexModel && "name".equals(prop))) {
             return DataBaseMeta.normalizeColName(dialect, value.toString());
         }
         // 字段默认值：从数据库中得到的默认值可能是包含引号的转义后的值，故而，在此处对两边的默认值都进行转义再做比较
