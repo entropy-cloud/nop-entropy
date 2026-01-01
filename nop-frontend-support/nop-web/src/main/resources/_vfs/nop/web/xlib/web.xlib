@@ -366,9 +366,9 @@
                            +bizObjName+'.'+propMeta?.name);
                     let label =  labelKey.$i18n(cellModel?.label || propMeta?.displayName);
 
-                    let mandatory = formCell?.mandatory || propMeta?.mandatory;
+                    let mandatory = cellModel?.mandatory ?? propMeta?.mandatory;
                     if(mode.startsWith('query'))
-                        mandatory = formCell?.mandatory || propMeta?.['ui:queryMandatory']
+                        mandatory = cellModel?.mandatory ?? propMeta?.['ui:queryMandatory']
 
                     let filterOp = cellModel?.filterOp || propMeta?.['ui:filterOp']
                               || cellModel?.['ui:filterOp'] || propMeta?.['xui:defaultFilterOp']
