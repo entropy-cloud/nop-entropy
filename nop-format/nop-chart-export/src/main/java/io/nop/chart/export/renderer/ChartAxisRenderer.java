@@ -116,8 +116,14 @@ public class ChartAxisRenderer {
         // 应用轴线样式
         if (axisConfig.getShapeStyle() != null && axisConfig.getShapeStyle().getBorder() != null) {
             Color lineColor = JFreeChartStyleAdapter.convertColor(axisConfig.getShapeStyle().getBorder().getColor());
+            Stroke lineStroke = JFreeChartStyleAdapter.createBorderStroke(axisConfig.getShapeStyle().getBorder());
+            
             if (lineColor != null) {
                 axis.setAxisLinePaint(lineColor);
+            }
+            
+            if (lineStroke != null) {
+                axis.setAxisLineStroke(lineStroke);
             }
             
             // 设置轴线可见性
@@ -139,6 +145,13 @@ public class ChartAxisRenderer {
                 }
             }
         }
+        
+        // 设置坐标轴范围（如果需要，后续可以扩展支持）
+        if (axis instanceof ValueAxis) {
+            ValueAxis valueAxis = (ValueAxis) axis;
+            // 暂时不设置具体范围，使用默认自动范围
+            valueAxis.setAutoRange(true);
+        }
     }
     
     private void applyAxisTicks(Axis axis, ChartAxisModel axisConfig) {
@@ -148,12 +161,32 @@ public class ChartAxisRenderer {
         // 应用刻度线样式
         if (axisConfig.getShapeStyle() != null && axisConfig.getShapeStyle().getBorder() != null) {
             Color tickColor = JFreeChartStyleAdapter.convertColor(axisConfig.getShapeStyle().getBorder().getColor());
+            Stroke tickStroke = JFreeChartStyleAdapter.createBorderStroke(axisConfig.getShapeStyle().getBorder());
+            
             if (tickColor != null) {
                 axis.setTickMarkPaint(tickColor);
             }
+            
+            if (tickStroke != null) {
+                axis.setTickMarkStroke(tickStroke);
+            }
         }
         
-        // 设置网格线（如果支持）
-        // 网格线通常在Plot级别设置，这里只是占位符
+        // 设置刻度线长度
+        axis.setTickMarkInsideLength(4.0f);
+        axis.setTickMarkOutsideLength(8.0f);
+        
+        // 设置次要刻度线
+        if (axis instanceof ValueAxis) {
+            ValueAxis valueAxis = (ValueAxis) axis;
+            valueAxis.setMinorTickCount(4);
+            valueAxis.setMinorTickMarksVisible(true);
+        }
+        
+        // 设置自动刻度选择
+        if (axis instanceof ValueAxis) {
+            ValueAxis valueAxis = (ValueAxis) axis;
+            valueAxis.setAutoTickUnitSelection(true);
+        }
     }
 }

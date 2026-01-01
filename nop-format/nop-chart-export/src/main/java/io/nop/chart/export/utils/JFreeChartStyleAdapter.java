@@ -12,11 +12,34 @@ import io.nop.excel.model.color.ColorHelper;
 import org.jfree.chart.ui.RectangleInsets;
 
 import java.awt.*;
+import java.awt.geom.*;
+import java.util.HashMap;
 
 /**
  * Adapter for converting chart styles to JFreeChart format
  */
 public class JFreeChartStyleAdapter {
+    
+    // 预定义形状映射
+    private static final HashMap<String, Shape> SHAPE_TYPES = new HashMap<>();
+    
+    static {
+        // 初始化预定义形状
+        SHAPE_TYPES.put("circle", new Ellipse2D.Double(-4, -4, 8, 8));
+        SHAPE_TYPES.put("square", new Rectangle(-4, -4, 8, 8));
+        SHAPE_TYPES.put("diamond", new Polygon(
+            new int[]{0, 4, 0, -4},
+            new int[]{-4, 0, 4, 0},
+            4
+        ));
+        SHAPE_TYPES.put("triangle", new Polygon(
+            new int[]{0, 4, -4},
+            new int[]{-4, 4, 4},
+            3
+        ));
+        SHAPE_TYPES.put("cross", createCrossShape());
+        SHAPE_TYPES.put("star", createStarShape(5, 4, 2));
+    }
     
     /**
      * 转换颜色字符串为Paint对象
@@ -42,6 +65,119 @@ public class JFreeChartStyleAdapter {
         }
         
         return color;
+    }
+    
+    /**
+     * 创建渐变填充Paint对象
+     * @param startColor 起始颜色
+     * @param endColor 结束颜色
+     * @param x1 起始X坐标
+     * @param y1 起始Y坐标
+     * @param x2 结束X坐标
+     * @param y2 结束Y坐标
+     * @return 渐变填充Paint对象
+     */
+    public static Paint createGradientPaint(String startColor, String endColor, 
+                                          float x1, float y1, float x2, float y2) {
+        if (StringHelper.isEmpty(startColor) || StringHelper.isEmpty(endColor)) {
+            return null;
+        }
+        
+        Color start = convertColor(startColor);
+        Color end = convertColor(endColor);
+        
+        if (start == null || end == null) {
+            return null;
+        }
+        
+        return new GradientPaint(x1, y1, start, x2, y2, end);
+    }
+    
+    /**
+     * 获取预定义形状
+     * @param shapeName 形状名称
+     * @return Shape对象
+     */
+    public static Shape getPredefinedShape(String shapeName) {
+        return SHAPE_TYPES.get(shapeName);
+    }
+    
+    /**
+     * 创建自定义形状
+     * @param shapeType 形状类型
+     * @param width 宽度
+     * @param height 高度
+     * @return Shape对象
+     */
+    public static Shape createShape(String shapeType, float width, float height) {
+        if (StringHelper.isEmpty(shapeType)) {
+            return new Ellipse2D.Double(-width/2, -height/2, width, height);
+        }
+        
+        Shape shape = SHAPE_TYPES.get(shapeType.toLowerCase());
+        if (shape != null) {
+            return shape;
+        }
+        
+        // 默认返回圆形
+        return new Ellipse2D.Double(-width/2, -height/2, width, height);
+    }
+    
+    /**
+     * 创建十字形
+     * @return 十字形Shape对象
+     */
+    private static Shape createCrossShape() {
+        GeneralPath path = new GeneralPath();
+        path.moveTo(-3, -3);
+        path.lineTo(-1, -3);
+        path.lineTo(-1, -1);
+        path.lineTo(1, -1);
+        path.lineTo(1, -3);
+        path.lineTo(3, -3);
+        path.lineTo(3, -1);
+        path.lineTo(1, -1);
+        path.lineTo(1, 1);
+        path.lineTo(3, 1);
+        path.lineTo(3, 3);
+        path.lineTo(1, 3);
+        path.lineTo(1, 1);
+        path.lineTo(-1, 1);
+        path.lineTo(-1, 3);
+        path.lineTo(-3, 3);
+        path.lineTo(-3, 1);
+        path.lineTo(-1, 1);
+        path.lineTo(-1, -1);
+        path.lineTo(-3, -1);
+        path.closePath();
+        return path;
+    }
+    
+    /**
+     * 创建星形
+     * @param points 点数
+     * @param outerRadius 外半径
+     * @param innerRadius 内半径
+     * @return 星形Shape对象
+     */
+    private static Shape createStarShape(int points, double outerRadius, double innerRadius) {
+        GeneralPath path = new GeneralPath();
+        double angle = Math.PI / points;
+        
+        for (int i = 0; i < 2 * points; i++) {
+            double r = (i % 2 == 0) ? outerRadius : innerRadius;
+            double theta = i * angle;
+            double x = r * Math.cos(theta);
+            double y = r * Math.sin(theta);
+            
+            if (i == 0) {
+                path.moveTo(x, y);
+            } else {
+                path.lineTo(x, y);
+            }
+        }
+        path.closePath();
+        return path;
     }
     
     /**

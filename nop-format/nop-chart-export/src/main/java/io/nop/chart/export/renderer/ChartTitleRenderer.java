@@ -4,7 +4,9 @@ import io.nop.chart.export.ICellRefResolver;
 import io.nop.chart.export.utils.JFreeChartStyleAdapter;
 import io.nop.excel.chart.model.ChartTitleModel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.block.BlockBorder;
 import org.jfree.chart.title.TextTitle;
+import org.jfree.chart.ui.HorizontalAlignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +87,14 @@ public class ChartTitleRenderer {
             }
         }
         
-        // 应用位置
-        // TODO: 应用标题位置和布局 - 需要检查ChartTitleModel是否有布局相关方法
+        // 设置标题背景（如果支持）
+        if (title.getShapeStyle() != null && title.getShapeStyle().getFill() != null) {
+            Color backgroundColor = JFreeChartStyleAdapter.convertColor(title.getShapeStyle().getFill().getBackgroundColor());
+            if (backgroundColor != null) {
+                textTitle.setBackgroundPaint(backgroundColor);
+                // 使用正确的setBorder方法
+                textTitle.setBorder(1.0, 1.0, 1.0, 1.0);
+            }
+        }
     }
 }

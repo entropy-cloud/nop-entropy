@@ -67,6 +67,7 @@ public class ChartLegendRenderer {
         if (legend.getShapeStyle() != null) {
             if (legend.getShapeStyle().getBorder() != null) {
                 Color borderColor = JFreeChartStyleAdapter.convertColor(legend.getShapeStyle().getBorder().getColor());
+                
                 if (borderColor != null) {
                     legendTitle.setFrame(new BlockBorder(borderColor));
                 }
@@ -75,13 +76,31 @@ public class ChartLegendRenderer {
             }
             
             // 应用背景
-            if (legend.getShapeStyle().getFill() != null && legend.getShapeStyle().getFill().getBackgroundColor() != null) {
-                Color backgroundColor = JFreeChartStyleAdapter.convertColor(legend.getShapeStyle().getFill().getBackgroundColor());
+            if (legend.getShapeStyle().getFill() != null) {
+                Paint backgroundColor = null;
+                
+                // 检查是否有渐变填充设置
+                if (legend.getShapeStyle().getFill().getForegroundColor() != null && 
+                    legend.getShapeStyle().getFill().getBackgroundColor() != null) {
+                    // 创建渐变填充
+                    backgroundColor = JFreeChartStyleAdapter.createGradientPaint(
+                        legend.getShapeStyle().getFill().getBackgroundColor(), 
+                        legend.getShapeStyle().getFill().getForegroundColor(), 
+                        0, 0, 100, 0
+                    );
+                } else if (legend.getShapeStyle().getFill().getBackgroundColor() != null) {
+                    // 单色填充
+                    backgroundColor = JFreeChartStyleAdapter.convertColor(legend.getShapeStyle().getFill().getBackgroundColor());
+                }
+                
                 if (backgroundColor != null) {
                     legendTitle.setBackgroundPaint(backgroundColor);
                 }
             }
         }
+        
+        // 设置图例外边距
+        legendTitle.setMargin(10, 10, 10, 10);
     }
     
     private void applyLegendPosition(LegendTitle legendTitle, ChartLegendModel legend) {
