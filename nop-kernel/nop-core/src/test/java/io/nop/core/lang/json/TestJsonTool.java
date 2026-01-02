@@ -17,8 +17,6 @@ import io.nop.api.core.json.JSON;
 import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.parse.JsonParser;
-import io.nop.core.lang.xml.XNode;
-import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.core.type.PredefinedGenericTypes;
@@ -117,7 +115,7 @@ public class TestJsonTool {
         System.out.println(str);
         assertTrue(str.length() > 19);
 
-        assertEquals(3, JsonTool.serializeToJson(3));
+        assertEquals(3, JsonTool.beanToJsonObject(3));
     }
 
     @SuppressWarnings("unchecked")

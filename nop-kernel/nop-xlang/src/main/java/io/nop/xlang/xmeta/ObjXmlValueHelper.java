@@ -25,7 +25,7 @@ public class ObjXmlValueHelper {
         if (defNode.getXdefUniqueAttr() != null) {
             // 集合节点
             List<XNode> nodes = node.childrenByTag(defNode.getTagName());
-            return nodes.stream().map(child -> JsonTool.serializeToJson(DslModelHelper.dslNodeToJson(defNode, child)))
+            return nodes.stream().map(child -> JsonTool.beanToJsonObject(DslModelHelper.dslNodeToJson(defNode, child)))
                     .collect(Collectors.toList());
         }
 
@@ -33,7 +33,7 @@ public class ObjXmlValueHelper {
         if (inputsNode == null)
             return null;
 
-        return JsonTool.serializeToJson(DslModelHelper.dslNodeToJson(defNode, inputsNode));
+        return JsonTool.beanToJsonObject(DslModelHelper.dslNodeToJson(defNode, inputsNode));
     }
 
     public static void setChildValueForDef(XNode node, IObjPropMeta propMeta, String childName, Object value) {

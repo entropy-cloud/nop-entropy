@@ -138,6 +138,6 @@ public class RuleServiceImpl implements RuleServiceSpi {
     private Map<String, Object> schemaToJson(ISchema schema) {
         if (schema == null)
             return null;
-        return (Map<String, Object>) JsonTool.serializeToJson(schema);
+        return (Map<String, Object>) JsonTool.beanToJsonObject(schema);
     }
 }

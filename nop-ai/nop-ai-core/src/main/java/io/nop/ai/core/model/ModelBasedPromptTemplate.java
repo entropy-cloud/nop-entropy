@@ -338,6 +338,6 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
             return (Map<String, Object>) node.toXJson();
 
         DynamicObject obj = (DynamicObject) new DslModelParser().ignoreUnknown(true).parseWithXDef(xdef, node);
-        return (Map<String, Object>) JsonTool.serializeToJson(obj);
+        return (Map<String, Object>) JsonTool.beanToJsonObject(obj);
     }
 }

@@ -62,8 +62,8 @@ public class CliDiffCommand implements Callable<Integer> {
             Object oldModel = loadModel(oldModelPath);
             Object newModel = loadModel(newModelPath);
 
-            Map<String, Object> oldJson = (Map<String, Object>) JsonTool.serializeToJson(oldModel);
-            Map<String, Object> newJson = (Map<String, Object>) JsonTool.serializeToJson(newModel);
+            Map<String, Object> oldJson = (Map<String, Object>) JsonTool.beanToJsonObject(oldModel);
+            Map<String, Object> newJson = (Map<String, Object>) JsonTool.beanToJsonObject(newModel);
 
             Map<String, Object> diff = new JsonDiffer().diffMap(oldJson, newJson);
             saveOutput(diff);

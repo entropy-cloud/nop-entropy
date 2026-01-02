@@ -29,7 +29,7 @@ public class AutoTestDataHelper {
     // }
 
     public static Object toJsonObject(Object bean) {
-        return JsonTool.serializeToJson(bean);
+        return JsonTool.beanToJsonObject(bean);
     }
 
     public static boolean valueEquals(Object v1, Object v2) {

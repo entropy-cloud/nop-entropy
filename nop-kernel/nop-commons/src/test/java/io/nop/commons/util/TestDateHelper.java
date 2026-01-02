@@ -60,7 +60,7 @@ public class TestDateHelper {
 
     @Test
     public void testZone() {
-        LocalDateTime dt = DateHelper.toZone(LocalDateTime.now(), ZoneOffset.UTC);
+        LocalDateTime dt = DateHelper.toTimeZone(LocalDateTime.now(), ZoneOffset.UTC);
         System.out.println(dt);
     }
 

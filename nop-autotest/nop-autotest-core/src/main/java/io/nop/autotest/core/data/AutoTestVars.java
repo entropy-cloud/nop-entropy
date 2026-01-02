@@ -130,7 +130,7 @@ public class AutoTestVars {
             return null;
         if (value instanceof String)
             return value;
-        return JsonTool.serializeToJson(value, false);
+        return JsonTool.beanToJsonObject(value, false);
     }
 
     public static void dumpVars() {

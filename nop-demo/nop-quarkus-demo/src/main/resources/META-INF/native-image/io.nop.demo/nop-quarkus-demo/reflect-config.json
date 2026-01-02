@@ -903,6 +903,26 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.api.debugger.IBreakpointManager"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.debugger.IDebugger"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.api.AuthApiConstants"
   },
   {

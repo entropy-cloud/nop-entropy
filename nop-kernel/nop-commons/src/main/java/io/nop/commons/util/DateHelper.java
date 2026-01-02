@@ -408,13 +408,13 @@ public class DateHelper {
         return date.plusDays(-date.getDayOfWeek().getValue() + (long) dayOfWeek);
     }
 
-    public static LocalDateTime toZone(LocalDateTime dateTime, ZoneId zone) {
+    public static LocalDateTime toTimeZone(LocalDateTime dateTime, ZoneId zone) {
         ZonedDateTime zt = ZonedDateTime.of(dateTime, ZoneId.systemDefault());
         return zt.withZoneSameInstant(zone).toLocalDateTime();
     }
 
     public static LocalDateTime toUTC(LocalDateTime dateTime) {
-        return toZone(dateTime, ZoneOffset.UTC);
+        return toTimeZone(dateTime, ZoneOffset.UTC);
     }
 
     public static LocalDateTime fromUTC(LocalDateTime dateTime) {

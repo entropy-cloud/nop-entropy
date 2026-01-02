@@ -41,7 +41,8 @@ public @interface EnableSnapshot {
     boolean saveOutput() default false;
 
     /**
-     * 是否校验录制的输出数据与数据库中的当前数据相匹配
+     * 是否校验录制的输出数据与数据库中的当前数据相匹配。当saveOutput=false时，一般会校验输出与录制结果相匹配，除非这里设置为false。
+     * 这个开关是调试时使用，一般不需要启用。
      */
     boolean checkOutput() default true;
 }

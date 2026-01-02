@@ -29,7 +29,7 @@ public class DeltaExtendsGenerator implements IDeltaExtendsGenerator {
         ExprEvalAction action = cp.compileXjson(node);
         if (action == null)
             return null;
-        return JsonTool.serializeToJson(action.invoke(XLang.newEvalScope()), true);
+        return JsonTool.beanToJsonObject(action.invoke(XLang.newEvalScope()), true);
     }
 
     XNode toNode(SourceLocation loc, Object source) {

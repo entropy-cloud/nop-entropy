@@ -12,9 +12,12 @@ import io.nop.api.core.json.JsonParseOptions;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.EvalExprProvider;
+import io.nop.core.lang.json.bind.ValueResolverCompilerRegistry;
 import io.nop.core.lang.json.handler.BuildJObjectJsonHandler;
 import io.nop.core.lang.json.handler.BuildObjectJsonHandler;
 import io.nop.core.lang.json.impl.DefaultJsonTool;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceConstants;
 import io.nop.core.resource.VirtualFileSystem;
@@ -76,7 +79,7 @@ public class JsonTool {
         return stringify(o, null, null);
     }
 
-    public static Object serializeToJson(Object o, boolean keepLoc) {
+    public static Object beanToJsonObject(Object o, boolean keepLoc) {
         if (o == null)
             return null;
 
@@ -85,8 +88,12 @@ public class JsonTool {
         return handler.getResult();
     }
 
-    public static Object serializeToJson(Object o) {
-        return serializeToJson(o, false);
+    public static Object beanToJsonObject(Object o) {
+        return beanToJsonObject(o, false);
+    }
+
+    public static Object jsonObjectToBean(Object o, Type targetType) {
+        return BeanTool.buildBean(o, targetType);
     }
 
     public static <T> T parseBeanFromText(String text, Type targetType) {
@@ -173,6 +180,16 @@ public class JsonTool {
         if (!resource.exists() || resource.length() == 0)
             return null;
         return parseBeanFromResource(resource, beanClass, traceDepends);
+    }
+
+    public static <T> T loadDeltaBean(IResource resource, Type targetType) {
+        DeltaJsonOptions options = new DeltaJsonOptions();
+        options.setIgnoreUnknownValueResolver(false);
+        options.setEvalContext(EvalExprProvider.newEvalScope());
+        options.setRegistry(ValueResolverCompilerRegistry.DEFAULT);
+        options.setExtendsGenerator(EvalExprProvider.getDeltaExtendsGenerator());
+        options.setFeatureSwitchEvaluator(EvalExprProvider.getFeaturePredicateEvaluator());
+        return loadDeltaBean(resource, targetType, options);
     }
 
     public static <T> T loadDeltaBean(IResource resource, Type targetType, DeltaJsonOptions options) {

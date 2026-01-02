@@ -8,6 +8,7 @@
 package io.nop.api.core.convert;
 
 import io.nop.api.core.ApiErrors;
+import io.nop.api.core.annotations.core.Internal;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ApiStringHelper;
@@ -132,6 +133,25 @@ public class ConvertHelper {
         return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, null, clazz, o, errorFactory);
     }
 
+    public static <T> T convertToWithDefault(Class<T> clazz, Object o, T defaultValue,
+                                             Function<ErrorCode, NopException> errorFactory) {
+        if (o == null)
+            return (T) defaultValue;
+
+        if (clazz.isInstance(o))
+            return (T) o;
+
+        ITypeConverter fn = SysConverterRegistry.instance().getConverterByType(clazz);
+        if (fn != null) {
+            T ret = (T) fn.convert(o, errorFactory);
+            if (ret == null)
+                return defaultValue;
+            return ret;
+        }
+
+        return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, null, clazz, o, errorFactory);
+    }
+
     public static Void toVoid(Object object, Function<ErrorCode, NopException> errorFactory) {
         return null;
     }
@@ -243,6 +263,7 @@ public class ConvertHelper {
         return o.toString();
     }
 
+    @Internal
     public static String formatTimestampNoMillis(Timestamp date) {
         if (date == null)
             return null;
@@ -589,6 +610,7 @@ public class ConvertHelper {
         return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, null, LocalDateTime.class, o, errorFactory);
     }
 
+    @Internal
     public static byte booleanToByte(boolean b) {
         return b ? (byte) 1 : (byte) 0;
     }
@@ -663,10 +685,12 @@ public class ConvertHelper {
         return value != null ? (T) value : defaultValue;
     }
 
+    @Internal
     public static boolean byteToBoolean(byte value) {
         return value != 0;
     }
 
+    @Internal
     public static char booleanToChar(boolean b) {
         return b ? '1' : '0';
     }
@@ -674,62 +698,74 @@ public class ConvertHelper {
     /**
      * javascript中字符串'1'为true, 字符串'2'为false
      */
+    @Internal
     public static boolean charToBoolean(char c) {
         return c == '1' || c == 'y' || c == 'Y';
     }
 
+    @Internal
     public static short booleanToShort(boolean b) {
         return b ? (short) 1 : (short) 0;
     }
 
-
+    @Internal
     public static boolean shortToBoolean(short value) {
         return value != 0;
     }
 
-
+    @Internal
     public static int booleanToInt(boolean b) {
         return b ? 1 : 0;
     }
 
+    @Internal
     public static boolean intToBoolean(int value) {
         return value != 0;
     }
 
+    @Internal
     public static long booleanToLong(boolean b) {
         return b ? 1 : 0;
     }
 
+    @Internal
     public static boolean longToBoolean(long value) {
         return value != 0;
     }
 
+    @Internal
     public static float booleanToFloat(boolean b) {
         return b ? (float) 1 : (float) 0;
     }
 
+    @Internal
     public static boolean floatToBoolean(float value) {
         return value != 0;
     }
 
+    @Internal
     public static double booleanToDouble(boolean b) {
         return b ? (double) 1 : (double) 0;
     }
 
+    @Internal
     public static boolean doubleToBoolean(double value) {
         return value != 0;
     }
 
+    @Internal
     public static BigDecimal booleanToBigDecimal(boolean b) {
         return new BigDecimal(booleanToInt(b));
     }
 
+    @Internal
     public static Boolean bigDecimalToBoolean(BigDecimal v) {
         if (v == null)
             return null;
         return v.intValue() != 0;
     }
 
+    @Internal
     public static Boolean stringToBoolean(String str, Function<ErrorCode, NopException> errorFactory) {
         if (isEmpty(str))
             return null;
@@ -741,6 +777,7 @@ public class ConvertHelper {
         return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, null, Boolean.class, str, errorFactory);
     }
 
+    @Internal
     public static Byte stringToByte(String str, Function<ErrorCode, NopException> errorFactory) {
         if (isEmpty(str))
             return null;
@@ -750,6 +787,7 @@ public class ConvertHelper {
         return value.byteValue();
     }
 
+    @Internal
     public static Character stringToChar(String str, Function<ErrorCode, NopException> errorFactory) {
         if (isEmpty(str))
             return null;
@@ -759,6 +797,7 @@ public class ConvertHelper {
         return str.charAt(0);
     }
 
+    @Internal
     public static Short stringToShort(String str, Function<ErrorCode, NopException> errorFactory) {
         if (isEmpty(str))
             return null;
@@ -769,6 +808,7 @@ public class ConvertHelper {
         }
     }
 
+    @Internal
     public static Integer stringToInt(String str, Function<ErrorCode, NopException> errorFactory) {
         if (isEmpty(str))
             return null;
@@ -779,6 +819,7 @@ public class ConvertHelper {
         }
     }
 
+    @Internal
     public static Long stringToLong(String str, Function<ErrorCode, NopException> errorFactory) {
         if (isEmpty(str))
             return null;
@@ -801,13 +842,13 @@ public class ConvertHelper {
         }
 
         try {
-
             return Long.parseLong(str);
         } catch (Exception e) {
             return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, e, Long.class, str, errorFactory);
         }
     }
 
+    @Internal
     public static long stringToPrimitiveLong(String str, Function<ErrorCode, NopException> errorFactory) {
         Long value = stringToLong(str, errorFactory);
         if (value == null)
@@ -815,18 +856,21 @@ public class ConvertHelper {
         return value;
     }
 
+    @Internal
     public static Long timestampToLong(Timestamp ts) {
         if (ts == null)
             return null;
         return ts.getTime();
     }
 
+    @Internal
     public static Timestamp longToTimestamp(Long value) {
         if (value == null)
             return null;
         return new Timestamp(value);
     }
 
+    @Internal
     public static Float stringToFloat(String str, Function<ErrorCode, NopException> errorFactory) {
         if (isEmpty(str))
             return null;
@@ -837,6 +881,7 @@ public class ConvertHelper {
         }
     }
 
+    @Internal
     public static Double stringToDouble(String str, Function<ErrorCode, NopException> errorFactory) {
         if (isEmpty(str))
             return null;
@@ -847,6 +892,7 @@ public class ConvertHelper {
         }
     }
 
+    @Internal
     public static BigDecimal stringToBigDecimal(String str, Function<ErrorCode, NopException> errorFactory) {
         if (isEmpty(str))
             return null;
@@ -857,6 +903,7 @@ public class ConvertHelper {
         }
     }
 
+    @Internal
     public static LocalDate stringToLocalDate(String str, Function<ErrorCode, NopException> errorFactory) {
         if (isEmpty(str))
             return null;
@@ -876,6 +923,7 @@ public class ConvertHelper {
         }
     }
 
+    @Internal
     public static LocalTime stringToLocalTime(String str, Function<ErrorCode, NopException> errorFactory) {
         if (isEmpty(str))
             return null;
@@ -901,6 +949,7 @@ public class ConvertHelper {
             .append(DateTimeFormatter.ISO_LOCAL_TIME)
             .toFormatter();
 
+    @Internal
     public static LocalDateTime stringToLocalDateTime(String str, Function<ErrorCode, NopException> errorFactory) {
         if (isEmpty(str))
             return null;
@@ -929,6 +978,7 @@ public class ConvertHelper {
         }
     }
 
+    @Internal
     public static String localDateTimeToString(LocalDateTime value) {
         if (value == null)
             return null;
@@ -949,6 +999,7 @@ public class ConvertHelper {
         return Integer.toString(c);
     }
 
+    @Internal
     public static Long localDateTimeToMillis(LocalDateTime value) {
         if (value == null)
             return null;
@@ -956,6 +1007,7 @@ public class ConvertHelper {
         return value.toInstant(ZoneOffset.UTC).toEpochMilli() - offset;
     }
 
+    @Internal
     public static LocalDateTime millisToLocalDateTime(Long value) {
         if (value == null)
             return null;
@@ -963,12 +1015,14 @@ public class ConvertHelper {
         return new Timestamp(value).toLocalDateTime();
     }
 
+    @Internal
     public static Long localDateToMillis(LocalDate value) {
         if (value == null)
             return null;
         return localDateTimeToMillis(value.atStartOfDay());
     }
 
+    @Internal
     public static LocalDate millisToLocalDate(Long value) {
         if (value == null)
             return null;
@@ -981,12 +1035,14 @@ public class ConvertHelper {
                 cal.get(Calendar.DATE));
     }
 
+    @Internal
     public static Timestamp localDateTimeToTimestamp(LocalDateTime date) {
         if (date == null)
             return null;
         return Timestamp.valueOf(date);
     }
 
+    @Internal
     public static Timestamp localDateToTimestamp(LocalDate date) {
         if (date == null)
             return null;
@@ -995,6 +1051,7 @@ public class ConvertHelper {
         return localDateTimeToTimestamp(time);
     }
 
+    @Internal
     public static Timestamp stringToTimestamp(String str, Function<ErrorCode, NopException> errorFactory) {
         if (isEmpty(str))
             return null;
@@ -1005,18 +1062,21 @@ public class ConvertHelper {
         return localDateTimeToTimestamp(dt);
     }
 
+    @Internal
     public static LocalDate timestampToLocalDate(Timestamp value) {
         if (value == null)
             return null;
         return value.toLocalDateTime().toLocalDate();
     }
 
+    @Internal
     public static LocalDateTime timestampToLocalDateTime(Timestamp value) {
         if (value == null)
             return null;
         return value.toLocalDateTime();
     }
 
+    @Internal
     public static Number stringToNumber(String val, Function<ErrorCode, NopException> errorFactory) {
         if (val == null || val.length() <= 0)
             return null;
@@ -1297,6 +1357,7 @@ public class ConvertHelper {
         return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, null, Duration.class, o, errorFactory);
     }
 
+    @Internal
     public static <T> T handleError(ErrorCode errorCode, Throwable cause, Class<T> targetType, Object value,
                                     Function<ErrorCode,
                                             NopException> creator) {
@@ -1317,6 +1378,7 @@ public class ConvertHelper {
         throw e;
     }
 
+    @Internal
     public static Duration stringToDuration(String s, Function<ErrorCode, NopException> errorFactory) {
         if (ApiStringHelper.isBlank(s))
             return null;
@@ -1387,6 +1449,7 @@ public class ConvertHelper {
         return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, null, Iterator.class, o, errorFactory);
     }
 
+    @Internal
     public static String monthDayToString(MonthDay monthDay) {
         StringBuilder sb = new StringBuilder();
         if (monthDay.getMonthValue() < 10) {
@@ -1411,6 +1474,7 @@ public class ConvertHelper {
         return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, null, MonthDay.class, o, errorFactory);
     }
 
+    @Internal
     public static MonthDay stringToMonthDay(String str, Function<ErrorCode, NopException> errorFactory) {
         if (isEmpty(str))
             return null;
