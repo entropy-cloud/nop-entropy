@@ -32,6 +32,8 @@ ConvertHelper 是 Nop 平台提供的**类型转换工具类**，用于统一、
 
 ### 基础用法
 ```java
+import io.nop.api.core.convert.ConvertHelper;
+
 // 简单转换
 Integer num = ConvertHelper.toInt("123", NopException::new);
 LocalDate date = ConvertHelper.toLocalDate("2026-01-01", NopException::new);

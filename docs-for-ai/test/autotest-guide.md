@@ -67,14 +67,14 @@ class TestLoginApi extends JunitAutoTestCase {
     public void testLogin() {
         // 1. 构建被测对象
         LoginApi loginApi = buildLoginApi();
-        
+
         // 2. 读取输入数据
-        ApiRequest<LoginRequest> request = input("request.json5", 
+        ApiRequest<LoginRequest> request = input("request.json5",
             new TypeReference<ApiRequest<LoginRequest>>() {}.getType());
-        
+
         // 3. 执行测试
         ApiResponse<LoginResult> result = loginApi.login(request);
-        
+
         // 4. 验证输出结果
         output("response.json5", result);
     }
@@ -93,7 +93,7 @@ class TestLoginApi extends JunitAutoTestCase {
 2. 自动在 `_cases/` 目录下生成测试数据文件
    - input/tables：录制的数据库读取数据
    - output/：数据库更改记录以及output输出结果数据（作为后续验证的基准）
-3. 录制成功后会抛出`nop.err.autotest.snapshot-finished`异常，用于提示开发者后续可以添加`@EnableSnapshot`注解。   
+3. 录制成功后会抛出`nop.err.autotest.snapshot-finished`异常，用于提示开发者后续可以添加`@EnableSnapshot`注解。
 
 
 ### 3.3 验证测试结果
@@ -120,12 +120,12 @@ public void testLoginLogout() {
     // 1. 登录获取token
     ApiResponse<LoginResult> loginResult = loginApi.login(loginRequest);
     output("1_login_response.json5", loginResult);
-    
+
     // 2. 使用token获取用户信息
     ApiRequest<AccessTokenRequest> userRequest = input("2_user_request.json5", AccessTokenRequest.class);
     ApiResponse<LoginUserInfo> userResponse = loginApi.getLoginUserInfo(userRequest);
     output("2_user_response.json5", userResponse);
-    
+
     // 3. 使用token登出
     ApiRequest<LogoutRequest> logoutRequest = input("3_logout_request.json5", LogoutRequest.class);
     ApiResponse<Void> logoutResponse = loginApi.logout(logoutRequest);
@@ -140,9 +140,9 @@ public void testLoginLogout() {
 @EnableSnapshot
 public void testVariants(String variant) {
     // 自动加载/variants/{variant}/下的数据
-    ApiRequest<LoginRequest> request = input("request.json5", 
+    ApiRequest<LoginRequest> request = input("request.json5",
         new TypeReference<ApiRequest<LoginRequest>>() {}.getType());
-    
+
     ApiResponse<LoginResult> result = loginApi.login(request);
     output("response.json5", result);
 }
@@ -155,7 +155,7 @@ public void testLoginError() {
     // 验证预期异常
     error("response-error.json5", () -> {
         LoginApi loginApi = buildLoginApi();
-        ApiRequest<LoginRequest> request = input("invalid-request.json5", 
+        ApiRequest<LoginRequest> request = input("invalid-request.json5",
             new TypeReference<ApiRequest<LoginRequest>>() {}.getType());
         return loginApi.login(request);
     });
@@ -189,7 +189,7 @@ public void testLoginError() {
 @NopTestConfig(
     localDb = false,          // 如果设置为true，则录制阶段也是使用本地数据库。否则使用application.yaml配置
     initDatabaseSchema = false, // 如果设置为true，则录制阶段会自动在数据库中根据orm模型建表
-    disableSnapshot = false,  // 忽略@EnableSnapshot注解，不启用快照功能
+    disableSnapshot = false,  // 忽略@EnableSnapshot注解，不启用快照验证功能
     testConfigFile = ""  // 在application.yaml配置之上叠加的测试专用配置文件
 )
 ```

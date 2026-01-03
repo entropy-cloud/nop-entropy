@@ -2,7 +2,7 @@
 
 ## 概述
 
-DateHelper是Nop平台提供的日期时间处理工具类，用于统一处理日期时间相关操作，替代JDK原生API和第三方库。
+DateHelper是Nop平台提供的日期时间处理工具类，用于统一处理日期时间相关操作，补充JDK日期API缺失的功能。
 
 ## 核心功能
 
@@ -23,9 +23,9 @@ DateHelper是Nop平台提供的日期时间处理工具类，用于统一处理�
 - `firstDayOfNextMonth(date)`：下个月的第一天
 - `firstDayOfYear(date)`：当年的第一天
 - `lastDayOfYear(date)`：当年的最后一天
-- `dateDiff(date1, date2)`：计算日差
-- `yearDiff(date1, date2)`：计算年差
-- `monthDiff(date1, date2)`：计算月差
+- `dateDiff(date1, date2)`：计算日差, 返回Long类型
+- `yearDiff(date1, date2)`：计算年差，返回Integer类型
+- `monthDiff(date1, date2)`：计算月差，返回Integer类型
 
 ### 4. 时区转换
 - `toTimeZone(localDateTime, zoneId)`：转换时区
@@ -35,6 +35,8 @@ DateHelper是Nop平台提供的日期时间处理工具类，用于统一处理�
 ## 示例代码
 
 ```java
+import io.nop.commons.util.DateHelper;
+
 // 格式化日期
 String dateStr = DateHelper.formatDate(LocalDate.now(), "yyyy-MM-dd"); // 2026-01-01
 
