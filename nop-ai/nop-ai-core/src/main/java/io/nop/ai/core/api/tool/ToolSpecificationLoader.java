@@ -11,6 +11,6 @@ public class ToolSpecificationLoader {
         if (!resource.exists())
             return null;
 
-        return JsonTool.loadDeltaBean(resource, ToolSpecification.class, null);
+        return JsonTool.loadDeltaBeanFromResource(resource, ToolSpecification.class, null);
     }
 }

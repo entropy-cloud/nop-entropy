@@ -159,8 +159,20 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return parse(null, text);
     }
 
+    public static XNode parseFragments(String text) {
+        return XNodeParser.instance().forFragments(true).keepComment(true).parseFromText(null, text);
+    }
+
     public static XNode parse(SourceLocation loc, String text) {
         return XNodeParser.instance().keepComment(true).parseFromText(loc, text);
+    }
+
+    public static XNode parseFromResource(IResource resource) {
+        return XNodeParser.instance().keepComment(true).parseFromResource(resource);
+    }
+
+    public static XNode load(String resourcePath) {
+        return XNodeParser.instance().parseFromVirtualPath(resourcePath);
     }
 
     public IXNodeExtension getExtension(String name) {
@@ -712,7 +724,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
             setAttr(name, value);
     }
 
-    public XNode withTagName(String tagName){
+    public XNode withTagName(String tagName) {
         setTagName(tagName);
         return this;
     }

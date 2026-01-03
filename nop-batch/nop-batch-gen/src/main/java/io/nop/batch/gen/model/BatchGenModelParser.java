@@ -29,7 +29,7 @@ public class BatchGenModelParser extends AbstractResourceParser<BatchGenModel> {
         DeltaJsonOptions options = new DeltaJsonOptions();
         options.setIgnoreUnknownValueResolver(false);
         options.setEvalContext(EvalExprProvider.newEvalScope());
-        BatchGenModel model = JsonTool.loadDeltaBean(resource, BatchGenModel.class, options);
+        BatchGenModel model = JsonTool.loadDeltaBeanFromResource(resource, BatchGenModel.class, options);
         model.init();
         return model;
     }

@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Supplier;
@@ -81,6 +80,10 @@ public class BeanTool {
         instance().copyBean(src, target, getGenericType(targetType), deep, BeanCopyOptions.DEFAULT);
     }
 
+    public static void copyProperties(Object src, Object target) {
+        copyBean(src, target, target.getClass(), false);
+    }
+
     public static Object pluckSelected(Object src, FieldSelectionBean selection) {
         return instance().pluckSelected(src, selection);
     }
@@ -128,6 +131,10 @@ public class BeanTool {
     public static void setProperty(Object bean, String propName, Object propValue) {
         Guard.notNull(bean, "bean");
         instance().setProperty(bean, propName, propValue);
+    }
+
+    public static Object makeProperty(Object bean, String propName, Supplier<?> constructor) {
+        return BeanPropHelper.makeSimple(instance(), bean, propName, constructor);
     }
 
     public static Object getComplexProperty(Object bean, String propPath) {
@@ -227,14 +234,4 @@ public class BeanTool {
         }
     }
 
-    public static <T> T findByKey(Collection<T> list, String prop, Object value) {
-        if (list == null)
-            return null;
-        for (T item : list) {
-            Object v = instance().getProperty(item, prop);
-            if (Objects.equals(v, value))
-                return item;
-        }
-        return null;
-    }
 }

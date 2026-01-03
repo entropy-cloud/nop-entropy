@@ -83,7 +83,7 @@ public class BeanPropHelper {
         return beanTool.getProperty(obj, name);
     }
 
-    static Object makeSimple(IBeanObjectAdapter beanTool, Object obj, String name, Supplier<?> constructor) {
+    public static Object makeSimple(IBeanObjectAdapter beanTool, Object obj, String name, Supplier<?> constructor) {
         Object value = beanTool.makeProperty(obj, name);
         if (value == null) {
             if (constructor != null) {

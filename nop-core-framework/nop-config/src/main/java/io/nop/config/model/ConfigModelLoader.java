@@ -52,7 +52,7 @@ public class ConfigModelLoader {
         if (!resource.exists())
             return null;
 
-        ConfigModel obj = JsonTool.loadDeltaBean(resource, ConfigModel.class, new DeltaJsonOptions());
+        ConfigModel obj = JsonTool.loadDeltaBeanFromResource(resource, ConfigModel.class, new DeltaJsonOptions());
         return obj.getVars();
     }
 

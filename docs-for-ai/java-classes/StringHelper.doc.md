@@ -163,7 +163,6 @@ String uncapitalized = StringHelper.uncapitalize("Hello"); // hello
 
 // UUID生成
 String uuid = StringHelper.generateUUID(); // 随机UUID字符串 (32位)
-String customUuid = StringHelper.generateUUID(10); // 10位UUID字符串
 
 // 编码转换
 String base64Encoded = StringHelper.encodeBase64("test".getBytes()); // 编码为Base64

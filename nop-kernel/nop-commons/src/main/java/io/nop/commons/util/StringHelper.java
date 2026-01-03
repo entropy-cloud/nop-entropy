@@ -1415,6 +1415,33 @@ public class StringHelper extends ApiStringHelper {
         return limitLen(str, 0, maxWidth);
     }
 
+    /**
+     * 限制字符串长度，超过时添加指定后缀
+     *
+     * @param str     待处理的字符串
+     * @param maxLen  最大长度
+     * @param suffix  超过最大长度时添加的后缀
+     * @return 处理后的字符串
+     */
+    @Deterministic
+    public static String limitLength(final CharSequence str, final int maxLen, final String suffix) {
+        if (str == null) {
+            return null;
+        }
+        if (str.length() <= maxLen) {
+            return str.toString();
+        }
+
+        if(suffix == null)
+            return str.subSequence(0,maxLen).toString();
+
+        if (maxLen <= suffix.length()) {
+            return suffix.substring(0, maxLen);
+        }
+        int actualLen = maxLen - suffix.length();
+        return str.subSequence(0, actualLen) + suffix;
+    }
+
     @Deterministic
     public static byte[] utf8Bytes(String str) {
         if (str == null)
@@ -2331,6 +2358,10 @@ public class StringHelper extends ApiStringHelper {
         return path.substring(0, pos);
     }
 
+    @Deterministic
+    public static Map<String,Object> parseQuery(String query){
+        return parseQuery(query, ENCODING_UTF8);
+    }
 
     @Deterministic
     public static Map<String, Object> parseQuery(String query, String encoding) {

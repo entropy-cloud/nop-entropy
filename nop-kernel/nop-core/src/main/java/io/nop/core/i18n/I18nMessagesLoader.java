@@ -90,7 +90,7 @@ public class I18nMessagesLoader {
     }
 
     Map<String, ValueWithLocation> loadMessages(IResource resource) {
-        JObject obj = JsonTool.loadDeltaBean(resource, JObject.class, new DeltaJsonOptions());
+        JObject obj = JsonTool.loadDeltaBeanFromResource(resource, JObject.class, new DeltaJsonOptions());
         if (obj == null)
             return null;
         return obj.flatten();

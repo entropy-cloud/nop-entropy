@@ -341,8 +341,13 @@ public class ApiStringHelper {
     }
 
     @Deterministic
-    public static String encodeStringMap(Map<String, String> map) {
+    public static String encodeStringMap(Map<String, ?> map) {
         return encodeStringMap(map, '=', ',');
+    }
+
+    @Deterministic
+    public static String encodeStringMap(Map<String, ?> map, char itemSepChar) {
+        return encodeStringMap(map, '=', itemSepChar);
     }
 
     @Deterministic
@@ -372,16 +377,17 @@ public class ApiStringHelper {
     }
 
     @Deterministic
-    public static String encodeStringMap(Map<String, String> map, char keySepChar, char itemSepChar) {
+    public static String encodeStringMap(Map<String, ?> map, char keySepChar, char itemSepChar) {
         if (map == null)
             return null;
         if (map.isEmpty())
             return "";
         StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, String> entry : map.entrySet()) {
+        for (Map.Entry<String, ?> entry : map.entrySet()) {
             sb.append(entry.getKey());
             sb.append(keySepChar);
-            sb.append(entry.getValue());
+            if (entry.getValue() != null)
+                sb.append(entry.getValue());
             sb.append(itemSepChar);
         }
         return sb.toString();

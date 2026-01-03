@@ -41,7 +41,7 @@ public class TestDeltaMerger extends BaseTestCase {
     @Test
     public void mergeJson() {
         IResource page = attachmentResource("page1.json");
-        Map<String, Object> map = JsonTool.loadDeltaBean(page, Map.class, null);
+        Map<String, Object> map = JsonTool.loadDeltaBeanFromResource(page, Map.class, null);
         System.out.println(JSON.serialize(map, true));
         assertEquals(attachmentJsonText("page1-result.json"), JSON.serialize(map, true));
     }

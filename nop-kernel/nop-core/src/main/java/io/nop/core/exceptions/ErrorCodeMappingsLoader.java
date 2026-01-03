@@ -51,7 +51,7 @@ public class ErrorCodeMappingsLoader {
         if (!resource.exists())
             return null;
 
-        Map<String, ErrorCodeMapping> obj = JsonTool.loadDeltaBean(resource,
+        Map<String, ErrorCodeMapping> obj = JsonTool.loadDeltaBeanFromResource(resource,
                 new TypeReference<Map<String, ErrorCodeMapping>>() {
                 }.getType(), new DeltaJsonOptions());
         return obj;

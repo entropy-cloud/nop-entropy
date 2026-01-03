@@ -57,7 +57,7 @@ public class DefaultConfigBeanLoader implements IConfigBeanLoader {
         options.setRegistry(ValueResolverCompilerRegistry.DEFAULT);
         options.setExtendsGenerator(EvalExprProvider.getDeltaExtendsGenerator());
         options.setFeatureSwitchEvaluator(EvalExprProvider.getFeaturePredicateEvaluator());
-        return JsonTool.loadDeltaBean(resource, beanType, options);
+        return JsonTool.loadDeltaBeanFromResource(resource, beanType, options);
     }
 
     private IResource findConfigResource(String configName) {

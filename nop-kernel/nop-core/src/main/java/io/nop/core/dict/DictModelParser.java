@@ -26,7 +26,7 @@ public class DictModelParser extends AbstractResourceParser<DictModel> {
     protected DictModel doParseResource(IResource resource) {
         DeltaJsonOptions options = new DeltaJsonOptions();
         options.setResourceLoader(this::loadDict);
-        DictBean dict = JsonTool.loadDeltaBean(resource, DictBean.class, options);
+        DictBean dict = JsonTool.loadDeltaBeanFromResource(resource, DictBean.class, options);
         DictModel model = new DictModel();
         dict.setStatic(true);
         model.setLocation(SourceLocation.fromPath(resource.getPath()));

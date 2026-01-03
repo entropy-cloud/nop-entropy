@@ -182,17 +182,21 @@ public class JsonTool {
         return parseBeanFromResource(resource, beanClass, traceDepends);
     }
 
-    public static <T> T loadDeltaBean(IResource resource, Type targetType) {
+    public <T> T loadDeltaBean(String path, Type targetType) {
+        return loadDeltaBeanFromResource(VirtualFileSystem.instance().getResource(path), targetType);
+    }
+
+    public static <T> T loadDeltaBeanFromResource(IResource resource, Type targetType) {
         DeltaJsonOptions options = new DeltaJsonOptions();
         options.setIgnoreUnknownValueResolver(false);
         options.setEvalContext(EvalExprProvider.newEvalScope());
         options.setRegistry(ValueResolverCompilerRegistry.DEFAULT);
         options.setExtendsGenerator(EvalExprProvider.getDeltaExtendsGenerator());
         options.setFeatureSwitchEvaluator(EvalExprProvider.getFeaturePredicateEvaluator());
-        return loadDeltaBean(resource, targetType, options);
+        return loadDeltaBeanFromResource(resource, targetType, options);
     }
 
-    public static <T> T loadDeltaBean(IResource resource, Type targetType, DeltaJsonOptions options) {
+    public static <T> T loadDeltaBeanFromResource(IResource resource, Type targetType, DeltaJsonOptions options) {
         return instance().loadDeltaBean(resource, targetType, options);
     }
 

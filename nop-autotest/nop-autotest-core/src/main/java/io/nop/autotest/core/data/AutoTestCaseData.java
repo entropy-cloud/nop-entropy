@@ -122,7 +122,7 @@ public class AutoTestCaseData {
 
         Map<String, Object> vars = AutoTestVars.getVars();
         options.setEvalContext(XLang.newEvalScope(vars));
-        return JsonTool.loadDeltaBean(new FileResource(file), type, options);
+        return JsonTool.loadDeltaBeanFromResource(new FileResource(file), type, options);
     }
 
     public void writeDeltaJson(String fileName, Object bean) {

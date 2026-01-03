@@ -52,6 +52,7 @@ import static io.nop.commons.CommonErrors.ERR_IO_COPY_DEST_NOT_FILE;
 import static io.nop.commons.CommonErrors.ERR_IO_CREATE_FILE_FAIL;
 
 public class FileHelper {
+
     static final Logger LOG = LoggerFactory.getLogger(FileHelper.class);
     private static File _currentDir;
 
@@ -552,13 +553,14 @@ public class FileHelper {
     }
 
     public static String getRelativePath(File base, File file) {
-        String basePath = base.getAbsolutePath();
-        String filePath = file.getAbsolutePath();
+        String basePath = getAbsolutePath(base);
+        String filePath = getAbsolutePath(file);
         if (basePath.equals(filePath))
             return ".";
 
-        Guard.checkArgument(filePath.startsWith(basePath));
-        return StringHelper.normalizePath(filePath.substring(basePath.length() + 1));
+        Guard.checkArgument(filePath.startsWith(basePath) && filePath.charAt(basePath.length()) == '/', "file not in base dir");
+        String relativePath = filePath.substring(basePath.length() + 1);
+        return relativePath;
     }
 
     public static FileVisitResult walk(File file, Function<File, FileVisitResult> fn) {
@@ -601,10 +603,10 @@ public class FileHelper {
         return FileVisitResult.SKIP_SUBTREE;
     }
 
-    public static void copyFileWithFilter(File dir1, File dir2, BiFunction<File, File, Boolean> filter) {
+    public static void copyWithFilter(File dir1, File dir2, BiFunction<File, File, Boolean> filter) {
         walk2(dir1, dir2, (file1, file2) -> {
             if (file1.isFile()) {
-                if (filter.apply(file1, file2)) {
+                if (filter == null || filter.apply(file1, file2)) {
                     copyFile(file1, file2);
                     return FileVisitResult.SKIP_SUBTREE;
                 }
