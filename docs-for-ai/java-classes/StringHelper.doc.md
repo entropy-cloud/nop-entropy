@@ -200,6 +200,22 @@ boolean endsWith = StringHelper.endsWithIgnoreCase("Hello", "LLO"); // true
 int index = StringHelper.indexOfIgnoreCase("Hello World", "WORLD"); // 6
 ```
 
+## 在XLang中作为扩展方法
+
+StringHelper的方法可在Nop平台的XLang表达式语言（XScript/XPL）中作为字符串扩展方法调用：
+
+```xpl
+<c:script>
+  let x = 'hello'.$capitalize(); // Hello
+</c:script>
+<c:if test="${name.$indexOfIgnoreCase('hello')}">
+</c:if>
+```
+
+**映射规则：**
+`str.$method(args)` → `StringHelper.method(str, args)`
+
+
 ## 最佳实践
 
 1. **优先使用**：所有字符串操作优先使用StringHelper，避免第三方库
