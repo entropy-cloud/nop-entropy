@@ -1,6 +1,6 @@
 package io.nop.chart.export.filter;
 
-import io.nop.chart.export.model.ChartDataSet;
+import io.nop.excel.chart.util.ChartDataSet;
 import io.nop.excel.chart.model.ChartFiltersModel;
 import io.nop.excel.chart.model.ChartValueFilterModel;
 import io.nop.excel.chart.model.ChartTopNFilterModel;
@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Predicate;
 
 /**
  * Chart data filter for filtering chart data based on various criteria

@@ -404,14 +404,12 @@ public class ChartShapeStyleParser {
      */
     private ChartFillPatternType mapOoxmlPatternType(String ooxmlPattern) {
         if (StringHelper.isEmpty(ooxmlPattern)) {
-            return ChartFillPatternType.SOLID;
+            return ChartFillPatternType.PERCENT_5;
         }
 
 
         // 根据现有的 ChartFillPatternType 枚举值进行映射
         switch (ooxmlPattern.toLowerCase()) {
-            case "solid":
-                return ChartFillPatternType.SOLID;
             case "pct5":
                 return ChartFillPatternType.PERCENT_5;
             case "pct10":
@@ -440,35 +438,29 @@ public class ChartShapeStyleParser {
                 return ChartFillPatternType.HORIZONTAL_STRIPE;
             case "vert":
                 return ChartFillPatternType.VERTICAL_STRIPE;
-            case "bdiag":
-                return ChartFillPatternType.BACKWARD_DIAGONAL;
-            case "fdiag":
-                return ChartFillPatternType.FORWARD_DIAGONAL;
+            case "dndiag":
+                return ChartFillPatternType.DOWNWARD_DIAGONAL;
+            case "updiag":
+                return ChartFillPatternType.UPWARD_DIAGONAL;
             case "cross":
                 return ChartFillPatternType.CROSS;
             case "diagcross":
                 return ChartFillPatternType.DIAGONAL_CROSS;
-            case "darkhorz":
-                return ChartFillPatternType.DARK_HORIZONTAL;
-            case "darkvert":
-                return ChartFillPatternType.DARK_VERTICAL;
-            case "darkbdiag":
-                return ChartFillPatternType.DARK_BACKWARD_DIAGONAL;
-            case "darkfdiag":
-                return ChartFillPatternType.DARK_FORWARD_DIAGONAL;
-            case "darkcross":
-                return ChartFillPatternType.DARK_CROSS;
-            case "darkdiagcross":
-                return ChartFillPatternType.DARK_DIAGONAL_CROSS;
-            case "lgspot":
-                return ChartFillPatternType.LARGE_SPOT;
-            case "opendtl":
-                return ChartFillPatternType.CHECKER_BOARD;
-            case "none":
-                return ChartFillPatternType.NONE;
+            case "dkhorz":
+                return ChartFillPatternType.THICK_HORIZONTAL;
+            case "dkvert":
+                return ChartFillPatternType.THICK_VERTICAL;
+            case "dkdndiag":
+                return ChartFillPatternType.THICK_DOWNWARD_DIAGONAL;
+            case "dkupdiag":
+                return ChartFillPatternType.THICK_UPWARD_DIAGONAL;
+            case "lgconfetti":
+                return ChartFillPatternType.LARGE_CONFETTI;
+            case "lgcheck":
+                return ChartFillPatternType.LARGE_CHECKER;
             default:
-                LOG.warn("Unknown OOXML pattern type: {}, using SOLID", ooxmlPattern);
-                return ChartFillPatternType.SOLID;
+                LOG.warn("Unknown OOXML pattern type: {}, using PERCENT_5", ooxmlPattern);
+                return ChartFillPatternType.PERCENT_5;
         }
 
     }

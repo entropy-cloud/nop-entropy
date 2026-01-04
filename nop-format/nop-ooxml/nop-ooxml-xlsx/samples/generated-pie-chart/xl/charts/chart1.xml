@@ -118,6 +118,11 @@
                     <c:tx>
                         <c:v>Series 1</c:v>
                     </c:tx>
+                    <c:spPr>
+                        <a:solidFill>
+                            <a:srgbClr val="4472C4"/>
+                        </a:solidFill>
+                    </c:spPr>
                     <c:dPt>
                         <c:idx val="0"/>
                         <c:bubble3D val="0"/>

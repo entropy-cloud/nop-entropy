@@ -1,7 +1,7 @@
 package io.nop.chart.export.renderer;
 
-import io.nop.chart.export.ICellRefResolver;
-import io.nop.chart.export.model.ChartDataSet;
+import io.nop.excel.resolver.ICellRefResolver;
+import io.nop.excel.chart.util.ChartDataSet;
 import io.nop.excel.chart.constants.ChartBarGrouping;
 import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartLineConfigModel;
@@ -12,7 +12,6 @@ import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.renderer.category.CategoryItemRenderer;
 import org.jfree.chart.renderer.category.LineAndShapeRenderer;
-import org.jfree.chart.renderer.category.StackedAreaRenderer;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
 

@@ -296,8 +296,6 @@ public class ChartShapeStyleBuilder {
      */
     private String mapPatternTypeToOoxml(ChartFillPatternType pattern) {
         switch (pattern) {
-            case SOLID:
-                return "solid";
             case PERCENT_5:
                 return "pct5";
             case PERCENT_10:
@@ -326,32 +324,26 @@ public class ChartShapeStyleBuilder {
                 return "horz";
             case VERTICAL_STRIPE:
                 return "vert";
-            case BACKWARD_DIAGONAL:
-                return "bdiag";
-            case FORWARD_DIAGONAL:
-                return "fdiag";
+            case DOWNWARD_DIAGONAL:
+                return "dndiag";
+            case UPWARD_DIAGONAL:
+                return "updiag";
             case CROSS:
                 return "cross";
             case DIAGONAL_CROSS:
                 return "diagcross";
-            case DARK_HORIZONTAL:
-                return "darkhorz";
-            case DARK_VERTICAL:
-                return "darkvert";
-            case DARK_BACKWARD_DIAGONAL:
-                return "darkbdiag";
-            case DARK_FORWARD_DIAGONAL:
-                return "darkfdiag";
-            case DARK_CROSS:
-                return "darkcross";
-            case DARK_DIAGONAL_CROSS:
-                return "darkdiagcross";
-            case LARGE_SPOT:
-                return "lgspot";
-            case CHECKER_BOARD:
-                return "opendtl";
-            case NONE:
-                return "none";
+            case THICK_HORIZONTAL:
+                return "dkhorz";
+            case THICK_VERTICAL:
+                return "dkvert";
+            case THICK_DOWNWARD_DIAGONAL:
+                return "dkdndiag";
+            case THICK_UPWARD_DIAGONAL:
+                return "dkupdiag";
+            case LARGE_CONFETTI:
+                return "lgconfetti";
+            case LARGE_CHECKER:
+                return "lgcheck";
             default:
                 LOG.warn("Unknown pattern type: {}, using solid", pattern);
                 return "solid";

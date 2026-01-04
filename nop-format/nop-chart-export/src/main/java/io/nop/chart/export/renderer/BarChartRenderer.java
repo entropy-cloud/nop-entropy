@@ -1,10 +1,8 @@
 package io.nop.chart.export.renderer;
 
-import io.nop.chart.export.ICellRefResolver;
-import io.nop.chart.export.model.ChartDataSet;
-import io.nop.chart.export.utils.JFreeChartStyleAdapter;
+import io.nop.excel.resolver.ICellRefResolver;
+import io.nop.excel.chart.util.ChartDataSet;
 import io.nop.excel.chart.constants.ChartBarDirection;
-import io.nop.excel.chart.constants.ChartBarGrouping;
 import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartBarConfigModel;
 import io.nop.excel.chart.model.ChartModel;
@@ -14,7 +12,6 @@ import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.renderer.category.BarRenderer;
 import org.jfree.chart.renderer.category.CategoryItemRenderer;
-import org.jfree.chart.renderer.category.StackedBarRenderer;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
 
@@ -37,15 +34,14 @@ public class BarChartRenderer extends AbstractChartRenderer {
         CategoryDataset dataset = createCategoryDataset(dataSets);
         
         // 获取柱状图配置
-        ChartBarConfigModel barConfig = chartModel.getPlotArea() != null ? 
-            chartModel.getPlotArea().getBarConfig() : null;
+        ChartBarConfigModel barConfig = chartModel.getPlotArea().getBarConfig();
         
         // 确定方向
         PlotOrientation orientation = getPlotOrientation(barConfig);
         
         // 创建图表
         JFreeChart chart;
-        if (isStackedChart(barConfig)) {
+        if (barConfig.isStackedChart()) {
             chart = ChartFactory.createStackedBarChart(
                 null, // title will be set later
                 "Category", // category axis label
@@ -53,7 +49,7 @@ public class BarChartRenderer extends AbstractChartRenderer {
                 dataset,
                 orientation,
                 false, // legend
-                true, // tooltips
+                false, // tooltips
                 false // urls
             );
         } else {
@@ -64,7 +60,7 @@ public class BarChartRenderer extends AbstractChartRenderer {
                 dataset,
                 orientation,
                 false, // legend
-                true, // tooltips
+                false, // tooltips
                 false // urls
             );
         }
@@ -124,17 +120,7 @@ public class BarChartRenderer extends AbstractChartRenderer {
         return PlotOrientation.VERTICAL;
     }
     
-    /**
-     * 检查是否为堆积图表
-     */
-    private boolean isStackedChart(ChartBarConfigModel barConfig) {
-        if (barConfig != null && barConfig.getGrouping() != null) {
-            return barConfig.getGrouping() == ChartBarGrouping.STACKED || 
-                   barConfig.getGrouping() == ChartBarGrouping.PERCENT_STACKED;
-        }
-        return false;
-    }
-    
+
     /**
      * 应用柱状图配置
      */
@@ -152,20 +138,20 @@ public class BarChartRenderer extends AbstractChartRenderer {
         BarRenderer barRenderer = (BarRenderer) renderer;
         
         // 应用间隙宽度
-        if (barConfig != null && barConfig.getGapWidth() != null) {
+        if (barConfig.getGapWidth() != null) {
             double gapPercent = barConfig.getGapWidth() / 100.0;
             barRenderer.setItemMargin(gapPercent);
         }
         
         // 应用重叠设置
-        if (barConfig != null && barConfig.getOverlap() != null) {
+        if (barConfig.getOverlap() != null) {
             // JFreeChart中的重叠设置比较复杂，这里简化处理
             LOG.debug("Bar overlap configuration: {}", barConfig.getOverlap());
         }
         
         // 应用颜色变化 - 总是应用，除非明确设置为false
         boolean varyColors = true;
-        if (barConfig != null && barConfig.getVaryColors() != null) {
+        if (barConfig.getVaryColors() != null) {
             varyColors = barConfig.getVaryColors();
         }
         
@@ -175,7 +161,7 @@ public class BarChartRenderer extends AbstractChartRenderer {
         }
         
         // 应用3D效果
-        if (barConfig != null && Boolean.TRUE.equals(barConfig.getIs3D())) {
+        if (Boolean.TRUE.equals(barConfig.getIs3D())) {
             // JFreeChart的3D效果需要使用不同的渲染器
             LOG.debug("3D bar chart effect requested");
         }

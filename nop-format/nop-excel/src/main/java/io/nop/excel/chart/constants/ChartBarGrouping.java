@@ -38,8 +38,12 @@ public enum ChartBarGrouping {
         return value;
     }
 
-    public String toString(){
+    public String toString() {
         return value;
+    }
+
+    public boolean isStacked() {
+        return this == STACKED || this == PERCENT_STACKED;
     }
 
     /**

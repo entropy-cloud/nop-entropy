@@ -1,15 +1,13 @@
 package io.nop.chart.export.renderer;
 
-import io.nop.api.core.exceptions.NopException;
-import io.nop.chart.export.ICellRefResolver;
-import io.nop.chart.export.model.ChartDataSet;
+import io.nop.excel.resolver.ICellRefResolver;
+import io.nop.excel.chart.util.ChartDataSet;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartDataPointModel;
 import io.nop.excel.chart.model.ChartModel;
 import io.nop.excel.chart.model.ChartPieConfigModel;
 import io.nop.excel.chart.model.ChartSeriesModel;
-import io.nop.excel.chart.model.ChartStyleModel;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PiePlot;

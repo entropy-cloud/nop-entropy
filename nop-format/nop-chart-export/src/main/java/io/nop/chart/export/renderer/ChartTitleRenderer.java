@@ -1,12 +1,10 @@
 package io.nop.chart.export.renderer;
 
-import io.nop.chart.export.ICellRefResolver;
+import io.nop.excel.resolver.ICellRefResolver;
 import io.nop.chart.export.utils.JFreeChartStyleAdapter;
 import io.nop.excel.chart.model.ChartTitleModel;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.block.BlockBorder;
 import org.jfree.chart.title.TextTitle;
-import org.jfree.chart.ui.HorizontalAlignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

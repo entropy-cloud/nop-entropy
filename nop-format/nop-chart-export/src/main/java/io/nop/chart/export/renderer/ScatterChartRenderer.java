@@ -2,10 +2,12 @@ package io.nop.chart.export.renderer;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.convert.ConvertHelper;
-import io.nop.chart.export.ICellRefResolver;
-import io.nop.chart.export.model.ChartDataSet;
+import io.nop.chart.export.utils.JFreeChartStyleAdapter;
+import io.nop.excel.chart.constants.ChartMarkerType;
 import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartModel;
+import io.nop.excel.resolver.ICellRefResolver;
+import io.nop.excel.chart.util.ChartDataSet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +16,6 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYItemRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
-import org.jfree.chart.renderer.xy.XYShapeRenderer;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
@@ -142,7 +143,18 @@ public class ScatterChartRenderer extends AbstractChartRenderer {
         }
         
         // 设置标记点形状和大小
-        java.awt.Shape markerShape = new java.awt.geom.Ellipse2D.Double(-markerSize/2, -markerSize/2, markerSize, markerSize);
+        ChartMarkerType markerType = ChartMarkerType.CIRCLE; // 散点图默认使用圆形标记
+        
+        // 获取散点图配置中的标记类型
+        if (chartModel.getPlotArea() != null && chartModel.getPlotArea().getScatterConfig() != null) {
+            io.nop.excel.chart.model.ChartScatterConfigModel scatterConfig = chartModel.getPlotArea().getScatterConfig();
+            if (scatterConfig.getMarkerType() != null) {
+                markerType = scatterConfig.getMarkerType();
+            }
+        }
+        
+        // 使用JFreeChartStyleAdapter创建标记点形状
+        java.awt.Shape markerShape = JFreeChartStyleAdapter.createMarkerShape(markerType, (float)markerSize, 0);
         lineRenderer.setDefaultShape(markerShape);
         
         LOG.debug("Applied scatter chart configuration");

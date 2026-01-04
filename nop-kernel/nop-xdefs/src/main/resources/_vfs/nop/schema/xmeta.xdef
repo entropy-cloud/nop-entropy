@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
+<!--
+@biz:allowGetDeleted
+@biz:allowLeftJoinProps
+-->
 <meta xdef:bean-package="io.nop.xlang.xmeta.impl" xdef:name="ObjMetaImpl" xdef:ref="schema/obj-schema.xdef"
       tagSet="tag-set" xmlName="string" modelNameProp="string" modelVersionProp="string"
       version="string" defaultExtends="v-path"
@@ -51,7 +55,7 @@
 
     <selections xdef:key-attr="id" xdef:body-type="list">
         <!--
-        字段选择集合。
+        字段选择集合, 采用GraphQL的fieldSelection格式
         -->
         <selection id="!var-name" displayName="string"
                    xdef:name="ObjSelectionMeta" xdef:value="field-selection" xdef:bean-body-prop="mapping"/>

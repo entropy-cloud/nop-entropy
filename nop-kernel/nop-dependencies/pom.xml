@@ -84,7 +84,7 @@
         <jts-core.version>1.20.0</jts-core.version>
         <protostuff-runtime.version>1.8.0</protostuff-runtime.version>
         <javase.version>3.5.3</javase.version>
-        <jfreechart.version>1.5.3</jfreechart.version>
+        <jfreechart.version>1.5.6</jfreechart.version>
         <maven-site-plugin.version>4.0.0-M2</maven-site-plugin.version>
         <maven-project-info-reports-plugin.version>3.3.0</maven-project-info-reports-plugin.version>
         <!-- Commented out dependencies versions -->

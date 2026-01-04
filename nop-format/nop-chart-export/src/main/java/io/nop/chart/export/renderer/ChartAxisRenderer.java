@@ -1,11 +1,9 @@
 package io.nop.chart.export.renderer;
 
-import io.nop.chart.export.ICellRefResolver;
+import io.nop.excel.resolver.ICellRefResolver;
 import io.nop.chart.export.utils.JFreeChartStyleAdapter;
 import io.nop.excel.chart.model.ChartAxisModel;
 import org.jfree.chart.axis.Axis;
-import org.jfree.chart.axis.CategoryAxis;
-import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.Plot;

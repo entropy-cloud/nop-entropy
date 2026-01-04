@@ -1,4 +1,4 @@
-package io.nop.chart.export;
+package io.nop.excel.resolver;
 
 import java.util.List;
 

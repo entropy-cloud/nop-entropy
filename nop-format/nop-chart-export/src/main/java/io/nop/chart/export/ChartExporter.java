@@ -2,6 +2,7 @@ package io.nop.chart.export;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
+import io.nop.excel.resolver.ICellRefResolver;
 import io.nop.excel.chart.model.ChartModel;
 import org.jfree.chart.JFreeChart;
 import org.slf4j.Logger;
@@ -9,8 +10,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * Main chart exporter class
@@ -35,11 +36,10 @@ public class ChartExporter implements IChartExporter {
      * @param chartModel       图表模型
      * @param resolver         数据解析器
      * @param options          导出选项，null则使用默认选项
-     * @param progressCallback 进度回调，可为null
-     * @return PNG字节数组
      */
     @Override
-    public byte[] exportToPng(ChartModel chartModel, ICellRefResolver resolver, ChartExportOptions options, IProgressCallback progressCallback) {
+    public void exportToStream(OutputStream out, ChartModel chartModel,
+                               ICellRefResolver resolver, ChartExportOptions options) {
         validateInputs(chartModel, resolver);
 
         if (options == null) {
@@ -49,6 +49,7 @@ public class ChartExporter implements IChartExporter {
         LOG.debug("Starting chart export: type={}, width={}, height={}",
                 chartModel.getType(), options.getWidth(), options.getHeight());
 
+        IProgressCallback progressCallback = options.getProgressCallback();
         // 设置进度回调
         if (progressCallback != null) {
             progressCallback.setTotalSteps(4);
@@ -85,15 +86,12 @@ public class ChartExporter implements IChartExporter {
             }
 
             // 步骤3: 转换为PNG
-            byte[] result = convertToPng(chart, options);
+            convertToStream(out, chart, options);
 
             if (progressCallback != null) {
                 progressCallback.completeStep("PNG conversion completed");
                 progressCallback.reportProgress(100, "Export completed");
             }
-
-            return result;
-
         } catch (Exception e) {
             LOG.error("Chart export failed", e);
             if (progressCallback != null) {
@@ -127,7 +125,8 @@ public class ChartExporter implements IChartExporter {
         return renderer.render(chartModel, resolver);
     }
 
-    private byte[] convertToPng(JFreeChart chart, ChartExportOptions options) throws IOException {
+    private void convertToStream(OutputStream out,
+                                 JFreeChart chart, ChartExportOptions options) throws IOException {
         validateDimensions(options.getWidth(), options.getHeight());
 
         BufferedImage image = chart.createBufferedImage(
@@ -137,9 +136,7 @@ public class ChartExporter implements IChartExporter {
                 null
         );
 
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ImageIO.write(image, "PNG", baos);
-        return baos.toByteArray();
+        ImageIO.write(image, options.getFormat(), out);
     }
 
     private void validateDimensions(int width, int height) {

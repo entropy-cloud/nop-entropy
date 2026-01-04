@@ -1,7 +1,6 @@
-package io.nop.chart.export.data;
+package io.nop.excel.resolver;
 
 import io.nop.api.core.util.Guard;
-import io.nop.chart.export.ICellRefResolver;
 import io.nop.core.model.table.CellRange;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;

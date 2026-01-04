@@ -31,8 +31,43 @@
         @depends 获取本字段的值的时候，需要依赖其他字段。例如在批量加载的时候，表示需要把相关字段也进行批量加载
         @tagSet 逗号分隔的自定义附加标识
         @defaultValue 缺省值
+        @mapToProp 映射到的属性路径，表示当前属性的值会映射到目标对象的哪个属性上
+        @xmlPos XML序列化时属性值的位置，枚举类型，包括attr、element、text等选项
+        @lazy 是否延迟加载，用于ORM等场景下控制属性的加载时机
+        @insertable 是否可插入，控制属性是否允许在插入操作中被设置
+        @updatable 是否可更新，控制属性是否允许在更新操作中被修改
+        @queryable 是否可查询，控制属性是否可以作为查询条件
+        @sortable 是否可排序，控制属性是否可以作为排序字段
+        @published 是否发布，控制属性是否对外可见
+        @exportable 是否可导出，控制属性是否允许被导出
+        @allowFilterOp 允许的过滤操作类型，如eq、like、in等
+        @kind 属性类型，枚举类型，用于区分不同类型的属性
+        @ui:control UI控件类型，用于指定属性在UI中使用的控件
+        @ui:show UI显示条件，控制属性在UI中的显示逻辑
+        @ui:labelProp 标签属性，指定用于显示标签的属性
+        @ui:filterOp 过滤操作类型，指定UI中可用的过滤操作
         @ui:maxUploadSize 文件上传时最大允许的文件大小，可以是20M这种写法
+        @ui:supportFileLink 是否支持文件链接，用于文件上传字段
+        @ui:uploadAccept 允许上传的文件类型，如image/*、.pdf等
+        @ui:queryMandatory 查询时是否必填，控制查询条件的必填性
+        @ui:placeholder 占位符文本，用于输入框提示
+        @ui:editGrid 编辑表格配置，定义属性在编辑表格中的显示和行为
+        @ui:viewGrid 查看表格配置，定义属性在查看表格中的显示和行为
         @ui:maskPattern 如果设置了maskPattern，则在元编程阶段自动生成transformOut，输出到前台的时候会自动进行掩码转换
+        @ui:shortcuts 快捷键配置，定义属性的快捷操作
+        @orm:manyToManyRefProp 多对多关联关系中的引用属性
+        @xml:mapper XML映射器，用于自定义XML序列化和反序列化
+        @graphql:mapper GraphQL映射器，用于自定义GraphQL类型转换
+        @biz:codeRule 业务编码规则，用于生成属性的业务编码
+        @graphql:datePattern GraphQL日期格式，定义日期类型在GraphQL中的格式化方式，支持标准日期格式和特殊值ms（返回毫秒数）
+        @graphql:type GraphQL类型，显式指定属性的GraphQL类型，可覆盖默认类型推导
+        @graphql:jsonComponentProp GraphQL JSON组件属性，用于JSON组件的映射，确保组件所需数据被包含在GraphQL查询中
+        @graphql:dictName GraphQL字典名称，指定属性使用的字典，与dictValueProp配合使用实现字典编码到显示标签的自动转换
+        @graphql:dictValueProp GraphQL字典值属性，指定字典中值对应的属性，与dictName配合使用实现字典编码到显示标签的自动转换
+        @graphql:joinLeftProps GraphQL左连接属性，定义左连接的字段集合
+        @graphql:joinRightProps GraphQL右连接属性，定义右连接的字段集合
+        @graphql:connectionProp GraphQL连接属性，指定关联关系属性，用于GraphQL连接查询
+        @graphql:maxFetchSize GraphQL最大获取大小，限制查询时返回的数据量
         @graphql:queryMethod 允许findCount/findFirst/findList/findPage/findConnection等值。这个参数不为空时表示输入类型为GraphQLConnectionInput,
            支持对子表进行查询,findPage/findConnection用于区分返回结果的类型。通过graphql:filter可以指定额外的过滤条件，
            或者通过graphql:connectionProp来指定ORM层面的关联对象属性。
@@ -66,14 +101,29 @@
 
             <schema xdef:ref="schema.xdef"/>
 
+            <!--
+            用于为GraphQL查询提供额外的过滤条件配置，这些配置会被应用到实际的数据库查询中
+            -->
             <graphql:filter xdef:value="filter-bean"/>
 
+            <!--
+            用于指定GraphQL查询时的默认排序规则
+            -->
             <graphql:orderBy xdef:ref="/nop/schema/query/order-by.xdef"/>
 
+            <!--
+           用于指定GraphQL查询时的默认字段选择
+            -->
             <graphql:selection xdef:value="field-selection"/>
 
+            <!--
+            用于指定GraphQL查询的输入类型
+            -->
             <graphql:inputType xdef:value="class-name"/>
 
+            <!--
+            用于转换GraphQL查询的过滤条件
+            -->
             <graphql:transFilter xdef:value="xpl-fn:(filter,query,forEntity)=>any"/>
 
             <!--

@@ -1,6 +1,6 @@
 package io.nop.chart.export;
 
-import io.nop.chart.export.data.ExcelCellRefResolver;
+import io.nop.excel.resolver.ExcelCellRefResolver;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.ClassPathResource;
@@ -56,7 +56,7 @@ public class TestExcelAllChartsExporter extends BaseTestCase {
             for (int i = 0; i < charts.size(); i++) {
                 ExcelChartModel chart = charts.get(i);
                 File outputFile = new File(resultDir, sheet.getName() + "_chart_" + i + "_" + chart.getName() + ".png");
-                exporter.exportToPngFile(chart, resolver, outputFile);
+                exporter.exportToFile(outputFile, chart, resolver);
             }
         }
     }

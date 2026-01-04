@@ -1,5 +1,6 @@
 package io.nop.chart.export;
 
+import io.nop.excel.resolver.ICellRefResolver;
 import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartModel;
 import org.jfree.chart.JFreeChart;

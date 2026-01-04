@@ -9,18 +9,6 @@ import io.nop.commons.util.StringHelper;
  */
 public enum ChartFillPatternType {
     /**
-     * 无填充
-     * OOXML: none, POI: NO_FILL
-     */
-    NONE("none"),
-
-    /**
-     * 纯色填充（特殊：只有前景色，无图案）
-     * OOXML: solid, POI: SOLID_FOREGROUND
-     */
-    SOLID("solid"),
-
-    /**
      * 5% 点状
      * OOXML: pct5, POI: FINE_DOTS
      */
@@ -105,16 +93,112 @@ public enum ChartFillPatternType {
     VERTICAL_STRIPE("vert"),
 
     /**
-     * 反斜线条纹
-     * OOXML: bDiag, POI: THIN_BACKWARD_DIAG
+     * 细横条纹
+     * OOXML: ltHorz
      */
-    BACKWARD_DIAGONAL("bDiag"),
+    THIN_HORIZONTAL("ltHorz"),
 
     /**
-     * 正斜线条纹
-     * OOXML: fDiag, POI: THIN_FORWARD_DIAG
+     * 细竖条纹
+     * OOXML: ltVert
      */
-    FORWARD_DIAGONAL("fDiag"),
+    THIN_VERTICAL("ltVert"),
+
+    /**
+     * 粗横条纹
+     * OOXML: dkHorz
+     */
+    THICK_HORIZONTAL("dkHorz"),
+
+    /**
+     * 粗竖条纹
+     * OOXML: dkVert
+     */
+    THICK_VERTICAL("dkVert"),
+
+    /**
+     * 窄横条纹
+     * OOXML: narHorz
+     */
+    NARROW_HORIZONTAL("narHorz"),
+
+    /**
+     * 窄竖条纹
+     * OOXML: narVert
+     */
+    NARROW_VERTICAL("narVert"),
+
+    /**
+     * 虚线横条纹
+     * OOXML: dashHorz
+     */
+    DASHED_HORIZONTAL("dashHorz"),
+
+    /**
+     * 虚线竖条纹
+     * OOXML: dashVert
+     */
+    DASHED_VERTICAL("dashVert"),
+
+    /**
+     * 下斜线
+     * OOXML: dnDiag
+     */
+    DOWNWARD_DIAGONAL("dnDiag"),
+
+    /**
+     * 上斜线
+     * OOXML: upDiag
+     */
+    UPWARD_DIAGONAL("upDiag"),
+
+    /**
+     * 细下斜线
+     * OOXML: ltDnDiag
+     */
+    THIN_DOWNWARD_DIAGONAL("ltDnDiag"),
+
+    /**
+     * 细上斜线
+     * OOXML: ltUpDiag
+     */
+    THIN_UPWARD_DIAGONAL("ltUpDiag"),
+
+    /**
+     * 粗下斜线
+     * OOXML: dkDnDiag
+     */
+    THICK_DOWNWARD_DIAGONAL("dkDnDiag"),
+
+    /**
+     * 粗上斜线
+     * OOXML: dkUpDiag
+     */
+    THICK_UPWARD_DIAGONAL("dkUpDiag"),
+
+    /**
+     * 宽下斜线
+     * OOXML: wdDnDiag
+     */
+    WIDE_DOWNWARD_DIAGONAL("wdDnDiag"),
+
+    /**
+     * 宽上斜线
+     * OOXML: wdUpDiag
+     */
+    WIDE_UPWARD_DIAGONAL("wdUpDiag"),
+
+    /**
+     * 虚线下斜线
+     * OOXML: dashDnDiag
+     */
+    DASHED_DOWNWARD_DIAGONAL("dashDnDiag"),
+
+    /**
+     * 虚线上斜线
+     * OOXML: dashUpDiag
+     */
+    DASHED_UPWARD_DIAGONAL("dashUpDiag"),
 
     /**
      * 十字交叉线
@@ -129,52 +213,124 @@ public enum ChartFillPatternType {
     DIAGONAL_CROSS("diagCross"),
 
     /**
-     * 深色横条纹
-     * OOXML: darkHorz
+     * 小方格
+     * OOXML: smCheck
      */
-    DARK_HORIZONTAL("darkHorz"),
+    SMALL_CHECKER("smCheck"),
 
     /**
-     * 深色竖条纹
-     * OOXML: darkVert
+     * 大方格
+     * OOXML: lgCheck
      */
-    DARK_VERTICAL("darkVert"),
+    LARGE_CHECKER("lgCheck"),
 
     /**
-     * 深色反斜线
-     * OOXML: darkBDiag
+     * 小网格
+     * OOXML: smGrid
      */
-    DARK_BACKWARD_DIAGONAL("darkBDiag"),
+    SMALL_GRID("smGrid"),
 
     /**
-     * 深色正斜线
-     * OOXML: darkFDiag
+     * 大网格
+     * OOXML: lgGrid
      */
-    DARK_FORWARD_DIAGONAL("darkFDiag"),
+    LARGE_GRID("lgGrid"),
 
     /**
-     * 深色十字交叉
-     * OOXML: darkCross
+     * 点网格
+     * OOXML: dotGrid
      */
-    DARK_CROSS("darkCross"),
+    DOT_GRID("dotGrid"),
 
     /**
-     * 深色斜交叉
-     * OOXML: darkDiagCross
+     * 小彩屑
+     * OOXML: smConfetti
      */
-    DARK_DIAGONAL_CROSS("darkDiagCross"),
+    SMALL_CONFETTI("smConfetti"),
 
     /**
-     * 大点
-     * OOXML: lgSpot
+     * 大彩屑
+     * OOXML: lgConfetti
      */
-    LARGE_SPOT("lgSpot"),
+    LARGE_CONFETTI("lgConfetti"),
 
     /**
-     * 方格
-     * OOXML: openDtl
+     * 水平砖块
+     * OOXML: horzBrick
      */
-    CHECKER_BOARD("openDtl");
+    HORIZONTAL_BRICK("horzBrick"),
+
+    /**
+     * 斜向砖块
+     * OOXML: diagBrick
+     */
+    DIAGONAL_BRICK("diagBrick"),
+
+    /**
+     * 实心菱形
+     * OOXML: solidDmnd
+     */
+    SOLID_DIAMOND("solidDmnd"),
+
+    /**
+     * 空心菱形
+     * OOXML: openDmnd
+     */
+    OPEN_DIAMOND("openDmnd"),
+
+    /**
+     * 点菱形
+     * OOXML: dotDmnd
+     */
+    DOT_DIAMOND("dotDmnd"),
+
+    /**
+     * 格子花纹
+     * OOXML: plaid
+     */
+    PLAID("plaid"),
+
+    /**
+     * 球体
+     * OOXML: sphere
+     */
+    SPHERE("sphere"),
+
+    /**
+     * 编织花纹
+     * OOXML: weave
+     */
+    WEAVE("weave"),
+
+    /**
+     * 点状花纹
+     * OOXML: divot
+     */
+    DIVOT("divot"),
+
+    /**
+     * 瓦片花纹
+     * OOXML: shingle
+     */
+    SHINGLE("shingle"),
+
+    /**
+     * 波浪花纹
+     * OOXML: wave
+     */
+    WAVE("wave"),
+
+    /**
+     * 格子架花纹
+     * OOXML: trellis
+     */
+    TRELLIS("trellis"),
+
+    /**
+     * 锯齿花纹
+     * OOXML: zigZag
+     */
+    ZIG_ZAG("zigZag");
 
     private final String value;
 
@@ -200,7 +356,7 @@ public enum ChartFillPatternType {
                 return type;
             }
         }
-        return NONE;
+        return null;
     }
 
     /**

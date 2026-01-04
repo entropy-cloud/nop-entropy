@@ -27,7 +27,7 @@
 <dependency>
     <groupId>org.jfree</groupId>
     <artifactId>jfreechart</artifactId>
-    <version>1.5.3</version> <!-- 或其他稳定版本 -->
+    <version>1.5.6</version> <!-- 或其他稳定版本 -->
 </dependency>
 ```
 
@@ -383,7 +383,7 @@ public class LineChartWithMarkers extends ApplicationFrame {
         XYSeries series1 = new XYSeries("CPU 使用率");
         series1.add(1.0, 45.0); series1.add(2.0, 55.0); series1.add(3.0, 35.0);
         series1.add(4.0, 68.0); series1.add(5.0, 75.0); series1.add(6.0, 50.0);
-        
+
         XYSeries series2 = new XYSeries("内存使用率");
         series2.add(1.0, 60.0); series2.add(2.0, 65.0); series2.add(3.0, 62.0);
         series2.add(4.0, 70.0); series2.add(5.0, 72.0); series2.add(6.0, 68.0);
@@ -398,7 +398,7 @@ public class LineChartWithMarkers extends ApplicationFrame {
         JFreeChart chart = ChartFactory.createXYLineChart(
                 "系统资源监控", "时间 (分钟)", "使用率 (%)", dataset,
                 PlotOrientation.VERTICAL, true, true, false);
-        
+
         // --- 样式定制 ---
         chart.setBackgroundPaint(Color.WHITE);
         chart.setTitle(new TextTitle("系统资源监控", new Font("宋体", Font.BOLD, 24)));
@@ -408,7 +408,7 @@ public class LineChartWithMarkers extends ApplicationFrame {
         plot.setRangeGridlinePaint(Color.LIGHT_GRAY);
         plot.setDomainGridlinesVisible(false);
         plot.setOutlineVisible(false);
-        
+
         // **关键: 获取 XYLineAndShapeRenderer**
         XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
         // 默认就会显示线条和形状，这里可以进一步定制
@@ -547,12 +547,12 @@ public class AdvancedStyleChart extends ApplicationFrame {
         dataset.addValue(420, "图案系列", "Tablet (突出)");
         return dataset;
     }
-    
+
     // 自定义 Renderer
     private static class CustomRenderer extends BarRenderer {
         private final Paint gradientPaint = new GradientPaint(0, 0, new Color(68, 114, 196), 0, 300, Color.WHITE);
         private final Paint patternPaint = createStripePaint(new Color(237, 125, 49), Color.WHITE);
-        
+
         @Override
         public Paint getItemPaint(int row, int column) {
             CategoryDataset dataset = getPlot().getDataset();

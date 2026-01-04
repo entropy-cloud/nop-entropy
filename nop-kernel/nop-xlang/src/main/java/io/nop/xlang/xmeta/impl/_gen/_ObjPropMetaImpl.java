@@ -26,7 +26,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: allowFilterOp
-     * 
+     * 允许的过滤操作类型，如eq、like、in等
      */
     private java.util.Set<java.lang.String> _allowFilterOp ;
     
@@ -111,7 +111,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: exportable
-     * 
+     * 是否可导出，控制属性是否允许被导出
      */
     private boolean _exportable  = true;
     
@@ -126,7 +126,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: insertable
-     * 
+     * 是否可插入，控制属性是否允许在插入操作中被设置
      */
     private boolean _insertable  = false;
     
@@ -140,14 +140,14 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: kind
-     * 
+     * 属性类型，枚举类型，用于区分不同类型的属性
      */
     private io.nop.xlang.xmeta.ObjPropKind _kind ;
     
     /**
      *  
      * xml name: lazy
-     * 
+     * 是否延迟加载，用于ORM等场景下控制属性的加载时机
      */
     private boolean _lazy  = false;
     
@@ -161,7 +161,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: mapToProp
-     * 
+     * 映射到的属性路径，表示当前属性的值会映射到目标对象的哪个属性上
      */
     private java.lang.String _mapToProp ;
     
@@ -182,14 +182,14 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: published
-     * 
+     * 是否发布，控制属性是否对外可见
      */
     private boolean _published  = true;
     
     /**
      *  
      * xml name: queryable
-     * 
+     * 是否可查询，控制属性是否可以作为查询条件
      */
     private boolean _queryable  = false;
     
@@ -212,7 +212,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: sortable
-     * 
+     * 是否可排序，控制属性是否可以作为排序字段
      */
     private boolean _sortable  = false;
     
@@ -247,7 +247,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: updatable
-     * 
+     * 是否可更新，控制属性是否允许在更新操作中被修改
      */
     private boolean _updatable  = false;
     
@@ -268,7 +268,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: xmlPos
-     * 
+     * XML序列化时属性值的位置，枚举类型，包括attr、element、text等选项
      */
     private io.nop.core.lang.xml.XNodeValuePosition _xmlPos ;
     
@@ -294,7 +294,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: allowFilterOp
-     *  
+     *  允许的过滤操作类型，如eq、like、in等
      */
     
     public java.util.Set<java.lang.String> getAllowFilterOp(){
@@ -575,7 +575,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: exportable
-     *  
+     *  是否可导出，控制属性是否允许被导出
      */
     
     public boolean isExportable(){
@@ -614,7 +614,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: insertable
-     *  
+     *  是否可插入，控制属性是否允许在插入操作中被设置
      */
     
     public boolean isInsertable(){
@@ -652,7 +652,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: kind
-     *  
+     *  属性类型，枚举类型，用于区分不同类型的属性
      */
     
     public io.nop.xlang.xmeta.ObjPropKind getKind(){
@@ -671,7 +671,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: lazy
-     *  
+     *  是否延迟加载，用于ORM等场景下控制属性的加载时机
      */
     
     public boolean isLazy(){
@@ -709,7 +709,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: mapToProp
-     *  
+     *  映射到的属性路径，表示当前属性的值会映射到目标对象的哪个属性上
      */
     
     public java.lang.String getMapToProp(){
@@ -766,7 +766,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: published
-     *  
+     *  是否发布，控制属性是否对外可见
      */
     
     public boolean isPublished(){
@@ -785,7 +785,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: queryable
-     *  
+     *  是否可查询，控制属性是否可以作为查询条件
      */
     
     public boolean isQueryable(){
@@ -844,7 +844,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: sortable
-     *  
+     *  是否可排序，控制属性是否可以作为排序字段
      */
     
     public boolean isSortable(){
@@ -939,7 +939,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: updatable
-     *  
+     *  是否可更新，控制属性是否允许在更新操作中被修改
      */
     
     public boolean isUpdatable(){
@@ -996,7 +996,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: xmlPos
-     *  
+     *  XML序列化时属性值的位置，枚举类型，包括attr、element、text等选项
      */
     
     public io.nop.core.lang.xml.XNodeValuePosition getXmlPos(){

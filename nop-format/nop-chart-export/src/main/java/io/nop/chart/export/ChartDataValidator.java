@@ -1,7 +1,7 @@
 package io.nop.chart.export;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.chart.export.model.ChartDataSet;
+import io.nop.excel.chart.util.ChartDataSet;
 import io.nop.commons.util.StringHelper;
 import io.nop.excel.chart.model.ChartAxisModel;
 import io.nop.excel.chart.model.ChartModel;
