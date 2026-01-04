@@ -185,15 +185,27 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
 
     private Object parseBodyMap(IXDefNode defNode, XNode node) {
         Map<String, Object> obj = new LinkedHashMap<>();
+        String keyAttr = defNode.getXdefKeyAttr();
+
         for (XNode child : node.getChildren()) {
             IXDefNode childDef = defNode.getChild(child.getTagName());
             Object value;
             if (childDef != null) {
                 value = transformToObject(childDef, child);
-            } else {
+            } else if (defNode.getChildren().isEmpty()) {
                 value = parseExtObject(child);
+            } else {
+                if (ignoreUnknown)
+                    continue;
+                throw new NopException(ERR_XDSL_NODE_UNEXPECTED_TAG_NAME).param(ARG_NODE, child)
+                        .param(ARG_TAG_NAME, child.getTagName())
+                        .param(ARG_ALLOWED_NAMES, defNode.getChildren().keySet());
             }
-            obj.put(child.getTagName(), value);
+
+            String key = child.getTagName();
+            if (keyAttr != null)
+                key = child.attrText(keyAttr);
+            obj.put(key, value);
         }
         return obj;
     }

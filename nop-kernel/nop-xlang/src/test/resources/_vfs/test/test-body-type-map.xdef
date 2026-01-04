@@ -1,0 +1,5 @@
+<root x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef">
+    <resources xdef:body-type="map" xdef:key-attr="id">
+        <resource id="!string" url="string" />
+    </resources>
+</root>

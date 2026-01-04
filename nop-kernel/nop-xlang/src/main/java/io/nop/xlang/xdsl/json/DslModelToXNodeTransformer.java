@@ -475,7 +475,11 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
         for (Map.Entry<String, Object> entry : value.entrySet()) {
             XNode child = transformObj(propMeta.getSchema().getMapValueSchema(), entry.getValue());
             if (child.isDummyNode()) {
-                child.setTagName(entry.getKey());
+                if (propMeta.getChildXmlName() != null) {
+                    child.setTagName(propMeta.getChildXmlName());
+                } else {
+                    child.setTagName(entry.getKey());
+                }
             }
             mapNode.appendChild(child);
         }

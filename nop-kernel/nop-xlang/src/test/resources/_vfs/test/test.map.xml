@@ -1,0 +1,5 @@
+<root x:schema="/test/test-body-type-map.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <resources>
+        <resource id="test" url="/a.html"/>
+    </resources>
+</root>
