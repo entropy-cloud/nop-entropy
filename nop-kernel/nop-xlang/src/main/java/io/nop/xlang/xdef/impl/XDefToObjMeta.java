@@ -422,7 +422,7 @@ public class XDefToObjMeta {
                 name = StringHelper.xmlNameToPropName(node.getTagName());
             prop.setName(name);
             prop.setSchema(toSchema(node));
-            if (prop.getSchema().isListSchema()) {
+            if (prop.getSchema().isListSchema() || node.getXdefBodyType() == XDefBodyType.map) {
                 IXDefNode child = getUniqueChild(node);
                 if (child != null && !child.isUnknownTag()) {
                     if (prop.getChildName() == null) {
@@ -431,13 +431,6 @@ public class XDefToObjMeta {
 
                     if (prop.getChildXmlName() == null)
                         prop.setChildXmlName(child.getTagName());
-                }
-            }else if(node.getXdefBodyType() == XDefBodyType.map){
-                IXDefNode child = getUniqueChild(node);
-                if(child != null){
-                    if(prop.getChildXmlName() == null){
-                        prop.setChildXmlName(child.getTagName());
-                    }
                 }
             }
         } else {
