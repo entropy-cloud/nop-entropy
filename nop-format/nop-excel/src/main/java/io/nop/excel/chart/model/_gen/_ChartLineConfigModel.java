@@ -47,20 +47,6 @@ public abstract class _ChartLineConfigModel extends io.nop.core.resource.compone
     
     /**
      *  
-     * xml name: marker
-     * 是否显示标记点：true/false
-     */
-    private java.lang.Boolean _marker ;
-    
-    /**
-     *  
-     * xml name: markerType
-     * 
-     */
-    private io.nop.excel.chart.constants.ChartMarkerType _markerType ;
-    
-    /**
-     *  
      * xml name: smooth
      * 是否平滑曲线：true/false
      */
@@ -158,44 +144,6 @@ public abstract class _ChartLineConfigModel extends io.nop.core.resource.compone
     
     /**
      * 
-     * xml name: marker
-     *  是否显示标记点：true/false
-     */
-    
-    public java.lang.Boolean getMarker(){
-      return _marker;
-    }
-
-    
-    public void setMarker(java.lang.Boolean value){
-        checkAllowChange();
-        
-        this._marker = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: markerType
-     *  
-     */
-    
-    public io.nop.excel.chart.constants.ChartMarkerType getMarkerType(){
-      return _markerType;
-    }
-
-    
-    public void setMarkerType(io.nop.excel.chart.constants.ChartMarkerType value){
-        checkAllowChange();
-        
-        this._markerType = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: smooth
      *  是否平滑曲线：true/false
      */
@@ -270,8 +218,6 @@ public abstract class _ChartLineConfigModel extends io.nop.core.resource.compone
         out.putNotNull("grouping",this.getGrouping());
         out.putNotNull("hiLowLines",this.getHiLowLines());
         out.putNotNull("is3D",this.getIs3D());
-        out.putNotNull("marker",this.getMarker());
-        out.putNotNull("markerType",this.getMarkerType());
         out.putNotNull("smooth",this.getSmooth());
         out.putNotNull("upDownBars",this.getUpDownBars());
         out.putNotNull("varyColors",this.getVaryColors());
@@ -290,8 +236,6 @@ public abstract class _ChartLineConfigModel extends io.nop.core.resource.compone
         instance.setGrouping(this.getGrouping());
         instance.setHiLowLines(this.getHiLowLines());
         instance.setIs3D(this.getIs3D());
-        instance.setMarker(this.getMarker());
-        instance.setMarkerType(this.getMarkerType());
         instance.setSmooth(this.getSmooth());
         instance.setUpDownBars(this.getUpDownBars());
         instance.setVaryColors(this.getVaryColors());

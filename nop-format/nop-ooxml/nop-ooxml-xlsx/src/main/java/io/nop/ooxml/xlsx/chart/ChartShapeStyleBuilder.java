@@ -393,9 +393,9 @@ public class ChartShapeStyleBuilder {
     /**
      * 构建颜色
      */
-    private void buildColor(XNode parentNode, String color) {
+    private XNode buildColor(XNode parentNode, String color) {
         if (StringHelper.isEmpty(color)) {
-            return;
+            return null;
         }
 
         // 检查是否为RGB颜色（以#开头）
@@ -404,6 +404,7 @@ public class ChartShapeStyleBuilder {
         }
         XNode srgbClrNode = parentNode.addChild("a:srgbClr");
         srgbClrNode.setAttr("val", color);
+        return srgbClrNode;
     }
 
     /**
@@ -521,38 +522,31 @@ public class ChartShapeStyleBuilder {
         XNode outerShdwNode = effectLstNode.addChild("a:outerShdw");
 
         // 设置阴影距离
-        Double offsetX = shadow.getOffsetX();
-        Double offsetY = shadow.getOffsetY();
-        if (offsetX != null && offsetY != null) {
-            // 计算距离（使用勾股定理）
-            double distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
-            long emuDistance = UnitsHelper.pointsToEMU(distance);
-            outerShdwNode.setAttr("dist", String.valueOf(emuDistance));
+        Double dist = shadow.getDist();
+        if (dist != null) {
+            ChartPropertyHelper.setThousandthAttr(outerShdwNode, "dist", dist);
 
-            // 计算角度
-            double angle = Math.atan2(offsetY, offsetX);
-            double degrees = angle * 180 / Math.PI;
-            String ooxmlAngleStr = ChartPropertyHelper.degreesToOoxmlAngleString(degrees);
-            outerShdwNode.setAttr("dir", ooxmlAngleStr);
+            if (shadow.getDir() != null) {
+                String ooxmlAngleStr = ChartPropertyHelper.degreesToOoxmlAngleString(shadow.getDir());
+                outerShdwNode.setAttr("dir", ooxmlAngleStr);
+            }
         }
 
         // 设置模糊半径
         Double blur = shadow.getBlur();
         if (blur != null && blur > 0) {
-            long emuBlur = UnitsHelper.pointsToEMU(blur);
-            outerShdwNode.setAttr("blurRad", String.valueOf(emuBlur));
+            ChartPropertyHelper.setThousandthAttr(outerShdwNode, "blurRad", blur);
         }
 
         // 构建阴影颜色
         String color = shadow.getColor();
         if (!StringHelper.isEmpty(color)) {
-            buildColor(outerShdwNode, color);
-        }
-
-        // 构建阴影透明度
-        Double opacity = shadow.getOpacity();
-        if (opacity != null && opacity < 1.0) {
-            buildOpacity(outerShdwNode, opacity);
+            XNode colorNode = buildColor(outerShdwNode, color);
+            // 构建阴影透明度
+            Double opacity = shadow.getOpacity();
+            if (opacity != null && opacity < 1.0) {
+                buildOpacity(colorNode, opacity);
+            }
         }
 
         LOG.debug("Built shadow effect");

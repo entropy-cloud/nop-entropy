@@ -72,45 +72,6 @@ public class BarChartRenderer extends AbstractChartRenderer {
     }
     
     /**
-     * 创建分类数据集
-     */
-    private CategoryDataset createCategoryDataset(List<ChartDataSet> dataSets) {
-        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        
-        for (ChartDataSet dataSet : dataSets) {
-            String seriesName = dataSet.getName();
-            List<Number> values = dataSet.getValues();
-            List<Object> categories = dataSet.getCategories();
-            
-            if (values == null || values.isEmpty()) {
-                continue;
-            }
-            
-            // 如果没有分类，使用索引
-            if (categories == null || categories.isEmpty()) {
-                for (int i = 0; i < values.size(); i++) {
-                    Number value = values.get(i);
-                    if (value != null) {
-                        dataset.addValue(value, seriesName, "Category " + (i + 1));
-                    }
-                }
-            } else {
-                // 使用提供的分类
-                int maxSize = Math.min(values.size(), categories.size());
-                for (int i = 0; i < maxSize; i++) {
-                    Number value = values.get(i);
-                    Object category = categories.get(i);
-                    if (value != null && category != null) {
-                        dataset.addValue(value, seriesName, category.toString());
-                    }
-                }
-            }
-        }
-        
-        return dataset;
-    }
-    
-    /**
      * 获取绘图方向
      */
     private PlotOrientation getPlotOrientation(ChartBarConfigModel barConfig) {

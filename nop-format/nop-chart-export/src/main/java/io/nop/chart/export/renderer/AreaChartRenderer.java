@@ -46,27 +46,6 @@ public class AreaChartRenderer extends AbstractChartRenderer {
         return chart;
     }
     
-    private CategoryDataset createCategoryDataset(List<ChartDataSet> dataSets) {
-        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        
-        for (int i = 0; i < dataSets.size(); i++) {
-            ChartDataSet dataSet = dataSets.get(i);
-            String seriesName = "Series " + (i + 1);
-            
-            List<Object> categories = dataSet.getCategories();
-            List<Number> values = dataSet.getValues();
-            
-            int minSize = Math.min(categories.size(), values.size());
-            for (int j = 0; j < minSize; j++) {
-                String category = categories.get(j) != null ? categories.get(j).toString() : "Category " + (j + 1);
-                Number value = values.get(j);
-                dataset.addValue(value, seriesName, category);
-            }
-        }
-        
-        return dataset;
-    }
-    
     private void applyAreaConfig(JFreeChart chart, ChartModel chartModel) {
         // 应用面积图特定配置
         if (chartModel.getPlotArea() != null && chartModel.getPlotArea().getAreaConfig() != null) {

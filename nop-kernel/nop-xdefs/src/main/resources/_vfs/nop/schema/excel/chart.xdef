@@ -52,15 +52,13 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
         <!--
        阴影效果（可选）
        @enabled: 是否启用阴影，默认 false
-       @color: 阴影颜色，默认 #000000
-       @blur: 模糊半径，单位 pt，默认 3
-       @offsetX: X 轴偏移，单位 pt，默认 2
-       @offsetY: Y 轴偏移，单位 pt，默认 2
-       @opacity: 阴影透明度，默认 0.5
+       @color: 阴影颜色
+       @blur: 模糊半径，单位 pt
+       @opacity: 阴影透明度
        -->
-        <shadow enabled="boolean=false" color="string=#000000"
-                blur="double-pt=3.0" offsetX="double-pt=2.0" offsetY="double-pt=2.0"
-                opacity="double=0.5" xdef:name="ChartShadowModel"/>
+        <shadow enabled="boolean=false" color="string" dir="double-deg"
+                blur="double-pt" dist="double-pt"
+                opacity="double" xdef:name="ChartShadowModel"/>
 
         <!--
         Chart border styling
@@ -401,7 +399,6 @@ Chart type specific configurations
         Line chart specific settings
         对应 Excel POI 中 LineChart 的特殊属性
         @grouping 分组方式：standard、stacked、percentStacked
-        @marker 是否显示标记点：true/false
         @smooth 是否平滑曲线：true/false
         @dropLines 是否显示垂直线到X轴：true/false
         @hiLowLines 是否显示高低线：true/false
@@ -409,7 +406,7 @@ Chart type specific configurations
         -->
         <lineConfig is3D="boolean" varyColors="boolean"
                     grouping="enum:io.nop.excel.chart.constants.ChartBarGrouping"
-                    marker="boolean" smooth="boolean" dropLines="boolean"
+                    smooth="boolean" dropLines="boolean"
                     hiLowLines="boolean" upDownBars="boolean"
                     xdef:name="ChartLineConfigModel"/>
 
@@ -427,10 +424,8 @@ Chart type specific configurations
         Scatter chart specific settings
         对应 Excel POI 中 ScatterChart 的特殊属性
         @scatterStyle 散点图样式：none、line、lineMarker、marker、smooth、smoothMarker
-        @showMarkers 是否显示标记点：true/false
         -->
-        <scatterConfig varyColors="boolean" markerSize="double-pt" markerSymbol="string"
-                       scatterStyle="string" showMarkers="boolean"
+        <scatterConfig varyColors="boolean" scatterStyle="string"
                        xdef:name="ChartScatterConfigModel">
             <shapeStyle xdef:ref="ChartShapeStyleModel"/>
         </scatterConfig>

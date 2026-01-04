@@ -1,6 +1,7 @@
 package io.nop.chart.export;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.Guard;
 import io.nop.excel.resolver.ICellRefResolver;
 import io.nop.excel.chart.model.ChartModel;
@@ -58,7 +59,7 @@ public class ChartExporter implements IChartExporter {
 
         try {
             // 检查超时
-            long startTime = System.currentTimeMillis();
+            long startTime = CoreMetrics.currentTimeMillis();
             long timeoutMs = options.getTimeoutSeconds() * 1000L;
 
             // 步骤1: 验证和准备数据

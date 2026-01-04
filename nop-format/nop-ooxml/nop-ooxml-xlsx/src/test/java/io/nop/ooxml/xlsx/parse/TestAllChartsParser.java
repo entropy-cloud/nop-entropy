@@ -55,7 +55,7 @@ public class TestAllChartsParser extends BaseTestCase {
         File originalDir = getTargetFile("../samples/original-all-charts");
         //FileHelper.deleteAll(originalDir);
 
-        //ResourceHelper.getZipTool().unzipToDir(resource, new FileResource(originalDir));
+        ResourceHelper.getZipTool().unzipToDir(resource, new FileResource(originalDir));
 
         File unzipDir = getTargetFile("../samples/generated-all-charts");
         //FileHelper.deleteAll(unzipDir);

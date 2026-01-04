@@ -236,7 +236,6 @@
                     </c:val>
                     <c:smooth val="0"/>
                 </c:ser>
-                <c:marker val="1"/>
                 <c:smooth val="0"/>
                 <c:axId val="1199828015"/>
                 <c:axId val="1199826575"/>

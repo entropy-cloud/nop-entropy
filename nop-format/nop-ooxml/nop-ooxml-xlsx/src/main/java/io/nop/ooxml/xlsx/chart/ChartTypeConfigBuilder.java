@@ -172,12 +172,6 @@ public class ChartTypeConfigBuilder {
         // 构建系列数据
         buildSeriesForChartType(lineChartNode, plotArea);
 
-        // 构建是否显示标记
-        if (lineConfig.getMarker() != null) {
-            XNode markerNode = lineChartNode.addChild("c:marker");
-            markerNode.setAttr("val", lineConfig.getMarker() ? "1" : "0");
-        }
-
         // 构建是否平滑曲线
         if (lineConfig.getSmooth() != null) {
             XNode smoothNode = lineChartNode.addChild("c:smooth");

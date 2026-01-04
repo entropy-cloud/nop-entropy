@@ -46,6 +46,7 @@
         <sheet name="Chart_堆积柱形图" sheetId="16" r:id="rId19"/>
         <sheet name="Chart_簇状柱形图" sheetId="17" r:id="rId20"/>
         <sheet name="ChartData" sheetId="18" r:id="rId21"/>
+        <sheet name="ScatterChart" sheetId="19" r:id="rId22"/>
     </sheets>
 
     <calcPr calcId="191029"/>

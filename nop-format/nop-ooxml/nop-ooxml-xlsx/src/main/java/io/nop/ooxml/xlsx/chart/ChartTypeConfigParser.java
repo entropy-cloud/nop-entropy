@@ -188,13 +188,6 @@ public class ChartTypeConfigParser {
             }
         }
 
-        // 解析是否显示标记
-        Boolean marker = ChartPropertyHelper.getChildBoolVal(lineChartNode, "c:marker");
-        if (marker != null) {
-            lineConfig.setMarker(marker);
-            LOG.debug("Line chart marker: {}", marker);
-        }
-
         // 解析是否平滑曲线
         Boolean smooth = ChartPropertyHelper.getChildBoolVal(lineChartNode, "c:smooth");
         if (smooth != null) {
@@ -335,13 +328,6 @@ public class ChartTypeConfigParser {
         if (!StringHelper.isEmpty(scatterStyle)) {
             scatterConfig.setScatterStyle(scatterStyle);
             LOG.debug("Scatter chart style: {}", scatterStyle);
-        }
-
-        // 解析是否显示标记点
-        Boolean showMarkers = ChartPropertyHelper.getChildBoolVal(scatterNode, "c:marker");
-        if (showMarkers != null) {
-            scatterConfig.setShowMarkers(showMarkers);
-            LOG.debug("Scatter chart show markers: {}", showMarkers);
         }
 
         // 解析颜色变化

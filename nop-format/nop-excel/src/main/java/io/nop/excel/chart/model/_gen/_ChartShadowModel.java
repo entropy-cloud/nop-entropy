@@ -21,14 +21,28 @@ public abstract class _ChartShadowModel extends io.nop.core.resource.component.A
      * xml name: blur
      * 
      */
-    private java.lang.Double _blur  = 3.0;
+    private java.lang.Double _blur ;
     
     /**
      *  
      * xml name: color
      * 
      */
-    private java.lang.String _color  = "#000000";
+    private java.lang.String _color ;
+    
+    /**
+     *  
+     * xml name: dir
+     * 
+     */
+    private java.lang.Double _dir ;
+    
+    /**
+     *  
+     * xml name: dist
+     * 
+     */
+    private java.lang.Double _dist ;
     
     /**
      *  
@@ -39,24 +53,10 @@ public abstract class _ChartShadowModel extends io.nop.core.resource.component.A
     
     /**
      *  
-     * xml name: offsetX
-     * 
-     */
-    private java.lang.Double _offsetX  = 2.0;
-    
-    /**
-     *  
-     * xml name: offsetY
-     * 
-     */
-    private java.lang.Double _offsetY  = 2.0;
-    
-    /**
-     *  
      * xml name: opacity
      * 
      */
-    private java.lang.Double _opacity  = 0.5;
+    private java.lang.Double _opacity ;
     
     /**
      * 
@@ -98,6 +98,44 @@ public abstract class _ChartShadowModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: dir
+     *  
+     */
+    
+    public java.lang.Double getDir(){
+      return _dir;
+    }
+
+    
+    public void setDir(java.lang.Double value){
+        checkAllowChange();
+        
+        this._dir = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: dist
+     *  
+     */
+    
+    public java.lang.Double getDist(){
+      return _dist;
+    }
+
+    
+    public void setDist(java.lang.Double value){
+        checkAllowChange();
+        
+        this._dist = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: enabled
      *  
      */
@@ -111,44 +149,6 @@ public abstract class _ChartShadowModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._enabled = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: offsetX
-     *  
-     */
-    
-    public java.lang.Double getOffsetX(){
-      return _offsetX;
-    }
-
-    
-    public void setOffsetX(java.lang.Double value){
-        checkAllowChange();
-        
-        this._offsetX = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: offsetY
-     *  
-     */
-    
-    public java.lang.Double getOffsetY(){
-      return _offsetY;
-    }
-
-    
-    public void setOffsetY(java.lang.Double value){
-        checkAllowChange();
-        
-        this._offsetY = value;
            
     }
 
@@ -189,9 +189,9 @@ public abstract class _ChartShadowModel extends io.nop.core.resource.component.A
         
         out.putNotNull("blur",this.getBlur());
         out.putNotNull("color",this.getColor());
+        out.putNotNull("dir",this.getDir());
+        out.putNotNull("dist",this.getDist());
         out.putNotNull("enabled",this.getEnabled());
-        out.putNotNull("offsetX",this.getOffsetX());
-        out.putNotNull("offsetY",this.getOffsetY());
         out.putNotNull("opacity",this.getOpacity());
     }
 
@@ -206,9 +206,9 @@ public abstract class _ChartShadowModel extends io.nop.core.resource.component.A
         
         instance.setBlur(this.getBlur());
         instance.setColor(this.getColor());
+        instance.setDir(this.getDir());
+        instance.setDist(this.getDist());
         instance.setEnabled(this.getEnabled());
-        instance.setOffsetX(this.getOffsetX());
-        instance.setOffsetY(this.getOffsetY());
         instance.setOpacity(this.getOpacity());
     }
 

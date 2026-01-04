@@ -189,4 +189,58 @@ public class ChartPropertyHelper {
             setChildVal(node, childTagName, ooxmlAngleStr);
         }
     }
+
+    public static Double getThousandthAttr(XNode node, String attrName) {
+        Integer value = node.attrInt(attrName);
+        if (value == null)
+            return null;
+        return value.doubleValue() / 1000.0;
+    }
+
+    public static void setThousandthAttr(XNode node, String attrName, Double value) {
+        if (value != null) {
+            int v = (int) (value * 1000);
+            node.setAttr(attrName, v);
+        }
+    }
+
+    /**
+     * 将OOXML的alpha值转换为opacity(0-1)
+     *
+     * @param alpha OOXML alpha值 (0-100000)
+     * @return opacity值 (0.0-1.0)
+     */
+    public static double alphaToOpacity(int alpha) {
+        // 确保在有效范围内
+        if (alpha < 0) return 0.0;
+        if (alpha > 100000) return 1.0;
+        return alpha / 100000.0;
+    }
+
+    /**
+     * 将opacity(0-1)转换为OOXML的alpha值
+     *
+     * @param opacity 透明度值 (0.0-1.0)
+     * @return OOXML alpha值 (0-100000)
+     */
+    public static int opacityToAlpha(double opacity) {
+        // 确保在有效范围内
+        if (opacity <= 0.0) return 0;
+        if (opacity >= 1.0) return 100000;
+        return (int) Math.round(opacity * 100000);
+    }
+
+    public static Double getChildAlphaVal(XNode node, String childTagName) {
+        Integer value = getChildIntVal(node, childTagName);
+        if (value == null)
+            return null;
+        return alphaToOpacity(value);
+    }
+
+    public static void setChildAlphaVal(XNode node, String childTagName, Double opacity) {
+        if (opacity != null) {
+            int alpha = opacityToAlpha(opacity);
+            setChildVal(node, childTagName, String.valueOf(alpha));
+        }
+    }
 }

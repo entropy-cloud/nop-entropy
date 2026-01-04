@@ -61,6 +61,9 @@
     <Override PartName="/xl/charts/chart17.xml"
               ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>
 
+    <Override PartName="/xl/charts/chart18.xml"
+              ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>
+
     <Override PartName="/xl/comments1.xml"
               ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.comments+xml"/>
 
@@ -115,6 +118,9 @@
     <Override PartName="/xl/comments18.xml"
               ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.comments+xml"/>
 
+    <Override PartName="/xl/comments19.xml"
+              ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.comments+xml"/>
+
     <Override PartName="/xl/drawings/drawing1.xml"
               ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>
 
@@ -164,6 +170,9 @@
               ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>
 
     <Override PartName="/xl/drawings/drawing17.xml"
+              ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>
+
+    <Override PartName="/xl/drawings/drawing18.xml"
               ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>
 
     <Override PartName="/xl/styles.xml"
@@ -226,5 +235,8 @@
               ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
 
     <Override PartName="/xl/worksheets/sheet18.xml"
+              ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+
+    <Override PartName="/xl/worksheets/sheet19.xml"
               ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
 </Types>

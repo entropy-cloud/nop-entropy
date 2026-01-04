@@ -9,6 +9,8 @@ import io.nop.chart.export.style.ChartStyleApplier;
 import io.nop.excel.chart.constants.ChartType;
 import io.nop.excel.chart.model.ChartModel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.data.category.CategoryDataset;
+import org.jfree.data.category.DefaultCategoryDataset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,5 +80,47 @@ public abstract class AbstractChartRenderer implements IChartTypeRenderer {
     protected void applyChartStyles(JFreeChart chart, ChartModel chartModel, ICellRefResolver resolver) {
         // 使用统一的样式应用器
         styleApplier.applyAllStyles(chart, chartModel, resolver);
+    }
+
+    /**
+     * 创建分类数据集
+     *
+     * @param dataSets 数据集列表
+     * @return CategoryDataset对象
+     */
+    protected CategoryDataset createCategoryDataset(List<ChartDataSet> dataSets) {
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        
+        for (ChartDataSet dataSet : dataSets) {
+            String seriesName = dataSet.getName() != null ? dataSet.getName() : "Series";
+            List<Number> values = dataSet.getValues();
+            List<Object> categories = dataSet.getCategories();
+            
+            if (values == null || values.isEmpty()) {
+                continue;
+            }
+            
+            // 如果没有分类，使用索引
+            if (categories == null || categories.isEmpty()) {
+                for (int i = 0; i < values.size(); i++) {
+                    Number value = values.get(i);
+                    if (value != null) {
+                        dataset.addValue(value, seriesName, "Category " + (i + 1));
+                    }
+                }
+            } else {
+                // 使用提供的分类
+                int maxSize = Math.min(values.size(), categories.size());
+                for (int i = 0; i < maxSize; i++) {
+                    Number value = values.get(i);
+                    Object category = categories.get(i);
+                    if (value != null && category != null) {
+                        dataset.addValue(value, seriesName, category.toString());
+                    }
+                }
+            }
+        }
+        
+        return dataset;
     }
 }

@@ -4,7 +4,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.chart.constants.ChartFillPatternType;
 import io.nop.excel.chart.constants.ChartFillType;
-import io.nop.excel.chart.constants.ChartGradientDirection;  // 新增导入
+import io.nop.excel.chart.constants.ChartGradientDirection;
 import io.nop.excel.chart.constants.ChartLineStyle;
 import io.nop.excel.chart.model.ChartBorderModel;
 import io.nop.excel.chart.model.ChartFillModel;
@@ -798,18 +798,24 @@ public class ChartShapeStyleParser {
         String color = ChartPropertyHelper.getChildVal(outerShdwNode, "a:srgbClr");
         if (color != null) {
             shadow.setColor(styleProvider.resolveColor(color));
+
+            XNode clr = outerShdwNode.childByTag("a:srgbClr");
+            Double opacity = ChartPropertyHelper.getChildAlphaVal(clr, "a:alpha");
+            shadow.setOpacity(opacity);
         }
 
+        Double dir = ChartPropertyHelper.ooxmlAngleStringToDegrees(outerShdwNode.attrText("dir"));
+        shadow.setDir(dir);
+
         // 解析阴影偏移
-        Double blurRad = outerShdwNode.attrDouble("blurRad");
+        Double blurRad = ChartPropertyHelper.getThousandthAttr(outerShdwNode, "blurRad");
         if (blurRad != null) {
             shadow.setBlur(blurRad);
         }
 
-        Double dist = outerShdwNode.attrDouble("dist");
+        Double dist = ChartPropertyHelper.getThousandthAttr(outerShdwNode, "dist");
         if (dist != null) {
-            shadow.setOffsetX(dist);
-            shadow.setOffsetY(dist);
+            shadow.setDist(dist);
         }
 
         style.setShadow(shadow);
