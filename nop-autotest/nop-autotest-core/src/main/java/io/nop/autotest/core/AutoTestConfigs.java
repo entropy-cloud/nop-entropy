@@ -17,13 +17,13 @@ public interface AutoTestConfigs {
     // IConfigReference<Boolean> CFG_AUTOTEST_FORCE_RECORD_MODE =
     // AppConfig.varRef("nop.autotest.force-record-mode",
     // Boolean.class, false);
-    SourceLocation s_loc = SourceLocation.fromClass(AutoTestConfigs.class);
+    SourceLocation S_LOC = SourceLocation.fromClass(AutoTestConfigs.class);
 
     @Description("强制设置AutoTestCase保存执行结果，而不是校验执行结果符合预期。当我们需要根据根据录制的输入数据重新生成输出时可以开启此开关")
-    IConfigReference<Boolean> CFG_AUTOTEST_FORCE_SAVE_OUTPUT = AppConfig.varRef(s_loc,"nop.autotest.force-save-output",
+    IConfigReference<Boolean> CFG_AUTOTEST_FORCE_SAVE_OUTPUT = AppConfig.varRef(S_LOC,"nop.autotest.force-save-output",
             Boolean.class, false);
 
     @Description("强制设置AutoTestCase保存执行结果，禁用所有方法上的@EnableSnapshot注解")
-    IConfigReference<Boolean> CFG_AUTOTEST_DISABLE_SNAPSHOT = AppConfig.varRef(s_loc,"nop.autotest.disable-snapshot",
+    IConfigReference<Boolean> CFG_AUTOTEST_DISABLE_SNAPSHOT = AppConfig.varRef(S_LOC,"nop.autotest.disable-snapshot",
             Boolean.class, false);
 }

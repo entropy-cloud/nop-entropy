@@ -15,10 +15,10 @@ import static io.nop.vertx.commons.VertxCommonErrors.ERR_VERTX_NOT_INITIALIZED;
 
 @GlobalInstance
 public class NopVertx {
-    private static Vertx _instance;
+    private static Vertx _INSTANCE;
 
     public static Vertx instance() {
-        Vertx instance = _instance;
+        Vertx instance = _INSTANCE;
         if (instance == null)
             throw new NopException(ERR_VERTX_NOT_INITIALIZED);
 
@@ -26,6 +26,6 @@ public class NopVertx {
     }
 
     public static void registerInstance(Vertx vertx) {
-        _instance = vertx;
+        _INSTANCE = vertx;
     }
 }

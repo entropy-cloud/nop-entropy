@@ -49,7 +49,7 @@ import static io.nop.core.CoreErrors.ERR_COMPONENT_RESOURCE_CACHE_RETURN_NULL;
  * @param <V>
  */
 public class ResourceLoadingCache<V> implements IResourceLoadingCache<V> {
-    static final SourceLocation s_loc = SourceLocation.fromClass(ResourceLoadingCache.class);
+    static final SourceLocation S_LOC = SourceLocation.fromClass(ResourceLoadingCache.class);
     private final String name;
     private final LocalCache<String, ResourceCacheEntry<V>> cache;
     private final IResourceObjectLoader<V> loader;
@@ -75,21 +75,21 @@ public class ResourceLoadingCache<V> implements IResourceLoadingCache<V> {
         this.listener = listener;
 
         this.cacheMaxSize = cacheMaxSize != null ? cacheMaxSize :
-                AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_CACHE_PER_TYPE_SIZE,
+                AppConfig.withOverride(S_LOC, CFG_COMPONENT_RESOURCE_CACHE_PER_TYPE_SIZE,
                         configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_SIZE));
         this.cacheTimeout = cacheTimeout != null ? cacheTimeout :
-                AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT,
+                AppConfig.withOverride(S_LOC, CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT,
                         configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_TIMEOUT));
 
-        this.cacheNull = AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_CACHE_NULL,
+        this.cacheNull = AppConfig.withOverride(S_LOC, CFG_COMPONENT_RESOURCE_CACHE_NULL,
                 configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_CACHE_NULL));
-        this.checkChanged = AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_CACHE_CHECK_CHANGED,
+        this.checkChanged = AppConfig.withOverride(S_LOC, CFG_COMPONENT_RESOURCE_CACHE_CHECK_CHANGED,
                 configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_RELOADABLE));
-        this.supportSerialize = AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_SUPPORT_SERIALIZE,
+        this.supportSerialize = AppConfig.withOverride(S_LOC, CFG_COMPONENT_RESOURCE_SUPPORT_SERIALIZE,
                 configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_SUPPORT_SERIALIZE));
 
 
-        this.cacheRefreshMinInterval = AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_REFRESH_MIN_INTERVAL,
+        this.cacheRefreshMinInterval = AppConfig.withOverride(S_LOC, CFG_COMPONENT_RESOURCE_REFRESH_MIN_INTERVAL,
                 configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_REFRESH_MIN_INTERVAL));
         this.cache = createCache();
     }

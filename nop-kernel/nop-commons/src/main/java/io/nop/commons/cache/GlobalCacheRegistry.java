@@ -26,10 +26,10 @@ import static io.nop.commons.CommonErrors.ERR_CACHE_DUPLICATE_REGISTRATION;
 public class GlobalCacheRegistry {
     static final Logger LOG = LoggerFactory.getLogger(GlobalCacheRegistry.class);
 
-    static final GlobalCacheRegistry _instance = new GlobalCacheRegistry();
+    static final GlobalCacheRegistry _INSTANCE = new GlobalCacheRegistry();
 
     public static GlobalCacheRegistry instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     private final ConcurrentMap<String, ICacheManagement<?>> caches = new ConcurrentHashMap<>();

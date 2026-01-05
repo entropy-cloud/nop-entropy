@@ -26,10 +26,10 @@ import static io.nop.javac.JavaCompilerErrors.ARG_DETAIL;
 import static io.nop.javac.JavaCompilerErrors.ERR_JAVAC_PARSE_FAIL;
 
 public class JavaCompileTool implements IJavaCompileTool {
-    private static JavaCompileTool _instance = new JavaCompileTool();
+    private static JavaCompileTool _INSTANCE = new JavaCompileTool();
 
     public static JavaCompileTool instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     public String formatJavaSource(SourceLocation loc, String source) {

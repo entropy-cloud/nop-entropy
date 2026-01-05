@@ -16,13 +16,13 @@ import java.time.Duration;
 import static io.nop.api.core.config.AppConfig.varRef;
 
 public interface RpcConfigs {
-    SourceLocation s_loc = SourceLocation.fromClass(RpcConfigs.class);
+    SourceLocation S_LOC = SourceLocation.fromClass(RpcConfigs.class);
 
     @Description("RPC客户端调用pollingMethod的时间间隔")
     IConfigReference<Duration> CFG_RPC_CLIENT_EXT_DEFAULT_POLL_INTERVAL =
-            varRef(s_loc, "nop.rpc.client-ext.default-poll-interval", Duration.class, Duration.ofMillis(1000));
+            varRef(S_LOC, "nop.rpc.client-ext.default-poll-interval", Duration.class, Duration.ofMillis(1000));
 
     @Description("RPC客户端调用pollingMethod的最大错误次数，超过失败次数则认为返回失败")
     IConfigReference<Integer> CFG_RPC_CLIENT_EXT_MAX_POLL_ERROR_COUNT =
-            varRef(s_loc, "nop.rpc.client-ext.max-poll-error-count", Integer.class, 5);
+            varRef(S_LOC, "nop.rpc.client-ext.max-poll-error-count", Integer.class, 5);
 }

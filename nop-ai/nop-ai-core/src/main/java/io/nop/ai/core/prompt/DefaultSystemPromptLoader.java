@@ -7,13 +7,13 @@ import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.cache.ResourceLoadingCache;
 
 public class DefaultSystemPromptLoader {
-    public static DefaultSystemPromptLoader _instance = new DefaultSystemPromptLoader();
+    public static DefaultSystemPromptLoader _INSTANCE = new DefaultSystemPromptLoader();
 
     private final ResourceLoadingCache<String> promptCache = new ResourceLoadingCache<>("system-prompt-cache",
             this::loadPrompt, null);
 
     public static DefaultSystemPromptLoader instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     public String loadSystemPrompt(AiChatOptions chatOptions) {

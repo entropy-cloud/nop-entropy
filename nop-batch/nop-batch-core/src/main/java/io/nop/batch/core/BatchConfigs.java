@@ -9,9 +9,9 @@ import java.time.Duration;
 import static io.nop.api.core.config.AppConfig.varRef;
 
 public interface BatchConfigs {
-    SourceLocation s_loc = SourceLocation.fromClass(BatchConfigs.class);
+    SourceLocation S_LOC = SourceLocation.fromClass(BatchConfigs.class);
 
     @Description("异步Processor执行的缺省超时时间")
-    IConfigReference<Duration> CFG_BATCH_ASYNC_PROCESS_TIMEOUT = varRef(s_loc, "nop.batch.async-process-timeout",
+    IConfigReference<Duration> CFG_BATCH_ASYNC_PROCESS_TIMEOUT = varRef(S_LOC, "nop.batch.async-process-timeout",
             Duration.class, Duration.ofMinutes(10)); // 缺省为10分钟
 }

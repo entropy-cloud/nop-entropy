@@ -34,10 +34,10 @@ import java.util.Set;
 public class SysConverterRegistry {
     static final Logger LOG = LoggerFactory.getLogger(SysConverterRegistry.class);
 
-    static final SysConverterRegistry _instance = new SysConverterRegistry();
+    static final SysConverterRegistry _INSTANCE = new SysConverterRegistry();
 
     public static SysConverterRegistry instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     private Map<Class<?>, ITypeConverter> converters = new HashMap<>();

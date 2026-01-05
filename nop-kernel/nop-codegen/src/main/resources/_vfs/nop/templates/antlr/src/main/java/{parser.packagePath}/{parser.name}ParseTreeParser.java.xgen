@@ -10,10 +10,10 @@ import ${parser.antlrPackage}.${parser.name}Parser;
 import ${parser.antlrPackage}.${parser.name}Lexer;
 
 public class ${parser.name}ParseTreeParser extends AbstractParseTreeParser {
-    static final ${parser.name}ParseTreeParser _instance = new ${parser.name}ParseTreeParser();
+    static final ${parser.name}ParseTreeParser _INSTANCE = new ${parser.name}ParseTreeParser();
 
     public static final ${parser.name}ParseTreeParser instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     @Override

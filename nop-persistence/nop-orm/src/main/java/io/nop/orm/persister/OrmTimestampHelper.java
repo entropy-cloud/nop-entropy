@@ -18,14 +18,14 @@ import static io.nop.orm.OrmConfigs.CFG_ORM_SYS_USER_NAME;
 import static io.nop.orm.OrmConfigs.CFG_ORM_USE_ASSIGNED_USER_TIMESTAMP;
 
 public class OrmTimestampHelper {
-    static OrmTimestampHelper _instance = new OrmTimestampHelper();
+    static OrmTimestampHelper _INSTANCE = new OrmTimestampHelper();
 
     public static OrmTimestampHelper instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     public static void registerInstance(OrmTimestampHelper helper) {
-        _instance = helper;
+        _INSTANCE = helper;
     }
 
     public void onCreate(IEntityModel entityModel, IOrmEntity entity) {

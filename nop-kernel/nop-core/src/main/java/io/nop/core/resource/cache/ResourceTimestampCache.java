@@ -22,10 +22,10 @@
 // */
 //@GlobalInstance
 //public class ResourceTimestampCache {
-//    private static final ResourceTimestampCache _instance = new ResourceTimestampCache();
+//    private static final ResourceTimestampCache _INSTANCE = new ResourceTimestampCache();
 //
 //    public static ResourceTimestampCache instance() {
-//        return _instance;
+//        return _INSTANCE;
 //    }
 //
 //    private final ICache<String, Long> cache;

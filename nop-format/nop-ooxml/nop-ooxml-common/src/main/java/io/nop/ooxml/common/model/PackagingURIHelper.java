@@ -109,38 +109,38 @@ public final class PackagingURIHelper {
     /* Static initialization */
     static {
         // Make URI
-        URI uriPACKAGE_ROOT_URI = null;
-        URI uriPACKAGE_RELATIONSHIPS_ROOT_URI = null;
-        URI uriPACKAGE_PROPERTIES_URI = null;
+        URI uriPackageRootUri = null;
+        URI uriPackageRelationshipsRootUri = null;
+        URI uriPackagePropertiesUri = null;
         try {
-            uriPACKAGE_ROOT_URI = new URI("/");
-            uriPACKAGE_RELATIONSHIPS_ROOT_URI = new URI(FORWARD_SLASH_CHAR + RELATIONSHIP_PART_SEGMENT_NAME
+            uriPackageRootUri = new URI("/");
+            uriPackageRelationshipsRootUri = new URI(FORWARD_SLASH_CHAR + RELATIONSHIP_PART_SEGMENT_NAME
                     + FORWARD_SLASH_CHAR + RELATIONSHIP_PART_EXTENSION_NAME);
             packageRootUri = new URI("/");
-            uriPACKAGE_PROPERTIES_URI = new URI(FORWARD_SLASH_CHAR + PACKAGE_PROPERTIES_SEGMENT_NAME
+            uriPackagePropertiesUri = new URI(FORWARD_SLASH_CHAR + PACKAGE_PROPERTIES_SEGMENT_NAME
                     + FORWARD_SLASH_CHAR + PACKAGE_CORE_PROPERTIES_NAME);
         } catch (URISyntaxException e) { //NOPMD - suppressed EmptyControlStatement - should never happen
             // Should never happen in production as all data are fixed
         }
-        PACKAGE_ROOT_URI = uriPACKAGE_ROOT_URI;
-        PACKAGE_RELATIONSHIPS_ROOT_URI = uriPACKAGE_RELATIONSHIPS_ROOT_URI;
-        CORE_PROPERTIES_URI = uriPACKAGE_PROPERTIES_URI;
+        PACKAGE_ROOT_URI = uriPackageRootUri;
+        PACKAGE_RELATIONSHIPS_ROOT_URI = uriPackageRelationshipsRootUri;
+        CORE_PROPERTIES_URI = uriPackagePropertiesUri;
 
         // Make part name from previous URI
-        PackagePartName tmpPACKAGE_ROOT_PART_NAME = null;
-        PackagePartName tmpPACKAGE_RELATIONSHIPS_ROOT_PART_NAME = null;
-        PackagePartName tmpCORE_PROPERTIES_URI = null;
+        PackagePartName tmpPackageRootPartName = null;
+        PackagePartName tmpPackageRelationshipsRootPartName = null;
+        PackagePartName tmpCorePropertiesUri = null;
 
-        tmpPACKAGE_RELATIONSHIPS_ROOT_PART_NAME = createPartName(PACKAGE_RELATIONSHIPS_ROOT_URI);
-        tmpCORE_PROPERTIES_URI = createPartName(CORE_PROPERTIES_URI);
-        tmpPACKAGE_ROOT_PART_NAME = new PackagePartName(PACKAGE_ROOT_URI, false);
+        tmpPackageRelationshipsRootPartName = createPartName(PACKAGE_RELATIONSHIPS_ROOT_URI);
+        tmpCorePropertiesUri = createPartName(CORE_PROPERTIES_URI);
+        tmpPackageRootPartName = new PackagePartName(PACKAGE_ROOT_URI, false);
 
-        PACKAGE_RELATIONSHIPS_ROOT_PART_NAME = tmpPACKAGE_RELATIONSHIPS_ROOT_PART_NAME;
-        CORE_PROPERTIES_PART_NAME = tmpCORE_PROPERTIES_URI;
-        PACKAGE_ROOT_PART_NAME = tmpPACKAGE_ROOT_PART_NAME;
+        PACKAGE_RELATIONSHIPS_ROOT_PART_NAME = tmpPackageRelationshipsRootPartName;
+        CORE_PROPERTIES_PART_NAME = tmpCorePropertiesUri;
+        PACKAGE_ROOT_PART_NAME = tmpPackageRootPartName;
     }
 
-    private static final Pattern missingAuthPattern = Pattern.compile("\\w+://");
+    private static final Pattern MISSING_AUTH_PATTERN = Pattern.compile("\\w+://");
 
     /**
      * Gets the URI for the package root.
@@ -647,7 +647,7 @@ public final class PackagingURIHelper {
 
         // MS Office can insert URIs with missing authority, e.g. "http://" or "javascript://"
         // append a forward slash to avoid parse exception
-        if (missingAuthPattern.matcher(value).matches()) {
+        if (MISSING_AUTH_PATTERN.matcher(value).matches()) {
             value += "/";
         }
         return new URI(value);
@@ -677,8 +677,8 @@ public final class PackagingURIHelper {
             int b = bb.get() & 0xff;
             if (isUnsafe(b)) {
                 sb.append('%');
-                sb.append(hexDigits[(b >> 4) & 0x0F]);
-                sb.append(hexDigits[(b >> 0) & 0x0F]);
+                sb.append(HEX_DIGITS[(b >> 4) & 0x0F]);
+                sb.append(HEX_DIGITS[(b >> 0) & 0x0F]);
             } else {
                 sb.append((char) b);
             }
@@ -686,7 +686,7 @@ public final class PackagingURIHelper {
         return sb.toString();
     }
 
-    private static final char[] hexDigits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E',
+    private static final char[] HEX_DIGITS = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E',
             'F'};
 
     private static boolean isUnsafe(int ch) {

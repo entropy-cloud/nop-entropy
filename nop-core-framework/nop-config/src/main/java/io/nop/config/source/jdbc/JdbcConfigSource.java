@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 public class JdbcConfigSource implements IConfigSource {
     static final Logger LOG = LoggerFactory.getLogger(JdbcConfigSource.class);
 
-    static final SourceLocation s_loc = SourceLocation.fromClass(JdbcConfigSource.class);
+    static final SourceLocation S_LOC = SourceLocation.fromClass(JdbcConfigSource.class);
 
     private final JdbcConfig jdbcConfig;
     private final Future<?> refreshTaskFuture;
@@ -124,7 +124,7 @@ public class JdbcConfigSource implements IConfigSource {
                 String name = rs.getString(1);
                 String value = rs.getString(2);
                 if (!StringHelper.isEmpty(name)) {
-                    ValueWithLocation ref = ValueWithLocation.of(s_loc, value);
+                    ValueWithLocation ref = ValueWithLocation.of(S_LOC, value);
                     vars.put(name, ref);
                 }
             }

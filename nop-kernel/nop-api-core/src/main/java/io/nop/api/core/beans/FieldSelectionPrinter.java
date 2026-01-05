@@ -14,10 +14,10 @@ import java.util.List;
 import java.util.Map;
 
 class FieldSelectionPrinter {
-    static final FieldSelectionPrinter _instance = new FieldSelectionPrinter();
+    static final FieldSelectionPrinter _INSTANCE = new FieldSelectionPrinter();
 
     public static FieldSelectionPrinter instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     public String print(FieldSelectionBean selection, boolean pretty) {

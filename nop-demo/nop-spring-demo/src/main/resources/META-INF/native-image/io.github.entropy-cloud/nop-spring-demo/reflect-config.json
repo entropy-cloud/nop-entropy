@@ -44176,7 +44176,7 @@
     "fields": [
       {
         "allowWrite": true,
-        "name": "_instance"
+        "name": "_INSTANCE"
       }
     ],
     "methods": [

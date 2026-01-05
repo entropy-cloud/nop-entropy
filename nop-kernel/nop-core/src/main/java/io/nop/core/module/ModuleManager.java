@@ -40,12 +40,12 @@ import static io.nop.core.CoreErrors.ERR_RESOURCE_MODULE_PATH_RESOLVE_TO_MULTI_F
 public class ModuleManager {
     private static final Logger LOG = LoggerFactory.getLogger(ModuleManager.class);
 
-    private static ModuleManager _instance = new ModuleManager();
+    private static ModuleManager _INSTANCE = new ModuleManager();
 
     private final AtomicReference<Map<String, ModuleModel>> dynamicModules = new AtomicReference<>();
 
     public static void registerInstance(ModuleManager instance) {
-        _instance = instance;
+        _INSTANCE = instance;
     }
 
     private final AtomicReference<Map<String, ModuleModel>> modules = new AtomicReference<>(new TreeMap<>());
@@ -53,7 +53,7 @@ public class ModuleManager {
     private ITenantModuleDiscovery tenantModuleDiscovery;
 
     public static ModuleManager instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     public ITenantModuleDiscovery getTenantModuleDiscovery() {

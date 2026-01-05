@@ -16,6 +16,7 @@
         <jmh.version>1.33</jmh.version>
         <sonar.skip>true</sonar.skip>
         <maven.deploy.skip>true</maven.deploy.skip>
+        <checkstyle.skip>true</checkstyle.skip>
     </properties>
 
     <modules>

@@ -10,10 +10,10 @@ import io.nop.orm.eql.parse.antlr.EqlParser;
 import io.nop.orm.eql.parse.antlr.EqlLexer;
 
 public class EqlParseTreeParser extends AbstractParseTreeParser {
-    static final EqlParseTreeParser _instance = new EqlParseTreeParser();
+    static final EqlParseTreeParser _INSTANCE = new EqlParseTreeParser();
 
     public static final EqlParseTreeParser instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     @Override

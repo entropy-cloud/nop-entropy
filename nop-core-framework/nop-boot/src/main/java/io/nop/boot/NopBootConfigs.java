@@ -14,11 +14,11 @@ import io.nop.api.core.util.SourceLocation;
 import static io.nop.api.core.config.AppConfig.varRef;
 
 public interface NopBootConfigs {
-    SourceLocation s_loc = SourceLocation.fromClass(NopBootConfigs.class);
+    SourceLocation S_LOC = SourceLocation.fromClass(NopBootConfigs.class);
 
     @Description("是否打印Nop平台的Banner")
-    IConfigReference<Boolean> CFG_BANNER_ENABLED = varRef(s_loc, "nop.banner.enabled", Boolean.class, true);
+    IConfigReference<Boolean> CFG_BANNER_ENABLED = varRef(S_LOC, "nop.banner.enabled", Boolean.class, true);
 
     @Description("是否输出执行成功的提示信息")
-    IConfigReference<Boolean> CFG_PRINT_SUCCESS_FLAG = varRef(s_loc, "nop.boot.print-success", Boolean.class, false);
+    IConfigReference<Boolean> CFG_PRINT_SUCCESS_FLAG = varRef(S_LOC, "nop.boot.print-success", Boolean.class, false);
 }

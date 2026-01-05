@@ -101,6 +101,10 @@ public abstract class OrmEntity implements IOrmEntity {
         return this == obj;
     }
 
+    public final int hashCode(){
+        return System.identityHashCode(this);
+    }
+
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(getClass().getSimpleName());

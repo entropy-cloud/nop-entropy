@@ -28,9 +28,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ShellCommand {
     public static final String TASK_PREFIX = "@task:";
 
-    static final AtomicInteger s_sequence = new AtomicInteger(0);
+    static final AtomicInteger S_SEQUENCE = new AtomicInteger(0);
 
-    private int id = MathHelper.nonNegativeMod(s_sequence.getAndIncrement(), 1000000);
+    private int id = MathHelper.nonNegativeMod(S_SEQUENCE.getAndIncrement(), 1000000);
 
     private List<String> cmds = new ArrayList<>();
 

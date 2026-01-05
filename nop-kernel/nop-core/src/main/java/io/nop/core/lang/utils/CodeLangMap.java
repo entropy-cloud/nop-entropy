@@ -9,7 +9,7 @@ import java.util.TreeSet;
 
 @GlobalInstance
 public class CodeLangMap {
-    static final CodeLangMap _instance = new CodeLangMap();
+    static final CodeLangMap _INSTANCE = new CodeLangMap();
 
     private final Map<String, String> fileExtToCodeLangMap = new HashMap<>();
     private final Map<String, String> codeLangToFileExtMap = new HashMap<>();
@@ -19,7 +19,7 @@ public class CodeLangMap {
     }
 
     public static CodeLangMap instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     private void initializeMappings() {

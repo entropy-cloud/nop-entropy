@@ -10,10 +10,10 @@ import io.nop.mermaid.parse.antlr.MermaidParser;
 import io.nop.mermaid.parse.antlr.MermaidLexer;
 
 public class MermaidParseTreeParser extends AbstractParseTreeParser {
-    static final MermaidParseTreeParser _instance = new MermaidParseTreeParser();
+    static final MermaidParseTreeParser _INSTANCE = new MermaidParseTreeParser();
 
     public static final MermaidParseTreeParser instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     @Override

@@ -35,14 +35,14 @@ import static io.nop.core.CoreConstants.I18N_VAR_START;
 public class I18nMessageManager implements II18nMessageManager {
     static final Logger LOG = LoggerFactory.getLogger(I18nMessageManager.class);
 
-    private static I18nMessageManager _instance = new I18nMessageManager();
+    private static I18nMessageManager _INSTANCE = new I18nMessageManager();
 
     public static I18nMessageManager instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     public static void registerInstance(I18nMessageManager instance) {
-        _instance = instance;
+        _INSTANCE = instance;
     }
 
     private final ResourceLoadingCache<I18nMessage> localeToMessages = new ResourceLoadingCache<>("i18n-cache",

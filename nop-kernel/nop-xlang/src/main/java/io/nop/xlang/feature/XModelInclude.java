@@ -30,7 +30,7 @@ import java.util.Map;
  * @author canonical_entropy@163.com
  */
 public class XModelInclude {
-    // static final XModelInclude _instance = new XModelInclude();
+    // static final XModelInclude _INSTANCE = new XModelInclude();
     static final Logger LOG = LoggerFactory.getLogger(XModelInclude.class);
 
     public static XModelInclude instance() {

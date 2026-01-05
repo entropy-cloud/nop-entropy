@@ -33,10 +33,10 @@ import static io.nop.report.core.XptErrors.ERR_XPT_UNSUPPORTED_XPT_FILE_TYPE;
  * 加载xml格式或者xlsx格式的模型文件。对应文件名规则为xxx.xpt.xml或者xxx.xpt.xlsx
  */
 public class XptModelLoader extends AbstractDslResourceLoader<ExcelWorkbook> implements IDslResourcePersister<ExcelWorkbook> {
-    static XptModelLoader _instance = new XptModelLoader();
+    static XptModelLoader _INSTANCE = new XptModelLoader();
 
     public static XptModelLoader instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     public XptModelLoader() {

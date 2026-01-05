@@ -15,10 +15,10 @@ import static io.nop.core.CoreConfigs.CFG_CORE_STAT_SQL_CACHE_MAX_SIZE;
 
 public class GlobalStatManager implements IJdbcStatManager, IRpcClientStatManager, IRpcServerStatManager {
     static final AtomicLong s_seq = new AtomicLong();
-    static final GlobalStatManager _instance = new GlobalStatManager();
+    static final GlobalStatManager _INSTANCE = new GlobalStatManager();
 
     public static GlobalStatManager instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     public static long createStatId() {

@@ -21,10 +21,10 @@ import static io.nop.core.CoreConfigs.CFG_RESOURCE_CONTENT_CACHE_SIZE;
 import static io.nop.core.CoreConstants.RESOURCE_CONTENT_CACHE_NAME;
 
 public class ResourceContentCache implements IResourceContentCache {
-    static final ResourceContentCache _instance = new ResourceContentCache(CFG_RESOURCE_CONTENT_CACHE_SIZE);
+    static final ResourceContentCache _INSTANCE = new ResourceContentCache(CFG_RESOURCE_CONTENT_CACHE_SIZE);
 
     public static ResourceContentCache instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     private ICache<String, ContentEntry> cache;

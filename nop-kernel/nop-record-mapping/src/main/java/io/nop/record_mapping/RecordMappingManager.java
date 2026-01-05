@@ -5,13 +5,13 @@ import io.nop.record_mapping.impl.RecordMappingManagerImpl;
 
 @GlobalInstance
 public class RecordMappingManager {
-    private static IRecordMappingManager _instance = new RecordMappingManagerImpl();
+    private static IRecordMappingManager _INSTANCE = new RecordMappingManagerImpl();
 
     public static IRecordMappingManager instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     public static void registerInstance(IRecordMappingManager manager) {
-        _instance = manager;
+        _INSTANCE = manager;
     }
 }

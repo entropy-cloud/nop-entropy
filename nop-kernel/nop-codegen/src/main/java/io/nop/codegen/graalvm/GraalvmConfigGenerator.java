@@ -24,13 +24,13 @@ import static io.nop.codegen.CodeGenConfigs.CFG_CODEGEN_TRACE_ENABLED;
 import static io.nop.codegen.CodeGenErrors.ERR_CODE_GEN_PATH_NOT_ALLOW_STARTS_WITH_OR_ENDS_WITH_BLANK;
 
 public class GraalvmConfigGenerator {
-    static final GraalvmConfigGenerator _instance = new GraalvmConfigGenerator();
+    static final GraalvmConfigGenerator _INSTANCE = new GraalvmConfigGenerator();
 
     private File configDir;
     private File resourceDir;
 
     public static GraalvmConfigGenerator instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     public boolean isEnabled() {

@@ -20,10 +20,10 @@ import static io.nop.core.CoreErrors.ERR_TREE_TABLE_UNSUPPORTED_CHILD_POS;
  * TreeTable布局
  */
 public class TreeTableLayout {
-    static final TreeTableLayout _instance = new TreeTableLayout();
+    static final TreeTableLayout _INSTANCE = new TreeTableLayout();
 
     public static TreeTableLayout instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     /**

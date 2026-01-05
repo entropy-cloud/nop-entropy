@@ -32,13 +32,13 @@ public class EvalGlobalRegistry {
     static final Logger LOG = LoggerFactory.getLogger(EvalGlobalRegistry.class);
     // public static final SourceLocation global_loc = SourceLocation.fromClass(EvalGlobalRegistry.class);
 
-    static final EvalGlobalRegistry _instance = new EvalGlobalRegistry();
+    static final EvalGlobalRegistry _INSTANCE = new EvalGlobalRegistry();
 
     private final Map<String, IGlobalVariableDefinition> vars = new ConcurrentHashMap<>();
     private final Map<String, IFunctionModel> functions = new ConcurrentHashMap<>();
 
     public static EvalGlobalRegistry instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     EvalGlobalRegistry() {

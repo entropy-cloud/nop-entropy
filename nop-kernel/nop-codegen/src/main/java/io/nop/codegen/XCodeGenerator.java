@@ -54,7 +54,7 @@ import static io.nop.codegen.CodeGenErrors.ERR_CODEGEN_UNKNOWN_MODEL_TYPE;
  * 7. 代码生成器会自动缓存所有生成的文本文件的内容，如果再次生成的text和上次相同，则会跳过文件写入过程，减少文件IO。
  */
 public class XCodeGenerator extends TemplateFileGenerator {
-    static final SourceLocation s_loc = SourceLocation.fromClass(XCodeGenerator.class);
+    static final SourceLocation S_LOC = SourceLocation.fromClass(XCodeGenerator.class);
 
     static final Logger LOG = LoggerFactory.getLogger(XCodeGenerator.class);
 
@@ -149,9 +149,9 @@ public class XCodeGenerator extends TemplateFileGenerator {
 
         IEvalScope childScope = scope.newChildScope();
         if (vars != null) {
-            childScope.setLocalValues(s_loc, vars);
+            childScope.setLocalValues(S_LOC, vars);
         }
-        childScope.setLocalValue(s_loc, CodeGenConstants.VAR_CODE_GENERATOR, this);
+        childScope.setLocalValue(S_LOC, CodeGenConstants.VAR_CODE_GENERATOR, this);
 
         boolean hasInit = runInit(childScope);
         INestedLoop loop = (INestedLoop) childScope.getLocalValue(CodeGenConstants.VAR_CODE_GEN_LOOP);
@@ -170,7 +170,7 @@ public class XCodeGenerator extends TemplateFileGenerator {
             loop = new NestedLoop(new NestedLoopModel(scope.keySet(), Collections.emptyMap()),
                     globalValues);
         } else {
-            childScope.setLocalValues(s_loc, loop.getGlobalVars());
+            childScope.setLocalValues(S_LOC, loop.getGlobalVars());
         }
 
         executeWithLoop(tplPath, loop, childScope);

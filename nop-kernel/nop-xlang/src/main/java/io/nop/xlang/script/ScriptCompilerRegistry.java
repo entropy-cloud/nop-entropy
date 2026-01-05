@@ -18,10 +18,10 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @GlobalInstance
 public class ScriptCompilerRegistry {
-    private static final ScriptCompilerRegistry _instance = new ScriptCompilerRegistry();
+    private static final ScriptCompilerRegistry _INSTANCE = new ScriptCompilerRegistry();
 
     public static ScriptCompilerRegistry instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     private final Map<String, IScriptCompiler> compilers = new ConcurrentHashMap<>();

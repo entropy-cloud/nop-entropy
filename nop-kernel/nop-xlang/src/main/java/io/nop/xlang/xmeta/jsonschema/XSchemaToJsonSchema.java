@@ -23,14 +23,14 @@ import java.util.List;
 import java.util.Map;
 
 public class XSchemaToJsonSchema {
-    static XSchemaToJsonSchema _instance = new XSchemaToJsonSchema();
+    static XSchemaToJsonSchema _INSTANCE = new XSchemaToJsonSchema();
 
     public static void registerInstance(XSchemaToJsonSchema instance) {
-        _instance = instance;
+        _INSTANCE = instance;
     }
 
     public static XSchemaToJsonSchema instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     public Map<String, Object> toJsonSchema(ISchema schema, IServiceContext context) {

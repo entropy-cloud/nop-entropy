@@ -24,7 +24,7 @@ import java.util.function.Function;
 import static io.nop.graphql.core.GraphQLErrors.ARG_ARG_NAME;
 
 public class ArgBuilders {
-    static final SourceLocation s_loc = SourceLocation.fromClass(ArgBuilders.class);
+    static final SourceLocation S_LOC = SourceLocation.fromClass(ArgBuilders.class);
 
     public static IServiceActionArgBuilder getActionArgFromRequest(String name, IGenericType type) {
         return (req, selection, ctx) -> {
@@ -48,7 +48,7 @@ public class ArgBuilders {
                 }
             }
             if (value instanceof IEvalFunction) {
-                return FunctionalInterfaceConverter.convertToFunctional(s_loc, (IEvalFunction) value,
+                return FunctionalInterfaceConverter.convertToFunctional(S_LOC, (IEvalFunction) value,
                         type.getRawClass(), ctx.getEvalScope(), err -> new NopException(err).param(ARG_ARG_NAME, name));
             }
             return BeanTool.castBeanToType(value, type);

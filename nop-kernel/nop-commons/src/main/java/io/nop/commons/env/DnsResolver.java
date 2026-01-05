@@ -14,13 +14,13 @@ import java.net.InetAddress;
 public class DnsResolver {
     public static IDnsResolver DEFAULT = InetAddress::getByName;
 
-    private static IDnsResolver _instance = DEFAULT;
+    private static IDnsResolver _INSTANCE = DEFAULT;
 
     public static IDnsResolver instance() {
-        return Guard.notNull(_instance, "DnsResolver not initialized");
+        return Guard.notNull(_INSTANCE, "DnsResolver not initialized");
     }
 
     public static void registerInstance(IDnsResolver dnsResolver) {
-        _instance = dnsResolver;
+        _INSTANCE = dnsResolver;
     }
 }

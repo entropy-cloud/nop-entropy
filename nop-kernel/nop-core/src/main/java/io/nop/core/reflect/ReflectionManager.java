@@ -84,21 +84,21 @@ import static io.nop.core.CoreErrors.ERR_REFLECT_NOT_SUPPORT_ARRAY_CLASS_MODEL;
 public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder, IClassModelLoader {
     private static final Logger LOG = LoggerFactory.getLogger(ReflectionManager.class);
 
-    private static final ReflectionManager _instance = new ReflectionManager();
+    private static final ReflectionManager _INSTANCE = new ReflectionManager();
 
     static {
-        _instance.registerHelperMethods(List.class, ListFunctions.class, null);
-        _instance.registerHelperMethods(Set.class, SetFunctions.class, null);
-        _instance.registerHelperMethods(Map.class, MapFunctions.class, null);
-        _instance.registerHelperMethods(Collection.class, SetFunctions.class, null);
-        _instance.registerHelperMethods(String.class, StringHelper.class, "$");
-        _instance.registerHelperMethods(LocalDate.class, DateHelper.class, "$");
-        _instance.registerBeanModelEnhancer(new StringBeanModelEnhancer());
-        _instance.registerTypeConverter(FieldSelectionBean.class, new FieldSelectionBeanConverter());
+        _INSTANCE.registerHelperMethods(List.class, ListFunctions.class, null);
+        _INSTANCE.registerHelperMethods(Set.class, SetFunctions.class, null);
+        _INSTANCE.registerHelperMethods(Map.class, MapFunctions.class, null);
+        _INSTANCE.registerHelperMethods(Collection.class, SetFunctions.class, null);
+        _INSTANCE.registerHelperMethods(String.class, StringHelper.class, "$");
+        _INSTANCE.registerHelperMethods(LocalDate.class, DateHelper.class, "$");
+        _INSTANCE.registerBeanModelEnhancer(new StringBeanModelEnhancer());
+        _INSTANCE.registerTypeConverter(FieldSelectionBean.class, new FieldSelectionBeanConverter());
     }
 
     public static ReflectionManager instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     /**

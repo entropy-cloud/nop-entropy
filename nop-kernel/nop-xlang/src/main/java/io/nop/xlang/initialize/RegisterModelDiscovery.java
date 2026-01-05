@@ -51,14 +51,14 @@ import static io.nop.xlang.XLangErrors.ERR_XDSL_MODEL_NO_NAME_ATTR;
 public class RegisterModelDiscovery {
     static final Logger LOG = LoggerFactory.getLogger(RegisterModelDiscovery.class);
 
-    static RegisterModelDiscovery _instance = new RegisterModelDiscovery();
+    static RegisterModelDiscovery _INSTANCE = new RegisterModelDiscovery();
 
     public static RegisterModelDiscovery instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     public static void registerInstance(RegisterModelDiscovery instance) {
-        _instance = instance;
+        _INSTANCE = instance;
     }
 
     public void registerAll(ICancellable cancellable) {

@@ -16,10 +16,10 @@ import io.nop.xlang.api.XLang;
 import java.util.function.Supplier;
 
 public class BeanScopeContext {
-    static IBeanScopeContext _instance = new BeanScopeContextImpl();
+    static IBeanScopeContext _INSTANCE = new BeanScopeContextImpl();
 
     public static IBeanScopeContext instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     public static <T> T runWithScope(IBeanScope scope, Supplier<T> task) {

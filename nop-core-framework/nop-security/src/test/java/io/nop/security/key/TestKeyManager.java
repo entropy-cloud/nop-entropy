@@ -55,12 +55,12 @@ public class TestKeyManager extends BaseTestCase {
         //PublicKey originalKey = keyManager.getPublicKey("my_pub");
         PrivateKey privateKey = keyManager.getPrivateKey("my_pri");
         String data = "123";
-        byte[] signed = SecurityHelper.sign(SecurityConstants.ALG_SHA256withRSA, privateKey, data.getBytes());
+        byte[] signed = SecurityHelper.sign(SecurityConstants.ALG_SHA256_WITH_RSA, privateKey, data.getBytes());
 
         KeySetBean keySet = KeySetHelper.getPublicKeySet(keyManager);
         KeyBean pubKeyBean = keySet.getKeyById("my_pub");
         PublicKey pubKey = SecurityHelper.toRSAPublicKey(pubKeyBean);
 
-        assertTrue(SecurityHelper.veritySign(SecurityConstants.ALG_SHA256withRSA, pubKey, data.getBytes(), signed));
+        assertTrue(SecurityHelper.veritySign(SecurityConstants.ALG_SHA256_WITH_RSA, pubKey, data.getBytes(), signed));
     }
 }

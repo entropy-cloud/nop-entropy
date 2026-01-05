@@ -8,13 +8,13 @@
 package io.nop.dao.api;
 
 public class DaoProvider {
-    private static IDaoProvider _instance;
+    private static IDaoProvider _INSTANCE;
 
     public static IDaoProvider instance() {
-        return _instance;
+        return _INSTANCE;
     }
 
     public static void registerInstance(IDaoProvider daoProvider) {
-        _instance = daoProvider;
+        _INSTANCE = daoProvider;
     }
 }

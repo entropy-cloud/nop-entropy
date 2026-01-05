@@ -130,27 +130,27 @@ public enum PredefinedColors {
     }
 
     public static Integer getColorIndex(String argb) {
-        return indexMap.get(argb);
+        return INDEX_MAP.get(argb);
     }
 
     public static PredefinedColors getByIndex(int index) {
-        return indexColors.get(index);
+        return INDEX_COLORS.get(index);
     }
 
-    static final Map<Integer, PredefinedColors> indexColors = new HashMap<>();
-    static final Map<String, Integer> indexMap = new HashMap<>();
+    static final Map<Integer, PredefinedColors> INDEX_COLORS = new HashMap<>();
+    static final Map<String, Integer> INDEX_MAP = new HashMap<>();
 
     static {
         for (PredefinedColors value : values()) {
             Integer index1 = value.getIndex();
-            if (!indexColors.containsKey(index1)) {
-                indexColors.put(index1, value);
+            if (!INDEX_COLORS.containsKey(index1)) {
+                INDEX_COLORS.put(index1, value);
             }
             Integer index2 = value.getIndex2();
-            if (index2 != -1 && !indexColors.containsKey(index2)) {
-                indexColors.put(index2, value);
+            if (index2 != -1 && !INDEX_COLORS.containsKey(index2)) {
+                INDEX_COLORS.put(index2, value);
             }
-            indexMap.put(value.getArgb(), value.getIndex());
+            INDEX_MAP.put(value.getArgb(), value.getIndex());
         }
     }
 
