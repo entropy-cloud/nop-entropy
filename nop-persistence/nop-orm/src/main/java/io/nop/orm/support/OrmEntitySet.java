@@ -55,10 +55,7 @@ import static io.nop.orm.OrmErrors.ERR_ORM_SESSION_CLOSED;
 public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
     private final IOrmEntity owner;
     private final String propName;
-    /**
-     * ownerPropName是集合的成员对象上反向引用owner的属性名称。例如 A --> Set<B>, 类型B可以具有属性a，它指向类型为A的owner。 一般情况下ownerPropName对应于外键字段
-     */
-    private final String refPropName;
+
     private final String collectionName;
 
     /**
@@ -71,9 +68,14 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
      */
     private final Set<T> entities = new LinkedHashSet<>();
 
-    private final Class<? extends IOrmEntity> refEntityClass;
+    private Class<? extends IOrmEntity> refEntityClass;
 
-    private final String refEntityName;
+    /**
+     * ownerPropName是集合的成员对象上反向引用owner的属性名称。例如 A --> Set<B>, 类型B可以具有属性a，它指向类型为A的owner。 一般情况下ownerPropName对应于外键字段
+     */
+    private final String _refPropName;
+
+    private final String _refEntityName;
 
     private String tenantId;
 
@@ -92,18 +94,18 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
 
     private final boolean kvTable;
 
-    private IEntityRelationModel relationModel;
+    private IEntityRelationModel _relationModel;
 
     public OrmEntitySet(IOrmEntity owner, String propName, String refPropName, String keyProp,
                         Class<? extends IOrmEntity> refEntityClass, String refEntityName) {
         this.owner = owner;
         this.collectionName = OrmModelHelper.buildCollectionName(owner.orm_entityName(), propName);
         this.propName = propName;
-        this.refPropName = refPropName;
+        this._refPropName = refPropName;
         this.keyProp = keyProp;
         this.refEntityClass = Guard.notNull(refEntityClass, "refEntityClass");
         this.kvTable = IOrmKeyValueTable.class.isAssignableFrom(refEntityClass);
-        this.refEntityName = Guard.notEmpty(refEntityName, "refEntityName");
+        this._refEntityName = Guard.notEmpty(refEntityName, "refEntityName");
     }
 
     public OrmEntitySet(IOrmEntity owner, String propName, String refPropName, String keyProp,
@@ -143,11 +145,12 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
             entity = (IOrmEntity) ClassHelper.newInstance(refEntityClass);
             bindOwnerProps((T) entity);
         } else {
-            entity = enhancer.newEntity(refEntityName);
-            if(!owner.orm_hasId()){
+            entity = enhancer.newEntity(orm_refEntityName());
+            if (!owner.orm_hasId()) {
                 enhancer.initEntityId(owner);
             }
 
+            String refPropName = orm_refPropName();
             if (refPropName != null) {
                 entity.orm_propValueByName(refPropName, owner);
             } else {
@@ -160,7 +163,19 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
 
     @Override
     public String orm_refEntityName() {
-        return refEntityName;
+        // 定制版本中有可能动态修改，特别是扩展字段从系统扩展字段表修改为针对单实体的专用扩展字段表
+        IEntityRelationModel rel = getRelationModel();
+        if (rel != null)
+            return rel.getRefEntityName();
+        return _refEntityName;
+    }
+
+    @Override
+    public String orm_refPropName() {
+        IEntityRelationModel rel = getRelationModel();
+        if (rel != null)
+            return rel.getRefPropName();
+        return _refPropName;
     }
 
     @Override
@@ -259,11 +274,6 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
     @Override
     public IOrmEntity orm_owner() {
         return owner;
-    }
-
-    @Override
-    public String orm_refPropName() {
-        return refPropName;
     }
 
     @Override
@@ -388,7 +398,7 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
 
     protected NopException newError(ErrorCode errorCode) {
         return new OrmException(errorCode).param(ARG_COLLECTION_NAME, collectionName)
-                .param(ARG_OWNER, owner).param(ARG_OWNER_PROP, refPropName);
+                .param(ARG_OWNER, owner).param(ARG_OWNER_PROP, orm_refPropName());
     }
 
     public void orm_markDirty() {
@@ -460,6 +470,7 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
             }
         }
 
+        String refPropName = orm_refPropName();
         // 绑定owner属性
         if (refPropName != null) {
             bindOwner(e);
@@ -483,13 +494,13 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
     }
 
     private IEntityRelationModel getRelationModel() {
-        if (relationModel != null)
-            return relationModel;
+        if (_relationModel != null)
+            return _relationModel;
         IEntityModel entityModel = owner.orm_entityModel();
         if (entityModel == null)
             return null;
-        relationModel = entityModel.getRelation(this.propName, false);
-        return relationModel;
+        _relationModel = entityModel.getRelation(this.propName, false);
+        return _relationModel;
     }
 
     private void bindOwnerProps(T e) {
@@ -506,6 +517,8 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
     }
 
     private void bindOwner(IOrmEntity e) {
+        String refPropName = orm_refPropName();
+
         if (e.orm_refLoaded(refPropName) || !e.orm_state().isUnsaved()) {
             IOrmEntity elmOwner = e.orm_refEntity(refPropName);
             if (elmOwner == null) {
