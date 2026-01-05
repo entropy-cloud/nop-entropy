@@ -36,16 +36,17 @@ public class TestNotifyTemplateExtFields extends JunitBaseTestCase {
     public void testExtFields() {
         IEntityDao<NopSysNoticeTemplate> dao = daoProvider.daoFor(NopSysNoticeTemplate.class);
 
-        NopSysNoticeTemplate entity = dao.newEntity();
-        entity.setContent("test content");
-        entity.setName("tpl1");
-        entity.setTplType("test");
-        entity.getExtFields().prop_set("fldA", "123");
-        // 别名的作用
-        assertEquals("123", entity.prop_get("extFldA"));
+        ormTemplate.runInSession(()->{
+            NopSysNoticeTemplate entity = dao.newEntity();
+            entity.setContent("test content");
+            entity.setName("tpl1");
+            entity.setTplType("test");
+            entity.getExtFields().prop_set("fldA", "123");
+            // 别名的作用
+            assertEquals("123", entity.prop_get("extFldA"));
+            dao.saveEntity(entity);
+        });
 
-
-        dao.saveEntity(entity);
 
         ormTemplate.runInSession(() -> {
             QueryBean query = new QueryBean();

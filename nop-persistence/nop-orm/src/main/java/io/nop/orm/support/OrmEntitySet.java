@@ -144,6 +144,9 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
             bindOwnerProps((T) entity);
         } else {
             entity = enhancer.newEntity(refEntityName);
+            if(!owner.orm_hasId()){
+                enhancer.initEntityId(owner);
+            }
 
             if (refPropName != null) {
                 entity.orm_propValueByName(refPropName, owner);
@@ -451,8 +454,10 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
                 e.orm_attach(enhancer);
             if (e.orm_entityModel() == null)
                 e.orm_entityModel(enhancer.getEntityModel(e.orm_entityName()));
-//            if (e.orm_state() == OrmEntityState.TRANSIENT)
-//                e.orm_enhancer().initEntityId(e);
+
+            if (!owner.orm_hasId()) {
+                enhancer.initEntityId(owner);
+            }
         }
 
         // 绑定owner属性
@@ -491,6 +496,7 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
         IEntityRelationModel relModel = getRelationModel();
         if (relModel == null)
             return;
+
         for (IEntityJoinConditionModel cond : relModel.getJoin()) {
             if (cond.getRightProp() != null) {
                 Object value = OrmEntityHelper.getLeftValue(cond, owner);
