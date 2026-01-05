@@ -60,6 +60,7 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
     }
 
     private static class MapSchemaData {
+        String keyAttr;
         ISchema valueSchema;
 
         void appendTo(XNode node, Map<ISchemaNode, XNode> nodeRefs) {
@@ -73,6 +74,7 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
         public MapSchemaData cloneInstance() {
             MapSchemaData ret = new MapSchemaData();
             ret.valueSchema = valueSchema;
+            ret.keyAttr = keyAttr;
             return ret;
         }
     }
@@ -293,12 +295,12 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
                 node.setAttr(node.getLocation(), "multipleOf", multipleOf);
             }
 
-            if(minValue != null){
-                node.setAttr(node.getLocation(),"minValue",minValue);
+            if (minValue != null) {
+                node.setAttr(node.getLocation(), "minValue", minValue);
             }
 
-            if(maxValue != null){
-                node.setAttr(node.getLocation(),"maxValue",maxValue);
+            if (maxValue != null) {
+                node.setAttr(node.getLocation(), "maxValue", maxValue);
             }
         }
     }
@@ -435,7 +437,9 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
 
     @Override
     public String getKeyAttr() {
-        return listSchema == null ? null : listSchema.getKeyAttr();
+        if (listSchema != null)
+            return listSchema.getKeyAttr();
+        return null;
     }
 
     @Override
@@ -489,6 +493,19 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
         if (valueSchema == null && mapSchema == null)
             return;
         makeMapSchemaData().valueSchema = valueSchema;
+    }
+
+    public String getMapKeyAttr(){
+        checkAllowChange();
+        return mapSchema == null ? null : mapSchema.keyAttr;
+    }
+
+    public void setMapKeyAttr(String keyAttr) {
+        checkAllowChange();
+        if (keyAttr == null && mapSchema == null)
+            return;
+
+        makeMapSchemaData().keyAttr = keyAttr;
     }
 
     @Override
