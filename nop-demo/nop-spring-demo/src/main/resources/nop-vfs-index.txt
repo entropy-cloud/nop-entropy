@@ -1,3 +1,5 @@
+/_delta/default/nop/spring/beans/spring-demo.beans.xml
+/_delta/default/nop/spring/mapper/SysUser.mapper.xml
 /dict/auth/gender.dict.yaml
 /dict/auth/login-status.dict.yaml
 /dict/auth/login-type.dict.yaml
@@ -482,6 +484,9 @@
 /nop/schema/xui/xview.xdef
 /nop/spring/_module
 /nop/spring/beans/spring-base.beans.xml
+/nop/spring/beans/spring-demo.beans.xml
+/nop/spring/mapper/SysUser.mapper.xml
+/nop/spring/mapper/_gen/_SysUser.mapper.xml
 /nop/spring/schema/mapper.xdef
 /nop/sys/_module
 /nop/sys/auth/_nop-sys.action-auth.xml
@@ -745,7 +750,6 @@
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/{metaInfo.objName}.view.xml.xgen
 /nop/templates/orm/.dockerignore
 /nop/templates/orm/.gitattributes
-/nop/templates/orm/.gitignore
 /nop/templates/orm/@init.xrun
 /nop/templates/orm/deploy/sql/{dialect}/_add_tenant_{appName}.sql.xgen
 /nop/templates/orm/deploy/sql/{dialect}/_create_{appName}.sql.xgen

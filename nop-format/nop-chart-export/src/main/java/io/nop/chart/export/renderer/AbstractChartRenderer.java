@@ -90,15 +90,18 @@ public abstract class AbstractChartRenderer implements IChartTypeRenderer {
      */
     protected CategoryDataset createCategoryDataset(List<ChartDataSet> dataSets) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        
+
+        int index = 1;
         for (ChartDataSet dataSet : dataSets) {
-            String seriesName = dataSet.getName() != null ? dataSet.getName() : "Series";
+            String seriesName = dataSet.getName() != null ? dataSet.getName() : "Series" + index;
             List<Number> values = dataSet.getValues();
             List<Object> categories = dataSet.getCategories();
             
             if (values == null || values.isEmpty()) {
                 continue;
             }
+
+            index ++;
             
             // 如果没有分类，使用索引
             if (categories == null || categories.isEmpty()) {

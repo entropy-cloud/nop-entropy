@@ -96,16 +96,16 @@ public class LineChartRenderer extends AbstractChartRenderer {
             LineAndShapeRenderer lineRenderer = (LineAndShapeRenderer) renderer;
             
             // 应用标记点设置
-            boolean showMarkers = Boolean.TRUE.equals(lineConfig.getMarker());
-            lineRenderer.setDefaultShapesVisible(showMarkers);
-            
-            if (showMarkers) {
-                // 设置标记点形状
-                Shape markerShape = new Ellipse2D.Double(-3, -3, 6, 6);
-                for (int i = 0; i < 10; i++) { // 设置前10个系列
-                    lineRenderer.setSeriesShape(i, markerShape);
-                }
-            }
+//            boolean showMarkers = Boolean.TRUE.equals(lineConfig.getMarker());
+//            lineRenderer.setDefaultShapesVisible(showMarkers);
+//
+//            if (showMarkers) {
+//                // 设置标记点形状
+//                Shape markerShape = new Ellipse2D.Double(-3, -3, 6, 6);
+//                for (int i = 0; i < 10; i++) { // 设置前10个系列
+//                    lineRenderer.setSeriesShape(i, markerShape);
+//                }
+//            }
             
             // 应用平滑曲线设置
             // JFreeChart没有直接的平滑曲线支持，这里记录配置
