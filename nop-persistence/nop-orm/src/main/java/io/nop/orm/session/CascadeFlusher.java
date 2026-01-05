@@ -295,6 +295,8 @@ public class CascadeFlusher {
     }
 
     void cascadeCollection(IOrmEntitySet coll, boolean parentCascadeDelete) {
+        if(coll.orm_readonly())
+            return;
         IEntityRelationModel rel = session.getCollectionModel(coll.orm_collectionName());
 
         if (!coll.orm_proxy()) {
