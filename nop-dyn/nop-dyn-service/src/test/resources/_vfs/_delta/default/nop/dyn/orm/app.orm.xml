@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm x:schema="/nop/schema/orm/orm.xdef" x:extends="super" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:xpl="/nop/schema/xpl.xdef">
+
+    <entities>
+
+        <!--
+            必须将tagSet设置为空，去除继承的use-ext-field标签
+        -->
+        <entity name="io.nop.dyn.dao.entity.NopDynEntity" >
+           <aliases>
+               <alias name="extFldA" propPath="extFields.fldA.string" type="String"/>
+           </aliases>
+        </entity>
+    </entities>
+</orm>

@@ -7,6 +7,8 @@
  */
 package io.nop.orm.dao;
 
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.app.SimsCollege;
 import io.nop.app.SimsExam;
 import io.nop.core.lang.sql.SQL;
@@ -52,6 +54,10 @@ public class TestExtFields extends AbstractOrmTestCase {
         orm().runInSession(() -> {
             SimsExam exam = dao.getEntityById("100");
             assertEquals(3, BeanTool.getComplexProperty(exam, "ext.测试参数2.int"));
+
+            QueryBean query = new QueryBean();
+            query.addFilter(FilterBeans.eq("extFldA", 3));
+            dao.findAllByQuery(query);
         });
 
     }

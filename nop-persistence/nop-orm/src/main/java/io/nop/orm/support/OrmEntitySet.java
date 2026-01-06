@@ -258,6 +258,12 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
     }
 
     private IOrmEntity newElement() {
+        IOrmEntityEnhancer enhancer = orm_enhancer();
+        if (enhancer != null) {
+            String refEntityName = orm_refEntityName();
+            return enhancer.newEntity(refEntityName);
+        }
+
         return (IOrmEntity) ClassHelper.newInstance(refEntityClass);
     }
 
