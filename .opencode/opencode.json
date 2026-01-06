@@ -1,0 +1,45 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "share": "disabled",
+  "lsp": {
+    "jdtls": {
+      "disabled": false,
+      "command": [],
+      "extensions": [".java"],
+      "initialization": {
+        "settings": {
+          "java": {
+            "configuration": {
+              "updateBuildConfiguration": "interactive"
+            },
+            "format": {
+              "enabled": true
+            },
+            "completion": {
+              "favoriteStaticMembers": [
+                "org.junit.Assert.*",
+                "org.junit.Assume.*",
+                "org.junit.jupiter.api.Assertions.*",
+                "org.junit.jupiter.api.Assumptions.*",
+                "org.junit.jupiter.api.DynamicContainer.*",
+                "org.junit.jupiter.api.DynamicTest.*",
+                "org.mockito.Mockito.*",
+                "org.mockito.ArgumentMatchers.*",
+                "org.mockito.Answers.*"
+              ]
+            },
+            "codeGeneration": {
+              "toString": {
+                "template": "${object.className}{${member.name()}=${member.value}, ${otherMembers}}"
+              },
+              "hashCodeEquals": {
+                "useJava7Objects": true
+              },
+              "useBlocks": true
+            }
+          }
+        }
+      }
+    }
+  }
+}
