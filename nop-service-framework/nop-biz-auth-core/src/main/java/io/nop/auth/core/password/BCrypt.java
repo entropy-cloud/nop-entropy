@@ -54,6 +54,7 @@ import java.security.SecureRandom;
  *
  * @author Damien Miller
  */
+@SuppressWarnings("checkstyle")
 public class BCrypt {
     // BCrypt parameters
 

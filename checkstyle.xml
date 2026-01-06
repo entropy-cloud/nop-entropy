@@ -43,7 +43,7 @@
         </module>
 
         <module name="ConstantName">
-            <property name="format" value="^[A-Z_][A-Z0-9_]*$|PROP\_NAME\_*"/>
+            <property name="format" value="^[A-Z_][A-Z0-9_]*$|PROP\_NAME\_*|BEAN\_*|ACTION\_*"/>
 
              <property name="applyToPublic" value="true"/>
              <property name="applyToProtected" value="false"/>
