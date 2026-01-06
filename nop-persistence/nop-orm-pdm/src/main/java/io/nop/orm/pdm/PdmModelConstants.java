@@ -118,7 +118,7 @@ interface PdmModelConstants {
     String COLUMN1_NAME = "Column1";
     String COLUMN2_NAME = "Column2";
 
-    String INTERNAL_ID_POSTFIX = "_id";
+    String _ID_POSTFIX = "_id";
     String ID_POSTFIX = "id";
 
     String STEREOTYPE_BASIC = "basic";

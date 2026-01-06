@@ -18,7 +18,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class ExprXPathValueSelector<E> implements IXPathValueSelector<E, Object> {
-    static final SourceLocation S_LOC = SourceLocation.fromClass(ExprXPathValueSelector.class);
+    static final SourceLocation s_loc = SourceLocation.fromClass(ExprXPathValueSelector.class);
     private static final long serialVersionUID = 1333520915181347664L;
 
     private final IEvalAction expr;

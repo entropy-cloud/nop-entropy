@@ -29,10 +29,10 @@ import static io.nop.core.lang.json.delta.DeltaMergeHelper.containsUniqueKey;
  * List中的元素如果含有id/name等唯一key属性，则按照key查找到匹配项，然后进行合并，否则执行追加操作。 3. 其他情况直接覆盖
  */
 public class JsonMerger {
-    private static final JsonMerger _INSTANCE = new JsonMerger();
+    private static final JsonMerger _instance = new JsonMerger();
 
     public static JsonMerger instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     public Object merge(Object objA, Object objB) {

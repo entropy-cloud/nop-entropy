@@ -16,10 +16,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @GlobalInstance
 public class StdDomainRegistry implements IStdDomainRegistry {
-    static final StdDomainRegistry _INSTANCE = new StdDomainRegistry();
+    static final StdDomainRegistry _instance = new StdDomainRegistry();
 
     public static StdDomainRegistry instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     private final Map<String, IStdDomainHandler> domainHandlers = new ConcurrentHashMap<>();

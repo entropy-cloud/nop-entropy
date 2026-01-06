@@ -18,7 +18,7 @@ import java.util.Map;
  * 从System.getenv()装载的配置。环境变量名会按照一定的规则映射到配置变量名， 参见{@link StringHelper#envToConfigVar(String)}
  */
 public class EnvConfigSourceLoader implements IConfigSourceLoader {
-    private static final SourceLocation S_LOC = SourceLocation.fromClass(EnvConfigSourceLoader.class);
+    private static final SourceLocation s_loc = SourceLocation.fromClass(EnvConfigSourceLoader.class);
 
     @Override
     public IConfigSource loadConfigSource(IConfigSource config) {
@@ -29,7 +29,7 @@ public class EnvConfigSourceLoader implements IConfigSourceLoader {
                 continue;
 
             String value = entry.getValue();
-            ret.put(name, ValueWithLocation.of(S_LOC, value));
+            ret.put(name, ValueWithLocation.of(s_loc, value));
         }
         return new StaticConfigSource("env", ret);
     }

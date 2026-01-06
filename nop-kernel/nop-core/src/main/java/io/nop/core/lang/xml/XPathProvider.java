@@ -15,7 +15,7 @@ import static io.nop.core.CoreConfigs.CFG_XPATH_CACHE_SIZE;
 import static io.nop.core.CoreErrors.ERR_XML_NO_XPATH_PROVIDER;
 
 public abstract class XPathProvider {
-    static XPathProvider _INSTANCE;
+    static XPathProvider _instance;
 
     private LocalCache<String, IXSelector<XNode>> cache;
 
@@ -28,13 +28,13 @@ public abstract class XPathProvider {
     }
 
     public static XPathProvider instance() {
-        if (_INSTANCE == null)
+        if (_instance == null)
             throw new NopException(ERR_XML_NO_XPATH_PROVIDER);
-        return _INSTANCE;
+        return _instance;
     }
 
     public static void registerInstance(XPathProvider provider) {
-        _INSTANCE = provider;
+        _instance = provider;
     }
 
     public IXSelector<XNode> compileWithCache(String xpath) {

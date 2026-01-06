@@ -34,14 +34,14 @@ import static io.nop.core.CoreErrors.ERR_REFLECT_UNKNOWN_BEAN_CLASS;
 
 @GlobalInstance
 public class BeanTool {
-    private static IBeanTool _INSTANCE = new BeanToolImpl(ReflectionManager.instance());
+    private static IBeanTool _instance = new BeanToolImpl(ReflectionManager.instance());
 
     public static IBeanTool instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     public static void registerInstance(IBeanTool tool) {
-        _INSTANCE = tool;
+        _instance = tool;
     }
 
     public static IGenericType getGenericType(Type type) {

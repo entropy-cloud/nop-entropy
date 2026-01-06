@@ -486,14 +486,14 @@ public class XDefToObjMeta {
     }
 
     private ISchema toListSchema(SchemaImpl schema, IXDefNode node) {
-        String keyProp = node.getXdefKeyProp();
-        if (keyProp != null) {
-            schema.setKeyProp(keyProp);
+        String keyAttr = node.getXdefKeyAttr();
+        if (keyAttr != null) {
+            schema.setKeyProp(StringHelper.xmlNameToPropName(keyAttr));
         }
 
-        String orderProp = node.getXdefOrderProp();
-        if (orderProp != null) {
-            schema.setOrderProp(orderProp);
+        String orderAttr = node.getXdefOrderAttr();
+        if (orderAttr != null) {
+            schema.setOrderProp(StringHelper.xmlNameToPropName(orderAttr));
         }
 
         if (!node.hasChild()) {
@@ -552,8 +552,6 @@ public class XDefToObjMeta {
         if (!node.hasChild()) {
             throw new NopException(ERR_XDEF_MAP_NO_CHILD).source(node);
         }
-
-        schema.setMapKeyAttr(node.getXdefKeyAttr());
 
         IXDefNode child = getUniqueChild(node);
         if (child != null) {

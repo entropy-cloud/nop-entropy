@@ -9,8 +9,8 @@ import static io.nop.api.core.config.AppConfig.varRef;
 
 @Locale("zh-CN")
 public interface HttpApiConfigs {
-    SourceLocation S_LOC = SourceLocation.fromClass(HttpApiConfigs.class);
+    SourceLocation s_loc = SourceLocation.fromClass(HttpApiConfigs.class);
 
     @Description("是否打印所有header")
-    IConfigReference<Boolean> CFG_HTTP_LOG_PRINT_ALL_HEADERS = varRef(S_LOC, "nop.http.log.print-all-headers", Boolean.class, false);
+    IConfigReference<Boolean> CFG_HTTP_LOG_PRINT_ALL_HEADERS = varRef(s_loc, "nop.http.log.print-all-headers", Boolean.class, false);
 }

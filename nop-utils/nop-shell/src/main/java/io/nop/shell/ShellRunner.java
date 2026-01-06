@@ -40,7 +40,7 @@ public class ShellRunner implements IShellRunner {
     /**
      * Windows CreateProcess synchronization object
      */
-    public static final Object WINDOWS_PROCESS_LAUNCH_LOCK = new Object();
+    public static final Object WindowsProcessLaunchLock = new Object();
 
     static final Logger LOG = LoggerFactory.getLogger(ShellRunner.class);
 
@@ -220,7 +220,7 @@ public class ShellRunner implements IShellRunner {
         Process process;
 
         if (PlatformEnv.isWindows()) {
-            synchronized (WINDOWS_PROCESS_LAUNCH_LOCK) {
+            synchronized (WindowsProcessLaunchLock) {
                 // To workaround the race condition issue with child processes
                 // inheriting unintended handles during process launch that can
                 // lead to hangs on reading output and error streams, we

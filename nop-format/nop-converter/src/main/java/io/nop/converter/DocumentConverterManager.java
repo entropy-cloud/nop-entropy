@@ -26,7 +26,7 @@ import static io.nop.converter.DocConvertErrors.ERR_NO_DOCUMENT_OBJECT_BUILDER;
 public class DocumentConverterManager implements IDocumentConverterManager {
     static final Logger LOG = LoggerFactory.getLogger(DocumentConverterManager.class);
 
-    static DocumentConverterManager _INSTANCE = new DocumentConverterManager();
+    static DocumentConverterManager _instance = new DocumentConverterManager();
 
     private final Map<String, Map<String, IDocumentConverter>> converters = new HashMap<>();
 
@@ -36,11 +36,11 @@ public class DocumentConverterManager implements IDocumentConverterManager {
     private final Map<String, IDocumentObjectBuilder> documentObjectBuilders = new HashMap<>();
 
     public static DocumentConverterManager instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     public static void registerInstance(DocumentConverterManager instance) {
-        _INSTANCE = instance;
+        _instance = instance;
     }
 
     @Override

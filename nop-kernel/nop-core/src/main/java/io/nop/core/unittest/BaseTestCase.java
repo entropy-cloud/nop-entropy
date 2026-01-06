@@ -43,7 +43,7 @@ import static io.nop.api.core.ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE;
  * attachmentXXX方法提供了从测试类所在目录读取文件的能力
  */
 public class BaseTestCase {
-    static final SourceLocation S_LOC = SourceLocation.fromClass(BaseTestCase.class);
+    static final SourceLocation s_loc = SourceLocation.fromClass(BaseTestCase.class);
     private File attachmentDir;
     private File targetDir;
 

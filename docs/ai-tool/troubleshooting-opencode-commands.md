@@ -291,21 +291,6 @@ openspec init --tools opencode
 # 重启 OpenCode
 ```
 
-## 13. 联系支持
-
-如果以上所有步骤都无法解决问题：
-
-1. 收集以下信息：
-   - OpenCode 版本
-   - OpenSpec 版本（`openspec --version`）
-   - 操作系统版本
-   - 命令文件内容
-   - OpenCode 日志中的错误信息
-
-2. 提交问题：
-   - Nop Platform GitHub Issues: https://github.com/entropy-cloud/nop-entropy/issues
-   - 或联系 OpenCode 支持
-
 ## 验证步骤
 
 完成以上步骤后，验证命令是否可用：

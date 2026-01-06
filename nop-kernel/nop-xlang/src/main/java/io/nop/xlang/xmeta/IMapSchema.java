@@ -8,7 +8,5 @@
 package io.nop.xlang.xmeta;
 
 public interface IMapSchema extends ISchemaNode {
-    String getMapKeyAttr();
-
     ISchema getMapValueSchema();
 }

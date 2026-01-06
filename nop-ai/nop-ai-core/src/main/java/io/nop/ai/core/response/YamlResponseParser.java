@@ -7,14 +7,14 @@ import io.nop.core.lang.json.JsonTool;
 import java.util.Map;
 
 public class YamlResponseParser {
-    static YamlResponseParser _INSTANCE = new YamlResponseParser();
+    static YamlResponseParser _instance = new YamlResponseParser();
 
     public static YamlResponseParser instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     public static void registerInstance(YamlResponseParser instance) {
-        _INSTANCE = instance;
+        _instance = instance;
     }
 
     public Map<String, Object> parseResponse(String content) {

@@ -21,20 +21,20 @@ import static io.nop.xlang.XLangConstants.XPATH_OPERATOR_XML;
 
 @GlobalInstance
 public class XPathOperatorRegistry implements IXPathOperatorProvider {
-    static final XPathOperatorRegistry _INSTANCE = new XPathOperatorRegistry();
+    static final XPathOperatorRegistry _instance = new XPathOperatorRegistry();
 
     static {
-        _INSTANCE.registerOperator(XPATH_OPERATOR_INNER_XML, InnerXmlOperator.INSTANCE);
-        _INSTANCE.registerOperator(XPATH_OPERATOR_XML, OuterXmlOperator.INSTANCE);
-        _INSTANCE.registerOperator(XPATH_OPERATOR_TAG, TagOperator.INSTANCE);
-        _INSTANCE.registerOperator(XPATH_OPERATOR_VALUE, ValueOperator.INSTANCE);
-        _INSTANCE.registerOperator(XPATH_OPERATOR_TEXT, TextOperator.INSTANCE);
+        _instance.registerOperator(XPATH_OPERATOR_INNER_XML, InnerXmlOperator.INSTANCE);
+        _instance.registerOperator(XPATH_OPERATOR_XML, OuterXmlOperator.INSTANCE);
+        _instance.registerOperator(XPATH_OPERATOR_TAG, TagOperator.INSTANCE);
+        _instance.registerOperator(XPATH_OPERATOR_VALUE, ValueOperator.INSTANCE);
+        _instance.registerOperator(XPATH_OPERATOR_TEXT, TextOperator.INSTANCE);
     }
 
     private final Map<String, IXPathOperator> operators = new ConcurrentHashMap<>();
 
     public static XPathOperatorRegistry instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     public void registerOperator(String name, IXPathOperator operator) {

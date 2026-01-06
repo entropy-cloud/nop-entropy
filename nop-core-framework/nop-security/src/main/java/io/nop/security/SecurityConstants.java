@@ -19,5 +19,5 @@ public interface SecurityConstants {
     String PRIVATE_KEY_POSTFIX = "_pri";
     String PUBLIC_KEY_POSTFIX = "_pub";
 
-    String ALG_SHA256_WITH_RSA = "SHA256withRSA";
+    String ALG_SHA256withRSA = "SHA256withRSA";
 }

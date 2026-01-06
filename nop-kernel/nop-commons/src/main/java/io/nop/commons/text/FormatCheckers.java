@@ -21,10 +21,10 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 public class FormatCheckers {
-    static final FormatCheckers _INSTANCE = new FormatCheckers();
+    static final FormatCheckers _instance = new FormatCheckers();
 
     public static FormatCheckers instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     Map<String, Predicate<String>> checkers = new HashMap<>();

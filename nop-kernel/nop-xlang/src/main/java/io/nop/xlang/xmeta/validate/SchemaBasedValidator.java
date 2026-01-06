@@ -35,10 +35,10 @@ import static io.nop.xlang.XLangErrors.ERR_SCHEMA_PROP_VALUE_NOT_IN_DICT;
 import static io.nop.xlang.XLangErrors.ERR_SCHEMA_PROP_VALUE_NOT_MAP;
 
 public class SchemaBasedValidator {
-    static SchemaBasedValidator _INSTANCE = new SchemaBasedValidator();
+    static SchemaBasedValidator _instance = new SchemaBasedValidator();
 
     public static SchemaBasedValidator instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     public void validate(ISchema schema, String bizObjName, String propName, Object value, FieldSelectionBean selection,

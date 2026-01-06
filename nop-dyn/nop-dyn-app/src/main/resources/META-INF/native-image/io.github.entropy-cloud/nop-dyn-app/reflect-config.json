@@ -16088,7 +16088,7 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
-        "name": "S_LOC"
+        "name": "s_loc"
       }
     ],
     "methods": [
@@ -23162,7 +23162,7 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
-        "name": "S_LOC"
+        "name": "s_loc"
       }
     ],
     "methods": [
@@ -44373,7 +44373,7 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": true,
-        "name": "_INSTANCE"
+        "name": "_instance"
       }
     ],
     "methods": [

@@ -133,7 +133,7 @@ import static io.nop.orm.pdm.PdmModelConstants.VIEW_REFERENCE_JOINS_NAME;
 import static io.nop.orm.pdm.PdmModelConstants.VIEW_REFERENCE_JOIN_NAME;
 import static io.nop.orm.pdm.PdmModelConstants.VIEW_REFERENCE_NAME;
 import static io.nop.orm.pdm.PdmModelConstants.VIEW_SQLQUERY_NAME;
-import static io.nop.orm.pdm.PdmModelConstants.INTERNAL_ID_POSTFIX;
+import static io.nop.orm.pdm.PdmModelConstants._ID_POSTFIX;
 
 public class PdmModelParser extends AbstractResourceParser<OrmModel> {
     final Logger LOG = LoggerFactory.getLogger(PdmModelParser.class);
@@ -931,8 +931,8 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
             return getTablePropName(rel.getRefEntityModel());
         }
         String refName;
-        if (StringHelper.endsWithIgnoreCase(name, INTERNAL_ID_POSTFIX) && name.length() > INTERNAL_ID_POSTFIX.length()) {
-            refName = name.substring(0, name.length() - INTERNAL_ID_POSTFIX.length());
+        if (StringHelper.endsWithIgnoreCase(name, _ID_POSTFIX) && name.length() > _ID_POSTFIX.length()) {
+            refName = name.substring(0, name.length() - _ID_POSTFIX.length());
         } else {
             refName = name + "_obj";
         }
@@ -1230,10 +1230,10 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
     }
 
     void addJoin(OrmReferenceModel rel, XNode node, boolean view) {
-        String joinsKey = view ? VIEW_REFERENCE_JOINS_NAME : JOINS_NAME;
-        String joinKey = view ? VIEW_REFERENCE_JOIN_NAME : REFERENCE_JOIN_NAME;
+        String JOINS_KEY = view ? VIEW_REFERENCE_JOINS_NAME : JOINS_NAME;
+        String JOIN_KEY = view ? VIEW_REFERENCE_JOIN_NAME : REFERENCE_JOIN_NAME;
 
-        XNode joinsN = node.element(joinsKey);
+        XNode joinsN = node.element(JOINS_KEY);
         if (joinsN == null) {
             return;
         }
@@ -1242,7 +1242,7 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
 
         List<OrmColumnModel> relCols = new ArrayList<>(joinsN.getChildCount());
 
-        for (XNode refJoinN : joinsN.elements(joinKey)) {
+        for (XNode refJoinN : joinsN.elements(JOIN_KEY)) {
             XNode objectOne = refJoinN.element(OBJECT1_NAME);
             if (objectOne == null)
                 objectOne = refJoinN.element(COLUMN1_NAME);

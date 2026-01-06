@@ -5,76 +5,156 @@
 
 <!--
   Checkstyle Configuration for Nop Platform
-  All messages customized to English to avoid i18n issues
+  Code quality check rules based on project coding standards
 -->
 <module name="Checker">
 
+    <!-- Property definitions -->
     <property name="charset" value="UTF-8"/>
     <property name="severity" value="warning"/>
     <property name="fileExtensions" value="java, properties, xml"/>
 
-    <module name="SuppressWarningsFilter"/>
-    <module name="BeforeExecutionExclusionFileFilter">
-        <property name="fileNamePattern" value="module\-info\.java$"/>
+       <!-- Empty block checks -->
+    <module name="EmptyBlock">
+        <property name="option" value="text"/>
     </module>
 
-    <module name="TreeWalker">
+    <!-- Code block checks -->
+    <module name="LeftCurly">
+        <property name="option" value="eol"/>
+        <message key="line.previous" value="'{' should be at the end of the line"/>
+    </module>
 
-        <!-- Naming Convention Checks -->
+    <module name="RightCurly">
+        <property name="option" value="alone"/>
+        <message key="line.alone" value="'}' should be alone on a line"/>
+    </module>
+
+    <module name="NeedBraces">
+        <property name="allowSingleLineStatement" value="false"/>
+        <property name="allowEmptyLoopBody" value="false"/>
+        <property name="tokens" value="LITERAL_IF, LITERAL_ELSE, LITERAL_FOR, LITERAL_WHILE, LITERAL_DO"/>
+    </module>
+
+   
+    <!-- Naming convention checks -->
+    <module name="Naming">
+        <!-- Class names: PascalCase -->
         <module name="TypeName">
-            <property name="format" value="^[A-Z_][a-zA-Z0-9]*$"/>
-            <message key="name.invalidPattern" value="Class name ''{0}'' must match pattern ''{1}''"/>
+            <property name="format" value="^[A-Z][a-zA-Z0-9]*$"/>
+            <message key="name.invalidPattern" value="Class name ''{0}'' should follow PascalCase format"/>
         </module>
 
+        <!-- Method names: camelCase -->
         <module name="MethodName">
-            <!-- 允许大写字母开头的方法名（用于特殊函数） -->
-            <property name="format" value="^[a-z_][a-zA-Z0-9_]*$|^[A-Z][A-Z0-9_]*$"/>
-            <message key="name.invalidPattern" value="Method name ''{0}'' must match pattern ''{1}''"/>
+            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+            <message key="name.invalidPattern" value="Method name ''{0}'' should follow camelCase format"/>
         </module>
 
+        <!-- Variable names: camelCase -->
+        <module name="LocalVariableName">
+            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+            <message key="name.invalidPattern" value="Variable name ''{0}'' should follow camelCase format"/>
+        </module>
+
+        <!-- Constant names: UPPER_SNAKE_CASE -->
+        <module name="ConstantName">
+            <property name="format" value="^[A-Z][A-Z0-9_]*$"/>
+            <message key="name.invalidPattern" value="Constant name ''{0}'' should follow UPPER_SNAKE_CASE format"/>
+        </module>
+
+        <!-- Parameter names: camelCase -->
         <module name="ParameterName">
             <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
-            <message key="name.invalidPattern" value="Parameter name ''{0}'' must match pattern ''{1}''"/>
+            <message key="name.invalidPattern" value="Parameter name ''{0}'' should follow camelCase format"/>
         </module>
+    </module>
 
-        <module name="LocalVariableName">
-            <property name="format" value="^[a-z_][a-zA-Z0-9]*$"/>
-            <message key="name.invalidPattern" value="Local variable name ''{0}'' must match pattern ''{1}''"/>
-        </module>
+    <!-- Import checks -->
+    <module name="UnusedImports"/>
+    <module name="RedundantImport"/>
+    <module name="AvoidStarImport">
+        <message key="import.avoidStar" value="Avoid using star import statements"/>
+    </module>
 
-        <module name="ConstantName">
-            <property name="format" value="^[A-Z_][A-Z0-9_]*$|PROP\_NAME\_*|BEAN\_*|ACTION\_*"/>
+    <module name="MissingDeprecated">
+        <property name="skipJavadoc" value="false"/>
+    </module>
 
-             <property name="applyToPublic" value="true"/>
-             <property name="applyToProtected" value="false"/>
-             <property name="applyToPackage" value="true"/>
-             <property name="applyToPrivate" value="false"/>
-            <message key="name.invalidPattern" value="Constant name ''{0}'' must match pattern ''{1}''"/>
-        </module>
+    <!-- Code complexity checks -->
+    <module name="CyclomaticComplexity">
+        <property name="max" value="10"/>
+        <property name="switchMax" value="10"/>
+        <message key="cyclomaticComplexity" value="Cyclomatic complexity is {0}, recommended maximum is 10"/>
+    </module>
 
-        <!-- Import Checks -->
-        <module name="RedundantImport">
-            <message key="import.duplicate" value="Redundant import - {0}"/>
-        </module>
+    <module name="JavaNCSS">
+        <property name="methodMaximum" value="50"/>
+        <property name="classMaximum" value="500"/>
+        <message key="ncs.method" value="Method non-commented source statement count is {0}, recommended maximum is 50"/>
+    </module>
 
-        <module name="AvoidStarImport">
-            <message key="import.avoidStar" value="Avoid using star import statements"/>
-        </module>
+    <!-- Code duplication checks -->
+    <module name="RegexpSingleline">
+        <property name="format" value="System\.out\.println"/>
+        <property name="message" value="Please use SLF4J logging framework instead of System.out.println"/>
+    </module>
 
-        <!-- Best Practices -->
-        <module name="EqualsHashCode">
-            <message key="equals.noHashCode" value="Definition of ''equals()'' without corresponding definition of ''hashCode()''"/>
-            <message key="equals.noEquals" value="Definition of ''hashCode()'' without corresponding definition of ''equals()''"/>
-        </module>
+    <module name="RegexpSingleline">
+        <property name="format" value="System\.err\.println"/>
+        <property name="message" value="Please use SLF4J logging framework instead of System.err.println"/>
+    </module>
 
-        <module name="DefaultComesLast">
-            <message key="default.comes.last" value="Default should be last label in switch"/>
-        </module>
+    <!-- Equals and hashCode checks -->
+    <module name="CovariantEquals"/>
 
-        <module name="FallThrough">
-            <message key="fall.through" value="Fall through from previous case"/>
-        </module>
+    <!-- Finalizer checks -->
+    <module name="NoFinalizer"/>
 
+    <!-- Magic numbers and strings checks -->
+    <module name="MagicNumber">
+        <property name="ignoreNumbers" value="-1, 0, 1, 2"/>
+        <property name="ignoreHashCodeMethod" value="true"/>
+        <property name="ignoreEqualsMethod" value="true"/>
+        <message key="magic.number" value="Please define a constant for number {0}"/>
+    </module>
+
+    <module name="StringLiteralEquality">
+        <message key="string.literal.equality" value="String comparison should use equals() method instead of =="/>
+    </module>
+
+    <!-- Exception handling checks -->
+    <module name="EmptyCatch">
+        <property name="exceptionVariableName" value="expected"/>
+        <message key="catch.block.empty" value="Catch block should not be empty"/>
+    </module>
+
+    <module name="IllegalThrows">
+        <property name="illegalClassNames" value="java.lang.Error, java.lang.RuntimeException, java.lang.Throwable, java.lang.Exception"/>
+        <message key="illegal.throws" value="Do not throw {0}, throw more specific exceptions"/>
+    </module>
+
+    <module name="IllegalToken">
+        <property name="tokens" value="LITERAL_NATIVE"/>
+        <message key="illegal.token" value="Do not use native method"/>
+    </module>
+
+
+    <!-- Size checks -->
+    <module name="MethodLength">
+        <property name="max" value="150"/>
+        <property name="countEmpty" value="false"/>
+        <message key="maxLen.method" value="Method length is {0} lines, recommended maximum is 150 lines"/>
+    </module>
+
+    <module name="ParameterNumber">
+        <property name="max" value="7"/>
+        <message key="maxParam" value="Parameter count is {0}, recommended maximum is 7 parameters"/>
+    </module>
+
+    <module name="AnonInnerLength">
+        <property name="max" value="20"/>
+        <message key="maxLen.anonInner" value="Anonymous inner class length is {0} lines, recommended maximum is 20 lines"/>
     </module>
 
 </module>

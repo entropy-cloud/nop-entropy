@@ -33,14 +33,14 @@ import static io.nop.core.CoreConfigs.CFG_JSON_PARSE_IGNORE_UNKNOWN_PROP;
 
 @GlobalInstance
 public class JsonTool {
-    private static IJsonTool _INSTANCE = new DefaultJsonTool();
+    private static IJsonTool _instance = new DefaultJsonTool();
 
     public static void registerInstance(IJsonTool tool) {
-        _INSTANCE = tool;
+        _instance = tool;
     }
 
     public static IJsonTool instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     public static Object parse(String str) {

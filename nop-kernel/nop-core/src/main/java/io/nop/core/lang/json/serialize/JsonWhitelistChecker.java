@@ -11,14 +11,14 @@ import io.nop.core.lang.json.JsonWhitelist;
 import io.nop.core.reflect.bean.IBeanModel;
 
 public class JsonWhitelistChecker {
-    private static JsonWhitelistChecker _INSTANCE = new JsonWhitelistChecker();
+    private static JsonWhitelistChecker _instance = new JsonWhitelistChecker();
 
     public static void registerInstance(JsonWhitelistChecker checker) {
-        _INSTANCE = checker;
+        _instance = checker;
     }
 
     public static JsonWhitelistChecker instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     public boolean isAllowSerialize(boolean onlyDataBean, Object bean, IBeanModel beanModel) {

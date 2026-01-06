@@ -31,12 +31,12 @@ import static io.nop.dao.DaoErrors.ERR_DAO_NO_DIALECT_FOR_DATASOURCE;
 
 @GlobalInstance
 public class DialectManager {
-    private static DialectManager _INSTANCE = new DialectManager();
+    private static DialectManager _instance = new DialectManager();
 
     private Map<String, List<DialectSelector>> dialectSelectors = new ConcurrentHashMap<>();
 
     public static DialectManager instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     public DialectManager() {

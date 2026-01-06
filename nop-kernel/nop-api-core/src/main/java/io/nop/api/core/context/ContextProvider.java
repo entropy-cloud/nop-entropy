@@ -24,16 +24,16 @@ import static io.nop.api.core.ApiErrors.ERR_CONTEXT_PROVIDER_NOT_INITIALIZED;
 
 @SuppressWarnings("PMD.TooManyStaticImports")
 public class ContextProvider {
-    private static IContextProvider _INSTANCE = new BaseContextProvider();
+    private static IContextProvider _instance = new BaseContextProvider();
 
     public static void registerInstance(IContextProvider instance) {
-        if (_INSTANCE != null && instance != null)
+        if (_instance != null && instance != null)
             throw new NopException(ERR_CONTEXT_PROVIDER_ALREADY_INITIALIZED);
-        _INSTANCE = instance;
+        _instance = instance;
     }
 
     public static IContextProvider instance() {
-        IContextProvider provider = _INSTANCE;
+        IContextProvider provider = _instance;
         if (provider == null)
             throw new NopException(ERR_CONTEXT_PROVIDER_NOT_INITIALIZED);
         return provider;
@@ -58,11 +58,11 @@ public class ContextProvider {
     }
 
     public static IContext currentContext() {
-        return _INSTANCE.currentContext();
+        return _instance.currentContext();
     }
 
     public static IContext getOrCreateContext() {
-        return _INSTANCE.getOrCreateContext();
+        return _instance.getOrCreateContext();
     }
 
     public static IContext newContext() {
@@ -70,7 +70,7 @@ public class ContextProvider {
     }
 
     public static IContext newContext(boolean attach) {
-        return _INSTANCE.newContext(attach);
+        return _instance.newContext(attach);
     }
 
     public static boolean isCallExpired() {
@@ -137,7 +137,7 @@ public class ContextProvider {
     }
 
     private static <T> T runWithProxyContext(IContext context, IContext prevContext, Supplier<T> task) {
-        IContextProvider provider = _INSTANCE;
+        IContextProvider provider = _instance;
         try {
             provider.attachContext(context);
             return task.get();
@@ -147,8 +147,8 @@ public class ContextProvider {
     }
 
     public static <T> T runWithContext(Function<IContext, T> task) {
-        IContext oldContext = _INSTANCE.currentContext();
-        IContext context = _INSTANCE.getOrCreateContext();
+        IContext oldContext = _instance.currentContext();
+        IContext context = _instance.getOrCreateContext();
         try {
             return task.apply(context);
         } finally {

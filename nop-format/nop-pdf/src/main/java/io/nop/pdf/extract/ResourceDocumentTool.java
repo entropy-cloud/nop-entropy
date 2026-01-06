@@ -22,10 +22,10 @@ import java.util.List;
  * 处理ResourceDocument的Facade帮助类
  */
 public class ResourceDocumentTool {
-    static ResourceDocumentTool _INSTANCE = new ResourceDocumentTool();
+    static ResourceDocumentTool _instance = new ResourceDocumentTool();
 
     public static ResourceDocumentTool getInstance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     List<IResourceDocumentProcessor> processors;

@@ -53,9 +53,9 @@ public class NopException extends RuntimeException implements IException {
         return desc;
     }
 
-    static final AtomicLong S_SEQUENCE = new AtomicLong();
+    static final AtomicLong s_seq = new AtomicLong();
 
-    private final long seq = S_SEQUENCE.incrementAndGet();
+    private final long seq = s_seq.incrementAndGet();
 
     private boolean bizFatal;
     private boolean notRollback;

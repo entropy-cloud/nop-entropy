@@ -3193,7 +3193,7 @@
         "name": "LOG"
       },
       {
-        "name": "S_LOC"
+        "name": "s_loc"
       }
     ],
     "methods": [
@@ -12027,7 +12027,7 @@
         "name": "resourceLoader"
       },
       {
-        "name": "S_LOC"
+        "name": "s_loc"
       }
     ],
     "methods": [
@@ -26735,7 +26735,7 @@
     "fields": [
       {
         "allowWrite": true,
-        "name": "_INSTANCE"
+        "name": "_instance"
       }
     ],
     "methods": [

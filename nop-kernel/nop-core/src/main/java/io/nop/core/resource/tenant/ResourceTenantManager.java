@@ -43,14 +43,14 @@ import static io.nop.core.CoreErrors.ERR_RESOURCE_STORE_NOT_SUPPORT_TENANT_DELTA
 public class ResourceTenantManager implements ITenantResourceStoreSupplier {
     static final Logger LOG = LoggerFactory.getLogger(ResourceTenantManager.class);
 
-    private static ResourceTenantManager _INSTANCE = new ResourceTenantManager();
+    private static ResourceTenantManager _instance = new ResourceTenantManager();
 
     public static ResourceTenantManager instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     public static void registerInstance(ResourceTenantManager instance) {
-        _INSTANCE = Guard.notNull(instance, "instance");
+        _instance = Guard.notNull(instance, "instance");
     }
 
     private Set<String> enabledTenantPaths;

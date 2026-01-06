@@ -67,14 +67,14 @@ import static io.nop.core.resource.component.version.ResourceVersionHelper.isVer
 public class ResourceComponentManager implements IResourceComponentManager, IConfigRefreshable, IResourceChangeChecker {
     static final Logger LOG = LoggerFactory.getLogger(ResourceComponentManager.class);
 
-    private static IResourceComponentManager _INSTANCE = new ResourceComponentManager(true);
+    private static IResourceComponentManager _instance = new ResourceComponentManager(true);
 
     public static IResourceComponentManager instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     public static void registerInstance(IResourceComponentManager instance) {
-        _INSTANCE = instance;
+        _instance = instance;
     }
 
     private IResourceDependencyManager dependsManager = ResourceTenantManager.instance().makeDependencyManager(this);

@@ -39491,7 +39491,7 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": true,
-        "name": "_INSTANCE"
+        "name": "_instance"
       }
     ],
     "methods": [

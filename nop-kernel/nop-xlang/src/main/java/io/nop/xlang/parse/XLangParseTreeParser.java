@@ -10,10 +10,10 @@ import io.nop.xlang.parse.antlr.XLangParser;
 import io.nop.xlang.parse.antlr.XLangLexer;
 
 public class XLangParseTreeParser extends AbstractParseTreeParser {
-    static final XLangParseTreeParser _INSTANCE = new XLangParseTreeParser();
+    static final XLangParseTreeParser _instance = new XLangParseTreeParser();
 
     public static final XLangParseTreeParser instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     @Override

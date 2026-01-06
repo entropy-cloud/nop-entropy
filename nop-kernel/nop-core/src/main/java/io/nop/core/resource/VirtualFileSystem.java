@@ -15,27 +15,27 @@ import static io.nop.core.CoreErrors.ERR_RESOURCE_VIRTUAL_FILE_SYSTEM_NOT_INITIA
 
 @GlobalInstance
 public class VirtualFileSystem {
-    private static IVirtualFileSystem _INSTANCE = null;
+    private static IVirtualFileSystem _instance = null;
 
     public static boolean isInitialized() {
-        return _INSTANCE != null;
+        return _instance != null;
     }
 
     public static IVirtualFileSystem instance() {
-        IVirtualFileSystem fs = _INSTANCE;
+        IVirtualFileSystem fs = _instance;
         if (fs == null)
             throw new NopException(ERR_RESOURCE_VIRTUAL_FILE_SYSTEM_NOT_INITIALIZED);
         return fs;
     }
 
     public static void registerInstance(IVirtualFileSystem instance) {
-        DestroyHelper.safeDestroy(_INSTANCE);
-        _INSTANCE = instance;
+        DestroyHelper.safeDestroy(_instance);
+        _instance = instance;
     }
 
     public static void unregisterInstance(IVirtualFileSystem instance) {
-        if (_INSTANCE == instance) {
-            _INSTANCE = null;
+        if (_instance == instance) {
+            _instance = null;
         }
     }
 }

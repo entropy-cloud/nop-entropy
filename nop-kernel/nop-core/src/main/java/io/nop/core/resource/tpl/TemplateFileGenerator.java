@@ -51,7 +51,7 @@ import static io.nop.core.CoreErrors.ERR_RESOURCE_TPL_NOT_EXISTS;
 
 public class TemplateFileGenerator {
     static final Logger LOG = LoggerFactory.getLogger(TemplateFileGenerator.class);
-    static final SourceLocation S_LOC = SourceLocation.fromClass(TemplateFileGenerator.class);
+    static final SourceLocation s_loc = SourceLocation.fromClass(TemplateFileGenerator.class);
 
     private final ITemplateLoader loader;
     private final String targetRootPath;
@@ -264,7 +264,7 @@ public class TemplateFileGenerator {
 
         for (INestedLoopVar loopVar : loop) {
             loopVar.forSelfAndParents(var -> {
-                scope.setLocalValue(S_LOC, var.getVarName(), var.getVarValue());
+                scope.setLocalValue(s_loc, var.getVarName(), var.getVarValue());
             });
 
             // 如果生成的输出路径为IGNORE或者空目录，则表示该路径需要被跳过

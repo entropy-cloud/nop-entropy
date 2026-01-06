@@ -6,7 +6,9 @@
   "scripts": {
     "build": "ksio gen",
     "start": "ksio serve",
-    "prestart": "npm run build"
+    "prestart": "npm run build",
+    "review": "bash scripts/review-staged.sh",
+    "test-lsp": "bash scripts/test-java-lsp.sh"
   },
   "engines": {
     "node": ">=14.0.0"

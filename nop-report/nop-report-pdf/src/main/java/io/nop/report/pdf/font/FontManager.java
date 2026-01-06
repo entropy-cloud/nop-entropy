@@ -26,7 +26,7 @@ import java.util.Map;
 public class FontManager {
     static final Logger LOG = LoggerFactory.getLogger(FontManager.class);
 
-    static final FontManager _INSTANCE = new FontManager();
+    static final FontManager _instance = new FontManager();
 
     private final Map<String, PDFont> systemFonts = new CaseInsensitiveMap<>();
     private final Map<String, String> fontNameAliases = new HashMap<>();
@@ -36,7 +36,7 @@ public class FontManager {
     private boolean inited;
 
     public static FontManager instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     private void registerSystemFonts() {

@@ -39,10 +39,10 @@ import static io.nop.core.CoreConfigs.CFG_ERROR_MESSAGE_PUBLIC_FOR_NO_MAPPING;
 public class ErrorMessageManager implements IErrorMessageManager {
     static final Logger LOG = LoggerFactory.getLogger(ErrorMessageManager.class);
 
-    static ErrorMessageManager _INSTANCE = new ErrorMessageManager();
+    static ErrorMessageManager _instance = new ErrorMessageManager();
 
     public static final ErrorMessageManager instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     private IErrorMessageBuilder errorMessageBuilder;

@@ -25,10 +25,10 @@ import java.util.function.Supplier;
 import static io.nop.quarkus.web.QuarkusWebConstants.KEY_NOP_HTTP_SERVER_CONTEXT;
 
 public class QuarkusExecutorHelper {
-    static final ThreadLocal<VertxHttpServerContext> G_SERVER_CONTEXT = new ThreadLocal<>();
+    static final ThreadLocal<VertxHttpServerContext> g_serverContext = new ThreadLocal<>();
 
     public static IHttpServerContext getHttpServerContext() {
-        return G_SERVER_CONTEXT.get();
+        return g_serverContext.get();
     }
 
     public static VertxHttpServerContext makeServerContext(RoutingContext routingContext) {
@@ -42,7 +42,7 @@ public class QuarkusExecutorHelper {
 
     public static <T> CompletionStage<T> withRoutingContext(RoutingContext routingContext, Supplier<CompletionStage<T>> task) {
         VertxHttpServerContext ctx = makeServerContext(routingContext);
-        G_SERVER_CONTEXT.set(ctx);
+        g_serverContext.set(ctx);
         try {
             IContext context = ctx.getContext();
             if (context == null)
@@ -62,7 +62,7 @@ public class QuarkusExecutorHelper {
             });
             return future;
         } finally {
-            G_SERVER_CONTEXT.remove();
+            g_serverContext.remove();
         }
     }
 

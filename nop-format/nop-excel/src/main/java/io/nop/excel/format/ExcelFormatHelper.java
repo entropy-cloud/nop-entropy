@@ -41,22 +41,22 @@ public class ExcelFormatHelper {
     /**
      * Pattern to find a number format: "0" or "#"
      */
-    private static final Pattern NUM_PATTERN = Pattern.compile("[0#]+");
+    private static final Pattern numPattern = Pattern.compile("[0#]+");
 
     /**
      * Pattern to find days of week as text "ddd...."
      */
-    private static final Pattern DAYS_AS_TEXT = Pattern.compile("([d]{3,})", Pattern.CASE_INSENSITIVE);
+    private static final Pattern daysAsText = Pattern.compile("([d]{3,})", Pattern.CASE_INSENSITIVE);
 
     /**
      * Pattern to find "AM/PM" marker
      */
-    private static final Pattern AM_PM_PATTERN = Pattern.compile("((A|P)[M/P]*)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern amPmPattern = Pattern.compile("((A|P)[M/P]*)", Pattern.CASE_INSENSITIVE);
 
     /**
      * A regex to find patterns like [$$-1009] and [$?-452].
      */
-    private static final Pattern SPECIAL_PATTERN_GROUP = Pattern.compile("(\\[\\$[^-\\]]*-[0-9A-Z]+\\])");
+    private static final Pattern specialPatternGroup = Pattern.compile("(\\[\\$[^-\\]]*-[0-9A-Z]+\\])");
 
     /** <em>General</em> format for whole numbers. */
     // private static final Format generalWholeNumFormat = new
@@ -71,22 +71,22 @@ public class ExcelFormatHelper {
     /**
      * 这里只缓存少量规定格式的format，不需要每个format都缓存。另外也不需要线程安全。假定除了系统初始化阶段不会动态设置format
      */
-    private static final Map<String, Format> FORMATS = new HashMap<>();
+    private static final Map<String, Format> formats = new HashMap<>();
 
     static {
         // init built-in formats
-        Format zipFormat = ZipPlusFourFormat.INSTANCE;
+        Format zipFormat = ZipPlusFourFormat.instance;
         addFormat("00000\\-0000", zipFormat);
         addFormat("00000-0000", zipFormat);
 
-        Format phoneFormat = PhoneFormat.INSTANCE;
+        Format phoneFormat = PhoneFormat.instance;
         // allow for format string variations
         addFormat("[<=9999999]###\\-####;\\(###\\)\\ ###\\-####", phoneFormat);
         addFormat("[<=9999999]###-####;(###) ###-####", phoneFormat);
         addFormat("###\\-####;\\(###\\)\\ ###\\-####", phoneFormat);
         addFormat("###-####;(###) ###-####", phoneFormat);
 
-        Format ssnFormat = SSNFormat.INSTANCE;
+        Format ssnFormat = SSNFormat.instance;
         addFormat("000\\-00\\-0000", ssnFormat);
         addFormat("000-00-0000", ssnFormat);
     }
@@ -94,7 +94,7 @@ public class ExcelFormatHelper {
     public static Format getFormat(String formatStr) {
         if (formatStr == null || "General".equals(formatStr) || "@".equals(formatStr))
             return null;
-        Format format = FORMATS.get(formatStr);
+        Format format = formats.get(formatStr);
         if (format != null) {
             return format;
         }
@@ -113,7 +113,7 @@ public class ExcelFormatHelper {
         String formatStr = sFormat.replaceAll("\\[[a-zA-Z]*\\]", "");
 
         // try to extract special characters like currency
-        Matcher m = SPECIAL_PATTERN_GROUP.matcher(formatStr);
+        Matcher m = specialPatternGroup.matcher(formatStr);
         while (m.find()) {
             String match = m.group();
             String symbol = match.substring(match.indexOf('$') + 1, match.indexOf('-'));
@@ -125,7 +125,7 @@ public class ExcelFormatHelper {
                 symbol = sb.toString();
             }
             formatStr = m.replaceAll(symbol);
-            m = SPECIAL_PATTERN_GROUP.matcher(formatStr);
+            m = specialPatternGroup.matcher(formatStr);
         }
 
         if (formatStr == null || formatStr.trim().length() == 0) {
@@ -135,7 +135,7 @@ public class ExcelFormatHelper {
         if (ExcelDateHelper.isADateFormat(formatIndex, formatStr)) {
             return createDateFormat(formatStr);
         }
-        if (NUM_PATTERN.matcher(formatStr).find()) {
+        if (numPattern.matcher(formatStr).find()) {
             return createNumberFormat(formatStr);
         }
         return null;
@@ -148,15 +148,15 @@ public class ExcelFormatHelper {
         formatStr = formatStr.replaceAll("\\\\ ", " ");
         formatStr = formatStr.replaceAll(";@", "");
         boolean hasAmPm = false;
-        Matcher amPmMatcher = AM_PM_PATTERN.matcher(formatStr);
+        Matcher amPmMatcher = amPmPattern.matcher(formatStr);
         while (amPmMatcher.find()) {
             formatStr = amPmMatcher.replaceAll("@");
             hasAmPm = true;
-            amPmMatcher = AM_PM_PATTERN.matcher(formatStr);
+            amPmMatcher = amPmPattern.matcher(formatStr);
         }
         formatStr = formatStr.replaceAll("@", "a");
 
-        Matcher dateMatcher = DAYS_AS_TEXT.matcher(formatStr);
+        Matcher dateMatcher = daysAsText.matcher(formatStr);
         if (dateMatcher.find()) {
             String match = dateMatcher.group(0);
             formatStr = dateMatcher.replaceAll(match.toUpperCase().replaceAll("D", "E"));
@@ -269,13 +269,13 @@ public class ExcelFormatHelper {
     }
 
     public static void addFormat(String excelFormatStr, Format format) {
-        FORMATS.put(excelFormatStr, format);
+        formats.put(excelFormatStr, format);
     }
 
     private static final class SSNFormat extends Format {
         private static final long serialVersionUID = 5842426239071043434L;
-        public static final Format INSTANCE = new SSNFormat();
-        private static final Format DF = FastIntegerFormatter.fromPattern("000000000");
+        public static final Format instance = new SSNFormat();
+        private static final Format df = FastIntegerFormatter.fromPattern("000000000");
 
         private SSNFormat() {
             // enforce singleton
@@ -285,7 +285,7 @@ public class ExcelFormatHelper {
          * Format a number as an SSN
          */
         public static String format(Number num) {
-            String result = DF.format(num);
+            String result = df.format(num);
             StringBuffer sb = new StringBuffer();
             sb.append(result.substring(0, 3)).append('-');
             sb.append(result.substring(3, 5)).append('-');
@@ -298,7 +298,7 @@ public class ExcelFormatHelper {
         }
 
         public Object parseObject(String source, ParsePosition pos) {
-            return DF.parseObject(source, pos);
+            return df.parseObject(source, pos);
         }
     }
 
@@ -310,8 +310,8 @@ public class ExcelFormatHelper {
      */
     private static final class ZipPlusFourFormat extends Format {
         private static final long serialVersionUID = 1422822964748552552L;
-        public static final Format INSTANCE = new ZipPlusFourFormat();
-        private static final Format DF = FastIntegerFormatter.fromPattern("000000000");
+        public static final Format instance = new ZipPlusFourFormat();
+        private static final Format df = FastIntegerFormatter.fromPattern("000000000");
 
         private ZipPlusFourFormat() {
             // enforce singleton
@@ -321,7 +321,7 @@ public class ExcelFormatHelper {
          * Format a number as Zip + 4
          */
         public static String format(Number num) {
-            String result = DF.format(num);
+            String result = df.format(num);
             StringBuffer sb = new StringBuffer();
             sb.append(result.substring(0, 5)).append('-');
             sb.append(result.substring(5, 9));
@@ -333,7 +333,7 @@ public class ExcelFormatHelper {
         }
 
         public Object parseObject(String source, ParsePosition pos) {
-            return DF.parseObject(source, pos);
+            return df.parseObject(source, pos);
         }
     }
 
@@ -345,8 +345,8 @@ public class ExcelFormatHelper {
      */
     private static final class PhoneFormat extends Format {
         private static final long serialVersionUID = -820798622022983780L;
-        public static final Format INSTANCE = new PhoneFormat();
-        private static final Format DF = FastIntegerFormatter.fromPattern("##########");
+        public static final Format instance = new PhoneFormat();
+        private static final Format df = FastIntegerFormatter.fromPattern("##########");
 
         private PhoneFormat() {
             // enforce singleton
@@ -356,7 +356,7 @@ public class ExcelFormatHelper {
          * Format a number as a phone number
          */
         public static String format(Number num) {
-            String result = DF.format(num);
+            String result = df.format(num);
             StringBuffer sb = new StringBuffer();
             String seg1, seg2, seg3;
             int len = result.length();
@@ -386,7 +386,7 @@ public class ExcelFormatHelper {
         }
 
         public Object parseObject(String source, ParsePosition pos) {
-            return DF.parseObject(source, pos);
+            return df.parseObject(source, pos);
         }
     }
 }

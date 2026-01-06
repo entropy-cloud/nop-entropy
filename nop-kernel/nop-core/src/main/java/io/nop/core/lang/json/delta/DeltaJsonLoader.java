@@ -27,10 +27,10 @@ import java.util.Map;
 public class DeltaJsonLoader {
     static final Logger LOG = LoggerFactory.getLogger(DeltaJsonLoader.class);
 
-    private static final DeltaJsonLoader _INSTANCE = new DeltaJsonLoader();
+    private static final DeltaJsonLoader _instance = new DeltaJsonLoader();
 
     public static DeltaJsonLoader instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     public Object resolveExtends(Object obj, DeltaJsonOptions options) {

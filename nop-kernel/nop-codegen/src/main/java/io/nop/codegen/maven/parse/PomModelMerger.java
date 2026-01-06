@@ -20,10 +20,10 @@ import java.util.Map;
 import java.util.Set;
 
 public class PomModelMerger {
-    private static final PomModelMerger _INSTANCE = new PomModelMerger();
+    private static final PomModelMerger _instance = new PomModelMerger();
 
     public static PomModelMerger instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     private PomModelMerger() {

@@ -26,10 +26,10 @@ import static io.nop.core.CoreErrors.ARG_JSON_PATH;
 import static io.nop.core.CoreErrors.ERR_DELTA_MERGE_NODE_NOT_INHERIT;
 
 public class JsonCleaner {
-    private static final JsonCleaner _INSTANCE = new JsonCleaner();
+    private static final JsonCleaner _instance = new JsonCleaner();
 
     public static JsonCleaner instance() {
-        return _INSTANCE;
+        return _instance;
     }
 
     public void clean(Object obj, BiPredicate<String, Object> predicate) {

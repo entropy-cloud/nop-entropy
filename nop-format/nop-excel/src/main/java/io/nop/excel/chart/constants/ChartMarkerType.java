@@ -47,11 +47,11 @@ public enum ChartMarkerType {
         // 注意：DASH 和 DOT 通常不用于自动选择，因为它们不如其他形状明显
         // Excel 通常使用 CIRCLE, SQUARE, DIAMOND, TRIANGLE, X, STAR, PLUS 等
         // 使用索引取模确保循环
-        int sequenceIndex = Math.abs(index) % AUTO_SEQUENCE.length;
-        return AUTO_SEQUENCE[sequenceIndex];
+        int sequenceIndex = Math.abs(index) % autoSequence.length;
+        return autoSequence[sequenceIndex];
     }
 
-    static final ChartMarkerType[] AUTO_SEQUENCE = new ChartMarkerType[]{
+    static final ChartMarkerType[] autoSequence = new ChartMarkerType[]{
             CIRCLE,
             SQUARE,
             DIAMOND,
@@ -68,7 +68,7 @@ public enum ChartMarkerType {
      * 这个方法提供了 AUTO 类型可选的范围
      */
     public static ChartMarkerType[] getAutoSelectableTypes() {
-        return AUTO_SEQUENCE;
+        return autoSequence;
     }
 
     /**

@@ -152,11 +152,6 @@ public class ObjMetaImpl extends _ObjMetaImpl implements IObjMeta, ISchema {
     }
 
     @Override
-    public String getMapKeyAttr() {
-        return null;
-    }
-
-    @Override
     public String getKeyProp() {
         return null;
     }
