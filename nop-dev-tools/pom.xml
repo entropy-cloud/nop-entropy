@@ -18,7 +18,6 @@
     </properties>
 
     <modules>
-        <module>build-tools</module>
         <module>nop-api-debugger</module>
         <module>nop-maven-shaded-plugin</module>
         <module>nop-xlang-debugger</module>
