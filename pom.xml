@@ -218,6 +218,25 @@
                 </executions>
             </plugin>
 
+            <plugin>
+                <groupId>net.revelc.code.formatter</groupId>
+                <artifactId>formatter-maven-plugin</artifactId>
+                <version>2.24.1</version>
+                <configuration>
+                    <configFile>nop/idea-formatter.xml</configFile>
+                    <lineEnding>LF</lineEnding>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>io.github.entropy-cloud</groupId>
+                        <artifactId>build-tools</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+
             <!--            <plugin>-->
             <!--                <groupId>org.codehaus.mojo</groupId>-->
             <!--                <artifactId>flatten-maven-plugin</artifactId>-->
@@ -436,6 +455,7 @@
     </profiles>
 
     <modules>
+        <module>build-tools</module>
         <module>nop-kernel</module>
         <module>nop-bom</module>
         <module>nop-tcc</module>
