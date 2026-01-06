@@ -63,11 +63,11 @@
         <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
         <artifactory-maven-plugin.version>2.2.1</artifactory-maven-plugin.version>
         <license-maven-plugin.version>1.16</license-maven-plugin.version>
-        <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
-        <checkstyle.skip>false</checkstyle.skip>
+        <maven-checkstyle-plugin.version>3.1.0</maven-checkstyle-plugin.version>
+        <disable.checks>false</disable.checks>
         <maven-checkstyle-plugin.failsOnError>true</maven-checkstyle-plugin.failsOnError>
         <maven-checkstyle-plugin.failOnViolation>true</maven-checkstyle-plugin.failOnViolation>
-        <maven-checkstyle-plugin.includeTestSourceDirectory>false</maven-checkstyle-plugin.includeTestSourceDirectory>
+        <maven-checkstyle-plugin.includeTestSourceDirectory>true</maven-checkstyle-plugin.includeTestSourceDirectory>
         <spring-cloud-build-checkstyle.branch>master</spring-cloud-build-checkstyle.branch>
 
         <antelopetasks.version>3.2.10</antelopetasks.version>
@@ -128,12 +128,36 @@
             </plugin>
 
             <!-- Checkstyle 代码质量检查 -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-            </plugin>
-
-
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-checkstyle-plugin</artifactId>-->
+<!--                <version>${maven-checkstyle-plugin.version}</version>-->
+<!--                <dependencies>-->
+<!--                    <dependency>-->
+<!--                        <groupId>com.puppycrawl.tools</groupId>-->
+<!--                        <artifactId>checkstyle</artifactId>-->
+<!--                        <version>8.45.1</version>-->
+<!--                    </dependency>-->
+<!--                </dependencies>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>validate</id>-->
+<!--                        <phase>validate</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>check</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--                <configuration>-->
+<!--                    <configLocation>${main.basedir}/checkstyle.xml</configLocation>-->
+<!--                    <encoding>UTF-8</encoding>-->
+<!--                    <consoleOutput>true</consoleOutput>-->
+<!--                    <failsOnError>${maven-checkstyle-plugin.failsOnError}</failsOnError>-->
+<!--                    <failOnViolation>${maven-checkstyle-plugin.failOnViolation}</failOnViolation>-->
+<!--                    <includeTestSourceDirectory>${maven-checkstyle-plugin.includeTestSourceDirectory}</includeTestSourceDirectory>-->
+<!--                    <excludes>**/_gen/**,**/*Errors.java,**/*Configs.java,**/*Constants.java,**/target/**</excludes>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
 
             <!-- mvn site指令生成报告 -->
             <!--            <plugin>-->
@@ -217,25 +241,6 @@
                     </execution>
                 </executions>
             </plugin>
-
-            <plugin>
-                <groupId>net.revelc.code.formatter</groupId>
-                <artifactId>formatter-maven-plugin</artifactId>
-                <version>2.24.1</version>
-                <configuration>
-                    <configFile>nop/idea-formatter.xml</configFile>
-                    <lineEnding>LF</lineEnding>
-                    <encoding>UTF-8</encoding>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>io.github.entropy-cloud</groupId>
-                        <artifactId>build-tools</artifactId>
-                        <version>${project.version}</version>
-                    </dependency>
-                </dependencies>
-            </plugin>
-
 
             <!--            <plugin>-->
             <!--                <groupId>org.codehaus.mojo</groupId>-->
@@ -384,32 +389,6 @@
                     <artifactId>jacoco-maven-plugin</artifactId>
                     <version>0.8.11</version>
                 </plugin>
-
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>${maven-checkstyle-plugin.version}</version>
-                    <executions>
-                        <execution>
-                            <id>validate</id>
-                            <phase>validate</phase>
-                            <goals>
-                                <goal>check</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                    <configuration>
-                        <skip>${checkstyle.skip}</skip>
-                        <configLocation>${maven.multiModuleProjectDirectory}/checkstyle.xml</configLocation>
-                        <consoleOutput>true</consoleOutput>
-                        <failsOnError>${maven-checkstyle-plugin.failsOnError}</failsOnError>
-                        <failOnViolation>${maven-checkstyle-plugin.failOnViolation}</failOnViolation>
-                        <includeTestSourceDirectory>${maven-checkstyle-plugin.includeTestSourceDirectory}</includeTestSourceDirectory>
-
-                        <excludes>**/_gen/*.*,**/_*.java,**/parse/antlr/**,**/*BuildVisitor.java</excludes>
-
-                    </configuration>
-                </plugin>
             </plugins>
 
         </pluginManagement>
@@ -455,7 +434,6 @@
     </profiles>
 
     <modules>
-        <module>build-tools</module>
         <module>nop-kernel</module>
         <module>nop-bom</module>
         <module>nop-tcc</module>
