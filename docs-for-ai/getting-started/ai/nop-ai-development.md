@@ -1,0 +1,482 @@
+# Nop平台AI开发规范文档
+
+## 1. Nop平台概述
+
+Nop平台是基于可逆计算原理从零开始构建的采用面向语言编程范式的下一代低代码开发平台。包含基于全新原理从零开始研发的GraphQL引擎、ORM引擎、工作流引擎、报表引擎、规则引擎、批处理引擎等完整设计，根据Excel数据模型自动生成GraphQL/REST/gRPC服务，定制化开发无需修改基础产品源码，支持GraalVM原生编译，中小企业可以免费商用。
+
+### 1.1 核心优势
+- **可逆计算**：基于可逆计算原理，实现模型的动态合成和差量化定制
+- **语言导向**：鼓励设计领域特定语言(DSL)，而非直接使用通用编程语言
+- **模型驱动**：通过Excel模型、XMeta模型等定义业务结构，自动生成代码
+- **无Spring依赖**：底层不使用Spring等第三方框架，重新设计实现
+- **差量化定制**：定制化开发无需修改基础产品源码
+- **云原生支持**：支持GraalVM原生编译，启动速度提升数十倍
+
+### 1.2 适用场景
+- 低代码开发平台
+- 领域特定语言(DSL)开发
+- 模型驱动的企业应用
+- 云原生微服务架构
+- 需要高度定制化的产品
+
+## 2. 核心设计理念
+
+### 2.1 可逆计算原理
+可逆计算是Nop平台的核心理论基础，通过x-extends算法实现模型的动态合成，通过x-diff算法实现差量化定制。所有模型文件都支持x-extends继承机制，可以在不修改原文件的情况下进行定制。
+
+### 2.2 语言导向编程
+Nop平台的设计目标是成为简单易用的领域语言工作台（Domain Language Workbench）。在Nop平台中，我们一般并不直接使用通用的程序语言如Java来表达业务逻辑，而是先设计一个DSL语言，然后再用DSL来表达业务。
+
+### 2.3 模型驱动开发
+所有功能围绕模型展开，通过Excel模型、XMeta模型等定义业务结构，自动生成代码、文档和测试用例。模型是Nop平台的核心资产，代码只是模型的表现形式之一。
+
+### 2.4 差量化定制
+基于Nop平台开发的产品，无需做任何特殊的设计，即可实现Delta差量化定制。对数据库结构、业务逻辑、前端界面等进行全方位的定制化开发，满足客户最特异性的需求，且无需修改基础产品的源码。
+
+## 3. 项目结构规范
+
+### 3.1 模块划分
+Nop平台采用模块化设计，每个功能领域独立成模块，模块之间通过明确的接口进行通信。常见模块包括：
+
+| 模块名称 | 功能描述 |
+|---------|---------|
+| nop-auth | 权限管理和认证 |
+| nop-orm | ORM引擎和数据库访问 |
+| nop-graphql | GraphQL服务实现 |
+| nop-report | 报表引擎 |
+| nop-workflow | 工作流引擎 |
+| nop-batch | 批处理引擎 |
+
+### 3.2 目录结构
+
+Nop平台项目遵循标准的Maven目录结构，并增加了一些特定的目录：
+
+```
+module-name/
+├── src/
+│   ├── main/
+│   │   ├── java/         # Java代码
+│   │   ├── resources/    # 资源文件
+│   │   │   └── _vfs/     # 虚拟文件系统，存放模型文件和配置
+│   │   └── xgen/         # 代码生成模板
+│   └── test/             # 测试代码
+└── pom.xml               # Maven配置
+```
+
+### 3.3 三明治架构
+
+Nop平台采用独特的"三明治架构"，实现自动生成代码和手工定制代码的分离：
+
+```
+CustomClass extends _AutoGenClass extends BaseClass
+```
+
+- `_AutoGenClass`：自动生成的代码，总是被覆盖，文件名以下划线开头
+- `CustomClass`：手工编写的定制代码，继承自动生成类
+- `BaseClass`：平台提供的基础类，包含通用功能
+
+这种架构允许开发者在不修改自动生成代码的情况下，对功能进行扩展和定制。
+
+## 4. 核心开发流程
+
+### 4.1 设计Excel模型
+
+使用Excel定义数据模型、API模型等，Excel模型是Nop平台开发的起点：
+
+- **数据模型**：使用`*.orm.xlsx`文件定义数据库表结构和关系
+- **API模型**：使用`*-api.xlsx`文件定义API接口和参数
+- **业务模型**：使用`*.biz.xlsx`文件定义业务规则和流程
+
+Excel模型包含多个工作表，分别定义不同的元数据：
+- `Entities`：实体定义
+- `Fields`：字段定义
+- `Relations`：关系定义
+- `Indexes`：索引定义
+
+### 4.2 生成基础代码
+
+使用代码生成器根据Excel模型生成基础代码：
+
+```shell
+# 使用nop-cli命令行工具生成代码
+nop-cli gen model/app.orm.xlsx -t=/nop/templates/orm
+
+# 或者使用Maven插件在编译时生成
+mvn compile
+```
+
+代码生成器会根据模板自动生成：
+- Java实体类
+- DAO接口和实现
+- GraphQL服务
+- REST服务
+- 前端页面
+
+### 4.3 定制开发
+
+基于生成的代码进行定制，主要修改非下划线前缀的类：
+
+- 扩展自动生成类的功能
+- 覆盖默认实现
+- 增加业务逻辑
+- 定制前端界面
+
+### 4.4 测试和验证
+
+使用Nop平台的自动化测试框架进行测试：
+
+- 单元测试：测试核心功能
+- 集成测试：测试模块间集成
+- 自动化测试：录制回放机制，无需手工编写数据初始化和结果验证代码
+
+### 4.5 部署和运行
+
+Nop平台支持多种部署方式：
+
+- **JAR包运行**：生成可执行JAR包，使用`java -jar`运行
+- **GraalVM原生编译**：编译为原生可执行文件，无需JDK，启动速度快
+- **容器化部署**：支持Docker和Kubernetes部署
+
+## 5. XLang语言体系
+
+XLang是Nop平台实现可逆计算的核心技术，包含一系列子语言：
+
+### 5.1 XDef - 元模型定义语言
+
+XDef用于定义DSL语言的语法和结构，是Nop平台中所有DSL语言的基础：
+
+```xml
+<xdef:definitions xmlns:xdef="http://nop-xlang.github.io/schema/xdef.xdef">
+    <xdef:type name="MyType" xdef:abstract="true">
+        <xdef:prop name="name" type="string" required="true"/>
+        <xdef:prop name="description" type="string"/>
+    </xdef:type>
+</xdef:definitions>
+```
+
+### 5.2 XScript - 支持宏函数的脚本语言
+
+XScript是Nop平台的脚本语言，支持宏函数和元编程：
+
+```javascript
+function calculatePrice(quantity, unitPrice) {
+    return quantity * unitPrice * (1 - getDiscount(quantity));
+}
+
+macro function getDiscount(quantity) {
+    if (quantity > 100) return 0.1;
+    if (quantity > 50) return 0.05;
+    return 0;
+}
+```
+
+### 5.3 Xpl - 面向元编程的模板语言
+
+Xpl是XML格式的模板语言，用于生成代码和配置文件：
+
+```xml
+<xpl:unit xmlns:xpl="http://nop-xlang.github.io/schema/xpl.xdef">
+    <c:script>
+        let className = model.name;
+    </c:script>
+    
+    public class ${className} {
+        // 类内容
+    }
+</xpl:unit>
+```
+
+### 5.4 XMeta - 对象结构定义语言
+
+XMeta用于定义对象的结构和属性，是Nop平台中对象模型的基础：
+
+```xml
+<xmeta:object xmlns:xmeta="http://nop-xlang.github.io/schema/xmeta.xdef" name="User">
+    <xmeta:prop name="id" type="string" primary="true"/>
+    <xmeta:prop name="name" type="string" required="true"/>
+    <xmeta:prop name="email" type="string" format="email"/>
+</xmeta:object>
+```
+
+### 5.5 XOverride - 差量合并算子
+
+XOverride用于实现模型的差量化定制，通过x:extends属性继承并覆盖原有模型：
+
+```xml
+<model x:extends="_base.model.xml">
+    <!-- 覆盖或添加的内容 -->
+    <property name="newProperty" value="newValue"/>
+</model>
+```
+
+## 6. 代码生成规范
+
+### 6.1 模板文件命名
+
+- **`.xgen`后缀**：模板文件，生成对应后缀的文件
+- **`.xrun`后缀**：只执行代码不生成文件
+- **`@`前缀**：内部使用，不输出到目标目录
+- **`@init.xrun`**：初始化文件，在运行目录下的模板之前执行
+
+### 6.2 模板路径编码
+
+在路径中使用变量表达式实现循环和判断：
+
+- `{var}`：循环变量，遍历变量值
+- `{!!var}`：判断变量，返回false或null时跳过
+- `{var.prop}`：访问变量属性
+- `{var@mapper}`：集合包含判断，相当于`((Set)var).contains('mapper')`
+
+### 6.3 生成规则
+
+1. **总是被覆盖**：
+   - 以`_`为前缀的文件
+   - `_gen`目录下的文件
+   - 包含`__XGEN_FORCE_OVERRIDE__`字符串的文件
+
+2. **增量生成**：
+   - 非下划线前缀的文件，不会被覆盖
+   - 支持手工修改和自动生成的合并
+
+### 6.4 模板示例
+
+```xml
+<!-- @init.xrun - 初始化文件 -->
+<gen:DefineLoop xpl:lib="/nop/codegen/xlib/gen.xlib" xpl:slotScope="builder">
+<c:script>
+builder.defineGlobalVar("ormModel", ormModel);
+builder.defineLoopVar("entity", "ormModel", model => model.entityModelsInTopoOrder);
+</c:script>
+</gen:DefineLoop>
+```
+
+```xml
+<!-- 实体类模板 -->
+<xpl:unit xmlns:xpl="http://nop-xlang.github.io/schema/xpl.xdef">
+package ${entity.packageName};
+
+public class ${entity.name} {
+    <c:for var="field" in="entity.fields">
+    private ${field.javaType} ${field.name};
+    </c:for>
+    
+    <c:for var="field" in="entity.fields">
+    public ${field.javaType} get${field.name.capitalize()}() {
+        return ${field.name};
+    }
+    
+    public void set${field.name.capitalize()}(${field.javaType} ${field.name}) {
+        this.${field.name} = ${field.name};
+    }
+    </c:for>
+}
+</xpl:unit>
+```
+
+## 7. IoC容器使用
+
+Nop平台内置了轻量级的IoC容器，支持依赖注入和AOP：
+
+### 7.1 Bean配置
+
+通过`beans/app-*.beans.xml`文件配置Bean：
+
+```xml
+<beans xmlns="http://nop-xlang.github.io/schema/beans.xdef">
+    <bean id="myService" class="com.example.MyService">
+        <property name="dao" ref="myDao"/>
+        <property name="config" value="@cfg:nop.service.config"/>
+    </bean>
+    
+    <bean id="myDao" class="com.example.MyDaoImpl">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+</beans>
+```
+
+### 7.2 注解支持
+
+使用注解自动注入依赖：
+
+```java
+public class MyService {
+    @Inject
+    private MyDao dao;
+    
+    @Inject
+    @ConfigProperty(name = "nop.service.config")
+    private String config;
+    
+    // 业务方法
+}
+```
+
+### 7.3 AOP支持
+
+通过配置实现AOP增强：
+
+```xml
+<beans xmlns="http://nop-xlang.github.io/schema/beans.xdef">
+    <bean id="myInterceptor" class="com.example.MyInterceptor"/>
+    
+    <aop:config>
+        <aop:pointcut id="serviceMethods" expression="execution(* com.example.*Service.*(..))"/>
+        <aop:advisor pointcut-ref="serviceMethods" advice-ref="myInterceptor"/>
+    </aop:config>
+</beans>
+```
+
+## 8. 测试和调试
+
+### 8.1 单元测试
+
+使用Junit进行单元测试，核心特性都有单元测试支持：
+
+```java
+@Test
+public void testOrmQuery() {
+    try (OrmSession session = ormProvider.openSession()) {
+        List<User> users = session.query(User.class).where("name", "like", "test%").list();
+        Assert.assertNotNull(users);
+    }
+}
+```
+
+### 8.2 集成测试
+
+使用Nop平台的自动化测试框架，支持录制回放机制：
+
+```java
+public class MyTest extends JunitAutoTestCase {
+    @Test
+    public void testBizLogic() {
+        // 测试业务逻辑，自动录制和验证结果
+        User user = new User();
+        user.setName("test");
+        user.setEmail("test@example.com");
+        userService.createUser(user);
+    }
+}
+```
+
+### 8.3 调试
+
+- **IDEA插件**：使用Nop IDEA插件进行XLang断点调试
+- **Quarkus Dev UI**：通过`http://localhost:8080/q/dev`进行开发期调试
+- **GraphQL UI**：通过`http://localhost:8080/q/graphql-ui`查看和测试GraphQL服务
+- **日志调试**：通过配置日志级别，查看详细的执行日志
+
+## 9. 最佳实践
+
+### 9.1 代码组织
+
+- **保持核心业务逻辑在CustomClass中**：避免修改自动生成的代码
+- **使用差量化定制**：通过x:extends机制定制模型，而非直接修改
+- **遵循三明治架构**：CustomClass extends _AutoGenClass extends BaseClass
+- **模块化设计**：将功能分解为独立的模块，降低耦合度
+
+### 9.2 性能优化
+
+- **利用缓存机制**：使用Nop平台内置的缓存，减少数据库访问
+- **合理使用批量加载**：避免N+1查询问题
+- **考虑GraalVM原生编译**：提高启动速度和运行性能
+- **优化查询**：使用索引，避免全表扫描
+
+### 9.3 安全性
+
+- **使用平台内置的权限控制**：基于角色的访问控制
+- **遵循最小权限原则**：只授予必要的权限
+- **对敏感数据进行加密**：使用加密算法保护敏感信息
+- **验证输入数据**：防止注入攻击和非法数据
+
+### 9.4 可维护性
+
+- **编写清晰的文档**：使用XMeta和XLang的自文档特性
+- **保持模型的一致性**：确保Excel模型和代码的一致性
+- **使用版本控制**：对模型文件和代码进行版本管理
+- **编写单元测试**：确保核心功能的正确性
+
+## 10. 常见问题
+
+### 10.1 如何扩展内置模板？
+
+在`_vfs/_delta`目录下创建同名模板文件，使用x:extends继承并修改原模板：
+
+```xml
+<lib x:extends="super">
+    <!-- 修改或添加标签定义 -->
+    <tags>
+        <CustomTag>
+            <source>
+                <!-- 新的实现 -->
+            </source>
+        </CustomTag>
+    </tags>
+</lib>
+```
+
+### 10.2 如何处理多环境配置？
+
+使用不同的profile配置文件，通过`@cfg:`表达式引用配置值：
+
+```xml
+<bean id="dataSource" class="com.zaxxer.hikari.HikariDataSource">
+    <property name="jdbcUrl" value="@cfg:nop.datasource.url"/>
+    <property name="username" value="@cfg:nop.datasource.username"/>
+    <property name="password" value="@cfg:nop.datasource.password"/>
+</bean>
+```
+
+### 10.3 如何集成第三方框架？
+
+Nop平台不依赖第三方框架，可以与任何Java框架集成：
+
+- **Spring集成**：通过SpringBeanContainerAdapter集成
+- **Quarkus集成**：通过QuarkusBeanContainerAdapter集成
+- **Solon集成**：通过SolonBeanContainerAdapter集成
+
+### 10.4 如何调试代码生成过程？
+
+- 使用IDEA插件在xgen文件中设置断点
+- 运行代码生成器时启用调试模式
+- 查看生成过程的日志输出
+
+## 11. 资源和学习路径
+
+### 11.1 官方文档
+
+- [Nop平台开发文档](https://gitee.com/canonical-entropy/nop-entropy/tree/master/docs)
+- [XLang语言文档](https://gitee.com/canonical-entropy/nop-entropy/tree/master/docs/dev-guide/xlang)
+- [代码生成器文档](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/codegen.md)
+
+### 11.2 视频教程
+
+- [Nop平台开发](https://www.bilibili.com/video/BV1u84y1w7kX/)
+- [使用Nop平台开发商品列表页面](https://www.bilibili.com/video/BV1384y1g78L/)
+- [Nop平台架构设计](https://www.bilibili.com/video/BV1a84y1g78L/)
+
+### 11.3 示例项目
+
+- **nop-demo**：演示项目，包含完整的开发示例
+- **nop-auth**：权限管理模块，展示如何开发业务模块
+- **nop-orm**：ORM引擎，展示核心功能实现
+
+### 11.4 开发工具
+
+- **IDEA插件**：支持语法提示、文件跳转、断点调试
+- **nop-cli**：命令行工具，用于代码生成和文件监听
+- **Excel插件**：Excel模型编辑辅助工具
+
+## 12. 总结
+
+Nop平台采用独特的可逆计算原理和模型驱动开发方式，提供了一套完整的低代码开发解决方案。AI在按照Nop平台开发规范进行开发时，应重点关注：
+
+1. **理解可逆计算原理**：掌握x-extends和x-diff算法，理解模型的动态合成机制
+2. **掌握XLang语言体系**：熟悉XDef、XScript、Xpl等子语言的使用
+3. **遵循模型驱动开发**：从Excel模型开始，通过代码生成器生成基础代码
+4. **采用三明治架构**：分离自动生成代码和手工定制代码，便于维护和扩展
+5. **使用差量化定制**：在不修改基础产品源码的情况下进行定制化开发
+6. **利用平台内置引擎**：充分利用GraphQL引擎、ORM引擎等内置功能
+7. **编写单元测试**：确保核心功能的正确性和稳定性
+
+通过遵循这些规范，AI可以高效地开发出符合Nop平台设计理念的高质量应用程序，充分发挥Nop平台的优势，实现快速开发和灵活定制。
