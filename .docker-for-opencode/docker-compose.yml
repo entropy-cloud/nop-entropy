@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Opencode CLI + Server 混合模式
   opencode-cli:
-    image: opencode-hybrid:latest  # 使用 CLI + Server 混合镜像
+    image: opencode-hybrid:latest  # 使用最新版本的混合镜像
     container_name: opencode-cli
     ports:
       # 暴露 OpenCode Server 端口（允许外部连接）
@@ -20,11 +20,13 @@ services:
     environment:
       - NODE_ENV=production
       - OPENCODE_HOME=/app
-      - OPENCODE_CONFIG=/app/.opencode/config.yaml
+      - OPENCODE_CONFIG=/app/.opencode/config.json
       - OPENCODE_WORKSPACE=/app/workspace
       # AI API Key（从宿主机传入）
       # - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       # - OPENAI_API_KEY=${OPENAI_API_KEY}
-    # 启动 OpenCode Server（后台运行）
-    # 同时保持容器运行，支持 docker exec 交互
-    command: ["sh", "-c", "opencode server --port 3000 --hostname 0.0.0.0 & sleep infinity"]
+    # 【修复】覆盖默认的 entrypoint，避免 Node.js 的 docker-entrypoint.sh 干扰
+    # 使用 dumb-init 作为 PID 1，处理信号转发和孤儿进程
+    entrypoint: ["dumb-init", "--"]
+    # 直接使用完整路径启动 opencode serve
+    command: ["/usr/local/bin/opencode", "serve", "--port", "3000", "--hostname", "0.0.0.0"]
