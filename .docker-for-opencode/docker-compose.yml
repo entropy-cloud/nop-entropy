@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  # Opencode CLI + Server 混合模式
+  opencode-cli:
+    image: opencode-hybrid:latest  # 使用 CLI + Server 混合镜像
+    container_name: opencode-cli
+    ports:
+      # 暴露 OpenCode Server 端口（允许外部连接）
+      - "3000:3000"
+    volumes:
+      # 挂载项目文件到容器工作目录
+      - /c/can/nop:/app/workspace:rw
+      # 可选：挂载配置文件
+      # - ./opencode-cli-config.yaml:/app/.opencode/config.yaml:ro
+    working_dir: /app/workspace
+    restart: unless-stopped
+    stdin_open: true  # 保持 stdin 打开，用于交互式使用
+    tty: true         # 分配伪终端
+    environment:
+      - NODE_ENV=production
+      - OPENCODE_HOME=/app
+      - OPENCODE_CONFIG=/app/.opencode/config.yaml
+      - OPENCODE_WORKSPACE=/app/workspace
+      # AI API Key（从宿主机传入）
+      # - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # - OPENAI_API_KEY=${OPENAI_API_KEY}
+    # 启动 OpenCode Server（后台运行）
+    # 同时保持容器运行，支持 docker exec 交互
+    command: ["sh", "-c", "opencode server --port 3000 --hostname 0.0.0.0 & sleep infinity"]

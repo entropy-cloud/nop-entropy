@@ -1,0 +1,35 @@
+# 构建时忽略的文件和目录
+.git
+.gitignore
+.github
+README.md
+build-guide.md
+CLIENT_SETUP.md
+*.md
+!opencode.json
+
+# 目录
+node_modules
+.target
+.idea
+.vscode
+*.iml
+
+# 日志文件
+*.log
+logs/
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*~
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 备份文件
+*.backup
+*.backup.*
