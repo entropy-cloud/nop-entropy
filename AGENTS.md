@@ -19,7 +19,9 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 # AGENTS.md - Nop Platform Development Guidelines
 
-Essential guidelines for coding, building, testing, and contributing to Nop Platform.
+Essential quick reference for coding, building, testing, and contributing to Nop Platform.
+
+**📚 Comprehensive Documentation**: For detailed API guides, tutorials, architecture, and examples, see [docs-for-ai](./docs-for-ai/INDEX.md)
 
 ## Build Commands
 
@@ -36,9 +38,6 @@ mvn test
 mvn test -Dtest=AiConverterTest
 mvn test -Dtest=AiConverterTest#testConvertOrm
 mvn test -Pcoverage
-mvn test -X
-mvn verify
-mvn clean install -DskipTests
 ```
 
 ### Code Quality
@@ -46,128 +45,52 @@ mvn clean install -DskipTests
 mvn checkstyle:check
 ```
 
-## Code Style Guidelines
+## Quick Reference
 
-### Import Organization
-```java
-package io.nop.example.service;
-
-import java.util.Date;
-import java.util.List;
-
-import jakarta.inject.Inject;
-import org.junit.jupiter.api.Test;
-
-import io.nop.api.core.annotations.core.Description;
-import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.CommonErrors;
-import io.nop.orm.IOrmTemplate;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static io.nop.api.core.ApiErrors.*;
-```
-
-### Naming Conventions
-- Classes: PascalCase, Interfaces: PascalCase with 'I', Abstract classes: PascalCase with 'Abstract'
-- Methods: camelCase
-- Constants: UPPER_SNAKE_CASE
-- Variables: camelCase
-- Boolean: prefix with 'is' (e.g., isAvailable, hasPermission)
-
-### Formatting
-- 4 spaces indentation (no tabs)
-- 80-120 char line length
-- Blank line between methods
-- Space after commas in parameters
-- Space around operators
-
+### Code Style
+- **Naming**: PascalCase（类）、camelCase（方法/变量）、UPPER_SNAKE_CASE（常量）
+- **Formatting**: 4空格缩进、80-120字符行长度、运算符前后加空格
+- **Imports**: 按分组导入（java.* → jakarta.* → 第三方 → io.nop.*）
+- 详细规范 → [Code Style](./docs-for-ai/best-practices/code-style.md)
 
 ### Error Handling
-```java
-public class UserService {
-    public User getUser(String userId) {
-        if (userId == null || userId.isEmpty()) {
-            throw new NopException(CommonErrors.ARG_USER_ID)
-                .param(CommonErrors.ARG_USER_ID, userId);
-        }
-        
-        User user = dao.findById(userId);
-        if (user == null) {
-            throw new NopException(CommonErrors.ERR_ENTITY_NOT_FOUND)
-                .param(CommonErrors.ARG_CLASS_NAME, User.class.getName())
-                .param(CommonErrors.ARG_ID, userId);
-        }
-        return user;
-    }
-}
-```
+- 使用 `NopException` 统一异常处理
+- 定义清晰的错误码和参数
+- 记录日志并保持异常链
+- 详细规范 → [Error Handling](./docs-for-ai/best-practices/error-handling.md)
 
 ### Testing
-```java
-import io.nop.autotest.junit.JunitBaseTestCase;
+- 使用 JUnit 5 和 Nop AutoTest 框架
+- 遵循 Given-When-Then 模式
+- 追求高测试覆盖率
+- 详细规范 → [Testing](./docs-for-ai/best-practices/testing.md)
 
-public class UserServiceTest extends JunitBaseTestCase {
-    @Inject
-    IUserService userService;
-    
-    @Test
-    public void testGetUserById() {
-        String userId = "test-user-001";
-        User user = userService.getUserById(userId);
-        
-        assertNotNull(user);
-        assertEquals(userId, user.getId());
-    }
-    
-    @Test
-    public void testGetUserById_NotFound() {
-        String userId = "non-existent-id";
-        
-        NopException exception = assertThrows(NopException.class, () -> {
-            userService.getUserById(userId);
-        });
-        
-        assertEquals(CommonErrors.ERR_ENTITY_NOT_FOUND, exception.getErrorCode());
-    }
-}
-```
-
-### Configuration
-```java
-import io.nop.api.core.config.IConfigReference;
-import io.nop.api.core.config.AppConfig;
-
-@Locale("zh-CN")
-public interface MyConfigs {
-    SourceLocation s_loc = SourceLocation.fromClass(MyConfigs.class);
-
-    @Description("连接超时时间（秒）")
-    IConfigReference<Integer> CFG_CONNECTION_TIMEOUT = varRef(s_loc,
-            "myapp.connection.timeout", Integer.class, 30);
-}
-```
-
-## DO's and DON'Ts
-
-### DO
+### DO's and DON'Ts
 ✅ Use parameterized queries
 ✅ Log all exceptions with context
-✅ Throw meaningful exceptions with error codes
 ✅ Use SLF4J logging
 ✅ Use configuration references
-✅ Follow module patterns for consistency
-
-### DON'T
 ❌ Use raw SQL with user input
 ❌ Suppress exceptions without logging
-❌ Return null when exceptions are more appropriate
 ❌ Use System.out or System.err
 ❌ Hardcode configuration values
 ❌ Use Chinese in error messages
-❌ Use deprecated APIs
 
 ## IDE Setup
-- Java 11+ (compilation), 17+ (recommended)
+- Java 17+
 - Maven 3.9.3+
 - UTF-8 encoding
 - Enable annotation processing
+
+## Quick Lookup
+
+| Task | Documentation |
+|------|--------------|
+| 开发规范 | [AI Development Guide](./docs-for-ai/getting-started/ai/nop-ai-development.md) |
+| 服务层开发 | [Service Layer Guide](./docs-for-ai/getting-started/service/service-layer-development.md) |
+| CRUD开发 | [CRUD Development](./docs-for-ai/getting-started/business/crud-development.md) |
+| 数据访问 | [IEntityDao Guide](./docs-for-ai/getting-started/dao/entitydao-usage.md) |
+| 事务管理 | [Transaction Guide](./docs-for-ai/getting-started/core/transaction-guide.md) |
+| GraphQL开发 | [GraphQL Guide](./docs-for-ai/getting-started/api/graphql-guide.md) |
+| Helper类 | [Helper Reference](./docs-for-ai/quick-reference/helper-quick-reference.md) |
+| API参考 | [API Quick Reference](./docs-for-ai/quick-reference/api-quick-reference.md) |
