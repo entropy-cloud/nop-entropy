@@ -68,6 +68,10 @@ public class StdDomainRegistry implements IStdDomainRegistry {
         registerStdDomainHandler(new SimpleStdDomainHandlers.WordSetType());
 
         registerStdDomainHandler(new SimpleStdDomainHandlers.FileTypeType());
+        registerStdDomainHandler(new SimpleStdDomainHandlers.FilePathType());
+
+        registerStdDomainHandler(new SimpleStdDomainHandlers.URLType());
+        registerStdDomainHandler(new SimpleStdDomainHandlers.EmailType());
 
         registerStdDomainHandler(new SimpleStdDomainHandlers.GenericTypeType());
 
