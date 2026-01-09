@@ -12,6 +12,7 @@
 - [构建和部署](./build-and-deploy.md) - 构建和部署流程
 
 ### 开发流程
+- [模块结构与代码生成指南](./module-structure-guide.md) - ⭐ Nop平台标准项目结构和代码生成依赖关系
 - [开发流程指南](./development-workflow.md) - 开发流程和规范
 - [代码提交规范](./commit-guidelines.md) - 代码提交规范
 - [Code Review指南](./code-review-guidelines.md) - Code Review实践

@@ -1,5 +1,9 @@
 # Nop Platform AI Documentation - Complete Index
 
+Nop平台是基于可逆计算原理从零开始构建的新一代低代码开发平台，它采用框架中立设计原则，可以运行在Spring/Quarkus/Solon等多种底层框架之上。所有业务开发都只使用POJO和Nop平台自身的适配接口，一般不会直接用到第三方框架。
+
+可逆计算的核心公式是`App = Delta x-extends Generator<DSL>`，Nop平台系统化的采用这一公式进行开发，因此大量代码由DSL模型描述，并通过代码生成器或者元编程机制来生成，不需要手工编写。比如实体类、API接口类，API消息类等。写代码之前首先要搞清楚这部分代码是否可以根据模型信息推导得到。在生成代码的基础上，通过Inheritance或者XLang的`x:extends`等机制来进行Delta修正（**不仅仅是增加，可以是修改或删除**）。
+
 ## 最后更新
 2025-01-09
 
@@ -79,6 +83,7 @@
 - **[ORM架构](./architecture/backend/orm-architecture.md)** - ORM架构
 - **[GraphQL架构](./architecture/backend/graphql-architecture.md)** - GraphQL架构
 - **[模块依赖关系](./architecture/development/module-dependencies.md)** - 模块依赖
+- **[模块结构与代码生成指南](./development/module-structure-guide.md)** - ⭐ Nop平台标准项目结构和代码生成依赖关系
 
 #### 快速参考
 - **[API快速参考](./quick-reference/api-quick-reference.md)** - ⭐ API快速参考
@@ -412,71 +417,15 @@ public User findUser(String userId) {
 - 详细的章节索引
 - 搜索友好的标题
 
-## 文档版本
-
-### v1.0 - 2025-01-09
-- 创建完整的文档体系
-- 验证并修正核心文档
-- 新增5个详细API指南
-- 创建3个支持文档
-- 创建1个快速参考卡片
-
-### 后续计划
-- 根据AI使用反馈持续优化
-- 扩展更多高级主题
-- 添加更多实际项目示例
-- 定期同步源码更新
-
 ## 联系方式
 
 如有问题或建议，请通过以下方式反馈：
 - GitHub Issues: https://github.com/entropy-cloud/nop-entropy/issues
 - Gitee Issues: https://gitee.com/canonical-entropy/nop-entropy/issues
 
-## 文档版本
-
-### v1.1 - 2025-01-09
-
-**新增**：
-- 文档格式标准（DOCUMENTATION_TEMPLATE.md）
-- 为12个文档添加"常见问题"章节（共45+个常见问题）
-- 为12个文档添加"相关文档"章节
-- 为4个文档添加"总结"章节
-- 3个实际项目示例：
-  - nop-auth-example.md（用户权限管理系统，400+行）
-  - nop-sys-example.md（系统配置管理，400+行）
-  - nop-wf-example.md（工作流管理系统，400+行）
-
-**修正**：
-- INDEX.md：添加文档格式标准的链接
-
-**优化**：
-- 交叉引用：为核心文档添加"相关文档"章节
-- 文档格式：确保所有文档遵循统一的格式标准
-
-### v1.0 - 2025-01-09
-
-**新增**：
-- 目录结构优化：删除9个空目录，统一11个Helper类文档命名
-- 内容验证：启动后台验证任务，验证Helper类和架构文档
-- 文档扩展：扩展6个开发指南文档（6-10倍内容扩展）
-- 语言参考：创建3个XLang语言参考文档（XDef、XPL、XScript）
-
-**文档统计**：
-- 总文档数：68个markdown文件
-- 总行数：约25,000+行
-- 代码示例数：约400+个
-
-### 后续计划
-- 根据AI使用反馈持续优化
-- 扩展更多高级主题
-- 添加更多实际项目示例
-- 定期同步源码更新
-
----
 
 **文档维护者**: AI Assistant (Sisyphus)
 **最后更新**: 2025-01-09
-**文档版本**: v1.1
-**总文档数**: 68+
+**文档版本**: v1.2
+**总文档数**: 69+
 **总代码示例**: 400+
