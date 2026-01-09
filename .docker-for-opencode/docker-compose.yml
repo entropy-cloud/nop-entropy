@@ -9,11 +9,15 @@ services:
       # 暴露 3001 端口（用于其他服务）
       - "3001:3001"
     volumes:
-      # 挂载项目文件到容器工作目录
+      # 挂载项目文件到容器工作目录（整个 nop-entropy 目录）
       - /c/can/nop:/app/workspace:rw
-      # 可选：挂载配置文件
-      - /c/can/opencode/opencode-zhipu.json:/app/.opencode/config.json:ro
-    working_dir: /app/workspace
+      # 覆盖项目的 opencode.json（使用合并后的配置）
+      - /c/can/opencode/nop-entropy-config.json:/app/.opencode/config.json:ro
+      # 认证数据（用于存储 /connect 添加的 API keys）
+      - /c/can/opencode/share:/root/.local/share:rw
+    working_dir: /app/workspace/nop-entropy
+    # user: "1001:1001"  # 使用 opencode 用户（非 root）
+    # 注意：在 Windows Docker 环境下，由于卷挂载的权限问题，暂时使用 root 运行
     restart: unless-stopped
     stdin_open: true  # 保持 stdin 打开，用于交互式使用
     tty: true         # 分配伪终端
@@ -22,9 +26,11 @@ services:
       - OPENCODE_HOME=/app
       - OPENCODE_CONFIG=/app/.opencode/config.json
       - OPENCODE_WORKSPACE=/app/workspace
+      # npm registry（用于下载 vibe-kanban，默认使用国内镜像）
+      - NPM_CONFIG_REGISTRY=https://registry.npmmirror.com
       # AI API Key（从宿主机传入）
       # - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       # - OPENAI_API_KEY=${OPENAI_API_KEY}
     # 使用启动脚本同时运行 OpenCode Server 和 Vibe Kanban
-    entrypoint: ["dumb-init", "--"]
+    # 注意：镜像的 CMD 已经包含了 dumb-init，这里不需要再设置 entrypoint
     command: ["/app/start-services.sh"]

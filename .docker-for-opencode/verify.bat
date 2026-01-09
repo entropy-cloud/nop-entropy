@@ -115,6 +115,19 @@ if errorlevel 1 (
 )
 echo.
 
+echo [TEST] 检查 vibe-kanban（使用 npx）
+docker exec opencode-cli sh -c "command -v npx > /dev/null 2>&1" >nul 2>&1
+if errorlevel 1 (
+    echo [FAIL] npx 不可用
+    set /a FAIL=FAIL+1
+) else (
+    echo [PASS] npx 可用
+    echo [INFO] vibe-kanban 应该已在构建时预下载
+    docker exec opencode-cli sh -c "ls ~/.npm/_npx 2>/dev/null && echo '  ✓ 缓存已创建（构建时预下载）' || echo '  ⚠ 缓存未创建（运行时会下载）'"
+    set /a PASS=PASS+1
+)
+echo.
+
 REM Server 功能测试
 echo ========================================
 echo Server 功能测试
@@ -140,6 +153,30 @@ if errorlevel 1 (
 ) else (
     for /f "delims=" %%i in ('curl -s -o nul -w "%%{http_code}" http://localhost:3000 2^>nul') do set HTTP_CODE=%%i
     echo [PASS] Server HTTP 响应: !HTTP_CODE!
+    set /a PASS=PASS+1
+)
+echo.
+
+echo [TEST] 检查 Vibe Kanban 端口监听
+docker port opencode-cli 3001 >nul 2>&1
+if errorlevel 1 (
+    echo [FAIL] Vibe Kanban 端口未映射
+    set /a FAIL=FAIL+1
+) else (
+    for /f "delims=" %%i in ('docker port opencode-cli 3001 2^>^&1') do set VIBE_PORT_MAPPING=%%i
+    echo [PASS] Vibe Kanban 端口映射: !VIBE_PORT_MAPPING!
+    set /a PASS=PASS+1
+)
+echo.
+
+echo [TEST] 检查 Vibe Kanban HTTP 响应
+curl -s -o nul -w "%%{http_code}" http://localhost:3001 2>nul | findstr "200" >nul 2>&1
+if errorlevel 1 (
+    echo [WARN] Vibe Kanban HTTP 响应失败（可能还在启动中）
+    set /a WARN=WARN+1
+) else (
+    for /f "delims=" %%i in ('curl -s -o nul -w "%%{http_code}" http://localhost:3001 2^>nul') do set VIBE_HTTP_CODE=%%i
+    echo [PASS] Vibe Kanban HTTP 响应: !VIBE_HTTP_CODE!
     set /a PASS=PASS+1
 )
 echo.
@@ -178,6 +215,28 @@ if errorlevel 1 (
     set /a FAIL=FAIL+1
 ) else (
     echo [PASS] 工作目录挂载: /app/workspace
+    set /a PASS=PASS+1
+)
+echo.
+
+echo [TEST] 检查 nop-entropy 项目挂载
+docker exec opencode-cli ls -d /app/workspace/nop-entropy >nul 2>&1
+if errorlevel 1 (
+    echo [FAIL] nop-entropy 项目未挂载
+    set /a FAIL=FAIL+1
+) else (
+    echo [PASS] nop-entropy 项目已挂载
+    set /a PASS=PASS+1
+)
+echo.
+
+echo [TEST] 检查 share 目录挂载
+docker exec opencode-cli ls -d /home/opencode/share >nul 2>&1
+if errorlevel 1 (
+    echo [WARN] share 目录未挂载
+    set /a WARN=WARN+1
+) else (
+    echo [PASS] share 目录已挂载: /home/opencode/share
     set /a PASS=PASS+1
 )
 echo.
