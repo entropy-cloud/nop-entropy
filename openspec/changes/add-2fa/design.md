@@ -2,11 +2,11 @@
 
 ## Architecture Overview
 
-### 系统架构图
+### System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                         Frontend                           │
+│                       Frontend (AMIS)                      │
 │  ┌──────────┐  ┌──────────┐  ┌──────────────────────────┐  │
 │  │ Login UI │  │ 2FA UI   │  │ Admin Dashboard         │  │
 │  └────┬─────┘  └────┬─────┘  └────────────┬─────────────┘  │
@@ -14,100 +14,103 @@
         │             │                      │
         ▼             ▼                      ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                      REST API / GraphQL                     │
+│                      GraphQL API Layer                     │
 │  ┌──────────────────────────────────────────────────────┐ │
-│  │  TwoFactorAuthController                              │ │
-│  │  - enableTotp()                                       │ │
-│  │  - enableSms()                                        │ │
-│  │  - verifyCode()                                       │ │
-│  │  - disable()                                          │ │
+│  │  NopAuth2faConfigBizModel                            │ │
+│  │  - enableTotp() (@BizMutation)                        │ │
+│  │  - verifyAndEnableTotp() (@BizMutation)               │ │
+│  │  - enableSms() (@BizMutation)                         │ │
+│  │  - disable2fa() (@BizMutation)                       │ │
+│  │  - getRecoveryCodes() (@BizQuery)                     │ │
+│  │  - regenerateRecoveryCodes() (@BizMutation)           │ │
+│  └─────────────────────┬────────────────────────────────┘ │
+│  ┌──────────────────────────────────────────────────────┐ │
+│  │  NopAuthUserBizModel (Extended)                     │ │
+│  │  - loginWith2fa() (@BizMutation)                    │ │
+│  │  - verify2fa() (@BizMutation)                       │ │
 │  └─────────────────────┬────────────────────────────────┘ │
 └────────────────────────┼───────────────────────────────────┘
                          │
 ┌────────────────────────┼───────────────────────────────────┐
-│                        Business Layer                       │
+│                      Service Layer                        │
 │  ┌──────────────────────────────────────────────────────┐ │
-│  │  TwoFactorAuthService                                │ │
-│  │  - manage 2FA configuration                          │ │
-│  │  - verify 2FA codes                                   │ │
-│  │  - handle login flow                                  │ │
-│  └──────────┬─────────────────────────┬─────────────────┘ │
-│             │                         │                   │
-│             ▼                         ▼                   │
-│  ┌─────────────────────┐  ┌──────────────────────┐       │
-│  │  TotpService        │  │  SmsCodeService       │       │
-│  │  - generate secret  │  │  - send code          │       │
-│  │  - verify code      │  │  - verify code        │       │
-│  └─────────────────────┘  └──────────┬───────────┘       │
-│                                     │                      │
-│  ┌───────────────────────────────────┴───────────┐       │
-│  │  RecoveryCodeService                          │       │
-│  │  - generate codes                             │       │
-│  │  - verify code                                │       │
-│  └───────────────────────────────────────────────┘       │
-└─────────────────────────────────────────────────────────────┘
-                          │
-┌─────────────────────────┼───────────────────────────────────┐
-│                      Data Layer                            │
+│  │  ITotpService (Interface)                           │ │
+│  │  - generateSecret()                                  │ │
+│  │  - generateQrCodeUrl()                               │ │
+│  │  - verifyCode()                                      │ │
+│  └──────────┬───────────────────────────────────────────┘ │
+│             │                                              │
+│  ┌──────────┴───────────────────────────────────────────┐ │
+│  │  ISmsCodeService (Interface)                         │ │
+│  │  - sendCode()                                       │ │
+│  │  - verifyCode()                                     │ │
+│  └──────────┬───────────────────────────────────────────┘ │
+│             │                                              │
+│  ┌──────────┴───────────────────────────────────────────┐ │
+│  │  IRecoveryCodeService (Interface)                    │ │
+│  │  - generateCodes()                                  │ │
+│  │  - verifyCode()                                     │ │
+│  │  - markCodeUsed()                                   │ │
+│  └───────────────────────────────────────────────────────┘ │
+└────────────────────────┼───────────────────────────────────┘
+                         │
+┌────────────────────────┼───────────────────────────────────┐
+│                    Data Access Layer                      │
 │  ┌──────────────────────────────────────────────────────┐ │
-│  │  TwoFactorConfigDao                                 │ │
-│  │  - findByUserId()                                    │ │
-│  │  - save()                                             │ │
-│  │  - delete()                                           │ │
+│  │  IOrmEntityDao<NopAuth2faConfig>                   │ │
+│  │  - getEntityById()                                  │ │
+│  │  - saveEntity()                                     │ │
+│  │  - deleteEntity()                                   │ │
 │  └──────────────────────────────────────────────────────┘ │
-│                                                             │
 │  ┌──────────────────────────────────────────────────────┐ │
-│  │  SmsLogDao                                           │ │
-│  │  - saveLog()                                          │ │
-│  │  - findLatest()                                       │ │
-│  │  - cleanExpired()                                     │ │
-│  └──────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-                          │
-┌─────────────────────────┼───────────────────────────────────┐
-│                   External Services                        │
+│  │  IOrmEntityDao<NopAuthSmsLog>                       │ │
+│  │  - saveEntity()                                     │ │
+│  │  - findLatest()                                     │ │
+│  └───────────────────────────────────────────────────────┘ │
+└────────────────────────┼───────────────────────────────────┘
+                         │
+┌────────────────────────┼───────────────────────────────────┐
+│                   External Services                       │
 │  ┌──────────────────────────────────────────────────────┐ │
-│  │  SmsService (Interface)                              │ │
-│  │  - AliyunSmsService                                  │ │
-│  │  - TencentSmsService                                 │ │
-│  └──────────────────────────────────────────────────────┘ │
-│                                                             │
-│  ┌──────────────────────────────────────────────────────┐ │
-│  │  Redis (Optional)                                    │ │
-│  │  - Cache verification codes                          │ │
-│  │  - Store rate limiting counters                      │ │
-│  └──────────────────────────────────────────────────────┘ │
+│  │  ISmsService (Interface)                            │ │
+│  │  - AliyunSmsService                                │ │
+│  │  - TencentSmsService                               │ │
+│  └───────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ## Database Schema Design
 
-### 1. t_auth_2fa_config表
+### 1. nop_auth_2fa_config Table
 
 ```sql
-CREATE TABLE t_auth_2fa_config (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    user_id BIGINT NOT NULL COMMENT '用户ID',
+CREATE TABLE nop_auth_2fa_config (
+    sid VARCHAR(32) PRIMARY KEY COMMENT '主键ID',
+    user_id VARCHAR(32) NOT NULL COMMENT '用户ID',
     two_factor_method VARCHAR(20) NOT NULL COMMENT '2FA方式: totp/sms/none',
     totp_secret VARCHAR(255) COMMENT 'TOTP密钥(加密存储)',
     recovery_codes TEXT COMMENT '恢复码(JSON加密)',
     phone_number VARCHAR(20) COMMENT '手机号码',
+    enabled TINYINT(1) DEFAULT 0 COMMENT '是否启用',
     enabled_at DATETIME COMMENT '启用时间',
     last_used_at DATETIME COMMENT '最后使用时间',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     version INTEGER NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
+    created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+
     UNIQUE KEY uk_user_id (user_id),
+    INDEX idx_enabled (enabled),
     INDEX idx_enabled_at (enabled_at),
     INDEX idx_last_used_at (last_used_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户2FA配置表';
 ```
 
-### 2. t_auth_sms_log表
+### 2. nop_auth_sms_log Table
 
 ```sql
-CREATE TABLE t_auth_sms_log (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+CREATE TABLE nop_auth_sms_log (
+    sid VARCHAR(32) PRIMARY KEY COMMENT '主键ID',
+    user_id VARCHAR(32) COMMENT '用户ID',
     phone_number VARCHAR(20) NOT NULL COMMENT '手机号',
     code VARCHAR(100) NOT NULL COMMENT '验证码(加密)',
     purpose VARCHAR(20) NOT NULL COMMENT '用途: login/bind',
@@ -115,763 +118,1124 @@ CREATE TABLE t_auth_sms_log (
     verified_at DATETIME COMMENT '验证时间',
     expired_at DATETIME NOT NULL COMMENT '过期时间',
     ip_address VARCHAR(50) COMMENT 'IP地址',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    version INTEGER NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
+    created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+
+    INDEX idx_user_id (user_id),
     INDEX idx_phone_number (phone_number),
     INDEX idx_sent_at (sent_at),
     INDEX idx_expired_at (expired_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='短信发送日志表';
 ```
 
-### 3. t_sys_user表扩展
+### 3. nop_auth_user Table Extension
 
 ```sql
-ALTER TABLE t_sys_user
+ALTER TABLE nop_auth_user
 ADD COLUMN two_factor_enabled TINYINT(1) DEFAULT 0 COMMENT '是否启用2FA' AFTER status,
 ADD INDEX idx_two_factor_enabled (two_factor_enabled);
 ```
 
-## Key Components Design
+## Entity Model Design
 
-### 1. TOTP Service
-
-#### 类设计
+### 1. NopAuth2faConfig Entity
 
 ```java
+package io.nop.auth.domain;
+
+import io.nop.api.core.annotations.ioc.Bean;
+import io.nop.orm.model.OrmEntityModel;
+import io.nop.orm.support.OrmEntity;
+
+@Entity(table = "nop_auth_2fa_config")
+@Cacheable(cacheName = "nop_auth_2fa_config")
+public class NopAuth2faConfig extends OrmEntity {
+
+    public static final String PROP_NAME_sid = "sid";
+    public static final String PROP_NAME_userId = "userId";
+    public static final String PROP_NAME_twoFactorMethod = "twoFactorMethod";
+    public static final String PROP_NAME_totpSecret = "totpSecret";
+    public static final String PROP_NAME_recoveryCodes = "recoveryCodes";
+    public static final String PROP_NAME_phoneNumber = "phoneNumber";
+    public static final String PROP_NAME_enabled = "enabled";
+    public static final String PROP_NAME_enabledAt = "enabledAt";
+    public static final String PROP_NAME_lastUsedAt = "lastUsedAt";
+
+    private String sid;
+    private String userId;
+    private String twoFactorMethod;
+    private String totpSecret;
+    private String recoveryCodes;
+    private String phoneNumber;
+    private Boolean enabled;
+    private Date enabledAt;
+    private Date lastUsedAt;
+
+    // Getters and Setters
+    public String getSid() { return sid; }
+    public void setSid(String sid) { this.sid = sid; }
+
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
+
+    public String getTwoFactorMethod() { return twoFactorMethod; }
+    public void setTwoFactorMethod(String twoFactorMethod) { this.twoFactorMethod = twoFactorMethod; }
+
+    public String getTotpSecret() { return totpSecret; }
+    public void setTotpSecret(String totpSecret) { this.totpSecret = totpSecret; }
+
+    public String getRecoveryCodes() { return recoveryCodes; }
+    public void setRecoveryCodes(String recoveryCodes) { this.recoveryCodes = recoveryCodes; }
+
+    public String getPhoneNumber() { return phoneNumber; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
+    public Boolean getEnabled() { return enabled; }
+    public void setEnabled(Boolean enabled) { this.enabled = enabled; }
+
+    public Date getEnabledAt() { return enabledAt; }
+    public void setEnabledAt(Date enabledAt) { this.enabledAt = enabledAt; }
+
+    public Date getLastUsedAt() { return lastUsedAt; }
+    public void setLastUsedAt(Date lastUsedAt) { this.lastUsedAt = lastUsedAt; }
+}
+```
+
+### 2. NopAuthSmsLog Entity
+
+```java
+package io.nop.auth.domain;
+
+import io.nop.api.core.annotations.ioc.Bean;
+import io.nop.orm.model.OrmEntityModel;
+import io.nop.orm.support.OrmEntity;
+
+@Entity(table = "nop_auth_sms_log")
+public class NopAuthSmsLog extends OrmEntity {
+
+    public static final String PROP_NAME_sid = "sid";
+    public static final String PROP_NAME_userId = "userId";
+    public static final String PROP_NAME_phoneNumber = "phoneNumber";
+    public static final String PROP_NAME_code = "code";
+    public static final String PROP_NAME_purpose = "purpose";
+    public static final String PROP_NAME_sentAt = "sentAt";
+    public static final String PROP_NAME_verifiedAt = "verifiedAt";
+    public static final String PROP_NAME_expiredAt = "expiredAt";
+    public static final String PROP_NAME_ipAddress = "ipAddress";
+
+    private String sid;
+    private String userId;
+    private String phoneNumber;
+    private String code;
+    private String purpose;
+    private Date sentAt;
+    private Date verifiedAt;
+    private Date expiredAt;
+    private String ipAddress;
+
+    // Getters and Setters
+    public String getSid() { return sid; }
+    public void setSid(String sid) { this.sid = sid; }
+
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
+
+    public String getPhoneNumber() { return phoneNumber; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
+    public String getCode() { return code; }
+    public void setCode(String code) { this.code = code; }
+
+    public String getPurpose() { return purpose; }
+    public void setPurpose(String purpose) { this.purpose = purpose; }
+
+    public Date getSentAt() { return sentAt; }
+    public void setSentAt(Date sentAt) { this.sentAt = sentAt; }
+
+    public Date getVerifiedAt() { return verifiedAt; }
+    public void setVerifiedAt(Date verifiedAt) { this.verifiedAt = verifiedAt; }
+
+    public Date getExpiredAt() { return expiredAt; }
+    public void setExpiredAt(Date expiredAt) { this.expiredAt = expiredAt; }
+
+    public String getIpAddress() { return ipAddress; }
+    public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
+}
+```
+
+## Service Layer Design
+
+### 1. ITotpService Interface
+
+```java
+package io.nop.auth.service;
+
 public interface ITotpService {
+    /**
+     * 生成TOTP密钥
+     */
     String generateSecret();
+
+    /**
+     * 生成二维码URL
+     * @param secret TOTP密钥
+     * @param issuer 发行者
+     * @param username 用户名
+     * @return 二维码URL
+     */
     String generateQrCodeUrl(String secret, String issuer, String username);
+
+    /**
+     * 验证TOTP码
+     * @param secret TOTP密钥
+     * @param code TOTP验证码
+     * @return 是否验证成功
+     */
     boolean verifyCode(String secret, String code);
 }
-
-@Service
-public class TotpService implements ITotpService {
-
-    @Value("${nop.auth.2fa.totp.window-size:1}")
-    private int timeWindowSize; // 时间窗口大小
-
-    @Override
-    public String generateSecret() {
-        // 使用Base32生成密钥
-        Key key = new SecretKeySpec(new byte[20], "HmacSHA1");
-        return Base32.random().encodeToString(key.getEncoded());
-    }
-
-    @Override
-    public String generateQrCodeUrl(String secret, String issuer, String username) {
-        // otpauth://totp/Issuer:Username?secret=SECRET&issuer=Issuer
-        return String.format("otpauth://totp/%s:%s?secret=%s&issuer=%s",
-            issuer, username, secret, issuer);
-    }
-
-    @Override
-    public boolean verifyCode(String secret, String code) {
-        long time = System.currentTimeMillis() / 30000; // 30秒步长
-        for (int i = -timeWindowSize; i <= timeWindowSize; i++) {
-            String expected = generateTotp(secret, time + i);
-            if (expected.equals(code)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private String generateTotp(String secret, long time) {
-        // TOTP算法实现
-        // ...
-    }
-}
 ```
 
-#### 配置
-
-```yaml
-nop:
-  auth:
-    2fa:
-      totp:
-        window-size: 1  # 验证时间窗口（±1步）
-        digits: 6       # 验证码位数
-        period: 30      # 时间步长（秒）
-        algorithm: HmacSHA1
-```
-
-### 2. SMS Service
-
-#### 接口设计
+### 2. ISmsCodeService Interface
 
 ```java
-public interface ISmsService {
-    void sendCode(String phoneNumber, String code, String purpose);
-    void sendMessage(String phoneNumber, String template, Map<String, Object> params);
-}
+package io.nop.auth.service;
 
-@Service("aliyunSmsService")
-public class AliyunSmsService implements ISmsService {
+public interface ISmsCodeService {
+    /**
+     * 发送短信验证码
+     * @param userId 用户ID
+     * @param phoneNumber 手机号
+     * @param purpose 用途(login/bind)
+     */
+    void sendCode(String userId, String phoneNumber, String purpose);
 
-    @Value("${nop.auth.sms.aliyun.access-key-id}")
-    private String accessKeyId;
+    /**
+     * 验证短信验证码
+     * @param userId 用户ID
+     * @param code 验证码
+     * @return 是否验证成功
+     */
+    boolean verifyCode(String userId, String code);
 
-    @Value("${nop.auth.sms.aliyun.access-key-secret}")
-    private String accessKeySecret;
-
-    @Value("${nop.auth.sms.aliyun.sign-name}")
-    private String signName;
-
-    @Value("${nop.auth.sms.aliyun.template-code}")
-    private String templateCode;
-
-    @Override
-    public void sendCode(String phoneNumber, String code, String purpose) {
-        // 调用阿里云SMS API发送验证码
-        // ...
-    }
-
-    @Override
-    public void sendMessage(String phoneNumber, String template, Map<String, Object> params) {
-        // 发送自定义模板短信
-        // ...
-    }
+    /**
+     * 检查发送频率限制
+     * @param userId 用户ID
+     * @param phoneNumber 手机号
+     * @return 是否允许发送
+     */
+    boolean checkRateLimit(String userId, String phoneNumber);
 }
 ```
 
-#### 配置
-
-```yaml
-nop:
-  auth:
-    2fa:
-      sms:
-        provider: aliyun  # aliyun/tencent
-        aliyun:
-          access-key-id: ${ALIYUN_ACCESS_KEY_ID}
-          access-key-secret: ${ALIYUN_ACCESS_KEY_SECRET}
-          sign-name: NopPlatform
-          template-code: SMS_123456789
-        tencent:
-          secret-id: ${TENCENT_SECRET_ID}
-          secret-key: ${TENCENT_SECRET_KEY}
-          sdk-app-id: ${TENCENT_SDK_APP_ID}
-          sign-name: NopPlatform
-          template-id: 123456
-```
-
-### 3. Two-Factor Auth Service
-
-#### 核心方法
+### 3. IRecoveryCodeService Interface
 
 ```java
-@Service
-public class TwoFactorAuthService {
+package io.nop.auth.service;
 
-    @Autowired
-    private ITwoFactorConfigDao twoFactorConfigDao;
+import java.util.List;
 
-    @Autowired
+public interface IRecoveryCodeService {
+    /**
+     * 生成恢复码
+     * @param userId 用户ID
+     * @param count 恢复码数量
+     * @return 恢复码列表
+     */
+    List<String> generateCodes(String userId, int count);
+
+    /**
+     * 验证恢复码
+     * @param userId 用户ID
+     * @param code 恢复码
+     * @return 是否验证成功
+     */
+    boolean verifyCode(String userId, String code);
+
+    /**
+     * 获取可用恢复码列表
+     * @param userId 用户ID
+     * @return 恢复码列表
+     */
+    List<String> getAvailableCodes(String userId);
+
+    /**
+     * 标记恢复码已使用
+     * @param userId 用户ID
+     * @param code 恢复码
+     */
+    void markCodeUsed(String userId, String code);
+}
+```
+
+## BizModel Design
+
+### NopAuth2faConfigBizModel
+
+```java
+package io.nop.auth.service;
+
+import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.api.core.annotations.biz.BizMutation;
+import io.nop.api.core.annotations.biz.BizQuery;
+import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.txn.Transactional;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.config.IConfigReference;
+import io.nop.auth.domain.NopAuth2faConfig;
+import io.nop.auth.domain.NopAuthSmsLog;
+import io.nop.auth.domain.NopAuthUser;
+import io.nop.orm.api.IOrmEntityDao;
+import io.nop.service.crud.CrudBizModel;
+import jakarta.inject.Inject;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import static io.nop.auth.AuthErrors.*;
+
+@BizModel("NopAuth2faConfig")
+public class NopAuth2faConfigBizModel extends CrudBizModel<NopAuth2faConfig> {
+
+    public NopAuth2faConfigBizModel() {
+        setEntityName(NopAuth2faConfig.class.getName());
+    }
+
+    @Inject
     private ITotpService totpService;
 
-    @Autowired
+    @Inject
     private ISmsCodeService smsCodeService;
 
-    @Autowired
+    @Inject
     private IRecoveryCodeService recoveryCodeService;
+
+    @Inject
+    private IOrmEntityDao<NopAuthUser> userDao;
 
     /**
      * 启用TOTP
+     * @param userId 用户ID
+     * @return TOTP密钥和二维码URL
      */
-    public EnableTotpResult enableTotp(Long userId) {
-        // 1. 生成TOTP密钥
+    @BizMutation
+    @Transactional
+    public Map<String, String> enableTotp(@Name("userId") String userId) {
+        // 验证用户存在
+        NopAuthUser user = userDao.getEntityById(userId);
+        if (user == null) {
+            throw new NopException(ERR_AUTH_USER_NOT_FOUND)
+                .param(ARG_USER_ID, userId);
+        }
+
+        // 生成TOTP密钥
         String secret = totpService.generateSecret();
 
-        // 2. 生成二维码URL
-        String qrCodeUrl = totpService.generateQrCodeUrl(secret, "NopPlatform", getUserEmail(userId));
+        // 生成二维码URL
+        String qrCodeUrl = totpService.generateQrCodeUrl(secret, "NopPlatform", user.getUserName());
 
-        // 3. 保存临时配置（待用户验证）
-        TwoFactorConfig config = new TwoFactorConfig();
-        config.setUserId(userId);
+        // 查找或创建2FA配置
+        NopAuth2faConfig config = dao().findFirstByExample(
+            FilterBean.eq(NopAuth2faConfig.PROP_NAME_userId, userId)
+        );
+
+        if (config == null) {
+            config = new NopAuth2faConfig();
+            config.setSid(StringHelper.generateUUID());
+            config.setUserId(userId);
+        }
+
         config.setTwoFactorMethod("totp");
         config.setTotpSecret(encryptSecret(secret));
         config.setEnabled(false);
-        twoFactorConfigDao.save(config);
 
-        return new EnableTotpResult(secret, qrCodeUrl);
+        dao().saveEntity(config);
+
+        return Map.of(
+            "secret", secret,
+            "qrCodeUrl", qrCodeUrl
+        );
     }
 
     /**
      * 验证TOTP码并完成绑定
+     * @param userId 用户ID
+     * @param code TOTP验证码
      */
-    public void verifyAndEnableTotp(Long userId, String code) {
-        // 1. 获取配置
-        TwoFactorConfig config = twoFactorConfigDao.findByUserId(userId);
+    @BizMutation
+    @Transactional
+    public void verifyAndEnableTotp(@Name("userId") String userId,
+                                    @Name("code") String code) {
+        NopAuth2faConfig config = dao().findFirstByExample(
+            FilterBean.eq(NopAuth2faConfig.PROP_NAME_userId, userId)
+        );
+
         if (config == null) {
-            throw new NopException(ERR_AUTH_2FA_CONFIG_NOT_FOUND);
+            throw new NopException(ERR_AUTH_2FA_CONFIG_NOT_FOUND)
+                .param(ARG_USER_ID, userId);
         }
 
-        // 2. 验证TOTP码
+        // 验证TOTP码
         String secret = decryptSecret(config.getTotpSecret());
         if (!totpService.verifyCode(secret, code)) {
             throw new NopException(ERR_AUTH_2FA_INVALID_CODE);
         }
 
-        // 3. 生成恢复码
-        List<String> recoveryCodes = recoveryCodeService.generateCodes(userId);
+        // 生成恢复码
+        List<String> recoveryCodes = recoveryCodeService.generateCodes(userId, 10);
 
-        // 4. 启用2FA
+        // 启用2FA
         config.setEnabled(true);
         config.setEnabledAt(new Date());
-        twoFactorConfigDao.save(config);
+        config.setRecoveryCodes(encryptRecoveryCodes(recoveryCodes));
+        dao().saveEntity(config);
 
-        // 5. 更新用户状态
-        userDao.updateTwoFactorEnabled(userId, true);
-
-        // 6. 记录审计日志
-        auditService.log(userId, "2FA_TOTP_ENABLED", "TOTP two-factor authentication enabled");
+        // 更新用户状态
+        NopAuthUser user = userDao.requireEntityById(userId);
+        user.setTwoFactorEnabled(true);
+        userDao.saveEntity(user);
     }
 
     /**
-     * 验证2FA码
+     * 启用短信验证码
+     * @param userId 用户ID
+     * @param phoneNumber 手机号
      */
-    public boolean verifyCode(Long userId, String code, String method) {
-        TwoFactorConfig config = twoFactorConfigDao.findByUserId(userId);
-        if (config == null || !config.getEnabled()) {
-            return false;
+    @BizMutation
+    @Transactional
+    public void enableSms(@Name("userId") String userId,
+                         @Name("phoneNumber") String phoneNumber) {
+        // 验证用户存在
+        NopAuthUser user = userDao.requireEntityById(userId);
+        if (user == null) {
+            throw new NopException(ERR_AUTH_USER_NOT_FOUND)
+                .param(ARG_USER_ID, userId);
         }
 
-        switch (method) {
-            case "totp":
-                String secret = decryptSecret(config.getTotpSecret());
-                return totpService.verifyCode(secret, code);
-
-            case "sms":
-                return smsCodeService.verifyCode(userId, code);
-
-            case "recovery":
-                return recoveryCodeService.verifyCode(userId, code);
-
-            default:
-                return false;
+        // 检查频率限制
+        if (!smsCodeService.checkRateLimit(userId, phoneNumber)) {
+            throw new NopException(ERR_AUTH_SMS_RATE_LIMIT_EXCEEDED);
         }
+
+        // 发送验证码
+        smsCodeService.sendCode(userId, phoneNumber, "bind");
+
+        // 保存配置（待验证）
+        NopAuth2faConfig config = dao().findFirstByExample(
+            FilterBean.eq(NopAuth2faConfig.PROP_NAME_userId, userId)
+        );
+
+        if (config == null) {
+            config = new NopAuth2faConfig();
+            config.setSid(StringHelper.generateUUID());
+            config.setUserId(userId);
+        }
+
+        config.setTwoFactorMethod("sms");
+        config.setPhoneNumber(phoneNumber);
+        config.setEnabled(false);
+        dao().saveEntity(config);
+    }
+
+    /**
+     * 验证短信验证码并完成绑定
+     * @param userId 用户ID
+     * @param code 验证码
+     */
+    @BizMutation
+    @Transactional
+    public void verifyAndEnableSms(@Name("userId") String userId,
+                                    @Name("code") String code) {
+        NopAuth2faConfig config = dao().requireEntityById(userId);
+        if (config == null) {
+            throw new NopException(ERR_AUTH_2FA_CONFIG_NOT_FOUND)
+                .param(ARG_USER_ID, userId);
+        }
+
+        // 验证短信验证码
+        if (!smsCodeService.verifyCode(userId, code)) {
+            throw new NopException(ERR_AUTH_2FA_INVALID_CODE);
+        }
+
+        // 生成恢复码
+        List<String> recoveryCodes = recoveryCodeService.generateCodes(userId, 10);
+
+        // 启用2FA
+        config.setEnabled(true);
+        config.setEnabledAt(new Date());
+        config.setRecoveryCodes(encryptRecoveryCodes(recoveryCodes));
+        dao().saveEntity(config);
+
+        // 更新用户状态
+        NopAuthUser user = userDao.requireEntityById(userId);
+        user.setTwoFactorEnabled(true);
+        userDao.saveEntity(user);
     }
 
     /**
      * 禁用2FA
+     * @param userId 用户ID
      */
-    public void disable(Long userId) {
-        TwoFactorConfig config = twoFactorConfigDao.findByUserId(userId);
+    @BizMutation
+    @Transactional
+    public void disable2fa(@Name("userId") String userId) {
+        NopAuth2faConfig config = dao().findFirstByExample(
+            FilterBean.eq(NopAuth2faConfig.PROP_NAME_userId, userId)
+        );
+
         if (config != null) {
-            twoFactorConfigDao.delete(config);
+            dao().deleteEntity(config);
         }
 
-        userDao.updateTwoFactorEnabled(userId, false);
+        // 更新用户状态
+        NopAuthUser user = userDao.requireEntityById(userId);
+        user.setTwoFactorEnabled(false);
+        userDao.saveEntity(user);
+    }
 
-        auditService.log(userId, "2FA_DISABLED", "Two-factor authentication disabled");
+    /**
+     * 获取恢复码列表
+     * @param userId 用户ID
+     * @return 恢复码列表
+     */
+    @BizQuery
+    public List<String> getRecoveryCodes(@Name("userId") String userId) {
+        NopAuth2faConfig config = dao().requireEntityById(userId);
+        if (config == null || !config.getEnabled()) {
+            return List.of();
+        }
+
+        String encryptedCodes = config.getRecoveryCodes();
+        return decryptRecoveryCodes(encryptedCodes);
+    }
+
+    /**
+     * 重新生成恢复码
+     * @param userId 用户ID
+     * @return 新的恢复码列表
+     */
+    @BizMutation
+    @Transactional
+    public List<String> regenerateRecoveryCodes(@Name("userId") String userId) {
+        NopAuth2faConfig config = dao().requireEntityById(userId);
+        if (config == null) {
+            throw new NopException(ERR_AUTH_2FA_CONFIG_NOT_FOUND)
+                .param(ARG_USER_ID, userId);
+        }
+
+        // 生成新恢复码
+        List<String> newCodes = recoveryCodeService.generateCodes(userId, 10);
+        config.setRecoveryCodes(encryptRecoveryCodes(newCodes));
+        dao().saveEntity(config);
+
+        return newCodes;
+    }
+
+    /**
+     * 加密密钥
+     */
+    private String encryptSecret(String secret) {
+        // 使用Nop平台的加密工具
+        return CryptoHelper.encryptAES(secret);
+    }
+
+    /**
+     * 解密密钥
+     */
+    private String decryptSecret(String encrypted) {
+        return CryptoHelper.decryptAES(encrypted);
+    }
+
+    /**
+     * 加密恢复码
+     */
+    private String encryptRecoveryCodes(List<String> codes) {
+        return JsonTool.instance().beanToJson(codes);
+    }
+
+    /**
+     * 解密恢复码
+     */
+    private List<String> decryptRecoveryCodes(String encrypted) {
+        return JsonTool.instance().parseListFromText(encrypted, String.class);
     }
 }
 ```
 
-### 4. Login Flow Enhancement
+## Login Flow Enhancement
 
-#### 流程图
+### Extended NopAuthUserBizModel
 
-```
-┌──────────┐
-│  用户    │
-└────┬─────┘
-     │
-     │ 1. 提交用户名/密码
-     ▼
-┌─────────────────┐
-│ AuthService    │
-│ - login()      │
-└────┬───────────┘
-     │
-     │ 2. 验证用户名/密码
-     │    失败 → 返回错误
-     ▼
-┌─────────────────┐
-│ 检查是否启用2FA│
-└────┬───────────┘
-     │
-     ├─ 否 → 3. 生成JWT令牌 → 返回
-     │
-     └─ 是 → 4. 生成临时令牌 → 返回
-                │
-                │ 5. 提交2FA验证码
-                ▼
-         ┌─────────────────┐
-         │ verify2fa()    │
-         └────┬───────────┘
-              │
-              │ 6. 验证2FA码
-              │    失败 → 返回错误
-              ▼
-         ┌─────────────────┐
-         │ 验证临时令牌    │
-         └────┬───────────┘
-              │
-              │ 7. 生成JWT令牌
-              ▼
-         ┌─────────────────┐
-         │ 返回JWT令牌     │
-         └─────────────────┘
-```
+```java
+package io.nop.auth.service;
 
-#### API设计
+import io.nop.api.core.annotations.biz.BizMutation;
+import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.auth.domain.NopAuthUser;
+import io.nop.commons.util.StringHelper;
+import jakarta.inject.Inject;
+import java.util.Map;
 
-**第一步登录**
+import static io.nop.auth.AuthErrors.*;
 
-```
-POST /api/auth/login
-Content-Type: application/json
+@BizModel("NopAuthUser")
+public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
 
-{
-  "username": "user@example.com",
-  "password": "password123"
+    public NopAuthUserBizModel() {
+        setEntityName(NopAuthUser.class.getName());
+    }
+
+    @Inject
+    private NopAuth2faConfigBizModel twoFactorConfigBizModel;
+
+    @Inject
+    private ITotpService totpService;
+
+    @Inject
+    private ISmsCodeService smsCodeService;
+
+    @Inject
+    private IRecoveryCodeService recoveryCodeService;
+
+    /**
+     * 第一步：用户名密码登录
+     * @param username 用户名
+     * @param password 密码
+     * @return 登录结果（包含临时令牌或JWT）
+     */
+    @BizMutation
+    public Map<String, Object> login(@Name("username") String username,
+                                     @Name("password") String password) {
+        // 1. 验证用户名和密码
+        NopAuthUser user = authenticate(username, password);
+        if (user == null) {
+            throw new NopException(ERR_AUTH_INVALID_CREDENTIALS);
+        }
+
+        // 2. 检查是否启用2FA
+        if (Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
+            // 生成临时令牌
+            String tempToken = generateTempToken(user.getUserId());
+
+            // 获取可用的2FA方式
+            NopAuth2faConfig config = twoFactorConfigBizModel.dao().findFirstByExample(
+                FilterBean.eq(NopAuth2faConfig.PROP_NAME_userId, user.getUserId())
+            );
+
+            List<String> availableMethods = List.of("totp", "sms", "recovery");
+
+            return Map.of(
+                "tempToken", tempToken,
+                "requires2FA", true,
+                "availableMethods", availableMethods,
+                "userId", user.getUserId()
+            );
+        } else {
+            // 直接生成JWT令牌
+            String jwtToken = generateJwtToken(user);
+            return Map.of(
+                "token", jwtToken,
+                "expiresIn", 7200,
+                "userId", user.getUserId()
+            );
+        }
+    }
+
+    /**
+     * 第二步：2FA验证
+     * @param tempToken 临时令牌
+     * @param code 验证码
+     * @param method 验证方式(totp/sms/recovery)
+     * @return JWT令牌
+     */
+    @BizMutation
+    public Map<String, Object> verify2fa(@Name("tempToken") String tempToken,
+                                         @Name("code") String code,
+                                         @Name("method") String method) {
+        // 1. 验证临时令牌
+        String userId = validateTempToken(tempToken);
+
+        // 2. 获取用户
+        NopAuthUser user = dao().requireEntityById(userId);
+
+        // 3. 验证2FA码
+        boolean verified = switch (method) {
+            case "totp" -> verifyTotp(userId, code);
+            case "sms" -> verifySmsCode(userId, code);
+            case "recovery" -> verifyRecoveryCode(userId, code);
+            default -> false;
+        };
+
+        if (!verified) {
+            throw new NopException(ERR_AUTH_2FA_INVALID_CODE);
+        }
+
+        // 4. 更新最后使用时间
+        NopAuth2faConfig config = twoFactorConfigBizModel.dao().findFirstByExample(
+            FilterBean.eq(NopAuth2faConfig.PROP_NAME_userId, userId)
+        );
+        if (config != null) {
+            config.setLastUsedAt(new Date());
+            twoFactorConfigBizModel.dao().saveEntity(config);
+        }
+
+        // 5. 生成JWT令牌
+        String jwtToken = generateJwtToken(user);
+
+        return Map.of(
+            "token", jwtToken,
+            "expiresIn", 7200,
+            "userId", user.getUserId(),
+            "2faVerified", true,
+            "2faMethod", method
+        );
+    }
+
+    /**
+     * 验证TOTP
+     */
+    private boolean verifyTotp(String userId, String code) {
+        NopAuth2faConfig config = twoFactorConfigBizModel.dao().findFirstByExample(
+            FilterBean.eq(NopAuth2faConfig.PROP_NAME_userId, userId)
+        );
+
+        if (config == null || !"totp".equals(config.getTwoFactorMethod())) {
+            return false;
+        }
+
+        String secret = CryptoHelper.decryptAES(config.getTotpSecret());
+        return totpService.verifyCode(secret, code);
+    }
+
+    /**
+     * 验证短信验证码
+     */
+    private boolean verifySmsCode(String userId, String code) {
+        return smsCodeService.verifyCode(userId, code);
+    }
+
+    /**
+     * 验证恢复码
+     */
+    private boolean verifyRecoveryCode(String userId, String code) {
+        if (recoveryCodeService.verifyCode(userId, code)) {
+            recoveryCodeService.markCodeUsed(userId, code);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 生成临时令牌
+     */
+    private String generateTempToken(String userId) {
+        // 生成短期有效的临时令牌（5分钟）
+        return JwtHelper.generateToken(Map.of("userId", userId), 300);
+    }
+
+    /**
+     * 验证临时令牌
+     */
+    private String validateTempToken(String tempToken) {
+        try {
+            Map<String, Object> claims = JwtHelper.parseToken(tempToken);
+            return (String) claims.get("userId");
+        } catch (Exception e) {
+            throw new NopException(ERR_AUTH_INVALID_TEMP_TOKEN);
+        }
+    }
+
+    /**
+     * 生成JWT令牌
+     */
+    private String generateJwtToken(NopAuthUser user) {
+        // 生成长期有效的JWT令牌（2小时）
+        return JwtHelper.generateToken(Map.of(
+            "userId", user.getUserId(),
+            "userName", user.getUserName(),
+            "tenantId", user.getTenantId()
+        ), 7200);
+    }
+
+    /**
+     * 认证用户名和密码
+     */
+    private NopAuthUser authenticate(String username, String password) {
+        NopAuthUser example = new NopAuthUser();
+        example.setUserName(username);
+        NopAuthUser user = dao().findFirstByExample(example);
+
+        if (user == null) {
+            return null;
+        }
+
+        // 验证密码
+        String encryptedPassword = CryptoHelper.encryptBCrypt(password);
+        if (!StringHelper.equals(user.getPassword(), encryptedPassword)) {
+            return null;
+        }
+
+        return user;
+    }
 }
+```
 
-Response (未启用2FA):
-{
-  "token": "jwt-token...",
-  "expiresIn": 7200
-}
+## Configuration Management
 
-Response (已启用2FA):
-{
-  "tempToken": "temp-token...",
-  "requires2FA": true,
-  "availableMethods": ["totp", "sms", "recovery"]
+### Application Configuration (application.yaml)
+
+```yaml
+nop:
+  auth:
+    # JWT配置
+    jwt:
+      secret: ${JWT_SECRET:your-secret-key-here}
+      expiration: 7200  # 2小时，单位秒
+      algorithm: HS256
+
+    # 2FA配置
+    2fa:
+      enabled: true
+      methods: totp,sms  # 可用的2FA方式
+      totp:
+        window-size: 1  # TOTP验证时间窗口（±1步）
+        digits: 6       # 验证码位数
+        period: 30      # 时间步长（秒）
+        algorithm: HmacSHA1
+      sms:
+        provider: aliyun  # aliyun/tencent
+        code-length: 6    # 验证码长度
+        validity: 300     # 验证码有效期（秒）
+        rate-limit:
+          per-minute: 1   # 每分钟发送次数
+          per-day: 10     # 每天发送次数
+      recovery:
+        code-count: 10    # 恢复码数量
+        code-length: 8    # 恢复码长度
+
+    # 短信服务配置
+    sms:
+      aliyun:
+        access-key-id: ${ALIYUN_ACCESS_KEY_ID}
+        access-key-secret: ${ALIYUN_ACCESS_KEY_SECRET}
+        sign-name: NopPlatform
+        template-code: ${ALIYUN_SMS_TEMPLATE}
+      tencent:
+        secret-id: ${TENCENT_SECRET_ID}
+        secret-key: ${TENCENT_SECRET_KEY}
+        sdk-app-id: ${TENCENT_SDK_APP_ID}
+        sign-name: NopPlatform
+        template-id: ${TENCENT_SMS_TEMPLATE}
+
+    # 加密配置
+    encryption:
+      aes-key: ${AES_ENCRYPTION_KEY}
+      bcrypt-cost: 12
+```
+
+### Config Reference Interface
+
+```java
+package io.nop.auth.config;
+
+import io.nop.api.core.annotations.core.Locale;
+import io.nop.api.core.config.IConfigReference;
+import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.config.SourceLocation;
+import static io.nop.api.core.config.AppConfig.varRef;
+
+@Locale("zh-CN")
+public interface NopAuthConfigs {
+    SourceLocation s_loc = SourceLocation.fromClass(NopAuthConfigs.class);
+
+    @Description("是否启用2FA")
+    IConfigReference<Boolean> CFG_2FA_ENABLED = varRef(s_loc,
+            "nop.auth.2fa.enabled", Boolean.class, false);
+
+    @Description("可用的2FA方式")
+    IConfigReference<String> CFG_2FA_METHODS = varRef(s_loc,
+            "nop.auth.2fa.methods", String.class, "totp,sms");
+
+    @Description("TOTP时间窗口")
+    IConfigReference<Integer> CFG_TOTP_WINDOW_SIZE = varRef(s_loc,
+            "nop.auth.2fa.totp.window-size", Integer.class, 1);
+
+    @Description("TOTP验证码位数")
+    IConfigReference<Integer> CFG_TOTP_DIGITS = varRef(s_loc,
+            "nop.auth.2fa.totp.digits", Integer.class, 6);
+
+    @Description("短信验证码有效期（秒）")
+    IConfigReference<Integer> CFG_SMS_VALIDITY = varRef(s_loc,
+            "nop.auth.2fa.sms.validity", Integer.class, 300);
+
+    @Description("短信发送频率限制（每分钟）")
+    IConfigReference<Integer> CFG_SMS_RATE_PER_MINUTE = varRef(s_loc,
+            "nop.auth.2fa.sms.rate-limit.per-minute", Integer.class, 1);
+
+    @Description("短信发送频率限制（每天）")
+    IConfigReference<Integer> CFG_SMS_RATE_PER_DAY = varRef(s_loc,
+            "nop.auth.2fa.sms.rate-limit.per-day", Integer.class, 10);
+
+    @Description("恢复码数量")
+    IConfigReference<Integer> CFG_RECOVERY_CODE_COUNT = varRef(s_loc,
+            "nop.auth.2fa.recovery.code-count", Integer.class, 10);
 }
 ```
 
-**第二步2FA验证**
+## Error Codes Definition
 
-```
-POST /api/auth/login/2fa
-Content-Type: application/json
+```java
+package io.nop.auth;
 
-{
-  "tempToken": "temp-token...",
-  "code": "123456",
-  "method": "totp"
-}
+import io.nop.api.core.annotations.core.Locale;
+import io.nop.api.core.exceptions.ErrorCode;
+import static io.nop.api.core.exceptions.ErrorCode.define;
 
-Response:
-{
-  "token": "jwt-token...",
-  "expiresIn": 7200,
-  "2faVerified": true
+@Locale("zh-CN")
+public interface AuthErrors {
+    String ARG_USER_ID = "userId";
+    String ARG_USER_NAME = "userName";
+    String ARG_ROLE_ID = "roleId";
+    String ARG_ROLE_CODE = "roleCode";
+    String ARG_PERMISSION_ID = "permissionId";
+
+    // 2FA相关错误码
+    String ARG_2FA_METHOD = "twoFactorMethod";
+    String ARG_PHONE_NUMBER = "phoneNumber";
+
+    ErrorCode ERR_AUTH_USER_NOT_FOUND = define("nop.err.auth.user-not-found",
+        "用户[{userId}]不存在", ARG_USER_ID);
+
+    ErrorCode ERR_AUTH_USER_NAME_EXISTS = define("nop.err.auth.user-name-exists",
+        "用户名[{userName}]已存在", ARG_USER_NAME);
+
+    ErrorCode ERR_AUTH_INVALID_CREDENTIALS = define("nop.err.auth.invalid-credentials",
+        "用户名或密码错误");
+
+    ErrorCode ERR_AUTH_2FA_CONFIG_NOT_FOUND = define("nop.err.auth.2fa-config-not-found",
+        "用户[{userId}]的2FA配置不存在", ARG_USER_ID);
+
+    ErrorCode ERR_AUTH_2FA_INVALID_CODE = define("nop.err.auth.2fa-invalid-code",
+        "验证码无效或已过期");
+
+    ErrorCode ERR_AUTH_2FA_ALREADY_ENABLED = define("nop.err.auth.2fa-already-enabled",
+        "用户[{userId}]已启用2FA", ARG_USER_ID);
+
+    ErrorCode ERR_AUTH_2FA_NOT_ENABLED = define("nop.err.auth.2fa-not-enabled",
+        "用户[{userId}]未启用2FA", ARG_USER_ID);
+
+    ErrorCode ERR_AUTH_SMS_RATE_LIMIT_EXCEEDED = define("nop.err.auth.sms-rate-limit-exceeded",
+        "短信发送频率超限，请稍后再试");
+
+    ErrorCode ERR_AUTH_SMS_SEND_FAILED = define("nop.err.auth.sms-send-failed",
+        "短信发送失败: {reason}");
+
+    ErrorCode ERR_AUTH_RECOVERY_CODE_INVALID = define("nop.err.auth.recovery-code-invalid",
+        "恢复码无效或已使用");
+
+    ErrorCode ERR_AUTH_RECOVERY_CODE_EXHAUSTED = define("nop.err.auth.recovery-code-exhausted",
+        "恢复码已用尽，请重新生成");
+
+    ErrorCode ERR_AUTH_TEMP_TOKEN_INVALID = define("nop.err.auth.temp-token-invalid",
+        "临时令牌无效或已过期");
 }
 ```
 
 ## Security Considerations
 
-### 1. 加密策略
+### 1. Encryption Strategy
 
-#### TOTP密钥加密
-```java
-public class TotpSecretEncryption {
-    private static final String ALGORITHM = "AES";
-    private static final String TRANSFORMATION = "AES/CBC/PKCS5Padding";
-    private static final int KEY_SIZE = 256;
-
-    @Value("${nop.auth.encryption.key}")
-    private String encryptionKey;
-
-    public String encrypt(String plaintext) {
-        // 使用AES-256加密
-        Key key = generateKey(encryptionKey);
-        Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-        cipher.init(Cipher.ENCRYPT_MODE, key);
-        byte[] encrypted = cipher.doFinal(plaintext.getBytes());
-        return Base64.getEncoder().encodeToString(encrypted);
-    }
-
-    public String decrypt(String ciphertext) {
-        // 使用AES-256解密
-        // ...
-    }
-}
-```
-
-#### 恢复码加密
-```java
-public class RecoveryCodeEncryption {
-    // 使用bcrypt加密每个恢复码
-    public String encrypt(String code) {
-        return BCrypt.hashpw(code, BCrypt.gensalt(12));
-    }
-
-    public boolean verify(String code, String hashed) {
-        return BCrypt.checkpw(code, hashed);
-    }
-}
-```
+- **TOTP密钥**: 使用AES-256加密存储
+- **恢复码**: 使用JSON格式存储，加密整个列表
+- **短信验证码**: 使用AES-256加密存储
+- **密码**: 使用BCrypt加密（cost factor 12）
 
 ### 2. Rate Limiting
 
-#### 短信发送频率限制
-```java
-@Service
-public class SmsRateLimiter {
+- **短信发送**: 每分钟1次，每天10次
+- **TOTP验证**: 5次失败锁定30分钟
+- **恢复码**: 每个恢复码仅能使用一次
+- **登录尝试**: 与现有登录策略集成
 
-    @Autowired
-    private RedisTemplate<String, String> redisTemplate;
+### 3. Session Management
 
-    public boolean checkRateLimit(String phoneNumber) {
-        String key = "sms:rate:" + phoneNumber;
+- 2FA验证通过后刷新会话
+- 记录使用的验证方式
+- 支持要求关键操作重新验证2FA
 
-        // 1分钟内只能发送1次
-        Long count1Min = redisTemplate.opsForValue().increment(key);
-        if (count1Min == 1) {
-            redisTemplate.expire(key, 1, TimeUnit.MINUTES);
-        }
-        if (count1Min > 1) {
-            return false;
-        }
+## GraphQL Schema
 
-        // 1天内只能发送10次
-        String dailyKey = "sms:daily:" + phoneNumber;
-        Long countDaily = redisTemplate.opsForValue().increment(dailyKey);
-        if (countDaily == 1) {
-            redisTemplate.expire(dailyKey, 24, TimeUnit.HOURS);
-        }
-        if (countDaily > 10) {
-            return false;
-        }
+### Type Definitions
 
-        return true;
-    }
+```graphql
+type NopAuth2faConfig {
+    sid: ID!
+    userId: ID!
+    twoFactorMethod: String!
+    totpSecret: String
+    recoveryCodes: String
+    phoneNumber: String
+    enabled: Boolean!
+    enabledAt: DateTime
+    lastUsedAt: DateTime
+    createdTime: DateTime!
+    updatedTime: DateTime!
+}
+
+type NopAuthSmsLog {
+    sid: ID!
+    userId: ID
+    phoneNumber: String!
+    code: String!
+    purpose: String!
+    sentAt: DateTime!
+    verifiedAt: DateTime
+    expiredAt: DateTime!
+    ipAddress: String
+    createdTime: DateTime!
 }
 ```
 
-### 3. 暴力破解防护
+### Queries
 
-#### 验证码失败计数器
-```java
-@Service
-public class BruteForceProtection {
+```graphql
+type Query {
+    # 获取2FA配置
+    get2faConfig(userId: ID!): NopAuth2faConfig
 
-    @Autowired
-    private RedisTemplate<String, String> redisTemplate;
+    # 获取恢复码列表
+    getRecoveryCodes(userId: ID!): [String!]!
 
-    public void recordFailedAttempt(Long userId) {
-        String key = "2fa:failed:" + userId;
-        Long count = redisTemplate.opsForValue().increment(key);
-        if (count == 1) {
-            redisTemplate.expire(key, 30, TimeUnit.MINUTES);
-        }
-
-        // 5次失败后锁定
-        if (count >= 5) {
-            lock2fa(userId, 30);
-        }
-    }
-
-    public void resetFailedAttempts(Long userId) {
-        String key = "2fa:failed:" + userId;
-        redisTemplate.delete(key);
-    }
-
-    public boolean isLocked(Long userId) {
-        String key = "2fa:locked:" + userId;
-        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
-    }
-
-    private void lock2fa(Long userId, int minutes) {
-        String key = "2fa:locked:" + userId;
-        redisTemplate.opsForValue().set(key, "true", minutes, TimeUnit.MINUTES);
-    }
+    # 查询短信日志
+    findSmsLogs(query: QueryBean): [NopAuthSmsLog!]!
 }
 ```
 
-## Performance Optimization
+### Mutations
 
-### 1. 缓存策略
+```graphql
+type Mutation {
+    # TOTP相关
+    enableTotp(userId: ID!): EnableTotpResult!
+    verifyAndEnableTotp(userId: ID!, code: String!): Boolean!
 
-#### Redis缓存验证码
-```java
-@Service
-public class SmsCodeService {
+    # 短信相关
+    enableSms(userId: ID!, phoneNumber: String!): Boolean!
+    verifyAndEnableSms(userId: ID!, code: String!): Boolean!
 
-    @Autowired
-    private RedisTemplate<String, String> redisTemplate;
+    # 通用
+    disable2fa(userId: ID!): Boolean!
+    regenerateRecoveryCodes(userId: ID!): [String!]!
 
-    private static final String CODE_PREFIX = "sms:code:";
-    private static final int CODE_TTL = 300; // 5分钟
+    # 登录
+    login(username: String!, password: String!): LoginResult!
+    verify2fa(tempToken: String!, code: String!, method: String!): Verify2faResult!
+}
 
-    public void saveCode(Long userId, String code) {
-        String key = CODE_PREFIX + userId;
-        redisTemplate.opsForValue().set(key, encryptCode(code), CODE_TTL, TimeUnit.SECONDS);
-    }
+type EnableTotpResult {
+    secret: String!
+    qrCodeUrl: String!
+}
 
-    public String getCode(Long userId) {
-        String key = CODE_PREFIX + userId;
-        String encryptedCode = redisTemplate.opsForValue().get(key);
-        if (encryptedCode != null) {
-            return decryptCode(encryptedCode);
-        }
-        return null;
-    }
+type LoginResult {
+    token: String
+    tempToken: String
+    requires2FA: Boolean!
+    availableMethods: [String!]!
+    userId: ID!
+    expiresIn: Int
+}
+
+type Verify2faResult {
+    token: String!
+    userId: ID!
+    2faVerified: Boolean!
+    2faMethod: String!
+    expiresIn: Int
 }
 ```
 
-### 2. 异步处理
+## Implementation Notes
 
-#### 短信发送异步化
-```java
-@Service
-public class AsyncSmsSender {
+### 1. Service Implementation Patterns
 
-    @Autowired
-    private ISmsService smsService;
+- Implement `ITotpService` using Apache Commons Codec or similar library
+- Implement `ISmsService` as interface with provider-specific implementations
+- Implement `ISmsCodeService` to handle SMS code generation, validation, and rate limiting
+- Implement `IRecoveryCodeService` to manage recovery codes
 
-    @Async("smsExecutor")
-    public void sendSmsAsync(String phoneNumber, String code, String purpose) {
-        try {
-            smsService.sendCode(phoneNumber, code, purpose);
-        } catch (Exception e) {
-            log.error("Failed to send SMS to {}: {}", phoneNumber, e.getMessage());
-            // 记录失败，可选择重试
-        }
-    }
-}
-```
+### 2. External Dependencies
 
-### 3. 数据库优化
+- **TOTP Library**: Apache Commons Codec or Google Authenticator library
+- **SMS Service**: Aliyun SMS SDK or Tencent Cloud SMS SDK
+- **Encryption**: Nop Platform's built-in crypto utilities
 
-#### 索引优化
-```sql
--- 用户ID唯一索引
-CREATE UNIQUE INDEX uk_user_id ON t_auth_2fa_config(user_id);
+### 3. Integration Points
 
--- 启用时间索引（用于统计）
-CREATE INDEX idx_enabled_at ON t_auth_2fa_config(enabled_at);
-
--- 最后使用时间索引（用于清理过期会话）
-CREATE INDEX idx_last_used_at ON t_auth_2fa_config(last_used_at);
-
--- 手机号索引（用于短信发送日志）
-CREATE INDEX idx_phone_number ON t_auth_sms_log(phone_number);
-
--- 发送时间索引（用于清理过期日志）
-CREATE INDEX idx_sent_at ON t_auth_sms_log(sent_at);
-
--- 过期时间索引（用于清理）
-CREATE INDEX idx_expired_at ON t_auth_sms_log(expired_at);
-```
-
-## Monitoring and Logging
-
-### 1. Metrics
-
-```java
-@Service
-public class TwoFactorAuthMetrics {
-
-    private final MeterRegistry meterRegistry;
-
-    public void recordTotpVerification(boolean success) {
-        meterRegistry.counter("2fa.totp.verification",
-            "success", String.valueOf(success)).increment();
-    }
-
-    public void recordSmsSent(String phoneNumber) {
-        meterRegistry.counter("2fa.sms.sent").increment();
-    }
-
-    public void recordSmsVerification(boolean success) {
-        meterRegistry.counter("2fa.sms.verification",
-            "success", String.valueOf(success)).increment();
-    }
-}
-```
-
-### 2. Audit Logging
-
-```java
-@Service
-public class TwoFactorAuthAudit {
-
-    @Autowired
-    private AuditLogService auditLogService;
-
-    public void log2faEnabled(Long userId, String method) {
-        auditLogService.log(AuditEvent.builder()
-            .userId(userId)
-            .eventType("2FA_ENABLED")
-            .description(String.format("2FA enabled using method: %s", method))
-            .build());
-    }
-
-    public void log2faDisabled(Long userId) {
-        auditLogService.log(AuditEvent.builder()
-            .userId(userId)
-            .eventType("2FA_DISABLED")
-            .description("2FA disabled")
-            .build());
-    }
-
-    public void log2faVerification(Long userId, String method, boolean success) {
-        auditLogService.log(AuditEvent.builder()
-            .userId(userId)
-            .eventType("2FA_VERIFICATION")
-            .description(String.format("2FA verification attempt: %s, success: %s",
-                method, success))
-            .build());
-    }
-}
-```
+- Extend `NopAuthUserBizModel` for login flow enhancement
+- Create new `NopAuth2faConfigBizModel` for 2FA configuration management
+- Integrate with existing authentication and authorization mechanisms
+- Extend user entity with `twoFactorEnabled` field
 
 ## Testing Strategy
 
-### 1. Unit Tests
+### Unit Tests
 
-```java
-@SpringBootTest
-class TotpServiceTest {
+- TOTP generation and verification logic
+- SMS code generation and validation logic
+- Recovery code generation and validation logic
+- Encryption and decryption functions
 
-    @Autowired
-    private ITotpService totpService;
+### Integration Tests
 
-    @Test
-    void testGenerateSecret() {
-        String secret = totpService.generateSecret();
-        assertNotNull(secret);
-        assertTrue(secret.length() >= 16);
-    }
+- Complete 2FA enablement flow
+- 2FA login flow
+- Various error scenarios (invalid codes, expired codes, etc.)
 
-    @Test
-    void testVerifyCode() {
-        String secret = totpService.generateSecret();
-        String code = generateTotpCode(secret); // 生成正确的TOTP码
+### E2E Tests
 
-        assertTrue(totpService.verifyCode(secret, code));
-        assertFalse(totpService.verifyCode(secret, "000000"));
-    }
-}
-```
+- User registration and 2FA enablement
+- Login with 2FA
+- Recovery code usage
+- 2FA disablement
 
-### 2. Integration Tests
+## Migration Path
 
-```java
-@SpringBootTest
-@AutoConfigureMockMvc
-class TwoFactorAuthIntegrationTest {
+### Phase 1: Development (2 weeks)
 
-    @Autowired
-    private MockMvc mockMvc;
+- Implement TOTP and SMS verification code functionality
+- Develop management interfaces
+- Write tests
 
-    @Test
-    void testEnableTotpFlow() throws Exception {
-        // 1. 启用TOTP
-        MvcResult result = mockMvc.perform(post("/api/auth/2fa/totp/enable")
-            .header("Authorization", "Bearer " + token))
-            .andExpect(status().isOk())
-            .andReturn();
+### Phase 2: Testing (1 week)
 
-        String response = result.getResponse().getContentAsString();
-        JSONObject json = new JSONObject(response);
-        String secret = json.getString("secret");
+- Comprehensive testing
+- Performance optimization
+- Documentation
 
-        // 2. 验证TOTP码
-        String code = generateTotpCode(secret);
-        mockMvc.perform(post("/api/auth/2fa/totp/verify")
-            .header("Authorization", "Bearer " + token)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"code\":\"" + code + "\"}"))
-            .andExpect(status().isOk());
-    }
-}
-```
+### Phase 3: Gradual Rollout (2 weeks)
 
-## Deployment Considerations
+- Enable 2FA for 10% of users (optional)
+- Collect feedback
+- Fix issues
 
-### 1. Configuration Management
+### Phase 4: Full Rollout (ongoing)
 
-```yaml
-# application-dev.yaml
-nop:
-  auth:
-    2fa:
-      enabled: true
-      methods: totp,sms
-      totp:
-        window-size: 1
-      sms:
-        provider: aliyun
-        aliyun:
-          access-key-id: ${ALIYUN_ACCESS_KEY_ID_DEV}
-          access-key-secret: ${ALIYUN_ACCESS_KEY_SECRET_DEV}
-```
-
-```yaml
-# application-prod.yaml
-nop:
-  auth:
-    2fa:
-      enabled: true
-      methods: totp,sms
-      totp:
-        window-size: 1
-      sms:
-        provider: aliyun
-        aliyun:
-          access-key-id: ${ALIYUN_ACCESS_KEY_ID_PROD}
-          access-key-secret: ${ALIYUN_ACCESS_KEY_SECRET_PROD}
-```
-
-### 2. Database Migration
-
-```sql
--- V2.0.1__add_2fa_support.sql
--- See Database Schema Design section above
-
--- Rollback script
-DROP TABLE IF EXISTS t_auth_2fa_config;
-DROP TABLE IF EXISTS t_auth_sms_log;
-ALTER TABLE t_sys_user DROP COLUMN two_factor_enabled;
-```
-
-### 3. Feature Flags
-
-```java
-@Component
-public class TwoFactorAuthFeature {
-
-    @Value("${nop.auth.2fa.enabled:false}")
-    private boolean enabled;
-
-    @Value("${nop.auth.2fa.methods:totp}")
-    private List<String> availableMethods;
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public boolean isMethodAvailable(String method) {
-        return availableMethods.contains(method);
-    }
-}
-```
+- Full rollout
+- Require 2FA for administrators and high-privilege users
+- Recommend 2FA for regular users
 
 ## Conclusion
 
-本设计文档详细描述了2FA功能的实现方案，包括：
+This design document describes a 2FA implementation that follows Nop Platform's architecture and design patterns:
 
-1. 系统架构和组件设计
-2. 数据库schema设计
-3. 核心服务实现
-4. 登录流程增强
-5. 安全考虑
-6. 性能优化
-7. 监控和日志
-8. 测试策略
-9. 部署考虑
+1. **BizModel Pattern**: Uses `CrudBizModel` with `@BizQuery` and `@BizMutation` annotations
+2. **GraphQL API**: All operations exposed through GraphQL
+3. **ORM Integration**: Uses `IOrmEntityDao` and entity models extending `OrmEntity`
+4. **Configuration**: Uses `IConfigReference` for configuration management
+5. **Error Handling**: Uses `NopException` with `ErrorCode` definitions
+6. **Dependency Injection**: Uses `@Inject` from Jakarta Inject
+7. **Transaction Management**: Uses `@Transactional` from Nop platform
+8. **Encryption**: Leverages Nop Platform's built-in crypto utilities
 
-该设计遵循Nop平台的设计原则：
-- 模块化：各组件职责清晰
-- 可扩展：支持多种2FA方式
-- 安全优先：加密存储、防暴力破解
-- 性能优化：缓存、异步处理
-- 可观测性：完整的监控和审计日志
-
-按照此设计实施，可以安全、高效地为Nop平台添加2FA功能。
+Following this design will ensure consistency with Nop Platform's existing architecture and patterns.

@@ -2,7 +2,7 @@
 
 ## Summary
 
-为Nop平台的认证系统添加双因素认证（2FA）支持，增强账户安全性。实现TOTP（基于时间的一次性密码）和短信验证码两种2FA方式。
+为Nop平台的认证系统添加双因素认证（2FA）支持，增强账户安全性。实现TOTP（基于时间的一次性密码）和短信验证码两种2FA方式，使用Nop平台的BizModel模式和GraphQL API。
 
 ## Motivation
 
@@ -25,36 +25,36 @@
 - 支持Google Authenticator等标准TOTP应用
 - 用户可绑定TOTP设备
 - 登录时输入6位TOTP码验证
+- 通过GraphQL API启用和验证
 
 #### 1.2 短信验证码认证支持
 - 发送6位数字验证码到用户手机
 - 验证码有效期5分钟
 - 支持短信服务配置（阿里云、腾讯云等）
+- 实现发送频率限制
 
 #### 1.3 备用恢复码
 - 用户可生成一组备用恢复码（默认10个）
 - 用于丢失2FA设备时登录
 - 每个恢复码仅使用一次
 
-#### 1.4 2FA管理界面
+#### 1.4 2FA管理GraphQL API
 - 用户可启用/禁用2FA
 - 查看绑定状态
-- 生成和打印备用恢复码
+- 生成和查看备用恢复码
 - 重新绑定2FA设备
 
 ### 2. 修改现有功能
 
 #### 2.1 登录流程增强
+- 扩展`NopAuthUserBizModel`支持两步验证
 - 用户登录成功后检查是否启用2FA
 - 如已启用，要求输入第二因素验证码
 - 验证通过后生成JWT令牌
 
 #### 2.2 用户模型扩展
-- 扩展用户实体，添加2FA相关字段：
-  - `twoFactorEnabled`: 是否启用2FA
-  - `totpSecret`: TOTP密钥（加密存储）
-  - `recoveryCodes`: 备用恢复码（加密存储）
-  - `phoneNumber`: 手机号码（用于短信验证码）
+- 扩展`NopAuthUser`实体，添加2FA相关字段：
+  - `twoFactorEnabled`: 是否启用2FA（冗余字段，提高查询性能）
 
 #### 2.3 配置增强
 - 添加2FA相关配置项：
@@ -62,47 +62,50 @@
   - 可选的2FA方式（TOTP、短信）
   - 短信服务配置
   - 恢复码数量
+  - 使用Nop平台的配置模式（`IConfigReference`）
 
-### 3. API新增
+### 3. GraphQL API新增
 
-#### 3.1 TOTP相关API
-- `POST /api/auth/totp/enable`: 启用TOTP
+#### 3.1 TOTP相关Mutation
+- `enableTotp(userId: ID!)`: 启用TOTP
   - 返回：密钥和二维码URL
-- `POST /api/auth/totp/verify`: 验证TOTP并完成绑定
-- `POST /api/auth/totp/disable`: 禁用TOTP
+- `verifyAndEnableTotp(userId: ID!, code: String!)`: 验证TOTP并完成绑定
 
-#### 3.2 短信验证码相关API
-- `POST /api/auth/sms/send`: 发送短信验证码
-- `POST /api/auth/sms/verify`: 验证短信验证码并完成绑定
-- `POST /api/auth/sms/disable`: 禁用短信验证
+#### 3.2 短信验证码相关Mutation
+- `enableSms(userId: ID!, phoneNumber: String!)`: 发送短信验证码
+- `verifyAndEnableSms(userId: ID!, code: String!)`: 验证短信验证码并完成绑定
 
-#### 3.3 恢复码相关API
-- `GET /api/auth/recovery-codes`: 获取恢复码列表
-- `POST /api/auth/recovery-codes/regenerate`: 重新生成恢复码
+#### 3.3 恢复码相关Mutation和Query
+- `getRecoveryCodes(userId: ID!)`: 获取恢复码列表
+- `regenerateRecoveryCodes(userId: ID!)`: 重新生成恢复码
 
-#### 3.4 2FA登录API
-- `POST /api/auth/login/2fa`: 2FA第二步验证
-  - 参数：`token`（第一步返回的临时令牌）, `code`（验证码）, `method`（验证方式）
+#### 3.4 通用Mutation
+- `disable2fa(userId: ID!)`: 禁用2FA
+
+#### 3.5 2FA登录Mutation
+- `login(username: String!, password: String!)`: 第一步登录
+  - 未启用2FA：返回JWT令牌
+  - 已启用2FA：返回临时令牌
+- `verify2fa(tempToken: String!, code: String!, method: String!)`: 2FA第二步验证
+  - 验证通过后返回JWT令牌
 
 ### 4. 数据库变更
 
 #### 4.1 新增表
-- `t_auth_2fa_config`: 用户2FA配置
+- `nop_auth_2fa_config`: 用户2FA配置
+  - `sid`: 主键ID
   - `user_id`: 用户ID
   - `two_factor_method`: 2FA方式（totp/sms/none）
   - `totp_secret`: TOTP密钥（加密）
   - `recovery_codes`: 恢复码（JSON加密）
   - `phone_number`: 手机号码
+  - `enabled`: 是否启用
   - `enabled_at`: 启用时间
   - `last_used_at`: 最后使用时间
 
-#### 4.2 修改表
-- `t_sys_user`: 添加字段
-  - `two_factor_enabled`: 是否启用2FA（冗余字段，提高查询性能）
-
-#### 4.3 新增表
-- `t_auth_sms_log`: 短信发送日志
-  - `id`: 主键
+- `nop_auth_sms_log`: 短信发送日志
+  - `sid`: 主键ID
+  - `user_id`: 用户ID
   - `phone_number`: 手机号
   - `code`: 验证码（加密）
   - `purpose`: 用途（login/bind）
@@ -111,36 +114,61 @@
   - `expired_at`: 过期时间
   - `ip_address`: IP地址
 
-### 5. 安全考虑
+#### 4.2 修改表
+- `nop_auth_user`: 添加字段
+  - `two_factor_enabled`: 是否启用2FA（冗余字段，提高查询性能）
 
-#### 5.1 密钥安全
-- TOTP密钥使用AES加密存储
-- 恢复码使用bcrypt或AES加密
+### 5. 架构设计
+
+#### 5.1 服务层设计
+使用Nop平台的BizModel模式：
+- 创建`NopAuth2faConfigBizModel`继承`CrudBizModel<NopAuth2faConfig>`
+- 扩展`NopAuthUserBizModel`添加2FA登录方法
+- 使用`@BizQuery`和`@BizMutation`注解定义GraphQL操作
+
+#### 5.2 数据访问层
+使用Nop平台的ORM：
+- 使用`IOrmEntityDao<NopAuth2faConfig>`进行数据访问
+- 使用`IOrmEntityDao<NopAuthSmsLog>`管理短信日志
+- 实体类继承`OrmEntity`
+
+#### 5.3 服务接口
+定义独立的服务接口：
+- `ITotpService`: TOTP生成和验证
+- `ISmsCodeService`: 短信验证码管理
+- `IRecoveryCodeService`: 恢复码管理
+
+### 6. 安全考虑
+
+#### 6.1 密钥安全
+- TOTP密钥使用AES加密存储（使用Nop平台的加密工具）
+- 恢复码使用JSON格式存储，加密整个列表
 - 日志中不记录完整的验证码
 
-#### 5.2 防止暴力破解
+#### 6.2 防止暴力破解
 - TOTP验证码错误5次锁定2FA设备
-- 短信验证码限制频率（1分钟1次，每天10次）
+- 短信验证码限制频率（每分钟1次，每天10次）
 - 恢复码使用后立即失效
 
-#### 5.3 会话管理
+#### 6.3 会话管理
 - 2FA验证通过后刷新会话
 - 记录使用的验证方式
 - 支持要求关键操作重新验证2FA
 
-### 6. 性能考虑
+### 7. 性能考虑
 
-#### 6.1 TOTP验证
+#### 7.1 TOTP验证
 - 使用高效的TOTP库（如Apache Commons Codec）
 - 验证时间窗口：±1个时间步（30秒）
 
-#### 6.2 短信发送
+#### 7.2 短信发送
 - 使用消息队列异步发送
 - 缓存验证码减少数据库查询
 - 设置合理的重试机制
 
-#### 6.3 数据库优化
-- 为`user_id`添加索引
+#### 7.3 数据库优化
+- 为`user_id`添加唯一索引
+- 为`enabled_at`添加索引（用于统计）
 - 为`sent_at`添加索引（清理过期日志）
 
 ## Alternatives Considered
@@ -234,14 +262,17 @@
 ## Dependencies
 
 ### 内部依赖
-- nop-auth：认证核心模块
-- nop-sys：用户管理模块
-- nop-integration：短信服务集成
+- `nop-auth`: 认证核心模块
+- `nop-sys`: 用户管理模块
+- `nop-integration`: 短信服务集成
+- `nop-service-framework`: BizModel和CrudBizModel
+- `nop-orm`: ORM引擎
+- `nop-biz`: 业务模型框架
 
 ### 外部依赖
-- TOTP库：Apache Commons Codec或OATH Toolkit
+- TOTP库：Apache Commons Codec或类似库
 - 短信服务：阿里云SMS、腾讯云SMS等
-- QR码生成库：ZXing
+- 加密工具：Nop平台内置加密工具
 
 ## Risks and Mitigations
 
@@ -291,7 +322,7 @@
 
 - 用户手册：如何启用和使用2FA
 - 管理员指南：如何配置和管理2FA
-- API文档：2FA相关API接口
+- GraphQL API文档：2FA相关API接口
 - 安全白皮书：2FA的安全机制说明
 
 ## Rollback Plan
