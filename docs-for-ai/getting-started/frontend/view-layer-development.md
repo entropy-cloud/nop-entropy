@@ -339,6 +339,13 @@ xdef文件定义了模型的语法规则，包括：
 - 跳转到xdef定义
 - 实时验证和错误提示
 
+## 相关文档
+
+- [前台开发指南](./frontend-development.md) - AMIS框架使用
+- [GraphQL服务开发指南](../api/graphql-guide.md) - GraphQL API开发
+- [API模型设计](../api/api-model-design.md) - API模型设计指南
+- [XDef模型设计](../xlang/xdef-model-design.md) - XDef元模型设计
+
 ## 总结
 
 Nop平台的XView模型提供了一种强大的方式来描述前端界面，具有以下优势：

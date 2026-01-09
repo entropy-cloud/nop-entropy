@@ -228,3 +228,23 @@ public class UserBizModel extends CrudBizModel<User> {
     }
 }
 ```
+
+## 相关文档
+
+- [IEntityDao使用指南](./entitydao-usage.md) - 数据访问接口详解
+- [QueryBean使用指南](./querybean-guide.md) - 查询对象详解
+- [FilterBeans使用指南](./filterbeans-guide.md) - 过滤条件详解
+- [服务层开发指南](../service/service-layer-development.md) - BizModel开发详解
+- [事务管理指南](../core/transaction-guide.md) - 事务管理完整指南
+- [数据处理指南](./data-processing.md) - 数据处理指南
+
+## 总结
+
+Nop平台提供了多种数据访问方式，满足不同场景的需求：
+
+1. **IEntityDao**: 优先使用，支持实体CRUD和关联查询
+2. **IOrmTemplate**: 灵活，支持事务管理和混合使用
+3. **IJdbcTemplate**: 高性能，适合复杂SQL和批量操作
+4. **SqlLib**: 集中管理，适合大量复杂SQL和动态SQL
+
+选择合适的数据访问组件，可以提高开发效率和系统性能。遵循最佳实践，可以构建高效、可靠的数据访问层。

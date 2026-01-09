@@ -269,6 +269,214 @@ NopIoC会自动检测循环依赖，并在启动时抛出异常，可通过配�
 
 6. **编写测试用例**：使用`@NopTestConfig`编写单元测试，确保Bean配置和依赖关系正确。
 
+## 常见问题
+
+### Q1: 如何解决循环依赖？
+
+**答案**: NopIoC会自动检测循环依赖并抛出异常。解决循环依赖的方法：
+
+1. **使用@Lazy注解**：延迟初始化Bean
+
+```java
+@Component
+public class ServiceA {
+
+    @Inject
+    @Lazy
+    private ServiceB serviceB;
+
+    public void doWork() {
+        serviceB.doWork();
+    }
+}
+```
+
+2. **重构设计**：重新设计依赖关系，避免循环依赖
+
+3. **使用接口**：通过接口解耦
+
+```java
+public interface IServiceB {
+    void doWork();
+}
+
+@Component
+public class ServiceB implements IServiceB {
+    // 实现
+}
+
+@Component
+public class ServiceA {
+
+    @Inject
+    private IServiceB serviceB; // 注入接口，避免循环依赖
+}
+```
+
+### Q2: 如何指定Bean的加载顺序？
+
+**答案**: 使用@DependsOn注解指定依赖关系：
+
+```java
+@Component
+@DependsOn({"dataSource", "transactionManager"})
+public class MyService {
+    // 会在dataSource和transactionManager初始化之后初始化
+}
+```
+
+### Q3: 如何在Bean初始化时执行逻辑？
+
+**答案**: 使用@PostConstruct和@PreDestroy注解：
+
+```java
+@Component
+public class MyService {
+
+    @Inject
+    private DataSource dataSource;
+
+    @PostConstruct
+    public void init() {
+        // Bean初始化后执行
+        System.out.println("MyService initialized");
+    }
+
+    @PreDestroy
+    public void destroy() {
+        // Bean销毁前执行
+        System.out.println("MyService destroyed");
+    }
+}
+```
+
+### Q4: 如何根据条件装配Bean？
+
+**答案**: 使用@Conditional注解或条件配置：
+
+```java
+@Component
+@ConditionalOnProperty(name = "feature.enabled", havingValue = "true")
+public class FeatureService {
+    // 只有当feature.enabled=true时才会被装配
+}
+```
+
+或者在XML配置中：
+
+```xml
+<bean id="myBean" class="com.example.MyBean"
+      condition="${feature.enabled} == 'true'"/>
+```
+
+### Q5: 如何获取Bean的实例？
+
+**答案**: 通过IClassContainer获取Bean：
+
+```java
+@Inject
+private IClassContainer classContainer;
+
+public void doGetBean() {
+    // 按类型获取Bean
+    MyService service = classContainer.getBeanByType(MyService.class);
+
+    // 按名称获取Bean
+    MyService service2 = (MyService) classContainer.getBean("myService");
+
+    // 按类型和名称获取Bean
+    MyService service3 = classContainer.getBean("myService", MyService.class);
+}
+```
+
+### Q6: 如何注册动态Bean？
+
+**答案**: 通过IClassContainer注册Bean：
+
+```java
+@Inject
+private IClassContainer classContainer;
+
+public void registerDynamicBean() {
+    // 动态注册Bean
+    classContainer.registerBean("dynamicBean", MyDynamicBean.class);
+}
+```
+
+### Q7: 如何使用AOP？
+
+**答案**: 使用@Aspect注解定义切面：
+
+```java
+@Aspect
+public class LoggingAspect {
+
+    @Around("execution(* com.example.service.*.*(..))")
+    public Object logAround(ProceedingJoinPoint joinPoint) throws Throwable {
+        System.out.println("Before: " + joinPoint.getSignature());
+        Object result = joinPoint.proceed();
+        System.out.println("After: " + joinPoint.getSignature());
+        return result;
+    }
+}
+```
+
+### Q8: 如何配置Bean的作用域？
+
+**答案**: 使用@Scope注解：
+
+```java
+@Component
+@Scope("prototype") // 每次获取都创建新实例
+public class PrototypeBean {
+    // 默认是singleton，每次获取都是同一个实例
+}
+```
+
+支持的作用域：
+- **singleton**: 单例（默认）
+- **prototype**: 原型，每次获取都创建新实例
+- **request**: 请求作用域
+- **session**: 会话作用域
+
+### Q9: 如何处理Bean的依赖关系？
+
+**答案**: 使用@Inject注解自动注入依赖：
+
+```java
+@Component
+public class MyService {
+
+    @Inject
+    private DataSource dataSource;
+
+    @Inject
+    @Named("myTransactionManager")
+    private TransactionManager transactionManager;
+
+    @Inject
+    private List<MyPlugin> plugins; // 注入所有MyPlugin类型的Bean
+}
+```
+
+### Q10: 如何在测试中使用IoC容器？
+
+**答案**: 使用@NopTestConfig注解：
+
+```java
+@NopTestConfig
+public class MyServiceTest {
+
+    @Inject
+    private MyService myService;
+
+    @Test
+    public void testDoWork() {
+        myService.doWork();
+    }
+}
+```
+
 ## 总结
 
 NopIoC是一个轻量级、高效、灵活的依赖注入容器，具有以下优势：

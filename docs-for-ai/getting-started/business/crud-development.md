@@ -566,6 +566,14 @@ XMeta是Nop平台的标准化对象元数据模型，用于定义对象结构、
 5. **统一命名规范**: 保持属性名称和显示名称的一致性
 6. **合理使用字典**: 对枚举类型字段使用字典配置，便于统一管理和国际化
 
+## 相关文档
+
+- [服务层开发指南](../service/service-layer-development.md) - BizModel开发详解
+- [IEntityDao使用指南](../dao/entitydao-usage.md) - 数据访问接口详解
+- [复杂业务开发指南](./complex-business-development.md) - 复杂业务逻辑开发
+- [GraphQL服务开发指南](../api/graphql-guide.md) - GraphQL API开发
+- [数据库模型设计](../dao/database-model-design.md) - 数据库模型设计指南
+
 ## 总结
 
 CrudBizModel是Nop平台CRUD开发的核心组件，它封装了完整的CRUD操作逻辑，支持自动生成前后端CRUD功能。通过继承CrudBizModel，开发者可以快速实现业务功能，减少重复开发。

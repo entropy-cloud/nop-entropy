@@ -86,20 +86,23 @@ private IPasswordPolicy passwordPolicy;
 ```java
 @BizQuery
 public User getUserByOpenId(String openId) {
-    return dao().findFirst(User.OPEN_ID.eq(openId));
+    // 使用Example查询
+    User example = new User();
+    example.setOpenId(openId);
+    return dao().findFirstByExample(example);
 }
 
 @BizMutation
 public void resetUserPassword(String userId, String newPassword) {
     txn(() -> {
-        User user = dao().findById(userId);
+        User user = dao().getEntityById(userId);
         if (user == null) {
             throw new NopException(Errors.ERR_BIZ_OBJECT_NOT_FOUND)
                     .param(ARG_OBJ_NAME, "User")
                     .param(ARG_OBJ_ID, userId);
         }
         user.setPassword(passwordEncoder.encode(newPassword));
-        dao().save(user);
+        dao().saveEntity(user);
     });
 }
 ```
@@ -150,7 +153,27 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
 ```java
 @BizQuery
 public NopAuthUser getUserByOpenId(String openId) {
-    return dao().findFirst(NopAuthUser.OPEN_ID.eq(openId));
+    NopAuthUser example = new NopAuthUser();
+    example.setOpenId(openId);
+    return dao().findFirstByExample(example);
+}
+
+@BizMutation
+public void resetUserPassword(String userId, String newPassword) {
+    NopAuthUser user = dao().getEntityById(userId);
+    if (user == null) {
+        throw new NopException(Errors.ERR_BIZ_OBJECT_NOT_FOUND)
+                .param(ARG_OBJ_NAME, "NopAuthUser")
+                .param(ARG_OBJ_ID, userId);
+    }
+    passwordPolicy.checkPassword(newPassword);
+    user.setPassword(passwordEncoder.encode(newPassword));
+    dao().saveEntity(user);
+}
+
+@BizMutation
+public void changeSelfPassword(String oldPassword, String newPassword) {
+    // 实现修改当前用户密码的逻辑
 }
 
 @BizMutation
@@ -168,7 +191,6 @@ public void resetUserPassword(String userId, String newPassword) {
 }
 
 @BizMutation
-@Transactional
 public void changeSelfPassword(String oldPassword, String newPassword) {
     // 实现修改当前用户密码的逻辑
 }
@@ -207,7 +229,10 @@ protected void defaultPrepareSave(NopAuthUser user) {
 ```java
 @BizQuery
 public List<User> findActiveUsers() {
-    return dao().findList(User.STATUS.eq(1));
+    // 使用QueryBean查询
+    QueryBean query = new QueryBean();
+    query.setFilter(FilterBeans.eq("status", 1));
+    return dao().findAllByQuery(query);
 }
 ```
 
@@ -219,7 +244,7 @@ public List<User> findActiveUsers() {
 ```java
 @BizMutation
 public User createUser(User user) {
-    return save(user);
+    return (User) save(Collections.singletonMap("entity", user));
 }
 ```
 
@@ -246,11 +271,172 @@ public void approveUser(String userId) {
 
 ## 注意事项
 
-1. **线程安全**：所有业务组件都是线程安全的
-2. **事务管理**：默认情况下，变更方法会自动开启事务
-3. **数据权限**：自动处理数据权限过滤
-4. **异常处理**：业务异常会自动转换为GraphQL错误
-5. **测试**：业务逻辑需要进行单元测试和集成测试
+1. **避免在BizModel中直接使用HttpSession等Web层对象**
+2. **不要在BizModel中直接访问数据库，使用dao()方法获取DAO对象**
+3. **不要在BizModel中手动管理事务，使用@Transactional注解**
+4. **不要在BizModel中手动处理异常，抛出NopException即可**
+
+## 常见问题
+
+### Q1: 如何在BizModel中调用其他BizModel的方法？
+
+**答案**: 使用依赖注入注入其他BizModel：
+
+```java
+@BizModel("User")
+public class UserBizModel extends CrudBizModel<NopAuthUser> {
+
+    @Inject
+    private OrderBizModel orderBizModel;
+
+    @BizQuery
+    public List<Order> getUserOrders(@Name("userId") String userId) {
+        return orderBizModel.findOrdersByUser(userId);
+    }
+}
+```
+
+### Q2: 如何在BizModel中进行批量操作？
+
+**答案**: 使用DAO的批量方法：
+
+```java
+@BizMutation
+public void batchUpdateStatus(@Name("userIds") List<String> userIds,
+                             @Name("status") Integer status) {
+    txn(() -> {
+        List<User> users = dao().batchGetEntitiesByIds(userIds);
+        for (User user : users) {
+            user.setStatus(status);
+        }
+        dao().batchSaveEntities(users);
+    });
+}
+```
+
+### Q3: 如何在BizModel中处理复杂的业务逻辑？
+
+**答案**: 将复杂逻辑拆分为多个私有方法，保持主方法的清晰：
+
+```java
+@BizMutation
+@Transactional
+public Order createOrder(@Name("order") Order order,
+                        @Name("items") List<OrderItem> items) {
+    // 验证订单
+    validateOrder(order, items);
+
+    // 计算价格
+    calculatePrice(order, items);
+
+    // 保存订单
+    return saveOrder(order, items);
+}
+
+private void validateOrder(Order order, List<OrderItem> items) {
+    // 验证逻辑
+}
+
+private void calculatePrice(Order order, List<OrderItem> items) {
+    // 计算逻辑
+}
+
+private Order saveOrder(Order order, List<OrderItem> items) {
+    // 保存逻辑
+}
+```
+
+### Q4: 如何在BizModel中实现条件逻辑？
+
+**答案**: 使用if-else或switch语句处理条件逻辑：
+
+```java
+@BizQuery
+public List<Order> findOrders(@Name("status") String status,
+                              @Name("userId") String userId) {
+    QueryBean query = QueryBean.forQuery(Order.class);
+
+    if (status != null && !status.isEmpty()) {
+        query.filter(Order.PROP_NAME_status, FilterBean.eq(status));
+    }
+
+    if (userId != null && !userId.isEmpty()) {
+        query.filter(Order.PROP_NAME_userId, FilterBean.eq(userId));
+    }
+
+    return dao().findAllByQuery(query);
+}
+```
+
+### Q5: 如何在BizModel中处理分页查询？
+
+**答案**: 使用QueryBean的offset和limit参数：
+
+```java
+@BizQuery
+public PageBean<Order> findPage(@Name("query") QueryBean query,
+                                @Name("pageNo") Integer pageNo,
+                                @Name("pageSize") Integer pageSize) {
+    if (pageNo == null || pageNo <= 0) {
+        pageNo = 1;
+    }
+    if (pageSize == null || pageSize <= 0) {
+        pageSize = 20;
+    }
+
+    query.setOffset((pageNo - 1) * pageSize);
+    query.setLimit(pageSize);
+
+    return dao().findPageByQuery(query);
+}
+```
+
+### Q6: 如何在BizModel中处理权限检查？
+
+**答案**: 在方法开始处进行权限检查：
+
+```java
+@BizMutation
+public void updateUserStatus(@Name("userId") String userId,
+                            @Name("status") Integer status) {
+    // 检查权限
+    if (!hasPermission("user:update")) {
+        throw new NopException(ERR_FORBIDDEN);
+    }
+
+    // 验证用户
+    User user = dao().getEntityById(userId);
+    if (user == null) {
+        throw new NopException(ERR_ENTITY_NOT_FOUND);
+    }
+
+    // 更新状态
+    user.setStatus(status);
+    dao().updateEntity(user);
+}
+```
+
+## 总结
+
+BizModel是Nop平台服务层的核心组件，它封装了业务逻辑，为GraphQL和REST API提供服务。
+
+**关键要点**：
+
+1. **继承CrudBizModel**: 自动获得完整的CRUD功能
+2. **使用注解定义服务**: @BizModel、@BizQuery、@BizMutation
+3. **依赖注入**: 使用@Inject注入其他服务
+4. **事务管理**: 使用@Transactional注解管理事务
+5. **异常处理**: 抛出NopException，框架自动处理
+
+遵循这些最佳实践，可以构建清晰、可维护的服务层代码。
+
+## 相关文档
+
+- [IEntityDao使用指南](../dao/entitydao-usage.md)
+- [QueryBean使用指南](../dao/querybean-guide.md)
+- [事务管理指南](../core/transaction-guide.md)
+- [异常处理指南](../core/exception-guide.md)
+- [GraphQL服务开发指南](../api/graphql-guide.md)
 
 ## 示例：完整的BizModel
 

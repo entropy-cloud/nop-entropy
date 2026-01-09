@@ -81,3 +81,23 @@ Nop平台前台开发基于AMIS框架，通过JSON配置生成页面，无需编
 - 支持自定义AMIS组件
 - 支持JS扩展和事件处理
 - 与后端通过GraphQL API交互
+
+## 相关文档
+
+- [视图层开发指南](./view-layer-development.md) - XView模型详解
+- [GraphQL服务开发指南](../api/graphql-guide.md) - GraphQL API开发
+- [API模型设计](../api/api-model-design.md) - API模型设计指南
+
+## 总结
+
+Nop平台前台开发基于AMIS框架，通过XView模型定义页面结构，自动生成AMIS JSON配置，无需编写大量HTML和CSS代码。
+
+**核心特点**：
+
+1. **XView模型**: 描述页面结构的XML模型
+2. **AMIS组件**: 丰富的UI组件库
+3. **GraphQL API**: 前后端数据交互
+4. **权限控制**: 基于角色的访问控制
+5. **自动生成**: 根据模型自动生成页面代码
+
+遵循这些最佳实践，可以快速构建美观、易用的前端页面。
