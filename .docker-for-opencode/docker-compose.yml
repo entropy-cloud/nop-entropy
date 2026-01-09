@@ -12,7 +12,7 @@ services:
       # 挂载项目文件到容器工作目录
       - /c/can/nop:/app/workspace:rw
       # 可选：挂载配置文件
-      # - ./opencode-cli-config.yaml:/app/.opencode/config.yaml:ro
+      - /c/can/opencode/opencode-zhipu.json:/app/.opencode/config.json:ro
     working_dir: /app/workspace
     restart: unless-stopped
     stdin_open: true  # 保持 stdin 打开，用于交互式使用
