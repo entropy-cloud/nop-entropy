@@ -9,11 +9,11 @@
          xdef:name="RecordMappingConfig" xdef:bean-package="io.nop.record_mapping.model"
          baseMapping="var-name" fromClass="class-name" toClass="class-name">
 
-    <description xdef:value="string"/>
+    <description>string</description>
 
-    <beforeMapping xdef:value="xpl-fn:(source,target,ctx)=>void"/>
+    <beforeMapping>xpl-fn:(source,target,ctx)=>void</beforeMapping>
 
-    <afterMapping xdef:value="xpl-fn:(source,target,ctx)=>void"/>
+    <afterMapping>xpl-fn:(source,target,ctx)=>void</afterMapping>
 
     <fields xdef:key-attr="name" xdef:body-type="list">
         <!--
@@ -34,26 +34,26 @@
                varName="var-name" disableFromPropPath="!boolean=false" disableToPropPath="!boolean=false"
                md:format="string" md:titleField="xml-name">
 
-            <when xdef:value="xpl-fn:(source,target,ctx)=>boolean"/>
-            <computeExpr xdef:value="xpl-fn:(source,target,ctx)=>any"/>
-            <valueExpr xdef:value="xpl-fn:(value,ctx)=>any"/>
+            <when>xpl-fn:(source,target,ctx)=>boolean</when>
+            <computeExpr>xpl-fn:(source,target,ctx)=>any</computeExpr>
+            <valueExpr>xpl-fn:(value,ctx)=>any</valueExpr>
 
-            <newItemExpr xdef:value="xpl-fn:(source,target,ctx)=>any"/>
+            <newItemExpr>xpl-fn:(source,target,ctx)=>any</newItemExpr>
 
-            <newInstanceExpr xdef:value="xpl-fn:(source,target,ctx)=>any"/>
+            <newInstanceExpr>xpl-fn:(source,target,ctx)=>any</newInstanceExpr>
 
             <!--
             当Map或者Collection结构进行映射时，可以判断每个条目是否需要映射
             -->
-            <itemFilterExpr xdef:value="xpl-fn:(item,key,ctx)=>boolean"/>
+            <itemFilterExpr>xpl-fn:(item,key,ctx)=>boolean</itemFilterExpr>
 
             <schema xdef:ref="../schema/schema.xdef"/>
 
-            <valueMapper xdef:value="value-mapper"/>
+            <valueMapper>value-mapper</valueMapper>
 
-            <beforeFieldMapping xdef:value="xpl-fn:(source,target,ctx)=>void"/>
+            <beforeFieldMapping>xpl-fn:(source,target,ctx)=>void</beforeFieldMapping>
 
-            <afterFieldMapping xdef:value="xpl-fn:(source,target,ctx)=>void"/>
+            <afterFieldMapping>xpl-fn:(source,target,ctx)=>void</afterFieldMapping>
         </field>
     </fields>
 

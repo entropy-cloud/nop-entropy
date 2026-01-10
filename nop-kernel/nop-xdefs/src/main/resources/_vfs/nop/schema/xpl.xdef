@@ -77,7 +77,7 @@
            </dialog>
         </windowing>
         -->
-        <xpl:decorator xdef:value="xpl"/>
+        <xpl:decorator>xpl</xpl:decorator>
 
         <!--
         用在xpl:decorator内部，用于在复杂的包装结构标识出嵌入位置。例如

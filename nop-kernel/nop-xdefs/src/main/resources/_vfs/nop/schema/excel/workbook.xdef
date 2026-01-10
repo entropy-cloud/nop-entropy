@@ -35,19 +35,19 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                             xdef:ref="anchor.xdef"
                             type="enum:io.nop.excel.model.constants.ExcelAnchorType"/>
                     <!-- data为对应图片数据 -->
-                    <data xdef:value="base64-bytes"/>
-                    <description xdef:value="string"/>
-                    <linkUrl xdef:value="string"/>
-                    <linkExpr xdef:value="report-expr"/>
-                    <testExpr xdef:value="xpl-predicate"/>
-                    <dataExpr xdef:value="report-expr"/>
+                    <data>base64-bytes</data>
+                    <description>string</description>
+                    <linkUrl>string</linkUrl>
+                    <linkExpr>report-expr</linkExpr>
+                    <testExpr>xpl-predicate</testExpr>
+                    <dataExpr>report-expr</dataExpr>
                 </image>
             </images>
 
             <charts xdef:body-type="list" xdef:key-attr="name">
                 <chart name="!string" xdef:ref="chart.xdef" xdef:name="ExcelChartModel">
                     <anchor xdef:ref="ExcelClientAnchor" />
-                    <testExpr xdef:value="xpl-predicate"/>
+                    <testExpr>xpl-predicate</testExpr>
                 </chart>
             </charts>
 
@@ -117,14 +117,14 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                         - 对于 list 类型：表示列表源，如 "选项1,选项2,选项3" 或 Sheet1!$A$1:$A$5
                         - 对于 textLength：表示文本长度限制
                     -->
-                    <formula1 xdef:value="string"/>
+                    <formula1>string</formula1>
 
                     <!--
                         <formula2> 可选。第二个公式或值。
                         - 主要用于 between 和 notBetween 操作符，表示最大值
                         - 对于其他操作符通常为空
                     -->
-                    <formula2 xdef:value="string"/>
+                    <formula2>string</formula2>
                 </dataValidation>
             </dataValidations>
 
@@ -133,8 +133,8 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
             <pageMargins xdef:ref="page-margins.xdef"/>
 
             <pageBreaks xdef:name="ExcelPageBreaks">
-                <cols xdef:value="int-list"/>
-                <rows xdef:value="int-list"/>
+                <cols>int-list</cols>
+                <rows>int-list</rows>
             </pageBreaks>
 
             <!--
@@ -148,21 +148,21 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                 <!--
                 如果返回false，则跳过当前sheet的生成。判断通过之后才会执行beginLoop
                 -->
-                <testExpr xdef:value="xpl-predicate"/>
+                <testExpr>xpl-predicate</testExpr>
 
                 <!--
                 可以根据模板生成多个sheet。 beginLoop如果返回数组，则针对数组中的每一项都生成一个Sheet
                 -->
-                <beginLoop xdef:value="xpl"/>
-                <endLoop xdef:value="xpl"/>
+                <beginLoop>xpl</beginLoop>
+                <endLoop>xpl</endLoop>
 
                 <!--
                 动态生成sheet的名称，返回值类型必须是字符串
                 -->
-                <sheetNameExpr xdef:value="xpl"/>
+                <sheetNameExpr>xpl</sheetNameExpr>
 
-                <beforeExpand xdef:value="xpl"/>
-                <afterExpand xdef:value="xpl"/>
+                <beforeExpand>xpl</beforeExpand>
+                <afterExpand>xpl</afterExpand>
 
             </model>
         </sheet>
@@ -174,14 +174,14 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
     -->
     <model xdef:name="XptWorkbookModel" loopVarName="var-name" loopIndexName="var-name" loopItemsName="var-name"
            removeHiddenCell="!boolean=false" maxSheetNameLength="int" dump="boolean" dumpDir="string">
-        <beginLoop xdef:value="xpl"/>
-        <endLoop xdef:value="xpl"/>
+        <beginLoop>xpl</beginLoop>
+        <endLoop>xpl</endLoop>
 
-        <beforeExpand xdef:value="xpl"/>
-        <afterExpand xdef:value="xpl"/>
+        <beforeExpand>xpl</beforeExpand>
+        <afterExpand>xpl</afterExpand>
 
         <editors xdef:body-type="list" xdef:key-attr="id">
-            <editr id="!string" xdef:value="xpl-xjson" xdef:name="XptXplModel"/>
+            <editr id="!string" xdef:name="XptXplModel">xpl-xjson</editr>
         </editors>
 
         <viewers xdef:body-type="list" xdef:key-attr="id">

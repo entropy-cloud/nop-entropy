@@ -9,7 +9,7 @@
      displayName="string" version="string"
      xdef:default-extends="/nop/core/defaults/default.orm.xml">
 
-    <description xdef:value="string"/>
+    <description>string</description>
 
     <domains xdef:body-type="list" xdef:key-attr="name">
         <!--
@@ -29,9 +29,9 @@
         package仅仅作为界面组织手段
         -->
         <package xdef:name="OrmPackageModel" name="!string" displayName="string">
-            <comment xdef:value="string"/>
-            <diagram xdef:value="json"/>
-            <entities xdef:value="class-name-set"/>
+            <comment>string</comment>
+            <diagram>json</diagram>
+            <entities>class-name-set</entities>
         </package>
     </packages>
 

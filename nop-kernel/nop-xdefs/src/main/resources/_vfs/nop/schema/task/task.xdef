@@ -31,9 +31,9 @@
                  disabled="!boolean=false" allowFailure="!boolean=false"
                  displayName="string" timeout="!long=0" persisVars="csv-set" catchInternalException="boolean">
 
-        <description xdef:value="string"/>
+        <description>string</description>
 
-        <meta xdef:value="xjson"/>
+        <meta>xjson</meta>
 
         <!-- 可以根据动态设置的flag来决定是否执行本步骤
         @match 满足flag条件才执行本步骤
@@ -49,9 +49,9 @@
         <input name="!var-name" displayName="string" xdef:name="TaskInputModel" defaultValue="any"
                type="generic-type" mandatory="!boolean=false" role="string" value="t-expr" optional="!boolean=false"
                xdef:unique-attr="name" persist="!boolean=true" fromTaskScope="!boolean=false" dump="!boolean=false">
-            <description xdef:value="string"/>
+            <description>string</description>
             <schema xdef:ref="../schema/schema.xdef"/>
-            <source xdef:value="xpl"/>
+            <source>xpl</source>
         </input>
 
         <!--
@@ -62,13 +62,13 @@
         <output name="!var-name" displayName="string" persist="!boolean=false" value="t-expr"
                 xdef:name="TaskOutputModel" toTaskScope="!boolean=false" type="generic-type"
                 xdef:unique-attr="name" exportAs="var-name" roles="csv-set" dump="!boolean=false">
-            <description xdef:value="string"/>
+            <description>string</description>
             <schema xdef:ref="../schema/schema.xdef"/>
-            <source xdef:value="xpl"/>
+            <source>xpl</source>
         </output>
 
-        <onReload xdef:value="xpl"/>
-        <onEnter xdef:value="xpl"/>
+        <onReload>xpl</onReload>
+        <onEnter>xpl</onEnter>
 
         <!--
         对taskStep进行增强，返回新的step
@@ -77,19 +77,19 @@
         -->
         <decorator order="!int=100" name="!string" bean="bean-name"
                    xdef:name="TaskDecoratorModel" xdef:unique-attr="name">
-            <source xdef:value="xpl"/>
+            <source>xpl</source>
         </decorator>
 
         <!-- 不满足条件的时候将会自动跳过本步骤 -->
-        <when xdef:value="xpl-predicate"/>
+        <when>xpl-predicate</when>
 
         <!-- 验证输入数据 -->
-        <validator xdef:value="xpl"/>
+        <validator>xpl</validator>
 
         <!-- 捕获异常后如果不抛出异常，则认为是成功执行，会执行output返回 -->
-        <catch xdef:value="xpl-fn:(EXCEPTION,stepRt)=>any"/>
+        <catch>xpl-fn:(EXCEPTION,stepRt)=>any</catch>
 
-        <finally xdef:value="xpl-fn:(EXCEPTION,stepRt)=>any"/>
+        <finally>xpl-fn:(EXCEPTION,stepRt)=>any</finally>
 
         <!--
           如果发生异常，则重试整个task
@@ -99,7 +99,7 @@
             <!--
               上下文环境中存在$exception变量，返回false表示异常不可被恢复，不能继续重试
             -->
-            <exception-filter xdef:value="xpl-fn:(EXCEPTION)=>boolean"/>
+            <exception-filter>xpl-fn:(EXCEPTION)=>boolean</exception-filter>
         </retry>
 
         <!--
@@ -151,7 +151,7 @@
              -->
             <step name="!var-name" xdef:ref="TaskStepModel" customType="xml-name"
                   xdef:name="XplTaskStepModel">
-                <source xdef:value="xpl"/>
+                <source>xpl</source>
             </step>
 
             <!--
@@ -163,7 +163,7 @@
             <!-- 使用ScriptCompilerRegistry中注册的IScriptCompiler执行脚本语言  -->
             <script name="!var-name" lang="!xml-name" xdef:ref="TaskStepModel"
                     xdef:name="ScriptTaskStepModel">
-                <source xdef:value="string"/>
+                <source>string</source>
             </script>
 
             <!--
@@ -184,19 +184,19 @@
             <parallel name="!var-name" xdef:ref="TaskStepsModel" xdef:name="ParallelTaskStepModel"
                       joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=true">
                 <!-- 对并行步骤执行结果进行汇总处理 -->
-                <aggregator xdef:value="xpl-fn:(aggResults)=>any"/>
+                <aggregator>xpl-fn:(aggResults)=>any</aggregator>
             </parallel>
 
             <!--
             推出sequential或者loop
             -->
             <exit name="!var-name" xdef:ref="TaskStepModel" xdef:name="ExitTaskStepModel">
-                <source xdef:value="xpl"/>
+                <source>xpl</source>
             </exit>
 
             <!-- 退出整个工作流 -->
             <end name="!var-name" xdef:ref="TaskStepModel" xdef:name="EndTaskStepModel">
-                <source xdef:value="xpl"/>
+                <source>xpl</source>
             </end>
 
             <!--
@@ -215,16 +215,16 @@
             <fork name="!var-name" varName="!var-name" indexName="var-name" xdef:ref="TaskStepsModel"
                   xdef:name="ForkTaskStepModel"
                   joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=true">
-                <producer xdef:value="xpl"/>
+                <producer>xpl</producer>
                 <!-- 对并行步骤执行结果进行汇总处理 -->
-                <aggregator xdef:value="xpl-fn:(aggResults)=>any"/>
+                <aggregator>xpl-fn:(aggResults)=>any</aggregator>
             </fork>
 
             <fork-n name="!var-name" indexName="var-name" countExpr="!expr" xdef:ref="TaskStepsModel"
                     xdef:name="ForkNTaskStepModel"
                     joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=true">
                 <!-- 对并行步骤执行结果进行汇总处理 -->
-                <aggregator xdef:value="xpl-fn:(aggResults)=>any"/>
+                <aggregator>xpl-fn:(aggResults)=>any</aggregator>
             </fork-n>
 
             <!--
@@ -242,8 +242,8 @@
             -->
             <loop name="!var-name" xdef:ref="TaskStepsModel" xdef:name="LoopTaskStepModel"
                   indexName="var-name" varName="var-name" itemsExpr="!expr" maxCount="!int=0" varType="generic-type">
-                <while xdef:value="xpl-predicate"/>
-                <until xdef:value="xpl-predicate"/>
+                <while>xpl-predicate</while>
+                <until>xpl-predicate</until>
             </loop>
 
             <loop-n name="!var-name" xdef:ref="TaskStepsModel" varName="var-name" indexName="var-name"
@@ -254,7 +254,7 @@
             类似于switch语句。根据decider的返回结果动态选择执行哪个分支
             -->
             <choose name="!var-name" xdef:ref="TaskStepModel" xdef:name="ChooseTaskStepModel">
-                <decider xdef:value="xpl"/>
+                <decider>xpl</decider>
 
                 <!--
                  @match 用于匹配decider返回的值
@@ -266,7 +266,7 @@
             </choose>
 
             <if name="!var-name" xdef:ref="TaskStepModel" xdef:name="IfTaskStepModel">
-                <condition xdef:value="xpl-predicate"/>
+                <condition>xpl-predicate</condition>
                 <then xdef:name="IfThenTaskStepModel" xdef:ref="TaskStepsModel"/>
                 <else xdef:name="IfElseTaskStepModel" xdef:ref="TaskStepsModel"/>
             </if>
@@ -285,7 +285,7 @@
               挂起当前任务，等待手工触发继续执行
             -->
             <suspend name="!var-name" xdef:ref="TaskStepModel" xdef:name="SuspendTaskStepModel">
-                <resume-when xdef:value="xpl-predicate"/>
+                <resume-when>xpl-predicate</resume-when>
             </suspend>
 
             <!--

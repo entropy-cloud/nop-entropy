@@ -35,10 +35,10 @@
         <!--
         具有上下文变量event, Context context
         -->
-        <where xdef:value="xpl-fn:(event:any,ctx:any)=>any"/>
+        <where>xpl-fn:(event:any,ctx:any)=>any</where>
 
         <!-- 仅适用于oneOrMore（） -->
-        <until xdef:value="xpl-fn:(event:any,ctx:any)=>any"/>
+        <until>xpl-fn:(event:any,ctx:any)=>any</until>
     </single>
 
     <group name="!xml-name" xdef:name="CepPatternGroupModel" xdef:ref="CepPatternPartModel"

@@ -14,7 +14,7 @@
         name="prop-name" displayName="string" rawVarName="var-name" varName="var-name"
         beanClass="class-name" typeRef="string" baseType="class-name">
 
-    <doc xdef:value="string"/>
+    <doc>string</doc>
 
     <params xdef:body-type="list" xdef:key-attr="name">
         <param name="!string" xdef:ref="record-param.xdef"/>
@@ -23,25 +23,25 @@
     <!--
     动态确定字段长度。在表达式中record指向父结构，_root指向根结构。
     -->
-    <lengthExpr xdef:value="xpl-fn:(input,record,ctx)=>int"/>
+    <lengthExpr>xpl-fn:(input,record,ctx)=>int</lengthExpr>
 
     <fields xdef:body-type="list" xdef:key-attr="name">
         <field name="!string" xdef:ref="record-field.xdef"/>
     </fields>
 
-    <writeWhen xdef:value="xpl-fn:(record,ctx)=>boolean"/>
+    <writeWhen>xpl-fn:(record,ctx)=>boolean</writeWhen>
 
-    <readWhen xdef:value="xpl-fn:(input,record,ctx)=>boolean"/>
+    <readWhen>xpl-fn:(input,record,ctx)=>boolean</readWhen>
 
-    <beforeWrite xdef:value="xpl-fn:(out,record,ctx)=>any"/>
+    <beforeWrite>xpl-fn:(out,record,ctx)=>any</beforeWrite>
 
-    <afterWrite xdef:value="xpl-fn:(out,record,ctx)=>any"/>
+    <afterWrite>xpl-fn:(out,record,ctx)=>any</afterWrite>
 
-    <beforeRead xdef:value="xpl-fn:(input,record,ctx)=>any"/>
+    <beforeRead>xpl-fn:(input,record,ctx)=>any</beforeRead>
 
     <!-- 在所有子字段都读取到之后执行 -->
-    <afterRead xdef:value="xpl-fn:(input,record,ctx)=>any"/>
+    <afterRead>xpl-fn:(input,record,ctx)=>any</afterRead>
 
-    <template xdef:value="string"/>
+    <template>string</template>
 
 </object>

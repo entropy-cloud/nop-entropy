@@ -45,7 +45,7 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
 
             <picture title="boolean" stretch="boolean" xdef:name="ChartFillPictureModel"
                      imageUrl="string" embedId="string">
-                <data xdef:value="base64-bytes"/>
+                <data>base64-bytes</data>
             </picture>
         </fill>
 

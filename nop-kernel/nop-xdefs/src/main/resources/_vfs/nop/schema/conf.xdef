@@ -11,7 +11,7 @@
              defaultValue="any" inheritFrom="csv-set"
              xdef:name="ConfigVarModel"
         >
-            <description xdef:value="string"/>
+            <description>string</description>
 
             <!-- 嵌套定义 -->
             <vars xdef:body-type="map" xdef:key-attr="name">

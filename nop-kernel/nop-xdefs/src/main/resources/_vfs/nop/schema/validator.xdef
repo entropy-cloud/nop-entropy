@@ -23,7 +23,7 @@
            errorDescription="string" errorStatus="int" bizFatal="boolean"
            xdef:name="ValidatorCheckModel" severity="!int=0"
            xdef:unique-attr="id"
-           xdef:bean-body-prop="condition" xdef:value="filter-bean"/>
+           xdef:bean-body-prop="condition">filter-bean</check>
 
-    <condition xdef:value="filter-bean"/>
+    <condition>filter-bean</condition>
 </validator>

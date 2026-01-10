@@ -14,12 +14,12 @@
     <!--
     从actors集合中过滤得到实际使用的actor列表。仅当selection=auto时才会被使用。
     -->
-    <selectExpr xdef:value="xpl"/>
+    <selectExpr>xpl</selectExpr>
 
     <!--
     对于每一个actor，从actor对应的user中选择一个作为owner
     -->
-    <defaultOwnerExpr xdef:value="xpl"/>
+    <defaultOwnerExpr>xpl</defaultOwnerExpr>
 
     <actors xdef:body-type="list" xdef:key-attr="actorModelId">
         <!--
@@ -41,6 +41,6 @@
     <!--
     当actors集合中实际选择的人员为空时会使用defaultActor
     -->
-    <defaultActorExpr xdef:value="xpl"/>
+    <defaultActorExpr>xpl</defaultActorExpr>
 
 </assignment>

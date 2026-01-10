@@ -20,7 +20,7 @@
     <!--
     [描述信息]
     -->
-    <description xdef:value="string"/>
+    <description>string</description>
 
     <tags xdef:body-type="map">
         <!--
@@ -43,9 +43,9 @@
                           unknownAttrsVar="var-name" attrsVar="var-name"
                           xdef:bean-tag-prop="tagName" xdef:name="XplTag"
         >
-            <description xdef:value="string"/>
+            <description>string</description>
 
-            <example xdef:value="xml"/>
+            <example>xml</example>
 
             <!--
             @var 对应于表达式中可以使用的变量名。一般情况下变量名与属性名相同，但是如果属性名中存在特殊字符，例如on:click或者v-model，
@@ -57,7 +57,7 @@
                   mandatory="boolean" implicit="boolean" optional="boolean=true" defaultValue="string"
                   deprecated="boolean" xdef:unique-attr="name" xdef:name="XplTagAttribute"
             >
-                <description xdef:value="string"/>
+                <description>string</description>
             </attr>
 
             <!--
@@ -75,17 +75,17 @@
                      xdef:name="XplTagSlotArg"
                 />
                 <attr xdef:ref="XplTagAttribute"/>
-                <description xdef:value="string"/>
+                <description>string</description>
             </slot>
 
             <!-- 对标签的参数进行校验 -->
             <validator xdef:ref="test-filter.xdef"/>
 
             <return type="generic-type" domain="var-name" xdef:name="XplTagReturn">
-                <description xdef:value="string"/>
+                <description>string</description>
             </return>
 
-            <source xdef:value="xml"/>
+            <source>xml</source>
 
         </xdef:unknown-tag>
     </tags>

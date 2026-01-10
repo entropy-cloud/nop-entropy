@@ -2,13 +2,13 @@
       xmlns:xdef="/nop/schema/xdef.xdef">
     <steps xdef:body-type="list" xdef:key-attr="name">
         <xpl name="!var-name">
-            <when xdef:value="xpl-predicate"/>
-            <source xdef:value="xpl"/>
+            <when>xpl-predicate</when>
+            <source>xpl</source>
         </xpl>
     </steps>
 
     <output name="!var-name" xdef:unique-attr="name">
-        <source xdef:value="xpl"/>
+        <source>xpl</source>
     </output>
 
 </task>

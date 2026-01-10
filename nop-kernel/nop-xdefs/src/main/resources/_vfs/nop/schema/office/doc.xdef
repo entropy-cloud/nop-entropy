@@ -8,7 +8,7 @@
                 <p id="!string" xdef:name="OfficeParagraphModel" xdef:bean-prop="paragraphs">
                     <r id="!string" xdef:name="OfficeRunModel" xdef:unique-attr="id" xdef:bean-prop="runs">
                         <style xdef:ref="../excel/style.xdef"/>
-                        <t xdef:value="string"/>
+                        <t>string</t>
                     </r>
                 </p>
             </header>

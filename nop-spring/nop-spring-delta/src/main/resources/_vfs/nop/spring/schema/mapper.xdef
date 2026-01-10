@@ -43,19 +43,19 @@
                    mode="string" resultMap="string" scale="int" typeHandler="class-name"/>
     </parameterMap>
 
-    <sql xdef:unique-attr="id" id="!string" lang="string" databaseId="string" xdef:value="xml"/>
+    <sql xdef:unique-attr="id" id="!string" lang="string" databaseId="string">xml</sql>
 
     <insert xdef:unique-attr="id" id="!string" parameterMap="string" parameterType="class-name" timeout="int"
             flushCache="boolean" statementType="string" keyProperty="string" useGeneratedKeys="boolean"
-            keyColumn="string" databaseId="string" lang="string" xdef:value="xml"/>
+            keyColumn="string" databaseId="string" lang="string">xml</insert>
 
     <update xdef:unique-attr="id" id="!string" parameterMap="string" parameterType="class-name" timeout="int"
             flushCache="boolean" statementType="string" keyProperty="string" useGeneratedKeys="boolean"
-            keyColumn="string" databaseId="string" lang="string" xdef:value="xml"/>
+            keyColumn="string" databaseId="string" lang="string">xml</update>
 
 
     <delete xdef:unique-attr="id" id="!string" parameterMap="string" parameterType="class-name" timeout="int"
-            flushCache="boolean" statementType="string" databaseId="string" lang="string" xdef:value="xml"/>
+            flushCache="boolean" statementType="string" databaseId="string" lang="string">xml</delete>
 
     <!--
     @resultSetType FORWARD_ONLY | SCROLL_INSENSITIVE | SCROLL_SENSITIVE
@@ -64,6 +64,6 @@
     <select xdef:unique-attr="id" id="!string" parameterMap="string" parameterType="class-name" resultMap="string"
             resultType="class-name" resultSetType="string" statementType="string" fetchSize="int" timeout="int"
             flushCache="boolean" useCache="boolean" databaseId="string" lang="string" resultOrdered="boolean"
-            resultSets="string" xdef:value="xml"/>
+            resultSets="string">xml</select>
 </mapper>
 

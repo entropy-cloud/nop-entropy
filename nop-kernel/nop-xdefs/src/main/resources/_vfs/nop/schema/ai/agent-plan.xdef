@@ -10,20 +10,20 @@ Agent Plan Metamodel Definition
       path="string" title="!string"
       planStatus="enum:io.nop.ai.agent.plan.AgentExecStatus">
 
-    <overview xdef:value="string"/>
+    <overview>string</overview>
 
     <tasks xdef:body-type="list" xdef:key-attr="taskNo">
         <task taskNo="!string" title="!string"
               taskStatus="enum:io.nop.ai.agent.plan.AgentExecStatus"
               xdef:name="AgentPlanTaskModel">
 
-            <overview xdef:value="string"/>
-            <resultMessage xdef:value="string"/>
+            <overview>string</overview>
+            <resultMessage>string</resultMessage>
 
-            <instructions xdef:value="string" />
+            <instructions>string</instructions>
 
             <notes xdef:body-type="list" xdef:key-attr="name">
-                <note name="!string" xdef:value="string" xdef:name="AgentPlanNoteModel"/>
+                <note name="!string" xdef:name="AgentPlanNoteModel">string</note>
             </notes>
 
             <subTasks xdef:body-type="list" xdef:key-attr="taskNo">

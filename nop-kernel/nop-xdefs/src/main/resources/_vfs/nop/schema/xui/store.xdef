@@ -17,10 +17,10 @@
 >
     <import id="!string" from="!string" items="string" as="string" xdef:unique-attr="id"/>
 
-    <state xdef:value="xjson-map" schema="string"/>
+    <state schema="string">xjson-map</state>
 
     <apis xdef:body-type="list" xdef:key-attr="name">
-        <api name="!string" xdef:value="xjson-map"/>
+        <api name="!string">xjson-map</api>
     </apis>
 
     <methods xdef:body-type="list" xdef:key-attr="name">
@@ -28,19 +28,19 @@
         具有可选的payload参数
         -->
         <getter name="!string" payload="generic-type">
-            <source xdef:value="xpl-text"/>
+            <source>xpl-text</source>
         </getter>
 
         <computed name="!string">
-            <source xdef:value="xpl-text"/>
+            <source>xpl-text</source>
         </computed>
 
         <mutation name="!string" payload="generic-type" undo="string">
-            <source xdef:value="xpl-text"/>
+            <source>xpl-text</source>
         </mutation>
 
         <action name="!string" payload="generic-type" async="boolean">
-            <source xdef:value="xpl-text"/>
+            <source>xpl-text</source>
         </action>
 
         <!--
@@ -48,11 +48,11 @@
         -->
         <listener name="!string" stop="!boolean=false" ctl="!boolean=false"
                   alt="!boolean=false" keycode="csv-set">
-            <source xdef:value="xpl-text"/>
+            <source>xpl-text</source>
         </listener>
     </methods>
 
-    <connectTo xdef:value="csv-list"/>
+    <connectTo>csv-list</connectTo>
 
     <children xdef:body-type="list" xdef:key-attr="name">
         <child name="!string" src="string"/>

@@ -33,31 +33,31 @@
        includeTerminator="!boolean=false" terminator="encoded-bytes"
        tillEnd="!boolean=false"
 >
-    <doc xdef:value="string"/>
+    <doc>string</doc>
 
     <schema xdef:ref="../schema/schema.xdef"/>
 
     <!--
     动态确定字段长度。在表达式中record指向父结构，_root指向根结构。
     -->
-    <lengthExpr xdef:value="xpl-fn:(input,record,ctx)=>int"/>
+    <lengthExpr>xpl-fn:(input,record,ctx)=>int</lengthExpr>
 
     <!--
     当表达式返回false时，此字段将被跳过，不会被处理
     -->
-    <writeWhen xdef:value="xpl-fn:(record,ctx)=>boolean"/>
+    <writeWhen>xpl-fn:(record,ctx)=>boolean</writeWhen>
 
-    <readWhen xdef:value="xpl-fn:(input,record,ctx)=>boolean"/>
+    <readWhen>xpl-fn:(input,record,ctx)=>boolean</readWhen>
 
     <!-- 解析时对已经解析到的value进行转换  -->
-    <transformIn xdef:value="xpl-fn:(record,value,ctx)=>any"/>
+    <transformIn>xpl-fn:(record,value,ctx)=>any</transformIn>
 
     <!-- 输出时不从实体上获取，根据表达式计算得到输出值 -->
-    <transformOut xdef:value="xpl-fn:(record,value,ctx)=>any"/>
+    <transformOut>xpl-fn:(record,value,ctx)=>any</transformOut>
 
-    <parseExpr xdef:value="xpl-fn:(input,record,ctx)=>any"/>
+    <parseExpr>xpl-fn:(input,record,ctx)=>any</parseExpr>
 
     <!-- 导出时通过此表达式获取值，而不是通过prop获取值 -->
-    <exportExpr xdef:value="xpl-fn:(record,ctx)=>any"/>
+    <exportExpr>xpl-fn:(record,ctx)=>any</exportExpr>
 
 </field>

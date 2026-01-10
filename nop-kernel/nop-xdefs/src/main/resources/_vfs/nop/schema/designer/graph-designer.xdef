@@ -10,14 +10,14 @@
 
     <zoom initialValue="int" min="int" max="int" step="int" xdef:name="GraphDesignerZoomModel"/>
 
-    <style xdef:value="string"/>
+    <style>string</style>
 
     <!-- 类似于React中styled-component的封装 -->
     <style-components xdef:body-type="list" xdef:key-attr="name">
         <style-component name="!var-name" xdef:ref="../xui/style-component.xdef"/>
     </style-components>
 
-    <control-bar xdef:value="xml"/>
+    <control-bar>xml</control-bar>
 
     <imports xdef:body-type="list" xdef:key-attr="as">
         <import as="!var-name=@attr:name" xdef:ref="../xui/import.xdef"/>
@@ -44,9 +44,9 @@
               allowParents="csv-set" xdef:name="GraphDesignerNodeModel"
               layout="string" allowChildren="csv-set"
         >
-            <style xdef:value="string"/>
+            <style>string</style>
 
-            <template xdef:value="vue-node"/>
+            <template>vue-node</template>
 
             <anchors xdef:body-type="list" xdef:key-attr="name">
                 <anchor name="!string" position="string" tagSet="csv-set" xdef:name="GraphDesignerAnchorModel"/>
@@ -62,8 +62,8 @@
               base="token-name" shape="string" width="int" xdef:name="GraphDesignerEdgeModel" kind="string" color="string"
               deletable="!boolean=true" addable="!boolean=true" minOccurs="int" maxOccurs="int"
               allowSources="csv-set" allowTargets="csv-set" type="string">
-            <style xdef:value="string"/>
-            <template xdef:value="vue-node"/>
+            <style>string</style>
+            <template>vue-node</template>
         </edge>
     </edges>
 
@@ -71,5 +71,5 @@
         <form id="!string" xdef:ref="../xui/form.xdef"/>
     </forms>
 
-    <script xdef:value="string"/>
+    <script>string</script>
 </designer>

@@ -97,14 +97,14 @@
               graphql:connectionProp="prop-name" graphql:maxFetchSize="int"
               graphql:queryMethod="dict:core/std-query-method" graphql:authObjName="string"
         >
-            <description xdef:value="string"/>
+            <description>string</description>
 
             <schema xdef:ref="schema.xdef"/>
 
             <!--
             用于为GraphQL查询提供额外的过滤条件配置，这些配置会被应用到实际的数据库查询中
             -->
-            <graphql:filter xdef:value="filter-bean"/>
+            <graphql:filter>filter-bean</graphql:filter>
 
             <!--
             用于指定GraphQL查询时的默认排序规则
@@ -114,17 +114,17 @@
             <!--
            用于指定GraphQL查询时的默认字段选择
             -->
-            <graphql:selection xdef:value="field-selection"/>
+            <graphql:selection>field-selection</graphql:selection>
 
             <!--
             用于指定GraphQL查询的输入类型
             -->
-            <graphql:inputType xdef:value="class-name"/>
+            <graphql:inputType>class-name</graphql:inputType>
 
             <!--
             用于转换GraphQL查询的过滤条件
             -->
-            <graphql:transFilter xdef:value="xpl-fn:(filter,query,forEntity)=>any"/>
+            <graphql:transFilter>xpl-fn:(filter,query,forEntity)=>any</graphql:transFilter>
 
             <!--
             配置字段级别的权限约束
@@ -142,7 +142,7 @@
             -->
             <arg xdef:name="ObjPropArgModel" name="!var-name" mandatory="!boolean=false"
                  displayName="string" xdef:unique-attr="name">
-                <description xdef:value="string"/>
+                <description>string</description>
                 <schema xdef:ref="schema.xdef"/>
             </arg>
 
@@ -150,29 +150,29 @@
              新增或者修改的时候如果前台没有发送本字段的值，则可以根据autoExpr来自动计算得到
             -->
             <autoExpr when="!csv-set" xdef:bean-body-prop="source"
-                      xdef:name="ObjConditionExpr" xdef:value="xpl"/>
+                      xdef:name="ObjConditionExpr">xpl</autoExpr>
 
             <!--
             对前台输入的值进行适配转换。通过data变量访问前台提交的数据集合，通过value变量访问前台传入的属性值。返回值为变换后的值
             -->
-            <transformIn xdef:value="xpl"/>
+            <transformIn>xpl</transformIn>
 
             <!--
             后台返回的值可能需要进行格式转换。通过entity变量访问当前实体，通过value变量访问属性值，返回值为变换后的值
             -->
-            <transformOut xdef:value="xpl"/>
+            <transformOut>xpl</transformOut>
 
             <!--
             根据当前实体生成动态属性。getter和setter都是后台实体对象层的功能，类似Java对象上的get/set。
             上下文中可以通过entity变量访问当前实体对象。
             -->
-            <getter xdef:value="xpl-fn:(entity,args,propMeta)=>any"/>
+            <getter>xpl-fn:(entity,args,propMeta)=>any</getter>
 
             <!--
             对外部传入的值进行处理，可能会设置entity对象的属性。
             上下文中可以通过entity变量访问当前实体，通过value变量访问设置的属性值
             -->
-            <setter xdef:value="xpl-fn:(entity,value,propMeta)=>void"/>
+            <setter>xpl-fn:(entity,value,propMeta)=>void</setter>
         </prop>
     </props>
 

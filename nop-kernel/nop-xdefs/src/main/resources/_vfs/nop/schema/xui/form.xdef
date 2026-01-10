@@ -27,29 +27,29 @@
       xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef"
       xmlns:xdef="/nop/schema/xdef.xdef">
 
-    <objMeta xdef:value="v-path"/>
+    <objMeta>v-path</objMeta>
 
-    <className xdef:value="string"/>
-    <bodyClassName xdef:value="string"/>
-    <panelClassName xdef:value="string" />
+    <className>string</className>
+    <bodyClassName>string</bodyClassName>
+    <panelClassName>string</panelClassName>
 
-    <layout xdef:value="form-layout"/>
+    <layout>form-layout</layout>
 
-    <renderer xdef:value="xpl-xjson"/>
+    <renderer>xpl-xjson</renderer>
 
     <!--
     表单的静态初始化数据
     -->
-    <data xdef:value="xjson"/>
+    <data>xjson</data>
 
     <api xdef:ref="api.xdef"/>
 
     <messages xdef:body-type="map">
-        <xdef:unknown-tag xdef:value="string" />
-<!--        <fetchSuccess xdef:value="string"/>-->
-<!--        <fetchFailed xdef:value="string"/>-->
-<!--        <saveSuccess xdef:value="string" />-->
-<!--        <saveFailed xdef:value="string" />-->
+        <xdef:unknown-tag>string</xdef:unknown-tag>
+<!--        <fetchSuccess>string</fetchSuccess>-->
+<!--        <fetchFailed>string</fetchFailed>-->
+<!--        <saveSuccess>string</saveSuccess>-->
+<!--        <saveFailed>string</saveFailed>-->
     </messages>
 
     <initApi xdef:ref="api.xdef"/>
@@ -67,12 +67,12 @@
     <!--
     用表达式来配置
     -->
-    <initFetchOn xdef:value="string"/>
+    <initFetchOn>string</initFetchOn>
 
     <!--
     通过表达式来配置停止刷新的条件
     -->
-    <stopAutoRefreshWhen xdef:value="string"/>
+    <stopAutoRefreshWhen>string</stopAutoRefreshWhen>
 
     <rules xdef:body-type="list" xdef:key-attr="id">
         <!--
@@ -96,5 +96,5 @@
         </cell>
     </cells>
 
-    <selection xdef:value="field-selection"/>
+    <selection>field-selection</selection>
 </form>

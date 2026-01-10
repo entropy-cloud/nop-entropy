@@ -1,6 +1,6 @@
 <model x:schema="/nop/schema/xdef.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
        xmlns:x="/nop/schema/xdsl.xdef">
 
-    <filter xdef:value="xpl-node"/>
+    <filter>xpl-node</filter>
 
 </model>

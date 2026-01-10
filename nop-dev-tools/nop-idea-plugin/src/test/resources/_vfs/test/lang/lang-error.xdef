@@ -6,9 +6,9 @@
 >
     <child name="string" type="dict:test/doc/child-type=node" xdef:unknown-attr="any"/>
 
-    <refs xdef:value="v-path-list"/>
+    <refs>v-path-list</refs>
 
-    <xjson xdef:any="any" x:any="any" xdef:value="xjson"/>
+    <xjson xdef:any="any" x:any="any">xjson</xjson>
 
     <xdef:undefined type="string"/>
     <x:undefined type="any"/>

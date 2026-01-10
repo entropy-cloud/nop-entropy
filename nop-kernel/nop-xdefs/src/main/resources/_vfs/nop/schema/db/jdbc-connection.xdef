@@ -3,6 +3,6 @@
                  dialect="string" catalog="string"  maxConnections="int"
                  xdef:name="JdbcConnectionConfig" xdef:bean-package="io.nop.batch.exp.config"
 >
-    <driverClassName xdef:value="string"/>
-    <jdbcUrl xdef:value="string"/>
+    <driverClassName>string</driverClassName>
+    <jdbcUrl>string</jdbcUrl>
 </jdbc-connection>

@@ -9,11 +9,11 @@
     <error code="!string" public="boolean" httpStatus="int" returnErrorNo="boolean=false"
            constName="string"
            returnRootCause="boolean" returnAs="string" returnParams="boolean">
-        <description xdef:value="string"/>
+        <description>string</description>
 
         <!--
         更详细的解释信息
         -->
-        <doc xdef:value="string"/>
+        <doc>string</doc>
     </error>
 </errors>

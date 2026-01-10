@@ -7,14 +7,14 @@
            xmlns:x="/nop/schema/xdsl.xdef">
 
     <!-- 动态确定角色 -->
-    <role-decider xdef:value="xpl"/>
+    <role-decider>xpl</role-decider>
 
     <objs xdef:body-type="list" xdef:key-attr="name">
 
         <obj name="!var-name" displayName="string" xdef:name="ObjDataAuthModel">
 
             <!-- 动态确定角色，如果返回结果非空，则它将取代IUserContext上的角色设置 -->
-            <role-decider xdef:value="xpl"/>
+            <role-decider>xpl</role-decider>
 
             <role-auths xdef:body-type="list" xdef:key-attr="id" xdef:order-attr="priority">
                 <!--
@@ -24,20 +24,20 @@
                 -->
                 <role-auth id="!string" roleIds="!csv-set" priority="!int=100"
                            xdef:name="RoleDataAuthModel">
-                    <description xdef:value="string"/>
+                    <description>string</description>
 
                     <!-- 动态判断是否应用该权限条目 -->
-                    <when xdef:value="xpl-predicate"/>
+                    <when>xpl-predicate</when>
 
                     <!--
                     检查单个实体是否满足数据权限要求
                     -->
-                    <check xdef:value="xpl-predicate"/>
+                    <check>xpl-predicate</check>
 
                     <!--
                     增加数据权限过滤条件，例如 <eq name="internal" value="0" />
                     -->
-                    <filter xdef:value="xpl-node"/>
+                    <filter>xpl-node</filter>
                 </role-auth>
             </role-auths>
         </obj>

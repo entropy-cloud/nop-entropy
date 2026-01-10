@@ -6,7 +6,7 @@
        lengthFieldLength="!int=0" lengthFieldOffset="!int=0" lengthAdjustment="!int=0"
        lengthFieldCodec="string" initialBytesToStrip="!int=0" maxFrameLength="!int=0"
 >
-    <encodeTypeDecider xdef:value="xpl-fn:(msg)=>string"/>
+    <encodeTypeDecider>xpl-fn:(msg)=>string</encodeTypeDecider>
 
-    <decodeTypeDecider xdef:value="xpl-fn:(input)=>string"/>
+    <decodeTypeDecider>xpl-fn:(input)=>string</decodeTypeDecider>
 </codec>

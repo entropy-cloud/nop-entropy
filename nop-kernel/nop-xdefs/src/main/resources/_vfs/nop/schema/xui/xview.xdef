@@ -15,12 +15,12 @@
     <!--
     meta是可选的信息
     -->
-    <objMeta xdef:value="v-path"/>
+    <objMeta>v-path</objMeta>
 
     <!--
     生成前端页面时所使用的控件库
     -->
-    <controlLib xdef:value="v-path"/>
+    <controlLib>v-path</controlLib>
 
     <grids xdef:key-attr="id" xdef:body-type="list">
         <grid id="!string" xdef:ref="grid.xdef"/>
@@ -46,21 +46,21 @@
         <!--
         页面描述, 标题旁边会出现个小图标，放上去会显示这个属性配置的内容。
         -->
-        <remark xdef:value="string"/>
+        <remark>string</remark>
 
         <!--
         @stopAutoRefreshWhen 通过表达式来配置停止刷新的条件
         -->
-        <stopAutoRefreshWhen xdef:value="string"/>
+        <stopAutoRefreshWhen>string</stopAutoRefreshWhen>
 
         <!--
         页面初始化的时候，可以设置一个 API 让其取拉取，发送数据会携带当前 data 数据（包含地址栏参数），获取得数据会合并到 data 中，供组件内使用。
         -->
         <initApi xdef:ref="api.xdef"/>
 
-        <initFetchOn xdef:value="string"/>
+        <initFetchOn>string</initFetchOn>
 
-        <data xdef:value="xjson"/>
+        <data>xjson</data>
 
     </xdef:define>
 
@@ -91,8 +91,8 @@
                    rowDrag="boolean" colDrag="boolean" pager="string"
                    operationSize="int">
                 <api xdef:ref="api.xdef"/>
-                <initFetchOn xdef:value="string"/>
-                <stopAutoRefreshWhen xdef:value="string"/>
+                <initFetchOn>string</initFetchOn>
+                <stopAutoRefreshWhen>string</stopAutoRefreshWhen>
                 <saveOrderApi xdef:ref="api.xdef"/>
             </table>
 
@@ -109,10 +109,10 @@
             -->
             <itemAction xdef:ref="action.xdef"/>
 
-            <defaultParams xdef:value="xjson-map"/>
+            <defaultParams>xjson-map</defaultParams>
 
-            <beforeTable xdef:value="xjson-map"/>
-            <afterTable xdef:value="xjson-map"/>
+            <beforeTable>xjson-map</beforeTable>
+            <afterTable>xjson-map</afterTable>
         </crud>
 
         <!--
@@ -127,17 +127,17 @@
         <simple name="!string" form="!string" title="string" panelClassName="string" useFormActions="boolean"
                 redirect="string" reload="string" resetAfterSubmit="boolean" noActions="boolean"
                 xdef:bean-tag-prop="type">
-            <remark xdef:value="string"/>
+            <remark>string</remark>
 
             <initApi xdef:ref="api.xdef"/>
 
             <api xdef:ref="api.xdef"/>
 
             <messages xdef:body-type="map">
-                <xdef:unknown-tag xdef:value="string"/>
+                <xdef:unknown-tag>string</xdef:unknown-tag>
             </messages>
 
-            <data xdef:value="xjson"/>
+            <data>xjson</data>
 
             <actions xdef:ref="actions.xdef"/>
         </simple>
@@ -180,7 +180,7 @@
             <initApi xdef:ref="api.xdef"/>
 
             <!-- 初始是否拉取数据，通过表达式来配置 -->
-            <initFetchOn xdef:value="string"/>
+            <initFetchOn>string</initFetchOn>
 
             <!--
             @page 应该对应于一个表单页面

@@ -15,16 +15,16 @@
 >
     <jdbc-connection xdef:ref="jdbc-connection.xdef" xdef:support-extends="true"/>
 
-    <outputDir xdef:value="string"/>
+    <outputDir>string</outputDir>
 
     <!-- 排除某些表不导出 -->
-    <excludeTableNames xdef:value="csv-set"/>
+    <excludeTableNames>csv-set</excludeTableNames>
 
-    <checkExportable xdef:value="xpl-fn:(table)=>boolean"/>
+    <checkExportable>xpl-fn:(table)=>boolean</checkExportable>
 
-    <beforeExport xdef:value="xpl"/>
+    <beforeExport>xpl</beforeExport>
 
-    <afterExport xdef:value="xpl"/>
+    <afterExport>xpl</afterExport>
 
     <tables xdef:body-type="list" xdef:key-attr="name">
         <!--
@@ -36,21 +36,21 @@
                xdef:name="ExportTableConfig" exportAllFields="!boolean=true">
 
             <!-- 可以根据过滤条件只导出部分数据 -->
-            <filter xdef:value="xpl-node"/>
+            <filter>xpl-node</filter>
 
             <!-- 可以导出sql语句产生的结果，而不是导出已有的表 -->
-            <sql xdef:value="xpl-sql"/>
+            <sql>xpl-sql</sql>
 
             <fields xdef:body-type="list" xdef:key-attr="name">
                 <field name="!string" xdef:ref="table-field.xdef"/>
             </fields>
 
             <!-- 导出数据时可以对行进行变换，input对应于来源行，output对应于转换后的行 -->
-            <transformExpr xdef:value="xpl"/>
+            <transformExpr>xpl</transformExpr>
 
-            <beforeExport xdef:value="xpl-fn:(table)=>void"/>
+            <beforeExport>xpl-fn:(table)=>void</beforeExport>
 
-            <afterExport xdef:value="xpl-fn:(table)=>void"/>
+            <afterExport>xpl-fn:(table)=>void</afterExport>
         </table>
     </tables>
 </export-db>

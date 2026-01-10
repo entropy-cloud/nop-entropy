@@ -12,15 +12,15 @@
      xmlns:imp="imp" xmlns:xpt="xpt" bizObjName="string"
 >
 
-    <beforeParse xdef:value="xpl"/>
-    <afterParse xdef:value="xpl"/>
+    <beforeParse>xpl</beforeParse>
+    <afterParse>xpl</afterParse>
 
-    <xpt:beforeExpand xdef:value="xml"/>
-    <xpt:afterExpand xdef:value="xml"/>
+    <xpt:beforeExpand>xml</xpt:beforeExpand>
+    <xpt:afterExpand>xml</xpt:afterExpand>
 
-    <normalizeFieldsExpr xdef:value="xpl"/>
+    <normalizeFieldsExpr>xpl</normalizeFieldsExpr>
 
-    <validator xdef:value="xpl"/>
+    <validator>xpl</validator>
 
     <sheets xdef:body-type="list" xdef:key-attr="name">
         <!--
@@ -41,21 +41,21 @@
                headerRowCount="!int=0" noSeqCol="!boolean=false" xpt:singleColLayout="boolean" alias="csv-set"
         >
 
-            <description xdef:value="string"/>
+            <description>string</description>
 
-            <parse xdef:value="xpl"/>
+            <parse>xpl</parse>
 
             <!--
             如果非空，则满足此条件时本sheet对应的导入操作才执行
             -->
-            <when xdef:value="xpl-predicate"/>
+            <when>xpl-predicate</when>
 
             <!-- 在利用imp导入模板来作为Excel生成模板时使用。
                 导入模板将被转换为xpt报表模板，然后利用NopReport报表引擎实现Excel导出。
                 beforeExpand是作为报表导出时在报表执行交叉表展开之前需要执行的Xpl模板语言代码。
             -->
-            <xpt:beforeExpand xdef:value="xml"/>
-            <xpt:afterExpand xdef:value="xml"/>
+            <xpt:beforeExpand>xml</xpt:beforeExpand>
+            <xpt:afterExpand>xml</xpt:afterExpand>
 
             <fields xdef:body-type="list" xdef:key-attr="name">
                 <!--
@@ -80,26 +80,26 @@
                        imp:treeChildrenProp="string" imp:treeChildKeyProp="string" imp:treeLevelProp="string"
                        headerRowCount="!int=0" noSeqCol="!boolean=false" bizObjName="string"
                 >
-                    <when xdef:value="xpl-predicate"/>
+                    <when>xpl-predicate</when>
 
                     <!--
                     Excel导出时缺省按照prop名称从相关对象上获取属性值导出。如果设置了valueExpr，则执行valueExpr来获取单元格的值
                     -->
-                    <xpt:valueExpr xdef:value="xml"/>
+                    <xpt:valueExpr>xml</xpt:valueExpr>
 
                     <!--
                     导出数据时动态生成导出列
                     -->
-                    <xpt:labelExpandExpr xdef:value="xml"/>
+                    <xpt:labelExpandExpr>xml</xpt:labelExpandExpr>
 
-                    <xpt:labelValueExpr xdef:value="xml"/>
+                    <xpt:labelValueExpr>xml</xpt:labelValueExpr>
 
-                    <xpt:labelStyleIdExpr xdef:value="xml"/>
+                    <xpt:labelStyleIdExpr>xml</xpt:labelStyleIdExpr>
 
                     <!-- 动态计算单元格对应的样式id。id需要在XptWorkbookModel这个sheet页中通过【命名样式】来定义 -->
-                    <xpt:styleIdExpr xdef:value="xml"/>
+                    <xpt:styleIdExpr>xml</xpt:styleIdExpr>
 
-                    <xpt:linkExpr xdef:value="xml"/>
+                    <xpt:linkExpr>xml</xpt:linkExpr>
 
                     <schema xdef:ref="/nop/schema/schema/schema.xdef"/>
 
@@ -111,28 +111,28 @@
                     执行时上下文中存在record对象。
                     如果是对象字段，record对应于当前对象。对应简单字段，record对应于父对此昂
                     -->
-                    <normalizeFieldsExpr xdef:value="xpl"/>
+                    <normalizeFieldsExpr>xpl</normalizeFieldsExpr>
 
-                    <fieldDecider xdef:value="xpl-fn:(fieldLabel,labelCell)=>string"/>
+                    <fieldDecider>xpl-fn:(fieldLabel,labelCell)=>string</fieldDecider>
 
                     <unknownField xdef:ref="ImportFieldModel"/>
 
-                    <valueExpr xdef:value="xpl"/>
+                    <valueExpr>xpl</valueExpr>
 
-                    <exportExpr xdef:value="xpl"/>
+                    <exportExpr>xpl</exportExpr>
 
                 </field>
             </fields>
 
             <!-- 动态确定Excel单元格所对应的field，返回field的name -->
-            <fieldDecider xdef:value="xpl-fn:(fieldLabel,labelCell)=>string"/>
+            <fieldDecider>xpl-fn:(fieldLabel,labelCell)=>string</fieldDecider>
 
             <unknownField xdef:ref="ImportFieldModel"/>
 
-            <normalizeFieldsExpr xdef:value="xpl"/>
+            <normalizeFieldsExpr>xpl</normalizeFieldsExpr>
 
-            <beforeParse xdef:value="xpl"/>
-            <afterParse xdef:value="xpl"/>
+            <beforeParse>xpl</beforeParse>
+            <afterParse>xpl</afterParse>
         </sheet>
     </sheets>
 

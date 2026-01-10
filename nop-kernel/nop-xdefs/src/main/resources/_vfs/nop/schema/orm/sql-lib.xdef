@@ -29,14 +29,14 @@
                  dict:static="boolean" dict:valueType="std-data-type" dict:normalized="boolean"
     >
 
-        <description xdef:value="string"/>
+        <description>string</description>
 
         <auth xdef:ref="/nop/schema/schema/auth.xdef"/>
 
         <!--
         验证sql正确性时采用的输入数据。当AppConfig.isDebugMode()为true时（调试模式），sql-lib加载后会自动验证sql语句语法正确。
         -->
-        <validate-input xdef:value="xpl"/>
+        <validate-input>xpl</validate-input>
 
         <!--
         为sql查询语句补充列的类型信息，便于从ResultSet中抽取指定类型的数据，避免返回数据库引擎内部的数据类型
@@ -52,30 +52,30 @@
                 <!--
                  如果指定了computeExpr，则这个值不从数据库获取，直接在java中计算得到。计算表达式在所有其他字段值获取之后执行。
                  -->
-                <computeExpr xdef:value="xpl-fn:(row,fieldModel)=>any"/>
+                <computeExpr>xpl-fn:(row,fieldModel)=>any</computeExpr>
             </field>
         </fields>
 
         <!--
         对应eql查询，获取到结果数据之后，会按照这里的配置自动批量加载结果对象上的关联属性
         -->
-        <batchLoadSelection xdef:value="field-selection"/>
+        <batchLoadSelection>field-selection</batchLoadSelection>
 
         <arg xdef:name="SqlItemArgModel" xdef:unique-attr="name"
              name="!var-name" displayName="string" mandatory="boolean" defaultValue="string">
-            <description xdef:value="string"/>
+            <description>string</description>
             <schema xdef:ref="../schema/schema.xdef"/>
         </arg>
 
-        <buildRowMapper xdef:value="xpl-fn:(sqlItemModel)=>any"/>
+        <buildRowMapper>xpl-fn:(sqlItemModel)=>any</buildRowMapper>
 
-        <buildResult xdef:value="xpl-fn:(row,sqlItemModel)=>any"/>
+        <buildResult>xpl-fn:(row,sqlItemModel)=>any</buildResult>
 
     </xdef:define>
 
     <fragments xdef:body-type="list" xdef:key-attr="id">
         <!-- 用于保存可以被复用的SQL片段，在下面的sql配置中可以通过<sql:fragment id="xx" />这种标签函数来引用SQL片段  -->
-        <fragment id="!xml-name" xdef:value="xpl-sql" xdef:bean-body-prop="source" xdef:name="SqlFragmentModel"/>
+        <fragment id="!xml-name" xdef:bean-body-prop="source" xdef:name="SqlFragmentModel">xpl-sql</fragment>
     </fragments>
 
     <sqls xdef:body-type="list" xdef:key-attr="name" xdef:bean-child-name="sql"
@@ -85,18 +85,18 @@
         @colNameCamelCase sql语句返回的列名是否按照下划线分隔变换成camelCase形式作为返回字段名
         -->
         <sql xdef:name="NativeSqlItemModel" name="!var-name" xdef:ref="SqlItemModel" colNameCamelCase="!boolean=false">
-            <source xdef:value="xpl-sql" xdef:mandatory="true"/>
+            <source xdef:mandatory="true">xpl-sql</source>
         </sql>
 
         <eql name="!var-name" xdef:ref="SqlItemModel" xdef:name="EqlSqlItemModel"
              allowUnderscoreName="!boolean=false" enableFilter="!boolean=false">
-            <source xdef:value="xpl-sql" xdef:mandatory="true"/>
+            <source xdef:mandatory="true">xpl-sql</source>
         </eql>
 
         <!--
         -->
         <query name="!var-name" xdef:ref="SqlItemModel" xdef:name="QuerySqlItemModel">
-            <source xdef:value="xpl-node" xdef:mandatory="true"/>
+            <source xdef:mandatory="true">xpl-node</source>
         </query>
     </sqls>
 

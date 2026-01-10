@@ -11,15 +11,15 @@
 >
     <jdbc-connection xdef:ref="jdbc-connection.xdef" xdef:support-extends="true"/>
 
-    <inputDir xdef:value="!string"/>
+    <inputDir>!string</inputDir>
 
-    <excludeTableNames xdef:value="csv-set"/>
+    <excludeTableNames>csv-set</excludeTableNames>
 
-    <checkImportable xdef:value="xpl-fn:(table)=>boolean"/>
+    <checkImportable>xpl-fn:(table)=>boolean</checkImportable>
 
-    <beforeImport xdef:value="xpl"/>
+    <beforeImport>xpl</beforeImport>
 
-    <afterImport xdef:value="xpl"/>
+    <afterImport>xpl</afterImport>
 
     <tables xdef:body-type="list" xdef:key-attr="name">
         <!--
@@ -31,12 +31,12 @@
                importAllFields="!boolean=true" allowUpdate="boolean" maxSkipCount="int">
 
             <!-- 用于指定记录对应的唯一键 -->
-            <keyFields xdef:value="csv-list"/>
+            <keyFields>csv-list</keyFields>
 
             <!--
              用于过滤导入文件中的记录。input变量对应于每一行数据
             -->
-            <filter xdef:value="xpl-fn:(input)=>boolean"/>
+            <filter>xpl-fn:(input)=>boolean</filter>
 
             <fields xdef:body-type="list" xdef:key-attr="name">
                 <field name="!string" xdef:ref="table-field.xdef"/>
@@ -45,11 +45,11 @@
             <!--
             可以对行数据进行转换，input对应于来源行，output对应于转换后的行
             -->
-            <transformExpr xdef:value="xpl"/>
+            <transformExpr>xpl</transformExpr>
 
-            <beforeImport xdef:value="xpl-fn:(table)=>void"/>
+            <beforeImport>xpl-fn:(table)=>void</beforeImport>
 
-            <afterImport xdef:value="xpl-fn:(table)=>void"/>
+            <afterImport>xpl-fn:(table)=>void</afterImport>
         </table>
     </tables>
 </import-db>

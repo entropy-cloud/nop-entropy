@@ -3,15 +3,15 @@
 <api x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xdef:name="ApiModel"
      xdef:bean-package="io.nop.rpc.model" apiPackageName="package-name">
 
-    <description xdef:value="string"/>
+    <description>string</description>
 
 
     <import from="!string" as="var-name" public="boolean" xdef:name="ApiImportModel" xdef:unique-attr="from">
-        <description xdef:value="string"/>
+        <description>string</description>
     </import>
 
     <option name="!string" value="!any" xdef:name="ApiOptionModel" xdef:unique-attr="name">
-        <description xdef:value="string"/>
+        <description>string</description>
     </option>
 
     <domains xdef:body-type="list" xdef:key-attr="name">
@@ -33,7 +33,7 @@
     <services xdef:body-type="list" xdef:key-attr="name">
         <service name="!var-name" className="!class-name" displayName="string" xdef:unique-attr="name"
                  tagSet="word-set" xdef:name="ApiServiceModel">
-            <description xdef:value="string"/>
+            <description>string</description>
 
             <option name="!string" xdef:ref="ApiOptionModel" xdef:unique-attr="name"/>
 
@@ -44,7 +44,7 @@
                     streamRequest="!boolean=false" streamResponse="!boolean=false"
                     requestMessage="class-name" responseMessage="!generic-type"
                     xdef:name="ApiMethodModel" mutation="!boolean=false">
-                <description xdef:value="string"/>
+                <description>string</description>
 
                 <option name="!string" xdef:ref="ApiOptionModel" xdef:unique-attr="name"/>
 
@@ -59,14 +59,14 @@
     <messages xdef:body-type="list" xdef:key-attr="name">
         <message name="!class-name" displayName="string" tagSet="word-set"
                  xdef:name="ApiMessageModel" xdef:unique-attr="name" baseClass="generic-type" interfaces="generic-type-list">
-            <description xdef:value="string"/>
+            <description>string</description>
 
             <option name="!string" xdef:ref="ApiOptionModel" xdef:unique-attr="name"/>
 
             <field name="!string" mandatory="!boolean=false" tagSet="word-set" propId="!int"
                    displayName="string" binaryScalarType="enum:io.nop.commons.type.BinaryScalarType" defaultValue="string"
                    xdef:unique-attr="name" xdef:name="ApiMessageFieldModel">
-                <description xdef:value="string"/>
+                <description>string</description>
                 <schema xdef:ref="/nop/schema/schema/schema.xdef"/>
 
                 <option name="!string" xdef:ref="ApiOptionModel" xdef:unique-attr="name"/>

@@ -3,14 +3,14 @@
 
     <services xdef:body-type="list" xdef:key-attr="name">
         <service name="!entity-name" displayName="chinese">
-            <description xdef:value="string"/>
+            <description>string</description>
 
             <!--
             @mutation 如果为false，则表示为只读操作
             -->
             <method name="!var-name" displayName="string" xdef:unique-attr="name"
                     mutation="!boolean=false" app:useCaseNo="string">
-                <description xdef:value="string"/>
+                <description>string</description>
             </method>
 
         </service>

@@ -3,7 +3,7 @@
 
     <xdef:define id="!string" name="string" xdef:name="StreamNode"
                  parallelism="!int=0" maxParallelism="!int=0" slotSharingGroup="xml-name" colocationGroup="xml-name">
-        <description xdef:value="string"/>
+        <description>string</description>
         <minResources xdef:ref="resource-spec.xdef"/>
         <preferredResources xdef:ref="resource-spec.xdef"/>
     </xdef:define>

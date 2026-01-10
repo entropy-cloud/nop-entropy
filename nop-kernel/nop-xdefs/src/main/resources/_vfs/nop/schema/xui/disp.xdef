@@ -24,10 +24,10 @@
       xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef"
       xmlns:xdef="/nop/schema/xdef.xdef" xmlns:ui="ui" xmlns:biz="biz"
 >
-    <bizObjName xdef:value="string"/>
+    <bizObjName>string</bizObjName>
 
-    <idProp xdef:value="string"/>
-    <displayProp xdef:value="string"/>
+    <idProp>string</idProp>
+    <displayProp>string</displayProp>
 
     <!--
     对于对象属性或者对象列表属性，使用xview文件中定义的page去显示
@@ -39,7 +39,7 @@
     <view path="v-path" page="string" grid="string" form="string" buttonLabel="string"
           xdef:name="UiRefViewModel" addable="boolean" removable="boolean" editable="boolean"
           title="string">
-        <data xdef:value="xjson" />
+        <data>xjson</data>
     </view>
 
     <!--
@@ -51,32 +51,32 @@
     对于对象属性或者对象列表属性，通过selection来指定graphql查询字段。
     如果不指定，则可以根据view配置的form或者grid来推定
     -->
-    <selection xdef:value="field-selection"/>
+    <selection>field-selection</selection>
 
-    <if xdef:value="string"/>
+    <if>string</if>
 
-    <visibleOn xdef:value="string"/>
-    <disabledOn xdef:value="string"/>
-    <readonlyOn xdef:value="string"/>
-    <requiredOn xdef:value="string"/>
+    <visibleOn>string</visibleOn>
+    <disabledOn>string</disabledOn>
+    <readonlyOn>string</readonlyOn>
+    <requiredOn>string</requiredOn>
 
     <!--
     根据propMeta, dispMeta, mode等参数生成控件描述
     -->
-    <gen-control xdef:value="xpl-xjson"/>
+    <gen-control>xpl-xjson</gen-control>
 
-    <validator xdef:value="xjson-map"/>
+    <validator>xjson-map</validator>
 
-    <className xdef:value="string"/>
-    <classNameExpr xdef:value="string"/>
+    <className>string</className>
+    <classNameExpr>string</classNameExpr>
 
     <!-- 输入框中的缺省提示信息 -->
-    <placeholder xdef:value="string"/>
+    <placeholder>string</placeholder>
 
     <!-- 录入界面上显示的提示信息 -->
-    <hint xdef:value="string"/>
+    <hint>string</hint>
 
-    <desc xdef:value="string"/>
+    <desc>string</desc>
 
     <actions xdef:ref="actions.xdef"/>
 </disp>

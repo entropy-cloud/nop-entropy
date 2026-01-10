@@ -5,7 +5,7 @@
         xmlns:xdef="/nop/schema/xdef.xdef"
         displayName="string">
 
-    <description xdef:value="string"/>
+    <description>string</description>
 
     <defaultChatOptions xdef:ref="chat-options.xdef"/>
 

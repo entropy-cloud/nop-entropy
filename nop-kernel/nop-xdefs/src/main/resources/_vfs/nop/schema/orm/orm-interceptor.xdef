@@ -13,7 +13,7 @@
         @order 当存在多个同名的action时，由order决定执行顺序
         -->
         <pre-save id="!string" xdef:bean-tag-prop="event" xdef:name="OrmInterceptorActionModel" order="!int=100">
-            <source xdef:value="xpl"/>
+            <source>xpl</source>
         </pre-save>
 
         <pre-update id="!string" xdef:ref="OrmInterceptorActionModel"/>

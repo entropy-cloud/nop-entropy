@@ -13,76 +13,76 @@
           xdef:name="WfModel" xdef:bean-package="io.nop.wf.core.model"
 >
 
-    <description xdef:value="string"/>
+    <description>string</description>
 
     <!-- start只对应唯一启动步骤， 避免多个地方都写判断。可以很方便的实现回退到初始节点 -->
     <start xdef:mandatory="true" startStepName="!string" xdef:name="WfStartModel">
         <!-- when返回false时调用start会抛出异常 -->
-        <when xdef:value="xpl-predicate"/>
-        <source xdef:value="xpl"/>
+        <when>xpl-predicate</when>
+        <source>xpl</source>
 
         <arg xdef:name="WfArgVarModel" name="!var-name" mandatory="!boolean=false" type="generic-type"
              displayName="string" xdef:unique-attr="name" persist="!boolean=false">
-            <description xdef:value="string"/>
+            <description>string</description>
             <schema xdef:ref="/nop/schema/schema/schema.xdef"/>
         </arg>
     </start>
 
     <end xdef:name="WfEndModel">
-        <source xdef:value="xpl"/>
+        <source>xpl</source>
         <!--
         返回给父流程的值
         -->
         <output name="!var-name" xdef:unique-attr="name" displayName="string" type="generic-type"
                 xdef:name="WfReturnVarModel">
-            <description xdef:value="string"/>
-            <source xdef:value="xpl"/>
+            <description>string</description>
+            <source>xpl</source>
         </output>
     </end>
 
     <!--
     触发每一个action的时候所执行的权限验证逻辑
     -->
-    <check-action-auth xdef:value="xpl"/>
+    <check-action-auth>xpl</check-action-auth>
 
     <!--
     编辑工作流定义时执行的权限验证逻辑
     -->
-    <check-edit-auth xdef:value="xpl"/>
+    <check-edit-auth>xpl</check-edit-auth>
 
     <!--
     对工作流执行管理操作的时候所执行的权限验证逻辑
     -->
-    <check-manage-auth xdef:value="xpl"/>
+    <check-manage-auth>xpl</check-manage-auth>
 
     <!--
     启动工作流的时候执行的权限验证逻辑
     -->
-    <check-start-auth xdef:value="xpl"/>
+    <check-start-auth>xpl</check-start-auth>
 
     <!--
     前端设计器所设计的可视化流程图
     -->
-    <diagram xdef:value="string"/>
+    <diagram>string</diagram>
 
-    <deploy xdef:value="xpl"/>
+    <deploy>xpl</deploy>
 
-    <undeploy xdef:value="xpl"/>
+    <undeploy>xpl</undeploy>
 
     <auths xdef:body-type="list" xdef:key-attr="id">
         <auth xdef:name="WfModelAuth" id="!string" actorType="!string" actorId="!string" deptId="string"
               allowEdit="!boolean=false" allowManage="!boolean=false" allowStart="!boolean=false"/>
     </auths>
 
-    <on-error xdef:value="xpl"/>
+    <on-error>xpl</on-error>
 
-    <on-signal xdef:value="xpl"/>
+    <on-signal>xpl</on-signal>
 
-    <remind-time-expr xdef:value="xpl"/>
+    <remind-time-expr>xpl</remind-time-expr>
 
     <listeners xdef:body-type="list" xdef:key-attr="id">
         <listener id="!string" eventPattern="!string" xdef:name="WfListenerModel">
-            <source xdef:value="xpl"/>
+            <source>xpl</source>
         </listener>
     </listeners>
 
@@ -91,7 +91,7 @@
           监听全局EventBus上的event。当执行BizModel的action时会触发event, 此时from=bizObjName,event=actionId
         -->
         <subscribe xdef:name="WfSubscribeModel" id="!string" from="!string" eventPattern="!string">
-            <source xdef:value="xpl"/>
+            <source>xpl</source>
         </subscribe>
     </subscribes>
 
@@ -117,16 +117,16 @@
                 forWaiting="!boolean=false" forReject="!boolean=false" forWithdraw="!boolean=false"
                 forFlowEnded="!boolean=false" xdef:name="WfActionModel">
 
-            <description xdef:value="string"/>
+            <description>string</description>
 
-            <when xdef:value="xpl-predicate"/>
+            <when>xpl-predicate</when>
 
             <!-- 仅当common=true的时候使用，用于限制仅应用某些步骤  -->
-            <when-steps xdef:value="csv-set"/>
+            <when-steps>csv-set</when-steps>
 
             <arg name="!var-name" xdef:ref="WfArgVarModel" xdef:unique-attr="name"/>
 
-            <source xdef:value="xpl"/>
+            <source>xpl</source>
 
             <!--
               @splitType 分支类型，and表示每个分支都执行，or表示从上至下执行，只执行第一个满足条件的迁移目标。缺省为and
@@ -142,9 +142,9 @@
                 @order transition-to节点的执行顺序。当splitType=or的时候，如果排在前面的节点如果满足条件，就不会检查排在后面的节点
                 -->
                 <xdef:define xdef:name="WfTransitionToModel" caseValue="string" order="!int=0" label="string">
-                    <when xdef:value="xpl-predicate"/>
-                    <before-transition xdef:value="xpl"/>
-                    <after-transition xdef:value="xpl"/>
+                    <when>xpl-predicate</when>
+                    <before-transition>xpl</before-transition>
+                    <after-transition>xpl</after-transition>
                 </xdef:define>
 
                 <to-end xdef:ref="WfTransitionToModel" xdef:name="WfTransitionToEndModel"/>
@@ -163,7 +163,7 @@
                          xdef:unique-attr="stepName" xdef:name="WfTransitionToStepModel"/>
             </transition>
 
-            <after-transition xdef:value="xpl"/>
+            <after-transition>xpl</after-transition>
         </action>
     </actions>
 
@@ -194,10 +194,10 @@
               passWeight="int" passPercent="double"
               specialType="string" independent="!boolean=false">
 
-            <description xdef:value="string"/>
+            <description>string</description>
 
             <!-- 是否当前可以激活 -->
-            <may-activated xdef:value="xpl-predicate"/>
+            <may-activated>xpl-predicate</may-activated>
 
             <!-- 如果不自动迁移，则必须有assignment -->
             <assignment xdef:ref="assignment.xdef"/>
@@ -209,17 +209,17 @@
             <!--
             如果配置了超时表达式，则当超时时刻到达时会自动触发dueAction
             -->
-            <due-time-expr xdef:value="xpl"/>
+            <due-time-expr>xpl</due-time-expr>
 
             <!-- 进入步骤实例时执行。on-enter失败时由父步骤的on-error捕获 -->
-            <on-enter xdef:value="xpl"/>
+            <on-enter>xpl</on-enter>
 
             <!-- 步骤实例转换为历史状态后执行。在其中可以通过status判断步骤是否是因为被kill而结束 -->
-            <on-exit xdef:value="xpl"/>
+            <on-exit>xpl</on-exit>
 
             <!-- 在本步骤执行action/source/transition失败时执行
             -->
-            <on-error xdef:value="xpl"/>
+            <on-error>xpl</on-error>
 
             <!--
               执行source的时候如果发生异常，则可以重试
@@ -229,27 +229,27 @@
                 <!--
                   上下文环境中存在$exception变量，返回false表示异常不可被恢复，不能继续重试
                 -->
-                <exception-filter xdef:value="xpl-predicate"/>
+                <exception-filter>xpl-predicate</exception-filter>
             </retry>
 
-            <source xdef:value="xpl"/>
+            <source>xpl</source>
 
             <!--
             如果check-complete不为空，则为异步任务，需要等待任务结束才能迁移到下一步骤
             -->
-            <check-complete xdef:value="xpl"/>
+            <check-complete>xpl</check-complete>
 
             <!-- 判断整个执行分组是否已经结束 -->
-            <check-exec-group-complete xdef:value="xpl-predicate"/>
+            <check-exec-group-complete>xpl-predicate</check-exec-group-complete>
 
             <!--
 
             -->
             <transition xdef:ref="WfTransitionModel"/>
 
-            <before-transition xdef:value="xpl"/>
+            <before-transition>xpl</before-transition>
 
-            <after-transition xdef:value="xpl"/>
+            <after-transition>xpl</after-transition>
 
         </step>
 
@@ -266,7 +266,7 @@
             例如上游步骤A, 下游join步骤为B, 在步骤B中设置了joinGroupExpr="wf.bizEntity.deptId", 则下游join步骤B汇聚时，
             会按照实体上标记的deptId进行分组,不同分组的A到达join步骤时会产生不同的B步骤实例。
             -->
-            <join-group-expr xdef:value="xpl"/>
+            <join-group-expr>xpl</join-group-expr>
 
         </join>
 
@@ -277,7 +277,7 @@
             <start wfName="!string" wfVersion="long"
                    xdef:mandatory="true" xdef:name="WfSubFlowStartModel">
                 <arg name="!string" xdef:unique-attr="name" displayName="string" xdef:name="WfSubFlowArgModel">
-                    <source xdef:value="xpl"/>
+                    <source>xpl</source>
                 </arg>
 
                 <!--
@@ -285,7 +285,7 @@
                 -->
                 <return var="!string" output="string" xdef:unique-attr="var"
                         xdef:name="WfSubFlowReturnModel" type="generic-type">
-                    <source xdef:value="xpl"/>
+                    <source>xpl</source>
                 </return>
             </start>
         </flow>

@@ -16,20 +16,20 @@
          tableNameCase="enum:io.nop.commons.text.CharacterCase" columnNameCase="enum:io.nop.commons.text.CharacterCase"
 >
 
-    <driverClassName xdef:value="!class-name" xdef:mandatory="true"/>
-    <dbProductNames xdef:value="!csv-set" xdef:mandatory="true"/>
-    <jdbcUrlPattern xdef:value="!string" xdef:mandatory="true"/>
+    <driverClassName xdef:mandatory="true">!class-name</driverClassName>
+    <dbProductNames xdef:mandatory="true">!csv-set</dbProductNames>
+    <jdbcUrlPattern xdef:mandatory="true">!string</jdbcUrlPattern>
 
-    <sqlExceptionTranslator xdef:value="class-name"/>
+    <sqlExceptionTranslator>class-name</sqlExceptionTranslator>
 
-    <paginationHandler xdef:value="class-name"/>
+    <paginationHandler>class-name</paginationHandler>
 
     <!-- JDBC使用这个类存取GEOMETRY类型数据。 IDataTypeHandler类型 -->
-    <geometryTypeHandler xdef:value="class-name"/>
+    <geometryTypeHandler>class-name</geometryTypeHandler>
 
-    <jsonTypeHandler xdef:value="class-name"/>
+    <jsonTypeHandler>class-name</jsonTypeHandler>
 
-    <upsertHandler xdef:value="class-name"/>
+    <upsertHandler>class-name</upsertHandler>
 
     <!--
     @supportUpdateTableAlias update语句是否允许表别名。例如 update my_table a where ...
@@ -60,12 +60,12 @@
     <!--
      保留的关键字。如果关键字成为列名，则需要用quote来回避
     -->
-    <reservedKeywords xdef:value="prop-name-set" xdef:mandatory="true"/>
+    <reservedKeywords xdef:mandatory="true">prop-name-set</reservedKeywords>
 
     <!--
     特殊的关键字可能无法通过quote来回避，只能重新命名，例如Oracle中全大写的ROWID不能作为列名，无论是否quote
     -->
-    <rename xdef:value="string-map"/>
+    <rename>string-map</rename>
 
     <!--
     @escapeSlash 对sql字符串字面量进行转义时，是否需要将\转义为\\
@@ -78,49 +78,49 @@
         其中，`{value:<pattern>}` 表示 JDBC 层按 `<pattern>` 对 `LocalDate` 进行格式化，且
         `{value:}` 为固定形式，只有 `<pattern>` 是可变的，并采用 `DateTimeFormatter` 的格式规范
         -->
-        <dateLiteral xdef:value="string"/>
+        <dateLiteral>string</dateLiteral>
         <!--
         在数据库层面将字符串转换为**时间**类型的表达式，如 `TIME '{value:HH:mm:ss}'`，
         其中，`{value:<pattern>}` 表示 JDBC 层按 `<pattern>` 对 `LocalTime` 进行格式化，且
         `{value:}` 为固定形式，只有 `<pattern>` 是可变的，并采用 `DateTimeFormatter` 的格式规范
         -->
-        <timeLiteral xdef:value="string"/>
+        <timeLiteral>string</timeLiteral>
         <!--
         在数据库层面将字符串转换为**日期时间**类型的表达式，如 `TIMESTAMP '{value:yyyy-MM-dd HH:mm:ss}'`，
         其中，`{value:<pattern>}` 表示 JDBC 层按 `<pattern>` 对 `LocalDateTime` 进行格式化，且
         `{value:}` 为固定形式，只有 `<pattern>` 是可变的，并采用 `DateTimeFormatter` 的格式规范
         -->
-        <dateTimeLiteral xdef:value="string"/>
+        <dateTimeLiteral>string</dateTimeLiteral>
         <!--
         在数据库层面将字符串转换为**时间戳**类型的表达式，如 `TIMESTAMP '{value:yyyy-MM-dd HH:mm:ss.nnnnnnnnn}'`，
         其中，`{value:<pattern>}` 表示 JDBC 层按 `<pattern>` 对 `Timestamp` 进行格式化，且
         `{value:}` 为固定形式，只有 `<pattern>` 是可变的，并采用 `DateTimeFormatter` 的格式规范
         -->
-        <timestampLiteral xdef:value="string"/>
+        <timestampLiteral>string</timestampLiteral>
 
         <!-- 通过 {sequenceName}来表示参数 -->
-        <sequenceNextVal xdef:value="string"/>
+        <sequenceNextVal>string</sequenceNextVal>
 
-        <createSequence xdef:value="string"/>
+        <createSequence>string</createSequence>
 
-        <dropSequence xdef:value="string"/>
+        <dropSequence>string</dropSequence>
 
-        <dropTable xdef:value="string"/>
+        <dropTable>string</dropTable>
 
-        <selectFromDual xdef:value="string"/>
+        <selectFromDual>string</selectFromDual>
 
         <!--
         在锁定选中行的语法中，追加到 select 语句的部分，如
         `select xxx from x where y for update` 中的 `for update`
         -->
-        <forUpdate xdef:value="string"/>
+        <forUpdate>string</forUpdate>
         <!--
         在 `from table_name` 后面追加的关于锁的 SQL 语句，如
         `SELECT xxx FROM x WITH (TABLOCKX)` 中的 `WITH (TABLOCKX)`
         -->
-        <lockHint xdef:value="string"/>
+        <lockHint>string</lockHint>
 
-        <validationQuery xdef:value="string"/>
+        <validationQuery>string</validationQuery>
     </sqls>
 
     <errorCodes xdef:body-type="list" xdef:key-attr="name">
@@ -138,8 +138,8 @@
 
         @useSqlState 设置此属性为true时，使用SQLState变量来映射，而不是ErrorCode。例如PostgreSQL数据库
         -->
-        <errorCode name="!string" xdef:value="!word-set" xdef:bean-body-prop="values" useSqlState="boolean"
-                   xdef:name="DialectErrorCodeModel"/>
+        <errorCode name="!string" xdef:bean-body-prop="values" useSqlState="boolean"
+                   xdef:name="DialectErrorCodeModel">!word-set</errorCode>
     </errorCodes>
 
     <functions xdef:body-type="list" xdef:key-attr="name"
@@ -150,17 +150,17 @@
         <template name="!string" returnType="std-sql-type" argTypes="std-sql-type-list"
                   xdef:name="SqlTemplateModel" returnFirstArgType="!boolean=false" onlyForWindowExpr="!boolean=false"
                   xdef:bean-tag-prop="type">
-            <description xdef:value="string"/>
+            <description>string</description>
             <!--
             如果非空，则在单元测试中调用此函数来测试数据库是否支持此函数
             -->
-            <testSql xdef:value="string"/>
-            <source xdef:value="!string" xdef:mandatory="true"/>
+            <testSql>string</testSql>
+            <source xdef:mandatory="true">!string</source>
         </template>
 
         <function name="!string" className="class-name" xdef:name="SqlFunctionModel" xdef:bean-tag-prop="type">
-            <description xdef:value="string"/>
-            <testSql xdef:value="string"/>
+            <description>string</description>
+            <testSql>string</testSql>
         </function>
 
         <!--
@@ -177,8 +177,8 @@
                 onlyForWindowExpr="!boolean=false"
                 xdef:name="SqlNativeFunctionModel" returnFirstArgType="!boolean=false"
                 xdef:bean-tag-prop="type">
-            <description xdef:value="string"/>
-            <testSql xdef:value="string"/>
+            <description>string</description>
+            <testSql>string</testSql>
         </native>
     </functions>
 
@@ -201,20 +201,20 @@
         <!--
         查询所有视图的定义
         -->
-        <selectViews xdef:value="string"/>
-        <selectTables xdef:value="string"/>
-        <selectIndexes xdef:value="string"/>
-        <selectConstaints xdef:value="string"/>
-        <selectCatalogs xdef:value="string"/>
-        <selectSchemas xdef:value="string"/>
-        <selectTableComments xdef:value="string"/>
-        <selectTableColumnComments xdef:value="string"/>
-        <selectViewComments xdef:value="string"/>
-        <selectViewColumnComments xdef:value="string"/>
-        <selectPrimaryKeys xdef:value="string"/>
-        <selectSequences xdef:value="string"/>
+        <selectViews>string</selectViews>
+        <selectTables>string</selectTables>
+        <selectIndexes>string</selectIndexes>
+        <selectConstaints>string</selectConstaints>
+        <selectCatalogs>string</selectCatalogs>
+        <selectSchemas>string</selectSchemas>
+        <selectTableComments>string</selectTableComments>
+        <selectTableColumnComments>string</selectTableColumnComments>
+        <selectViewComments>string</selectViewComments>
+        <selectViewColumnComments>string</selectViewColumnComments>
+        <selectPrimaryKeys>string</selectPrimaryKeys>
+        <selectSequences>string</selectSequences>
     </discoverySqls>
 
-    <allSchemaPattern xdef:value="string"/>
+    <allSchemaPattern>string</allSchemaPattern>
 
 </dialect>

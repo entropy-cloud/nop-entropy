@@ -2,16 +2,16 @@
 <record x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
         xdef:name="RecordTemplateModel" xdef:bean-package="io.nop.record.model">
 
-    <template xdef:value="!xpl-text"/>
+    <template>!xpl-text</template>
 
     <fields xdef:body-type="list" xdef:key-attr="name">
         <field name="!string" displayName="string" type="generic-type" xdef:name="RecordTemplateFieldModel"
                mandatory="!boolean=false" optional="!boolean=false" defaultValue="string">
-            <generator xdef:value="xpl"/>
+            <generator>xpl</generator>
 
             <schema xdef:ref="../schema/schema.xdef"/>
         </field>
     </fields>
 
-    <generator xdef:value="xpl"/>
+    <generator>xpl</generator>
 </record>

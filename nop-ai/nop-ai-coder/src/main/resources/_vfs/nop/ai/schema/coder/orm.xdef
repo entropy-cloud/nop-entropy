@@ -3,7 +3,7 @@
 
     <dicts xdef:body-type="list" xdef:key-attr="name">
         <dict name="!string" label="!chinese">
-            <description xdef:value="string"/>
+            <description>string</description>
             <option xdef:unique-attr="value" value="!digits" code="upper-case-java-var-name"
                     label="!chinese" description="string"/>
         </dict>

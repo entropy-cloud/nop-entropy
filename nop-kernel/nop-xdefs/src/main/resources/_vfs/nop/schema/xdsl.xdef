@@ -33,25 +33,25 @@ x名字空间下的所有属性和子节点都只在合并过程中存在。合�
     </workflow>
     对应的合并关系为  F extends E extends currentNode extends D extends C extends B extends A
     -->
-    <x:gen-extends xdef:value="xpl-node"/>
+    <x:gen-extends>xpl-node</x:gen-extends>
 
     <!--
     当前节点和extends段以及gen-extends合并之后，可以再和post-extends段合并，执行后处理操作。
     一般前端可视化设计器设计的是当前模型节点，而post-extends相当于是可以在设计器设计结果的基础上自动执行后处理操作，可以通过此机制
     来实现对可视化设计器的自定义增强机制。
     -->
-    <x:post-extends xdef:value="xpl-node" xdef:default-override="append"/>
+    <x:post-extends xdef:default-override="append">xpl-node</x:post-extends>
 
     <!--
     根据xdef元模型定义将XML解析为具体的模型对象之后执行此回调函数，可以通过此机制实现一些领域特定的验证工作或者模型增强工作。
     根据xdef文件解析的过程是完全自动化的，是领域无关的，因此可能对一些特殊的、领域特定的约束条件不容易描述，可以通过这里的机制来实现一定的补充。
     -->
-    <x:post-parse xdef:value="xpl" xdef:default-override="append"/>
+    <x:post-parse xdef:default-override="append">xpl</x:post-parse>
 
     <!--
     通过c:import引入常量定义和标签库等
     -->
-    <x:config xdef:value="xpl" xdef:default-override="append"/>
+    <x:config xdef:default-override="append">xpl</x:config>
 
     <!--
     @x:key-attr [子节点唯一属性] 对于无schema约束的节点，可以通过x:key-attr和x:id来补充唯一标识信息，从而辅助完成节点合并
@@ -72,7 +72,7 @@ x名字空间下的所有属性和子节点都只在合并过程中存在。合�
                       x:abstract="boolean" x:final="boolean" x:virtual="boolean" x:default-override="enum:io.nop.xlang.xdef.XDefOverride"
                       x:prototype="!string" x:prototype-override="enum:io.nop.xlang.xdef.XDefOverride=merge"
     >
-        <x:gen-extends xdef:value="xpl-node"/>
+        <x:gen-extends>xpl-node</x:gen-extends>
 
         <x:super xdef:internal="true"/>
         <x:prototye-super xdef:internal="true"/>

@@ -4,7 +4,7 @@
              name="!class-name" className="class-name" displayName="string" tagSet="csv-set"
              xdef:name="OrmViewEntityModel" xdef:bean-package="io.nop.orm.model">
 
-    <comment xdef:value="string"/>
+    <comment>string</comment>
 
     <member-entity xdef:name="OrmViewMemberEntityModel" name="!class-name" alias="!var-name"
                    xdef:unique-attr="alias" xdef:bean-prop="memberEntities"/>
@@ -24,8 +24,8 @@
         <field xdef:name="OrmViewFieldModel" name="!var-name" displayName="string"
                domain="string" stdDomain="string" stdDataType="std-data-type" tagSet="tag-set"
                owner="var-name" sourceProp="string" func="var-name">
-            <formula xdef:value="string"/>
-            <comment xdef:value="string"/>
+            <formula>string</formula>
+            <comment>string</comment>
         </field>
     </fields>
 

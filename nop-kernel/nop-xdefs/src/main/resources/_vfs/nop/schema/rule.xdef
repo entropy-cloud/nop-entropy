@@ -3,17 +3,17 @@
       xdef:name="RuleModel" xdef:model-name-prop="ruleName" xdef:model-version-prop="ruleVersion"
       xmlns:xdef="/nop/schema/xdef.xdef" xdef:bean-package="io.nop.rule.core.model">
 
-    <description xdef:value="string"/>
+    <description>string</description>
 
     <!--
     在规则匹配前执行，可以用于初始化上下文对象
     -->
-    <beforeExecute xdef:value="xpl"/>
+    <beforeExecute>xpl</beforeExecute>
 
     <!--
     无论规则是否成功匹配，都会执行到这里
     -->
-    <afterExecute xdef:value="xpl"/>
+    <afterExecute>xpl</afterExecute>
 
     <!--
     @label 对当前判断条件的描述信息
@@ -23,14 +23,14 @@
     <xdef:define xdef:name="RuleDecisionTreeModel" id="string" label="string" multiMatch="!boolean=false"
                  leafIndex="!int=0">
 
-        <predicate xdef:value="filter-bean"/>
+        <predicate>filter-bean</predicate>
 
         <children xdef:body-type="list" xdef:key-attr="id">
             <child id="!string" xdef:ref="RuleDecisionTreeModel"/>
         </children>
 
         <!-- 当前判断分支所对应的业务描述 -->
-        <description xdef:value="string"/>
+        <description>string</description>
 
         <output name="!var-name" xdef:ref="RuleOutputValueModel" xdef:unique-attr="name"/>
 
@@ -55,7 +55,7 @@
         <cells xdef:body-type="list" xdef:key-attr="pos">
             <cell pos="!cell-pos" xdef:name="RuleTableCellModel">
                 <output name="!string" xdef:name="RuleOutputValueModel" xdef:unique-attr="name" value="string">
-                    <valueExpr xdef:value="xpl"/>
+                    <valueExpr>xpl</valueExpr>
                 </output>
             </cell>
         </cells>

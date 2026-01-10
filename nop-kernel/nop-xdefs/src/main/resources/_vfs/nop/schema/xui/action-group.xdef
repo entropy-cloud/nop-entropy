@@ -21,8 +21,8 @@
              closeOnClick="boolean" closeOnOutside="boolean"
              trigger="string" hideCaret="boolean"
              xdef:name="UiActionGroupModel" xui:role="csv-set" xui:permissions="csv-set">
-    <disabledOn xdef:value="string"/>
-    <visibleOn xdef:value="string"/>
+    <disabledOn>string</disabledOn>
+    <visibleOn>string</visibleOn>
     <action id="!string" xdef:ref="action.xdef" xdef:unique-attr="id"/>
-    <onEvent xdef:value="xjson-map"/>
+    <onEvent>xjson-map</onEvent>
 </actionGroup>

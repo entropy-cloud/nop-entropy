@@ -59,14 +59,14 @@
         <!--
         作为XNode的value输出
         -->
-        <xt:value xdef:value="xt-value" mandatory="!boolean=false" xdef:name="XtValueModel" xdef:ref="XtRuleModel"/>
+        <xt:value mandatory="!boolean=false" xdef:name="XtValueModel" xdef:ref="XtRuleModel">xt-value</xt:value>
 
         <!--
         执行代码来输出转换结果
         -->
-        <xt:gen xpath="xpath" xdef:value="xpl-node" xdef:name="XtGenModel" xdef:ref="XtRuleModel"/>
+        <xt:gen xpath="xpath" xdef:name="XtGenModel" xdef:ref="XtRuleModel">xpl-node</xt:gen>
 
-        <xt:script xpath="xpath" xdef:value="xpl" xdef:name="XtScriptModel" xdef:ref="XtRuleModel"/>
+        <xt:script xpath="xpath" xdef:name="XtScriptModel" xdef:ref="XtRuleModel">xpl</xt:script>
 
         <!--
         对于xpath选中的一组节点，每一个都应用body段的规则

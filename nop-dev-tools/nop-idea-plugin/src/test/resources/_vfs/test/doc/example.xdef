@@ -16,7 +16,7 @@
     <!-- [Common Node Definition]
     @name [Node Name] This is node name
     -->
-    <xdef:define name="!string" xdef:name="Common" xdef:value="string" x:prototype-override="merge"/>
+    <xdef:define name="!string" xdef:name="Common" x:prototype-override="merge">string</xdef:define>
 
     <!-- [Child Node]
     > This is child node
@@ -27,14 +27,14 @@
     -->
     <child name="string" type="dict:test/doc/child-type=node" xdef:unknown-attr="any"/>
 
-    <refs xdef:value="v-path-list"/>
+    <refs>v-path-list</refs>
 
     <var com="!var-name=@attr:name,type" name="#!var-name" type="!string"/>
 
     <tag-no-child/>
-    <tag-allow-child xdef:value="xml"/>
+    <tag-allow-child>xml</tag-allow-child>
 
-    <xjson xdef:value="xjson"/>
+    <xjson>xjson</xjson>
 
     <!-- Any child node
 

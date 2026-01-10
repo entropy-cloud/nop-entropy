@@ -8,7 +8,7 @@
         @width [列宽] 列的宽度，单位为pt
         -->
         <col width="double" xdef:name="ExcelColumnConfig" styleId="string" hidden="!boolean=false">
-            <styleIdExpr xdef:value="xpl"/>
+            <styleIdExpr>xpl</styleIdExpr>
         </col>
     </cols>
 
@@ -26,17 +26,17 @@
                       xdef:bean-extends-type="io.nop.core.model.table.impl.AbstractCell"
                       styleId="string" type="enum:io.nop.commons.type.StdDataType">
 
-                    <value xdef:value="any"/>
-                    <formula xdef:value="string"/>
+                    <value>any</value>
+                    <formula>string</formula>
 
                     <richText xdef:name="ExcelRichText" xdef:body-type="list" xdef:bean-body-prop="parts">
                         <part xdef:name="ExcelRichTextPart">
                             <font xdef:ref="font.xdef"/>
-                            <text xdef:value="string"/>
+                            <text>string</text>
                         </part>
                     </richText>
 
-                    <comment xdef:value="string"/>
+                    <comment>string</comment>
                     <!--
                     @exportFormula 导出到Excel时保持公式
                     @expandInplaceCount 在模板中已经预留了几个展开单元格空间。如果展开表达式返回个数小于这个值，则不需要新增单元格。
@@ -64,39 +64,39 @@
                         在自动根据ds中的field数据进行分组汇总，返回分组汇总得到的结果。
                         注意：展开表达式执行时还没有完成Excel层次坐标的构建，所以这里不能使用层次坐标表达式
                         -->
-                        <expandExpr xdef:value="xpl"/>
+                        <expandExpr>xpl</expandExpr>
 
                         <!--
                         对expandExpr返回的列表进行排序
                         -->
-                        <expandOrderBy xdef:value="sql-order-by"/>
+                        <expandOrderBy>sql-order-by</expandOrderBy>
 
                         <!--
                         在单元格展开之后执行，可以通过层次坐标获取到相关联单元格
                         -->
-                        <valueExpr xdef:value="report-expr"/>
+                        <valueExpr>report-expr</valueExpr>
 
                         <!--
                         在valueExpr执行后执行，计算得到用于显示的单元格文本
                         -->
-                        <formatExpr xdef:value="report-expr"/>
-                        <linkExpr xdef:value="report-expr"/>
-                        <styleIdExpr xdef:value="report-expr"/>
-                        <processExpr xdef:value="report-expr"/>
+                        <formatExpr>report-expr</formatExpr>
+                        <linkExpr>report-expr</linkExpr>
+                        <styleIdExpr>report-expr</styleIdExpr>
+                        <processExpr>report-expr</processExpr>
 
                         <!--
                         返回false的时候表示当前单元格所在的行需要被删除
                         -->
-                        <rowTestExpr xdef:value="xpl-predicate"/>
-                        <colTestExpr xdef:value="xpl-predicate"/>
+                        <rowTestExpr>xpl-predicate</rowTestExpr>
+                        <colTestExpr>xpl-predicate</colTestExpr>
                     </model>
                 </cell>
             </cells>
 
             <model xdef:name="XptRowModel">
-                <testExpr xdef:value="xpl-predicate"/>
-                <visibleExpr xdef:value="xpl"/>
-                <styleIdExpr xdef:value="xpl"/>
+                <testExpr>xpl-predicate</testExpr>
+                <visibleExpr>xpl</visibleExpr>
+                <styleIdExpr>xpl</styleIdExpr>
             </model>
         </row>
     </rows>

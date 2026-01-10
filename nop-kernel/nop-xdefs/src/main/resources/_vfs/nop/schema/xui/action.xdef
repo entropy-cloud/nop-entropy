@@ -19,22 +19,22 @@
         xdef:bean-package="io.nop.xui.model"
         xdef:name="UiActionModel" xdef:bean-tag-prop="type" xdef:check-ns="xui,gql">
 
-    <confirmText xdef:value="string"/>
-    <disabledOn xdef:value="string"/>
-    <visibleOn xdef:value="string"/>
+    <confirmText>string</confirmText>
+    <disabledOn>string</disabledOn>
+    <visibleOn>string</visibleOn>
 
     <!--
     可以通过body定制按钮的显示
     -->
-    <body xdef:value="xjson"/>
+    <body>xjson</body>
 
     <api xdef:ref="api.xdef"/>
 
     <initApi xdef:ref="api.xdef"/>
 
     <messages xdef:bean-class="java.util.Map">
-        <success xdef:value="string"/>
-        <failed xdef:value="string"/>
+        <success>string</success>
+        <failed>string</failed>
     </messages>
 
     <!--
@@ -44,7 +44,7 @@
             closeOnOutside="boolean" showCloseButton="boolean" noActions="boolean"
             title="string"
             xdef:name="UiDialogModel">
-        <data xdef:value="xjson"/>
+        <data>xjson</data>
 
         <actions xdef:body-type="list" xdef:key-attr="id" xdef:bean-body-type="List&lt;io.nop.xui.model.IUiActionModel>">
             <action id="!string" xdef:ref="UiActionModel"/>
@@ -56,10 +56,10 @@
                          closeOnClick="boolean" closeOnOutside="boolean"
                          trigger="string" hideCaret="boolean"
                          xdef:name="UiActionGroupModel" xui:role="csv-set" xui:permissions="csv-set">
-                <disabledOn xdef:value="string"/>
-                <visibleOn xdef:value="string"/>
+                <disabledOn>string</disabledOn>
+                <visibleOn>string</visibleOn>
                 <action id="!string" xdef:ref="UiActionModel" xdef:unique-attr="id"/>
-                <onEvent xdef:value="xjson-map"/>
+                <onEvent>xjson-map</onEvent>
             </actionGroup>
         </actions>
     </dialog>
@@ -68,5 +68,5 @@
 
     <feedback xdef:ref="UiDialogModel"/>
 
-    <onEvent xdef:value="xjson-map"/>
+    <onEvent>xjson-map</onEvent>
 </action>

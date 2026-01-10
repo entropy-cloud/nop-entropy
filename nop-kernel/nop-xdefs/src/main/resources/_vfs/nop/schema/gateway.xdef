@@ -17,22 +17,22 @@
             <!--
             路由的动态匹配条件
             -->
-            <match xdef:value="xpl-predicate"/>
+            <match>xpl-predicate</match>
 
             <!--
             匹配路由后可以直接响应。如果配置了serviceName且不是mock模式，则在执行handler之后会调用分布式RPC服务
             -->
-            <handler xdef:value="xpl"/>
+            <handler>xpl</handler>
 
             <!--
             对应分布式RPC返回的结果进行处理
             -->
-            <on-response xdef:value="xpl"/>
+            <on-response>xpl</on-response>
 
             <!--
             调用过程出现异常时会调用这里的代码，将异常对象包装为异常消息
              -->
-            <on-error xdef:value="xpl"/>
+            <on-error>xpl</on-error>
         </route>
     </routes>
 

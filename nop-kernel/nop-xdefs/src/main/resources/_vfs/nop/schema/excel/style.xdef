@@ -9,7 +9,7 @@
        horizontalAlign="enum:io.nop.excel.model.constants.ExcelHorizontalAlignment"
        fillBgColor="string" fillPattern="string" fillFgColor="string"
 >
-    <numberFormat xdef:value="string"/>
+    <numberFormat>string</numberFormat>
     <!--
     @fontSize 用来表示字体大小的半点，一个点等于两个半点，如表示 12pt 可以这样写
             24 = 12pt

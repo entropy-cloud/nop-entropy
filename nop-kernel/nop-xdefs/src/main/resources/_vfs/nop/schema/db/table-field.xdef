@@ -6,5 +6,5 @@
        name="!string" from="string" stdDataType="std-data-type" stdSqlType="std-sql-type" ignore="!boolean=false">
 
     <!-- 每个字段也可以配置转换函数，实际导出的是转换以后的值。input对应于当前行，value对应于当前字段值 -->
-    <transformExpr xdef:value="xpl"/>
+    <transformExpr>xpl</transformExpr>
 </field>

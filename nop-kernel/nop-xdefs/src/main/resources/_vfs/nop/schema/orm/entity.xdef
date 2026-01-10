@@ -67,10 +67,10 @@
         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
 >
     <!-- [SQL文本] 当实体实际对应数据库视图时，这里为视图的定义SQL语句 -->
-    <sqlText xdef:value="string"/>
+    <sqlText>string</sqlText>
 
     <!-- [注释] -->
-    <comment xdef:value="string"/>
+    <comment>string</comment>
 
     <filters xdef:body-type="list" xdef:key-attr="name">
         <filter name="!var-name" value="any" xdef:name="OrmEntityFilterModel"/>
@@ -124,8 +124,8 @@
             <args xdef:body-type="list" xdef:key-attr="name">
                 <arg name="!prop-name" displayName="string" type="!generic-type" xdef:name="OrmComputeArgModel"/>
             </args>
-            <getter xdef:value="xpl"/>
-            <setter xdef:value="xpl"/>
+            <getter>xpl</getter>
+            <setter>xpl</setter>
         </compute>
     </computes>
 
@@ -144,7 +144,7 @@
                  tagSet="tag-set" embedded="!boolean=false" notGenCode="!boolean=false"
                  cascadeDelete="!boolean=false" autoCascadeDelete="!boolean=false" xdef:bean-tag-prop="type"
     >
-        <comment xdef:value="string"/>
+        <comment>string</comment>
 
         <!--
         必须是关联到相关实体的主键上
@@ -205,7 +205,7 @@
          -->
         <unique-key xdef:name="OrmUniqueKeyModel" name="!string" displayName="string" columns="!csv-list"
                     constraint="string" tagSet="tag-set">
-            <comment xdef:value="string"/>
+            <comment>string</comment>
         </unique-key>
     </unique-keys>
 

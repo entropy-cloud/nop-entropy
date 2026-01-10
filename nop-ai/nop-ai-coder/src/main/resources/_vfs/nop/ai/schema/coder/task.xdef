@@ -8,7 +8,7 @@
                  displayName="string">
 
         <!-- 验证输入数据 -->
-        <validator xdef:value="xpl"/>
+        <validator>xpl</validator>
 
     </xdef:define>
 
@@ -21,10 +21,10 @@
             <output name="var-name" xdef:unique-attr="name"/>
 
             <!-- 不满足条件的时候将会自动跳过本步骤 -->
-            <when xdef:value="xpl-predicate"/>
+            <when>xpl-predicate</when>
 
             <!-- source段中使用XPL模板语言 -->
-            <source xdef:value="xpl"/>
+            <source>xpl</source>
         </step>
 
         <!--
@@ -32,15 +32,15 @@
         -->
         <exit name="!var-name" xdef:ref="TaskStepModel" xdef:name="ExitTaskStepModel" next="step-name">
             <!-- 不满足条件的时候将会自动跳过本步骤 -->
-            <when xdef:value="xpl-predicate"/>
-            <source xdef:value="xpl"/>
+            <when>xpl-predicate</when>
+            <source>xpl</source>
         </exit>
 
         <!-- 退出整个工作流 -->
         <end name="!var-name" xdef:ref="TaskStepModel" xdef:name="EndTaskStepModel">
             <!-- 不满足条件的时候将会自动跳过本步骤 -->
-            <when xdef:value="xpl-predicate"/>
-            <source xdef:value="xpl"/>
+            <when>xpl-predicate</when>
+            <source>xpl</source>
         </end>
 
         <!--
@@ -48,7 +48,7 @@
            -->
         <sequential name="!var-name" xdef:ref="TaskStepModel" next="step-name" nextOnError="step-name">
             <!-- 不满足条件的时候会跳过本步骤 -->
-            <when xdef:value="xpl-predicate"/>
+            <when>xpl-predicate</when>
 
             <!-- 顺序执行的子步骤 -->
             <steps xdef:ref="TaskStepsModel"/>
@@ -61,12 +61,12 @@
               nextOnError="step-name"
               indexName="var-name" varName="var-name" itemsExpr="!expr" maxCount="!int=0" varType="generic-type">
 
-            <while xdef:value="xpl-predicate"/>
+            <while>xpl-predicate</while>
 
             <steps xdef:ref="TaskStepsModel"/>
 
             <!-- 循环执行直到until条件为真才退出循环。第一次执行时不检查until条件 -->
-            <until xdef:value="xpl-predicate"/>
+            <until>xpl-predicate</until>
         </loop>
 
         <!--
@@ -74,9 +74,9 @@
         -->
         <choose name="!var-name" xdef:ref="TaskStepModel" xdef:name="ChooseTaskStepModel">
             <!-- 不满足条件的时候将会自动跳过本步骤 -->
-            <when xdef:value="xpl-predicate"/>
+            <when>xpl-predicate</when>
 
-            <decider xdef:value="xpl"/>
+            <decider>xpl</decider>
 
             <!--
              @match 用于匹配decider返回的值

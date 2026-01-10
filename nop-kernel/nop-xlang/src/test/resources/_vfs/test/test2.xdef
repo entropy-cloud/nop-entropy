@@ -1,5 +1,5 @@
 <test x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
     xmlns:xdef="/nop/schema/xdef.xdef"
 >
-    <source xdef:value="xpl" />
+    <source>xpl</source>
 </test>

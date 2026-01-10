@@ -14,23 +14,23 @@
     <!--
     全局样式
     -->
-    <style xdef:value="xpl-text"/>
+    <style>xpl-text</style>
 
     <!--
     组件局部样式
     -->
-    <scoped-style xdef:value="xpl-text"/>
+    <scoped-style>xpl-text</scoped-style>
 
-    <template xdef:value="xpl-html" xdef:support-extends="true"/>
+    <template xdef:support-extends="true">xpl-html</template>
 
     <!--
     模块script，只执行一次
     -->
-    <script xdef:value="xpl-text"/>
+    <script>xpl-text</script>
 
     <!--
     组件的setup函数，每次创建组件实例时执行。对应于vue的<script setup>
     -->
-    <setup xdef:value="xpl-text"/>
+    <setup>xpl-text</setup>
 
 </uc>

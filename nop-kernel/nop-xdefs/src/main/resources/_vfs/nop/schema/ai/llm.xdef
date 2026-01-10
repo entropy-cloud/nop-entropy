@@ -16,9 +16,9 @@
     <!--
     大模型服务所支持的模型列表。通过defaultModel来指定缺省使用的模型
     -->
-    <supportModels xdef:value="csv-set"/>
+    <supportModels>csv-set</supportModels>
 
-    <aliasMap xdef:value="string-map"/>
+    <aliasMap>string-map</aliasMap>
 
     <models xdef:body-type="list" xdef:key-attr="name">
         <model name="!string" xdef:name="LlmModelModel" maxTokensLimit="int" defaultMaxTokens="int"
@@ -29,19 +29,19 @@
     <!--
     服务的基础url，比如http://localhost:11342
     -->
-    <baseUrl xdef:value="string"/>
+    <baseUrl>string</baseUrl>
 
     <!--
     聊天功能的服务端点，比如 /api/chat
     -->
-    <chatUrl xdef:value="string"/>
+    <chatUrl>string</chatUrl>
 
     <!--
     单次生成服务断点，比如 /api/generate
     -->
-    <generateUrl xdef:value="string"/>
+    <generateUrl>string</generateUrl>
 
-    <embedUrl xdef:value="string"/>
+    <embedUrl>string</embedUrl>
 
     <request xdef:name="LlmRequestModel"
              seedPath="prop-path"
@@ -69,8 +69,8 @@
               toolCallsPath="prop-path"
     />
 
-    <buildHttpRequest xdef:value="xpl-fn:(httpRequest,prompt,chatOptions)=>void"/>
+    <buildHttpRequest>xpl-fn:(httpRequest,prompt,chatOptions)=>void</buildHttpRequest>
 
-    <parseHttpResponse xdef:value="xpl-fn:(httpResponse,chatResponse, chatOptions)=>void"/>
+    <parseHttpResponse>xpl-fn:(httpResponse,chatResponse, chatOptions)=>void</parseHttpResponse>
 
 </llm>

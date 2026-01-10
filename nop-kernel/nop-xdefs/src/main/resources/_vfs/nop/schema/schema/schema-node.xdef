@@ -17,8 +17,8 @@ schema节点的基类
         x:schema="/nop/schema/xdef.xdef"
         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
 >
-    <description xdef:value="string"/>
+    <description>string</description>
 
-    <validator xdef:value="xpl-fn:(value)=>any"/>
+    <validator>xpl-fn:(value)=>any</validator>
 
 </schema>

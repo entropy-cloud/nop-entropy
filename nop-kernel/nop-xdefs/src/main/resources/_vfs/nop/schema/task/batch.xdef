@@ -18,7 +18,7 @@
        xmlns:xdef="/nop/schema/xdef.xdef"
 >
     <!-- taskKey用于区分taskName相同的不同执行实例。同样的taskName+taskKey只允许执行一次 -->
-    <taskKeyExpr xdef:value="xpl-fn:(batchTaskCtx)=>string"/>
+    <taskKeyExpr>xpl-fn:(batchTaskCtx)=>string</taskKeyExpr>
 
     <!--
     @onlySaveLastError 如果为true，则只保存最后一次执行失败的信息，否则保存所有执行失败的信息
@@ -27,40 +27,40 @@
     -->
     <historyStore bean="bean-name" xdef:name="BatchHistoryStoreModel"
                   onlySaveLastError="!boolean=false">
-        <recordKeyExpr xdef:value="xpl-fn:(record)=>string"/>
-        <recordInfoExpr xdef:value="xpl-fn:(record)=>any"/>
+        <recordKeyExpr>xpl-fn:(record)=>string</recordKeyExpr>
+        <recordInfoExpr>xpl-fn:(record)=>any</recordInfoExpr>
     </historyStore>
 
     <retryPolicy maxRetryCount="int" retryDelay="int" maxRetryDelay="int" xdef:name="BatchRetryPolicyModel"
                  exponentialDelay="boolean=true" jitterRatio="double=0.3">
-        <exceptionFilter xdef:value="xpl-fn:(err)=>boolean"/>
+        <exceptionFilter>xpl-fn:(err)=>boolean</exceptionFilter>
     </retryPolicy>
 
     <loadRetryPolicy xdef:ref="BatchRetryPolicyModel"/>
 
     <skipPolicy maxSkipCount="long" xdef:name="BatchSkipPolicyModel">
-        <exceptionFilter xdef:value="xpl-fn:(err)=>boolean"/>
+        <exceptionFilter>xpl-fn:(err)=>boolean</exceptionFilter>
     </skipPolicy>
 
     <inputSorter xdef:ref="/nop/schema/query/order-by.xdef"/>
 
     <xdef:define xdef:name="BatchListenersModel">
-        <onTaskBegin xdef:value="xpl-fn:(batchTaskCtx)=>void"/>
-        <onBeforeTaskEnd xdef:value="xpl-fn:(batchTaskCtx)=>void"/>
-        <onTaskEnd xdef:value="xpl-fn:(batchTaskCtx,err)=>void"/>
+        <onTaskBegin>xpl-fn:(batchTaskCtx)=>void</onTaskBegin>
+        <onBeforeTaskEnd>xpl-fn:(batchTaskCtx)=>void</onBeforeTaskEnd>
+        <onTaskEnd>xpl-fn:(batchTaskCtx,err)=>void</onTaskEnd>
 
-        <onChunkBegin xdef:value="xpl-fn:(batchChunkCtx)=>void"/>
-        <onBeforeChunkEnd xdef:value="xpl-fn:(batchChunkCtx)=>void"/>
-        <onChunkEnd xdef:value="xpl-fn:(batchChunkCtx,err)=>void"/>
+        <onChunkBegin>xpl-fn:(batchChunkCtx)=>void</onChunkBegin>
+        <onBeforeChunkEnd>xpl-fn:(batchChunkCtx)=>void</onBeforeChunkEnd>
+        <onChunkEnd>xpl-fn:(batchChunkCtx,err)=>void</onChunkEnd>
 
-        <onChunkTryBegin xdef:value="xpl-fn:(items, batchChunkCtx)=>void"/>
-        <onChunkTryEnd xdef:value="xpl-fn:(batchChunkCtx, err)=>void"/>
+        <onChunkTryBegin>xpl-fn:(items, batchChunkCtx)=>void</onChunkTryBegin>
+        <onChunkTryEnd>xpl-fn:(batchChunkCtx, err)=>void</onChunkTryEnd>
 
-        <onLoadBegin xdef:value="xpl-fn:(batchSize,batchChunkCtx)=>void"/>
-        <onLoadEnd xdef:value="xpl-fn:(batchChunkCtx, err)=>void"/>
+        <onLoadBegin>xpl-fn:(batchSize,batchChunkCtx)=>void</onLoadBegin>
+        <onLoadEnd>xpl-fn:(batchChunkCtx, err)=>void</onLoadEnd>
 
-        <onConsumeBegin xdef:value="xpl-fn:(items, batchChunkCtx)=>void"/>
-        <onConsumeEnd xdef:value="xpl-fn:(batchChunkCtx, err)=>void"/>
+        <onConsumeBegin>xpl-fn:(items, batchChunkCtx)=>void</onConsumeBegin>
+        <onConsumeEnd>xpl-fn:(batchChunkCtx, err)=>void</onConsumeEnd>
     </xdef:define>
 
     <!--
@@ -73,7 +73,7 @@
         <dispatcher xdef:name="BatchLoaderDispatcherModel"
                     fetchThreadCount="!int=0" loadBatchSize="!int=100" executor="bean-name" partitionIndexField="prop-path">
             <!-- 如果没有指定partitionIndexField，可以执行代码动态计算得到partitionIndex -->
-            <partitionFn xdef:value="xpl-fn:(item,batchTaskCtx)=>int"/>
+            <partitionFn>xpl-fn:(item,batchTaskCtx)=>int</partitionFn>
         </dispatcher>
 
         <!--
@@ -90,25 +90,25 @@
                      csvFormat="string"
                      resourceLocator="bean-name" resourceIO="bean-name" maxCountExpr="expr" fileModelPath="v-path">
             <!-- 动态创建resourceIO -->
-            <newRecordInputProvider xdef:value="xpl"/>
+            <newRecordInputProvider>xpl</newRecordInputProvider>
 
-            <filter xdef:value="xpl-fn:(item,batchTaskCtx)=>boolean"/>
+            <filter>xpl-fn:(item,batchTaskCtx)=>boolean</filter>
 
             <!--
             仅当使用缺省的CsvResourceIO时会使用这里的配置，它用于指定从数据文件中导入哪些列，如果不指定，则导入所有列。假定数据文件的第一行是列名
             -->
-            <headers xdef:value="csv-list"/>
-            <headerLabels xdef:value="csv-list"/>
-            <headersNormalizer xdef:value="xpl-fn:(headers,headerRows)=>List"/>
+            <headers>csv-list</headers>
+            <headerLabels>csv-list</headerLabels>
+            <headersNormalizer>xpl-fn:(headers,headerRows)=>List</headersNormalizer>
         </file-reader>
 
         <excel-reader filePath="!t-expr" xdef:name="BatchExcelReaderModel" templatePath="v-path" headerRowCount="int"
                       dataSheetName="string" headerSheetName="string" trailerSheetName="string">
-            <filter xdef:value="xpl-fn:(item,batchTaskCtx)=>boolean"/>
+            <filter>xpl-fn:(item,batchTaskCtx)=>boolean</filter>
 
-            <headers xdef:value="csv-list"/>
-            <headerLabels xdef:value="csv-list"/>
-            <headersNormalizer xdef:value="xpl-fn:(headers,headerRows)=>List"/>
+            <headers>csv-list</headers>
+            <headerLabels>csv-list</headerLabels>
+            <headersNormalizer>xpl-fn:(headers,headerRows)=>List</headersNormalizer>
         </excel-reader>
 
         <!--
@@ -116,41 +116,41 @@
         -->
         <orm-reader xdef:name="BatchOrmReaderModel" batchLoadProps="csv-list" partitionIndexField="prop-path"
                     entityName="class-name">
-            <eql xdef:value="xpl-sql"/>
-            <query xdef:value="xpl-node"/>
+            <eql>xpl-sql</eql>
+            <query>xpl-node</query>
         </orm-reader>
 
         <jdbc-reader querySpace="string" fetchSize="int" sqlName="string" maxRows="long" maxFieldSize="int"
                      queryTimeout="int" partitionIndexField="prop-path"
                      rowMapper="bean-name" streaming="!boolean=false" xdef:name="BatchJdbcReaderModel">
-            <sql xdef:value="xpl-sql"/>
-            <query xdef:value="xpl-node"/>
+            <sql>xpl-sql</sql>
+            <query>xpl-node</query>
         </jdbc-reader>
 
         <generator genModelPath="v-path" xdef:name="BatchGeneratorModel" totalCountExpr="!expr"/>
 
         <!-- reader读取到items集合之后会调用afterLoad回调函数对结果进行加工 -->
-        <afterLoad xdef:value="xpl-fn:(items, batchLoadCtx)=>void"/>
+        <afterLoad>xpl-fn:(items, batchLoadCtx)=>void</afterLoad>
 
-        <source xdef:value="xpl-fn:(batchSize,batchChunkCtx)=>List"/>
+        <source>xpl-fn:(batchSize,batchChunkCtx)=>List</source>
 
-        <provider xdef:value="xpl-fn:(batchTaskCtx)=>any"/>
+        <provider>xpl-fn:(batchTaskCtx)=>any</provider>
 
-        <adapter xdef:value="xpl-fn:(loader)=>any"/>
+        <adapter>xpl-fn:(loader)=>any</adapter>
 
     </loader>
 
     <processor bean="bean-name" name="!var-name" order="!int=0"
                xdef:unique-attr="name" xdef:name="BatchProcessorModel" xdef:ref="BatchListenersModel">
-        <filter xdef:value="xpl-fn:(item,batchChunkCtx)=>boolean"/>
-        <source xdef:value="xpl-fn:(item,consume,batchChunkCtx)=>void"/>
-        <provider xdef:value="xpl-fn:(batchTaskCtx)=>any"/>
-        <adapter xdef:value="xpl-fn:(processor)=>any"/>
+        <filter>xpl-fn:(item,batchChunkCtx)=>boolean</filter>
+        <source>xpl-fn:(item,consume,batchChunkCtx)=>void</source>
+        <provider>xpl-fn:(batchTaskCtx)=>any</provider>
+        <adapter>xpl-fn:(processor)=>any</adapter>
     </processor>
 
     <!-- 选择每一个item所对应的consumer，返回tag列表。 -->
     <tagger bean="bean-name" xdef:name="BatchTaggerModel">
-        <source xdef:value="xpl-fn:(item,batchChunkCtx)=>Collection"/>
+        <source>xpl-fn:(item,batchChunkCtx)=>Collection</source>
     </tagger>
 
     <!--
@@ -159,31 +159,31 @@
     <consumer bean="bean-name" name="!var-name" order="!int=0" forTag="string"
               xdef:unique-attr="name" xdef:name="BatchConsumerModel" xdef:ref="BatchListenersModel"
               aggregator="bean-name" metaProvider="bean-name">
-        <filter xdef:value="xpl-fn:(item,batchChunkCtx)=>boolean"/>
+        <filter>xpl-fn:(item,batchChunkCtx)=>boolean</filter>
 
         <file-writer filePath="!t-expr" xdef:name="BatchFileWriterModel" encoding="t-expr"
                      csvFormat="string"
                      resourceLocator="bean-name" resourceIO="bean-name" fileModelPath="v-path">
-            <newRecordOutputProvider xdef:value="xpl"/>
-            <headers xdef:value="csv-list"/>
-            <headerLabels xdef:value="csv-list"/>
+            <newRecordOutputProvider>xpl</newRecordOutputProvider>
+            <headers>csv-list</headers>
+            <headerLabels>csv-list</headerLabels>
         </file-writer>
 
         <excel-writer filePath="!t-expr" xdef:name="BatchExcelWriterModel" templatePath="v-path"
                       dataSheetName="string" headerSheetName="string" trailerSheetName="string" headerRowCount="int">
-            <headers xdef:value="csv-list"/>
-            <headerLabels xdef:value="csv-list"/>
+            <headers>csv-list</headers>
+            <headerLabels>csv-list</headerLabels>
         </excel-writer>
 
         <orm-writer entityName="!class-name" xdef:name="BatchOrmWriterModel" allowUpdate="!boolean=false"
                     allowInsert="!boolean=true">
-            <keyFields xdef:value="csv-set"/>
+            <keyFields>csv-set</keyFields>
         </orm-writer>
 
         <jdbc-writer querySpace="string" tableName="!string" xdef:name="BatchJdbcWriterModel"
                      allowUpdate="!boolean=false"
                      allowInsert="!boolean=true">
-            <keyFields xdef:value="csv-set"/>
+            <keyFields>csv-set</keyFields>
             <fields xdef:body-type="list" xdef:key-attr="name">
                 <field name="!string" from="string" stdSqlType="!std-sql-type" stdDataType="std-data-type"
                        xdef:name="BatchWriteFieldModel"/>
@@ -191,13 +191,13 @@
         </jdbc-writer>
 
         <!-- 实际写入之前执行transformer进行结构转换。实际保存的是返回的结果对象。如果transformer的返回值是null，则忽略这个条目 -->
-        <transformer xdef:value="xpl-fn:(item,batchChunkCtx)=>any"/>
+        <transformer>xpl-fn:(item,batchChunkCtx)=>any</transformer>
 
-        <provider xdef:value="xpl-fn:(batchTaskCtx)=>any"/>
+        <provider>xpl-fn:(batchTaskCtx)=>any</provider>
 
-        <source xdef:value="xpl-fn:(items,batchChunkCtx)=>void"/>
+        <source>xpl-fn:(items,batchChunkCtx)=>void</source>
 
-        <adapter xdef:value="xpl-fn:(consumer)=>any"/>
+        <adapter>xpl-fn:(consumer)=>any</adapter>
     </consumer>
 
 </batch>

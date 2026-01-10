@@ -18,13 +18,13 @@
               routePath="string" url="string" target="string" icon="string" component="string"
               hidden="!boolean=false" keepAlive="!boolean=false" noAuth="!boolean=false">
 
-        <description xdef:value="string"/>
+        <description>string</description>
 
-        <permissions xdef:value="word-set"/>
+        <permissions>word-set</permissions>
 
-        <meta xdef:value="json"/>
+        <meta>json</meta>
 
-        <props xdef:value="json"/>
+        <props>json</props>
 
         <children xdef:body-type="list" xdef:key-attr="id">
             <resource id="!string" xdef:ref="SiteResourceBean"/>

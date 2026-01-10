@@ -18,7 +18,7 @@
         <aggregates xdef:body-type="list" xdef:key-attr="name">
             <!-- 输出时自动计算一些汇总值 -->
             <aggregate name="!prop-name" aggFunc="var-name" prop="string">
-                <valueExpr xdef:value="xpl-fn:(record,ctx)=>any"/>
+                <valueExpr>xpl-fn:(record,ctx)=>any</valueExpr>
             </aggregate>
         </aggregates>
     </pagination>
@@ -26,7 +26,7 @@
     <aggregates xdef:body-type="list" xdef:key-attr="name">
         <!-- 输出时自动计算一些汇总值 -->
         <aggregate name="!prop-name" aggFunc="var-name" prop="string">
-            <valueExpr xdef:value="xpl-fn:(record,ctx)=>any"/>
+            <valueExpr>xpl-fn:(record,ctx)=>any</valueExpr>
         </aggregate>
     </aggregates>
 
@@ -55,14 +55,14 @@
                     动态确定字段类型
                     如果指定了switchOnField，则输出时根据从record[switchOnField]上获取到case类型，然后再映射到type类型，从根对象的types集合中再获取具体定义
                     -->
-                    <switchOnField xdef:value="prop-name"/>
+                    <switchOnField>prop-name</switchOnField>
 
                     <!-- 根据record[switchOnField]获取到类型，key为*表示缺省映射 -->
-                    <switchTypeMap xdef:value="string-map"/>
+                    <switchTypeMap>string-map</switchTypeMap>
                 </field>
             </fields>
 
-            <template xdef:value="string"/>
+            <template>string</template>
         </type>
     </types>
 

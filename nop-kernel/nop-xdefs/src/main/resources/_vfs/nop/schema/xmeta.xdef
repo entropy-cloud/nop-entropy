@@ -14,14 +14,14 @@
       x:schema="/nop/schema/xdef.xdef"
       xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:biz="biz"
 >
-    <entityName xdef:value="class-name"/>
+    <entityName>class-name</entityName>
 
-    <primaryKey xdef:value="word-set"/>
+    <primaryKey>word-set</primaryKey>
 
     <!--
     用于显示的字段，例如displayName等。选择控件会使用该字段
     -->
-    <displayProp xdef:value="string"/>
+    <displayProp>string</displayProp>
 
     <keys xdef:key-attr="name" xdef:body-type="list">
         <!--
@@ -34,7 +34,7 @@
     过滤条件。会追加到GraphQL的query查询条件中。因为在update和view的时候也会使用检查这里的过滤条件，
     所以一般就是简单的等于条件的过滤，暂时不考虑更复杂的查询条件。更复杂的业务相关的查询条件应该写在Biz或者sql-lib文件中
     -->
-    <filter xdef:value="filter-bean"/>
+    <filter>filter-bean</filter>
 
     <!-- 排序条件。追加到GraphQL的query查询条件中 -->
     <orderBy xdef:ref="query/order-by.xdef"/>
@@ -58,7 +58,7 @@
         字段选择集合, 采用GraphQL的fieldSelection格式
         -->
         <selection id="!var-name" displayName="string"
-                   xdef:name="ObjSelectionMeta" xdef:value="field-selection" xdef:bean-body-prop="mapping"/>
+                   xdef:name="ObjSelectionMeta" xdef:bean-body-prop="mapping">field-selection</selection>
     </selections>
 
 </meta>

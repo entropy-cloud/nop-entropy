@@ -11,12 +11,12 @@
            fitToHeight="boolean" fitToWidth="boolean" gridLines="boolean"
            firstPageNumber="int" blackAndWhite="boolean">
     <header xdef:name="ExcelHeaderFooter">
-        <left xdef:value="string"/>
-        <center xdef:value="string"/>
-        <right xdef:value="string"/>
-        <leftExpr xdef:value="xpl"/>
-        <centerExpr xdef:value="xpl"/>
-        <rightExpr xdef:value="xpl"/>
+        <left>string</left>
+        <center>string</center>
+        <right>string</right>
+        <leftExpr>xpl</leftExpr>
+        <centerExpr>xpl</centerExpr>
+        <rightExpr>xpl</rightExpr>
         <style xdef:ref="style.xdef"/>
     </header>
 

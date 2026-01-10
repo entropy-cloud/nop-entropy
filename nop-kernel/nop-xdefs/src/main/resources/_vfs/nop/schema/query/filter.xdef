@@ -148,7 +148,7 @@
 
         <sql value="!sql-obj" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
 
-        <expr xdef:value="expr" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+        <expr xdef:allow-multiple="true" xdef:bean-tag-prop="$type">expr</expr>
 
         <!--
         对应于sql的多字段比较，例如 (a,b) > (1,2)这种情况
@@ -184,8 +184,8 @@
         <!--        <rel-length left="!string" right="!string" leftOwner="string" rightOwner="string" xdef:allow-multiple="true"/>-->
         <!--        <rel-regex left="!string" right="!string" leftOwner="string" rightOwner="string" xdef:allow-multiple="true"/>-->
 
-        <xdef:unknown-tag xdef:unknown-attr="any" xdef:value="xml" xdef:allow-multiple="true"
-                          xdef:bean-tag-prop="$type" xdef:bean-body-prop="$body"/>
+        <xdef:unknown-tag xdef:unknown-attr="any" xdef:allow-multiple="true"
+                          xdef:bean-tag-prop="$type" xdef:bean-body-prop="$body">xml</xdef:unknown-tag>
 
     </xdef:define>
 

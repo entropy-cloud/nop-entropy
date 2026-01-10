@@ -82,19 +82,19 @@
               graphql:connectionProp="prop-name" graphql:maxFetchSize="int"
               graphql:queryMethod="dict:core/std-query-method" graphql:authObjName="string"
         >
-            <description xdef:value="string"/>
+            <description>string</description>
 
             <schema xdef:ref="ISchema"/>
 
-            <graphql:filter xdef:value="filter-bean"/>
+            <graphql:filter>filter-bean</graphql:filter>
 
             <graphql:orderBy xdef:ref="/nop/schema/query/order-by.xdef"/>
 
-            <graphql:selection xdef:value="field-selection"/>
+            <graphql:selection>field-selection</graphql:selection>
 
-            <graphql:inputType xdef:value="class-name"/>
+            <graphql:inputType>class-name</graphql:inputType>
 
-            <graphql:transFilter xdef:value="xpl-fn:(filter,query,forEntity)=>any" />
+            <graphql:transFilter>xpl-fn:(filter,query,forEntity)=>any</graphql:transFilter>
 
             <auth xdef:ref="auth.xdef"/>
 
@@ -103,7 +103,7 @@
             -->
             <arg xdef:name="ObjPropArgModel" name="!var-name" mandatory="!boolean=false"
                  displayName="string" xdef:unique-attr="name">
-                <description xdef:value="string"/>
+                <description>string</description>
                 <schema xdef:ref="ISchema"/>
             </arg>
 
@@ -111,27 +111,27 @@
               新增或者修改的时候如果前台没有发送本字段的值，则可以根据autoExpr来自动计算得到
              -->
             <autoExpr when="!csv-set" xdef:bean-body-prop="source"
-                      xdef:name="ObjConditionExpr" xdef:value="xpl"/>
+                      xdef:name="ObjConditionExpr">xpl</autoExpr>
 
             <!--
             对前台输入的值进行适配转换
             -->
-            <transformIn xdef:value="xpl"/>
+            <transformIn>xpl</transformIn>
 
             <!--
             后台返回的值可能需要进行格式转换
             -->
-            <transformOut xdef:value="xpl"/>
+            <transformOut>xpl</transformOut>
 
             <!--
             根据当前实体生成动态属性。getter和setter都是后台实体对象层的功能，类似Java对象上的get/set
             -->
-            <getter xdef:value="xpl-fn:(entity,args,propMeta)=>any"/>
+            <getter>xpl-fn:(entity,args,propMeta)=>any</getter>
 
             <!--
             对外部传入的值进行处理，可能会设置entity对象的属性
             -->
-            <setter xdef:value="xpl-fn:(entity,value,propMeta)=>void"/>
+            <setter>xpl-fn:(entity,value,propMeta)=>void</setter>
         </prop>
     </props>
 

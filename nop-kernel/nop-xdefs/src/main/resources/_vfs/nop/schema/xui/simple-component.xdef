@@ -17,5 +17,5 @@
 
     <slot name="!var-name" xdef:unique-attr="name" xdef:name="UiSimpleSlotModel"/>
 
-    <template xdef:value="vue-node"/>
+    <template>vue-node</template>
 </component>

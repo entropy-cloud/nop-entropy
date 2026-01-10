@@ -17,32 +17,32 @@
      dataType="string" cache="int" responseType="string" gql:selection="string"
      replaceData="boolean" autoRefresh="boolean" withFormData="boolean">
 
-    <headers xdef:value="xjson-map"/>
+    <headers>xjson-map</headers>
 
-    <data xdef:value="xjson"/>
+    <data>xjson</data>
 
     <!--
     仅当满足条件的时候才触发
     -->
-    <sendOn xdef:value="string"/>
+    <sendOn>string</sendOn>
 
     <!--
     如果开启了自动刷新，这里显式的配置需要跟踪的变量。例如"trackExpression": "${a}"
     -->
-    <trackExpression xdef:value="string" />
+    <trackExpression>string</trackExpression>
 
     <!--
     对返回的结果数据进行转换
     -->
-    <responseData xdef:value="xjson-map"/>
+    <responseData>xjson-map</responseData>
 
     <!--
     对请求数据执行转换的函数，参数为api
     -->
-    <requestAdaptor xdef:value="string"/>
+    <requestAdaptor>string</requestAdaptor>
 
     <!--
       对结果数据进行转换的函数，参数为(payload, response, api)，返回格式为response格式
     -->
-    <adaptor xdef:value="string"/>
+    <adaptor>string</adaptor>
 </api>

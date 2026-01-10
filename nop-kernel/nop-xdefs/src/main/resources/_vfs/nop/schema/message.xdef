@@ -2,7 +2,7 @@
 
     <field name="!string" displayName="string"
            offset="int" absOffset="int" xdef:unique-attr="name">
-        <description xdef:value="string"/>
+        <description>string</description>
         <schema xdef:ref="/nop/schema/schema/schema.xdef"/>
     </field>
 </message>

@@ -12,10 +12,10 @@
      graphql:base="csv-set" xmlns:task="task" tagSet="csv-set" xmlns:bo="bo"
 >
     <!-- 可以强制禁用BizModel(包括Java中定义的方法)中的某些Action。缺省情况下平台会提供大量的操作，有可能从安全角度考虑需要缩小范围 -->
-    <disabledActions xdef:value="word-set"/>
+    <disabledActions>word-set</disabledActions>
 
     <!-- 如果非空，则只有明确允许的action才对外暴露 -->
-    <inheritActions xdef:value="word-set"/>
+    <inheritActions>word-set</inheritActions>
 
     <actions xdef:body-type="list" xdef:key-attr="name" xdef:bean-child-name="action"
              xdef:bean-body-type="List&lt;io.nop.biz.model.BizActionModel>">
@@ -54,8 +54,8 @@
             <arg xdef:name="BizActionArgModel" name="!var-name" mandatory="!boolean=false"
                  displayName="string" xdef:unique-attr="name" type="generic-type" graphql:type="string"
                  kind="enum:io.nop.api.core.annotations.biz.BizActionArgKind">
-                <description xdef:value="string"/>
-                <defaultExpr xdef:value="xpl"/>
+                <description>string</description>
+                <defaultExpr>xpl</defaultExpr>
                 <schema xdef:ref="../schema/schema.xdef"/>
             </arg>
 
@@ -64,7 +64,7 @@
                 <schema xdef:ref="../schema/schema.xdef"/>
             </return>
 
-            <source xdef:value="xpl"/>
+            <source>xpl</source>
         </query>
 
         <mutation name="!string" xdef:ref="BizActionModel" bo:triggerStateChange="!boolean=false"/>
@@ -89,14 +89,14 @@
 
             <return xdef:ref="BizReturnModel"/>
 
-            <source xdef:value="xpl"/>
+            <source>xpl</source>
         </loader>
     </loaders>
 
     <interceptors xdef:body-type="list" xdef:key-attr="name">
         <interceptor name="!string" xdef:name="BizInterceptorModel" order="!int=100"
                      forAnnotations="class-name-set" forMethods="word-set">
-            <source xdef:value="xpl"/>
+            <source>xpl</source>
         </interceptor>
     </interceptors>
 
@@ -107,7 +107,7 @@
           监听全局EventBus上的event。当执行BizModel的action时会触发event, 此时from=bizObjName,event=actionId
         -->
         <observe xdef:name="BizObserveModel" id="!string" from="!string" eventPattern="!string">
-            <source xdef:value="xpl"/>
+            <source>xpl</source>
         </observe>
     </observes>
 </biz>

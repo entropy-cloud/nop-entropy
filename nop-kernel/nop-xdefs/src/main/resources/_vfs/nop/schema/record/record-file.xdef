@@ -12,12 +12,12 @@
       xdef:name="RecordFileMeta" xdef:bean-package="io.nop.record.model"
       xdef:ref="record-definitions.xdef">
 
-    <doc xdef:value="string"/>
+    <doc>string</doc>
 
     <!--
     翻译为java doc的@see注释
     -->
-    <docRef xdef:value="string"/>
+    <docRef>string</docRef>
 
     <params xdef:body-type="list" xdef:key-attr="name">
         <param name="!string" xdef:ref="record-param.xdef"/>
@@ -33,12 +33,12 @@
         <!--
         返回body行的循环次数
         -->
-        <repeatCountExpr xdef:value="xpl-fn:(input,record,ctx)=>int"/>
+        <repeatCountExpr>xpl-fn:(input,record,ctx)=>int</repeatCountExpr>
 
         <!--
         返回body行循环的终止条件
         -->
-        <repeatUntil xdef:value="xpl-fn:(input,record,ctx)=>boolean"/>
+        <repeatUntil>xpl-fn:(input,record,ctx)=>boolean</repeatUntil>
     </body>
 
     <!--
@@ -49,14 +49,14 @@
     <pagination pageSize="!int=0" xdef:name="RecordPaginationMeta">
         <pageHeader xdef:ref="record-object.xdef"/>
         <pageFooter xdef:ref="record-object.xdef"/>
-        <groupByExpr xdef:value="xpl-fn:(record,ctx)=>any"/>
+        <groupByExpr>xpl-fn:(record,ctx)=>any</groupByExpr>
 
         <aggregates xdef:body-type="list" xdef:key-attr="name">
             <!-- 输出时自动计算一些汇总值 -->
             <aggregate name="!prop-name" aggFunc="var-name" xdef:name="RecordAggregateFieldMeta"
                        prop="string">
-                <valueExpr xdef:value="xpl-fn:(record,ctx)=>any"/>
-                <aggregator xdef:value="xpl-fn:(aggValue, value, ctx)=>any" />
+                <valueExpr>xpl-fn:(record,ctx)=>any</valueExpr>
+                <aggregator>xpl-fn:(aggValue, value, ctx)=>any</aggregator>
             </aggregate>
         </aggregates>
     </pagination>
@@ -67,11 +67,11 @@
 
     <trailer xdef:ref="record-object.xdef"/>
 
-    <beforeWrite xdef:value="xpl-fn:(out,ctx)=>any"/>
+    <beforeWrite>xpl-fn:(out,ctx)=>any</beforeWrite>
 
-    <afterWrite xdef:value="xpl-fn:(out,ctx)=>any"/>
+    <afterWrite>xpl-fn:(out,ctx)=>any</afterWrite>
 
-    <beforeRead xdef:value="xpl-fn:(input,ctx)=>any"/>
+    <beforeRead>xpl-fn:(input,ctx)=>any</beforeRead>
 
-    <afterRead xdef:value="xpl-fn:(input,ctx)=>any"/>
+    <afterRead>xpl-fn:(input,ctx)=>any</afterRead>
 </file>

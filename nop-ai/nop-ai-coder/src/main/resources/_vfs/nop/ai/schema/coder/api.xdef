@@ -3,7 +3,7 @@
 
     <services xdef:body-type="list" xdef:key-attr="name">
         <service name="!entity-name" displayName="chinese">
-            <description xdef:value="string"/>
+            <description>string</description>
 
             <!--
             服务方法。接收requestMessage类型的请求，返回responseMessage类型的响应
@@ -12,7 +12,7 @@
             <method name="!var-name" displayName="string" xdef:unique-attr="name"
                     requestMessage="class-name" responseMessage="!generic-type"
                     mutation="!boolean=false" app:useCaseNo="csv-set">
-                <description xdef:value="string"/>
+                <description>string</description>
             </method>
 
         </service>

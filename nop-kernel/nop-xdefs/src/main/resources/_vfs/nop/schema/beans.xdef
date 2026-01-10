@@ -32,7 +32,7 @@
         <list xdef:name="BeanListValue" xdef:ref="BeanCollectionValue" list-class="class-name"/>
         <map xdef:ref="BeanMapValue"/>
         <props xdef:ref="BeanPropsValue"/>
-        <value xdef:name="BeanSimpleValue" xdef:value="string" type="class-name"/>
+        <value xdef:name="BeanSimpleValue" type="class-name">string</value>
 
         <null xdef:name="BeanNullValue"/>
 
@@ -40,8 +40,7 @@
                     xdef:name="BeanIocInjectValue"/>
 
         <util:constant xdef:name="BeanConstantValue" static-field="string"/>
-        <ioc:xpl xdef:name="BeanXplValue" outputMode="enum:io.nop.xlang.ast.XLangOutputMode"
-                 xdef:value="eval-code" xdef:bean-body-prop="source"/>
+        <ioc:xpl xdef:name="BeanXplValue" outputMode="enum:io.nop.xlang.ast.XLangOutputMode" xdef:bean-body-prop="source">eval-code</ioc:xpl>
 
         <!--
         按照类型或者注解收集所有符合条件的bean，返回bean的集合
@@ -94,7 +93,7 @@
 
     <xdef:define xdef:name="BeanPropsValue" merge="!boolean=false" xdef:body-type="list"
                  xdef:key-attr="key" ioc:location="v-path">
-        <prop key="!string" xdef:value="string" xdef:name="BeanPropEntryValue"/>
+        <prop key="!string" xdef:name="BeanPropEntryValue">string</prop>
     </xdef:define>
 
     <!--
@@ -138,11 +137,11 @@
 
         <ioc:interceptor bean="!bean-name" order="!#int=100" xdef:name="BeanInterceptorModel" xdef:unique-attr="bean"/>
 
-        <ioc:init xdef:value="eval-code"/>
-        <ioc:destroy xdef:value="eval-code"/>
-        <ioc:delay-start xdef:value="eval-code"/>
-        <ioc:restart xdef:value="eval-code"/>
-        <ioc:refresh-config xdef:value="eval-code"/>
+        <ioc:init>eval-code</ioc:init>
+        <ioc:destroy>eval-code</ioc:destroy>
+        <ioc:delay-start>eval-code</ioc:delay-start>
+        <ioc:restart>eval-code</ioc:restart>
+        <ioc:refresh-config>eval-code</ioc:refresh-config>
 
         <ioc:on-config-refresh invoke="string" observe="!word-set"
                                xdef:name="BeanOnConfigRefresh" xdef:value="eval-code" xdef:bean-body-prop="source">
@@ -168,39 +167,39 @@
             <!--
               是否存在class
             -->
-            <on-class xdef:value="!class-name-set"/>
+            <on-class>!class-name-set</on-class>
 
             <!--
             当不存在指定class时返回true
             -->
-            <missing-class xdef:value="!class-name-set"/>
+            <missing-class>!class-name-set</missing-class>
 
             <!--
               检查指定名称的bean是否存在
             -->
-            <on-bean xdef:value="!word-set"/>
+            <on-bean>!word-set</on-bean>
 
-            <missing-bean xdef:value="!word-set"/>
+            <missing-bean>!word-set</missing-bean>
 
-<!--            <on-bean-type xdef:value="!class-name-set"/>-->
+<!--            <on-bean-type>!class-name-set</on-bean-type>-->
 
-<!--            <on-missing-bean-type xdef:value="!class-name-set"/>-->
+<!--            <on-missing-bean-type>!class-name-set</on-missing-bean-type>-->
 
             <!--
                 是否存在资源文件
             -->
-            <on-resource xdef:value="csv-set"/>
+            <on-resource>csv-set</on-resource>
 
-            <missing-resource xdef:value="csv-set"/>
+            <missing-resource>csv-set</missing-resource>
 
-            <on-expr xdef:value="xpl-predicate"/>
+            <on-expr>xpl-predicate</on-expr>
 
         </ioc:condition>
 
         <!--
           将xml属性直接映射到bean属性，支持嵌套结构
         -->
-        <ioc:build xdef:unknown-attr="any" xdef:value="xjson-map" xdef:name="BeanBuildModel"/>
+        <ioc:build xdef:unknown-attr="any" xdef:name="BeanBuildModel">xjson-map</ioc:build>
     </xdef:define>
 
     <!--
@@ -209,7 +208,7 @@
     <ioc:listener xdef:name="BeanListenerModel" id="!bean-name" events="csv-set" ref="bean-name"
                   xdef:unique-attr="id" ioc:allow-override="!boolean=false">
         <ioc:condition xdef:ref="BeanConditionModel"/>
-        <source xdef:value="eval-code"/>
+        <source>eval-code</source>
     </ioc:listener>
 
     <!--

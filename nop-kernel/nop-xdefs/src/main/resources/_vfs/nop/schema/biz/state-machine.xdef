@@ -13,7 +13,7 @@
     <!-- IEvalScope中可以访问的变量 -->
     <var name="!var-name" type="generic-type" displayName="string" xdef:name="StateMachineVarModel"
          mandatory="!boolean=false" xdef:unique-attr="name">
-        <defaultExpr xdef:value="xpl"/>
+        <defaultExpr>xpl</defaultExpr>
         <schema xdef:ref="../schema/schema.xdef"/>
     </var>
 
@@ -28,22 +28,22 @@
     <xdef:define xdef:name="StateModel" id="!var-name" displayName="string" stateValue="#any"
                  initial="var-name" final="!boolean=false"
                  onDone="var-name" onError="var-name">
-        <description xdef:value="string"/>
+        <description>string</description>
 
         <!--
         进入本状态时执行的action的列表
         -->
-        <entry xdef:value="csv-set"/>
+        <entry>csv-set</entry>
 
         <!--
         退出本状态时执行的action的列表
         -->
-        <exit xdef:value="csv-set"/>
+        <exit>csv-set</exit>
 
         <!--
         进入state时启动activity，离开state时停止activity
         -->
-        <activities xdef:value="csv-set"/>
+        <activities>csv-set</activities>
 
         <!--
             @event 事件的名称。规定了如下特殊的名称：always表示自动触发，不需要收到事件。 *表示任意事件都导致触发。
@@ -55,51 +55,51 @@
         <transition xdef:name="StateTransitionModel" id="!string=@attr:event" xdef:unique-attr="id" event="!string"
                     in="string"
                     target="var-name" internal="!boolean=false" actions="csv-set">
-            <when xdef:value="xpl-predicate"/>
+            <when>xpl-predicate</when>
 
             <!--
             在迁移到目标状态之前执行
             -->
-            <invoke xdef:value="xpl"/>
+            <invoke>xpl</invoke>
 
         </transition>
 
         <!-- 子状态 -->
         <state id="!var-name" xdef:unique-attr="id" xdef:ref="StateModel"/>
 
-        <meta xdef:value="xjson-map"/>
+        <meta>xjson-map</meta>
 
         <!-- 进入状态时触发的监听函数 -->
-        <on-entry xdef:value="xpl"/>
+        <on-entry>xpl</on-entry>
 
         <!-- 离开状态时触发的监听函数 -->
-        <on-exit xdef:value="xpl"/>
+        <on-exit>xpl</on-exit>
 
         <!--
         状态迁移出现异常时触发的监听函数。如果返回true，则认为异常已经被处理，不对外抛出异常
         -->
-        <handle-error xdef:value="xpl-fn:(err,ctx)=>boolean"/>
+        <handle-error>xpl-fn:(err,ctx)=>boolean</handle-error>
 
     </xdef:define>
 
     <state id="!var-name" xdef:unique-attr="id" xdef:ref="StateModel"/>
 
     <!-- 进入状态时触发的监听函数 -->
-    <on-entry xdef:value="xpl"/>
+    <on-entry>xpl</on-entry>
 
     <!-- 离开状态时触发的监听函数 -->
-    <on-exit xdef:value="xpl"/>
+    <on-exit>xpl</on-exit>
 
     <!--
     状态迁移出现异常时触发的监听函数。如果返回true，则认为异常已经被处理，不对外抛出异常
     -->
-    <handle-error xdef:value="xpl-fn:(err,ctx)=>boolean"/>
+    <handle-error>xpl-fn:(err,ctx)=>boolean</handle-error>
 
-    <meta xdef:value="xjson-map"/>
+    <meta>xjson-map</meta>
 
-    <invoke-action xdef:value="xpl-fn:(action)=>any"/>
+    <invoke-action>xpl-fn:(action)=>any</invoke-action>
 
     <!-- 接收到消息对象后可以根据得到消息类型，然后再结合prefix（如`send_`和`recv_`）得到用于触发StateMachine的event -->
-    <message-type-getter xdef:value="xpl-fn:(message)=>string"/>
+    <message-type-getter>xpl-fn:(message)=>string</message-type-getter>
 
 </state-machine>

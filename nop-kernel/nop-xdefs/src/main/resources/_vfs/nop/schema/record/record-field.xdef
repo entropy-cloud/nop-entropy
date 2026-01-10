@@ -20,32 +20,32 @@
     <!--
     返回字段的循环次数
     -->
-    <repeatCountExpr xdef:value="xpl-fn:(input,record,ctx)=>long"/>
+    <repeatCountExpr>xpl-fn:(input,record,ctx)=>long</repeatCountExpr>
 
     <!--
     返回字段循环的终止条件
     -->
-    <repeatUntil xdef:value="xpl-fn:(input,record,ctx)=>boolean"/>
+    <repeatUntil>xpl-fn:(input,record,ctx)=>boolean</repeatUntil>
 
     <!--
     动态确定字段类型
     如果指定了switchOnField，则输出时根据从record[switchOnField]上获取到case类型，然后再映射到type类型，从根对象的types集合中再获取具体定义
     -->
-    <switchOnField xdef:value="prop-name"/>
+    <switchOnField>prop-name</switchOnField>
 
-    <switchOnRule xdef:value="peek-match-rule"/>
+    <switchOnRule>peek-match-rule</switchOnRule>
 
-    <switchOnExpr xdef:value="xpl-fn:(input,record,ctx)=>string"/>
+    <switchOnExpr>xpl-fn:(input,record,ctx)=>string</switchOnExpr>
 
     <!-- 根据record[switchOnField]或者switchOnRule获取到类型，key为*表示缺省映射 -->
-    <switchTypeMap xdef:value="string-map"/>
+    <switchTypeMap>string-map</switchTypeMap>
 
-    <beforeWrite xdef:value="xpl-fn:(out,record,ctx)=>any"/>
+    <beforeWrite>xpl-fn:(out,record,ctx)=>any</beforeWrite>
 
-    <beforeRead xdef:value="xpl-fn:(input,record,ctx)=>any"/>
+    <beforeRead>xpl-fn:(input,record,ctx)=>any</beforeRead>
 
-    <afterWrite xdef:value="xpl-fn:(out,record,ctx)=>any"/>
+    <afterWrite>xpl-fn:(out,record,ctx)=>any</afterWrite>
 
     <!-- 在所有子字段都读取到之后执行 -->
-    <afterRead xdef:value="xpl-fn:(input,record,ctx)=>any"/>
+    <afterRead>xpl-fn:(input,record,ctx)=>any</afterRead>
 </field>

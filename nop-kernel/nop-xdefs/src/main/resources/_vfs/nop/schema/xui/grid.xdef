@@ -17,19 +17,19 @@
       xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef"
       xmlns:xdef="/nop/schema/xdef.xdef">
 
-    <objMeta xdef:value="v-path"/>
+    <objMeta>v-path</objMeta>
 
-    <placeholder xdef:value="string"/>
+    <placeholder>string</placeholder>
 
-    <className xdef:value="string"/>
-    <headerClassName xdef:value="string"/>
-    <footerClassName xdef:value="string"/>
-    <toolbarClassName xdef:value="string"/>
+    <className>string</className>
+    <headerClassName>string</headerClassName>
+    <footerClassName>string</footerClassName>
+    <toolbarClassName>string</toolbarClassName>
 
-    <rowClassName xdef:value="string"/>
-    <rowClassNameExpr xdef:value="string"/>
+    <rowClassName>string</rowClassName>
+    <rowClassNameExpr>string</rowClassNameExpr>
 
-    <stopAutoRefreshWhen xdef:value="string"/>
+    <stopAutoRefreshWhen>string</stopAutoRefreshWhen>
 
     <initApi xdef:ref="api.xdef" />
 
@@ -47,27 +47,27 @@
              readonly="!boolean=false" hidden="!boolean=false" mandatory="!boolean=false" breakpoint="string"
              sortable="!boolean=false" align="string" xdef:ref="disp.xdef" ui:number="boolean"
         >
-            <labelClassName xdef:value="string"/>
+            <labelClassName>string</labelClassName>
         </col>
     </cols>
 
-    <itemCheckableOn xdef:value="string"/>
+    <itemCheckableOn>string</itemCheckableOn>
 
-    <prefixRow xdef:value="xjson-list"/>
-    <affixRow xdef:value="xjson-list"/>
+    <prefixRow>xjson-list</prefixRow>
+    <affixRow>xjson-list</affixRow>
 
-    <affixRowClassName xdef:value="string"/>
-    <affixRowClassNameExpr xdef:value="string"/>
-    <prefixRowClassName xdef:value="string"/>
-    <prefixRowClassNameExpr xdef:value="string"/>
+    <affixRowClassName>string</affixRowClassName>
+    <affixRowClassNameExpr>string</affixRowClassNameExpr>
+    <prefixRowClassName>string</prefixRowClassName>
+    <prefixRowClassNameExpr>string</prefixRowClassNameExpr>
 
 
     <!--
     GraphQL查询所需要额外增加的查询字段
     -->
-    <selection xdef:value="field-selection"/>
+    <selection>field-selection</selection>
 
-    <filter xdef:value="filter-bean" />
+    <filter>filter-bean</filter>
     <orderBy xdef:ref="../query/order-by.xdef"/>
 
 </grid>
