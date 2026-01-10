@@ -746,9 +746,3 @@ Nop Platform的GraphQL引擎是一个高性能、易用的GraphQL服务框架，
 5. **扩展性**: 提供丰富的扩展点（拦截器、DataFetcher等）
 
 通过合理使用GraphQL特性，可以构建高效、灵活的API服务。
-
----
-
-**文档版本**: 1.0
-**最后更新**: 2025-01-09
-**作者**: AI Assistant (Sisyphus)

@@ -696,7 +696,7 @@ for (User user : users) {
 
 ## 相关文档
 
-- [IEntityDao使用指南](../getting-started/dao/ientitydao-usage.md)
+- [IEntityDao使用指南](../getting-started/dao/entitydao-usage.md)
 - [QueryBean使用指南](../getting-started/dao/querybean-guide.md)
 - [FilterBeans使用指南](../getting-started/dao/filterbeans-guide.md)
 - [事务管理指南](../getting-started/core/transaction-guide.md)
@@ -713,9 +713,3 @@ Nop Platform的ORM引擎是一个轻量级、高性能的对象关系映射框�
 5. **灵活扩展**: 提供丰富的扩展点
 
 通过合理使用懒加载、批量操作、查询缓存等特性，可以构建高性能的数据访问层。
-
----
-
-**文档版本**: 1.0
-**最后更新**: 2025-01-09
-**作者**: AI Assistant (Sisyphus)

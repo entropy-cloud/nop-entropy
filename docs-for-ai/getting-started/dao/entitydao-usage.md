@@ -2,9 +2,14 @@
 
 ## 概述
 
-`IEntityDao`是Nop平台提供的核心数据访问接口，用于统一处理实体的CRUD操作，是开发中最常用的数据访问组件。每个实体都会自动生成对应的DAO接口，如`NopAuthUserDao`对应`NopAuthUser`实体。
+`IEntityDao`是Nop平台提供的核心数据访问接口，用于统一处理实体的CRUD操作。Nop平台采用**统一DAO设计模式**，**不会为每个实体生成单独的DAO接口**，而是通过全局`IDaoProvider`获取通用的`IEntityDao<T>`接口。
 
-**重要提示**：在业务开发中，通常不需要直接使用`IEntityDao`接口，而是继承`CrudBizModel`类，它提供了更简便的API方法，包括简化的CRUD操作、分页查询等。`CrudBizModel`内部使用`IEntityDao`来执行实际的数据访问操作。
+**关键设计**：
+- 不存在`UserDao`、`NopAuthUserDao`等单独的DAO类
+- 通过`IDaoProvider.dao(entityName)`或`daoFor(Class)`获取`IEntityDao<T>`
+- `CrudBizModel`内部使用`IDaoProvider`提供`dao()`方法
+
+**重要提示**：在业务开发中，通常继承`CrudBizModel`类，它通过`dao()`方法提供简便的API，包括简化的CRUD操作、分页查询等。
 
 ## 核心功能
 
@@ -18,35 +23,69 @@
 
 ## 基本使用
 
-### 依赖注入
+### 在 CrudBizModel 中使用
 
-通过依赖注入获取DAO实例：
+在`CrudBizModel`及其子类中，直接使用`dao()`方法：
+
+```java
+@BizModel
+public class UserBizModel extends CrudBizModel<NopAuthUser> {
+    public UserBizModel() {
+        setEntityName(NopAuthUser.class.getName());
+    }
+
+    @BizQuery
+    public NopAuthUser getUserById(String id) {
+        // 直接使用 dao() 方法，无需注入 DAO
+        return dao().getEntityById(id);
+    }
+}
+```
+
+### 通过 IDaoProvider 获取 DAO
+
+在`CrudBizModel`之外，需要直接访问DAO时，通过`IDaoProvider`获取：
 
 ```java
 @Inject
-private NopAuthUserDao userDao;
+private IDaoProvider daoProvider;
+
+// 方式1：通过实体类获取
+IEntityDao<NopAuthUser> userDao = daoProvider.daoFor(NopAuthUser.class);
+
+// 方式2：通过实体名称获取
+IEntityDao<NopAuthUser> userDao2 = daoProvider.dao(NopAuthUser.class.getName());
+
+// 方式3：通过表名获取
+IEntityDao<NopAuthUser> userDao3 = daoProvider.daoForTable("nop_auth_user");
+
+// 方式4：获取全局实例（非依赖注入场景）
+IDaoProvider provider = DaoProvider.instance();
+IEntityDao<NopAuthUser> userDao4 = provider.daoFor(NopAuthUser.class);
 ```
 
 ### CRUD操作
 
 ```java
+IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
+
 // 保存实体
-userDao.saveEntity(user);
+dao.saveEntity(user);
 
 // 更新实体
-userDao.updateEntity(user);
+dao.updateEntity(user);
 
 // 删除实体
-userDao.deleteEntity(user);
+dao.deleteEntity(user);
 
 // 根据主键获取实体（如果不存在返回null）
-NopAuthUser user = userDao.getEntityById(id);
+NopAuthUser user = dao.getEntityById(id);
 
 // 根据主键加载实体（总是返回对象，可能是proxy）
-NopAuthUser user = userDao.loadEntityById(id);
+NopAuthUser user = dao.loadEntityById(id);
 
 // 根据主键列表批量获取实体
-List<NopAuthUser> users = userDao.batchGetEntitiesByIds(Arrays.asList(id1, id2, id3));
+List<NopAuthUser> users = dao.batchGetEntitiesByIds(Arrays.asList(id1, id2, id3));
 ```
 
 ## QueryBean 查询
@@ -56,6 +95,8 @@ List<NopAuthUser> users = userDao.batchGetEntitiesByIds(Arrays.asList(id1, id2, 
 ### 基本查询
 
 ```java
+IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
+
 // 创建查询对象
 QueryBean query = new QueryBean();
 
@@ -69,18 +110,20 @@ query.setFilter(FilterBeans.and(
 query.addOrderField(OrderFieldBean.forField("createTime", true)); // 降序
 
 // 执行查询
-List<NopAuthUser> users = userDao.findAllByQuery(query);
+List<NopAuthUser> users = dao.findAllByQuery(query);
 ```
 
 ### 分页查询
 
 ```java
+IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
+
 // 设置分页参数
 query.setOffset(0);  // 起始位置
 query.setLimit(20);   // 每页大小
 
 // 分页查询
-List<NopAuthUser> users = userDao.findPageByQuery(query);
+List<NopAuthUser> users = dao.findPageByQuery(query);
 
 // 或者使用CrudBizModel的分页方法（返回PageBean对象）
 PageBean<NopAuthUser> page = bizModel.findPage(query, 1, 20);
@@ -119,22 +162,24 @@ List<NopAuthUser> items = page.getItems();
 除了`QueryBean`，`IEntityDao`还支持Example查询，通过实体对象构建查询条件：
 
 ```java
+IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
+
 // 创建Example对象
 NopAuthUser example = new NopAuthUser();
 example.setStatus(1);
 example.setName("admin");
 
 // 执行查询（返回第一条匹配记录）
-NopAuthUser user = userDao.findFirstByExample(example);
+NopAuthUser user = dao.findFirstByExample(example);
 
 // 执行查询（返回所有匹配记录）
-List<NopAuthUser> users = userDao.findAllByExample(example);
+List<NopAuthUser> users = dao.findAllByExample(example);
 
 // 执行计数查询
-long count = userDao.countByExample(example);
+long count = dao.countByExample(example);
 
 // 执行分页查询（需要提供orderBy、offset和limit参数）
-List<NopAuthUser> users = userDao.findPageByExample(example, null, 0, 20);
+List<NopAuthUser> users = dao.findPageByExample(example, null, 0, 20);
 ```
 
 ## 批量操作
@@ -142,24 +187,28 @@ List<NopAuthUser> users = userDao.findPageByExample(example, null, 0, 20);
 ### 批量获取实体
 
 ```java
+IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
+
 // 根据主键列表批量获取实体
-List<NopAuthUser> users = userDao.batchGetEntitiesByIds(Arrays.asList(id1, id2, id3));
+List<NopAuthUser> users = dao.batchGetEntitiesByIds(Arrays.asList(id1, id2, id3));
 
 // 获取主键到实体的映射
-Map<Object, NopAuthUser> userMap = userDao.batchGetEntityMapByIds(Arrays.asList(id1, id2, id3));
+Map<Object, NopAuthUser> userMap = dao.batchGetEntityMapByIds(Arrays.asList(id1, id2, id3));
 ```
 
 ### 批量保存/更新/删除
 
 ```java
+IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
+
 // 批量保存实体
-userDao.batchSaveEntities(users);
+dao.batchSaveEntities(users);
 
 // 批量更新实体
-userDao.batchUpdateEntities(users);
+dao.batchUpdateEntities(users);
 
 // 批量删除实体
-userDao.batchDeleteEntities(users);
+dao.batchDeleteEntities(users);
 ```
 
 ## 关联属性加载
@@ -169,22 +218,26 @@ userDao.batchDeleteEntities(users);
 `batchLoad`相关方法用于批量加载实体的关联属性，解决N+1查询问题：
 
 ```java
+IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
+
 // 批量加载实体集合的指定属性
-userDao.batchLoadProps(users, Arrays.asList("roles", "departments"));
+dao.batchLoadProps(users, Arrays.asList("roles", "departments"));
 
 // 为单个实体加载属性
-userDao.batchLoadPropsForEntity(user, "roles", "departments");
+dao.batchLoadPropsForEntity(user, "roles", "departments");
 
 // 根据字段选择器批量加载属性
 FieldSelectionBean selectionBean = new FieldSelectionBean();
 selectionBean.addField("roles");
 selectionBean.addField("departments");
-userDao.batchLoadSelection(users, selectionBean);
+dao.batchLoadSelection(users, selectionBean);
 ```
 
 ### 懒加载与急加载
 
 ```java
+IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
+
 // 急加载关联属性（通过IOrmTemplate）
 NopAuthUser user = ormTemplate.loadById(id);
 ormTemplate.batchLoadProps(Collections.singleton(user), Arrays.asList("roles", "departments"));
@@ -192,7 +245,7 @@ ormTemplate.batchLoadProps(Collections.singleton(user), Arrays.asList("roles", "
 // 使用QueryBean指定要加载的属性
 QueryBean query = new QueryBean();
 query.setLeftJoinProps(Arrays.asList("roles", "departments"));
-NopAuthUser user = userDao.findFirstByQuery(query);
+NopAuthUser user = dao.findFirstByQuery(query);
 ```
 
 ## 字段选择查询
@@ -202,6 +255,8 @@ NopAuthUser user = userDao.findFirstByQuery(query);
 通过`FieldSelectionBean`指定要查询的字段，减少数据库查询的数据量：
 
 ```java
+IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
+
 // 创建字段选择器
 FieldSelectionBean selection = new FieldSelectionBean();
 selection.addField("id");
@@ -209,12 +264,14 @@ selection.addField("name");
 selection.addField("email");
 
 // 查询指定字段
-List<NopAuthUser> users = userDao.findListBySelection(selection, FilterBeans.eq("status", 1));
+List<NopAuthUser> users = dao.findListBySelection(selection, FilterBeans.eq("status", 1));
 ```
 
 ### QueryBean 字段选择
 
 ```java
+IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
+
 // 创建查询对象
 QueryBean query = new QueryBean();
 query.addField(QueryFieldBean.forField("id"));
@@ -222,23 +279,24 @@ query.addField(QueryFieldBean.forField("name"));
 query.addField(QueryFieldBean.forField("email"));
 
 // 执行查询
-List<NopAuthUser> users = userDao.findListByQuery(query);
+List<NopAuthUser> users = dao.findListByQuery(query);
 ```
 
 ## 实际项目示例
 
-### nop-app-mall 项目示例
+### CrudBizModel 中使用 dao()
 
-在`nop-app-mall`项目中，`LitemallGoodsBizModel`使用`LitemallGoodsDao`进行商品管理：
+在`CrudBizModel`中直接使用`dao()`方法：
 
 ```java
 @BizModel
 public class LitemallGoodsBizModel extends CrudBizModel<LitemallGoods> {
-    
-    @Inject
-    private LitemallGoodsDao goodsDao;
-    
-    // 查询商品列表
+
+    public LitemallGoodsBizModel() {
+        setEntityName(LitemallGoods.class.getName());
+    }
+
+    // 查询商品列表 - 直接使用 dao()
     @BizQuery
     public PageBean<LitemallGoods> queryGoods(QueryBean query) {
         // 添加默认过滤条件
@@ -246,32 +304,54 @@ public class LitemallGoodsBizModel extends CrudBizModel<LitemallGoods> {
             query.getFilter(),
             FilterBeans.eq("isOnSale", true)
         ));
-        
-        // 执行分页查询
-        return goodsDao.findPageByQuery(query);
+
+        // 执行分页查询 - 使用 dao()
+        return dao().findPageByQuery(query);
     }
-    
-    // 批量更新商品状态
+
+    // 批量更新商品状态 - 使用 CrudBizModel 内置方法
     @BizMutation
     @Transactional
     public void batchUpdateStatus(List<String> goodsIds, Boolean isOnSale) {
-        // 批量获取商品
-        List<LitemallGoods> goodsList = goodsDao.batchGetEntitiesByIds(goodsIds);
+        // 批量获取商品 - 使用 dao()
+        List<LitemallGoods> goodsList = dao().batchGetEntitiesByIds(goodsIds);
 
         // 更新状态
         for (LitemallGoods goods : goodsList) {
             goods.setIsOnSale(isOnSale);
         }
 
-        // 批量保存
-        goodsDao.batchSaveEntities(goodsList);
+        // 批量保存 - 使用 dao()
+        dao().batchSaveEntities(goodsList);
+    }
+}
+```
+
+### 非 CrudBizModel 中使用 IDaoProvider
+
+在非`CrudBizModel`的场景下，通过`IDaoProvider`获取DAO：
+
+```java
+public class DataImportService {
+
+    @Inject
+    private IDaoProvider daoProvider;
+
+    public void importUsers(List<Map<String, Object>> userDataList) {
+        for (Map<String, Object> userData : userDataList) {
+            // 通过 IDaoProvider 获取 DAO
+            IEntityDao<NopAuthUser> userDao = daoProvider.daoFor(NopAuthUser.class);
+
+            NopAuthUser user = ConvertHelper.toBean(userData, NopAuthUser.class);
+            userDao.saveEntity(user);
+        }
     }
 }
 ```
 
 ## 最佳实践
 
-1. **优先使用IEntityDao**：对于简单的CRUD操作，优先使用自动生成的DAO接口
+1. **优先使用CrudBizModel**：对于简单的CRUD操作，直接继承CrudBizModel并使用内置方法
 2. **复杂查询使用QueryBean**：复杂条件查询使用`QueryBean`构建结构化查询
 3. **批量操作优化性能**：大量数据操作使用批量方法，减少数据库连接次数
 4. **避免N+1查询**：使用`batchLoad`方法批量加载关联属性
@@ -320,11 +400,15 @@ CrudBizModel (业务层)
 - **IOrmEntityDao**: 继承自IEntityDao，增加了ORM特定功能，如关联属性加载、延迟加载等
 
 ```java
-// 使用IEntityDao
+// 在 CrudBizModel 中使用
 IEntityDao<NopAuthUser> dao = dao();
 NopAuthUser user = dao.getEntityById(userId);
 
-// 使用IOrmEntityDao
+// 在其他地方通过 IDaoProvider 获取
+IDaoProvider daoProvider = DaoProvider.instance();
+IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
+
+// 使用IOrmEntityDao（需要通过 IDaoProvider 获取）
 IOrmEntityDao<NopAuthUser> ormDao = (IOrmEntityDao<NopAuthUser>) dao;
 ormDao.loadEntity(userId); // 加载实体并初始化关联属性
 ```

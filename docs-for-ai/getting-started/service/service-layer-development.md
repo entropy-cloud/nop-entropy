@@ -95,12 +95,7 @@ public User getUserByOpenId(String openId) {
 @BizMutation
 public void resetUserPassword(String userId, String newPassword) {
     txn(() -> {
-        User user = dao().getEntityById(userId);
-        if (user == null) {
-            throw new NopException(Errors.ERR_BIZ_OBJECT_NOT_FOUND)
-                    .param(ARG_OBJ_NAME, "User")
-                    .param(ARG_OBJ_ID, userId);
-        }
+        User user = dao().requireEntityById(userId);
         user.setPassword(passwordEncoder.encode(newPassword));
         dao().saveEntity(user);
     });
@@ -179,15 +174,10 @@ public void changeSelfPassword(String oldPassword, String newPassword) {
 @BizMutation
 @Transactional
 public void resetUserPassword(String userId, String newPassword) {
-    NopAuthUser user = dao().findById(userId);
-    if (user == null) {
-        throw new NopException(Errors.ERR_BIZ_OBJECT_NOT_FOUND)
-                .param(ARG_OBJ_NAME, "NopAuthUser")
-                .param(ARG_OBJ_ID, userId);
-    }
+    NopAuthUser user = dao().requireEntityById(userId);
     passwordPolicy.checkPassword(newPassword);
     user.setPassword(passwordEncoder.encode(newPassword));
-    dao().save(user);
+    dao().saveEntity(user);
 }
 
 @BizMutation
@@ -199,7 +189,8 @@ public void changeSelfPassword(String oldPassword, String newPassword) {
 **扩展点实现**：
 ```java
 @Override
-protected void defaultPrepareSave(NopAuthUser user) {
+protected void defaultPrepareSave(EntityData<NopAuthUser> entityData, IServiceContext context) {
+    NopAuthUser user = entityData.getEntity();
     if (user.isNew()) {
         if (StringHelper.isEmpty(user.getId())) {
             user.setId(userIdGenerator.generateUserId());
@@ -209,12 +200,12 @@ protected void defaultPrepareSave(NopAuthUser user) {
         }
         user.setStatus(1);
     }
-    
+
     if (user.isChanged(NopAuthUser.PASSWORD)) {
         passwordPolicy.checkPassword(user.getPassword());
         user.setPassword(passwordEncoder.encode(user.getPassword()));
     }
-    
+
     user.setUpdateTime(LocalDateTime.now());
 }
 ```
@@ -444,11 +435,8 @@ BizModel是Nop平台服务层的核心组件，它封装了业务逻辑，为Gra
 @BizModel
 public class OrderBizModel extends CrudBizModel<Order> {
     @Inject
-    private OrderItemDao orderItemDao;
-    
-    @Inject
-    private ProductDao productDao;
-    
+    private IDaoProvider daoProvider;
+
     @Inject
     private IPricingService pricingService;
     
@@ -458,7 +446,7 @@ public class OrderBizModel extends CrudBizModel<Order> {
     
     @BizQuery
     public Order findOrderById(String orderId) {
-        return dao().findById(orderId);
+        return dao().requireEntityById(orderId);
     }
     
     @BizQuery
@@ -472,21 +460,37 @@ public class OrderBizModel extends CrudBizModel<Order> {
         // 价格计算
         BigDecimal totalAmount = pricingService.calculateTotalAmount(items);
         order.setTotalAmount(totalAmount);
-        
+
         // 保存订单
         Order savedOrder = save(order);
-        
-        // 保存订单项
+
+        // 保存订单项 - 通过 IDaoProvider 获取 DAO
+        IEntityDao<OrderItem> orderItemDao = daoProvider.daoFor(OrderItem.class);
         for (OrderItem item : items) {
             item.setOrderId(savedOrder.getId());
-            orderItemDao.save(item);
+            orderItemDao.saveEntity(item);
         }
-        
+
         return savedOrder;
     }
-    
+
     @Override
-    protected void defaultPrepareSave(Order order) {
+    protected void defaultPrepareSave(EntityData<Order> entityData, IServiceContext context) {
+        Order order = entityData.getEntity();
+        if (order.isNew()) {
+            order.setOrderNo(generateOrderNo());
+            order.setCreateTime(LocalDateTime.now());
+            order.setStatus(OrderStatus.PENDING.name());
+        }
+        order.setUpdateTime(LocalDateTime.now());
+    }
+
+        return savedOrder;
+    }
+
+    @Override
+    protected void defaultPrepareSave(EntityData<Order> entityData, IServiceContext context) {
+        Order order = entityData.getEntity();
         if (order.isNew()) {
             order.setOrderNo(generateOrderNo());
             order.setCreateTime(LocalDateTime.now());

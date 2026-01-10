@@ -592,7 +592,7 @@ public class MyTransactionManager {
 
 - [GraphQL服务开发指南](../getting-started/api/graphql-guide.md)
 - [服务层开发指南](../getting-started/service/service-layer-development.md)
-- [IEntityDao使用指南](../getting-started/dao/ientitydao-usage.md)
+- [IEntityDao使用指南](../getting-started/dao/entitydao-usage.md)
 - [事务管理指南](../getting-started/core/transaction-guide.md)
 - [异常处理指南](../getting-started/core/exception-guide.md)
 
@@ -605,9 +605,3 @@ Nop Platform的API架构采用清晰的分层设计，从表现层到数据访�
 3. **数据访问层**: IEntityDao/IOrmEntityDao，提供统一数据操作接口
 
 通过模板方法、策略模式、依赖注入等设计模式，实现了高度的灵活性和可扩展性。遵循最佳实践，可以构建高性能、可维护的业务系统。
-
----
-
-**文档版本**: 1.0
-**最后更新**: 2025-01-09
-**作者**: AI Assistant (Sisyphus)
