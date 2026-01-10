@@ -435,10 +435,10 @@ BizModel是Nop平台服务层的核心组件，它封装了业务逻辑，为Gra
 @BizModel
 public class OrderBizModel extends CrudBizModel<Order> {
     @Inject
-    private IDaoProvider daoProvider;
+    IDaoProvider daoProvider;
 
     @Inject
-    private IPricingService pricingService;
+    IPricingService pricingService;
     
     public OrderBizModel() {
         setEntityName(Order.class.getName());

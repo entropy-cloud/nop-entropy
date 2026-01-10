@@ -48,7 +48,7 @@ public class UserBizModel extends CrudBizModel<NopAuthUser> {
 
 ```java
 @Inject
-private IDaoProvider daoProvider;
+IDaoProvider daoProvider;
 
 // 方式1：通过实体类获取
 IEntityDao<NopAuthUser> userDao = daoProvider.daoFor(NopAuthUser.class);
@@ -335,7 +335,7 @@ public class LitemallGoodsBizModel extends CrudBizModel<LitemallGoods> {
 public class DataImportService {
 
     @Inject
-    private IDaoProvider daoProvider;
+    IDaoProvider daoProvider;
 
     public void importUsers(List<Map<String, Object>> userDataList) {
         for (Map<String, Object> userData : userDataList) {
