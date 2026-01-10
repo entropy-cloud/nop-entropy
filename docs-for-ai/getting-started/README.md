@@ -41,6 +41,13 @@ nop-entropy是Nop平台的后端部分，它采用框架中立设计原则，可
 ### 模型设计
 - [数据库模型设计指南](./data/database-model-design.md)：设计数据库表结构
 - [API模型设计指南](./api/api-model-design.md)：设计API接口
+- [XDef核心概念](./xlang/xdef-core-concepts.md)：XDef核心概念速查
+- [XDSL与Delta合并](./xlang/xdsl-delta.md)：⭐ XDSL文件格式、Delta合并、x:override/x:extends/x:gen-extends/x:post-extends
+- [XDef元模型参考文档](./xlang/xdef-reference.md)：XDef元模型参考
+- [XPL模板语言](./xlang/xpl.md)：XPL模板语言语法
+- [XScript脚本语言](./xlang/xscript.md)：XScript脚本语言语法
+- [XLang编程指南](./xlang/xlang-guide.md)：XLang语言编程
+- [元编程指南](./xlang/meta-programming-guide.md)：元编程
 - [XDef模型设计指南](./model/xdef-model-design.md)：设计领域特定语言模型
 
 ### 代码生成

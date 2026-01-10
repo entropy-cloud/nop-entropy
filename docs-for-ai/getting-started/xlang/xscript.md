@@ -1,18 +1,30 @@
-# XScript 脚本语言参考文档
+# XScript脚本语言
 
 ## 概述
 
-XScript是Nop平台的脚本语言，基于JavaScript语法，提供了丰富的内置函数、数据查询、对象操作、数据库访问等能力。XScript可以在XPL模板中使用，也可以在BizModel方法中直接调用。
+XScript是Nop平台的脚本语言，基于JavaScript/TypeScript语法，提供了丰富的内置函数、数据查询、对象操作、数据库访问等能力。XScript可以在XPL模板中使用，也可以在BizModel方法中直接调用。
 
-**位置**：BizModel方法中直接使用，或在XPL模板的脚本节点中使用
+**位置**：BizModel方法中直接使用，或在XPL模板的`<c:script>`节点中使用
 
-**核心价值**：
-- 提供灵活的数据查询和处理能力
-- 简化复杂的数据操作逻辑
-- 与Nop平台深度集成（数据库访问、缓存、事务等）
-- 支持函数定义和复用
+**核心特性**：
+- JavaScript/TypeScript语法：易于学习和使用
+- 与Java深度集成：数据库访问、缓存、事务等
+- 编译期表达式：通过`#{expr}`形式表示编译期执行的宏
+- 支持调用XPL标签：通过`xpl()`函数在脚本中调用XPL标签
+- 扩展方法：可以为Java对象注册扩展方法，如`str.$capitalize()`
 
-## 核心概念
+## 与JavaScript的区别
+
+XScript简化了JavaScript中一些复杂的特性：
+
+- **去除了类定义**：没有`class`和`prototype`相关部分
+- **只允许使用Java类型**：不能新建类型，只能使用Java中已存在的类型
+- **只使用null**：不使用`undefined`
+- **去除了异步语法**：没有`generator`和`async`语法
+- **修改了import语法**：仅支持导入类和标签库
+- **严格相等**：去除了`==`，只使用`===`，禁止类型转换
+
+## 基本语法
 
 ### 1. 变量定义
 
@@ -45,32 +57,7 @@ var roles = [];
 var permissions = new Map();
 ```
 
-### 2. 函数定义
-
-```javascript
-// 定义函数
-function calculatePrice(item) {
-    return item.price * item.quantity;
-}
-
-function isEmail(str) {
-    return /^[^\s@]+@]+\.[^\s@]+\.[^\s@]+$/.test(str);
-}
-
-function formatDate(date) {
-    return StringHelper.format(date, 'yyyy-MM-dd');
-}
-
-// 带参数函数
-function applyDiscount(total, discount) {
-    if (total > 1000 && discount > 0) {
-        total = total * (1 - discount / 100);
-    }
-    return total;
-}
-```
-
-### 3. 条件语句
+### 2. 条件语句
 
 ```javascript
 // if-else
@@ -101,7 +88,7 @@ if (age >= 18 && age <= 60) {
 }
 ```
 
-### 4. 循环语句
+### 3. 循环语句
 
 ```javascript
 // for循环
@@ -110,9 +97,14 @@ for (var i = 0; i < users.length; i++) {
     console.log(user.name);
 }
 
-// for-in循环
+// for-in循环（遍历数组元素）
 for (var user of users) {
     console.log(user.name);
+}
+
+// for-in循环（遍历对象属性）
+for (var key in user) {
+    console.log(key + ": " + user[key]);
 }
 
 // while循环
@@ -123,16 +115,91 @@ while (i < 10) {
 }
 ```
 
+### 4. 函数定义
+
+```javascript
+// 定义函数
+function calculatePrice(item) {
+    return item.price * item.quantity;
+}
+
+function isEmail(str) {
+    return /^[^\s@]+@\.[^\s@]+\.[^\s@]+$/.test(str);
+}
+
+function formatDate(date) {
+    return StringHelper.format(date, 'yyyy-MM-dd');
+}
+
+// 带参数函数
+function applyDiscount(total, discount) {
+    if (total > 1000 && discount > 0) {
+        total = total * (1 - discount / 100);
+    }
+    return total;
+}
+
+// 箭头函数
+var calculatePrice = (item) => item.price * item.quantity;
+```
+
+## 全局变量
+
+XScript提供了一些常用的全局变量，所有变量名都以`$`开头：
+
+| 变量名       | 描述                                  |
+|--------------|-------------------------------------|
+| `$context`    | 对应于ContextProvider.currentContext() |
+| `$scope`      | 当前运行时的IEvalScope                 |
+| `$out`        | 当前运行时的IEvalOutput                |
+| `$beanProvider`| 当前运行时的IEvalScope所关联的IBeanProvider |
+| `$`           | 对应于Guard类                          |
+| `$JSON`       | 对应于JsonTool类                       |
+| `$Math`       | 对应于MathHelper类                     |
+| `$String`     | 对应于StringHelper类                   |
+| `$Date`       | 对应于DateHelper类                     |
+| `_`           | 对应于Underscore类                     |
+| `$config`     | 对应于AppConfig类                      |
+
+## 编译期表达式
+
+编译期表达式在编译时执行，结果会成为抽象语法树的一部分：
+
+```javascript
+// 编译期执行的表达式
+let x = #{ a.f(3) };
+
+// 编译期调用XPL标签
+let y = xpl('my:MyTag', {a:1, b:x+3});
+```
+
+## 调用XPL标签
+
+XScript可以通过`xpl()`函数调用XPL标签，支持三种调用形式：
+
+```javascript
+// 形式1：模板字符串形式
+result = xpl `<my:MyTag a='${1}' b='${x+3}' />`;
+
+// 形式2：对象参数形式
+result = xpl('my:MyTag', {a:1, b:x+3});
+
+// 形式3：位置参数形式
+result = xpl('my:MyTag', 1, x+3);
+```
+
 ## 内置对象和函数
 
 ### 1. StringHelper字符串工具
 
 ```javascript
-// 字符串函数
+// 基本判断
 StringHelper.isEmpty(str)
 StringHelper.isBlank(str)
 StringHelper.isNotEmpty(str)
 StringHelper.isEmail(str)
+
+// 基本操作
 StringHelper.contains(str, subStr)
 StringHelper.startsWith(str, prefix)
 StringHelper.endsWith(str, suffix)
@@ -141,18 +208,33 @@ StringHelper.replace(str, oldStr, newStr)
 StringHelper.toLowerCase(str)
 StringHelper.toUpperCase(str)
 StringHelper.trim(str)
+
+// 格式化
 StringHelper.format(pattern, ...args...)
 StringHelper.join(list, separator)
+
+// 扩展方法
+str.$capitalize()
+str.$firstPart('.')
+str.$lastPart('.')
+str.$lowerCase()
+str.$upperCase()
 ```
 
 ### 2. DateHelper日期工具
 
 ```javascript
-// 日期函数
+// 日期操作
 DateHelper.today()
 DateHelper.addDays(date, days)
+DateHelper.addMonths(date, months)
+DateHelper.addYears(date, years)
+
+// 格式化
 DateHelper.format(date, pattern)
 DateHelper.parse(str, pattern)
+
+// 判断
 DateHelper.isDate(date)
 DateHelper.isBefore(date1, date2)
 DateHelper.isAfter(date1, date2)
@@ -162,7 +244,7 @@ DateHelper.dateDiff(date1, date2)
 ### 3. MathHelper数学工具
 
 ```javascript
-// 数学函数
+// 数学运算
 MathHelper.abs(num)
 MathHelper.max(a, b)
 MathHelper.min(a, b)
@@ -170,44 +252,21 @@ MathHelper.add(a, b)
 MathHelper.subtract(a, b)
 MathHelper.multiply(a, b)
 MathHelper.divide(a, b)
+
+// 四舍五入
 MathHelper.round(num, scale)
 MathHelper.ceil(num)
 MathHelper.floor(num)
+
+// 随机数
 MathHelper.randomInt(min, max)
+MathHelper.random()
 ```
 
-### 4. CollectionHelper集合工具
+### 4. JsonTool JSON工具
 
 ```javascript
-// 集合函数
-CollectionHelper.size(list)
-CollectionHelper.isEmpty(list)
-CollectionHelper.isEmpty(collection)
-CollectionHelper.add(list, item)
-CollectionHelper.remove(list, item)
-CollectionHelper.contains(list, item)
-CollectionHelper.filter(list, predicate)
-CollectionHelper.map(list, mapper)
-CollectionHelper.mapKeys(map, keys)
-CollectionHelper.mapValues(map, values)
-```
-
-### 5. BeanTool Bean工具
-
-```javascript
-// Bean函数
-BeanTool.getProperty(bean, propName)
-BeanTool.setProperty(bean, propName, value)
-BeanTool.copyProperties(src, dest)
-BeanTool.merge(target, sources)
-BeanTool.deepCopy(obj)
-BeanTool.clone(obj)
-```
-
-### 6. JsonTool JSON工具
-
-```javascript
-// JSON函数
+// JSON转换
 JsonTool.parse(jsonStr)
 JsonTool.stringify(obj, pretty)
 JsonTool.toJson(obj)
@@ -218,12 +277,24 @@ JsonTool.toMap(json)
 JsonTool.parseArray(jsonStr)
 ```
 
+### 5. BeanTool Bean工具
+
+```javascript
+// 属性操作
+BeanTool.getProperty(bean, propName)
+BeanTool.setProperty(bean, propName, value)
+BeanTool.copyProperties(src, dest)
+BeanTool.merge(target, sources)
+BeanTool.deepCopy(obj)
+BeanTool.clone(obj)
+```
+
 ## 数据库访问
 
 ### 1. IEntityDao 使用
 
 ```javascript
-// DAO函数
+// 获取DAO
 var userDao = dao();
 var userId = "001";
 var user = userDao.getEntityById(userId);
@@ -301,43 +372,36 @@ public void transferOrder(String fromId, String toId) {
     txnTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn -> {
         var fromOrder = dao().requireEntityById(fromId);
         var toOrder = dao().requireEntityById(toId);
-        
+
         // 更新订单状态
         fromOrder.setStatus("TRANSFERRED");
         toOrder.setStatus("PENDING");
         dao().saveEntity(fromOrder);
         dao().saveEntity(toOrder);
-        
+
         // 记录转移记录
         var record = new TransferRecord();
         record.setFromId(fromId);
         record.setToId(toId);
         transferDao.saveEntity(record);
-        
-        // 发送通知
-        notificationService.send("订单转移", record);
     });
 }
 ```
 
-### 3. 嵌套事务
+### 3. 事务传播
 
 ```javascript
-// REQUIRED行为
+// REQUIRED：默认，加入当前事务，无则新建
 @Transactional(propagation = Propagation.REQUIRED)
-public void outerMethod(String userId) {
-    txn(() -> {
-        innerMethod(userId);
-    });
-}
 
-// REQUIRES_NEW行为
+// REQUIRES_NEW：总是新建事务
 @Transactional(propagation = Propagation.REQUIRES_NEW)
-public void outerMethod(String userId) {
-    txn(() -> {
-        innerMethod(userId); // 在独立事务中执行
-    }, TransactionPropagation.REQUIRES_NEW);
-}
+
+// MANDATORY：必须在现有事务中执行，否则抛异常
+@Transactional(propagation = Propagation.MANDATORY)
+
+// NOT_SUPPORTED：以非事务方式执行
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 ```
 
 ## 实际应用
@@ -348,18 +412,18 @@ public void outerMethod(String userId) {
 public void calculateOrderPrice(String orderId) {
     var order = dao().requireEntityById(orderId);
     var total = 0;
-    
+
     // 计算订单项金额
     for (var i = 0; i < order.items.length; i++) {
         var item = order.items[i];
         total = total + item.price * item.quantity;
-        
+
         // 应用折扣
         if (order.coupon) {
             total = applyDiscount(total, order.coupon.discount);
         }
     }
-    
+
     order.setTotalAmount(total);
     dao().saveEntity(order);
 }
@@ -385,10 +449,9 @@ public String getUserStatusLabel(Integer status) {
 ### 3. 复杂条件查询
 
 ```javascript
-// 构建复杂查询
 public List<User> searchUsers(String keyword, Integer status) {
     var query = new QueryBean();
-    
+
     // 添加过滤条件
     if (StringHelper.isNotEmpty(keyword)) {
         query.addFilter(FilterBeans.or(
@@ -399,7 +462,7 @@ public List<User> searchUsers(String keyword, Integer status) {
     if (status != null) {
         query.addFilter(FilterBeans.eq("status", status));
     }
-    
+
     return dao().findAllByQuery(query);
 }
 ```
@@ -410,35 +473,35 @@ public List<User> searchUsers(String keyword, Integer status) {
 public void processOrder(String orderId) {
     txn(() -> {
         var order = dao().requireEntityById(orderId);
-        
+
         // 验证订单状态
         if (order.status != 0) {
             throw new NopException("订单状态不正确");
         }
-        
+
         // 获取订单项
         var items = orderService.getItems(orderId);
-        
+
         // 检查库存
         var stockMap = inventoryService.batchCheckStock(
             items.map(item -> item.productId).collect(Collectors.toList())
         );
-        
-        // 扣查所有库存是否足够
+
+        // 扣除所有库存是否足够
         var allStockEnough = stockMap.values().stream().allMatch(stock -> stock > 0);
         if (!allStockEnough) {
             throw new NopException("库存不足");
         }
-        
+
         // 扣减库存
         inventoryService.batchReduceStock(
             items.map(item -> item.productId).collect(Collectors.toList())
         );
-        
+
         // 更新订单状态
         order.setStatus(2); // 处理中
         dao().saveEntity(order);
-        
+
         // 记录处理日志
         log.info("订单" + orderId + "处理开始");
     });
@@ -456,7 +519,7 @@ try {
     userDao.saveEntity(user);
 } catch (e) {
     log.error("保存用户失败: " + userId, e);
-    
+
     // 包装异常
     throw new NopException("保存用户失败", e)
         .param("userId", userId)
@@ -497,22 +560,21 @@ if (userName.length > 50) {
 ```javascript
 // 使用分页查询，避免一次性加载大量数据
 var page = userDao.findPageByQuery(query, 0, 20);
+
+// 使用批量操作
 var items = dao().batchGetEntitiesByIds(page.items.map(item => item.id));
 
-// 使用缓存减少数据库访问
-var user = userDao.getEntityById(userId);
+// 使用缓存
+var user = userDao.getEntityById(userId); // 内置缓存
 ```
 
-### 5. 安全性
+### 5. 类型安全
 
 ```javascript
-// 避免SQL注入：使用参数化查询
-var user = userDao.findFirstByExample(User.status(1));
-// 或
-var user = dao().findPageByQuery(query, 0, 1).getOne();
-
-// 防止XSS攻击：所有输出都经过转义
-var safeUserName = StringHelper.escapeHtml(userName);
+// 虽然XScript是动态类型语言，但尽量保持类型一致性
+var userName = "张三"; // 字符串
+var age = 25;          // 数字
+var isActive = true;   // 布尔
 ```
 
 ## 注意事项
