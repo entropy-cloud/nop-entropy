@@ -90,6 +90,14 @@ public class AppConfig {
         return new OverrideConfigReference<>(varRef(loc, name, defaultRef.getValueType(), null), defaultRef);
     }
 
+    /**
+     * 支持在 字符串及字符串集合类型 的配置项的值中通过占位符 {@code ${a.b.c}} 引用其他配置项的值。
+     * 注意，若引用的配置项值为 {@code null} 则不做替换，且仅做一次替换，也不支持嵌套引用！
+     */
+    public static <T> IConfigReference<T> withPlaceholder(IConfigReference<T> ref) {
+        return new PlaceholderConfigReference<>(ref);
+    }
+
     public static Object var(String name) {
         return s_provider.getConfigValue(name, null);
     }
