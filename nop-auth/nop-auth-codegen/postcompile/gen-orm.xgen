@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <c:script><![CDATA[
 // 根据ORM模型生成dao/entity/xbiz
-codeGenerator.withTargetDir("../").renderModel('../../model/nop-auth.orm.xlsx','/nop/templates/orm', '/',$scope);
+codeGenerator.withTargetDir("../").renderModel('../../model/nop-auth.orm.xml','/nop/templates/orm', '/',$scope);
 codeGenerator.withTargetDir("../nop-auth-dao/src/main/java").renderModel('../../nop-auth-dao/src/main/resources/_vfs/nop/auth/orm/app.orm.xml',
     '/nop/templates/orm-entity','/',$scope);
 ]]></c:script>

@@ -1,0 +1,7 @@
+<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     x:extends="default.orm.xml" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl">
+
+    <x:post-extends>
+        <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:post-extends>
+</orm>
