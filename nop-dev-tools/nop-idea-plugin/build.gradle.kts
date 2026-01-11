@@ -2,8 +2,9 @@ plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.9.25"
 
+    // comment it for idea 2025+
     id("org.jetbrains.intellij") version "1.17.4"
-    // for idea 2025+
+//    // for idea 2025+
 //    id("org.jetbrains.intellij.platform") version "2.10.0"
 }
 
@@ -17,12 +18,13 @@ repositories {
     mavenLocal()
     mavenCentral()
 
-    // for idea 2025+
+//    // for idea 2025+
 //    intellijPlatform {
 //        defaultRepositories()
 //    }
 }
 
+// comment it for idea 2025+
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
@@ -34,7 +36,7 @@ intellij {
 }
 
 dependencies {
-    // for idea 2025+
+//    // for idea 2025+
 //    intellijPlatform {
 //        intellijIdeaCommunity("2025.2.2")
 //

@@ -119,7 +119,7 @@
                   language="XLang"
                   implementationClass="io.nop.idea.plugin.lang.XLangFileType"
                   fieldName="INSTANCE"
-                  extensions="xdef;xdsl;xpl;xgen;xui;xlib;xrun;xwf;xmeta;xpage;xrule"/>
+                  extensions="xdef;xdsl;xpl;xgen;xui;xlib;xrun;xwf;xbiz;xmeta;xpage;xrule"/>
         <!-- 通过分析 xml 结构动态识别其是否为 XLang，避免穷举后缀，也避免遗漏 -->
         <lang.substitutor language="XML"
                           implementationClass="io.nop.idea.plugin.lang.XLangLanguageSubstitutor"/>

@@ -39,13 +39,18 @@ public class CreateXLangFileFromTemplateAction extends CreateFileFromTemplateAct
     ) {
         builder.setTitle(NopPluginBundle.message("action.NopEntropy.NewXLang.title"));
 
-        builder.addKind("XLang xdef", XLangFileType.INSTANCE.getIcon(), TEMPLATE_XDEF_NAME);
-        builder.addKind("XLang DSL", XLangFileType.INSTANCE.getIcon(), TEMPLATE_XDSL_NAME);
+        builder.addKind(NopPluginBundle.message("action.NopEntropy.NewXLang.Kind-XDef.title"),
+                        XLangFileType.INSTANCE.getIcon(),
+                        TEMPLATE_XDEF_NAME);
+        builder.addKind(NopPluginBundle.message("action.NopEntropy.NewXLang.Kind-XDSL.title"),
+                        XLangFileType.INSTANCE.getIcon(),
+                        TEMPLATE_XDSL_NAME);
     }
 
     @Override
     protected @NlsContexts.Command String getActionName(
-            PsiDirectory directory, @NonNls @NotNull String newName, @NonNls String templateName
+            PsiDirectory directory, @NonNls @NotNull String newName,
+            @NonNls String templateName
     ) {
         return NopPluginBundle.message("action.NopEntropy.NewXLang.text");
     }
