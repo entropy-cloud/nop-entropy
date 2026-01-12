@@ -28,6 +28,8 @@ public class PartitionDispatchLoaderProvider<S>
     private final IBatchLoaderProvider<S> loader;
     private final int loadBatchSize;
     private final BiFunction<S, IBatchTaskContext, Integer> partitionFn;
+    private int loadBatchMultiplyFactor = 30;
+    private int maxLockQueueCountPerThread = 100;
 
     public PartitionDispatchLoaderProvider(IBatchLoaderProvider<S> loader,
                                            int loadBatchSize, BiFunction<S, IBatchTaskContext, Integer> partitionFn) {
@@ -36,18 +38,36 @@ public class PartitionDispatchLoaderProvider<S>
         this.partitionFn = Guard.notNull(partitionFn, "partitionFn");
     }
 
+    public int getLoadBatchMultiplyFactor() {
+        return loadBatchMultiplyFactor;
+    }
+
+    public void setLoadBatchMultiplyFactor(int loadBatchMultiplyFactor) {
+        this.loadBatchMultiplyFactor = loadBatchMultiplyFactor;
+    }
+
+    public int getMaxLockQueueCountPerThread() {
+        return maxLockQueueCountPerThread;
+    }
+
+    public void setMaxLockQueueCountPerThread(int maxLockQueueCountPerThread) {
+        this.maxLockQueueCountPerThread = maxLockQueueCountPerThread;
+    }
+
     @Override
     public IBatchLoader<S> setup(IBatchTaskContext context) {
         IBatchLoader<S> loader = this.loader.setup(context);
 
-        PartitionDispatchQueue<S> queue = new PartitionDispatchQueue<>(loadBatchSize * 20, item -> partitionFn.apply(item, context), 0);
+        PartitionDispatchQueue<S> queue = new PartitionDispatchQueue<>(loadBatchSize * loadBatchMultiplyFactor,
+                item -> partitionFn.apply(item, context), 0);
+        queue.setMaxLockQueueCountPerThread(maxLockQueueCountPerThread);
 
         context.onAfterComplete(err -> {
             queue.finish();
         });
 
         IBatchLoader<S> resultLoader = (batchSize, ctx) -> {
-            MapOfInt<List<S>> map = queue.takeBatch(batchSize, ctx.getThreadIndex(), () -> loader.load(batchSize, ctx));
+            MapOfInt<List<S>> map = queue.takeBatch(batchSize, ctx.getThreadIndex(), () -> loader.load(loadBatchSize, ctx));
             if (map == null) {
                 return Collections.emptyList();
             }

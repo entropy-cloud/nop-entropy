@@ -37,7 +37,7 @@ public class AsyncFetchPartitionDispatchLoaderProvider<S>
     private final int loadBatchSize;
     private final BiFunction<S, IBatchTaskContext, Integer> partitionFn;
 
-    private int loadBatchMultiplyFactor = 50;
+    private int loadBatchMultiplyFactor = 30;
     private int maxLockQueueCountPerThread = 100;
 
     public AsyncFetchPartitionDispatchLoaderProvider(IBatchLoaderProvider<S> loader, Executor executor, int fetchThreadCount,
@@ -55,6 +55,14 @@ public class AsyncFetchPartitionDispatchLoaderProvider<S>
 
     public void setLoadBatchMultiplyFactor(int loadBatchMultiplyFactor) {
         this.loadBatchMultiplyFactor = loadBatchMultiplyFactor;
+    }
+
+    public int getMaxLockQueueCountPerThread() {
+        return maxLockQueueCountPerThread;
+    }
+
+    public void setMaxLockQueueCountPerThread(int maxLockQueueCountPerThread) {
+        this.maxLockQueueCountPerThread = maxLockQueueCountPerThread;
     }
 
     @Override
