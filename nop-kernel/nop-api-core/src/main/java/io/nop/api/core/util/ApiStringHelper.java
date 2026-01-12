@@ -11,6 +11,7 @@ import io.nop.api.core.ApiConstants;
 import io.nop.api.core.annotations.lang.Deterministic;
 import io.nop.api.core.exceptions.NopException;
 
+import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 import static io.nop.api.core.ApiErrors.ARG_MESSAGE;
 import static io.nop.api.core.ApiErrors.ARG_VAR_NAME;
@@ -37,6 +39,11 @@ public class ApiStringHelper {
     public static final String ENCODING_UTF8 = "UTF-8";
     public static final Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
     public static final Charset CHARSET_ISO_8859_1 = StandardCharsets.ISO_8859_1;
+
+    // https://owasp.org/www-community/OWASP_Validation_Regex_Repository
+    public static final String REGEX_EMAIL
+            = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
+    public static final Pattern PATTERN_EMAIL = Pattern.compile(REGEX_EMAIL, Pattern.CASE_INSENSITIVE);
 
     @Deterministic
     public static boolean isEmpty(CharSequence o) {
@@ -441,6 +448,26 @@ public class ApiStringHelper {
         if (v == null)
             return defaultValue;
         return v.toString();
+    }
+
+    @Deterministic
+    public static boolean isValidEmail(String str) {
+        if (str == null || str.isEmpty())
+            return false;
+        return PATTERN_EMAIL.matcher(str).matches();
+    }
+
+    @Deterministic
+    public static boolean isValidURL(String str) {
+        if (str == null || str.isEmpty())
+            return false;
+
+        try {
+            new URL(str).toURI();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     @Deterministic

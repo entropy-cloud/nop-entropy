@@ -401,6 +401,42 @@ public class SimpleStdDomainHandlers {
         }
     }
 
+    public static class FilePathType extends CheckStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_FILE_PATH;
+        }
+
+        @Override
+        protected boolean isValid(String text) {
+            return StringHelper.isValidFilePath(text);
+        }
+    }
+
+    public static class URLType extends CheckStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_URL;
+        }
+
+        @Override
+        protected boolean isValid(String text) {
+            return StringHelper.isValidURL(text);
+        }
+    }
+
+    public static class EmailType extends CheckStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_EMAIL;
+        }
+
+        @Override
+        protected boolean isValid(String text) {
+            return StringHelper.isValidEmail(text);
+        }
+    }
+
     public static class MethodRefType extends SimpleStdDomainHandler {
         @Override
         public String getName() {
