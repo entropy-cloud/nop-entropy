@@ -18,6 +18,7 @@ import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdef.impl.XDefComment;
+import io.nop.xlang.xdsl.XDslKeys;
 
 import java.util.List;
 import java.util.Map;
@@ -66,10 +67,15 @@ public class DslBeanModelParser extends DslXNodeToJsonTransformer {
             beanModel.setProperty(obj, tagProp, node.getTagName());
         }
 
+        XDslKeys keys = XDslKeys.of(node);
+
         node.forEachAttr((name, vl) -> {
             try {
                 IXDefAttribute attr = defNode.getAttribute(name);
                 if (attr == null) {
+                    if(name.equals(keys.VALIDATED))
+                        return;
+
                     if (defNode.getXdefUnknownAttr() != null && defNode.getXdefBeanUnknownAttrsProp()!=null) {
                         Object value = parseValue(vl, name, defNode.getXdefUnknownAttr());
                         String propName = defNode.getXdefBeanUnknownAttrsProp();

@@ -1,11 +1,16 @@
-<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="default.orm.xml">
+<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="default.orm.xml"
+     xmlns:ext="ext"
+     ext:mavenArtifactId="nop-sys" ext:entityPackageName="io.nop.sys.dao.entity" ext:registerShortName="true"
+     ext:mavenGroupId="io.github.entropy-cloud" ext:basePackageName="io.nop.sys" ext:appName="nop-sys"
+     ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql" ext:mavenVersion="2.0.0-SNAPSHOT"
+>
     <entities>
         <entity name="io.nop.orm.defaults.NopDefaultCols">
             <columns>
 
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4k" name="extConfig" propId="16"
                         stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Ext Config"/>
-                <column name="delFlag" />
+                <column name="delFlag"/>
             </columns>
         </entity>
     </entities>

@@ -1,9 +1,6 @@
-<orm ext:mavenArtifactId="nop-sys" ext:entityPackageName="io.nop.sys.dao.entity" ext:registerShortName="true"
-     ext:mavenGroupId="io.github.entropy-cloud" ext:basePackageName="io.nop.sys" ext:appName="nop-sys"
-     ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql" ext:mavenVersion="2.0.0-SNAPSHOT"
+<orm ext:registerShortName="true" ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql"
      x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
      xmlns:ext="ext" xmlns:ui="ui">
-
 
     <domains>
         <domain name="userName" precision="50" stdSqlType="VARCHAR"/>
@@ -29,7 +26,7 @@
         <entity className="io.nop.orm.support.DynamicOrmEntity" createTimeProp="createTime" createrProp="createdBy"
                 deleteFlagProp="delFlag" displayName="字典表" name="io.nop.orm.defaults.NopDefaultCols"
                 registerShortName="true" tableName="nop_default_cols" updateTimeProp="updateTime"
-                updaterProp="updatedBy"
+                updaterProp="updatedBy" x:abstract="true"
                 useLogicalDelete="true" versionProp="version">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true"

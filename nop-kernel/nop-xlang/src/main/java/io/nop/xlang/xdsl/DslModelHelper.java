@@ -64,8 +64,7 @@ public class DslModelHelper {
      * @param resource 模型文件路径
      */
     public static void saveDslModel(String xdefPath, Object model, IResource resource) {
-        IObjMeta objMeta = SchemaLoader.loadXMeta(xdefPath);
-        XNode node = new DslModelToXNodeTransformer(objMeta).transformToXNode(model);
+        XNode node = dslModelToXNode(xdefPath,model);
         node.saveToResource(resource, null);
     }
 
