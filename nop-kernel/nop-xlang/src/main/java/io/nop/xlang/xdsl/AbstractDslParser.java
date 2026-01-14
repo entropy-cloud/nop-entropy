@@ -50,6 +50,7 @@ public abstract class AbstractDslParser<T> extends AbstractResourceParser<T> {
     private List<ImportAsDeclaration> importExprs;
     private IXDefinition xdef;
     private String requiredSchema;
+    private XDslExtendPhase extendPhase;
 
     public String getRequiredSchema() {
         return requiredSchema;
@@ -81,6 +82,11 @@ public abstract class AbstractDslParser<T> extends AbstractResourceParser<T> {
 
     public AbstractDslParser<T> withCompileTool(XLangCompileTool compileTool) {
         this.setCompileTool(compileTool);
+        return this;
+    }
+
+    public AbstractDslParser<T> extendPhase(XDslExtendPhase phase) {
+        this.extendPhase = phase;
         return this;
     }
 
@@ -121,7 +127,8 @@ public abstract class AbstractDslParser<T> extends AbstractResourceParser<T> {
     @Override
     protected T doParseResource(IResource resource) {
         XDslExtendResult extendResult = modelLoader.loadFromResource(resource, getRequiredSchema(),
-                XDslExtendPhase.validate);
+                this.extendPhase != null ? this.extendPhase : XDslExtendPhase.validate);
+
         if (compileTool == null)
             compileTool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
         setXdef(extendResult.getXdef());
