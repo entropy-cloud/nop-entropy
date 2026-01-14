@@ -83,3 +83,5 @@ node_modules/
 /nop-runner/nop-cli-jdk11/dependency-reduced-pom.xml
 .claude.worktree-branch
 .worktree-base
+.worktree-branch
+.worktree-base
