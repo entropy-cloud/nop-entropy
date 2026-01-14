@@ -8,8 +8,8 @@
 
 ```
 nop-sys/
-├── app.orm.xlsx                 # 数据库模型定义
-├── app.api.xlsx                 # API模型定义
+├── nop-sys.orm.xml             # 数据库模型定义（model目录使用模块名）
+├── nop-sys.api.xml             # API模型定义
 ├── src/
 │   ├── main/java/io/nop/sys/
 │   │   ├── dao/                # DAO接口
@@ -21,8 +21,9 @@ nop-sys/
 │   │   │   └── NopSysConfigBizModel.java      # 配置业务模型
 │   │   └── web/                # Web控制器
 │   └── main/resources/
-│       └── _vfs/               # 虚拟文件系统
+│       └── _vfs/               # 虚拟文件系统（_vfs目录下使用app.orm.xml等命名）
 │           ├── app/            # 应用配置
+│           │   └── app.orm.xml # ORM模型定义
 │           ├── biz/            # 业务模型
 │           ├── graphql/        # GraphQL定义
 │           └── xlib/           # 扩展库

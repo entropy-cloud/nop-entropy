@@ -86,7 +86,7 @@ Object value = BeanTool.getProperty(bean, "user.name");
 ## 5. 框架使用关键信息
 
 ### 5.1 模型驱动开发
-- 基于Excel/XML定义模型，自动生成代码
+- 基于XML定义模型，自动生成代码
 - 支持差量化定制，保持模型与代码的同步
 
 ### 5.2 代码生成

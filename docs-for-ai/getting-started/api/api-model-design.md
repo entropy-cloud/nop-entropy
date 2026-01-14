@@ -2,13 +2,13 @@
 
 ## 概述
 
-Nop平台使用Excel或XML定义API模型，自动生成GraphQL API和REST API，支持API文档自动生成和测试。
+Nop平台使用XML定义API模型，自动生成GraphQL API和REST API，支持API文档自动生成和测试。
 
 ## 核心概念
 
 ### 1. API模型
 - 定义：描述API接口结构和参数的模型
-- 格式：Excel或XML，如`app-api.xlsx`
+- 格式：XML，如`app-api.xml`
 - 内容：查询、变更、类型、输入、枚举等
 
 ### 2. GraphQL API
@@ -24,11 +24,11 @@ Nop平台使用Excel或XML定义API模型，自动生成GraphQL API和REST API�
 ## 设计流程
 
 ### 1. 设计API模型
-通过Excel或XML定义API接口
+通过XML定义API接口
 
 ### 2. 生成API代码
 ```shell
-nop-cli gen model/app-api.xlsx -t=/nop/templates/api
+nop-cli gen model/nop-auth.api.xml -t=/nop/templates/api
 ```
 
 ### 3. 部署和访问
@@ -68,16 +68,6 @@ nop-cli gen model/app-api.xlsx -t=/nop/templates/api
 - **扩展**：支持扩展字段和定制返回
 
 ## 示例模型
-
-### Excel模型示例
-
-| 工作表 | 用途 | 主要字段 |
-|-------|------|---------|
-| Types | 类型定义 | 名称、描述、字段 |
-| Inputs | 输入定义 | 名称、描述、字段 |
-| Enums | 枚举定义 | 名称、描述、值 |
-| Queries | 查询定义 | 名称、描述、参数、返回类型 |
-| Mutations | 变更定义 | 名称、描述、参数、返回类型 |
 
 ### XML模型示例
 

@@ -25,8 +25,8 @@
 - **差量化定制**：通过Delta格式实现可逆计算理论要求的App = Delta x-extends Generator<DSL>范式
 
 **常用XDSL文件**：orm.xml、beans.xml、api.xml、app.orm.xml、app.api.xml、xview.xml、task.xml、batch.xdef等
+> 注意：model目录下使用模块名（如nop-auth.orm.xml），_vfs目录下使用app.orm.xml等命名
 **XDSL文件格式与Delta合并**：详见[XDSL与Delta合并文档](../getting-started/xlang/xdsl-delta.md)
-- **XDSL文件格式与Delta合并**：详见[XDSL与Delta合并文档](../getting-started/xlang/xdsl-delta.md)
 
 ### 元编程
 - [代码生成](./code-generation.md) - 代码生成机制

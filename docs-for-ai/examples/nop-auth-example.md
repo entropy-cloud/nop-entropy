@@ -8,8 +8,8 @@
 
 ```
 nop-auth/
-├── app.orm.xlsx                 # 数据库模型定义
-├── app.api.xlsx                 # API模型定义
+├── nop-auth.orm.xml            # 数据库模型定义（model目录使用模块名）
+├── nop-auth.api.xml            # API模型定义
 ├── src/
 │   ├── main/java/io/nop/auth/
 │   │   ├── dao/                # DAO接口
@@ -21,8 +21,9 @@ nop-auth/
 │   │   │   └── NopAuthUserRoleBizModel.java   # 用户角色关系
 │   │   └── web/                # Web控制器
 │   └── main/resources/
-│       └── _vfs/               # 虚拟文件系统
+│       └── _vfs/               # 虚拟文件系统（_vfs目录下使用app.orm.xml等命名）
 │           ├── app/            # 应用配置
+│           │   └── app.orm.xml # ORM模型定义
 │           ├── biz/            # 业务模型
 │           ├── graphql/        # GraphQL定义
 │           └── xlib/           # 扩展库
@@ -757,7 +758,7 @@ public class NopAuthUserBizModelTest extends JunitBaseTestCase {
 
 NopAuth项目展示了如何使用Nop Platform构建完整的用户权限管理系统：
 
-1. **数据库模型**: 使用Excel或XML定义数据模型
+1. **数据库模型**: 使用XML定义数据模型
 2. **实体类**: 自动生成实体类和DAO接口
 3. **业务模型**: 使用BizModel封装业务逻辑
 4. **GraphQL API**: 自动生成GraphQL查询和变更
