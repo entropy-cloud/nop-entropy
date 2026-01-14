@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<orm ext:registerShortName="true" ext:appName="nop-auth" ext:entityPackageName="io.nop.auth.dao.entity"
-     ext:basePackageName="io.nop.auth" ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-auth"
+<orm ext:registerShortName="true" ext:appName="app-sample" ext:entityPackageName="io.app.sample.dao.entity"
+     ext:basePackageName="io.app.sample" ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="app-sample"
      ext:mavenVersion="2.0.0-SNAPSHOT" ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql"
+	 ext:useStdFields="true"
      x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" >
 
     <domains>
@@ -28,33 +29,28 @@
     </domains>
 
     <entities>
-        <entity className="io.nop.auth.dao.entity.NopAuthUser" createTimeProp="createTime" createrProp="createdBy"
-                deleteFlagProp="delFlag" displayName="用户" name="io.nop.auth.dao.entity.NopAuthUser"
-                registerShortName="true" tableName="nop_auth_user" tagSet="mapper,no-tenant" updateTimeProp="updateTime"
-                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version">
+        <entity displayName="用户" name="io.app.sample.dao.entity.AppSampleUser" tableName="app_sample_user" >
             <columns>
                 <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="50"
-                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
+                        primary="true" propId="1" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
                 <column code="USER_NAME" displayName="用户名" domain="userName" mandatory="true" name="userName"
-                        precision="50" propId="2" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" ui:show="C"/>
+                        precision="50" propId="2" stdSqlType="VARCHAR" tagSet="disp" ui:show="C"/>
                 <column code="PASSWORD" displayName="密码" mandatory="true" name="password" precision="80" propId="3"
-                        stdDataType="string" stdSqlType="VARCHAR" tagSet="masked,var,not-pub" ui:show="X"/>
+                         stdSqlType="VARCHAR" tagSet="masked,var,not-pub" ui:show="X"/>
                 <column code="DEPT_ID" displayName="所属部门" domain="deptId" name="deptId" precision="50" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="OPEN_ID" comment="允许动态改变的用户标识" displayName="用户外部标识" mandatory="true" name="openId"
-                        precision="32" propId="7" stdDataType="string" stdSqlType="VARCHAR" tagSet="var" ui:show="L"/>
-                <column code="STATUS" displayName="用户状态" mandatory="true" name="status" propId="17" stdDataType="int"
-                        stdSqlType="INTEGER" ext:dict="auth/user-status"/>
+                <column code="STATUS" displayName="用户状态" mandatory="true" name="status" propId="7" stdDataType="int"
+                        stdSqlType="INTEGER" ext:dict="app-sample/user-status"/>
             </columns>
             <relations>
                 <to-one displayName="部门" name="dept" refDisplayName="部门用户"
-                        refEntityName="io.nop.auth.dao.entity.NopAuthDept" refPropName="deptUsers" tagSet="pub,ref-pub">
+                        refEntityName="io.app.sample.dao.entity.AppSampleDept" refPropName="deptUsers" tagSet="pub">
                     <join>
                         <on leftProp="deptId" rightProp="deptId"/>
                     </join>
                 </to-one>
-                <to-many cascadeDelete="true" displayName="角色映射" name="roleMappings"
-                         refEntityName="io.nop.auth.dao.entity.NopAuthUserRole" refPropName="user"
+                <to-many displayName="角色映射" name="roleMappings"
+                         refEntityName="io.app.sample.dao.entity.AppSampleUserRole" refPropName="user"
                          tagSet="pub,cascade-delete,insertable,updatable">
                     <join>
                         <on leftProp="userId" rightProp="userId"/>
@@ -62,7 +58,7 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="userName" constraint="UK_NOP_AUTH_USER_NAME" name="userNameKey"/>
+                <unique-key columns="userName" constraint="UK_APP_SAMPLE_USER_NAME" name="userNameKey"/>
             </unique-keys>
         </entity>
     </entities>

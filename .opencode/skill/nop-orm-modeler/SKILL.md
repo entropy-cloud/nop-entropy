@@ -1,265 +1,275 @@
 ---
 name: nop-orm-modeler
-description: 专门用于设计、创建和修改Nop平台的ORM模型文件（.orm.xml）
-metadata:
-  audience: backend-developers
-  domain: database-modeling
-  technology: nop-platform
+description: 专门用于设计、创建、验证和修改Nop平台的ORM模型文件（.orm.xml）
 ---
+
+# 使用场景
+
+- **新增**: "创建"、"新增"、"增加" → 创建实体/字段/关系
+- **更新**: "修改"、"更新"、"调整" → 修改现有定义
+- **检查并修正**: "检查并修正"、"检查规范" → 仅修正格式规范，不碰业务逻辑
 
 # What I do
 
-我是 Nop 平台的 ORM 模型设计专家。我负责根据业务需求创建、修改和优化 `.orm.xml` 文件，这些文件定义了 Nop 平台的实体模型、数据库表结构、关系映射和索引配置。
+我是Nop 平台 ORM 模型专家，设计/创建/修改 `.orm.xml` 文件。
 
-## 核心能力
+## 元模型参考
 
-### 1. 理解 Nop ORM 元模型
-我深度理解 Nop 平台的 ORM 元模型（OrmModel），包括：
-- **orm.xdef**：定义 domains、dicts、entities 等
-- **entity.xdef**: 定义columns, relations, indexes, unique-keys等
-- **dict.xdef**: 定义数据字典
+- **orm.xdef**：domains、dicts、entities 定义
+- **entity.xdef**：columns、relations、indexes、unique-keys 定义
+- **dict.xdef**：数据字典定义
 
-### 2. 业务需求到数据模型转换
-我能将自然语言描述的业务需求转换为符合 Nop 规范的 ORM 模型：
-- 提取核心实体和属性
-- 识别关系模式（一对一、一对多、多对多、自关联）
-- 设计字段类型和约束
-- 设计索引和唯一键
+## 根节点配置说明
 
-### 3. 遵循 Nop 平台最佳实践
-我的设计严格遵循 Nop 平台的架构原则：
-- **数据库设计规范**：主键、外键、约束、索引的最佳实践
-- **命名规范**：Java 驼峰命名 vs 数据库下划线命名
+### ext:appName
+- 模块标识名，生成 `{appName}.orm.xml`
+- 两级结构：`{xx}-{yy}`，全小写 ASCII
+- 例：`app-test` → `app-test.orm.xml`
 
-## Nop ORM 模型结构
+### ext:basePackageName
+- 模块基础包名
+- 代码分层：dao, service 等
+- 例：`io.app.sample` → `io.app.sample.dao`, `io.app.sample.service`
 
-> **元模型定义参考**：详见 `orm.xdef` 文件，该文件定义了 ORM 模型的完整结构。
+### ext:entityPackageName
+- 实体类包名
+- 一般为 `{basePackageName}.dao.entity`
+- 例：`io.app.sample.dao.entity`
 
-## 工作流程
+### 其他 ext 属性
+- **mavenGroupId** / **mavenArtifactId**：Maven 坐标
+- **dialect**：数据库方言，如 `mysql,oracle,postgresql`
+- **useStdFields**：是否使用标准字段，默认 `true`
+  - `true`：自动添加 CREATE_TIME 等审计字段（见下方"Nop 平台特定规则"）
+  - `false`：不自动添加标准字段
 
-### 阶段 1：需求分析
-1. **理解业务场景**：
-   - 提取核心实体（如 Order、User、Product）
-   - 理解业务流程和数据流转
-   - 识别业务规则和约束
+## Nop 平台特定规则
 
-2. **实体识别**：
-   - 列出所有实体
-   - 识别实体核心属性（ID、code、name、status）
-   - 识别关联实体（如 OrderItem）
+**重要**：以下字段由平台自动添加，无需手动定义：
 
-3. **关系识别**：
-   - 一对一（User ↔ Address）
-   - 一对多（Order → OrderItem）
-   - 多对多（User ↔ Role，通过中间表）
-   - 自关联（User ← managerId → User）
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| CREATED_BY | VARCHAR(50) | 创建者 |
+| CREATE_TIME | TIMESTAMP | 创建时间 |
+| UPDATED_BY | VARCHAR(50) | 更新者 |
+| UPDATE_TIME | TIMESTAMP | 更新时间 |
+| DEL_VERSION | BIGINT | 逻辑删除 |
+| VERSION | INTEGER | 乐观锁版本 |
 
-### 阶段 2：数据模型设计
-1. **表结构设计**：
-   - 表名遵循 snake_case 规范（如 `nop_auth_user`）
-   - 主键使用 `BIGINT` 或 `VARCHAR` 
-   - **不要增加审计字段**：Nop平台会自动增加如下字段`CREATED_BY`, `CREATE_TIME`, `UPDATED_BY`, `UPDATE_TIME`
-   - **不要增加逻辑删除字段**：Nop平台会自动增加如下字段`DEL_FLAG`
-   - **不要增加乐观锁版本字段**: Nop平台会自动增加'VERSION'字段
+## XDef 基本说明
 
-2. **字段类型选择**：
-   - ID 字段：`VARCHAR(50)` 或 `BIGINT`
-   - 状态字段：`TINYINT`
-   - 时间字段：`TIMESTAMP` 或 `DATETIME`
-   - 金额字段：`DECIMAL(18,2)`
-   - 文本字段：根据长度选择 `VARCHAR(n)`
-
-3. **关系映射设计**：
-   - to-one：在子表添加外键列
-   - to-many：在主表定义集合属性
-   - 中间表：用于多对多关系
-
-4. **索引设计**：
-   - 主键索引：自动创建
-   - 唯一索引：业务唯一键（如订单号、用户名）
-   - 外键索引：所有外键列
-   - 查询索引：高频查询字段
-
-### 阶段 3：根据orm.xdef元模型生成orm.xml
-
-XDef是XLang中的领域模型定义语法，类似于XSD或JSON Schema，但更加简洁直观：
-- 与领域描述同形，schema的Tree结构与领域模型的Tree结构一致
-- 所有集合元素通过xdef:key-attr定义唯一属性，确保每个节点有稳定的xpath路径
-- 支持类型标注、默认值、描述注释等
+XDef 是 XLang 的领域模型定义语法，特点：
+- 与领域描述同形，Tree 结构一致
+- 集合元素通过 `xdef:key-attr` 定义唯一标识
+- 支持类型标注、默认值
 - 自动支持差量分解和合并
 
-**类型描述符格式**：
-```
-(!~#)?{stdDomain}:{options}={defaultValue}
-```
-- `!`：必填属性
-- `~`：内部或废弃属性
-- `#`：可使用编译期表达式
-- `stdDomain`：标准数据类型
-- `options`：额外参数（如枚举类型名）
-- `defaultValue`：默认值
+**类型描述符格式**：`(!~#)?{stdDomain}:{options}={defaultValue}`
+- `!`：必填
+- `~`：内部或废弃
+- `#`：支持编译期表达式
 
-**节点定义类型**
-1. **普通属性**：`name="!string"`
-2. **集合节点**：`xdef:body-type="list"`
-3. **唯一标识**：`xdef:key-attr="id"`
-4. **节点复用**：`xdef:ref="WorkflowStepModel"`
-5. **可扩展节点**：`xdef:define` + `xdef:ref`
-
-## 示例文件
-本目录下的`sample.orm.xml`
-
-**生成注意事项**
-示例模型中，根节点上的 `ext:xxx` 属性很重要，如果上下文中没有相关信息，需要先查询项目中有没有可参考的示例，如果没有，需要使用 `question` tool 向用户提问。
+**节点类型**：
+- 普通属性：`name="!string"`
+- 集合节点：`xdef:body-type="list"`
+- 唯一标识：`xdef:key-attr="id"`
+- 节点复用：`xdef:ref="WorkflowStepModel"`
 
 ## 设计原则
 
-### 1. 命名规范
-- **Java 属性名**：驼峰命名（`userId`, `userName`）
-- **数据库列名**：下划线命名（`USER_ID`, `USER_NAME`）
-- **实体类名**：大驼峰命名（`NopAuthUser`）
-- **表名**：前缀 + 下划线命名（`nop_auth_user`）
+### 命名规范
+- Java 属性：驼峰（`userId`）
+- 数据库列名：大写下划线（`USER_ID`）
+- 实体类名：大驼峰（`AppSampleUser`）
+- **表名必须带统一子系统前缀**：`{子系统前缀}_{功能模块}_{实体名}`
+  - ✅ 正确：`app_sample_user`、`app_order_item`
+  - ❌ 错误：`user`、`order`（缺少前缀）
+  - 前缀示例：`app_sample`（示例模块）、`app_order`（订单模块）、`app_sys`（系统模块）
+- **不要使用 nop 前缀**：`nop` 前缀保留给 Nop 平台内置模块使用，用户自定义模块不应使用
+  - ❌ 错误：`nop_auth_user`、`nop-auth.orm.xml`
+  - ❌ 错误：`io.nop.auth`（包名）
+  - ✅ 正确：`app_auth_user`、`app-auth.orm.xml`
+  - ✅ 正确：`io.app.auth`（包名）
 
-### 3. 约束设计
-- **主键**：每个表必须有主键
-- **唯一性**：业务唯一键定义 unique-key
-- **非空**：关键字段设置 `mandatory="true"`
+### 关系映射
+- to-one：子表添加外键列，缺省 `tagSet="pub"`
+- to-many：主表定义集合属性，缺省 `tagSet="pub,cascade-delete,insertable,updatable"`
+- 多对多：创建中间表实体
 
-### 4. 性能优化
-- **索引设计**：为外键和高频查询字段添加索引
-- **延迟加载**：大字段（BLOB、CLOB）设置 `lazy="true"`
+### 索引设计
+- 主键索引自动创建
+- 外键列自动索引
+- 业务唯一键定义 unique-key
 
-## When to use me
+## 生成完成后的必检项
 
-在以下场景中使用我：
+**重要**：生成 `.orm.xml` 文件后，必须逐项检查以下内容：
 
-1. **创建新的 ORM 模型**：需要根据业务需求设计新的数据模型
-2. **修改现有 ORM 模型**：需要添加字段、修改关系或优化索引
-3. **分析 ORM 模型**：需要理解现有模型的结构和关系
-4. **数据迁移**：需要设计新的表结构或修改现有结构
-5. **多对多关系**：需要设计中间表和关联关系
-6. **性能优化**：需要添加索引或优化表结构
+### 1. 根节点配置
+- [ ] `ext:appName` 符合 `{xx}-{yy}` 格式，全小写 ASCII
+- [ ] `ext:basePackageName` 正确设置，如 `io.app.sample`
+- [ ] `ext:entityPackageName` = `{basePackageName}.dao.entity`
+- [ ] `ext:mavenGroupId` / `ext:mavenArtifactId` 正确
+- [ ] `ext:dialect` 包含目标数据库方言
 
-## 验证点
+### 2. 表名规范
+- [ ] 所有表名带统一子系统前缀（如 `app_sample_user`）
+- [ ] 不能是简单单词（如 `user`、`order`）
+- [ ] 遵循 `{子系统前缀}_{模块}_{实体}` 格式
 
-在生成 ORM 模型后，我会验证以下方面：
+### 3. 实体定义
+- [ ] 实体类名符合大驼峰规范（`AppSampleUser`）
+- [ ] 完整包名正确（`io.app.sample.dao.entity.AppSampleUser`）
+- [ ] 主键配置：`primary="true"`, `tagSet="seq"`
+- [ ] **未手动添加**审计字段（CREATED_BY, CREATE_TIME, UPDATED_BY, UPDATE_TIME, DEL_VERSION, VERSION）
 
-### 1. XML 结构验证
-- [ ] 文件声明正确（`<?xml version="1.0" encoding="UTF-8" ?>`）
-- [ ] 根节点配置正确（`x:schema`, `xmlns:x`）
-- [ ] 所有必需属性已设置（`name`、`code`、`propId` 等）
+### 4. 字段定义
+- [ ] `propId` 从 1 开始连续递增，无重复，无空缺
+- [ ] 列名符合大写下划线规范（`USER_ID`、`USER_NAME`）
+- [ ] 字段名符合驼峰规范（`userId`、`userName`）
+- [ ] `stdSqlType` 必须使用 StdSqlType 枚举类的标准值
+  - **可用的 stdSqlType 值**：BOOLEAN|TINYINT|SMALLINT|INTEGER|BIGINT|DECIMAL|FLOAT|DOUBLE|DATE|TIME|DATETIME|TIMESTAMP|CHAR|VARCHAR|VARBINARY|CLOB|BLOB
+- [ ] 枚举字段配置 `ext:dict="xxx/yyy"`（**注意：boolean 型字段不用设置 dict**）
+- [ ] `domain` 使用原则：
+  - **不是每个字段都需要 domain**，只有具有重要业务含义、在显示或后台处理方面存在特殊业务规则的字段才需要定义 domain
+  - 例如：订单编号（order-no）可能需要特殊编号规则、状态字段需要特殊显示逻辑等
+  - **优先复用** `app-sample.orm.xml` 中已有的 domain，domain 是全局的，不能重名
+  - 能复用的一定要复用，避免重复定义
 
-### 2. 实体定义验证
-- [ ] 实体名遵循 Java 包名规范
-- [ ] 表名遵循 snake_case 规范
-- [ ] 主键正确配置（`primary="true"`, `tagSet="seq"`）
-
-### 3. 字段定义验证
-- [ ] 列名遵循大写下划线规范
-- [ ] `propId` 顺序正确且不重复
-- [ ] 必填字段设置 `mandatory="true"`
-- [ ] 枚举字段配置 `ext:dict`
-
-### 4. 关系定义验证
-- [ ] 关联实体名称正确
-- [ ] join 条件正确（`leftProp` 和 `rightProp`）
-- [ ] 级联删除配置合理（`cascadeDelete="true"`）
+### 5. 关系定义
+- [ ] `refEntityName` 指向的实体存在
+- [ ] join 条件正确：`leftProp` 和 `rightProp` 对应的字段存在
+- [ ] to-one 关系设置 `tagSet="pub"`
+- [ ] to-many 关系设置 `tagSet="pub,cascade-delete,insertable,updatable"`
+- [ ] 级联删除配置合理（`cascadeDelete="true"` 用于主从表）
 - [ ] 反向引用名称合理（`refPropName`）
+- [ ] 一对多关系的 `refPropName` 在子表上存在
 
-### 5. 索引和唯一键验证
-- [ ] 唯一键约束名唯一
-- [ ] 索引名唯一且有前缀（如 `idx_`）
-- [ ] 索引字段存在且类型匹配
-- [ ] 复合索引字段顺序合理
-
+### 6. 索引和约束
+- [ ] 主键索引已定义（`primary="true"`）
+- [ ] 业务唯一键定义了 `unique-key`（如用户名、订单号）
+- [ ] 外键列有索引（Nop 自动生成，可显式定义）
+- [ ] 约束名唯一且有前缀（如 `UK_APP_SAMPLE_USER_NAME`）
 
 ## 常见问题
 
-### Q1: 如何设计多对多关系？
-**A**: 需要创建中间表实体，例如 User 和 Role 的多对多关系：
+### Q1: 多对多关系？
+**A**: 创建中间表实体：
 ```xml
-<!-- 中间表实体 -->
-<entity name="io.nop.app.dao.entity.NopUserRole" tableName="nop_user_role">
+<!-- 中间表 -->
+<entity name="io.app.sample.dao.entity.AppSampleUserRole">
     <columns>
         <column name="userId" code="USER_ID" .../>
         <column name="roleId" code="ROLE_ID" .../>
     </columns>
     <relations>
-        <to-one name="user" refEntityName="io.nop.app.dao.entity.NopUser">
+        <to-one name="user" refEntityName="io.app.sample.dao.entity.AppSampleUser"
+                tagSet="pub">
             <join><on leftProp="userId" rightProp="userId"/></join>
         </to-one>
-        <to-one name="role" refEntityName="io.nop.app.dao.entity.NopRole">
+        <to-one name="role" refEntityName="io.app.sample.dao.entity.AppSampleRole"
+                tagSet="pub">
             <join><on leftProp="roleId" rightProp="roleId"/></join>
         </to-one>
     </relations>
 </entity>
 
-<!-- 用户实体中的 to-many -->
-<entity name="io.nop.app.dao.entity.NopUser">
-    <relations>
-        <to-many name="roles" refEntityName="io.nop.app.dao.entity.NopUserRole"
-                 refPropName="user" cascadeDelete="true">
-            <join><on leftProp="userId" rightProp="userId"/></join>
-        </to-many>
-    </relations>
-</entity>
+<!-- 用户实体 -->
+<to-many name="roles" refEntityName="io.app.sample.dao.entity.AppSampleUserRole"
+         refPropName="user" tagSet="pub,cascade-delete,insertable,updatable">
+    <join><on leftProp="userId" rightProp="userId"/></join>
+</to-many>
 ```
 
-### Q2: 如何设计自关联关系？
-**A**: 例如用户有上级关系：
+### Q2: 自关联关系？
+**A**: 例如用户上级关系：
 ```xml
-<entity name="io.nop.app.dao.entity.NopUser">
-    <columns>
-        <column name="managerId" code="MANAGER_ID" .../>
-    </columns>
-    <relations>
-        <to-one name="manager" refEntityName="io.nop.app.dao.entity.NopUser">
-            <join><on leftProp="managerId" rightProp="userId"/></join>
-        </to-one>
-        <to-many name="subordinates" refEntityName="io.nop.app.dao.entity.NopUser"
-                 refPropName="manager">
-            <join><on leftProp="userId" rightProp="managerId"/></join>
-        </to-many>
-    </relations>
-</entity>
+<column name="managerId" code="MANAGER_ID" .../>
+<to-one name="manager" refEntityName="io.app.sample.dao.entity.AppSampleUser"
+        tagSet="pub">
+    <join><on leftProp="managerId" rightProp="userId"/></join>
+</to-one>
+<to-many name="subordinates" refEntityName="io.app.sample.dao.entity.AppSampleUser"
+         refPropName="manager" tagSet="pub,cascade-delete,insertable,updatable">
+    <join><on leftProp="userId" rightProp="managerId"/></join>
+</to-many>
 ```
 
-### Q3: 如何配置枚举字段？
-**A**: 使用 `ext:dict` 属性：
+### Q3: 枚举字段？
+**A**: 使用 `ext:dict`：
 ```xml
-<column name="status"
-        code="STATUS"
-        displayName="用户状态"
-        ext:dict="auth/user-status"
-        stdDataType="int"
-        stdSqlType="TINYINT"/>
-```
+<!-- 字段定义 -->
+<column name="status" code="STATUS" displayName="用户状态"
+        ext:dict="app-sample/user-status" stdDataType="int" stdSqlType="TINYINT"/>
 
-然后在 dicts 节点定义字典：
-```xml
-<dict name="auth/user-status" label="用户状态" valueType="int">
-    <option label="正常" value="0"/>
-    <option label="禁用" value="1"/>
-    <option label="锁定" value="2"/>
+<!-- 字典定义 -->
+<dict name="app-sample/user-status" label="用户状态" valueType="int">
+    <option code="NORMAL" label="正常" value="0"/>
+    <option code="DISABLED" label="禁用" value="1"/>
+    <option code="LOCKED" label="锁定" value="2"/>
 </dict>
 ```
 
-### Q4: propId 如何分配？
-**A**: propId 从 1 开始递增，必须连续。当删除字段时，不要重用已有的 propId，以保持向后兼容性。新增字段时，使用当前最大 propId + 1。
+**注意**：
+- **boolean 型字段不用设置 dict**，直接使用 `stdSqlType="BOOLEAN"` 即可
+- dict 主要用于具有多个离散值的枚举类型（如状态、类型等）
 
-## 参考资料
+**option code 格式要求**：
+- 全大写字母，使用下划线分隔（如 `CREATED`, `AUTO_CANCEL`, `GROUPON_EXPIRED`）
+- 语义清晰，能表达状态含义（如 `CREATED` 表示已创建，`PAY` 表示已付款）
+- 不要使用缩写（如 `AUTO_CANCEL` 而非 `AUTO_CNL`）
 
-- **SKILL.md**：本文件，包含使用说明和工作流程
-- `orm.xdef|entity.xdef|dict.xdef`：本文件所在目录下，Nop ORM 模型的元模型定义文件
-- `sample.xml`: 本目录下的示例文件
+### Q4: 如何使用 domain？
+**A**: domain 用于定义具有特殊业务规则的字段类型：
+- **不是每个字段都需要 domain**，只有具有重要业务含义的字段才需要
+- **优先复用** `app-sample.orm.xml` 中已有的 domain（domain 是全局的，不能重名）
+- 常见的可复用 domain：
+  - `userName`（用户名，50字符 VARCHAR）
+  - `email`（邮箱，100字符 VARCHAR）
+  - `phone`（电话，100字符 VARCHAR）
+  - `userId`（用户ID，50字符 VARCHAR）
+  - `deptId`（部门ID，50字符 VARCHAR）
+  - `remark`（备注，1000字符 VARCHAR）
+  - `createTime`/`updateTime`（时间，TIMESTAMP）
+  - `createdBy`/`updatedBy`（操作人，50字符 VARCHAR）
 
-## 输出产物
+**示例**：订单编号需要特殊格式验证
+```xml
+<!-- domains 定义 -->
+<domain name="orderNo" precision="32" stdSqlType="VARCHAR"/>
 
-使用我后，将得到：
+<!-- 字段定义 -->
+<column name="orderNo" code="ORDER_NO" displayName="订单编号"
+        domain="orderNo" mandatory="true" stdSqlType="VARCHAR"/>
+```
 
-1. **{module}.orm.xml**：完整的 ORM 模型文件
-2. **设计文档**（可选）：包含表结构、关系、索引的设计说明
+## 生成注意事项
 
-这些产物可以直接用于：
-- Nop平台代码生成
-- 数据库表创建
+### 文件保存位置
+
+**默认位置**：`{appName}/model` 目录下
+- 例：`app-sample` 模块 → `app-sample/model/app-sample.orm.xml`
+
+**appName 不确定时**：使用 `app-xxx` 格式，根据业务语义推断
+
+### 大文件拆分（Delta 模式）
+
+内容过多时拆分为多个 delta 文件：
+
+**文件结构**：
+- Delta 文件：`app-demo-delta-1.orm.xml`、`app-demo-delta-2.orm.xml` ...
+  - 每个 delta 都是完整 orm.xml，但**不含 dicts 和 domains**
+- 主文件：`app-demo.orm.xml`
+  - 通过 `x:extends="app-demo-delta-1.orm.xml,app-demo-delta-2.orm.xml"` 引用
+  - 只包含 delta 文件以外的内容
+
+**合并规则**：
+- Delta 逐层叠加，高层覆盖底层
+- 重复定义以高层为准
+- 类似 Docker 分层机制
+
+
+## 参考文件
+
+- 本目录：`orm.xdef|entity.xdef|dict.xdef`（元模型）
+- 本目录：`app-sample.orm.xml`（示例）
