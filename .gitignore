@@ -85,3 +85,5 @@ node_modules/
 .worktree-base
 .worktree-branch
 .worktree-base
+.worktree-branch
+.worktree-base
