@@ -1,8 +1,38 @@
-# Git Worktree Scripts
+# Tools Directory
 
-Manage isolated worktrees with automatic temporary branches.
+This directory contains utility scripts for development and project management.
 
-## Scripts
+## CLI Tool Installation
+
+### install-cli.sh
+
+Installs the `nop-cli` command that wraps the JAR file for easy command-line access.
+
+```bash
+./install-cli.sh
+```
+
+**What it does:**
+1. Locates the nop-cli JAR file at `nop-runner/nop-cli/target/nop-cli-2.0.0-BETA.1.jar`
+2. Creates a wrapper script in `$HOME/bin` (Windows Git Bash) or `$HOME/.local/bin` (Linux/Mac)
+3. Makes the wrapper executable and sets up the `nop-cli` command
+
+**Features:**
+- Cross-platform: Works on Windows (Git Bash), Linux, and macOS
+- Path-agnostic: Records the absolute path to the JAR file during installation, so it works regardless of where the project is checked out
+- Automatic PATH setup: Provides instructions if the install directory is not in PATH
+
+**Example:**
+```bash
+cd tools
+./install-cli.sh
+# Now you can run: nop-cli --help
+```
+
+**Reinstall after moving the project:**
+If you move the project to a different location, simply run `./install-cli.sh` again to update the wrapper with the new path.
+
+## Git Worktree Scripts
 
 ### create-worktree.sh
 

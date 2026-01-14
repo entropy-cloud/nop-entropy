@@ -56,23 +56,12 @@ mode: subagent
 
 ### nop命令工具
 1. 工具命令列表
-   1. 根据 orm 模型生成项目代码
-       ```bash
-       java -jar nop-cli.jar gen -t=v:/nop/templates/orm -o=${项目模块名} ${/path/to/${项目模块名}.orm.xml}
-       ```
-2. 确定工具是否存在（可选，报错不存在时触发）：使用`glob`工具在项目根目录`.`查询`nop-cli.jar`
-  - 不存在时：[工作目录约定](#工作目录约定)
-
-### 工作目录约定
-```markdown
-project-root
-├─pom.xml # 项目根pom
-├─docs-for-ai # 专门针对AI辅助编程的Nop平台文档
-├─.opencode # opencode工作目录
-│  └─script
-└─────nop-cli.jar # Nop平台命令工具
-```
-如果检测到上面任意文件或文件夹不存在，提示用户先创建根项目并初始化必要的文件结构，然后终止输出。
+    1. 根据 orm 模型生成项目代码
+        ```bash
+        nop-cli gen -t=v:/nop/templates/orm -o=${项目模块名} ${/path/to/${项目模块名}.orm.xml}
+        ```
+    2. 确定工具是否存在（可选，报错不存在时触发）：使用`bash`工具执行`which nop-cli`
+   - 不存在时：提示用户先运行 `nop-entropy/tools/install-cli.sh` 安装 nop-cli 命令
 
 ## 速查表
 ### Nop VS Spring，在Nop中用这些功能替代Spring
