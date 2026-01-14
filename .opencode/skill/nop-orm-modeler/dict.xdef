@@ -1,0 +1,13 @@
+<dict name="string" label="!string" valueType="string"
+      locale="string" static="!boolean=false" tagSet="csv-set"
+      deprecated="!boolean=false" internal="!boolean=false" normalized="!boolean=false"
+      xdef:bean-class="io.nop.api.core.beans.DictBean"
+      x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:xdef="/nop/schema/xdef.xdef"
+>
+    <description>string</description>
+
+    <option xdef:unique-attr="value" xdef:bean-class="io.nop.api.core.beans.DictOptionBean"
+            label="!string" value="string" code="string" group="string" description="string"
+            deprecated="!boolean=false" internal="!boolean=false" />
+</dict>
