@@ -1,136 +1,96 @@
 # Nop平台AI编程开发指南
 
-## 1. 标准目录结构
+## 1. 快速开始
 
-```
-project-root/
-├── _vfs/                 # 虚拟文件系统，平台核心配置和资源
-│   ├── app/              # 应用业务配置
-│   ├── biz/              # 业务模型定义
-│   ├── graphql/          # GraphQL Schema定义
-│   ├── service/          # 服务定义
-│   └── xlib/             # 扩展库
-├── src/                  # 源代码目录
-│   ├── main/java/        # Java源代码
-│   ├── main/resources/   # 资源文件
-│   └── test/             # 测试代码
-├── pom.xml               # Maven配置文件
-└── nop.xdef              # Nop平台核心配置
+```bash
+# 创建项目
+nop-cli create myapp
+
+# 生成代码
+cd myapp
+mvn clean install
+
+# 运行
+java -jar myapp-app/target/myapp-app-*.jar
 ```
 
-## 2. 基本架构组成
+## 2. 核心概念
 
-### 2.1 核心组件
-- **BizModel**: 业务模型，封装复杂业务逻辑
-- **ORM框架**: 基于JPA扩展，支持自动生成实体类和DAO
-- **GraphQL/REST API**: 自动从模型生成，支持动态权限控制
-- **XLang脚本**: 平台自定义脚本语言，用于业务逻辑编写
-- **代码生成器**: 基于模型自动生成前后端代码
+### 2.1 可逆计算
+**公式**: `App = Delta x-extends Generator<DSL>`
 
-### 2.2 分层架构
-- **数据层**: 基于IEntityDao、IOrmTemplate、IJdbcTemplate
-- **服务层**: BizModel实现业务逻辑
-- **API层**: GraphQL/REST API自动生成
-- **视图层**: 基于AMIS框架的低代码前端
+- **模型驱动**: 基于XML模型生成代码
+- **Delta定制**: 不修改源码的定制机制
+- **XLang**: 元编程和面向语言编程
 
-## 3. 异常处理方案
+### 2.2 标准架构
+```
+数据层: IEntityDao, QueryBean
+服务层: BizModel, CrudBizModel
+API层: GraphQL/REST 自动生成
+视图层: XView, AMIS
+```
 
-### 3.1 统一异常类
-使用`NopException`作为统一异常类，支持ErrorCode和错误消息模板。
+## 3. 关键API
 
-### 3.2 ErrorCode定义
+### 3.1 数据访问
 ```java
-public interface IErrorCode {
-    String getCode();
-    String getMessage();
+// CRUD操作
+dao().getEntityById(id);
+dao().findAllByExample(example);
+dao().findPageByQuery(query);
+```
+
+### 3.2 服务层
+```java
+@BizModel("User")
+public class UserBizModel extends CrudBizModel<User> {
+
+    @BizQuery
+    public User findUser(String userId) {
+        return dao().getEntityById(userId);
+    }
+
+    @BizMutation
+    @Transactional
+    public User createUser(User user) {
+        return save(user);
+    }
 }
 ```
 
-### 3.3 异常抛出示例
+### 3.3 异常处理
 ```java
-throw new NopException("ERR_USER_NOT_FOUND", userId);
+throw new NopException(MyErrors.ERR_USER_NOT_FOUND)
+    .param("userId", userId);
 ```
 
-### 3.4 异常捕获与处理
-平台自动处理异常，返回标准化的错误响应：
-```json
-{
-  "errorCode": "ERR_USER_NOT_FOUND",
-  "message": "用户不存在: 123",
-  "detail": "详细错误信息"
-}
-```
-
-## 4. 帮助类使用
-
-### 4.1 核心帮助类
-- **StringHelper**: 字符串处理，如`escapeHtml`、`padLeft`
-- **DateHelper**: 日期时间处理，如`formatDate`、`parseDateTime`
-- **ConvertHelper**: 类型转换，如`toInt`、`toNumber`
-- **BeanTool**: 反射和Bean操作，如`getProperty`、`setProperty`
-- **JsonTool**: JSON处理，如`toJson`、`parseJson`
-- **XNode**: XML处理，如`fromXml`、`toXml`
-
-### 4.2 使用示例
+### 3.4 常用Helper
 ```java
-// 字符串处理
-String escaped = StringHelper.escapeHtml("<script>");
-
-// 日期格式化
-String dateStr = DateHelper.formatDate(new Date(), "yyyy-MM-dd");
-
-// Bean属性访问
-Object value = BeanTool.getProperty(bean, "user.name");
+StringHelper.isEmpty(str);
+DateHelper.formatDate(new Date());
+BeanTool.getProperty(bean, "name");
 ```
 
-## 5. 框架使用关键信息
+## 4. 快速链接
 
-### 5.1 模型驱动开发
-- 基于XML定义模型，自动生成代码
-- 支持差量化定制，保持模型与代码的同步
+### 4.1 开发指南
+- [项目结构与代码生成](../../development/module-structure-guide.md) - ⭐
+- [数据层开发](./dao/data-layer-development.md)
+- [服务层开发](./service/service-layer-development.md)
 
-### 5.2 代码生成
-- 使用FreeMarker模板，可自定义生成逻辑
-- 支持生成Java代码、GraphQL Schema、前端页面
+### 4.2 核心文档
+- [完整开发规范](./nop-ai-development.md)
+- [IEntityDao使用](./dao/entitydao-usage.md)
+- [事务管理](./core/transaction-guide.md)
+- [异常处理](./core/exception-guide.md)
 
-### 5.3 测试调试
-- 单元测试：使用JUnit 5
-- 集成测试：基于Nop平台测试框架
-- 调试技巧：使用NopDevKit插件
+### 4.3 最佳实践
+- 使用 `CrudBizModel` 内置方法
+- 使用 `QueryBean` 和 `FilterBeans` 构建查询
+- 使用 `@Transactional` 注解管理事务
+- 使用 `NopException` 统一异常处理
 
-### 5.4 配置管理
-- 使用xdef文件定义配置结构
-- 支持多环境配置，自动加载对应环境配置
+---
 
-### 5.5 权限控制
-- 基于角色的访问控制(RBAC)
-- 支持字段级权限控制
-- 动态权限规则配置
-
-## 6. 最佳实践
-
-1. **优先使用平台内置组件**：避免重复造轮子
-2. **遵循模型驱动开发原则**：先定义模型，再生成代码
-3. **保持代码简洁**：避免冗余，使用平台提供的工具类
-4. **统一异常处理**：使用NopException和ErrorCode
-5. **充分利用代码生成器**：减少手动编码，提高一致性
-6. **编写清晰的错误信息**：便于调试和用户理解
-
-## 7. 快速开始
-
-1. **创建项目**：使用Nop平台脚手架生成项目
-2. **定义模型**：在_vfs目录下创建模型文件
-3. **生成代码**：运行代码生成命令
-4. **实现业务逻辑**：在BizModel中编写业务代码
-5. **测试**：编写单元测试和集成测试
-6. **部署**：打包部署到服务器
-
-## 8. 资源与支持
-
-- **官方文档**：[Nop平台文档](https://docs.nop.dev/)
-- **示例项目**：nop-demo目录下的示例代码
-- **社区支持**：GitHub Issues和Discord社区
-
-## 9. 更新日志
-
-- 2026-01-02：初始创建AI编程开发指南
+**详细文档**: [完整开发规范](./nop-ai-development.md)

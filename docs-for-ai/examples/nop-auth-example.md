@@ -6,29 +6,17 @@
 
 ## 项目结构
 
-```
-nop-auth/
-├── nop-auth.orm.xml            # 数据库模型定义（model目录使用模块名）
-├── nop-auth.api.xml            # API模型定义
-├── src/
-│   ├── main/java/io/nop/auth/
-│   │   ├── dao/                # DAO接口
-│   │   ├── domain/             # 实体类
-│   │   ├── service/            # 服务实现
-│   │   │   ├── NopAuthUserBizModel.java       # 用户业务模型
-│   │   │   ├── NopAuthRoleBizModel.java       # 角色业务模型
-│   │   │   ├── NopAuthPermissionBizModel.java # 权限业务模型
-│   │   │   └── NopAuthUserRoleBizModel.java   # 用户角色关系
-│   │   └── web/                # Web控制器
-│   └── main/resources/
-│       └── _vfs/               # 虚拟文件系统（_vfs目录下使用app.orm.xml等命名）
-│           ├── app/            # 应用配置
-│           │   └── app.orm.xml # ORM模型定义
-│           ├── biz/            # 业务模型
-│           ├── graphql/        # GraphQL定义
-│           └── xlib/           # 扩展库
-└── pom.xml                      # Maven配置
-```
+**标准项目结构**: 详见[项目结构与代码生成指南](../development/module-structure-guide.md)
+
+**关键模块**:
+- `nop-auth-codegen` - 代码生成模块
+- `nop-auth-dao` - 数据访问层（Entity、DAO）
+- `nop-auth-service` - 服务层（BizModel）
+- `nop-auth-web` - 视图层（XView、页面）
+- `nop-auth-meta` - 元数据模块
+- `nop-auth-app` - 应用模块
+
+**源模型文件**: `model/nop-auth.orm.xml`
 
 ## 数据库模型设计
 

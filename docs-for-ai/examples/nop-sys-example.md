@@ -6,29 +6,17 @@
 
 ## 项目结构
 
-```
-nop-sys/
-├── nop-sys.orm.xml             # 数据库模型定义（model目录使用模块名）
-├── nop-sys.api.xml             # API模型定义
-├── src/
-│   ├── main/java/io/nop/sys/
-│   │   ├── dao/                # DAO接口
-│   │   ├── domain/             # 实体类
-│   │   ├── service/            # 服务实现
-│   │   │   ├── NopSysDictBizModel.java       # 字典业务模型
-│   │   │   ├── NopSysDictItemBizModel.java   # 字典项业务模型
-│   │   │   ├── NopSysMenuBizModel.java       # 菜单业务模型
-│   │   │   └── NopSysConfigBizModel.java      # 配置业务模型
-│   │   └── web/                # Web控制器
-│   └── main/resources/
-│       └── _vfs/               # 虚拟文件系统（_vfs目录下使用app.orm.xml等命名）
-│           ├── app/            # 应用配置
-│           │   └── app.orm.xml # ORM模型定义
-│           ├── biz/            # 业务模型
-│           ├── graphql/        # GraphQL定义
-│           └── xlib/           # 扩展库
-└── pom.xml                      # Maven配置
-```
+**标准项目结构**: 详见[项目结构与代码生成指南](../development/module-structure-guide.md)
+
+**关键模块**:
+- `nop-sys-codegen` - 代码生成模块
+- `nop-sys-dao` - 数据访问层（Entity、DAO）
+- `nop-sys-service` - 服务层（BizModel）
+- `nop-sys-web` - 视图层（XView、页面）
+- `nop-sys-meta` - 元数据模块
+- `nop-sys-app` - 应用模块
+
+**源模型文件**: `model/nop-sys.orm.xml`
 
 ## 数据库模型设计
 

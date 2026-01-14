@@ -6,29 +6,17 @@
 
 ## 项目结构
 
-```
-nop-wf/
-├── nop-wf.orm.xml              # 数据库模型定义（model目录使用模块名）
-├── nop-wf.api.xml              # API模型定义
-├── src/
-│   ├── main/java/io/nop/wf/
-│   │   ├── dao/                # DAO接口
-│   │   ├── domain/             # 实体类
-│   │   ├── service/            # 服务实现
-│   │   │   ├── NopWfDefinitionBizModel.java     # 流程定义业务模型
-│   │   │   ├── NopWfInstanceBizModel.java      # 流程实例业务模型
-│   │   │   ├── NopWfTaskBizModel.java          # 任务业务模型
-│   │   │   └── NopWfEngineBizModel.java         # 工作流引擎
-│   │   └── web/                # Web控制器
-│   └── main/resources/
-│       └── _vfs/               # 虚拟文件系统（_vfs目录下使用app.orm.xml等命名）
-│           ├── app/            # 应用配置
-│           │   └── app.orm.xml # ORM模型定义
-│           ├── biz/            # 业务模型
-│           ├── wf/             # 工作流定义
-│           └── xlib/           # 扩展库
-└── pom.xml                      # Maven配置
-```
+**标准项目结构**: 详见[项目结构与代码生成指南](../development/module-structure-guide.md)
+
+**关键模块**:
+- `nop-wf-codegen` - 代码生成模块
+- `nop-wf-dao` - 数据访问层（Entity、DAO）
+- `nop-wf-service` - 服务层（BizModel）
+- `nop-wf-web` - 视图层（XView、页面）
+- `nop-wf-meta` - 元数据模块
+- `nop-wf-app` - 应用模块
+
+**源模型文件**: `model/nop-wf.orm.xml`
 
 ## 数据库模型设计
 
