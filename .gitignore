@@ -81,4 +81,5 @@ node_modules/
 /.knosys/sites/default/package.json
 
 /nop-runner/nop-cli-jdk11/dependency-reduced-pom.xml
-.claude
+.claude.worktree-branch
+.worktree-base
