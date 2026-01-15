@@ -103,7 +103,7 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
     /**
      *  
      * xml name: initApi
-     * <saveFailed xdef:value="string" />
+     * <saveFailed>string</saveFailed>
      */
     private io.nop.xui.model.UiApiModel _initApi ;
     
@@ -596,7 +596,7 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
     /**
      * 
      * xml name: initApi
-     *  <saveFailed xdef:value="string" />
+     *  <saveFailed>string</saveFailed>
      */
     
     public io.nop.xui.model.UiApiModel getInitApi(){

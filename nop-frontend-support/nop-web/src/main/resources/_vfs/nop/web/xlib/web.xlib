@@ -744,7 +744,7 @@
                 const attrs = _.pickNotNull(gridModel, ["className",
                      "columnNum", "affixHeader","checkOnItemClick",
                      "selectable", "multiple", "combineNum",
-                     "combineFromIndex", "placeholder",
+                     "combineFromIndex", "placeholder", "rowClassName",
                      "headerClassName", "footerClassName","toolbarClassName",
                      "stopAutoRefreshWhen","itemCheckableOn",
                      "prefixRow", "affixRow", "affixRowClassName",
