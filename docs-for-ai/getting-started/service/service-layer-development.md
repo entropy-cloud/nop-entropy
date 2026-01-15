@@ -71,13 +71,13 @@ public class UserBizModel extends CrudBizModel<User> {
 **示例**：
 ```java
 @Inject
-private IPasswordEncoder passwordEncoder;
+protected IPasswordEncoder passwordEncoder;
 
 @Inject
-private IUserIdGenerator userIdGenerator;
+protected IUserIdGenerator userIdGenerator;
 
 @Inject
-private IPasswordPolicy passwordPolicy;
+protected IPasswordPolicy passwordPolicy;
 ```
 
 ### 3. 实现业务方法
@@ -128,13 +128,13 @@ protected void defaultPrepareSave(User user) {
 @BizModel
 public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
     @Inject
-    private IPasswordEncoder passwordEncoder;
+    protected IPasswordEncoder passwordEncoder;
     
     @Inject
-    private IUserIdGenerator userIdGenerator;
+    protected IUserIdGenerator userIdGenerator;
     
     @Inject
-    private IPasswordPolicy passwordPolicy;
+    protected IPasswordPolicy passwordPolicy;
     
     public NopAuthUserBizModel() {
         setEntityName(NopAuthUser.class.getName());
@@ -278,7 +278,7 @@ public void approveUser(String userId) {
 public class UserBizModel extends CrudBizModel<NopAuthUser> {
 
     @Inject
-    private OrderBizModel orderBizModel;
+    protected OrderBizModel orderBizModel;
 
     @BizQuery
     public List<Order> getUserOrders(@Name("userId") String userId) {

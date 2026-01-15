@@ -489,7 +489,6 @@ public class ValidatorBizModel {
 在事务提交后执行操作：
 
 ```java
-@Component
 public class TransactionListener {
 
     @AfterTransactionCommit
@@ -523,7 +522,6 @@ public class TransactionListener {
 在事务回滚后执行操作：
 
 ```java
-@Component
 public class RollbackListener {
 
     @AfterTransactionRollback
@@ -557,7 +555,7 @@ public class RollbackListener {
 public class OrderBizModel {
 
     @Inject
-    private IPaymentService paymentService;
+    protected IPaymentService paymentService;
     @Inject
     private IInventoryService inventoryService;
 
@@ -824,64 +822,17 @@ public void batchCreateUsers(List<User> users) {
 
 ## 事务调试
 
-### 1. 事务日志
+docs-for-ai 不提供基于 Spring 组件模型/注解的“事务事件监听/监控/AOP”示例（例如 `@Component`、`@Around` 等），因为这类写法很容易与 Nop 平台实际机制不一致。
 
-记录事务执行信息：
+如果需要补充事务日志/监控能力，请以仓库真实实现为准，按以下流程处理：
 
-```java
-@Component
-public class TransactionLogger {
+1. 先在仓库源码中搜索确认可用的扩展点（相关注解/接口/事件）。
+2. 只给出能在仓库中找到依据的示例（类名/包名/注解均可验证）。
 
-    private static final Logger LOG = LoggerFactory.getLogger(TransactionLogger.class);
+参考：
 
-    @BeforeTransaction
-    public void beforeTransaction(TransactionalEvent event) {
-        LOG.info("Transaction started: method={}, class={}",
-            event.getMethod().getName(),
-            event.getTarget().getClass().getSimpleName()
-        );
-    }
-
-    @AfterTransactionComplete
-    public void afterTransaction(TransactionalEvent event) {
-        long duration = System.currentTimeMillis() - event.getStartTime();
-        LOG.info("Transaction completed: method={}, duration={}ms",
-            event.getMethod().getName(),
-            duration
-        );
-    }
-}
-```
-
-### 2. 事务监控
-
-监控事务执行时间和状态：
-
-```java
-@Component
-public class TransactionMonitor {
-
-    private static final Logger LOG = LoggerFactory.getLogger(TransactionMonitor.class);
-
-    @Around("@annotation(Transactional)")
-    public Object monitor(ProceedingJoinPoint joinPoint) throws Throwable {
-        long startTime = System.currentTimeMillis();
-
-        try {
-            return joinPoint.proceed();
-        } finally {
-            long duration = System.currentTimeMillis() - startTime;
-
-            if (duration > 5000) { // 超过5秒
-                LOG.warn("Slow transaction: method={}, duration={}ms",
-                    joinPoint.getSignature().toShortString(),
-                    duration
-                );
-            }
-        }
-    }
-}
-```
+- `docs-for-ai/getting-started/core/transaction-guide.md`
+- `docs-for-ai/getting-started/nop-vs-traditional-frameworks.md`
 
 ## 常见问题
 

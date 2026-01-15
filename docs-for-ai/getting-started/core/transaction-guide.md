@@ -80,7 +80,7 @@ public void tccOperation(String id) {
 
 ```java
 @Inject
-private ITransactionTemplate txnTemplate;
+protected ITransactionTemplate txnTemplate;
 
 public void updateUserData(String userId, String newName) {
     txnTemplate.runInTransaction(txn -> {
@@ -195,7 +195,7 @@ public void transferOrder(String fromOrderId, String toOrderId) {
 
 ```java
 @Inject
-private ITransactionTemplate txnTemplate;
+protected ITransactionTemplate txnTemplate;
 
 public void operationWithListeners(String userId) {
     txnTemplate.runInTransaction(txn -> {
@@ -348,10 +348,10 @@ public void innerMethod(String userId) {
 public class OrderBizModel extends CrudBizModel<Order> {
 
     @Inject
-    private InventoryBizModel inventoryBizModel;
+    protected InventoryBizModel inventoryBizModel;
 
     @Inject
-    private PaymentBizModel paymentBizModel;
+    protected PaymentBizModel paymentBizModel;
 
     @BizMutation
     @Transactional

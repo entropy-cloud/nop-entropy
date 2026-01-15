@@ -86,6 +86,7 @@ public class MyEntityBizModel extends CrudBizModel<MyEntity> {
 - GraphQL API：`http://localhost:8080/graphql`
 - REST API：`http://localhost:8080/r/MyEntity__findPage`
 
+
 ## 典型开发模式
 
 ### 1. 标准 CRUD（无自定义逻辑）

@@ -150,7 +150,7 @@ x:gen-extends: |
 
 ### 4. 部署和访问
 
-部署后通过浏览器访问页面，如`http://localhost:8080/#/nop/auth/NopAuthUser/main`
+部署后通过浏览器访问页面（路由前缀/端口以实际部署为准），例如：`http://localhost:8080/#/nop/auth/NopAuthUser/main`
 
 ## 核心配置示例
 
@@ -311,7 +311,7 @@ x:gen-extends: |
 
 1. **x:abstract属性**：标记为`x:abstract="true"`的节点是模板节点，在派生模型中必须明确声明才会保留
 2. **x:prototype继承**：使用`x:prototype`可以从兄弟节点继承配置
-3. **表单布局DSL**：表单布局使用特殊的DSL语法，具体参考[layout.md](layout.md)
+3. **表单布局DSL**：表单布局使用特殊的DSL语法（本仓库未提供独立的 `layout.md`，建议结合本指南示例与XDef定义理解）
 4. **API配置**：API配置支持GraphQL语法，如`@query:NopAuthUser__findPage/{@pageSelection}`
 5. **操作类型选择**：根据表单复杂度选择合适的操作类型（drawer/dialog）
 6. **权限控制**：在配置中添加权限检查，确保只有授权用户可以访问

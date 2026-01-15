@@ -538,62 +538,22 @@ public class User implements IOrmEntity {
 
 ### 5. 读写分离
 
-```java
-@Component
-public class MyOrmTemplate {
-    @Inject
-    @Named("writeDataSource")
-    private IDataSource writeDataSource;
+docs-for-ai 不提供基于 Spring 组件模型的示例（如 `@Component`），也不假设读写分离的默认实现方式。
 
-    @Inject
-    @Named("readDataSource")
-    private IDataSource readDataSource;
+如果要说明读写分离：
 
-    public <T> T runInReadTransaction(ITransactionAction<T> action) {
-        return ormTemplate.runInTransaction(action, readDataSource);
-    }
-
-    public <T> T runInWriteTransaction(ITransactionAction<T> action) {
-        return ormTemplate.runInTransaction(action, writeDataSource);
-    }
-}
-```
+- 先在仓库源码中搜索确认真实存在的 DataSource 抽象、命名方式、以及事务/ORM 模板 API。
+- 示例里出现的注解/接口/类名必须能在仓库中找到来源。
 
 ## 扩展点
 
 ### 1. 自定义类型转换器
 
-```java
-@Component
-public class MyTypeConverter implements ITypeConverter {
-    @Override
-    public Object convert(Object value, Class<?> targetType) {
-        // 自定义转换逻辑
-    }
-}
-```
+如需扩展类型转换器，请以仓库中已有的 `ITypeConverter` 及其实现为准；docs-for-ai 不提供不可验证的示例代码。
 
 ### 2. 自定义拦截器
 
-```java
-@Component
-public class MyOrmInterceptor implements IOrmInterceptor {
-    @Override
-    public void onSave(IOrmEntity entity) {
-        // 保存前处理
-    }
-
-    @Override
-    public void onUpdate(IOrmEntity entity) {
-        // 更新前处理
-    }
-
-    @Override
-    public void onDelete(IOrmEntity entity) {
-        // 删除前处理
-    }
-}
-```
+如需扩展 ORM 拦截器，请以仓库中已有的 `IOrmInterceptor` 及其实现为准；docs-for-ai 不提供不可验证的示例代码。
 
 ### 3. 自定义SQL生成器
 

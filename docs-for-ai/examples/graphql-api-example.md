@@ -903,11 +903,7 @@ query DeepQuery {
 
 ### 1. GraphQL Playground
 
-使用内置的GraphQL Playground：
-
-```
-http://localhost:8080/q/graphql-ui
-```
+如果运行框架/依赖启用了 GraphQL UI（有的 Quarkus 配置可能提供 `/q/graphql-ui`），可以直接在浏览器里调试 GraphQL。
 
 ### 2. 图形化查询
 
@@ -933,15 +929,14 @@ query GetUser($userId: String!) {
 
 ### 3. 自动化测试
 
-使用Jest等测试框架：
+使用 JUnit 等测试框架：
 
 ```java
 @ExtendWith(JunitExtension.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class GraphQLTest {
 
-    @Autowired
-    private GraphQLTestTemplate testTemplate;
+  @Inject
+  protected GraphQLTestTemplate testTemplate;
 
     @Test
     public void testGetUser() {

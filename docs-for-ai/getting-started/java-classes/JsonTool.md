@@ -82,7 +82,7 @@ System.out.println("合并后的配置：" + JsonTool.serialize(config, true));
 - 线程安全：所有方法都是线程安全的
 - 多种格式：同时支持JSON、JSON5和YAML格式
 - 资源协议：支持Nop平台内置的IResource接口和虚拟文件系统。_vfs是Nop平台的虚拟文件系统根路径，在开发时通常映射到项目的src/main/resources/_vfs目录
-- Delta合并: Delta合并是Nop平台独有的可逆计算功能，具体参见[delta/delta-customization.md](delta/delta-customization.md)
+- Delta合并: Delta合并是Nop平台独有的可逆计算功能，更多背景参见[模块结构与代码生成指南](../../development/module-structure-guide.md)
 
 ## 兼容性说明
 

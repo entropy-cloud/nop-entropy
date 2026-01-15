@@ -169,14 +169,18 @@ from nop_sys_sequence as o
 
 在debug模式下，可以通过以下链接查看系统内部信息：
 
-- `/p/DevDoc__beans`：查看实际装载的Bean
-- `/r/DevDoc__globalFunctions`：查看系统中定义的全局函数
-- `/r/DevDoc__globalVars`：查看系统中定义的全局变量
-- `/r/DevDoc__configVars`：查看当前启用的配置变量集合
-- `/p/DevDoc__graphql`：查看后台所有的GraphQL服务以及类型定义
+DevDoc 在源码中对应 BizModel：`io.nop.biz.dev.DevDocBizModel`（`@BizModel("DevDoc")`）。
+
+不同运行框架（Quarkus/Spring 等）和网关配置下，DevDoc 暴露为 HTTP/GraphQL 的具体 URL 可能不同；因此这里建议按**GraphQL 调用名**理解，而不是固定的 `/p/...`、`/r/...` 路径：
+
+- `DevDoc__beans`：查看实际装载的 Bean
+- `DevDoc__globalFunctions`：查看系统中定义的全局函数
+- `DevDoc__globalVars`：查看系统中定义的全局变量
+- `DevDoc__configVars`：查看当前启用的配置变量集合
+- `DevDoc__graphql`：查看后台所有的 GraphQL 服务以及类型定义
 ### 5.4 GraphQL调试工具
 
-Quarkus框架内置了`graphql-ui`调试工具，通过链接`/q/graphql-ui`可以访问到调试页面，查看所有后台GraphQL端点和类型定义。
+若运行框架/依赖中启用了 GraphQL UI（例如某些 Quarkus 配置可能提供 `/q/graphql-ui`），可使用其进行调试；具体是否可用以及访问路径以当前启动模块的配置为准。
 
 ## 6. 模型Dump
 

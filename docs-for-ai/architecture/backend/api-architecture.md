@@ -544,25 +544,7 @@ public class User implements IOrmEntity {
 
 ### 1. 自定义拦截器
 
-```java
-@Component
-public class MyInterceptor implements IBizInterceptor {
-    @Override
-    public Object intercept(IBizInterceptorChain chain) {
-        // 前置处理
-        log.info("Method: {}", chain.getMethod().getName());
-
-        try {
-            Object result = chain.proceed();
-            // 后置处理
-            return result;
-        } catch (Exception e) {
-            // 异常处理
-            throw e;
-        }
-    }
-}
-```
+如需扩展拦截器（例如 `IBizInterceptor`），请以仓库真实注册/装配方式为准；docs-for-ai 不提供带 Spring `@Component` 的示例代码。
 
 ### 2. 自定义查询策略
 
@@ -578,15 +560,7 @@ public class CustomQueryStrategy implements IQueryStrategy {
 
 ### 3. 自定义事务管理
 
-```java
-@Component
-public class MyTransactionManager {
-    public <T> T runInTransaction(ITransactionAction<T> action) {
-        // 自定义事务管理逻辑
-        // ...
-    }
-}
-```
+自定义事务管理能力请以仓库真实事务体系为准（参考事务管理指南），docs-for-ai 不提供带 Spring `@Component` 的示例代码。
 
 ## 相关文档
 

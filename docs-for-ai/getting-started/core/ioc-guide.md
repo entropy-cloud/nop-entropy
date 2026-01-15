@@ -162,18 +162,23 @@ NopIoC的核心实现类，主要功能包括：
 ### 注解驱动配置
 
 ```java
-@Component
 public class MyComponent {
     
     @Inject
-    private MyDependency dependency;
+    protected MyDependency dependency;
     
-    @Value("@cfg:app.config-value")
-    private String configValue;
+    @InjectValue("@cfg:app.config-value")
+    protected String configValue;
     
     // ...
 }
 ```
+
+> 注意：NopIoC **不支持** 对 `private` 字段进行注入。
+> 
+> - 如果要使用字段注入，请使用 `protected` 或 package-private（无修饰符）字段。
+> - 或者改用 **setter 注入**。
+> - 注入配置/常量值请使用 `@InjectValue`（避免使用 Spring 的 `@Value`）。
 
 ## 高级特性
 
@@ -223,7 +228,7 @@ NopIoC与JUnit5集成，通过`@NopTestConfig`注解控制IoC容器初始化过�
 public class MyTest {
     
     @Inject
-    private MyService myService;
+    protected MyService myService;
     
     @Test
     public void testMyService() {
@@ -278,12 +283,11 @@ NopIoC会自动检测循环依赖，并在启动时抛出异常，可通过配�
 1. **使用@Lazy注解**：延迟初始化Bean
 
 ```java
-@Component
 public class ServiceA {
 
     @Inject
     @Lazy
-    private ServiceB serviceB;
+    protected ServiceB serviceB;
 
     public void doWork() {
         serviceB.doWork();
@@ -300,16 +304,14 @@ public interface IServiceB {
     void doWork();
 }
 
-@Component
 public class ServiceB implements IServiceB {
     // 实现
 }
 
-@Component
 public class ServiceA {
 
     @Inject
-    private IServiceB serviceB; // 注入接口，避免循环依赖
+    protected IServiceB serviceB; // 注入接口，避免循环依赖
 }
 ```
 
@@ -318,7 +320,6 @@ public class ServiceA {
 **答案**: 使用@DependsOn注解指定依赖关系：
 
 ```java
-@Component
 @DependsOn({"dataSource", "transactionManager"})
 public class MyService {
     // 会在dataSource和transactionManager初始化之后初始化
@@ -330,11 +331,10 @@ public class MyService {
 **答案**: 使用@PostConstruct和@PreDestroy注解：
 
 ```java
-@Component
 public class MyService {
 
     @Inject
-    private DataSource dataSource;
+    protected DataSource dataSource;
 
     @PostConstruct
     public void init() {
@@ -355,8 +355,6 @@ public class MyService {
 **答案**: 使用@Conditional注解或条件配置：
 
 ```java
-@Component
-@ConditionalOnProperty(name = "feature.enabled", havingValue = "true")
 public class FeatureService {
     // 只有当feature.enabled=true时才会被装配
 }
@@ -375,7 +373,7 @@ public class FeatureService {
 
 ```java
 @Inject
-private IClassContainer classContainer;
+protected IClassContainer classContainer;
 
 public void doGetBean() {
     // 按类型获取Bean
@@ -395,7 +393,7 @@ public void doGetBean() {
 
 ```java
 @Inject
-private IClassContainer classContainer;
+protected IClassContainer classContainer;
 
 public void registerDynamicBean() {
     // 动态注册Bean
@@ -405,57 +403,37 @@ public void registerDynamicBean() {
 
 ### Q7: 如何使用AOP？
 
-**答案**: 使用@Aspect注解定义切面：
+**答案**: 不要在 docs-for-ai 里直接套用 Spring AOP 的 `@Aspect/@Around` 示例。
 
-```java
-@Aspect
-public class LoggingAspect {
+- 如果你要写 AOP/拦截/切面相关内容，必须先在仓库源码中搜索确认真实存在的注解/接口/用法，再给出示例。
+- 如果当前无法做到“可验证的源码依据”，这里请只保留入口链接，并在示例中避免出现仓库里不存在的注解。
 
-    @Around("execution(* com.example.service.*.*(..))")
-    public Object logAround(ProceedingJoinPoint joinPoint) throws Throwable {
-        System.out.println("Before: " + joinPoint.getSignature());
-        Object result = joinPoint.proceed();
-        System.out.println("After: " + joinPoint.getSignature());
-        return result;
-    }
-}
-```
+参考：
+
+- `docs-for-ai/getting-started/nop-vs-traditional-frameworks.md`
 
 ### Q8: 如何配置Bean的作用域？
 
-**答案**: 使用@Scope注解：
+**答案**: 作用域相关内容请以仓库实际实现为准。
 
-```java
-@Component
-@Scope("prototype") // 每次获取都创建新实例
-public class PrototypeBean {
-    // 默认是singleton，每次获取都是同一个实例
-}
-```
-
-支持的作用域：
-- **singleton**: 单例（默认）
-- **prototype**: 原型，每次获取都创建新实例
-- **request**: 请求作用域
-- **session**: 会话作用域
+docs-for-ai 不提供 Spring 的 `@Scope` 示例或“request/session”等 Web 容器作用域的默认结论；如果需要说明，必须先以源码/配置文档为依据并给出可验证链接。
 
 ### Q9: 如何处理Bean的依赖关系？
 
 **答案**: 使用@Inject注解自动注入依赖：
 
 ```java
-@Component
 public class MyService {
 
     @Inject
-    private DataSource dataSource;
+    protected DataSource dataSource;
 
     @Inject
     @Named("myTransactionManager")
-    private TransactionManager transactionManager;
+    protected TransactionManager transactionManager;
 
     @Inject
-    private List<MyPlugin> plugins; // 注入所有MyPlugin类型的Bean
+    protected List<MyPlugin> plugins; // 注入所有MyPlugin类型的Bean
 }
 ```
 
@@ -468,7 +446,7 @@ public class MyService {
 public class MyServiceTest {
 
     @Inject
-    private MyService myService;
+    protected MyService myService;
 
     @Test
     public void testDoWork() {

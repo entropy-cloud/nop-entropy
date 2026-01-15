@@ -6,7 +6,7 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 
 ## 文档总览
 
-本文档目录为AI大模型提供了全面的Nop平台开发文档，所有示例代码都经过源码验证，确保100%准确性。
+本文档目录为AI大模型提供了全面的Nop平台开发文档；示例代码会尽量与当前仓库源码保持一致，但仍可能随版本演进产生差异。如发现不一致，请以源码为准并欢迎补充修正。
 
 ## 快速导航
 
@@ -20,7 +20,7 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 ### 📚 文档索引
 
 #### 入门指南
-- **[README.md](./README.md)** - 文档总索引
+- **[Getting Started](./getting-started/README.md)** - 文档总索引
 - **[AI开发规范](./getting-started/ai/nop-ai-development.md)** - Nop平台开发规范
 - **[AI编程开发指南](./getting-started/ai/nop-ai-developer-guide.md)** - AI编程指导
 
@@ -84,14 +84,8 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 
 #### 快速参考
 - **[API快速参考](./quick-reference/api-quick-reference.md)** - ⭐ API快速参考
-- **[架构参考](./quick-reference/architecture-quick-reference.md)** - 架构参考
-- **[Helper类参考](./quick-reference/helper-quick-reference.md)** - Helper类参考
+- **[快速参考目录](./quick-reference/INDEX.md)** - 更多快速参考条目
 
-#### 支持文档
-- **[文档编写计划](./DOCUMENTATION_PLAN.md)** - 详细文档计划
-- **[验证报告](./VERIFICATION_REPORT.md)** - 验证报告
-- **[工作总结](./SUMMARY.md)** - 工作总结
-- **[最终报告](./FINAL_REPORT.md)** - ⭐ 最终完成报告
 
 ## 核心API
 

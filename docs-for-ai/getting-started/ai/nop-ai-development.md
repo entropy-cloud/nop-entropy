@@ -475,7 +475,7 @@ public class MyService {
 public void testOrmQuery() {
     try (OrmSession session = ormProvider.openSession()) {
         List<User> users = session.query(User.class).where("name", "like", "test%").list();
-        Assert.assertNotNull(users);
+        assertNotNull(users);
     }
 }
 ```
@@ -501,7 +501,7 @@ public class MyTest extends JunitAutoTestCase {
 
 - **IDEA插件**：使用Nop IDEA插件进行XLang断点调试
 - **Quarkus Dev UI**：通过`http://localhost:8080/q/dev`进行开发期调试
-- **GraphQL UI**：通过`http://localhost:8080/q/graphql-ui`查看和测试GraphQL服务
+- **GraphQL UI**：如果运行框架/依赖启用了 GraphQL UI（例如某些 Quarkus 配置可能提供 `/q/graphql-ui`），可以用来查看和测试 GraphQL 服务；具体以当前启动模块配置为准。
 - **日志调试**：通过配置日志级别，查看详细的执行日志
 
 ## 11. 最佳实践

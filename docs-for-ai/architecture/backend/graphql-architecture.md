@@ -414,7 +414,9 @@ public class GraphQLTransactionInterceptor {
 
 ### 1. 批量查询 (Batch Query)
 
-使用`@DataLoader`实现批量查询，避免N+1问题：
+批量查询用于减少 N+1 问题。
+
+docs-for-ai 不直接给出基于 Spring 组件模型的示例（如 `@Component`），也不引入仓库里不存在的 `@DataLoader` 注解；如果要给代码示例，必须先在仓库中搜索确认真实存在的接口/注解/注册方式。
 
 ```java
 @BizModel("Order")
@@ -428,14 +430,7 @@ public class OrderBizModel extends CrudBizModel<NopOrder> {
     }
 }
 
-// 使用DataLoader批量加载用户信息
-@Component
-public class UserDataLoader implements IGraphQLDataLoader {
-    @Override
-    public List<User> load(List<String> userIds) {
-        return userDao.batchGetEntitiesByIds(userIds);
-    }
-}
+// DataLoader/批量加载的实现方式以仓库真实机制为准
 ```
 
 GraphQL查询：
@@ -554,22 +549,11 @@ subscription {
 
 ### 2. WebSocket连接
 
-GraphQL订阅通过WebSocket建立持久连接：
+GraphQL 订阅与 WebSocket 的具体接入方式请以仓库真实实现为准（docs-for-ai 不提供不可验证的 handler 示例）。
 
-```java
-@Component
-public class GraphQLWebSocketHandler {
-    @OnMessage
-    public void handleMessage(WebSocketSession session, String message) {
-        // 处理GraphQL订阅消息
-    }
+参考：
 
-    @OnClose
-    public void handleClose(WebSocketSession session) {
-        // 清理订阅
-    }
-}
-```
+- `docs-for-ai/getting-started/api/graphql-guide.md`
 
 ## 错误处理
 

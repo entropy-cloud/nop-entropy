@@ -480,11 +480,11 @@ Delta 模块是 Nop 平台实现定制化开发的核心机制，可以在不修
 
 ## 十、参考资源
 
-- [代码生成文档](../../../dev-guide/codegen.md)
+- [代码生成文档](../../docs/dev-guide/nocode/dyn-codegen.md)
 - [模块依赖文档](../../architecture/development/module-dependencies.md)
-- [Delta 定制文档](../../../dev-guide/delta/delta-customization.md)
+- [Delta 定制文档](../../docs/dev-guide/delta-loader.md)
 - [nop-app-mall 示例项目](https://gitee.com/canonical-entropy/nop-app-mall)
-- [CLI 工具文档](../../../dev-guide/cli.md)
+- CLI 工具文档：本仓库 `docs/dev-guide/` 下未提供对应 `cli.md`，如需要请在 `docs`/`docs-en` 中搜索 “cli”/“nop-cli”。
 
 ## 十一、常见问题
 

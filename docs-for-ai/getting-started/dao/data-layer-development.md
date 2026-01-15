@@ -21,7 +21,7 @@ Nop平台提供多种数据访问方式，包括ORM框架、JDBC模板、SQL库�
 - 基于实体的复杂查询
 - 需要自动处理关联关系的场景
 
-**详细用法**：请参考[IEntityDao 使用指南](ientitydao-usage.md)
+**详细用法**：请参考[IEntityDao 使用指南](entitydao-usage.md)
 
 ### 2. IOrmTemplate - ORM模板
 
@@ -41,7 +41,7 @@ Nop平台提供多种数据访问方式，包括ORM框架、JDBC模板、SQL库�
 **示例代码**：
 ```java
 @Inject
-private IOrmTemplate ormTemplate;
+protected IOrmTemplate ormTemplate;
 
 // 事务管理
 ormTemplate.runInTxn(() -> {
@@ -77,7 +77,7 @@ List<Map<String, Object>> result = ormTemplate.getSession().createNativeQuery(
 **示例代码**：
 ```java
 @Inject
-private IJdbcTemplate jdbcTemplate;
+protected IJdbcTemplate jdbcTemplate;
 
 // 查询单个值
 int count = jdbcTemplate.queryForInt("SELECT COUNT(*) FROM nop_auth_user");
@@ -144,7 +144,7 @@ jdbcTemplate.batchUpdate(
 **使用示例**：
 ```java
 @Inject
-private SqlLibManager sqlLibManager;
+protected SqlLibManager sqlLibManager;
 
 // 获取SQL模板
 SqlTemplate template = sqlLibManager.getSqlTemplate("/sql/nop-auth/user.sql.xml", "findUserByName");
@@ -194,10 +194,10 @@ UserVO user = template.execute(UserVO.class, Map.of("name", "admin"));
 @BizModel
 public class UserBizModel extends CrudBizModel<User> {
     @Inject
-    private IJdbcTemplate jdbcTemplate;
+    protected IJdbcTemplate jdbcTemplate;
     
     @Inject
-    private SqlLibManager sqlLibManager;
+    protected SqlLibManager sqlLibManager;
     
     public UserBizModel() {
         setEntityName(User.class.getName());

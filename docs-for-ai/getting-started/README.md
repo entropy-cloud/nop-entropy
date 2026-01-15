@@ -11,7 +11,7 @@ Nop平台是基于可逆计算原理的下一代低代码开发平台，支持De
 - [AI编程指南](./ai/nop-ai-developer-guide.md) - 快速编程指导
 
 ### 分层开发
-- [数据层](./data/data-layer-development.md) - IEntityDao, QueryBean
+- [数据层](./dao/data-layer-development.md) - IEntityDao, QueryBean
 - [服务层](./service/service-layer-development.md) - BizModel, CrudBizModel
 - [前端层](./frontend/view-layer-development.md) - XView, AMIS
 

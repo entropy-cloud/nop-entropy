@@ -10,16 +10,16 @@
 - [API快速参考](./api-quick-reference.md) - 核心API快速参考，包含最常用的API和方法
 
 ### Helper类参考
-- [Helper类快速参考](./helper-quick-reference.md) - StringHelper、ConvertHelper等Helper类快速参考
+> 注：本仓库当前未包含独立的 Helper 快速参考文档；可先通过 `docs-for-ai/INDEX.md` 中的 Java Helper 类条目入门。
 
 ### 架构参考
-- [架构快速参考](./architecture-quick-reference.md) - 架构模式和设计模式快速参考
+> 注：本仓库当前未包含独立的架构快速参考文档；请先阅读 `docs-for-ai/architecture/` 下的架构文档。
 
 ### 注解参考
-- [注解快速参考](./annotation-quick-reference.md) - 常用注解快速参考
+> 注：本仓库当前未包含注解快速参考文档。
 
 ### 模式参考
-- [设计模式参考](./pattern-quick-reference.md) - 常用设计模式在Nop平台中的应用
+> 注：本仓库当前未包含设计模式快速参考文档。
 
 ## 快速链接
 
@@ -35,5 +35,5 @@
 
 ## 相关文档
 
-- [开发文档总览](../README.md)
-- [API快速参考](../getting-started/README.md)
+- [开发文档总览](../INDEX.md)
+- [入门索引](../getting-started/README.md)

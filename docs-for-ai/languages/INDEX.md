@@ -45,5 +45,5 @@
 
 ## 相关文档
 
-- [开发文档总览](../README.md)
+- [开发文档总览](../INDEX.md)
 - [快速参考](../quick-reference/)

@@ -1,349 +1,35 @@
-# Nop Platform Testing Best Practices
+# Nop 平台测试入口（NopAutoTest）
 
-## 概述
+`docs-for-ai` 不重复记录通用测试最佳实践；这里只保留 Nop 平台测试体系的“差异点”。
 
-本文档提供Nop Platform测试开发的最佳实践，帮助开发者构建可靠、可维护的测试体系。测试包括单元测试、集成测试、端到端测试等多个层次。
+请以以下文档为准：
 
-## 测试类型
-
-### 1. 单元测试
-
-测试单个类或方法的功能：
-
-```java
-@ExtendWith(JunitExtension.class)
-public class UserServiceTest {
-
-    @Inject
-    private IUserService userService;
-
-    @Test
-    public void testGetUserById() {
-        // Given
-        String userId = "test-user-001";
-
-        // When
-        User user = userService.getUser(userId);
-
-        // Then
-        assertNotNull(user);
-        assertEquals(userId, user.getUserId());
-    }
-}
-```
-
-### 2. 集成测试
-
-测试多个组件之间的交互：
-
-```java
-@ExtendWith(JunitExtension.class)
-public class OrderIntegrationTest {
-
-    @Inject
-    private IOrderBizModel orderBizModel;
-
-    @Inject
-    private IInventoryBizModel inventoryBizModel;
-
-    @Test
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void testCreateOrderWithInventoryUpdate() {
-        // Given
-        Order order = createTestOrder();
-
-        // When
-        Order created = orderBizModel.createOrder(order);
-
-        // Then
-        assertNotNull(created);
-        assertNotNull(created.getOrderId());
-
-        // 验证库存更新
-        Inventory inventory = inventoryBizModel.getInventory(order.getProductId());
-        assertEquals(order.getQuantity(), inventory.getReservedQty());
-    }
-}
-```
-
-### 3. 端到端测试
-
-测试完整的业务流程：
-
-```java
-@ExtendWith(JunitExtension.class)
-public class OrderE2ETest {
-
-    @Inject
-    private IOrderBizModel orderBizModel;
-
-    @Test
-    public void testCompleteOrderFlow() {
-        // 1. 用户登录
-        LoginResult login = authService.login("test-user", "password");
-
-        // 2. 创建订单
-        Order order = createTestOrder();
-        Order created = orderBizModel.createOrder(order);
-
-        // 3. 支付订单
-        PaymentResult payment = paymentService.pay(created.getOrderId());
-        assertTrue(payment.isSuccess());
-
-        // 4. 发货
-        ShippingResult shipping = shippingService.ship(created.getOrderId());
-        assertTrue(shipping.isSuccess());
-
-        // 5. 完成订单
-        Order completed = orderBizModel.completeOrder(created.getOrderId());
-        assertEquals("COMPLETED", completed.getStatus());
-    }
-}
-```
-
-## 测试工具
-
-### 1. Junit框架
-
-Nop Platform使用JUnit 5：
-
-```java
-@ExtendWith(JunitExtension.class)
-public class MyTest {
-
-    @Test
-    public void testMethod() {
-        // 测试代码
-    }
-
-    @Test
-    @DisplayName("测试用户创建")
-    public void testCreateUser() {
-        // 测试代码
-    }
-}
-```
-
-### 2. 自动测试框架
-
-使用nop-autotest进行自动化测试：
-
-```java
-@ExtendWith(JunitExtension.class)
-public class AutoTestExample {
-
-    @BizQuery
-    public User getUser(String userId) {
-        return dao().getEntityById(userId);
-    }
-
-    @Test
-    public void testGetUser(@Name("userId") String userId) {
-        // 第一次运行：录制结果
-        User user = getUser(userId);
-
-        // 第二次运行：自动比较
-        assertDeepEquals(user, getUser(userId));
-    }
-}
-```
-
-### 3. Mock工具
-
-使用Mock框架隔离测试：
-
-```java
-@ExtendWith(MockitoExtension.class)
-public class UserServiceWithMockTest {
-
-    @Mock
-    private IUserDao userDao;
-
-    @InjectMocks
-    private UserService userService;
-
-    @Test
-    public void testGetUser() {
-        // Given
-        String userId = "test-001";
-        User expectedUser = new User();
-        expectedUser.setUserId(userId);
-        when(userDao.getEntityById(userId)).thenReturn(expectedUser);
-
-        // When
-        User actualUser = userService.getUser(userId);
-
-        // Then
-        assertEquals(expectedUser, actualUser);
-        verify(userDao).getEntityById(userId);
-    }
-}
-```
-
-## 测试模式
-
-### 1. Given-When-Then模式
-
-清晰的测试结构：
-
-```java
-@Test
-public void testUpdateUserName() {
-    // Given - 准备测试数据
-    User user = new User();
-    user.setUserId("test-001");
-    user.setUserName("Old Name");
-    when(userDao.saveEntity(any(User.class))).thenReturn(user);
-
-    // When - 执行测试操作
-    User updated = userService.updateUserName("test-001", "New Name");
-
-    // Then - 验证结果
-    assertEquals("New Name", updated.getUserName());
-    verify(userDao).saveEntity(any(User.class));
-}
-```
-
-### 2. AAA模式（Arrange-Act-Assert）
-
-与Given-When-Then类似：
-
-```java
-@Test
-public void testDeleteUser() {
-    // Arrange - 准备
-    String userId = "test-001";
-    User user = new User();
-    user.setUserId(userId);
-    when(userDao.getEntityById(userId)).thenReturn(user);
-
-    // Act - 执行
-    userService.deleteUser(userId);
-
-    // Assert - 验证
-    verify(userDao).deleteEntity(user);
-}
-```
-
-### 3. 测试驱动开发（TDD）
-
-先写测试，再实现功能：
-
-```java
-// 1. 先写测试
-@Test
-public void testCalculateOrderTotal() {
-    Order order = new Order();
-    order.setPrice(new BigDecimal("100"));
-    order.setQuantity(2);
-    order.setTaxRate(new BigDecimal("0.1"));
-
-    BigDecimal expected = new BigDecimal("220");  // (100 * 2 * 1.1)
-
-    BigDecimal actual = orderService.calculateTotal(order);
-    assertEquals(expected, actual);
-}
-
-// 2. 再实现功能
-public BigDecimal calculateTotal(Order order) {
-    return order.getPrice()
-        .multiply(new BigDecimal(order.getQuantity()))
-        .multiply(order.getTaxRate().add(new BigDecimal("1")));
-}
-```
-
-## 测试覆盖
-
-### 1. 语句覆盖
-
-每条语句至少被执行一次：
-
-```bash
-# 运行测试并生成覆盖报告
-mvn clean test jacoco:report
-
-# 查看报告
-open target/site/jacoco/index.html
-```
-
-### 2. 分支覆盖
-
-每个分支至少被执行一次：
-
-```java
-@Test
-public void testValidateUser() {
-    // 测试正常分支
-    User user = createValidUser();
-    boolean result = userService.validateUser(user);
-    assertTrue(result);
-
-    // 测试异常分支
-    user.setEmail("");
-    result = userService.validateUser(user);
-    assertFalse(result);
-}
-```
-
-### 3. 覆盖率目标
-
-| 测试类型 | 最低目标 | 推荐目标 |
-|---------|---------|----------|
-| 语句覆盖 | 70% | 85%+ |
-| 分支覆盖 | 60% | 80%+ |
-| 方法覆盖 | 80% | 95%+ |
-
-## Mock策略
+- NopAutoTest / `@NopTestConfig` / 测试容器启动方式：
+  - `../getting-started/test/autotest-guide.md`
+- IoC 注入规则（尤其是 `@Inject` 不支持 private 字段、值注入用 `@InjectValue`）：
+  - `../getting-started/core/ioc-guide.md`
 
 ### 1. Mock外部依赖
 
 隔离测试外部系统调用：
 
-```java
-@ExtendWith(MockitoExtension.class)
-public class EmailServiceTest {
+Nop 平台不内置/不强制某个 Mock 框架。更稳妥的做法是：
 
-    @Mock
-    private JavaMailSender mailSender;
-
-    @InjectMocks
-    private EmailService emailService;
-
-    @Test
-    public void testSendEmail() {
-        // Given
-        String to = "test@example.com";
-        String subject = "Test Email";
-        String content = "Test Content";
-
-        // When
-        emailService.sendEmail(to, subject, content);
-
-        // Then
-        verify(mailSender).send(eq(to), eq(subject), eq(content));
-    }
-}
-```
+1. 依赖抽象成接口（例如 `IMailSender`）
+2. 单元测试里用手写 stub/fake（可读、无额外注解）
+3. 只在确实需要时引入第三方 Mock 框架，并避免把它当成 Nop 的标准用法写进文档
 
 ### 2. 使用测试数据库
 
-使用H2内存数据库进行测试：
+使用测试数据库：
 
-```yaml
-# application-test.yaml
-datasource:
-  url: jdbc:h2:mem:testdb
-  driver: org.h2.Driver
-  username: sa
-  password:
-```
+在 Nop AutoTest/JUnit 集成中，一般通过 `@NopTestConfig(localDb = true, initDatabaseSchema = true)` 启用本地 H2 以及 schema 初始化，避免在文档中硬编码某个 `application-test.yaml` 结构。
 
 ### 3. 测试数据管理
 
 使用fixture管理测试数据：
 
 ```java
-@Component
 public class TestDataFixtures {
 
     public void loadFixtures(String... fixtureNames) {
@@ -371,8 +57,7 @@ public class TestDataFixtures {
 
 ```java
 // ✅ 推荐：使用@BeforeEach
-@ExtendWith(JunitExtension.class)
-public class UserServiceTest {
+public class UserServiceTest extends JunitBaseTestCase {
 
     @BeforeEach
     public void setUp() {
@@ -393,8 +78,7 @@ public class UserServiceTest {
 }
 
 // ❌ 不推荐：依赖测试顺序
-@ExtendWith(JunitExtension.class)
-public class UserServiceTest {
+public class UserServiceTest extends JunitBaseTestCase {
     @Test
     public void test01_CreateUser() {
         // ...
@@ -512,52 +196,25 @@ public void testAsyncMethod() throws Exception {
 
 ### 1. 端到端测试
 
-测试完整的应用流程：
+端到端测试（E2E）覆盖“进程外”的真实网络边界，取决于你选择的 Web/网关运行时与部署方式。
 
-```java
-@ExtendWith(JunitExtension.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class OrderE2ETest {
+本文不提供可复制的 HTTP 客户端示例（例如 Spring 的 `TestRestTemplate` / `MockMvc`），避免误导。
 
-    @Autowired
-    private TestRestTemplate restTemplate;
+建议：
 
-    @Test
-    public void testCompleteOrderProcess() {
-        // 1. 登录
-        LoginRequest login = new LoginRequest("test-user", "password");
-        ResponseEntity<LoginResult> loginResponse = restTemplate.postForEntity(
-            "/api/auth/login", login, LoginResult.class
-        );
-        assertTrue(loginResponse.getStatusCode().is2xxSuccessful());
-
-        // 2. 创建订单
-        Order order = createTestOrder();
-        ResponseEntity<Order> orderResponse = restTemplate.postForEntity(
-            "/api/order/create", order, Order.class
-        );
-        assertTrue(orderResponse.getStatusCode().is2xxSuccessful());
-
-        // 3. 支付
-        Payment payment = new Payment(orderResponse.getBody().getOrderId(), "100.00");
-        ResponseEntity<PaymentResult> paymentResponse = restTemplate.postForEntity(
-            "/api/payment/pay", payment, PaymentResult.class
-        );
-        assertTrue(paymentResponse.getStatusCode().is2xxSuccessful());
-    }
-}
-```
+1. 如果你要测 GraphQL/RPC，优先写“进程内集成测试”：在 `JunitBaseTestCase` 中注入 `IGraphQLEngine` 或 BizModel，直接调用执行入口。
+2. 如果你要测 HTTP 适配层，把 E2E 放到独立的测试项目/脚本里（例如 Postman/Newman、k6、pytest、你们内部框架），并在 CI/CD 部署后执行。
 
 ### 2. API测试
 
 测试REST API接口：
 
 ```java
-@ExtendWith(JunitExtension.class)
-public class OrderApiTest {
+@NopTestConfig(localDb = true)
+public class OrderApiTest extends JunitBaseTestCase {
 
     @Inject
-    private IOrderBizModel orderBizModel;
+    protected IOrderBizModel orderBizModel;
 
     @Test
     public void testCreateOrder() {
@@ -580,20 +237,9 @@ public class OrderApiTest {
 
 ### 1. 测试环境配置
 
-```yaml
-# application-test.yaml
-spring:
-  profiles:
-    active: test
+测试用例通常使用 `@NopTestConfig` 来控制测试环境（是否使用本地 H2、是否初始化数据库 schema、启用哪些 auto-config、引入哪些 test bean 配置等）。
 
-datasource:
-  url: jdbc:h2:mem:testdb
-  driver: org.h2.Driver
-
-logging:
-  level:
-    io.nop: DEBUG
-```
+如果你确实需要加载额外的 properties 文件，可以参考项目中 `@NopTestConfig(testConfigFile = "classpath:xxx.properties")` 的用法。
 
 ### 2. Maven测试配置
 
@@ -639,7 +285,7 @@ jobs:
         with:
           java-version: '17'
       - name: Build with Maven
-        run: mvn clean test
+                run: mvn test
 ```
 
 ### 2. 测试报告

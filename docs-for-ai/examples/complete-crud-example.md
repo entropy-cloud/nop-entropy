@@ -407,11 +407,10 @@ query {
 ## 测试
 
 ```java
-@SpringBootTest
 public class DemoUserBizModelTest {
 
     @Inject
-    private DemoUserBizModel userBizModel;
+  protected DemoUserBizModel userBizModel;
 
     @Test
     public void testCreateUser() {

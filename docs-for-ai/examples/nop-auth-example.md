@@ -622,11 +622,10 @@ import java.util.Set;
 
 import static io.nop.auth.AuthErrors.*;
 
-@Bean
 public class AuthInterceptor implements IGraphQLInterceptor {
 
     @Inject
-    private NopAuthService authService;
+    protected NopAuthService authService;
 
     @Override
     public Object intercept(Invocation inv) throws Throwable {

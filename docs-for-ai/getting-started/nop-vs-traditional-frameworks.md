@@ -4,6 +4,57 @@
 
 **核心原则**：Nop平台通过元编程和代码生成提供高度自动化，开发者应充分利用平台能力，避免重复实现已有功能。
 
+## 一眼识别：哪些“传统框架写法”在 Nop 文档里是危险信号
+
+当你在 Nop 相关文档/示例里看到下面这些内容时，通常意味着**示例未核对源码**、或者属于“可选集成 demo”但被误写成平台默认方式：
+
+### 1) 注解集合差异（高频踩坑）
+
+Nop 平台的常态是：**尽量少的注解 + 大量模型驱动/配置驱动 + 统一扩展点**。
+
+- ✅ Nop 常用（需要以源码为准，至少应能在仓库找到真实定义/使用）：
+    - `@Inject`（依赖注入）
+    - `@InjectValue`（配置/值注入）
+    - `@PostConstruct`（生命周期回调）
+    - `@NopTestConfig`（测试容器初始化控制）
+    - 业务/GraphQL 相关注解（例如 `@BizModel/@BizQuery/@BizMutation` 等，具体以模块实现为准）
+
+- ❌ 传统框架常见但**不能当作 Nop 默认方式**写进 `docs-for-ai`：
+    - Spring 组件与配置：`@Component/@Service/@Repository/@Configuration/@Bean/@Autowired`
+    - Spring Web：`@RestController/@Controller/@RequestMapping/@GetMapping/@PostMapping`
+    - Spring Test：`@SpringBootTest` 等
+    - AOP/韧性/调度（如果不是仓库真实实现/真实注解）：`@Aspect/@Retryable/@CircuitBreaker/@Scheduled` 等
+
+> 允许在“可选集成/对接第三方框架”主题内提及这些注解，但必须明确它们属于 **集成示例**，不是 Nop 平台原生最佳实践。
+
+### 2) IoC 注入规则差异（必须遵守）
+
+- NopIoC **不支持** `@Inject` 注入 `private` 字段。
+    - ✅ 字段注入：使用 `protected` 或 package-private
+    - ✅ 更推荐：setter 注入（显式、可测试、也避免 private 字段注入限制）
+- 配置/值注入使用 `@InjectValue`，不要写 Spring 的 `@Value`。
+
+### 3) 测试体系差异（NopAutoTest）
+
+Nop 平台对 JUnit5 的集成不是通过 Spring Test 体系完成的。
+
+- ✅ 常见基类（仓库中真实存在）：
+    - `io.nop.autotest.junit.JunitBaseTestCase`：启动/重启容器，支持 IoC 注入；不包含录制回放
+    - `io.nop.autotest.junit.JunitAutoTestCase`：在 AutoTest 录制/回放机制上扩展
+- ✅ 典型配置方式：在测试类上使用 `@NopTestConfig(...)`
+- ❌ 避免写法：`@SpringBootTest`、以及仓库里不存在的 `JunitExtension` 之类类名
+
+### 4) “横切能力”的实现方式差异（日志/审计/拦截）
+
+传统框架常用 AOP 注解把审计、鉴权、限流等横切逻辑织入业务方法。
+
+Nop 更常见的方式是使用**统一扩展点**：
+
+- GraphQL/RPC：实现 `IGraphQLLogger`（例如 `nop-auth-service` 中的 `GraphQLAuditLogger`）
+- ORM：实现/配置 ORM 的 interceptor/listener（例如 `IOrmInterceptor`、`IOrmDaoListener` 等）
+
+这些扩展点能在平台层集中处理横切逻辑，避免业务代码散落大量注解。
+
 ---
 
 ## 差异1：数据访问层
@@ -20,7 +71,7 @@ public class UserBizModel extends CrudBizModel<NopAuthUser> {
 
 // ✅ 通过IDaoProvider获取（仅在必要时）
 @Inject
-private IDaoProvider daoProvider;
+protected IDaoProvider daoProvider;
 
 public void someMethod() {
     IUserDao<NopAuthUser> userDao = daoProvider.daoFor(NopAuthUser.class);
@@ -247,12 +298,12 @@ public class UserBizModel extends CrudBizModel<NopAuthUser> {
 
 ## 相关文档
 
-- [CRUD开发指南](docs-for-ai/getting-started/business/crud-development.md)
-- [复杂业务开发指南](docs-for-ai/getting-started/business/complex-business-development.md)
-- [服务层开发指南](docs-for-ai/getting-started/service/service-layer-development.md)
-- [异常处理指南](docs-for-ai/getting-started/core/exception-guide.md)
-- [代码风格标准](docs-for-ai/best-practices/code-style.md)
-- [模块结构指南](docs-for-ai/development/module-structure-guide.md)
+- [CRUD开发指南](./business/crud-development.md)
+- [复杂业务开发指南](./business/complex-business-development.md)
+- [服务层开发指南](./service/service-layer-development.md)
+- [异常处理指南](./core/exception-guide.md)
+- [代码风格标准](../best-practices/code-style.md)
+- [模块结构指南](../development/module-structure-guide.md)
 
 ---
 

@@ -17,80 +17,81 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 <!-- OPENSPEC:END -->
 
-# AGENTS.md - Nop Platform Development Guidelines
+# AGENTS.md - Nop Entropy Development Guide
 
-Essential quick reference for coding, building, testing, and contributing to Nop Platform.
+This file is the **project-local** quick reference for AI assistants contributing to this repository.
 
-**📚 Comprehensive Documentation**: For detailed API guides, tutorials, architecture, and examples, see [docs-for-ai](./docs-for-ai/INDEX.md)
+For architecture changes, proposals, or ambiguous requests, follow the OPENSPEC instructions above.
 
-## Build Commands
+## Where to read first
 
-### Full Build
-```bash
-mvn clean install -DskipTests
-mvn clean install -DskipTests -Dquarkus.package.type=uber-jar
+- Primary index: `docs-for-ai/INDEX.md`
+- Coding conventions: `docs-for-ai/best-practices/code-style.md`
+- Error handling: `docs-for-ai/best-practices/error-handling.md`
+- Testing: `docs-for-ai/best-practices/testing.md`
+
+## Nop IoC vs Spring (high-impact differences)
+
+- **Field injection visibility**: NopIoC does **not** support injecting into `private` fields.
+	- ✅ Prefer `protected` or package-private fields when using `@Inject`.
+	- ✅ Prefer **setter injection** when you want explicit dependencies but don't want constructor-based wiring.
+	- ❌ Avoid examples like `@Inject private Foo foo;` in code and documentation.
+
+- **Value/config injection**: inject configuration values with `@InjectValue` (avoid Spring-only patterns like `@Value`).
+
+## Build & test
+
+This repository is Maven-based (see `pom.xml`).
+
+### Full build (recommended)
+
+Windows PowerShell:
+
+```powershell
+mvn clean install -T 1C
+```
+
+### Quick build without tests
+
+```powershell
 mvn clean install -DskipTests -T 1C
 ```
 
-### Testing
-```bash
+### Run tests
+
+```powershell
 mvn test
-mvn test -Dtest=AiConverterTest
-mvn test -Dtest=AiConverterTest#testConvertOrm
-mvn test -Pcoverage
 ```
 
-### Code Quality
-```bash
-mvn checkstyle:check
-```
+## Quality gates (before you finish)
 
-## Quick Reference
+1. Build: `mvn -q -DskipTests=false test` (or full `clean install` if you touched multiple modules)
+2. Check style: follow `checkstyle.xml` and keep imports grouped (java.* → jakarta.* → third-party → io.nop.*)
+3. Tests: add/extend JUnit 5 tests; use Nop AutoTest where the project already uses it
 
-### Code Style
-- **Naming**: PascalCase（类）、camelCase（方法/变量）、UPPER_SNAKE_CASE（常量）
-- **Formatting**: 4空格缩进、80-120字符行长度、运算符前后加空格
-- **Imports**: 按分组导入（java.* → jakarta.* → 第三方 → io.nop.*）
-- 详细规范 → [Code Style](./docs-for-ai/best-practices/code-style.md)
+## Code style essentials
 
-### Error Handling
-- 使用 `NopException` 统一异常处理
-- 定义清晰的错误码和参数
-- 记录日志并保持异常链
-- 详细规范 → [Error Handling](./docs-for-ai/best-practices/error-handling.md)
+- **Naming**: PascalCase (classes), camelCase (methods/variables), UPPER_SNAKE_CASE (constants)
+- **Formatting**: 4-space indentation, keep lines ~80–120 chars where reasonable
+- **Imports**: grouped and stable ordering: java.* → jakarta.* → third-party → io.nop.*
+- Avoid noisy refactors; keep diffs minimal and focused
 
-### Testing
-- 使用 JUnit 5 和 Nop AutoTest 框架
-- 遵循 Given-When-Then 模式
-- 追求高测试覆盖率
-- 详细规范 → [Testing](./docs-for-ai/best-practices/testing.md)
+## Error handling essentials
 
-### DO's and DON'Ts
-✅ Use parameterized queries
-✅ Log all exceptions with context
-✅ Use SLF4J logging
-✅ Use configuration references
-❌ Use raw SQL with user input
-❌ Suppress exceptions without logging
-❌ Use System.out or System.err
-❌ Hardcode configuration values
-❌ Use Chinese in error messages
+- Prefer `NopException` + ErrorCode for business errors
+- Include parameters via `.param(...)` and keep the original cause
+- Log with SLF4J (no `System.out`/`System.err`)
+- Do **not** hardcode Chinese error messages in code; use error codes + parameters (i18n-ready)
 
-## IDE Setup
-- Java 17+
-- Maven 3.9.3+
-- UTF-8 encoding
-- Enable annotation processing
 
-## Quick Lookup
+## Quick lookup
 
-| Task | Documentation |
-|------|--------------|
-| 开发规范 | [AI Development Guide](./docs-for-ai/getting-started/ai/nop-ai-development.md) |
-| 服务层开发 | [Service Layer Guide](./docs-for-ai/getting-started/service/service-layer-development.md) |
-| CRUD开发 | [CRUD Development](./docs-for-ai/getting-started/business/crud-development.md) |
-| 数据访问 | [IEntityDao Guide](./docs-for-ai/getting-started/dao/entitydao-usage.md) |
-| 事务管理 | [Transaction Guide](./docs-for-ai/getting-started/core/transaction-guide.md) |
-| GraphQL开发 | [GraphQL Guide](./docs-for-ai/getting-started/api/graphql-guide.md) |
-| Helper类 | [Helper Reference](./docs-for-ai/quick-reference/helper-quick-reference.md) |
-| API参考 | [API Quick Reference](./docs-for-ai/quick-reference/api-quick-reference.md) |
+| Topic | Doc |
+|------|-----|
+| AI development conventions | `docs-for-ai/getting-started/ai/nop-ai-development.md` |
+| Service layer | `docs-for-ai/getting-started/service/service-layer-development.md` |
+| CRUD | `docs-for-ai/getting-started/business/crud-development.md` |
+| Data access | `docs-for-ai/getting-started/dao/entitydao-usage.md` |
+| Transactions | `docs-for-ai/getting-started/core/transaction-guide.md` |
+| GraphQL | `docs-for-ai/getting-started/api/graphql-guide.md` |
+| API quick reference | `docs-for-ai/quick-reference/api-quick-reference.md` |

@@ -17,9 +17,38 @@
 ### 2. 文档更新目标
 
 - 确保 `docs-for-ai` 中的文档内容与当前源码实现完全一致
-- 确保示例代码与源码匹配，能够实际运行
+- 确保示例代码与源码匹配，能够实际运行（至少“可编译/可推导为真实存在的 API”）
 - 确保API签名、类名、包名、注解使用等与源码一致
 - 确保描述与当前架构和实现一致
+
+### 2.1 关键校验：避免“想当然的框架写法”（必须执行）
+
+`docs-for-ai` 的常见错误来源是：AI 会把“传统框架（Spring/Spring Boot/Resilience4j/Hystrix 等）习惯”直接迁移进来。
+
+因此在核对时必须显式执行以下检查（保持宽泛，但必须覆盖）：
+
+1. **所有出现的注解/类/接口都要能在仓库中找到定义或真实使用**
+   - 对每个代码块：抽取其中的注解/类名/方法名，分别在仓库里搜索。
+   - 如果找不到：
+     - 要么改成仓库里确实存在的扩展点/实现方式；
+     - 要么降级为“概念说明”（不要给可复制代码）。
+
+2. **禁止把 Spring-only 注解当作 Nop 标准用法写进 docs-for-ai**
+   - 例如：`@Component/@Service/@Repository/@Configuration/@Bean/@Autowired/@SpringBootTest/@RestController/@Controller/@RequestMapping/@Scheduled`。
+   - 如果仓库里确实存在某个 Spring 集成 demo，可以在“对接第三方框架/可选集成”处提到，但必须明确：这不是 Nop 平台默认方式。
+
+3. **NopIoC 约束与偏好必须遵守（尤其容易被 AI 写错）**
+   - `@Inject` **不能用于 `private` 字段注入**（字段注入需 `protected`/package-private，或使用 setter 注入）。
+   - 配置/值注入使用 `@InjectValue`（避免 Spring `@Value`）。
+   - 不要无根据引入“构造器注入优先”的表述；如需给出 DI 示例，优先使用 setter 注入。
+
+4. **测试相关文档必须对齐 NopAutoTest 的真实用法**
+   - 优先匹配仓库中真实存在的测试基类与注解（例如 `JunitBaseTestCase`, `JunitAutoTestCase`, `@NopTestConfig`）。
+   - 不要写 `JunitExtension` 这类在仓库不存在的类。
+   - 不要默认使用 Spring Boot 测试体系（`@SpringBootTest` 等）。
+
+5. **best-practices 目录的建议必须“平台中立 + 可落地”**
+   - 如果属于运行时/网关/DevSecOps（CORS、RateLimit、SCA 扫描等），允许描述“建议策略”，但不要给出绑定某个外部框架的代码片段。
 
 ### 3. 文档性质要求
 
@@ -49,6 +78,13 @@
 - 最佳实践
 - 常见问题
 - 相关文档链接
+
+### 4.1 不允许的内容（补充：防止误导性的可复制示例）
+
+❌ 不要添加：
+
+- 仓库中不存在的类/接口/注解/配置键的“可复制代码块”
+- 把第三方框架特性当成 Nop 平台特性（例如 Spring AOP/Hystrix/Resilience4j/Mockito 等的注解式写法）
 
 ### 5. 最小变更原则（⚠️ 极重要）
 

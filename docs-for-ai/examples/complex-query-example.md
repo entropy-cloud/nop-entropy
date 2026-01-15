@@ -868,7 +868,7 @@ public OrderStatistics getOrderStatistics(OrderStatsRequest request) {
 
 - [QueryBean使用指南](../getting-started/dao/querybean-guide.md)
 - [FilterBeans使用指南](../getting-started/dao/filterbeans-guide.md)
-- [IEntityDao使用指南](../getting-started/dao/ientitydao-usage.md)
+- [IEntityDao使用指南](../getting-started/dao/entitydao-usage.md)
 - [完整CRUD示例](./complete-crud-example.md)
 
 ## 总结
