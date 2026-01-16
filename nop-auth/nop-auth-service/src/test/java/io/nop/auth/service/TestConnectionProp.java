@@ -7,7 +7,8 @@
  */
 package io.nop.auth.service;
 
-import io.nop.api.core.annotations.autotest.EnableSnapshot;
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
@@ -24,7 +25,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestConnectionProp extends JunitAutoTestCase {
 
     @Inject
@@ -68,7 +69,6 @@ public class TestConnectionProp extends JunitAutoTestCase {
 
     }
 
-    @EnableSnapshot
     @Test
     public void testConnection() {
         prepareData();
@@ -86,7 +86,6 @@ public class TestConnectionProp extends JunitAutoTestCase {
         output(responseFileName, result);
     }
 
-    @EnableSnapshot
     @Test
     public void testRestFilter() {
         prepareData();
@@ -99,14 +98,12 @@ public class TestConnectionProp extends JunitAutoTestCase {
         output("response.yaml", result);
     }
 
-    @EnableSnapshot
     @Test
     public void testTransFilter() {
         prepareData();
         run("request.yaml", "response.yaml");
     }
 
-    @EnableSnapshot
     @Test
     public void testFindList() {
         prepareData();

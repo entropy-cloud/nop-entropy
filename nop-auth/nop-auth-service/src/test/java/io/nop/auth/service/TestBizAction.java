@@ -7,27 +7,22 @@
  */
 package io.nop.auth.service;
 
-import io.nop.api.core.annotations.autotest.EnableSnapshot;
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
-import io.nop.api.core.beans.graphql.GraphQLRequestBean;
-import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
-import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
+import jakarta.inject.Inject;
 
-/**
- * 测试在xbiz模型文件中定义的action
- */
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestBizAction extends JunitAutoTestCase {
     @Inject
     IGraphQLEngine graphQLEngine;
 
-    @EnableSnapshot
     @Test
     public void testMyFindPage() {
         // ApiRequest<LoginRequest> request = request("request.json5", LoginRequest.class);
@@ -39,7 +34,6 @@ public class TestBizAction extends JunitAutoTestCase {
         output("response.json5", result);
     }
 
-    @EnableSnapshot
     @Test
     public void testBizAuth() {
         ApiRequest<Map<String, Object>> request = request("request.json5", Map.class);

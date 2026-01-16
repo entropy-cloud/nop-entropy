@@ -28,7 +28,6 @@ public class TestIntrospectionQuery extends JunitAutoTestCase {
     IGraphQLEngine engine;
 
     @Test
-    @EnableSnapshot
     public void testQuery() {
         GraphQLRequestBean request = input("request.yaml", GraphQLRequestBean.class);
         IGraphQLExecutionContext context = engine.newGraphQLContext(request);
@@ -36,7 +35,6 @@ public class TestIntrospectionQuery extends JunitAutoTestCase {
         output("response.json5", response);
     }
 
-    @EnableSnapshot
     @Test
     public void testConfigReset() {
         setTestConfig("nop.graphql.schema-introspection.enabled", true);

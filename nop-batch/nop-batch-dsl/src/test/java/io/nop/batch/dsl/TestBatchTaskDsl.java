@@ -35,7 +35,6 @@ public class TestBatchTaskDsl extends JunitAutoTestCase {
     @Inject
     IBatchTaskManager batchTaskManager;
 
-    @EnableSnapshot
     @Test
     public void testBatchTask() {
         forceStackTrace();
@@ -61,7 +60,6 @@ public class TestBatchTaskDsl extends JunitAutoTestCase {
         RecordFileHelper.writeRecords(new FileResource(file), fileMeta, records);
     }
 
-    @EnableSnapshot
     @Test
     public void testImportExcel() {
         String path = "/test/batch/test-import-excel.batch.xml";

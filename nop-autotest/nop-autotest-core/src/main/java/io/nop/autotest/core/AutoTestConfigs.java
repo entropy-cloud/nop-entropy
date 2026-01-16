@@ -23,7 +23,7 @@ public interface AutoTestConfigs {
     IConfigReference<Boolean> CFG_AUTOTEST_FORCE_SAVE_OUTPUT = AppConfig.varRef(s_loc,"nop.autotest.force-save-output",
             Boolean.class, false);
 
-    @Description("强制设置AutoTestCase保存执行结果，禁用所有方法上的@EnableSnapshot注解")
+    @Description("强制设置AutoTestCase保存执行结果，禁用快照验证机制")
     IConfigReference<Boolean> CFG_AUTOTEST_DISABLE_SNAPSHOT = AppConfig.varRef(s_loc,"nop.autotest.disable-snapshot",
             Boolean.class, false);
 }

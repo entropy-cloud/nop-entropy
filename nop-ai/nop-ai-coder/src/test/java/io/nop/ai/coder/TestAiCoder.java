@@ -6,7 +6,8 @@ import io.nop.ai.coder.orm.OrmModelToJava;
 import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.prompt.IPromptTemplate;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
-import io.nop.api.core.annotations.autotest.EnableSnapshot;
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
@@ -29,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-//@NopTestConfig(disableSnapshot = true)
 @Disabled
 public class TestAiCoder extends JunitAutoTestCase {
     @Inject
@@ -39,7 +39,6 @@ public class TestAiCoder extends JunitAutoTestCase {
         return promptTemplateManager.loadPromptTemplateFromPath(promptPath);
     }
 
-    @EnableSnapshot
     @Test
     public void testExpandRequirements() {
         IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/refactor-requirements.prompt.yaml");
@@ -61,7 +60,6 @@ public class TestAiCoder extends JunitAutoTestCase {
         assertTrue(response.isValid());
     }
 
-    @EnableSnapshot
     @Test
     public void testRefineRequirements() {
         IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/refine-requirements.prompt.yaml");
@@ -82,7 +80,6 @@ public class TestAiCoder extends JunitAutoTestCase {
         System.out.println(response.getContent());
     }
 
-    @EnableSnapshot
     @Test
     public void testOrmDesign() {
         IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/orm-design.prompt.yaml");
@@ -102,7 +99,6 @@ public class TestAiCoder extends JunitAutoTestCase {
         node.dump();
     }
 
-    @EnableSnapshot
     @Test
     public void testRefineOrmDesign() {
         IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/refine-orm-design.prompt.yaml");
@@ -124,7 +120,6 @@ public class TestAiCoder extends JunitAutoTestCase {
         assertEquals(true, response.getOutput("noChange"));
     }
 
-    @EnableSnapshot
     @Test
     public void testMenuDesign() {
         IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/menu-design.prompt.yaml");
@@ -146,7 +141,6 @@ public class TestAiCoder extends JunitAutoTestCase {
         node.dump();
     }
 
-    @EnableSnapshot
     @Test
     public void testApiDesign() {
         IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/api-design.prompt.yaml");
@@ -158,7 +152,6 @@ public class TestAiCoder extends JunitAutoTestCase {
         outputText("prompt-api-design.md", prompt);
     }
 
-    @EnableSnapshot
     @Test
     public void testExtractEntityRequirements() {
         IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/extract-entity-requirements.prompt.yaml");
@@ -171,7 +164,6 @@ public class TestAiCoder extends JunitAutoTestCase {
         outputText("prompt-extract-entity-requirements.md", prompt);
     }
 
-    @EnableSnapshot
     @Test
     public void testFormDesign() {
         IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/form-design.prompt.yaml");
@@ -203,7 +195,6 @@ public class TestAiCoder extends JunitAutoTestCase {
         outputText("prompt-form-design.md", prompt);
     }
 
-    @EnableSnapshot
     @Test
     public void testGridDesign() {
         IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/grid-design.prompt.yaml");
@@ -232,7 +223,6 @@ public class TestAiCoder extends JunitAutoTestCase {
         outputText("prompt-grid-design.md", prompt);
     }
 
-    @EnableSnapshot
     @Test
     public void testExpandModuleRequirements() {
         IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/expand-module-requirements.prompt.yaml");

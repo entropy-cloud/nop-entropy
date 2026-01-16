@@ -61,7 +61,6 @@ public class TestNopAuthUserBizModel extends JunitAutoTestCase {
     @Inject
     IOrmTemplate ormTemplate;
 
-    @EnableSnapshot
     @Test
     public void testFindBeanByType() {
         try {
@@ -72,7 +71,6 @@ public class TestNopAuthUserBizModel extends JunitAutoTestCase {
         }
     }
 
-    @EnableSnapshot
     @Test
     public void testChangeSelfPass() {
         IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
@@ -95,7 +93,6 @@ public class TestNopAuthUserBizModel extends JunitAutoTestCase {
      * 通过rest方式调用findPage/findFirst等方法的时候，可以传递filter_status=3这种过滤条件，
      * 然后自动转换为标准的QueryBean查询对象
      */
-    @EnableSnapshot
     @Test
     public void testQueryBeanNormalizer() {
         ApiRequest<?> request = input("request.json5", ApiRequest.class);
@@ -105,7 +102,6 @@ public class TestNopAuthUserBizModel extends JunitAutoTestCase {
         output("response.json5", result);
     }
 
-    @EnableSnapshot
     @Test
     public void testParseType() {
         IStdDomainHandler handler = StdDomainRegistry.instance().getStdDomainHandler("generic-type");
@@ -113,7 +109,6 @@ public class TestNopAuthUserBizModel extends JunitAutoTestCase {
         type.isAssignableTo(NopAuthUser.class);
     }
 
-    @EnableSnapshot
     @Test
     public void testFindFirst() {
         IGraphQLExecutionContext context = graphQLEngine.newRpcContext(GraphQLOperationType.query,
@@ -122,7 +117,6 @@ public class TestNopAuthUserBizModel extends JunitAutoTestCase {
         output("response.json5", result);
     }
 
-    @EnableSnapshot
     @Test
     public void testNestedFragments() {
         prepareData();
@@ -145,7 +139,6 @@ public class TestNopAuthUserBizModel extends JunitAutoTestCase {
         saveUserRole("user1", "test");
     }
 
-    @EnableSnapshot
     @Test
     public void testFetchResult() {
         prepareData();
@@ -159,7 +152,6 @@ public class TestNopAuthUserBizModel extends JunitAutoTestCase {
         });
     }
 
-    @EnableSnapshot
     @Test
     public void testInitData() {
         ApiRequest<Object> request = new ApiRequest<>();
@@ -175,7 +167,6 @@ public class TestNopAuthUserBizModel extends JunitAutoTestCase {
     @Inject
     JsonRpcService jsonRpcService;
 
-    @EnableSnapshot
     @Test
     public void testJsonRpc() {
         String body = inputText("input.json");

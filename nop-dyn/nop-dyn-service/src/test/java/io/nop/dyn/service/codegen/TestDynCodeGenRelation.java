@@ -68,7 +68,6 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
     }
 
     @Test
-    @EnableSnapshot
     @Description("一对一是一种特殊形式的多对一，可以通过设置唯一约束来实现")
     public void testOneToOneRelation() {
         this.testManyToOneRelation();
@@ -77,7 +76,6 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
     /**
      * 自动录制的input实体RoleEntity实际上是动态创建的，所以录制完成后需要删除input目录下的role-entity.csv等，否则重放的时候会报实体不存在。
      */
-    @EnableSnapshot
     @Test
     public void testManyToOneRelation() {
 
@@ -95,7 +93,6 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         assertEquals(2, items.size());
     }
 
-    @EnableSnapshot
     @Test
     public void testOneToManyRelation() {
 
@@ -120,7 +117,6 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         System.out.println("graphql=\n" + doc.toSource());
     }
 
-    @EnableSnapshot
     @Test
     public void testManyToManyRelation() {
         BaseTestCase.forceStackTrace();

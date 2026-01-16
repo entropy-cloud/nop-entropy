@@ -67,7 +67,6 @@ public class TestDynCodeGenRelation2 extends JunitAutoTestCase {
         });
     }
 
-    @EnableSnapshot
     @Test
     public void testOneToManyRelation() {
 

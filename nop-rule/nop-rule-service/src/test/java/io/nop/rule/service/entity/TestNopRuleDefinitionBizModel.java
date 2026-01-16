@@ -35,19 +35,16 @@ public class TestNopRuleDefinitionBizModel extends JunitAutoTestCase {
     @Inject
     IGraphQLEngine graphQLEngine;
 
-    @EnableSnapshot
     @Test
     public void testImport() {
         runWithModelFile("decision-tree.rule.xlsx");
     }
 
-    @EnableSnapshot
     @Test
     public void testDecisionMatrix() {
         runWithModelFile("decision-matrix.rule.xlsx");
     }
 
-    @EnableSnapshot
     @Test
     public void testUpdateByFile() {
         runWithModelFile("decision-tree.rule.xlsx");

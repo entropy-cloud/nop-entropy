@@ -78,7 +78,6 @@ public class TestBeeflowCase extends JunitAutoTestCase {
         ormTemplate.runInSession(task);
     }
 
-    @EnableSnapshot
     @Test
     public void testPaymentApplication() {
         runInSession(() -> {
@@ -93,7 +92,6 @@ public class TestBeeflowCase extends JunitAutoTestCase {
         });
     }
 
-    @EnableSnapshot
     @Test
     public void testSalaryAdjustment() {
         forceStackTrace();

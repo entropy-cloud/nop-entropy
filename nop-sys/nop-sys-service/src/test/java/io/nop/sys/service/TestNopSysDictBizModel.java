@@ -31,7 +31,6 @@ public class TestNopSysDictBizModel extends JunitAutoTestCase {
     @Inject
     IJdbcTemplate jdbcTemplate;
 
-    @EnableSnapshot
     @Test
     public void testSubTableError() {
         jdbcTemplate.executeUpdate(new SQL("alter table nop_sys_dict_option alter column label set not null"));

@@ -32,7 +32,6 @@ public class TestManyToManyProp extends JunitAutoTestCase {
         super.initBeans();
     }
 
-    @EnableSnapshot
     @Test
     public void testSave() {
         ormTemplate.runInSession(() -> {

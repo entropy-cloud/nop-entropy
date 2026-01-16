@@ -26,7 +26,6 @@ public class TestXMetaPropDefaultValue extends JunitAutoTestCase {
     AuditServiceImpl auditService;
 
 
-    @EnableSnapshot
     @Test
     public void testSet() {
 

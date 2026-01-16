@@ -19,7 +19,6 @@ public class TestValidate extends JunitAutoTestCase {
     @Inject
     IGraphQLEngine graphQLEngine;
 
-    @EnableSnapshot
     @Test
     public void testValidate() {
         IGraphQLExecutionContext context = graphQLEngine.newRpcContext(null, "DemoAuth__hello", new ApiRequest<>());
@@ -27,7 +26,6 @@ public class TestValidate extends JunitAutoTestCase {
         output("response.json5", response);
     }
 
-    @EnableSnapshot
     @Test
     public void testNonEmpty() {
         Map<String, Object> data = new HashMap<>();

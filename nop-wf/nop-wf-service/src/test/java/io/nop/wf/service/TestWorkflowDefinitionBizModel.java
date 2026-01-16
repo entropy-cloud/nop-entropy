@@ -21,7 +21,6 @@ public class TestWorkflowDefinitionBizModel extends JunitAutoTestCase {
     @Inject
     IGraphQLEngine graphQLEngine;
 
-    @EnableSnapshot
     @Test
     public void testPublish() {
         forceStackTrace();

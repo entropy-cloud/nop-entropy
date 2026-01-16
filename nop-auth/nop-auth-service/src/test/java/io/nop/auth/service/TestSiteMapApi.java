@@ -23,7 +23,6 @@ public class TestSiteMapApi extends JunitAutoTestCase {
     @Inject
     IGraphQLEngine graphQLEngine;
 
-    @EnableSnapshot
     @Test
     public void testRpc(){
         ApiRequest<Map<String,Object>> request = new ApiRequest<>();

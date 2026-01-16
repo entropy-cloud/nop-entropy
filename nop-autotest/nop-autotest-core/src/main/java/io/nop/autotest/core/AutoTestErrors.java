@@ -61,7 +61,7 @@ public interface AutoTestErrors {
             "数据校验失败：数据表[{tableName}]的id为[{id}]的记录不存在", ARG_TABLE_NAME, ARG_ID);
 
     ErrorCode ERR_AUTOTEST_SNAPSHOT_FINISHED = define("nop.err.autotest.snapshot-finished",
-            "录制快照过程正常结束. 现在可以通过@EnableSnapshot来启用录制的快照数据来实现重放测试");
+            "录制快照过程正常结束. 现在可以通过@NopTestConfig的snapshotTest属性来控制录制/校验快照数据");
 
     ErrorCode ERR_AUTOTEST_CHECK_SQL_RESULT_FAIL = define("nop.err.autotest.check-sql-result-fail", "执行SQL验证失败：{sql}",
             ARG_SQL);

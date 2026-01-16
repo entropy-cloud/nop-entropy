@@ -39,7 +39,6 @@ public class TestGraphQLLogger extends JunitAutoTestCase {
     @Inject
     IGraphQLLogger graphQLLogger;
 
-    @EnableSnapshot
     @Test
     public void testAudit() {
         long beginTime = CoreMetrics.currentTimeMillis();

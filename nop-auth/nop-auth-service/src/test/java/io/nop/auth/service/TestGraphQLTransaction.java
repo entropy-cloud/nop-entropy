@@ -30,7 +30,6 @@ public class TestGraphQLTransaction extends JunitAutoTestCase {
     @Inject
     IGraphQLEngine graphQLEngine;
 
-    @EnableSnapshot
     @Test
     public void testRollback() {
         GraphQLRequestBean request = new GraphQLRequestBean();
@@ -42,7 +41,6 @@ public class TestGraphQLTransaction extends JunitAutoTestCase {
         assertTrue(daoProvider.daoFor(NopAuthRole.class).getEntityById("test123") == null);
     }
 
-    @EnableSnapshot
     @Test
     public void testTransaction() {
         GraphQLRequestBean request = new GraphQLRequestBean();

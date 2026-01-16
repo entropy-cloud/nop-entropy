@@ -7,7 +7,8 @@
  */
 package io.nop.auth.service;
 
-import io.nop.api.core.annotations.autotest.EnableSnapshot;
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.autotest.junit.JunitAutoTestCase;
@@ -17,11 +18,11 @@ import org.junit.jupiter.api.Test;
 
 import jakarta.inject.Inject;
 
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestGraphQLMissing extends JunitAutoTestCase {
     @Inject
     IGraphQLEngine graphQLEngine;
 
-    @EnableSnapshot
     @Test
     public void testFetch() {
         forceStackTrace();

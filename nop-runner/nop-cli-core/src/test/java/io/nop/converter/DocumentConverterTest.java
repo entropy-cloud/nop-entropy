@@ -19,7 +19,6 @@ public class DocumentConverterTest extends JunitAutoTestCase {
     @Inject
     ConverterRegistrationBean registrationBean;
 
-    @EnableSnapshot
     @Test
     public void testConvert() {
         IResource xlsxResource = inputResource("/test.orm.xlsx");
@@ -42,7 +41,6 @@ public class DocumentConverterTest extends JunitAutoTestCase {
         outputText("test.orm.html", ResourceHelper.readText(htmlResource));
     }
 
-    @EnableSnapshot
     @Test
     public void testConvertSameType() {
         IResource resource = inputResource("test-ext.orm.xml");
@@ -53,7 +51,6 @@ public class DocumentConverterTest extends JunitAutoTestCase {
         outputText("test-ext.orm.xml", ResourceHelper.readText(outResource));
     }
 
-    @EnableSnapshot
     @Test
     public void testMerge() {
         IResource xmlResource = inputResource("/test.orm.xml");

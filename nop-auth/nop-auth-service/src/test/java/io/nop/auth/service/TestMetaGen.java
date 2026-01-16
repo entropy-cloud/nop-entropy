@@ -24,7 +24,6 @@ public class TestMetaGen extends JunitAutoTestCase {
     @Inject
     IDaoProvider daoProvider;
 
-    @EnableSnapshot
     @Test
     public void testCsvList() {
         saveData();

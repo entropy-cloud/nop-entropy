@@ -43,7 +43,6 @@ public class TestTransaction extends JunitAutoTestCase {
     @Inject
     IDaoProvider daoProvider;
 
-    @EnableSnapshot
     @Test
     public void testRequiresNew() {
         try {
@@ -55,7 +54,6 @@ public class TestTransaction extends JunitAutoTestCase {
         }
     }
 
-    @EnableSnapshot
     @Test
     public void testRollback() {
 

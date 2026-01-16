@@ -24,7 +24,6 @@ public class TestDynamicExtFields extends JunitAutoTestCase {
     @Inject
     IGraphQLEngine graphQLEngine;
 
-    @EnableSnapshot
     @Test
     public void testSaveExtFields() {
         ApiRequest<?> request = input("request.json5", ApiRequest.class);

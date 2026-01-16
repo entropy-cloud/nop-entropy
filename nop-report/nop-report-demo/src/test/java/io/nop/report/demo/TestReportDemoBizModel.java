@@ -31,7 +31,6 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
     @Inject
     ReportDemoBizModel reportDemo;
 
-    @EnableSnapshot
     @Test
     public void testReport() {
         CoreMetrics.today();
@@ -48,7 +47,6 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
     }
 
 
-//    @EnableSnapshot
 //    @TestCell
 //    public void runOnce() {
 //        setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
@@ -62,7 +60,6 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
 //        file.delete();
 //    }
 
-    @EnableSnapshot
     @Test
     public void testDynamicSheetAndDynamicCol() {
         setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
@@ -76,7 +73,6 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
         file.delete();
     }
 
-    @EnableSnapshot
     @Test
     public void testSingleReport() {
         setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
@@ -90,7 +86,6 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
         file.delete();
     }
 
-    @EnableSnapshot
     @Test
     public void testFormPrinting() {
         setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
@@ -109,7 +104,6 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
     }
 
 
-    @EnableSnapshot
     @Test
     public void testExportFormula() {
         setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
@@ -123,7 +117,6 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
         file.delete();
     }
 
-    @EnableSnapshot
     @Test
     public void testExportFilterFormula() {
         setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
@@ -137,7 +130,6 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
         file.delete();
     }
 
-    @EnableSnapshot
     @Test
     public void testQrcode() {
         setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
@@ -151,7 +143,6 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
         file.delete();
     }
 
-    @EnableSnapshot
     @Test
     public void testSiblingExpand() {
         setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
@@ -165,7 +156,6 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
         file.delete();
     }
 
-    @EnableSnapshot
     @Test
     public void testMultiDsExpand() {
         setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);

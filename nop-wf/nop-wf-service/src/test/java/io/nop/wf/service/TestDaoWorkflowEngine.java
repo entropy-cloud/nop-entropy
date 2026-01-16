@@ -57,25 +57,21 @@ public class TestDaoWorkflowEngine extends JunitAutoTestCase {
     /**
      * 创建工作流时不指定wfVersion，此时会使用最新的版本
      */
-    @EnableSnapshot
     @Test
     public void testEmptyVersion() {
         runInSession(testCase::testEmptyVersion);
     }
 
-    @EnableSnapshot
     @Test
     public void testWorkflowInvoke() {
         runInSession(testCase::testWorkflowInvoke);
     }
 
-    @EnableSnapshot
     @Test
     public void testBasicWorkflowState() {
         runInSession(testCase::testWorkflowState);
     }
 
-    @EnableSnapshot
     @Test
     public void testJoin() {
         runInSession(testCase::testJoin);
@@ -88,7 +84,6 @@ public class TestDaoWorkflowEngine extends JunitAutoTestCase {
      * wf-start->sh->join->sp->  hq->    ysp->end
      * user,1        user,1,2    user,2   user,1
      */
-    @EnableSnapshot
     @Test
     public void testCosign() {
         runInSession(testCase::testCosign);
@@ -101,85 +96,71 @@ public class TestDaoWorkflowEngine extends JunitAutoTestCase {
      * wf-start->sh->join->sp->  hq->    ysp->end
      * user,1        user,1,2    user,2   user,1
      */
-    @EnableSnapshot
     @Test
     public void testCosign1() {
         runInSession(testCase::testCosign1);
     }
 
-    @EnableSnapshot
     @Test
     public void testSimpleJoin() {
         runInSession(testCase::testSimpleJoin);
     }
 
-    @EnableSnapshot
     @Test
     public void testFlow() {
         runInSession(testCase::testFlow);
     }
 
-    @EnableSnapshot
     @Test
     public void testCurrentStep() {
         runInSession(testCase::testCurrentStep);
     }
 
-    @EnableSnapshot
     @Test
     public void testInvokableActions() {
         runInSession(testCase::testInvokableActions);
     }
 
-    @EnableSnapshot
     @Test
     public void testMultiTransition() {
         runInSession(testCase::testMultiTransition);
     }
 
-    @EnableSnapshot
     @Test
     public void testTransitionTarget() {
         runInSession(testCase::testTransitionTarget);
     }
 
-    @EnableSnapshot
     @Test
     public void testActor() {
         runInSession(testCase::testActor);
     }
 
-    @EnableSnapshot
     @Test
     public void testNoAction() {
         runInSession(testCase::testNoAction);
     }
 
-    @EnableSnapshot
     @Test
     public void testSplitTypeAnd() {
         runInSession(testCase::testSplitTypeAnd);
     }
 
-    @EnableSnapshot
     @Test
     public void testSplitTypeOr() {
         runInSession(testCase::testSplitTypeOr);
     }
 
-    @EnableSnapshot
     @Test
     public void testReject() {
         runInSession(testCase::testReject);
     }
 
-    @EnableSnapshot
     @Test
     public void testWithdraw() {
         runInSession(testCase::testWithdraw);
     }
 
-    @EnableSnapshot
     @Test
     public void testDynamicActor() {
         runInSession(testCase::testDynamicActor);
@@ -188,7 +169,6 @@ public class TestDaoWorkflowEngine extends JunitAutoTestCase {
     /**
      * 空步骤
      */
-    @EnableSnapshot
     @Test
     public void testEmptyStep() {
         runInSession(testCase::testEmptyStep);
@@ -199,19 +179,16 @@ public class TestDaoWorkflowEngine extends JunitAutoTestCase {
      * start -> mainStart(step) -> sh -> ysh(step)->end(step)
      * -> cyStart(step) -> cysh -> kcy(step) -> cy -> kcy(step)...
      */
-    @EnableSnapshot
     @Test
     public void testLoop() {
         runInSession(testCase::testLoop);
     }
 
-    @EnableSnapshot
     @Test
     public void testToAssign() {
         runInSession(testCase::testToAssign);
     }
 
-    @EnableSnapshot
     @Test
     public void testToAssignAnd() {
         runInSession(testCase::testToAssignAnd);
@@ -220,19 +197,16 @@ public class TestDaoWorkflowEngine extends JunitAutoTestCase {
     /**
      * 通过to-assign转换动态跳转步骤
      */
-    @EnableSnapshot
     @Test
     public void testToAssign1() {
         runInSession(testCase::testToAssign1);
     }
 
-    @EnableSnapshot
     @Test
     public void testStartStepNoAssignment() {
         runInSession(testCase::testStartStepNoAssignment);
     }
 
-    @EnableSnapshot
     @Test
     public void testCommonAction() {
         runInSession(testCase::testCommonAction);

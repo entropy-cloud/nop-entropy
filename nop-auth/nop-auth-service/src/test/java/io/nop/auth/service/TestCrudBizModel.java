@@ -15,7 +15,6 @@ public class TestCrudBizModel extends JunitAutoTestCase {
     @Inject
     IGraphQLEngine graphQLEngine;
 
-    @EnableSnapshot
     @Test
     public void testOrderBy() {
         IGraphQLExecutionContext ctx = graphQLEngine.newRpcContext(null, "NopAuthOpLog__findPage", ApiRequest.build(null));

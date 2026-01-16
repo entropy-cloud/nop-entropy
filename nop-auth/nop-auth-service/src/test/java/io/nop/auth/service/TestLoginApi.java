@@ -50,7 +50,6 @@ public class TestLoginApi extends JunitAutoTestCase {
         return service.asProxy(LoginApi.class);
     }
 
-    @EnableSnapshot
     @Test
     public void testCreateUser() {
         ApiRequest<?> request = input("request.json5", ApiRequest.class);
@@ -67,7 +66,6 @@ public class TestLoginApi extends JunitAutoTestCase {
         }
     }
 
-    @EnableSnapshot
     @Test
     public void testLogin() {
         LoginApi loginApi = buildLoginApi();
@@ -82,7 +80,6 @@ public class TestLoginApi extends JunitAutoTestCase {
         assertTrue(FutureHelper.waitUntil(() -> auditService.isAllProcessed(), 1000));
     }
 
-    @EnableSnapshot
     @Test
     public void testLogin2() {
         LoginApi loginApi = buildLoginApi();
@@ -105,7 +102,6 @@ public class TestLoginApi extends JunitAutoTestCase {
         FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context));
     }
 
-    @EnableSnapshot
     @Test
     public void testLoginLogout() {
         LoginApi loginApi = buildLoginApi();
@@ -134,7 +130,6 @@ public class TestLoginApi extends JunitAutoTestCase {
 
     @ParameterizedTest
     @EnableVariants
-    @EnableSnapshot
     public void testVariants(String variant) {
         output("displayName.json5", testInfo.getDisplayName());
     }
