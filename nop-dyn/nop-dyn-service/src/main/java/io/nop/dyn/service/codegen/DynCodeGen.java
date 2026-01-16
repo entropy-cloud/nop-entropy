@@ -49,6 +49,7 @@ import jakarta.inject.Inject;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -307,7 +308,6 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
             for (NopDynModule module : list) {
                 ModuleModel moduleModel = buildModuleModel(module);
                 cache.addModule(moduleModel, formatGenCode);
-                Collection<NopDynEntityMeta> entityMetas = module.getEntityMetas();
             }
         });
     }
@@ -359,11 +359,17 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
     }
 
     @Override
-    public void prepareLoadModule(InMemoryCodeCache cache, ModuleModel module, IEvalScope scope) {
-        ormTemplate.runInSession(() -> {
+    public Map<String, GraphQLBizModel> prepareLoadModule(InMemoryCodeCache cache, ModuleModel module, IEvalScope scope) {
+        return ormTemplate.runInSession(session -> {
             IEntityDao<NopDynModule> dao = daoProvider.daoFor(NopDynModule.class);
             NopDynModule entity = dao.requireEntityById(module.getSid());
             scope.setLocalValue(VAR_MODULE_ENTITY, entity);
+            Map<String, GraphQLBizModel> bizModels = new HashMap<>();
+            for (NopDynEntityMeta entityMeta : entity.getEntityMetas()) {
+                GraphQLBizModel bizModel = buildGraphQLBizModel(entityMeta);
+                bizModels.put(bizModel.getBizObjName(), bizModel);
+            }
+            return bizModels;
         });
     }
 

@@ -181,7 +181,9 @@ public class InMemoryCodeCache {
         String subPath = "/{enableModuleCore}";
         scope.setLocalValue(VAR_ENABLE_MODULE_CORE, true);
         scope.setLocalValue(VAR_MODULE_ID, module.getModuleId());
-        hook.prepareLoadModule(this, module, scope);
+        Map<String,GraphQLBizModel> bizModels = hook.prepareLoadModule(this, module, scope);
+        this.bizModels.putAll(bizModels);
+
         gen.execute(subPath, scope);
         this.clearMergedStore();
     }
@@ -195,6 +197,9 @@ public class InMemoryCodeCache {
 
         // 通过解析orm.xml模型加载，这里会执行元编程增强ORM模型。与直接根据NopDynEntityModel生成并不一样。
         IResource resource = getOrmXmlFile(module.getModuleId());
+        if (AppConfig.isDebugMode())
+            ResourceHelper.dumpResource(resource, resource.readText());
+
         OrmModel loadedModel = new OrmModelLoader().loadFromResource(resource, false);
         return loadedModel;
     }
@@ -268,6 +273,10 @@ public class InMemoryCodeCache {
         addToMergedStore(resource);
     }
 
+    public void initDynBizModels(ModuleModel module){
+
+    }
+
     public synchronized void genBizObjFiles(boolean formatGenCode, GraphQLBizModel bizModel) {
         ModuleModel module = requireEnabledModule(bizModel.getModuleId());
         bizModels.put(bizModel.getBizObjName(), bizModel);
@@ -316,7 +325,7 @@ public class InMemoryCodeCache {
     }
 
     public ModuleModel requireEnabledModule(String moduleId) {
-        ModuleModel module = this.enabledModules.get(moduleId);
+        ModuleModel module = getEnabledModule(moduleId);
         if (module == null)
             throw new NopException(ERR_DYN_UNKNOWN_MODULE).param(ARG_MODULE_ID, moduleId);
         return module;

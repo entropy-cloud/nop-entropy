@@ -1,6 +1,7 @@
 package io.nop.dyn.service.entity;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dyn.dao.entity.NopDynFunctionMeta;
@@ -12,7 +13,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@NopTestConfig(localDb = true,enableAppBeansFile = false, enableAutoConfig = false)
+@NopTestConfig(enableIoc = OptionalBoolean.FALSE)
 public class TestNopDynEntity extends JunitBaseTestCase {
 
     @Test

@@ -7,9 +7,9 @@
  */
 package io.nop.rule.service.entity;
 
-import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.autotest.NopTestProperty;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.autotest.junit.JunitAutoTestCase;
@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 import java.io.InputStream;
 import java.util.Map;
 
-@NopTestConfig(localDb = true, initDatabaseSchema = true, disableSnapshot = false)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 @NopTestProperty(name = "nop.file.store-dir", value = "./target")
 @NopTestProperty(name = "nop.orm.dao-resource-check-interval", value = "0")
 public class TestNopRuleDefinitionBizModel extends JunitAutoTestCase {

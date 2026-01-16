@@ -4,8 +4,10 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.module.ModuleModel;
 import io.nop.graphql.core.reflection.GraphQLBizModel;
 
+import java.util.Map;
+
 public interface IDynCodeGenCacheHook {
-    void prepareLoadModule(InMemoryCodeCache cache, ModuleModel module, IEvalScope scope);
+    Map<String,GraphQLBizModel> prepareLoadModule(InMemoryCodeCache cache, ModuleModel module, IEvalScope scope);
 
     void prepareUnloadModule(InMemoryCodeCache cache, ModuleModel module, IEvalScope scope);
 

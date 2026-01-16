@@ -8,6 +8,7 @@
 package io.nop.sys.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.dao.api.IDaoProvider;
@@ -24,7 +25,7 @@ import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@NopTestConfig(localDb = true, initDatabaseSchema = true)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestCodeRule extends JunitBaseTestCase {
 
     @Inject

@@ -11,6 +11,7 @@ import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.Description;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.FieldSelectionBean;
@@ -41,7 +42,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
-@NopTestConfig(localDb = true, initDatabaseSchema = true)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestDynCodeGenRelation extends JunitAutoTestCase {
 
     @Inject
@@ -177,7 +178,7 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         entityMeta.setModule(module);
         entityMeta.setStatus(1);
         entityMeta.setIsExternal(false);
-        entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_REAL);
+        entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL);
 
         addProp(entityMeta, "userId", StdSqlType.VARCHAR, 32);
         addProp(entityMeta, "roleId", StdSqlType.VARCHAR, 32);
@@ -194,7 +195,7 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         entityMeta.setModule(module);
         entityMeta.setStatus(1);
         entityMeta.setIsExternal(false);
-        entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_REAL);
+        entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL);
 
         addProp(entityMeta, "userName", StdSqlType.VARCHAR, 100);
         addProp(entityMeta, "userAge", StdSqlType.INTEGER, 0);
@@ -212,7 +213,7 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         entityMeta.setModule(module);
         entityMeta.setStatus(1);
         entityMeta.setIsExternal(false);
-        entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_REAL);
+        entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL);
 
         addProp(entityMeta, "roleName", StdSqlType.VARCHAR, 100);
         addProp(entityMeta, "roleKey", StdSqlType.VARCHAR, 100);

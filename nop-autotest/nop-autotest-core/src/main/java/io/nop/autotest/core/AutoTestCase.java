@@ -131,7 +131,7 @@ public class AutoTestCase extends BaseTestCase {
     }
 
     public void initCaseDataDir(File caseDataDir) {
-        if(useSnapshot)
+        if(!useSnapshot)
             return;
 
         caseData = new AutoTestCaseData(caseDataDir, valueResolverRegistry);

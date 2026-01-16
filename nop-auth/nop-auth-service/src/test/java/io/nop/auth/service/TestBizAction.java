@@ -11,12 +11,16 @@ import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.beans.graphql.GraphQLRequestBean;
+import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import org.junit.jupiter.api.Test;
 
 import jakarta.inject.Inject;
+
+import java.util.Map;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestBizAction extends JunitAutoTestCase {

@@ -24,7 +24,7 @@ public @interface NopTestConfig {
     /**
      * 是否强制设置nop.datasource.jdbc-url为h2内存数据库。SnapshotTest设置为Checking的时候总是强制使用localDb运行，这里的配置无效。
      */
-    boolean localDb() default false;
+    boolean localDb() default true;
 
     /**
      * 是否自动根据ORM模型定义初始化数据库表结构。如果是快照验证阶段，则缺省为true。但是这里可以强制覆盖这个行为

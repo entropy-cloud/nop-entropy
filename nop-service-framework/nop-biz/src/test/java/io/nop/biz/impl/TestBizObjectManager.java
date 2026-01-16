@@ -8,6 +8,7 @@
 package io.nop.biz.impl;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.json.JSON;
@@ -22,7 +23,7 @@ import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@NopTestConfig(enableAutoConfig = false, enableAppBeansFile = false)
+@NopTestConfig(enableIoc = OptionalBoolean.FALSE)
 public class TestBizObjectManager extends JunitBaseTestCase {
 
     BizObjectManager bizObjManager;

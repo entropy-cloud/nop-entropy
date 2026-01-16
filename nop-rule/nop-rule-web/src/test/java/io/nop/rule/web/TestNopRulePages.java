@@ -8,6 +8,7 @@
 package io.nop.rule.web;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.web.page.PageProvider;
@@ -16,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import jakarta.inject.Inject;
 import java.util.Map;
 
-@NopTestConfig(localDb = true, initDatabaseSchema = true)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestNopRulePages extends JunitBaseTestCase {
 
     @Inject

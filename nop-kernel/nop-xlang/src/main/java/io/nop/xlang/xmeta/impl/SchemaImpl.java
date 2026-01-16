@@ -496,7 +496,6 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
     }
 
     public String getMapKeyAttr(){
-        checkAllowChange();
         return mapSchema == null ? null : mapSchema.keyAttr;
     }
 

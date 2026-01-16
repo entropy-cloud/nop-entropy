@@ -1,6 +1,7 @@
 package io.nop.sys.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.autotest.core.split.TestCaseJsonDataSplitter;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.IDaoProvider;
@@ -10,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.util.Map;
 
-@NopTestConfig(localDb = true,initDatabaseSchema = true)
+@NopTestConfig(localDb = true,initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestCaseDataSplitter extends JunitBaseTestCase {
     @Inject
     IDaoProvider daoProvider;

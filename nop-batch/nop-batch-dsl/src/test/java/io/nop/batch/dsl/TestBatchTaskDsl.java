@@ -2,6 +2,7 @@ package io.nop.batch.dsl;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.batch.core.IBatchTask;
@@ -26,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-@NopTestConfig(localDb = true, initDatabaseSchema = true)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestBatchTaskDsl extends JunitAutoTestCase {
 
     @Inject

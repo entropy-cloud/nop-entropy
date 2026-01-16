@@ -9,6 +9,7 @@ package io.nop.dyn.service.codegen;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.FieldSelectionBean;
@@ -41,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 @Disabled
-@NopTestConfig(localDb = true, initDatabaseSchema = true)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestDynCodeGenRelation2 extends JunitAutoTestCase {
 
     @Inject
