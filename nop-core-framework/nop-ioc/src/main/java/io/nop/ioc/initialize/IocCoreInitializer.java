@@ -12,6 +12,7 @@ import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.ICoreInitializer;
+import io.nop.ioc.IocConfigs;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.loader.AppBeanContainerLoader;
 
@@ -25,6 +26,11 @@ public class IocCoreInitializer implements ICoreInitializer {
     @Override
     public int order() {
         return CoreConstants.INITIALIZER_PRIORITY_IOC;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return IocConfigs.CFG_IOC_ENABLED.get();
     }
 
     @Override

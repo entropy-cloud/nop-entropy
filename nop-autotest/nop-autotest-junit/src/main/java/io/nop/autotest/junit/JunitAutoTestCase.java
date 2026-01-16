@@ -8,6 +8,8 @@
 package io.nop.autotest.junit;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.autotest.SnapshotTest;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.autotest.core.AutoTestCase;
 import io.nop.autotest.core.data.AutoTestDataHelper;
@@ -64,7 +66,7 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
         afterDestroy();
     }
 
-    protected void afterDestroy(){
+    protected void afterDestroy() {
 
     }
 
@@ -73,36 +75,53 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
         if (method == null)
             return;
 
+        NopTestConfig testConfig = this.getClass().getAnnotation(NopTestConfig.class);
+        if (testConfig == null)
+            throw new IllegalArgumentException("Classes inheriting from JunitAutoTestCase must be annotated with @NopTestConfig.");
+
+        boolean disable = CFG_AUTOTEST_DISABLE_SNAPSHOT.get();
+        if (testConfig.snapshotTest() == SnapshotTest.RECORDING)
+            disable = true;
+
         EnableSnapshot enableSnapshot = method.getAnnotation(EnableSnapshot.class);
-        if (enableSnapshot != null && !CFG_AUTOTEST_DISABLE_SNAPSHOT.get()) {
+        if (enableSnapshot != null && !disable) {
+            setUseSnapshot(true);
             setCheckOutput(enableSnapshot.checkOutput());
             setLocalDb(enableSnapshot.localDb());
             setSqlInput(enableSnapshot.sqlInput());
             setSqlInit(enableSnapshot.sqlInit());
             setTableInit(enableSnapshot.tableInit());
             setSaveOutput(enableSnapshot.saveOutput());
-
             configLocalDb();
-
-            // if (enableSnapshot.localDb()) {
-            // NopTestConfig testConfig = testInfo.getTestClass().get().getAnnotation(NopTestConfig.class);
-            // if (testConfig == null || !testConfig.localDb()) {
-            // throw new NopException(ERR_AUTOTEST_TEST_CLASS_NO_LOCAL_DB_ANNOTATION)
-            // .param(ARG_TEST_CLASS, testInfo.getTestClass().get())
-            // .param(ARG_TEST_METHOD, testInfo.getTestMethod().get().getName());
-            // }
-            // }
-
-            if (CFG_AUTOTEST_FORCE_SAVE_OUTPUT.get()) {
-                setSaveOutput(true);
-                return;
-            }
         } else {
-            setCheckOutput(false);
-            setLocalDb(false);
-            setSqlInit(false);
-            setSqlInput(false);
-            setTableInit(false);
+            if (testConfig.snapshotTest() == SnapshotTest.NOT_USE) {
+                setUseSnapshot(false);
+                setSaveOutput(false);
+                setCheckOutput(false);
+                setSqlInit(false);
+                setTableInit(false);
+                setSqlInput(false);
+            } else if (testConfig.snapshotTest() == SnapshotTest.RECORDING) {
+                setUseSnapshot(true);
+                setCheckOutput(false);
+                setLocalDb(testConfig.localDb());
+                setSqlInit(false);
+                setSqlInput(false);
+                setTableInit(false);
+                setSaveOutput(true);
+            } else {
+                // CHECKING
+                setUseSnapshot(true);
+                setCheckOutput(true);
+                setLocalDb(true);
+                setSqlInput(true);
+                setSqlInput(true);
+                setTableInit(true);
+                setSaveOutput(false);
+            }
+        }
+
+        if (CFG_AUTOTEST_FORCE_SAVE_OUTPUT.get()) {
             setSaveOutput(true);
         }
     }

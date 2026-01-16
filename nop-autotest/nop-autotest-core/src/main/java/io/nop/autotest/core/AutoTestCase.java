@@ -82,6 +82,7 @@ public class AutoTestCase extends BaseTestCase {
     private IDaoProvider daoProvider;
     private IJdbcTemplate jdbcTemplate;
 
+    private boolean useSnapshot;
     private boolean checkOutput;
     private boolean localDb;
     private boolean tableInit;
@@ -113,6 +114,14 @@ public class AutoTestCase extends BaseTestCase {
         this.valueResolverRegistry = valueResolverRegistry;
     }
 
+    public boolean isUseSnapshot() {
+        return useSnapshot;
+    }
+
+    public void setUseSnapshot(boolean useSnapshot) {
+        this.useSnapshot = useSnapshot;
+    }
+
     public AutoTestCaseData getCaseData() {
         return caseData;
     }
@@ -122,6 +131,9 @@ public class AutoTestCase extends BaseTestCase {
     }
 
     public void initCaseDataDir(File caseDataDir) {
+        if(useSnapshot)
+            return;
+
         caseData = new AutoTestCaseData(caseDataDir, valueResolverRegistry);
         caseData.getInputDir().mkdirs();
         caseData.getOutputDir().mkdirs();
@@ -154,11 +166,13 @@ public class AutoTestCase extends BaseTestCase {
         AutoTestVars.setVars(vars);
         VarCollector.registerInstance(new AutoTestVarCollector());
 
-        if (localDb || tableInit || sqlInit) {
-            LOG.info("\n========= autotest restore data from snapshot ============");
-            if (daoProvider != null) {
-                new AutoTestCaseDataBaseInitializer(variant, localDb, tableInit, sqlInit, sqlInput, caseData, daoProvider,
-                        jdbcTemplate).initialize();
+        if(useSnapshot) {
+            if (localDb || tableInit || sqlInit) {
+                LOG.info("\n========= autotest restore data from snapshot ============");
+                if (daoProvider != null) {
+                    new AutoTestCaseDataBaseInitializer(variant, localDb, tableInit, sqlInit, sqlInput, caseData, daoProvider,
+                            jdbcTemplate).initialize();
+                }
             }
         }
 
@@ -304,7 +318,7 @@ public class AutoTestCase extends BaseTestCase {
     public void output(String fileName, Object result) {
         if (saveOutput) {
             caseData.writeDeltaJson(caseData.getOutputFileName(fileName, variant), result);
-        } else {
+        } else if(checkOutput){
             IEvalScope scope = XLang.newEvalScope(AutoTestVars.getVars());
             Object value = null;
             try {
@@ -332,7 +346,7 @@ public class AutoTestCase extends BaseTestCase {
         String path = caseData.getOutputFileName(fileName, variant);
         if (saveOutput) {
             caseData.writeBytes(path, bytes);
-        } else {
+        } else if(checkOutput){
             byte[] expected = caseData.readBytes(path);
             if (!Arrays.equals(expected, bytes)) {
                 throw new AutoTestException(ERR_AUTOTEST_EXPECT_ERROR).param(ARG_FILE_NAME, fileName)
@@ -355,7 +369,7 @@ public class AutoTestCase extends BaseTestCase {
         String path = caseData.getOutputFileName(fileName, variant);
         if (saveOutput) {
             caseData.writeText(path, text, null);
-        } else {
+        } else if(checkOutput){
             String expected = caseData.readText(path, null);
             checkEquals(ERR_AUTOTEST_CHECK_MATCH_FAIL, fileName, normalizeCRLF(expected), normalizeCRLF(text));
         }

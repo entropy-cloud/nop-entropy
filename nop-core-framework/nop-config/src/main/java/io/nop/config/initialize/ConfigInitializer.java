@@ -7,6 +7,8 @@
  */
 package io.nop.config.initialize;
 
+import io.nop.api.core.config.AppConfig;
+import io.nop.config.ConfigConstants;
 import io.nop.config.starter.ConfigStarter;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.ICoreInitializer;
@@ -14,6 +16,11 @@ import io.nop.core.initialize.ICoreInitializer;
 public class ConfigInitializer implements ICoreInitializer {
     public int order() {
         return CoreConstants.INITIALIZER_PRIORITY_START_CONFIG;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return AppConfig.var(ConfigConstants.CFG_CONFIG_ENABLED, true);
     }
 
     @Override

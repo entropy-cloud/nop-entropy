@@ -24,6 +24,8 @@ public interface ConfigConstants {
 
     String CFG_CONFIG_TRACE = "nop.config.trace";
 
+    String CFG_CONFIG_ENABLED = "nop.config.enabled";
+
     /**
      * 配置灰度发布对应的配置项。不同版本的应用程序从配置中心获取配置后可以根据版本号等过滤得到专用于本版本的配置
      */

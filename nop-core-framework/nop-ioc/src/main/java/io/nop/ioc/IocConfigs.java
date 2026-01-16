@@ -8,12 +8,18 @@
 package io.nop.ioc;
 
 import io.nop.api.core.annotations.core.Description;
+import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.config.IConfigReference;
 import io.nop.api.core.util.SourceLocation;
 
+@Locale("zh-CN")
 public interface IocConfigs {
     SourceLocation s_loc = SourceLocation.fromClass(IocConfigs.class);
+
+    @Description("启用NopIoc容器")
+    IConfigReference<Boolean> CFG_IOC_ENABLED = AppConfig.varRef(s_loc, "nop.ioc.enabled", Boolean.class,true);
+
     @Description("应用Ioc容器的启动模式")
     IConfigReference<String> CFG_IOC_APP_BEANS_CONTAINER_START_MODE = AppConfig
             .varRef(s_loc, "nop.ioc.app-beans-container.start-mode", String.class, null);
