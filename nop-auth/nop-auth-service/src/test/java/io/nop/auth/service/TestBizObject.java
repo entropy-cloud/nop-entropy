@@ -8,6 +8,7 @@
 package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.auth.service.biz.DemoAuthBizModel;
@@ -24,7 +25,7 @@ import jakarta.inject.Inject;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@NopTestConfig(localDb = true, initDatabaseSchema = true)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestBizObject extends JunitBaseTestCase {
 
     @Inject

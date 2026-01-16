@@ -9,6 +9,7 @@ package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
@@ -48,7 +49,7 @@ import static io.nop.auth.service.AuthTestHelper.saveUserRole;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-@NopTestConfig(enableActionAuth = "false", initDatabaseSchema = true)
+@NopTestConfig(enableActionAuth = OptionalBoolean.FALSE, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestNopAuthUserBizModel extends JunitAutoTestCase {
 
     @Inject

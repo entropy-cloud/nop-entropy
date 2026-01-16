@@ -9,6 +9,7 @@ package io.nop.wf.service;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.auth.dao.entity.NopAuthDept;
 import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.autotest.junit.JunitAutoTestCase;
@@ -30,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * 测试类钉钉审批流相关用例
  */
-@NopTestConfig(localDb = true, initDatabaseSchema = true,disableSnapshot = false)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestBeeflowCase extends JunitAutoTestCase {
 
     @Inject

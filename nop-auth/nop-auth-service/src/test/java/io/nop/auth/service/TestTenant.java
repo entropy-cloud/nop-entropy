@@ -1,6 +1,7 @@
 package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.annotations.autotest.NopTestProperty;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
@@ -17,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-@NopTestConfig(localDb = true, initDatabaseSchema = true)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 @NopTestProperty(name = "nop.orm.enable-tenant-by-default", value = "true")
 public class TestTenant extends JunitBaseTestCase {
     @Inject

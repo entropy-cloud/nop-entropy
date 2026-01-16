@@ -1,6 +1,7 @@
 package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.auth.dao.entity.NopAuthGroup;
 import io.nop.auth.dao.entity.NopAuthGroupDept;
@@ -25,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@NopTestConfig(enableActionAuth = "false", initDatabaseSchema = true, localDb = true)
+@NopTestConfig(enableActionAuth = OptionalBoolean.FALSE, initDatabaseSchema = OptionalBoolean.TRUE, localDb = true)
 public class TestMdxQuery extends JunitBaseTestCase {
 
     @Inject

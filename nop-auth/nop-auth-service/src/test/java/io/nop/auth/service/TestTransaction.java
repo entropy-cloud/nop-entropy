@@ -9,6 +9,7 @@ package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.auth.dao.entity.NopAuthGroup;
 import io.nop.auth.service.biz.TestService;
 import io.nop.autotest.junit.JunitAutoTestCase;
@@ -25,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @Disabled
-@NopTestConfig(localDb = true, initDatabaseSchema = true)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestTransaction extends JunitAutoTestCase {
     @Inject
     TestService testService;

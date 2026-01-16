@@ -4,6 +4,7 @@ import java.util.List;
 import javax.sql.DataSource;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.diff.DiffType;
@@ -29,7 +30,7 @@ import org.slf4j.LoggerFactory;
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2024-04-29
  */
-@NopTestConfig(localDb = true, initDatabaseSchema = true,
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE,
                testConfigFile = "classpath:/io/nop/dbtool/core/diff/db-diff-upgrade.yaml")
 public class TestDataBaseUpgradeInitializer extends JunitBaseTestCase {
     private final static Logger LOG = LoggerFactory.getLogger(TestDataBaseUpgradeInitializer.class);

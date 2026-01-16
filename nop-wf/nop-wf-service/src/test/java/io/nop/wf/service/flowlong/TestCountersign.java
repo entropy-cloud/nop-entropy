@@ -1,6 +1,7 @@
 package io.nop.wf.service.flowlong;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.wf.service.AbstractWorkflowTestCase;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -11,7 +12,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Disabled
-@NopTestConfig(localDb = true, initDatabaseSchema = true, disableSnapshot = false)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestCountersign extends AbstractWorkflowTestCase {
 
     @Test

@@ -8,6 +8,7 @@
 package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.FieldSelectionBean;
@@ -33,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * 设置localDb=true,initDatabaseSchema=true表示本单元测试使用独立的内存数据库，并且自动初始化数据库中的表定义
  */
-@NopTestConfig(localDb = true, initDatabaseSchema = true, enableActionAuth = "true")
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE, enableActionAuth = OptionalBoolean.TRUE)
 public class TestCheckFieldAuth extends JunitBaseTestCase {
     @Inject
     IGraphQLEngine graphQLEngine;

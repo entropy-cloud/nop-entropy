@@ -1,6 +1,7 @@
 package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.annotations.autotest.NopTestProperty;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.context.ContextProvider;
@@ -13,7 +14,7 @@ import io.nop.xlang.api.XLang;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-@NopTestConfig(localDb = true, initDatabaseSchema = true)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 @NopTestProperty(name = "nop.auth.data-auth-config-path", value = "/nop/auth/auth/nop-auth.data-auth.xml")
 public class TestSqlLib extends JunitBaseTestCase {
 

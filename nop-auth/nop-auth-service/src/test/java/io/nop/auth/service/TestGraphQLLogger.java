@@ -9,6 +9,7 @@ package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.annotations.autotest.NopTestProperty;
 import io.nop.api.core.audit.IAuditService;
 import io.nop.api.core.beans.ApiRequest;
@@ -25,7 +26,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@NopTestConfig(localDb = true, initDatabaseSchema = true)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 @NopTestProperty(name = "nop.auth.graphql.enable-audit", value = "true")
 @NopTestProperty(name = "nop.auth.graphql.audit-mutation-patterns", value = "NopAuthUser__*")
 public class TestGraphQLLogger extends JunitAutoTestCase {

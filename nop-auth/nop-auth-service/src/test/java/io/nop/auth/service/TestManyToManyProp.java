@@ -10,6 +10,7 @@ package io.nop.auth.service;
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.autotest.NopTestProperty;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.auth.dao.entity.NopAuthRole;
 import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.autotest.junit.JunitAutoTestCase;
@@ -20,7 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 
-@NopTestConfig(initDatabaseSchema = true, disableSnapshot = false)
+@NopTestConfig(initDatabaseSchema = OptionalBoolean.TRUE)
 //@NopTestProperty(name = "nop.auth.login.allow-create-default-user", value = "true")
 public class TestManyToManyProp extends JunitAutoTestCase {
     @Inject

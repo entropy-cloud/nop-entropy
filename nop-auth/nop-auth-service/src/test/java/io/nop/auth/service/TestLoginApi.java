@@ -9,6 +9,7 @@ package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.util.FutureHelper;
@@ -35,7 +36,7 @@ import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@NopTestConfig(initDatabaseSchema = true, localDb = true, disableSnapshot = false)
+@NopTestConfig(initDatabaseSchema = OptionalBoolean.TRUE, localDb = true)
 public class TestLoginApi extends JunitAutoTestCase {
 
     @Inject
