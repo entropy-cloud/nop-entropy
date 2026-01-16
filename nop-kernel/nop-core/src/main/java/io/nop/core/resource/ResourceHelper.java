@@ -104,6 +104,61 @@ public class ResourceHelper {
         return getModuleIdFromStdPath(path);
     }
 
+    /**
+     * /{moduleId}/subPath
+     * 跳过moduleId部分之后的位置，
+     */
+    public static int getModuleSubPathStart(String path) {
+        if (path == null)
+            return -1;
+
+        // 如果有命名空间前缀（如 classpath:/xxx），直接返回-1，因为moduleId只在普通虚拟路径中有效
+        int colonPos = path.indexOf(':');
+        if (colonPos > 0 && colonPos < path.length() - 1 && path.charAt(colonPos + 1) == '/')
+            return -1;
+
+        // 确保路径以/开头
+        if (!path.startsWith("/"))
+            return -1;
+
+        int pos = 0; // 当前位置
+        int length = path.length();
+
+        // 检查是否是delta路径
+        if (path.startsWith(ResourceConstants.DELTA_PATH_PREFIX)) {
+            // delta路径格式: /_delta/{deltaLayerId}/{moduleId}/subPath
+            // 跳过 /_delta/
+            pos = ResourceConstants.DELTA_PATH_PREFIX.length();
+
+            // 跳过deltaLayerId
+            int deltaLayerEnd = path.indexOf('/', pos);
+            if (deltaLayerEnd < 0)
+                return -1;
+
+            pos = deltaLayerEnd; // pos现在指向deltaLayerId后的/
+        }
+
+        // 现在pos应该指向moduleId前的/，或者路径开头的/
+        // moduleId的格式是 xxx/yyy（两个部分）
+
+        // 跳过第一个/
+        if (pos >= length || path.charAt(pos) != '/')
+            return -1;
+        pos++;
+
+        // 找到第一个部分后的/
+        int slash1 = path.indexOf('/', pos);
+        if (slash1 < 0)
+            return length; // 没有子路径，返回路径末尾
+
+        // 找到第二个部分后的/
+        int slash2 = path.indexOf('/', slash1 + 1);
+        if (slash2 < 0)
+            return length; // 没有子路径，返回路径末尾
+
+        return slash2;
+    }
+
     public static String getModuleName(String path) {
         String moduleId = getModuleId(path);
         if (moduleId == null)

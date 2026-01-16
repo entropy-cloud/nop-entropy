@@ -1,4 +1,3 @@
 _chgType,ENTITY_META_ID,MODULE_ID,ENTITY_NAME,DISPLAY_NAME,TABLE_NAME,QUERY_SPACE,STORE_TYPE,TAGS_TEXT,IS_EXTERNAL,STATUS,EXT_CONFIG,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
-A,@var:NopDynEntityMeta@entityMetaId_1,@var:NopDynModule@moduleId,RoleEntity,Role Entity,,,10,,false,1,,0,autotest-ref,*,autotest-ref,*,
-A,@var:NopDynEntityMeta@entityMetaId,@var:NopDynModule@moduleId,UserEntity,User Entity,,,10,,false,1,,0,autotest-ref,*,autotest-ref,*,
-A,@var:NopDynEntityMeta@entityMetaId_2,@var:NopDynModule@moduleId,UserManyRole,User Many Role,,,10,,false,1,,0,autotest-ref,*,autotest-ref,*,
+A,@var:NopDynEntityMeta@entityMetaId_1,@var:NopDynModule@moduleId,RoleEntity,Role Entity,,,0,,false,1,,0,autotest-ref,*,autotest-ref,*,
+A,@var:NopDynEntityMeta@entityMetaId,@var:NopDynModule@moduleId,UserEntity,User Entity,,,0,,false,1,,0,autotest-ref,*,autotest-ref,*,

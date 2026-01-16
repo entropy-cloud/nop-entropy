@@ -11,6 +11,7 @@ import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.autotest.core.AutoTestConfigs;
 import io.nop.autotest.core.util.TestClock;
 import io.nop.commons.util.StringHelper;
 import io.nop.config.ConfigConstants;
@@ -36,6 +37,10 @@ public class NopTestConfigProcessor {
             setTestConfig(DaoConfigs.CFG_DATASOURCE_PASSWORD, "");
             // Note：在 Linux 中 H2 默认是大写模式，在单元测试中直接配置启用大小写无关，以确保兼容性
             setTestConfig(DaoConfigs.CFG_DATASOURCE_JDBC_URL, "jdbc:h2:mem:" + StringHelper.generateUUID() + ";CASE_INSENSITIVE_IDENTIFIERS=TRUE");
+        }
+
+        if (config.forceSaveOutput()) {
+            setTestConfig(AutoTestConfigs.CFG_AUTOTEST_FORCE_SAVE_OUTPUT, true);
         }
 
         if (!config.testConfigFile().isEmpty()) {

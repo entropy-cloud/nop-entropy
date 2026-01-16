@@ -46,9 +46,11 @@ public @interface NopTestConfig {
     OptionalBoolean enableDataAuth() default OptionalBoolean.NOT_SET;
 
     /**
-     *  RECORDING模式下会录制每个测试方法的执行结果，CHECKING模式下会验证录制结果与实际执行结果相匹配
+     * RECORDING模式下会录制每个测试方法的执行结果，CHECKING模式下会验证录制结果与实际执行结果相匹配
      */
     SnapshotTest snapshotTest() default SnapshotTest.CHECKING;
+
+    boolean forceSaveOutput() default false;
 
     /**
      * 为单元测试指定的beans配置文件

@@ -20,9 +20,13 @@ public class NopDynModule extends _NopDynModule {
         return ResourceHelper.getModuleIdFromModuleName(getModuleName());
     }
 
-    public boolean isPublished(){
+    public void setNopModuleId(String nopModuleId) {
+        setModuleName(ResourceHelper.getModuleNameFromModuleId(nopModuleId));
+    }
+
+    public boolean isPublished() {
         Integer status = getStatus();
-        if(status == null)
+        if (status == null)
             return false;
 
         return NopDynDaoConstants.MODULE_STATUS_PUBLISHED == status;

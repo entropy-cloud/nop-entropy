@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 import static io.nop.dyn.service.NopDynConstants.VAR_BIZ_OBJ_NAME;
 import static io.nop.dyn.service.NopDynConstants.VAR_ENABLE_MODULE_CORE;
@@ -181,7 +182,7 @@ public class InMemoryCodeCache {
         String subPath = "/{enableModuleCore}";
         scope.setLocalValue(VAR_ENABLE_MODULE_CORE, true);
         scope.setLocalValue(VAR_MODULE_ID, module.getModuleId());
-        Map<String,GraphQLBizModel> bizModels = hook.prepareLoadModule(this, module, scope);
+        Map<String, GraphQLBizModel> bizModels = hook.prepareLoadModule(this, module, scope);
         this.bizModels.putAll(bizModels);
 
         gen.execute(subPath, scope);
@@ -237,25 +238,24 @@ public class InMemoryCodeCache {
     }
 
     public String getBizObjNameFromPagesPath(String path) {
-        int pos = path.indexOf("/pages/");
+        return getBizObjNameFromPath(path, "/pages/");
+    }
+
+    private String getBizObjNameFromPath(String path, String part) {
+        int pos = ResourceHelper.getModuleSubPathStart(path);
         if (pos < 0)
             return null;
-        pos += "/pages/".length();
-        int pos2 = path.indexOf("/", pos);
+        if (!path.regionMatches(pos, part, 0, part.length()))
+            return null;
+        pos += part.length();
+        int pos2 = path.indexOf('/', pos);
         if (pos2 < 0)
             return null;
         return path.substring(pos, pos2);
     }
 
     public String getBizObjNameFromModelsPath(String path) {
-        int pos = path.indexOf("/models/");
-        if (pos < 0)
-            return null;
-        pos += "/models/".length();
-        int pos2 = path.indexOf("/", pos);
-        if (pos2 < 0)
-            return null;
-        return path.substring(pos, pos2);
+        return getBizObjNameFromPath(path, "/model/");
     }
 
     public void genPageFile(ModuleModel module, GraphQLBizModel bizModel,
@@ -271,10 +271,6 @@ public class InMemoryCodeCache {
 
         IResource resource = store.getResource(genPath);
         addToMergedStore(resource);
-    }
-
-    public void initDynBizModels(ModuleModel module){
-
     }
 
     public synchronized void genBizObjFiles(boolean formatGenCode, GraphQLBizModel bizModel) {
@@ -322,6 +318,16 @@ public class InMemoryCodeCache {
 
     public ModuleModel getEnabledModule(String moduleId) {
         return enabledModules.get(moduleId);
+    }
+
+    public synchronized ModuleModel getEnabledModule(String moduleId, boolean formatCode,
+                                                     Supplier<ModuleModel> loadModule) {
+        ModuleModel module = getEnabledModule(moduleId);
+        if (module == null) {
+            module = loadModule.get();
+            addModule(module, formatCode);
+        }
+        return module;
     }
 
     public ModuleModel requireEnabledModule(String moduleId) {

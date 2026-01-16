@@ -362,6 +362,10 @@ public class DynEntityMetaToOrmModel {
         });
 
         addExtFields(entityModel);
+
+        entityMeta.getRelationMetasForEntity().forEach(rel -> {
+            handleRelationMeta(entityModel, rel);
+        });
     }
 
     protected void addExtFields(OrmEntityModel entityModel) {

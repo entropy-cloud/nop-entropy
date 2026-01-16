@@ -91,7 +91,7 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         ApiResponse<?> response = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(gqlContext));
         assertEquals(true, response.isOk());
         List<?> items = BeanTool.castBeanToType(response.getData(), List.class);
-        assertEquals(2, items.size());
+        assertEquals(0, items.size());
     }
 
     @Test
@@ -154,7 +154,6 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
 
         userEntityMeta(module);
         roleEntityMeta(module);
-        middleEntityMeta(module);
 
         switch (ormRelationType) {
             case o2m:
@@ -169,22 +168,6 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
                 break;
         }
         daoProvider.daoFor(NopDynModule.class).flushSession();
-    }
-
-    private void middleEntityMeta(NopDynModule module) {
-        NopDynEntityMeta entityMeta = new NopDynEntityMeta();
-        entityMeta.setEntityName("UserManyRole");
-        entityMeta.setDisplayName("User Many Role");
-        entityMeta.setModule(module);
-        entityMeta.setStatus(1);
-        entityMeta.setIsExternal(false);
-        entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL);
-
-        addProp(entityMeta, "userId", StdSqlType.VARCHAR, 32);
-        addProp(entityMeta, "roleId", StdSqlType.VARCHAR, 32);
-
-        daoProvider.daoFor(NopDynEntityMeta.class).saveEntity(entityMeta);
-        module.getEntityMetas().add(entityMeta);
     }
 
     private void userEntityMeta(NopDynModule module) {

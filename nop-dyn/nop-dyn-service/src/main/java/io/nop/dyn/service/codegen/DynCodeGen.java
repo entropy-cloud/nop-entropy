@@ -226,21 +226,18 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
 
     public synchronized void generateForModule(NopDynModule module) {
         ormTemplate.runInSession(() -> {
-            batchLoadModule(module);
+            //batchLoadModule(module);
             generateModuleToCache(getCodeCache(), module);
         });
     }
 
-    protected synchronized void generateModuleToCache(InMemoryCodeCache codeCache, NopDynModule module) {
-        Collection<NopDynEntityMeta> entityMetas = module.getEntityMetas();
+    protected synchronized ModuleModel generateModuleToCache(InMemoryCodeCache codeCache, NopDynModule module) {
         ModuleModel moduleModel = buildModuleModel(module);
         codeCache.addModule(moduleModel, formatGenCode);
-        codeCache.genOrmModel(formatGenCode, moduleModel);
-
-        for (NopDynEntityMeta entityMeta : entityMetas) {
-            GraphQLBizModel bizModel = buildGraphQLBizModel(entityMeta);
-            codeCache.genBizObjFiles(formatGenCode, bizModel);
+        if (codeCache.getTenantId() == null) {
+            codeCache.genOrmModel(formatGenCode, moduleModel);
         }
+        return moduleModel;
     }
 
     protected ModuleModel buildModuleModel(NopDynModule module) {
@@ -334,8 +331,27 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
                 Arrays.asList("module.entityMetas.propMetas.domain", "module.entityMetas.functionMetas"));
     }
 
-    public synchronized void removeDynModule(NopDynModule module) {
-        getCodeCache().removeModule(module.getModuleName());
+    public synchronized void removeDynModule(String moduleId) {
+        getCodeCache().removeModule(moduleId);
+    }
+
+    public synchronized ModuleModel getDynModule(String moduleId) {
+        return ormTemplate.runInSession(session -> {
+            NopDynModule example = new NopDynModule();
+            example.setNopModuleId(moduleId);
+            example.setStatus(NopDynDaoConstants.MODULE_STATUS_PUBLISHED);
+            NopDynModule module = daoProvider.daoFor(NopDynModule.class).findFirstByExample(example);
+            if (module == null)
+                return null;
+            return loadAndCacheModuleModel(module);
+        });
+    }
+
+    protected synchronized ModuleModel loadAndCacheModuleModel(NopDynModule module) {
+        InMemoryCodeCache cache = getCodeCache();
+        return cache.getEnabledModule(module.getNopModuleId(), formatGenCode, () -> {
+            return generateModuleToCache(cache, module);
+        });
     }
 
     public synchronized void reloadModel() {
@@ -355,8 +371,24 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
         InMemoryCodeCache codeCache = getCodeCache();
         if (codeCache.getTenantId() == null)
             return null;
-        return codeCache.getBizModel(bizObjName);
+        GraphQLBizModel bizModel = codeCache.getBizModel(bizObjName);
+        if (bizModel != null) {
+            return bizModel;
+        }
+
+        return ormTemplate.runInSession(session -> {
+            IEntityDao<NopDynEntityMeta> dao = daoProvider.daoFor(NopDynEntityMeta.class);
+            NopDynEntityMeta example = new NopDynEntityMeta();
+            example.setEntityName(bizObjName);
+            NopDynEntityMeta entityMeta = dao.findFirstByExample(example);
+            if (entityMeta == null)
+                return null;
+
+            loadAndCacheModuleModel(entityMeta.getModule());
+            return buildGraphQLBizModel(entityMeta);
+        });
     }
+
 
     @Override
     public Map<String, GraphQLBizModel> prepareLoadModule(InMemoryCodeCache cache, ModuleModel module, IEvalScope scope) {
@@ -424,13 +456,15 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
         if (ResourceHelper.isDeltaPath(path))
             return;
 
-        if (path.endsWith(".xmeta")) {
+        if (path.endsWith(".xmeta") || path.endsWith(".xbiz")) {
             String bizObjName = cache.getBizObjNameFromModelsPath(path);
             if (bizObjName == null)
                 return;
 
             GraphQLBizModel bizModel = cache.getBizModel(bizObjName);
-            prepareBizObject(cache, bizModel, module, scope);
+            ormTemplate.runInSession(() -> {
+                cache.genBizObjFiles(formatGenCode, bizModel);
+            });
             return;
         }
 
@@ -443,11 +477,15 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
         if (path.endsWith(".page.yaml")) {
             String pageName = StringHelper.removeTail(StringHelper.fileFullName(path), ".page.yaml");
             scope.setLocalValue(VAR_PAGE_NAME, pageName);
-            cache.genPageFile(module, bizModel, pageName, formatGenCode);
+            ormTemplate.runInSession(() -> {
+                cache.genPageFile(module, bizModel, pageName, formatGenCode);
+            });
         } else if (path.endsWith(".view.xml")) {
             IObjMeta objMeta = cache.getObjMeta(bizObjName, formatGenCode);
             scope.setLocalValue(VAR_OBJ_META, objMeta);
-            cache.genViewFile(module, bizModel, formatGenCode);
+            ormTemplate.runInSession(() -> {
+                cache.genViewFile(module, bizModel, formatGenCode);
+            });
         }
     }
 }
