@@ -156,6 +156,8 @@ public interface OrmErrors {
 
     ErrorCode ERR_ORM_NULL_ENTITY_MODEL = define("nop.err.orm.entity.null-entity-model", "实体的元数据对象没有初始化", ARG_ENTITY);
 
+    ErrorCode ERR_ORM_ENTITY_NO_ENTITY_NAME = define("nop.err.orm.entity.no-entity-name", "动态实体的实体类型无法确定");
+
     ErrorCode ERR_ORM_ALREADY_HAS_ENTITY_MODEL = define("nop.err.orm.entity.already-has-entity-model",
             "实体的元数据对象已经初始化，不允许再次设置", ARG_ENTITY);
 

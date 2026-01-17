@@ -7,6 +7,7 @@
  */
 package io.nop.orm.support;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.IntArrayMap;
 import io.nop.commons.collections.IntHashMap;
 import io.nop.commons.collections.MapOfInt;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
+import static io.nop.orm.OrmErrors.ERR_ORM_ENTITY_NO_ENTITY_NAME;
 import static io.nop.orm.OrmErrors.ERR_ORM_ENTITY_PROP_NOT_ALLOW_SET;
 
 public class DynamicOrmEntity extends OrmEntity implements IPropSetMissingHook, IPropGetMissingHook {
@@ -71,6 +73,9 @@ public class DynamicOrmEntity extends OrmEntity implements IPropSetMissingHook, 
 
     @Override
     public String orm_entityName() {
+        if (orm_entityModel() == null)
+            throw new NopException(ERR_ORM_ENTITY_NO_ENTITY_NAME);
+
         return requireEntityModel().getName();
     }
 
