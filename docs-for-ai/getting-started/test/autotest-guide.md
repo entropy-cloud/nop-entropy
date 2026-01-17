@@ -1,31 +1,34 @@
-# AutoTest自动化测试框架使用指南
+# AutoTest 自动化测试框架使用指南
 
-## 1. 核心概念
+## 1. 选择基类
 
-### 1.1 数据驱动测试
-AutoTest是一个数据驱动的测试框架，通过数据文件而非代码来管理测试输入和预期输出。开发者只需编写测试骨架，提供测试数据文件即可。
+### 1.1 需要快照录制支持
 
-### 1.2 录制与验证模式
-- **录制模式**：执行测试并生成测试数据文件
-- **验证模式**：使用已录制的数据验证测试结果
+从 `JunitAutoTestCase` 继承：
 
-### 1.3 前缀引导语法
-录制的JSON和csv文件中使用前缀引导语法来定义某个字段的匹配规则。
-
-一种灵活的字段值模式匹配语法，支持多种匹配条件：
-- `@var:xxx`：变量引用
-- `@ge:3`：大于等于3
-- `@between:1,5`：在1-5之间
-- `@startsWith:a`：以a开头
-
-## 2. 项目结构
-
-### 2.1 nop-autotest模块
+```java
+@NopTestConfig(
+    localDb = true,
+    initDatabaseSchema = OptionalBoolean.TRUE
+)
+public class TestLoginApi extends JunitAutoTestCase {
+    // 支持快照录制和验证
+}
 ```
-nop-autotest/
-├── nop-autotest-core/      # 核心功能实现
-└── nop-autotest-junit/     # JUnit5集成
+
+### 1.2 不需要快照录制支持
+
+从 `JunitBaseTestCase` 继承（相当于 `snapshotTest=NOT_USE`）：
+
+```java
+public class TestLoginApi extends JunitBaseTestCase {
+    // 不支持快照机制，适合简单测试
+}
 ```
+
+### 1.3 Maven 依赖
+
+AutoTest 框架基于 **JUnit 5**，需要添加以下 Maven 依赖：
 
 ```xml
 <dependency>
@@ -36,85 +39,147 @@ nop-autotest/
 </dependency>
 ```
 
-### 2.2 测试用例目录结构
-```
-// 与src目录平级会自动生成测试用例目录
-_cases/
-└── io/nop/auth/service/TestLoginApi/
-    └── testLogin/          # 测试方法名作为子目录
-        ├── input/              # 测试输入数据
-        │   ├── tables/         # 数据库初始化数据，自动录制
-        │   │   ├── nop_auth_user.csv
-        │   │   └── nop_auth_user_role.csv
-        │   └── request.json5   # API请求数据，需要手工编写
-        └── output/             # 预期输出数据
-            ├── tables/         # 数据库预期变更，自动录制
-            │   └── nop_auth_session.csv
-            └── response.json5  # API响应预期，自动录制
-```
+## 2. 快速开始
 
-## 3. 快速开始
+### 2.1 使用 @Inject 注入 Bean
 
-### 3.1 创建测试类
+从 `JunitBaseTestCase` 或 `JunitAutoTestCase` 继承后，可以使用 `@Inject` 注入 bean：
+
 ```java
-import io.nop.autotest.junit.JunitAutoTestCase;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.EnableSnapshot;
+import jakarta.inject.Inject;
 
-class TestLoginApi extends JunitAutoTestCase {
-    @EnableSnapshot
+public class TestLoginApi extends JunitBaseTestCase {
+    @Inject
+    IGraphQLEngine graphQLEngine;  // 不能是 private
+
+    @Inject
+    protected IAuthService authService;  // protected 或 package-private 都可以
+}
+```
+
+**重要**：注入的字段不能是 `private`，使用 `protected` 或 package-private。
+
+### 2.2 使用 Attachment 读取测试数据
+
+`JunitBaseTestCase` 和 `JunitAutoTestCase` 从 `BaseTestCase` 继承，提供了 `attachmentXXX` 方法，可以读取与测试类在同一包路径下的文件（在 classpath 中）：
+
+```java
+public class TestLoginApi extends JunitBaseTestCase {
     @Test
     public void testLogin() {
-        // 1. 构建被测对象
-        LoginApi loginApi = buildLoginApi();
+        // 读取测试类所在目录下的文本文件
+        String text = attachmentText("request.txt");
 
-        // 2. 读取输入数据
+        // 读取 JSON 文件并反序列化为对象
+        ApiRequest<LoginRequest> request = attachmentBean("request.json5",
+            new TypeReference<ApiRequest<LoginRequest>>() {}.getType());
+
+        // 读取 XML 文件
+        XNode xmlNode = attachmentXml("config.xml");
+    }
+}
+```
+
+**目录结构**：
+```
+src/test/java/io/nop/auth/service/
+├── TestLoginApi.java
+├── request.json5
+└── config.xml
+```
+
+### 2.3 使用 Target 目录
+
+```java
+public class TestLoginApi extends JunitBaseTestCase {
+    @Test
+    public void testGenerateOutput() {
+        // 获取 target 目录下的文件
+        File outputFile = getTargetFile("generated/output.json");
+
+        // 写入文件
+        FileHelper.writeFile(outputFile, "content");
+    }
+}
+```
+
+### 2.4 创建使用快照的测试类
+
+```java
+@NopTestConfig(
+    localDb = true,
+    initDatabaseSchema = OptionalBoolean.TRUE
+)
+public class TestLoginApi extends JunitAutoTestCase {
+    @Inject
+    IGraphQLEngine graphQLEngine;  // 不能是 private
+
+    @Test
+    public void testLogin() {
+        // 1. 读取输入数据
         ApiRequest<LoginRequest> request = input("request.json5",
             new TypeReference<ApiRequest<LoginRequest>>() {}.getType());
 
-        // 3. 执行测试
+        // 2. 执行测试
         ApiResponse<LoginResult> result = loginApi.login(request);
 
-        // 4. 验证输出结果
+        // 3. 输出结果（根据模式自动录制或验证）
         output("response.json5", result);
     }
 }
 ```
 
-* input(fileName)是从`_cases/{testCaseClass}/{testMethod}/input/`目录读取文件
-* output(fileName)的行为取决于模式
-   - 在录制模式: 将结果写入`_cases/{testCaseClass}/{testMethod}/output/`目录
-   - 验证模式: 验证实际结果与output目录中已录制的预期结果是否匹配
+**核心要点**：
+- `input(fileName)` 从 `_cases/{testCaseClass}/{testMethod}/input/` 目录读取文件
+- `output(fileName)` 根据模式自动录制或验证结果
 
+### 2.5 录制测试数据
 
-### 3.2 录制测试数据
-**首次运行测试时**：
-1. 执行从JunitAutoTestCase继承的测试用例，此时**尚未增加`@EnableSnapshot` 注解**
-2. 自动在 `_cases/` 目录下生成测试数据文件
-   - input/tables：录制的数据库读取数据
-   - output/：数据库更改记录以及output输出结果数据（作为后续验证的基准）
-3. 录制成功后会抛出`nop.err.autotest.snapshot-finished`异常，用于提示开发者后续可以添加`@EnableSnapshot`注解。
-
-
-### 3.3 验证测试结果
-当已有录制的测试数据时：
-1. **添加 `@EnableSnapshot` 注解**到测试方法
-2. 执行测试用例
-3. 框架会：
-   - 使用 input/ 目录中的数据作为输入
-   - 将实际执行结果与 output/ 目录中的基准结果进行比对
-   - 使用前缀引导语法进行灵活匹配
-
-## 4. 核心功能
-
-### 4.1 数据库测试支持
-- 自动使用H2内存数据库
-- 自动建表和初始化数据
-- 验证数据库变更
-
-### 4.2 多步骤测试
 ```java
-@EnableSnapshot
+@NopTestConfig(
+    localDb = true,
+    initDatabaseSchema = OptionalBoolean.TRUE,
+    snapshotTest = SnapshotTest.RECORDING  // 录制模式
+)
+public class TestLoginApi extends JunitAutoTestCase {
+    // 执行测试后自动生成 _cases/ 目录下的数据文件
+}
+```
+
+**重要**：录制模式运行完成后，会抛出异常码 `nop.err.autotest.snapshot-finished`，提示 "录制快照过程正常结束. 现在可以通过@NopTestConfig的snapshotTest属性来控制录制/校验快照数据"。这是正常流程，表示录制完成，并非错误。
+
+### 2.6 验证测试结果
+
+```java
+@NopTestConfig(
+    localDb = true,
+    initDatabaseSchema = OptionalBoolean.TRUE,
+    snapshotTest = SnapshotTest.CHECKING  // 验证模式，也可不设置（默认值）
+)
+public class TestLoginApi extends JunitAutoTestCase {
+    // 验证实际结果与录制数据是否匹配
+}
+```
+
+## 3. 测试用例目录结构
+
+```
+_cases/
+└── io/nop/auth/service/TestLoginApi/
+    └── testLogin/          # 测试方法名作为子目录
+        ├── input/              # 测试输入数据
+        │   ├── tables/         # 数据库初始化数据（手工编写）
+        │   └── request.json5   # API请求数据（手工编写）
+        └── output/             # 预期输出数据（自动录制）
+            ├── tables/         # 数据库预期变更（自动录制）
+            └── response.json5  # API响应预期（自动录制）
+```
+
+## 4. 常用功能
+
+### 4.1 多步骤测试
+
+```java
 @Test
 public void testLoginLogout() {
     // 1. 登录获取token
@@ -133,13 +198,13 @@ public void testLoginLogout() {
 }
 ```
 
-### 4.3 数据变体
+### 4.2 数据变体测试
+
 ```java
 @ParameterizedTest
 @EnableVariants
-@EnableSnapshot
 public void testVariants(String variant) {
-    // 自动加载/variants/{variant}/下的数据
+    // 自动加载 {caseDir}/input/variants/{variant}/ 下的数据
     ApiRequest<LoginRequest> request = input("request.json5",
         new TypeReference<ApiRequest<LoginRequest>>() {}.getType());
 
@@ -148,7 +213,8 @@ public void testVariants(String variant) {
 }
 ```
 
-### 4.4 异常测试
+### 4.3 异常测试
+
 ```java
 @Test
 public void testLoginError() {
@@ -162,101 +228,75 @@ public void testLoginError() {
 }
 ```
 
-- `error(fileName, supplier)`函数会捕获异常，并录制到output目录下的fileName文件中
+## 5. @NopTestConfig 常用配置
 
-## 5. 关键注解
-
-### 5.1 @EnableSnapshot
-**作用**：启用快照验证功能，对执行结果进行验证。
-
-**重要说明**：
-- 不添加此注解：仅执行测试，不验证结果（但会录制新数据）
-- 添加此注解：执行测试并验证结果是否与录制的快照匹配
-
-```java
-@EnableSnapshot(
-    localDb = true,          // 使用本地H2数据库，录制的初始化数据会初始化到这个数据库中
-    saveOutput = false,      // 当saveOutput=true时，会更新执行快照，而不是比对快照和本次执行结果
-)
-```
-
-1. **一般使用**：添加 `@EnableSnapshot` 注解即可，不用指定 `saveOutput` 等属性
-2. **更新快照**：当业务逻辑变化导致测试结果变化，但希望复用原有的输入数据（特别是数据库初始化数据）时，可以使用 `@EnableSnapshot(saveOutput = true)` 来更新输出快照
-
-### 5.2 @NopTestConfig
-配置测试环境：
 ```java
 @NopTestConfig(
-    localDb = false,          // 如果设置为true，则录制阶段也是使用本地数据库。否则使用application.yaml配置
-    initDatabaseSchema = false, // 如果设置为true，则录制阶段会自动在数据库中根据orm模型建表
-    disableSnapshot = false,  // 忽略@EnableSnapshot注解，不启用快照验证功能
-    testConfigFile = ""  // 在application.yaml配置之上叠加的测试专用配置文件
+    localDb = true,                      // 使用本地 H2 数据库
+    initDatabaseSchema = OptionalBoolean.TRUE,  // 自动初始化数据库表结构
+    snapshotTest = SnapshotTest.RECORDING,     // RECORDING(录制) 或 CHECKING(验证)
+    forceSaveOutput = true,              // 使用录制的输入数据，只更新输出数据
+    enableIoc = OptionalBoolean.TRUE,   // 启用 NopIoC 容器，支持 @Inject 注入
+    enableConfig = OptionalBoolean.TRUE,  // 启用 nop-config 模块的 Config 管理
+    testBeansFile = "",                  // 测试专用的 beans 配置文件
+    testConfigFile = ""                  // 测试专用的 config 配置文件
 )
 ```
 
-### 5.3 @NopTestProperty
+**两种更新快照方式的区别**：
+
+1. **`forceSaveOutput = true`**
+   - 使用录制的 input 数据（包括 table 数据）
+   - 只更新 output 数据
+   - 适用于：业务逻辑变化，但测试输入场景不变的情况
+
+2. **`snapshotTest = SnapshotTest.RECORDING`**
+   - 重新录制读取的 table 数据以及所有输出数据
+   - 适用于：输入数据也需要更新的情况
+
+### @NopTestProperty
 直接设置测试专用属性：
 ```java
 @NopTestProperty(name = "my.property", value = "test-value")
 ```
 
-## 6. 最佳实践
 
-### 6.1 测试数据管理
-- 使用json5格式，支持注释
-- 合理组织数据目录结构
-- 利用数据变体测试边缘场景
+## 6. 前缀引导语法
 
-### 6.2 测试代码编写
-- 保持测试方法简洁
-- 每个测试方法只测试一个功能
-- 利用自动生成减少重复代码
+录制的 JSON 和 csv 文件中使用前缀引导语法来定义字段的匹配规则：
 
-### 6.3 测试执行
-- 先录制后验证
-- 定期更新测试数据
-- 结合CI/CD自动执行
+- `@var:xxx`：变量引用
+- `@ge:3`：大于等于3
+- `@between:1,5`：在1-5之间
+- `@startsWith:a`：以a开头
 
-## 7. 常见问题
+## 7. 典型工作流程
 
-### 7.1 代码修改后不想重新录制初始化数据，只想更新执行快照
-```java
-@EnableSnapshot(saveOutput = true)
-@Test
-public void testLogin() {
-    // 这会更新output目录下的文件，但保持input目录不变
-    // 适用于业务逻辑变化但测试场景不变的场景
-}
-```
+1. **首次开发**：
+    ```java
+    @NopTestConfig(snapshotTest = SnapshotTest.RECORDING)
+    ```
+    - 编写测试代码和 input 数据
+    - 执行测试自动录制 output 数据（包括 table 数据）
 
-### 7.2 集成测试配置
-```java
-@EnableSnapshot(localDb = false)  // 使用外部数据库
-@Test
-public void integrationTest() {
-    // 集成测试
-}
-```
+2. **日常开发**：
+    ```java
+    @NopTestConfig(snapshotTest = SnapshotTest.CHECKING)  // 或不设置
+    ```
+    - 修改业务逻辑
+    - 执行测试验证结果
 
-## 8. 全局配置开关
+3. **更新快照 - 方式一：只更新输出数据**
+    ```java
+    @NopTestConfig(forceSaveOutput = true)
+    ```
+    - **使用录制的 input 数据，只更新 output 数据**
+    - 适用于：业务逻辑变化，但测试输入场景不变的情况
 
-以下开关用于整体更新测试数据。
-
-- `nop.autotest.force-save-output`: 强制设置saveOutput为true，即所有测试用例都更新执行快照，而不是校验执行结果符合预期。
-- `nop.autotest.disable-snapshot`: 全局禁用快照功能，所有测试用例都重新录制
-
-## 9. 总结
-
-AutoTest是一个强大的数据驱动测试框架，通过录制-验证模式和灵活的匹配语法，大大简化了自动化测试的编写和维护。它特别适合API测试和数据库测试，能够自动处理测试数据的生成、验证和管理，提高测试效率和质量。
-
-
-对于AI开发者来说，AutoTest框架的优势在于：
-- **减少代码编写**：专注于测试逻辑而非数据准备
-- **数据与代码分离**：便于维护和更新测试用例
-- **支持多种测试场景**：从单元测试到集成测试无缝切换
-- **清晰的测试结果反馈**：通过前缀引导语法提供灵活的验证机制
-
-**核心使用流程总结**：
-1. **首次运行**：执行测试 → 自动录制数据 → 获得基准快照
-2. **日常验证**：添加 `@EnableSnapshot` → 执行验证 → 确保代码变更不影响现有功能
-3. **更新快照**：业务逻辑变化时使用 `@EnableSnapshot(saveOutput = true)` → 更新基准数据
+4. **更新快照 - 方式二：重新录制所有数据**
+    ```java
+    @NopTestConfig(snapshotTest = SnapshotTest.RECORDING)
+    ```
+    - **重新录制读取的 table 数据以及所有输出数据**
+    - 适用于：输入数据也需要更新的情况
+    - 改完后切回 CHECKING
