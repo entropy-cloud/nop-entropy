@@ -92,7 +92,7 @@ nop.err.autotest.no-dao-for-table: 没有找到数据库表[{tableName}]所对�
 nop.err.autotest.not-expect-data: 输出[{fileName}]不是期望的结果:expected={expected},output={output}
 nop.err.autotest.output-row-not-exists: 数据校验失败：数据表[{tableName}]的id为[{id}]的记录不存在
 nop.err.autotest.row-no-id: 文件[{file}]中的数据行[{rowNumber}]没有id
-nop.err.autotest.snapshot-finished: 录制快照过程正常结束. 现在可以通过@EnableSnapshot来启用录制的快照数据来实现重放测试
+nop.err.autotest.snapshot-finished: 录制快照过程正常结束. 现在可以通过@NopTestConfig的snapshotTest属性来控制录制/校验快照数据
 nop.err.autotest.test-class-no-local-db-annotation: 测试方法[{testMethod}]要求使用localDb模式，因此在测试类[{testClass}]上必须增加@NopTestConfig(localDb=true)配置
 nop.err.autotest.unknown-file: 文件[{filePath}]不存在
 nop.err.batch.cancel-load: 批处理读取被取消
@@ -809,6 +809,7 @@ nop.err.orm.entity-set-no-key-prop: 集合对象[{collectionName}]没有定义ke
 nop.err.orm.entity-unknown-prop: 实体对象[{entityName}:{entityId}]不支持属性[{propName}]
 nop.err.orm.entity-version-changed: 实体对象[{entityName}:{entityId}]上的乐观锁版本发生了改变:{oldVersion}=>{version}
 nop.err.orm.entity.already-has-entity-model: 实体的元数据对象已经初始化，不允许再次设置
+nop.err.orm.entity.no-entity-name: 动态实体的实体类型无法确定
 nop.err.orm.entity.null-entity-model: 实体的元数据对象没有初始化
 nop.err.orm.entity.prop-change-not-allow-dirty: 已经被修改的字段不允许执行差量更新
 nop.err.orm.flush-loop-count-exceed-limit: flush循环的执行次数超过最大限制

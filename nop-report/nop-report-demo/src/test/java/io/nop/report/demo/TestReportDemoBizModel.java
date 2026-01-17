@@ -25,7 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@NopTestConfig(localDb = true, disableSnapshot = false)
+@NopTestConfig
 public class TestReportDemoBizModel extends JunitAutoTestCase {
 
     @Inject

@@ -1,6 +1,5 @@
 package io.nop.converter;
 
-import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.converter.registration.ConverterRegistrationBean;
@@ -13,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 
 //@Disabled
-@NopTestConfig(localDb = true, debug = true)
+@NopTestConfig
 public class DocumentConverterTest extends JunitAutoTestCase {
 
     @Inject

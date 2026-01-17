@@ -9,7 +9,7 @@ import io.nop.xlang.api.XLang;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-@NopTestConfig(localDb = true,disableSnapshot = false)
+@NopTestConfig
 public class TestReportDataSet extends JunitAutoTestCase {
 
 
