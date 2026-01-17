@@ -105,8 +105,8 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
                 setUseSnapshot(true);
                 setCheckOutput(false);
                 setLocalDb(testConfig.localDb());
-                setSqlInit(false);
-                setSqlInput(false);
+                setSqlInit(true);
+                setSqlInput(true);
                 setTableInit(false);
                 setSaveOutput(true);
             } else {
@@ -115,7 +115,7 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
                 setCheckOutput(true);
                 setLocalDb(true);
                 setSqlInput(true);
-                setSqlInput(true);
+                setSqlInit(true);
                 setTableInit(true);
                 setSaveOutput(false);
             }

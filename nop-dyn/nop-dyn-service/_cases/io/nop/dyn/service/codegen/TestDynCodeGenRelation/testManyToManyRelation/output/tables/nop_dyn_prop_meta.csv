@@ -1,0 +1,6 @@
+_chgType,PROP_META_ID,ENTITY_META_ID,IS_MANDATORY,PROP_NAME,DISPLAY_NAME,STD_SQL_TYPE,PRECISION,SCALE,PROP_ID,UI_SHOW,UI_CONTROL,DOMAIN_ID,STD_DOMAIN_NAME,DICT_NAME,DYN_PROP_MAPPING,TAGS_TEXT,DEFAULT_VALUE,EXT_CONFIG,STATUS,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
+A,@var:NopDynPropMeta@propMetaId,@var:NopDynEntityMeta@entityMetaId,true,userName,userName Display,VARCHAR,100,0,1,,,,,,,,,,1,0,autotest-ref,*,autotest-ref,*,
+A,@var:NopDynPropMeta@propMetaId_2,@var:NopDynEntityMeta@entityMetaId,true,roleId,roleId Display,VARCHAR,100,0,1,,,,,,,,,,1,0,autotest-ref,*,autotest-ref,*,
+A,@var:NopDynPropMeta@propMetaId_4,@var:NopDynEntityMeta@entityMetaId_1,true,roleKey,roleKey Display,VARCHAR,100,0,1,,,,,,,,,,1,0,autotest-ref,*,autotest-ref,*,
+A,@var:NopDynPropMeta@propMetaId_3,@var:NopDynEntityMeta@entityMetaId_1,true,roleName,roleName Display,VARCHAR,100,0,1,,,,,,,,,,1,0,autotest-ref,*,autotest-ref,*,
+A,@var:NopDynPropMeta@propMetaId_1,@var:NopDynEntityMeta@entityMetaId,true,userAge,userAge Display,INTEGER,0,0,1,,,,,,,,,,1,0,autotest-ref,*,autotest-ref,*,

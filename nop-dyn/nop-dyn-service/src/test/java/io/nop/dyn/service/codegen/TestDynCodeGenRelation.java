@@ -10,6 +10,7 @@ package io.nop.dyn.service.codegen;
 import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.autotest.SnapshotTest;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.ApiRequest;
@@ -91,7 +92,7 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         ApiResponse<?> response = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(gqlContext));
         assertEquals(true, response.isOk());
         List<?> items = BeanTool.castBeanToType(response.getData(), List.class);
-        assertEquals(0, items.size());
+        assertEquals(2, items.size());
     }
 
     @Test
@@ -154,6 +155,7 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
 
         userEntityMeta(module);
         roleEntityMeta(module);
+        middleEntityMeta(module);
 
         switch (ormRelationType) {
             case o2m:
@@ -170,6 +172,22 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         daoProvider.daoFor(NopDynModule.class).flushSession();
     }
 
+    private void middleEntityMeta(NopDynModule module) {
+        NopDynEntityMeta entityMeta = new NopDynEntityMeta();
+        entityMeta.setEntityName("UserManyRole");
+        entityMeta.setDisplayName("User Many Role");
+        entityMeta.setModule(module);
+        entityMeta.setStatus(1);
+        entityMeta.setIsExternal(false);
+        entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_REAL);
+
+        addProp(entityMeta, "userId", StdSqlType.VARCHAR, 32);
+        addProp(entityMeta, "roleId", StdSqlType.VARCHAR, 32);
+
+        daoProvider.daoFor(NopDynEntityMeta.class).saveEntity(entityMeta);
+        module.getEntityMetas().add(entityMeta);
+    }
+
     private void userEntityMeta(NopDynModule module) {
 
         NopDynEntityMeta entityMeta = new NopDynEntityMeta();
@@ -178,7 +196,7 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         entityMeta.setModule(module);
         entityMeta.setStatus(1);
         entityMeta.setIsExternal(false);
-        entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL);
+        entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_REAL);
 
         addProp(entityMeta, "userName", StdSqlType.VARCHAR, 100);
         addProp(entityMeta, "userAge", StdSqlType.INTEGER, 0);
@@ -196,7 +214,7 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         entityMeta.setModule(module);
         entityMeta.setStatus(1);
         entityMeta.setIsExternal(false);
-        entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_VIRTUAL);
+        entityMeta.setStoreType(NopDynDaoConstants.ENTITY_STORE_TYPE_REAL);
 
         addProp(entityMeta, "roleName", StdSqlType.VARCHAR, 100);
         addProp(entityMeta, "roleKey", StdSqlType.VARCHAR, 100);
