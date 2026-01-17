@@ -1,5 +1,18 @@
 # 自动测试
 
+## 0. Maven 依赖
+
+AutoTest 框架基于 **JUnit 5**，需要添加以下 Maven 依赖：
+
+```xml
+<dependency>
+    <groupId>io.github.entropy-cloud</groupId>
+    <artifactId>nop-autotest-junit</artifactId>
+    <version>${nop-entropy.version}</version>
+    <scope>test</scope>
+</dependency>
+```
+
 ## 一. 数据驱动测试
 
 NopAutoTest测试框架是一个数据驱动的测试框架，这意味着一般情况下我们不需要编写任何准备输入数据和校验输出结果的代码，只需要编写一个骨架函数，并提供一批测试数据文件即可。具体来看一个示例
@@ -93,7 +106,18 @@ A,@var:NopAuthSession@sid,067e0f1a03cf4ae28f71b606de700716,,,,,@var:NopAuthSessi
 
 ### 1.2 验证模式
 
-当testLogin函数成功执行之后，我们就可以打开`@EnableSnapshot`注解，将测试用例从录制模式转换为验证模式。
+当testLogin函数成功执行之后，我们就可以将测试用例从录制模式转换为验证模式：
+
+```java
+@NopTestConfig(
+    localDb = true,
+    initDatabaseSchema = OptionalBoolean.TRUE,
+    snapshotTest = SnapshotTest.CHECKING  // 验证模式
+)
+public class TestLoginApi extends JunitAutoTestCase {
+    // 验证实际结果与录制数据是否匹配
+}
+```
 在验证模式下，测试用例在setUp阶段会执行如下操作:
 
 1. 调整jdbcUrl等配置，强制使用本地内存数据库（H2）
@@ -119,15 +143,35 @@ public void testXXXThrowException(){
 
 ### 1.3 测试更新
 
-如果后期修改了代码，测试用例的返回结果发生了变化，则我们可以临时设置saveOutput属性为true，更新output目录下的录制结果。
+如果后期修改了代码，测试用例的返回结果发生了变化，可以通过以下两种方式更新output目录下的录制结果。
+
+**方式一：只更新输出数据**
 
 ```java
-@EnableSnapshot(saveOutput = true)
-@Test
-public void testLogin(){
-        ....
-        }
+@NopTestConfig(
+    localDb = true,
+    initDatabaseSchema = OptionalBoolean.TRUE,
+    forceSaveOutput = true  // 使用录制的input数据，只更新output数据
+)
+public class TestLoginApi extends JunitAutoTestCase {
+    // 适用于：业务逻辑变化，但测试输入场景不变的情况
+}
 ```
+
+**方式二：重新录制所有数据**
+
+```java
+@NopTestConfig(
+    localDb = true,
+    initDatabaseSchema = OptionalBoolean.TRUE,
+    snapshotTest = SnapshotTest.RECORDING  // 重新录制读取的table数据以及所有输出数据
+)
+public class TestLoginApi extends JunitAutoTestCase {
+    // 执行测试后自动生成 _cases/ 目录下的数据文件
+}
+```
+
+**重要**：录制模式（`snapshotTest = SnapshotTest.RECORDING`）运行完成后，会抛出异常码 `nop.err.autotest.snapshot-finished`，提示 "录制快照过程正常结束. 现在可以通过@NopTestConfig的snapshotTest属性来控制录制/校验快照数据"。这是正常流程，表示录制完成，并非错误。
 
 ## 二. 基于前缀引导语法的对象模式匹配
 
@@ -221,7 +265,11 @@ testExpr为XLang表达式，其中matchState对应于当前匹配上下文对象
 因为存在共享的AutoTestVars上下文环境，业务函数之间可以通过AutoTestVariable自动传递关联信息。例如
 
 ```java
-    @EnableSnapshot
+    @NopTestConfig(
+    localDb = true,
+    initDatabaseSchema = OptionalBoolean.TRUE,
+    snapshotTest = SnapshotTest.CHECKING
+)
 @Test
 public void testLoginLogout(){
         LoginApi loginApi=buildLoginApi();
@@ -278,43 +326,72 @@ public void testXXX(){
 
 ```java
 @Test
-@EnableSnapshot(localDb = false)
+@NopTestConfig(
+    localDb = false,
+    snapshotTest = SnapshotTest.CHECKING
+)
 public void integrationTest(){
         ...
         }
 ```
 
-EnableSnapshot具有多种开关控制，可以灵活选择启用哪些自动化测试支持
+@NopTestConfig 具有多种开关控制，可以灵活选择启用哪些自动化测试支持
 
 ```java
-public @interface EnableSnapshot {
-
+public @interface NopTestConfig {
     /**
-     * 如果启用了快照机制，则缺省会强制使用本地数据库，并且会使用录制的数据来初始化数据库。
+     * 是否强制设置nop.datasource.jdbc-url为h2内存数据库。SnapshotTest设置为Checking的时候总是强制使用localDb运行，这里的配置无效。
      */
     boolean localDb() default true;
 
     /**
-     * 是否自动执行input目录下的sql文件
+     * 是否自动根据ORM模型定义初始化数据库表结构。如果是快照验证阶段，则缺省为true。但是这里可以强制覆盖这个行为
      */
-    boolean sqlInput() default true;
+    OptionalBoolean initDatabaseSchema() default OptionalBoolean.NOT_SET;
 
     /**
-     * 是否自动将input/tables目录下的数据插入到数据库中
+     * 启用nop-config模块的Config管理机制
      */
-    boolean tableInit() default true;
+    OptionalBoolean enableConfig() default OptionalBoolean.NOT_SET;
 
     /**
-     * 是否将收集到的输出数据保存到结果目录下。当saveOutput=true时，checkOutput的设置将会被忽略
+     * 启用NopIoc容器, 如果不设置，则平台内置为true
      */
-    boolean saveOutput() default false;
+    OptionalBoolean enableIoc() default OptionalBoolean.NOT_SET;
+
+    OptionalBoolean enableActionAuth() default OptionalBoolean.NOT_SET;
+
+    OptionalBoolean enableDataAuth() default OptionalBoolean.NOT_SET;
 
     /**
-     * 是否校验录制的输出数据与数据库中的当前数据相匹配
+     * RECORDING模式下会录制每个测试方法的执行结果，CHECKING模式下会验证录制结果与实际执行结果相匹配
      */
-    boolean checkOutput() default true;
+    SnapshotTest snapshotTest() default SnapshotTest.CHECKING;
+
+    boolean forceSaveOutput() default false;
+
+    /**
+     * 为单元测试指定的beans配置文件
+     */
+    String testBeansFile() default "";
+
+    /**
+     * 为单元测试指定的config配置文件
+     */
+    String testConfigFile() default "";
+
+    /**
+     * 是否使用测试专用时钟。测试专用时钟总是向前执行，而且每次调用都返回不同的时间
+     */
+    boolean useTestClock() default true;
 }
 ```
+
+**快照测试模式说明**：
+
+- **`SnapshotTest.RECORDING`**: 录制模式，自动生成output目录下的数据文件（包括table数据），录制完成后会抛出 `nop.err.autotest.snapshot-finished` 异常码（这是正常流程，表示录制完成）
+- **`SnapshotTest.CHECKING`**: 验证模式（默认值），验证实际结果与录制数据是否匹配
+- **`SnapshotTest.NOT_USE`**: 不使用快照机制，适合简单测试
 
 ### SQL初始化
 init目录下的`xxx.sql`会在自动建表之前执行，而input目录下的`xxx.sql`会在自动建表之后执行。
@@ -332,7 +409,11 @@ NopAutoTest框架通过数据变体(Variant)的概念来支持这种细化测试
 ```java
     @ParameterizedTest
 @EnableVariants
-@EnableSnapshot
+@NopTestConfig(
+    localDb = true,
+    initDatabaseSchema = OptionalBoolean.TRUE,
+    snapshotTest = SnapshotTest.CHECKING
+)
 public void testVariants(String variant){
         input("request.json",...);
         output("displayName.json5",testInfo.getDisplayName());
@@ -416,48 +497,40 @@ SID, AMOUNT
 ### @NopTestConfig
 
 在测试类上可以通过@NopTestConfig注解控制测试用例中的初始化过程。使用@NopTestConfig注解需要从JunitAutoTestCase或者JunitBaseTestCase类继承。
-这两个基类的区别在于JunitBaseTestCase不是使用录制回放机制，仅仅是启动NopIoC容器。
+这两个基类的区别在于JunitBaseTestCase不是使用录制回放机制（相当于 `snapshotTest=NOT_USE`），仅仅是启动NopIoC容器。
 
 ```java
 public @interface NopTestConfig {
     /**
-     * 是否强制设置nop.datasource.jdbc-url为h2内存数据库
+     * 是否强制设置nop.datasource.jdbc-url为h2内存数据库。SnapshotTest设置为Checking的时候总是强制使用localDb运行，这里的配置无效。
      */
-    boolean localDb() default false;
+    boolean localDb() default true;
 
     /**
-     * 使用随机生成的服务端口
+     * 是否自动根据ORM模型定义初始化数据库表结构。如果是快照验证阶段，则缺省为true。但是这里可以强制覆盖这个行为
      */
-    boolean randomPort() default false;
+    OptionalBoolean initDatabaseSchema() default OptionalBoolean.NOT_SET;
 
     /**
-     * 缺省使用lazy模式来执行单元测试
+     * 启用nop-config模块的Config管理机制
      */
-    BeanContainerStartMode beanContainerStartMode() default BeanContainerStartMode.ALL_LAZY;
-
-    String enableActionAuth() default "";
-
-    String enableDataAuth() default "";
+    OptionalBoolean enableConfig() default OptionalBoolean.NOT_SET;
 
     /**
-     * 是否自动加载/nop/auto-config/目录下的xxx.beans配置
+     * 启用NopIoc容器, 如果不设置，则平台内置为true
      */
-    boolean enableAutoConfig() default true;
+    OptionalBoolean enableIoc() default OptionalBoolean.NOT_SET;
 
-    boolean enableMergedBeansFile() default true;
+    OptionalBoolean enableActionAuth() default OptionalBoolean.NOT_SET;
 
-    String autoConfigPattern() default "";
-
-    String autoConfigSkipPattern() default "";
+    OptionalBoolean enableDataAuth() default OptionalBoolean.NOT_SET;
 
     /**
-     * 是否自动加载模块下的app.beans.xml配置
+     * RECORDING模式下会录制每个测试方法的执行结果，CHECKING模式下会验证录制结果与实际执行结果相匹配
      */
-    boolean enableAppBeansFile() default true;
+    SnapshotTest snapshotTest() default SnapshotTest.CHECKING;
 
-    String appBeansFilePattern() default "";
-
-    String appBeansFileSkipPattern() default "";
+    boolean forceSaveOutput() default false;
 
     /**
      * 为单元测试指定的beans配置文件
@@ -469,9 +542,29 @@ public @interface NopTestConfig {
      */
     String testConfigFile() default "";
 
-    boolean initDatabaseSchema() default false;
+    /**
+     * 是否使用测试专用时钟。测试专用时钟总是向前执行，而且每次调用都返回不同的时间
+     */
+    boolean useTestClock() default true;
 }
 ```
+
+**快照测试模式说明**：
+
+- **`SnapshotTest.RECORDING`**: 录制模式，自动生成output目录下的数据文件（包括table数据），录制完成后会抛出 `nop.err.autotest.snapshot-finished` 异常码（这是正常流程，表示录制完成）
+- **`SnapshotTest.CHECKING`**: 验证模式（默认值），验证实际结果与录制数据是否匹配
+- **`SnapshotTest.NOT_USE`**: 不使用快照机制，适合简单测试
+
+**两种更新快照方式的区别**：
+
+1. **`forceSaveOutput = true`**
+   - 使用录制的 input 数据（包括 table 数据）
+   - 只更新 output 数据
+   - 适用于：业务逻辑变化，但测试输入场景不变的情况
+
+2. **`snapshotTest = SnapshotTest.RECORDING`**
+   - 重新录制读取的 table 数据以及所有输出数据
+   - 适用于：输入数据也需要更新的情况
 
 当测试时可以通过testConfigFile引入测试专用的bean配置，在其中定义mock用的bean。
 
