@@ -19,7 +19,6 @@ package io.nop.ai.shell.commands;
 import io.nop.ai.shell.registry.CommandRegistry.CommandSession;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -29,7 +28,10 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BuiltinsTest {
 
@@ -270,7 +272,7 @@ class BuiltinsTest {
     void testLsDirectory(@TempDir Path tempDir) throws Exception {
         Files.createDirectory(tempDir.resolve("testdir"));
         Files.writeString(tempDir.resolve("testfile.txt"), "content");
-        
+
         CommandSession session = createSession("");
         Object result = Builtins.ls(session, new String[]{tempDir.toString()});
         assertEquals(0, result);
@@ -307,7 +309,7 @@ class BuiltinsTest {
     void testWcWithFile(@TempDir Path tempDir) throws Exception {
         Path testFile = tempDir.resolve("test.txt");
         Files.writeString(testFile, "word1 word2\nword3 word4 word5\n");
-        
+
         CommandSession session = createSession("");
         Object result = Builtins.wc(session, new String[]{testFile.toString()});
         assertEquals(0, result);
@@ -380,8 +382,7 @@ class BuiltinsTest {
         assertTrue(output.contains("date"));
         assertFalse(output.contains("cherry"));
     }
-
-    @Disabled("Grep tests need investigation on Windows platform")
+    
     @Test
     void testGrepCaseInsensitive(@TempDir Path tempDir) throws Exception {
         Path testFile = tempDir.resolve("test.txt");
