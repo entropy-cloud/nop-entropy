@@ -17,6 +17,13 @@
 package io.nop.ai.shell.registry.impl;
 
 import io.nop.ai.shell.commands.Builtins;
+import io.nop.ai.shell.commands.Command;
+import io.nop.ai.shell.commands.GrepCommand;
+import io.nop.ai.shell.commands.HeadCommand;
+import io.nop.ai.shell.commands.LsCommand;
+import io.nop.ai.shell.commands.SortCommand;
+import io.nop.ai.shell.commands.TailCommand;
+import io.nop.ai.shell.commands.WcCommand;
 import io.nop.ai.shell.registry.CommandRegistry;
 
 import java.util.HashMap;
@@ -67,19 +74,19 @@ public class BuiltInCommandRegistry extends AbstractCommandRegistry {
             case "sleep":
                 return Builtins.sleep(session, toStringArray(args));
             case "wc":
-                return Builtins.wc(session, toStringArray(args));
+                return new WcCommand().execute(session, toStringArray(args));
             case "head":
-                return Builtins.head(session, toStringArray(args));
+                return new HeadCommand().execute(session, toStringArray(args));
             case "tail":
-                return Builtins.tail(session, toStringArray(args));
+                return new TailCommand().execute(session, toStringArray(args));
             case "clear":
                 return Builtins.clear(session, toStringArray(args));
             case "ls":
-                return Builtins.ls(session, toStringArray(args));
+                return new LsCommand().execute(session, toStringArray(args));
             case "sort":
-                return Builtins.sort(session, toStringArray(args));
+                return new SortCommand().execute(session, toStringArray(args));
             case "grep":
-                return Builtins.grep(session, toStringArray(args));
+                return new GrepCommand().execute(session, toStringArray(args));
             case "cd":
                 return Builtins.cd(session, toStringArray(args));
             default:
