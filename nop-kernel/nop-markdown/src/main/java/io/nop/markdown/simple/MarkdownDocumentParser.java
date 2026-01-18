@@ -3,19 +3,24 @@ package io.nop.markdown.simple;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.TagsHelper;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.component.parse.AbstractResourceParser;
 import io.nop.markdown.MarkdownConstants;
 import io.nop.markdown.model.MarkdownDocument;
 import io.nop.markdown.model.MarkdownSection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static io.nop.markdown.model.MarkdownSection.removeEmptySections;
 
 public class MarkdownDocumentParser extends AbstractResourceParser<MarkdownDocument> {
+    static final Logger LOG = LoggerFactory.getLogger(MarkdownDocumentParser.class);
 
     @Override
     protected MarkdownDocument doParseResource(IResource resource) {
@@ -29,10 +34,36 @@ public class MarkdownDocumentParser extends AbstractResourceParser<MarkdownDocum
         MarkdownDocument model = new MarkdownDocument();
         model.setLocation(loc);
 
+        // Parse YAML Front Matter if present
+        parseFrontMatter(sc, model);
+
         MarkdownSection section = parseRootSection(sc);
         section.forEachSection(this::normalizeSectionContent);
         model.setRootSection(section);
         return model;
+    }
+
+    protected void parseFrontMatter(TextScanner sc, MarkdownDocument model) {
+        sc.skipBlank();
+        if (sc.tryMatchLine("---")) {
+            SourceLocation loc = sc.location();
+            String text = sc.nextUntil("\n---", false).toString();
+            // 跳过---这一行
+            sc.skipLine();
+
+            // Parse YAML content
+            try {
+                Object parsed = JsonTool.parseYaml(loc, text);
+                if (parsed instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> frontMatter = (Map<String, Object>) parsed;
+                    model.setFrontMatter(frontMatter);
+                }
+            } catch (Exception e) {
+                // If YAML parsing fails, ignore front matter and continue parsing
+                LOG.warn("nop.markdown.failed-parse-front-matter", e);
+            }
+        }
     }
 
     protected void normalizeSectionContent(MarkdownSection section) {

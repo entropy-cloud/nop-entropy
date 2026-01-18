@@ -184,7 +184,9 @@ public class TextScanner {
         return cur < 0;
     }
 
-    /** 取{@link #cur 当前位置}的下一个字符 */
+    /**
+     * 取{@link #cur 当前位置}的下一个字符
+     */
     public int peek() {
         return reader.peek();
     }
@@ -204,6 +206,15 @@ public class TextScanner {
                 return false;
         }
         return true;
+    }
+
+    public boolean startsWithLine(String line) {
+        if (!startsWith(line))
+            return false;
+        int c = peek(line.length());
+        if (c == '\r' || c == '\n')
+            return true;
+        return false;
     }
 
     public boolean startsWithIgnoreCase(CharSequence seq) {
@@ -230,7 +241,9 @@ public class TextScanner {
         return startsWith(seq) && !StringHelper.isJavaIdentifierPart(peek(seq.length()));
     }
 
-    /** 取{@link #cur 当前位置}的第 N 个字符：N 为 0 时，取当前字符 */
+    /**
+     * 取{@link #cur 当前位置}的第 N 个字符：N 为 0 时，取当前字符
+     */
     public int peek(int nRead) {
         if (nRead == 0)
             return cur;
@@ -420,6 +433,18 @@ public class TextScanner {
         } else {
             return false;
         }
+    }
+
+    public boolean tryMatchLine(String str) {
+        if (!startsWithLine(str))
+            return false;
+        next(str.length());
+
+        if (cur == '\r')
+            this.next();
+        if (cur == '\n')
+            this.next();
+        return true;
     }
 
     public boolean tryMatchIgnoreCase(String str) {

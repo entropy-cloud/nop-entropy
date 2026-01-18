@@ -11,7 +11,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -25,6 +28,7 @@ public class MarkdownDocument implements IComponentModel, ITextSerializable {
 
     private SourceLocation location;
     private MarkdownSection rootSection;
+    private Map<String, Object> frontMatter;
 
     @Override
     public String serializeToString() {
@@ -53,6 +57,8 @@ public class MarkdownDocument implements IComponentModel, ITextSerializable {
         ret.setLocation(location);
         if (rootSection != null)
             ret.setRootSection(rootSection.cloneInstance());
+        if (frontMatter != null)
+            ret.setFrontMatter(new LinkedHashMap<>(frontMatter));
         return ret;
     }
 
@@ -115,6 +121,14 @@ public class MarkdownDocument implements IComponentModel, ITextSerializable {
         this.rootSection = section;
     }
 
+    public Map<String, Object> getFrontMatter() {
+        return frontMatter;
+    }
+
+    public void setFrontMatter(Map<String, Object> frontMatter) {
+        this.frontMatter = frontMatter;
+    }
+
     public void forEachSection(Consumer<MarkdownSection> action) {
         this.rootSection.forEachSection(action);
     }
@@ -130,11 +144,39 @@ public class MarkdownDocument implements IComponentModel, ITextSerializable {
     }
 
     public String toText(boolean includeTags) {
-        if (rootSection == null)
-            return "";
         StringBuilder sb = new StringBuilder();
-        rootSection.buildText(sb, new MarkdownTextOptions().includeTags(includeTags));
+        buildText(sb, includeTags);
         return sb.toString();
+    }
+
+    public void buildText(StringBuilder sb, boolean includeTags) {
+        if (frontMatter != null && !frontMatter.isEmpty()) {
+            sb.append("---\n");
+            for (Map.Entry<String, Object> entry : frontMatter.entrySet()) {
+                sb.append(entry.getKey()).append(": ");
+                Object value = entry.getValue();
+                if (value instanceof String) {
+                    sb.append(value.toString());
+                } else if (value instanceof List) {
+                    List<?> list = (List<?>) value;
+                    sb.append("[");
+                    for (int i = 0; i < list.size(); i++) {
+                        if (i > 0)
+                            sb.append(", ");
+                        sb.append(list.get(i).toString());
+                    }
+                    sb.append("]");
+                } else {
+                    sb.append(value.toString());
+                }
+                sb.append("\n");
+            }
+            sb.append("---\n\n");
+        }
+
+        if (rootSection == null)
+            return;
+        rootSection.buildText(sb, new MarkdownTextOptions().includeTags(includeTags));
     }
 
     public String toText() {
