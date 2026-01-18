@@ -26,6 +26,7 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 
 #### 核心组件
 - **[IoC容器指南](./getting-started/core/ioc-guide.md)** - 依赖注入容器使用
+- **[配置管理指南](./getting-started/core/config-guide.md)** - ⭐ @InjectValue注解和配置系统使用
 - **[事务管理指南](./getting-started/core/transaction-guide.md)** - ⭐ 事务管理完整指南
 - **[异常处理指南](./getting-started/core/exception-guide.md)** - ⭐ 异常处理完整指南
 
@@ -58,6 +59,8 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 - **[MathHelper](./getting-started/java-classes/MathHelper.md)** - 数学计算工具
 - **[XNode](./getting-started/java-classes/XNode.md)** - XML和树结构处理
 - **[Underscore](./getting-started/java-classes/Underscore.md)** - 功能工具集
+- **[CollectionHelper](./getting-started/java-classes/CollectionHelper.md)** - ⭐ 集合操作工具
+- **[ReflectionHelper](./getting-started/java-classes/ReflectionHelper.md)** - 反射操作工具
 
 #### 前端开发
 - **[前端开发指南](./getting-started/frontend/frontend-development.md)** - 前端开发
@@ -74,6 +77,7 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 
 #### 通用规范
 - **[错误码定义](./getting-started/common/error-code.md)** - ErrorCode定义规范
+- **[核心错误码参考](./getting-started/common/core-error-codes.md)** - ⭐ 常用错误码速查
 
 #### 架构文档
 - **[API架构](./architecture/backend/api-architecture.md)** - 后端API架构
