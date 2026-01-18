@@ -36,5 +36,6 @@
         <module>nop-ai-shell</module>
         <module>nop-spring-mcp-server</module>
         <module>nop-spring-mcp-server-support</module>
+        <module>nop-ai-maven</module>
     </modules>
 </project>
