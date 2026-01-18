@@ -73,8 +73,9 @@ mvn test
 
 - **Naming**: PascalCase (classes), camelCase (methods/variables), UPPER_SNAKE_CASE (constants)
 - **Formatting**: 4-space indentation, keep lines ~80–120 chars where reasonable
-- **Imports**: grouped and stable ordering: java.* → jakarta.* → third-party → io.nop.*
-- Avoid noisy refactors; keep diffs minimal and focused
+ - **Imports**: grouped and stable ordering: java.* → jakarta.* → third-party → io.nop.*
+ - **Package names**: modules use `io.nop.<module-name>` (e.g., `io.nop.ai.core`, `io.nop.ai.shell`)
+ - Avoid noisy refactors; keep diffs minimal and focused
 
 ## Error handling essentials
 
@@ -94,4 +95,4 @@ mvn test
 | Data access | `docs-for-ai/getting-started/dao/entitydao-usage.md` |
 | Transactions | `docs-for-ai/getting-started/core/transaction-guide.md` |
 | GraphQL | `docs-for-ai/getting-started/api/graphql-guide.md` |
-| API quick reference | `docs-for-ai/quick-reference/api-quick-reference.md` |
+ | API quick reference | `docs-for-ai/quick-reference/api-quick-reference.md` |

@@ -33,6 +33,7 @@
         <module>nop-ai-tools</module>
         <module>nop-ai-skills</module>
         <module>nop-ai-rag</module>
+        <module>nop-ai-shell</module>
         <module>nop-spring-mcp-server</module>
         <module>nop-spring-mcp-server-support</module>
     </modules>
