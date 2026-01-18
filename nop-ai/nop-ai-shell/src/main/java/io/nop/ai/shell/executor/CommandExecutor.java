@@ -3,6 +3,7 @@ package io.nop.ai.shell.executor;
 import io.nop.ai.shell.parser.ParsedLine;
 import io.nop.ai.shell.parser.Parser;
 import io.nop.ai.shell.registry.CommandRegistry;
+import io.nop.ai.shell.registry.impl.BuiltInCommandRegistry;
 import io.nop.ai.shell.script.ScriptEngine;
 
 import java.io.ByteArrayInputStream;
@@ -27,6 +28,10 @@ public class CommandExecutor {
         this.parser = parser;
         this.commandRegistry = commandRegistry;
         this.scriptEngine = scriptEngine;
+    }
+
+    public CommandExecutor(Parser parser) {
+        this(parser, new BuiltInCommandRegistry(), null);
     }
 
     public ExecutionResult execute(String commandLine) {
