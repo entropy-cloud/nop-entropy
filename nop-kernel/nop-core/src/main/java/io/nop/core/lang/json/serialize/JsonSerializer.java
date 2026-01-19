@@ -87,7 +87,7 @@ public class JsonSerializer implements IJsonSerializer {
             LOG.trace("nop.json.use-json-serializable-interface:o={}", o.getClass());
             ((IJsonSerializable) o).serializeToJson(out);
         } else if (o instanceof Map) {
-            writeMap(loc, (Map<String, ?>) o, out);
+            writeMap(loc, (Map<?, ?>) o, out);
         } else if (o instanceof Collection) {
             writeCollection(loc, (Collection<?>) o, out);
         } else if (o.getClass().isEnum()) {
@@ -110,7 +110,7 @@ public class JsonSerializer implements IJsonSerializer {
         out.beginObject(loc);
         for (Map.Entry<?, ?> entry : map.entrySet()) {
             Object key = entry.getKey();
-            out.key(key.toString());
+            out.key(String.valueOf(key));
             serializeToJson(loc, entry.getValue(), out);
         }
         out.endObject();
