@@ -19,6 +19,6 @@
         <module>nop-graphql-orm</module>
         <module>nop-graphql-gateway</module>
         <module>nop-graphql-message</module>
-        <module>nop-graphql-grpc</module>
+<!--        <module>nop-graphql-grpc</module>-->
     </modules>
 </project>

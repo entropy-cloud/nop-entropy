@@ -19,7 +19,7 @@
 
     <modules>
         <module>nop-css</module>
-        <module>nop-js</module>
+        <!--<module>nop-js</module> -->
         <module>nop-ui</module>
         <module>nop-web</module>
         <module>nop-web-amis-editor</module>

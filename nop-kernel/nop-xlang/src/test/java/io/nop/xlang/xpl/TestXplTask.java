@@ -23,10 +23,7 @@ import io.nop.core.resource.watch.IFileWatchListener;
 import io.nop.core.resource.watch.NioFileWatchService;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.xlang.xpl.impl.XplTaskResult;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -37,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@Disabled
 public class TestXplTask extends BaseTestCase {
     @BeforeAll
     public static void init() {

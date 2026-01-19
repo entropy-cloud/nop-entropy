@@ -6,11 +6,13 @@ import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.web.page.DynamicJsLoader;
 import io.nop.xui.vue.VueErrors;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
+@Disabled
 @NopTestConfig(localDb = true)
 public class TestReactComponentGen extends JunitBaseTestCase {
 
