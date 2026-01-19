@@ -103,13 +103,14 @@ public class JsonSerializer implements IJsonSerializer {
         }
     }
 
-    void writeMap(SourceLocation loc, Map<String, ?> map, IJsonHandler out) {
+    void writeMap(SourceLocation loc, Map<?, ?> map, IJsonHandler out) {
         if (map instanceof ISourceLocationGetter) {
             loc = ((ISourceLocationGetter) map).getLocation();
         }
         out.beginObject(loc);
-        for (Map.Entry<String, ?> entry : map.entrySet()) {
-            out.key(entry.getKey());
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            Object key = entry.getKey();
+            out.key(key.toString());
             serializeToJson(loc, entry.getValue(), out);
         }
         out.endObject();
