@@ -1,0 +1,68 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Debug opencode",
+      "program": "${workspaceFolder}/packages/opencode/src/index.ts",
+      "cwd": "${workspaceFolder}",
+      "runtimeArgs": [
+        "--cwd",
+        "packages/opencode",
+        "--conditions=browser"
+      ],
+      "stopOnEntry": false
+    },
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Debug opencode (Server mode)",
+      "cwd": "${workspaceFolder}/packages/opencode",
+      "program": "${workspaceFolder}/packages/opencode/src/index.ts",
+      "args": ["serve", "--port", "4096", "--hostname", "127.0.0.1"],
+      "runtimeArgs": ["--conditions=browser"],
+      "stopOnEntry": false
+    },
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Debug opencode (Web mode)",
+      "cwd": "${workspaceFolder}/packages/opencode",
+      "program": "${workspaceFolder}/packages/opencode/src/index.ts",
+      "args": ["web", "--port", "4096", "--hostname", "127.0.0.1"],
+      "runtimeArgs": ["--conditions=browser"],
+      "stopOnEntry": false
+    },
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Debug opencode tests",
+      "cwd": "${workspaceFolder}/packages/opencode",
+      "runtimeArgs": [
+        "test"
+      ],
+      "stopOnEntry": false
+    },
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Debug current file",
+      "program": "${file}",
+      "cwd": "${workspaceFolder}",
+      "runtimeArgs": [
+        "--cwd",
+        "packages/opencode",
+        "--conditions=browser"
+      ],
+      "stopOnEntry": false
+    },
+    {
+      "type": "bun",
+      "request": "attach",
+      "name": "Attach to Bun (TUI debug)",
+      "url": "ws://localhost:6499/",
+      "localRoot": "${workspaceFolder}"
+    }
+  ]
+}
