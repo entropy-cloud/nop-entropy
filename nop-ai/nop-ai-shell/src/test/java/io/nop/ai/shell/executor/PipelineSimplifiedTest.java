@@ -162,7 +162,7 @@ public class PipelineSimplifiedTest {
     private CommandRegistry createSimpleTestRegistry() {
         return new CommandRegistry() {
             @Override
-            public Object invoke(CommandSession session, String command, Object... args) throws Exception {
+            public int invoke(CommandSession session, String command, Object... args) {
                 if ("echo".equals(command)) {
                     StringBuilder sb = new StringBuilder();
                     for (Object arg : args) {
@@ -174,7 +174,7 @@ public class PipelineSimplifiedTest {
                 } else if ("exit".equals(command)) {
                     return Integer.parseInt(args.length > 0 ? args[0].toString() : "1");
                 } else {
-                    session.err().println("Unknown command: " + command);
+                    session.err().println("nop: unknown command: " + command);
                     return 1;
                 }
             }

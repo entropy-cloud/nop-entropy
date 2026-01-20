@@ -152,7 +152,7 @@ public class PipelineTest {
     private CommandRegistry createTestRegistry() {
         return new CommandRegistry() {
             @Override
-            public Object invoke(CommandSession session, String command, Object... args) throws Exception {
+            public int invoke(CommandSession session, String command, Object... args) {
                 if ("echo".equals(command)) {
                     StringBuilder sb = new StringBuilder();
                     for (Object arg : args) {
@@ -170,7 +170,7 @@ public class PipelineTest {
                     }
                     return 0;
                 }
-                
+
                 if ("exit".equals(command)) {
                     int exitCode = 0;
                     if (args.length == 0) {
@@ -191,8 +191,8 @@ public class PipelineTest {
                     }
                     return exitCode;
                 }
-                
-                session.err().println("Unknown command: " + command);
+
+                session.err().println("nop: unknown command: " + command);
                 return 1;
             }
 

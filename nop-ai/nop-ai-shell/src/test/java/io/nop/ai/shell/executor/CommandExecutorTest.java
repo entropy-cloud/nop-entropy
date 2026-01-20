@@ -34,7 +34,7 @@ public class CommandExecutorTest {
         }
 
         @Override
-        public Object invoke(CommandSession session, String command, Object... args) throws Exception {
+        public int invoke(CommandSession session, String command, Object... args) {
             switch (command) {
                 case "echo":
                 case "e":
@@ -59,7 +59,7 @@ public class CommandExecutorTest {
                     return 0;
 
                 default:
-                    session.err().println("Unknown command: " + command);
+                    session.err().println("nop: unknown command: " + command);
                     return 1;
             }
         }
@@ -106,7 +106,7 @@ public class CommandExecutorTest {
 
         assertEquals(1, result.exitCode());
         assertFalse(result.isSuccess());
-        assertTrue(result.stderr().contains("Unknown command"));
+        assertTrue(result.stderr().contains("nop: unknown command"));
     }
 
     @Test

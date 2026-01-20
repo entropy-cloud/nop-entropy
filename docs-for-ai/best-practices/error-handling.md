@@ -13,12 +13,7 @@
 - `docs-for-ai/getting-started/core/exception-guide.md`
 - `docs-for-ai/getting-started/nop-vs-traditional-frameworks.md`
 - `docs-for-ai/best-practices/INDEX.md`
-        log.setRequestId(MDC.get("requestId"));
-
-        errorLogDao.saveEntity(log);
-    }
-}
-```
+s
 
 ## 常见错误处理问题
 

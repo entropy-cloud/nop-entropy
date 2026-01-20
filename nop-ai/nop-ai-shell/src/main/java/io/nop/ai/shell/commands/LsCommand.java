@@ -13,23 +13,23 @@ import java.nio.file.Path;
 public class LsCommand implements Command {
 
     @Override
-    public Object execute(CommandRegistry.CommandSession session, String[] args) {
+    public int execute(CommandRegistry.CommandSession session, String[] args) {
         Path dir = Path.of(".");
         if (args.length > 0) {
             dir = Path.of(args[0]);
         }
 
         if (!Files.isDirectory(dir)) {
-            session.err().println("ls: " + dir + ": No such file or directory");
+            session.err().println("ls: cannot access '" + dir + "': No such file or directory");
             return 1;
         }
 
         try {
             Files.list(dir).forEach(path -> session.out().println(path.getFileName().toString()));
+            return 0;
         } catch (IOException e) {
-            session.err().println("ls: " + e.getMessage());
+            session.err().println("ls: cannot access '" + dir + "': " + e.getMessage());
             return 1;
         }
-        return 0;
     }
 }

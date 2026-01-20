@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Script to create worktree and execute opencode run with prompt
+# Script to create worktree and execute nop-ai run with prompt
 # Usage: ./nop-run-variant.sh [feature_name] "<prompt>"
 #
 # This script:
 # 1. Creates a worktree with specified or auto-generated name
 # 2. Changes to the worktree directory
-# 3. Executes opencode run with the provided prompt
+# 3. Executes nop-ai run with the provided prompt
 #
 # Examples:
 #   ./nop-run-variant.sh "Implement user login feature"
@@ -18,34 +18,29 @@
 set -e
 
 # Color codes for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
 
 # Function to print colored messages
 log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+    echo "[INFO] $1"
 }
 
 log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
+    echo "[WARN] $1"
 }
 
 log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    echo "[ERROR] $1"
 }
 
 log_success() {
-    echo -e "${BLUE}[SUCCESS]${NC} $1"
+    echo "[SUCCESS] $1"
 }
 
 
 
 # Function to log debug messages
 log_debug() {
-    echo -e "${BLUE}[DEBUG]${NC} $1"
+    echo "[DEBUG] $1" >&2
 }
 
 # Function to find project root by looking for .git directory
@@ -164,25 +159,25 @@ cd "$WORKTREE_PATH"
 log_debug "Current working directory: $(pwd)"
 log_debug "Current git branch: $(git branch --show-current 2>/dev/null || echo '<unknown>')"
 
-# Execute opencode run
+# Execute nop-ai run
 echo ""
 echo "========================================"
-echo "Executing opencode run"
+echo "Executing nop-ai run"
 echo "========================================"
 echo "Prompt: $PROMPT"
 echo "========================================"
 echo ""
 
-# Record start time for opencode execution
+# Record start time for nop-ai execution
 OPENCODE_START=$(date +%s)
-log_debug "Opencode start time: $OPENCODE_START"
+log_debug "nop-ai start time: $OPENCODE_START"
 
-# Execute opencode run
-log_debug "Running: opencode run \"$PROMPT\""
-if ! opencode run "$PROMPT"; then
+# Execute nop-ai run
+log_debug "Running: nop-ai run \"$PROMPT\""
+if ! nop-ai run "$PROMPT"; then
     OPENCODE_EXIT_CODE=$?
     echo ""
-    log_error "opencode run failed with exit code: $OPENCODE_EXIT_CODE"
+    log_error "nop-ai run failed with exit code: $OPENCODE_EXIT_CODE"
     echo ""
 
     # Ask if user wants to keep worktree for debugging
@@ -216,7 +211,7 @@ OPENCODE_MINUTES=$((OPENCODE_ELAPSED / 60))
 OPENCODE_SECONDS=$((OPENCODE_ELAPSED % 60))
 
 echo ""
-log_success "opencode run completed successfully"
+log_success "nop-ai run completed successfully"
 log_info "Time elapsed: ${OPENCODE_MINUTES}m ${OPENCODE_SECONDS}s"
 echo ""
 

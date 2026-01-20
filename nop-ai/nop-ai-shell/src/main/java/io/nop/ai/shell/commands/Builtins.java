@@ -14,7 +14,7 @@ public class Builtins {
 
     private Builtins() {}
 
-    public static Object cat(CommandRegistry.CommandSession session, String[] args) {
+    public static int cat(CommandRegistry.CommandSession session, String[] args) {
         if (args.length == 0 || "-".equals(args[0])) {
             try (java.io.BufferedReader reader = new java.io.BufferedReader(
                     new java.io.InputStreamReader(session.in()))) {
@@ -22,6 +22,7 @@ public class Builtins {
                 while ((line = reader.readLine()) != null) {
                     session.out().println(line);
                 }
+                return 0;
             } catch (java.io.IOException e) {
                 session.err().println("cat: read error: " + e.getMessage());
                 return 1;
@@ -29,22 +30,22 @@ public class Builtins {
         } else {
             for (String arg : args) {
                 if ("-".equals(arg)) {
-                    session.err().println("cat: " + arg + ": invalid argument");
+                    session.err().println("cat: invalid argument: '-'");
                     return 1;
                 }
                 java.nio.file.Path path = java.nio.file.Path.of(arg);
                 try {
                     java.nio.file.Files.lines(path).forEach(session.out()::println);
                 } catch (java.io.IOException e) {
-                    session.err().println("cat: " + arg + ": " + e.getMessage());
+                    session.err().println("cat: cannot open '" + arg + "': " + e.getMessage());
                     return 1;
                 }
             }
+            return 0;
         }
-        return 0;
     }
 
-    public static Object echo(CommandRegistry.CommandSession session, String[] args) {
+    public static int echo(CommandRegistry.CommandSession session, String[] args) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < args.length; i++) {
             if (i > 0) sb.append(' ');
@@ -54,12 +55,12 @@ public class Builtins {
         return 0;
     }
 
-    public static Object pwd(CommandRegistry.CommandSession session, String[] args) {
+    public static int pwd(CommandRegistry.CommandSession session, String[] args) {
         session.out().println(".");
         return 0;
     }
 
-    public static Object date(CommandRegistry.CommandSession session, String[] args) {
+    public static int date(CommandRegistry.CommandSession session, String[] args) {
         SimpleDateFormat formatter;
         if (args.length > 0 && args[0].startsWith("+")) {
             String format = args[0].substring(1);
@@ -71,7 +72,7 @@ public class Builtins {
         return 0;
     }
 
-    public static Object sleep(CommandRegistry.CommandSession session, String[] args) {
+    public static int sleep(CommandRegistry.CommandSession session, String[] args) {
         if (args.length != 1) {
             session.err().println("usage: sleep seconds");
             return 1;
@@ -89,13 +90,13 @@ public class Builtins {
         }
     }
 
-    public static Object clear(CommandRegistry.CommandSession session, String[] args) {
+    public static int clear(CommandRegistry.CommandSession session, String[] args) {
         session.out().print("\u001B[2J");
         session.out().flush();
         return 0;
     }
 
-    public static Object cd(CommandRegistry.CommandSession session, String[] args) {
+    public static int cd(CommandRegistry.CommandSession session, String[] args) {
         if (args.length == 0) {
             String home = System.getProperty("user.home");
             if (home == null) {

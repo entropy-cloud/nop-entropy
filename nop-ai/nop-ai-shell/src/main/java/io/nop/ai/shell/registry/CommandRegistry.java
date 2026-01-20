@@ -19,7 +19,7 @@ public interface CommandRegistry {
         return commandNames().contains(command) || commandAliases().containsKey(command);
     }
 
-    Object invoke(CommandSession session, String command, Object... args) throws Exception;
+    int invoke(CommandSession session, String command, Object... args);
 
     class CommandSession {
         private final InputStream in;

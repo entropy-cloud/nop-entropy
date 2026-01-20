@@ -7,12 +7,12 @@
 # 1. Locate project root directory containing .opencode/script/
 # 2. Find or create ai-tasks/ directory in project root
 # 3. Generate random filename and create output file
-# 4. Call opencode run to generate configuration
+# 4. Call nop-ai run to generate configuration
 # 5. Execute nop-batch-worktree with generated file
 
 # Function to log debug messages
 log_debug() {
-    echo -e "${BLUE}[DEBUG]${NC} $1"
+    echo "[DEBUG] $1" >&2
 }
 
 # Function to find project root by looking for .git directory
@@ -56,15 +56,15 @@ log_debug "Project root found: $PROJECT_ROOT"
 AI_TASKS_DIR="$PROJECT_ROOT/ai-tasks"
 log_debug "AI tasks directory: $AI_TASKS_DIR"
 
-# Check arguments
-if [ $# -lt 1 ]; then
-    echo "Usage: $0 \"<user-requirement>\""
-    echo ""
-    echo "Example:"
-    echo "  $0 \"创建一个用户登录功能\""
-    echo "  $0 \"实现图片上传，生成5个方案\""
-    exit 1
-fi
+ # Check arguments
+ if [ $# -lt 1 ]; then
+     echo "Usage: $0 \"<user-requirement>\""
+     echo ""
+     echo "Example:"
+     echo "  $0 \"Create a user login feature\""
+     echo "  $0 \"Implement image upload, generate 5 solutions\""
+     exit 1
+ fi
 
 USER_REQUIREMENT="$1"
 log_debug "User requirement: $USER_REQUIREMENT"
@@ -94,26 +94,26 @@ echo "Project root: $PROJECT_ROOT"
 echo "Output file: $OUTPUT_FILE"
 echo ""
 
-# Call opencode run to generate configuration
+# Call nop-ai run to generate configuration
 echo "Generating configuration..."
 echo ""
-log_debug "Preparing opencode command..."
+log_debug "Preparing nop-ai command..."
 
-# Construct message for opencode (opencode run doesn't accept --output option)
+# Construct message for nop-ai (nop-ai run doesn't accept --output option)
 # We pass output file path and requirement as part of the message
 # Note: Avoid starting with / to prevent slash command detection
 # Use printf to safely handle special characters in USER_REQUIREMENT
 FULL_MESSAGE=$(printf "@.opencode/command/gen-multi-variants.md --output=%s %s" "$OUTPUT_FILE" "$USER_REQUIREMENT")
 log_debug "Full message: $FULL_MESSAGE"
 
-# Record start time for opencode execution
+# Record start time for nop-ai execution
 START_TIME=$(date +%s)
 log_debug "Start time: $START_TIME"
 
-if ! opencode run "$FULL_MESSAGE"; then
+if ! nop-ai run "$FULL_MESSAGE"; then
     echo ""
     echo "Error: Failed to generate configuration file"
-    log_debug "Opencode run failed"
+    log_debug "nop-ai run failed"
     exit 1
 fi
 
@@ -123,14 +123,14 @@ ELAPSED=$((END_TIME - START_TIME))
 MINUTES=$((ELAPSED / 60))
 SECONDS_REMAINDER=$((ELAPSED % 60))
 
-log_debug "Opencode end time: $END_TIME"
+log_debug "nop-ai end time: $END_TIME"
 log_debug "Time elapsed: ${MINUTES}m ${SECONDS_REMAINDER}s"
 
 echo ""
 echo "=========================================="
 echo "Configuration generated successfully!"
 echo "=========================================="
-echo "⏱️  Time elapsed: ${MINUTES}m ${SECONDS_REMAINDER}s"
+echo "[ELAPSED]  Time elapsed: ${MINUTES}m ${SECONDS_REMAINDER}s"
 
 # Check if file was created
 if [ ! -f "$OUTPUT_FILE" ]; then

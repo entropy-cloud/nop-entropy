@@ -192,6 +192,86 @@ public void testAsyncMethod() throws Exception {
 }
 ```
 
+## 单元测试 vs 集成测试
+
+### 1. 简单单元测试（不使用 @NopTestConfig）
+
+对于**最简单的单元测试**，如果测试对象不需要：
+- IoC 容器注入（如 `@Inject`）
+- 数据库访问（如 `dao()`）
+- 配置管理（如 `@InjectValue`）
+- 文件系统访问（如 `_vfs`）
+
+则**可以直接使用 JUnit 5**，**无需** `@NopTestConfig` 和 `JunitBaseTestCase`：
+
+```java
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+public class CalculatorTest {
+
+    @Test
+    public void testAdd() {
+        Calculator calc = new Calculator();
+        assertEquals(5, calc.add(2, 3));
+    }
+
+    @Test
+    public void testSimpleCommandExecution() {
+        // 手写 stub/fake，无需 IoC 容器
+        SimpleTestRegistry registry = new SimpleTestRegistry();
+        CommandExecutor executor = new CommandExecutor(parser, registry, null);
+        
+        ExecutionResult result = executor.execute("echo hello");
+        assertEquals(0, result.exitCode());
+    }
+}
+```
+
+**使用场景**：
+- ✅ 纯算法/工具类测试
+- ✅ 使用手写 stub/fake 的测试
+- ✅ 无需外部依赖的测试
+- ❌ 不适用于需要 IoC 注入、数据库、配置的集成测试
+
+### 2. 集成测试（使用 @NopTestConfig）
+
+如果测试需要：
+- `@Inject` 注入 bean
+- 访问数据库（`dao()`）
+- 使用配置（`@InjectValue`）
+- 访问 `_vfs` 虚拟文件系统
+
+则需要使用 `@NopTestConfig` 和 `JunitBaseTestCase`：
+
+```java
+import io.nop.test.core.junit.JunitBaseTestCase;
+import io.nop.test.core.annotation.NopTestConfig;
+
+@NopTestConfig(localDb = true)
+public class UserServiceTest extends JunitBaseTestCase {
+
+    @Inject
+    protected IUserDao userDao;
+
+    @Inject
+    protected IUserService userService;
+
+    @Test
+    public void testCreateUser() {
+        User user = new User();
+        user.setName("test");
+        userDao.saveEntity(user);
+
+        assertNotNull(user.getId());
+    }
+}
+```
+
+**选择原则**：
+- 优先使用**简单单元测试**（无需 `@NopTestConfig`）
+- 需要外部依赖时才使用**集成测试**（`@NopTestConfig`）
+
 ## 集成测试
 
 ### 1. 端到端测试

@@ -64,7 +64,7 @@ public class SimplePipelineTest {
         }
 
         @Override
-        public Object invoke(CommandSession session, String command, Object... args) throws Exception {
+        public int invoke(CommandSession session, String command, Object... args) {
             if ("echo".equals(command)) {
                 StringBuilder sb = new StringBuilder();
                 for (Object arg : args) {
@@ -74,6 +74,7 @@ public class SimplePipelineTest {
                 session.out().println(sb.toString().trim());
                 return 0;
             }
+            session.err().println("nop: unknown command: " + command);
             return 1;
         }
     }

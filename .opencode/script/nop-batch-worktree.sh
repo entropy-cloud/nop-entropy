@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to parse multi-section task file and execute opencode run for each section
+# Script to parse multi-section task file and execute nop-ai run for each section
 # Usage: ./nop-batch-worktree.sh <input-file>
 # Usage (validate only): ./nop-batch-worktree.sh -c <input-file>
 #
@@ -53,32 +53,27 @@ MAIN_REPO="$PROJECT_ROOT"
 WORKTREES_DIR="$(dirname "$MAIN_REPO")/worktrees"
 
 # Color codes for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
 
 # Function to print colored messages
 log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+    echo "[INFO] $1"
 }
 
 log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
+    echo "[WARN] $1"
 }
 
 log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    echo "[ERROR] $1"
 }
 
 log_success() {
-    echo -e "${BLUE}[SUCCESS]${NC} $1"
+    echo "[SUCCESS] $1"
 }
 
-# Check if opencode is available
-if ! command -v opencode >/dev/null 2>&1; then
-    log_error "opencode command not found in PATH"
+# Check if nop-ai is available
+if ! command -v nop-ai >/dev/null 2>&1; then
+    log_error "nop-ai command not found in PATH"
     exit 1
 fi
 
@@ -189,7 +184,7 @@ process_input_file() {
             ((section_count++))
 
             echo ""
-            echo "📋 Found new section: $current_section"
+            echo "[FOUND] Found new section: $current_section"
             echo "   Base branch: ${current_base_branch:-<default>}"
         elif [[ "$in_section" == true ]]; then
             # Inside a section, collect arguments
@@ -208,7 +203,7 @@ process_input_file() {
     # Print summary
     echo ""
     echo "========================================"
-    echo "📊 BATCH WORKTREE SUMMARY"
+    echo "[SUMMARY] BATCH WORKTREE SUMMARY"
     echo "========================================"
     echo "Total sections: $section_count"
     echo "Successful: $((section_count - failed_sections))"
@@ -242,8 +237,8 @@ process_section() {
     else
         # Pass TMP-prefixed name for unique directory and branch
         feature_with_timestamp="TMP-${timestamp}-${feature_name}"
-        echo "📂 Creating worktree: $feature_with_timestamp"
-        echo "📂 Worktree directory: ../worktrees/$feature_with_timestamp"
+        echo "[DIR] Creating worktree: $feature_with_timestamp"
+        echo "[DIR] Worktree directory: ../worktrees/$feature_with_timestamp"
 
         # Record start time for worktree creation
         WORKTREE_START=$(date +%s)
@@ -262,14 +257,14 @@ process_section() {
 
         if [ $WORKTREE_EXIT_CODE -ne 0 ]; then
             echo ""
-            echo "❌ ERROR: Failed to create worktree for $feature_name"
-            echo "❌ Exit code: $WORKTREE_EXIT_CODE"
-            echo "❌ Time elapsed: ${WORKTREE_ELAPSED}s"
-            echo "❌ Check worktree-creation.log for detailed error information"
-            echo "❌ Attempted command: nop-create-worktree $feature_with_timestamp ${base_branch:+$base_branch}"
+            echo "[ERROR] ERROR: Failed to create worktree for $feature_name"
+            echo "[ERROR] Exit code: $WORKTREE_EXIT_CODE"
+            echo "[ERROR] Time elapsed: ${WORKTREE_ELAPSED}s"
+            echo "[ERROR] Check worktree-creation.log for detailed error information"
+            echo "[ERROR] Attempted command: nop-create-worktree $feature_with_timestamp ${base_branch:+$base_branch}"
             ((failed_sections++))
         else
-            echo "✅ Worktree created successfully (took ${WORKTREE_ELAPSED}s)"
+            echo "[OK] Worktree created successfully (took ${WORKTREE_ELAPSED}s)"
 
             # Get worktree path with TMP prefix
             MAIN_REPO="$PROJECT_ROOT"
@@ -277,25 +272,25 @@ process_section() {
             worktree_dir="${WORKTREES_DIR}/TMP-${timestamp}-${feature_name}"
 
             if [ ! -d "$worktree_dir" ]; then
-                echo "❌ CRITICAL ERROR: Worktree directory does not exist: $worktree_dir"
-                echo "❌ This should not happen - worktree script returned success but directory was not created"
+                echo "[ERROR] CRITICAL ERROR: Worktree directory does not exist: $worktree_dir"
+                echo "[ERROR] This should not happen - worktree script returned success but directory was not created"
                 ((failed_sections++))
                 continue
             fi
 
             if [ -d "$worktree_dir" ]; then
                 echo ""
-                echo "🔄 Changing to worktree directory: $worktree_dir"
-                cd "$worktree_dir" || { echo "❌ ERROR: Failed to cd to $worktree_dir"; ((failed_sections++)); continue; }
+                echo "[CHANGE] Changing to worktree directory: $worktree_dir"
+                cd "$worktree_dir" || { echo "[ERROR] ERROR: Failed to cd to $worktree_dir"; ((failed_sections++)); continue; }
 
                 # Log current directory and branch
-                echo "📍 Current directory: $(pwd)"
+                echo "[LOCATION] Current directory: $(pwd)"
                 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "<unknown>")
-                echo "🌿 Current branch: $CURRENT_BRANCH"
+                echo "[BRANCH] Current branch: $CURRENT_BRANCH"
 
                 # Count argument lines
                 ARG_LINES_COUNT=$(echo "$args" | grep -c '[^[:space:]]' 2>/dev/null || echo 0)
-                echo "📝 Executing $ARG_LINES_COUNT argument line(s)..."
+                echo "[EXEC] Executing $ARG_LINES_COUNT argument line(s)..."
                 echo ""
 
                 # Execute each argument line
@@ -308,18 +303,18 @@ process_section() {
 
                     ((arg_line_number++))
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    echo "[${section_count}.${arg_line_number}] Executing opencode run"
+                    echo "[${section_count}.${arg_line_number}] Executing nop-ai run"
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    echo "Command: opencode run $arg_line"
+                    echo "Command: nop-ai run $arg_line"
 
-                    # Write opencode input to debug file
-                    echo "⏰ Started: $(date)" | tee -a opencode-debug-${timestamp}.txt
-                    echo "⚡ Command: opencode run $arg_line" | tee -a opencode-debug-${timestamp}.txt
+                    # Write nop-ai input to debug file
+                    echo "[TIME] Started: $(date)" | tee -a opencode-debug-${timestamp}.txt
+                    echo "[CMD] Command: nop-ai run $arg_line" | tee -a opencode-debug-${timestamp}.txt
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | tee -a opencode-debug-${timestamp}.txt
 
-                    # Execute opencode run
+                    # Execute nop-ai run
                     START_TIME=$(date +%s)
-                    opencode run $arg_line
+                    nop-ai run $arg_line
                     EXIT_CODE=$?
                     END_TIME=$(date +%s)
 
@@ -330,9 +325,9 @@ process_section() {
 
                     echo ""
                     if [ $EXIT_CODE -eq 0 ]; then
-                        echo "✅ Command completed successfully (took ${MINUTES}m ${SECONDS_REMAINDER}s)"
+                        echo "[OK] Command completed successfully (took ${MINUTES}m ${SECONDS_REMAINDER}s)"
                     else
-                        echo "❌ Command failed with exit code: $EXIT_CODE (took ${MINUTES}m ${SECONDS_REMAINDER}s)"
+                        echo "[ERROR] Command failed with exit code: $EXIT_CODE (took ${MINUTES}m ${SECONDS_REMAINDER}s)"
                     fi
                     echo ""
                 done <<< "$args"
@@ -351,7 +346,7 @@ section_count=0
 # Execute
 echo ""
 echo "========================================"
-echo "📊 BATCH WORKTREE EXECUTION"
+echo "[SUMMARY] BATCH WORKTREE EXECUTION"
 echo "========================================"
 echo "Input file: $INPUT_FILE"
 echo "Total sections to process: $TOTAL_SECTIONS"
