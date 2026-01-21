@@ -182,6 +182,11 @@
                 <configuration>
                     <argLine>
                         ${jacocoArgLine}
+                        -Xmx1G
+                        -Xms256m
+                        -XX:MaxMetaspaceSize=256m
+                        -XX:+UseG1GC
+                        -XX:+UseStringDeduplication
                     </argLine>
                     <testFailureIgnore>false</testFailureIgnore>
                     <!--                    <forkCount>4</forkCount>-->
