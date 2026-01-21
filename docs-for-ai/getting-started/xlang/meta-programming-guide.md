@@ -77,7 +77,7 @@ XLang内置了多种宏函数：
 <macro:script>
     import test.MyModelHelper;
     // 编译期加载模型文件
-    const myModel = MyModelHelper.loadModel('/nop/test/test.my-model.xlsx');
+    const myModel = MyModelHelper.loadModel('/nop/test/test.my-model.xml');
 </macro:script>
 
 <!-- 使用编译期变量 -->

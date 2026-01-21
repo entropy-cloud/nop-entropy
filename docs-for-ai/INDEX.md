@@ -19,10 +19,25 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 
 ### 📚 文档索引
 
+#### 快速开始（新增）
+- **[10分钟快速上手](./getting-started/quickstart/10-min-quickstart.md)** - ⭐ 从零开始
+- **[常见开发任务](./getting-started/quickstart/common-tasks.md)** - ⭐ 快速参考
+
 #### 入门指南
 - **[Getting Started](./getting-started/README.md)** - 文档总索引
 - **[AI开发规范](./getting-started/ai/nop-ai-development.md)** - Nop平台开发规范
 - **[AI编程开发指南](./getting-started/ai/nop-ai-developer-guide.md)** - AI编程指导
+
+#### Delta定制（新增）
+- **[Delta定制基础](./getting-started/delta/delta-basics.md)** - Delta基本使用
+- **[常见定制场景](./getting-started/delta/delta-scenarios.md)** - 实际定制示例
+
+#### 代码生成（新增）
+- **[差量化软件生产线](./getting-started/codegen/codegen-concepts.md)** - 差量化代码生成机制
+- **[跨模块代码生成](./getting-started/codegen/cross-module-codegen.md)** - ⭐ 构建顺序和执行时机
+
+#### 开发流程（新增）
+- **[完整开发流程](./getting-started/workflow/full-workflow.md)** - 端到端流程
 
 #### 核心组件
 - **[IoC容器指南](./getting-started/core/ioc-guide.md)** - 依赖注入容器使用
@@ -89,6 +104,9 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 #### 快速参考
 - **[API快速参考](./quick-reference/api-quick-reference.md)** - ⭐ API快速参考
 - **[快速参考目录](./quick-reference/INDEX.md)** - 更多快速参考条目
+
+#### 故障排查（新增）
+- **[常见错误和解决方法](./troubleshooting/common-errors.md)** - 问题诊断
 
 
 ## 核心API
