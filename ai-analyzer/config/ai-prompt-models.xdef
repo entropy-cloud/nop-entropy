@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+AI提示词返回格式元模型定义 - 完整版本
+
+包含所有提示词模板中定义的XDef模型，符合Nop平台XDef语法规范
+
+@x:schema 指定当前文件所使用的xdef元模型定义文件路径
+@xmlns:x 声明x命名空间，对应DSL公共语法
+@xdef:bean-package 指定生成Java类的包名
+@xdef:name 定义模型的名称
+-->
+<ai-prompt-models x:schema="/nop/schema/xdef.xdef"
+                  xmlns:x="/nop/schema/xdsl.xdef"
+                  xdef:bean-package="io.nop.ai.model"
+                  xdef:name="AiPromptModels">
+
+<!-- 多文件类上下文分析元模型 -->
+<multi-file-class-context-analysis xdef:name="MultiFileClassContextAnalysis" comment="多文件类上下文分析">
+  <class-identity xdef:name="ClassIdentity" comment="类身份信息">
+    <class-name mandatory="true" comment="类名">string</class-name>
+    <package mandatory="true" comment="包名">string</package>
+    <related-files xdef:body-type="list" mandatory="true" comment="相关文件列表">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </related-files>
+  </class-identity>
+  
+  <interface-implementation xdef:name="InterfaceImplementation" comment="接口实现关系">
+    <implemented-interfaces xdef:body-type="list" mandatory="true" comment="实现的接口">
+      <interface xdef:name="InterfaceInfo">
+        <name mandatory="true" comment="接口名称">string</name>
+        <file-path mandatory="true" comment="接口文件路径">string</file-path>
+        <contract mandatory="true" comment="接口契约描述">string</contract>
+      </interface>
+    </implemented-interfaces>
+  </interface-implementation>
+  
+  <inheritance-context xdef:name="InheritanceContext" comment="继承上下文">
+    <parent-class comment="父类">string</parent-class>
+    <subclasses xdef:body-type="list" comment="子类列表">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </subclasses>
+    <inheritance-depth mandatory="true" comment="继承深度">integer</inheritance-depth>
+  </inheritance-context>
+  
+  <cross-file-dependencies xdef:name="CrossFileDependencies" comment="跨文件依赖">
+    <imported-classes xdef:body-type="list" mandatory="true" comment="导入的类">
+      <imported-class xdef:name="ImportedClassInfo">
+        <name mandatory="true" comment="类名">string</name>
+        <purpose mandatory="true" comment="使用目的">string</purpose>
+        <usage-frequency mandatory="true" comment="使用频率">string</usage-frequency>
+      </imported-class>
+    </imported-classes>
+  </cross-file-dependencies>
+  
+  <configuration-integration xdef:name="ConfigurationIntegration" comment="配置集成">
+    <related-configs xdef:body-type="list" comment="相关配置文件">
+      <config xdef:name="ConfigInfo">
+        <file-path mandatory="true" comment="配置文件路径">string</file-path>
+        <config-type mandatory="true" comment="配置类型">string</config-type>
+        <integration-points xdef:body-type="list" comment="集成点">
+          <xdef:unknown-tag>string</xdef:unknown-tag>
+        </integration-points>
+      </config>
+    </related-configs>
+  </configuration-integration>
+  
+  <usage-context xdef:name="UsageContext" comment="使用上下文">
+    <typical-usage mandatory="true" comment="典型使用方式">string</typical-usage>
+    <integration-patterns xdef:body-type="list" comment="集成模式">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </integration-patterns>
+  </usage-context>
+</multi-file-class-context-analysis>
+
+<!-- 注释代码关联分析元模型 -->
+<comment-code-correlation-analysis xdef:name="CommentCodeCorrelationAnalysis" comment="注释代码关联分析">
+  <comment-coverage xdef:name="CommentCoverage" comment="注释覆盖度分析">
+    <method-comment-coverage mandatory="true" comment="方法注释覆盖度：0.0-1.0">float</method-comment-coverage>
+    <class-comment-coverage mandatory="true" comment="类注释覆盖度：0.0-1.0">float</class-comment-coverage>
+    <field-comment-coverage mandatory="true" comment="字段注释覆盖度：0.0-1.0">float</field-comment-coverage>
+    <overall-coverage mandatory="true" comment="总体注释覆盖度：0.0-1.0">float</overall-coverage>
+  </comment-coverage>
+  
+  <comment-quality xdef:name="CommentQuality" comment="注释质量评估">
+    <accuracy mandatory="true" comment="准确性：accurate/partial/inaccurate">string</accuracy>
+    <completeness mandatory="true" comment="完整性：complete/partial/minimal">string</completeness>
+    <timeliness mandatory="true" comment="时效性：up-to-date/outdated">string</timeliness>
+  </comment-quality>
+  
+  <semantic-extraction xdef:name="SemanticExtraction" comment="语义提取">
+    <extracted-concepts xdef:body-type="list" comment="提取的概念">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </extracted-concepts>
+    <business-rules xdef:body-type="list" comment="业务规则">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </business-rules>
+  </semantic-extraction>
+  
+  <code-comment-alignment xdef:name="CodeCommentAlignment" comment="代码注释对齐">
+    <alignment-score mandatory="true" comment="对齐度评分：0.0-1.0">float</alignment-score>
+    <misalignments xdef:body-type="list" comment="不对齐的地方">
+      <misalignment xdef:name="MisalignmentInfo">
+        <location mandatory="true" comment="位置">string</location>
+        <description mandatory="true" comment="描述">string</description>
+        <severity mandatory="true" comment="严重程度">string</severity>
+      </misalignment>
+    </misalignments>
+  </code-comment-alignment>
+  
+  <improvement-suggestions xdef:name="ImprovementSuggestions" comment="改进建议">
+    <missing-comments xdef:body-type="list" comment="缺失的注释">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </missing-comments>
+    <outdated-comments xdef:body-type="list" comment="过时的注释">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </outdated-comments>
+    <quality-improvements xdef:body-type="list" comment="质量改进">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </quality-improvements>
+  </improvement-suggestions>
+</comment-code-correlation-analysis>
+
+<!-- 微服务架构识别元模型 -->
+<microservice-architecture-recognition xdef:name="MicroserviceArchitectureRecognition" comment="微服务架构识别">
+  <architecture-type xdef:name="ArchitectureType" comment="架构类型识别">
+    <is-microservice mandatory="true" comment="是否为微服务架构">boolean</is-microservice>
+    <confidence mandatory="true" comment="识别置信度：0.0-1.0">float</confidence>
+    <architecture-style mandatory="true" comment="架构风格：monolith/microservices/hybrid">string</architecture-style>
+  </architecture-type>
+  
+  <service-boundaries xdef:name="ServiceBoundaries" comment="服务边界分析">
+    <identified-services xdef:body-type="list" comment="识别的服务">
+      <service xdef:name="ServiceInfo">
+        <service-name mandatory="true" comment="服务名称">string</service-name>
+        <bounded-context mandatory="true" comment="限界上下文">string</bounded-context>
+        <responsibility mandatory="true" comment="服务职责">string</responsibility>
+        <autonomy-level mandatory="true" comment="自治程度：high/medium/low">string</autonomy-level>
+      </service>
+    </identified-services>
+    <boundary-clarity mandatory="true" comment="边界清晰度：clear/unclear/mixed">string</boundary-clarity>
+    <coupling-assessment mandatory="true" comment="耦合度评估：loose/moderate/tight">string</coupling-assessment>
+  </service-boundaries>
+  
+  <communication-patterns xdef:name="CommunicationPatterns" comment="通信模式">
+    <sync-communication xdef:body-type="list" comment="同步通信">
+      <sync-comm xdef:name="SyncCommunication">
+        <protocol mandatory="true" comment="协议：REST/gRPC/etc">string</protocol>
+        <endpoints xdef:body-type="list" comment="端点">
+          <xdef:unknown-tag>string</xdef:unknown-tag>
+        </endpoints>
+        <data-format mandatory="true" comment="数据格式">string</data-format>
+      </sync-comm>
+    </sync-communication>
+    <async-communication xdef:body-type="list" comment="异步通信">
+      <async-comm xdef:name="AsyncCommunication">
+        <message-broker comment="消息代理">string</message-broker>
+        <event-types xdef:body-type="list" comment="事件类型">
+          <xdef:unknown-tag>string</xdef:unknown-tag>
+        </event-types>
+        <processing-pattern comment="处理模式">string</processing-pattern>
+      </async-comm>
+    </async-communication>
+  </communication-patterns>
+  
+  <data-management xdef:name="DataManagement" comment="数据管理">
+    <database-per-service mandatory="true" comment="是否每个服务独立数据库">boolean</database-per-service>
+    <data-consistency mandatory="true" comment="数据一致性策略">string</data-consistency>
+    <data-synchronization xdef:body-type="list" comment="数据同步机制">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </data-synchronization>
+  </data-management>
+  
+  <deployment-and-scaling xdef:name="DeploymentAndScaling" comment="部署和扩缩容">
+    <independent-deployment mandatory="true" comment="是否独立部署">boolean</independent-deployment>
+    <scaling-granularity mandatory="true" comment="扩缩容粒度：fine/coarse">string</scaling-granularity>
+    <resilience-patterns xdef:body-type="list" comment="弹性模式">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </resilience-patterns>
+  </deployment-and-scaling>
+  
+  <improvement-suggestions xdef:name="ImprovementSuggestions" comment="改进建议">
+    <boundary-optimization xdef:body-type="list" comment="边界优化">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </boundary-optimization>
+    <communication-optimization xdef:body-type="list" comment="通信优化">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </communication-optimization>
+    <deployment-optimization xdef:body-type="list" comment="部署优化">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </deployment-optimization>
+  </improvement-suggestions>
+</microservice-architecture-recognition>
+
+<!-- 构建依赖分析元模型 -->
+<build-dependency-analysis xdef:name="BuildDependencyAnalysis" comment="构建依赖分析">
+  <dependency-management xdef:name="DependencyManagement" comment="依赖管理">
+    <total-dependencies mandatory="true" comment="总依赖数量">integer</total-dependencies>
+    <direct-dependencies mandatory="true" comment="直接依赖数量">integer</direct-dependencies>
+    <transitive-dependencies mandatory="true" comment="传递依赖数量">integer</transitive-dependencies>
+    <dependency-scope-distribution xdef:name="DependencyScopeDistribution" comment="依赖作用域分布">
+      <compile comment="编译时依赖">integer</compile>
+      <runtime comment="运行时依赖">integer</runtime>
+      <test comment="测试依赖">integer</test>
+      <provided comment="提供依赖">integer</provided>
+    </dependency-scope-distribution>
+  </dependency-management>
+  
+  <dependency-categories xdef:name="DependencyCategories" comment="依赖分类">
+    <framework-dependencies xdef:body-type="list" comment="框架依赖">
+      <framework xdef:name="FrameworkDependency">
+        <name mandatory="true" comment="依赖名称">string</name>
+        <version mandatory="true" comment="版本">string</version>
+        <purpose mandatory="true" comment="用途">string</purpose>
+      </framework>
+    </framework-dependencies>
+    <utility-dependencies xdef:body-type="list" comment="工具依赖">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </utility-dependencies>
+    <database-dependencies xdef:body-type="list" comment="数据库依赖">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </database-dependencies>
+    <security-dependencies xdef:body-type="list" comment="安全依赖">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </security-dependencies>
+    <monitoring-dependencies xdef:body-type="list" comment="监控依赖">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </monitoring-dependencies>
+  </dependency-categories>
+  
+  <version-management xdef:name="VersionManagement" comment="版本管理">
+    <version-conflicts xdef:body-type="list" comment="版本冲突">
+      <conflict xdef:name="VersionConflict">
+        <dependency mandatory="true" comment="依赖名称">string</dependency>
+        <conflicting-versions xdef:body-type="list" comment="冲突版本">
+          <xdef:unknown-tag>string</xdef:unknown-tag>
+        </conflicting-versions>
+        <resolution comment="解决方案">string</resolution>
+      </conflict>
+    </version-conflicts>
+    <outdated-dependencies xdef:body-type="list" comment="过时依赖">
+      <outdated xdef:name="OutdatedDependency">
+        <dependency mandatory="true" comment="依赖名称">string</dependency>
+        <current-version mandatory="true" comment="当前版本">string</current-version>
+        <latest-version mandatory="true" comment="最新版本">string</latest-version>
+        <update-urgency mandatory="true" comment="更新紧急度">string</update-urgency>
+      </outdated>
+    </outdated-dependencies>
+  </version-management>
+  
+  <security-assessment xdef:name="SecurityAssessment" comment="安全评估">
+    <vulnerable-dependencies xdef:body-type="list" comment="有漏洞的依赖">
+      <vulnerable xdef:name="VulnerableDependency">
+        <dependency xdef:value="string" mandatory="true" comment="依赖名称"/>
+        <vulnerability xdef:value="string" mandatory="true" comment="漏洞描述"/>
+        <severity xdef:value="string" mandatory="true" comment="严重程度"/>
+        <fixed-version xdef:value="string" comment="修复版本"/>
+      </vulnerable>
+    </vulnerable-dependencies>
+    <security-score xdef:value="float" mandatory="true" comment="安全评分：0.0-1.0"/>
+  </security-assessment>
+  
+  <optimization-suggestions xdef:name="OptimizationSuggestions" comment="优化建议">
+    <unused-dependencies xdef:body-type="list" comment="未使用的依赖">
+      <xdef:unknown-tag xdef:value="string"/>
+    </unused-dependencies>
+    <duplicate-dependencies xdef:body-type="list" comment="重复依赖">
+      <xdef:unknown-tag xdef:value="string"/>
+    </duplicate-dependencies>
+    <dependency-consolidation xdef:body-type="list" comment="依赖合并建议">
+      <xdef:unknown-tag xdef:value="string"/>
+    </dependency-consolidation>
+    <version-upgrade-recommendations xdef:body-type="list" comment="版本升级建议">
+      <xdef:unknown-tag xdef:value="string"/>
+    </version-upgrade-recommendations>
+  </optimization-suggestions>
+</build-dependency-analysis>
+
+</ai-prompt-models>

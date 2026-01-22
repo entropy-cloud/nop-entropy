@@ -37,6 +37,61 @@ XDef是Nop平台的元模型定义语言，用于定义各种领域特定语言(
 ### 4. 使用DSL
 使用定义的DSL编写业务逻辑
 
+## 关键语法理解：XDef与XML的同构关系
+
+### XDef的本质
+XDef模型应该与最终生成的XML结构同构，只是用类型信息替换具体的值。这是理解XDef语法的关键。
+
+### 正确语法模式
+
+#### 1. 元素内容类型定义（正确）
+```xml
+<!-- XDef定义 -->
+<user>
+    <name>string</name>
+    <age>integer</age>
+    <active>boolean</active>
+</user>
+
+<!-- 最终生成的XML -->
+<user>
+    <name>张三</name>
+    <age>25</age>
+    <active>true</active>
+</user>
+```
+
+#### 2. 属性类型定义（正确）
+```xml
+<!-- XDef定义 -->
+<user id="!string" name="string" email="string"/>
+
+<!-- 最终生成的XML -->
+<user id="123" name="张三" email="zhang@example.com"/>
+```
+
+### 常见错误语法（避免使用）
+
+#### ❌ 错误：使用type属性定义类型
+```xml
+<user>
+    <name type="string"/>
+    <age type="integer"/>
+</user>
+```
+
+#### ❌ 错误：使用xdef:value
+```xml
+<user>
+    <name xdef:value="string"/>
+    <age xdef:value="integer"/>
+</user>
+```
+
+### 参考示例文件
+- **正确示例**：[simple-model.xdef](../../../examples/xdefs/simple-model.xdef)
+- **学习路径**：[xdefs README](../../../examples/xdefs/README.md)
+
 ## 设计注意事项
 
 ### 1. 模型结构设计

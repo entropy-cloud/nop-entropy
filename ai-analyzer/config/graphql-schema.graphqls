@@ -1,0 +1,523 @@
+# GraphQL Schema Definition
+
+"""
+项目实体，表示整个Java项目
+"""
+type Project {
+  """项目唯一标识"""
+  id: ID!
+  """项目名称"""
+  name: String!
+  """项目路径"""
+  path: String!
+  """项目描述"""
+  description: String
+  """项目模块列表"""
+  modules: [Module!]!
+  """项目依赖关系"""
+  dependencies: [Dependency!]!
+  """创建时间"""
+  createdAt: DateTime!
+  """最后更新时间"""
+  updatedAt: DateTime!
+  """分析状态"""
+  analysisStatus: AnalysisStatus!
+  """语义摘要"""
+  semanticSummary: SemanticSummary
+}
+
+"""
+项目模块
+"""
+type Module {
+  """模块唯一标识"""
+  id: ID!
+  """模块名称"""
+  name: String!
+  """模块路径"""
+  path: String!
+  """包名"""
+  package: String!
+  """模块描述"""
+  description: String
+  """类列表"""
+  classes: [Class!]!
+  """接口列表"""
+  interfaces: [Interface!]!
+  """依赖关系"""
+  dependencies: [Dependency!]!
+  """语义摘要"""
+  semanticSummary: SemanticSummary
+}
+
+"""
+Java类实体
+"""
+type Class {
+  """类唯一标识"""
+  id: ID!
+  """类名"""
+  name: String!
+  """完整类名（包含包名）"""
+  fullName: String!
+  """包名"""
+  package: String!
+  """访问修饰符"""
+  modifiers: [String!]!
+  """继承的父类"""
+  extends: String
+  """实现的接口"""
+  implements: [String!]!
+  """注解列表"""
+  annotations: [Annotation!]!
+  """字段列表"""
+  fields: [Field!]!
+  """方法列表"""
+  methods: [Method!]!
+  """构造器列表"""
+  constructors: [Constructor!]!
+  """内部类列表"""
+  innerClasses: [Class!]!
+  
+  # AI增强字段
+  """语义角色"""
+  semanticRole: SemanticRole!
+  """类职责描述"""
+  responsibility: String!
+  """识别到的设计模式"""
+  designPatterns: [DesignPattern!]!
+  """复杂度评估"""
+  complexity: ComplexityLevel!
+  """使用示例"""
+  usageExamples: [UsageExample!]!
+  """类关系网络"""
+  relationships: ClassRelationships!
+  """语义摘要"""
+  semanticSummary: SemanticSummary
+}
+
+"""
+Java接口实体
+"""
+type Interface {
+  """接口唯一标识"""
+  id: ID!
+  """接口名"""
+  name: String!
+  """完整接口名"""
+  fullName: String!
+  """包名"""
+  package: String!
+  """继承的接口"""
+  extends: [String!]!
+  """方法签名列表"""
+  methods: [MethodSignature!]!
+  """注解列表"""
+  annotations: [Annotation!]!
+  
+  # AI增强字段
+  """接口契约目的"""
+  contractPurpose: String!
+  """实现类数量"""
+  implementationCount: Int!
+  """使用上下文"""
+  usageContexts: [String!]!
+  """语义摘要"""
+  semanticSummary: SemanticSummary
+}
+
+"""
+Java方法实体
+"""
+type Method {
+  """方法唯一标识"""
+  id: ID!
+  """方法名"""
+  name: String!
+  """返回类型"""
+  returnType: String!
+  """参数列表"""
+  parameters: [Parameter!]!
+  """访问修饰符"""
+  modifiers: [String!]!
+  """注解列表"""
+  annotations: [Annotation!]!
+  """异常声明"""
+  exceptions: [String!]!
+  
+  # AI增强字段
+  """语义功能描述"""
+  semanticFunction: String!
+  """业务逻辑描述"""
+  businessLogic: String
+  """技术目的描述"""
+  technicalPurpose: String
+  """复杂度评估"""
+  complexity: ComplexityLevel!
+  """调用链信息"""
+  callChain: CallChain!
+  """数据流信息"""
+  dataFlow: DataFlow!
+  """使用模式"""
+  usagePatterns: [UsagePattern!]!
+  """测试示例"""
+  testExamples: [TestExample!]!
+  """性能特征"""
+  performanceCharacteristics: PerformanceInfo
+  """语义摘要"""
+  semanticSummary: SemanticSummary
+}
+
+"""
+方法参数
+"""
+type Parameter {
+  """参数名"""
+  name: String!
+  """参数类型"""
+  type: String!
+  """参数注解"""
+  annotations: [Annotation!]!
+  """参数语义角色"""
+  semanticRole: String
+  """验证规则"""
+  validationRules: [String!]
+}
+
+"""
+语义摘要
+"""
+type SemanticSummary {
+  """摘要唯一标识"""
+  id: ID!
+  """实体类型"""
+  entityType: EntityType!
+  """实体ID"""
+  entityId: ID!
+  """摘要内容"""
+  summary: String!
+  """关键概念"""
+  keyConcepts: [String!]!
+  """相关模式"""
+  relatedPatterns: [String!]!
+  """常见用法"""
+  commonUsage: String
+  """最佳实践"""
+  bestPractices: [String!]
+  """潜在问题"""
+  potentialIssues: [String!]
+  """改进建议"""
+  improvementSuggestions: [String!]
+}
+
+"""
+类关系网络
+"""
+type ClassRelationships {
+  """继承关系"""
+  inheritance: [InheritanceRelation!]!
+  """组合关系"""
+  composition: [CompositionRelation!]!
+  """聚合关系"""
+  aggregation: [AggregationRelation!]!
+  """依赖关系"""
+  dependency: [DependencyRelation!]!
+  """关联关系"""
+  association: [AssociationRelation!]!
+  """实现关系"""
+  implementation: [ImplementationRelation!]!
+}
+
+"""
+调用链信息
+"""
+type CallChain {
+  """调用者列表"""
+  callers: [MethodCall!]!
+  """被调用者列表"""
+  callees: [MethodCall!]!
+  """是否递归"""
+  recursive: Boolean!
+  """调用深度"""
+  depth: Int!
+  """是否关键路径"""
+  criticalPath: Boolean!
+}
+
+"""
+数据流信息
+"""
+type DataFlow {
+  """数据输入源"""
+  inputSources: [DataInput!]!
+  """数据输出目的地"""
+  outputDestinations: [DataOutput!]!
+  """数据转换"""
+  transformations: [Transformation!]!
+  """副作用"""
+  sideEffects: [SideEffect!]!
+}
+
+# 枚举类型定义
+
+"""实体类型"""
+enum EntityType {
+  PROJECT
+  MODULE
+  CLASS
+  INTERFACE
+  METHOD
+  FIELD
+  PACKAGE
+  CONFIGURATION
+}
+
+"""关系类型"""
+enum RelationshipType {
+  INHERITANCE
+  IMPLEMENTATION
+  COMPOSITION
+  AGGREGATION
+  DEPENDENCY
+  ASSOCIATION
+  CALL
+  REFERENCE
+  CONFIGURATION
+}
+
+"""复杂度级别"""
+enum ComplexityLevel {
+  SIMPLE
+  MODERATE
+  COMPLEX
+  VERY_COMPLEX
+}
+
+"""语义角色"""
+enum SemanticRole {
+  SERVICE
+  CONTROLLER
+  ENTITY
+  REPOSITORY
+  UTILITY
+  CONFIGURATION
+  FACTORY
+  STRATEGY
+  ADAPTER
+  OBSERVER
+  DECORATOR
+  OTHER
+}
+
+"""分析状态"""
+enum AnalysisStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+"""设计模式类型"""
+enum DesignPatternType {
+  SINGLETON
+  FACTORY
+  ABSTRACT_FACTORY
+  BUILDER
+  PROTOTYPE
+  ADAPTER
+  BRIDGE
+  COMPOSITE
+  DECORATOR
+  FACADE
+  FLYWEIGHT
+  PROXY
+  CHAIN_OF_RESPONSIBILITY
+  COMMAND
+  INTERPRETER
+  ITERATOR
+  MEDIATOR
+  MEMENTO
+  OBSERVER
+  STATE
+  STRATEGY
+  TEMPLATE_METHOD
+  VISITOR
+}
+
+# 查询接口定义
+
+type Query {
+  """获取所有项目"""
+  projects: [Project!]!
+  
+  """根据ID获取项目"""
+  project(id: ID!): Project
+  
+  """根据路径获取项目"""
+  projectByPath(path: String!): Project
+  
+  """获取项目模块"""
+  modules(projectId: ID!): [Module!]!
+  
+  """根据ID获取模块"""
+  module(id: ID!): Module
+  
+  """查询类"""
+  classes(
+    moduleId: ID
+    name: String
+    package: String
+    semanticRole: SemanticRole
+    complexity: ComplexityLevel
+    limit: Int = 100
+    offset: Int = 0
+  ): [Class!]!
+  
+  """根据ID获取类"""
+  class(id: ID!): Class
+  
+  """查询方法"""
+  methods(
+    classId: ID
+    name: String
+    returnType: String
+    complexity: ComplexityLevel
+    limit: Int = 100
+    offset: Int = 0
+  ): [Method!]!
+  
+  """根据ID获取方法"""
+  method(id: ID!): Method
+  
+  """语义搜索"""
+  semanticSearch(
+    query: String!
+    entityType: EntityType
+    similarityThreshold: Float = 0.7
+    limit: Int = 20
+  ): [SemanticResult!]!
+  
+  """全文搜索"""
+  fulltextSearch(
+    query: String!
+    entityTypes: [EntityType!]
+    fields: [String!]
+    limit: Int = 50
+  ): [FulltextResult!]!
+  
+  """关系查询"""
+  relationships(
+    sourceId: ID!
+    relationshipType: RelationshipType
+    maxDepth: Int = 3
+    direction: RelationshipDirection = BOTH
+  ): [Relationship!]!
+  
+  """调用图查询"""
+  callGraph(
+    methodId: ID!
+    depth: Int = 5
+    direction: CallDirection = BOTH
+  ): CallGraph!
+  
+  """依赖图查询"""
+  dependencyGraph(entityId: ID!): DependencyGraph!
+  
+  """设计模式查询"""
+  findDesignPatterns(
+    patternType: DesignPatternType
+    moduleId: ID
+    limit: Int = 50
+  ): [PatternInstance!]!
+  
+  """使用模式查询"""
+  findUsagePatterns(
+    pattern: String!
+    entityType: EntityType
+    limit: Int = 20
+  ): [UsagePattern!]!
+  
+  """获取使用示例"""
+  getUsageExamples(entityId: ID!): [UsageExample!]!
+  
+  """获取最佳实践"""
+  getBestPractices(entityType: EntityType): [BestPractice!]!
+  
+  """分析进度查询"""
+  analysisProgress(projectId: ID!): AnalysisProgress!
+}
+
+# 变更接口定义
+
+type Mutation {
+  """分析项目"""
+  analyzeProject(
+    path: String!
+    incremental: Boolean = true
+    force: Boolean = false
+  ): Project!
+  
+  """重建索引"""
+  rebuildIndex(
+    projectId: ID!
+    indexTypes: [IndexType!] = [FULLTEXT, SEMANTIC, RELATIONSHIP]
+  ): Boolean!
+  
+  """更新语义数据"""
+  updateSemanticData(
+    entityId: ID!
+    data: SemanticUpdateInput!
+  ): Boolean!
+  
+  """删除项目"""
+  deleteProject(id: ID!): Boolean!
+}
+
+# 订阅接口定义
+
+type Subscription {
+  """分析进度订阅"""
+  analysisProgress(projectId: ID!): AnalysisProgress!
+  
+  """索引状态订阅"""
+  indexingStatus: IndexingStatus!
+}
+
+# 输入类型定义
+
+input SemanticUpdateInput {
+  summary: String
+  keyConcepts: [String!]
+  relatedPatterns: [String!]
+  commonUsage: String
+  bestPractices: [String!]
+  potentialIssues: [String!]
+  improvementSuggestions: [String!]
+}
+
+input SearchFilter {
+  entityTypes: [EntityType!]
+  packages: [String!]
+  modifiers: [String!]
+  complexity: ComplexityLevel
+  patterns: [String!]
+  keywords: [String!]
+  dateRange: DateRangeInput
+}
+
+input DateRangeInput {
+  start: DateTime
+  end: DateTime
+}
+
+# 标量类型定义
+
+"""日期时间"""
+scalar DateTime
+
+"""JSON数据"""
+scalar JSON
+
+"""文件路径"""
+scalar FilePath

@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+AI提示词返回格式元模型定义
+
+@x:schema 指定当前文件所使用的xdef元模型定义文件路径
+@xmlns:x 声明x命名空间，对应DSL公共语法
+@xdef:bean-package 指定生成Java类的包名
+@xdef:name 定义模型的名称
+-->
+<ai-prompt-templates x:schema="/nop/schema/xdef.xdef"
+                     xmlns:x="/nop/schema/xdsl.xdef"
+                     xdef:bean-package="io.nop.ai.model"
+                     xdef:name="AiPromptTemplates">
+
+<!-- 方法功能描述元模型 -->
+<method-function-description xdef:name="MethodFunctionDescription" comment="方法功能描述">
+  <core-function xdef:name="CoreFunction" comment="核心功能描述">
+    <summary mandatory="true" comment="一句话总结方法的主要功能">string</summary>
+    <detailed-description mandatory="true" comment="详细描述方法的具体作用">string</detailed-description>
+  </core-function>
+  
+  <business-semantics xdef:name="BusinessSemantics" comment="业务语义信息">
+    <scenario mandatory="true" comment="在什么业务场景下使用">string</scenario>
+    <rules xdef:body-type="list" comment="实现的业务规则和逻辑">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </rules>
+    <value comment="为业务提供的价值">string</value>
+  </business-semantics>
+  
+  <technical-semantics xdef:name="TechnicalSemantics" comment="技术语义信息">
+    <implementation mandatory="true" comment="使用的技术手段和算法">string</implementation>
+    <data-processing mandatory="true" comment="如何处理输入数据和生成输出">string</data-processing>
+    <constraints xdef:body-type="list" comment="技术实现上的限制和约束">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </constraints>
+  </technical-semantics>
+  
+  <usage-guidance xdef:name="UsageGuidance" comment="使用指导">
+    <timing mandatory="true" comment="应该在什么时机调用">string</timing>
+    <parameters xdef:body-type="list" comment="参数说明">
+      <parameter xdef:name="ParameterInfo">
+        <name mandatory="true" comment="参数名称">string</name>
+        <meaning mandatory="true" comment="参数具体含义">string</meaning>
+        <constraints xdef:body-type="list" comment="参数约束条件">
+          <xdef:unknown-tag>string</xdef:unknown-tag>
+        </constraints>
+      </parameter>
+    </parameters>
+    <return-value mandatory="true" comment="返回值的含义和使用方式">string</return-value>
+  </usage-guidance>
+  
+  <semantic-tags xdef:name="SemanticTags" comment="语义标签">
+    <functional xdef:body-type="list" comment="功能标签">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </functional>
+    <technical xdef:body-type="list" comment="技术标签">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </technical>
+    <business xdef:body-type="list" comment="业务标签">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </business>
+  </semantic-tags>
+</method-function-description>
+
+<!-- 类职责描述元模型 -->
+<class-responsibility-description xdef:name="ClassResponsibilityDescription" comment="类职责描述">
+  <core-responsibilities xdef:name="CoreResponsibilities" comment="核心职责">
+    <main-function mandatory="true" comment="类的主要功能是什么">string</main-function>
+    <responsibility-scope mandatory="true" comment="类的职责边界在哪里">string</responsibility-scope>
+    <irreplaceability mandatory="true" comment="为什么需要这个类">string</irreplaceability>
+  </core-responsibilities>
+  
+  <architectural-role xdef:name="ArchitecturalRole" comment="架构角色">
+    <layer mandatory="true" comment="属于哪一层（表现层/业务层/数据层）">string</layer>
+    <pattern-role comment="在设计模式中扮演什么角色">string</pattern-role>
+    <integration-points xdef:body-type="list" comment="与系统其他部分的集成方式">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </integration-points>
+  </architectural-role>
+  
+  <business-domain-mapping xdef:name="BusinessDomainMapping" comment="业务领域映射">
+    <domain-concepts xdef:body-type="list" comment="对应的业务领域概念">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </domain-concepts>
+    <business-processes xdef:body-type="list" comment="参与的业务流程">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </business-processes>
+    <business-rules xdef:body-type="list" comment="实现的业务规则">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </business-rules>
+  </business-domain-mapping>
+  
+  <technical-characteristics xdef:name="TechnicalCharacteristics" comment="技术特性">
+    <tech-stack xdef:body-type="list" comment="使用的技术栈">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </tech-stack>
+    <performance-features xdef:body-type="list" comment="性能方面的特点">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </performance-features>
+    <extensibility comment="扩展和定制的方式">string</extensibility>
+  </technical-characteristics>
+  
+  <semantic-summary xdef:name="SemanticSummary" comment="语义摘要">
+    <one-sentence mandatory="true" comment="用一句话概括类的职责">string</one-sentence>
+    <keywords xdef:body-type="list" mandatory="true" comment="3-5个关键词描述类的特性">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </keywords>
+    <analogy comment="用类比的方式说明类的角色">string</analogy>
+  </semantic-summary>
+</class-responsibility-description>
+
+<!-- 类/接口结构分析元模型 -->
+<class-interface-structure-analysis xdef:name="ClassInterfaceStructureAnalysis" comment="类/接口结构分析">
+  <basic-info xdef:name="BasicInfo" comment="基本信息">
+    <type mandatory="true" comment="类型：类/接口/枚举/注解">string</type>
+    <full-name mandatory="true" comment="完整类名">string</full-name>
+    <package mandatory="true" comment="所属包">string</package>
+    <modifiers xdef:body-type="list" mandatory="true" comment="访问修饰符">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </modifiers>
+    <inheritance xdef:name="InheritanceInfo" comment="继承关系">
+      <parent-class comment="父类">string</parent-class>
+      <implemented-interfaces xdef:body-type="list" comment="实现的接口">
+        <xdef:unknown-tag>string</xdef:unknown-tag>
+      </implemented-interfaces>
+    </inheritance>
+  </basic-info>
+  
+  <responsibility-analysis xdef:name="ResponsibilityAnalysis" comment="类职责分析">
+    <core-function mandatory="true" comment="用一句话描述该类的主要职责">string</core-function>
+    <design-patterns xdef:body-type="list" comment="识别使用的设计模式">
+      <xdef:unknown-tag>string</xdef:unknown-tag>
+    </design-patterns>
+    <complexity mandatory="true" comment="复杂度评估：simple/moderate/complex">string</complexity>
+  </responsibility-analysis>
+  
+  <structure-composition xdef:name="StructureComposition" comment="结构组成">
+    <fields xdef:body-type="list" comment="字段列表">
+      <field xdef:name="FieldInfo">
+        <name mandatory="true" comment="字段名称">string</name>
+        <type mandatory="true" comment="字段类型">string</type>
+        <modifiers xdef:body-type="list" comment="访问修饰符">
+          <xdef:unknown-tag>string</xdef:unknown-tag>
+        </modifiers>
+      </field>
+    </fields>
+    <methods xdef:body-type="list" comment="方法列表">
+      <method xdef:name="MethodInfo">
+        <name mandatory="true" comment="方法名称">string</name>
+        <return-type mandatory="true" comment="返回类型">string</return-type>
+        <parameters xdef:body-type="list" comment="参数列表">
+          <parameter xdef:name="ParameterInfo">
+            <type mandatory="true" comment="参数类型">string</type>
+            <name mandatory="true" comment="参数名称">string</name>
+          </parameter>
+        </parameters>
+        <modifiers xdef:body-type="list" comment="访问修饰符">
+          <xdef:unknown-tag>string</xdef:unknown-tag>
+        </modifiers>
+      </method>
+    </methods>
+  </structure-composition>
+</class-interface-structure-analysis>
+
+<!-- 方法调用链分析元模型 -->
+<method-call-chain-analysis xdef:name="MethodCallChainAnalysis" comment="方法调用链分析">
+  <caller mandatory="true" comment="调用者方法：当前方法名称">string</caller>
+  
+  <callees xdef:body-type="list" mandatory="true" comment="被调用方法列表">
+    <callee xdef:name="CalleeInfo">
+      <method mandatory="true" comment="被调用方法：完整方法签名">string</method>
+      <type mandatory="true" comment="调用类型：direct|indirect|callback|async">string</type>
+      <position mandatory="true" comment="调用位置：在代码中的具体位置（行号）">string</position>
+      <frequency mandatory="true" comment="调用频率：high|medium|low">string</frequency>
+      <data-flow comment="数据流：inputData -> outputData">string</data-flow>
+      <intermediate-methods xdef:body-type="list" comment="中间方法：经过哪些中间方法（仅间接调用）">
+        <xdef:unknown-tag>string</xdef:unknown-tag>
+      </intermediate-methods>
+    </callee>
+  </callees>
+</method-call-chain-analysis>
+
+<!-- 设计模式识别元模型 -->
+<design-pattern-recognition xdef:name="DesignPatternRecognition" comment="设计模式识别">
+  <identified-patterns xdef:body-type="list" mandatory="true" comment="识别的设计模式">
+    <pattern xdef:name="PatternInfo">
+      <name mandatory="true" comment="模式名称">string</name>
+      <confidence mandatory="true" comment="识别置信度：0.0-1.0">float</confidence>
+      <implementation mandatory="true" comment="具体实现方式">string</implementation>
+      <benefits xdef:body-type="list" comment="带来的好处">
+        <xdef:unknown-tag>string</xdef:unknown-tag>
+      </benefits>
+      <trade-offs xdef:body-type="list" comment="权衡和代价">
+        <xdef:unknown-tag>string</xdef:unknown-tag>
+      </trade-offs>
+    </pattern>
+  </identified-patterns>
+  
+  <pattern-relationships xdef:body-type="list" comment="模式之间的关系">
+    <relationship xdef:name="PatternRelationship">
+      <from-pattern mandatory="true" comment="源模式">string</from-pattern>
+      <to-pattern mandatory="true" comment="目标模式">string</to-pattern>
+      <relationship-type mandatory="true" comment="关系类型：composite/decorator/observer">string</relationship-type>
+      <strength mandatory="true" comment="关系强度：strong/weak">string</strength>
+    </relationship>
+  </pattern-relationships>
+</design-pattern-recognition>
+
+<!-- 复杂度评估元模型 -->
+<complexity-assessment xdef:name="ComplexityAssessment" comment="复杂度评估">
+  <cyclomatic-complexity xdef:name="CyclomaticComplexity" comment="圈复杂度">
+    <score mandatory="true" comment="圈复杂度得分">integer</score>
+    <level mandatory="true" comment="复杂度级别：low/medium/high">string</level>
+    <hotspots xdef:body-type="list" comment="复杂热点区域">
+      <hotspot xdef:name="ComplexityHotspot">
+        <method mandatory="true" comment="方法名称">string</method>
+        <complexity-score mandatory="true" comment="复杂度得分">integer</complexity-score>
+        <reason mandatory="true" comment="复杂度高的原因">string</reason>
+      </hotspot>
+    </hotspots>
+  </cyclomatic-complexity>
+  
+  <cognitive-complexity xdef:name="CognitiveComplexity" comment="认知复杂度">
+    <score mandatory="true" comment="认知复杂度得分">integer</score>
+    <readability mandatory="true" comment="可读性评估：good/fair/poor">string</readability>
+    <maintainability mandatory="true" comment="可维护性评估：good/fair/poor">string</maintainability>
+  </cognitive-complexity>
+  
+  <refactoring-suggestions xdef:body-type="list" comment="重构建议">
+    <suggestion xdef:name="RefactoringSuggestion">
+      <target mandatory="true" comment="重构目标">string</target>
+      <strategy mandatory="true" comment="重构策略">string</strategy>
+      <benefit mandatory="true" comment="预期收益">string</benefit>
+      <effort mandatory="true" comment="实施难度：low/medium/high">string</effort>
+    </suggestion>
+  </refactoring-suggestions>
+</complexity-assessment>
+
+<!-- API使用模式元模型 -->
+<api-usage-patterns xdef:name="ApiUsagePatterns" comment="API使用模式">
+  <common-patterns xdef:body-type="list" mandatory="true" comment="常见使用模式">
+    <pattern xdef:name="ApiPattern">
+      <name mandatory="true" comment="模式名称">string</name>
+      <description mandatory="true" comment="模式描述">string</description>
+      <frequency mandatory="true" comment="使用频率：high/medium/low">string</frequency>
+      <typical-scenarios xdef:body-type="list" comment="典型使用场景">
+        <xdef:unknown-tag>string</xdef:unknown-tag>
+      </typical-scenarios>
+    </pattern>
+  </common-patterns>
+  
+  <best-practices xdef:body-type="list" comment="最佳实践">
+    <practice xdef:name="BestPractice">
+      <description mandatory="true" comment="实践描述">string</description>
+      <rationale mandatory="true" comment="原理说明">string</rationale>
+      <examples xdef:body-type="list" comment="示例代码">
+        <xdef:unknown-tag>string</xdef:unknown-tag>
+      </examples>
+    </practice>
+  </best-practices>
+</api-usage-patterns>
+
+</ai-prompt-templates>

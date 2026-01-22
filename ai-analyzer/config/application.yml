@@ -1,0 +1,232 @@
+# AI源码分析器配置
+
+server:
+  port: 8080
+  graphql:
+    path: /graphql
+    playground:
+      enabled: true
+      endpoint: /graphql
+
+spring:
+  application:
+    name: ai-analyzer
+  
+  # 数据源配置
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ai_analyzer
+    username: analyzer
+    password: ${DB_PASSWORD:analyzer123}
+    driver-class-name: org.postgresql.Driver
+  
+  # JPA配置
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  
+  # 缓存配置
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600s
+
+# AI分析配置
+ai:
+  analyzer:
+    # AI模型配置
+    model:
+      provider: deepseek
+      api-key: ${AI_API_KEY:}
+      endpoint: ${AI_ENDPOINT:https://api.deepseek.com}
+      model-name: deepseek-coder
+      temperature: 0.1
+      max-tokens: 4000
+    
+    # 分析配置
+    analysis:
+      # 并行处理配置
+      parallelism:
+        file-level: 10
+        module-level: 5
+        project-level: 2
+      
+      # 批处理配置
+      batch:
+        file-batch-size: 50
+        method-batch-size: 100
+        timeout-minutes: 30
+      
+      # 语义分析配置
+      semantic:
+        enable-function-analysis: true
+        enable-relationship-extraction: true
+        enable-pattern-recognition: true
+        enable-complexity-assessment: true
+      
+      # 质量控制
+      quality:
+        min-confidence-score: 0.7
+        max-retry-attempts: 3
+        validation-enabled: true
+
+# 存储配置
+storage:
+  # Neo4j图数据库
+  neo4j:
+    uri: bolt://localhost:7687
+    username: neo4j
+    password: ${NEO4J_PASSWORD:neo4j123}
+    database: ai_analyzer
+    connection-timeout: 30s
+    
+  # Elasticsearch全文搜索
+  elasticsearch:
+    hosts: localhost:9200
+    username: elastic
+    password: ${ES_PASSWORD:elastic123}
+    index-prefix: ai_analyzer_
+    
+  # 向量数据库
+  vector:
+    provider: chroma
+    host: localhost
+    port: 8000
+    collection-name: code_embeddings
+    embedding-dimension: 768
+
+# 索引配置
+indexing:
+  # 全文索引配置
+  fulltext:
+    enabled: true
+    fields:
+      - class.name
+      - method.name
+      - method.signature
+      - comments
+      - semantic.description
+    
+  # 语义索引配置
+  semantic:
+    enabled: true
+    embedding-model: sentence-transformers/all-MiniLM-L6-v2
+    similarity-threshold: 0.8
+    
+  # 关系索引配置
+  relationship:
+    enabled: true
+    max-depth: 10
+    include-indirect: true
+
+# 监控配置
+monitoring:
+  # 指标收集
+  metrics:
+    enabled: true
+    export:
+      prometheus:
+        enabled: true
+        step: 1m
+    
+  # 日志配置
+  logging:
+    level:
+      io.nop.ai: DEBUG
+    file:
+      path: ./logs/ai-analyzer.log
+      max-size: 100MB
+      max-history: 30
+
+# 任务调度配置
+scheduling:
+  # 分析任务调度
+  analysis:
+    enabled: true
+    cron: "0 0 2 * * ?"  # 每天凌晨2点执行
+    incremental: true
+    
+  # 索引重建调度
+  indexing:
+    enabled: true
+    cron: "0 0 3 * * ?"  # 每天凌晨3点执行
+    full-rebuild: false
+
+# 安全配置
+security:
+  # API认证
+  api:
+    enabled: true
+    key: ${API_KEY:}
+    
+  # CORS配置
+  cors:
+    allowed-origins: "*"
+    allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
+    allowed-headers: "*"
+
+# 性能配置
+performance:
+  # 线程池配置
+  thread-pool:
+    core-size: 10
+    max-size: 50
+    queue-capacity: 1000
+    keep-alive-seconds: 60
+    
+  # 缓存配置
+  cache:
+    # 解析结果缓存
+    parsing:
+      size: 1000
+      ttl: 1h
+    
+    # 关系缓存
+    relationship:
+      size: 5000
+      ttl: 24h
+    
+    # 语义缓存
+    semantic:
+      size: 2000
+      ttl: 12h
+
+# 开发配置
+profiles:
+  # 开发环境
+  dev:
+    spring:
+      datasource:
+        url: jdbc:h2:mem:ai_analyzer_dev
+    ai:
+      analyzer:
+        analysis:
+          parallelism:
+            file-level: 2
+            module-level: 1
+    
+  # 测试环境
+  test:
+    spring:
+      datasource:
+        url: jdbc:h2:mem:ai_analyzer_test
+    ai:
+      analyzer:
+        model:
+          provider: mock
+    
+  # 生产环境
+  prod:
+    spring:
+      datasource:
+        url: jdbc:postgresql://prod-db:5432/ai_analyzer
+    storage:
+      neo4j:
+        uri: bolt://prod-neo4j:7687
+      elasticsearch:
+        hosts: prod-es:9200
+      vector:
+        host: prod-chroma

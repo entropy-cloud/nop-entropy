@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+简单模型示例 - 展示XDef基础语法
+
+XDef的本质：与最终生成的XML同构，只是用类型信息替换具体的值。
+
+@x:schema 指定当前文件所使用的xdef元模型定义文件路径
+@xmlns:x 声明x命名空间，对应DSL公共语法
+@xdef:bean-package 指定生成Java类的包名
+@xdef:name 定义模型的名称
+-->
+<simple-model x:schema="/nop/schema/xdef.xdef"
+              xmlns:x="/nop/schema/xdsl.xdef"
+              xdef:bean-package="io.nop.example.model"
+              xdef:name="SimpleModel">
+
+<!-- ========== 元素内容类型定义 ========== -->
+
+<!-- 字符串元素 -->
+<name>string</name>
+
+<!-- 数值元素 -->
+<age>integer</age>
+<price>double</price>
+
+<!-- 布尔元素 -->
+<active>boolean</active>
+
+<!-- 日期时间元素 -->
+<create-time>datetime</create-time>
+
+<!-- ========== 属性类型定义 ========== -->
+
+<!-- 字符串属性 -->
+<user id="!string" name="string" email="string"/>
+
+<!-- 数值属性 -->
+<product price="double" quantity="integer"/>
+
+<!-- 布尔属性 -->
+<settings active="boolean" visible="boolean=false"/>
+
+<!-- ========== 列表类型定义 ========== -->
+
+<!-- 字符串列表 -->
+<tags xdef:body-type="list">
+    <tag>string</tag>
+</tags>
+
+<!-- 对象列表 -->
+<users xdef:body-type="list">
+    <user id="!string" name="string"/>
+</users>
+
+<!-- ========== 对象类型定义 ========== -->
+
+<!-- 嵌套对象 -->
+<address>
+    <street>string</street>
+    <city>string</city>
+    <zipcode>string</zipcode>
+</address>
+
+<!-- 复杂对象 -->
+<user-profile>
+    <basic-info>
+        <first-name>string</first-name>
+        <last-name>string</last-name>
+    </basic-info>
+    <contact-info>
+        <email>string</email>
+        <phone>string</phone>
+    </contact-info>
+</user-profile>
+
+<!-- ========== 引用和复用 ========== -->
+
+<!-- 定义可复用的结构 -->
+<xdef:define xdef:name="BaseEntity">
+    <id>string</id>
+    <create-time>datetime</create-time>
+    <update-time>datetime</update-time>
+</xdef:define>
+
+<!-- 使用定义 -->
+<product xdef:ref="BaseEntity">
+    <name>string</name>
+    <price>double</price>
+</product>
+
+<!-- ========== 约束条件 ========== -->
+
+<!-- 必填元素 -->
+<required-field mandatory="true">string</required-field>
+
+<!-- 默认值 -->
+<status default-value="active">string</status>
+
+<!-- 枚举值 -->
+<user-role>
+    <xdef:value-set>admin,user,guest</xdef:value-set>
+</user-role>
+
+</simple-model>
