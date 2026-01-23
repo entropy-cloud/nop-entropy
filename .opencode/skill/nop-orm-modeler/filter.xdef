@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<filter xdef:bean-class="io.nop.api.core.beans.TreeBean" xdef:ref="FilterCondition"
+        x:schema="/nop/schema/xdef.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+>
+    <xdef:define xdef:name="FilterCondition" xdef:body-type="list" xdef:bean-tag-prop="$type"
+                 xdef:bean-body-prop="$body">
+        <and xdef:ref="FilterCondition" xdef:allow-multiple="true"/>
+        <or xdef:ref="FilterCondition" xdef:allow-multiple="true"/>
+        <not xdef:ref="FilterCondition" xdef:allow-multiple="true"/>
+
+        <!-- 总是为true        -->
+        <alwaysTrue xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <!-- 总是为false -->
+        <alwaysFalse xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <!-- 小于 -->
+        <lt name="!string" owner="string" value="#any" valueName="string" xdef:allow-multiple="true"
+            xdef:bean-tag-prop="$type"/>
+
+        <!-- 小于等于 -->
+        <le name="!string" owner="string" value="#any" valueName="string" xdef:allow-multiple="true"
+            xdef:bean-tag-prop="$type"/>
+
+        <!-- 等于 -->
+        <eq name="!string" owner="string" value="#any" valueName="string" xdef:allow-multiple="true"
+            xdef:bean-tag-prop="$type"/>
+
+        <!-- 大于等于 -->
+        <ge name="!string" owner="string" value="#any" valueName="string" xdef:allow-multiple="true"
+            xdef:bean-tag-prop="$type"/>
+        <!-- 大于 -->
+        <gt name="!string" owner="string" value="#any" valueName="string" xdef:allow-multiple="true"
+            xdef:bean-tag-prop="$type"/>
+        <!-- 不等于 -->
+        <ne name="!string" owner="string" value="#any" valueName="string" xdef:allow-multiple="true"
+            xdef:bean-tag-prop="$type"/>
+
+        <isTrue name="!string" owner="string" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+        <!--
+        翻译为SQL语句 name <> 1
+        -->
+        <notTrue name="!string" owner="string" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <isFalse name="!string" owner="string" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <!--
+        翻译为SQL语句 name <> 0
+        -->
+        <notFalse name="!string" owner="string" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <!-- 是null值-->
+        <isNull name="!string" owner="string" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+        <!-- 不是null值 -->
+        <notNull name="!string" owner="string" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <!-- 是null值或者空字符串 -->
+        <isEmpty name="!string" owner="string" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+        <!-- 不为空 -->
+        <notEmpty name="!string" owner="string" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <!-- 是null值或只包含空白字符-->
+        <isBlank name="!string" owner="string" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+        <notBlank name="!string" owner="string" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <!-- 是数字类型或者可以解析为数字类型的字符串 -->
+        <isNumber name="!string" owner="string" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+        <!-- 不是数字类型 -->
+        <notNumber name="!string" owner="string" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <!-- 值在集合范围之内
+        @value 逗号分隔的字符串或者列表类型
+        -->
+        <in name="!string" owner="string" value="#any" valueName="string" xdef:allow-multiple="true"
+            xdef:bean-tag-prop="$type"/>
+
+        <!--
+        值不在集合范围之内
+        @value 逗号分隔的字符串或者列表类型
+        -->
+        <notIn name="!string" owner="string" value="#any" valueName="string" xdef:allow-multiple="true"
+               xdef:bean-tag-prop="$type"/>
+
+        <!-- 值在指定范围之内 -->
+        <between name="!string" owner="string" min="#any" max="#any" excludeMin="boolean" excludeMax="boolean"
+                 xdef:allow-multiple="true" minName="string" maxName="string" xdef:bean-tag-prop="$type"
+        />
+        <!-- 日期在指定范围之内 -->
+        <dateBetween name="!string" owner="string" min="#date" max="#date" excludeMin="boolean"
+                     xdef:bean-tag-prop="$type"
+                     excludeMax="boolean" xdef:allow-multiple="true" minName="string" maxName="string"/>
+
+        <!-- 年份在指定范围之内 -->
+        <yearBetween name="!string" owner="string" min="#int" max="#int" excludeMin="boolean" xdef:bean-tag-prop="$type"
+                     excludeMax="boolean" xdef:allow-multiple="true" minName="string" maxName="string"/>
+
+        <!-- 时间在指定范围之内 -->
+        <timeBetween name="!string" owner="string" min="#time" max="#time" excludeMin="boolean"
+                     xdef:bean-tag-prop="$type"
+                     excludeMax="boolean" xdef:allow-multiple="true" minName="string" maxName="string"/>
+
+        <!-- 日期时间在指定范围之内 -->
+        <dateTimeBetween name="!string" owner="string" min="#datetime" max="#datetime" excludeMin="boolean"
+                         xdef:bean-tag-prop="$type"
+                         excludeMax="boolean" xdef:allow-multiple="true" minName="string" maxName="string"/>
+
+        <!-- 字符串具有指定前缀     -->
+        <startsWith name="!string" owner="string" value="#string" valueName="string"
+                    xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <!-- 字符串具有指定后缀 -->
+        <endsWith name="!string" owner="string" value="#string" valueName="string"
+                  xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <!-- 字符串内部包含指定子字符串 -->
+        <contains name="!string" owner="string" value="#string" valueName="string"
+                  xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <!-- 满足正则表达式模式 -->
+        <regex name="!string" owner="string" value="#string" valueName="string"
+               xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <!-- 按照层次码包含自身以及所有子节点 -->
+        <includeTree name="!string" owner="string" value="#string" valueName="string"
+                     xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <!--
+          value为多个层次码的列表，按照或者关系进行过滤。
+         -->
+        <includeTrees name="!string" owner="string" value="#csv-set" valueName="string"
+                      xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <!-- 字段值的长度在指定范围之内 -->
+        <lengthBetween name="!string" owner="string" min="#int" max="#int" excludeMin="boolean" excludeMax="boolean"
+                xdef:allow-multiple="true" minName="string" maxName="string" xdef:bean-tag-prop="$type"/>
+
+        <!-- 文本字段值的utf8编码后的长度在指定范围之内 -->
+        <utf8LengthBetween name="!string" owner="string" min="#int" max="#int" excludeMin="boolean" excludeMax="boolean"
+                    xdef:allow-multiple="true" minName="string" maxName="string" xdef:bean-tag-prop="$type"/>
+
+        <length name="!string" owner="string" value="int" valueName="string"
+                       xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <utf8Length name="!string" owner="string" value="int" valueName="string"
+                xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <sql value="!sql-obj" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <expr xdef:allow-multiple="true" xdef:bean-tag-prop="$type">expr</expr>
+
+        <!--
+        对应于sql的多字段比较，例如 (a,b) > (1,2)这种情况
+        -->
+        <comp-lt xdef:body-type="list" xdef:key-attr="name" xdef:allow-multiple="true"
+                 xdef:bean-tag-prop="$type" xdef:bean-body-prop="$body">
+            <field owner="string" name="!string" value="#any" valueName="string" xdef:bean-tag-prop="$type"/>
+        </comp-lt>
+
+        <comp-le xdef:body-type="list" xdef:key-attr="name" xdef:allow-multiple="true"
+                 xdef:bean-tag-prop="$type" xdef:bean-body-prop="$body">
+            <field owner="string" name="!string" value="#any" valueName="string" xdef:bean-tag-prop="$type"/>
+        </comp-le>
+
+        <comp-gt xdef:body-type="list" xdef:key-attr="name" xdef:allow-multiple="true"
+                 xdef:bean-tag-prop="$type" xdef:bean-body-prop="$body">
+            <field owner="string" name="!string" value="#any" valueName="string" xdef:bean-tag-prop="$type"/>
+        </comp-gt>
+
+        <comp-ge xdef:body-type="list" xdef:key-attr="name" xdef:allow-multiple="true"
+                 xdef:bean-tag-prop="$type" xdef:bean-body-prop="$body">
+            <field owner="string" name="!string" value="#any" valueName="string" xdef:bean-tag-prop="$type"/>
+        </comp-ge>
+
+        <!--        <rel-ne left="!string" right="!string" leftOwner="string" rightOwner="string" xdef:allow-multiple="true"/>-->
+        <!--        <rel-eq left="!string" right="!string" leftOwner="string" rightOwner="string" xdef:allow-multiple="true"/>-->
+        <!--        <rel-lt left="!string" right="!string" leftOwner="string" rightOwner="string" xdef:allow-multiple="true"/>-->
+        <!--        <rel-le left="!string" right="!string" leftOwner="string" rightOwner="string" xdef:allow-multiple="true"/>-->
+        <!--        <rel-gt left="!string" right="!string" leftOwner="string" rightOwner="string" xdef:allow-multiple="true"/>-->
+        <!--        <rel-ge left="!string" right="!string" leftOwner="string" rightOwner="string" xdef:allow-multiple="true"/>-->
+        <!--        <rel-in left="!string" right="!string" leftOwner="string" rightOwner="string" xdef:allow-multiple="true"/>-->
+        <!--        <rel-contains left="!string" right="!string" xdef:allow-multiple="true"/>-->
+        <!--        <rel-length left="!string" right="!string" leftOwner="string" rightOwner="string" xdef:allow-multiple="true"/>-->
+        <!--        <rel-regex left="!string" right="!string" leftOwner="string" rightOwner="string" xdef:allow-multiple="true"/>-->
+
+        <xdef:unknown-tag xdef:unknown-attr="any" xdef:allow-multiple="true"
+                          xdef:bean-tag-prop="$type" xdef:bean-body-prop="$body">xml</xdef:unknown-tag>
+
+    </xdef:define>
+
+</filter>

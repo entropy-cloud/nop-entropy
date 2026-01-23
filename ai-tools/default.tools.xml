@@ -1,0 +1,91 @@
+<available-tools>
+  <tool name="patch-text-file">
+    <schema>
+	  <patch-text-file id="int" path="absolute-path-to-file" 
+	                   explanation="short-description-of-aiming">
+	   <![CDATA[YOUR-PATCH]]></patch-text-file>
+	</schema>
+	<description>
+	  Edit text files. `patch-text-file` allows you to execute a diff/patch against a text file, but the format of the diff specification is unique to this task, so pay careful attention to these instructions.
+	  Where [YOUR_PATCH] is the actual content of your patch, specified in the following V4A diff format.
+	  **Do not use line numbers in this diff format.**
+	</description>
+	<example>
+	  <patch-text-file id="1" path="/Users/someone/pygorithm/searching/binary_search.py"><!CDATA[
+@@class BaseClass
+@@    def search():
+-        pass
++        raise NotImplementedError()
+
+@@class Subclass
+@@    def search():
+-        pass
++        raise NotImplementedError()
+
+]]></patch-text-file>
+	</example>
+  </tool>
+  
+  <tool name="manage-todo-list">
+    <schema>
+      <manage-todo-list id="int" operation="enum:write|read">
+        <!-- For 'write' operation, include all todo items -->
+        <todo id="int" status="enum:not-started|in-progress|completed" title="concise-title">
+          <description>string</description>
+        </todo>
+      </manage-todo-list>
+    </schema>
+    <description><![CDATA[Manage a structured todo list to plan and track tasks.
+- `operation="write"`: Replaces the entire list. You must provide all items.
+- `operation="read"`: Retrieves the current list.
+- Critical Workflow: Plan -> Mark ONE as 'in-progress' -> Complete work -> Mark as 'completed' IMMEDIATELY -> Repeat.
+    ]]></description>
+    <example>
+      <manage-todo-list id="2" operation="write">
+        <todo id="1" status="completed" title="Set up project structure">
+          <description>Create initial folders: /src, /tests, /docs.</description>
+        </todo>
+        <todo id="2" status="in-progress" title="Implement user authentication">
+          <description>Create login endpoint in /src/auth.js. Needs user model.</description>
+        </todo>
+        <todo id="3" status="not-started" title="Write unit tests for auth">
+          <description>Use jest to test the login endpoint with valid and invalid credentials.</description>
+        </todo>
+      </manage-todo-list>
+    </example>
+  </tool>
+  
+  <tool name="shell">
+    <schema>
+      <shell id="int" explanation="short-description">single-line-bash-command</shell>
+    </schema>
+    <description><![CDATA[
+      Executes a single, synchronous shell command in the workspace root. This is a powerful and versatile tool that can be used for a wide range of tasks.
+
+      **Capabilities:**
+      - **File System:** List files (`ls -l`), find files (`find . -name "*.py"`), check disk usage (`du -sh .`).
+      - **Content Search:** Search for text in files (`grep -r "my-function" src/`).
+      - **Web Requests:** Fetch web content (`curl -sL https://example.com`).
+      - **Piping & Redirection:** Chain commands together (`ps aux | grep python`) or save output to a file (`ls > file_list.txt`).
+      - **Partial Views:** Use `head` or `tail` to view only the beginning or end of a large output (e.g., `cat large_log.txt | tail -n 20`).
+
+      **CRITICAL USAGE GUIDELINES:**
+      1.  **Be Specific:** Avoid overly broad commands that produce huge amounts of output (e.g., `ls -R /`). Use filters like `grep`, `head`, `tail` to limit results.
+      2.  **Synchronous Only:** This tool waits for the command to complete. For long-running or background processes (like starting a server), use the `run_in_terminal` tool instead.
+      3.  **Safety:** Be extremely careful with destructive commands like `rm`. The `explanation` attribute is mandatory for user visibility and safety.
+    ]]></description>
+    <example>
+      <shell id="3" explanation="Find the first 10 Python files in the 'src' directory."><![CDATA[
+find src/ -name "*.py" | head -n 10
+]]></shell>
+
+      <shell id="4" explanation="Search for 'API_KEY' within all .env files in the workspace."><![CDATA[
+grep "API_KEY" **/.env
+]]></shell>
+
+     <shell id="5" explanation="Fetch the HTTP headers from example.com."><![CDATA[
+curl -sI https://example.com
+]]></shell>
+    </example>
+  </tool>
+</available-tools>

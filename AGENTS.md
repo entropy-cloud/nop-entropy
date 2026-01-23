@@ -25,6 +25,7 @@ For architecture changes, proposals, or ambiguous requests, follow the OPENSPEC 
 
 ## Where to read first
 
+- **Check skills first**: Before exploring code or implementing solutions, check if an existing skill can solve the problem directly. Skills provide curated best practices and commands.
 - Primary index: `docs-for-ai/INDEX.md`
 - Coding conventions: `docs-for-ai/best-practices/code-style.md`
 - Error handling: `docs-for-ai/best-practices/error-handling.md`

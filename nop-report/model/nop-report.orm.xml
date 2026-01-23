@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm ext:registerShortName="true" ext:appName="nop-report" ext:entityPackageName="io.nop.report.dao.entity"
+     ext:basePackageName="io.nop.report" ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-report"
+     ext:mavenVersion="2.0.0-SNAPSHOT" ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql"
+     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <domains>
+        <domain name="userName" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="image" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="email" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="phone" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="roleId" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="userId" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="deptId" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="boolFlag" stdSqlType="TINYINT"/>
+        <domain name="json-128K" precision="131072" stdDomain="json" stdSqlType="VARCHAR"/>
+        <domain name="remark" precision="1" stdSqlType="VARCHAR"/>
+        <domain name="version" stdSqlType="INTEGER"/>
+        <domain name="createTime" stdSqlType="TIMESTAMP"/>
+        <domain name="createdBy" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="updateTime" stdSqlType="TIMESTAMP"/>
+        <domain name="updatedBy" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="delFlag" stdSqlType="BOOLEAN"/>
+        <domain name="mediumtext" precision="16777215" stdSqlType="VARCHAR"/>
+        <domain name="wfAction" precision="200" stdSqlType="VARCHAR"/>
+    </domains>
+
+    <entities>
+        <entity className="io.nop.report.dao.entity.NopReportDefinition" createTimeProp="createTime"
+                createrProp="createdBy" displayName="报表定义" name="io.nop.report.dao.entity.NopReportDefinition"
+                registerShortName="true" tableName="nop_report_definition" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Report Definition">
+            <columns>
+                <column code="RPT_ID" displayName="主键" mandatory="true" name="rptId" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
+                        i18n-en:displayName="Report ID"/>
+                <column code="RPT_NO" displayName="报表编号" mandatory="true" name="rptNo" precision="200" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Report No."/>
+                <column code="RPT_NAME" displayName="报表名称" mandatory="true" name="rptName" precision="200" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Report Name"/>
+                <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
+                <column code="RPT_TEXT" comment="文件路径、SQL语句等" displayName="报表文件" domain="mediumtext" mandatory="true"
+                        name="rptText" precision="16777215" propId="5" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Report Text"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="6" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="core/active-status"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="7"
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="12"
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
+            </columns>
+            <relations>
+                <to-many cascadeDelete="true" displayName="报表访问权限" name="reportAuths"
+                         refEntityName="io.nop.report.dao.entity.NopReportDefinitionAuth" refPropName="reportDefinition"
+                         tagSet="pub,grid,cascade-delete,insertable,updatable" i18n-en:displayName="Report Auths">
+                    <join>
+                        <on leftProp="rptId" rightProp="rptId"/>
+                    </join>
+                </to-many>
+                <to-many cascadeDelete="true" displayName="报表引用数据源" name="datasetRefs"
+                         refEntityName="io.nop.report.dao.entity.NopReportDatasetRef" refPropName="reportDefinition"
+                         tagSet="pub,grid,cascade-delete,insertable,updatable" i18n-en:displayName="Dataset Refs">
+                    <join>
+                        <on leftProp="rptId" rightProp="rptId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+        <entity className="io.nop.report.dao.entity.NopReportDefinitionAuth" createTimeProp="createTime"
+                createrProp="createdBy" displayName="Report访问权限" name="io.nop.report.dao.entity.NopReportDefinitionAuth"
+                registerShortName="true" tableName="nop_report_definition_auth" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Report Auth">
+            <columns>
+                <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
+                <column code="RPT_ID" displayName="报表ID" mandatory="true" name="rptId" precision="32" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Report ID"/>
+                <column code="ROLE_ID" displayName="角色ID" mandatory="true" name="roleId" precision="200" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Role Id"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="4"
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="5" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="6" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="7" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
+            </columns>
+            <comment>配置角色对指定报表的访问权限</comment>
+            <relations>
+                <to-one displayName="报表定义" name="reportDefinition" refDisplayName="报表访问权限"
+                        refEntityName="io.nop.report.dao.entity.NopReportDefinition" refPropName="reportAuths"
+                        tagSet="pub,ref-pub,ref-grid,ref-cascade-delete,ref-insertable,ref-updatable"
+                        i18n-en:displayName="Report Definition" ref-i18n-en:displayName="Report Auths">
+                    <join>
+                        <on leftProp="rptId" rightProp="rptId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="io.nop.report.dao.entity.NopReportDatasetRef" createTimeProp="createTime"
+                createrProp="createdBy" displayName="报表引用数据源" name="io.nop.report.dao.entity.NopReportDatasetRef"
+                registerShortName="true" tableName="nop_report_dataset_ref" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Dataset Ref">
+            <columns>
+                <column code="RPT_ID" displayName="报表主键" mandatory="true" name="rptId" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Report ID"/>
+                <column code="DS_ID" displayName="数据集ID" mandatory="true" name="dsId" precision="32" primary="true"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dataset ID"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="3"
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="4" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="5" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="6" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="7" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="8"
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
+            </columns>
+            <relations>
+                <to-one displayName="报表定义" name="reportDefinition" refDisplayName="报表引用数据源"
+                        refEntityName="io.nop.report.dao.entity.NopReportDefinition" refPropName="datasetRefs"
+                        tagSet="pub,ref-pub,ref-grid,ref-cascade-delete,ref-insertable,ref-updatable"
+                        i18n-en:displayName="Report Definition" ref-i18n-en:displayName="Dataset Refs">
+                    <join>
+                        <on leftProp="rptId" rightProp="rptId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="io.nop.report.dao.entity.NopReportDataset" createTimeProp="createTime"
+                createrProp="createdBy" displayName="数据集定义" name="io.nop.report.dao.entity.NopReportDataset"
+                registerShortName="true" tableName="nop_report_dataset" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Dataset">
+            <columns>
+                <column code="SID" comment="采用类似java包名的命名规则" displayName="主键" mandatory="true" name="sid"
+                        precision="200" primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        ui:show="X" i18n-en:displayName="Dataset ID"/>
+                <column code="DS_NAME" displayName="数据集名称" mandatory="true" name="dsName" precision="200" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Dataset Name"/>
+                <column code="IS_SINGLE_ROW" displayName="是否单行" mandatory="true" name="isSingleRow" propId="3"
+                        stdDataType="boolean" stdSqlType="BOOLEAN" i18n-en:displayName="Is Single Row"/>
+                <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
+                <column code="DS_TYPE" comment="例如sql,file等" displayName="数据集类型" mandatory="true" name="dsType"
+                        precision="100" propId="5" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Dataset Type"/>
+                <column code="DATASOURCE_ID" displayName="数据源ID" name="datasourceId" precision="32" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Datasource ID"/>
+                <column code="DS_TEXT" comment="HTTP请求、SQL语句等" displayName="数据集文本" domain="json-128K" mandatory="true"
+                        name="dsText" precision="131072" propId="7" stdDataType="string" stdDomain="json"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Dataset Text"/>
+                <column code="DS_META" comment="xml格式的meta定义" displayName="数据集元数据" domain="json-128K" mandatory="true"
+                        name="dsMeta" precision="131072" propId="8" stdDataType="string" stdDomain="json"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Dataset Meta"/>
+                <column code="DS_CONFIG" comment="包含输入参数配置" displayName="数据集配置" domain="json-128K" name="dsConfig"
+                        precision="131072" propId="9" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Dataset Config"/>
+                <column code="FILTER_RULE" displayName="过滤规则" name="filterRule" precision="4000" propId="10"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Filter Rule"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="11" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="core/active-status"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="12"
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="17"
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
+            </columns>
+        </entity>
+        <entity className="io.nop.report.dao.entity.NopReportSubDataset" createTimeProp="createTime"
+                createrProp="createdBy" displayName="子数据源" name="io.nop.report.dao.entity.NopReportSubDataset"
+                registerShortName="true" tableName="nop_report_sub_dataset" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Sub Dataset">
+            <columns>
+                <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
+                <column code="DS_ID" displayName="数据集ID" mandatory="true" name="dsId" precision="32" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dataset ID"/>
+                <column code="SUB_DS_ID" displayName="子数据集ID" mandatory="true" name="subDsId" precision="32" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Sub Dataset ID"/>
+                <column code="JOIN_FIELDS" displayName="关联字段" mandatory="true" name="joinFields" precision="500"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Join Fields"/>
+                <column code="DS_PARAMS" displayName="子数据集参数" name="dsParams" precision="500" propId="5"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dataset Params"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="6"
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="7" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
+            </columns>
+            <relations>
+                <to-one displayName="数据集定义" name="reportDataset"
+                        refEntityName="io.nop.report.dao.entity.NopReportDataset"
+                        tagSet="pub,ref-pub,ref-grid,ref-cascade-delete,ref-insertable,ref-updatable"
+                        i18n-en:displayName="Report Dataset">
+                    <join>
+                        <on leftProp="dsId" rightProp="sid"/>
+                    </join>
+                </to-one>
+                <to-one displayName="子数据集定义" name="reportSubDataset"
+                        refEntityName="io.nop.report.dao.entity.NopReportDataset"
+                        tagSet="pub,ref-pub,ref-grid,ref-cascade-delete,ref-insertable,ref-updatable"
+                        i18n-en:displayName="Sub Report Dataset">
+                    <join>
+                        <on leftProp="subDsId" rightProp="sid"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="io.nop.report.dao.entity.NopReportDatasource" createTimeProp="createTime"
+                createrProp="createdBy" displayName="数据源定义" name="io.nop.report.dao.entity.NopReportDatasource"
+                registerShortName="true" tableName="nop_report_datasource" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Report DataSource">
+            <columns>
+                <column code="SID" displayName="主键ID" mandatory="true" name="sid" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
+                        i18n-en:displayName="SID"/>
+                <column code="NAME" displayName="数据源名称" mandatory="true" name="name" precision="100" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Name"/>
+                <column code="DATASOURCE_TYPE" displayName="数据源类型" mandatory="true" name="datasourceType" precision="20"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Type"/>
+                <column code="DATASOURCE_CONFIG" displayName="数据源配置" mandatory="true" name="datasourceConfig"
+                        precision="4000" propId="4" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Config"/>
+                <column code="STATUS" displayName="状态" name="status" propId="5" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Status"/>
+                <column code="REMARK" displayName="备注说明" name="remark" precision="500" propId="6" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="7"
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+            </columns>
+            <relations>
+                <to-many cascadeDelete="true" displayName="数据源权限" name="datasourceAuths"
+                         refEntityName="io.nop.report.dao.entity.NopReportDatasourceAuth" refPropName="reportDatasource"
+                         tagSet="pub,grid,cascade-delete,insertable,updatable" i18n-en:displayName="DataSource Auths">
+                    <join>
+                        <on leftProp="sid" rightProp="datasourceId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+        <entity className="io.nop.report.dao.entity.NopReportDatasourceAuth" createTimeProp="createTime"
+                createrProp="createdBy" displayName="数据源访问权限" name="io.nop.report.dao.entity.NopReportDatasourceAuth"
+                registerShortName="true" tableName="nop_report_datasource_auth" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Datasource Auth">
+            <columns>
+                <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
+                <column code="DATASOURCE_ID" displayName="数据源ID" mandatory="true" name="datasourceId" precision="32"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="DataSource ID"/>
+                <column code="ROLE_ID" displayName="角色ID" mandatory="true" name="roleId" precision="200" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Role Id"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="4"
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="5" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="6" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="7" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
+            </columns>
+            <comment>配置角色对指定数据源的访问权限</comment>
+            <relations>
+                <to-one displayName="数据源定义" name="reportDatasource" refDisplayName="数据源权限"
+                        refEntityName="io.nop.report.dao.entity.NopReportDatasource" refPropName="datasourceAuths"
+                        tagSet="pub,ref-pub,ref-grid,ref-cascade-delete,ref-insertable,ref-updatable"
+                        i18n-en:displayName="Report Datasource" ref-i18n-en:displayName="DataSource Auths">
+                    <join>
+                        <on leftProp="datasourceId" rightProp="sid"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="io.nop.report.dao.entity.NopReportResultFile" createTimeProp="createTime"
+                createrProp="createdBy" displayName="报表结果文件" name="io.nop.report.dao.entity.NopReportResultFile"
+                registerShortName="true" tableName="nop_report_result_file" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Report Result File">
+            <columns>
+                <column code="SID" displayName="主键" mandatory="true" name="sid" precision="50" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X" i18n-en:displayName="SID"/>
+                <column code="FILE_NAME" displayName="文件名称" mandatory="true" name="fileName" precision="200" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="File Name"/>
+                <column code="FILE_TYPE" displayName="文件类型" mandatory="true" name="fileType" precision="10" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="File Type"/>
+                <column code="FILE_PATH" displayName="文件路径" mandatory="true" name="filePath" precision="100" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="File Path"/>
+                <column code="FILE_LENGTH" displayName="文件长度" mandatory="true" name="fileLength" propId="5"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="File Length"/>
+                <column code="BIZ_DATE" displayName="业务日期" name="bizDate" propId="6" stdDataType="date"
+                        stdSqlType="DATE" i18n-en:displayName="Biz Date"/>
+                <column code="RPT_ID" displayName="报表ID" mandatory="true" name="rptId" precision="200" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Report ID"/>
+                <column code="RPT_PARAMS" displayName="报表参数" mandatory="true" name="rptParams" precision="4000"
+                        propId="8" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Report Params"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="9" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Status"/>
+                <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="10"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="11"
+                        stdDataType="int" stdSqlType="INTEGER" ui:show="X" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="16"
+                        stdDataType="string" stdSqlType="VARCHAR" ui:show="S" i18n-en:displayName="Remark"/>
+            </columns>
+            <comment>用于缓存或者历史结果记录</comment>
+            <relations>
+                <to-one displayName="报表定义" name="reportDefinition"
+                        refEntityName="io.nop.report.dao.entity.NopReportDefinition" tagSet="pub"
+                        i18n-en:displayName="Report Definition">
+                    <join>
+                        <on leftProp="rptId" rightProp="rptId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+    </entities>
+</orm>

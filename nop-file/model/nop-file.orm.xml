@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm ext:registerShortName="true" ext:appName="nop-file" ext:entityPackageName="io.nop.file.dao.entity"
+     ext:basePackageName="io.nop.file" ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-file"
+     ext:mavenVersion="2.0.0-SNAPSHOT" ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql"
+     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <domains>
+        <domain name="userName" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="image" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="email" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="phone" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="roleId" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="userId" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="deptId" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="boolFlag" stdSqlType="TINYINT"/>
+        <domain name="json-1000" precision="1" stdDomain="json" stdSqlType="VARCHAR"/>
+        <domain name="remark" precision="1" stdSqlType="VARCHAR"/>
+        <domain name="version" stdSqlType="INTEGER"/>
+        <domain name="createTime" stdSqlType="TIMESTAMP"/>
+        <domain name="createdBy" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="updateTime" stdSqlType="TIMESTAMP"/>
+        <domain name="updatedBy" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="delFlag" stdDomain="boolFlag" stdSqlType="TINYINT"/>
+    </domains>
+
+    <entities>
+        <entity className="io.nop.file.dao.entity.NopFileRecord" createTimeProp="createTime" createrProp="createdBy"
+                deleteFlagProp="delFlag" displayName="文件记录" name="io.nop.file.dao.entity.NopFileRecord"
+                registerShortName="true" tableName="nop_file_record" tagSet="gid" useLogicalDelete="true"
+                i18n-en:displayName="File Record">
+            <columns>
+                <column code="FILE_ID" displayName="文件ID" mandatory="true" name="fileId" precision="50" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="var" i18n-en:displayName="File ID"/>
+                <column code="FILE_NAME" displayName="文件名" name="fileName" precision="300" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="File Name"/>
+                <column code="FILE_PATH" displayName="文件路径" mandatory="true" name="filePath" precision="2000" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="var" i18n-en:displayName="File Path"/>
+                <column code="FILE_EXT" displayName="扩展名" name="fileExt" precision="50" propId="4" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="File Ext"/>
+                <column code="MIME_TYPE" displayName="内容类型" mandatory="true" name="mimeType" precision="100" propId="5"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Mime Type"/>
+                <column code="FILE_LENGTH" displayName="文件长度" name="fileLength" propId="6" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="File Length"/>
+                <column code="FILE_LAST_MODIFIED" displayName="文件修改时间" name="fileLastModified" propId="7"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Last Modified"/>
+                <column code="BIZ_OBJ_NAME" displayName="对象名" name="bizObjName" precision="200" propId="8"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="BizObjName"/>
+                <column code="BIZ_OBJ_ID" displayName="对象ID" name="bizObjId" precision="200" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="var" i18n-en:displayName="BizObjId"/>
+                <column code="FIELD_NAME" displayName="字段名" name="fieldName" precision="100" propId="10"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Field Name"/>
+                <column code="FILE_HASH" displayName="文件摘要" name="fileHash" precision="200" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="File Hash"/>
+                <column code="ORIGIN_FILE_ID" comment="原始文件ID，用于跟踪哪些文件是从同一个文件复制而来" displayName="原始文件ID" mandatory="true"
+                        name="originFileId" precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        tagSet="var" i18n-en:displayName="Original File ID"/>
+                <column code="IS_PUBLIC" displayName="是否允许公开访问" mandatory="true" name="isPublic" propId="13"
+                        stdDataType="boolean" stdSqlType="BOOLEAN" i18n-en:displayName="Is Public"/>
+                <column code="DEL_FLAG" displayName="删除标识" domain="delFlag" mandatory="true" name="delFlag" propId="14"
+                        stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" ui:show="X"
+                        i18n-en:displayName="Deleted"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="REMARK" displayName="备注" name="remark" precision="200" propId="17" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>
