@@ -130,72 +130,236 @@ The system will return a `<call-tools-response>` containing the result for each 
 	</example>
   </tool>
   
-  <tool name="manage-todo-list">
-    <schema>
-      <manage-todo-list id="int" operation="enum:write|read">
-        <!-- For 'write' operation, include all todo items -->
-        <todo id="int" status="enum:not-started|in-progress|completed" title="concise-title">
-          <description>string</description>
-        </todo>
-      </manage-todo-list>
-    </schema>
-    <description><![CDATA[Manage a structured todo list to plan and track tasks.
+   <tool name="manage-todo-list">
+     <schema>
+       <manage-todo-list id="int" operation="enum:write|read">
+         <!-- For 'write' operation, include all todo items -->
+         <todo id="int" status="enum:not-started|in-progress|completed" title="concise-title">
+           <description>string</description>
+         </todo>
+       </manage-todo-list>
+     </schema>
+     <description><![CDATA[Manage a structured todo list to plan and track tasks.
 - `operation="write"`: Replaces the entire list. You must provide all items.
 - `operation="read"`: Retrieves the current list.
 - Critical Workflow: Plan -> Mark ONE as 'in-progress' -> Complete work -> Mark as 'completed' IMMEDIATELY -> Repeat.
     ]]></description>
-    <example>
-      <manage-todo-list id="2" operation="write">
-        <todo id="1" status="completed" title="Set up project structure">
-          <description>Create initial folders: /src, /tests, /docs.</description>
-        </todo>
-        <todo id="2" status="in-progress" title="Implement user authentication">
-          <description>Create login endpoint in /src/auth.js. Needs user model.</description>
-        </todo>
-        <todo id="3" status="not-started" title="Write unit tests for auth">
-          <description>Use jest to test the login endpoint with valid and invalid credentials.</description>
-        </todo>
-      </manage-todo-list>
-    </example>
-  </tool>
+     <example>
+       <manage-todo-list id="2" operation="write">
+         <todo id="1" status="completed" title="Set up project structure">
+           <description>Create initial folders: /src, /tests, /docs.</description>
+         </todo>
+         <todo id="2" status="in-progress" title="Implement user authentication">
+           <description>Create login endpoint in /src/auth.js. Needs user model.</description>
+         </todo>
+         <todo id="3" status="not-started" title="Write unit tests for auth">
+           <description>Use jest to test the login endpoint with valid and invalid credentials.</description>
+         </todo>
+       </manage-todo-list>
+     </example>
+   </tool>
+
+   <tool name="skill">
+     <schema>
+       <skill id="int" operation="enum:list|load" name="skill-name">skill</skill>
+     </schema>
+     <description><![CDATA[
+       Load specialized knowledge and instructions for specific tasks. Skills provide detailed guidance, best practices, and step-by-step instructions for particular domains.
+
+       **Operations:**
+       - `operation="list"`: Lists all available skills with their descriptions. Use this to discover what specialized guidance is available.
+       - `operation="load"`: Loads the full content of a specific skill to get detailed instructions.
+
+       **Parameters:**
+       - `name`: The name of the skill to load (required for 'load' operation).
+
+       **Skill Format:**
+       Skills are stored as markdown files in `.nop-ai/skills/{skill-name}/SKILL.md` with YAML frontmatter:
+       ```yaml
+       ---
+       name: skill-name
+       description: Brief description of the skill
+       ---
+       # Skill Content
+       Detailed instructions...
+       ```
+
+       **Usage Workflow:**
+       1. When you encounter a task that might benefit from specialized guidance (e.g., code review, API design, testing), first use `skill` with `operation="list"` to see available skills.
+       2. If a relevant skill exists, use `skill` with `operation="load"` and the skill's `name`.
+       3. Follow the skill's instructions to complete the task.
+
+       **When to Use Skills:**
+       - Code reviews and quality checks
+       - API design and documentation
+       - Testing strategies
+       - Security audits
+       - Performance optimization
+       - Domain-specific tasks (e.g., database migrations, UI design)
+
+       **Benefits:**
+       - Access to expert-level knowledge for specific domains
+       - Consistent best practices and patterns
+       - Step-by-step guidance for complex tasks
+       - Reduced trial and error
+     ]]></description>
+     <example>
+       <!-- List available skills -->
+       <skill id="3" operation="list" explanation="Check what specialized skills are available">
+         skill
+       </skill>
+
+       <!-- Load code-review skill -->
+       <skill id="4" operation="load" name="code-review" explanation="Load code review guidance">
+         skill
+       </skill>
+     </example>
+   </tool>
   
-  <tool name="shell">
-    <schema>
-      <shell id="int" explanation="short-description">single-line-bash-command</shell>
-    </schema>
-    <description><![CDATA[
-      Executes a single, synchronous shell command in the workspace root. This is a powerful and versatile tool that can be used for a wide range of tasks.
+   <tool name="shell">
+     <schema>
+       <shell id="int" explanation="short-description">single-line-bash-command</shell>
+     </schema>
+     <description><![CDATA[
+       Executes a single, synchronous shell command in the workspace root. This is a powerful and versatile tool that can be used for a wide range of tasks.
 
-      **Capabilities:**
-      - **File System:** List files (`ls -l`), find files (`find . -name "*.py"`), check disk usage (`du -sh .`).
-      - **Content Search:** Search for text in files (`grep -r "my-function" src/`).
-      - **Web Requests:** Fetch web content (`curl -sL https://example.com`).
-      - **Piping & Redirection:** Chain commands together (`ps aux | grep python`) or save output to a file (`ls > file_list.txt`).
-      - **Partial Views:** Use `head` or `tail` to view only the beginning or end of a large output (e.g., `cat large_log.txt | tail -n 20`).
+       **Capabilities:**
+       - **File System:** List files (`ls -l`), find files (`find . -name "*.py"`), check disk usage (`du -sh .`).
+       - **Content Search:** Search for text in files (`grep -r "my-function" src/`).
+       - **Web Requests:** Fetch web content (`curl -sL https://example.com`).
+       - **Piping & Redirection:** Chain commands together (`ps aux | grep python`) or save output to a file (`ls > file_list.txt`).
+       - **Partial Views:** Use `head` or `tail` to view only the beginning or end of a large output (e.g., `cat large_log.txt | tail -n 20`).
 
-      **CRITICAL USAGE GUIDELINES:**
-      1.  **Be Specific:** Avoid overly broad commands that produce huge amounts of output (e.g., `ls -R /`). Use filters like `grep`, `head`, `tail` to limit results.
-      2.  **Synchronous Only:** This tool waits for the command to complete. For long-running or background processes (like starting a server), use the `run_in_terminal` tool instead.
-      3.  **Safety:** Be extremely careful with destructive commands like `rm`. The `explanation` attribute is mandatory for user visibility and safety.
-    ]]></description>
-    <example>
-      <shell id="3" explanation="Find the first 10 Python files in the 'src' directory."><![CDATA[
-find src/ -name "*.py" | head -n 10
-]]></shell>
+       **Output Chunking:**
+       Shell outputs may be very large. This tool automatically chunks outputs that exceed 1024 characters into separate chunks. Each chunk is assigned a unique `outputId`. The response includes metadata about total length, current chunk, and whether more data is available.
+
+       **CRITICAL USAGE GUIDELINES:**
+       1.  **Be Specific:** Avoid overly broad commands that produce huge amounts of output (e.g., `ls -R /`). Use filters like `grep`, `head`, `tail` to limit results.
+       2.  **Synchronous Only:** This tool waits for the command to complete. For long-running or background processes (like starting a server), use the `run_in_terminal` tool instead.
+       3.  **Safety:** Be extremely careful with destructive commands like `rm`. The `explanation` attribute is mandatory for user visibility and safety.
+     ]]></description>
+     <example>
+       <shell id="3" explanation="Find the first 10 Python files in the 'src' directory."><![CDATA[
+ find src/ -name "*.py" | head -n 10
+ ]]></shell>
 
       <shell id="4" explanation="Search for 'API_KEY' within all .env files in the workspace."><![CDATA[
-grep "API_KEY" **/.env
-]]></shell>
+ grep "API_KEY" **/.env
+ ]]></shell>
 
-     <shell id="5" explanation="Fetch the HTTP headers from example.com."><![CDATA[
-curl -sI https://example.com
-]]></shell>
-    </example>
-  </tool>
+      <shell id="5" explanation="Fetch the HTTP headers from example.com."><![CDATA[
+ curl -sI https://example.com
+ ]]></shell>
+     </example>
+   </tool>
+   
+   <tool name="get-output">
+      <schema><get-output id="int" explanation="..." outputId="string" chunkId="int(1)" limit="int(1)">get-output</get-output></schema>
+       <description><![CDATA[
+        Retrieves previously chunked shell output or agent output from session directory.
+        
+        **Usage:**
+        When a previous tool execution produced output that was too large for a single response, it is logically chunked. Use this tool to read chunks incrementally.
+        
+        **Parameters:**
+        - `outputId` (required): The ID of the output file to read (e.g., "shell-001", "agent-output-002"). Obtained from the metadata of the previous tool/agent response.
+        - `chunkId` (optional): The starting chunk number to read from. Default is 1 (first chunk). Increment this to read subsequent chunks.
+        - `limit` (optional): Maximum number of chunks to read in a single request. Default is 1. Set higher to read multiple chunks at once.
+        
+        **Chunk Calculation:**
+        - chunkId=1: offset=0, reads 0-1024 chars
+        - chunkId=2: offset=1024, reads 1024-2048 chars
+        - chunkId=3: offset=2048, reads 2048-3072 chars
+        - Formula: offset = (chunkId - 1) * chunkSize
+        
+        **Response:**
+        Returns the content of the requested chunks along with metadata indicating if more chunks are available.
+        
+        **Use Cases:**
+        1. Read the first chunk: `<get-output id="1" outputId="shell-001">`
+        2. Read the next chunk: `<get-output id="2" outputId="shell-001" chunkId="2">`
+        3. Read multiple chunks at once: `<get-output id="3" outputId="shell-001" chunkId="1" limit="5">`
+        4. Continue reading until `hasMore` is false.
+        
+        **Chunk Information:**
+        - Each chunk is approximately 1024 characters
+        - Chunks are numbered starting from 1
+        - The response includes maxChunks and hasMore flags for easy iteration
+      ]]></description>
+      <example>
+        <shell id="10" explanation="List files in large directory (output will be chunked)"><![CDATA[
+ ls -R /very/large/directory
+ ]]></shell>
+        
+        <!-- Response shows first chunk with metadata -->
+        <tool-output id="10" status="success" outputId="shell-001" chunkId="1" maxChunks="5" hasMore="true" chunkSize="1024">
+          <![CDATA[First 1024 characters of file listing...]]>
+        </tool-output>
+        
+        <!-- Read next chunk -->
+        <get-output id="11" explanation="Read the next chunk" outputId="shell-001" chunkId="2">
+          <![CDATA[get-output]]>
+        </get-output>
+        
+        <!-- Or read multiple chunks at once -->
+        <get-output id="12" explanation="Read chunks 3-5" outputId="shell-001" chunkId="3" limit="3">
+          <![CDATA[get-output]]>
+        </get-output>
+      </example>
+    </tool>
 </available-tools>
 
+### Available Agents
+<available-agents>
+  <agent name="NopAutoCoder">
+    <description>
+      The default autonomous coding agent for general programming tasks.
+      
+      Capabilities:
+      - Analyze user requests and plan tasks
+      - Execute tools in parallel when possible
+      - Manage todo lists for progress tracking
+      - Handle errors gracefully and continue execution
+      - Provide final summary upon completion
+      
+      Use this agent for most coding tasks that require autonomous execution with full tool access.
+    </description>
+  </agent>
+  
+  <agent name="AiCompact">
+    <description>
+      Specialized agent for compressing long conversation histories to reduce token usage.
+      
+      Capabilities:
+      - Summarize conversation history while preserving essential information
+      - Extract key decisions and pending work items
+      - Remove repetitive tool calls and verbose outputs
+      - Maintain critical context for task continuation
+      - Achieve 40-60% compression ratio
+      
+      Use this agent when token usage approaches limits (e.g., 80k tokens) to maintain efficiency.
+    </description>
+  </agent>
+  
+  <agent name="CodeReviewer">
+    <description>
+      Expert code reviewer with 15 years of experience focusing on quality, performance, and security.
+      
+      Capabilities:
+      - Review code quality and maintainability
+      - Assess performance and identify bottlenecks
+      - Detect security vulnerabilities (SQL injection, XSS, auth issues)
+      - Verify best practices adherence (SOLID, design patterns)
+      - Provide structured feedback with severity levels (CRITICAL/HIGH/MEDIUM/LOW/INFO)
+      - Suggest specific improvements with code examples
+      
+      Use this agent for thorough code reviews, security audits, or quality assessments.
+    </description>
+  </agent>
+</available-agents>
 
-### **Context & User Request**
+
+ ### **Context & User Request**
 
 <environment_info>
 The user's current OS is: Windows
