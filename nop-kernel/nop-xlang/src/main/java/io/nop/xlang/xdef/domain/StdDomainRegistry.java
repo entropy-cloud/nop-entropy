@@ -10,6 +10,7 @@ package io.nop.xlang.xdef.domain;
 import io.nop.api.core.annotations.core.GlobalInstance;
 import io.nop.commons.type.StdDataType;
 import io.nop.xlang.xdef.IStdDomainHandler;
+import io.nop.xlang.xdef.XDefConstants;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,7 +31,12 @@ public class StdDomainRegistry implements IStdDomainRegistry {
 
     @Override
     public IStdDomainHandler getStdDomainHandler(String type) {
-        return domainHandlers.get(type);
+        IStdDomainHandler handler = domainHandlers.get(type);
+        if (handler == null) {
+            if (type.endsWith(XDefConstants.POSTFIX_STD_DOMAIN_STRING))
+                return domainHandlers.get(XDefConstants.STD_DOMAIN_STRING);
+        }
+        return handler;
     }
 
     public void registerStdDomainHandler(IStdDomainHandler handler) {
