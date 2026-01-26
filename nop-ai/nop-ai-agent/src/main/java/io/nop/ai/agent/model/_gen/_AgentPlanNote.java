@@ -1,8 +1,8 @@
-package io.nop.ai.agent.plan.model._gen;
+package io.nop.ai.agent.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.ai.agent.plan.model.AgentPlanNoteModel;
+import io.nop.ai.agent.model.AgentPlanNote;
 import io.nop.commons.util.ClassHelper;
 
 
@@ -14,7 +14,7 @@ import io.nop.commons.util.ClassHelper;
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
-public abstract class _AgentPlanNoteModel extends io.nop.core.resource.component.AbstractComponentModel {
+public abstract class _AgentPlanNote extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
      *  
@@ -25,10 +25,10 @@ public abstract class _AgentPlanNoteModel extends io.nop.core.resource.component
     
     /**
      *  
-     * xml name: name
+     * xml name: id
      * 
      */
-    private java.lang.String _name ;
+    private java.lang.String _id ;
     
     /**
      * 
@@ -51,19 +51,19 @@ public abstract class _AgentPlanNoteModel extends io.nop.core.resource.component
     
     /**
      * 
-     * xml name: name
+     * xml name: id
      *  
      */
     
-    public java.lang.String getName(){
-      return _name;
+    public java.lang.String getId(){
+      return _id;
     }
 
     
-    public void setName(java.lang.String value){
+    public void setId(java.lang.String value){
         checkAllowChange();
         
-        this._name = value;
+        this._id = value;
            
     }
 
@@ -84,24 +84,24 @@ public abstract class _AgentPlanNoteModel extends io.nop.core.resource.component
         super.outputJson(out);
         
         out.putNotNull("body",this.getBody());
-        out.putNotNull("name",this.getName());
+        out.putNotNull("id",this.getId());
     }
 
-    public AgentPlanNoteModel cloneInstance(){
-        AgentPlanNoteModel instance = newInstance();
+    public AgentPlanNote cloneInstance(){
+        AgentPlanNote instance = newInstance();
         this.copyTo(instance);
         return instance;
     }
 
-    protected void copyTo(AgentPlanNoteModel instance){
+    protected void copyTo(AgentPlanNote instance){
         super.copyTo(instance);
         
         instance.setBody(this.getBody());
-        instance.setName(this.getName());
+        instance.setId(this.getId());
     }
 
-    protected AgentPlanNoteModel newInstance(){
-        return (AgentPlanNoteModel) ClassHelper.newInstance(getClass());
+    protected AgentPlanNote newInstance(){
+        return (AgentPlanNote) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

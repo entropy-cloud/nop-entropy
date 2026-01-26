@@ -1,9 +1,8 @@
-package io.nop.ai.agent.plan.model._gen;
+package io.nop.ai.agent.model._gen;
 
-import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.ai.agent.plan.model.AgentPlanTaskModel;
+import io.nop.ai.agent.model.AgentPlanTaskModel;
 import io.nop.commons.util.ClassHelper;
 
 
@@ -19,38 +18,52 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
     
     /**
      *  
-     * xml name: instructions
+     * xml name: completedAt
      * 
+     */
+    private java.time.LocalDateTime _completedAt ;
+    
+    /**
+     *  
+     * xml name: instructions
+     * 任务指令（大文本）
      */
     private java.lang.String _instructions ;
     
     /**
      *  
      * xml name: notes
-     * 
+     * 任务笔记列表
      */
-    private KeyedList<io.nop.ai.agent.plan.model.AgentPlanNoteModel> _notes = KeyedList.emptyList();
-    
-    /**
-     *  
-     * xml name: overview
-     * 
-     */
-    private java.lang.String _overview ;
+    private KeyedList<io.nop.ai.agent.model.AgentPlanNote> _notes = KeyedList.emptyList();
     
     /**
      *  
      * xml name: resultMessage
-     * 
+     * 任务结果消息（大文本）
      */
     private java.lang.String _resultMessage ;
     
     /**
      *  
-     * xml name: subTasks
+     * xml name: startedAt
      * 
      */
-    private KeyedList<io.nop.ai.agent.plan.model.AgentPlanTaskModel> _subTasks = KeyedList.emptyList();
+    private java.time.LocalDateTime _startedAt ;
+    
+    /**
+     *  
+     * xml name: status
+     * 
+     */
+    private io.nop.ai.agent.model.AgentExecStatus _status ;
+    
+    /**
+     *  
+     * xml name: subTasks
+     * 递归子任务列表：支持任务分解
+     */
+    private KeyedList<io.nop.ai.agent.model.AgentPlanTaskModel> _subTasks = KeyedList.emptyList();
     
     /**
      *  
@@ -61,13 +74,6 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
     
     /**
      *  
-     * xml name: taskStatus
-     * 
-     */
-    private AgentExecStatus _taskStatus ;
-    
-    /**
-     *  
      * xml name: title
      * 
      */
@@ -75,8 +81,27 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
     
     /**
      * 
-     * xml name: instructions
+     * xml name: completedAt
      *  
+     */
+    
+    public java.time.LocalDateTime getCompletedAt(){
+      return _completedAt;
+    }
+
+    
+    public void setCompletedAt(java.time.LocalDateTime value){
+        checkAllowChange();
+        
+        this._completedAt = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: instructions
+     *  任务指令（大文本）
      */
     
     public java.lang.String getInstructions(){
@@ -95,23 +120,23 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
     /**
      * 
      * xml name: notes
-     *  
+     *  任务笔记列表
      */
     
-    public java.util.List<io.nop.ai.agent.plan.model.AgentPlanNoteModel> getNotes(){
+    public java.util.List<io.nop.ai.agent.model.AgentPlanNote> getNotes(){
       return _notes;
     }
 
     
-    public void setNotes(java.util.List<io.nop.ai.agent.plan.model.AgentPlanNoteModel> value){
+    public void setNotes(java.util.List<io.nop.ai.agent.model.AgentPlanNote> value){
         checkAllowChange();
         
-        this._notes = KeyedList.fromList(value, io.nop.ai.agent.plan.model.AgentPlanNoteModel::getName);
+        this._notes = KeyedList.fromList(value, io.nop.ai.agent.model.AgentPlanNote::getId);
            
     }
 
     
-    public io.nop.ai.agent.plan.model.AgentPlanNoteModel getNote(String name){
+    public io.nop.ai.agent.model.AgentPlanNote getNote(String name){
         return this._notes.getByKey(name);
     }
 
@@ -119,11 +144,11 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
         return this._notes.containsKey(name);
     }
 
-    public void addNote(io.nop.ai.agent.plan.model.AgentPlanNoteModel item) {
+    public void addNote(io.nop.ai.agent.model.AgentPlanNote item) {
         checkAllowChange();
-        java.util.List<io.nop.ai.agent.plan.model.AgentPlanNoteModel> list = this.getNotes();
+        java.util.List<io.nop.ai.agent.model.AgentPlanNote> list = this.getNotes();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.ai.agent.plan.model.AgentPlanNoteModel::getName);
+            list = new KeyedList<>(io.nop.ai.agent.model.AgentPlanNote::getId);
             setNotes(list);
         }
         list.add(item);
@@ -139,27 +164,8 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
     
     /**
      * 
-     * xml name: overview
-     *  
-     */
-    
-    public java.lang.String getOverview(){
-      return _overview;
-    }
-
-    
-    public void setOverview(java.lang.String value){
-        checkAllowChange();
-        
-        this._overview = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: resultMessage
-     *  
+     *  任务结果消息（大文本）
      */
     
     public java.lang.String getResultMessage(){
@@ -177,24 +183,62 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
     
     /**
      * 
-     * xml name: subTasks
+     * xml name: startedAt
      *  
      */
     
-    public java.util.List<io.nop.ai.agent.plan.model.AgentPlanTaskModel> getSubTasks(){
-      return _subTasks;
+    public java.time.LocalDateTime getStartedAt(){
+      return _startedAt;
     }
 
     
-    public void setSubTasks(java.util.List<io.nop.ai.agent.plan.model.AgentPlanTaskModel> value){
+    public void setStartedAt(java.time.LocalDateTime value){
         checkAllowChange();
         
-        this._subTasks = KeyedList.fromList(value, io.nop.ai.agent.plan.model.AgentPlanTaskModel::getTaskNo);
+        this._startedAt = value;
            
     }
 
     
-    public io.nop.ai.agent.plan.model.AgentPlanTaskModel getTask(String name){
+    /**
+     * 
+     * xml name: status
+     *  
+     */
+    
+    public io.nop.ai.agent.model.AgentExecStatus getStatus(){
+      return _status;
+    }
+
+    
+    public void setStatus(io.nop.ai.agent.model.AgentExecStatus value){
+        checkAllowChange();
+        
+        this._status = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: subTasks
+     *  递归子任务列表：支持任务分解
+     */
+    
+    public java.util.List<io.nop.ai.agent.model.AgentPlanTaskModel> getSubTasks(){
+      return _subTasks;
+    }
+
+    
+    public void setSubTasks(java.util.List<io.nop.ai.agent.model.AgentPlanTaskModel> value){
+        checkAllowChange();
+        
+        this._subTasks = KeyedList.fromList(value, io.nop.ai.agent.model.AgentPlanTaskModel::getTaskNo);
+           
+    }
+
+    
+    public io.nop.ai.agent.model.AgentPlanTaskModel getTask(String name){
         return this._subTasks.getByKey(name);
     }
 
@@ -202,11 +246,11 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
         return this._subTasks.containsKey(name);
     }
 
-    public void addTask(io.nop.ai.agent.plan.model.AgentPlanTaskModel item) {
+    public void addTask(io.nop.ai.agent.model.AgentPlanTaskModel item) {
         checkAllowChange();
-        java.util.List<io.nop.ai.agent.plan.model.AgentPlanTaskModel> list = this.getSubTasks();
+        java.util.List<io.nop.ai.agent.model.AgentPlanTaskModel> list = this.getSubTasks();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.ai.agent.plan.model.AgentPlanTaskModel::getTaskNo);
+            list = new KeyedList<>(io.nop.ai.agent.model.AgentPlanTaskModel::getTaskNo);
             setSubTasks(list);
         }
         list.add(item);
@@ -235,25 +279,6 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
         checkAllowChange();
         
         this._taskNo = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: taskStatus
-     *  
-     */
-    
-    public AgentExecStatus getTaskStatus(){
-      return _taskStatus;
-    }
-
-    
-    public void setTaskStatus(AgentExecStatus value){
-        checkAllowChange();
-        
-        this._taskStatus = value;
            
     }
 
@@ -296,13 +321,14 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("completedAt",this.getCompletedAt());
         out.putNotNull("instructions",this.getInstructions());
         out.putNotNull("notes",this.getNotes());
-        out.putNotNull("overview",this.getOverview());
         out.putNotNull("resultMessage",this.getResultMessage());
+        out.putNotNull("startedAt",this.getStartedAt());
+        out.putNotNull("status",this.getStatus());
         out.putNotNull("subTasks",this.getSubTasks());
         out.putNotNull("taskNo",this.getTaskNo());
-        out.putNotNull("taskStatus",this.getTaskStatus());
         out.putNotNull("title",this.getTitle());
     }
 
@@ -315,13 +341,14 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
     protected void copyTo(AgentPlanTaskModel instance){
         super.copyTo(instance);
         
+        instance.setCompletedAt(this.getCompletedAt());
         instance.setInstructions(this.getInstructions());
         instance.setNotes(this.getNotes());
-        instance.setOverview(this.getOverview());
         instance.setResultMessage(this.getResultMessage());
+        instance.setStartedAt(this.getStartedAt());
+        instance.setStatus(this.getStatus());
         instance.setSubTasks(this.getSubTasks());
         instance.setTaskNo(this.getTaskNo());
-        instance.setTaskStatus(this.getTaskStatus());
         instance.setTitle(this.getTitle());
     }
 

@@ -1,69 +1,69 @@
-package io.nop.ai.agent.plan.model._gen;
+package io.nop.ai.agent.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.ai.agent.plan.model.AgentPlanNoteModel;
+import io.nop.ai.agent.model.AgentPermissionModel;
 import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from /nop/schema/ai/plan.xdef <p>
+ * generate from /nop/schema/ai/agent.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
-public abstract class _AgentPlanNoteModel extends io.nop.core.resource.component.AbstractComponentModel {
+public abstract class _AgentPermissionModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
      *  
-     * xml name: 
+     * xml name: action
      * 
      */
-    private java.lang.String _body ;
+    private java.lang.String _action ;
     
     /**
      *  
-     * xml name: name
+     * xml name: resource
      * 
      */
-    private java.lang.String _name ;
+    private java.lang.String _resource ;
     
     /**
      * 
-     * xml name: 
+     * xml name: action
      *  
      */
     
-    public java.lang.String getBody(){
-      return _body;
+    public java.lang.String getAction(){
+      return _action;
     }
 
     
-    public void setBody(java.lang.String value){
+    public void setAction(java.lang.String value){
         checkAllowChange();
         
-        this._body = value;
+        this._action = value;
            
     }
 
     
     /**
      * 
-     * xml name: name
+     * xml name: resource
      *  
      */
     
-    public java.lang.String getName(){
-      return _name;
+    public java.lang.String getResource(){
+      return _resource;
     }
 
     
-    public void setName(java.lang.String value){
+    public void setResource(java.lang.String value){
         checkAllowChange();
         
-        this._name = value;
+        this._resource = value;
            
     }
 
@@ -83,25 +83,25 @@ public abstract class _AgentPlanNoteModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("body",this.getBody());
-        out.putNotNull("name",this.getName());
+        out.putNotNull("action",this.getAction());
+        out.putNotNull("resource",this.getResource());
     }
 
-    public AgentPlanNoteModel cloneInstance(){
-        AgentPlanNoteModel instance = newInstance();
+    public AgentPermissionModel cloneInstance(){
+        AgentPermissionModel instance = newInstance();
         this.copyTo(instance);
         return instance;
     }
 
-    protected void copyTo(AgentPlanNoteModel instance){
+    protected void copyTo(AgentPermissionModel instance){
         super.copyTo(instance);
         
-        instance.setBody(this.getBody());
-        instance.setName(this.getName());
+        instance.setAction(this.getAction());
+        instance.setResource(this.getResource());
     }
 
-    protected AgentPlanNoteModel newInstance(){
-        return (AgentPlanNoteModel) ClassHelper.newInstance(getClass());
+    protected AgentPermissionModel newInstance(){
+        return (AgentPermissionModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

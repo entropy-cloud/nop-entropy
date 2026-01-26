@@ -87,9 +87,9 @@
         <validator>xpl</validator>
 
         <!-- 捕获异常后如果不抛出异常，则认为是成功执行，会执行output返回 -->
-        <catch>xpl-fn:(EXCEPTION,stepRt)=>any</catch>
+        <catch>xpl-fn:(exception,stepRt)=>any</catch>
 
-        <finally>xpl-fn:(EXCEPTION,stepRt)=>any</finally>
+        <finally>xpl-fn:(exception,stepRt)=>any</finally>
 
         <!--
           如果发生异常，则重试整个task
@@ -97,9 +97,9 @@
         <retry maxRetryCount="!int=0" retryDelay="!int=0" maxRetryDelay="!int=0"
                exponentialDelay="!boolean=true" xdef:name="TaskRetryModel">
             <!--
-              上下文环境中存在$exception变量，返回false表示异常不可被恢复，不能继续重试
+              上下文环境中存在exception变量，返回false表示异常不可被恢复，不能继续重试
             -->
-            <exception-filter>xpl-fn:(EXCEPTION)=>boolean</exception-filter>
+            <exception-filter>xpl-fn:(exception)=>boolean</exception-filter>
         </retry>
 
         <!--
@@ -242,7 +242,10 @@
             -->
             <loop name="!var-name" xdef:ref="TaskStepsModel" xdef:name="LoopTaskStepModel"
                   indexName="var-name" varName="var-name" itemsExpr="!expr" maxCount="!int=0" varType="generic-type">
+                <!-- 每次执行前检查 -->
                 <while>xpl-predicate</while>
+
+                <!-- 每次执行后检查 -->
                 <until>xpl-predicate</until>
             </loop>
 

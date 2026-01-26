@@ -1,5 +1,6 @@
 package io.nop.ai.agent.plan.model._gen;
 
+import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 import io.nop.ai.agent.plan.model.AgentPlanModel;
@@ -9,7 +10,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from /nop/schema/ai/agent-plan.xdef <p>
+ * generate from /nop/schema/ai/plan.xdef <p>
  * Agent Plan Metamodel Definition
  * 定义AI Agent执行计划的元模型，支持任务分解、状态跟踪和备注管理
  */
@@ -43,7 +44,7 @@ public abstract class _AgentPlanModel extends io.nop.core.resource.component.Abs
      * xml name: planStatus
      * 
      */
-    private io.nop.ai.agent.plan.AgentExecStatus _planStatus ;
+    private AgentExecStatus _planStatus ;
     
     /**
      *  
@@ -148,12 +149,12 @@ public abstract class _AgentPlanModel extends io.nop.core.resource.component.Abs
      *  
      */
     
-    public io.nop.ai.agent.plan.AgentExecStatus getPlanStatus(){
+    public AgentExecStatus getPlanStatus(){
       return _planStatus;
     }
 
     
-    public void setPlanStatus(io.nop.ai.agent.plan.AgentExecStatus value){
+    public void setPlanStatus(AgentExecStatus value){
         checkAllowChange();
         
         this._planStatus = value;

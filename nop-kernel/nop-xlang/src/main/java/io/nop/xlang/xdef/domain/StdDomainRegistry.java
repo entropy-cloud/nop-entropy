@@ -145,6 +145,8 @@ public class StdDomainRegistry implements IStdDomainRegistry {
             StdDataType type = StdDataType.values()[i];
             registerStdDomainHandler(ConverterStdDomainHandler.stdTypeHandler(type));
         }
+        // text是string的别名。AI自动生成xdef时有时会使用这个名称
+        registerStdDomainHandler(new CustomStringStdDomainHandler("text"));
 
         registerStdDomainHandler(XplStdDomainHandlers.XPL_TYPE);
         registerStdDomainHandler(XplStdDomainHandlers.XPL_PREDICATE_TYPE);

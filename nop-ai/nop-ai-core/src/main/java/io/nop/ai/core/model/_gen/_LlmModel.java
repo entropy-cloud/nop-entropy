@@ -140,7 +140,7 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
      * xml name: supportToolCalls
      * 
      */
-    private boolean _supportToolCalls  = false;
+    private boolean _supportToolCalls ;
     
     /**
      * 

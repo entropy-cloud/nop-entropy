@@ -16,6 +16,10 @@ public interface XDefConstants {
 
     String XDEF_TYPE_ATTR_PREFIX = "@attr:";
 
+    String STD_DOMAIN_STRING = "string";
+
+    String POSTFIX_STD_DOMAIN_STRING = "-string";
+
     String STD_DOMAIN_JAVA_NAME = "java-name";
     String STD_DOMAIN_CLASS_NAME = "class-name";
     String STD_DOMAIN_BEAN_NAME = "bean-name";

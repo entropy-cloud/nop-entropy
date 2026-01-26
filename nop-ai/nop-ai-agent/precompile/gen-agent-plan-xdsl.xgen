@@ -1,3 +1,4 @@
 <c:script>
-    codeGenerator.renderModel('/nop/schema/ai/agent-plan.xdef','/nop/templates/xdsl', '/',$scope);
+    codeGenerator.renderModel('/nop/schema/ai/plan.xdef','/nop/templates/xdsl', '/',$scope);
+    codeGenerator.renderModel('/nop/schema/ai/agent.xdef','/nop/templates/xdsl', '/',$scope);
 </c:script>

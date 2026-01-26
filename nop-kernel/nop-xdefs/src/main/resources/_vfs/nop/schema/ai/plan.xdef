@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+Agent Plan Metamodel Definition
+
+定义AI Agent执行计划的元模型，包含以下特性：
+- 阶段驱动（Phase-based）：高层任务分类
+- 任务驱动（Task-based）：支持任务递归和并行执行
+- 状态跟踪：记录决策、错误、关键问题
+
+-->
+<plan x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xdef:name="AgentPlanModel" xdef:bean-package="io.nop.ai.agent.model"
+      xmlns:xdef="/nop/schema/xdef.xdef"
+      currentPhase="string" createdAt="datetime" updatedAt="datetime"
+      status="enum:io.nop.ai.agent.model.AgentExecStatus">
+
+    <goal>string</goal>
+
+    <!-- 任务阶段列表：用于高层任务分类 -->
+    <phases xdef:body-type="list" xdef:key-attr="name">
+
+        <!-- 每个阶段包含多个任务，任务支持递归子任务 -->
+        <phase xdef:name="AgentPlanPhaseModel" name="!string"
+               status="enum:io.nop.ai.agent.model.AgentExecStatus"
+               startedAt="datetime" completedAt="datetime">
+            <!-- 阶段描述（大文本） -->
+            <description>string</description>
+
+            <!-- 阶段任务列表：支持递归子任务 -->
+            <tasks xdef:body-type="list" xdef:key-attr="taskNo">
+                <task taskNo="!string" title="!string"
+                      status="enum:io.nop.ai.agent.model.AgentExecStatus"
+                      startedAt="datetime" completedAt="datetime"
+                      xdef:name="AgentPlanTaskModel">
+
+                    <!-- 任务指令（大文本） -->
+                    <instructions>markdown-string</instructions>
+
+                    <!-- 任务结果消息（大文本） -->
+                    <resultMessage>string</resultMessage>
+
+                    <!-- 任务笔记列表 -->
+                    <notes xdef:body-type="list" xdef:key-attr="id">
+                        <note id="!string" xdef:name="AgentPlanNote">string</note>
+                    </notes>
+
+                    <!-- 递归子任务列表：支持任务分解 -->
+                    <subTasks xdef:body-type="list" xdef:key-attr="taskNo">
+                        <task xdef:ref="AgentPlanTaskModel" taskNo="!string"/>
+                    </subTasks>
+                </task>
+            </tasks>
+        </phase>
+    </phases>
+
+    <!-- ========== 关键问题 ========== -->
+
+    <!-- 需要回答的关键问题列表 -->
+    <keyQuestions xdef:body-type="list" xdef:key-attr="id">
+        <question id="!string" xdef:name="AgentPlanQuestion" >string</question>
+    </keyQuestions>
+
+    <!-- ========== 决策记录 ========== -->
+
+    <!-- 任务执行过程中做出的决策记录 -->
+    <decisions xdef:body-type="list" xdef:key-attr="id">
+        <decision id="!string" madeAt="datetime" xdef:name="AgentPlanDecision">
+            <!-- 决策内容（大文本） -->
+            <decisionText>string</decisionText>
+
+            <!-- 决策理由（大文本） -->
+            <rationale>string</rationale>
+        </decision>
+    </decisions>
+
+    <!-- ========== 错误记录 ========== -->
+
+    <!-- 任务执行过程中遇到的错误记录 -->
+    <errors xdef:body-type="list" xdef:key-attr="id">
+        <error id="string" encounteredAt="datetime" attemptNumber="int" resolvedAt="datetime" xdef:name="AgentPlanError">
+            <!-- 错误描述（大文本） -->
+            <errorText>string</errorText>
+            <!-- 错误解决方案（大文本） -->
+            <resolution>string</resolution>
+        </error>
+    </errors>
+
+    <!-- 计划级别的笔记列表，可被任务引用 -->
+    <notes xdef:body-type="list" xdef:key-attr="id">
+        <note id="!string" xdef:ref="AgentPlanNote"/>
+    </notes>
+</plan>

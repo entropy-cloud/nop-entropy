@@ -39,6 +39,13 @@ public abstract class _ChatOptionsModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: provider
+     * 
+     */
+    private java.lang.String _provider ;
+    
+    /**
+     *  
      * xml name: seed
      * 
      */
@@ -125,6 +132,25 @@ public abstract class _ChatOptionsModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._model = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: provider
+     *  
+     */
+    
+    public java.lang.String getProvider(){
+      return _provider;
+    }
+
+    
+    public void setProvider(java.lang.String value){
+        checkAllowChange();
+        
+        this._provider = value;
            
     }
 
@@ -242,6 +268,7 @@ public abstract class _ChatOptionsModel extends io.nop.core.resource.component.A
         out.putNotNull("contextLength",this.getContextLength());
         out.putNotNull("maxTokens",this.getMaxTokens());
         out.putNotNull("model",this.getModel());
+        out.putNotNull("provider",this.getProvider());
         out.putNotNull("seed",this.getSeed());
         out.putNotNull("stop",this.getStop());
         out.putNotNull("temperature",this.getTemperature());
@@ -261,6 +288,7 @@ public abstract class _ChatOptionsModel extends io.nop.core.resource.component.A
         instance.setContextLength(this.getContextLength());
         instance.setMaxTokens(this.getMaxTokens());
         instance.setModel(this.getModel());
+        instance.setProvider(this.getProvider());
         instance.setSeed(this.getSeed());
         instance.setStop(this.getStop());
         instance.setTemperature(this.getTemperature());

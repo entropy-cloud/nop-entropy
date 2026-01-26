@@ -1,0 +1,38 @@
+<!--
+@name agent的唯一名称
+-->
+<agent x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xdef:name="AgentModel" xdef:bean-package="io.nop.ai.agent.model"
+       xmlns:xdef="/nop/schema/xdef.xdef"
+       name="!string" tagSet="csv-set">
+
+    <description>!string</description>
+
+    <!-- 元数据 -->
+    <meta>xjson-map</meta>
+
+    <!-- 可选的AI大模型访问参数 -->
+    <chatOptions xdef:ref="chat-options.xdef" />
+
+    <tools>csv-set</tools>
+
+    <capabilities>csv-set</capabilities>
+
+    <!-- 系统提示词，指导agent的行为模式 -->
+    <prompt>prompt-syntax</prompt>
+
+    <hooks xdef:body-type="list" xdef:key-attr="id">
+        <on xdef:name="AgentHookModel" id="!string"
+            event="!event-pattern-string">xpl-fn:(event, agentRt)=>void
+        </on>
+    </hooks>
+
+    <permissions xdef:body-type="list">
+        <permission resource="!string" action="!string" xdef:name="AgentPermissionModel"/>
+    </permissions>
+
+    <constraints xdef:name="AgentConstraintsModel"
+                 maxIterations="int" toolTimeoutSeconds="int" maxParallelTools="int"
+                 tokenCompressionThreashold="double-percent"/>
+
+</agent>

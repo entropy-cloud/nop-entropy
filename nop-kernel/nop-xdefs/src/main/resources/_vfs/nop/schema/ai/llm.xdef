@@ -10,7 +10,7 @@
      apiStyle="enum:io.nop.ai.core.model.ApiStyle"
      defaultModel="string" logMessage="!boolean=true"
      rateLimit="double" defaultRequestTimeout="long"
-     supportToolCalls="!boolean=false" apiKeyHeader="string"
+     supportToolCalls="!boolean" apiKeyHeader="string"
 >
 
     <!--
@@ -21,9 +21,9 @@
     <aliasMap>string-map</aliasMap>
 
     <models xdef:body-type="list" xdef:key-attr="name">
-        <model name="!string" xdef:name="LlmModelModel" maxTokensLimit="int" defaultMaxTokens="int"
+        <model name="!string" xdef:name="LlmModelModel" maxTokensLimit="int" defaultMaxTokens="int" contextLenth="int"
                enableThinkingPrompt="string" disableThinkingPrompt="string"
-               thinkStartMarker="string" thinkEndMarker="string"/>
+               thinkStartMarker="string" thinkEndMarker="string" supportToolCalls="boolean"/>
     </models>
 
     <!--
