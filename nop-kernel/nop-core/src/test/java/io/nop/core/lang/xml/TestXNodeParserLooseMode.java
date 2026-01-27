@@ -14,4 +14,18 @@ public class TestXNodeParserLooseMode {
                 "    <return>3</return>\n" +
                 "</xpl>", node.xml());
     }
+
+    @Test
+    public void testComment() {
+        String xml = "<root><!--data--><sub/></root>";
+        XNode node = XNodeParser.instance().keepComment(true).looseMode(true).parseFromText(null, xml);
+        assertEquals("data", node.childByTag("sub").getComment());
+    }
+
+    @Test
+    public void testCDATA() {
+        String xml = "<root><![CDATA[<sub/>]]></root>";
+        XNode node = XNodeParser.instance().looseMode(true).parseFromText(null, xml);
+        assertEquals("<sub/>", node.contentText());
+    }
 }

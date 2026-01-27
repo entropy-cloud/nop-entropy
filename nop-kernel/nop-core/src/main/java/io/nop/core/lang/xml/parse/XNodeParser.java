@@ -501,7 +501,12 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
                 throw newError(CommonErrors.ERR_SCAN_NEXT_UNTIL_UNEXPECTED_EOF).param(CommonErrors.ARG_EXPECTED, '<');
             }
             if (sc.cur == '<') {
-                if (this.looseMode && !maybeXmlNode(sc.peek())) {
+                int peek = sc.peek();
+                if (this.looseMode && !maybeXmlNode(peek)) {
+                    // Check for <!-- or <![CDATA[
+                    if (peek == '!') {
+                        break;
+                    }
                     // 不是xml name start
                     sc.consumeToBuf(buf);
                     continue;
