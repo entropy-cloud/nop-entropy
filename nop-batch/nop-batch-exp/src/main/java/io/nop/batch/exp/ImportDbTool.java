@@ -158,6 +158,7 @@ public class ImportDbTool {
             String tableNamePattern = config.getTableNamePattern();
 
             DataBaseMeta meta = JdbcMetaDiscovery.forDataSource(dataSource)
+                    .ignoreUnknownType(true)
                     .includeRelations(false).includeUniqueKeys(false).includeIndexes(false)
                     .discover(conn.getCatalog(), config.getSchemaPattern(), tableNamePattern);
 

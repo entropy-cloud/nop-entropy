@@ -338,10 +338,17 @@ public class JdbcMetaDiscovery {
                 SQLDataType sqlDataType;
                 if (dataType == null) {
                     StdSqlType stdSqlType = StdSqlType.fromJdbcType(jdbcType);
-                    if (stdSqlType == StdSqlType.OTHER) {
-                        LOG.warn("nop.warn.jdbc.unknown-sql-type:sqlType={},dialect={}", typeName, dialect.getName());
-                        if (ignoreUnknownType)
+                    if (ignoreUnknownType) {
+                        if (stdSqlType == null || stdSqlType == StdSqlType.OTHER || stdSqlType == StdSqlType.ARRAY) {
+                            if (stdSqlType == StdSqlType.OTHER) {
+                                LOG.warn("nop.warn.jdbc.unknown-sql-type:sqlType={},dialect={}", typeName, dialect.getName());
+                            }
                             stdSqlType = StdSqlType.VARCHAR;
+                        }
+                    } else {
+                        if (stdSqlType == StdSqlType.OTHER) {
+                            LOG.warn("nop.warn.jdbc.unknown-sql-type:sqlType={},dialect={}", typeName, dialect.getName());
+                        }
                     }
                     col.setStdSqlType(stdSqlType);
                     col.setStdDataType(stdSqlType.getStdDataType());
