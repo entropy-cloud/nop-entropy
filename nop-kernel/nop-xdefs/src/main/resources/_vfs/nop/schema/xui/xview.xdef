@@ -111,8 +111,8 @@
 
             <defaultParams>xjson-map</defaultParams>
 
-            <beforeTable>xjson-map</beforeTable>
-            <afterTable>xjson-map</afterTable>
+            <beforeTable>xjson</beforeTable>
+            <afterTable>xjson</afterTable>
         </crud>
 
         <!--
@@ -140,6 +140,9 @@
             <data>xjson</data>
 
             <actions xdef:ref="actions.xdef"/>
+
+            <beforeForm>xjson</beforeForm>
+            <afterForm>xjson</afterForm>
         </simple>
 
         <!--

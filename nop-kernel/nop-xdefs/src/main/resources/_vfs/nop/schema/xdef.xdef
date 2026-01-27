@@ -94,6 +94,37 @@ xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即
         <xdef:define xdef:name="!var-name" meta:ref="XDefNode" meta:unique-attr="xdef:name"
                      meta:bean-child-name="xdefDefine"/>
 
+      <!--
+      xdef:check-unique 在指定范围内检查唯一性。
+
+      @id 规则自身的标识
+      @scope 校验范围（document/siblings/...，由 XDefCheckScope 枚举定义）
+      @select 选择参与校验的节点集合（xpath/xselector 字符串）
+      @ref 从 select 选中的节点上抽取需要唯一的值，通常为 @id 之类的属性表达式
+      @errorCode 违反约束时的错误码
+      -->
+        <xdef:check-unique id="var-name" meta:unique-attr="id"
+                          scope="enum:io.nop.xlang.xdef.XDefCheckScope"
+                          select="string" ref="string"
+                          errorCode="string" message="string"/>
+
+      <!--
+      xdef:check-ref 在指定范围内检查引用合法性。
+
+      @id 规则自身的标识
+      @scope 校验范围（document/siblings/...，由 XDefCheckScope 枚举定义）
+      @select 选择参与校验的节点集合（xpath/xselector 字符串）
+      @ref 从 select 选中的节点上抽取引用集合（例如 @depends）。
+         引用集合的解析由字段 defType 决定（如 csv-set/csv-list），这里不负责 split。
+      @disallowSelf 是否禁止引用自身（缺省 false）
+      @errorCode 违反约束时的错误码
+      -->
+        <xdef:check-ref id="var-name" meta:unique-attr="id"
+                       scope="enum:io.nop.xlang.xdef.XDefCheckScope"
+                       select="string" ref="string"
+                       disallowSelf="boolean=false"
+                       errorCode="string" message="string"/>
+
     </meta:define>
 
     <xdef:pre-parse meta:value="xpl"/>
