@@ -40,24 +40,42 @@
 
 ## 核心概念
 
+### 注释约定：用 @attrName 说明属性语义
+
+XDef / XDSL 文件通常会在 XML 注释块中，用类似 JavaDoc 的方式记录关键属性的语义。
+
+```xml
+<!--
+支持异步执行的任务引擎示例（节点级别的注释）
+
+@firstStep  当 graphMode=true 时，第一个执行的步骤 id（属性级别的注释）
+-->
+<task firstStep="string" >
+        ...
+</task>
+```
+
+
 ### XDef的本质：与最终XML同构
 
 **关键理解**：XDef模型应该与最终生成的XML结构同构，只是用类型信息替换具体的值。
 
-#### 正确理解示例：
+并且在实践中建议遵循一个简单约定：
+
+- **简单标量字段优先用属性**（string/int/bool/date 等）
+- **长文本或复杂结构用子节点**（典型是 `description`，或嵌套对象/集合）
+
+#### 推荐写法示例：
+
 ```xml
-<!-- XDef定义 -->
-<user>
-    <name>string</name>
-    <age>integer</age>
-    <active>boolean</active>
+<!-- XDef定义（推荐：简单字段用属性） -->
+<user id="!string" name="string" age="integer" active="boolean">
+    <description>string</description>
 </user>
 
 <!-- 最终生成的XML示例 -->
-<user>
-    <name>张三</name>
-    <age>25</age>
-    <active>true</active>
+<user id="u-1" name="张三" age="25" active="true">
+    <description>这是一个很长的说明……</description>
 </user>
 ```
 
@@ -69,46 +87,31 @@
     <age type="integer"/>
 </user>
 
-<!-- ❌ 错误：使用xdef:value -->
-<user>
-    <name xdef:value="string"/>
-    <age xdef:value="integer"/>
-</user>
 ```
 
 ### 正确语法模式
 
-#### 1. 元素内容类型定义
-```xml
-<name>string</name>
-<age>integer</age>
-<price>double</price>
-<active>boolean</active>
-<create-time>datetime</create-time>
-```
-
-#### 2. 属性类型定义
+#### 1. 属性类型定义（推荐）
 ```xml
 <user id="!string" name="string" email="string"/>
 <product price="double" quantity="integer"/>
 <settings active="boolean" visible="boolean=false"/>
 ```
 
+#### 2. 子节点类型定义（仅用于长文本/复杂结构）
+
+```xml
+<service name="!var-name">
+    <description>string</description>
+</service>
+```
+
 #### 3. 列表类型定义
 ```xml
-<tags xdef:body-type="list">
-    <tag>string</tag>
-</tags>
-
-<users xdef:body-type="list">
+<users xdef:body-type="list" xdef:key-attr="id">
     <user id="!string" name="string"/>
 </users>
 ```
-
-### 参考示例文件
-
-- **正确示例**：[simple-model.xdef](../../../examples/xdefs/simple-model.xdef)
-- **学习路径**：[xdefs README](../../../examples/xdefs/README.md)
 
 ### 1. xdef:name - Java类名
 
@@ -127,28 +130,6 @@
 
 **本文件引用**：引用`xdef:define`定义的片段
 ```xml
-<xdef:define xdef:name="BaseFields">
-    <createTime type="datetime"/>
-    <updateTime type="datetime"/>
-</xdef:define>
-
-<!-- 使用定义 -->
-<entity name="User">
-    <fields xdef:ref="BaseFields"/>
-    <name type="string"/>
-</entity>
-```
-
-**外部引用**：引用其他xdef文件
-```xml
-<dict name="!string" xdef:ref="/nop/schema/orm/dict.xdef"/>
-```
-
-### 3. xdef:define - 定义可复用片段
-
-定义模板，可通过`xdef:ref`引用。
-
-```xml
 <xdef:define xdef:name="BeanPropValue" xdef:body-type="union">
     <bean/>
     <ref bean="!bean-name"/>
@@ -159,51 +140,55 @@
 <prop xdef:ref="BeanPropValue"/>
 ```
 
-### 4. xdef:mandatory - 必填标记
+**本文件引用（更常见）**：引用“普通节点上声明的 `xdef:name` 模型”
 
-标记某个子节点必须存在。
+也就是说，`xdef:ref` 的目标不一定必须写在 `<xdef:define>` 里；只要某个节点声明了 `xdef:name="SomeModel"`，就可以在同一个 xdef 文件中通过 `xdef:ref="SomeModel"` 复用它的结构。
+
+例如在下面`api.xdef`的示例中：
 
 ```xml
-<service xdef:name="ApiServiceModel">
-    <description>string</description>  <!-- 必须提供 -->
-</service>
+<!-- 定义一个可复用的 option 结构（普通节点上声明 xdef:name） -->
+<option name="!string" value="!any" xdef:name="ApiOptionModel" xdef:unique-attr="name">
+    <description>string</description>
+</option>
+
+<!-- 在 service/method/message 等位置复用同一个 option 结构 -->
+<option name="!string" xdef:ref="ApiOptionModel" xdef:unique-attr="name"/>
 ```
 
-### 5. xdef:body-type - 子节点组织方式
+**外部引用**：引用其他xdef文件
+```xml
+<dict name="!string" xdef:ref="/nop/schema/orm/dict.xdef"/>
+```
 
-- `list`：允许多个子节点，按顺序组织为List
-- `set`：子节点唯一，组织为Set或KeyedList
-- `union`：可以是多种类型之一
-- `map`：解析为Map
+### 3. 集合节点：xdef:body-type + xdef:key-attr + xdef:unique-attr
+
+
+- `xdef:body-type`：决定子节点是 **list/set/union/map** 以及对应的解析结构
+- `xdef:key-attr`：当 body-type 为 `list` 或 `set` 时，指定“key 属性名”（便于稳定定位、快速查找、差量合并）
+- `xdef:unique-attr`：约束同一父节点下同名子节点集合中，某个属性必须唯一，此时相当于省略了父节点。
+
+常见组合：
+
+1) **有序列表（list）+ key**：
 
 ```xml
 <services xdef:body-type="list" xdef:key-attr="name">
-    <service name="userService"/>
-    <service name="orderService"/>
+    <service name="!var-name" className="!class-name"/>
 </services>
 ```
 
-### 6. xdef:key-attr - 指定key属性
-
-当`body-type`为`list`或`set`时，用哪个属性作为key。
+2) **列表中声明唯一属性（unique-attr）**：
 
 ```xml
-<options xdef:body-type="list" xdef:key-attr="name">
-    <option name="cacheEnabled" value="true"/>
-    <option name="cacheTTL" value="3600"/>
-</options>
-<!-- 可以通过 "cacheEnabled" 快速找到对应option -->
-```
+<option xdef:unique-attr="name" name="!string" value="any"/>
 
-### 7. xdef:unique-attr - 唯一性约束
+ 它等价于
 
-指定属性值在同一父节点下必须唯一。
+ <options xdef:body-type="list" xdef:key-attr="name">
+   <option name="!string" value="any" />
+ </options>
 
-```xml
-<option xdef:name="ApiOptionModel" xdef:unique-attr="name"
-        name="!string" value="!any"/>
-
-<!-- 所有option的name必须唯一 -->
 ```
 
 ## 实际示例
@@ -219,10 +204,13 @@
 
     <description>string</description>
 
+    <!-- options定义 -->
+    <option name="!string" xdef:name="ApiOptionModel"
+            xdef:unique-attr="name" value="string" />
+
     <!-- 唯一、key、list类型 -->
     <services xdef:body-type="list" xdef:key-attr="name">
         <service xdef:name="ApiServiceModel"
-                 xdef:unique-attr="name"
                  name="!var-name" className="!class-name">
             <description>string</description>
 
@@ -261,28 +249,6 @@
 </api>
 ```
 
-### 定义ORM模型
-
-```xml
-<!-- orm.xdef (简化示例) -->
-<orm x:schema="/nop/schema/xdef.xdef"
-      xmlns:x="/nop/schema/xdsl.xdef"
-      xdef:bean-package="io.nop.orm.model"
-      xdef:name="OrmModel">
-
-    <entities xdef:body-type="list" xdef:key-attr="name">
-        <entity xdef:name="EntityModel"
-                xdef:unique-attr="name"
-                name="!var-name" table="!var-name">
-            <columns xdef:body-type="list" xdef:key-attr="name">
-                <column xdef:name="ColumnModel"
-                         xdef:unique-attr="name"
-                         name="!string" type="!string"/>
-            </columns>
-        </entity>
-    </entities>
-</orm>
-```
 
 ## 类型说明
 
@@ -305,5 +271,5 @@
 
 1. **所有XDSL文件必须声明**：`x:schema`和`xmlns:x`
 2. **类型区分**：xdef文件（定义）vs xdsl文件（使用），都需要声明
-3. **xdef.xdef特殊性**：涉及命名空间重命名，一般AI生成不需要处理
-4. **引用路径**：`xdef:ref`使用虚拟文件系统路径（如`/nop/schema/orm.xdef`）
+3. **xdef.xdef特殊性**：涉及命名空间重命名，一般AI生成固定使用xdef名字空间，而不需要重命名为meta
+4. **引用路径**：`xdef:ref`使用虚拟文件系统路径（如`/nop/schema/orm.xdef`）或者`xdef:name`指定的名称（如MessageModel）

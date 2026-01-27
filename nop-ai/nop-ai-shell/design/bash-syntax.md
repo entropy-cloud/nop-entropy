@@ -200,11 +200,17 @@ public final class SimpleCommand implements CommandExpression {
 ```java
 /**
  * 管道表达式 - 连接多个命令
- * 优先级：高于逻辑运算符，低于括号
+ * 
+ * 优先级：高于逻辑运算符（&&, ||, ;），低于括号和子shell（(), {}）
+ * 
+ * 结合性：从左到右结合，所有命令依次执行，前一个命令的 stdout 作为后一个的 stdin
  * 
  * 示例: 
- * - cmd1 | cmd2 | cmd3
- * - (cmd1 && cmd2) | cmd3
+ * - cmd1 | cmd2 | cmd3  -> 简单管道链
+ * - (cmd1 && cmd2) | cmd3   -> 子shell 管道，因为括号优先级最高
+ * - cmd1 | cmd2 && cmd3         -> 解析为：PipelineExpr(cmd1, cmd2) 后与 cmd3 逻辑与
+ * 
+ * 注意：管道操作符 | 的优先级高于逻辑运算符 && 和 ||，但低于括号和子shell
  */
 public final class PipelineExpr implements CommandExpression {
     
@@ -218,30 +224,35 @@ public final class PipelineExpr implements CommandExpression {
         }
         this.commands = List.copyOf(commands);
     }
+
     
     // Builder模式
     public static Builder builder() {
         return new Builder();
     }
-    
+
     public static class Builder {
         private final List<CommandExpression> commands = new ArrayList<>();
-        
+
         public Builder command(CommandExpression cmd) {
             commands.add(cmd);
             return this;
         }
-        
+
         public PipelineExpr build() {
             return new PipelineExpr(commands);
         }
     }
-    
-    // 工厂方法已移至Commands类
-    
+
+    // 工厂方法请使用 CommandFactory
+
     // Getters
     public List<CommandExpression> commands() {
         return commands;
+    }
+    
+    public List<Redirect> redirects() {
+        return redirects;
     }
     
     @Override
@@ -307,9 +318,9 @@ public final class LogicalExpr implements CommandExpression {
         this.operator = Objects.requireNonNull(operator, "Operator cannot be null");
         this.right = Objects.requireNonNull(right, "Right expression cannot be null");
     }
-    
-    // 工厂方法已移至Commands类
-    
+
+    // 工厂方法请使用 CommandFactory
+
     // Getters
     public CommandExpression left() { return left; }
     public Operator operator() { return operator; }
@@ -429,9 +440,9 @@ public final class SubshellExpr implements CommandExpression {
         this.inner = Objects.requireNonNull(inner, "Inner expression cannot be null");
         this.redirects = List.copyOf(redirects);
     }
-    
-    // 工厂方法已移至Commands类
-    
+
+    // 工厂方法请使用 CommandFactory
+
     // Getters
     public CommandExpression inner() { return inner; }
     public List<Redirect> redirects() { return redirects; }
@@ -644,14 +655,59 @@ public final class Redirect {
     }
     
     // 解析方法（示例）
+    /**
+     * 从字符串解析重定向（示例方法，实际应由解析器实现）
+     *
+     * 注意：此方法仅用于演示。在生产环境中，
+     * 重定向应由词法分析器和语法分析器统一解析，
+     * 而非单独的解析逻辑。
+     *
+     * @param redirectStr 重定向字符串
+     * @return Redirect 对象
+     * @throws IllegalArgumentException 如果格式无效
+     */
     public static Redirect parse(String redirectStr) {
-        // 简化解析逻辑
-        if (redirectStr.startsWith("2>&")) {
-            String fd = redirectStr.substring(3);
-            return new Redirect(2, Type.FD_OUTPUT, fd);
+        if (redirectStr == null || redirectStr.isEmpty()) {
+            throw new IllegalArgumentException("Redirect string cannot be null or empty");
         }
-        // 其他解析逻辑...
-        throw new IllegalArgumentException("Cannot parse: " + redirectStr);
+
+        // 文件描述符重定向：2>&1, 1>&2
+        if (redirectStr.matches("[12]>&[12]")) {
+            int fd = Integer.parseInt(redirectStr.substring(0, 1));
+            int targetFd = Integer.parseInt(redirectStr.substring(3));
+            return new Redirect(fd, Type.FD_OUTPUT, String.valueOf(targetFd));
+        }
+
+        // 文件描述符输入复制：2<&1, 1<&0
+        if (redirectStr.matches("[12]<&[12]")) {
+            int fd = Integer.parseInt(redirectStr.substring(0, 1));
+            int targetFd = Integer.parseInt(redirectStr.substring(3));
+            return new Redirect(fd, Type.FD_INPUT, String.valueOf(targetFd));
+        }
+
+        // 标准重定向：>, >>, 2>, 2>>
+        if (redirectStr.matches("[12]?>>?")) {
+            int sourceFd = redirectStr.charAt(0) == '>' ? null :
+                        redirectStr.charAt(0) == '2' ? 2 : null;
+            boolean append = redirectStr.startsWith(">>") || redirectStr.startsWith("2>>");
+            if (redirectStr.length() > (sourceFd != null ? 4 : 3) + 1) {
+                String file = redirectStr.substring(sourceFd != null ? 4 : 3);
+                Type type = sourceFd == 2 ? 
+                    (append ? Type.STDERR_APPEND : Type.STDERR_REDIRECT) :
+                    (append ? Type.APPEND : Type.OUTPUT);
+                return new Redirect(sourceFd, type, file);
+            }
+        }
+
+        // 合并重定向：&>, &>>
+        if (redirectStr.startsWith("&>") || redirectStr.startsWith("&>>")) {
+            boolean append = redirectStr.startsWith("&>>");
+            String file = redirectStr.substring(append ? 3 : 2);
+            Type type = append ? Type.MERGE_APPEND : Type.MERGE;
+            return new Redirect(null, type, file);
+        }
+
+        throw new IllegalArgumentException("Cannot parse redirect: " + redirectStr);
     }
     
     // Getters
@@ -701,60 +757,151 @@ CommandExpression接口及其实现类构成了完整的Bash命令行表达式�
  * 支持静态导入，提供流畅的API
  */
 public final class CommandFactory {
-    
+
     // 禁止实例化
     private CommandFactory() {}
-    
-    // 简单命令
+
+    // ==================== 简单命令 ====================
+
+    /**
+     * 创建简单命令
+     * @param command 命令名称
+     * @param args 命令参数
+     * @return SimpleCommand 对象
+     */
     public static SimpleCommand cmd(String command, String... args) {
         return SimpleCommand.builder(command)
             .args(args)
             .build();
     }
-    
-    // 带环境变量的命令
+
+    /**
+     * 创建带环境变量的命令（Map 版本）
+     * @param command 命令名称
+     * @param envVars 环境变量 Map
+     * @param args 命令参数
+     * @return SimpleCommand 对象
+     */
     public static SimpleCommand cmd(String command, Map<String, String> envVars, String... args) {
         SimpleCommand.Builder builder = SimpleCommand.builder(command);
         envVars.forEach((key, value) -> builder.envVar(EnvVar.local(key, value)));
         return builder.args(args).build();
     }
-    
-    // 带EnvVar对象的命令
+
+    /**
+     * 创建带环境变量的命令（List 版本）
+     * @param command 命令名称
+     * @param envVars 环境变量列表
+     * @param args 命令参数
+     * @return SimpleCommand 对象
+     */
     public static SimpleCommand cmd(String command, List<EnvVar> envVars, String... args) {
         SimpleCommand.Builder builder = SimpleCommand.builder(command);
         envVars.forEach(builder::envVar);
         return builder.args(args).build();
     }
-    
-    // 环境变量工厂方法
+
+    /**
+     * 创建带重定向的命令
+     * @param command 命令名称
+     * @param redirects 重定向列表
+     * @param args 命令参数
+     * @return SimpleCommand 对象
+     */
+    public static SimpleCommand cmd(String command, List<Redirect> redirects, String... args) {
+        return SimpleCommand.builder(command)
+            .args(args)
+            .redirects(redirects)
+            .build();
+    }
+
+    /**
+     * 创建完整命令（包含环境变量和重定向）
+     * @param command 命令名称
+     * @param envVars 环境变量列表
+     * @param redirects 重定向列表
+     * @param args 命令参数
+     * @return SimpleCommand 对象
+     */
+    public static SimpleCommand cmd(String command, List<EnvVar> envVars, List<Redirect> redirects, String... args) {
+        return SimpleCommand.builder(command)
+            .envVars(envVars)
+            .args(args)
+            .redirects(redirects)
+            .build();
+    }
+
+    // ==================== 环境变量 ====================
+
+    /**
+     * 创建局部环境变量
+     * @param name 变量名
+     * @param value 变量值
+     * @return EnvVar 对象
+     */
     public static EnvVar env(String name, String value) {
         return EnvVar.local(name, value);
     }
-    
+
+    /**
+     * 创建导出环境变量
+     * @param name 变量名
+     * @param value 变量值
+     * @return EnvVar 对象
+     */
     public static EnvVar export(String name, String value) {
         return EnvVar.export(name, value);
     }
-    
+
+    /**
+     * 创建需要展开的环境变量
+     * @param name 变量名
+     * @param value 变量值（可能包含 $ 引用）
+     * @return EnvVar 对象
+     */
     public static EnvVar expand(String name, String value) {
         return EnvVar.expand(name, value);
     }
-    
-    // 逻辑与
+
+    // ==================== 逻辑表达式 ====================
+
+    /**
+     * 创建逻辑与表达式 (&&)
+     * @param left 左侧表达式
+     * @param right 右侧表达式
+     * @return LogicalExpr 对象
+     */
     public static LogicalExpr and(CommandExpression left, CommandExpression right) {
         return LogicalExpr.and(left, right);
     }
-    
-    // 逻辑或
+
+    /**
+     * 创建逻辑或表达式 (||)
+     * @param left 左侧表达式
+     * @param right 右侧表达式
+     * @return LogicalExpr 对象
+     */
     public static LogicalExpr or(CommandExpression left, CommandExpression right) {
         return LogicalExpr.or(left, right);
     }
-    
-    // 顺序执行
+
+    /**
+     * 创建顺序执行表达式 (;)
+     * @param left 左侧表达式
+     * @param right 右侧表达式
+     * @return LogicalExpr 对象
+     */
     public static LogicalExpr sequence(CommandExpression left, CommandExpression right) {
         return LogicalExpr.sequence(left, right);
     }
-    
-    // 管道
+
+    // ==================== 管道和分组 ====================
+
+    /**
+     * 创建管道表达式 (|)
+     * @param commands 管道中的命令列表（至少2个）
+     * @return PipelineExpr 对象
+     */
     public static PipelineExpr pipeline(CommandExpression... commands) {
         PipelineExpr.Builder builder = PipelineExpr.builder();
         for (CommandExpression cmd : commands) {
@@ -762,29 +909,173 @@ public final class CommandFactory {
         }
         return builder.build();
     }
-    
-    // 分组
+
+    /**
+     * 创建大括号分组 ({ ... })
+     * @param commands 分组中的命令列表
+     * @return GroupExpr 对象
+     */
     public static GroupExpr group(CommandExpression... commands) {
         return GroupExpr.of(commands);
     }
-    
-    // 子shell
+
+    /**
+     * 创建带重定向的大括号分组
+     * @param commands 分组中的命令列表
+     * @param redirects 分组的重定向列表
+     * @return GroupExpr 对象
+     */
+    public static GroupExpr group(List<CommandExpression> commands, List<Redirect> redirects) {
+        return new GroupExpr(commands, redirects);
+    }
+
+    // ==================== 子shell 和后台 ====================
+
+    /**
+     * 创建子shell 表达式 (( ... ))
+     * @param inner 子shell 中的表达式
+     * @return SubshellExpr 对象
+     */
     public static SubshellExpr subshell(CommandExpression inner) {
         return SubshellExpr.of(inner);
     }
-    
-    // 后台运行
+
+    /**
+     * 创建带重定向的子shell
+     * @param inner 子shell 中的表达式
+     * @param redirects 子shell 的重定向列表
+     * @return SubshellExpr 对象
+     */
+    public static SubshellExpr subshell(CommandExpression inner, List<Redirect> redirects) {
+        return new SubshellExpr(inner, redirects);
+    }
+
+    /**
+     * 创建后台运行表达式 (&)
+     * @param inner 要后台运行的表达式
+     * @return BackgroundExpr 对象
+     */
     public static BackgroundExpr background(CommandExpression inner) {
         return BackgroundExpr.of(inner);
     }
-    
-    // 重定向
-    public static Redirect redirect(String type, String target) {
-        return Redirect.of(type, target);
-    }
-    
+
+    // ==================== 重定向工厂方法 ====================
+
+    /**
+     * 创建输出重定向到文件（覆盖）
+     * @param file 目标文件
+     * @return Redirect 对象
+     */
     public static Redirect stdoutToFile(String file) {
-        return Redirect.stdoutToFile(file);
+        return new Redirect(null, Redirect.Type.OUTPUT, file);
+    }
+
+    /**
+     * 创建输出重定向到文件（追加）
+     * @param file 目标文件
+     * @return Redirect 对象
+     */
+    public static Redirect stdoutAppend(String file) {
+        return new Redirect(null, Redirect.Type.APPEND, file);
+    }
+
+    /**
+     * 创建标准输入重定向
+     * @param file 源文件
+     * @return Redirect 对象
+     */
+    public static Redirect stdinFromFile(String file) {
+        return new Redirect(null, Redirect.Type.INPUT, file);
+    }
+
+    /**
+     * 创建标准错误重定向（覆盖）
+     * @param file 目标文件
+     * @return Redirect 对象
+     */
+    public static Redirect stderrToFile(String file) {
+        return new Redirect(2, Redirect.Type.OUTPUT, file);
+    }
+
+    /**
+     * 创建标准错误重定向（追加）
+     * @param file 目标文件
+     * @return Redirect 对象
+     */
+    public static Redirect stderrAppend(String file) {
+        return new Redirect(2, Redirect.Type.APPEND, file);
+    }
+
+    /**
+     * 创建 stderr 重定向到 stdout
+     * @return Redirect 对象
+     */
+    public static Redirect stderrToStdout() {
+        return new Redirect(2, Redirect.Type.FD_OUTPUT, "1");
+    }
+
+    /**
+     * 创建 stdout 重定向到 stderr
+     * @return Redirect 对象
+     */
+    public static Redirect stdoutToStderr() {
+        return new Redirect(1, Redirect.Type.FD_OUTPUT, "2");
+    }
+
+    /**
+     * 创建合并重定向（覆盖）
+     * @param file 目标文件
+     * @return Redirect 对象
+     */
+    public static Redirect mergeToFile(String file) {
+        return new Redirect(null, Redirect.Type.MERGE, file);
+    }
+
+    /**
+     * 创建合并重定向（追加）
+     * @param file 目标文件
+     * @return Redirect 对象
+     */
+    public static Redirect mergeAppend(String file) {
+        return new Redirect(null, Redirect.Type.MERGE_APPEND, file);
+    }
+
+    /**
+     * 创建文件描述符输出复制重定向
+     * @param sourceFd 源文件描述符（1 或 2）
+     * @param targetFd 目标文件描述符
+     * @return Redirect 对象
+     */
+    public static Redirect fdOutput(int sourceFd, int targetFd) {
+        return new Redirect(sourceFd, Redirect.Type.FD_OUTPUT, String.valueOf(targetFd));
+    }
+
+    /**
+     * 创建文件描述符输入复制重定向
+     * @param sourceFd 源文件描述符
+     * @param targetFd 目标文件描述符
+     * @return Redirect 对象
+     */
+    public static Redirect fdInput(int sourceFd, int targetFd) {
+        return new Redirect(sourceFd, Redirect.Type.FD_INPUT, String.valueOf(targetFd));
+    }
+
+    /**
+     * 创建 Here 文档重定向
+     * @param delimiter 结束定界符
+     * @return Redirect 对象
+     */
+    public static Redirect hereDoc(String delimiter) {
+        return new Redirect(null, Redirect.Type.HERE_DOC, delimiter);
+    }
+
+    /**
+     * 创建 Here 字符串重定向
+     * @param string 字符串内容
+     * @return Redirect 对象
+     */
+    public static Redirect hereString(String string) {
+        return new Redirect(null, Redirect.Type.HERE_STRING, string);
     }
 }
 ```
@@ -957,3 +1248,608 @@ int count = expr.accept(new CommandCounter());
 4. **语法严格性**：某些bash灵活语法（如大括号可选分号）可能简化处理
 
 此模型为Bash命令行语法分析提供了完整、类型安全的基础，适用于代码分析、格式化工具、IDE集成等场景。
+
+## 13. 与解析器集成
+
+### 13.1 解析器职责
+
+**模型对象（本文档）**：
+- ✅ 表示命令行的**语法结构**
+- ✅ 处理**运算符优先级**和**嵌套关系**
+- ✅ 提供**类型安全**的表达式树
+- ✅ 支持**序列化和反序列化**（toString/解析）
+
+**解析器职责**：
+- ✅ 将原始字符串**解析**为模型对象
+- ✅ 处理**分词**（tokens）
+- ✅ 识别**引号**、**转义符**、**空格**
+- ✅ 根据**优先级规则**构建表达式树
+
+### 13.2 解析流程
+
+```
+原始命令行字符串
+    ↓
+词法分析（分词）
+    ↓
+语法分析（构建表达式树）
+    ↓
+CommandExpression 对象（模型）
+    ↓
+遍历/转换（CommandVisitor）
+    ↓
+执行器
+```
+
+### 13.3 解析器实现要点
+
+**分词器（Lexer）**：
+```java
+// 需要识别的 token 类型
+enum TokenType {
+    COMMAND,          // 命令名
+    ARGUMENT,         // 参数
+    PIPE,             // 管道 |
+    AND,              // 逻辑与 &&
+    OR,               // 逻辑或 ||
+    SEMICOLON,        // 分号 ;
+    LEFT_PAREN,       // 左圆括号 (
+    RIGHT_PAREN,      // 右圆括号 )
+    LEFT_BRACE,       // 左大括号 {
+    RIGHT_BRACE,      // 右大括号 }
+    BACKGROUND,        // 后台运行 &
+    REDIRECT_OUTPUT,   // 输出重定向 >
+    REDIRECT_APPEND,   // 输出重定向 >>
+    REDIRECT_INPUT,    // 输入重定向 <
+    FD_REDIRECT,       // 文件描述符重定向 (>&, <&)
+    MERGE_REDIRECT,    // 合并重定向 &>
+    ENV_VAR,          // 环境变量名
+    ENV_ASSIGN,        // 环境变量赋值 =
+    QUOTED_SINGLE,    // 单引号字符串
+    QUOTED_DOUBLE     // 双引号字符串
+}
+```
+
+**语法分析器（Parser）**：
+```java
+// 核心解析逻辑示例
+public class BashSyntaxParser {
+    public CommandExpression parse(String commandLine) {
+        List<Token> tokens = tokenize(commandLine);
+        return parseExpression(tokens, 0, Precedence.SEQUENCE);
+    }
+    
+    // 递归下降解析器
+    private CommandExpression parseExpression(List<Token> tokens, int start, Precedence minPrec) {
+        // 1. 解析原子表达式（命令、括号、分组）
+        CommandExpression left = parsePrimary(tokens, start);
+        
+        // 2. 解析后续运算符和表达式
+        while (current < tokens.size()) {
+            Operator op = tryMatchOperator(tokens, current);
+            if (op == null || op.precedence() < minPrec) {
+                break;
+            }
+            
+            // 消耗运算符
+            current++;
+            
+            // 递归解析右侧（高优先级运算符会先处理）
+            CommandExpression right = parseExpression(tokens, current, op.precedence());
+            
+            left = new LogicalExpr(left, op, right);
+        }
+        
+        return left;
+    }
+    
+    private CommandExpression parsePrimary(List<Token> tokens, int start) {
+        Token token = tokens.get(start);
+        
+        switch (token.type()) {
+            case LEFT_PAREN:
+                return parseSubshell(tokens, start);
+            case LEFT_BRACE:
+                return parseGroup(tokens, start);
+            case COMMAND:
+                return parseSimpleCommand(tokens, start);
+            default:
+                throw new SyntaxError("Unexpected token: " + token);
+        }
+    }
+    
+    private SubshellExpr parseSubshell(List<Token> tokens, int start) {
+        // 解析 ( expr ) 并返回 SubshellExpr
+        // 注意：子shell 可以包含重定向
+        List<Redirect> redirects = extractRedirects(tokens);
+        CommandExpression inner = parseExpression(tokens, end, Precedence.SEQUENCE);
+        return new SubshellExpr(inner, redirects);
+    }
+    
+    private GroupExpr parseGroup(List<Token> tokens, int start) {
+        // 解析 { cmds; } 并返回 GroupExpr
+        List<CommandExpression> commands = parseCommandsInBraces(tokens);
+        List<Redirect> redirects = extractRedirects(tokens);
+        return new GroupExpr(commands, redirects);
+    }
+    
+    private PipelineExpr parsePipeline(List<Token> tokens, int start) {
+        // 解析 cmd | cmd | cmd
+        // 注意：| 的优先级高于 && 和 ||
+        List<CommandExpression> commands = new ArrayList<>();
+        
+        while (current < tokens.size() && tokens.get(current).isPipe()) {
+            CommandExpression cmd = parseExpression(tokens, current, Precedence.PIPE);
+            commands.add(cmd);
+            current++;
+        }
+        
+        return new PipelineExpr(commands);
+    }
+}
+```
+
+### 13.4 典型解析场景
+
+**场景1：简单管道**
+```bash
+cmd1 | cmd2 | cmd3
+```
+
+**解析树**：
+```
+PipelineExpr
+├── SimpleCommand("cmd1")
+├── SimpleCommand("cmd2")
+└── SimpleCommand("cmd3")
+```
+
+---
+
+**场景2：嵌套表达式**
+```bash
+(cmd1 && cmd2) | (cmd3 || cmd4)
+```
+
+**解析树**：
+```
+PipelineExpr
+├── SubshellExpr
+│   └── LogicalExpr(AND)
+│       ├── SimpleCommand("cmd1")
+│       └── SimpleCommand("cmd2")
+└── SubshellExpr
+    └── LogicalExpr(OR)
+        ├── SimpleCommand("cmd3")
+        └── SimpleCommand("cmd4")
+```
+
+**解析逻辑**：
+1. 看到 `(` → 进入 `parseSubshell()` 模式
+2. 解析内部 `cmd1 && cmd2`，返回 `LogicalExpr`
+3. 看到 `|` → 由于 `|` 优先级高于 `&&`，管道被识别
+4. 看到 `(` → 进入第二个 `parseSubshell()` 模式
+5. 解析内部 `cmd3 || cmd4`，返回 `LogicalExpr`
+6. 构建 `PipelineExpr`
+
+---
+
+**场景3：分组和重定向**
+```bash
+{ cmd1 > /tmp/out; cmd2 2>&1; } &> /tmp/all.log
+```
+
+**解析树**：
+```
+BackgroundExpr
+└── GroupExpr
+    ├── SimpleCommand("cmd1")
+    │   └── Redirect("> /tmp/out")
+    ├── SimpleCommand("cmd2")
+    │   └── Redirect("2>&1")
+    └── Redirect("&> /tmp/all.log")
+```
+
+---
+
+## 14. 扩展指南
+
+### 14.1 添加新的表达式类型
+
+当需要支持新的 Bash 语法特性时：
+
+**步骤1：定义新的表达式类**
+```java
+/**
+ * 新表达式类型
+ */
+public final class NewExpr implements CommandExpression {
+    private final SomeField field;
+    
+    public NewExpr(SomeField field) {
+        this.field = field;
+    }
+    
+    @Override
+    public String toString() { /* ... */ }
+    
+    @Override
+    public <T> T accept(CommandVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+}
+```
+
+**步骤2：扩展访问者接口**
+```java
+public interface CommandVisitor<T> {
+    T visit(SimpleCommand cmd);
+    T visit(PipelineExpr pipe);
+    T visit(LogicalExpr logical);
+    T visit(GroupExpr group);
+    T visit(SubshellExpr subshell);
+    T visit(BackgroundExpr background);
+    T visit(NewExpr newExpr);  // 新增
+}
+```
+
+**步骤3：更新解析器**
+```java
+// 在解析器中添加对新语法的识别
+private CommandExpression parsePrimary(List<Token> tokens, int start) {
+    Token token = tokens.get(start);
+    
+    switch (token.type()) {
+        // ... 现有case ...
+        case NEW_SYNTAX_TOKEN:
+            return parseNewExpr(tokens, start);
+        // ...
+    }
+}
+```
+
+---
+
+### 14.2 添加新的重定向类型
+
+**步骤1：扩展 Redirect.Type 枚举**
+```java
+public enum Type {
+    OUTPUT(">"), APPEND(">>"), INPUT("<"),
+    FD_OUTPUT(">&"), FD_INPUT("<&"),
+    MERGE("&>"), MERGE_APPEND("&>>"),
+    HERE_DOC("<<"), HERE_STRING("<<<"),
+    NEW_REDIRECT("new");  // 新增
+}
+```
+
+**步骤2：更新工厂方法**
+```java
+public static Redirect newRedirect(String target) {
+    return new Redirect(null, Type.NEW_REDIRECT, target);
+}
+```
+
+---
+
+### 14.3 测试验证
+
+**单元测试框架**：
+```java
+@Test
+public void testComplexNesting() {
+    String input = "(cmd1 && cmd2) || { echo fail; } &";
+    CommandExpression expr = parser.parse(input);
+    
+    // 验证表达式树结构
+    assertTrue(expr instanceof BackgroundExpr);
+    BackgroundExpr bg = (BackgroundExpr) expr;
+    assertTrue(bg.inner() instanceof LogicalExpr);
+    
+    // 验证序列化
+    assertEquals(input, expr.toString());
+}
+
+@Test
+public void testRedirectCombinations() {
+    String input = "cmd > out.txt 2>&1";
+    CommandExpression expr = parser.parse(input);
+    
+    SimpleCommand cmd = (SimpleCommand) expr;
+    assertEquals(2, cmd.redirects().size());
+}
+```
+
+---
+
+## 15. 最佳实践
+
+### 15.1 使用模型对象
+
+**✅ 推荐**：
+```java
+// 使用 CommandFactory 构建复杂表达式
+CommandExpression expr = CommandFactory.sequence(
+    CommandFactory.or(
+        CommandFactory.subshell(
+            CommandFactory.and(
+                CommandFactory.cmd("cmd1"),
+                CommandFactory.cmd("cmd2")
+            )
+        ),
+        CommandFactory.group(
+            CommandFactory.cmd("echo", "fail"),
+            CommandFactory.cmd("exit", "1")
+        )
+    ),
+    CommandFactory.background(
+        CommandFactory.cmd("sleep", "5")
+    )
+);
+```
+
+**❌ 避免**：
+```java
+// 不要混合使用 List<Object> 或字符串拼接
+List<Object> pipeline = new ArrayList<>();
+pipeline.add("cmd1");
+pipeline.add("&&");
+pipeline.add("cmd2");
+// 这种方式丢失类型信息和结构
+```
+
+---
+
+### 15.2 解析器实现
+
+**✅ 推荐**：
+```java
+// 使用递归下降解析器处理优先级
+public CommandExpression parse(String line) {
+    return parseExpression(tokens, 0, Precedence.SEQUENCE);
+}
+
+// 使用枚举表示 token 类型
+enum TokenType { ... }
+
+// 使用 Precedence 枚举管理优先级
+enum Precedence {
+    PIPE(3), AND(2), OR(1), SEQUENCE(0)
+}
+```
+
+**❌ 避免**：
+```java
+// 不要使用线性扫描忽略优先级
+public CommandExpression parse(String line) {
+    List<String> parts = line.split("\\|");
+    // 这种方式无法处理嵌套和优先级
+}
+```
+
+---
+
+### 15.3 模型不可变性
+
+**✅ 推荐**：
+```java
+// 所有字段使用 final 和不可变集合
+public final class SimpleCommand implements CommandExpression {
+    private final List<EnvVar> envVars;
+    private final String command;
+    
+    public SimpleCommand(String command, List<String> args, 
+                          List<EnvVar> envVars) {
+        this.command = command;
+        this.args = List.copyOf(args);      // ✅ 防御性复制
+        this.envVars = List.copyOf(envVars);
+    }
+}
+```
+
+**❌ 避免**：
+```java
+// 不要直接返回可变集合
+public List<String> args() {
+    return args;  // ❌ 外部代码可以修改
+}
+```
+
+---
+
+### 15.4 访问者模式
+
+**✅ 推荐**：
+```java
+// 访问者应该无状态或有明确的生命周期
+class DepthAnalyzer implements CommandVisitor<Integer> {
+    private int maxDepth = 0;
+    private int currentDepth = 0;
+    
+    @Override
+    public Integer visit(SimpleCommand cmd) {
+        return currentDepth;
+    }
+    
+    @Override
+    public Integer visit(PipelineExpr pipe) {
+        currentDepth++;
+        pipe.commands().forEach(cmd -> cmd.accept(this));
+        currentDepth--;
+        return maxDepth;
+    }
+}
+```
+
+**❌ 避免**：
+```java
+// 不要在访问者中修改模型对象
+@Override
+public Integer visit(SimpleCommand cmd) {
+    cmd.args().add("extra");  // ❌ 违背不可变性
+    return 1;
+}
+```
+
+---
+
+## 16. 常见问题和解决方案
+
+### 16.1 优先级混淆
+
+**问题**：`cmd1 | cmd2 && cmd3` 如何解析？
+
+**常见错误**：
+```
+PipelineExpr(
+    cmd1,
+    cmd2 && cmd3    // ❌ 错误：&& 优先级高于 |
+)
+```
+
+**正确解析**：
+```
+LogicalExpr(AND)
+├── PipelineExpr(cmd1, cmd2)
+└── SimpleCommand("cmd3")
+```
+
+**原因**：`|` 的优先级高于 `&&`，因此先形成管道，再与 `cmd3` 逻辑与。
+
+---
+
+### 16.2 括号作用域
+
+**问题**：`{ cmd1 > out; cmd2 2>&1; } &> all.log`
+
+**常见错误**：
+```
+GroupExpr(commands=[cmd1, cmd2])
+BackgroundExpr(inner=group)
+  └── Redirect("&> all.log")  // ❌ 错误：重定向在错误位置
+```
+
+**正确解析**：
+```
+BackgroundExpr(inner=group)
+  └── GroupExpr
+      ├── SimpleCommand(cmd1)
+      │   └── Redirect("> out")
+      ├── SimpleCommand(cmd2)
+      │   └── Redirect("2>&1")
+      └── Redirect("&> all.log")  // ✅ 重定向在分组级别
+```
+
+**原因**：分组可以有自己的重定向，这些重定向适用于整个分组。
+
+---
+
+### 16.3 子shell 环境
+
+**问题**：`(VAR=value cmd1 && cmd2)` 中的 `VAR=value` 是否影响子shell？
+
+**正确理解**：✅ **不**影响外部环境
+
+```bash
+# Bash 行为
+VAR=value (cmd1 && cmd2)  # VAR 只在子shell 中有效
+echo $VAR  # 输出空（外部不可见）
+```
+
+**模型表示**：
+```java
+SimpleCommand cmd1 = SimpleCommand.builder("cmd1")
+    .envVar(EnvVar.local("VAR", "value"))
+    .build();
+
+// ✅ 正确：envVars 绑定到子shell 中的 cmd1
+SubshellExpr subshell(
+    LogicalExpr.and(cmd1, cmd2)
+)
+```
+
+---
+
+## 17. 性能考虑
+
+### 17.1 模型对象创建
+
+**✅ 推荐**：使用 Builder 模式
+```java
+// 一次性构建，避免中间对象
+SimpleCommand cmd = SimpleCommand.builder("cmd")
+    .arg("-l")
+    .arg("-a")
+    .arg("-h")
+    .build();
+```
+
+**❌ 避免**：多次复制
+```java
+List<String> args = new ArrayList<>();
+args.add("-l");
+args.add("-a");
+args.add("-h");
+SimpleCommand cmd = new SimpleCommand("cmd", List.copyOf(args));  // 多次复制
+```
+
+---
+
+### 17.2 访问者遍历
+
+**✅ 推荐**：避免重复遍历
+```java
+// 使用缓存或标记
+class CycleDetector implements CommandVisitor<Boolean> {
+    private Set<CommandExpression> visited = new HashSet<>();
+    
+    @Override
+    public Boolean visit(PipelineExpr pipe) {
+        if (!visited.add(pipe)) {
+            return true;  // 已访问过
+        }
+        
+        for (CommandExpression cmd : pipe.commands()) {
+            if (Boolean.TRUE.equals(cmd.accept(this))) {
+                return true;  // 检测到循环
+            }
+        }
+        
+        visited.remove(pipe);
+        return false;
+    }
+}
+```
+
+---
+
+### 17.3 序列化和反序列化
+
+**✅ 推荐**：确保 round-trip
+```java
+// 测试：解析 → toString → 解析应该得到相同结构
+String original = "cmd1 | cmd2 && cmd3";
+CommandExpression expr1 = parser.parse(original);
+String serialized = expr1.toString();
+CommandExpression expr2 = parser.parse(serialized);
+
+assertEquals(expr1, expr2);  // ✅ 等价
+```
+
+---
+
+## 18. 参考资料
+
+### 18.1 Bash 官方文档
+- [Bash Reference Manual](https://www.gnu.org/software/bash/manual/bash.html)
+- [Bash Shell Syntax](https://www.shellcheck.net/wiki/Shell_syntax)
+
+### 18.2 设计模式参考
+- [访问者模式 (Visitor Pattern)](https://en.wikipedia.org/wiki/Visitor_pattern)
+- [构建器模式 (Builder Pattern)](https://en.wikipedia.org/wiki/Builder_pattern)
+- [组合模式 (Composite Pattern)](https://en.wikipedia.org/wiki/Composite_pattern)
+
+### 18.3 编译器实现参考
+- [LLVM Kaleidoscope](https://github.com/kaleidoscope-llvm/kaleidoscope) - 编译器前端
+- [ANTLR Parser Generator](https://www.antlr.org/) - 解析器生成工具
+- [JavaCC](https://javacc.github.io/javacc/) - 另一个解析器生成工具
