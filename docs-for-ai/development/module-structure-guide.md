@@ -115,14 +115,18 @@ Nop 平台使用 `exec-maven-plugin` 在 Maven 生命周期的不同阶段自动
 ### 3.2 核心代码生成脚本
 
 #### 3.2.1 xxx-codegen/postcompile/gen-orm.xgen
-生成 dao 模块的实体类和 DAO 接口：
+**关键**：统一生成 dao, service, web 等所有模块的代码
 ```xml
 <c:script>
-    codeGenerator.withTargetDir("../{appName}-dao/src/main/java").renderModel(
-        '../../{appName}-dao/src/main/resources/_vfs/nop/{module}/orm/app.orm.xml',
-        '/nop/templates/orm-entity', '/',$scope);
+    // 第一行：根据ORM模型生成整个项目结构（dao, service, web等模块）
+    codeGenerator.withTargetDir("../").renderModel('../../model/nop-auth.orm.xml','/nop/templates/orm', '/',$scope);
+    // 第二行：生成实体类到dao模块
+    codeGenerator.withTargetDir("../nop-auth-dao/src/main/java").renderModel('../../nop-auth-dao/src/main/resources/_vfs/nop/auth/orm/app.orm.xml',
+        '/nop/templates/orm-entity','/',$scope);
 </c:script>
 ```
+
+> **关键点**：`/nop/templates/orm` 模板会生成 dao, service, web 等所有模块的完整代码，包括BizModel、XView等。这是Nop平台代码生成的核心入口。
 
 #### 3.2.2 xxx-meta/precompile/gen-meta.xgen
 根据 ORM 模型生成 XMeta 元数据：
@@ -133,25 +137,15 @@ Nop 平台使用 `exec-maven-plugin` 在 Maven 生命周期的不同阶段自动
 </c:script>
 ```
 
-#### 3.2.3 xxx-meta/postcompile/gen-service.xgen ⭐
-**关键**：生成 service 模块的 BizModel 类和 GraphQL 服务
+#### 3.2.3 xxx-meta/postcompile/gen-i18n.xgen
+生成国际化文件：
 ```xml
 <c:script>
-    codeGenerator.withTargetDir("../{appName}-service/src/main/java").renderModel(
-        '/nop/{module}/model', '/nop/templates/service', '/',$scope);
+    codeGenerator.withTplDir('/nop/templates/i18n').execute("/",{ moduleId: "nop/auth" },$scope);
 </c:script>
 ```
 
-#### 3.2.4 xxx-meta/postcompile/gen-web.xgen ⭐
-**关键**：生成 web 模块的视图文件
-```xml
-<c:script>
-    codeGenerator.withTargetDir("../{appName}-web/src/main/resources").renderModel(
-        '/nop/{module}/model', '/nop/templates/web', '/',$scope);
-</c:script>
-```
-
-> **注意**：xxx-meta 的 `postcompile` 脚本会在执行 `mvn install` 时自动运行，生成 xxx-service 和 xxx-web 模块的代码
+> **注意**：xxx-codegen 的 `postcompile/gen-orm.xgen` 是代码生成的核心，在执行 `mvn install` 时自动运行，生成 dao, service, web 等所有模块的代码。
 
 ## 四、跨模块代码生成机制
 
@@ -161,11 +155,11 @@ Nop 平台的模型驱动开发采用跨模块的代码生成机制：
 
 ```mermaid
 flowchart LR
-    A[<b>xxx-codegen</b><br/>postcompile/gen-orm.xgen] -->|生成| B[<b>xxx-dao</b><br/>实体类/DAO接口]
+    A[<b>xxx-codegen</b><br/>postcompile/gen-orm.xgen<br/>调用/nop/templates/orm] -->|生成| B[<b>xxx-dao</b><br/>实体类/DAO接口]
+    A -->|生成| E[<b>xxx-service</b><br/>BizModel/GraphQL 服务] ⭐
+    A -->|生成| F[<b>xxx-web</b><br/>XView 视图模型] ⭐
     B -->|提供 ORM 模型| C[<b>xxx-meta</b><br/>precompile/gen-meta.xgen]
     C -->|生成| D[<b>xxx-meta</b><br/>XMeta 元数据]
-    C -->|postcompile| E[<b>xxx-service</b><br/>BizModel/GraphQL 服务] ⭐
-    C -->|postcompile| F[<b>xxx-web</b><br/>XView 视图模型] ⭐
     C -->|postcompile| G[i18n 文件]
 
     style A fill:#e1f5fe
@@ -182,10 +176,12 @@ flowchart LR
 | 源模块 | 脚本位置 | 目标模块 | 生成的文件 | 执行时机 |
 |--------|---------|---------|-----------|---------|
 | xxx-codegen | postcompile/gen-orm.xgen | xxx-dao | Entity.java, IEntityDao, EntityDaoImpl | mvn install |
-| xxx-meta | postcompile/gen-service.xgen | xxx-service | BizModel.java, GraphQL Schema | mvn install ⭐ |
-| xxx-meta | postcompile/gen-web.xgen | xxx-web | XView 视图模型, 页面配置 | mvn install ⭐ |
+| xxx-codegen | postcompile/gen-orm.xgen | xxx-service | BizModel.java, GraphQL Schema | mvn install ⭐ |
+| xxx-codegen | postcompile/gen-orm.xgen | xxx-web | XView 视图模型, 页面配置 | mvn install ⭐ |
+| xxx-meta | precompile/gen-meta.xgen | xxx-meta | XMeta 元数据 | mvn install |
+| xxx-meta | postcompile/gen-i18n.xgen | xxx-meta | i18n 文件 | mvn install |
 
-**⭐ 关键**：xxx-meta 执行 `mvn install` 时会自动运行 `postcompile` 目录下的所有脚本，生成 xxx-service 和 xxx-web 模块的代码
+**⭐ 关键**：xxx-codegen 的 `postcompile/gen-orm.xgen` 在执行 `mvn install` 时自动运行，通过 `/nop/templates/orm` 模板同时生成 dao, service, web 等所有模块的代码。
 
 ### 4.3 构建顺序
 
@@ -221,7 +217,7 @@ mvn clean install
 ```
 {appName}/
 ├── {appName}-codegen/                 # 代码生成模块
-│   ├── postcompile/gen-orm.xgen      # 生成 xxx-dao 的代码
+│   └── postcompile/gen-orm.xgen      # 生成 dao, service, web 等所有模块的代码 ⭐
 │   └── pom.xml
 │
 ├── {appName}-dao/                     # DAO 模块
@@ -231,18 +227,15 @@ mvn clean install
 │
 ├── {appName}-meta/                    # 元数据模块 ⭐ 核心
 │   ├── precompile/gen-meta.xgen       # 生成 XMeta 元数据
-│   ├── postcompile/
-│   │   ├── gen-service.xgen           # 生成 xxx-service 的代码 ⭐
-│   │   ├── gen-web.xgen               # 生成 xxx-web 的代码 ⭐
-│   │   └── gen-i18n.xgen
+│   ├── postcompile/gen-i18n.xgen       # 生成 i18n 文件
 │   └── pom.xml
 │
 ├── {appName}-service/                 # 服务模块
-│   ├── src/main/java/io/nop/{module}/service/biz/  # 由 meta 生成 ⭐
+│   ├── src/main/java/io/nop/{module}/service/biz/  # 由 codegen 生成 ⭐
 │   └── pom.xml
 │
 ├── {appName}-web/                     # Web 模块
-│   ├── src/main/resources/_vfs/nop/{module}/pages/   # 由 meta 生成 ⭐
+│   ├── src/main/resources/_vfs/nop/{module}/pages/   # 由 codegen 生成 ⭐
 │   └── pom.xml
 │
 ├── {appName}-app/                      # 应用模块
@@ -253,9 +246,10 @@ mvn clean install
 ```
 
 **关键要点**：
-1. xxx-meta 的 `mvn install` 会触发 `postcompile` 目录下的所有脚本，生成 xxx-service 和 xxx-web 的代码
-2. 修改模型文件后，只需执行 `mvn clean install` 即可重新生成所有代码
-3. 生成的文件可以通过 x:override 控制覆盖策略，手工修改的内容在重新生成时会保留
+1. xxx-codegen 的 `postcompile/gen-orm.xgen` 在执行 `mvn install` 时自动运行，通过 `/nop/templates/orm` 模板同时生成 dao, service, web 等所有模块的代码 ⭐
+2. xxx-meta 模块负责生成 XMeta 元数据和 i18n 文件
+3. 修改模型文件后，只需执行 `mvn clean install` 即可重新生成所有代码
+4. 生成的文件可以通过 x:override 控制覆盖策略，手工修改的内容在重新生成时会保留
 
 ## 五、模块依赖关系
 
@@ -264,9 +258,10 @@ mvn clean install
 | 源模块 | 目标模块 | 依赖说明 |
 |--------|---------|---------|
 | xxx-codegen | xxx-dao | codegen 生成 dao 的代码（测试时依赖） |
+| xxx-codegen | xxx-service | codegen 生成 service 的代码 ⭐ |
+| xxx-codegen | xxx-web | codegen 生成 web 的代码 ⭐ |
 | xxx-dao | xxx-meta | dao 提供 ORM 模型供 meta 生成 XMeta |
-| xxx-meta | xxx-service | meta 的 postcompile 脚本生成 service 的代码 ⭐ |
-| xxx-meta | xxx-web | meta 的 postcompile 脚本生成 web 的代码 ⭐ |
+| xxx-meta | - | 生成 XMeta 元数据和 i18n 文件 |
 | xxx-service | xxx-app | service 提供 GraphQL 服务 |
 | xxx-web | xxx-app | web 提供页面和视图 |
 
