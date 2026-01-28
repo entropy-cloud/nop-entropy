@@ -44,20 +44,16 @@ XDef模型应该与最终生成的XML结构同构，只是用类型信息替换�
 
 ### 正确语法模式
 
-#### 1. 元素内容类型定义（正确）
+#### 1. 简单属性定义（使用 Attribute）
 ```xml
 <!-- XDef定义 -->
-<user>
-    <name>string</name>
-    <age>integer</age>
-    <active>boolean</active>
+<user name="string" age="integer" active="boolean">
+    <description>text</description>
 </user>
 
 <!-- 最终生成的XML -->
-<user>
-    <name>张三</name>
-    <age>25</age>
-    <active>true</active>
+<user name="张三" age="25" active="true">
+    <description>用户描述</description>
 </user>
 ```
 

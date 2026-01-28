@@ -455,7 +455,6 @@ public MyEntity mySave(@Name("data") Map<String, Object> data, IServiceContext c
 - [服务层开发指南](../service/service-layer-development.md) - BizModel开发详解
 - [IEntityDao使用指南](../dao/entitydao-usage.md) - 数据访问接口详解
 - [GraphQL服务开发指南](../api/graphql-guide.md) - GraphQL API开发
-- [数据库模型设计](../dao/database-model-design.md) - 数据库模型设计指南
 
 ## 总结
 

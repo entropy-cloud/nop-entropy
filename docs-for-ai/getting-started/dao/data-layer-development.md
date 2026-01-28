@@ -218,7 +218,6 @@ public class UserBizModel extends CrudBizModel<User> {
     
     // 使用IJdbcTemplate进行批量操作
     @BizMutation
-    @Transactional
     public void batchUpdateUserStatus(List<String> userIds, int status) {
         jdbcTemplate.batchUpdate(
             "UPDATE user SET status = ? WHERE id = ?",

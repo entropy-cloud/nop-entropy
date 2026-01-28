@@ -22,7 +22,6 @@ Nop平台是基于可逆计算原理的下一代低代码开发平台，支持De
 - [错误码定义](./common/error-code.md) - ErrorCode规范
 
 ### 模型和代码生成
-- [数据库模型设计](./dao/database-model-design.md) - ORM模型设计
 - [API模型设计](./api/api-model-design.md) - GraphQL API设计
 - [项目结构与代码生成](../../development/module-structure-guide.md) - ⭐ 标准项目结构
 

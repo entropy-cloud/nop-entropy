@@ -34,7 +34,7 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 
 #### 代码生成（新增）
 - **[差量化软件生产线](./getting-started/codegen/codegen-concepts.md)** - 差量化代码生成机制
-- **[跨模块代码生成](./getting-started/codegen/cross-module-codegen.md)** - ⭐ 构建顺序和执行时机
+- **[全栈代码生成](./getting-started/codegen/full-stack-codegen.md)** - ⭐ 构建顺序和执行时机
 
 #### 开发流程（新增）
 - **[完整开发流程](./getting-started/workflow/full-workflow.md)** - 端到端流程
@@ -51,7 +51,6 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 - **[FilterBeans使用指南](./getting-started/dao/filterbeans-guide.md)** - ⭐ 过滤条件详解
 - **[数据层开发](./getting-started/dao/data-layer-development.md)** - 数据层开发指南
 - **[数据处理指南](./getting-started/dao/data-processing.md)** - 数据处理指南
-- **[数据库模型设计](./getting-started/dao/database-model-design.md)** - 数据库模型设计
 
 #### 服务层 (Service)
 - **[服务层开发指南](./getting-started/service/service-layer-development.md)** - ⭐ 服务层开发详解

@@ -473,7 +473,6 @@ FilterBeans.notNull("deletedAt");
 - [服务层开发指南](../service/service-layer-development.md) - BizModel开发详解
 - [GraphQL服务开发指南](../api/graphql-guide.md) - GraphQL API开发
 - [数据处理指南](./data-processing.md) - 数据处理指南
-- [数据库模型设计](./database-model-design.md) - 数据库模型设计
 
 ## 总结
 

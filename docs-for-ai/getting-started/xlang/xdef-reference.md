@@ -14,6 +14,17 @@ XDef是Nop平台的核心元模型语言，用于定义实体模型、关系模�
 - SQL建表语句
 - 各种配置文件
 
+## ⚠️ 重要：语法区分
+
+**通用 XDef 语法**：简单属性使用 Attribute，列表和对象使用子节点
+- ✅ `<user name="string" age="integer"/>`
+- ❌ `<user><name>string</name></user>`
+
+**特定领域语法**（如 ORM）：使用领域特定的 Attribute
+- ✅ `<column name="userId" stdSqlType="varchar" length="32"/>`
+
+**本文档描述的是 ORM 等特定领域的语法**，如需通用 XDef 语法，请参考 [xdef-core-concepts.md](./xdef-core-concepts.md)
+
 ## 核心概念
 
 ### 1. 实体模型（Entity Model）
@@ -342,7 +353,6 @@ XDef支持自定义命名策略：
 
 ## 相关文档
 
-- [数据库模型设计](../dao/database-model-design.md)
 - [ORM架构](../../architecture/backend/orm-architecture.md)
 
 ## 总结

@@ -112,7 +112,7 @@ cd xxx-service && mvn clean install
 ## 相关文档
 
 - [代码生成概念](../codegen/codegen-concepts.md)
-- [跨模块代码生成](../codegen/cross-module-codegen.md)
+- [全栈代码生成](../codegen/full-stack-codegen.md)
 - [Delta定制基础](../delta/delta-basics.md)
 
 ---
