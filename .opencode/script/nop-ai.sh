@@ -8,6 +8,18 @@
 # 1. Modify the EXEC_CMD variable below
 # 2. No need to change calling scripts (nop-run-variant, etc.)
 
+# Check for --help
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    echo "Usage: nop-ai run <prompt>"
+    echo ""
+    echo "Options:"
+    echo "  --help, -h    Show this help message"
+    echo ""
+    echo "Example:"
+    echo "  nop-ai run \"Implement user login feature\""
+    exit 0
+fi
+
 # The underlying AI command to execute
 EXEC_CMD="opencode"
 

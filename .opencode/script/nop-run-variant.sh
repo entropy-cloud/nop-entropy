@@ -15,6 +15,24 @@
 # Note: This script works regardless of current working directory.
 #       It determines the project root from the script's location.
 
+# Check for --help
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    echo "Usage: nop-run-variant.sh [feature_name] \"<prompt>\""
+    echo ""
+    echo "Options:"
+    echo "  --help, -h     Show this help message"
+    echo ""
+    echo "This script:"
+    echo "  1. Creates a worktree with specified or auto-generated name"
+    echo "  2. Changes to the worktree directory"
+    echo "  3. Executes nop-ai run with the provided prompt"
+    echo ""
+    echo "Examples:"
+    echo "  nop-run-variant.sh \"Implement user login feature\""
+    echo "  nop-run-variant.sh feat-login \"Implement user login with 2FA\""
+    exit 0
+fi
+
 set -e
 
 # Color codes for output

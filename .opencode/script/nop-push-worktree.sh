@@ -21,6 +21,30 @@
 # Note: This script works regardless of current working directory.
 #       It determines the project root from the current directory.
 
+# Check for --help
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    echo "Usage: nop-push-worktree.sh <worktree_path_or_name>"
+    echo ""
+    echo "Options:"
+    echo "  --help, -h     Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  nop-push-worktree.sh /path/to/worktrees/feat-user      # Full path"
+    echo "  nop-push-worktree.sh feat-user                           # Worktree name"
+    echo "  nop-push-worktree.sh ../worktrees/feat-user              # Relative path"
+    echo ""
+    echo "This script:"
+    echo "  1. Reads temporary branch name from .worktree-branch file"
+    echo "  2. Reads base branch name from .worktree-base file"
+    echo "  3. Stages and commits changes in worktree"
+    echo "  4. Switches to base branch in main repository"
+    echo "  5. Merges temporary branch into base branch"
+    echo "  6. Pushes base branch to remote"
+    echo "  7. Deletes temporary branch"
+    echo "  8. Removes worktree"
+    exit 0
+fi
+
 set -e
 
 # Color codes for output

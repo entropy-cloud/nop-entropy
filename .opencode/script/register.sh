@@ -194,6 +194,10 @@ register_commands() {
             continue
         fi
 
+        # Make the original script executable
+        chmod +x "$script_path"
+        log_debug "Made executable: $script_path"
+
         # Remove existing link or file
         if [ -L "$link_path" ]; then
             log_info "Updating existing link: $cmd"

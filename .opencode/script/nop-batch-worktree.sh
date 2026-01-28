@@ -12,6 +12,29 @@
 #   >>> another-feature <<<
 #   argument-1
 
+# Check for --help
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    echo "Usage: nop-batch-worktree.sh <input-file>"
+    echo "Usage (validate only): nop-batch-worktree.sh -c <input-file>"
+    echo ""
+    echo "Options:"
+    echo "  -c, --check    Validate input file format only (no execution)"
+    echo "  --help, -h     Show this help message"
+    echo ""
+    echo "Input file format:"
+    echo "  >>> feature-name [base-branch] <<<"
+    echo "  argument-1"
+    echo "  argument-2"
+    echo ""
+    echo "  >>> another-feature <<<"
+    echo "  argument-1"
+    echo ""
+    echo "Examples:"
+    echo "  nop-batch-worktree.sh tasks.txt"
+    echo "  nop-batch-worktree.sh -c tasks.txt"
+    exit 0
+fi
+
 # Function to find project root by looking for .git directory
 find_project_root() {
     local current_dir="$(pwd)"

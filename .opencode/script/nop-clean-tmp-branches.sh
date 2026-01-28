@@ -14,6 +14,26 @@
 # Note: This script works regardless of current working directory.
 #       It determines the project root from the current directory.
 
+# Check for --help
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    echo "Usage: nop-clean-tmp-branches.sh [--force]"
+    echo ""
+    echo "Options:"
+    echo "  --force, -f    Skip confirmation and proceed with cleanup"
+    echo "  --help, -h     Show this help message"
+    echo ""
+    echo "This script:"
+    echo "  1. Finds all branches starting with TMP-"
+    echo "  2. Removes worktrees associated with those branches"
+    echo "  3. Deletes branches"
+    echo ""
+    echo "Examples:"
+    echo "  nop-clean-tmp-branches.sh"
+    echo "  nop-clean-tmp-branches.sh --force"
+    echo "  nop-clean-tmp-branches.sh -f"
+    exit 0
+fi
+
 set -e
 
 # Color codes for output

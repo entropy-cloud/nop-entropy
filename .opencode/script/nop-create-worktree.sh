@@ -18,6 +18,27 @@
 # Note: This script works regardless of current working directory.
 #       It determines the project root from the current directory.
 
+# Check for --help
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    echo "Usage: nop-create-worktree.sh [feature_name] [base_branch]"
+    echo ""
+    echo "Options:"
+    echo "  --help, -h     Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  nop-create-worktree.sh                    # Auto-generate name"
+    echo "  nop-create-worktree.sh feat-user          # Specified name"
+    echo "  nop-create-worktree.sh feat-user main     # Specified name and base branch"
+    echo ""
+    echo "This script:"
+    echo "  1. Creates a worktree in ../worktrees/ directory (parallel to project)"
+    echo "  2. Creates a temporary branch based on timestamp or specified name"
+    echo "  3. The branch is created from current local base_branch (no fetch needed)"
+    echo "  4. The branch is local only (not pushed to remote)"
+    echo "  5. Branch name is stored in .worktree-branch file for later identification"
+    exit 0
+fi
+
 set -e
 
 # Color codes for output

@@ -10,6 +10,26 @@
 # 4. Call nop-ai run to generate configuration
 # 5. Execute nop-batch-worktree with generated file
 
+# Check for --help
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    echo "Usage: nop-run-multi-variants.sh \"<user-requirement>\""
+    echo ""
+    echo "Options:"
+    echo "  --help, -h     Show this help message"
+    echo ""
+    echo "This script can be called from any directory and will:"
+    echo "  1. Locate project root directory containing .opencode/script/"
+    echo "  2. Find or create ai-tasks/ directory in project root"
+    echo "  3. Generate random filename and create output file"
+    echo "  4. Call nop-ai run to generate configuration"
+    echo "  5. Execute nop-batch-worktree with generated file"
+    echo ""
+    echo "Examples:"
+    echo "  nop-run-multi-variants.sh \"Create a user login feature\""
+    echo "  nop-run-multi-variants.sh \"Implement image upload, generate 5 solutions\""
+    exit 0
+fi
+
 # Function to log debug messages
 log_debug() {
     echo "[DEBUG] $1" >&2
