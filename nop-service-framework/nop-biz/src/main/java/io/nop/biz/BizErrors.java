@@ -139,6 +139,8 @@ public interface BizErrors {
 
     ErrorCode ERR_BIZ_EMPTY_DATA_FOR_UPDATE = define("nop.err.biz.empty-data-for-update", "修改操作的data参数不能为空");
 
+    ErrorCode ERR_BIZ_NO_ENTITY_ID = define("nop.err.biz.no-entity-id","id参数不允许为空");
+
     ErrorCode ERR_BIZ_OBJECT_NOT_SUPPORT_ACTION = define("nop.err.biz.object-not-support-action",
             "业务对象[{bizObjName}]不支持函数[{actionName}]", ARG_BIZ_OBJ_NAME, ARG_ACTION_NAME);
 

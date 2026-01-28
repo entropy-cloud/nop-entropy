@@ -133,6 +133,7 @@ import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOW_DELETE_ENTITY_WHEN_REF_EXIS
 import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOW_DELETE_PARENT_WHEN_CHILDREN_IS_NOT_EMPTY;
 import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOW_GET_DELETED;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_BIZ_MODEL_ANNOTATION;
+import static io.nop.biz.BizErrors.ERR_BIZ_NO_ENTITY_ID;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_MANDATORY_PARAM;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_STATE_MACHINE;
 import static io.nop.biz.BizErrors.ERR_BIZ_OBJ_NO_DICT_TAG;
@@ -776,6 +777,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
             throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_UPDATE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
 
         EntityData<T> entityData = buildEntityDataForUpdate(data, inputSelection, context);
+        if (entityData.getEntity() == null)
+            throw new NopException(ERR_BIZ_NO_ENTITY_ID).param(ARG_BIZ_OBJ_NAME, getBizObjName());
 
         crudToolProvider.newOrmEntityCopier(entityData.getObjMeta()).copyToEntity(entityData.getValidatedData(),
                 entityData.getEntity(), null, entityData.getObjMeta(), getBizObjName(),
@@ -790,6 +793,16 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         doUpdateEntity(entityData, context);
 
         return entityData.getEntity();
+    }
+
+    /**
+     * 将json对象中的属性逐一拷贝到实体上，支持复杂的关联子集合对象的拷贝。并且会自动处理xmeta文件中定义的autoExpr。
+     * autoExpr是根据action是save还是update来确定是否自动执行的计算表达式，比如配置orderNo的autoExpr，可以使得保存的时候自动分配订单号。
+     */
+    protected void copyToEntity(Map<String, Object> data, T entity, String action, IServiceContext context) {
+        IObjMeta objMeta = this.getThisObj().requireObjMeta();
+        crudToolProvider.newOrmEntityCopier(objMeta).copyToEntity(data,
+                entity, null, objMeta, getBizObjName(), action, context.getEvalScope());
     }
 
     @BizAction
@@ -843,6 +856,9 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (entity == null || entity.orm_state().isMissing()) {
             if (ignoreUnknown)
                 return null;
+            if (StringHelper.isEmpty(id))
+                throw new NopException(ERR_BIZ_NO_ENTITY_ID).param(ARG_BIZ_OBJ_NAME, getBizObjName());
+
             throw new UnknownEntityException(dao.getEntityName(), id);
         }
         return entity;
@@ -863,7 +879,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         // id不允许被更新
         validated.remove(OrmConstants.PROP_ID);
 
-        T entity = requireEntity(ConvertHelper.toString(id), BizConstants.METHOD_UPDATE, context);
+        T entity = StringHelper.isEmpty(id) ? null : requireEntity(ConvertHelper.toString(id), BizConstants.METHOD_UPDATE, context);
 
         return new EntityData<>(data, validated, entity, objMeta);
     }
