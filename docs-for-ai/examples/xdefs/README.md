@@ -77,8 +77,6 @@ xdefs/
 ## 相关文档
 
 - [XDef核心概念](../../getting-started/xlang/xdef-core-concepts.md)
-- [XDef模型设计指南](../../getting-started/xlang/xdef-model-design.md)
-- [XDef参考文档](../../getting-started/xlang/xdef-reference.md)
 
 ## 贡献指南
 

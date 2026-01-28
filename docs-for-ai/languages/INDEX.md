@@ -10,11 +10,9 @@
 - [XLang编程指南](../getting-started/xlang/xlang-guide.md) - XLang语言完整指南
 - [XDef核心概念](../getting-started/xlang/xdef-core-concepts.md) - XDef核心概念速查
 - [XDSL与Delta合并](../getting-started/xlang/xdsl-delta.md) - ⭐ XDSL文件格式、Delta合并、x:override/x:extends/x:gen-extends/x:post-extends
-- [XDef元模型参考文档](../getting-started/xlang/xdef-reference.md) - XDef元模型参考
 - [XPL模板语言](../getting-started/xlang/xpl.md) - XPL模板语言语法
 - [XScript脚本语言](../getting-started/xlang/xscript.md) - XScript脚本语言语法
 - [元编程指南](../getting-started/xlang/meta-programming-guide.md) - 元编程
-- [XDef模型设计](../getting-started/xlang/xdef-model-design.md) - XDef元模型设计
 
 ### XDSL概念
 
@@ -35,7 +33,6 @@
 ## 快速链接
 
 - [元编程指南](../getting-started/xlang/meta-programming-guide.md)
-- [XDef模型设计](../getting-started/xlang/xdef-model-design.md)
 - [快速参考](../quick-reference/)
 
 ## 状态

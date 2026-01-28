@@ -344,7 +344,7 @@ xdef文件定义了模型的语法规则，包括：
 - [前台开发指南](./frontend-development.md) - AMIS框架使用
 - [GraphQL服务开发指南](../api/graphql-guide.md) - GraphQL API开发
 - [API模型设计](../api/api-model-design.md) - API模型设计指南
-- [XDef模型设计](../xlang/xdef-model-design.md) - XDef元模型设计
+- [XDef核心概念](../xlang/xdef-core-concepts.md) - XDef语法与模型
 
 ## 总结
 

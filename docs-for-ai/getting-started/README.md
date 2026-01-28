@@ -26,6 +26,7 @@ Nop平台是基于可逆计算原理的下一代低代码开发平台，支持De
 - [项目结构与代码生成](../../development/module-structure-guide.md) - ⭐ 标准项目结构
 
 ### XLang语言
+- [XDef核心概念](./xlang/xdef-core-concepts.md) - ⭐ XDef语法与模型
 - [XDSL与Delta](./xlang/xdsl-delta.md) - ⭐ Delta合并机制
 - [元编程指南](./xlang/meta-programming-guide.md)
 - [XLang编程](./xlang/xlang-guide.md)

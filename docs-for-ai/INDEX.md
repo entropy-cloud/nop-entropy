@@ -85,8 +85,8 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 - **[问题诊断和调试指南](./getting-started/test/nop-debug-and-diagnosis-guide.md)** - 调试诊断
 
 #### XLang语言
+- **[XDef核心概念](./getting-started/xlang/xdef-core-concepts.md)** - ⭐ XDef语法与模型
 - **[元编程指南](./getting-started/xlang/meta-programming-guide.md)** - 元编程
-- **[XDef模型设计](./getting-started/xlang/xdef-model-design.md)** - XDef元模型设计
 - **[XLang编程指南](./getting-started/xlang/xlang-guide.md)** - XLang语言编程
 
 #### 通用规范
