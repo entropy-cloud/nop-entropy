@@ -879,7 +879,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         // id不允许被更新
         validated.remove(OrmConstants.PROP_ID);
 
-        T entity = StringHelper.isEmpty(id) ? null : requireEntity(ConvertHelper.toString(id), BizConstants.METHOD_UPDATE, context);
+        T entity = StringHelper.isEmptyObject(id) ? null : requireEntity(ConvertHelper.toString(id), BizConstants.METHOD_UPDATE, context);
 
         return new EntityData<>(data, validated, entity, objMeta);
     }
