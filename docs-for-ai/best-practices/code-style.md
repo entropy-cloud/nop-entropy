@@ -42,8 +42,8 @@
 
 ## 相关文档
 
-- [Checkstyle配置](../../checkstyle.xml)
-- [开发规范](../../AGENTS.md)
+- [Checkstyle配置](../development/code-style-config.md) - 代码风格检查配置
+- [开发规范](../development/dev-standards.md) - 开发规范和最佳实践
 - [异常处理指南](../getting-started/core/exception-guide.md)
 - [服务层开发指南](../getting-started/service/service-layer-development.md)
 

@@ -2,7 +2,7 @@
 
 ## 概述
 
-Nop平台是基于可逆计算原理的下一代低代码开发平台，支持Delta定制和XLang元编程。详见[平台概述](../../INDEX.md)
+Nop平台是基于可逆计算原理的下一代低代码开发平台，支持Delta定制和XLang元编程。详见[平台概述](../core-concepts.md)
 
 ## 快速导航
 
@@ -23,7 +23,7 @@ Nop平台是基于可逆计算原理的下一代低代码开发平台，支持De
 
 ### 模型和代码生成
 - [API模型设计](./api/api-model-design.md) - GraphQL API设计
-- [项目结构与代码生成](../../development/module-structure-guide.md) - ⭐ 标准项目结构
+- [项目结构与代码生成](../development/module-structure-guide.md) - ⭐ 标准项目结构
 
 ### XLang语言
 - [XDef核心概念](./xlang/xdef-core-concepts.md) - ⭐ XDef语法与模型

@@ -724,6 +724,136 @@ mutation RegisterUser {
 }
 ```
 
+### 2. 使用DataLoader的复杂关联查询场景
+
+```graphql
+# 复杂关联查询 - 使用DataLoader优化性能
+query GetUserDashboard {
+  DemoUser {
+    findUsers(pageNo: 1, pageSize: 10) {
+      items {
+        userId
+        userName
+        email
+        # 关联角色信息 - DataLoader批量加载
+        roles {
+          roleId
+          roleName
+          # 角色权限 - 嵌套DataLoader
+          permissions {
+            permId
+            permName
+            resource
+          }
+        }
+        # 用户统计信息 - DataLoader扩展字段
+        statistics {
+          orderCount
+          totalAmount
+          lastLoginTime
+        }
+        # 显示名称 - DataLoader计算字段
+        displayName
+        # 状态描述 - DataLoader转换字段
+        statusText
+      }
+    }
+  }
+}
+```
+
+**Java实现 - 复杂DataLoader场景**:
+
+```java
+@BizModel("DemoUser")
+public class DemoUserBizModel extends CrudBizModel<DemoUser> {
+    
+    // 批量加载用户角色
+    @BizLoader(forType = DemoUser.class)
+    public Map<DemoUser, List<DemoRole>> batchLoadRoles(List<DemoUser> users) {
+        List<String> userIds = users.stream()
+            .map(DemoUser::getUserId)
+            .collect(Collectors.toList());
+        
+        List<DemoRole> roles = roleDao().findByUserIds(userIds);
+        Map<String, List<DemoRole>> rolesByUserId = roles.stream()
+            .collect(Collectors.groupingBy(DemoRole::getUserId));
+        
+        Map<DemoUser, List<DemoRole>> result = new HashMap<>();
+        for (DemoUser user : users) {
+            result.put(user, rolesByUserId.getOrDefault(user.getUserId(), Collections.emptyList()));
+        }
+        return result;
+    }
+    
+    // 批量加载用户统计信息
+    @BizLoader(forType = DemoUser.class)
+    public Map<DemoUser, UserStatistics> batchLoadStatistics(List<DemoUser> users) {
+        List<String> userIds = users.stream()
+            .map(DemoUser::getUserId)
+            .collect(Collectors.toList());
+        
+        // 批量查询统计信息
+        Map<String, UserStatistics> statsMap = statisticsService.batchGetUserStatistics(userIds);
+        
+        Map<DemoUser, UserStatistics> result = new HashMap<>();
+        for (DemoUser user : users) {
+            result.put(user, statsMap.getOrDefault(user.getUserId(), new UserStatistics()));
+        }
+        return result;
+    }
+    
+    // 批量加载显示名称
+    @BizLoader(forType = DemoUser.class)
+    public Map<DemoUser, String> batchLoadDisplayNames(List<DemoUser> users) {
+        Map<DemoUser, String> result = new HashMap<>();
+        for (DemoUser user : users) {
+            result.put(user, user.getUserName() + "(" + user.getEmail() + ")");
+        }
+        return result;
+    }
+    
+    // 批量加载状态描述
+    @BizLoader(forType = DemoUser.class)
+    public Map<DemoUser, String> batchLoadStatusTexts(List<DemoUser> users) {
+        Map<DemoUser, String> result = new HashMap<>();
+        for (DemoUser user : users) {
+            String statusText = switch (user.getStatus()) {
+                case 1 -> "正常";
+                case 0 -> "禁用";
+                case -1 -> "删除";
+                default -> "未知";
+            };
+            result.put(user, statusText);
+        }
+        return result;
+    }
+}
+
+// 角色模型中的权限DataLoader
+@BizModel("DemoRole")
+public class DemoRoleBizModel extends CrudBizModel<DemoRole> {
+    
+    // 批量加载角色权限
+    @BizLoader(forType = DemoRole.class)
+    public Map<DemoRole, List<DemoPermission>> batchLoadPermissions(List<DemoRole> roles) {
+        List<String> roleIds = roles.stream()
+            .map(DemoRole::getRoleId)
+            .collect(Collectors.toList());
+        
+        List<DemoPermission> permissions = permissionDao().findByRoleIds(roleIds);
+        Map<String, List<DemoPermission>> permsByRoleId = permissions.stream()
+            .collect(Collectors.groupingBy(DemoPermission::getRoleId));
+        
+        Map<DemoRole, List<DemoPermission>> result = new HashMap<>();
+        for (DemoRole role : roles) {
+            result.put(role, permsByRoleId.getOrDefault(role.getRoleId(), Collections.emptyList()));
+        }
+        return result;
+    }
+}
+```
+
 ### 2. 订单创建流程
 
 ```graphql
@@ -831,7 +961,119 @@ query BatchGetUsers {
 }
 ```
 
-### 3. 限制返回数量
+### 3. DataLoader机制解决N+1查询问题
+
+GraphQL查询中常见的N+1查询问题可以通过@BizLoader注解和DataLoader机制解决：
+
+```graphql
+# 查询用户及其角色信息
+query GetUsersWithRoles {
+  DemoUser {
+    findUsers(pageNo: 1, pageSize: 10) {
+      items {
+        userId
+        userName
+        email
+        # 关联角色信息 - 使用DataLoader避免N+1查询
+        roles {
+          roleId
+          roleName
+        }
+        # 扩展字段 - 使用DataLoader动态计算
+        displayName
+      }
+    }
+  }
+}
+```
+
+**Java实现 - DataLoader模式**:
+
+```java
+// 在业务模型中定义DataLoader方法
+@BizModel("DemoUser")
+public class DemoUserBizModel extends CrudBizModel<DemoUser> {
+    
+    // 单个用户角色加载
+    @BizLoader(forType = DemoUser.class)
+    public List<DemoRole> loadRoles(DemoUser user) {
+        return user.getRoles();
+    }
+    
+    // 批量用户角色加载 - 解决N+1查询问题
+    @BizLoader(forType = DemoUser.class)
+    public Map<DemoUser, List<DemoRole>> batchLoadRoles(List<DemoUser> users) {
+        List<String> userIds = users.stream()
+            .map(DemoUser::getUserId)
+            .collect(Collectors.toList());
+        
+        // 批量查询用户角色
+        List<DemoRole> roles = roleDao().findByUserIds(userIds);
+        
+        // 按用户分组
+        Map<String, List<DemoRole>> rolesByUserId = roles.stream()
+            .collect(Collectors.groupingBy(DemoRole::getUserId));
+        
+        // 构建返回结果
+        Map<DemoUser, List<DemoRole>> result = new HashMap<>();
+        for (DemoUser user : users) {
+            result.put(user, rolesByUserId.getOrDefault(user.getUserId(), Collections.emptyList()));
+        }
+        
+        return result;
+    }
+    
+    // 扩展字段 - 显示名称
+    @BizLoader(forType = DemoUser.class)
+    public String loadDisplayName(DemoUser user) {
+        return user.getUserName() + "(" + user.getEmail() + ")";
+    }
+    
+    // 批量扩展字段
+    @BizLoader(forType = DemoUser.class)
+    public Map<DemoUser, String> batchLoadDisplayNames(List<DemoUser> users) {
+        Map<DemoUser, String> result = new HashMap<>();
+        for (DemoUser user : users) {
+            result.put(user, user.getUserName() + "(" + user.getEmail() + ")");
+        }
+        return result;
+    }
+}
+```
+
+### 4. 查询优化最佳实践
+
+```graphql
+# 优化后的查询示例
+query OptimizedUserQuery {
+  DemoUser {
+    findUsers(
+      pageNo: 1
+      pageSize: 20
+      # 使用过滤条件减少数据量
+      status: 1
+      # 只查询需要的字段
+      fields: ["userId", "userName", "email"]
+    ) {
+      items {
+        userId
+        userName
+        email
+        # 关联数据使用DataLoader
+        roles {
+          roleId
+          roleName
+        }
+        # 扩展字段
+        displayName
+      }
+      totalCount
+    }
+  }
+}
+```
+
+### 5. 限制返回数量
 
 ```graphql
 query {

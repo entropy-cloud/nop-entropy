@@ -7,6 +7,8 @@
 1. 使用 `NopException` + ErrorCode 表达业务错误；不要硬编码错误文本。
 2. 用 `.param(k, v)` 传递上下文参数（i18n/展示友好）。
 3. 用 `.cause(e)` 保留底层异常链。
+4. 支持链式参数设置：`.param("key1", "value1").param("key2", "value2")`
+5. 支持批量参数设置：`.params(Map.of("key1", "value1", "key2", "value2"))`
 
 ## 权威入口
 
@@ -14,6 +16,60 @@
 - `docs-for-ai/getting-started/nop-vs-traditional-frameworks.md`
 - `docs-for-ai/best-practices/INDEX.md`
 s
+
+## NopException 使用示例
+
+### 基础用法
+```java
+// 基本异常抛出
+throw new NopException(ERR_USER_NOT_FOUND)
+    .param("userId", userId);
+
+// 链式参数设置
+throw new NopException(ERR_VALIDATION_FAILED)
+    .param("field", "userName")
+    .param("value", userName)
+    .param("rule", "长度必须在3-20之间");
+
+// 批量参数设置
+Map<String, Object> params = Map.of(
+    "userId", userId,
+    "userName", userName,
+    "operation", "delete"
+);
+throw new NopException(ERR_OPERATION_DENIED)
+    .params(params)
+    .cause(originalException);
+```
+
+### 实际业务场景示例
+```java
+@BizMutation
+@Transactional
+public DemoUser updateUser(@Name("user") DemoUser user) {
+    if (StringHelper.isEmpty(user.getUserId())) {
+        throw new NopException(ERR_USER_ID_REQUIRED)
+            .param("operation", "updateUser");
+    }
+
+    DemoUser existing = dao().findEntityById(user.getUserId());
+    if (existing == null) {
+        throw new NopException(ERR_USER_NOT_FOUND)
+            .param("userId", user.getUserId())
+            .param("operation", "update");
+    }
+
+    // 业务验证
+    if (StringHelper.isNotEmpty(user.getEmail()) && 
+        !isValidEmail(user.getEmail())) {
+        throw new NopException(ERR_INVALID_EMAIL)
+            .param("email", user.getEmail())
+            .param("userId", user.getUserId());
+    }
+
+    return dao().updateEntity(user);
+}
+```
 
 ## 常见错误处理问题
 

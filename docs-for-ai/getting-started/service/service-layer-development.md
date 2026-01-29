@@ -43,6 +43,7 @@ public class UserBizModel {
 - 事务管理支持
 - 数据权限控制
 - 业务扩展点
+- **框架中立**：不依赖特定框架，可运行在Spring/Quarkus/Solon等多种底层框架之上
 
 **内置方法**：
 - `findCount()`：查询记录总数
@@ -137,6 +138,114 @@ protected void defaultPrepareSave(User user) {
 }
 ```
 
+
+## 服务扩展机制
+
+### 1. 通过@BizLoader扩展返回结果
+
+**场景**：在不修改原有服务函数代码的情况下，为返回结果对象增加额外的字段
+
+**实现方式**：
+```java
+@BizModel("LoginApi")
+public class LoginApiBizModelDelta {
+    @BizLoader(autoCreateField = true, forType = LoginResult.class)
+    @LazyLoad
+    public String location(@ContextSource LoginResult result,
+                           IServiceContext context) {
+        return "loc:" + result.getUserInfo().getUserId();
+    }
+}
+```
+
+**关键特性**：
+- 无需从原有BizModel类继承
+- `autoCreateField=true`：自动为对外暴露的类型增加字段
+- `@LazyLoad`：延迟加载，前台明确请求时才返回，确保接口兼容性
+- 完全不修改原有服务函数代码
+
+### 2. 扩展输入请求对象
+
+**场景**：修改服务函数的输入参数，增加更多请求信息
+
+**实现方式**：
+```java
+@BizModel("LoginApi")
+public class LoginApiBizModelDelta {
+    @Inject
+    LoginApiBizModel loginApiBizModel;
+
+    @BizMutation("login")
+    @Auth(publicAccess = true)
+    @Priority(NORMAL_PRIORITY - 100)
+    public CompletionStage<LoginResult> loginAsync(
+        @RequestBean LoginRequestEx request, IServiceContext context) {
+        request.setAttr("a","123");
+        return loginApiBizModel.loginAsync(request, context);
+    }
+}
+```
+
+**关键特性**：
+- 通过`@Inject`引入原有服务实现
+- 通过`@Priority`注解控制函数优先级（值越小优先级越高）
+- 多个同名函数会根据优先级选择实现
+- 同名函数优先级相同时会抛出异常
+
+### 3. 通过XBiz模型实现扩展
+
+**场景**：通过配置文件实现服务函数，支持无代码开发
+
+**实现方式**：
+```xml
+<!-- /_delta/default/nop/auth/model/LoginApi/LoginApi.xbiz -->
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     x:extends="super" xmlns:bo="bo" xmlns:c="c">
+
+    <actions>
+        <query name="myMethod" >
+            <arg name="msg" type="String" optional="true" />
+            <return type="String" />
+            <source>
+                return "hello:" + msg;
+            </source>
+        </query>
+    </actions>
+</biz>
+```
+
+**关键特性**：
+- xbiz文件路径：`/{moduleId}/model/{bizObjName}/{bizObjName}.xbiz`
+- XBiz模型优先级最高，会覆盖Java中的同名服务函数
+- 支持从高代码到低代码再到无代码的平滑过渡
+- 配合可视化设计器可实现完全无代码开发
+
+### 4. Header作为扩展信道
+
+**场景**：在服务函数间传递跨系统的扩展数据
+
+**实现方式**：
+```java
+@BizModel("LoginApi")
+public class LoginApiBizModel implements ILoginSpi {
+
+    @BizMutation("login")
+    @Auth(publicAccess = true)
+    public CompletionStage<LoginResult> loginAsync(
+           @RequestBean LoginRequest request, IServiceContext context) {
+        String header = (String)context.getRequestHeader("nop-tenant");
+        context.setResponseHeader("x-xxx",value);
+        ...
+    }
+}
+```
+
+**关键特性**：
+- headers可以在不同的运行时环境中映射到不同实现
+- gRPC：映射为gRPC消息的headers
+- REST：映射为HTTP协议的headers
+- Kafka：映射为Kafka消息的headers
+- 采用`data + ext_data`配对设计，确保在任何局部都可以加入扩展信息
 
 ## 业务方法注解
 
