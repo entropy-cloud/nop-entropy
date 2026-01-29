@@ -88,13 +88,13 @@ java -jar target/myapp-app-1.0.0-SNAPSHOT.jar
 ### 测试GraphQL API
 
 ```bash
-# 查询用户
-curl -X POST http://localhost:8080/graphql \
+# 查询用户（**开发环境链接**）
+curl -X POST /graphql \
   -H "Content-Type: application/json" \
   -d '{"query": "query { User_getUser(userId: \"test\") { userId userName email status } }"}'
 
-# 创建用户
-curl -X POST http://localhost:8080/graphql \
+# 创建用户（**开发环境链接**）
+curl -X POST /graphql \
   -H "Content-Type: application/json" \
   -d '{"query": "mutation { User_createUser(user: { userId: \"test\", userName: \"张三\", email: \"test@example.com\", status: 1 }) { userId userName email status }"}'
 ```

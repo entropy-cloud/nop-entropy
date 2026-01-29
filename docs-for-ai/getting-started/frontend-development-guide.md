@@ -204,7 +204,7 @@ x:gen-extends: |
 ### 4. 部署和访问
 
 部署后通过浏览器访问页面：
-- **URL格式**：`http://localhost:8080/#/nop/auth/NopAuthUser/main`
+- **URL格式**：`/#/nop/auth/NopAuthUser/main`（**开发环境链接**）
 - **路由前缀**：根据实际部署配置调整
 
 ## 核心功能实现
@@ -367,10 +367,10 @@ x:gen-extends: |
 
 ### 5. 可视化设计器
 
-目前Nop平台实际使用的前端框架是[百度AMIS框架](https://aisuda.bce.baidu.com/amis/zh-CN/docs/index)，它使用JSON格式的页面文件。在浏览器地址栏中我们直接输入后台的`page.yaml`文件来查看页面文件的内容(**无需在前端路由中注册**)，例如：
+目前Nop平台实际使用的前端框架是百度AMIS框架（**外部框架文档**），它使用JSON格式的页面文件。在浏览器地址栏中我们直接输入后台的`page.yaml`文件来查看页面文件的内容(**无需在前端路由中注册**)，例如：
 
 ```
-http://localhost:8080/index.html?#/amis/app/mall/pages/LitemallGoods/main.page.yaml
+/index.html?#/amis/app/mall/pages/LitemallGoods/main.page.yaml`（**开发环境链接**）
 ```
 
 它实际对应的页面是 `src/main/resources/_vfs/app/mall/pages/LitemallGoods/main.page.yaml`，其中的内容为：
@@ -415,7 +415,7 @@ title: '@i18n:LitemallGoods.forms.add.$title|新增-商品'
 
 ### 6. 引入自定义模块
 
-Nop平台前端框架的源码在工程[nop-chaos](https://gitee.com/canonical-entropy/nop-chaos)中，一般情况下我们都是使用框架内置的组件来开发应用，此时我们只需要在java端引入预编译好的`nop-web-site`模块即可，无需重新编译前端的`nop-chaos`工程。
+Nop平台前端框架的源码在工程nop-chaos（**前端框架源码**）中，一般情况下我们都是使用框架内置的组件来开发应用，此时我们只需要在java端引入预编译好的`nop-web-site`模块即可，无需重新编译前端的`nop-chaos`工程。
 
 前端框架主要采用vue3.0、ant-design-vue和百度AMIS框架研发，我们在AMIS框架的基础上做了一些扩展，详细介绍参见文档[amis.md](../dev-guide/xui/amis.md)。`nop-chaos`内置了SystemJs模块加载能力，可以动态加载前端模块。例如：
 

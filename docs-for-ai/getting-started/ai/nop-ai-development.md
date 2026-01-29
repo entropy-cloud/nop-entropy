@@ -512,7 +512,7 @@ public class MyTest extends JunitAutoTestCase {
 ### 10.3 调试
 
 - **IDEA插件**：使用Nop IDEA插件进行XLang断点调试
-- **Quarkus Dev UI**：通过`http://localhost:8080/q/dev`进行开发期调试
+- **Dev UI**：通过Quarkus Dev UI进行开发期调试
 - **GraphQL UI**：如果运行框架/依赖启用了 GraphQL UI（例如某些 Quarkus 配置可能提供 `/q/graphql-ui`），可以用来查看和测试 GraphQL 服务；具体以当前启动模块配置为准。
 - **日志调试**：通过配置日志级别，查看详细的执行日志
 
@@ -593,25 +593,13 @@ Nop平台不依赖第三方框架，可以与任何Java框架集成：
 
 ## 13. 资源和学习路径
 
-### 13.1 官方文档
-
-- [Nop平台开发文档](https://gitee.com/canonical-entropy/nop-entropy/tree/master/docs)
-- [XLang语言文档](https://gitee.com/canonical-entropy/nop-entropy/tree/master/docs/dev-guide/xlang)
-- [代码生成器文档](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/codegen.md)
-
-### 13.2 视频教程
-
-- [Nop平台开发](https://www.bilibili.com/video/BV1u84y1w7kX/)
-- [使用Nop平台开发商品列表页面](https://www.bilibili.com/video/BV1384y1g78L/)
-- [Nop平台架构设计](https://www.bilibili.com/video/BV1a84y1g78L/)
-
-### 13.3 示例项目
+### 13.1 示例项目
 
 - **nop-demo**：演示项目，包含完整的开发示例
 - **nop-auth**：权限管理模块，展示如何开发业务模块
 - **nop-orm**：ORM引擎，展示核心功能实现
 
-### 13.4 开发工具
+### 13.2 开发工具
 
 - **IDEA插件**：支持语法提示、文件跳转、断点调试
 - **nop-cli**：命令行工具，用于代码生成和文件监听

@@ -180,7 +180,7 @@ scope.put("name", "world");
 String rendered = StringHelper.renderTemplateForScope("Hello {name}!","{","}",scope); // "Hello world!"
 
 // URL处理
-String url = StringHelper.appendQuery("https://example.com", "page=1&sort=asc"); // "https://example.com?page=1&sort=asc"
+String url = StringHelper.appendQuery("https://api.example.com", "page=1&sort=asc"); // "https://api.example.com?page=1&sort=asc"
 Map<String, Object> queryMap = new HashMap<>();
 queryMap.put("page", 1);
 queryMap.put("sort", "asc");

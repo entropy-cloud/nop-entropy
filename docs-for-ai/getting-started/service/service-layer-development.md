@@ -400,4 +400,3 @@ BizModel是Nop平台服务层的核心组件，它封装了业务逻辑，为Gra
 - [事务管理指南](../core/transaction-guide.md)：一般不需要显式使用事务，只在需要非常细粒度事务控制时才参考这个问题。否则就是整个服务函数一个事务，抛出异常后会自动回滚。
 - [异常处理指南](../core/exception-guide.md)：只使用通用的NopException异常类，不要引入自定义异常类
 - [GraphQL服务开发指南](../api/graphql-guide.md)
-

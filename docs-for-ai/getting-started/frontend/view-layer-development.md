@@ -150,7 +150,7 @@ x:gen-extends: |
 
 ### 4. 部署和访问
 
-部署后通过浏览器访问页面（路由前缀/端口以实际部署为准），例如：`http://localhost:8080/#/nop/auth/NopAuthUser/main`
+部署后通过浏览器访问页面（路由前缀/端口以实际部署为准），例如：`/#/nop/auth/NopAuthUser/main`（**开发环境链接**）
 
 ## 核心配置示例
 

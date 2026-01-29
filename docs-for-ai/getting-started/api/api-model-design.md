@@ -32,9 +32,9 @@ nop-cli gen model/nop-auth.api.xml -t=/nop/templates/api
 ```
 
 ### 3. 部署和访问
-- GraphQL API：`http://localhost:8080/graphql`
-- REST API：`http://localhost:8080/api/[resource]`
-- API文档：`http://localhost:8080/q/graphql-ui`
+- GraphQL API：`/graphql`
+- REST API：`/api/[resource]`
+- API文档：`/q/graphql-ui`
 
 ### 4. 测试和优化
 - 使用GraphQL UI测试API

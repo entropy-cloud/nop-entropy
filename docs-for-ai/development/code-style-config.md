@@ -34,7 +34,7 @@ Nop平台使用Checkstyle进行代码风格检查，确保代码质量和一致�
 <?xml version="1.0"?>
 <!DOCTYPE module PUBLIC
           "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
-          "https://checkstyle.org/dtds/configuration_1_3.dtd">
+          "configuration_1_3.dtd">
 
 <module name="Checker">
     <!-- 文件编码检查 -->

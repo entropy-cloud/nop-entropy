@@ -429,15 +429,4 @@ public User findUser(String userId) {
 - 详细的章节索引
 - 搜索友好的标题
 
-## 联系方式
 
-如有问题或建议，请通过以下方式反馈：
-- GitHub Issues: https://github.com/entropy-cloud/nop-entropy/issues
-- Gitee Issues: https://gitee.com/canonical-entropy/nop-entropy/issues
-
-
-**文档维护者**: AI Assistant (Sisyphus)
-**最后更新**: 2025-01-09
-**文档版本**: v1.2
-**总文档数**: 69+
-**总代码示例**: 400+
