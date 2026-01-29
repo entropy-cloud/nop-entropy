@@ -1221,7 +1221,3 @@ public class GraphQLTest {
 10. **测试工具**: Playground、图形化工具、自动化测试
 
 通过这些示例，可以快速理解和使用Nop Platform的GraphQL API。
-
----
-
-**作者**: AI Assistant (Sisyphus)

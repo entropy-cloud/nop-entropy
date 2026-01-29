@@ -2,7 +2,26 @@
 
 ## 概述
 
-Nop平台提供了灵活的事务管理机制，支持声明式事务（注解）和编程式事务（模板）。事务管理基于`ITransactionTemplate`接口，支持多种传播级别和事务组。
+Nop平台提供了灵活的事务管理机制，支持声明式事务（注解）和编程式事务（模板）。
+
+## 重要说明
+
+### @BizMutation 和 @BizQuery 的事务行为
+
+**@BizMutation**：
+- ✅ **自动开启数据库事务**
+- ✅ **自动回滚异常**（RuntimeException 或 NopException）
+- ❌ **不需要额外使用** `@Transactional` 注解
+- ❌ **不需要调用** `txn()` 方法
+
+**@BizQuery**：
+- ✅ **自动为只读操作**
+- ❌ **不需要添加** `@Transactional(readOnly = true)`
+
+**何时使用编程式事务（ITransactionTemplate）**：
+- 需要细粒度事务控制（嵌套事务、多数据源事务）
+- 需要事务监听器（beforeCommit、afterCommit 等）
+- 非 BizModel 方法（如普通的 service 方法）
 
 **核心接口**：`io.nop.dao.txn.ITransactionTemplate`
 **事务注解**：`io.nop.api.core.annotations.txn.Transactional`
@@ -23,14 +42,30 @@ TransactionPropagation定义了事务的传播行为：
 
 ## 声明式事务（注解方式）
 
-### @Transactional注解
+### @BizMutation 自动事务
+
+**注意**：`@BizMutation` 注解会自动开启数据库事务，**不需要额外使用** `@Transactional` 注解或 `txn()` 方法。
+
+```java
+import io.nop.api.core.annotations.biz.BizMutation;
+
+@BizMutation
+public void updateUser(@Name("userId") String userId, @Name("newName") String newName) {
+    NopAuthUser user = dao().requireEntityById(userId);
+    user.setName(newName);
+    dao().saveEntity(user);
+}
+```
+
+### @Transactional 注解（非 BizModel 方法）
+
+对于不使用 `@BizMutation` 的方法，可以使用 `@Transactional` 注解：
 
 ```java
 import io.nop.api.core.annotations.txn.Transactional;
 
-@BizMutation
 @Transactional
-public void updateUser(String userId, String newName) {
+public void nonBizMethod(String userId, String newName) {
     NopAuthUser user = dao().requireEntityById(userId);
     user.setName(newName);
     dao().saveEntity(user);
@@ -41,17 +76,26 @@ public void updateUser(String userId, String newName) {
 
 ```java
 @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
-public void logAction(String userId, String action) {
+public void logAction(@Name("userId") String userId, @Name("action") String action) {
     // 总是在新事务中执行
 }
 ```
 
 ### 只读事务
 
+**注意**：`@BizQuery` 方法默认为只读操作，**不需要添加** `@Transactional(readOnly = true)`。
+
 ```java
-@Transactional(readOnly = true)
+// ❌ 错误：BizQuery 方法不需要 @Transactional
 @BizQuery
-public User getUserById(String userId) {
+@Transactional(readOnly = true)
+public User getUserById(@Name("userId") String userId) {
+    return dao().getEntityById(userId);
+}
+
+// ✅ 正确：BizQuery 方法直接使用
+@BizQuery
+public User getUserById(@Name("userId") String userId) {
     return dao().getEntityById(userId);
 }
 ```
@@ -60,7 +104,7 @@ public User getUserById(String userId) {
 
 ```java
 @Transactional(txnGroup = "other-datasource")
-public void writeToOtherDs(Data data) {
+public void writeToOtherDs(@Name("data") Data data) {
     // 使用指定的数据源事务
 }
 ```
@@ -69,7 +113,7 @@ public void writeToOtherDs(Data data) {
 
 ```java
 @TccTransactional
-public void tccOperation(String id) {
+public void tccOperation(@Name("id") String id) {
     // TCC模式的事务
 }
 ```
@@ -256,12 +300,13 @@ txnTemplate.removeTransactionListener(null, listener);
 
 ### 自动回滚
 
+**注意**：`@BizMutation` 方法会自动回滚异常，无需额外使用 `@Transactional`。
+
 当抛出`RuntimeException`或`NopException`时，事务会自动回滚：
 
 ```java
 @BizMutation
-@Transactional
-public void updateWithAutoRollback(String userId, String newName) {
+public void updateWithAutoRollback(@Name("userId") String userId, @Name("newName") String newName) {
     NopAuthUser user = dao().requireEntityById(userId);
 
     // 检查约束
@@ -354,35 +399,34 @@ public class OrderBizModel extends CrudBizModel<Order> {
     protected PaymentBizModel paymentBizModel;
 
     @BizMutation
-    @Transactional
-    public Order createOrder(Order order, List<OrderItem> items) {
-        txn(() -> {
-            // 1. 保存订单
-            Order savedOrder = dao().saveEntity(order);
+    public Order createOrder(@Name("order") Order order, @Name("items") List<OrderItem> items) {
+        // 注意：@BizMutation 已自动开启事务，无需使用 @Transactional 或 txn()
 
-            // 2. 扣减库存（使用REQUIRES_NEW确保独立事务）
-            for (OrderItem item : items) {
-                inventoryBizModel.reduceStock(
-                    item.getProductId(),
-                    item.getQuantity()
-                );
-                item.setOrderId(savedOrder.getId());
-            }
+        // 1. 保存订单
+        Order savedOrder = dao().saveEntity(order);
 
-            // 3. 保存订单项
-            for (OrderItem item : items) {
-                dao().saveEntity(item);
-            }
+        // 2. 扣减库存（注意：这里不在同一个事务中，因为可能调用其他服务的 @BizMutation 方法）
+        for (OrderItem item : items) {
+            inventoryBizModel.reduceStock(
+                item.getProductId(),
+                item.getQuantity()
+            );
+            item.setOrderId(savedOrder.getId());
+        }
 
-            // 4. 创建支付记录
-            Payment payment = new Payment();
-            payment.setOrderId(savedOrder.getId());
-            payment.setAmount(savedOrder.getTotalAmount());
-            payment.setStatus("PENDING");
-            paymentBizModel.createPayment(payment);
+        // 3. 保存订单项
+        for (OrderItem item : items) {
+            dao().saveEntity(item);
+        }
 
-            return savedOrder;
-        });
+        // 4. 创建支付记录
+        Payment payment = new Payment();
+        payment.setOrderId(savedOrder.getId());
+        payment.setAmount(savedOrder.getTotalAmount());
+        payment.setStatus("PENDING");
+        paymentBizModel.createPayment(payment);
+
+        return savedOrder;
     }
 }
 ```
@@ -391,64 +435,65 @@ public class OrderBizModel extends CrudBizModel<Order> {
 
 ```java
 @BizMutation
-@Transactional
-public void batchUpdateStatus(List<String> userIds, Integer newStatus) {
-    txn(() -> {
-        // 批量获取
-        List<NopAuthUser> users = dao().batchGetEntitiesByIds(userIds);
+public void batchUpdateStatus(@Name("userIds") List<String> userIds, @Name("newStatus") Integer newStatus) {
+    // 注意：@BizMutation 已自动开启事务，无需使用 @Transactional 或 txn()
 
-        // 批量更新
-        for (NopAuthUser user : users) {
-            user.setStatus(newStatus);
-        }
+    // 批量获取
+    List<NopAuthUser> users = dao().batchGetEntitiesByIds(userIds);
 
-        // 批量保存
-        dao().batchSaveEntities(users);
+    // 批量更新
+    for (NopAuthUser user : users) {
+        user.setStatus(newStatus);
+    }
 
-        // 记录批量操作日志
-        BatchOperationLog log = new BatchOperationLog();
-        log.setOperation("BATCH_UPDATE_STATUS");
-        log.setCount(users.size());
-        batchLogDao.saveEntity(log);
-    });
+    // 批量保存
+    dao().batchSaveEntities(users);
+
+    // 记录批量操作日志
+    BatchOperationLog log = new BatchOperationLog();
+    log.setOperation("BATCH_UPDATE_STATUS");
+    log.setCount(users.size());
+    batchLogDao.saveEntity(log);
 }
 ```
 
 ### 示例3：带监听器的事务
 
 ```java
+@Inject
+protected ITransactionTemplate txnTemplate;
+
 @BizMutation
-@Transactional
-public void updateWithNotification(String userId, String newName) {
-    txnTemplate.runInTransaction(txn -> {
-        NopAuthUser user = dao().requireEntityById(userId);
-        String oldName = user.getName();
+public void updateWithNotification(@Name("userId") String userId, @Name("newName") String newName) {
+    // 注意：@BizMutation 已自动开启事务，无需额外使用 @Transactional
 
-        // 更新用户
-        user.setName(newName);
-        dao().saveEntity(user);
+    // 对于需要使用事务监听器的场景，注入 ITransactionTemplate
+    // 但 @BizMutation 方法本身不需要显式开启事务
+    NopAuthUser user = dao().requireEntityById(userId);
+    String oldName = user.getName();
 
-        // 提交后发送通知
-        txn.afterCommit(() -> {
-            // 发送邮件通知
-            emailService.sendUserChanged(userId, oldName, newName);
+    // 更新用户
+    user.setName(newName);
+    dao().saveEntity(user);
 
-            // 发送站内消息
-            messageService.send(userId, "用户名已更新");
-
-            // 触发事件
-            eventPublisher.publish(new UserChangedEvent(userId, oldName, newName));
-        });
-    });
+    // 提交后发送通知
+    // 注意：如果需要在提交后执行操作，建议使用事务监听器或消息队列
+    emailService.sendUserChanged(userId, oldName, newName);
+    messageService.send(userId, "用户名已更新");
+    eventPublisher.publish(new UserChangedEvent(userId, oldName, newName));
 }
 ```
 
 ### 示例4：补偿事务
 
 ```java
-@BizMutation
+// 对于需要补偿事务的场景，使用 @Transactional 和编程式事务
+
+@Inject
+protected ITransactionTemplate txnTemplate;
+
 @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
-public void compensatingOperation(String businessId) {
+public void compensatingOperation(@Name("businessId") String businessId) {
     try {
         // 尝试执行业务操作
         doBusinessOperation(businessId);
@@ -462,7 +507,7 @@ public void compensatingOperation(String businessId) {
     }
 }
 
-private void compensate(String businessId) {
+private void compensate(@Name("businessId") String businessId) {
     // 补偿逻辑，如回滚库存、退款等
     // 这里需要独立事务
     txnTemplate.runInTransaction("compensation", TransactionPropagation.REQUIRES_NEW, txn -> {
@@ -477,16 +522,19 @@ private void compensate(String businessId) {
 
 ```java
 // 推荐：事务只包含必要的数据库操作
-@Transactional
-public void updateStatus(String id, Integer status) {
+// 注意：@BizMutation 已自动开启事务
+@BizMutation
+public void updateStatus(@Name("id") String id, @Name("status") Integer status) {
     NopAuthUser user = dao().requireEntityById(id);
     user.setStatus(status);
     dao().saveEntity(user);
 }
 
 // 避免：在事务中执行耗时操作
+// ❌ 错误示例：不要这样做
+@BizMutation
 @Transactional
-public void updateStatusWithSlowOperation(String id, Integer status) {
+public void updateStatusWithSlowOperation(@Name("id") String id, @Name("status") Integer status) {
     NopAuthUser user = dao().requireEntityById(id);
     user.setStatus(status);
     dao().saveEntity(user);
@@ -500,8 +548,9 @@ public void updateStatusWithSlowOperation(String id, Integer status) {
 
 ```java
 // 推荐：抛出业务异常，事务自动回滚
-@Transactional
-public void updateWithValidation(String id, String newName) {
+// 注意：@BizMutation 已自动开启事务
+@BizMutation
+public void updateWithValidation(@Name("id") String id, @Name("newName") String newName) {
     if (!isValidName(newName)) {
         throw new NopException(Errors.ERR_INVALID_NAME)
             .param("name", newName);
@@ -513,8 +562,8 @@ public void updateWithValidation(String id, String newName) {
 }
 
 // 避免：吞掉异常
-@Transactional
-public void updateWithSwallowedException(String id, String newName) {
+@BizMutation
+public void updateWithSwallowedException(@Name("id") String id, @Name("newName") String newName) {
     try {
         NopAuthUser user = dao().requireEntityById(id);
         user.setName(newName);
@@ -529,49 +578,58 @@ public void updateWithSwallowedException(String id, String newName) {
 ### 3. 合理使用传播级别
 
 ```java
-// 推荐：使用REQUIRED（默认）
-@Transactional
-public void defaultMethod() {
+// 推荐：使用 REQUIRED（默认）
+// 注意：对于 BizModel 方法，使用 @BizMutation 即可，无需显式指定传播级别
+@BizMutation
+public void defaultMethod(@Name("userId") String userId) {
     // 加入已有事务或创建新事务
 }
 
-// 推荐：需要独立事务时使用REQUIRES_NEW
+// 推荐：需要独立事务时使用编程式事务或非 BizModel 方法
+@Inject
+protected ITransactionTemplate txnTemplate;
+
+// 非 BizModel 方法
 @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
-public void independentMethod() {
+public void independentMethod(@Name("userId") String userId) {
     // 总是新事务
 }
 
-// 推荐：只读操作使用readOnly
-@Transactional(readOnly = true)
+// 推荐：只读操作使用 @BizQuery
 @BizQuery
-public User findById(String id) {
+public User findById(@Name("id") String id) {
     return dao().getEntityById(id);
 }
 ```
 
-### 4. 避免在事务中执行IO操作
+### 4. 避免在事务中执行 IO 操作
 
 ```java
-// 推荐：在事务后执行IO操作
-@Transactional
-public void updateAndNotify(String id, String newName) {
+// 推荐：在事务后执行 IO 操作
+// 注意：@BizMutation 已自动开启事务
+@BizMutation
+public void updateAndNotify(@Name("id") String id, @Name("newName") String newName) {
     NopAuthUser user = dao().requireEntityById(id);
     user.setName(newName);
     dao().saveEntity(user);
 
-    // 不要在事务中执行IO操作
+    // 不要在事务中执行 IO 操作
     // fileService.writeFile(user); // ❌
 }
 
-// 使用事务监听器
-@Transactional
-public void updateWithAfterCommit(String id, String newName) {
+// 使用事务监听器或消息队列
+@Inject
+protected ITransactionTemplate txnTemplate;
+
+@BizMutation
+public void updateWithAfterCommit(@Name("id") String id, @Name("newName") String newName) {
+    // 对于需要使用事务监听器的场景
     txnTemplate.runInTransaction(txn -> {
         NopAuthUser user = dao().requireEntityById(id);
         user.setName(newName);
         dao().saveEntity(user);
 
-        // 在提交后执行IO
+        // 在提交后执行 IO
         txn.afterCommit(() -> {
             fileService.writeFile(user); // ✅
         });
@@ -582,24 +640,25 @@ public void updateWithAfterCommit(String id, String newName) {
 ### 5. 批量操作使用批量方法
 
 ```java
-@Transactional
-public void batchUpdate(List<String> ids, Integer newStatus) {
-    txn(() -> {
-        List<NopAuthUser> users = dao().batchGetEntitiesByIds(ids);
+// 推荐：批量操作
+// 注意：@BizMutation 已自动开启事务
+@BizMutation
+public void batchUpdate(@Name("ids") List<String> ids, @Name("newStatus") Integer newStatus) {
+    // 注意：不需要额外使用 @Transactional 或 txn()
+    List<NopAuthUser> users = dao().batchGetEntitiesByIds(ids);
 
-        // 批量更新
-        for (NopAuthUser user : users) {
-            user.setStatus(newStatus);
-        }
+    // 批量更新
+    for (NopAuthUser user : users) {
+        user.setStatus(newStatus);
+    }
 
-        // 使用批量保存
-        dao().batchSaveEntities(users); // ✅
+    // 使用批量保存
+    dao().batchSaveEntities(users); // ✅
 
-        // 避免循环保存
-        // for (NopAuthUser user : users) {
-        //     dao().saveEntity(user); // ❌
-        // }
-    });
+    // 避免循环保存
+    // for (NopAuthUser user : users) {
+    //     dao().saveEntity(user); // ❌
+    // }
 }
 ```
 

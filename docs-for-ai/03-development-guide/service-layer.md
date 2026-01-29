@@ -256,7 +256,7 @@ public class LoginApiBizModel implements ILoginSpi {
 **示例**：
 ```java
 @BizQuery
-public List<User> findActiveUsers(IServiceContext context, FieldSelection selection, IServiceContext context) {
+public List<User> findActiveUsers(FieldSelection selection, IServiceContext context) {
     // 使用QueryBean查询
     QueryBean query = new QueryBean();
     query.setFilter(FilterBeans.eq("status", 1));
@@ -273,20 +273,20 @@ public List<User> findActiveUsers(IServiceContext context, FieldSelection select
 **示例**：
 ```java
 @BizMutation
-public void approveUser(@Name("userId") String userid,
-        FieldSelection selection, IServiceContext context) {
+public void approveUser(@Name("userId") String userId,
+        IServiceContext context) {
     ...
 }
 ```
 
-- 对于select，context之外的参数，需要使用`@Name`注解来说明参数名
+- 对于context之外的参数，需要使用`@Name`注解来说明参数名
 
 
 
 ## 最佳实践
 
 1. **优先使用内置方法**：对于CRUD操作，基本都可以使用内置方法实现，不需要createUser，saveUser这种函数。
-2. **自动开启事务**：`@BizMutation`会自动开启数据库事务，而`@BizQuery`是无副作用的只读操作，不需要额外使用`@Transactional`注解
+2. **自动开启事务**：`@BizMutation`会自动开启数据库事务，**无需额外使用** `@Transactional` 注解或 `txn()` 方法。而`@BizQuery`是无副作用的只读操作，不需要额外使用事务管理。
 3. **业务逻辑封装**：避免一个函数包含太多内容，拆分成多个子函数。
 4. **数据权限控制**：实现`checkDataAuth()`方法，进行数据权限控制。内置的doXXX等函数都自动执行了数据权限校验。
 5. **异常处理**：统一使用NopException抛出业务异常，提供清晰的错误信息
@@ -295,7 +295,7 @@ public void approveUser(@Name("userId") String userid,
 ## 注意事项
 
 1. **一般不要在BizModel中直接使用dao()方法，尽量使用CrudBizModel内置的方法**
-2. **不要在BizModel中手动管理事务，使用@BizMultation注解**
+2. **不要在BizModel中手动管理事务**：`@BizMutation` 已自动开启事务，无需额外使用 `@Transactional` 或 `txn()`。只有在需要非常细粒度事务控制时才使用编程式事务。
 3. **不要在BizModel中手动处理异常，抛出NopException即可**
 
 ## 常见问题
@@ -312,9 +312,9 @@ public class UserBizModel extends CrudBizModel<User> {
     protected IBizObjectManager bizObjectManager;
 
     @BizQuery
-    public List<Order> getUserOrders(@Name("userId") String userId，
-                FieldSelection selection， IServiceContext context) {
-         IBizObject orderObj = bizObjectManager.getBizObject("Order");           
+    public List<Order> getUserOrders(@Name("userId") String userId,
+                FieldSelection selection, IServiceContext context) {
+         IBizObject orderObj = bizObjectManager.getBizObject("Order");
         return (List<Order>) orderObj.invoke("findOrdersByUser", Map.of("userId",userId), selection, context);
     }
 }
@@ -323,8 +323,8 @@ public class UserBizModel extends CrudBizModel<User> {
 如果需要复用，可以定义一个接口，然后在OrderBizModel上实现这个接口，这样就可以注入这个接口来使用了。注意，一般不要直接注入BizModel对象。
 
 ```java
-interface IOrderBiz{
-    List<User> findOrdersByUser(String userId, IServiceContext context);
+interface IOrderBiz {
+    List<User> findOrdersByUser(@Name("userId") String userId, IServiceContext context);
 }
 
 @BizModel("User")
@@ -334,9 +334,9 @@ public class UserBizModel extends CrudBizModel<User> {
     protected IOrderBiz orderBiz;
 
     @BizQuery
-    public List<Order> getUserOrders(@Name("userId") String userId，
-                FieldSelection selection， IServiceContext context) {
-        return orderBiz.findOrdersByUser(userId,context);
+    public List<Order> getUserOrders(@Name("userId") String userId,
+                FieldSelection selection, IServiceContext context) {
+        return orderBiz.findOrdersByUser(userId, context);
     }
 }
 ```
@@ -351,11 +351,11 @@ public void batchUpdateStatus(@Name("userIds") List<String> userIds,
                              @Name("status") int status, IServiceContext context) {
         List<User> users = dao().batchGetEntitiesByIds(userIds);
         for (User user : users) {
-            this.checkDataAuthForEntity(user,context);
+            this.checkDataAuthForEntity(user, context);
             user.setStatus(status);
         }
         dao().batchSaveEntities(users);
-}
+    }
 ```
 
 ### Q3：关联查询

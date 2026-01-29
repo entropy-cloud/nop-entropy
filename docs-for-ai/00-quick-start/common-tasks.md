@@ -50,7 +50,7 @@ public class ProductBizModel extends CrudBizModel<Product> {
 
 ```java
 @BizQuery
-public Product getProduct(String productId) {
+public Product getProduct(@Name("productId") String productId) {
     return dao().requireEntityById(productId);
 }
 ```
@@ -59,7 +59,7 @@ public Product getProduct(String productId) {
 
 ```java
 @BizQuery
-public List<Product> getProductsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
+public List<Product> getProductsByPriceRange(@Name("minPrice") BigDecimal minPrice, @Name("maxPrice") BigDecimal maxPrice) {
     QueryBean query = new QueryBean();
     query.setFilter(FilterBeans.and(
         FilterBeans.ge("price", minPrice),
@@ -73,7 +73,7 @@ public List<Product> getProductsByPriceRange(BigDecimal minPrice, BigDecimal max
 
 ```java
 @BizQuery
-public PageBean<Product> searchProducts(String keyword, int pageNo, int pageSize) {
+public PageBean<Product> searchProducts(@Name("keyword") String keyword, @Name("pageNo") int pageNo, @Name("pageSize") int pageSize) {
     QueryBean query = new QueryBean();
 
     if (StringHelper.isNotEmpty(keyword)) {
@@ -92,7 +92,7 @@ public PageBean<Product> searchProducts(String keyword, int pageNo, int pageSize
 
 ```java
 @BizMutation
-public Product createProduct(Product product) {
+public Product createProduct(@Name("product") Product product) {
     return dao().saveEntity(product);
 }
 ```
@@ -101,7 +101,7 @@ public Product createProduct(Product product) {
 
 ```java
 @BizMutation
-public Product updateProduct(Product product) {
+public Product updateProduct(@Name("product") Product product) {
     Product existing = dao().requireEntityById(product.getProductId());
     existing.setProductName(product.getProductName());
     existing.setPrice(product.getPrice());
@@ -114,7 +114,7 @@ public Product updateProduct(Product product) {
 
 ```java
 @BizMutation
-public void deleteProduct(String productId) {
+public void deleteProduct(@Name("productId") String productId) {
     Product product = dao().requireEntityById(productId);
     dao().deleteEntity(product);
 }
@@ -238,7 +238,7 @@ public class NopAuthUserExBizModel extends NopAuthUserBizModel {
 
 ```java
 @BizQuery
-public PageBean<Product> searchProducts(ProductSearchRequest request) {
+public PageBean<Product> searchProducts(@Name("request") ProductSearchRequest request) {
     QueryBean query = new QueryBean();
 
     List<TreeBean> filters = new ArrayList<>();
@@ -284,7 +284,7 @@ public PageBean<Product> searchProducts(ProductSearchRequest request) {
 
 ```java
 @BizMutation
-public Product createProduct(Product product) {
+public Product createProduct(@Name("product") Product product) {
     return dao().saveEntity(product);
 }
 ```
@@ -293,22 +293,21 @@ public Product createProduct(Product product) {
 
 ```java
 @BizMutation
-public void transferStock(String fromProductId, String toProductId, int quantity) {
-    txn(() -> {
-        Product from = dao().requireEntityById(fromProductId);
-        Product to = dao().requireEntityById(toProductId);
+public void transferStock(@Name("fromProductId") String fromProductId, @Name("toProductId") String toProductId, @Name("quantity") int quantity) {
+    // 注意：@BizMutation 已自动开启事务，无需使用 txn()
+    Product from = dao().requireEntityById(fromProductId);
+    Product to = dao().requireEntityById(toProductId);
 
-        if (from.getStock() < quantity) {
-            throw new NopException(ERR_INSUFFICIENT_STOCK)
-                .param("productId", fromProductId);
-        }
+    if (from.getStock() < quantity) {
+        throw new NopException(ERR_INSUFFICIENT_STOCK)
+            .param("productId", fromProductId);
+    }
 
-        from.setStock(from.getStock() - quantity);
-        to.setStock(to.getStock() + quantity);
+    from.setStock(from.getStock() - quantity);
+    to.setStock(to.getStock() + quantity);
 
-        dao().saveEntity(from);
-        dao().saveEntity(to);
-    });
+    dao().saveEntity(from);
+    dao().saveEntity(to);
 }
 ```
 
@@ -334,7 +333,7 @@ public interface MyErrors {
 
 ```java
 @BizMutation
-public Product updateStock(String productId, int deltaStock) {
+public Product updateStock(@Name("productId") String productId, @Name("deltaStock") int deltaStock) {
     Product product = dao().requireEntityById(productId);
 
     if (product.getStock() + deltaStock < 0) {

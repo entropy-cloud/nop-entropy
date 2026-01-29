@@ -886,7 +886,3 @@ public OrderStatistics getOrderStatistics(OrderStatsRequest request) {
 9. **GraphQL查询**: 复杂查询语法
 
 通过这些示例，可以应对各种复杂的查询场景，构建高效的数据访问层。
-
----
-
-**作者**: AI Assistant (Sisyphus)

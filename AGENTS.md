@@ -40,6 +40,8 @@ For architecture changes, proposals, or ambiguous requests, follow the OPENSPEC 
 
 - **Value/config injection**: inject configuration values with `@InjectValue` (avoid Spring-only patterns like `@Value`).
 
+- **AOP usage**: Do not assume Spring AOP patterns (`@Aspect`, `@Around`) work in Nop. Verify actual implementations exist in codebase before documenting or using them. Nop uses source-code generated AOP, not runtime bytecode manipulation.
+
 ## Build & test
 
 This repository is Maven-based (see `pom.xml`).

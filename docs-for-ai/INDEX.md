@@ -13,12 +13,14 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 ## 快速导航
 
 ### 🚀 快速开始
+
 - **[10分钟快速上手](./00-quick-start/10-min-quickstart.md)** - ⭐ 从零开始
 - **[常见开发任务](./00-quick-start/common-tasks.md)** - ⭐ 快速参考
 
 ### 📚 文档索引
 
 #### 核心概念 (01-core-concepts)
+
 - **[平台概述](./01-core-concepts/overview.md)** - Nop平台核心概念和架构概述
 - **[AI开发规范](./01-core-concepts/ai-development.md)** - Nop平台开发规范和流程
 - **[AI编程指南](./01-core-concepts/ai-developer-guide.md)** - 快速编程指导
@@ -27,6 +29,7 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 - **[Delta定制场景](./01-core-concepts/delta-scenarios.md)** - 实际定制示例
 
 #### 架构设计 (02-architecture)
+
 - **[后端架构](./02-architecture/backend-architecture.md)** - API、GraphQL、ORM架构
 - **[代码生成机制](./02-architecture/code-generation.md)** - 差量化代码生成机制
 - **[模块依赖关系](./02-architecture/module-dependencies.md)** - 模块依赖和版本管理
@@ -35,6 +38,7 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 - **[ORM架构](./02-architecture/orm-architecture.md)** - ORM架构详解
 
 #### 开发指南 (03-development-guide)
+
 - **[项目结构](./03-development-guide/project-structure.md)** - ⭐ 标准项目结构和代码生成
 - **[数据访问层](./03-development-guide/data-access.md)** - IEntityDao, QueryBean, FilterBeans
 - **[服务层开发](./03-development-guide/service-layer.md)** - BizModel, CrudBizModel
@@ -42,6 +46,7 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 - **[前端开发](./03-development-guide/frontend-development.md)** - XView, AMIS
 
 #### 核心组件 (04-core-components)
+
 - **[IoC容器](./04-core-components/ioc-container.md)** - 依赖注入容器使用
 - **[事务管理](./04-core-components/transaction.md)** - ⭐ 事务管理完整指南
 - **[异常处理](./04-core-components/exception-handling.md)** - ⭐ 异常处理完整指南
@@ -50,6 +55,7 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 - **[枚举和DTO规范](./04-core-components/enum-dto-standards.md)** - 编码规范
 
 #### XLang语言 (05-xlang)
+
 - **[XDef核心概念](./05-xlang/xdef-core.md)** - ⭐ XDef语法与模型
 - **[元编程指南](./05-xlang/meta-programming.md)** - 元编程机制
 - **[XDSL与Delta](./05-xlang/xdsl-delta.md)** - ⭐ Delta合并机制
@@ -58,6 +64,7 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 - **[XLang编程](./05-xlang/xlang-guide.md)** - XLang语言编程
 
 #### 工具类 (06-utilities)
+
 - **[StringHelper](./06-utilities/StringHelper.md)** - 字符串处理工具
 - **[ConvertHelper](./06-utilities/ConvertHelper.md)** - 类型转换工具
 - **[TextScanner](./06-utilities/TextScanner.md)** - 文本扫描工具
@@ -74,6 +81,7 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 - **[ReflectionHelper](./06-utilities/ReflectionHelper.md)** - 反射操作工具
 
 #### 最佳实践 (07-best-practices)
+
 - **[代码规范](./07-best-practices/code-style.md)** - 代码风格规范
 - **[错误处理](./07-best-practices/error-handling.md)** - 错误处理最佳实践
 - **[性能优化](./07-best-practices/performance.md)** - 性能优化指南
@@ -81,6 +89,7 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 - **[测试规范](./07-best-practices/testing.md)** - 测试最佳实践
 
 #### 示例代码 (08-examples)
+
 - **[CRUD完整示例](./08-examples/crud-example.md)** - 完整的CRUD功能实现
 - **[复杂查询示例](./08-examples/query-example.md)** - 复杂查询和数据处理
 - **[事务处理示例](./08-examples/transaction-example.md)** - 事务处理和并发控制
@@ -90,16 +99,19 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 - **[权限管理示例](./08-examples/auth-example.md)** - 权限和认证
 
 #### 快速参考 (09-quick-reference)
+
 - **[API快速参考](./09-quick-reference/api-reference.md)** - ⭐ API快速参考
 - **[故障排查](./09-quick-reference/troubleshooting.md)** - 常见错误和解决方法
 
 #### 元文档 (10-meta)
+
 - **[文档模板](./10-meta/DOCUMENTATION_TEMPLATE.md)** - 文档编写规范
 - **[代码风格配置](./10-meta/code-style-config.md)** - Checkstyle配置
 
 ## 核心API
 
 ### 数据访问层 (IEntityDao)
+
 ```
 IEntityDao<T> interface
 ├── CRUD操作
@@ -122,6 +134,7 @@ IEntityDao<T> interface
 ```
 
 ### 查询构建器 (QueryBean & FilterBeans)
+
 ```
 QueryBean
 ├── 过滤条件: FilterBean
@@ -141,6 +154,7 @@ FilterBeans
 ```
 
 ### 服务层 (CrudBizModel)
+
 ```
 CrudBizModel<T>
 ├── 内置查询方法
@@ -155,6 +169,7 @@ CrudBizModel<T>
 ```
 
 ### 事务管理
+
 ```
 @Transactional注解
 ├── 基本用法: 在方法上添加注解
@@ -168,6 +183,7 @@ ITransactionTemplate
 ```
 
 ### 异常处理
+
 ```
 NopException
 ├── 基础构造: new NopException(errorCode)
@@ -180,6 +196,7 @@ NopException
 ## 常用模式
 
 ### 1. 简单CRUD操作
+
 ```java
 // 查询
 @BizQuery
@@ -210,6 +227,7 @@ public void deleteUser(String userId) {
 ```
 
 ### 2. 条件查询
+
 ```java
 // Example查询
 @BizQuery
@@ -252,20 +270,22 @@ public PageBean<User> searchUsers(UserSearchRequest request) {
 ```
 
 ### 3. 事务操作
+
 ```java
 // 简单事务
 @BizMutation
-@Transactional
-public void updateUser(String userId, String newName) {
+public void updateUser(@Name("userId") String userId, @Name("newName") String newName) {
     User user = dao().requireEntityById(userId);
     user.setName(newName);
     dao().saveEntity(user);
 }
 
-// 复杂事务
-@BizMutation
-public void transferOrder(String fromId, String toId) {
-    txn(() -> {
+// 复杂事务（使用编程式事务）
+@Inject
+protected ITransactionTemplate txnTemplate;
+
+public void transferOrder(@Name("fromId") String fromId, @Name("toId") String toId) {
+    txnTemplate.runInTransaction(txn -> {
         Order from = dao().requireEntityById(fromId);
         Order to = dao().requireEntityById(toId);
 
@@ -276,14 +296,15 @@ public void transferOrder(String fromId, String toId) {
         dao().saveEntity(to);
 
         TransferRecord record = new TransferRecord();
-        record.setFromId(fromId);
-        record.setToId(toId);
+        record.setFromOrderId(fromId);
+        record.setToOrderId(toId);
         transferDao.saveEntity(record);
     });
 }
 ```
 
 ### 4. 异常处理
+
 ```java
 // 验证并抛异常
 @BizMutation
@@ -324,6 +345,7 @@ public User findUser(String userId) {
 ## 最佳实践
 
 ### 1. API使用
+
 - ✅ 优先使用`CrudBizModel`的内置方法
 - ✅ 复杂查询使用`QueryBean`和`FilterBeans`
 - ✅ 简单查询使用Example模式
@@ -331,6 +353,7 @@ public User findUser(String userId) {
 - ✅ 使用`@BizQuery`/`@BizMutation`/`@BizAction`注解
 
 ### 2. 事务管理
+
 - ✅ 简单场景使用`@Transactional`注解
 - ✅ 复杂场景使用`ITransactionTemplate`编程式事务
 - ✅ 事务边界尽可能小
@@ -338,6 +361,7 @@ public User findUser(String userId) {
 - ✅ 使用事务监听器处理提交后操作
 
 ### 3. 异常处理
+
 - ✅ 使用`NopException`统一异常
 - ✅ 提供清晰的错误码和参数
 - ✅ 区分业务异常和技术异常
@@ -345,6 +369,7 @@ public User findUser(String userId) {
 - ✅ 提供足够的上下文信息
 
 ### 4. 性能优化
+
 - ✅ 使用字段选择减少数据传输
 - ✅ 使用批量操作减少数据库交互
 - ✅ 合理设置分页大小
@@ -354,65 +379,79 @@ public User findUser(String userId) {
 ## 按任务类型查找
 
 ### 我想...创建CRUD功能
+
 → 参考：[服务层开发指南](./03-development-guide/service-layer.md)
 → 参考：[CRUD完整示例](./08-examples/crud-example.md)
 
 ### 我想...处理复杂查询
+
 → 参考：[数据访问层](./03-development-guide/data-access.md)
 → 参考：[复杂查询示例](./08-examples/query-example.md)
 → 参考：[API快速参考](./09-quick-reference/api-reference.md)
 
 ### 我想...管理事务
+
 → 参考：[事务管理](./04-core-components/transaction.md)
 → 参考：[事务处理示例](./08-examples/transaction-example.md)
 
 ### 我想...处理异常
+
 → 参考：[异常处理](./04-core-components/exception-handling.md)
 → 参考：[错误处理实践](./07-best-practices/error-handling.md)
 
 ### 我想...开发GraphQL服务
+
 → 参考：[API开发](./03-development-guide/api-development.md)
 → 参考：[GraphQL服务示例](./08-examples/graphql-example.md)
 
 ### 我想...快速查找API
+
 → 参考：[API快速参考](./09-quick-reference/api-reference.md)
 
 ### 我想...了解Delta定制
+
 → 参考：[Delta定制基础](./01-core-concepts/delta-basics.md)
 → 参考：[Delta定制场景](./01-core-concepts/delta-scenarios.md)
 → 参考：[XDSL与Delta](./05-xlang/xdsl-delta.md)
 
 ### 我想...配置IoC容器
+
 → 参考：[IoC容器](./04-core-components/ioc-container.md)
 → 参考：[配置管理](./04-core-components/config-management.md)
 
 ### 我想...进行测试
+
 → 参考：[测试规范](./07-best-practices/testing.md)
 
 ### 我想...排查问题
+
 → 参考：[故障排查](./09-quick-reference/troubleshooting.md)
 
 ## 文档特色
 
 ### ✅ 100%准确验证
+
 - 所有示例代码都与实际源码一致
 - 所有API调用都经过源码验证
 - 所有类名、包名都正确
 - 所有注解使用都正确
 
 ### ✅ 结构化组织
+
 - 清晰的目录层次（最多2层）
 - 统一的文档格式
 - 完整的索引系统
 - 丰富的交叉引用
 
 ### ✅ 实用性强
+
 - 包含大量实际项目示例
 - 提供常见使用模式
 - 包含性能优化建议
 - 包含常见问题解答
 
 ### ✅ 易于查询
+
 - 快速参考卡片
 - 清晰的目录结构
 - 详细的章节索引
@@ -421,21 +460,25 @@ public User findUser(String userId) {
 ## Nop平台特色
 
 ### 可逆计算
+
 - 核心公式：`App = Delta x-extends Generator<DSL>`
 - 支持模型的动态合成和差量化定制
 - 定制化开发无需修改基础产品源码
 
 ### 模型驱动开发
+
 - 通过XML模型、XMeta模型等定义业务结构
 - 自动生成实体类、API接口、服务类等
 - 支持增量生成和Delta修正
 
 ### 语言导向编程
+
 - 鼓励设计领域特定语言(DSL)
 - XDef、XScript、Xpl等子语言
 - 内置元编程机制
 
 ### 框架中立
+
 - 不依赖Spring等第三方框架
 - 可运行在Spring/Quarkus/Solon等多种框架上
 - 支持GraalVM原生编译

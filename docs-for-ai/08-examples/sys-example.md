@@ -786,7 +786,3 @@ NopSys项目展示了如何使用Nop Platform构建系统配置管理模块：
 - [GraphQL服务开发指南](../03-development-guide/graphql-guide.md)
 - [事务管理指南](../04-core-components/transaction-guide.md)
 - [异常处理指南](../04-core-components/exception-guide.md)
-
----
-
-**作者**: AI Assistant (Sisyphus)

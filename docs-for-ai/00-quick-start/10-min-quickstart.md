@@ -146,6 +146,7 @@ package com.example.myapp.service.biz;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
+import io.nop.api.core.annotations.core.Name;
 import io.nop.biz.core.BizBizModel;
 import io.nop.dao.api.IDaoProvider;
 import com.example.myapp.dao.entity.User;
@@ -164,17 +165,17 @@ public class UserBizModel extends CrudBizModel<User> {
     }
 
     @BizQuery
-    public User getUser(String userId) {
+    public User getUser(@Name("userId") String userId) {
         return dao().requireEntityById(userId);
     }
 
     @BizMutation
-    public User createUser(User user) {
+    public User createUser(@Name("user") User user) {
         return dao().saveEntity(user);
     }
 
     @BizMutation
-    public User updateUser(User user) {
+    public User updateUser(@Name("user") User user) {
         User existing = dao().requireEntityById(user.getUserId());
         existing.setUserName(user.getUserName());
         existing.setEmail(user.getEmail());
@@ -183,7 +184,7 @@ public class UserBizModel extends CrudBizModel<User> {
     }
 
     @BizMutation
-    public void deleteUser(String userId) {
+    public void deleteUser(@Name("userId") String userId) {
         User user = dao().requireEntityById(userId);
         dao().deleteEntity(user);
     }
