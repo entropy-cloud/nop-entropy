@@ -1,0 +1,1 @@
+sessions_list: 允许 Agent 查询当前系统中还有哪些活跃的 Session，以及它们的元数据（如运行的模型、当前的上下文摘要）。sessions_history: 允许 Agent 读取其他 Session 的历史记录，从而获取上下文信息，实现知识共享。sessions_send: 这是一个极其强大的原语，允许 Agent A 向 Agent B 发送消息。它支持 Ping-Pong 模式，即 Agent A 发送消息后挂起，等待 Agent B 处理完毕并返回结果。

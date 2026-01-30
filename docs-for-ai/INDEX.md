@@ -17,6 +17,14 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 - **[10分钟快速上手](./00-quick-start/10-min-quickstart.md)** - ⭐ 从零开始
 - **[常见开发任务](./00-quick-start/common-tasks.md)** - ⭐ 快速参考
 
+### 🧭 任务型开发手册（AI 默认入口）
+
+- **[任务型开发手册（Runbook）](./12-tasks/README.md)** - ⭐ 先模型/生成，再 Delta，最后写 Java
+- **[事务边界与回调](./12-tasks/transaction-boundaries.md)**
+- **[扩展 CRUD 钩子](./12-tasks/extend-crud-with-hooks.md)**
+- **[用 QueryBean 写自定义查询](./12-tasks/custom-query-with-querybean.md)**
+- **[通过 Delta + BizLoader 扩展返回字段](./12-tasks/extend-api-with-delta-bizloader.md)**
+
 ### 📚 文档索引
 
 #### 核心概念 (01-core-concepts)
@@ -113,6 +121,10 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 - **[文档模板](./10-meta/DOCUMENTATION_TEMPLATE.md)** - 文档编写规范
 - **[代码风格配置](./10-meta/code-style-config.md)** - Checkstyle配置
 
+#### 源码参考（13-reference）
+
+- **[源码锚点](./13-reference/source-anchors.md)** - ⭐ 关键符号与源码路径
+
 ## 核心API
 
 ### 数据访问层 (IEntityDao)
@@ -187,16 +199,16 @@ CrudBizModel<T>
 
 ### 事务管理
 
-```
-@Transactional注解
-├── 基本用法: 在方法上添加注解
-├── 传播级别: REQUIRED, REQUIRES_NEW, MANDATORY, SUPPORTS, NOT_SUPPORTED, NEVER, NESTED
-└── 只读: readOnly=true
+> AI 提示：BizModel 场景优先使用 `@BizMutation` 的默认事务边界；需要事务回调/细粒度控制时使用 `ITransactionTemplate`。
 
+```
 ITransactionTemplate
 ├── runInTransaction(txnFunction)
 ├── runInTransaction(txnGroup, propagation, txnFunction)
 └── runInTransactionAsync(...)
+
+@Transactional（Nop 注解）
+└── 多用于非 BizModel 场景或需要显式传播级别的少数情况
 ```
 
 ### 异常处理
@@ -248,7 +260,7 @@ public class UserBizModel extends CrudBizModel<User> {
     // ✅ 自定义复杂查询：使用 Map/QueryBean 作为参数
     @BizQuery
     public PageBean<User> searchUsers(@Name("request") Map<String, Object> request,
-                                      FieldSelection selection, IServiceContext context) {
+                                      FieldSelectionBean selection, IServiceContext context) {
         QueryBean query = new QueryBean();
 
         List<TreeBean> filters = new ArrayList<>();
@@ -383,8 +395,9 @@ public User findUser(String userId) {
 
 ### 2. 事务管理
 
-- ✅ 简单场景使用`@Transactional`注解
-- ✅ 复杂场景使用`ITransactionTemplate`编程式事务
+- ✅ BizModel 写入操作：优先使用`@BizMutation`（默认自动事务边界）
+- ✅ 需要事务回调/细粒度控制：使用`ITransactionTemplate`
+- ⚠️ `@Transactional`是 Nop 注解（非 Spring），仅用于非 BizModel 场景或少数显式传播级别需求
 - ✅ 事务边界尽可能小
 - ✅ 避免在事务中执行IO操作
 - ✅ 使用事务监听器处理提交后操作

@@ -66,7 +66,7 @@ Nop平台服务层基于BizModel设计，提供了CrudBizModel基类用于快速
 ### 1. BizModel - 业务模型
 
 **定义**：标记业务模型的注解，用于将Java类转换为GraphQL API
-**位置**：`io.nop.biz.api.BizModel`
+**位置**：`io.nop.api.core.annotations.biz.BizModel`
 **作用**：
 - 标记业务模型类
 - 自动生成GraphQL类型和操作
@@ -79,7 +79,7 @@ public class UserBizModel {
     // 业务方法
     @BizQuery
     public List<User> findUsersByStatus(@Name("status") int status, 
-                     FieldSelection selection, 
+                     FieldSelectionBean selection, 
                      IServiceContext context){
        ...
     }
@@ -166,18 +166,17 @@ protected IPasswordEncoder passwordEncoder;
 **示例**：
 ```java
 @BizQuery
-public User getUserByOpenId(@Name("openId") String openId, FieldSelection selection, IServiceContext context) {
-    // 使用Example查询
+public User getUserByOpenId(@Name("openId") String openId, FieldSelectionBean selection, IServiceContext context) {
     QueryBean query = new QueryBean();
-    query.addFilter(FilterBeans.eq(User.PROP_ID_openId,openId));
-    return findFirst(example,selection, context);
+    query.setFilter(FilterBeans.eq(User.PROP_ID_openId, openId));
+    return doFindFirst(query, selection, context);
 }
 
 @BizMutation
 public void resetUserPassword(@Name("userId") String userId, @Name("newPassword") String newPassword, IServiceContext context) {
-    User user = this.requireEntity(userId，"resetUserPassword", context);
+    User user = this.requireEntity(userId);
     user.setPassword(passwordEncoder.encode(newPassword));
-    dao().saveEntity(user);
+    doUpdate(user);
 }
 ```
 
@@ -313,7 +312,7 @@ public class LoginApiBizModel implements ILoginSpi {
 **示例**：
 ```java
 @BizQuery
-public List<User> findActiveUsers(FieldSelection selection, IServiceContext context) {
+public List<User> findActiveUsers(FieldSelectionBean selection, IServiceContext context) {
     // 使用QueryBean查询
     QueryBean query = new QueryBean();
     query.setFilter(FilterBeans.eq("status", 1));
@@ -380,7 +379,7 @@ public class UserBizModel extends CrudBizModel<User> {
 
     @BizQuery
     public List<Order> getUserOrders(@Name("userId") String userId,
-                FieldSelection selection, IServiceContext context) {
+                FieldSelectionBean selection, IServiceContext context) {
          IBizObject orderObj = bizObjectManager.getBizObject("Order");
         return (List<Order>) orderObj.invoke("findOrdersByUser", Map.of("userId",userId), selection, context);
     }
@@ -402,7 +401,7 @@ public class UserBizModel extends CrudBizModel<User> {
 
     @BizQuery
     public List<Order> getUserOrders(@Name("userId") String userId,
-                FieldSelection selection, IServiceContext context) {
+                FieldSelectionBean selection, IServiceContext context) {
         return orderBiz.findOrdersByUser(userId, context);
     }
 }

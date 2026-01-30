@@ -12,10 +12,8 @@
 
 ## 权威入口
 
-- `docs-for-../04-core-components/exception-guide.md`
-- `docs-for-ai/getting-started/nop-vs-traditional-frameworks.md`
-- `docs-for-../07-best-practices/INDEX.md`
-s
+- `../04-core-components/exception-guide.md`
+- `../12-tasks/error-codes-and-nop-exception.md`（任务/代码生成优先）
 
 ## NopException 使用示例
 
@@ -111,7 +109,7 @@ public DemoUser updateUser(@Name("user") DemoUser user) {
 ## 相关文档
 
 - [异常处理指南](../04-core-components/exception-guide.md)
-- [错误码定义](../getting-started/common/error-code.md)
+- [错误码与 NopException](../12-tasks/error-codes-and-nop-exception.md)
 - [服务层开发指南](../03-development-guide/service-layer-development.md)
 - [事务管理指南](../04-core-components/transaction-guide.md)
 

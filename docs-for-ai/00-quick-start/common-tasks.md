@@ -200,7 +200,7 @@ public List<Product> getProductsByPriceRange(@Name("minPrice") BigDecimal minPri
 // 如果需要自定义查询，可以这样：
 @BizQuery
 public PageBean<Product> searchProducts(@Name("request") Map<String, Object> request,
-                                       FieldSelection selection, IServiceContext context) {
+                                       FieldSelectionBean selection, IServiceContext context) {
     QueryBean query = new QueryBean();
 
     if (request.containsKey("keyword")) {
@@ -472,7 +472,7 @@ public class ProductBizModel extends CrudBizModel<Product> {
     // ✅ 自定义复杂查询：使用 Map/QueryBean 作为参数
     @BizQuery
     public PageBean<Product> searchProducts(@Name("request") Map<String, Object> request,
-                                       FieldSelection selection, IServiceContext context) {
+                                       FieldSelectionBean selection, IServiceContext context) {
         QueryBean query = new QueryBean();
 
         List<TreeBean> filters = new ArrayList<>();
