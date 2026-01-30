@@ -1,0 +1,42 @@
+package io.nop.ai.shell.model;
+
+/**
+ * 词法单元类型枚举
+ */
+public enum TokenType {
+
+    COMMAND("COMMAND"),
+    ARGUMENT("ARGUMENT"),
+    PIPE("PIPE"),
+    AND("AND"),
+    OR("OR"),
+    SEMICOLON("SEMICOLON"),
+    LEFT_PAREN("LEFT_PAREN"),
+    RIGHT_PAREN("RIGHT_PAREN"),
+    LEFT_BRACE("LEFT_BRACE"),
+    RIGHT_BRACE("RIGHT_BRACE"),
+    BACKGROUND("BACKGROUND"),
+    REDIRECT_OUTPUT("REDIRECT_OUTPUT"),
+    REDIRECT_APPEND("REDIRECT_APPEND"),
+    REDIRECT_INPUT("REDIRECT_INPUT"),
+    REDIRECT_FD_OUTPUT("REDIRECT_FD_OUTPUT"),
+    REDIRECT_FD_INPUT("REDIRECT_FD_INPUT"),
+    REDIRECT_MERGE("REDIRECT_MERGE"),
+    REDIRECT_MERGE_APPEND("REDIRECT_MERGE_APPEND"),
+    REDIRECT_HERE_DOC("REDIRECT_HERE_DOC"),
+    REDIRECT_HERE_STRING("REDIRECT_HERE_STRING"),
+    ENV_ASSIGN("ENV_ASSIGN"),
+    QUOTED_SINGLE("QUOTED_SINGLE"),
+    QUOTED_DOUBLE("QUOTED_DOUBLE"),
+    EOF("EOF");
+
+    private final String name;
+
+    TokenType(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+}
