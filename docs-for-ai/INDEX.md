@@ -103,6 +103,11 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 - **[API快速参考](./09-quick-reference/api-reference.md)** - ⭐ API快速参考
 - **[故障排查](./09-quick-reference/troubleshooting.md)** - 常见错误和解决方法
 
+#### 测试与调试 (11-test-and-debug)
+
+- **[AutoTest自动化测试指南](./11-test-and-debug/autotest-guide.md)** - ⭐ NopAutoTest框架使用指南
+- **[调试和诊断指南](./11-test-and-debug/nop-debug-and-diagnosis-guide.md)** - ⭐ 调试机制和问题诊断
+
 #### 元文档 (10-meta)
 
 - **[文档模板](./10-meta/DOCUMENTATION_TEMPLATE.md)** - 文档编写规范
@@ -157,16 +162,28 @@ FilterBeans
 
 ```
 CrudBizModel<T>
-├── 内置查询方法
-│   ├── findCount()
-│   ├── findFirst(query)
-│   ├── findList(query)
-│   └── findPage(query, pageNo, pageSize)
-└── 内置CRUD方法
-    ├── save(data)
-    ├── update(data)
-    └── delete(id)
+├── 推荐使用的方法（自动应用数据权限）
+│   ├── 查询方法
+│   │   ├── findCount()
+│   │   ├── findFirst(query)
+│   │   ├── findList(query)
+│   │   └── findPage(query, pageNo, pageSize)
+│   └── CRUD方法
+│       ├── get(id)          → 使用 getEntity()
+│       ├── save(data)       → 使用 doSave()
+│       ├── update(data)      → 使用 doUpdate()
+│       └── delete(id)       → 使用 doDelete()
+└── 直接使用 DAO 的方法（需谨慎）
+    ├── dao().getEntityById()
+    ├── dao().saveEntity()
+    ├── dao().updateEntity()
+    └── dao().deleteEntity()
 ```
+
+**重要说明**：
+- ✅ **推荐**：使用 `getEntity()`, `requireEntity()`, `doFindList()`, `doFindPage()`, `doSave()`, `doUpdate()`, `doDelete()` 等父类方法
+- ❌ **避免**：直接调用 `dao().getEntityById()`, `dao().saveEntity()`, `dao().deleteEntity()` 等
+- **原因**：CrudBizModel 的内置方法会自动应用数据权限检查、触发内置回调函数
 
 ### 事务管理
 
@@ -195,111 +212,123 @@ NopException
 
 ## 常用模式
 
-### 1. 简单CRUD操作
+### 1. 内置 CRUD 操作（无需编程）
+
+**重要**: 继承 CrudBizModel 后，已经自动内置了完整的 CRUD 操作，**无需手动编写简单的 CRUD 方法**！
 
 ```java
-// 查询
-@BizQuery
-public User getUser(String userId) {
-    return dao().getEntityById(userId);
-}
-
-// 创建
-@BizMutation
-public User createUser(User user) {
-    return save(user);
-}
-
-// 更新
-@BizMutation
-public User updateUser(User user) {
-    User existing = dao().requireEntityById(user.getId());
-    existing.setName(user.getName());
-    return dao().saveEntity(existing);
-}
-
-// 删除
-@BizMutation
-public void deleteUser(String userId) {
-    User user = dao().requireEntityById(userId);
-    dao().deleteEntity(user);
+@BizModel("User")
+public class UserBizModel extends CrudBizModel<User> {
+    
+    // ✅ 内置方法直接可用，无需实现
+    // 前端调用：
+    // - User__findPage(request: {...}, pageNo:1, pageSize:10) { ... }
+    // - User__get(data: {id: "xxx"}) { ... }
+    // - User__save(data: {...}) { ... }
+    // - User__update(data: {...}) { ... }
+    // - User__delete(data: {id: "xxx"}) { ... }
+    
+    // ✅ 如需自定义业务逻辑，重写扩展点
+    @Override
+    protected void defaultPrepareSave(EntityData<User> entityData, IServiceContext context) {
+        super.defaultPrepareSave(entityData, context);
+        // 自定义逻辑
+    }
 }
 ```
 
-### 2. 条件查询
+### 2. 自定义复杂查询（需要编程）
+
+**当内置方法不能满足需求时，才需要手动编写查询方法**：
 
 ```java
-// Example查询
-@BizQuery
-public List<User> findUsersByStatus(Integer status) {
-    User example = new User();
-    example.setStatus(status);
-    return dao().findAllByExample(example);
-}
+@BizModel("User")
+public class UserBizModel extends CrudBizModel<User> {
 
-// QueryBean查询
-@BizQuery
-public List<User> findUsers(String keyword) {
-    QueryBean query = new QueryBean();
-    query.setFilter(FilterBeans.contains("name", keyword));
-    return dao().findAllByQuery(query);
-}
+    // ✅ 自定义复杂查询：使用 Map/QueryBean 作为参数
+    @BizQuery
+    public PageBean<User> searchUsers(@Name("request") Map<String, Object> request,
+                                      FieldSelection selection, IServiceContext context) {
+        QueryBean query = new QueryBean();
 
-// 复杂条件
-@BizQuery
-public PageBean<User> searchUsers(UserSearchRequest request) {
-    QueryBean query = new QueryBean();
+        List<TreeBean> filters = new ArrayList<>();
+        if (request.containsKey("keyword")) {
+            filters.add(FilterBeans.contains("name", request.get("keyword")));
+        }
+        if (request.containsKey("status")) {
+            filters.add(FilterBeans.eq("status", request.get("status")));
+        }
 
-    List<TreeBean> filters = new ArrayList<>();
-    if (StringHelper.isNotEmpty(request.getKeyword())) {
-        filters.add(FilterBeans.or(
-            FilterBeans.contains("name", request.getKeyword()),
-            FilterBeans.contains("email", request.getKeyword())
-        ));
+        if (!filters.isEmpty()) {
+            query.setFilter(FilterBeans.and(filters));
+        }
+
+        return doFindPage(query, selection, context);
     }
-    if (request.getStatus() != null) {
-        filters.add(FilterBeans.eq("status", request.getStatus()));
-    }
-
-    if (!filters.isEmpty()) {
-        query.setFilter(FilterBeans.and(filters));
-    }
-
-    return findPage(query, request.getPageNo(), request.getPageSize());
 }
 ```
 
-### 3. 事务操作
+### 3. 扩展点使用（需要编程）
+
+**当需要在 CRUD 操作前后执行自定义逻辑时，重写扩展点**：
 
 ```java
-// 简单事务
-@BizMutation
-public void updateUser(@Name("userId") String userId, @Name("newName") String newName) {
-    User user = dao().requireEntityById(userId);
-    user.setName(newName);
-    dao().saveEntity(user);
+@BizModel("User")
+public class UserBizModel extends CrudBizModel<User> {
+
+    @Override
+    protected void defaultPrepareSave(EntityData<User> entityData, IServiceContext context) {
+        super.defaultPrepareSave(entityData, context);
+        
+        User user = entityData.getEntity();
+        // 自定义逻辑：密码加密
+        if (user.getPassword() != null) {
+            // user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
+    }
 }
+```
 
-// 复杂事务（使用编程式事务）
-@Inject
-protected ITransactionTemplate txnTemplate;
+### 4. 条件查询（使用内置方法）
 
-public void transferOrder(@Name("fromId") String fromId, @Name("toId") String toId) {
-    txnTemplate.runInTransaction(txn -> {
-        Order from = dao().requireEntityById(fromId);
-        Order to = dao().requireEntityById(toId);
+```java
+// ✅ 简单条件查询：直接使用内置方法 + QueryBean 参数
+// 前端调用：User__findPage(request: {...}) { ... }
+```
+
+### 3. 模型驱动事务操作
+
+**重要**: CRUD 操作使用内置方法时，`@BizMutation` 自动开启事务，**无需手动管理事务**！
+
+```java
+@BizModel("Order")
+public class OrderBizModel extends CrudBizModel<Order> {
+
+    // ✅ 复杂业务逻辑：使用 Map/QueryBean 参数
+    @BizMutation
+    public void transferOrder(@Name("request") Map<String, Object> request, IServiceContext context) {
+        // 注意：@BizMutation 已自动开启事务，无需使用 txn()
+        
+        String fromId = (String) request.get("fromId");
+        String toId = (String) request.get("toId");
+
+        // ✅ 使用 requireEntity，自动应用数据权限
+        Order from = requireEntity(fromId);
+        Order to = requireEntity(toId);
 
         from.setStatus("TRANSFERRED");
         to.setStatus("PENDING");
 
-        dao().saveEntity(from);
-        dao().saveEntity(to);
+        // ✅ 使用 doUpdate，自动触发回调
+        doUpdate(from);
+        doUpdate(to);
 
         TransferRecord record = new TransferRecord();
         record.setFromOrderId(fromId);
         record.setToOrderId(toId);
+        // 注意：这里使用其他 DAO，可以直接使用 dao() 方法
         transferDao.saveEntity(record);
-    });
+    }
 }
 ```
 
@@ -422,10 +451,12 @@ public User findUser(String userId) {
 ### 我想...进行测试
 
 → 参考：[测试规范](./07-best-practices/testing.md)
+→ 参考：[AutoTest自动化测试指南](./11-test-and-debug/autotest-guide.md)
 
 ### 我想...排查问题
 
 → 参考：[故障排查](./09-quick-reference/troubleshooting.md)
+→ 参考：[调试和诊断指南](./11-test-and-debug/nop-debug-and-diagnosis-guide.md)
 
 ## 文档特色
 

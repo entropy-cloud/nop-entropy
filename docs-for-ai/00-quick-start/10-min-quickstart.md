@@ -144,11 +144,10 @@ mvn clean install
 package com.example.myapp.service.biz;
 
 import io.nop.api.core.annotations.biz.BizModel;
-import io.nop.api.core.annotations.biz.BizMutation;
-import io.nop.api.core.annotations.biz.BizQuery;
-import io.nop.api.core.annotations.core.Name;
-import io.nop.biz.core.BizBizModel;
+import io.nop.biz.crud.CrudBizModel;
+import io.nop.biz.crud.EntityData;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.core.context.IServiceContext;
 import com.example.myapp.dao.entity.User;
 import com.example.myapp.dao.api.IUserDao;
 
@@ -157,36 +156,25 @@ import jakarta.inject.Inject;
 @BizModel("User")
 public class UserBizModel extends CrudBizModel<User> {
 
-    @Inject
-    private IDaoProvider daoProvider;
-
-    protected IUserDao dao() {
-        return daoProvider.dao(User.class);
+    public UserBizModel() {
+        setEntityName(User.class.getName());
     }
 
-    @BizQuery
-    public User getUser(@Name("userId") String userId) {
-        return dao().requireEntityById(userId);
-    }
+    // ✅ 继承 CrudBizModel 后，已经自动内置了完整的 CRUD 操作
+    // 内置方法无需手动实现，包括：
+    // - findPage(query, pageNo, pageSize)   // 分页查询
+    // - get(Map id)                        // 单条查询
+    // - save(Map data)                     // 保存
+    // - update(Map data)                   // 更新
+    // - delete(Map id)                      // 删除
 
-    @BizMutation
-    public User createUser(@Name("user") User user) {
-        return dao().saveEntity(user);
-    }
-
-    @BizMutation
-    public User updateUser(@Name("user") User user) {
-        User existing = dao().requireEntityById(user.getUserId());
-        existing.setUserName(user.getUserName());
-        existing.setEmail(user.getEmail());
-        existing.setStatus(user.getStatus());
-        return dao().saveEntity(existing);
-    }
-
-    @BizMutation
-    public void deleteUser(@Name("userId") String userId) {
-        User user = dao().requireEntityById(userId);
-        dao().deleteEntity(user);
+    // ✅ 如需自定义业务逻辑，重写扩展点
+    @Override
+    protected void defaultPrepareSave(EntityData<User> entityData, IServiceContext context) {
+        super.defaultPrepareSave(entityData, context);
+        // 自定义逻辑：密码加密
+        User user = entityData.getEntity();
+        // user.setPassword(passwordEncoder.encode(user.getPassword()));
     }
 }
 ```

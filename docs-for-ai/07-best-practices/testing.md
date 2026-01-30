@@ -5,7 +5,7 @@
 请以以下文档为准：
 
 - NopAutoTest / `@NopTestConfig` / 测试容器启动方式：
-  - `../03-development-guide/autotest-guide.md`
+  - `../11-test-and-debug/autotest-guide.md`
 - IoC 注入规则（尤其是 `@Inject` 不支持 private 字段、值注入用 `@InjectValue`）：
   - `../04-core-components/ioc-guide.md`
 
@@ -413,10 +413,10 @@ mvn clean test jacoco:report
 
 ## 相关文档
 
-- [AutoTest指南](../03-development-guide/autotest-guide.md)
+- [AutoTest指南](../11-test-and-debug/autotest-guide.md)
 - [服务层开发指南](../03-development-guide/service-layer-development.md)
 - [异常处理指南](../04-core-components/exception-guide.md)
-- [测试调试指南](../03-development-guide/nop-debug-and-diagnosis-guide.md)
+- [测试调试指南](../11-test-and-debug/nop-debug-and-diagnosis-guide.md)
 
 ## 总结
 

@@ -4,6 +4,63 @@
 
 Nop平台服务层基于BizModel设计，提供了CrudBizModel基类用于快速实现CRUD操作，同时支持复杂业务逻辑的扩展。
 
+## 重要说明
+
+### 模型驱动架构（Model-Driven Architecture）
+
+**Nop 平台使用模型驱动架构，无需手动编写简单的 CRUD 代码！**
+
+#### 核心特性
+
+1. **内置 CRUD 操作**：继承 CrudBizModel 后，已经自动内置了完整的 CRUD 操作
+2. **参数使用 Map/QueryBean**：不使用自定义 DTO 对象，直接使用 Map 和 QueryBean
+3. **元数据驱动**：通过 xmeta 元数据模型定义数据结构和验证规则
+4. **字段级别自适应**：修改模型后自动适应，无需重新生成代码
+
+#### 内置 CRUD 方法（无需编程）
+
+| 方法 | GraphQL 调用 | REST 调用 | 参数类型 | 说明 |
+|------|-------------|-----------|---------|------|
+| `findPage()` | Entity__findPage(...) | POST /r/Entity__findPage | QueryBean | 分页查询 |
+| `findList()` | Entity__findList(...) | POST /r/Entity__findList | QueryBean | 列表查询 |
+| `get()` | Entity__get(...) | POST /r/Entity__get | Map {id} | 单条查询 |
+| `save()` | Entity__save(...) | POST /r/Entity__save | Map {数据} | 保存 |
+| `update()` | Entity__update(...) | POST /r/Entity__update | Map {id, 数据} | 更新 |
+| `delete()` | Entity__delete(...) | POST /r/Entity__delete | Map {id} | 删除 |
+| `batchSave()` | Entity__batchSave(...) | POST /r/Entity__batchSave | List<Map> | 批量保存 |
+| `batchUpdate()` | Entity__batchUpdate(...) | POST /r/Entity__batchUpdate | List<Map> | 批量更新 |
+| `batchDelete()` | Entity__batchDelete(...) | POST /r/Entity__batchDelete | List<Map> | 批量删除 |
+
+#### 无需编程的场景
+
+以下场景**不需要手动编写代码**：
+
+| 场景 | 解决方案 |
+|------|---------|
+| 简单查询 | 使用内置方法 `findPage()`, `get()` |
+| 保存操作 | 使用内置方法 `save(Map data)` |
+| 更新操作 | 使用内置方法 `update(Map data)` |
+| 删除操作 | 使用内置方法 `delete(Map id)` |
+| 批量操作 | 使用内置方法 `batchSave()`, `batchUpdate()`, `batchDelete()` |
+| 字段扩展 | 修改 xmeta 模型即可，自动生效 |
+
+#### 需要编程的场景
+
+以下场景**需要手动编写代码**：
+
+| 场景 | 解决方案 |
+|------|---------|
+| 复杂业务逻辑 | 重写扩展点（defaultPrepareSave, defaultPrepareQuery 等） |
+| 复杂查询 | 自定义 BizQuery 方法，使用 Map/QueryBean 参数 |
+| 跨模块调用 | 使用 IBizObjectManager 或定义接口 |
+| 事务监听器 | 使用 ITransactionTemplate |
+
+---
+
+## 核心组件
+
+Nop平台服务层基于BizModel设计，提供了CrudBizModel基类用于快速实现CRUD操作，同时支持复杂业务逻辑的扩展。
+
 ## 核心组件
 
 ### 1. BizModel - 业务模型
@@ -266,6 +323,11 @@ public List<User> findActiveUsers(FieldSelection selection, IServiceContext cont
 
 **注意**： 一般不直接调用到`dao().findAllByQuery()`, 而是调用CrudBizModel基类中的doXX函数，这些函数会考虑数据权限问题，并触发内置回调函数。
 
+**QueryBean 分页处理**：
+- ✅ 使用内置方法（如 `findPage()`），框架会自动处理 offset/limit
+- ❌ 无需在 QueryBean 中手动设置 offset/limit
+- ❌ 无需额外传递 pageNo/pageSize 参数给 doXX 函数
+
 ### 2. 变更方法
 
 **@BizMutation**：标记变更方法（新增、更新、删除）
@@ -295,7 +357,12 @@ public void approveUser(@Name("userId") String userId,
 ## 注意事项
 
 1. **一般不要在BizModel中直接使用dao()方法，尽量使用CrudBizModel内置的方法**
+   - ✅ **推荐**：使用 `getEntity()`, `requireEntity()`, `doFindList()`, `doFindPage()`, `doSave()`, `doUpdate()`, `doDelete()` 等父类方法
+   - ❌ **避免**：直接调用 `dao().getEntityById()`, `dao().saveEntity()`, `dao().deleteEntity()` 等
+   - **原因**：CrudBizModel 的内置方法会自动应用数据权限检查、触发内置回调函数（如 `defaultPrepareQuery`、`defaultPrepareSave` 等）
+
 2. **不要在BizModel中手动管理事务**：`@BizMutation` 已自动开启事务，无需额外使用 `@Transactional` 或 `txn()`。只有在需要非常细粒度事务控制时才使用编程式事务。
+
 3. **不要在BizModel中手动处理异常，抛出NopException即可**
 
 ## 常见问题
