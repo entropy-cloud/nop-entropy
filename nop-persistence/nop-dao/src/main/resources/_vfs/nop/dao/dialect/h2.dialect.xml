@@ -3,6 +3,7 @@
 <dialect x:extends="default.dialect.xml,window-expr-support.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
          xmlns:x="/nop/schema/xdsl.xdef"
          maxStringSize="1048576" maxBytesSize="1048576"
+         tableNameCase="upper"
 >
     <driverClassName>org.h2.Driver</driverClassName>
     <dbProductNames>H2</dbProductNames>

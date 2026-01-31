@@ -3,6 +3,7 @@
 <dialect x:extends="default.dialect.xml,geo-support.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
          xmlns:x="/nop/schema/xdsl.xdef"
          keywordQuote="&quot;" defaultNullsFirst="false"
+         columnNameCase="lower"
 >
 
     <driverClassName>org.postgresql.Driver</driverClassName>
