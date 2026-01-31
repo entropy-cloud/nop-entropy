@@ -101,7 +101,8 @@ class EchoCommandTest {
         int exitCode = echo.execute(context);
 
         assertEquals(0, exitCode);
-        assertEquals(1, stdout.getList().size());
+        assertEquals(0, stdout.getList().size());
+        stdout.close();
         assertEquals("hello", stdout.getList().get(0));
     }
 
