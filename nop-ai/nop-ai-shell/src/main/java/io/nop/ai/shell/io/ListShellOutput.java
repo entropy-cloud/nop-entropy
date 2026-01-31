@@ -38,23 +38,24 @@ public class ListShellOutput implements IShellOutput {
     }
 
     @Override
-    public void print(String str) {
+    public void println(String text) {
         synchronized (this) {
-            processText(str, false);
+            if (text != null) {
+                processText(text, true);
+            } else {
+                processText("", true);
+            }
         }
     }
 
     @Override
-    public void println(String text) {
+    public void print(String text) {
         synchronized (this) {
-            // 优化：如果缓存为空且文本不包含换行符，直接放入列表
-            if (buffer.length() == 0 && text != null && text.indexOf('\n') < 0) {
-                list.add(text);
-                writeCount.incrementAndGet();
-                return;
+            if (text != null) {
+                processText(text, false);
+            } else {
+                processText("", false);
             }
-
-            processText(text, true);
         }
     }
 
@@ -110,7 +111,6 @@ public class ListShellOutput implements IShellOutput {
     private void flushBuffer() {
         if (buffer.length() > 0) {
             list.add(buffer.toString());
-            writeCount.incrementAndGet();
             buffer.setLength(0);
         }
     }
