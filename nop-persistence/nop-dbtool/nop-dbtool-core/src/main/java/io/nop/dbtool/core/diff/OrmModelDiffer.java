@@ -7,6 +7,10 @@
  */
 package io.nop.dbtool.core.diff;
 
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.commons.diff.IDiffValue;
 import io.nop.core.reflect.bean.BeanDiffOptions;
@@ -15,6 +19,8 @@ import io.nop.dao.dialect.IDialect;
 import io.nop.dbtool.core.DataBaseMeta;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.OrmColumnModel;
+import io.nop.orm.model.OrmIndexColumnModel;
 import io.nop.orm.model.OrmIndexModel;
 import io.nop.orm.model.OrmModel;
 import io.nop.orm.model.OrmUniqueKeyModel;
@@ -70,12 +76,20 @@ public class OrmModelDiffer {
 
         // >>>>>>>>> 索引
         FieldSelectionBean indexSelection = FieldSelectionBean.fromProp(
-                "name", "columns", "unique", "comment"
+                "name", "unique", "comment"
         );
         // 索引名作为唯一标识
         indexSelection.setKeyProp("name");
 
         entitySelection.addField("indexes", indexSelection);
+
+        //
+        FieldSelectionBean indexColSelection = FieldSelectionBean.fromProp(
+                "name", "desc"
+        );
+        indexColSelection.setKeyProp("name");
+
+        indexSelection.addField("columns", indexColSelection);
         // <<<<<<<<<<
 
         FieldSelectionBean selection = new FieldSelectionBean();
@@ -99,6 +113,26 @@ public class OrmModelDiffer {
                 || (obj instanceof OrmUniqueKeyModel && "constraint".equals(prop))
                 || (obj instanceof OrmIndexModel && "name".equals(prop))) {
             return DataBaseMeta.normalizeColName(dialect, value.toString());
+        }
+        // 对唯一键关联的属性名进行转换：属性名 -> 表列名
+        else if (obj instanceof OrmUniqueKeyModel && "columns".equals(prop)) {
+            OrmUniqueKeyModel idx = (OrmUniqueKeyModel) obj;
+            Map<String, OrmColumnModel> cols = idx.getColumnModels()
+                                                  .stream()
+                                                  .collect(Collectors.toMap(OrmColumnModel::getName,
+                                                                            Function.identity()));
+
+            return idx.getColumns()
+                      .stream()
+                      .map(cols::get)
+                      .map(OrmColumnModel::getCode)
+                      .map((col) -> DataBaseMeta.normalizeColName(dialect, col))
+                      .collect(Collectors.toList());
+        }
+        // 对索引关联的属性名进行转换：属性名 -> 表列名
+        else if (obj instanceof OrmIndexColumnModel && "name".equals(prop)) {
+            OrmIndexColumnModel col = (OrmIndexColumnModel) obj;
+            return DataBaseMeta.normalizeColName(dialect, col.getColumnCode());
         }
         // 字段默认值：从数据库中得到的默认值可能是包含引号的转义后的值，故而，在此处对两边的默认值都进行转义再做比较
         else if (obj instanceof IColumnModel && "defaultValue".equals(prop)) {

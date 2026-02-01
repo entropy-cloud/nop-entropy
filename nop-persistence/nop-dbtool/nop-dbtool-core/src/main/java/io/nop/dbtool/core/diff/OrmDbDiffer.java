@@ -350,6 +350,7 @@ public class OrmDbDiffer {
         } else if (diff.getOldValue() instanceof OrmIndexModel) {
             props.remove("name");
             props.remove("comment");
+            props.remove("unique");
         }
 
         return props.isEmpty();
