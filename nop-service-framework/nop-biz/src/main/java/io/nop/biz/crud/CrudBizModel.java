@@ -143,7 +143,8 @@ import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
 import static io.nop.orm.utils.OrmQueryHelper.resolveRef;
 
 @Locale("zh-CN")
-public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImpl, IBizObjectQueryProcessor<T> {
+public abstract class CrudBizModel<T extends IOrmEntity>
+        implements IBizModelImpl, IBizObjectQueryProcessor<T>, ICrudBiz<T> {
     static final Logger LOG = LoggerFactory.getLogger(CrudBizModel.class);
 
     private IDaoProvider daoProvider;
@@ -192,6 +193,11 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
             bizObjName = bizModel.value();
         }
         return bizObjName;
+    }
+
+    @Override
+    public IObjMeta getObjMeta() {
+        return getThisObj().getObjMeta();
     }
 
     public String getAuthObjName(String action) {
@@ -553,6 +559,40 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                     }
                     T existing = dao.findFirstByExample(example);
                     if (existing != null && existing != entityData.getEntity()) {
+                        throw new NopException(ERR_BIZ_ENTITY_WITH_SAME_KEY_ALREADY_EXISTS)
+                                .param(ARG_KEY, StringHelper.join(keys, ",")).param(ARG_DISPLAY_NAME, StringHelper.join(displayNames, ","))
+                                .param(ARG_BIZ_OBJ_NAME, getBizObjName());
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 检查实体在保存时是否满足唯一性约束
+     */
+    protected void checkUniqueForSaveEntity(T entity, IObjMeta objMeta) {
+        if (objMeta.getKeys() != null) {
+            IEntityDao<T> dao = dao();
+            for (ObjKeyModel keyModel : objMeta.getKeys()) {
+                Set<String> props = keyModel.getProps();
+                T example = dao.newEntity();
+                List<Object> keys = new ArrayList<>();
+                List<Object> displayNames = new ArrayList<>();
+                boolean allPropsSet = true;
+                for (String propName : props) {
+                    Object value = entity.orm_propValueByName(propName);
+                    if (value == null) {
+                        allPropsSet = false;
+                        break;
+                    }
+                    example.orm_propValueByName(propName, value);
+                    keys.add(value);
+                    displayNames.add(objMeta.getProp(propName).getDisplayName());
+                }
+                if (allPropsSet) {
+                    T existing = dao.findFirstByExample(example);
+                    if (existing != null && existing != entity) {
                         throw new NopException(ERR_BIZ_ENTITY_WITH_SAME_KEY_ALREADY_EXISTS)
                                 .param(ARG_KEY, StringHelper.join(keys, ",")).param(ARG_DISPLAY_NAME, StringHelper.join(displayNames, ","))
                                 .param(ARG_BIZ_OBJ_NAME, getBizObjName());
@@ -991,17 +1031,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (entity == null)
             return true;
 
-        checkMetaFilter(entity, getThisObj().getObjMeta(), context);
-        checkDataAuth(BizConstants.METHOD_DELETE, entity, context);
-
-        if (refNamesToCheck != null)
-            checkEntityRefsNotExists(entity, refNamesToCheck, context);
-
-        if (prepareDelete != null) {
-            prepareDelete.accept(entity, context);
-        }
-
-        doDeleteEntity(entity, context);
+        doDeleteEntity(entity, refNamesToCheck, prepareDelete, context);
         return true;
     }
 
@@ -1127,8 +1157,22 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         }
     }
 
+    protected void doDeleteEntity(T entity, IServiceContext context) {
+        this.doDeleteEntity(entity, getDefaultRefNamesToCheckExists(), this::invokeDefaultPrepareDelete, context);
+    }
+
     @BizAction
-    protected void doDeleteEntity(@Name("entity") T entity, IServiceContext context) {
+    protected void doDeleteEntity(@Name("entity") T entity, @Name("refNamesToCheck") Set<String> refNamesToCheck,
+                                  @Name("prepareDelete") BiConsumer<T, IServiceContext> prepareDelete, IServiceContext context) {
+        checkMetaFilter(entity, getThisObj().getObjMeta(), context);
+        checkDataAuth(BizConstants.METHOD_DELETE, entity, context);
+
+        if (refNamesToCheck != null)
+            checkEntityRefsNotExists(entity, refNamesToCheck, context);
+
+        if (prepareDelete != null) {
+            prepareDelete.accept(entity, context);
+        }
         // 先标记实体被删除，避免递归删除的时候出现死循环
         dao().deleteEntity(entity);
         deleteReferences(entity, context);
@@ -1279,7 +1323,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
     @Description("@i18n:biz.saveOrUpdate|如果没有id就修改记录，否则就新增记录")
     @BizMutation
-    public T save_update(@Name("data") Map<String, Object> data, IServiceContext context) {
+    public T saveOrUpdate(@Name("data") Map<String, Object> data, IServiceContext context) {
         if (CollectionHelper.isEmptyMap(data))
             throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_UPDATE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
 
@@ -1292,6 +1336,13 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
             result = update(data, context);
         }
         return result;
+    }
+
+    @Description("@i18n:biz.saveOrUpdate|如果没有id就修改记录，否则就新增记录。已经被saveOrUpdate取代")
+    @BizMutation
+    @Deprecated
+    public T save_update(@Name("data") Map<String, Object> data, IServiceContext context) {
+        return saveOrUpdate(data, context);
     }
 
     @Description("@i18n:biz.deleted_findPage|分页查询已删除记录")
@@ -1841,5 +1892,142 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     protected void invokeDefaultPrepareDelete(@Name("entity") T entity, IServiceContext context) {
         // 通过这种方式调用，允许在xbiz文件中覆盖Java中的方法
         getThisObj().invoke("defaultPrepareDelete", Map.of("entity", entity), null, context);
+    }
+
+    // ==================== ICrudBiz接口实现 - 直接针对实体对象的操作方法 ====================
+
+    /**
+     * 保存实体对象
+     * 包含数据权限检查、唯一性检查、状态机初始化等逻辑
+     */
+    public void saveEntity(T entity, IServiceContext context) {
+        Guard.notNull(entity, "entity");
+        IObjMeta objMeta = getThisObj().requireObjMeta();
+
+        // 检查唯一性约束
+        checkUniqueForSaveEntity(entity, objMeta);
+
+        // 检查数据权限
+        checkDataAuth(BizConstants.METHOD_SAVE, entity, context);
+
+        // 初始化状态机
+        IStateMachine stm = getThisObj().getStateMachine();
+        if (stm != null) {
+            stm.initState(entity);
+        }
+
+        // 保存实体。考虑到逻辑删除后再保存，这里有可能是update
+        dao().saveEntity(entity);
+
+        // 触发实体变更后处理
+        afterEntityChange(entity, context, BizConstants.METHOD_SAVE);
+    }
+
+    /**
+     * 更新实体对象
+     * 包含数据权限检查、唯一性检查等逻辑
+     */
+    public void updateEntity(T entity, IServiceContext context) {
+        Guard.notNull(entity, "entity");
+        IObjMeta objMeta = getThisObj().requireObjMeta();
+
+        // 检查元数据过滤器
+        checkMetaFilter(entity, objMeta, context);
+
+        // 检查数据权限
+        checkDataAuth(BizConstants.METHOD_UPDATE, entity, context);
+
+        // 检查唯一性约束（仅针对脏属性）
+        checkUniqueForUpdate(entity, context);
+
+        // 更新实体
+        dao().updateEntity(entity);
+
+        // 检查更新后的数据权限
+        checkDataAuthAfterUpdate(entity, context);
+
+        // 触发实体变更后处理
+        afterEntityChange(entity, context, BizConstants.METHOD_UPDATE);
+    }
+
+    /**
+     * 删除实体对象
+     * 包含数据权限检查、关联引用检查、级联删除等逻辑
+     */
+    public void deleteEntity(T entity, IServiceContext context) {
+        Guard.notNull(entity, "entity");
+        IObjMeta objMeta = getThisObj().requireObjMeta();
+
+        // 检查元数据过滤器
+        checkMetaFilter(entity, objMeta, context);
+
+        // 检查数据权限
+        checkDataAuth(BizConstants.METHOD_DELETE, entity, context);
+
+        // 检查关联引用是否存在
+        Set<String> refNamesToCheck = getDefaultRefNamesToCheckExists();
+        if (refNamesToCheck != null) {
+            checkEntityRefsNotExists(entity, refNamesToCheck, context);
+        }
+
+        // 准备删除操作（检查子节点等）
+        invokeDefaultPrepareDelete(entity, context);
+
+        // 删除实体
+        dao().deleteEntity(entity);
+
+        // 删除关联对象
+        deleteReferences(entity, context);
+
+        // 触发实体变更后处理
+        afterEntityChange(entity, context);
+    }
+
+    /**
+     * 给实体对象赋值
+     * 支持复杂主子表数据的赋值
+     */
+    public void assignToEntity(T entity, Map<String, Object> data, IServiceContext context) {
+        Guard.notNull(entity, "entity");
+        Guard.notNull(data, "data");
+
+        IBizObject bizObj = getThisObj();
+        IObjMeta objMeta = bizObj.requireObjMeta();
+
+        ObjMetaBasedValidator validator = crudToolProvider.newValidator(bizObj.getBizObjName(), objMeta,
+                context, true);
+
+        Map<String, Object> validated = validator.validateForUpdate(data, null);
+
+        copyToEntity(validated, entity, BizConstants.METHOD_UPDATE, context);
+    }
+
+    /**
+     * 根据传入的数据构建保存用的实体对象
+     * 支持复杂主子表数据，包含数据验证、逻辑删除恢复等逻辑
+     */
+    public T buildEntityForSave(Map<String, Object> data, String action, IServiceContext context) {
+        Guard.notNull(data, "data");
+
+        EntityData<T> entityData = buildEntityDataForSave(data, null, context);
+
+        // 执行默认的准备工作（状态机初始化等）
+        if (BizConstants.METHOD_SAVE.equals(action)) {
+            invokeDefaultPrepareSave(entityData, context);
+        }
+
+        return entityData.getEntity();
+    }
+
+    /**
+     * 检查是否允许访问指定实体
+     * 包含数据权限检查
+     */
+    public void checkAllowAccess(T entity, String action, IServiceContext context) {
+        Guard.notNull(entity, "entity");
+        Guard.notEmpty(action, "action");
+
+        checkMetaFilter(entity, getObjMeta(), context);
+        checkDataAuth(action, entity, context);
     }
 }
