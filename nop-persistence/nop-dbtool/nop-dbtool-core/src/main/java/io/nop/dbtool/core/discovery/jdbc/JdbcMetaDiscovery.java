@@ -429,8 +429,6 @@ public class JdbcMetaDiscovery {
 
             try {
                 table.setColumns(cols);
-
-                table.init();
             } catch (RuntimeException e) {
                 LOG.error("nop.err.discover-table-fail:table={}", table.getTableName(), e);
                 throw e;
