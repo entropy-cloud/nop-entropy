@@ -181,26 +181,29 @@
 
     <sqlDataTypes>
         <!-- H2 数据类型列表: http://www.h2database.com/html/datatypes.html -->
-        <sqlDataType name="CHAR" precision="1048576" stdSqlType="CHAR" allowExceedPrecision="true" />
-        <sqlDataType name="CHARACTER" precision="1048576" stdSqlType="CHAR" allowExceedPrecision="true" />
-        <sqlDataType name="VARCHAR" precision="1048576" stdSqlType="VARCHAR" allowExceedPrecision="true"/>
-        <sqlDataType name="VARCHAR_IGNORECASE" precision="1048576" stdSqlType="VARCHAR" allowExceedPrecision="true"/>
-        <sqlDataType name="CHARACTER VARYING" precision="1048576" stdSqlType="VARCHAR" allowExceedPrecision="true"/>
-        <sqlDataType name="CLOB" stdSqlType="CLOB" />
-        <sqlDataType name="CHARACTER LARGE OBJECT" stdSqlType="VARCHAR" allowPrecision="false"/>
+        <sqlDataType name="CHAR" alias="CHARACTER"
+                     precision="1048576" stdSqlType="CHAR"
+                     allowExceedPrecision="true" />
+        <sqlDataType name="VARCHAR" alias="VARCHAR_IGNORECASE,CHARACTER VARYING"
+                     precision="1048576" stdSqlType="VARCHAR"
+                     allowExceedPrecision="true"/>
+        <sqlDataType name="CLOB" stdSqlType="CLOB" alias="CHARACTER LARGE OBJECT" />
         <sqlDataType name="INTEGER" stdSqlType="INTEGER" alias="INT"/>
         <sqlDataType name="TINYINT" stdSqlType="TINYINT"/>
         <sqlDataType name="SMALLINT" stdSqlType="SMALLINT"/>
         <sqlDataType name="BIGINT" stdSqlType="BIGINT"/>
         <sqlDataType name="DATE" stdSqlType="DATE"/>
         <sqlDataType name="DATETIME" code="TIMESTAMP" stdSqlType="DATETIME" />
-        <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP"/>
-        <sqlDataType name="TIMESTAMP WITH TIME ZONE" stdSqlType="TIMESTAMP"/>
+        <sqlDataType name="TIMESTAMP" alias="TIMESTAMP WITH TIME ZONE"
+                     stdSqlType="TIMESTAMP"/>
         <sqlDataType name="REAL" stdSqlType="REAL"/>
         <sqlDataType name="DOUBLE PRECISION" stdSqlType="DOUBLE"/>
         <sqlDataType name="NUMERIC" stdSqlType="DECIMAL"/>
-        <sqlDataType name="VARBINARY" precision="1048576" stdSqlType="VARBINARY" allowExceedPrecision="true"/>
-        <sqlDataType name="BLOB" stdSqlType="BLOB" />
+        <sqlDataType name="VARBINARY" alias="BINARY VARYING"
+                     precision="1048576" stdSqlType="VARBINARY"
+                     allowExceedPrecision="true"/>
+        <sqlDataType name="BLOB" alias="BINARY LARGE OBJECT"
+                     stdSqlType="BLOB" />
         <sqlDataType name="BOOLEAN" stdSqlType="BOOLEAN"/>
         <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>
         <sqlDataType name="JSON" stdSqlType="JSON"/>
