@@ -427,12 +427,7 @@ public class JdbcMetaDiscovery {
                 cols.get(i).setPropId(i + 1);
             }
 
-            try {
-                table.setColumns(cols);
-            } catch (RuntimeException e) {
-                LOG.error("nop.err.discover-table-fail:table={}", table.getTableName(), e);
-                throw e;
-            }
+            table.setColumns(cols);
         }
     }
 
@@ -624,11 +619,6 @@ public class JdbcMetaDiscovery {
                 if (isPrimary(indexModel, table))
                     continue;
                 table.addUniqueKey(indexModel);
-
-                indexModel.setColumnModels(indexModel.getColumns()
-                        .stream()
-                        .map(table::getColumn)
-                        .collect(Collectors.toList()));
             }
         }
     }
