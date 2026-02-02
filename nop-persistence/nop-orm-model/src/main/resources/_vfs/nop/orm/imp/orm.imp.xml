@@ -61,6 +61,10 @@
                     <schema stdDomain="boolean"/>
                 </field>
 
+                <field name="ext:disableWebModule" displayName="disableWebModule" alias="Disable Web Module">
+                    <schema stdDomain="boolean"/>
+                </field>
+
                 <field name="ext:allowIdAsColName" displayName="allowIdAsColName" alias="Allow Id As Column Name">
                     <schema stdDomain="boolean"/>
                 </field>
