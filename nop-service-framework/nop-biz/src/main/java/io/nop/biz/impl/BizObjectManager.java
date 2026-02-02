@@ -307,6 +307,10 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
             ret = new HashSet<>(ret);
             ret.addAll(tenantBizModelProvider.getTenantBizObjNames());
         }
+        if (dynBizModels != null) {
+            ret = new HashSet<>(ret);
+            ret.addAll(dynBizModels.getBizObjNames());
+        }
         return ret;
     }
 
