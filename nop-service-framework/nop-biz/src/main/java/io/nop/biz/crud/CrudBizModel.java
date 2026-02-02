@@ -1900,7 +1900,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
      * 保存实体对象
      * 包含数据权限检查、唯一性检查、状态机初始化等逻辑
      */
-    public void saveEntity(T entity, IServiceContext context) {
+    @BizAction
+    public void saveEntity(@Name("entity") T entity, IServiceContext context) {
         Guard.notNull(entity, "entity");
         IObjMeta objMeta = getThisObj().requireObjMeta();
 
@@ -1927,7 +1928,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
      * 更新实体对象
      * 包含数据权限检查、唯一性检查等逻辑
      */
-    public void updateEntity(T entity, IServiceContext context) {
+    @BizAction
+    public void updateEntity(@Name("entity") T entity, IServiceContext context) {
         Guard.notNull(entity, "entity");
         IObjMeta objMeta = getThisObj().requireObjMeta();
 
@@ -1954,7 +1956,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
      * 删除实体对象
      * 包含数据权限检查、关联引用检查、级联删除等逻辑
      */
-    public void deleteEntity(T entity, IServiceContext context) {
+    @BizAction
+    public void deleteEntity(@Name("entity") T entity, IServiceContext context) {
         Guard.notNull(entity, "entity");
         IObjMeta objMeta = getThisObj().requireObjMeta();
 
@@ -1987,7 +1990,9 @@ public abstract class CrudBizModel<T extends IOrmEntity>
      * 给实体对象赋值
      * 支持复杂主子表数据的赋值
      */
-    public void assignToEntity(T entity, Map<String, Object> data, IServiceContext context) {
+    @BizAction
+    public void assignToEntity(@Name("entity") T entity,
+                               @Name("data") Map<String, Object> data, IServiceContext context) {
         Guard.notNull(entity, "entity");
         Guard.notNull(data, "data");
 
@@ -2006,7 +2011,9 @@ public abstract class CrudBizModel<T extends IOrmEntity>
      * 根据传入的数据构建保存用的实体对象
      * 支持复杂主子表数据，包含数据验证、逻辑删除恢复等逻辑
      */
-    public T buildEntityForSave(Map<String, Object> data, String action, IServiceContext context) {
+    @BizAction
+    public T buildEntityForSave(@Name("data") Map<String, Object> data,
+                                @Name("action") String action, IServiceContext context) {
         Guard.notNull(data, "data");
 
         EntityData<T> entityData = buildEntityDataForSave(data, null, context);
@@ -2023,7 +2030,9 @@ public abstract class CrudBizModel<T extends IOrmEntity>
      * 检查是否允许访问指定实体
      * 包含数据权限检查
      */
-    public void checkAllowAccess(T entity, String action, IServiceContext context) {
+    @BizAction
+    public void checkAllowAccess(@Name("entity") T entity,
+                                 @Name("action") String action, IServiceContext context) {
         Guard.notNull(entity, "entity");
         Guard.notEmpty(action, "action");
 
