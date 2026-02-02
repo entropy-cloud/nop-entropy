@@ -111,13 +111,14 @@
       @ioc:before 在创建这些bean之前需要先创建当前的bean。类似于depends-on设置，只是它在被依赖方设置
       @ioc:after 在这些bean创建之后立刻创建当前的bean
       @ioc:force-init 在START_LAZY启动模式下即使设置了lazy-init=false，缺省也不会自动启动。但是如果设置了ioc:force-init，则强制新建。
+      @ioc:force-lazy-property 强制所有注入这个bean的属性都延迟设置，也就是在init-method执行之后再初始化这些属性。这些属性也自然被排除到依赖集合之外
      -->
     <xdef:define class="class-name" xdef:name="BeanValue" parent="bean-name"
                  autowire="enum:io.nop.ioc.model.AutowireType" autowire-candidate="!boolean=true"
                  init-method="var-name" destroy-method="var-name" scope="var-name" ioc:security-domain="word-set"
                  ioc:bean-method="var-name" ioc:refresh-config-method="var-name"
                  ioc:type="word-set" ioc:proxy="!boolean=false" ioc:before="word-set" ioc:after="word-set"
-                 factory-bean="var-name" factory-method="var-name"
+                 factory-bean="var-name" factory-method="var-name" ioc:force-lazy-property="boolean"
                  ioc:config-prefix="string" ioc:auto-refresh="!boolean=false" ioc:force-init="!boolean=false"
                  ioc:delay-method="var-name" lazy-init="boolean" ioc:aop="!boolean=true"
                  depends-on="word-set" xdef:key-attr="name" ioc:restart-method="var-name"
@@ -130,8 +131,9 @@
 
         <!--
         @ioc:skip-if-empty 当属性值为空时跳过本属性的设置
+        @ioc:lazy-property 延迟属性在init-method执行之后才设置。它将自动设置ioc:ignore-depends为true
         -->
-        <property name="!string" xdef:name="BeanPropertyModel" ioc:skip-if-empty="!boolean=false"
+        <property name="!string" xdef:name="BeanPropertyModel" ioc:skip-if-empty="!boolean=false" ioc:lazy-property="boolean"
                   xdef:allow-multiple="true" xdef:unique-attr="name" ioc:ignore-depends="!boolean=false"
                   ref="bean-name" value="string" xdef:ref="BeanPropValue" xdef:bean-prop="properties"/>
 

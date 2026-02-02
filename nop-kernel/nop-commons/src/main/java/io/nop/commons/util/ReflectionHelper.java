@@ -25,6 +25,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
@@ -122,6 +123,23 @@ public class ReflectionHelper {
                 return method;
         }
         return null;
+    }
+
+    public static Object invokeObjectMethod(Object handler, Object proxy, Method method, Object[] args) throws Throwable {
+        String methodName = method.getName();
+        if (methodName.equals("toString")) {
+            return handler.toString();
+        } else if (methodName.equals("equals")) {
+            return proxy == args[0];
+        } else if (methodName.equals("hashCode")) {
+            return System.identityHashCode(proxy);
+        } else {
+            try {
+                return method.invoke(handler, args);
+            } catch (InvocationTargetException e) {
+                throw e.getTargetException();
+            }
+        }
     }
 
     /**

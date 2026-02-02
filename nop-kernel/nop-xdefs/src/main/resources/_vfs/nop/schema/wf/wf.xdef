@@ -95,6 +95,15 @@
         </subscribe>
     </subscribes>
 
+    <!--
+    @order transition-to节点的执行顺序。当splitType=or的时候，如果排在前面的节点如果满足条件，就不会检查排在后面的节点
+    -->
+    <xdef:define xdef:name="WfTransitionToModel" caseValue="string" order="!int=0" label="string">
+        <when>xpl-predicate</when>
+        <before-transition>xpl</before-transition>
+        <after-transition>xpl</after-transition>
+    </xdef:define>
+
     <actions xdef:body-type="list" xdef:key-attr="name" xdef:bean-child-name="action">
         <!--
           suspended状态下所有action都不可用
@@ -138,14 +147,6 @@
                         appState="#string" wfAppState="#string" bizEntityState="#string"
                         xdef:name="WfTransitionModel">
 
-                <!--
-                @order transition-to节点的执行顺序。当splitType=or的时候，如果排在前面的节点如果满足条件，就不会检查排在后面的节点
-                -->
-                <xdef:define xdef:name="WfTransitionToModel" caseValue="string" order="!int=0" label="string">
-                    <when>xpl-predicate</when>
-                    <before-transition>xpl</before-transition>
-                    <after-transition>xpl</after-transition>
-                </xdef:define>
 
                 <to-end xdef:ref="WfTransitionToModel" xdef:name="WfTransitionToEndModel"/>
 

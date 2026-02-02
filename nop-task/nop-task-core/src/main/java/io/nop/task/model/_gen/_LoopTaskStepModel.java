@@ -47,7 +47,7 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
     /**
      *  
      * xml name: until
-     * 
+     * 每次执行后检查
      */
     private io.nop.core.lang.eval.IEvalPredicate _until ;
     
@@ -68,7 +68,7 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
     /**
      *  
      * xml name: while
-     * 
+     * 每次执行前检查
      */
     private io.nop.core.lang.eval.IEvalPredicate _while ;
     
@@ -151,7 +151,7 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
     /**
      * 
      * xml name: until
-     *  
+     *  每次执行后检查
      */
     
     public io.nop.core.lang.eval.IEvalPredicate getUntil(){
@@ -208,7 +208,7 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
     /**
      * 
      * xml name: while
-     *  
+     *  每次执行前检查
      */
     
     public io.nop.core.lang.eval.IEvalPredicate getWhile(){

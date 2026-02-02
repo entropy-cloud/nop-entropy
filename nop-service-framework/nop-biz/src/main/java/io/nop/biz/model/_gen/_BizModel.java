@@ -32,6 +32,13 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
     
     /**
      *  
+     * xml name: implements
+     * 
+     */
+    private java.util.List<io.nop.core.type.IGenericType> _implements ;
+    
+    /**
+     *  
      * xml name: inheritActions
      * 如果非空，则只有明确允许的action才对外暴露
      */
@@ -146,6 +153,25 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
         checkAllowChange();
         
         this._disabledActions = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: implements
+     *  
+     */
+    
+    public java.util.List<io.nop.core.type.IGenericType> getImplements(){
+      return _implements;
+    }
+
+    
+    public void setImplements(java.util.List<io.nop.core.type.IGenericType> value){
+        checkAllowChange();
+        
+        this._implements = value;
            
     }
 
@@ -407,6 +433,7 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
         
         out.putNotNull("actions",this.getActions());
         out.putNotNull("disabledActions",this.getDisabledActions());
+        out.putNotNull("implements",this.getImplements());
         out.putNotNull("inheritActions",this.getInheritActions());
         out.putNotNull("interceptors",this.getInterceptors());
         out.putNotNull("loaders",this.getLoaders());
@@ -428,6 +455,7 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
         
         instance.setActions(this.getActions());
         instance.setDisabledActions(this.getDisabledActions());
+        instance.setImplements(this.getImplements());
         instance.setInheritActions(this.getInheritActions());
         instance.setInterceptors(this.getInterceptors());
         instance.setLoaders(this.getLoaders());

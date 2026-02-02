@@ -166,13 +166,6 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
     
     /**
      *  
-     * xml name: xdef:define
-     * 定义xdef片段，可以通过xdef:ref来引用
-     */
-    private KeyedList<io.nop.xlang.xdef.impl.XDefNode> _xdefDefines = KeyedList.emptyList();
-    
-    /**
-     *  
      * xml name: xdef:deprecated
      * 已废弃，不应再使用
      */
@@ -695,51 +688,6 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
     
     /**
      * 
-     * xml name: xdef:define
-     *  定义xdef片段，可以通过xdef:ref来引用
-     */
-    
-    public java.util.List<io.nop.xlang.xdef.impl.XDefNode> getXdefDefines(){
-      return _xdefDefines;
-    }
-
-    
-    public void setXdefDefines(java.util.List<io.nop.xlang.xdef.impl.XDefNode> value){
-        checkAllowChange();
-        
-        this._xdefDefines = KeyedList.fromList(value, io.nop.xlang.xdef.impl.XDefNode::getXdefName);
-           
-    }
-
-    
-    public io.nop.xlang.xdef.impl.XDefNode getXdefDefine(String name){
-        return this._xdefDefines.getByKey(name);
-    }
-
-    public boolean hasXdefDefine(String name){
-        return this._xdefDefines.containsKey(name);
-    }
-
-    public void addXdefDefine(io.nop.xlang.xdef.impl.XDefNode item) {
-        checkAllowChange();
-        java.util.List<io.nop.xlang.xdef.impl.XDefNode> list = this.getXdefDefines();
-        if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.xlang.xdef.impl.XDefNode::getXdefName);
-            setXdefDefines(list);
-        }
-        list.add(item);
-    }
-    
-    public java.util.Set<String> keySet_xdefDefines(){
-        return this._xdefDefines.keySet();
-    }
-
-    public boolean hasXdefDefines(){
-        return !this._xdefDefines.isEmpty();
-    }
-    
-    /**
-     * 
      * xml name: xdef:deprecated
      *  已废弃，不应再使用
      */
@@ -1082,8 +1030,6 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
             
            this._children = io.nop.api.core.util.FreezeHelper.deepFreeze(this._children);
             
-           this._xdefDefines = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefDefines);
-            
            this._xdefProps = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefProps);
             
            this._xdefUnknownTag = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefUnknownTag);
@@ -1116,7 +1062,6 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
         out.putNotNull("xdefBeanUnknownChildrenProp",this.getXdefBeanUnknownChildrenProp());
         out.putNotNull("xdefBodyType",this.getXdefBodyType());
         out.putNotNull("xdefDefaultOverride",this.getXdefDefaultOverride());
-        out.putNotNull("xdefDefines",this.getXdefDefines());
         out.putNotNull("xdefDeprecated",this.getXdefDeprecated());
         out.putNotNull("xdefId",this.getXdefId());
         out.putNotNull("xdefInternal",this.getXdefInternal());
@@ -1165,7 +1110,6 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
         instance.setXdefBeanUnknownChildrenProp(this.getXdefBeanUnknownChildrenProp());
         instance.setXdefBodyType(this.getXdefBodyType());
         instance.setXdefDefaultOverride(this.getXdefDefaultOverride());
-        instance.setXdefDefines(this.getXdefDefines());
         instance.setXdefDeprecated(this.getXdefDeprecated());
         instance.setXdefId(this.getXdefId());
         instance.setXdefInternal(this.getXdefInternal());

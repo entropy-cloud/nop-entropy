@@ -19,7 +19,9 @@ import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.fetcher.BeanMethodAction;
 import jakarta.annotation.Priority;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static io.nop.auth.api.AuthApiErrors.ARG_BIZ_OBJ_NAME;
@@ -48,6 +50,8 @@ public class GraphQLBizModel {
     // 在后台使用的内部调用函数，不参与GraphQL类型包装，不直接向前台返回数据
     private final Map<String, BeanMethodAction> bizActions = new HashMap<>();
 
+    private final List<Object> bizModelBeans = new ArrayList<>();
+
     private String entityName;
     private String metaPath;
     private String bizPath;
@@ -60,6 +64,7 @@ public class GraphQLBizModel {
 
     public GraphQLBizModel cloneInstance() {
         GraphQLBizModel ret = new GraphQLBizModel(bizObjName);
+        ret.bizModelBeans.addAll(bizModelBeans);
         ret.queryActions.putAll(queryActions);
         ret.mutationActions.putAll(mutationActions);
         ret.loaders.putAll(loaders);
@@ -70,6 +75,15 @@ public class GraphQLBizModel {
         ret.entityName = entityName;
         ret.entityMetaId = entityMetaId;
         return ret;
+    }
+
+    public void addBizModelBean(Object bean) {
+        if (!this.bizModelBeans.contains(bean))
+            this.bizModelBeans.add(bean);
+    }
+
+    public List<Object> getBizModelBeans() {
+        return bizModelBeans;
     }
 
     public String getEntityMetaId() {
@@ -274,6 +288,10 @@ public class GraphQLBizModel {
     }
 
     public void merge(GraphQLBizModel bizModel) {
+        for (Object bean : bizModel.getBizModelBeans()) {
+            addBizModelBean(bean);
+        }
+
         for (Map.Entry<String, GraphQLFieldDefinition> entry : bizModel.queryActions.entrySet()) {
             addQueryAction(entry.getKey(), entry.getValue());
         }

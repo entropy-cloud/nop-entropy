@@ -22,11 +22,9 @@ import io.nop.xlang.xmeta.IObjMeta;
 import java.util.Collection;
 import java.util.Map;
 
-import static io.nop.biz.BizErrors.ARG_ACTION_NAME;
 import static io.nop.biz.BizErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_OBJ_META;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_STATE_MACHINE;
-import static io.nop.biz.BizErrors.ERR_BIZ_UNKNOWN_ACTION;
 
 /**
  * 由BizObjName参数所唯一定位的聚合模型对象，所有与特定业务对象相关的模型信息以及业务方法都可以查找到。
@@ -64,11 +62,10 @@ public interface IBizObject extends IComponentModel, IGraphQLBizObject {
 
     IServiceAction getAction(String action);
 
+    IServiceAction requireAction(String action);
+
     default Object invoke(String action, Object request, FieldSelectionBean selection, IServiceContext context) {
-        IServiceAction serviceAction = getAction(action);
-        if (serviceAction == null)
-            throw new NopException(ERR_BIZ_UNKNOWN_ACTION).param(ARG_BIZ_OBJ_NAME, getBizObjName())
-                    .param(ARG_ACTION_NAME, action);
+        IServiceAction serviceAction = requireAction(action);
         return serviceAction.invoke(request, selection, context);
     }
 
@@ -79,4 +76,6 @@ public interface IBizObject extends IComponentModel, IGraphQLBizObject {
     Map<String, GraphQLFieldDefinition> getOperationDefinitions();
 
     GraphQLObjectDefinition getObjectDefinition();
+
+    <T> T asProxy();
 }

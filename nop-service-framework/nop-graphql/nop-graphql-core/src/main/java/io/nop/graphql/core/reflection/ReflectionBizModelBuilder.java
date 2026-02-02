@@ -102,6 +102,7 @@ public class ReflectionBizModelBuilder {
             throw new IllegalArgumentException("nop.err.graphql.empty-bizObjName:" + bean);
 
         GraphQLBizModel ret = new GraphQLBizModel(bizObjName);
+        ret.addBizModelBean(bean);
 
         SourceLocation loc = SourceLocation.fromClass(clazz);
         for (IFunctionModel func : classModel.getMethods()) {
@@ -270,6 +271,20 @@ public class ReflectionBizModelBuilder {
             }
         }
         return name;
+    }
+
+    public String getServiceActionName(IFunctionModel funcModel) {
+        BizQuery query = funcModel.getAnnotation(BizQuery.class);
+        if (query != null)
+            return getQueryName(query, funcModel);
+        BizMutation mutation = funcModel.getAnnotation(BizMutation.class);
+        if (mutation != null)
+            return getMutationName(mutation, funcModel);
+
+        BizAction action = funcModel.getAnnotation(BizAction.class);
+        if (action != null)
+            return getBizActionName(action, funcModel);
+        return null;
     }
 
     protected GraphQLFieldDefinition buildActionField(String bizObjName, Object bean, GraphQLOperationType opType,

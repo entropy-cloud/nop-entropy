@@ -14,6 +14,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObject;
 import io.nop.biz.model.BizModel;
+import io.nop.biz.proxy.BizProxyInvocationHandler;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.action.IServiceAction;
 import io.nop.core.lang.eval.IEvalScope;
@@ -48,6 +49,7 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
     private IObjMeta objMeta;
     private IStateMachine stateMachine;
     private GraphQLObjectDefinition objectDefinition;
+    private List<Object> bizModelBeans = Collections.emptyList();
 
     private Map<String, GraphQLFieldDefinition> operations = Collections.emptyMap();
 
@@ -55,6 +57,10 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
 
     public BizObjectImpl(String bizObjName) {
         this.bizObjName = bizObjName;
+    }
+
+    public List<Object> getBizModelBeans() {
+        return bizModelBeans;
     }
 
     @Override
@@ -86,6 +92,10 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
         if (getObjMeta() != null)
             entityName = getObjMeta().getEntityName();
         return entityName;
+    }
+
+    public void setBizModelBeans(List<Object> bizModelBeans) {
+        this.bizModelBeans = bizModelBeans == null ? Collections.emptyList() : bizModelBeans;
     }
 
     @Override
@@ -162,6 +172,14 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
         if (operation != null)
             return operation.getServiceAction();
         return actions.get(action);
+    }
+
+    public IServiceAction requireAction(String actionName){
+        IServiceAction action = getAction(actionName);
+        if(action == null)
+            throw new NopException(ERR_BIZ_OBJECT_NOT_SUPPORT_ACTION).param(ARG_BIZ_OBJ_NAME, bizObjName)
+                    .param(ARG_ACTION_NAME, actionName);
+        return action;
     }
 
     @Override
@@ -255,5 +273,16 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
                     "nop.err.graphql.no-svc-context:bizObName=" + getBizObjName() + ",bizAction=" + actionName);
 
         return action.invoke(request, selection, context);
+    }
+
+    private Object proxy = null;
+
+    @Override
+    public synchronized <T> T asProxy() {
+        if (proxy != null) {
+            return (T) proxy;
+        }
+        proxy = BizProxyInvocationHandler.makeProxy(this);
+        return (T) proxy;
     }
 }

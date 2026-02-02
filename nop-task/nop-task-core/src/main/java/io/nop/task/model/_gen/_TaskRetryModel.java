@@ -19,7 +19,7 @@ public abstract class _TaskRetryModel extends io.nop.core.resource.component.Abs
     /**
      *  
      * xml name: exception-filter
-     * 上下文环境中存在$exception变量，返回false表示异常不可被恢复，不能继续重试
+     * 上下文环境中存在exception变量，返回false表示异常不可被恢复，不能继续重试
      */
     private io.nop.core.lang.eval.IEvalFunction _exceptionFilter ;
     
@@ -54,7 +54,7 @@ public abstract class _TaskRetryModel extends io.nop.core.resource.component.Abs
     /**
      * 
      * xml name: exception-filter
-     *  上下文环境中存在$exception变量，返回false表示异常不可被恢复，不能继续重试
+     *  上下文环境中存在exception变量，返回false表示异常不可被恢复，不能继续重试
      */
     
     public io.nop.core.lang.eval.IEvalFunction getExceptionFilter(){

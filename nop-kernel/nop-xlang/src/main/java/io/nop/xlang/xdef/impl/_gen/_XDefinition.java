@@ -48,11 +48,32 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
     
     /**
      *  
+     * xml name: xdef:check-ref
+     * xdef:check-ref 在指定范围内检查引用合法性。
+     */
+    private KeyedList<io.nop.xlang.xdef.impl.XDefCheckRef> _xdefCheckRefs = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: xdef:check-unique
+     * xdef:check-unique 在指定范围内检查唯一性。
+     */
+    private KeyedList<io.nop.xlang.xdef.impl.XDefCheckUnique> _xdefCheckUniques = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: xdef:default-extends
      * 规定缺省的extends模型文件。如果非空，则由此xdef文件描述的模型文件中，总是会缺省继承default-extends所指定的模型文件，
      * 通过此机制可以引入全局模型假定，简化模型配置。特别是结合x:post-extends机制可以实现自定义的可视化设计器。
      */
     private java.lang.String _xdefDefaultExtends ;
+    
+    /**
+     *  
+     * xml name: xdef:define
+     * 定义xdef片段，可以通过xdef:ref来引用
+     */
+    private KeyedList<io.nop.xlang.xdef.impl.XDefNode> _xdefDefines = KeyedList.emptyList();
     
     /**
      *  
@@ -212,6 +233,96 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
     
     /**
      * 
+     * xml name: xdef:check-ref
+     *  xdef:check-ref 在指定范围内检查引用合法性。
+     */
+    
+    public java.util.List<io.nop.xlang.xdef.impl.XDefCheckRef> getXdefCheckRefs(){
+      return _xdefCheckRefs;
+    }
+
+    
+    public void setXdefCheckRefs(java.util.List<io.nop.xlang.xdef.impl.XDefCheckRef> value){
+        checkAllowChange();
+        
+        this._xdefCheckRefs = KeyedList.fromList(value, io.nop.xlang.xdef.impl.XDefCheckRef::getId);
+           
+    }
+
+    
+    public io.nop.xlang.xdef.impl.XDefCheckRef getXdefCheckRef(String name){
+        return this._xdefCheckRefs.getByKey(name);
+    }
+
+    public boolean hasXdefCheckRef(String name){
+        return this._xdefCheckRefs.containsKey(name);
+    }
+
+    public void addXdefCheckRef(io.nop.xlang.xdef.impl.XDefCheckRef item) {
+        checkAllowChange();
+        java.util.List<io.nop.xlang.xdef.impl.XDefCheckRef> list = this.getXdefCheckRefs();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.xlang.xdef.impl.XDefCheckRef::getId);
+            setXdefCheckRefs(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_xdefCheckRefs(){
+        return this._xdefCheckRefs.keySet();
+    }
+
+    public boolean hasXdefCheckRefs(){
+        return !this._xdefCheckRefs.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: xdef:check-unique
+     *  xdef:check-unique 在指定范围内检查唯一性。
+     */
+    
+    public java.util.List<io.nop.xlang.xdef.impl.XDefCheckUnique> getXdefCheckUniques(){
+      return _xdefCheckUniques;
+    }
+
+    
+    public void setXdefCheckUniques(java.util.List<io.nop.xlang.xdef.impl.XDefCheckUnique> value){
+        checkAllowChange();
+        
+        this._xdefCheckUniques = KeyedList.fromList(value, io.nop.xlang.xdef.impl.XDefCheckUnique::getId);
+           
+    }
+
+    
+    public io.nop.xlang.xdef.impl.XDefCheckUnique getXdefCheckUnique(String name){
+        return this._xdefCheckUniques.getByKey(name);
+    }
+
+    public boolean hasXdefCheckUnique(String name){
+        return this._xdefCheckUniques.containsKey(name);
+    }
+
+    public void addXdefCheckUnique(io.nop.xlang.xdef.impl.XDefCheckUnique item) {
+        checkAllowChange();
+        java.util.List<io.nop.xlang.xdef.impl.XDefCheckUnique> list = this.getXdefCheckUniques();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.xlang.xdef.impl.XDefCheckUnique::getId);
+            setXdefCheckUniques(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_xdefCheckUniques(){
+        return this._xdefCheckUniques.keySet();
+    }
+
+    public boolean hasXdefCheckUniques(){
+        return !this._xdefCheckUniques.isEmpty();
+    }
+    
+    /**
+     * 
      * xml name: xdef:default-extends
      *  规定缺省的extends模型文件。如果非空，则由此xdef文件描述的模型文件中，总是会缺省继承default-extends所指定的模型文件，
      * 通过此机制可以引入全局模型假定，简化模型配置。特别是结合x:post-extends机制可以实现自定义的可视化设计器。
@@ -229,6 +340,51 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
            
     }
 
+    
+    /**
+     * 
+     * xml name: xdef:define
+     *  定义xdef片段，可以通过xdef:ref来引用
+     */
+    
+    public java.util.List<io.nop.xlang.xdef.impl.XDefNode> getXdefDefines(){
+      return _xdefDefines;
+    }
+
+    
+    public void setXdefDefines(java.util.List<io.nop.xlang.xdef.impl.XDefNode> value){
+        checkAllowChange();
+        
+        this._xdefDefines = KeyedList.fromList(value, io.nop.xlang.xdef.impl.XDefNode::getXdefName);
+           
+    }
+
+    
+    public io.nop.xlang.xdef.impl.XDefNode getXdefDefine(String name){
+        return this._xdefDefines.getByKey(name);
+    }
+
+    public boolean hasXdefDefine(String name){
+        return this._xdefDefines.containsKey(name);
+    }
+
+    public void addXdefDefine(io.nop.xlang.xdef.impl.XDefNode item) {
+        checkAllowChange();
+        java.util.List<io.nop.xlang.xdef.impl.XDefNode> list = this.getXdefDefines();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.xlang.xdef.impl.XDefNode::getXdefName);
+            setXdefDefines(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_xdefDefines(){
+        return this._xdefDefines.keySet();
+    }
+
+    public boolean hasXdefDefines(){
+        return !this._xdefDefines.isEmpty();
+    }
     
     /**
      * 
@@ -449,6 +605,12 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._xdefCheckRefs = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefCheckRefs);
+            
+           this._xdefCheckUniques = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefCheckUniques);
+            
+           this._xdefDefines = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefDefines);
+            
         }
     }
 
@@ -460,7 +622,10 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
         out.putNotNull("xdefBase",this.getXdefBase());
         out.putNotNull("xdefBeanPackage",this.getXdefBeanPackage());
         out.putNotNull("xdefCheckNs",this.getXdefCheckNs());
+        out.putNotNull("xdefCheckRefs",this.getXdefCheckRefs());
+        out.putNotNull("xdefCheckUniques",this.getXdefCheckUniques());
         out.putNotNull("xdefDefaultExtends",this.getXdefDefaultExtends());
+        out.putNotNull("xdefDefines",this.getXdefDefines());
         out.putNotNull("xdefModelNameProp",this.getXdefModelNameProp());
         out.putNotNull("xdefModelVersionProp",this.getXdefModelVersionProp());
         out.putNotNull("xdefParseForHtml",this.getXdefParseForHtml());
@@ -487,7 +652,10 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
         instance.setXdefBase(this.getXdefBase());
         instance.setXdefBeanPackage(this.getXdefBeanPackage());
         instance.setXdefCheckNs(this.getXdefCheckNs());
+        instance.setXdefCheckRefs(this.getXdefCheckRefs());
+        instance.setXdefCheckUniques(this.getXdefCheckUniques());
         instance.setXdefDefaultExtends(this.getXdefDefaultExtends());
+        instance.setXdefDefines(this.getXdefDefines());
         instance.setXdefModelNameProp(this.getXdefModelNameProp());
         instance.setXdefModelVersionProp(this.getXdefModelVersionProp());
         instance.setXdefParseForHtml(this.getXdefParseForHtml());
