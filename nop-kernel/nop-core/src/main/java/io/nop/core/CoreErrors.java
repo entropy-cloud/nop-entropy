@@ -503,6 +503,9 @@ public interface CoreErrors {
     ErrorCode ERR_RESOURCE_READ_CSV_ROW_FAIL = define("nop.err.core.resource.read-csv-row-fail",
             "读取CSV文件[{resourcePath}]的第{readCount}行时失败", ARG_RESOURCE_PATH, ARG_READ_COUNT);
 
+    ErrorCode ERR_RESOURCE_READ_JSONL_ROW_FAIL = define("nop.err.core.resource.read-jsonl-row-fail",
+            "读取JSONL文件[{resourcePath}]的第{readCount}行时失败", ARG_RESOURCE_PATH, ARG_READ_COUNT);
+
     ErrorCode ERR_RESOURCE_INVALID_PATH = define("nop.err.core.resource.invalid-path",
             "资源路径只能使用/为路径分隔符，且不能以/结尾，不能包含../等相对路径，也不能包含windows路径所不允许的特殊字符:{resourcePath}", ARG_RESOURCE_PATH);
 
