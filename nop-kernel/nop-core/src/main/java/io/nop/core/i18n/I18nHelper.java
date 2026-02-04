@@ -26,6 +26,30 @@ public class I18nHelper {
 
     public static String getFieldDisplayName(String locale, String entityName, String fieldName,
                                              boolean includeOriginal, String fieldDisplayName) {
+        if (fieldName == null)
+            return null;
+
+        String displayName = _getFieldDisplayName(locale, entityName, fieldName);
+        if (displayName == null && fieldName.endsWith("_label")) {
+            // 有可能是自动生成的字典项显示文本，它可以采用原字段的i18n文本
+            displayName = _getFieldDisplayName(locale, entityName, StringHelper.removeTail(fieldName, "_label"));
+        }
+
+        if (displayName == null) {
+            displayName = fieldDisplayName;
+        }
+
+        if (displayName != null && includeOriginal && !displayName.equals(fieldName)) {
+            return displayName + '(' + StringHelper.lastPart(fieldName, '.') + ')';
+        }
+
+        if (displayName != null)
+            return displayName;
+
+        return fieldName;
+    }
+
+    static String _getFieldDisplayName(String locale, String entityName, String fieldName) {
         String fullFieldName = fieldName;
         boolean useFullName = false;
         if (!StringHelper.isEmpty(entityName)) {
@@ -52,16 +76,8 @@ public class I18nHelper {
         }
 
         if (displayName == null) {
-            displayName = fieldDisplayName;
+            displayName = I18nMessageManager.instance().getMessage(locale, "prop.label.commons." + fieldName, null);
         }
-
-        if (displayName != null && includeOriginal && !displayName.equals(fieldName)) {
-            return displayName + '(' + StringHelper.lastPart(fieldName, '.') + ')';
-        }
-
-        if (displayName != null)
-            return displayName;
-
-        return fieldName;
+        return displayName;
     }
 }
