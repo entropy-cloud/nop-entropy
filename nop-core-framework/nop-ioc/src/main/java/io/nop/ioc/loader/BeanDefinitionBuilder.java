@@ -562,8 +562,29 @@ public class BeanDefinitionBuilder {
 
             if (resolver == null)
                 continue;
-            bean.addProp(propModel.getName(), new BeanProperty(propModel.getLocation(), setter.getLeft(),
-                    setter.getRight().getRawClass(), resolver, false, propModel.isIocSkipIfEmpty()));
+
+            // 检查是否为lazy-property
+            boolean lazyProperty = Boolean.TRUE.equals(propModel.getIocLazyProperty());
+            // 如果不是lazy-property，但引用的bean设置了force-lazy-property，则也设置为lazy-property
+            if (!lazyProperty && resolver instanceof InjectRefValueResolver) {
+                InjectRefValueResolver refResolver = (InjectRefValueResolver) resolver;
+                BeanDefinition resolvedBean = refResolver.getResolvedBean();
+                if (resolvedBean != null && resolvedBean.isIocForceLazyProperty()) {
+                    lazyProperty = true;
+                }
+            }
+
+            BeanProperty beanProperty = new BeanProperty(propModel.getLocation(), setter.getLeft(),
+                    setter.getRight().getRawClass(), resolver, false, propModel.isIocSkipIfEmpty(),
+                    lazyProperty);
+
+            // 保存到props中
+            bean.addProp(propModel.getName(), beanProperty);
+
+            // 如果是lazy-property，则添加到lazyPropertySetters中
+            if (lazyProperty) {
+                bean.addLazyPropertySetter(propModel.getName(), beanProperty);
+            }
         }
 
         AutowireType autowireType = beanModel.getAutowire();
@@ -598,7 +619,27 @@ public class BeanDefinitionBuilder {
                 // optional的情况下有可能找不到autowire的bean
                 if (resolver != null) {
                     IPropertySetter setter = propModel.getSetter();
-                    bean.addProp(propName, new BeanProperty(loc, setter, propModel.getType().getRawClass(), resolver, true, false));
+
+                    // 检查是否需要设置为lazy-property（引用的bean设置了force-lazy-property）
+                    boolean lazyProperty = false;
+                    if (resolver instanceof InjectRefValueResolver) {
+                        InjectRefValueResolver refResolver = (InjectRefValueResolver) resolver;
+                        BeanDefinition resolvedBean = refResolver.getResolvedBean();
+                        if (resolvedBean != null && resolvedBean.isIocForceLazyProperty()) {
+                            lazyProperty = true;
+                        }
+                    }
+
+                    BeanProperty beanProperty = new BeanProperty(loc, setter, propModel.getType().getRawClass(), resolver, true, false,
+                            lazyProperty);
+
+                    // 保存到props中
+                    bean.addProp(propName, beanProperty);
+
+                    // 如果是lazy-property，则添加到lazyPropertySetters中
+                    if (lazyProperty) {
+                        bean.addLazyPropertySetter(propName, beanProperty);
+                    }
                 }
             } else {
                 autowireConfigVar(bean, propModel);
@@ -621,7 +662,27 @@ public class BeanDefinitionBuilder {
 
                 if (resolver != null) {
                     IPropertySetter setter = field.getSetter();
-                    bean.addProp(propName, new BeanProperty(loc, setter, field.getRawClass(), resolver, true, false));
+
+                    // 检查是否需要设置为lazy-property（引用的bean设置了force-lazy-property）
+                    boolean lazyProperty = false;
+                    if (resolver instanceof InjectRefValueResolver) {
+                        InjectRefValueResolver refResolver = (InjectRefValueResolver) resolver;
+                        BeanDefinition resolvedBean = refResolver.getResolvedBean();
+                        if (resolvedBean != null && resolvedBean.isIocForceLazyProperty()) {
+                            lazyProperty = true;
+                        }
+                    }
+
+                    BeanProperty beanProperty = new BeanProperty(loc, setter, field.getRawClass(), resolver, true, false,
+                            lazyProperty);
+
+                    // 保存到props中
+                    bean.addProp(propName, beanProperty);
+
+                    // 如果是lazy-property，则添加到lazyPropertySetters中
+                    if (lazyProperty) {
+                        bean.addLazyPropertySetter(propName, beanProperty);
+                    }
                 } else {
                     LOG.info("nop.ioc.ignore-optional-inject:prop={},bean={}", propName, bean);
                 }
@@ -637,7 +698,7 @@ public class BeanDefinitionBuilder {
             if (resolver != null) {
                 String propName = propModel.getName();
                 bean.addProp(propName, new BeanProperty(null, propModel.getSetter(),
-                        propModel.getRawClass(), resolver, true, true));
+                        propModel.getRawClass(), resolver, true, true, false));
             }
         }
     }

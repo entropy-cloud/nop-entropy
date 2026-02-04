@@ -166,6 +166,13 @@ public abstract class _BeanValue extends io.nop.core.resource.component.Abstract
     
     /**
      *  
+     * xml name: ioc:force-lazy-property
+     * 强制所有注入这个bean的属性都延迟设置，也就是在init-method执行之后再初始化这些属性。这些属性也自然被排除到依赖集合之外
+     */
+    private java.lang.Boolean _iocForceLazyProperty ;
+    
+    /**
+     *  
      * xml name: ioc:init
      * 
      */
@@ -698,6 +705,25 @@ public abstract class _BeanValue extends io.nop.core.resource.component.Abstract
     
     /**
      * 
+     * xml name: ioc:force-lazy-property
+     *  强制所有注入这个bean的属性都延迟设置，也就是在init-method执行之后再初始化这些属性。这些属性也自然被排除到依赖集合之外
+     */
+    
+    public java.lang.Boolean getIocForceLazyProperty(){
+      return _iocForceLazyProperty;
+    }
+
+    
+    public void setIocForceLazyProperty(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._iocForceLazyProperty = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: ioc:init
      *  
      */
@@ -1082,6 +1108,7 @@ public abstract class _BeanValue extends io.nop.core.resource.component.Abstract
         out.putNotNull("iocDelayStart",this.getIocDelayStart());
         out.putNotNull("iocDestroy",this.getIocDestroy());
         out.putNotNull("iocForceInit",this.isIocForceInit());
+        out.putNotNull("iocForceLazyProperty",this.getIocForceLazyProperty());
         out.putNotNull("iocInit",this.getIocInit());
         out.putNotNull("iocInitOrder",this.getIocInitOrder());
         out.putNotNull("iocInterceptors",this.getIocInterceptors());
@@ -1129,6 +1156,7 @@ public abstract class _BeanValue extends io.nop.core.resource.component.Abstract
         instance.setIocDelayStart(this.getIocDelayStart());
         instance.setIocDestroy(this.getIocDestroy());
         instance.setIocForceInit(this.isIocForceInit());
+        instance.setIocForceLazyProperty(this.getIocForceLazyProperty());
         instance.setIocInit(this.getIocInit());
         instance.setIocInitOrder(this.getIocInitOrder());
         instance.setIocInterceptors(this.getIocInterceptors());

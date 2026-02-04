@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationHandler;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -49,6 +50,27 @@ import java.util.function.Function;
 
 public class BeanDefinition implements IBeanDefinition {
     static final Logger LOG = LoggerFactory.getLogger(BeanDefinition.class);
+
+    /**
+     * 延迟属性设置器
+     */
+    public static class LazyPropertySetter {
+        private final String propName;
+        private final BeanProperty property;
+
+        public LazyPropertySetter(String propName, BeanProperty property) {
+            this.propName = propName;
+            this.property = property;
+        }
+
+        public String getPropName() {
+            return propName;
+        }
+
+        public BeanProperty getProperty() {
+            return property;
+        }
+    }
 
     public static int STATUS_UNRESOLVED = 0;
 
@@ -75,6 +97,11 @@ public class BeanDefinition implements IBeanDefinition {
     private IFunctionModel destroyMethod;
     private IFunctionModel delayMethod;
     private IFunctionModel restartMethod;
+
+    /**
+     * 延迟属性设置函数缓存。这些属性在init-method执行之后才设置
+     */
+    private List<LazyPropertySetter> lazyPropertySetters = Collections.emptyList();
 
     private IFunctionModel factoryMethod;
 
@@ -119,6 +146,10 @@ public class BeanDefinition implements IBeanDefinition {
 
     public boolean isIocForceInit() {
         return beanModel.isIocForceInit();
+    }
+
+    public boolean isIocForceLazyProperty() {
+        return Boolean.TRUE.equals(beanModel.getIocForceLazyProperty());
     }
 
     public Function<IBeanContainerImplementor, ?> getSupplier() {
@@ -417,6 +448,21 @@ public class BeanDefinition implements IBeanDefinition {
         return props.get(propName);
     }
 
+    public void addLazyPropertySetter(String propName, BeanProperty property) {
+        if (lazyPropertySetters.isEmpty()) {
+            lazyPropertySetters = new ArrayList<>();
+        }
+        lazyPropertySetters.add(new LazyPropertySetter(propName, property));
+    }
+
+    public List<LazyPropertySetter> getLazyPropertySetters() {
+        return lazyPropertySetters;
+    }
+
+    public boolean hasLazyProperties() {
+        return !lazyPropertySetters.isEmpty();
+    }
+
     void runXpl(IEvalAction xpl, Object bean, IBeanContainer container, IBeanScope beanScope) {
         if (xpl != null) {
             IEvalScope scope = beanScope.getEvalScope().newChildScope();
@@ -477,6 +523,9 @@ public class BeanDefinition implements IBeanDefinition {
 
             for (Map.Entry<String, BeanProperty> entry : props.entrySet()) {
                 BeanProperty prop = entry.getValue();
+                // lazy-property不在newObject中设置，而是在init-method之后通过runLazyProperties设置
+                if (prop.isLazyProperty())
+                    continue;
                 prop.assignToObject(bean, entry.getKey(), container, scope);
             }
 
@@ -574,6 +623,19 @@ public class BeanDefinition implements IBeanDefinition {
                 delayMethod.call0(bean, DisabledEvalScope.INSTANCE);
             }
             runXpl(beanModel.getIocDelayStart(), bean, container, beanScope);
+        }
+    }
+
+    void runLazyProperties(Object bean, IBeanScope beanScope, IBeanContainerImplementor container) {
+        if (bean != null && !lazyPropertySetters.isEmpty()) {
+            if (bean instanceof ProducedBeanInstance) {
+                bean = ((ProducedBeanInstance) bean).getCreatedBean();
+            }
+
+            for (LazyPropertySetter lazySetter : lazyPropertySetters) {
+                BeanProperty prop = lazySetter.getProperty();
+                prop.assignToObject(bean, lazySetter.getPropName(), container, beanScope);
+            }
         }
     }
 

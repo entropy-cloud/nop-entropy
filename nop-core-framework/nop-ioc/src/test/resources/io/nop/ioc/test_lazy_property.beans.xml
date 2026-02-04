@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="GBK"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+
+    <!-- 测试ioc:lazy-property：lazyPropertyProp属性应该在init-method之后设置 -->
+    <bean id="lazyPropertyBean" class="test.io.entropy.beans.MyLazyPropertyBean"
+          init-method="init">
+        <property name="lazyPropertyProp" value="lazy-value" ioc:lazy-property="true"/>
+        <property name="normalProp" value="normal-value"/>
+    </bean>
+
+    <!-- 测试ioc:force-lazy-property：forceLazyBean设置了force-lazy-property，
+         所有引用forceLazyBean的属性都应该自动设置为lazy-property -->
+    <bean id="forceLazyBean" class="test.io.entropy.beans.MyForceLazyBean" ioc:force-lazy-property="true"/>
+
+    <bean id="referForceLazyBean" class="test.io.entropy.beans.MyReferForceLazyBean"
+          init-method="init">
+        <property name="forceLazyRef" ref="forceLazyBean"/>
+        <property name="normalRef" ref="normalRefBean"/>
+    </bean>
+
+    <bean id="normalRefBean" class="test.io.entropy.beans.MyNormalRefBean"/>
+
+    <!-- 测试lazy-property与delay-method的执行顺序：
+         执行顺序应该是：构造函数 -> 普通属性 -> init-method -> lazy-property -> delay-method -->
+    <bean id="lazyPropertyWithDelayBean" class="test.io.entropy.beans.MyLazyPropertyWithDelayBean"
+          init-method="init" ioc:delay-method="delay">
+        <property name="lazyProp" value="lazy-value" ioc:lazy-property="true"/>
+        <property name="normalProp" value="normal-value"/>
+    </bean>
+
+</beans>

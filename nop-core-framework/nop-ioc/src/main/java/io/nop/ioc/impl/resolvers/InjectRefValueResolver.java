@@ -32,6 +32,10 @@ public class InjectRefValueResolver implements IBeanPropValueResolver {
         this.resolvedBean = resolvedBean;
     }
 
+    public BeanDefinition getResolvedBean() {
+        return resolvedBean;
+    }
+
     @Override
     public String toConfigString() {
         if (resolvedBean != null)

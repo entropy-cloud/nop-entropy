@@ -25,6 +25,13 @@ public abstract class _BeanPropertyModel extends io.nop.ioc.model.BeanPropValue 
     
     /**
      *  
+     * xml name: ioc:lazy-property
+     * 延迟属性在init-method执行之后才设置。它将自动设置ioc:ignore-depends为true
+     */
+    private java.lang.Boolean _iocLazyProperty ;
+    
+    /**
+     *  
      * xml name: ioc:skip-if-empty
      * 当属性值为空时跳过本属性的设置
      */
@@ -66,6 +73,25 @@ public abstract class _BeanPropertyModel extends io.nop.ioc.model.BeanPropValue 
         checkAllowChange();
         
         this._iocIgnoreDepends = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: ioc:lazy-property
+     *  延迟属性在init-method执行之后才设置。它将自动设置ioc:ignore-depends为true
+     */
+    
+    public java.lang.Boolean getIocLazyProperty(){
+      return _iocLazyProperty;
+    }
+
+    
+    public void setIocLazyProperty(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._iocLazyProperty = value;
            
     }
 
@@ -162,6 +188,7 @@ public abstract class _BeanPropertyModel extends io.nop.ioc.model.BeanPropValue 
         super.outputJson(out);
         
         out.putNotNull("iocIgnoreDepends",this.isIocIgnoreDepends());
+        out.putNotNull("iocLazyProperty",this.getIocLazyProperty());
         out.putNotNull("iocSkipIfEmpty",this.isIocSkipIfEmpty());
         out.putNotNull("name",this.getName());
         out.putNotNull("ref",this.getRef());
@@ -178,6 +205,7 @@ public abstract class _BeanPropertyModel extends io.nop.ioc.model.BeanPropValue 
         super.copyTo(instance);
         
         instance.setIocIgnoreDepends(this.isIocIgnoreDepends());
+        instance.setIocLazyProperty(this.getIocLazyProperty());
         instance.setIocSkipIfEmpty(this.isIocSkipIfEmpty());
         instance.setName(this.getName());
         instance.setRef(this.getRef());

@@ -32,14 +32,21 @@ public class BeanProperty {
 
     private final boolean autowired;
 
+    /**
+     * 是否为延迟属性。延迟属性在init-method执行之后才设置
+     */
+    private final boolean lazyProperty;
+
     public BeanProperty(SourceLocation location, IPropertySetter setter, Class<?> targetClass,
-                        IBeanPropValueResolver valueResolver, boolean autowired, boolean skipIfEmpty) {
+                        IBeanPropValueResolver valueResolver, boolean autowired, boolean skipIfEmpty,
+                        boolean lazyProperty) {
         this.location = location;
         this.setter = setter;
         this.targetClass = targetClass;
         this.valueResolver = Guard.notNull(valueResolver, "valueResolver");
         this.autowired = autowired;
         this.skipIfEmpty = skipIfEmpty;
+        this.lazyProperty = lazyProperty;
 
         Set<String> configVars = new HashSet<>();
         valueResolver.collectConfigVars(configVars, true);
@@ -52,6 +59,10 @@ public class BeanProperty {
 
     public boolean isSkipIfEmpty() {
         return skipIfEmpty;
+    }
+
+    public boolean isLazyProperty() {
+        return lazyProperty;
     }
 
 

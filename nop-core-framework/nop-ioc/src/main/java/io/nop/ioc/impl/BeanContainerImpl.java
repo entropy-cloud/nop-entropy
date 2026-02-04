@@ -487,12 +487,14 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
                     if (err != null) {
                         handleStartError(err);
                     } else {
+                        runLazyProperties();
                         runDelayMethod();
                         started = true;
                     }
                     LOG.info("nop.ioc.async-start-finished:{}", getId());
                 });
             } else {
+                runLazyProperties();
                 runDelayMethod();
                 started = true;
                 LOG.info("nop.ioc.start-finished:{}", getId());
@@ -596,6 +598,18 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
             }
         }
         LOG.info("nop.ioc.run-delay-method-finished");
+    }
+
+    void runLazyProperties() {
+        for (BeanDefinition beanDef : orderedBeans) {
+            if (beanDef.isSingleton() && beanDef.hasLazyProperties()) {
+                IBeanScope beanScope = getBeanScope(beanDef);
+                Object instance = beanScope.get(beanDef.getId());
+                if (instance != null)
+                    beanDef.runLazyProperties(instance, beanScope, this);
+            }
+        }
+        LOG.info("nop.ioc.run-lazy-properties-finished");
     }
 
     @Override

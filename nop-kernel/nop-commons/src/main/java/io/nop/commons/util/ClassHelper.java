@@ -572,6 +572,23 @@ public class ClassHelper {
         }
     }
 
+    public static Set<Class<?>> getInheritedInterfaces(Class<?> clazz) {
+        Set<Class<?>> ret = new LinkedHashSet<>();
+        if (clazz.isInterface()) {
+            ret.add(clazz);
+            return ret;
+        }
+
+        while (clazz != null && clazz != Object.class) {
+            Class<?>[] ifcs = clazz.getInterfaces();
+            for (Class<?> inf : ifcs) {
+                ret.add(inf);
+            }
+            clazz = clazz.getSuperclass();
+        }
+        return ret;
+    }
+
     public static Set<Class<?>> getAllInterfacesForClassAsSet(Class<?> clazz, ClassLoader classLoader) {
         Set<Class<?>> ret = new LinkedHashSet<>();
         collectAllInterfacesForClass(ret, clazz, classLoader);
