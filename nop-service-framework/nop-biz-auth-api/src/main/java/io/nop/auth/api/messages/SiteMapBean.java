@@ -91,6 +91,10 @@ public class SiteMapBean implements IComponentModel, ISourceLocationSetter {
         return ret;
     }
 
+    public List<SiteResourceBean> getChildren() {
+        return getResources();
+    }
+
     List<SiteResourceBean> deepCloneResources() {
         if (resources == null)
             return Collections.emptyList();

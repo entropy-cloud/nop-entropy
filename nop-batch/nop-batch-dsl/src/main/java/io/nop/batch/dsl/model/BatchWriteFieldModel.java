@@ -15,7 +15,7 @@ public class BatchWriteFieldModel extends _BatchWriteFieldModel implements IData
 
     @Override
     public String getSourceFieldName() {
-        return getFrom();
+        return null;
     }
 
     @Override

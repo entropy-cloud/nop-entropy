@@ -97,6 +97,7 @@ nop.err.autotest.test-class-no-local-db-annotation: 测试方法[{testMethod}]�
 nop.err.autotest.unknown-file: 文件[{filePath}]不存在
 nop.err.batch.cancel-load: 批处理读取被取消
 nop.err.batch.cancel-process: 批处理执行被取消
+nop.err.batch.input-mandatory-not-provided: 批处理任务的input参数{inputName}是必需的，但未提供
 nop.err.batch.invalid-history-store-bean: 批处理任务定义的historyStore的bean配置无效
 nop.err.batch.persist-var-convert-type-fail: 状态变量[{varName}]的类型转换失败
 nop.err.batch.processor-is-null: 批处理任务的处理器配置不允许为null
@@ -381,6 +382,7 @@ nop.err.core.resource.open-input-stream-fail: 打开文件输入流失败：{res
 nop.err.core.resource.open-output-stream-fail: 打开文件输出流失败：{resource}
 nop.err.core.resource.path-not-in-namespace: 资源路径[{resourcePath}]不属于名字空间[{namespace}]
 nop.err.core.resource.read-csv-row-fail: 读取CSV文件[{resourcePath}]的第{readCount}行时失败
+nop.err.core.resource.read-jsonl-row-fail: 读取JSONL文件[{resourcePath}]的第{readCount}行时失败
 nop.err.core.resource.save-from-stream-fail: 保存数据流到资源文件[{resourcePath}]失败
 nop.err.core.resource.save-to-resource-fail: 保存资源文件[{src}]到目标[{dest}]失败
 nop.err.core.resource.store-not-support-tenant-delta: 文件存储没有开启租户Delta支持

@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+示例：从 action-auth.xml 加载权限模型，使用 JDBC 直接保存到数据库
+
+说明：
+1. loader 使用 source 函数加载 action-auth.xml 并解析为 ActionAuthModel
+2. 将所有 resource（包括嵌套的 children）和 role 元素收集到一个列表中
+3. 使用 tagger 为每个 item 标记类型（resource 或 role）
+4. 使用两个 consumer 分别通过 forTag 匹配处理
+5. 使用 jdbc-writer 直接通过 JDBC 保存到数据库（不使用 ORM）
+6. transformer 将模型数据转换为 Map 对象
+
+语法注意事项：
+- import 不支持通配符，必须是具体的类
+- 只使用 let 不使用 var
+- Map 和 List 直接用 {} 和 [] 创建，类似 JavaScript
+- ResourceHelper.resolveRelativeResource(path) 获取 IResource
+- DslModelHelper.loadDslModel(resource) 加载 dsl 模型对象
+-->
+<batch taskName="auth.importActionAuthJdbc" taskVersion="1" batchSize="100"
+       x:schema="/nop/schema/task/batch.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xpl="xpl">
+	   
+	<input name="xdslPath" mandatory="true" />   
+
+    <!--
+        Loader 配置
+        使用 source 函数从指定路径加载 action-auth.xml 文件
+    -->
+    <loader>
+        <!-- source 函数接收 batchSize 和 batchChunkCtx 参数，返回 List -->
+        <source><![CDATA[
+            import io.nop.core.resource.IResource;
+            import io.nop.core.resource.ResourceHelper;
+            import io.nop.xlang.xdsl.DslModelHelper;
+
+            let resource = ResourceHelper.resolveRelativeResource(xdslPath);
+            let authModel = DslModelHelper.loadDslModel(resource);
+
+            // 打印解析结果
+            logInfo("authModel.sites={}", authModel.sites);
+            logInfo("authModel.roles={}", authModel.roles);
+            logInfo("authModel.siteCount={}", authModel.sites ? authModel.sites.length : 0);
+
+            let allItems = [];
+
+            let sites = authModel.sites;
+            if (sites) {
+                for (let i = 0; i < sites.length; i++) {
+                    let site = sites[i];
+                    logInfo("site[{}].id={}, displayName={}", i, site.id, site.displayName);
+
+                    let siteWrapper = {
+                        _type: "site",
+                        _data: site,
+						_orderNo: i
+                    };
+                    allItems.push(siteWrapper);
+
+                    function collectResources(resourceNode, siteId, parentId) {
+                        let itemWrapper = {
+                            _type: "resource",
+                            _data: resourceNode,
+                            _siteId: siteId,
+                            _parentId: parentId
+                        };
+                        allItems.push(itemWrapper);
+
+                        let children = resourceNode.children;
+                        if (children) {
+                            for (let j = 0; j < children.length; j++) {
+                                collectResources(children[j], siteId, resourceNode.id);
+                            }
+                        }
+                    }
+
+                    for(let rootRes of site.resources)
+                      collectResources(rootRes, site.id, null);
+                }
+            }
+
+            // 收集所有的 role 元素
+            let roles = authModel.roles;
+            if (roles) {
+                for (let i = 0; i < roles.length; i++) {
+                    let itemWrapper = {
+                        _type: "role",
+                        _data: roles[i]
+                    };
+                    allItems.push(itemWrapper);
+                }
+            }
+
+            logInfo("allItems.length={}", allItems.length);
+
+            return allItems;
+        ]]></source>
+    </loader>
+
+    <!--
+        Tagger 配置
+        为每个 item 返回对应的 consumer 标签
+    -->
+    <tagger>
+        <source><![CDATA[
+            let itemType = item._type;
+            let tags = [];
+
+            if (itemType == "site") {
+                tags.push("site");
+            } else if (itemType == "resource") {
+                tags.push("resource");
+            } else if (itemType == "role") {
+                tags.push("role");
+            }
+
+            return tags;
+        ]]></source>
+    </tagger>
+
+    <!--
+        Consumer 配置：处理 sites
+    -->
+    <consumer name="saveSites" forTag="site">
+        <jdbc-writer tableName="nop_auth_site" allowUpdate="true" allowInsert="true">
+            <keyFields>site_id</keyFields>
+            <fields>
+                <field name="site_id" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="display_name" stdSqlType="VARCHAR" stdDataType="string"/>
+				<field name="order_no" stdSqlType="INTEGER"/>
+
+                <field name="status" stdSqlType="INTEGER" stdDataType="int"/>
+                <field name="config_version" stdSqlType="VARCHAR" stdDataType="string"/>
+		        <field name="version" stdSqlType="BIGINT" />
+				<field name="created_by" stdSqlType="VARCHAR" />
+				<field name="create_time" stdSqlType="TIMESTAMP" />
+				<field name="updated_by" stdSqlType="VARCHAR" />
+				<field name="update_time" stdSqlType="TIMESTAMP" />
+            </fields>
+        </jdbc-writer>
+
+        <transformer><![CDATA[
+            let site = item._data;
+
+            logInfo("transformer: id={}, displayName={}, configVersion={}", site.id, site.displayName, site.configVersion);
+
+            let result = {
+                site_id: site.id,
+                display_name: site.displayName || site.id,
+                status: 1,
+				order_no: item._orderNo,
+				version:1,
+                config_version: site.configVersion,
+				created_by: 'sys',
+				create_time: now(),
+				updated_by: 'sys',
+				update_time: now()
+            };
+
+            logInfo("transformer result: {}", result);
+
+            return result;
+        ]]></transformer>
+    </consumer>
+
+    <!--
+        Consumer 配置：处理 resources
+    -->
+    <consumer name="saveResources" forTag="resource">
+        <jdbc-writer tableName="nop_auth_resource" allowUpdate="true" allowInsert="true">
+            <keyFields>resource_id</keyFields>
+            <fields>
+                <field name="resource_id" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="site_id" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="display_name" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="order_no" stdSqlType="INTEGER" stdDataType="int"/>
+                <field name="resource_type" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="parent_id" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="icon" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="route_path" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="url" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="component" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="target" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="hidden" stdSqlType="TINYINT" stdDataType="boolean"/>
+                <field name="keep_alive" stdSqlType="TINYINT" stdDataType="boolean"/>
+                <field name="permissions" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="no_auth" stdSqlType="TINYINT" stdDataType="boolean"/>
+                <field name="depends" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="is_leaf" stdSqlType="TINYINT" stdDataType="boolean"/>
+                <field name="status" stdSqlType="INTEGER" stdDataType="int"/>
+                <field name="auth_cascade_up" stdSqlType="TINYINT" stdDataType="boolean"/>
+                <field name="meta_config" stdSqlType="CLOB" stdDataType="string"/>
+                <field name="props_config" stdSqlType="CLOB" stdDataType="string"/>
+				<field name="version" stdSqlType="BIGINT" />
+				<field name="created_by" stdSqlType="VARCHAR" />
+				<field name="create_time" stdSqlType="TIMESTAMP" />
+				<field name="updated_by" stdSqlType="VARCHAR" />
+				<field name="update_time" stdSqlType="TIMESTAMP" />
+				<field name="del_flag" stdSqlType="TINYINT" />
+            </fields>
+        </jdbc-writer>
+
+        <transformer><![CDATA[
+            let res = item._data;
+            let siteId = item._siteId;
+            let parentId = item._parentId;
+
+            return {
+                resource_id: res.id,
+                site_id: siteId,
+                display_name: res.displayName,
+                order_no: res.orderNo || 0,
+                resource_type: res.resourceType || "MENU",
+                parent_id: parentId,
+                icon: res.icon,
+                route_path: res.routePath,
+                url: res.url,
+                component: res.component,
+                target: res.target,
+                hidden: res.hidden ? 1 : 0,
+                keep_alive: res.keepAlive ? 1 : 0,
+                permissions: res.permissions?.join(","),
+                no_auth: res.noAuth ? 1 : 0,
+                depends: res.depends,
+                is_leaf: !res.children || res.children.length == 0 ? 1 : 0,
+                status: 1,
+                auth_cascade_up: res.authCascadeUp ? 1 : 0,
+                meta_config: res.meta,
+                props_config: res.props,
+				version:1,
+				created_by: 'sys',
+				create_time: now(),
+				updated_by: 'sys',
+				update_time: now(),
+				del_flag: 0
+            };
+        ]]></transformer>
+    </consumer>
+
+    <!--
+        Consumer 配置：处理 roles
+        通过 forTag="role" 匹配
+        使用 jdbc-writer 直接保存到数据库
+    -->
+    <consumer name="saveRoles" forTag="role">
+        <jdbc-writer tableName="nop_auth_role" allowUpdate="true" allowInsert="true">
+            <keyFields>role_id</keyFields>
+            <fields>
+                <field name="role_id" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="role_name" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="is_primary" stdSqlType="TINYINT" stdDataType="boolean"/>
+                <field name="remark" stdSqlType="VARCHAR" stdDataType="string"/>
+            </fields>
+        </jdbc-writer>
+
+        <!-- transformer 将 role 数据转换为 Map 对象 -->
+        <transformer><![CDATA[
+            let role = item._data;
+
+            return {
+                role_id: role.name,
+                role_name: role.displayName,
+                is_primary: role.primary ? 1 : 0,
+                remark: role.description
+            };
+        ]]></transformer>
+    </consumer>
+
+</batch>

@@ -117,6 +117,22 @@ public class TestNopCli extends BaseTestCase {
         System.getProperties().remove(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName());
     }
 
+    @Disabled
+    @Test
+    public void testRunBatchXmlDemo() {
+        CoreInitialization.destroy();
+        File file = new File(getModuleDir(), "../nop-cli/demo/_vfs");
+        File devDir = new File(getModuleDir(), "../nop-cli/demo/");
+        System.setProperty(CoreConfigs.CFG_DEV_ROOT_PATH.getName(), devDir.getAbsolutePath());
+        System.setProperty(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName(), file.getAbsolutePath());
+        String[] args = new String[]{"run-task", "v:/batch/import-action-auth-jdbc.batch.xml", "-PxdslPath=../../nop-auth/nop-auth-web/src/main/resources/_vfs/nop/auth/auth/nop-auth.action-auth.xml"};
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        int ret = app.run(args);
+        assertEquals(0, ret);
+        System.getProperties().remove(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName());
+    }
+
     @Test
     public void testFile() {
         CoreInitialization.destroy();

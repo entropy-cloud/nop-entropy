@@ -269,6 +269,10 @@ public class ResourceHelper {
         return getStdPath(StringHelper.absolutePath(currentPath, relativePath));
     }
 
+    public static IResource resolveRelativeResource(String path) {
+        return resolveRelativePathResource(path);
+    }
+
     public static IResource resolveRelativeResource(IResource resource, String relativePath, boolean allowParent) {
         if (!allowParent && relativePath.contains(".."))
             throw new IllegalArgumentException("invalid-relative-path:" + relativePath);

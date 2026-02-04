@@ -1,8 +1,12 @@
 package io.nop.cli.commands;
 
 import io.nop.api.core.ioc.BeanContainer;
+import io.nop.batch.core.IBatchTask;
+import io.nop.batch.core.IBatchTaskContext;
+import io.nop.batch.core.manager.IBatchTaskManager;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.ServiceContextImpl;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
@@ -23,12 +27,12 @@ import java.util.concurrent.Callable;
 @CommandLine.Command(
     name = "run-task",
     mixinStandardHelpOptions = true,
-    description = "Run orchestration task defined in task.xml"
+    description = "Run orchestration task defined in task.xml or batch.xml"
 )
 public class CliRunTaskCommand implements Callable<Integer> {
     static final Logger LOG = LoggerFactory.getLogger(CliRunTaskCommand.class);
 
-    @CommandLine.Parameters(index = "0", description = "Path to task.xml orchestration task file")
+    @CommandLine.Parameters(index = "0", description = "Path to task.xml or batch.xml file")
     String file;
 
     @CommandLine.Option(names = {"-i", "--input"}, description = "Input parameters (JSON)")
@@ -50,6 +54,35 @@ public class CliRunTaskCommand implements Callable<Integer> {
     @SuppressWarnings("unchecked")
     @Override
     public Integer call() throws Exception {
+        if (file.endsWith(".batch.xml")) {
+            return executeBatchTask();
+        }
+
+        return executeOrchestrationTask();
+    }
+
+    private Integer executeBatchTask() throws Exception {
+        IBatchTaskManager batchTaskManager = BeanContainer.getBeanByType(IBatchTaskManager.class);
+        IBatchTask batchTask = batchTaskManager.loadBatchTaskFromPath(file, BeanContainer.instance());
+
+        ServiceContextImpl svcCtx = new ServiceContextImpl();
+        IBatchTaskContext context = batchTaskManager.newBatchTaskContext(svcCtx);
+
+        if (dynamicParams != null) {
+            LOG.info("nop.cli.run-batch-task-params:{}", dynamicParams);
+            Map<String, Object> params = new HashMap<>(dynamicParams);
+            context.setParams(params);
+        }
+
+        applyInputParams(svcCtx.getEvalScope());
+
+        return BeanScopeContext.runWithNewScope(IBeanScope.SCOPE_TASK, () -> {
+            batchTask.execute(context);
+            return 0;
+        });
+    }
+
+    private Integer executeOrchestrationTask() throws Exception {
         IResource resource = ResourceHelper.resolveRelativePathResource(file);
 
         ITaskFlowManager taskFlowManager = BeanContainer.getBeanByType(ITaskFlowManager.class);
@@ -59,15 +92,7 @@ public class CliRunTaskCommand implements Callable<Integer> {
         if (tagSet != null)
             taskRt.setTagSet(tagSet);
 
-        if (input != null) {
-            Map<String, Object> map = (Map<String, Object>) JsonTool.parseNonStrict(null, input);
-            taskRt.getEvalScope().setLocalValues(map);
-        }
-        if (inputFile != null) {
-            IResource inputResource = ResourceHelper.resolveRelativePathResource(inputFile);
-            Map<String, Object> map = (Map<String, Object>) JsonTool.parseBeanFromResource(inputResource);
-            taskRt.getEvalScope().setLocalValues(map);
-        }
+        applyInputParams(taskRt.getEvalScope());
 
         if (dynamicParams != null) {
             LOG.info("nop.cli.run-task-params:{}", dynamicParams);
@@ -80,5 +105,18 @@ public class CliRunTaskCommand implements Callable<Integer> {
                 return (Integer) result;
             return 0;
         });
+    }
+
+    @SuppressWarnings("unchecked")
+    private void applyInputParams(IEvalScope scope) {
+        if (input != null) {
+            Map<String, Object> map = (Map<String, Object>) JsonTool.parseNonStrict(null, input);
+            scope.setLocalValues(map);
+        }
+        if (inputFile != null) {
+            IResource inputResource = ResourceHelper.resolveRelativePathResource(inputFile);
+            Map<String, Object> map = (Map<String, Object>) JsonTool.parseBeanFromResource(inputResource);
+            scope.setLocalValues(map);
+        }
     }
 }

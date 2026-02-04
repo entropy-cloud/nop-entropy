@@ -18,13 +18,6 @@ public abstract class _BatchWriteFieldModel extends io.nop.core.resource.compone
     
     /**
      *  
-     * xml name: from
-     * 
-     */
-    private java.lang.String _from ;
-    
-    /**
-     *  
      * xml name: name
      * 
      */
@@ -43,25 +36,6 @@ public abstract class _BatchWriteFieldModel extends io.nop.core.resource.compone
      * 
      */
     private io.nop.commons.type.StdSqlType _stdSqlType ;
-    
-    /**
-     * 
-     * xml name: from
-     *  
-     */
-    
-    public java.lang.String getFrom(){
-      return _from;
-    }
-
-    
-    public void setFrom(java.lang.String value){
-        checkAllowChange();
-        
-        this._from = value;
-           
-    }
-
     
     /**
      * 
@@ -135,7 +109,6 @@ public abstract class _BatchWriteFieldModel extends io.nop.core.resource.compone
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("from",this.getFrom());
         out.putNotNull("name",this.getName());
         out.putNotNull("stdDataType",this.getStdDataType());
         out.putNotNull("stdSqlType",this.getStdSqlType());
@@ -150,7 +123,6 @@ public abstract class _BatchWriteFieldModel extends io.nop.core.resource.compone
     protected void copyTo(BatchWriteFieldModel instance){
         super.copyTo(instance);
         
-        instance.setFrom(this.getFrom());
         instance.setName(this.getName());
         instance.setStdDataType(this.getStdDataType());
         instance.setStdSqlType(this.getStdSqlType());

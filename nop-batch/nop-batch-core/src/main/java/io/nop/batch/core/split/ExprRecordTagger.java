@@ -10,25 +10,25 @@ package io.nop.batch.core.split;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.batch.core.BatchConstants;
-import io.nop.core.lang.eval.EvalExprProvider;
-import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.context.IEvalContext;
+import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.dataset.record.IRecordTagger;
 
 import java.util.Collection;
 
-public class ExprRecordTagger<T, C> implements IRecordTagger<T, C> {
-    private final IEvalAction expr;
+public class ExprRecordTagger<T, C extends IEvalContext> implements IRecordTagger<T, C> {
+    private final IEvalFunction expr;
 
-    public ExprRecordTagger(IEvalAction expr) {
+    public ExprRecordTagger(IEvalFunction expr) {
         this.expr = expr;
     }
 
     @Override
     public Collection<String> getTags(T record, C context) {
-        IEvalScope scope = EvalExprProvider.newEvalScope();
+        IEvalScope scope = context.getEvalScope();
         scope.setLocalValue(null, BatchConstants.VAR_ITEM, record);
-        Object value = expr.invoke(scope);
+        Object value = expr.call2(null, record, context, scope);
         if (value == null)
             return null;
 

@@ -29,6 +29,7 @@ import io.nop.batch.core.loader.ListBatchLoader;
 import io.nop.batch.core.loader.PostProcessBatchLoaderProvider;
 import io.nop.batch.core.processor.FilterBatchProcessor;
 import io.nop.batch.core.processor.MultiBatchProcessorProvider;
+import io.nop.batch.core.split.ExprRecordTagger;
 import io.nop.batch.dsl.model.BatchConsumerModel;
 import io.nop.batch.dsl.model.BatchGeneratorModel;
 import io.nop.batch.dsl.model.BatchHistoryStoreModel;
@@ -47,6 +48,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalFunction;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.dao.api.IDaoProvider;
@@ -59,6 +61,8 @@ import io.nop.dataset.record.IRecordTagger;
 import io.nop.dataset.record.support.RecordTagSplitter;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.utils.SingleSessionFunctionInvoker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -97,6 +101,8 @@ public class ModelBasedBatchTaskBuilderFactory {
     private final IBatchStateStore stateStore;
 
     private final IBatchHistoryStoreBuilder historyStoreBuilder;
+
+    static final Logger LOG = LoggerFactory.getLogger(ModelBasedBatchTaskBuilderFactory.class);
 
     public ModelBasedBatchTaskBuilderFactory(BatchTaskModel batchTaskModel,
                                              IBatchStateStore stateStore,
@@ -186,6 +192,8 @@ public class ModelBasedBatchTaskBuilderFactory {
 
         addListeners(builder, batchTaskModel);
 
+        addInputsInitializer(builder, batchTaskModel);
+
         buildTask(builder, beanContainer);
 
         return builder;
@@ -264,7 +272,8 @@ public class ModelBasedBatchTaskBuilderFactory {
                     });
 
                     SplitBatchConsumer<Object, Object> writer = new SplitBatchConsumer<>(splitter,
-                            (tag, ctx) -> consumerMap.get(tag).setup(ctx.getTaskContext()), false);
+                            (tag, ctx) -> !consumerMap.containsKey(tag) ? null :
+                                    consumerMap.get(tag).setup(ctx.getTaskContext()), false);
                     writers.add(writer);
                 }
                 if (list != null) {
@@ -572,6 +581,39 @@ public class ModelBasedBatchTaskBuilderFactory {
         }
     }
 
+    private void addInputsInitializer(BatchTaskBuilder<Object, Object> builder, BatchTaskModel batchTaskModel) {
+        if (batchTaskModel.getInputs() == null || batchTaskModel.getInputs().isEmpty())
+            return;
+
+        builder.addTaskInitializer(context -> {
+            IEvalScope scope = context.getEvalScope();
+            for (io.nop.batch.dsl.model.BatchInputModel inputModel : batchTaskModel.getInputs()) {
+                String name = inputModel.getName();
+                IEvalAction expr = inputModel.getValue();
+                Object value = expr == null ? scope.getValue(name) : expr.invoke(scope);
+
+                if (inputModel.isMandatory() && value == null) {
+                    throw new NopException(io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_INPUT_MANDATORY_NOT_PROVIDED)
+                            .param(io.nop.batch.dsl.BatchDslErrors.ARG_BATCH_TASK_NAME, batchTaskModel.getTaskName())
+                            .param(io.nop.batch.dsl.BatchDslErrors.ARG_INPUT_NAME, name);
+                }
+
+                scope.setLocalValue(name, value);
+
+                if (inputModel.isDump()) {
+                    Object dumpValue = value;
+                    if (value != null) {
+                        String str = String.valueOf(value);
+                        if (str.length() > 200) {
+                            dumpValue = value.getClass().getName();
+                        }
+                    }
+                    LOG.info("nop.batch.init-input:taskName={},name={},value={}", batchTaskModel.getTaskName(), name, dumpValue);
+                }
+            }
+        });
+    }
+
     private IRecordTagger<Object, IBatchChunkContext> getTagger(IBeanProvider beanContainer) {
         if (batchTaskModel.getTagger() == null)
             return null;
@@ -581,9 +623,7 @@ public class ModelBasedBatchTaskBuilderFactory {
             return (IRecordTagger) beanContainer.getBean(taggerModel.getBean());
 
         if (taggerModel.getSource() != null)
-            return (record, ctx) ->
-                    ConvertHelper.toCsvSet(taggerModel.getSource().call2(null,
-                            record, ctx, ctx.getEvalScope()), NopException::new);
+            return new ExprRecordTagger<>(taggerModel.getSource());
         return null;
     }
 
