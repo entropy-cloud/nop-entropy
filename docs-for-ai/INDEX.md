@@ -52,6 +52,7 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 - **[服务层开发](./03-development-guide/service-layer.md)** - BizModel, CrudBizModel
 - **[API开发](./03-development-guide/api-development.md)** - GraphQL API设计和开发
 - **[前端开发](./03-development-guide/frontend-development.md)** - XView, AMIS
+- **[Batch 批处理引擎](./03-development-guide/batch-engine.md)** - NopBatch 批处理引擎使用指南
 
 #### 核心组件 (04-core-components)
 

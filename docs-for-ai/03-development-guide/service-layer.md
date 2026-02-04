@@ -59,10 +59,6 @@ Nop平台服务层基于BizModel设计，提供了CrudBizModel基类用于快速
 
 ## 核心组件
 
-Nop平台服务层基于BizModel设计，提供了CrudBizModel基类用于快速实现CRUD操作，同时支持复杂业务逻辑的扩展。
-
-## 核心组件
-
 ### 1. BizModel - 业务模型
 
 **定义**：标记业务模型的注解，用于将Java类转换为GraphQL API
@@ -96,37 +92,15 @@ public class UserBizModel {
 **定义**：提供通用CRUD操作的抽象基类
 **位置**：`io.nop.biz.crud.CrudBizModel`
 **核心功能**：
-- 内置CRUD操作实现
-- 事务管理支持
-- 数据权限控制
+- 内置CRUD操作实现（详见上文"内置 CRUD 方法"表格）
 - 业务扩展点
 - **框架中立**：不依赖特定框架，可运行在Spring/Quarkus/Solon等多种底层框架之上
-
-**内置方法**：
-- `findCount()`：查询记录总数
-- `findPage()`：分页查询
-- `findFirst()`：查询第一条记录
-- `findList()`：列表查询
-- `save()`：保存实体
-- `update()`：更新实体
-- `delete()`：删除实体
-- `get()`: 根据id获取单条记录
-- `batchGet()`: 根据ids批量获取记录列表
-- `batchUpdate()`: 批量更新
-- `batchDelete()`: 批量删除
-- `batchModify()`: 批量增删改
-- `save_update()`: 有id就修改，否则新增
-- `updateByQuery()`: 更新满足条件的记录
-- `deleteByQuery()`: 删除满足条件的记录
-- `copyForNew()`: 复制新建
-- `addManyToManyRelations()/updateManyToManyRelations()/removeManyToManyRelations()`: 管理多对多关联
 
 **扩展点**：
 - `defaultPrepareSave()`：保存前处理
 - `defaultPrepareQuery()`：查询前处理
 - `defaultPrepareUpdate()`：更新前处理
 - `defaultPrepareDelete()`：删除前处理
-- `checkDataAuth()`：数据权限检查
 - `afterSave()`：保存后处理
 
 **派生类中可用的帮助函数**：
@@ -169,14 +143,15 @@ protected IPasswordEncoder passwordEncoder;
 public User getUserByOpenId(@Name("openId") String openId, FieldSelectionBean selection, IServiceContext context) {
     QueryBean query = new QueryBean();
     query.setFilter(FilterBeans.eq(User.PROP_ID_openId, openId));
-    return doFindFirst(query, selection, context);
+    return doFindFirst(query, this::invokeDefaultPrepareQuery, selection, context);
 }
 
 @BizMutation
 public void resetUserPassword(@Name("userId") String userId, @Name("newPassword") String newPassword, IServiceContext context) {
     User user = this.requireEntity(userId);
     user.setPassword(passwordEncoder.encode(newPassword));
-    doUpdate(user);
+    // 修改实体会自动保存，不需要手动调用dao.updateEntity。但是如果修改了有可能导致数据权限变化或者唯一键冲突的属性，则需要调用updateEntity(entity,context);
+    // updateEntity(user,context);  
 }
 ```
 
@@ -185,10 +160,11 @@ public void resetUserPassword(@Name("userId") String userId, @Name("newPassword"
 **示例**：
 ```java
 @Override
-protected void defaultPrepareSave(User user) {
+protected void defaultPrepareSave(EntityData<User> entityData, IServiceContext context) {
+    User user = entityData.getEntity();
     passwordPolicy.checkPassword(user.getPassword());
     user.setPassword(passwordEncoder.encode(user.getPassword()));
-    
+
     user.setId(userIdGenerator.generateUserId());
     user.setStatus(1);
 }
@@ -355,48 +331,47 @@ public void approveUser(@Name("userId") String userId,
 
 ## 注意事项
 
-1. **一般不要在BizModel中直接使用dao()方法，尽量使用CrudBizModel内置的方法**
+1. **使用CrudBizModel内置方法而非直接调用dao()**
    - ✅ **推荐**：使用 `getEntity()`, `requireEntity()`, `doFindList()`, `doFindPage()`, `doSave()`, `doUpdate()`, `doDelete()` 等父类方法
    - ❌ **避免**：直接调用 `dao().getEntityById()`, `dao().saveEntity()`, `dao().deleteEntity()` 等
    - **原因**：CrudBizModel 的内置方法会自动应用数据权限检查、触发内置回调函数（如 `defaultPrepareQuery`、`defaultPrepareSave` 等）
 
-2. **不要在BizModel中手动管理事务**：`@BizMutation` 已自动开启事务，无需额外使用 `@Transactional` 或 `txn()`。只有在需要非常细粒度事务控制时才使用编程式事务。
+2. **事务管理**：`@BizMutation` 已自动开启事务，无需额外使用 `@Transactional` 或 `txn()`。只有在需要非常细粒度事务控制时才使用编程式事务。
 
-3. **不要在BizModel中手动处理异常，抛出NopException即可**
+3. **异常处理**：抛出NopException即可，框架会自动处理
 
 ## 常见问题
 
 ### Q1: 如何在BizModel中调用其他BizModel的方法？
 
-**答案**: 使用IBizObjectManager获取其他业务对象
-
-```java
-@BizModel("User")
-public class UserBizModel extends CrudBizModel<User> {
-
-    @Inject
-    protected IBizObjectManager bizObjectManager;
-
-    @BizQuery
-    public List<Order> getUserOrders(@Name("userId") String userId,
-                FieldSelectionBean selection, IServiceContext context) {
-         IBizObject orderObj = bizObjectManager.getBizObject("Order");
-        return (List<Order>) orderObj.invoke("findOrdersByUser", Map.of("userId",userId), selection, context);
-    }
-}
-```
-
-如果需要复用，可以定义一个接口，然后在OrderBizModel上实现这个接口，这样就可以注入这个接口来使用了。注意，一般不要直接注入BizModel对象。
+**BizModel相互引用规范**：
+- ❌ 禁止直接注入BizModel类
+- ✅ 必须使用接口（ICrudBiz或自定义接口）
+- 接口可通过Java类implements或xbiz配置实现
+- 注入命名规则：`@Named("biz_{bizObjName}")`
 
 ```java
 interface IOrderBiz {
-    List<User> findOrdersByUser(@Name("userId") String userId, IServiceContext context);
+    List<Order> findOrdersByUser(@Name("userId") String userId, FieldSelectionBean selection, IServiceContext context);
+}
+
+@BizModel("Order")
+public class OrderBizModel extends CrudBizModel<Order> implements IOrderBiz {
+    // 实现接口方法
+    @Override
+    @BizQuery
+    public List<Order> findOrdersByUser(@Name("userId") String userId, FieldSelectionBean selection, IServiceContext context) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("userId", userId));
+        return doFindList(query, this::invokeDefaultPrepareQuery, selection, context);
+    }
 }
 
 @BizModel("User")
 public class UserBizModel extends CrudBizModel<User> {
 
     @Inject
+    @Name("biz_Order")
     protected IOrderBiz orderBiz;
 
     @BizQuery
@@ -406,6 +381,8 @@ public class UserBizModel extends CrudBizModel<User> {
     }
 }
 ```
+
+
 
 ### Q2: 如何在BizModel中进行批量操作？
 
@@ -456,9 +433,6 @@ BizModel是Nop平台服务层的核心组件，它封装了业务逻辑，为Gra
 3. **依赖注入**: 使用@Inject注入其他服务
 4. **事务管理**: 使用@BizMutation自动开启事务
 5. **异常处理**: 抛出NopException，框架自动处理
-
-遵循这些最佳实践，可以构建清晰、可维护的服务层代码。
-
 ## 相关文档
 
 - [IEntityDao使用指南](../dao/entitydao-usage.md)
