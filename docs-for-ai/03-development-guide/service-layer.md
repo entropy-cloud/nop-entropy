@@ -17,19 +17,25 @@ Nop平台服务层基于BizModel设计，提供了CrudBizModel基类用于快速
 3. **元数据驱动**：通过 xmeta 元数据模型定义数据结构和验证规则
 4. **字段级别自适应**：修改模型后自动适应，无需重新生成代码
 
-#### 内置 CRUD 方法（无需编程）
+#### 内置 CRUD 方法
 
-| 方法 | GraphQL 调用 | REST 调用 | 参数类型 | 说明 |
-|------|-------------|-----------|---------|------|
-| `findPage()` | Entity__findPage(...) | POST /r/Entity__findPage | QueryBean | 分页查询 |
-| `findList()` | Entity__findList(...) | POST /r/Entity__findList | QueryBean | 列表查询 |
-| `get()` | Entity__get(...) | POST /r/Entity__get | Map {id} | 单条查询 |
-| `save()` | Entity__save(...) | POST /r/Entity__save | Map {数据} | 保存 |
-| `update()` | Entity__update(...) | POST /r/Entity__update | Map {id, 数据} | 更新 |
-| `delete()` | Entity__delete(...) | POST /r/Entity__delete | Map {id} | 删除 |
-| `batchSave()` | Entity__batchSave(...) | POST /r/Entity__batchSave | List<Map> | 批量保存 |
-| `batchUpdate()` | Entity__batchUpdate(...) | POST /r/Entity__batchUpdate | List<Map> | 批量更新 |
-| `batchDelete()` | Entity__batchDelete(...) | POST /r/Entity__batchDelete | List<Map> | 批量删除 |
+继承 `CrudBizModel` 后，自动拥有完整的 CRUD 操作能力。所有可用方法定义在 ICrudBiz 接口中（见下方）。
+
+**主要方法分类**：
+
+- **查询操作**：`findCount()`, `findPage()`, `findFirst()`, `findList()`, `get()`, `batchGet()`, `asDict()`
+- **新增操作**：`save()`, `saveOrUpdate()`, `copyForNew()`
+- **修改操作**：`update()`, `batchUpdate()`, `updateByQuery()`
+- **删除操作**：`delete()`, `batchDelete()`, `deleteByQuery()`
+- **批量增删改**：`batchModify()`
+- **多对多关联**：`addManyToManyRelations()`, `removeManyToManyRelations()`, `updateManyToManyRelations()`
+- **树形结构**：`findRoots()`, `findTreeEntityPage()`, `findTreeEntityList()`, `findListForTree()`, `findPageForTree()`
+- **逻辑删除**：`deleted_findPage()`, `deleted_get()`, `recoverDeleted()`
+
+**调用方式**：
+
+- **GraphQL**: `{bizObjName}__{methodName}(...)`，例如 `User__findPage(query: {limit: 20})`
+- **REST**: `POST /r/{bizObjName}__{methodName}`，body 传 JSON 参数，例如 `POST /r/User__findPage`
 
 #### 无需编程的场景
 
@@ -37,12 +43,10 @@ Nop平台服务层基于BizModel设计，提供了CrudBizModel基类用于快速
 
 | 场景 | 解决方案 |
 |------|---------|
-| 简单查询 | 使用内置方法 `findPage()`, `get()` |
-| 保存操作 | 使用内置方法 `save(Map data)` |
-| 更新操作 | 使用内置方法 `update(Map data)` |
-| 删除操作 | 使用内置方法 `delete(Map id)` |
-| 批量操作 | 使用内置方法 `batchSave()`, `batchUpdate()`, `batchDelete()` |
+| 简单 CRUD 操作 | 直接调用 `ICrudBiz` 接口方法 |
 | 字段扩展 | 修改 xmeta 模型即可，自动生效 |
+| 数据验证 | 在 xmeta 中定义验证规则，自动生效 |
+| 权限控制 | 在 xmeta 中定义数据权限，自动生效 |
 
 #### 需要编程的场景
 
@@ -74,8 +78,8 @@ Nop平台服务层基于BizModel设计，提供了CrudBizModel基类用于快速
 public class UserBizModel {
     // 业务方法
     @BizQuery
-    public List<User> findUsersByStatus(@Name("status") int status, 
-                     FieldSelectionBean selection, 
+    public List<User> findUsersByStatus(@Name("status") int status,
+                     FieldSelectionBean selection,
                      IServiceContext context){
        ...
     }
@@ -83,7 +87,7 @@ public class UserBizModel {
 ```
 
 - 前端可以通过graphql查询`{bizObjName}__{bizAction}`来调用服务函数，例如`User__findUsersByStatus(status:1){ name, deptName}`
-- 也可以通过REST方式进行调用，`/r/{bizObjName}__{bizAction}?@selection={selection}`, 通过body传json map作为参数。例如 `/r/User__findUsersByStatus?@selection=name,deptName`, body为`{status:1}`, HTTP Method固定为POST。 
+- 也可以通过REST方式进行调用，`/r/{bizObjName}__{bizAction}?@selection={selection}`, 通过body传json map作为参数。例如 `/r/User__findUsersByStatus?@selection=name,deptName`, body为`{status:1}`, HTTP Method固定为POST。
 - selection对应于GraphQL中的字段选择，可以通过`selection.hasField(fieldName)`来判断是否前端要求返回这个字段的值
 - context是单次服务函数执行时的上下文环境对象，通过它可以获取IUserContext等登陆用户信息
 
@@ -92,22 +96,114 @@ public class UserBizModel {
 **定义**：提供通用CRUD操作的抽象基类
 **位置**：`io.nop.biz.crud.CrudBizModel`
 **核心功能**：
-- 内置CRUD操作实现（详见上文"内置 CRUD 方法"表格）
+- 内置CRUD操作实现（通过 ICrudBiz 接口提供所有标准方法）
 - 业务扩展点
 - **框架中立**：不依赖特定框架，可运行在Spring/Quarkus/Solon等多种底层框架之上
 
-**扩展点**：
-- `defaultPrepareSave()`：保存前处理
-- `defaultPrepareQuery()`：查询前处理
-- `defaultPrepareUpdate()`：更新前处理
-- `defaultPrepareDelete()`：删除前处理
-- `afterSave()`：保存后处理
+#### ICrudBiz 接口定义
 
-**派生类中可用的帮助函数**：
-- `getEntity()`: 相比于`dao().getEntity()`增加了数据权限检查
-- `requireEntity()`:  getEntity之后验证返回实体非空
-- `doSave/doUpdate/doFindPage/doFindFirst/doFindList`: save等函数的内部实现，`save相当于doSave(data,this::defaultPrepareSave)`.
-- `buildEntityDataForSave()/buildEntityDaoForUpdate()`: 根据XMeta配置验证Map数据合法，并自动进行类型转换
+```java
+interface ICrudBiz<T> {
+  // 查询操作
+  long findCount(@Optional @Name("query") QueryBean query, IServiceContext context);
+
+  PageBean<T> findPage(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
+
+  T findFirst(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
+
+  List<T> findList(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
+
+  T get(@Name("id") String id, @Optional @Name("ignoreUnknown") boolean ignoreUnknown, IServiceContext context);
+
+  List<T> batchGet(@Name("ids") Collection<String> ids, @Optional @Name("ignoreUnknown") boolean ignoreUnknown, IServiceContext context);
+
+  DictBean asDict(IServiceContext context);
+
+  // 新增操作
+  T save(@Name("data") Map<String, Object> data, IServiceContext context);
+
+  T saveOrUpdate(@Name("data") Map<String, Object> data, IServiceContext context);
+
+  T copyForNew(@Name("data") Map<String, Object> data, IServiceContext context);
+
+  // 修改操作
+  T update(@Name("data") Map<String, Object> data, IServiceContext context);
+
+  void batchUpdate(@Name("ids") Set<String> ids, @Name("data") Map<String, Object> data, @Optional @Name("ignoreUnknown") boolean ignoreUnknown, IServiceContext context);
+
+  int updateByQuery(@Name("query") QueryBean query, @Name("data") Map<String, Object> data, IServiceContext context);
+
+  // 删除操作
+  boolean delete(@Name("id") String id, IServiceContext context);
+
+  Set<String> batchDelete(@Name("ids") Set<String> ids, IServiceContext context);
+
+  int deleteByQuery(@Name("query") QueryBean query, IServiceContext context);
+
+  // 批量增删改
+  void batchModify(@Name("data") List<Map<String, Object>> data, @Optional @Name("common") Map<String, Object> common, @Optional @Name("delIds") Set<String> delIds, IServiceContext context);
+
+  // 多对多关联
+  void addManyToManyRelations(@Name("id") String id, @Name("propName") String propName, @Name("relValues") Collection<String> relValues, @Optional @Name("filter") TreeBean filter, IServiceContext context);
+
+  void removeManyToManyRelations(@Name("id") String id, @Name("propName") String propName, @Name("relValues") Collection<String> relValues, @Optional @Name("filter") TreeBean filter, IServiceContext context);
+
+  void updateManyToManyRelations(@Name("id") String id, @Name("propName") String propName, @Name("relValues") Collection<String> relValues, @Optional @Name("filter") TreeBean filter, IServiceContext context);
+
+  // 树形结构
+  List<T> findRoots(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
+
+  PageBean<StdTreeEntity> findTreeEntityPage(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
+
+  List<StdTreeEntity> findTreeEntityList(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
+
+  List<T> findListForTree(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
+
+  PageBean<T> findPageForTree(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
+
+  // 逻辑删除
+  PageBean<T> deleted_findPage(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
+
+  T deleted_get(@Name("id") String id, @Optional @Name("ignoreUnknown") boolean ignoreUnknown, IServiceContext context);
+
+  T recoverDeleted(@Name("id") String id, IServiceContext context);
+
+  // 辅助方法
+  T newEntity();
+
+  IObjMeta getObjMeta();
+
+  String getBizObjName();
+
+  // 实体操作
+  void deleteEntity(@Name("entity") T entity, IServiceContext context);
+
+  void saveEntity(@Name("entity") T entity, IServiceContext context);
+
+  void updateEntity(@Name("entity") T entity, IServiceContext context);
+
+  void assignToEntity(@Name("entity") T entity, @Name("data") Map<String, Object> data, IServiceContext context);
+
+  T buildEntityForSave(@Name("data") Map<String, Object> data, @Name("action") String action, IServiceContext context);
+
+  void checkAllowAccess(@Name("entity") T entity, @Name("action") String action, IServiceContext context);
+}
+```
+
+#### 扩展点
+
+- `defaultPrepareSave(EntityData<T> entityData, IServiceContext context)`：保存前处理
+- `defaultPrepareQuery(QueryBean query, IServiceContext context)`：查询前处理
+- `defaultPrepareUpdate(EntityData<T> entityData, IServiceContext context)`：更新前处理
+- `defaultPrepareDelete(T entity, IServiceContext context)`：删除前处理
+- `afterEntityChange(T entity, IServiceContext context, String action)`：实体变更后处理
+
+#### 帮助函数
+
+- `getEntity(id, action, ignoreUnknown, includeLogicalDeleted, context)`: 相比于`dao().getEntity()`增加了数据权限检查和元数据过滤
+- `requireEntity(id, action, context)`: getEntity之后验证返回实体非空
+- `doSave/doUpdate/doFindPage/doFindFirst/doFindList`: save等函数的内部实现，`save相当于doSave(data,null,this::invokeDefaultPrepareSave,context)`.
+- `buildEntityDataForSave()/buildEntityDataForUpdate()`: 根据XMeta配置验证Map数据合法，并自动进行类型转换
 - `copyToEntity`: 将Map数据拷贝到实体上，支持复杂主子表结构一次性更新
 
 ## 开发流程
@@ -121,7 +217,7 @@ public class UserBizModel extends CrudBizModel<User> {
     public UserBizModel() {
         setEntityName(User.class.getName());
     }
-    
+
     // 业务方法
 }
 ```
@@ -151,7 +247,7 @@ public void resetUserPassword(@Name("userId") String userId, @Name("newPassword"
     User user = this.requireEntity(userId);
     user.setPassword(passwordEncoder.encode(newPassword));
     // 修改实体会自动保存，不需要手动调用dao.updateEntity。但是如果修改了有可能导致数据权限变化或者唯一键冲突的属性，则需要调用updateEntity(entity,context);
-    // updateEntity(user,context);  
+    // updateEntity(user,context);
 }
 ```
 
@@ -351,7 +447,7 @@ public void approveUser(@Name("userId") String userId,
 - 注入命名规则：`@Named("biz_{bizObjName}")`
 
 ```java
-interface IOrderBiz {
+interface IOrderBiz extends ICrudBiz<Order>{
     List<Order> findOrdersByUser(@Name("userId") String userId, FieldSelectionBean selection, IServiceContext context);
 }
 
