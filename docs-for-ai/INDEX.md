@@ -48,6 +48,8 @@ Nop平台是基于可逆计算原理从零开始构建的新一代低代码开�
 #### 开发指南 (03-development-guide)
 
 - **[项目结构](./03-development-guide/project-structure.md)** - ⭐ 标准项目结构和代码生成
+  - **[SQLLib SQL库管理](./03-development-guide/orm-sqllib.md)** - ⭐ SQLLib使用完整指南
+  - **[ORM高级特性](./03-development-guide/orm-advanced-features.md)** - ⭐ 分库分表、字段加密、数据脱敏、性能监控、Hook机制
 - **[数据访问层](./03-development-guide/data-access.md)** - IEntityDao, QueryBean, FilterBeans
 - **[服务层开发](./03-development-guide/service-layer.md)** - BizModel, CrudBizModel
 - **[API开发](./03-development-guide/api-development.md)** - GraphQL API设计和开发

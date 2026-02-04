@@ -21,40 +21,49 @@ XScript简化了JavaScript中一些复杂的特性：
 - **只允许使用Java类型**：不能新建类型，只能使用Java中已存在的类型
 - **只使用null**：不使用`undefined`
 - **去除了异步语法**：没有`generator`和`async`语法
-- **修改了import语法**：仅支持导入类和标签库
+- **修改了import语法**：仅支持导入类和标签库，**不支持通配符**
 - **严格相等**：去除了`==`，只使用`===`，禁止类型转换
+- **变量声明**：只使用`let`声明变量，不使用`var`
+- **集合创建**：Map和List直接用`{}`和`[]`创建，类似JavaScript语法
 
 ## 基本语法
 
-### 1. 变量定义
+ ### 1. 变量定义
+
+**重要**：XScript 只使用 `let` 声明变量，不使用 `var`。Map 和 List 直接用 `{}` 和 `[]` 创建，类似 JavaScript 语法。
 
 ```javascript
 // 字符串变量
-var userName = "张三";
+let userName = "张三";
 
 // 数字变量
-var age = 25;
+let age = 25;
 
 // 布尔变量
-var isActive = true;
-var isAdmin = false;
+let isActive = true;
+let isAdmin = false;
 
-// 对象变量
-var user = {
+// 对象变量（Map）
+let user = {
     id: "001",
     name: "张三",
     email: "zhangsan@example.com"
 };
 
-// 数组变量
-var users = [
+// 数组变量（List）
+let users = [
     {id: "001", name: "张三", status: 1},
     {id: "002", name: "李四", status: 1}
 ];
 
-// 集合变量
-var roles = [];
-var permissions = new Map();
+// 空集合
+let roles = [];
+let permissions = {};
+
+// ❌ 错误用法
+let userName = "张三";      // 不要使用 var
+let list = new ArrayList();  // 使用 [] 即可
+let map = new HashMap();      // 使用 {} 即可
 ```
 
 ### 2. 条件语句
@@ -92,23 +101,23 @@ if (age >= 18 && age <= 60) {
 
 ```javascript
 // for循环
-for (var i = 0; i < users.length; i++) {
-    var user = users[i];
+for (let i = 0; i < users.length; i++) {
+    let user = users[i];
     console.log(user.name);
 }
 
 // for-in循环（遍历数组元素）
-for (var user of users) {
+for (let user of users) {
     console.log(user.name);
 }
 
 // for-in循环（遍历对象属性）
-for (var key in user) {
+for (let key in user) {
     console.log(key + ": " + user[key]);
 }
 
 // while循环
-var i = 0;
+let i = 0;
 while (i < 10) {
     i++;
     console.log("计数：" + i);
@@ -140,7 +149,7 @@ function applyDiscount(total, discount) {
 }
 
 // 箭头函数
-var calculatePrice = (item) => item.price * item.quantity;
+let calculatePrice = (item) => item.price * item.quantity;
 ```
 
 ## 全局变量
@@ -159,9 +168,51 @@ XScript提供了一些常用的全局变量，所有变量名都以`$`开头：
 | `$String`     | 对应于StringHelper类                   |
 | `$Date`       | 对应于DateHelper类                     |
 | `_`           | 对应于Underscore类                     |
-| `$config`     | 对应于AppConfig类                      |
+ | `$config`     | 对应于AppConfig类                      |
+ 
+ ## Import 语句
 
-## 编译期表达式
+XScript 支持 `import` 语句导入 Java 类和标签库，但有一些限制：
+
+### 导入规则
+
+```javascript
+// ✅ 正确：导入具体的类
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
+import io.nop.xlang.xdsl.DslModelHelper;
+import io.nop.auth.dao.entity.NopAuthResource;
+
+// ❌ 错误：不支持通配符
+import java.util.*;  // 编译错误
+import io.nop.core.resource.*;  // 编译错误
+
+// ✅ 正确：导入多个类时，每个类单独导入
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
+import io.nop.xlang.xdsl.DslModelHelper;
+```
+
+### 导入 XPL 标签库
+
+```javascript
+// 在 XPL 模板中导入标签库
+<c:import from="/nop/core/core.xlib"/>
+<c:import from="/test/my.xlib"/>
+
+// 使用导入的标签库
+<c:if test="${x < 10}">小于10</c:if>
+<my:HelloTag name="World" xpl:lib="/test/my.xlib"/>
+```
+
+### 注意事项
+
+1. **不支持通配符**：必须指定具体的类名
+2. **导入顺序**：建议按类型分组导入（java.* → 第三方 → io.nop.*）
+3. **重复导入**：可以导入多次，不会报错
+4. **作用域**：导入在整个脚本文件中有效
+ 
+ ## 编译期表达式
 
 编译期表达式在编译时执行，结果会成为抽象语法树的一部分：
 
@@ -295,12 +346,12 @@ BeanTool.clone(obj)
 
 ```javascript
 // 获取DAO
-var userDao = dao();
-var userId = "001";
-var user = userDao.getEntityById(userId);
+let userDao = dao();
+let userId = "001";
+let user = userDao.getEntityById(userId);
 
 // 查询
-var users = userDao.findAllByExample(
+let users = userDao.findAllByExample(
     User.setStatus(1)
 );
 
@@ -311,34 +362,34 @@ userDao.saveEntity(user);
 userDao.deleteEntity(user);
 
 // 批量操作
-var userIds = ["001", "002", "003"];
-var users = userDao.batchGetEntitiesByIds(userIds);
+let userIds = ["001", "002", "003"];
+let users = userDao.batchGetEntitiesByIds(userIds);
 ```
 
 ### 2. QueryBean 查询构建
 
 ```javascript
 // 构建查询
-var query = new QueryBean();
+let query = new QueryBean();
 query.setFilter(FilterBeans.eq("status", 1));
 query.setOrderField("createTime", false);
 
 // 执行查询
-var page = userDao.findPageByQuery(query, 0, 20);
+let page = userDao.findPageByQuery(query, 0, 20);
 ```
 
 ### 3. FilterBeans 过滤条件构建
 
 ```javascript
 // 基本查询
-var filter1 = FilterBeans.eq("status", 1);
-var filter2 = FilterBeans.ge("createTime", "2024-01-01");
-var filter3 = FilterBeans.contains("userName", "张");
-var filter4 = FilterBeans.in("id", ["001", "002"]);
+let filter1 = FilterBeans.eq("status", 1);
+let filter2 = FilterBeans.ge("createTime", "2024-01-01");
+let filter3 = FilterBeans.contains("userName", "张");
+let filter4 = FilterBeans.in("id", ["001", "002"]);
 
 // 复合条件
-var filter5 = FilterBeans.and(filter1, filter2);
-var filter6 = FilterBeans.or(filter3, filter4);
+let filter5 = FilterBeans.and(filter1, filter2);
+let filter6 = FilterBeans.or(filter3, filter4);
 
 // 设置过滤条件
 query.setFilter(filter5);
@@ -353,7 +404,7 @@ query.setFilter(filter5);
 @Transactional
 public void updateUser(String userId, String newStatus) {
     txn(() -> {
-        var user = dao().requireEntityById(userId);
+        let user = dao().requireEntityById(userId);
         user.setStatus(newStatus);
         dao().saveEntity(user);
     });
@@ -365,13 +416,13 @@ public void updateUser(String userId, String newStatus) {
 ```javascript
 // 使用ITransactionTemplate
 @Inject
-var txnTemplate;
+let txnTemplate;
 
 public void transferOrder(String fromId, String toId) {
     // 主事务
     txnTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn -> {
-        var fromOrder = dao().requireEntityById(fromId);
-        var toOrder = dao().requireEntityById(toId);
+        let fromOrder = dao().requireEntityById(fromId);
+        let toOrder = dao().requireEntityById(toId);
 
         // 更新订单状态
         fromOrder.setStatus("TRANSFERRED");
@@ -380,7 +431,7 @@ public void transferOrder(String fromId, String toId) {
         dao().saveEntity(toOrder);
 
         // 记录转移记录
-        var record = new TransferRecord();
+        let record = new TransferRecord();
         record.setFromId(fromId);
         record.setToId(toId);
         transferDao.saveEntity(record);
@@ -410,12 +461,12 @@ public void transferOrder(String fromId, String toId) {
 
 ```javascript
 public void calculateOrderPrice(String orderId) {
-    var order = dao().requireEntityById(orderId);
-    var total = 0;
+    let order = dao().requireEntityById(orderId);
+    let total = 0;
 
     // 计算订单项金额
-    for (var i = 0; i < order.items.length; i++) {
-        var item = order.items[i];
+    for (let i = 0; i < order.items.length; i++) {
+        let item = order.items[i];
         total = total + item.price * item.quantity;
 
         // 应用折扣
@@ -450,7 +501,7 @@ public String getUserStatusLabel(Integer status) {
 
 ```javascript
 public List<User> searchUsers(String keyword, Integer status) {
-    var query = new QueryBean();
+    let query = new QueryBean();
 
     // 添加过滤条件
     if (StringHelper.isNotEmpty(keyword)) {
@@ -472,7 +523,7 @@ public List<User> searchUsers(String keyword, Integer status) {
 ```javascript
 public void processOrder(String orderId) {
     txn(() -> {
-        var order = dao().requireEntityById(orderId);
+        let order = dao().requireEntityById(orderId);
 
         // 验证订单状态
         if (order.status != 0) {
@@ -480,15 +531,15 @@ public void processOrder(String orderId) {
         }
 
         // 获取订单项
-        var items = orderService.getItems(orderId);
+        let items = orderService.getItems(orderId);
 
         // 检查库存
-        var stockMap = inventoryService.batchCheckStock(
+        let stockMap = inventoryService.batchCheckStock(
             items.map(item -> item.productId).collect(Collectors.toList())
         );
 
         // 扣除所有库存是否足够
-        var allStockEnough = stockMap.values().stream().allMatch(stock -> stock > 0);
+        let allStockEnough = stockMap.values().stream().allMatch(stock -> stock > 0);
         if (!allStockEnough) {
             throw new NopException("库存不足");
         }
@@ -559,22 +610,22 @@ if (userName.length > 50) {
 
 ```javascript
 // 使用分页查询，避免一次性加载大量数据
-var page = userDao.findPageByQuery(query, 0, 20);
+let page = userDao.findPageByQuery(query, 0, 20);
 
 // 使用批量操作
-var items = dao().batchGetEntitiesByIds(page.items.map(item => item.id));
+let items = dao().batchGetEntitiesByIds(page.items.map(item => item.id));
 
 // 使用缓存
-var user = userDao.getEntityById(userId); // 内置缓存
+let user = userDao.getEntityById(userId); // 内置缓存
 ```
 
 ### 5. 类型安全
 
 ```javascript
 // 虽然XScript是动态类型语言，但尽量保持类型一致性
-var userName = "张三"; // 字符串
-var age = 25;          // 数字
-var isActive = true;   // 布尔
+let userName = "张三"; // 字符串
+let age = 25;          // 数字
+let isActive = true;   // 布尔
 ```
 
 ## 注意事项
