@@ -6,8 +6,9 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
 
-    <bean id="io.nop.auth.service.biz.DemoAuthBizModel" ioc:type="@bean:id" />
+    <bean id="io.nop.auth.service.biz.DemoAuthBizModel" ioc:type="@bean:id"/>
     <bean id="io.nop.auth.service.biz.TestService" ioc:type="@bean:id"/>
 
-    <bean id="nopShardSelector" class="io.nop.auth.service.mock.MockShardSelector" />
+    <bean id="nopShardSelector" class="io.nop.auth.service.mock.MockShardSelector"/>
+
 </beans>

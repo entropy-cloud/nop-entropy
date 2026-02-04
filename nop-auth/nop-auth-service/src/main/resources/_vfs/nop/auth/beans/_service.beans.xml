@@ -7,35 +7,120 @@
 
     <bean id="io.nop.auth.service.entity.NopAuthDeptBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopAuthDept" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAuthDept"/>
+    </bean>
+
     <bean id="io.nop.auth.service.entity.NopAuthPositionBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAuthPosition" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAuthPosition"/>
+    </bean>
 
     <bean id="io.nop.auth.service.entity.NopAuthRoleBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopAuthRole" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAuthRole"/>
+    </bean>
+
     <bean id="io.nop.auth.service.entity.NopAuthSiteBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAuthSite" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAuthSite"/>
+    </bean>
 
     <bean id="io.nop.auth.service.entity.NopAuthRoleDataAuthBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopAuthRoleDataAuth" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAuthRoleDataAuth"/>
+    </bean>
+
     <bean id="io.nop.auth.service.entity.NopAuthTenantBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAuthTenant" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAuthTenant"/>
+    </bean>
 
     <bean id="io.nop.auth.service.entity.NopAuthUserBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopAuthUser" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAuthUser"/>
+    </bean>
+
     <bean id="io.nop.auth.service.entity.NopAuthResourceBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAuthResource" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAuthResource"/>
+    </bean>
 
     <bean id="io.nop.auth.service.entity.NopAuthExtLoginBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopAuthExtLogin" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAuthExtLogin"/>
+    </bean>
+
     <bean id="io.nop.auth.service.entity.NopAuthUserRoleBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAuthUserRole" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAuthUserRole"/>
+    </bean>
 
     <bean id="io.nop.auth.service.entity.NopAuthUserSubstitutionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopAuthUserSubstitution" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.biz.crud.ICrudBiz" ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAuthUserSubstitution"/>
+    </bean>
+
     <bean id="io.nop.auth.service.entity.NopAuthSessionBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAuthSession" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAuthSession"/>
+    </bean>
 
     <bean id="io.nop.auth.service.entity.NopAuthGroupBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopAuthGroup" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAuthGroup"/>
+    </bean>
+
     <bean id="io.nop.auth.service.entity.NopAuthRoleResourceBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAuthRoleResource" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAuthRoleResource"/>
+    </bean>
 
     <bean id="io.nop.auth.service.entity.NopAuthOpLogBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopAuthOpLog" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAuthOpLog"/>
+    </bean>
+
     <bean id="io.nop.auth.service.entity.NopAuthGroupDeptBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopAuthGroupDept" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAuthGroupDept"/>
+    </bean>
+
     <bean id="io.nop.auth.service.entity.NopAuthGroupUserBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAuthGroupUser" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAuthGroupUser"/>
+    </bean>
 </beans>

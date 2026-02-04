@@ -62,7 +62,7 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
 
     @BizAction
     @Override
-    protected void defaultPrepareSave(EntityData<NopAuthUser> entityData, IServiceContext context) {
+    protected void defaultPrepareSave(@Name("entityData") EntityData<NopAuthUser> entityData, IServiceContext context) {
         super.defaultPrepareSave(entityData, context);
 
         NopAuthUser user = entityData.getEntity();

@@ -28,7 +28,7 @@ public class InjectRefValueResolver implements IBeanPropValueResolver {
     public InjectRefValueResolver(String ref, boolean optional, boolean ignoreDepends, BeanDefinition resolvedBean) {
         this.ref = Guard.notEmpty(ref, "ref");
         this.optional = optional;
-        this.ignoreDepends = ignoreDepends;
+        this.ignoreDepends = ignoreDepends || resolvedBean.isIocForceLazyProperty();
         this.resolvedBean = resolvedBean;
     }
 

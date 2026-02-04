@@ -11,10 +11,16 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.biz.RequestBean;
+import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.ioc.InjectValue;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.auth.dao.entity.NopAuthGroup;
 import io.nop.auth.dao.entity.NopAuthRole;
+import io.nop.auth.dao.entity.NopAuthUser;
+import io.nop.biz.crud.ICrudBiz;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -24,8 +30,10 @@ import io.nop.dao.txn.impl.DefaultTransactionManager;
 import io.nop.orm.ddl.DdlSqlCreator;
 import io.nop.orm.model.IEntityModel;
 import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 @BizModel("DemoAuth")
@@ -44,6 +52,10 @@ public class DemoAuthBizModel {
 
     @Inject
     DefaultTransactionManager transactionManager;
+
+    @Inject
+    @Named("biz_NopAuthUser")
+    ICrudBiz<NopAuthUser> userBiz;
 
     @InjectValue("${test.prefix}.value")
     public void setTestValue(String value) {
@@ -67,8 +79,13 @@ public class DemoAuthBizModel {
     }
 
     @BizQuery
-    public String hello(@RequestBean DemoRequest request) {
+    public String hello(@RequestBean DemoRequest request, IServiceContext context) {
         return "userId:" + request.getUserId();
+    }
+
+    @BizQuery
+    public List<NopAuthUser> testBiz(@Optional @Name("query") QueryBean query, IServiceContext context) {
+        return userBiz.findList(query, null, context);
     }
 
     @BizMutation

@@ -141,6 +141,8 @@ public class BizObjectBuilder {
         }
 
         bizObj.setObjectDefinition(objDef);
+        if(bizModel.getBizModelBeans() != null)
+            bizObj.setBizModelBeans(bizModel.getBizModelBeans());
 
         buildOperations(bizObj, bizModel);
 

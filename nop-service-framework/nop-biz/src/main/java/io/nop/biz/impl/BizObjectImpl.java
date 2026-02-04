@@ -95,7 +95,7 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
     }
 
     public void setBizModelBeans(List<Object> bizModelBeans) {
-        this.bizModelBeans = bizModelBeans == null ? Collections.emptyList() : bizModelBeans;
+        this.bizModelBeans = bizModelBeans == null ? Collections.emptyList() : new ArrayList<>(bizModelBeans);
     }
 
     @Override
@@ -174,9 +174,9 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
         return actions.get(action);
     }
 
-    public IServiceAction requireAction(String actionName){
+    public IServiceAction requireAction(String actionName) {
         IServiceAction action = getAction(actionName);
-        if(action == null)
+        if (action == null)
             throw new NopException(ERR_BIZ_OBJECT_NOT_SUPPORT_ACTION).param(ARG_BIZ_OBJ_NAME, bizObjName)
                     .param(ARG_ACTION_NAME, actionName);
         return action;

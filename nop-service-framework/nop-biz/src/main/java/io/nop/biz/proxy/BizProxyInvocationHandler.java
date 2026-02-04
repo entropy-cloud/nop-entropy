@@ -51,7 +51,7 @@ public class BizProxyInvocationHandler implements InvocationHandler {
         interfaces.add(IMethodMissingHook.class);
 
         for (Object bean : bizObj.getBizModelBeans()) {
-            for (Class<?> intf : bean.getClass().getInterfaces()) {
+            for (Class<?> intf : ClassHelper.getInheritedInterfaces(bean.getClass())) {
                 if (intf == AopProxy.class)
                     continue;
                 if (!interfaces.contains(intf))

@@ -10,6 +10,8 @@ package io.nop.biz.crud;
 import io.nop.api.core.annotations.biz.BizAction;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
+import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.PageBean;
@@ -55,7 +57,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 记录总数
      */
     @BizQuery
-    long findCount(QueryBean query, IServiceContext context);
+    long findCount(@Optional @Name("query") QueryBean query, IServiceContext context);
 
     /**
      * 分页查询记录
@@ -78,7 +80,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 分页结果对象，包含items(数据列表)、total(总记录数)等字段
      */
     @BizQuery
-    PageBean<T> findPage(QueryBean query, FieldSelectionBean selection, IServiceContext context);
+    PageBean<T> findPage(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
 
     /**
      * 返回符合条件的第一条数据
@@ -89,7 +91,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 第一条符合条件的记录，如果没有则返回null
      */
     @BizQuery
-    T findFirst(QueryBean query, FieldSelectionBean selection, IServiceContext context);
+    T findFirst(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
 
     /**
      * 根据查询条件返回列表数据
@@ -106,7 +108,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 符合条件的记录列表
      */
     @BizQuery
-    List<T> findList(QueryBean query, FieldSelectionBean selection, IServiceContext context);
+    List<T> findList(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
 
     /**
      * 根据主键ID获取单条记录
@@ -118,7 +120,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @throws io.nop.dao.exceptions.UnknownEntityException 当找不到记录且ignoreUnknown=false时抛出
      */
     @BizQuery
-    T get(String id, boolean ignoreUnknown, IServiceContext context);
+    T get(@Name("id") String id, @Optional @Name("ignoreUnknown") boolean ignoreUnknown, IServiceContext context);
 
     /**
      * 根据主键ID批量获取记录
@@ -129,7 +131,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 找到的记录列表，顺序可能与ids不一致
      */
     @BizQuery
-    List<T> batchGet(Collection<String> ids, boolean ignoreUnknown, IServiceContext context);
+    List<T> batchGet(@Name("ids") Collection<String> ids, @Optional @Name("ignoreUnknown") boolean ignoreUnknown, IServiceContext context);
 
     /**
      * 将实体记录作为字典项返回
@@ -163,7 +165,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 保存后的实体对象，包含数据库生成的id、创建时间等字段
      */
     @BizMutation
-    T save(Map<String, Object> data, IServiceContext context);
+    T save(@Name("data") Map<String, Object> data, IServiceContext context);
 
     /**
      * 根据是否有id来决定是新增还是更新
@@ -178,7 +180,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 保存或更新后的实体对象
      */
     @BizMutation
-    T saveOrUpdate(Map<String, Object> data, IServiceContext context);
+    T saveOrUpdate(@Name("data") Map<String, Object> data, IServiceContext context);
 
     /**
      * 复制新建
@@ -191,7 +193,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 新创建的记录
      */
     @BizMutation
-    T copyForNew(Map<String, Object> data, IServiceContext context);
+    T copyForNew(@Name("data") Map<String, Object> data, IServiceContext context);
 
     // ==================== 修改操作 ====================
 
@@ -214,7 +216,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 更新后的实体对象
      */
     @BizMutation
-    T update(Map<String, Object> data, IServiceContext context);
+    T update(@Name("data") Map<String, Object> data, IServiceContext context);
 
     /**
      * 批量修改多条记录
@@ -227,7 +229,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @param context       服务上下文
      */
     @BizMutation
-    void batchUpdate(Set<String> ids, Map<String, Object> data, boolean ignoreUnknown, IServiceContext context);
+    void batchUpdate(@Name("ids") Set<String> ids, @Name("data") Map<String, Object> data, @Optional @Name("ignoreUnknown") boolean ignoreUnknown, IServiceContext context);
 
     /**
      * 根据查询条件批量更新符合条件的记录
@@ -240,7 +242,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 实际更新的记录数
      */
     @BizMutation
-    int updateByQuery(QueryBean query, Map<String, Object> data, IServiceContext context);
+    int updateByQuery(@Name("query") QueryBean query, @Name("data") Map<String, Object> data, IServiceContext context);
 
     // ==================== 删除操作 ====================
 
@@ -255,7 +257,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return true表示删除成功，false表示记录不存在
      */
     @BizMutation
-    boolean delete(String id, IServiceContext context);
+    boolean delete(@Name("id") String id, IServiceContext context);
 
     /**
      * 批量删除多条记录
@@ -267,7 +269,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 未成功删除的ID集合（如记录不存在或被其他记录引用）
      */
     @BizMutation
-    Set<String> batchDelete(Set<String> ids, IServiceContext context);
+    Set<String> batchDelete(@Name("ids") Set<String> ids, IServiceContext context);
 
     /**
      * 批量增删改操作
@@ -287,7 +289,8 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @param context 服务上下文
      */
     @BizMutation
-    void batchModify(List<Map<String, Object>> data, Map<String, Object> common, Set<String> delIds, IServiceContext context);
+    void batchModify(@Name("data") List<Map<String, Object>> data, @Optional @Name("common") Map<String, Object> common,
+                     @Optional @Name("delIds") Set<String> delIds, IServiceContext context);
 
     /**
      * 根据查询条件批量删除符合条件的记录
@@ -299,7 +302,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 实际删除的记录数
      */
     @BizMutation
-    int deleteByQuery(QueryBean query, IServiceContext context);
+    int deleteByQuery(@Name("query") QueryBean query, IServiceContext context);
 
     // ==================== 多对多关联操作 ====================
 
@@ -315,7 +318,8 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @param context   服务上下文
      */
     @BizMutation
-    void addManyToManyRelations(String id, String propName, Collection<String> relValues, TreeBean filter, IServiceContext context);
+    void addManyToManyRelations(@Name("id") String id, @Name("propName") String propName, @Name("relValues") Collection<String> relValues,
+                                 @Optional @Name("filter") TreeBean filter, IServiceContext context);
 
     /**
      * 删除多对多关联关系
@@ -329,7 +333,8 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @param context   服务上下文
      */
     @BizMutation
-    void removeManyToManyRelations(String id, String propName, Collection<String> relValues, TreeBean filter, IServiceContext context);
+    void removeManyToManyRelations(@Name("id") String id, @Name("propName") String propName, @Name("relValues") Collection<String> relValues,
+                                    @Optional @Name("filter") TreeBean filter, IServiceContext context);
 
     /**
      * 更新多对多关联关系
@@ -343,7 +348,8 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @param context   服务上下文
      */
     @BizMutation
-    void updateManyToManyRelations(String id, String propName, Collection<String> relValues, TreeBean filter, IServiceContext context);
+    void updateManyToManyRelations(@Name("id") String id, @Name("propName") String propName, @Name("relValues") Collection<String> relValues,
+                                    @Optional @Name("filter") TreeBean filter, IServiceContext context);
 
     // ==================== 树形结构操作 ====================
 
@@ -358,7 +364,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 根节点列表
      */
     @BizQuery
-    List<T> findRoots(QueryBean query, FieldSelectionBean selection, IServiceContext context);
+    List<T> findRoots(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
 
     /**
      * 分页查询树形结构
@@ -371,7 +377,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 树形结构的分页结果，items为StdTreeEntity列表
      */
     @BizQuery
-    PageBean<StdTreeEntity> findTreeEntityPage(QueryBean query, FieldSelectionBean selection, IServiceContext context);
+    PageBean<StdTreeEntity> findTreeEntityPage(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
 
     /**
      * 查询树形结构
@@ -382,7 +388,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 树形结构列表，items为StdTreeEntity列表
      */
     @BizQuery
-    List<StdTreeEntity> findTreeEntityList(QueryBean query, FieldSelectionBean selection, IServiceContext context);
+    List<StdTreeEntity> findTreeEntityList(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
 
     /**
      * 查询树形结构并返回完整实体
@@ -395,7 +401,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 树形结构对应的实体列表
      */
     @BizQuery
-    List<T> findListForTree(QueryBean query, FieldSelectionBean selection, IServiceContext context);
+    List<T> findListForTree(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
 
     /**
      * 分页查询树形结构并返回完整实体
@@ -406,7 +412,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 树形结构实体的分页结果
      */
     @BizQuery
-    PageBean<T> findPageForTree(QueryBean query, FieldSelectionBean selection, IServiceContext context);
+    PageBean<T> findPageForTree(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
 
     // ==================== 逻辑删除操作 ====================
 
@@ -421,7 +427,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 已删除记录的分页结果
      */
     @BizQuery
-    PageBean<T> deleted_findPage(QueryBean query, FieldSelectionBean selection, IServiceContext context);
+    PageBean<T> deleted_findPage(@Optional @Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context);
 
     /**
      * 获取已被逻辑删除的单条记录
@@ -432,7 +438,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 已删除的记录
      */
     @BizQuery
-    T deleted_get(String id, boolean ignoreUnknown, IServiceContext context);
+    T deleted_get(@Name("id") String id, @Optional @Name("ignoreUnknown") boolean ignoreUnknown, IServiceContext context);
 
     /**
      * 恢复已删除（逻辑删除）的记录
@@ -444,7 +450,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 恢复后的记录
      */
     @BizQuery
-    T recoverDeleted(String id, IServiceContext context);
+    T recoverDeleted(@Name("id") String id, IServiceContext context);
 
     // ==================== 辅助方法 ====================
 
@@ -487,7 +493,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @param context 服务上下文
      */
     @BizAction
-    void deleteEntity(T entity, IServiceContext context);
+    void deleteEntity(@Name("entity") T entity, IServiceContext context);
 
     /**
      * 保存实体对象
@@ -499,7 +505,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @param context 服务上下文
      */
     @BizAction
-    void saveEntity(T entity, IServiceContext context);
+    void saveEntity(@Name("entity") T entity, IServiceContext context);
 
     /**
      * 更新实体对象
@@ -511,7 +517,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @param context 服务上下文
      */
     @BizAction
-    void updateEntity(T entity, IServiceContext context);
+    void updateEntity(@Name("entity") T entity, IServiceContext context);
 
     /**
      * 给实体对象赋值
@@ -523,7 +529,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @param context 服务上下文
      */
     @BizAction
-    void assignToEntity(T entity, Map<String, Object> data, IServiceContext context);
+    void assignToEntity(@Name("entity") T entity, @Name("data") Map<String, Object> data, IServiceContext context);
 
     /**
      * 根据传入的数据创建实体对象
@@ -537,7 +543,7 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @return 构建好的实体对象
      */
     @BizAction
-    T buildEntityForSave(Map<String, Object> data, String action, IServiceContext context);
+    T buildEntityForSave(@Name("data") Map<String, Object> data, @Name("action") String action, IServiceContext context);
 
     /**
      * 检查是否允许访问指定实体
@@ -550,5 +556,5 @@ public interface ICrudBiz<T extends IOrmEntity> {
      * @throws io.nop.api.core.exceptions.NopException 如果没有权限访问该实体
      */
     @BizAction
-    void checkAllowAccess(T entity, String action, IServiceContext context);
+    void checkAllowAccess(@Name("entity") T entity, @Name("action") String action, IServiceContext context);
 }
