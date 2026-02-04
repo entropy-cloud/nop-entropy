@@ -7,9 +7,29 @@
 
     <bean id="io.nop.rule.service.entity.NopRuleDefinitionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopRuleDefinition" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopRuleDefinition"/>
+    </bean>
+
     <bean id="io.nop.rule.service.entity.NopRuleNodeBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopRuleNode" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopRuleNode"/>
+    </bean>
 
     <bean id="io.nop.rule.service.entity.NopRuleRoleBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopRuleRole" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopRuleRole"/>
+    </bean>
+
     <bean id="io.nop.rule.service.entity.NopRuleLogBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopRuleLog" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopRuleLog"/>
+    </bean>
 </beans>

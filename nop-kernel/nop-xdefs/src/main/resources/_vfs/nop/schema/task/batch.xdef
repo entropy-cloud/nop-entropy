@@ -17,6 +17,17 @@
        xdef:model-name-prop="taskName" xdef:model-version-prop="taskVersion"
        xmlns:xdef="/nop/schema/xdef.xdef"
 >
+    <!--
+    @persist [是否持久化保存] 标记为persist的变量会自动保存，支持中断后恢复执行
+    -->
+    <input name="!var-name" displayName="string" xdef:name="BatchInputModel" defaultValue="any"
+           type="generic-type" mandatory="!boolean=false" role="string" value="t-expr" optional="!boolean=false"
+           xdef:unique-attr="name" persist="!boolean=true" fromTaskScope="!boolean=false" dump="!boolean=false">
+        <description>string</description>
+        <schema xdef:ref="../schema/schema.xdef"/>
+        <source>xpl</source>
+    </input>
+
     <!-- taskKey用于区分taskName相同的不同执行实例。同样的taskName+taskKey只允许执行一次 -->
     <taskKeyExpr>xpl-fn:(batchTaskCtx)=>string</taskKeyExpr>
 

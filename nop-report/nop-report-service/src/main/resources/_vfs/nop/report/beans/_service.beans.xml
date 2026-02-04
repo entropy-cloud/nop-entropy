@@ -7,17 +7,57 @@
 
     <bean id="io.nop.report.service.entity.NopReportDefinitionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopReportDefinition" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopReportDefinition"/>
+    </bean>
+
     <bean id="io.nop.report.service.entity.NopReportDatasetBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopReportDataset" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopReportDataset"/>
+    </bean>
 
     <bean id="io.nop.report.service.entity.NopReportDatasourceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopReportDatasource" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopReportDatasource"/>
+    </bean>
+
     <bean id="io.nop.report.service.entity.NopReportDefinitionAuthBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopReportDefinitionAuth" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.biz.crud.ICrudBiz" ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopReportDefinitionAuth"/>
+    </bean>
 
     <bean id="io.nop.report.service.entity.NopReportDatasetRefBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopReportDatasetRef" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopReportDatasetRef"/>
+    </bean>
+
     <bean id="io.nop.report.service.entity.NopReportResultFileBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopReportResultFile" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopReportResultFile"/>
+    </bean>
 
     <bean id="io.nop.report.service.entity.NopReportSubDatasetBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopReportSubDataset" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopReportSubDataset"/>
+    </bean>
+
     <bean id="io.nop.report.service.entity.NopReportDatasourceAuthBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopReportDatasourceAuth" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.biz.crud.ICrudBiz" ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopReportDatasourceAuth"/>
+    </bean>
 </beans>

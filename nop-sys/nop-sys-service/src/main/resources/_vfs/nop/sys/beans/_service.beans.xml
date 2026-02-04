@@ -7,35 +7,120 @@
 
     <bean id="io.nop.sys.service.entity.NopSysSequenceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopSysSequence" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopSysSequence"/>
+    </bean>
+
     <bean id="io.nop.sys.service.entity.NopSysDictBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopSysDict" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopSysDict"/>
+    </bean>
 
     <bean id="io.nop.sys.service.entity.NopSysI18nBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopSysI18n" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopSysI18n"/>
+    </bean>
+
     <bean id="io.nop.sys.service.entity.NopSysCheckerRecordBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopSysCheckerRecord" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopSysCheckerRecord"/>
+    </bean>
 
     <bean id="io.nop.sys.service.entity.NopSysCodeRuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopSysCodeRule" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopSysCodeRule"/>
+    </bean>
+
     <bean id="io.nop.sys.service.entity.NopSysNoticeTemplateBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopSysNoticeTemplate" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopSysNoticeTemplate"/>
+    </bean>
 
     <bean id="io.nop.sys.service.entity.NopSysUserVariableBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopSysUserVariable" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopSysUserVariable"/>
+    </bean>
+
     <bean id="io.nop.sys.service.entity.NopSysVariableBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopSysVariable" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopSysVariable"/>
+    </bean>
 
     <bean id="io.nop.sys.service.entity.NopSysExtFieldBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopSysExtField" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopSysExtField"/>
+    </bean>
+
     <bean id="io.nop.sys.service.entity.NopSysLockBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopSysLock" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopSysLock"/>
+    </bean>
 
     <bean id="io.nop.sys.service.entity.NopSysClusterLeaderBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopSysClusterLeader" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopSysClusterLeader"/>
+    </bean>
+
     <bean id="io.nop.sys.service.entity.NopSysEventBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopSysEvent" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopSysEvent"/>
+    </bean>
 
     <bean id="io.nop.sys.service.entity.NopSysServiceInstanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopSysServiceInstance" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.biz.crud.ICrudBiz" ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopSysServiceInstance"/>
+    </bean>
+
     <bean id="io.nop.sys.service.entity.NopSysChangeLogBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopSysChangeLog" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopSysChangeLog"/>
+    </bean>
 
     <bean id="io.nop.sys.service.entity.NopSysTagBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopSysTag" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopSysTag"/>
+    </bean>
+
     <bean id="io.nop.sys.service.entity.NopSysDictOptionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopSysDictOption" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopSysDictOption"/>
+    </bean>
+
     <bean id="io.nop.sys.service.entity.NopSysObjTagBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopSysObjTag" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopSysObjTag"/>
+    </bean>
 </beans>

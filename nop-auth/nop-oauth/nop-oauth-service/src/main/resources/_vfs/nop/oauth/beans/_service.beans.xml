@@ -7,7 +7,22 @@
 
     <bean id="io.nop.oauth.service.entity.NopOauthAuthorizationBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopOauthAuthorization" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.biz.crud.ICrudBiz" ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopOauthAuthorization"/>
+    </bean>
+
     <bean id="io.nop.oauth.service.entity.NopOauthAuthorizationConsentBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopOauthAuthorizationConsent" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.biz.crud.ICrudBiz" ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopOauthAuthorizationConsent"/>
+    </bean>
+
     <bean id="io.nop.oauth.service.entity.NopOauthRegisteredClientBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopOauthRegisteredClient" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.biz.crud.ICrudBiz" ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopOauthRegisteredClient"/>
+    </bean>
 </beans>

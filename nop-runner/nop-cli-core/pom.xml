@@ -82,6 +82,11 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-biz-auth-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-dbtool-core</artifactId>
         </dependency>
 
@@ -138,6 +143,13 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-ai-translate</artifactId>
+        </dependency>
+
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-auth-dao</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <dependency>

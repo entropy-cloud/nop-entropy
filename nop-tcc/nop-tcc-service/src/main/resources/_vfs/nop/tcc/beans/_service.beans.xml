@@ -7,5 +7,15 @@
 
     <bean id="io.nop.tcc.service.entity.NopTccRecordBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopTccRecord" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopTccRecord"/>
+    </bean>
+
     <bean id="io.nop.tcc.service.entity.NopTccBranchRecordBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopTccBranchRecord" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopTccBranchRecord"/>
+    </bean>
 </beans>

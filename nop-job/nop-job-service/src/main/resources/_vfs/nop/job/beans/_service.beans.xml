@@ -7,9 +7,29 @@
 
     <bean id="io.nop.job.service.entity.NopJobDefinitionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopJobDefinition" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopJobDefinition"/>
+    </bean>
+
     <bean id="io.nop.job.service.entity.NopJobAssignmentBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopJobAssignment" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopJobAssignment"/>
+    </bean>
 
     <bean id="io.nop.job.service.entity.NopJobInstanceHisBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopJobInstanceHis" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopJobInstanceHis"/>
+    </bean>
+
     <bean id="io.nop.job.service.entity.NopJobInstanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopJobInstance" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopJobInstance"/>
+    </bean>
 </beans>

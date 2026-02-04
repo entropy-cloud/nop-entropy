@@ -7,9 +7,29 @@
 
     <bean id="io.nop.task.service.entity.NopTaskDefinitionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopTaskDefinition" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopTaskDefinition"/>
+    </bean>
+
     <bean id="io.nop.task.service.entity.NopTaskInstanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopTaskInstance" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopTaskInstance"/>
+    </bean>
 
     <bean id="io.nop.task.service.entity.NopTaskDefinitionAuthBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopTaskDefinitionAuth" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.biz.crud.ICrudBiz" ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopTaskDefinitionAuth"/>
+    </bean>
+
     <bean id="io.nop.task.service.entity.NopTaskStepInstanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopTaskStepInstance" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopTaskStepInstance"/>
+    </bean>
 </beans>

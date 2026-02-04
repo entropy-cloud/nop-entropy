@@ -7,31 +7,106 @@
 
     <bean id="io.nop.dyn.service.entity.NopDynAppBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopDynApp" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopDynApp"/>
+    </bean>
+
     <bean id="io.nop.dyn.service.entity.NopDynModuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDynModule" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopDynModule"/>
+    </bean>
 
     <bean id="io.nop.dyn.service.entity.NopDynEntityBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopDynEntity" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopDynEntity"/>
+    </bean>
+
     <bean id="io.nop.dyn.service.entity.NopDynEntityRelationBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDynEntityRelation" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopDynEntityRelation"/>
+    </bean>
 
     <bean id="io.nop.dyn.service.entity.NopDynPatchFileBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopDynPatchFile" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopDynPatchFile"/>
+    </bean>
+
     <bean id="io.nop.dyn.service.entity.NopDynModuleDepBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDynModuleDep" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopDynModuleDep"/>
+    </bean>
 
     <bean id="io.nop.dyn.service.entity.NopDynAppModuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopDynAppModule" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopDynAppModule"/>
+    </bean>
+
     <bean id="io.nop.dyn.service.entity.NopDynSqlBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDynSql" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopDynSql"/>
+    </bean>
 
     <bean id="io.nop.dyn.service.entity.NopDynFileBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopDynFile" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopDynFile"/>
+    </bean>
+
     <bean id="io.nop.dyn.service.entity.NopDynPageBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDynPage" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopDynPage"/>
+    </bean>
 
     <bean id="io.nop.dyn.service.entity.NopDynEntityMetaBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopDynEntityMeta" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopDynEntityMeta"/>
+    </bean>
+
     <bean id="io.nop.dyn.service.entity.NopDynDomainBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDynDomain" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopDynDomain"/>
+    </bean>
 
     <bean id="io.nop.dyn.service.entity.NopDynEntityRelationMetaBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopDynEntityRelationMeta" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.biz.crud.ICrudBiz" ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopDynEntityRelationMeta"/>
+    </bean>
+
     <bean id="io.nop.dyn.service.entity.NopDynFunctionMetaBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopDynFunctionMeta" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopDynFunctionMeta"/>
+    </bean>
+
     <bean id="io.nop.dyn.service.entity.NopDynPropMetaBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopDynPropMeta" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopDynPropMeta"/>
+    </bean>
 </beans>

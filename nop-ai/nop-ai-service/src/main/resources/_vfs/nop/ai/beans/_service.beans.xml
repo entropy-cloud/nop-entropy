@@ -7,31 +7,106 @@
 
     <bean id="nop.ai.service.entity.NopAiProjectBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopAiProject" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAiProject"/>
+    </bean>
+
     <bean id="nop.ai.service.entity.NopAiKnowledgeBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAiKnowledge" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAiKnowledge"/>
+    </bean>
 
     <bean id="nop.ai.service.entity.NopAiModelBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopAiModel" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAiModel"/>
+    </bean>
+
     <bean id="nop.ai.service.entity.NopAiPromptTemplateBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAiPromptTemplate" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAiPromptTemplate"/>
+    </bean>
 
     <bean id="nop.ai.service.entity.NopAiProjectConfigBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopAiProjectConfig" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAiProjectConfig"/>
+    </bean>
+
     <bean id="nop.ai.service.entity.NopAiRequirementBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAiRequirement" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAiRequirement"/>
+    </bean>
 
     <bean id="nop.ai.service.entity.NopAiProjectRuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopAiProjectRule" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAiProjectRule"/>
+    </bean>
+
     <bean id="nop.ai.service.entity.NopAiPromptTemplateHistoryBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAiPromptTemplateHistory" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.biz.crud.ICrudBiz" ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAiPromptTemplateHistory"/>
+    </bean>
 
     <bean id="nop.ai.service.entity.NopAiChatRequestBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopAiChatRequest" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAiChatRequest"/>
+    </bean>
+
     <bean id="nop.ai.service.entity.NopAiRequirementHistoryBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAiRequirementHistory" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.biz.crud.ICrudBiz" ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAiRequirementHistory"/>
+    </bean>
 
     <bean id="nop.ai.service.entity.NopAiChatResponseBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopAiChatResponse" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAiChatResponse"/>
+    </bean>
+
     <bean id="nop.ai.service.entity.NopAiGenFileBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAiGenFile" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAiGenFile"/>
+    </bean>
 
     <bean id="nop.ai.service.entity.NopAiGenFileHistoryBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopAiGenFileHistory" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAiGenFileHistory"/>
+    </bean>
+
     <bean id="nop.ai.service.entity.NopAiTestCaseBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="biz_NopAiTestCase" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAiTestCase"/>
+    </bean>
+
     <bean id="nop.ai.service.entity.NopAiTestResultBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopAiTestResult" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
+          ioc:force-lazy-property="true">
+        <property name="bizObjName" value="NopAiTestResult"/>
+    </bean>
 </beans>
