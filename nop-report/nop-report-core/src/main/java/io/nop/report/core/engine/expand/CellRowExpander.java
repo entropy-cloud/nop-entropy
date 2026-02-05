@@ -197,8 +197,6 @@ public class CellRowExpander extends AbstractCellExpander {
                 } else {
                     newCell.setStyleId(nextCell.getStyleId());
                 }
-            } else if (!nextCell.isProxyCell()) {
-                newCell.setStyleId(nextCell.getStyleId());
             }
             nextCell = nextCell.getRight();
             newCell = newCell.getRight();

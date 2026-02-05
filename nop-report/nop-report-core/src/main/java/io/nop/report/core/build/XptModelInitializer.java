@@ -266,6 +266,12 @@ public class XptModelInitializer {
                 if (ec.makeModel().getExpandType() == XptExpandType.r) {
                     return ec;
                 }
+                CellPosition rowParent = ec.getModel().getRowParent();
+                if (rowParent != null) {
+                    if (rowParent.equals(cell.getModel().getCellPosition()))
+                        return null;
+                    return resolveRowParent(sheet, cell, rowParent);
+                }
             }
 
             // 如果未找到，则以最左侧单元格具有相同的行父格
@@ -306,8 +312,15 @@ public class XptModelInitializer {
                 if (prevCell == null)
                     continue;
                 ExcelCell ec = (ExcelCell) prevCell.getRealCell();
-                if (ec.getModel().getExpandType() == XptExpandType.c) {
+                if (ec.makeModel().getExpandType() == XptExpandType.c) {
                     return ec;
+                }
+
+                CellPosition colParent = ec.getModel().getColParent();
+                if (colParent != null) {
+                    if (colParent.equals(cell.getModel().getCellPosition()))
+                        return null;
+                    return resolveColParent(sheet, cell, colParent);
                 }
             }
 
@@ -329,6 +342,9 @@ public class XptModelInitializer {
     }
 
     private ExcelCell resolveRowParent(ExcelSheet sheet, ExcelCell cell, CellPosition pos) {
+        if(pos == CellPosition.NONE)
+            return null;
+
         ExcelCell rowParent = (ExcelCell) sheet.getTable().getCell(pos.getRowIndex(), pos.getColIndex());
         if (rowParent == null) {
             throw new NopException(ERR_XPT_INVALID_ROW_PARENT)
@@ -340,6 +356,8 @@ public class XptModelInitializer {
     }
 
     private ExcelCell resolveColParent(ExcelSheet sheet, ExcelCell cell, CellPosition pos) {
+        if(pos == CellPosition.NONE)
+            return null;
         ExcelCell colParent = (ExcelCell) sheet.getTable().getCell(pos.getRowIndex(), pos.getColIndex());
         if (colParent == null) {
             throw new NopException(ERR_XPT_INVALID_COL_PARENT)

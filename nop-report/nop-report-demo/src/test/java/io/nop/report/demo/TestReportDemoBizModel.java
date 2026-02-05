@@ -10,6 +10,7 @@ package io.nop.report.demo;
 import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.autotest.SnapshotTest;
 import io.nop.api.core.beans.TreeResultBean;
 import io.nop.api.core.beans.WebContentBean;
 import io.nop.api.core.time.CoreMetrics;

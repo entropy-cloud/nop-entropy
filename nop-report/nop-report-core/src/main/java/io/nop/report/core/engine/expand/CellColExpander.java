@@ -188,8 +188,6 @@ public class CellColExpander extends AbstractCellExpander {
                 } else {
                     newCell.setStyleId(nextCell.getStyleId());
                 }
-            } else if (!nextCell.isProxyCell()) {
-                newCell.setStyleId(nextCell.getStyleId());
             }
             nextCell = nextCell.getDown();
             newCell = newCell.getDown();
