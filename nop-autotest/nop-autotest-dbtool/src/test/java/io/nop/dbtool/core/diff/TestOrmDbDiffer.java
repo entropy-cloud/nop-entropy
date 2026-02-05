@@ -64,7 +64,7 @@ public class TestOrmDbDiffer extends JunitBaseTestCase {
         String resultsJson = JsonTool.stringify(diffDdlList, null, "  ");
 
         LOG.info("nop.test.orm.db-differ.ddl={}", resultsJson);
-        Assertions.assertEquals(attachmentJsonText("db-diff-results.json"), resultsJson);
+        Assertions.assertEquals(normalizeJsonString(attachmentJsonText("db-diff-results.json")), normalizeJsonString(resultsJson));
 
         // 根据生成的 DDL 脚本更新原始库
         updateH2Db(diffDdlList);
@@ -88,13 +88,13 @@ public class TestOrmDbDiffer extends JunitBaseTestCase {
         String resultsJson = JsonTool.stringify(diffDdlList, null, "  ");
 
         LOG.info("nop.test.orm.db-differ.by-entities.ddl={}", resultsJson);
-        Assertions.assertEquals(attachmentJsonText("db-diff-results.json"), resultsJson);
+        Assertions.assertEquals(normalizeJsonString(attachmentJsonText("db-diff-results.json")), normalizeJsonString(resultsJson));
 
         diffDdlList = OrmDbDiffer.forDialect("h2").genDiffDdl(null, newOrmModel.getEntities());
         resultsJson = JsonTool.stringify(diffDdlList, null, "  ");
 
         LOG.info("nop.test.orm.db-differ.by-entities.old-is-null.ddl={}", resultsJson);
-        Assertions.assertEquals(normalizeCRLF(attachmentJsonText("db-diff-results.old-null-entities.json")), normalizeCRLF(resultsJson));
+        Assertions.assertEquals(normalizeJsonString(attachmentJsonText("db-diff-results.old-null-entities.json")), normalizeJsonString(resultsJson));
 
         diffDdlList = OrmDbDiffer.forDialect("h2").genDiffDdl(oldOrmModel.getEntities(), new ArrayList<>());
         resultsJson = JsonTool.stringify(diffDdlList, null, "  ");

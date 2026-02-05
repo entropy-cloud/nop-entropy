@@ -16,7 +16,7 @@ CREATE TABLE nop_rule_definition(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_rule_definition primary key (RULE_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_rule_node(
   SID VARCHAR(32) NOT NULL    COMMENT 'SID',
@@ -34,7 +34,7 @@ CREATE TABLE nop_rule_node(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_rule_node primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_rule_role(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -48,7 +48,7 @@ CREATE TABLE nop_rule_role(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_rule_role primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_rule_log(
   SID VARCHAR(32) NOT NULL    COMMENT '日志ID',
@@ -58,7 +58,7 @@ CREATE TABLE nop_rule_log(
   CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
   CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
   constraint PK_nop_rule_log primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 
    ALTER TABLE nop_rule_definition COMMENT '规则模型定义';

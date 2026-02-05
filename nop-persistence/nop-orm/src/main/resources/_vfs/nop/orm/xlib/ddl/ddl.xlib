@@ -63,13 +63,14 @@
                 </c:for>
                 <thisLib:TableUniqueConstraints/>
                 <c:script>
-                  const useTenantPk = table.useTenant and table.getColumnByCode('NOP_TENANT_ID',true) != null and !table.globalUniqueId
-                  const tenantPk = useTenantPk ? 'NOP_TENANT_ID,' : ''
+                    const useTenantPk = table.useTenant and table.getColumnByCode('NOP_TENANT_ID',true) != null and
+                    !table.globalUniqueId
+                    const tenantPk = useTenantPk ? 'NOP_TENANT_ID,' : ''
                 </c:script>
                 <c:unit><![CDATA[ constraint PK_${table.tableName} primary key (${tenantPk}${
                 table.compositePk ? table.idProp.columns.map(col=>dialect.escapeSQLName(col.code)).join(',') : dialect.escapeSQLName(table.idProp.code)})
 ]]></c:unit>
-                <c:unit>)</c:unit>
+                <c:unit>)</c:unit><thisLib:TableCollation/>
             </source>
         </CreateTable>
 
@@ -80,12 +81,13 @@
                 <c:for var="uniqueKey" items="${table.uniqueKeys}">
                     <c:if test="${uniqueKey.constraint}">
                         <c:script>
-                            let columns = uniqueKey.getColumnModelsWithTenant(table).map(col => dialect.escapeSQLName(col.code))
+                            let columns = uniqueKey.getColumnModelsWithTenant(table).map(col =>
+                            dialect.escapeSQLName(col.code))
                         </c:script>
                         <c:unit><![CDATA[ constraint ${uniqueKey.constraint} unique (${
                         columns.join(',')})]]></c:unit>
 
-                        <thisLib:UniqueKeyComment uniqueKey="${uniqueKey}" xpl:return="uniqueComment" />
+                        <thisLib:UniqueKeyComment uniqueKey="${uniqueKey}" xpl:return="uniqueComment"/>
                         <c:if test="${uniqueComment}"><![CDATA[    COMMENT ${dialect.getStringLiteral(uniqueComment)}]]></c:if>
                         <c:unit><![CDATA[,
  ]]></c:unit>
@@ -140,7 +142,7 @@
         <DefaultValue outputMode="text">
             <attr name="col" implicit="true"/>
             <attr name="dialect" implicit="true"/>
-            <attr name="allNullable" implicit="true" />
+            <attr name="allNullable" implicit="true"/>
             <source>
                 <c:if test="${col.defaultValue != null}">
                     <c:script><![CDATA[
@@ -188,6 +190,11 @@
             </source>
         </TableComment>
 
+        <TableCollation outputMode="text">
+            <attr name="table" implicit="true"/>
+            <source></source>
+        </TableCollation>
+
         <ColumnComment outputMode="none">
             <attr name="col" type="io.nop.orm.model.IColumnModel"/>
             <source>
@@ -208,9 +215,9 @@
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
-               <c:script>
-                  tables = tables.filter(table=> !table.tableView and !table.containsTag('not-gen'))
-               </c:script>
+                <c:script>
+                    tables = tables.filter(table=> !table.tableView and !table.containsTag('not-gen'))
+                </c:script>
 
                 <c:for var="table" items="${tables}">
                     <c:if test="${!table.tenantProp and xpl('thisLib:IsAllowTenant',table)}">
@@ -229,8 +236,9 @@
                 <c:for var="table" items="${tables}">
                     <c:if test="${!table.tenantProp and xpl('thisLib:IsAllowTenant',table)}">
                         <c:for var="uniqueKey" items="${table.uniqueKeys}">
-                            <thisLib:AddTenantIdToUniqueKey uniqueKey="${uniqueKey}" table="${table}" dialect="${dialect}"
-                                xpl:if="uniqueKey.constraint and !uniqueKey.containsTag('no-tenant')"/>
+                            <thisLib:AddTenantIdToUniqueKey uniqueKey="${uniqueKey}" table="${table}"
+                                                            dialect="${dialect}"
+                                                            xpl:if="uniqueKey.constraint and !uniqueKey.containsTag('no-tenant')"/>
                         </c:for>
                     </c:if>
                 </c:for>
@@ -239,7 +247,7 @@
 
         <AddTenantIdForTable outputMode="text">
             <attr name="table" type="io.nop.orm.model.IEntityModel"/>
-            <attr name="addToPk" type="String" optional="true" />
+            <attr name="addToPk" type="String" optional="true"/>
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
@@ -260,12 +268,13 @@
                 <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} drop constraint PK_${table.tableName}</c:unit>
                 <c:unit>;&#10;</c:unit>
                 <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} add constraint PK_${table.tableName} primary key (NOP_TENANT_ID, ${
-                table.compositePk ? table.idProp.columns.map(col=> dialect.escapeSQLName(col.code)).join(',') : dialect.escapeSQLName(table.idProp.code)})</c:unit>
+                table.compositePk ? table.idProp.columns.map(col=> dialect.escapeSQLName(col.code)).join(',') : dialect.escapeSQLName(table.idProp.code)})
+                </c:unit>
             </source>
         </AddTenantIdToPrimaryKey>
 
         <AddTenantIdToUniqueKey outputMode="text">
-            <attr name="uniqueKey" type="io.nop.orm.model.OrmUniqueKeyModel" />
+            <attr name="uniqueKey" type="io.nop.orm.model.OrmUniqueKeyModel"/>
             <attr name="table" type="io.nop.orm.model.IEntityModel"/>
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
@@ -277,14 +286,13 @@
                 <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} drop constraint ${uniqueKey.constraint}</c:unit>
                 <c:unit>;&#10;</c:unit>
                 <thisLib:UniqueKeyComment uniqueKey="${uniqueKey}" xpl:return="uniqueComment"/>
-                <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} add constraint ${uniqueKey.constraint}
-                     unique (NOP_TENANT_ID,${columns.join(',')})${uniqueComment ? $String.format(' %s %s','COMMENT',dialect.getStringLiteral(uniqueComment)) : ''};&#10;
+                <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} add constraint ${uniqueKey.constraint} unique (NOP_TENANT_ID,${columns.join(',')})${uniqueComment ? $String.format(' %s %s','COMMENT',dialect.getStringLiteral(uniqueComment)) : ''};&#10;
                 </c:unit>
             </source>
         </AddTenantIdToUniqueKey>
 
         <IsAllowTenant>
-            <attr name="table" />
+            <attr name="table"/>
 
             <source>
                 <c:script><![CDATA[
@@ -318,7 +326,7 @@
 
         <ModifyColumn outputMode="text">
             <attr name="col" type="io.nop.orm.model.IColumnModel"/>
-            <attr name="oldCol" type="io.nop.orm.model.IColumnModel" />
+            <attr name="oldCol" type="io.nop.orm.model.IColumnModel"/>
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
@@ -333,10 +341,10 @@
         </ModifyColumn>
 
         <RenameColumn>
-            <attr name="tableName" type="String" />
-            <attr name="colName" type="String" />
-            <attr name="newName" type="String" />
-            <attr name="dialect" type="io.nop.dao.dialect.IDialect" />
+            <attr name="tableName" type="String"/>
+            <attr name="colName" type="String"/>
+            <attr name="newName" type="String"/>
+            <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
                 <c:unit>alter table ${dialect.escapeSQLName(tableName)} rename column ${dialect.escapeSQLName(colName)} to ${dialect.escapeSQLName(newName)} </c:unit>
@@ -350,7 +358,8 @@
 
             <source>
                 <c:script>
-                    let columns = uniqueKey.getColumnModelsWithTenant(table).map(col => dialect.escapeSQLName(col.code));
+                    let columns = uniqueKey.getColumnModelsWithTenant(table).map(col =>
+                    dialect.escapeSQLName(col.code));
                 </c:script>
                 <c:unit><![CDATA[alter table ${dialect.escapeSQLName(table.tableName)} ]]></c:unit>
                 <c:unit><![CDATA[  add constraint ${uniqueKey.constraint} ]]></c:unit>

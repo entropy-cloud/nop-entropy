@@ -34,14 +34,14 @@ CREATE TABLE nop_oauth_authorization(
   DEVICE_CODE_EXPIRES_AT DATETIME(3) NULL    COMMENT 'DeviceCode过期时间',
   DEVICE_CODE_METADATA TEXT NULL    COMMENT 'DeviceCode元数据',
   constraint PK_nop_oauth_authorization primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_oauth_authorization_consent(
   REGISTERED_CLIENT_ID VARCHAR(100) NOT NULL    COMMENT '注册客户端ID',
   PRINCIPAL_NAME VARCHAR(200) NOT NULL    COMMENT '客户端名称',
   AUTHORITIES VARCHAR(1000) NOT NULL    COMMENT '扩展属性',
   constraint PK_nop_oauth_authorization_consent primary key (REGISTERED_CLIENT_ID,PRINCIPAL_NAME)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_oauth_registered_client(
   SID VARCHAR(100) NOT NULL    COMMENT 'Id',
@@ -58,7 +58,7 @@ CREATE TABLE nop_oauth_registered_client(
   CLIENT_SETTINGS VARCHAR(2000) NOT NULL    COMMENT '客户端设置',
   TOKEN_SETTINGS VARCHAR(2000) NOT NULL    COMMENT 'Token设置',
   constraint PK_nop_oauth_registered_client primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 
    ALTER TABLE nop_oauth_authorization COMMENT 'Oauth认证记录';

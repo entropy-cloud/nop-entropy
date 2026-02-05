@@ -16,7 +16,7 @@ CREATE TABLE nop_auth_dept(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_auth_dept primary key (DEPT_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_position(
   POSITION_ID VARCHAR(50) NOT NULL    COMMENT '主键',
@@ -29,7 +29,7 @@ CREATE TABLE nop_auth_position(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_auth_position primary key (POSITION_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_role(
   ROLE_ID VARCHAR(50) NOT NULL    COMMENT '角色ID',
@@ -45,7 +45,7 @@ CREATE TABLE nop_auth_role(
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint UK_NOP_AUTH_ROLE_NAME unique (ROLE_NAME),
   constraint PK_nop_auth_role primary key (ROLE_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_site(
   SITE_ID VARCHAR(100) NOT NULL    COMMENT '站点ID',
@@ -62,7 +62,7 @@ CREATE TABLE nop_auth_site(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_auth_site primary key (SITE_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_role_data_auth(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -80,7 +80,7 @@ CREATE TABLE nop_auth_role_data_auth(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_auth_role_data_auth primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_tenant(
   TENANT_ID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -96,7 +96,7 @@ CREATE TABLE nop_auth_tenant(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_auth_tenant primary key (TENANT_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_user(
   USER_ID VARCHAR(50) NOT NULL    COMMENT '用户ID',
@@ -137,7 +137,7 @@ CREATE TABLE nop_auth_user(
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint UK_NOP_AUTH_USER_NAME unique (USER_NAME),
   constraint PK_nop_auth_user primary key (USER_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_resource(
   RESOURCE_ID VARCHAR(100) NOT NULL    COMMENT '资源ID',
@@ -169,7 +169,7 @@ CREATE TABLE nop_auth_resource(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_auth_resource primary key (RESOURCE_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_ext_login(
   SID VARCHAR(32) NOT NULL    COMMENT 'ID',
@@ -188,7 +188,7 @@ CREATE TABLE nop_auth_ext_login(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_auth_ext_login primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_user_role(
   USER_ID VARCHAR(32) NOT NULL    COMMENT '用户ID',
@@ -200,7 +200,7 @@ CREATE TABLE nop_auth_user_role(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_auth_user_role primary key (USER_ID,ROLE_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_user_substitution(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -216,7 +216,7 @@ CREATE TABLE nop_auth_user_substitution(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_auth_user_substitution primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_session(
   SESSION_ID VARCHAR(100) NOT NULL    COMMENT '会话ID',
@@ -240,7 +240,7 @@ CREATE TABLE nop_auth_session(
   CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_auth_session primary key (SESSION_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_group(
   GROUP_ID VARCHAR(50) NOT NULL    COMMENT '主键',
@@ -255,7 +255,7 @@ CREATE TABLE nop_auth_group(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_auth_group primary key (GROUP_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_role_resource(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -269,7 +269,7 @@ CREATE TABLE nop_auth_role_resource(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_auth_role_resource primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_op_log(
   LOG_ID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -286,7 +286,7 @@ CREATE TABLE nop_auth_op_log(
   OP_REQUEST VARCHAR(8000) NULL    COMMENT '请求参数',
   OP_RESPONSE VARCHAR(4000) NULL    COMMENT '响应数据',
   constraint PK_nop_auth_op_log primary key (LOG_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_group_dept(
   DEPT_ID VARCHAR(50) NOT NULL    COMMENT '部门ID',
@@ -299,7 +299,7 @@ CREATE TABLE nop_auth_group_dept(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_auth_group_dept primary key (DEPT_ID,GROUP_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_auth_group_user(
   USER_ID VARCHAR(50) NOT NULL    COMMENT '用户ID',
@@ -311,7 +311,7 @@ CREATE TABLE nop_auth_group_user(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_auth_group_user primary key (USER_ID,GROUP_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 
    ALTER TABLE nop_auth_dept COMMENT '部门';

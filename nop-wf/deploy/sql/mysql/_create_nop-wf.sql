@@ -20,7 +20,7 @@ CREATE TABLE nop_wf_definition(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_wf_definition primary key (WF_DEF_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_wf_instance(
   WF_ID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -63,7 +63,7 @@ CREATE TABLE nop_wf_instance(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_wf_instance primary key (WF_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_wf_definition_auth(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -82,7 +82,7 @@ CREATE TABLE nop_wf_definition_auth(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_wf_definition_auth primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_wf_status_history(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -98,7 +98,7 @@ CREATE TABLE nop_wf_status_history(
   CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
   CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
   constraint PK_nop_wf_status_history primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_wf_step_instance(
   STEP_ID VARCHAR(32) NOT NULL    COMMENT '步骤ID',
@@ -154,7 +154,7 @@ CREATE TABLE nop_wf_step_instance(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_wf_step_instance primary key (STEP_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_wf_output(
   WF_ID VARCHAR(32) NOT NULL    COMMENT '工作流实例ID',
@@ -171,7 +171,7 @@ CREATE TABLE nop_wf_output(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   constraint PK_nop_wf_output primary key (WF_ID,FIELD_NAME)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_wf_var(
   WF_ID VARCHAR(32) NOT NULL    COMMENT '工作流实例ID',
@@ -188,7 +188,7 @@ CREATE TABLE nop_wf_var(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   constraint PK_nop_wf_var primary key (WF_ID,FIELD_NAME)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_wf_step_instance_link(
   WF_ID VARCHAR(32) NOT NULL    COMMENT '工作流实例ID',
@@ -198,7 +198,7 @@ CREATE TABLE nop_wf_step_instance_link(
   CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
   CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
   constraint PK_nop_wf_step_instance_link primary key (WF_ID,STEP_ID,NEXT_STEP_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_wf_action(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -218,7 +218,7 @@ CREATE TABLE nop_wf_action(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   constraint PK_nop_wf_action primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_wf_work(
   WORK_ID VARCHAR(32) NOT NULL    COMMENT '工作ID',
@@ -241,7 +241,7 @@ CREATE TABLE nop_wf_work(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_wf_work primary key (WORK_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_wf_log(
   SID VARCHAR(32) NOT NULL    COMMENT '日志ID',
@@ -254,7 +254,7 @@ CREATE TABLE nop_wf_log(
   CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
   CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
   constraint PK_nop_wf_log primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 
    ALTER TABLE nop_wf_definition COMMENT '工作流模型定义';

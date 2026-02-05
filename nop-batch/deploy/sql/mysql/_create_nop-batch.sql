@@ -16,7 +16,7 @@ CREATE TABLE nop_batch_file(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_batch_file primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_batch_task(
   SID VARCHAR(32) NOT NULL    COMMENT 'SID',
@@ -51,7 +51,7 @@ CREATE TABLE nop_batch_task(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_batch_task primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_batch_task_var(
   BATCH_TASK_ID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -68,7 +68,7 @@ CREATE TABLE nop_batch_task_var(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   constraint PK_nop_batch_task_var primary key (BATCH_TASK_ID,FIELD_NAME)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_batch_record_result(
   BATCH_TASK_ID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -87,7 +87,7 @@ CREATE TABLE nop_batch_record_result(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   constraint PK_nop_batch_record_result primary key (BATCH_TASK_ID,RECORD_KEY)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 
    ALTER TABLE nop_batch_file COMMENT '批处理文件';

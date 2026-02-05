@@ -18,7 +18,7 @@ CREATE TABLE nop_file_record(
   CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_file_record primary key (FILE_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 
    ALTER TABLE nop_file_record COMMENT '文件记录';

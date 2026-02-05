@@ -12,7 +12,7 @@ CREATE TABLE nop_dyn_app(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   constraint PK_nop_dyn_app primary key (APP_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_dyn_module(
   MODULE_ID VARCHAR(32) NOT NULL    COMMENT '模块ID',
@@ -30,7 +30,7 @@ CREATE TABLE nop_dyn_module(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   constraint PK_nop_dyn_module primary key (MODULE_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_dyn_entity(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -66,7 +66,7 @@ CREATE TABLE nop_dyn_entity(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_dyn_entity primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_dyn_entity_relation(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -82,7 +82,7 @@ CREATE TABLE nop_dyn_entity_relation(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_dyn_entity_relation primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_dyn_patch_file(
   FILE_ID VARCHAR(32) NOT NULL    COMMENT '文件ID',
@@ -100,7 +100,7 @@ CREATE TABLE nop_dyn_patch_file(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_dyn_patch_file primary key (FILE_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_dyn_module_dep(
   MODULE_ID VARCHAR(32) NOT NULL    COMMENT '模块ID',
@@ -111,7 +111,7 @@ CREATE TABLE nop_dyn_module_dep(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   constraint PK_nop_dyn_module_dep primary key (MODULE_ID,DEP_MODULE_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_dyn_app_module(
   APP_ID VARCHAR(32) NOT NULL    COMMENT '应用ID',
@@ -122,7 +122,7 @@ CREATE TABLE nop_dyn_app_module(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   constraint PK_nop_dyn_app_module primary key (APP_ID,MODULE_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_dyn_sql(
   SQL_ID VARCHAR(32) NOT NULL    COMMENT 'SQL ID',
@@ -153,7 +153,7 @@ CREATE TABLE nop_dyn_sql(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_dyn_sql primary key (SQL_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_dyn_file(
   FILE_ID VARCHAR(32) NOT NULL    COMMENT '文件ID',
@@ -170,7 +170,7 @@ CREATE TABLE nop_dyn_file(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_dyn_file primary key (FILE_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_dyn_page(
   PAGE_ID VARCHAR(32) NOT NULL    COMMENT '页面ID',
@@ -187,7 +187,7 @@ CREATE TABLE nop_dyn_page(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_dyn_page primary key (PAGE_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_dyn_entity_meta(
   ENTITY_META_ID VARCHAR(32) NOT NULL    COMMENT '实体定义ID',
@@ -208,7 +208,7 @@ CREATE TABLE nop_dyn_entity_meta(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_dyn_entity_meta primary key (ENTITY_META_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_dyn_domain(
   DOMAIN_ID VARCHAR(32) NOT NULL    COMMENT '数据域ID',
@@ -226,7 +226,7 @@ CREATE TABLE nop_dyn_domain(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_dyn_domain primary key (DOMAIN_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_dyn_entity_relation_meta(
   REL_META_ID VARCHAR(32) NOT NULL    COMMENT '关联定义ID',
@@ -251,7 +251,7 @@ CREATE TABLE nop_dyn_entity_relation_meta(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_dyn_entity_relation_meta primary key (REL_META_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_dyn_function_meta(
   FUNC_META_ID VARCHAR(32) NOT NULL    COMMENT '函数定义ID',
@@ -273,7 +273,7 @@ CREATE TABLE nop_dyn_function_meta(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_dyn_function_meta primary key (FUNC_META_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_dyn_prop_meta(
   PROP_META_ID VARCHAR(32) NOT NULL    COMMENT '属性定义ID',
@@ -302,7 +302,7 @@ CREATE TABLE nop_dyn_prop_meta(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_dyn_prop_meta primary key (PROP_META_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 
    ALTER TABLE nop_dyn_app COMMENT '应用定义';

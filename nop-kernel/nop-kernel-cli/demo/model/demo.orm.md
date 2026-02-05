@@ -171,11 +171,11 @@
 
 |标签|关联类型|属性名|关联对象|关联属性名|关联条件|中文名|英文名|关联中文名|关联英文名|备注|多对多属性名1|多对多属性名2|多对多属性显示名1|多对多属性显示名2|反向依赖|忽略依赖|控件|排序条件|唯一标识|
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | 
-|  | to-one | prototype | NopAiProject |  | prototypeId=id, |  |  |  |  |  |  |  |  |  | false | false |  |  |  | 
-|  | to-many | projectRules | NopAiProjectRule | project | id=projectId, | 项目规则 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
-|  | to-many | configs | NopAiProjectConfig | project | id=projectId, | 配置项 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
-|  | to-many | requirements | NopAiRequirement | project | id=projectId, | 需求列表 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
-|  | to-many | generatedFiles | NopAiGenFile | project | id=projectId, | 生成文件 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-one | prototype | NopAiProject |  | prototypeId=id |  |  |  |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-many | projectRules | NopAiProjectRule | project | id=projectId | 项目规则 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-many | configs | NopAiProjectConfig | project | id=projectId | 配置项 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-many | requirements | NopAiRequirement | project | id=projectId | 需求列表 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-many | generatedFiles | NopAiGenFile | project | id=projectId | 生成文件 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
 
 #### 5.1.3 唯一键列表
 
@@ -211,8 +211,8 @@
 
 |标签|关联类型|属性名|关联对象|关联属性名|关联条件|中文名|英文名|关联中文名|关联英文名|备注|多对多属性名1|多对多属性名2|多对多属性显示名1|多对多属性显示名2|反向依赖|忽略依赖|控件|排序条件|唯一标识|
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | 
-|  | to-one | project | NopAiProject | projectRules | projectId=id, |  |  | 项目规则 |  |  |  |  |  |  | false | false |  |  |  | 
-|  | to-one | knowledge | NopAiKnowledge | relatedRules | knowledgeId=id, |  |  | 关联规则 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-one | project | NopAiProject | projectRules | projectId=id |  |  | 项目规则 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-one | knowledge | NopAiKnowledge | relatedRules | knowledgeId=id |  |  | 关联规则 |  |  |  |  |  |  | false | false |  |  |  | 
 
 #### 5.2.3 唯一键列表
 
@@ -246,7 +246,7 @@
 
 |标签|关联类型|属性名|关联对象|关联属性名|关联条件|中文名|英文名|关联中文名|关联英文名|备注|多对多属性名1|多对多属性名2|多对多属性显示名1|多对多属性显示名2|反向依赖|忽略依赖|控件|排序条件|唯一标识|
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | 
-|  | to-one | project | NopAiProject | configs | projectId=id, |  |  | 配置项 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-one | project | NopAiProject | configs | projectId=id |  |  | 配置项 |  |  |  |  |  |  | false | false |  |  |  | 
 
 #### 5.3.3 唯一键列表
 
@@ -280,7 +280,7 @@
 
 |标签|关联类型|属性名|关联对象|关联属性名|关联条件|中文名|英文名|关联中文名|关联英文名|备注|多对多属性名1|多对多属性名2|多对多属性显示名1|多对多属性显示名2|反向依赖|忽略依赖|控件|排序条件|唯一标识|
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | 
-|  | to-many | responses | NopAiChatResponse | model | id=modelId, | 调用记录 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-many | responses | NopAiChatResponse | model | id=modelId | 调用记录 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
 
 #### 5.4.3 唯一键列表
 
@@ -319,12 +319,12 @@
 
 |标签|关联类型|属性名|关联对象|关联属性名|关联条件|中文名|英文名|关联中文名|关联英文名|备注|多对多属性名1|多对多属性名2|多对多属性显示名1|多对多属性显示名2|反向依赖|忽略依赖|控件|排序条件|唯一标识|
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | 
-|  | to-one | project | NopAiProject | requirements | projectId=id, |  |  | 需求列表 |  |  |  |  |  |  | false | false |  |  |  | 
-|  | to-one | parent | NopAiRequirement | children | parentId=id, |  |  | 子需求 |  |  |  |  |  |  | false | false |  |  |  | 
-|  | to-many | children | NopAiRequirement | parent | id=parentId, | 子需求 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
-|  | to-many | historyRecords | NopAiRequirementHistory | requirement | id=requirementId, | 历史版本 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
-|  | to-many | generatedFiles | NopAiGenFile | requirement | id=requirementId, | 关联文件 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
-|  | to-many | testCases | NopAiTestCase | requirement | id=requirementId, | 测试用例 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-one | project | NopAiProject | requirements | projectId=id |  |  | 需求列表 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-one | parent | NopAiRequirement | children | parentId=id |  |  | 子需求 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-many | children | NopAiRequirement | parent | id=parentId | 子需求 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-many | historyRecords | NopAiRequirementHistory | requirement | id=requirementId | 历史版本 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-many | generatedFiles | NopAiGenFile | requirement | id=requirementId | 关联文件 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-many | testCases | NopAiTestCase | requirement | id=requirementId | 测试用例 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
 
 #### 5.5.3 唯一键列表
 
@@ -357,7 +357,7 @@
 
 |标签|关联类型|属性名|关联对象|关联属性名|关联条件|中文名|英文名|关联中文名|关联英文名|备注|多对多属性名1|多对多属性名2|多对多属性显示名1|多对多属性显示名2|反向依赖|忽略依赖|控件|排序条件|唯一标识|
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | 
-|  | to-one | requirement | NopAiRequirement | historyRecords | requirementId=id, |  |  | 历史版本 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-one | requirement | NopAiRequirement | historyRecords | requirementId=id |  |  | 历史版本 |  |  |  |  |  |  | false | false |  |  |  | 
 
 #### 5.6.3 唯一键列表
 
@@ -390,7 +390,7 @@
 
 |标签|关联类型|属性名|关联对象|关联属性名|关联条件|中文名|英文名|关联中文名|关联英文名|备注|多对多属性名1|多对多属性名2|多对多属性显示名1|多对多属性显示名2|反向依赖|忽略依赖|控件|排序条件|唯一标识|
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | 
-|  | to-many | relatedRules | NopAiProjectRule | knowledge | id=knowledgeId, | 关联规则 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-many | relatedRules | NopAiProjectRule | knowledge | id=knowledgeId | 关联规则 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
 
 #### 5.7.3 唯一键列表
 
@@ -425,8 +425,8 @@
 
 |标签|关联类型|属性名|关联对象|关联属性名|关联条件|中文名|英文名|关联中文名|关联英文名|备注|多对多属性名1|多对多属性名2|多对多属性显示名1|多对多属性显示名2|反向依赖|忽略依赖|控件|排序条件|唯一标识|
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | 
-|  | to-many | historyRecords | NopAiPromptTemplateHistory | template | id=templateId, | 历史版本 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
-|  | to-many | requests | NopAiChatRequest | template | id=templateId, | 测试请求 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-many | historyRecords | NopAiPromptTemplateHistory | template | id=templateId | 历史版本 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-many | requests | NopAiChatRequest | template | id=templateId | 测试请求 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
 
 #### 5.8.3 唯一键列表
 
@@ -459,7 +459,7 @@
 
 |标签|关联类型|属性名|关联对象|关联属性名|关联条件|中文名|英文名|关联中文名|关联英文名|备注|多对多属性名1|多对多属性名2|多对多属性显示名1|多对多属性显示名2|反向依赖|忽略依赖|控件|排序条件|唯一标识|
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | 
-|  | to-one | template | NopAiPromptTemplate | historyRecords | templateId=id, |  |  | 历史版本 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-one | template | NopAiPromptTemplate | historyRecords | templateId=id |  |  | 历史版本 |  |  |  |  |  |  | false | false |  |  |  | 
 
 #### 5.9.3 唯一键列表
 
@@ -497,8 +497,8 @@
 
 |标签|关联类型|属性名|关联对象|关联属性名|关联条件|中文名|英文名|关联中文名|关联英文名|备注|多对多属性名1|多对多属性名2|多对多属性显示名1|多对多属性显示名2|反向依赖|忽略依赖|控件|排序条件|唯一标识|
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | 
-|  | to-one | template | NopAiPromptTemplate | requests | templateId=id, |  |  | 测试请求 |  |  |  |  |  |  | false | false |  |  |  | 
-|  | to-many | responses | NopAiChatResponse | request | id=requestId, | 响应列表 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-one | template | NopAiPromptTemplate | requests | templateId=id |  |  | 测试请求 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-many | responses | NopAiChatResponse | request | id=requestId | 响应列表 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
 
 #### 5.10.3 唯一键列表
 
@@ -542,10 +542,10 @@
 
 |标签|关联类型|属性名|关联对象|关联属性名|关联条件|中文名|英文名|关联中文名|关联英文名|备注|多对多属性名1|多对多属性名2|多对多属性显示名1|多对多属性显示名2|反向依赖|忽略依赖|控件|排序条件|唯一标识|
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | 
-|  | to-one | request | NopAiChatRequest | responses | requestId=id, |  |  | 响应列表 |  |  |  |  |  |  | false | false |  |  |  | 
-|  | to-one | model | NopAiModel | responses | modelId=id, |  |  | 调用记录 |  |  |  |  |  |  | false | false |  |  |  | 
-|  | to-many | generatedFiles | NopAiGenFile | chatResponse | id=chatResponseId, | 生成产物 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
-|  | to-many | testCases | NopAiTestCase | chatResponse | id=chatResponseId, | 生成用例 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-one | request | NopAiChatRequest | responses | requestId=id |  |  | 响应列表 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-one | model | NopAiModel | responses | modelId=id |  |  | 调用记录 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-many | generatedFiles | NopAiGenFile | chatResponse | id=chatResponseId | 生成产物 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-many | testCases | NopAiTestCase | chatResponse | id=chatResponseId | 生成用例 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
 
 #### 5.11.3 唯一键列表
 
@@ -582,11 +582,11 @@
 
 |标签|关联类型|属性名|关联对象|关联属性名|关联条件|中文名|英文名|关联中文名|关联英文名|备注|多对多属性名1|多对多属性名2|多对多属性显示名1|多对多属性显示名2|反向依赖|忽略依赖|控件|排序条件|唯一标识|
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | 
-|  | to-one | project | NopAiProject | generatedFiles | projectId=id, |  |  | 生成文件 |  |  |  |  |  |  | false | false |  |  |  | 
-|  | to-one | requirement | NopAiRequirement | generatedFiles | requirementId=id, |  |  | 关联文件 |  |  |  |  |  |  | false | false |  |  |  | 
-|  | to-one | chatResponse | NopAiChatResponse | generatedFiles | chatResponseId=id, |  |  | 生成产物 |  |  |  |  |  |  | false | false |  |  |  | 
-|  | to-many | historyRecords | NopAiGenFileHistory | genFile | id=genFileId, | 历史版本 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
-|  | to-many | testCases | NopAiTestCase | genFile | id=genFileId, | 测试用例 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-one | project | NopAiProject | generatedFiles | projectId=id |  |  | 生成文件 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-one | requirement | NopAiRequirement | generatedFiles | requirementId=id |  |  | 关联文件 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-one | chatResponse | NopAiChatResponse | generatedFiles | chatResponseId=id |  |  | 生成产物 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-many | historyRecords | NopAiGenFileHistory | genFile | id=genFileId | 历史版本 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-many | testCases | NopAiTestCase | genFile | id=genFileId | 测试用例 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
 
 #### 5.12.3 唯一键列表
 
@@ -619,7 +619,7 @@
 
 |标签|关联类型|属性名|关联对象|关联属性名|关联条件|中文名|英文名|关联中文名|关联英文名|备注|多对多属性名1|多对多属性名2|多对多属性显示名1|多对多属性显示名2|反向依赖|忽略依赖|控件|排序条件|唯一标识|
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | 
-|  | to-one | genFile | NopAiGenFile | historyRecords | genFileId=id, |  |  | 历史版本 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-one | genFile | NopAiGenFile | historyRecords | genFileId=id |  |  | 历史版本 |  |  |  |  |  |  | false | false |  |  |  | 
 
 #### 5.13.3 唯一键列表
 
@@ -655,10 +655,10 @@
 
 |标签|关联类型|属性名|关联对象|关联属性名|关联条件|中文名|英文名|关联中文名|关联英文名|备注|多对多属性名1|多对多属性名2|多对多属性显示名1|多对多属性显示名2|反向依赖|忽略依赖|控件|排序条件|唯一标识|
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | 
-|  | to-one | requirement | NopAiRequirement | testCases | requirementId=id, |  |  | 测试用例 |  |  |  |  |  |  | false | false |  |  |  | 
-|  | to-one | genFile | NopAiGenFile | testCases | genFileId=id, |  |  | 测试用例 |  |  |  |  |  |  | false | false |  |  |  | 
-|  | to-one | chatResponse | NopAiChatResponse | testCases | chatResponseId=id, |  |  | 生成用例 |  |  |  |  |  |  | false | false |  |  |  | 
-|  | to-many | testResults | NopAiTestResult | testCase | id=testCaseId, | 执行结果 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
+|  | to-one | requirement | NopAiRequirement | testCases | requirementId=id |  |  | 测试用例 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-one | genFile | NopAiGenFile | testCases | genFileId=id |  |  | 测试用例 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-one | chatResponse | NopAiChatResponse | testCases | chatResponseId=id |  |  | 生成用例 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-many | testResults | NopAiTestResult | testCase | id=testCaseId | 执行结果 |  |  |  |  |  |  |  |  |  |  |  |  |  | 
 
 #### 5.14.3 唯一键列表
 
@@ -692,7 +692,7 @@
 
 |标签|关联类型|属性名|关联对象|关联属性名|关联条件|中文名|英文名|关联中文名|关联英文名|备注|多对多属性名1|多对多属性名2|多对多属性显示名1|多对多属性显示名2|反向依赖|忽略依赖|控件|排序条件|唯一标识|
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | 
-|  | to-one | testCase | NopAiTestCase | testResults | testCaseId=id, |  |  | 执行结果 |  |  |  |  |  |  | false | false |  |  |  | 
+|  | to-one | testCase | NopAiTestCase | testResults | testCaseId=id |  |  | 执行结果 |  |  |  |  |  |  | false | false |  |  |  | 
 
 #### 5.15.3 唯一键列表
 

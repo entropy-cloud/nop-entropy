@@ -51,6 +51,10 @@
             </source>
         </ColCommentDef>
 
+        <TableCollation>
+            <source>CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs</source>
+        </TableCollation>
+
 
         <AddTenantIdToPrimaryKey outputMode="text">
             <attr name="table" type="io.nop.orm.model.IEntityModel"/>

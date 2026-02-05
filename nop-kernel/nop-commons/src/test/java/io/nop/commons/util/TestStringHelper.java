@@ -550,4 +550,10 @@ public class TestStringHelper {
         String text = "a.b.c.X_to_yy";
         assertEquals("a.b.c.yy_to_X", StringHelper.reverseMappingName(text));
     }
+
+    @Test
+    public void testNormalizeCrlf() {
+        String str = StringHelper.replace("a\r\nb", "\r\n", "\n");
+        assertEquals("a\nb", str);
+    }
 }

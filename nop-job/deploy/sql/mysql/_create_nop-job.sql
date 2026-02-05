@@ -27,7 +27,7 @@ CREATE TABLE nop_job_definition(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_job_definition primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_job_assignment(
   SERVER_ID VARCHAR(50) NOT NULL    COMMENT '服务实例ID',
@@ -39,7 +39,7 @@ CREATE TABLE nop_job_assignment(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_job_assignment primary key (SERVER_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_job_instance_his(
   JOB_INSTANCE_ID VARCHAR(32) NOT NULL    COMMENT '任务实例ID',
@@ -69,7 +69,7 @@ CREATE TABLE nop_job_instance_his(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_job_instance_his primary key (JOB_INSTANCE_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 CREATE TABLE nop_job_instance(
   JOB_INSTANCE_ID VARCHAR(32) NOT NULL    COMMENT '任务实例ID',
@@ -99,7 +99,7 @@ CREATE TABLE nop_job_instance(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_job_instance primary key (JOB_INSTANCE_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
 
 
    ALTER TABLE nop_job_definition COMMENT '作业定义';

@@ -16,7 +16,7 @@ CREATE TABLE nop_sys_sequence(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_sys_sequence primary key (SEQ_NAME)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_sys_dict(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -30,7 +30,7 @@ CREATE TABLE nop_sys_dict(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_sys_dict primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_sys_i18n(
   I18N_KEY VARCHAR(200) NOT NULL    COMMENT '字符串Key',
@@ -43,7 +43,7 @@ CREATE TABLE nop_sys_i18n(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_sys_i18n primary key (I18N_KEY,I18N_LOCALE)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_sys_checker_record(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -70,7 +70,7 @@ CREATE TABLE nop_sys_checker_record(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_sys_checker_record primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_sys_code_rule(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -86,7 +86,7 @@ CREATE TABLE nop_sys_code_rule(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_sys_code_rule primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_sys_notice_template(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -101,7 +101,7 @@ CREATE TABLE nop_sys_notice_template(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_sys_notice_template primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_sys_user_variable(
   USER_ID VARCHAR(32) NOT NULL    COMMENT '用户ID',
@@ -116,7 +116,7 @@ CREATE TABLE nop_sys_user_variable(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_sys_user_variable primary key (USER_ID,VAR_NAME)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_sys_variable(
   VAR_NAME VARCHAR(32) NOT NULL    COMMENT '变量名',
@@ -130,7 +130,7 @@ CREATE TABLE nop_sys_variable(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_sys_variable primary key (VAR_NAME)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_sys_ext_field(
   ENTITY_NAME VARCHAR(200) NOT NULL    COMMENT '实体名',
@@ -149,7 +149,7 @@ CREATE TABLE nop_sys_ext_field(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_sys_ext_field primary key (ENTITY_NAME,ENTITY_ID,FIELD_NAME)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_sys_lock(
   LOCK_NAME VARCHAR(200) NOT NULL    COMMENT '锁名称',
@@ -166,7 +166,7 @@ CREATE TABLE nop_sys_lock(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   constraint PK_nop_sys_lock primary key (LOCK_NAME,LOCK_GROUP)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_sys_cluster_leader(
   CLUSTER_ID VARCHAR(200) NOT NULL    COMMENT '集群ID',
@@ -179,7 +179,7 @@ CREATE TABLE nop_sys_cluster_leader(
   VERSION INTEGER NOT NULL    COMMENT '修改版本',
   APP_NAME VARCHAR(100) NOT NULL    COMMENT '应用名',
   constraint PK_nop_sys_cluster_leader primary key (CLUSTER_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_sys_event(
   EVENT_ID BIGINT NOT NULL    COMMENT '事件ID',
@@ -204,7 +204,7 @@ CREATE TABLE nop_sys_event(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   constraint PK_nop_sys_event primary key (EVENT_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_sys_service_instance(
   INSTANCE_ID VARCHAR(50) NOT NULL    COMMENT '服务实例ID',
@@ -223,7 +223,7 @@ CREATE TABLE nop_sys_service_instance(
   CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   constraint PK_nop_sys_service_instance primary key (INSTANCE_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_sys_change_log(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -239,7 +239,7 @@ CREATE TABLE nop_sys_change_log(
   OPERATOR_ID VARCHAR(50) NOT NULL    COMMENT '操作人',
   APPROVER_ID VARCHAR(50) NULL    COMMENT '审核人',
   constraint PK_nop_sys_change_log primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_sys_tag(
   SID BIGINT NOT NULL    COMMENT '主键',
@@ -251,7 +251,7 @@ CREATE TABLE nop_sys_tag(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   constraint PK_nop_sys_tag primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_sys_dict_option(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
@@ -270,7 +270,7 @@ CREATE TABLE nop_sys_dict_option(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_sys_dict_option primary key (SID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_sys_obj_tag(
   BIZ_OBJ_ID VARCHAR(50) NOT NULL    COMMENT '对象ID',
@@ -282,7 +282,7 @@ CREATE TABLE nop_sys_obj_tag(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   constraint PK_nop_sys_obj_tag primary key (BIZ_OBJ_ID,BIZ_OBJ_NAME,TAG_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 
    ALTER TABLE nop_sys_sequence COMMENT '序列号';

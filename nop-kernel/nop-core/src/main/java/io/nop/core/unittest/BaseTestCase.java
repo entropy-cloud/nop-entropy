@@ -304,6 +304,11 @@ public class BaseTestCase {
         return StringHelper.replace(str, "\r\n", "\n");
     }
 
+    public String normalizeJsonString(String str){
+        str = StringHelper.replace(str,"\\r\\n","\\n");
+        return normalizeCRLF(str);
+    }
+
     public File getTargetFile(String subPath) {
         File file = getTargetDir();
         return new File(file, subPath);

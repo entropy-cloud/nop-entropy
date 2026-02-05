@@ -16,7 +16,7 @@ CREATE TABLE nop_tcc_record(
   CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   constraint PK_nop_tcc_record primary key (TXN_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_tcc_branch_record(
   BRANCH_ID VARCHAR(50) NOT NULL    COMMENT '事务分支ID',
@@ -48,7 +48,7 @@ CREATE TABLE nop_tcc_branch_record(
   CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   constraint PK_nop_tcc_branch_record primary key (BRANCH_ID)
-);
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 
    ALTER TABLE nop_tcc_record COMMENT 'TCC事务记录';
