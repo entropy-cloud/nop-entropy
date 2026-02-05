@@ -33,7 +33,7 @@ public class BatchGenLoaderProvider<C> extends AbstractBatchResourceHandler
     private IEvalAction totalCountExpr;
     private ValueResolverCompilerRegistry registry = ValueResolverCompilerRegistry.DEFAULT;
 
-    public void setValueResolverCompilerRegistry(ValueResolverCompilerRegistry registry){
+    public void setValueResolverCompilerRegistry(ValueResolverCompilerRegistry registry) {
         this.registry = registry;
     }
 
@@ -55,10 +55,14 @@ public class BatchGenLoaderProvider<C> extends AbstractBatchResourceHandler
         state.genModel = new BatchGenModelParser().parseFromResource(getResource(context));
         state.genState = new BatchGenState(state.genModel, totalCount);
         state.genContext = new BatchGenContextImpl(registry);
-        return (batchSize, ctx) -> load(batchSize, ctx, state);
+        return (batchSize, ctx) -> {
+            synchronized (state) {
+                return load(batchSize, ctx, state);
+            }
+        };
     }
 
-    synchronized List<Object> load(int batchSize, IBatchChunkContext context, LoaderState state) {
+    List<Object> load(int batchSize, IBatchChunkContext context, LoaderState state) {
         List<Object> ret = new ArrayList<>(batchSize);
         for (int i = 0; i < batchSize; i++) {
             if (!state.genState.hasNext())

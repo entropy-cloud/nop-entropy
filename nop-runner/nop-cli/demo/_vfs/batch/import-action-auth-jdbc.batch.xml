@@ -18,9 +18,9 @@
 - DslModelHelper.loadDslModel(resource) 加载 dsl 模型对象
 -->
 <batch taskName="auth.importActionAuthJdbc" taskVersion="1" batchSize="100"
-       x:schema="/nop/schema/task/batch.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xpl="xpl">
-	   
-	<input name="xdslPath" mandatory="true" />   
+       x:schema="/nop/schema/task/batch.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <param name="xdslPath" mandatory="true"/>
 
     <!--
         Loader 配置
@@ -32,67 +32,72 @@
             import io.nop.core.resource.IResource;
             import io.nop.core.resource.ResourceHelper;
             import io.nop.xlang.xdsl.DslModelHelper;
+            import io.nop.batch.dsl.utils.BatchLoaderHelper;
 
-            let resource = ResourceHelper.resolveRelativeResource(xdslPath);
-            let authModel = DslModelHelper.loadDslModel(resource);
+            function loadAll(taskCtx){
+                let resource = ResourceHelper.resolveRelativeResource(xdslPath);
+                let authModel = DslModelHelper.loadDslModel(resource);
 
-            // 打印解析结果
-            logInfo("authModel.sites={}", authModel.sites);
-            logInfo("authModel.roles={}", authModel.roles);
-            logInfo("authModel.siteCount={}", authModel.sites ? authModel.sites.length : 0);
+                // 打印解析结果
+                logInfo("authModel.sites={}", authModel.sites);
+                logInfo("authModel.roles={}", authModel.roles);
+                logInfo("authModel.siteCount={}", authModel.sites ? authModel.sites.length : 0);
 
-            let allItems = [];
+                let allItems = [];
 
-            let sites = authModel.sites;
-            if (sites) {
-                for (let i = 0; i < sites.length; i++) {
-                    let site = sites[i];
-                    logInfo("site[{}].id={}, displayName={}", i, site.id, site.displayName);
+                let sites = authModel.sites;
+                if (sites) {
+                    for (let i = 0; i < sites.length; i++) {
+                        let site = sites[i];
+                        logInfo("site[{}].id={}, displayName={}", i, site.id, site.displayName);
 
-                    let siteWrapper = {
-                        _type: "site",
-                        _data: site,
-						_orderNo: i
-                    };
-                    allItems.push(siteWrapper);
-
-                    function collectResources(resourceNode, siteId, parentId) {
-                        let itemWrapper = {
-                            _type: "resource",
-                            _data: resourceNode,
-                            _siteId: siteId,
-                            _parentId: parentId
+                        let siteWrapper = {
+                            _type: "site",
+                            _data: site,
+                            _orderNo: i
                         };
-                        allItems.push(itemWrapper);
+                        allItems.push(siteWrapper);
 
-                        let children = resourceNode.children;
-                        if (children) {
-                            for (let j = 0; j < children.length; j++) {
-                                collectResources(children[j], siteId, resourceNode.id);
+                        function collectResources(resourceNode, siteId, parentId) {
+                            let itemWrapper = {
+                                _type: "resource",
+                                _data: resourceNode,
+                                _siteId: siteId,
+                                _parentId: parentId
+                            };
+                            allItems.push(itemWrapper);
+
+                            let children = resourceNode.children;
+                            if (children) {
+                                for (let j = 0; j < children.length; j++) {
+                                    collectResources(children[j], siteId, resourceNode.id);
+                                }
                             }
                         }
+
+                        for(let rootRes of site.resources)
+                          collectResources(rootRes, site.id, null);
                     }
-
-                    for(let rootRes of site.resources)
-                      collectResources(rootRes, site.id, null);
                 }
-            }
 
-            // 收集所有的 role 元素
-            let roles = authModel.roles;
-            if (roles) {
-                for (let i = 0; i < roles.length; i++) {
-                    let itemWrapper = {
-                        _type: "role",
-                        _data: roles[i]
-                    };
-                    allItems.push(itemWrapper);
+                // 收集所有的 role 元素
+                let roles = authModel.roles;
+                if (roles) {
+                    for (let i = 0; i < roles.length; i++) {
+                        let itemWrapper = {
+                            _type: "role",
+                            _data: roles[i]
+                        };
+                        allItems.push(itemWrapper);
+                    }
                 }
-            }
 
-            logInfo("allItems.length={}", allItems.length);
+                logInfo("allItems.length={}", allItems.length);
 
-            return allItems;
+                return allItems;
+           }
+
+           return BatchLoaderHelper.batchLoadWithFullList(batchSize,batchChunkCtx,loadAll);
         ]]></source>
     </loader>
 
@@ -102,18 +107,7 @@
     -->
     <tagger>
         <source><![CDATA[
-            let itemType = item._type;
-            let tags = [];
-
-            if (itemType == "site") {
-                tags.push("site");
-            } else if (itemType == "resource") {
-                tags.push("resource");
-            } else if (itemType == "role") {
-                tags.push("role");
-            }
-
-            return tags;
+            return [item._type];
         ]]></source>
     </tagger>
 
@@ -124,17 +118,17 @@
         <jdbc-writer tableName="nop_auth_site" allowUpdate="true" allowInsert="true">
             <keyFields>site_id</keyFields>
             <fields>
-                <field name="site_id" stdSqlType="VARCHAR" stdDataType="string"/>
-                <field name="display_name" stdSqlType="VARCHAR" stdDataType="string"/>
-				<field name="order_no" stdSqlType="INTEGER"/>
+                <field name="site_id" stdSqlType="VARCHAR"/>
+                <field name="display_name" stdSqlType="VARCHAR"/>
+                <field name="order_no" stdSqlType="INTEGER"/>
 
-                <field name="status" stdSqlType="INTEGER" stdDataType="int"/>
-                <field name="config_version" stdSqlType="VARCHAR" stdDataType="string"/>
-		        <field name="version" stdSqlType="BIGINT" />
-				<field name="created_by" stdSqlType="VARCHAR" />
-				<field name="create_time" stdSqlType="TIMESTAMP" />
-				<field name="updated_by" stdSqlType="VARCHAR" />
-				<field name="update_time" stdSqlType="TIMESTAMP" />
+                <field name="status" stdSqlType="INTEGER"/>
+                <field name="config_version" stdSqlType="VARCHAR"/>
+                <field name="version" stdSqlType="BIGINT"/>
+                <field name="created_by" stdSqlType="VARCHAR"/>
+                <field name="create_time" stdSqlType="TIMESTAMP"/>
+                <field name="updated_by" stdSqlType="VARCHAR"/>
+                <field name="update_time" stdSqlType="TIMESTAMP"/>
             </fields>
         </jdbc-writer>
 
@@ -169,33 +163,33 @@
         <jdbc-writer tableName="nop_auth_resource" allowUpdate="true" allowInsert="true">
             <keyFields>resource_id</keyFields>
             <fields>
-                <field name="resource_id" stdSqlType="VARCHAR" stdDataType="string"/>
-                <field name="site_id" stdSqlType="VARCHAR" stdDataType="string"/>
-                <field name="display_name" stdSqlType="VARCHAR" stdDataType="string"/>
-                <field name="order_no" stdSqlType="INTEGER" stdDataType="int"/>
-                <field name="resource_type" stdSqlType="VARCHAR" stdDataType="string"/>
-                <field name="parent_id" stdSqlType="VARCHAR" stdDataType="string"/>
-                <field name="icon" stdSqlType="VARCHAR" stdDataType="string"/>
-                <field name="route_path" stdSqlType="VARCHAR" stdDataType="string"/>
-                <field name="url" stdSqlType="VARCHAR" stdDataType="string"/>
-                <field name="component" stdSqlType="VARCHAR" stdDataType="string"/>
-                <field name="target" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="resource_id" stdSqlType="VARCHAR"/>
+                <field name="site_id" stdSqlType="VARCHAR"/>
+                <field name="display_name" stdSqlType="VARCHAR"/>
+                <field name="order_no" stdSqlType="INTEGER"/>
+                <field name="resource_type" stdSqlType="VARCHAR"/>
+                <field name="parent_id" stdSqlType="VARCHAR"/>
+                <field name="icon" stdSqlType="VARCHAR"/>
+                <field name="route_path" stdSqlType="VARCHAR"/>
+                <field name="url" stdSqlType="VARCHAR"/>
+                <field name="component" stdSqlType="VARCHAR"/>
+                <field name="target" stdSqlType="VARCHAR"/>
                 <field name="hidden" stdSqlType="TINYINT" stdDataType="boolean"/>
-                <field name="keep_alive" stdSqlType="TINYINT" stdDataType="boolean"/>
-                <field name="permissions" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="keep_alive" from="keepAlive" stdSqlType="TINYINT" stdDataType="boolean"/>
+                <field name="permissions" stdSqlType="VARCHAR"/>
                 <field name="no_auth" stdSqlType="TINYINT" stdDataType="boolean"/>
-                <field name="depends" stdSqlType="VARCHAR" stdDataType="string"/>
+                <field name="depends" stdSqlType="VARCHAR"/>
                 <field name="is_leaf" stdSqlType="TINYINT" stdDataType="boolean"/>
-                <field name="status" stdSqlType="INTEGER" stdDataType="int"/>
+                <field name="status" stdSqlType="INTEGER"/>
                 <field name="auth_cascade_up" stdSqlType="TINYINT" stdDataType="boolean"/>
-                <field name="meta_config" stdSqlType="CLOB" stdDataType="string"/>
-                <field name="props_config" stdSqlType="CLOB" stdDataType="string"/>
-				<field name="version" stdSqlType="BIGINT" />
-				<field name="created_by" stdSqlType="VARCHAR" />
-				<field name="create_time" stdSqlType="TIMESTAMP" />
-				<field name="updated_by" stdSqlType="VARCHAR" />
-				<field name="update_time" stdSqlType="TIMESTAMP" />
-				<field name="del_flag" stdSqlType="TINYINT" />
+                <field name="meta_config" stdSqlType="CLOB"/>
+                <field name="props_config" stdSqlType="CLOB"/>
+                <field name="version" stdSqlType="BIGINT"/>
+                <field name="created_by" stdSqlType="VARCHAR"/>
+                <field name="create_time" stdSqlType="TIMESTAMP"/>
+                <field name="updated_by" stdSqlType="VARCHAR"/>
+                <field name="update_time" stdSqlType="TIMESTAMP"/>
+                <field name="del_flag" stdSqlType="TINYINT"/>
             </fields>
         </jdbc-writer>
 
@@ -217,7 +211,7 @@
                 component: res.component,
                 target: res.target,
                 hidden: res.hidden ? 1 : 0,
-                keep_alive: res.keepAlive ? 1 : 0,
+                keepAlive: res.keepAlive,
                 permissions: res.permissions?.join(","),
                 no_auth: res.noAuth ? 1 : 0,
                 depends: res.depends,

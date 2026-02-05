@@ -75,6 +75,7 @@ public class JdbcBatchSupport {
         provider.setFields(consumerModel.getFields());
         provider.setTableName(consumerModel.getTableName());
         provider.setQuerySpace(consumerModel.getQuerySpace());
+        provider.setFromNameMap(consumerModel.getFromNameMap());
         return provider;
     }
 }

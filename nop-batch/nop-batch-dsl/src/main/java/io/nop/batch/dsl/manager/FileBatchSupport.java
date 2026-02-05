@@ -187,28 +187,4 @@ public class FileBatchSupport {
         io.setHeaderLabels(ioModel.getHeaderLabels());
         return io;
     }
-
-    static final String KEY_LOADER = "batchLoader";
-
-    public static <T> List<T> batchLoad(int batchSize, IBatchChunkContext chunkCtx, IBatchLoaderProvider<T> provider) {
-        IBatchTaskContext taskCtx = chunkCtx.getTaskContext();
-        synchronized (chunkCtx) {
-            IBatchLoaderProvider.IBatchLoader loader = (IBatchLoaderProvider.IBatchLoader) taskCtx.getAttribute(KEY_LOADER);
-            if (loader == null) {
-                loader = provider.setup(taskCtx);
-                taskCtx.setAttribute(KEY_LOADER, loader);
-            }
-            return loader.load(batchSize, chunkCtx);
-        }
-    }
-
-    public static <T> List<T> batchLoadList(int batchSize, IBatchChunkContext chunkCtx,
-                                            Function<IBatchTaskContext, List<T>> listProvider) {
-        return batchLoad(batchSize, chunkCtx, taskCtx -> {
-            List<T> list = listProvider.apply(taskCtx);
-            if (list == null)
-                list = Collections.emptyList();
-            return new ListBatchLoader<>(list);
-        });
-    }
 }

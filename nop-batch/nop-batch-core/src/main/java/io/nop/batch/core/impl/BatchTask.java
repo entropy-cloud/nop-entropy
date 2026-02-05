@@ -108,9 +108,6 @@ public class BatchTask<S> implements IBatchTask {
                 stateStore.loadTaskState(context);
             }
 
-            if(context.getParams() != null)
-                context.getParams().forEach(context.getEvalScope()::setLocalValue);
-
             CompletableFuture<Void> future = new CompletableFuture<>();
 
             IBatchLoaderProvider.IBatchLoader<S> loader;
@@ -120,6 +117,9 @@ public class BatchTask<S> implements IBatchTask {
                     initializers.forEach(initializer -> {
                         initializer.accept(context);
                     });
+
+                if(context.getParams() != null)
+                    context.getParams().forEach(context.getEvalScope()::setLocalValue);
 
                 loader = loaderProvider.setup(context);
                 chunkProcessor = chunkProcessorProvider.setup(loader, context);

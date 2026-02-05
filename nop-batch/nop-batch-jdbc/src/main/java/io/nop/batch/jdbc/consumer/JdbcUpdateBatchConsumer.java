@@ -28,15 +28,18 @@ public class JdbcUpdateBatchConsumer<S> implements IBatchConsumerProvider<S>, IB
     private final Collection<String> keyFields;
 
     private final Map<String, IDataParameterBinder> colBinders;
+    private final Map<String, String> fromNameMap;
 
     public JdbcUpdateBatchConsumer(IJdbcTemplate jdbcTemplate, IDialect dialect, String tableName,
                                    Collection<String> keyFields,
-                                   Map<String, IDataParameterBinder> colBinders) {
+                                   Map<String, IDataParameterBinder> colBinders,
+                                   Map<String, String> fromNameMap) {
         this.jdbcTemplate = jdbcTemplate;
         this.dialect = dialect;
         this.tableName = tableName;
         this.keyFields = keyFields;
         this.colBinders = colBinders;
+        this.fromNameMap = fromNameMap;
     }
 
     @Override
@@ -68,7 +71,8 @@ public class JdbcUpdateBatchConsumer<S> implements IBatchConsumerProvider<S>, IB
         sb.set();
         boolean first = true;
         for (String colName : colBinders.keySet()) {
-            if (!BeanTool.hasProperty(record, colName))
+            String fromName = getFromName(colName);
+            if (!BeanTool.hasProperty(record, fromName))
                 continue;
 
             if (keyFields.contains(colName))
@@ -79,7 +83,7 @@ public class JdbcUpdateBatchConsumer<S> implements IBatchConsumerProvider<S>, IB
             } else {
                 sb.append(',');
             }
-            Object value = BeanTool.getProperty(record, colName);
+            Object value = BeanTool.getProperty(record, fromName);
             sb.eq(colName, value);
         }
         sb.where();
@@ -92,9 +96,18 @@ public class JdbcUpdateBatchConsumer<S> implements IBatchConsumerProvider<S>, IB
             }
             sb.append(keyField).append('=');
             IDataParameterBinder binder = this.colBinders.get(keyField);
-            appendParam(sb, binder, BeanTool.getProperty(record, keyField));
+            appendParam(sb, binder, BeanTool.getProperty(record, getFromName(keyField)));
         }
         return sb.end();
+    }
+
+    String getFromName(String key) {
+        if (fromNameMap == null)
+            return key;
+        String from = fromNameMap.get(key);
+        if (from == null)
+            return key;
+        return from;
     }
 
     void appendParam(SQL.SqlBuilder sb, IDataParameterBinder binder, Object value) {

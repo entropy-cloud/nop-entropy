@@ -91,6 +91,10 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         Object combinedValue;
 
         IBatchTaskContext context;
+
+        synchronized int getProcessingItemsSize() {
+            return processingItems != null ? processingItems.size() : 0;
+        }
     }
 
     public void setEncodingExpr(IEvalAction encodingExpr) {
@@ -158,12 +162,19 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
     public IBatchLoader<S> setup(IBatchTaskContext context) {
         LoaderState<S> state = newLoaderState(context);
         return (batchSize, ctx) -> {
-            ctx.onAfterComplete(err -> onChunkEnd(ctx, err, state));
+            ctx.onAfterComplete(err -> {
+                synchronized (state) {
+                    onChunkEnd(ctx, err, state);
+                }
+            });
             ctx.getTaskContext().onBeforeComplete(() -> {
-                if (state.processingItems != null && !state.processingItems.isEmpty())
+                if (state.getProcessingItemsSize() > 0)
                     throw new IllegalStateException("processingItems must be empty");
             });
-            return load(batchSize, state, ctx);
+
+            synchronized (state) {
+                return load(batchSize, state, ctx);
+            }
         };
     }
 
@@ -236,7 +247,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         }
     }
 
-    public synchronized void onChunkEnd(IBatchChunkContext context, Throwable exception, LoaderState<S> state) {
+    public void onChunkEnd(IBatchChunkContext context, Throwable exception, LoaderState<S> state) {
         if (state.processingItems != null) {
             // 多个chunk有可能被并行处理，所以可能会乱序完成
             long maxRowNumber = -1;
@@ -279,11 +290,11 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
             }
 
             // 通知可能在load中等待容量恢复的线程
-            this.notifyAll();
+            state.notifyAll();
         }
     }
 
-    synchronized List<S> load(int batchSize, LoaderState<S> state, IBatchChunkContext chunkCtx) {
+    List<S> load(int batchSize, LoaderState<S> state, IBatchChunkContext chunkCtx) {
         // 进入时如果发现处理中的条目已经超过限制，则等待一段时间；若等待后仍超过，则不读取，直接抛错
         if (!waitUntilUnderLimit(state)) {
             throw BatchTaskHelper.newTaskError(state.context, ERR_BATCH_TOO_MANY_PROCESSING_ITEMS)
@@ -357,7 +368,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
                 LOG.warn("nop.batch.loader.over-limit:taskName={},taskId={},taskKey={}, processingItems={} > max={}, wait={}ms",
                         state.context.getTaskName(), state.context.getTaskId(), state.context.getTaskKey(),
                         state.processingItems.size(), maxProcessingItems, remaining);
-                this.wait(remaining);
+                state.wait(remaining);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 LOG.warn("nop.batch.loader.wait-interrupted");

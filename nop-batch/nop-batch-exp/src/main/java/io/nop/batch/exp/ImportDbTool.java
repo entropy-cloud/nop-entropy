@@ -21,6 +21,11 @@ import io.nop.batch.core.IBatchTask;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
 import io.nop.batch.core.loader.ResourceRecordLoaderProvider;
+import io.nop.batch.exp.config.ImportDbConfig;
+import io.nop.batch.exp.config.ImportTableConfig;
+import io.nop.batch.exp.config.JdbcConnectionConfig;
+import io.nop.batch.exp.config.TableFieldConfig;
+import io.nop.batch.exp.state.EtlTaskStateStore;
 import io.nop.batch.jdbc.consumer.JdbcInsertBatchConsumer;
 import io.nop.batch.jdbc.consumer.JdbcKeyDuplicateFilter;
 import io.nop.batch.jdbc.consumer.JdbcUpdateBatchConsumer;
@@ -47,11 +52,6 @@ import io.nop.dao.jdbc.impl.JdbcFactory;
 import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dbtool.core.DataBaseMeta;
 import io.nop.dbtool.core.discovery.jdbc.JdbcMetaDiscovery;
-import io.nop.batch.exp.config.ImportDbConfig;
-import io.nop.batch.exp.config.ImportTableConfig;
-import io.nop.batch.exp.config.JdbcConnectionConfig;
-import io.nop.batch.exp.config.TableFieldConfig;
-import io.nop.batch.exp.state.EtlTaskStateStore;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.OrmEntityModel;
 import io.nop.xlang.api.XLang;
@@ -313,10 +313,10 @@ public class ImportDbTool {
 
             IBatchConsumerProvider<Map<String, Object>> historyConsumer = null;
             if (Boolean.TRUE.equals(tableConfig.getAllowUpdate())) {
-                historyConsumer = new JdbcUpdateBatchConsumer<>(jdbc, dialect, tableConfig.getName(), tableConfig.getKeyFields(), binders);
+                historyConsumer = new JdbcUpdateBatchConsumer<>(jdbc, dialect, tableConfig.getName(), tableConfig.getKeyFields(), binders,null);
             }
 
-            IBatchRecordHistoryStore<Map<String, Object>> historyStore = new JdbcKeyDuplicateFilter<>(jdbc, tableConfig.getName(), colBinders);
+            IBatchRecordHistoryStore<Map<String, Object>> historyStore = new JdbcKeyDuplicateFilter<>(jdbc, tableConfig.getName(), colBinders,null);
             builder.historyConsumer(historyConsumer);
             builder.historyStore(historyStore);
         }
@@ -391,7 +391,7 @@ public class ImportDbTool {
     private IBatchConsumerProvider<Map<String, Object>> newConsumer(ImportTableConfig tableConfig,
                                                                     IJdbcTemplate jdbc, Map<String, IDataParameterBinder> binders) {
         JdbcInsertBatchConsumer<Map<String, Object>> consumer =
-                new JdbcInsertBatchConsumer<>(jdbc, this.dialect, tableConfig.getName(), binders);
+                new JdbcInsertBatchConsumer<>(jdbc, this.dialect, tableConfig.getName(), binders, null);
         return consumer;
     }
 

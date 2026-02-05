@@ -164,7 +164,7 @@ public class JdbcBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
 
         PreparedStatement ps;
 
-        public void close() {
+        public synchronized void close() {
             IoHelper.safeCloseObject(ps);
             IoHelper.safeCloseObject(dataSet);
             if (closeConnection)
@@ -177,7 +177,11 @@ public class JdbcBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
     public IBatchLoader<T> setup(IBatchTaskContext context) {
         LoaderState state = newState(context);
         context.onAfterComplete(err -> state.close());
-        return (batchSize, ctx) -> load(batchSize, ctx, state);
+        return (batchSize, ctx) -> {
+            synchronized (state) {
+                return load(batchSize, ctx, state);
+            }
+        };
     }
 
     LoaderState newState(IBatchTaskContext context) {
@@ -265,7 +269,7 @@ public class JdbcBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
         }
     }
 
-    synchronized List<T> load(int batchSize, IBatchChunkContext context, LoaderState state) {
+    List<T> load(int batchSize, IBatchChunkContext context, LoaderState state) {
         List<T> list = RecordInputImpls.defaultReadBatch(state.dataSet, batchSize,
                 row -> {
                     T data = rowMapper.mapRow(row, -1, DefaultFieldMapper.INSTANCE);

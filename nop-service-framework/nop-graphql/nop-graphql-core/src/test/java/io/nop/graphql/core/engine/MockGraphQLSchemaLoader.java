@@ -49,7 +49,7 @@ public class MockGraphQLSchemaLoader implements IGraphQLSchemaLoader {
 
         bizModels.build(typeRegistry, beans);
 
-        System.out.println(JsonTool.serialize(bizModels, true));
+        //System.out.println(JsonTool.serialize(bizModels, true));
 
         for (GraphQLObjectDefinition def : defs.values()) {
             bizModels.customize(def);

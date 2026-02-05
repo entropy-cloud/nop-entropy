@@ -27,13 +27,16 @@ public class JdbcInsertBatchConsumer<S> implements IBatchConsumerProvider<S>, IB
     private final String tableName;
 
     private final Map<String, IDataParameterBinder> colBinders;
+    private final Map<String, String> fromNameMap;
 
     public JdbcInsertBatchConsumer(IJdbcTemplate jdbcTemplate, IDialect dialect, String tableName,
-                                   Map<String, IDataParameterBinder> colBinders) {
+                                   Map<String, IDataParameterBinder> colBinders,
+                                   Map<String, String> fromNameMap) {
         this.jdbcTemplate = jdbcTemplate;
         this.dialect = dialect;
         this.tableName = tableName;
         this.colBinders = colBinders;
+        this.fromNameMap = fromNameMap;
     }
 
     @Override
@@ -66,7 +69,8 @@ public class JdbcInsertBatchConsumer<S> implements IBatchConsumerProvider<S>, IB
         sb.append('(');
         boolean first = true;
         for (String colName : colBinders.keySet()) {
-            if (!BeanTool.hasProperty(record, colName))
+            String fromName = getFromName(colName);
+            if (!BeanTool.hasProperty(record, fromName))
                 continue;
 
             if (first) {
@@ -79,7 +83,9 @@ public class JdbcInsertBatchConsumer<S> implements IBatchConsumerProvider<S>, IB
         sb.append(") values (");
         first = true;
         for (Map.Entry<String, IDataParameterBinder> entry : colBinders.entrySet()) {
-            if (!BeanTool.hasProperty(record, entry.getKey()))
+            String fromName = getFromName(entry.getKey());
+
+            if (!BeanTool.hasProperty(record, fromName))
                 continue;
             if (first) {
                 first = false;
@@ -87,10 +93,19 @@ public class JdbcInsertBatchConsumer<S> implements IBatchConsumerProvider<S>, IB
                 sb.append(',');
             }
 
-            appendParam(sb, entry.getValue(), BeanTool.getProperty(record, entry.getKey()));
+            appendParam(sb, entry.getValue(), BeanTool.getProperty(record, fromName));
         }
         sb.append(')');
         return sb.end();
+    }
+
+    String getFromName(String key) {
+        if (fromNameMap == null)
+            return key;
+        String from = fromNameMap.get(key);
+        if (from == null)
+            return key;
+        return from;
     }
 
     void appendParam(SQL.SqlBuilder sb, IDataParameterBinder binder, Object value) {

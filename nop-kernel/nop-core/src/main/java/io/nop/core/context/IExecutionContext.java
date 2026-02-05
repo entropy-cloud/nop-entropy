@@ -15,7 +15,7 @@ import io.nop.core.lang.eval.IEvalScope;
 
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 public interface IExecutionContext extends IEvalContext, IAttributeSet, ICancellable {
 
@@ -68,12 +68,7 @@ public interface IExecutionContext extends IEvalContext, IAttributeSet, ICancell
         return isDone() && getError() != null;
     }
 
-    default <T> T computeIfAbsent(String key, Supplier<T> supplier) {
-        T ret = (T) getEvalScope().getValue(key);
-        if (ret == null) {
-            ret = supplier.get();
-            getEvalScope().setLocalValue(key, ret);
-        }
-        return ret;
+    default <T> T computeIfAbsent(String key, Function<String, T> builder) {
+        return getEvalScope().computeIfAbsent(key, builder);
     }
 }

@@ -75,10 +75,14 @@ public class JdbcPageBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
         LoaderState state = new LoaderState();
         state.sql = sqlGenerator.generateSql(context);
 
-        return (batchSize, ctx) -> load(batchSize, ctx, state);
+        return (batchSize, ctx) -> {
+            synchronized (state) {
+                return load(batchSize, ctx, state);
+            }
+        };
     }
 
-    synchronized List<T> load(int batchSize, IBatchChunkContext context, LoaderState state) {
+    List<T> load(int batchSize, IBatchChunkContext context, LoaderState state) {
         LongRangeBean range = state.range;
         if (range == null) {
             range = LongRangeBean.longRange(0, batchSize);

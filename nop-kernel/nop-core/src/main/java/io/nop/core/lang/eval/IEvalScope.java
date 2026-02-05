@@ -17,6 +17,7 @@ import io.nop.core.reflect.IClassModelLoader;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import static io.nop.core.CoreConfigs.CFG_EVAL_SCOPE_DEBUG_ENABLED;
 
@@ -40,6 +41,17 @@ public interface IEvalScope extends IVariableScope, IEvalContext {
     void setClassModelLoader(IClassModelLoader classModelLoader);
 
     void setExtension(IVariableScope extension);
+
+    default <T> T computeIfAbsent(String key, Function<String, T> builder) {
+        synchronized (this) {
+            Object value = getLocalValue(key);
+            if (value == null) {
+                value = builder.apply(key);
+                setLocalValue(key, value);
+            }
+            return (T) value;
+        }
+    }
 
     /**
      * 当变量在scope中找不到时，会自动到parentScope中查找

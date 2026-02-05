@@ -55,7 +55,7 @@ public class DefaultBizEntityExporter extends AbstractBizEntityService implement
             taskCtx.addAttributes(config.getMetaData());
 
         IResource tempResource = ResourceHelper.getTempResource("export");
-        taskCtx.addParam(BizReportConstants.VAR_EXPORT_FILE_PATH, tempResource.getPath());
+        taskCtx.setParam(BizReportConstants.VAR_EXPORT_FILE_PATH, tempResource.getPath());
 
         return task.executeAsync(taskCtx).thenApply(ret -> {
             return buildWebContentBean(taskCtx, config, tempResource);

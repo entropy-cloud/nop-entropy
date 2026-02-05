@@ -17,16 +17,12 @@
        xdef:model-name-prop="taskName" xdef:model-version-prop="taskVersion"
        xmlns:xdef="/nop/schema/xdef.xdef"
 >
-    <!--
-    @persist [是否持久化保存] 标记为persist的变量会自动保存，支持中断后恢复执行
-    -->
-    <input name="!var-name" displayName="string" xdef:name="BatchInputModel" defaultValue="any"
-           type="generic-type" mandatory="!boolean=false" role="string" value="t-expr" optional="!boolean=false"
-           xdef:unique-attr="name" persist="!boolean=true" fromTaskScope="!boolean=false" dump="!boolean=false">
+
+    <param name="!var-name" displayName="string" xdef:name="BatchParamModel" defaultValue="any"
+           type="generic-type" mandatory="!boolean=false" xdef:unique-attr="name">
         <description>string</description>
         <schema xdef:ref="../schema/schema.xdef"/>
-        <source>xpl</source>
-    </input>
+    </param>
 
     <!-- taskKey用于区分taskName相同的不同执行实例。同样的taskName+taskKey只允许执行一次 -->
     <taskKeyExpr>xpl-fn:(batchTaskCtx)=>string</taskKeyExpr>
@@ -82,7 +78,8 @@
 
         <!-- 提供分区自动拆分能力 -->
         <dispatcher xdef:name="BatchLoaderDispatcherModel"
-                    fetchThreadCount="!int=0" loadBatchSize="!int=100" executor="bean-name" partitionIndexField="prop-path">
+                    fetchThreadCount="!int=0" loadBatchSize="!int=100" executor="bean-name"
+                    partitionIndexField="prop-path">
             <!-- 如果没有指定partitionIndexField，可以执行代码动态计算得到partitionIndex -->
             <partitionFn>xpl-fn:(item,batchTaskCtx)=>int</partitionFn>
         </dispatcher>
@@ -195,6 +192,10 @@
                      allowUpdate="!boolean=false"
                      allowInsert="!boolean=true">
             <keyFields>csv-set</keyFields>
+            <!--
+             @stdSqlType SQL 类型，可选值：io.nop.commons.type.StdSqlType 枚举
+             @stdDataType 数据类型，可选值：io.nop.commons.type.StdDataType 枚举
+             -->
             <fields xdef:body-type="list" xdef:key-attr="name">
                 <field name="!string" from="string" stdSqlType="!std-sql-type" stdDataType="std-data-type"
                        xdef:name="BatchWriteFieldModel"/>

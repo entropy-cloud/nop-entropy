@@ -23,6 +23,7 @@ public class JdbcBatchConsumerProvider<R> implements IBatchConsumerProvider<R> {
     private String tableName;
 
     private List<? extends IDataFieldMeta> fields;
+    private Map<String, String> fromNameMap;
     private Collection<String> keyFields;
     private boolean allowUpdate;
     private boolean allowInsert;
@@ -80,6 +81,10 @@ public class JdbcBatchConsumerProvider<R> implements IBatchConsumerProvider<R> {
         this.fields = fields;
     }
 
+    public void setFromNameMap(Map<String, String> fromNameMap) {
+        this.fromNameMap = fromNameMap;
+    }
+
     @Override
     public IBatchConsumer<R> setup(IBatchTaskContext context) {
         if (fields == null || fields.isEmpty()) {
@@ -90,16 +95,16 @@ public class JdbcBatchConsumerProvider<R> implements IBatchConsumerProvider<R> {
 
         Map<String, IDataParameterBinder> colBinders = JdbcDataSetHelper.getColBinders(fields, dialect);
         if (keyFields == null || keyFields.isEmpty()) {
-            return new JdbcInsertBatchConsumer<>(jdbcTemplate, dialect, tableName, colBinders);
+            return new JdbcInsertBatchConsumer<>(jdbcTemplate, dialect, tableName, colBinders, fromNameMap);
         } else {
             Map<String, IDataParameterBinder> keyBinders = new CaseInsensitiveMap<>();
             for (String keyField : keyFields) {
                 keyBinders.put(keyField, colBinders.get(keyField));
             }
 
-            IBatchRecordHistoryStore<R> historyStore = new JdbcKeyDuplicateFilter<>(jdbcTemplate, tableName, keyBinders);
-            IBatchConsumer<R> insertConsumer = allowInsert ? new JdbcInsertBatchConsumer<>(jdbcTemplate, dialect, tableName, colBinders) : EmptyBatchConsumer.instance();
-            IBatchConsumer<R> updateConsumer = allowUpdate ? new JdbcUpdateBatchConsumer<>(jdbcTemplate, dialect, tableName, keyFields, colBinders) : null;
+            IBatchRecordHistoryStore<R> historyStore = new JdbcKeyDuplicateFilter<>(jdbcTemplate, tableName, keyBinders, fromNameMap);
+            IBatchConsumer<R> insertConsumer = allowInsert ? new JdbcInsertBatchConsumer<>(jdbcTemplate, dialect, tableName, colBinders, fromNameMap) : EmptyBatchConsumer.instance();
+            IBatchConsumer<R> updateConsumer = allowUpdate ? new JdbcUpdateBatchConsumer<>(jdbcTemplate, dialect, tableName, keyFields, colBinders, fromNameMap) : null;
 
             WithHistoryBatchConsumer<R> consumer = new WithHistoryBatchConsumer<>(historyStore, insertConsumer, updateConsumer);
             return consumer;

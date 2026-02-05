@@ -81,13 +81,6 @@ public abstract class _BatchTaskModel extends io.nop.batch.dsl.model.BatchListen
     
     /**
      *  
-     * xml name: input
-     * 
-     */
-    private KeyedList<io.nop.batch.dsl.model.BatchInputModel> _inputs = KeyedList.emptyList();
-    
-    /**
-     *  
      * xml name: jitterRatio
      * 多线程执行时，如果每个线程处理的batchSize都相同，则可能导致同时读取数据库和同时写数据库，产生资源征用。 通过设置一个随机比例，将每个线程处理的batchSize动态调整为originalBatchSize * (1
      * + jitterRatio * random)， 使得每个线程的每个批次的负载随机化，从而破坏潜在的同步效应。
@@ -107,6 +100,13 @@ public abstract class _BatchTaskModel extends io.nop.batch.dsl.model.BatchListen
      * 
      */
     private io.nop.batch.dsl.model.BatchLoaderModel _loader ;
+    
+    /**
+     *  
+     * xml name: param
+     * 
+     */
+    private KeyedList<io.nop.batch.dsl.model.BatchParamModel> _params = KeyedList.emptyList();
     
     /**
      *  
@@ -445,51 +445,6 @@ public abstract class _BatchTaskModel extends io.nop.batch.dsl.model.BatchListen
     
     /**
      * 
-     * xml name: input
-     *  
-     */
-    
-    public java.util.List<io.nop.batch.dsl.model.BatchInputModel> getInputs(){
-      return _inputs;
-    }
-
-    
-    public void setInputs(java.util.List<io.nop.batch.dsl.model.BatchInputModel> value){
-        checkAllowChange();
-        
-        this._inputs = KeyedList.fromList(value, io.nop.batch.dsl.model.BatchInputModel::getName);
-           
-    }
-
-    
-    public io.nop.batch.dsl.model.BatchInputModel getInput(String name){
-        return this._inputs.getByKey(name);
-    }
-
-    public boolean hasInput(String name){
-        return this._inputs.containsKey(name);
-    }
-
-    public void addInput(io.nop.batch.dsl.model.BatchInputModel item) {
-        checkAllowChange();
-        java.util.List<io.nop.batch.dsl.model.BatchInputModel> list = this.getInputs();
-        if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.batch.dsl.model.BatchInputModel::getName);
-            setInputs(list);
-        }
-        list.add(item);
-    }
-    
-    public java.util.Set<String> keySet_inputs(){
-        return this._inputs.keySet();
-    }
-
-    public boolean hasInputs(){
-        return !this._inputs.isEmpty();
-    }
-    
-    /**
-     * 
      * xml name: jitterRatio
      *  多线程执行时，如果每个线程处理的batchSize都相同，则可能导致同时读取数据库和同时写数据库，产生资源征用。 通过设置一个随机比例，将每个线程处理的batchSize动态调整为originalBatchSize * (1
      * + jitterRatio * random)， 使得每个线程的每个批次的负载随机化，从而破坏潜在的同步效应。
@@ -545,6 +500,51 @@ public abstract class _BatchTaskModel extends io.nop.batch.dsl.model.BatchListen
            
     }
 
+    
+    /**
+     * 
+     * xml name: param
+     *  
+     */
+    
+    public java.util.List<io.nop.batch.dsl.model.BatchParamModel> getParams(){
+      return _params;
+    }
+
+    
+    public void setParams(java.util.List<io.nop.batch.dsl.model.BatchParamModel> value){
+        checkAllowChange();
+        
+        this._params = KeyedList.fromList(value, io.nop.batch.dsl.model.BatchParamModel::getName);
+           
+    }
+
+    
+    public io.nop.batch.dsl.model.BatchParamModel getParam(String name){
+        return this._params.getByKey(name);
+    }
+
+    public boolean hasParam(String name){
+        return this._params.containsKey(name);
+    }
+
+    public void addParam(io.nop.batch.dsl.model.BatchParamModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.batch.dsl.model.BatchParamModel> list = this.getParams();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.batch.dsl.model.BatchParamModel::getName);
+            setParams(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_params(){
+        return this._params.keySet();
+    }
+
+    public boolean hasParams(){
+        return !this._params.isEmpty();
+    }
     
     /**
      * 
@@ -890,11 +890,11 @@ public abstract class _BatchTaskModel extends io.nop.batch.dsl.model.BatchListen
             
            this._inputSorter = io.nop.api.core.util.FreezeHelper.deepFreeze(this._inputSorter);
             
-           this._inputs = io.nop.api.core.util.FreezeHelper.deepFreeze(this._inputs);
-            
            this._loadRetryPolicy = io.nop.api.core.util.FreezeHelper.deepFreeze(this._loadRetryPolicy);
             
            this._loader = io.nop.api.core.util.FreezeHelper.deepFreeze(this._loader);
+            
+           this._params = io.nop.api.core.util.FreezeHelper.deepFreeze(this._params);
             
            this._processors = io.nop.api.core.util.FreezeHelper.deepFreeze(this._processors);
             
@@ -920,10 +920,10 @@ public abstract class _BatchTaskModel extends io.nop.batch.dsl.model.BatchListen
         out.putNotNull("executor",this.getExecutor());
         out.putNotNull("historyStore",this.getHistoryStore());
         out.putNotNull("inputSorter",this.getInputSorter());
-        out.putNotNull("inputs",this.getInputs());
         out.putNotNull("jitterRatio",this.getJitterRatio());
         out.putNotNull("loadRetryPolicy",this.getLoadRetryPolicy());
         out.putNotNull("loader",this.getLoader());
+        out.putNotNull("params",this.getParams());
         out.putNotNull("processors",this.getProcessors());
         out.putNotNull("rateLimit",this.getRateLimit());
         out.putNotNull("retryOneByOne",this.getRetryOneByOne());
@@ -960,10 +960,10 @@ public abstract class _BatchTaskModel extends io.nop.batch.dsl.model.BatchListen
         instance.setExecutor(this.getExecutor());
         instance.setHistoryStore(this.getHistoryStore());
         instance.setInputSorter(this.getInputSorter());
-        instance.setInputs(this.getInputs());
         instance.setJitterRatio(this.getJitterRatio());
         instance.setLoadRetryPolicy(this.getLoadRetryPolicy());
         instance.setLoader(this.getLoader());
+        instance.setParams(this.getParams());
         instance.setProcessors(this.getProcessors());
         instance.setRateLimit(this.getRateLimit());
         instance.setRetryOneByOne(this.getRetryOneByOne());

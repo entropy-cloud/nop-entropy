@@ -33,11 +33,15 @@ public class JdbcKeyDuplicateFilter<S> implements IBatchRecordHistoryStore<S> {
     private final IJdbcTemplate jdbcTemplate;
     private final String tableName;
     private final Map<String, IDataParameterBinder> keyBinders;
+    private final Map<String, String> fromNameMap;
 
-    public JdbcKeyDuplicateFilter(IJdbcTemplate jdbcTemplate, String tableName, Map<String, IDataParameterBinder> keyBinders) {
+    public JdbcKeyDuplicateFilter(IJdbcTemplate jdbcTemplate, String tableName,
+                                  Map<String, IDataParameterBinder> keyBinders,
+                                  Map<String, String> fromNameMap) {
         this.jdbcTemplate = jdbcTemplate;
         this.tableName = tableName;
         this.keyBinders = keyBinders;
+        this.fromNameMap = fromNameMap;
     }
 
     @Override
@@ -46,8 +50,9 @@ public class JdbcKeyDuplicateFilter<S> implements IBatchRecordHistoryStore<S> {
             String keyCol = CollectionHelper.first(keyBinders.keySet());
             IDataParameterBinder binder = keyBinders.get(keyCol);
             Map<String, S> keyMap = new LinkedHashMap<>();
+            String fromName = getFromName(keyCol);
             records.forEach(record -> {
-                String key = ConvertHelper.toString(BeanTool.getProperty(record, keyCol));
+                String key = ConvertHelper.toString(BeanTool.getProperty(record, fromName));
                 keyMap.put(key, record);
             });
 
@@ -75,6 +80,15 @@ public class JdbcKeyDuplicateFilter<S> implements IBatchRecordHistoryStore<S> {
         }
     }
 
+    String getFromName(String key) {
+        if (fromNameMap == null)
+            return key;
+        String from = fromNameMap.get(key);
+        if (from == null)
+            return key;
+        return from;
+    }
+
     private SQL buildSelectByKeySql(Collection<S> records, String keyCol, IDataParameterBinder binder) {
         SQL.SqlBuilder sb = SQL.begin();
         sb.select().append(keyCol);
@@ -82,7 +96,7 @@ public class JdbcKeyDuplicateFilter<S> implements IBatchRecordHistoryStore<S> {
         sb.where().sql(keyCol).append(" in ");
         sb.append('(');
         sb.forEach(",", records, (s, record) -> {
-            Object value = BeanTool.getProperty(record, keyCol);
+            Object value = BeanTool.getProperty(record, getFromName(keyCol));
             value = binder.getStdDataType().convert(value);
             sb.typeParam(binder, value, false);
         });
@@ -95,7 +109,7 @@ public class JdbcKeyDuplicateFilter<S> implements IBatchRecordHistoryStore<S> {
         List<String> ret = new ArrayList<>(keyBinders.size());
         for (Map.Entry<String, IDataParameterBinder> entry : keyBinders.entrySet()) {
             String col = entry.getKey();
-            Object value = BeanTool.getProperty(record, col);
+            Object value = BeanTool.getProperty(record, getFromName(col));
             ret.add(StringHelper.toString(value, ""));
         }
         return ret;
@@ -117,7 +131,7 @@ public class JdbcKeyDuplicateFilter<S> implements IBatchRecordHistoryStore<S> {
         sb.forEach(",", keyBinders.entrySet(), (s, entry) -> {
             String pkCol = entry.getKey();
             IDataParameterBinder binder = entry.getValue();
-            Object value = BeanTool.getProperty(record, pkCol);
+            Object value = BeanTool.getProperty(record, getFromName(pkCol));
             value = binder.getStdDataType().convert(value);
             sb.typeParam(binder, value, false);
         });

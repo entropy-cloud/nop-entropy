@@ -36,6 +36,7 @@ import io.nop.batch.dsl.model.BatchHistoryStoreModel;
 import io.nop.batch.dsl.model.BatchListenersModel;
 import io.nop.batch.dsl.model.BatchLoaderDispatcherModel;
 import io.nop.batch.dsl.model.BatchLoaderModel;
+import io.nop.batch.dsl.model.BatchParamModel;
 import io.nop.batch.dsl.model.BatchProcessorModel;
 import io.nop.batch.dsl.model.BatchTaggerModel;
 import io.nop.batch.dsl.model.BatchTaskModel;
@@ -48,7 +49,6 @@ import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalFunction;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.dao.api.IDaoProvider;
@@ -72,8 +72,10 @@ import java.util.concurrent.Executor;
 
 import static io.nop.batch.dsl.BatchDslErrors.ARG_BATCH_TASK_NAME;
 import static io.nop.batch.dsl.BatchDslErrors.ARG_BEAN_NAME;
+import static io.nop.batch.dsl.BatchDslErrors.ARG_INPUT_NAME;
 import static io.nop.batch.dsl.BatchDslErrors.ARG_PROCESSOR_NAME;
 import static io.nop.batch.dsl.BatchDslErrors.ARG_VALUE;
+import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_INPUT_MANDATORY_NOT_PROVIDED;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_INVALID_CONSUMER;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_INVALID_HISTORY_STORE_BEAN;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_INVALID_LOADER;
@@ -192,7 +194,7 @@ public class ModelBasedBatchTaskBuilderFactory {
 
         addListeners(builder, batchTaskModel);
 
-        addInputsInitializer(builder, batchTaskModel);
+        addParamsInitializer(builder, batchTaskModel);
 
         buildTask(builder, beanContainer);
 
@@ -410,10 +412,15 @@ public class ModelBasedBatchTaskBuilderFactory {
         } else if (loaderModel.getProvider() != null) {
             return newLoaderProvider(loaderModel.getProvider());
         } else if (loaderModel.getSource() != null) {
-            return context -> (batchSize, ctx) -> (List<Object>) loaderModel.getSource().call2(null,
-                    batchSize, ctx, ctx.getEvalScope());
+            return context -> (batchSize, ctx) -> safeLoad(loaderModel.getSource(), batchSize, ctx);
         } else {
             return null;
+        }
+    }
+
+    private List<Object> safeLoad(IEvalFunction fn, int batchSize, IBatchChunkContext ctx) {
+        synchronized (ctx) {
+            return (List<Object>) fn.call2(null, batchSize, ctx, ctx.getEvalScope());
         }
     }
 
@@ -426,7 +433,7 @@ public class ModelBasedBatchTaskBuilderFactory {
                 return new ListBatchLoader<>((List<Object>) value);
             if (value instanceof IEvalFunction) {
                 IEvalFunction fn = (IEvalFunction) value;
-                return (batchSize, batchChunkCtx) -> (List) fn.call2(null, batchSize, batchChunkCtx, batchChunkCtx.getEvalScope());
+                return (batchSize, batchChunkCtx) -> safeLoad(fn, batchSize, batchChunkCtx);
             }
             throw new NopException(ERR_BATCH_TASK_INVALID_LOADER).param(ARG_BATCH_TASK_NAME, taskCtx.getTaskName())
                     .param(ARG_VALUE, value);
@@ -581,35 +588,27 @@ public class ModelBasedBatchTaskBuilderFactory {
         }
     }
 
-    private void addInputsInitializer(BatchTaskBuilder<Object, Object> builder, BatchTaskModel batchTaskModel) {
-        if (batchTaskModel.getInputs() == null || batchTaskModel.getInputs().isEmpty())
+    private void addParamsInitializer(BatchTaskBuilder<Object, Object> builder, BatchTaskModel batchTaskModel) {
+        if (batchTaskModel.getParams() == null || batchTaskModel.getParams().isEmpty())
             return;
 
         builder.addTaskInitializer(context -> {
-            IEvalScope scope = context.getEvalScope();
-            for (io.nop.batch.dsl.model.BatchInputModel inputModel : batchTaskModel.getInputs()) {
+            for (BatchParamModel inputModel : batchTaskModel.getParams()) {
                 String name = inputModel.getName();
-                IEvalAction expr = inputModel.getValue();
-                Object value = expr == null ? scope.getValue(name) : expr.invoke(scope);
+                Object value = context.getParam(name);
+                if (value == null)
+                    value = inputModel.getDefaultValue();
+
+                if (inputModel.getType() != null)
+                    value = inputModel.getType().getStdDataType().convert(value, err -> new NopException(err).source(inputModel).param(ARG_INPUT_NAME, name));
 
                 if (inputModel.isMandatory() && value == null) {
-                    throw new NopException(io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_INPUT_MANDATORY_NOT_PROVIDED)
-                            .param(io.nop.batch.dsl.BatchDslErrors.ARG_BATCH_TASK_NAME, batchTaskModel.getTaskName())
-                            .param(io.nop.batch.dsl.BatchDslErrors.ARG_INPUT_NAME, name);
+                    throw new NopException(ERR_BATCH_INPUT_MANDATORY_NOT_PROVIDED)
+                            .param(ARG_BATCH_TASK_NAME, batchTaskModel.getTaskName())
+                            .param(ARG_INPUT_NAME, name);
                 }
 
-                scope.setLocalValue(name, value);
-
-                if (inputModel.isDump()) {
-                    Object dumpValue = value;
-                    if (value != null) {
-                        String str = String.valueOf(value);
-                        if (str.length() > 200) {
-                            dumpValue = value.getClass().getName();
-                        }
-                    }
-                    LOG.info("nop.batch.init-input:taskName={},name={},value={}", batchTaskModel.getTaskName(), name, dumpValue);
-                }
+                context.setParam(name, value);
             }
         });
     }

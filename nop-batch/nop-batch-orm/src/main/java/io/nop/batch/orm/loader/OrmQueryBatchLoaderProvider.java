@@ -96,7 +96,11 @@ public class OrmQueryBatchLoaderProvider<S extends IDaoEntity> implements IBatch
     @Override
     public IBatchLoader<S> setup(IBatchTaskContext context) {
         LoaderState<S> state = newLoaderState(context);
-        return (batchSize, ctx) -> load(batchSize, state);
+        return (batchSize, ctx) -> {
+            synchronized (state) {
+                return load(batchSize, state);
+            }
+        };
     }
 
     LoaderState<S> newLoaderState(IBatchTaskContext context) {
@@ -117,7 +121,7 @@ public class OrmQueryBatchLoaderProvider<S extends IDaoEntity> implements IBatch
         return state;
     }
 
-    synchronized List<S> load(int batchSize, LoaderState<S> state) {
+    List<S> load(int batchSize, LoaderState<S> state) {
         IEntityDao<S> dao = state.dao;
         List<S> list = dao.findNext(state.lastEntity, state.query.getFilter(), state.query.getOrderBy(), batchSize);
 
