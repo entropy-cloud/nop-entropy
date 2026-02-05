@@ -7,10 +7,10 @@
  */
 package io.nop.report.demo.imp;
 
+import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.util.CloneHelper;
-import io.nop.autotest.junit.JunitBaseTestCase;
-import io.nop.commons.util.FileHelper;
+import io.nop.autotest.junit.JunitBaseTestCase;import io.nop.commons.util.FileHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;

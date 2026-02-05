@@ -141,11 +141,10 @@ public class BizObjectBuilder {
         }
 
         bizObj.setObjectDefinition(objDef);
-        if(bizModel.getBizModelBeans() != null)
+        if(bizModel != null && bizModel.getBizModelBeans() != null)
             bizObj.setBizModelBeans(bizModel.getBizModelBeans());
 
         buildOperations(bizObj, bizModel);
-
         // 删除所有meta中没有定义的字段。如果存在meta，则所有GraphQL返回数据以meta为准。
         objDef.removeFieldsNotInMeta();
 

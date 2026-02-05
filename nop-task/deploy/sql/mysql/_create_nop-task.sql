@@ -14,11 +14,10 @@ CREATE TABLE nop_task_definition(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_task_definition primary key (TASK_DEF_ID)
-)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_task_instance(
-  TASK_INSTANCE_ID VARCHAR(32) NOT NULL    COMMENT '主键',
-  TASK_NAME VARCHAR(500) NOT NULL    COMMENT '逻辑流名称',
+  TASK_INSTANCE_ID VARCHAR(32) NOT NULL    COMMENT '主键',  TASK_NAME VARCHAR(500) NOT NULL    COMMENT '逻辑流名称',
   TASK_VERSION BIGINT NOT NULL    COMMENT '逻辑流版本',
   TASK_INPUTS VARCHAR(4000) NULL    COMMENT '逻辑流参数',
   TASK_GROUP VARCHAR(100) NOT NULL    COMMENT '逻辑流分组',
@@ -54,11 +53,10 @@ CREATE TABLE nop_task_instance(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_task_instance primary key (TASK_INSTANCE_ID)
-)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_task_definition_auth(
-  SID VARCHAR(32) NOT NULL    COMMENT '主键',
-  TASK_DEF_ID VARCHAR(32) NOT NULL    COMMENT '工作流定义ID',
+  SID VARCHAR(32) NOT NULL    COMMENT '主键',  TASK_DEF_ID VARCHAR(32) NOT NULL    COMMENT '工作流定义ID',
   ACTOR_TYPE VARCHAR(10) NOT NULL    COMMENT '参与者类型',
   ACTOR_ID VARCHAR(100) NOT NULL    COMMENT '参与者ID',
   ACTOR_DEPT_ID VARCHAR(50) NULL    COMMENT '参与者部门ID',
@@ -73,11 +71,10 @@ CREATE TABLE nop_task_definition_auth(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_task_definition_auth primary key (SID)
-)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 CREATE TABLE nop_task_step_instance(
-  STEP_INSTANCE_ID VARCHAR(32) NOT NULL    COMMENT '步骤ID',
-  TASK_INSTANCE_ID VARCHAR(32) NOT NULL    COMMENT '逻辑流实例ID',
+  STEP_INSTANCE_ID VARCHAR(32) NOT NULL    COMMENT '步骤ID',  TASK_INSTANCE_ID VARCHAR(32) NOT NULL    COMMENT '逻辑流实例ID',
   STEP_TYPE VARCHAR(20) NOT NULL    COMMENT '步骤类型',
   STEP_NAME VARCHAR(200) NOT NULL    COMMENT '步骤名称',
   DISPLAY_NAME VARCHAR(200) NOT NULL    COMMENT '步骤显示名称',
@@ -108,11 +105,10 @@ CREATE TABLE nop_task_step_instance(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_task_step_instance primary key (STEP_INSTANCE_ID)
-)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;;
+)CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 
-   ALTER TABLE nop_task_definition COMMENT '逻辑流模型定义';
-                
+   ALTER TABLE nop_task_definition COMMENT '逻辑流模型定义';                
    ALTER TABLE nop_task_instance COMMENT '逻辑流实例';
                 
    ALTER TABLE nop_task_definition_auth COMMENT '逻辑流定义权限';

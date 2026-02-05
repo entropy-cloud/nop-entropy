@@ -6,10 +6,33 @@
 
 **位置**：`io.nop.api.core.beans.FilterBeans`
 
+### ⚠️ 重要：使用 PROP_NAME_ 常量
+
+Nop 平台为每个实体类自动生成 `PROP_NAME_` 常量，用于引用属性名。
+
+**推荐做法**：
+```java
+// ✅ 使用 PROP_NAME_ 常量（类型安全、重构友好）
+FilterBeans.eq(LitemallAddress.PROP_NAME_userId, userId);
+FilterBeans.eq(LitemallAddress.PROP_NAME_isDefault, true);
+```
+
+**不推荐做法**：
+```java
+// ❌ 使用硬编码字符串（容易拼写错误、无法重构）
+FilterBeans.eq("userId", userId);
+FilterBeans.eq("isDefault", true);
+```
+
+**优势**：
+- ✅ 类型安全：编译时检查
+- ✅ 重构友好：IDE 可以自动重命名
+- ✅ 避免拼写错误
+- ✅ 代码可读性更好
+
 ## 核心概念
 
 ### TreeBean结构
-
 FilterBeans创建的所有条件都是`TreeBean`类型，它是一个树形结构：
 - 节点表示条件操作符（如eq, and, or等）
 - 属性表示条件参数（如name, value, min, max等）
@@ -260,31 +283,35 @@ FilterBeans.notBlank("name");
 
 ### AND运算
 
+**⚠️ 重要**：`FilterBeans.and()` 使用 **varargs 参数**，直接传递多个条件，不要传递 `List`。
+
 ```java
-// 两个条件AND
+// ✅ 正确：直接传递多个条件
 FilterBeans.and(
     FilterBeans.eq("status", 1),
     FilterBeans.gt("age", 18)
 );
 
-// 多个条件AND
+// ✅ 正确：多个条件
 FilterBeans.and(
     FilterBeans.eq("status", 1),
     FilterBeans.gt("age", 18),
     FilterBeans.notNull("email")
 );
 
-// 使用集合
+// ❌ 错误：不要传递 List
+// List<TreeBean> conditions = Arrays.asList(...);
+// FilterBeans.and(conditions);  // 编译错误
+
+// ✅ 正确：如果需要从 List 构建，转换为数组
 List<TreeBean> conditions = Arrays.asList(
     FilterBeans.eq("status", 1),
-    FilterBeans.gt("age", 18),
-    FilterBeans.notNull("email")
+    FilterBeans.gt("age", 18)
 );
-FilterBeans.and(conditions);
+FilterBeans.and(conditions.toArray(new TreeBean[0]));
 ```
 
 ### OR运算
-
 ```java
 // 两个条件OR
 FilterBeans.or(

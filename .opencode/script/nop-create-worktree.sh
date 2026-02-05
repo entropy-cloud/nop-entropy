@@ -331,10 +331,17 @@ log_debug "Saved .worktree-base: $BASE_BRANCH"
 echo ".worktree-branch" >> "$TARGET_DIR/.gitignore"
 echo ".worktree-base" >> "$TARGET_DIR/.gitignore"
 
+# Create .mvn/maven.config file
+mkdir -p "$TARGET_DIR/.mvn"
+cat > "$TARGET_DIR/.mvn/maven.config" << 'EOF'
+-Dmaven.repo.local.head=.nop/repository
+-Dmaven.repo.local.tail.ignoreAvailability=true
+EOF
+log_debug "Created .mvn/maven.config file"
+
 log_success "Worktree created successfully!"
 log_info "  Worktree path: $TARGET_DIR"
-log_info "  Branch name: $TEMP_BRANCH"
-log_info "  Base branch: $BASE_BRANCH"
+log_info "  Branch name: $TEMP_BRANCH"log_info "  Base branch: $BASE_BRANCH"
 log_info "  Worktree based on: local $BASE_BRANCH (current state)"
 echo ""
 log_info "To work in this worktree:"

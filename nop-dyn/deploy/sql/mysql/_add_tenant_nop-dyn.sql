@@ -1,52 +1,36 @@
 
-    alter table nop_dyn_app add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
-                ;
+    alter table nop_dyn_app add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_dyn_module add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
-                ;
+alter table nop_dyn_module add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_dyn_entity add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
-                ;
+alter table nop_dyn_entity add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_dyn_entity_relation add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
-                ;
+alter table nop_dyn_entity_relation add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_dyn_patch_file add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
-                ;
+alter table nop_dyn_patch_file add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_dyn_module_dep add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
-                ;
+alter table nop_dyn_module_dep add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_dyn_app_module add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
-                ;
+alter table nop_dyn_app_module add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_dyn_sql add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
-                ;
+alter table nop_dyn_sql add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_dyn_file add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
-                ;
+alter table nop_dyn_file add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_dyn_page add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
-                ;
+alter table nop_dyn_page add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_dyn_entity_meta add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
-                ;
+alter table nop_dyn_entity_meta add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_dyn_domain add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
-                ;
+alter table nop_dyn_domain add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_dyn_entity_relation_meta add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
-                ;
+alter table nop_dyn_entity_relation_meta add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_dyn_function_meta add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
-                ;
+alter table nop_dyn_function_meta add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_dyn_prop_meta add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
-                ;
+alter table nop_dyn_prop_meta add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_dyn_app drop primary key;
 alter table nop_dyn_app add primary key (NOP_TENANT_ID, APP_ID);
-
 alter table nop_dyn_module drop primary key;
 alter table nop_dyn_module add primary key (NOP_TENANT_ID, MODULE_ID);
 

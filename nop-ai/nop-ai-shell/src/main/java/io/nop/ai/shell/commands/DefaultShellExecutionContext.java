@@ -2,10 +2,10 @@ package io.nop.ai.shell.commands;
 
 import io.nop.ai.shell.io.IShellInput;
 import io.nop.ai.shell.io.IShellOutput;
+import io.nop.api.core.util.ICancelToken;
 import io.nop.core.resource.IResourceStore;
 
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.Collections;import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -24,10 +24,10 @@ public class DefaultShellExecutionContext implements IShellCommandExecutionConte
     private String workingDirectory;
     private final String[] arguments;
     private final IResourceStore resourceStore;
+    private final ICancelToken cancelToken;
 
     private final Map<String, String> flags;
     private final String[] positionalArgs;
-
     /**
      * 创建默认命令执行上下文
      *
@@ -47,17 +47,40 @@ public class DefaultShellExecutionContext implements IShellCommandExecutionConte
             String workingDirectory,
             String[] arguments,
             IResourceStore resourceStore) {
+        this(stdin, stdout, stderr, environment, workingDirectory, arguments, resourceStore, null);
+    }
+
+    /**
+     * 创建默认命令执行上下文（带取消令牌）
+     *
+     * @param stdin 标准输入
+     * @param stdout 标准输出
+     * @param stderr 标准错误输出
+     * @param environment 环境变量
+     * @param workingDirectory 工作目录
+     * @param arguments 命令行参数
+     * @param resourceStore 虚拟文件系统资源存储
+     * @param cancelToken 取消令牌
+     */
+    public DefaultShellExecutionContext(
+            IShellInput stdin,
+            IShellOutput stdout,
+            IShellOutput stderr,
+            Map<String, String> environment,
+            String workingDirectory,
+            String[] arguments,
+            IResourceStore resourceStore,
+            ICancelToken cancelToken) {
         this.stdin = stdin;
         this.stdout = stdout;
-        this.stderr = stderr;
-        this.environment = environment != null ? environment : Collections.emptyMap();
+        this.stderr = stderr;        this.environment = environment != null ? environment : Collections.emptyMap();
         this.workingDirectory = workingDirectory != null ? workingDirectory : "/";
         this.arguments = arguments != null ? arguments : new String[0];
         this.resourceStore = resourceStore;
+        this.cancelToken = cancelToken;
 
         this.flags = new HashMap<>();
-        this.positionalArgs = parseArguments(this.arguments);
-    }
+        this.positionalArgs = parseArguments(this.arguments);    }
 
     @Override
     public IShellInput stdin() {
@@ -109,10 +132,14 @@ public class DefaultShellExecutionContext implements IShellCommandExecutionConte
         return resourceStore;
     }
 
+    @Override
+    public ICancelToken cancelToken() {
+        return cancelToken;
+    }
+
     /**
      * 设置工作目录
-     *
-     * @param workingDirectory 新的工作目录
+     *     * @param workingDirectory 新的工作目录
      */
     public void setWorkingDirectory(String workingDirectory) {
         this.workingDirectory = workingDirectory;

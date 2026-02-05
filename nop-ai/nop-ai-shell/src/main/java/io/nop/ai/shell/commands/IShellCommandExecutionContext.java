@@ -2,10 +2,10 @@ package io.nop.ai.shell.commands;
 
 import io.nop.ai.shell.io.IShellInput;
 import io.nop.ai.shell.io.IShellOutput;
+import io.nop.api.core.util.ICancelToken;
 import io.nop.core.resource.IResourceStore;
 
 import java.util.Map;
-
 /**
  * Shell命令执行上下文接口
  * <p>
@@ -94,4 +94,15 @@ public interface IShellCommandExecutionContext {
      * @return 资源存储实例
      */
     IResourceStore resourceStore();
+
+    /**
+     * 获取取消令牌
+     * <p>
+     * 用于检查和响应取消请求。
+     * 命令执行时可以通过检查 {@code cancelToken().isCancelled()} 来判断是否应该提前终止执行。
+     * </p>
+     *
+     * @return 取消令牌，可能返回null
+     */
+    ICancelToken cancelToken();
 }

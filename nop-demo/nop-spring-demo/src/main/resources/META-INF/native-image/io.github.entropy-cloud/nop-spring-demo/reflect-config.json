@@ -15171,9 +15171,15 @@
         ]
       },
       {
-        "name": "checkUniqueForUpdate",
+        "name": "checkUniqueForSaveEntity",
         "parameterTypes": [
           "io.nop.orm.IOrmEntity",
+          "io.nop.xlang.xmeta.IObjMeta"
+        ]
+      },
+      {
+        "name": "checkUniqueForUpdate",
+        "parameterTypes": [          "io.nop.orm.IOrmEntity",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -15185,9 +15191,17 @@
         ]
       },
       {
-        "name": "countTreeEntity",
+        "name": "copyToEntity",
         "parameterTypes": [
-          "io.nop.api.core.beans.query.QueryBean"
+          "java.util.Map",
+          "io.nop.orm.IOrmEntity",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "countTreeEntity",
+        "parameterTypes": [          "io.nop.api.core.beans.query.QueryBean"
         ]
       },
       {
@@ -15330,9 +15344,17 @@
         ]
       },
       {
-        "name": "doDeleteMulti",
+        "name": "doDeleteEntity",
         "parameterTypes": [
-          "java.util.List",
+          "io.nop.orm.IOrmEntity",
+          "java.util.Set",
+          "java.util.function.BiConsumer",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doDeleteMulti",
+        "parameterTypes": [          "java.util.List",
           "java.util.Set",
           "java.util.function.BiConsumer",
           "io.nop.core.context.IServiceContext"
@@ -16184,6 +16206,15 @@
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.biz.crud.ICrudBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,    "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
@@ -17650,6 +17681,15 @@
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.biz.proxy.BizProxyFactoryBean"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,    "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
