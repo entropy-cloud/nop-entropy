@@ -1,0 +1,324 @@
+# ========================================
+# JAVA CODE INDEXING GRAPHQL SCHEMA
+# FINAL VERSION - AI CODE UNDERSTANDING
+# ========================================
+#
+# Design Philosophy:
+# - Designed for AI code generation to understand existing codebases
+# - NO interactive features (completion, text editing, hover, signature help)
+# - NO IDE-specific features (inlay hints, code lenses, semantic tokens)
+# - Focus on static analysis, code relationships, and structural understanding
+# - All queries use 'codeIndex_' prefix to avoid conflicts
+# - Uses offset-based pagination for usages only
+# - Plain lists for methods/fields/interfaces (no pagination)
+#
+# Use Cases:
+# 1. Find symbols and their definitions
+# 2. Understand type hierarchies and implementations
+# 3. Trace call graphs and method relationships
+# 4. Analyze code usage patterns
+# 5. Read source code with context
+
+# ========================================
+# SCALARS & ENUMS
+# ========================================
+
+scalar CodeID
+
+enum SymbolKind {
+  CLASS
+  INTERFACE
+  ENUM
+  ANNOTATION
+  METHOD
+  CONSTRUCTOR
+  FIELD
+  VARIABLE
+  PARAMETER
+  TYPE_PARAMETER
+  PACKAGE
+}
+
+enum AccessModifier {
+  PUBLIC
+  PROTECTED
+  PRIVATE
+  PACKAGE_PRIVATE
+  DEFAULT
+}
+
+enum ReferenceKind {
+  READ
+  WRITE
+  CALL
+  TYPE_REFERENCE
+  EXTENDS
+  IMPLEMENTS
+  ANNOTATES
+}
+
+# ========================================
+# CORE TYPES
+# ========================================
+
+interface Node {
+  id: ID!
+}
+
+type Location {
+  filePath: String!
+  line: Int!
+  column: Int!
+  display: String!
+}
+
+# Base Symbol type
+type Symbol implements Node {
+  id: ID!
+  kind: SymbolKind!
+  name: String!
+  qualifiedName: String!
+  definition: Location!
+  deprecated: Boolean!
+  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
+  documentation: String
+  modifiers: [AccessModifier!]
+  annotations: [Annotation!]
+  parent: Symbol
+  usageCount: Int!
+}
+
+# ========================================
+# DETAILED TYPES
+# ========================================
+
+type ClassType implements Node {
+  id: ID!
+  name: String!
+  qualifiedName: String!
+  definition: Location!
+  deprecated: Boolean!
+  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
+  documentation: String
+  modifiers: [AccessModifier!]
+  annotations: [Annotation!]
+  parent: Symbol
+  usageCount: Int!
+
+  superclass: ClassType
+  interfaces: [InterfaceType!]!
+  fields: [Field!]!
+  methods: [Method!]!
+  subClasses: [ClassType!]!
+}
+
+type InterfaceType implements Node {
+  id: ID!
+  name: String!
+  qualifiedName: String!
+  definition: Location!
+  deprecated: Boolean!
+  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
+  documentation: String
+  modifiers: [AccessModifier!]
+  annotations: [Annotation!]
+  parent: Symbol
+  usageCount: Int!
+
+  methods: [Method!]!
+  implementors: [ClassType!]!
+}
+
+type Method implements Node {
+  id: ID!
+  name: String!
+  qualifiedName: String!
+  definition: Location!
+  deprecated: Boolean!
+  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
+  documentation: String
+  modifiers: [AccessModifier!]
+  annotations: [Annotation!]
+  parent: Symbol
+  usageCount: Int!
+
+  returnType: Symbol!
+  parameters: [Parameter!]!
+  exceptions: [Symbol!]!
+  overrides: [Method!]!
+  signature: String!
+}
+
+type Field implements Node {
+  id: ID!
+  name: String!
+  qualifiedName: String!
+  definition: Location!
+  deprecated: Boolean!
+  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
+  documentation: String
+  modifiers: [AccessModifier!]
+  annotations: [Annotation!]
+  parent: Symbol
+  usageCount: Int!
+
+  type: Symbol!
+}
+
+type Parameter implements Node {
+  id: ID!
+  name: String!
+  qualifiedName: String!
+  definition: Location!
+  deprecated: Boolean!
+  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
+  documentation: String
+  modifiers: [AccessModifier!]
+  annotations: [Annotation!]
+  parent: Symbol
+  usageCount: Int!
+
+  type: Symbol!
+}
+
+type Annotation implements Node {
+  id: ID!
+  name: String!
+  qualifiedName: String!
+  definition: Location!
+  deprecated: Boolean!
+  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
+  documentation: String
+  modifiers: [AccessModifier!]
+  annotations: [Annotation!]
+  parent: Symbol
+  usageCount: Int!
+
+  arguments: [AnnotationArgument!]!
+}
+
+type AnnotationArgument {
+  name: String!
+  value: String!
+}
+
+# ========================================
+# USAGES & RELATIONSHIPS
+# ========================================
+
+type Usage {
+  location: Location!
+  kind: ReferenceKind!
+  symbol: Symbol!
+  context(before: Int = 2, after: Int = 2): String!
+}
+
+type UsagePage {
+  items: [Usage!]!
+  totalCount: Int!
+  offset: Int!
+  limit: Int!
+  hasNext: Boolean!
+}
+
+# ========================================
+# HIERARCHY TYPES (Code Understanding)
+# ========================================
+
+# Type Hierarchy - full inheritance structure
+# Essential for AI to understand polymorphic relationships
+type TypeHierarchy {
+  root: TypeHierarchyNode!
+  direction: HierarchyDirection!
+}
+
+type TypeHierarchyNode {
+  symbol: ClassType!
+  superTypes: [ClassType!]!
+  superInterfaces: [InterfaceType!]!
+  subTypes: [TypeHierarchyNode!]!
+}
+
+enum HierarchyDirection {
+  SUPER
+  SUB
+  BOTH
+}
+
+# Call Hierarchy - call graph relationships
+# Essential for AI to understand execution flow and dependencies
+type CallHierarchy {
+  root: CallHierarchyNode!
+  direction: CallDirection!
+}
+
+type CallHierarchyNode {
+  symbol: Method!
+  toSymbols: [Method!]!
+  incomingCalls: [CallHierarchyNode!]!
+  outgoingCalls: [CallHierarchyNode!]!
+}
+
+enum CallDirection {
+  INCOMING
+  OUTGOING
+  BOTH
+}
+
+# ========================================
+# ROOT QUERY TYPE
+# ========================================
+
+type Query {
+  # --- Core Symbol Queries ---
+
+  # Get any node by ID (polymorphic)
+  codeIndex_node(id: ID!): Node
+
+  # Find a specific symbol by qualified name
+  codeIndex_symbol(qualifiedName: String!): Symbol
+
+  # Search for symbols by name pattern and kind
+  codeIndex_symbols(query: String!, kinds: [SymbolKind!], limit: Int = 20): [Symbol!]!
+
+  # --- Specific Type Queries ---
+
+  # Get class details including hierarchy
+  codeIndex_class(qualifiedName: String!): ClassType
+
+  # Get interface details and implementations
+  codeIndex_interface(qualifiedName: String!): InterfaceType
+
+  # Get method details including overrides
+  codeIndex_method(qualifiedName: String!): Method
+
+  # --- Relationship & Usage Queries ---
+
+  # Find all usages of a symbol (paginated)
+  codeIndex_usages(symbolId: ID!, offset: Int = 0, limit: Int = 20): UsagePage!
+
+  # Find all classes implementing an interface
+  codeIndex_findImplementations(interfaceId: ID!): [ClassType!]!
+
+  # Find all subclasses of a class
+  codeIndex_findSubclasses(classId: ID!): [ClassType!]!
+
+  # Find all methods overriding a method
+  codeIndex_findOverrides(methodId: ID!): [Method!]!
+
+  # --- File & Source Queries ---
+
+  # Get outline (all symbols) of a file
+  codeIndex_fileOutline(filePath: String!): [Symbol!]!
+
+  # Get source code at a specific location
+  codeIndex_sourceCode(filePath: String!, line: Int!, column: Int!): String!
+
+  # --- Hierarchy Queries ---
+
+  # Get type hierarchy for a symbol (supertypes and subtypes)
+  codeIndex_typeHierarchy(symbolId: ID!, direction: HierarchyDirection! = BOTH, maxDepth: Int = 3): TypeHierarchy!
+
+  # Get call hierarchy for a method (callers and callees)
+  codeIndex_callHierarchy(symbolId: ID!, direction: CallDirection! = BOTH, maxDepth: Int = 3): CallHierarchy!
+}
