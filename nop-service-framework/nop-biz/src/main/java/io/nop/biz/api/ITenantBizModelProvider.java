@@ -8,4 +8,6 @@ public interface ITenantBizModelProvider {
     Set<String> getTenantBizObjNames();
 
     GraphQLBizModel getTenantBizModel(String bizObjName);
+
+    boolean containsBizObject(String bizObjName);
 }

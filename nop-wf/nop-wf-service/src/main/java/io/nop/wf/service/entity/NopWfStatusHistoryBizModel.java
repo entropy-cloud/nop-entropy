@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.wf.dao.entity.NopWfStatusHistory;
+import io.nop.wf.biz.INopWfStatusHistoryBiz;
 
 @BizModel("NopWfStatusHistory")
-public class NopWfStatusHistoryBizModel extends CrudBizModel<NopWfStatusHistory>{
+public class NopWfStatusHistoryBizModel extends CrudBizModel<NopWfStatusHistory> implements INopWfStatusHistoryBiz {
     public NopWfStatusHistoryBizModel(){
         setEntityName(NopWfStatusHistory.class.getName());
     }

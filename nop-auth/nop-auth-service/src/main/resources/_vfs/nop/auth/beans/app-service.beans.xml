@@ -23,11 +23,11 @@
     <import resource="_dao.beans.xml"/>
     <import resource="_service.beans.xml"/>
 
-    <bean id="NopAuthUserBizModel_tenant" class="io.nop.auth.service.entity.NopAuthUserBizModel">
+    <bean id="NopAuthUserBizModel_tenant" class="io.nop.auth.service.entity.NopAuthUserBizModel" >
         <property name="bizObjName" value="NopAuthUser_tenant"/>
     </bean>
 
-    <bean id="NopAuthResourceBizModel_main" class="io.nop.auth.service.entity.NopAuthResourceBizModel">
+    <bean id="NopAuthResourceBizModel_main" class="io.nop.auth.service.entity.NopAuthResourceBizModel" >
         <property name="bizObjName" value="NopAuthResource_main"/>
     </bean>
 

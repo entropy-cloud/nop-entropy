@@ -17,6 +17,7 @@ import io.nop.auth.service.NopAuthConstants;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
+import io.nop.auth.biz.INopAuthResourceBiz;
 import jakarta.inject.Inject;
 
 import java.util.List;
@@ -26,7 +27,7 @@ import static io.nop.auth.dao.entity._gen._NopAuthResource.PROP_NAME_children;
 import static io.nop.orm.model.utils.OrmModelHelper.buildCollectionName;
 
 @BizModel("NopAuthResource")
-public class NopAuthResourceBizModel extends CrudBizModel<NopAuthResource> {
+public class NopAuthResourceBizModel extends CrudBizModel<NopAuthResource> implements INopAuthResourceBiz {
     @Inject
     ISiteMapProvider siteMapProvider;
 

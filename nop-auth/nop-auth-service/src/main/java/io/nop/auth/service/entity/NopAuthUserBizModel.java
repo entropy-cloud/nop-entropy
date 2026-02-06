@@ -19,6 +19,7 @@ import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.api.AuthApiConstants;
+import io.nop.auth.biz.INopAuthUserBiz;
 import io.nop.auth.core.password.IPasswordEncoder;
 import io.nop.auth.core.password.IPasswordPolicy;
 import io.nop.auth.dao.entity.NopAuthUser;
@@ -36,7 +37,7 @@ import static io.nop.auth.core.AuthCoreErrors.ERR_AUTH_USER_NOT_LOGIN;
 
 @BizModel("NopAuthUser")
 @Locale("zh-CN")
-public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
+public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> implements INopAuthUserBiz {
 
     @Inject
     IPasswordEncoder passwordEncoder;

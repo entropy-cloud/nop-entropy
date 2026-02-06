@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.rule.dao.entity.NopRuleLog;
+import io.nop.rule.biz.INopRuleLogBiz;
 
 @BizModel("NopRuleLog")
-public class NopRuleLogBizModel extends CrudBizModel<NopRuleLog>{
+public class NopRuleLogBizModel extends CrudBizModel<NopRuleLog> implements INopRuleLogBiz {
     public NopRuleLogBizModel(){
         setEntityName(NopRuleLog.class.getName());
     }

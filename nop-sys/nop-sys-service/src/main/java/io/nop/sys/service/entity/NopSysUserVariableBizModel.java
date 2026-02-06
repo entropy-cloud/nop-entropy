@@ -16,11 +16,12 @@ import io.nop.api.core.context.ContextProvider;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 import io.nop.sys.dao.entity.NopSysUserVariable;
+import io.nop.sys.biz.INopSysUserVariableBiz;
 
 import static io.nop.biz.BizConstants.BIZ_OBJ_NAME_THIS_OBJ;
 
 @BizModel("NopSysUserVariable")
-public class NopSysUserVariableBizModel extends CrudBizModel<NopSysUserVariable> {
+public class NopSysUserVariableBizModel extends CrudBizModel<NopSysUserVariable> implements INopSysUserVariableBiz {
     public NopSysUserVariableBizModel() {
         setEntityName(NopSysUserVariable.class.getName());
     }

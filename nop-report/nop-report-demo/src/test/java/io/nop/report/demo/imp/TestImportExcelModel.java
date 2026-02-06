@@ -10,18 +10,15 @@ package io.nop.report.demo.imp;
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.util.CloneHelper;
-import io.nop.autotest.junit.JunitBaseTestCase;import io.nop.commons.util.FileHelper;
-import io.nop.core.initialize.CoreInitialization;
+import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.commons.util.FileHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
-import io.nop.core.unittest.BaseTestCase;
 import io.nop.ooxml.xlsx.util.ExcelHelper;
 import io.nop.report.core.util.ExcelReportHelper;
 import io.nop.xlang.api.XLang;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -96,6 +93,7 @@ public class TestImportExcelModel extends JunitBaseTestCase {
     /**
      * 多个子表都具有动态展开的列
      */
+  //  @EnableSnapshot(saveOutput = true)
     @Test
     public void testParse5() {
         IResource resource = attachmentResource("test_imp5.test.xlsx");

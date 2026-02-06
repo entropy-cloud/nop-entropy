@@ -34,6 +34,7 @@ import io.nop.rule.service.NopRuleConstants;
 import io.nop.web.page.condition.ConditionSchemaHelper;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.jsonschema.XSchemaToJsonSchema;
+import io.nop.rule.biz.INopRuleDefinitionBiz;
 import jakarta.inject.Inject;
 
 import java.util.ArrayList;
@@ -41,7 +42,7 @@ import java.util.List;
 import java.util.Map;
 
 @BizModel("NopRuleDefinition")
-public class NopRuleDefinitionBizModel extends CrudBizModel<NopRuleDefinition> {
+public class NopRuleDefinitionBizModel extends CrudBizModel<NopRuleDefinition> implements INopRuleDefinitionBiz {
     public NopRuleDefinitionBizModel() {
         setEntityName(NopRuleDefinition.class.getName());
     }

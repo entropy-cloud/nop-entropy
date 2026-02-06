@@ -10,9 +10,10 @@ package io.nop.auth.service.entity;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.auth.dao.entity.NopAuthTenant;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.auth.biz.INopAuthTenantBiz;
 
 @BizModel("NopAuthTenant")
-public class NopAuthTenantBizModel extends CrudBizModel<NopAuthTenant> {
+public class NopAuthTenantBizModel extends CrudBizModel<NopAuthTenant> implements INopAuthTenantBiz {
     public NopAuthTenantBizModel() {
         setEntityName(NopAuthTenant.class.getName());
     }

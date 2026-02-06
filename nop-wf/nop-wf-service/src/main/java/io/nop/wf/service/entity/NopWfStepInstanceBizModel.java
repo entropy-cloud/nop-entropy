@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.wf.dao.entity.NopWfStepInstance;
+import io.nop.wf.biz.INopWfStepInstanceBiz;
 
 @BizModel("NopWfStepInstance")
-public class NopWfStepInstanceBizModel extends CrudBizModel<NopWfStepInstance>{
+public class NopWfStepInstanceBizModel extends CrudBizModel<NopWfStepInstance> implements INopWfStepInstanceBiz {
     public NopWfStepInstanceBizModel(){
         setEntityName(NopWfStepInstance.class.getName());
     }

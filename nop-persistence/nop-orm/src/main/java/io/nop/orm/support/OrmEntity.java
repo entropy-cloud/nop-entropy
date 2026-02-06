@@ -20,11 +20,9 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.exceptions.UnknownEntityException;
-import io.nop.orm.IOrmComponent;
-import io.nop.orm.IOrmEntity;
-import io.nop.orm.IOrmEntityEnhancer;
-import io.nop.orm.OrmConstants;
-import io.nop.orm.OrmEntityState;
+import io.nop.orm.*;
+import io.nop.orm.biz.IOrmEntityBiz;
+import io.nop.orm.biz.IOrmEntityBizProvider;
 import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.model.IEntityComponentModel;
 import io.nop.orm.model.IEntityModel;
@@ -761,5 +759,13 @@ public abstract class OrmEntity implements IOrmEntity {
         if (delFlagPropId > 0)
             return ConvertHelper.toPrimitiveInt(orm_propValue(delFlagPropId), NopException::new) != 0;
         return false;
+    }
+
+    protected  <T extends IOrmEntityBiz> T requireBiz(Class<T> bizClass){
+        IOrmEntityEnhancer enhancer = orm_enhancer();
+        IOrmEntityBizProvider bizProvider = enhancer == null ? null : enhancer.getEntityBizProvider();
+        if(bizProvider == null)
+            throw new IllegalStateException("entity no bizProvider:" + this);
+        return bizProvider.getBiz(bizClass);
     }
 }

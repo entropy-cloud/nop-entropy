@@ -90,6 +90,7 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
         impl.setDaoListeners(getDaoListeners());
         impl.setEntityFilterProvider(getEntityFilterProvider());
         impl.setSequenceGenerator(getSequenceGenerator());
+        impl.setEntityBizProvider(getEntityBizProvider());
 
         impl.setQueryPlanCache(LocalCache.newCache(buildFullName("orm-query-plan-cache"),
                 newConfig(CFG_QUERY_PLAN_CACHE_SIZE.get()).useMetrics()));

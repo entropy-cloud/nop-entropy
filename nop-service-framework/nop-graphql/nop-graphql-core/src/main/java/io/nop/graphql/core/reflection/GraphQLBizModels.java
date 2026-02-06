@@ -44,6 +44,10 @@ public class GraphQLBizModels {
         return ret;
     }
 
+    public boolean containsBizObject(String bizObjName){
+        return bizModels.containsKey(bizObjName);
+    }
+
     public void build(TypeRegistry typeRegistry, Collection<?> beans) {
         if (beans != null) {
             for (Object bean : beans) {

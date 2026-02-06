@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.report.dao.entity.NopReportDataset;
+import io.nop.report.biz.INopReportDatasetBiz;
 
 @BizModel("NopReportDataset")
-public class NopReportDatasetBizModel extends CrudBizModel<NopReportDataset>{
+public class NopReportDatasetBizModel extends CrudBizModel<NopReportDataset> implements INopReportDatasetBiz {
     public NopReportDatasetBizModel(){
         setEntityName(NopReportDataset.class.getName());
     }

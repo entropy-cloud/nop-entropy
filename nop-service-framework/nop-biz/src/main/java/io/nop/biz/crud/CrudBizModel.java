@@ -144,7 +144,7 @@ import static io.nop.orm.utils.OrmQueryHelper.resolveRef;
 
 @Locale("zh-CN")
 public abstract class CrudBizModel<T extends IOrmEntity>
-        implements IBizModelImpl, IBizObjectQueryProcessor<T>, ICrudBiz<T> {
+        implements IBizModelImpl, IBizObjectQueryProcessor<T>, io.nop.orm.biz.ICrudBiz<T> {
     static final Logger LOG = LoggerFactory.getLogger(CrudBizModel.class);
 
     private IDaoProvider daoProvider;

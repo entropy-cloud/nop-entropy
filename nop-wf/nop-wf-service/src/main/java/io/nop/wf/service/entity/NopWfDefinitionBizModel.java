@@ -14,10 +14,11 @@ import io.nop.core.context.IServiceContext;
 import io.nop.wf.dao.dataobject.IWorkflowDOProvider;
 import io.nop.wf.dao.dataobject.IWorkflowDefinitionDO;
 import io.nop.wf.dao.entity.NopWfDefinition;
+import io.nop.wf.biz.INopWfDefinitionBiz;
 import jakarta.inject.Inject;
 
 @BizModel("NopWfDefinition")
-public class NopWfDefinitionBizModel extends CrudBizModel<NopWfDefinition> {
+public class NopWfDefinitionBizModel extends CrudBizModel<NopWfDefinition> implements INopWfDefinitionBiz {
 
     @Inject
     IWorkflowDOProvider workflowDOProvider;

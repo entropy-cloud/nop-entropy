@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.dyn.dao.entity.NopDynModuleDep;
+import io.nop.dyn.biz.INopDynModuleDepBiz;
 
 @BizModel("NopDynModuleDep")
-public class NopDynModuleDepBizModel extends CrudBizModel<NopDynModuleDep>{
+public class NopDynModuleDepBizModel extends CrudBizModel<NopDynModuleDep> implements INopDynModuleDepBiz {
     public NopDynModuleDepBizModel(){
         setEntityName(NopDynModuleDep.class.getName());
     }

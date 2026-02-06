@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.sys.dao.entity.NopSysLock;
+import io.nop.sys.biz.INopSysLockBiz;
 
 @BizModel("NopSysLock")
-public class NopSysLockBizModel extends CrudBizModel<NopSysLock>{
+public class NopSysLockBizModel extends CrudBizModel<NopSysLock> implements INopSysLockBiz {
     public NopSysLockBizModel(){
         setEntityName(NopSysLock.class.getName());
     }

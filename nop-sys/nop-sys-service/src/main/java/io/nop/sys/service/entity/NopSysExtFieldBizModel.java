@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.sys.dao.entity.NopSysExtField;
+import io.nop.sys.biz.INopSysExtFieldBiz;
 
 @BizModel("NopSysExtField")
-public class NopSysExtFieldBizModel extends CrudBizModel<NopSysExtField>{
+public class NopSysExtFieldBizModel extends CrudBizModel<NopSysExtField> implements INopSysExtFieldBiz {
     public NopSysExtFieldBizModel(){
         setEntityName(NopSysExtField.class.getName());
     }

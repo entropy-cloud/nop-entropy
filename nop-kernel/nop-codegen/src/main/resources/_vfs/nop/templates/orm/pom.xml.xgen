@@ -5,13 +5,13 @@
    <!-- 如果pom文件已经存在，则只是追加module定义 -->
     <project>
           <modules>
-                <module xml:multiple="true">${appName}-codegen</module>
-                <module xml:multiple="true">${appName}-api</module>
-                <module xml:multiple="true">${appName}-dao</module>
-                <module xml:multiple="true">${appName}-meta</module>
-                <module xml:multiple="true">${appName}-service</module>
-                <module xml:multiple="true">${appName}-web</module>
-                <module xml:multiple="true">${appName}-app</module>
+                 <module xml:multiple="true">${appName}-codegen</module>
+                 <module xml:multiple="true">${appName}-api</module>
+                 <module xml:multiple="true">${appName}-dao</module>
+                 <module xml:multiple="true">${appName}-meta</module>
+                 <module xml:multiple="true">${appName}-service</module>
+                 <module xml:multiple="true">${appName}-web</module>
+                 <module xml:multiple="true">${appName}-app</module>
             </modules>
     </project>
 </update>
@@ -34,15 +34,15 @@
 
     <packaging>pom</packaging>
 
-    <modules>
-        <module>${appName}-codegen</module>
-        <module>${appName}-api</module>
-        <module>${appName}-dao</module>
-        <module>${appName}-meta</module>
-        <module>${appName}-service</module>
-        <module>${appName}-web</module>
-        <module>${appName}-app</module>
-    </modules>
+     <modules>
+         <module>${appName}-codegen</module>
+         <module>${appName}-api</module>
+         <module>${appName}-dao</module>
+         <module>${appName}-meta</module>
+         <module>${appName}-service</module>
+         <module>${appName}-web</module>
+         <module>${appName}-app</module>
+     </modules>
 
 </project>
 </create>

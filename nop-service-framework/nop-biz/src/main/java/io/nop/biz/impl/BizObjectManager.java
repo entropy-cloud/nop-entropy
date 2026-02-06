@@ -26,14 +26,7 @@ import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.resource.cache.IResourceLoadingCache;
 import io.nop.core.resource.tenant.ResourceTenantManager;
 import io.nop.graphql.core.GraphQLConstants;
-import io.nop.graphql.core.ast.GraphQLDefinition;
-import io.nop.graphql.core.ast.GraphQLDocument;
-import io.nop.graphql.core.ast.GraphQLFieldDefinition;
-import io.nop.graphql.core.ast.GraphQLNamedType;
-import io.nop.graphql.core.ast.GraphQLObjectDefinition;
-import io.nop.graphql.core.ast.GraphQLOperationType;
-import io.nop.graphql.core.ast.GraphQLType;
-import io.nop.graphql.core.ast.GraphQLTypeDefinition;
+import io.nop.graphql.core.ast.*;
 import io.nop.graphql.core.ast._gen._GraphQLTypeDefinition;
 import io.nop.graphql.core.biz.IGraphQLBizInitializer;
 import io.nop.graphql.core.biz.IGraphQLSchemaInitializer;
@@ -46,31 +39,12 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_EAGER_INIT_BIZ_OBJECT;
-import static io.nop.graphql.core.GraphQLConstants.GRAPHQL_CONNECTION_PREFIX;
-import static io.nop.graphql.core.GraphQLConstants.OBJ_ACTION_SEPARATOR;
-import static io.nop.graphql.core.GraphQLConstants.PAGE_BEAN_PREFIX;
-import static io.nop.graphql.core.GraphQLErrors.ARG_BIZ_OBJ_NAME;
-import static io.nop.graphql.core.GraphQLErrors.ARG_FRAGMENT_NAME;
-import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
-import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE;
-import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE_NAME;
-import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_INVALID_FRAGMENT_SELECTION_NAME;
-import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_NOT_OBJ_TYPE;
-import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNDEFINED_OBJECT;
-import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_BUILTIN_TYPE;
-import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_OBJ_TYPE;
+import static io.nop.graphql.core.GraphQLConstants.*;
+import static io.nop.graphql.core.GraphQLErrors.*;
 
 public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader {
     private List<Object> bizModelBeans;
@@ -203,6 +177,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         return bizObjCache.get(bizObjName);
     }
 
+
     @Override
     public ApiResponse<?> buildResponse(String locale, Object result, IServiceContext rt) {
         if (result instanceof ApiResponse)
@@ -312,6 +287,20 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
             ret.addAll(dynBizModels.getBizObjNames());
         }
         return ret;
+    }
+
+    @Override
+    public boolean containsBizObject(String bizObjName) {
+        if (bizModels.containsBizObject(bizObjName))
+            return true;
+        if (tenantBizModelProvider != null) {
+            if (tenantBizModelProvider.containsBizObject(bizObjName))
+                return true;
+        }
+        if (dynBizModels != null && dynBizModels.containsBizObject(bizObjName)) {
+            return true;
+        }
+        return false;
     }
 
     @Override

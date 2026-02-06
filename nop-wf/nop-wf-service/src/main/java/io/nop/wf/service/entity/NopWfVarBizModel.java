@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.wf.dao.entity.NopWfVar;
+import io.nop.wf.biz.INopWfVarBiz;
 
 @BizModel("NopWfVar")
-public class NopWfVarBizModel extends CrudBizModel<NopWfVar>{
+public class NopWfVarBizModel extends CrudBizModel<NopWfVar> implements INopWfVarBiz {
     public NopWfVarBizModel(){
         setEntityName(NopWfVar.class.getName());
     }

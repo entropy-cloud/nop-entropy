@@ -14,12 +14,13 @@ import io.nop.api.core.beans.DictOptionBean;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.dyn.dao.entity.NopDynEntityMeta;
 import io.nop.dyn.dao.entity.NopDynPropMeta;
+import io.nop.dyn.biz.INopDynEntityMetaBiz;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @BizModel("NopDynEntityMeta")
-public class NopDynEntityMetaBizModel extends CrudBizModel<NopDynEntityMeta> {
+public class NopDynEntityMetaBizModel extends CrudBizModel<NopDynEntityMeta> implements INopDynEntityMetaBiz {
     public NopDynEntityMetaBizModel() {
         setEntityName(NopDynEntityMeta.class.getName());
     }

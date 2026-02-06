@@ -15,10 +15,11 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.auth.biz.INopAuthUserBiz;
 import io.nop.auth.dao.entity.NopAuthGroup;
 import io.nop.auth.dao.entity.NopAuthRole;
 import io.nop.auth.dao.entity.NopAuthUser;
-import io.nop.biz.crud.ICrudBiz;
+import io.nop.orm.biz.ICrudBiz;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.sql.SQL;
@@ -54,8 +55,7 @@ public class DemoAuthBizModel {
     DefaultTransactionManager transactionManager;
 
     @Inject
-    @Named("biz_NopAuthUser")
-    ICrudBiz<NopAuthUser> userBiz;
+    INopAuthUserBiz userBiz;
 
     @InjectValue("${test.prefix}.value")
     public void setTestValue(String value) {

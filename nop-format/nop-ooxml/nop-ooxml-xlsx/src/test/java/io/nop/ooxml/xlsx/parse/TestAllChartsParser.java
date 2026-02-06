@@ -49,15 +49,15 @@ public class TestAllChartsParser extends BaseTestCase {
         ExcelChartModel chart = charts.get(0);
         assertNotNull(chart.getType(), "Chart should have a type");
 
-        File targetFile = getTargetFile("../samples/generated-all-charts.xlsx");
+        File targetFile = getTargetFile("generated-all-charts.xlsx");
         new ExcelTemplate(wk).generateToFile(targetFile, XLang.newEvalScope());
 
-        File originalDir = getTargetFile("../samples/original-all-charts");
+        File originalDir = getTargetFile("original-all-charts");
         //FileHelper.deleteAll(originalDir);
 
         ResourceHelper.getZipTool().unzipToDir(resource, new FileResource(originalDir));
 
-        File unzipDir = getTargetFile("../samples/generated-all-charts");
+        File unzipDir = getTargetFile("generated-all-charts");
         //FileHelper.deleteAll(unzipDir);
 
         ResourceHelper.getZipTool().unzipToDir(new FileResource(targetFile), new FileResource(unzipDir));

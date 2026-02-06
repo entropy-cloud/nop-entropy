@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.sys.dao.entity.NopSysVariable;
+import io.nop.sys.biz.INopSysVariableBiz;
 
 @BizModel("NopSysVariable")
-public class NopSysVariableBizModel extends CrudBizModel<NopSysVariable>{
+public class NopSysVariableBizModel extends CrudBizModel<NopSysVariable> implements INopSysVariableBiz {
     public NopSysVariableBizModel(){
         setEntityName(NopSysVariable.class.getName());
     }

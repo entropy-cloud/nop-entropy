@@ -7,9 +7,10 @@
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
     <c:for var="entityModel" items="${ormModel.entityModels}">
-    <bean id="${basePackageName}.service.entity.${entityModel.shortName}BizModel" ioc:type="@bean:id" ioc:default="true" xpl:if="!entityModel.notGenCode"/>
+    <bean id="${basePackageName}.service.entity.${entityModel.shortName}BizModel" ioc:type="@bean:id"
+          ioc:default="true" xpl:if="!entityModel.notGenCode"/>
         <bean id="biz_${entityModel.shortName}" class="io.nop.biz.proxy.BizProxyFactoryBean" xpl:if="!entityModel.notGenCode"
-              ioc:type="io.nop.biz.crud.ICrudBiz" ioc:force-lazy-property="true">
+              ioc:type="${basePackageName}.biz.I${entityModel.shortName}Biz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
             <property name="bizObjName" value="${entityModel.shortName}"/>
         </bean>
     </c:for>

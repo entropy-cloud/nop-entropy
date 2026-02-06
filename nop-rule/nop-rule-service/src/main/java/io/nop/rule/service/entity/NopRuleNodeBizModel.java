@@ -21,11 +21,12 @@ import io.nop.rule.dao.model.DaoRuleModelLoader;
 import io.nop.xlang.xdsl.XDslParseHelper;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.ObjMetaHelper;
+import io.nop.rule.biz.INopRuleNodeBiz;
 
 import jakarta.inject.Inject;
 
 @BizModel("NopRuleNode")
-public class NopRuleNodeBizModel extends CrudBizModel<NopRuleNode> {
+public class NopRuleNodeBizModel extends CrudBizModel<NopRuleNode> implements INopRuleNodeBiz {
 
     @Inject
     DaoRuleModelLoader ruleModelLoader;

@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.file.dao.entity.NopFileRecord;
+import io.nop.file.biz.INopFileRecordBiz;
 
 @BizModel("NopFileRecord")
-public class NopFileRecordBizModel extends CrudBizModel<NopFileRecord>{
+public class NopFileRecordBizModel extends CrudBizModel<NopFileRecord> implements INopFileRecordBiz {
     public NopFileRecordBizModel(){
         setEntityName(NopFileRecord.class.getName());
     }

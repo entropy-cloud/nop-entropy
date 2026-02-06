@@ -14,11 +14,7 @@ import io.nop.commons.collections.MapOfInt;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.reflect.hook.IPropGetMissingHook;
 import io.nop.core.reflect.hook.IPropSetMissingHook;
-import io.nop.orm.IOrmComponent;
-import io.nop.orm.IOrmEntity;
-import io.nop.orm.IOrmEntitySet;
-import io.nop.orm.IOrmObject;
-import io.nop.orm.OrmConstants;
+import io.nop.orm.*;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IComputePropModel;
 import io.nop.orm.model.IEntityComponentModel;
@@ -54,6 +50,8 @@ public class DynamicOrmEntity extends OrmEntity implements IPropSetMissingHook, 
 
     public DynamicOrmEntity() {
     }
+
+
 
     protected MapOfInt<Object> requireValues() {
         if (values == null)

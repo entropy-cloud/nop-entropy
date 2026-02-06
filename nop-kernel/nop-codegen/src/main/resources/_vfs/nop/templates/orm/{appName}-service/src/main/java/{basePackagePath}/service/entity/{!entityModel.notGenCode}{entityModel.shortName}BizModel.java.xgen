@@ -4,10 +4,11 @@ package ${basePackageName}.service.entity;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
+import ${basePackageName}.biz.I${entityModel.shortName}Biz;
 import ${entityModel.className || entityModel.name};
 
 @BizModel("${entityModel.shortName}")
-public class ${entityModel.shortName}BizModel extends CrudBizModel&lt;${entityModel.shortName}>{
+public class ${entityModel.shortName}BizModel extends CrudBizModel&lt;${entityModel.shortName}> implements I${entityModel.shortName}Biz{
     public ${entityModel.shortName}BizModel(){
         setEntityName(${entityModel.shortName}.class.getName());
     }

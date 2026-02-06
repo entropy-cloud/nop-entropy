@@ -20,6 +20,7 @@ import io.nop.dao.seq.UuidSequenceGenerator;
 import io.nop.dao.shard.EmptyShardSelector;
 import io.nop.dao.shard.IShardSelector;
 import io.nop.orm.IOrmDaoListener;
+import io.nop.orm.biz.IOrmEntityBizProvider;
 import io.nop.orm.IOrmInterceptor;
 import io.nop.orm.eql.IEqlAstTransformer;
 import io.nop.orm.eql.binder.IOrmColumnBinderEnhancer;
@@ -80,6 +81,8 @@ public class SessionFactoryConfig {
 
     private IEntityFilterProvider entityFilterProvider;
 
+    private IOrmEntityBizProvider entityBizProvider;
+
     public boolean isRegisterGlobalCache() {
         return registerGlobalCache;
     }
@@ -94,6 +97,16 @@ public class SessionFactoryConfig {
 
     public void setEqlAstTransformer(IEqlAstTransformer eqlAstTransformer) {
         this.eqlAstTransformer = eqlAstTransformer;
+    }
+
+    @Inject
+    @IgnoreDepends
+    public void setEntityBizProvider(@Nullable IOrmEntityBizProvider entityBizProvider){
+        this.entityBizProvider = entityBizProvider;
+    }
+
+    public IOrmEntityBizProvider getEntityBizProvider(){
+        return entityBizProvider;
     }
 
     public IEntityFilterProvider getEntityFilterProvider() {

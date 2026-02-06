@@ -14,10 +14,11 @@ import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 import io.nop.dyn.dao.entity.NopDynFunctionMeta;
 import io.nop.dyn.service.codegen.DynCodeGen;
+import io.nop.dyn.biz.INopDynFunctionMetaBiz;
 import jakarta.inject.Inject;
 
 @BizModel("NopDynFunctionMeta")
-public class NopDynFunctionMetaBizModel extends CrudBizModel<NopDynFunctionMeta> {
+public class NopDynFunctionMetaBizModel extends CrudBizModel<NopDynFunctionMeta> implements INopDynFunctionMetaBiz {
 
     @Inject
     DynCodeGen codeGen;

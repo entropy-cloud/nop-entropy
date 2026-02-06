@@ -1,0 +1,11 @@
+<c:unit xpl:outputMode="text">
+package ${basePackageName}.biz;
+
+import io.nop.orm.biz.ICrudBiz;
+
+import ${entityModel.className || entityModel.name};
+
+public interface ${entityModel.shortName}Biz extends ICrudBiz&lt;${entityModel.shortName}>{
+
+}
+</c:unit>

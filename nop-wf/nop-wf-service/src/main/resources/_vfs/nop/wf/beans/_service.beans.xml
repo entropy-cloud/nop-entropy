@@ -7,78 +7,80 @@
 
     <bean id="io.nop.wf.service.entity.NopWfDefinitionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopWfDefinition" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_NopWfDefinition" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.wf.biz.INopWfDefinitionBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="NopWfDefinition"/>
     </bean>
 
     <bean id="io.nop.wf.service.entity.NopWfInstanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopWfInstance" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_NopWfInstance" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.wf.biz.INopWfInstanceBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="NopWfInstance"/>
     </bean>
 
     <bean id="io.nop.wf.service.entity.NopWfDefinitionAuthBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopWfDefinitionAuth" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_NopWfDefinitionAuth" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.wf.biz.INopWfDefinitionAuthBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
         <property name="bizObjName" value="NopWfDefinitionAuth"/>
     </bean>
 
     <bean id="io.nop.wf.service.entity.NopWfStatusHistoryBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopWfStatusHistory" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_NopWfStatusHistory" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.wf.biz.INopWfStatusHistoryBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="NopWfStatusHistory"/>
     </bean>
 
     <bean id="io.nop.wf.service.entity.NopWfStepInstanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopWfStepInstance" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_NopWfStepInstance" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.wf.biz.INopWfStepInstanceBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="NopWfStepInstance"/>
     </bean>
 
     <bean id="io.nop.wf.service.entity.NopWfOutputBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopWfOutput" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_NopWfOutput" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.wf.biz.INopWfOutputBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="NopWfOutput"/>
     </bean>
 
     <bean id="io.nop.wf.service.entity.NopWfVarBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopWfVar" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_NopWfVar" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.wf.biz.INopWfVarBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="NopWfVar"/>
     </bean>
 
     <bean id="io.nop.wf.service.entity.NopWfStepInstanceLinkBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopWfStepInstanceLink" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.biz.crud.ICrudBiz" ioc:force-lazy-property="true">
+          ioc:type="io.nop.wf.biz.INopWfStepInstanceLinkBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
         <property name="bizObjName" value="NopWfStepInstanceLink"/>
     </bean>
 
     <bean id="io.nop.wf.service.entity.NopWfActionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopWfAction" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_NopWfAction" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.wf.biz.INopWfActionBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="NopWfAction"/>
     </bean>
 
     <bean id="io.nop.wf.service.entity.NopWfWorkBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopWfWork" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_NopWfWork" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.wf.biz.INopWfWorkBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="NopWfWork"/>
     </bean>
 
     <bean id="io.nop.wf.service.entity.NopWfLogBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopWfLog" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_NopWfLog" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.wf.biz.INopWfLogBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="NopWfLog"/>
     </bean>
 </beans>

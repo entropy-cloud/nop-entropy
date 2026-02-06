@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.batch.dao.entity.NopBatchFile;
+import io.nop.batch.biz.INopBatchFileBiz;
 
 @BizModel("NopBatchFile")
-public class NopBatchFileBizModel extends CrudBizModel<NopBatchFile>{
+public class NopBatchFileBizModel extends CrudBizModel<NopBatchFile> implements INopBatchFileBiz {
     public NopBatchFileBizModel(){
         setEntityName(NopBatchFile.class.getName());
     }

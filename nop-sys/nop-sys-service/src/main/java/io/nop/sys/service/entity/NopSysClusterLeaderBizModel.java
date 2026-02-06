@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.sys.dao.entity.NopSysClusterLeader;
+import io.nop.sys.biz.INopSysClusterLeaderBiz;
 
 @BizModel("NopSysClusterLeader")
-public class NopSysClusterLeaderBizModel extends CrudBizModel<NopSysClusterLeader>{
+public class NopSysClusterLeaderBizModel extends CrudBizModel<NopSysClusterLeader> implements INopSysClusterLeaderBiz {
     public NopSysClusterLeaderBizModel(){
         setEntityName(NopSysClusterLeader.class.getName());
     }

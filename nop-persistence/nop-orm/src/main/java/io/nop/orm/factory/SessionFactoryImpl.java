@@ -25,14 +25,8 @@ import io.nop.dao.shard.EmptyShardSelector;
 import io.nop.dao.shard.IShardSelector;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.dao.utils.DaoHelper;
-import io.nop.orm.ILoadedOrmModel;
-import io.nop.orm.IOrmCachedQueryPlan;
-import io.nop.orm.IOrmComponent;
-import io.nop.orm.IOrmDaoListener;
-import io.nop.orm.IOrmEntity;
-import io.nop.orm.IOrmInterceptor;
-import io.nop.orm.IOrmSession;
-import io.nop.orm.QueryPlanCacheKey;
+import io.nop.orm.*;
+import io.nop.orm.biz.IOrmEntityBizProvider;
 import io.nop.orm.driver.ICollectionPersistDriver;
 import io.nop.orm.driver.IEntityPersistDriver;
 import io.nop.orm.driver.jdbc.JdbcCollectionPersistDriver;
@@ -86,6 +80,8 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     private IEntityFilterProvider entityFilterProvider;
 
+    private IOrmEntityBizProvider entityBizProvider;
+
     private List<IOrmInterceptor> interceptors = Collections.emptyList();
 
     private MultiOrmDaoListener daoListeners = null;
@@ -106,6 +102,14 @@ public class SessionFactoryImpl implements IPersistEnv {
     private IOrmModelProvider ormModelHolder;
 
     private ISequenceGenerator sequenceGenerator;
+
+    public IOrmEntityBizProvider getEntityBizProvider(){
+        return entityBizProvider;
+    }
+
+    public void setEntityBizProvider(IOrmEntityBizProvider entityBizProvider){
+        this.entityBizProvider = entityBizProvider;
+    }
 
     @Override
     public ISequenceGenerator getSequenceGenerator() {

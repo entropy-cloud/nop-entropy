@@ -5902,6 +5902,26 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthDeptBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.NopAuthDeptBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "getAuthCookie",
@@ -15179,7 +15199,8 @@
       },
       {
         "name": "checkUniqueForUpdate",
-        "parameterTypes": [          "io.nop.orm.IOrmEntity",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -15201,7 +15222,8 @@
       },
       {
         "name": "countTreeEntity",
-        "parameterTypes": [          "io.nop.api.core.beans.query.QueryBean"
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean"
         ]
       },
       {
@@ -15354,7 +15376,8 @@
       },
       {
         "name": "doDeleteMulti",
-        "parameterTypes": [          "java.util.List",
+        "parameterTypes": [
+          "java.util.List",
           "java.util.Set",
           "java.util.function.BiConsumer",
           "io.nop.core.context.IServiceContext"
@@ -16214,7 +16237,8 @@
   },
   {
     "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
@@ -17689,7 +17713,8 @@
   },
   {
     "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
@@ -38014,6 +38039,26 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.biz.ICrudBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.biz.IOrmEntityBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "dao",
@@ -43895,6 +43940,12 @@
         "name": "orm_useOldValues",
         "parameterTypes": [
           "io.nop.orm.IOrmEntity"
+        ]
+      },
+      {
+        "name": "requireBiz",
+        "parameterTypes": [
+          "java.lang.Class"
         ]
       },
       {

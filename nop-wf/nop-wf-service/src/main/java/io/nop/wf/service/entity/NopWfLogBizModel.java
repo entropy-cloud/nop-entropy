@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.wf.dao.entity.NopWfLog;
+import io.nop.wf.biz.INopWfLogBiz;
 
 @BizModel("NopWfLog")
-public class NopWfLogBizModel extends CrudBizModel<NopWfLog>{
+public class NopWfLogBizModel extends CrudBizModel<NopWfLog> implements INopWfLogBiz {
     public NopWfLogBizModel(){
         setEntityName(NopWfLog.class.getName());
     }

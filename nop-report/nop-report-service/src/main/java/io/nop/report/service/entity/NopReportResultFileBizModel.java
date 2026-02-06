@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.report.dao.entity.NopReportResultFile;
+import io.nop.report.biz.INopReportResultFileBiz;
 
 @BizModel("NopReportResultFile")
-public class NopReportResultFileBizModel extends CrudBizModel<NopReportResultFile>{
+public class NopReportResultFileBizModel extends CrudBizModel<NopReportResultFile> implements INopReportResultFileBiz {
     public NopReportResultFileBizModel(){
         setEntityName(NopReportResultFile.class.getName());
     }

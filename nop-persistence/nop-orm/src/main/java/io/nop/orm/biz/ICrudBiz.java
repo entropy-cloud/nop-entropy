@@ -20,6 +20,7 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.beans.std.StdTreeEntity;
 import io.nop.core.context.IServiceContext;
 import io.nop.orm.IOrmEntity;
+import io.nop.orm.IOrmEntityBiz;
 import io.nop.xlang.xmeta.IObjMeta;
 
 import java.util.Collection;
@@ -45,7 +46,7 @@ import java.util.Set;
  *
  * @param <T> 实体类型，必须实现IOrmEntity接口
  */
-public interface ICrudBiz<T extends IOrmEntity> {
+public interface ICrudBiz<T extends IOrmEntity> extends IOrmEntityBiz {
 
     // ==================== 查询操作 ====================
 

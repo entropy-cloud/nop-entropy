@@ -31,12 +31,13 @@ import io.nop.orm.IOrmEntityFileStore;
 import io.nop.orm.model.OrmModel;
 import io.nop.orm.model.OrmModelConstants;
 import io.nop.report.core.util.ExcelReportHelper;
+import io.nop.dyn.biz.INopDynModuleBiz;
 import jakarta.inject.Inject;
 
 import java.util.List;
 
 @BizModel("NopDynModule")
-public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> {
+public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> implements INopDynModuleBiz {
 
     @Inject
     IOrmEntityFileStore fileStore;

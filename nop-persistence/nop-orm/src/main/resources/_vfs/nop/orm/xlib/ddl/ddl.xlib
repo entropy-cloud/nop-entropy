@@ -268,8 +268,7 @@
                 <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} drop constraint PK_${table.tableName}</c:unit>
                 <c:unit>;&#10;</c:unit>
                 <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} add constraint PK_${table.tableName} primary key (NOP_TENANT_ID, ${
-                table.compositePk ? table.idProp.columns.map(col=> dialect.escapeSQLName(col.code)).join(',') : dialect.escapeSQLName(table.idProp.code)})
-                </c:unit>
+                table.compositePk ? table.idProp.columns.map(col=> dialect.escapeSQLName(col.code)).join(',') : dialect.escapeSQLName(table.idProp.code)})</c:unit>
             </source>
         </AddTenantIdToPrimaryKey>
 

@@ -35,7 +35,7 @@ public class ValidationContext implements IEvalContext {
     }
 
     public ValidationContext() {
-        this(IServiceContext.bindingCtx());
+        this(IServiceContext.getCtx());
     }
 
     public boolean isDisableGetter() {

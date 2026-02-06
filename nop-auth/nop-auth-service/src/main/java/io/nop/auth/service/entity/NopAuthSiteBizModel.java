@@ -10,9 +10,10 @@ package io.nop.auth.service.entity;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.auth.dao.entity.NopAuthSite;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.auth.biz.INopAuthSiteBiz;
 
 @BizModel("NopAuthSite")
-public class NopAuthSiteBizModel extends CrudBizModel<NopAuthSite> {
+public class NopAuthSiteBizModel extends CrudBizModel<NopAuthSite> implements INopAuthSiteBiz {
     public NopAuthSiteBizModel() {
         setEntityName(NopAuthSite.class.getName());
     }

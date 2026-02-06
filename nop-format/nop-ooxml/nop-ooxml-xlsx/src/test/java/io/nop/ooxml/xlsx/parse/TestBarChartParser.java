@@ -50,7 +50,7 @@ public class TestBarChartParser extends BaseTestCase {
         ExcelChartModel chart = charts.get(0);
         assertNotNull(chart.getType(), "Chart should have a type");
 
-        File targetFile = getTargetFile("../samples/generated-bar-chart.xlsx");
+        File targetFile = getTargetFile("generated-bar-chart.xlsx");
         new ExcelTemplate(wk).generateToFile(targetFile, XLang.newEvalScope());
 
         //File originalDir = getTargetFile("../samples/original-bar-chart");
@@ -58,7 +58,7 @@ public class TestBarChartParser extends BaseTestCase {
 
         //ResourceHelper.getZipTool().unzipToDir(resource, new FileResource(originalDir));
 
-        File unzipDir = getTargetFile("../samples/generated-bar-chart");
+        File unzipDir = getTargetFile("generated-bar-chart");
         //FileHelper.deleteAll(unzipDir);
 
         ResourceHelper.getZipTool().unzipToDir(new FileResource(targetFile), new FileResource(unzipDir));

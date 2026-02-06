@@ -21,6 +21,7 @@ import io.nop.core.context.IServiceContext;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.dyn.dao.entity.NopDynPage;
 import io.nop.dyn.service.NopDynConstants;
+import io.nop.dyn.biz.INopDynPageBiz;
 
 import java.util.Map;
 
@@ -31,7 +32,7 @@ import static io.nop.dyn.service.NopDynErrors.ERR_DYN_INVALID_PAGE_PATH;
 import static io.nop.dyn.service.NopDynErrors.ERR_DYN_PAGE_NOT_EXISTS;
 
 @BizModel("NopDynPage")
-public class NopDynPageBizModel extends CrudBizModel<NopDynPage> {
+public class NopDynPageBizModel extends CrudBizModel<NopDynPage> implements INopDynPageBiz {
     public NopDynPageBizModel() {
         setEntityName(NopDynPage.class.getName());
     }

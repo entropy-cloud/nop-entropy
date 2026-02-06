@@ -31,6 +31,7 @@ alter table nop_dyn_prop_meta add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
 
 alter table nop_dyn_app drop primary key;
 alter table nop_dyn_app add primary key (NOP_TENANT_ID, APP_ID);
+
 alter table nop_dyn_module drop primary key;
 alter table nop_dyn_module add primary key (NOP_TENANT_ID, MODULE_ID);
 

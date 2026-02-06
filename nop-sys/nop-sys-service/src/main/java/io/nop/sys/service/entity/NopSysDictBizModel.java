@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.sys.dao.entity.NopSysDict;
+import io.nop.sys.biz.INopSysDictBiz;
 
 @BizModel("NopSysDict")
-public class NopSysDictBizModel extends CrudBizModel<NopSysDict>{
+public class NopSysDictBizModel extends CrudBizModel<NopSysDict> implements INopSysDictBiz {
     public NopSysDictBizModel(){
         setEntityName(NopSysDict.class.getName());
     }

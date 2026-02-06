@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.batch.dao.entity.NopBatchRecordResult;
+import io.nop.batch.biz.INopBatchRecordResultBiz;
 
 @BizModel("NopBatchRecordResult")
-public class NopBatchRecordResultBizModel extends CrudBizModel<NopBatchRecordResult>{
+public class NopBatchRecordResultBizModel extends CrudBizModel<NopBatchRecordResult> implements INopBatchRecordResultBiz {
     public NopBatchRecordResultBizModel(){
         setEntityName(NopBatchRecordResult.class.getName());
     }

@@ -299,6 +299,9 @@ public interface CoreErrors {
     ErrorCode ERR_CONTEXT_BROKEN_CONTEXT_STACK = define("nop.err.core.context.broken-context-stack",
             "leaveContext和enterContext必须配对调用");
 
+    ErrorCode ERR_CONTEXT_SVC_CTX_NOT_BOUND = define("nop.err.core.context.svc-ctx-not-bound",
+            "当前线程未绑定IServiceContext");
+
     ErrorCode ERR_REFLECT_INVALID_EXT_PROP_NAME =
             define("nop.err.core.reflect.invalid-ext-prop-name",
                     "扩展属性名[{name}]格式不正确。属性名不允许含有字符.，字符.被保留为复杂属性的分隔符，例如a.b.c", ARG_NAME);

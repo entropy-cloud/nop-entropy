@@ -21,4 +21,5 @@ CREATE TABLE nop_file_record(
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
 
-   ALTER TABLE nop_file_record COMMENT '文件记录';                
+   ALTER TABLE nop_file_record COMMENT '文件记录';
+                

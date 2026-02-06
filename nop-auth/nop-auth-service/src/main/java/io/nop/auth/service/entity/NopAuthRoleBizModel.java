@@ -18,6 +18,7 @@ import io.nop.api.core.annotations.graphql.GraphQLReturn;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.auth.biz.INopAuthRoleBiz;
 import io.nop.auth.core.AuthCoreConstants;
 import io.nop.auth.dao.entity.NopAuthRole;
 import io.nop.auth.dao.entity.NopAuthRoleResource;
@@ -43,7 +44,7 @@ import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_ONLY_ADMIN_CAN_ASSIGN_I
 import static java.util.Comparator.comparing;
 
 @BizModel("NopAuthRole")
-public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
+public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> implements INopAuthRoleBiz {
     public NopAuthRoleBizModel() {
         setEntityName(NopAuthRole.class.getName());
     }

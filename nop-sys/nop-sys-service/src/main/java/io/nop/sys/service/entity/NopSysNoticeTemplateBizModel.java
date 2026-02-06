@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.sys.dao.entity.NopSysNoticeTemplate;
+import io.nop.sys.biz.INopSysNoticeTemplateBiz;
 
 @BizModel("NopSysNoticeTemplate")
-public class NopSysNoticeTemplateBizModel extends CrudBizModel<NopSysNoticeTemplate>{
+public class NopSysNoticeTemplateBizModel extends CrudBizModel<NopSysNoticeTemplate> implements INopSysNoticeTemplateBiz {
     public NopSysNoticeTemplateBizModel(){
         setEntityName(NopSysNoticeTemplate.class.getName());
     }

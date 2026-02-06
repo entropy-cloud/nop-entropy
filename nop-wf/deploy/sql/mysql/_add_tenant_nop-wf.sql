@@ -23,6 +23,7 @@ alter table nop_wf_log add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_wf_definition drop primary key;
 alter table nop_wf_definition add primary key (NOP_TENANT_ID, WF_DEF_ID);
+
 alter table nop_wf_instance drop primary key;
 alter table nop_wf_instance add primary key (NOP_TENANT_ID, WF_ID);
 

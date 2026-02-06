@@ -8,6 +8,7 @@
 package io.nop.orm;
 
 import io.nop.api.core.ioc.IBeanProvider;
+import io.nop.orm.biz.IOrmEntityBizProvider;
 import io.nop.orm.model.IEntityModel;
 
 import java.util.Map;
@@ -45,4 +46,6 @@ public interface IOrmEntityEnhancer {
     IOrmEntity internalLoad(String entityName, Object id);
 
     IBeanProvider getBeanProvider();
+
+    IOrmEntityBizProvider getEntityBizProvider();
 }

@@ -25,6 +25,8 @@ public interface IBizObjectManager {
 
     Set<String> getBizObjNames();
 
+    boolean containsBizObject(String bizObjName);
+
     void setDynamicBizModels(GraphQLBizModels bizModels);
 
     /**

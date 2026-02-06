@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.tcc.dao.entity.NopTccBranchRecord;
+import io.nop.tcc.biz.INopTccBranchRecordBiz;
 
 @BizModel("NopTccBranchRecord")
-public class NopTccBranchRecordBizModel extends CrudBizModel<NopTccBranchRecord>{
+public class NopTccBranchRecordBizModel extends CrudBizModel<NopTccBranchRecord> implements INopTccBranchRecordBiz {
     public NopTccBranchRecordBizModel(){
         setEntityName(NopTccBranchRecord.class.getName());
     }

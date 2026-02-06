@@ -46,26 +46,13 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE;
 import static io.nop.dyn.service.NopDynConfigs.CFG_DYN_GEN_CODE_WHEN_INIT;
-import static io.nop.dyn.service.NopDynConstants.VAR_BIZ_OBJ_NAME;
-import static io.nop.dyn.service.NopDynConstants.VAR_ENTITY_META;
-import static io.nop.dyn.service.NopDynConstants.VAR_ENTITY_MODEL;
-import static io.nop.dyn.service.NopDynConstants.VAR_MODULE_ENTITY;
-import static io.nop.dyn.service.NopDynConstants.VAR_OBJ_META;
-import static io.nop.dyn.service.NopDynConstants.VAR_ORM_MODEL;
-import static io.nop.dyn.service.NopDynConstants.VAR_PAGE_NAME;
+import static io.nop.dyn.service.NopDynConstants.*;
 
 public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvider, ITenantModuleDiscovery,
         IDynamicEntityModelProvider, IDynCodeGenCacheHook {
@@ -115,6 +102,11 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
         }
         codeCache.clear();
         tenantCache.clear();
+    }
+
+    @Override
+    public boolean containsBizObject(String bizObjName) {
+        return getTenantBizModel(bizObjName) != null;
     }
 
     @Override

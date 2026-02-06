@@ -14,10 +14,12 @@ import io.nop.api.core.auth.ISecurityContext;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.cache.ICache;
 import io.nop.core.CoreConstants;
+import io.nop.core.CoreErrors;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -130,9 +132,16 @@ public interface IServiceContext extends IExecutionContext, ISecurityContext {
         return (IServiceContext) context.getEvalScope().getValue(CoreConstants.VAR_SVC_CTX);
     }
 
-    static IServiceContext bindingCtx() {
+    static IServiceContext getCtx() {
         IContext context = ContextProvider.currentContext();
         return context == null ? null : (IServiceContext) context.getAttribute(ApiConstants.ATTR_SERVICE_CONTEXT);
+    }
+
+    static IServiceContext requireCtx() {
+        IServiceContext ctx = getCtx();
+        if (ctx == null)
+            throw new NopException(CoreErrors.ERR_CONTEXT_SVC_CTX_NOT_BOUND);
+        return ctx;
     }
 
     default void bindToContext(IContext context) {

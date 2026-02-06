@@ -93,10 +93,6 @@ public class ObjDictLoader implements IDictLoader {
             action = operationName.substring(pos + GraphQLConstants.OBJ_ACTION_SEPARATOR.length());
         }
 
-        IBizObject bizObj = bizObjectManager.getBizObject(bizObjName);
-        if (bizObj.getAction(action) == null)
-            return false;
-
-        return true;
+        return bizObjectManager.containsBizObject(bizObjName);
     }
 }

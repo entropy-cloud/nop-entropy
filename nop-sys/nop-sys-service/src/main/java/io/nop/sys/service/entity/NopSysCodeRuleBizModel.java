@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.sys.dao.entity.NopSysCodeRule;
+import io.nop.sys.biz.INopSysCodeRuleBiz;
 
 @BizModel("NopSysCodeRule")
-public class NopSysCodeRuleBizModel extends CrudBizModel<NopSysCodeRule>{
+public class NopSysCodeRuleBizModel extends CrudBizModel<NopSysCodeRule> implements INopSysCodeRuleBiz {
     public NopSysCodeRuleBizModel(){
         setEntityName(NopSysCodeRule.class.getName());
     }

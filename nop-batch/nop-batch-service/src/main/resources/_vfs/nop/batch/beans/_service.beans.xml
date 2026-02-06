@@ -7,29 +7,30 @@
 
     <bean id="io.nop.batch.service.entity.NopBatchFileBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopBatchFile" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_NopBatchFile" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.batch.biz.INopBatchFileBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="NopBatchFile"/>
     </bean>
 
     <bean id="io.nop.batch.service.entity.NopBatchTaskBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopBatchTask" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_NopBatchTask" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.batch.biz.INopBatchTaskBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="NopBatchTask"/>
     </bean>
 
     <bean id="io.nop.batch.service.entity.NopBatchTaskVarBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopBatchTaskVar" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_NopBatchTaskVar" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.batch.biz.INopBatchTaskVarBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="NopBatchTaskVar"/>
     </bean>
 
     <bean id="io.nop.batch.service.entity.NopBatchRecordResultBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopBatchRecordResult" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_NopBatchRecordResult" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.batch.biz.INopBatchRecordResultBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
         <property name="bizObjName" value="NopBatchRecordResult"/>
     </bean>
 </beans>

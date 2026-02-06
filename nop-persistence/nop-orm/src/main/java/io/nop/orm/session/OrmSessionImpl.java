@@ -27,14 +27,8 @@ import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dataset.IComplexDataSet;
 import io.nop.dataset.IDataSet;
-import io.nop.orm.ILoadedOrmModel;
-import io.nop.orm.IOrmComponent;
-import io.nop.orm.IOrmEntity;
-import io.nop.orm.IOrmEntityEnhancer;
-import io.nop.orm.IOrmEntitySet;
-import io.nop.orm.IOrmInterceptor;
-import io.nop.orm.OrmConstants;
-import io.nop.orm.OrmEntityState;
+import io.nop.orm.*;
+import io.nop.orm.biz.IOrmEntityBizProvider;
 import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.loader.IOrmBatchLoadQueueImplementor;
 import io.nop.orm.loader.IQueryExecutor;
@@ -439,6 +433,11 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     @Override
     public IBeanProvider getBeanProvider() {
         return this.env.getBeanProvider();
+    }
+
+    @Override
+    public IOrmEntityBizProvider getEntityBizProvider(){
+        return this.env.getEntityBizProvider();
     }
 
     @Override

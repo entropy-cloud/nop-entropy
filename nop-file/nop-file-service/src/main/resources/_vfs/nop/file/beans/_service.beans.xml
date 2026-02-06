@@ -7,8 +7,8 @@
 
     <bean id="io.nop.file.service.entity.NopFileRecordBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopFileRecord" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_NopFileRecord" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.file.biz.INopFileRecordBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="NopFileRecord"/>
     </bean>
 </beans>

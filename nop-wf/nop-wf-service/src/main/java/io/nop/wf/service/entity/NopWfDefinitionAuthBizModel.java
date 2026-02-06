@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.wf.dao.entity.NopWfDefinitionAuth;
+import io.nop.wf.biz.INopWfDefinitionAuthBiz;
 
 @BizModel("NopWfDefinitionAuth")
-public class NopWfDefinitionAuthBizModel extends CrudBizModel<NopWfDefinitionAuth>{
+public class NopWfDefinitionAuthBizModel extends CrudBizModel<NopWfDefinitionAuth> implements INopWfDefinitionAuthBiz {
     public NopWfDefinitionAuthBizModel(){
         setEntityName(NopWfDefinitionAuth.class.getName());
     }

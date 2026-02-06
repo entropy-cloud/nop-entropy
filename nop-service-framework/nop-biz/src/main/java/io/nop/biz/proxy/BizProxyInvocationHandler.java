@@ -109,7 +109,7 @@ public class BizProxyInvocationHandler implements InvocationHandler {
         }
         int index = contextIndex;
         return args -> {
-            IEvalContext context = index >= 0 ? ((IEvalContext) args[index]) : IServiceContext.bindingCtx();
+            IEvalContext context = index >= 0 ? ((IEvalContext) args[index]) : IServiceContext.getCtx();
             return method.invoke(bizModelBean, args, context == null ? DisabledEvalScope.INSTANCE : context.getEvalScope());
         };
     }
@@ -159,7 +159,7 @@ public class BizProxyInvocationHandler implements InvocationHandler {
         return args -> {
             // 提取各种特殊参数
             FieldSelectionBean selection = selectionIndex >= 0 ? (FieldSelectionBean) args[selectionIndex] : null;
-            IServiceContext context = contextIndex >= 0 ? (IServiceContext) args[contextIndex] : IServiceContext.bindingCtx();
+            IServiceContext context = contextIndex >= 0 ? (IServiceContext) args[contextIndex] : IServiceContext.getCtx();
             ApiRequest apiRequest = apiRequestIndex >= 0 ? (ApiRequest) args[apiRequestIndex] : null;
 
             // 构建request对象

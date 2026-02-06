@@ -9,6 +9,7 @@ alter table nop_task_step_instance add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT
 
 alter table nop_task_definition drop primary key;
 alter table nop_task_definition add primary key (NOP_TENANT_ID, TASK_DEF_ID);
+
 alter table nop_task_instance drop primary key;
 alter table nop_task_instance add primary key (NOP_TENANT_ID, TASK_INSTANCE_ID);
 

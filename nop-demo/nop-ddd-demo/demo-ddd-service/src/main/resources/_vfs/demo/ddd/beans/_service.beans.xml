@@ -7,43 +7,43 @@
 
     <bean id="app.demo.service.entity.VoyageBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_Voyage" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_Voyage" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="app.demo.biz.IVoyageBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="Voyage"/>
     </bean>
 
     <bean id="app.demo.service.entity.LocationBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_Location" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_Location" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="app.demo.biz.ILocationBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="Location"/>
     </bean>
 
     <bean id="app.demo.service.entity.CargoBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_Cargo" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_Cargo" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="app.demo.biz.ICargoBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="Cargo"/>
     </bean>
 
     <bean id="app.demo.service.entity.CarrierMovementBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_CarrierMovement" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_CarrierMovement" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="app.demo.biz.ICarrierMovementBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="CarrierMovement"/>
     </bean>
 
     <bean id="app.demo.service.entity.HandlingEventBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_HandlingEvent" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_HandlingEvent" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="app.demo.biz.IHandlingEventBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="HandlingEvent"/>
     </bean>
 
     <bean id="app.demo.service.entity.LegBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_Leg" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.biz.crud.ICrudBiz"
-          ioc:force-lazy-property="true">
+    <bean id="biz_Leg" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="app.demo.biz.ILegBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
         <property name="bizObjName" value="Leg"/>
     </bean>
 </beans>

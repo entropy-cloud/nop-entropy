@@ -8,12 +8,12 @@
 package io.nop.auth.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.auth.biz.INopAuthExtLoginBiz;
+import io.nop.auth.dao.entity.NopAuthExtLogin;
 import io.nop.biz.crud.CrudBizModel;
 
-import io.nop.auth.dao.entity.NopAuthExtLogin;
-
 @BizModel("NopAuthExtLogin")
-public class NopAuthExtLoginBizModel extends CrudBizModel<NopAuthExtLogin>{
+public class NopAuthExtLoginBizModel extends CrudBizModel<NopAuthExtLogin> implements INopAuthExtLoginBiz{
     public NopAuthExtLoginBizModel(){
         setEntityName(NopAuthExtLogin.class.getName());
     }

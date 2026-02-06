@@ -247,6 +247,7 @@ nop.err.core.component.unknown-file-type-for-model-type: 模型[{modelType}]不�
 nop.err.core.component.unknown-model-file-type: 未知的模型文件类型:{fileType}
 nop.err.core.component.unknown-model-type: 未知的模型类型:{modelType}
 nop.err.core.context.broken-context-stack: leaveContext和enterContext必须配对调用
+nop.err.core.context.svc-ctx-not-bound: 当前线程未绑定IServiceContext
 nop.err.core.delta-merge-node-not-inherit: 路径为[{jsonPath}]的节点没有对应可继承的父节点
 nop.err.core.dict.build-dict-from-enum-fail: 装载枚举类[{className}]失败
 nop.err.core.dict.not-valid-enum-class: '[{className}]不是合法的枚举类'

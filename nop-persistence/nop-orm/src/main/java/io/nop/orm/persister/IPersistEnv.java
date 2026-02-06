@@ -16,10 +16,8 @@ import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.metrics.IDaoMetrics;
 import io.nop.dao.seq.ISequenceGenerator;
 import io.nop.dao.txn.ITransactionTemplate;
-import io.nop.orm.ILoadedOrmModel;
-import io.nop.orm.IOrmComponent;
-import io.nop.orm.IOrmDaoListener;
-import io.nop.orm.IOrmSessionFactory;
+import io.nop.orm.*;
+import io.nop.orm.biz.IOrmEntityBizProvider;
 import io.nop.orm.driver.ICollectionPersistDriver;
 import io.nop.orm.driver.IEntityPersistDriver;
 import io.nop.orm.eql.ICompiledSql;
@@ -45,6 +43,7 @@ public interface IPersistEnv extends IOrmSessionFactory {
         return getLoadedOrmModel().getExtension(entityName, extensionClass);
     }
 
+    IOrmEntityBizProvider getEntityBizProvider();
 
     IEqlAstTransformer getDefaultAstTransformer();
 

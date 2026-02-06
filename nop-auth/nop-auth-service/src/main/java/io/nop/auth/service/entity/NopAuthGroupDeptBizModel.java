@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.auth.dao.entity.NopAuthGroupDept;
+import io.nop.auth.biz.INopAuthGroupDeptBiz;
 
 @BizModel("NopAuthGroupDept")
-public class NopAuthGroupDeptBizModel extends CrudBizModel<NopAuthGroupDept>{
+public class NopAuthGroupDeptBizModel extends CrudBizModel<NopAuthGroupDept> implements INopAuthGroupDeptBiz {
     public NopAuthGroupDeptBizModel(){
         setEntityName(NopAuthGroupDept.class.getName());
     }

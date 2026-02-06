@@ -11,9 +11,10 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.biz.crud.CrudBizModel;
 
 import io.nop.oauth.dao.entity.NopOauthAuthorization;
+import io.nop.oauth.biz.INopOauthAuthorizationBiz;
 
 @BizModel("NopOauthAuthorization")
-public class NopOauthAuthorizationBizModel extends CrudBizModel<NopOauthAuthorization>{
+public class NopOauthAuthorizationBizModel extends CrudBizModel<NopOauthAuthorization> implements INopOauthAuthorizationBiz {
     public NopOauthAuthorizationBizModel(){
         setEntityName(NopOauthAuthorization.class.getName());
     }

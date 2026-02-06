@@ -26,7 +26,7 @@ public class DataAuthEntityFilterProvider implements IEntityFilterProvider {
     @Override
     public IMarkedString getEntityFilter(SyntaxMarker marker, SQL sql,
                                          ISqlCompileTool compiler) {
-        IServiceContext ctx = IServiceContext.bindingCtx();
+        IServiceContext ctx = IServiceContext.getCtx();
         if (ctx == null)
             ctx = new ServiceContextImpl();
 
