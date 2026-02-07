@@ -63,6 +63,9 @@ public class GraphQLASTProcessor<T,C>{
             case GraphQLObjectDefinition:
                 return processGraphQLObjectDefinition((GraphQLObjectDefinition)node,context);
         
+            case GraphQLInterfaceDefinition:
+                return processGraphQLInterfaceDefinition((GraphQLInterfaceDefinition)node,context);
+        
             case GraphQLFieldDefinition:
                 return processGraphQLFieldDefinition((GraphQLFieldDefinition)node,context);
         
@@ -165,6 +168,10 @@ public class GraphQLASTProcessor<T,C>{
 	}
     
 	public T processGraphQLObjectDefinition(GraphQLObjectDefinition node, C context){
+        return defaultProcess(node, context);
+	}
+    
+	public T processGraphQLInterfaceDefinition(GraphQLInterfaceDefinition node, C context){
         return defaultProcess(node, context);
 	}
     

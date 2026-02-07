@@ -1,7 +1,7 @@
 //__XGEN_FORCE_OVERRIDE__
 package io.nop.graphql.core.ast._gen;
 
-import io.nop.graphql.core.ast.GraphQLObjectDefinition;
+import io.nop.graphql.core.ast.GraphQLInterfaceDefinition;
 import io.nop.graphql.core.ast.GraphQLASTNode; //NOPMD NOSONAR - suppressed UnusedImports - Auto Gen Code
 
 import io.nop.graphql.core.ast.GraphQLASTKind;
@@ -14,14 +14,12 @@ import java.util.function.Consumer;
 // tell cpd to start ignoring code - CPD-OFF
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S116","java:S3008","java:S1602",
         "PMD.UnnecessaryFullyQualifiedName","PMD.UnnecessaryImport","PMD.EmptyControlStatement"})
-public abstract class _GraphQLObjectDefinition extends io.nop.graphql.core.ast.GraphQLTypeDefinition {
+public abstract class _GraphQLInterfaceDefinition extends io.nop.graphql.core.ast.GraphQLTypeDefinition {
     
     protected java.util.List<io.nop.graphql.core.ast.GraphQLFieldDefinition> fields;
     
-    protected java.util.List<io.nop.graphql.core.ast.GraphQLNamedType> interfaces;
-    
 
-    public _GraphQLObjectDefinition(){
+    public _GraphQLInterfaceDefinition(){
     }
 
     
@@ -48,29 +46,6 @@ public abstract class _GraphQLObjectDefinition extends io.nop.graphql.core.ast.G
         return list;
     }
     
-    public java.util.List<io.nop.graphql.core.ast.GraphQLNamedType> getInterfaces(){
-        return interfaces;
-    }
-
-    public void setInterfaces(java.util.List<io.nop.graphql.core.ast.GraphQLNamedType> value){
-        checkAllowChange();
-        
-                if(value != null){
-                  value.forEach(node->node.setASTParent((GraphQLASTNode)this));
-                }
-            
-        this.interfaces = value;
-    }
-    
-    public java.util.List<io.nop.graphql.core.ast.GraphQLNamedType> makeInterfaces(){
-        java.util.List<io.nop.graphql.core.ast.GraphQLNamedType> list = getInterfaces();
-        if(list == null){
-            list = new java.util.ArrayList<>();
-            setInterfaces(list);
-        }
-        return list;
-    }
-    
 
     public void validate(){
        super.validate();
@@ -78,13 +53,13 @@ public abstract class _GraphQLObjectDefinition extends io.nop.graphql.core.ast.G
     }
 
 
-    public GraphQLObjectDefinition newInstance(){
-      return new GraphQLObjectDefinition();
+    public GraphQLInterfaceDefinition newInstance(){
+      return new GraphQLInterfaceDefinition();
     }
 
     @Override
-    public GraphQLObjectDefinition deepClone(){
-       GraphQLObjectDefinition ret = newInstance();
+    public GraphQLInterfaceDefinition deepClone(){
+       GraphQLInterfaceDefinition ret = newInstance();
     ret.setLocation(getLocation());
     ret.setLeadingComment(getLeadingComment());
     ret.setTrailingComment(getTrailingComment());
@@ -124,16 +99,6 @@ public abstract class _GraphQLObjectDefinition extends io.nop.graphql.core.ast.G
                       
                 }
             
-                if(interfaces != null){
-                  
-                          java.util.List<io.nop.graphql.core.ast.GraphQLNamedType> copy_interfaces = new java.util.ArrayList<>(interfaces.size());
-                          for(io.nop.graphql.core.ast.GraphQLNamedType item: interfaces){
-                              copy_interfaces.add(item.deepClone());
-                          }
-                          ret.setInterfaces(copy_interfaces);
-                      
-                }
-            
        return ret;
     }
 
@@ -150,11 +115,6 @@ public abstract class _GraphQLObjectDefinition extends io.nop.graphql.core.ast.G
                     processor.accept(child);
                 }
             }
-            if(interfaces != null){
-               for(io.nop.graphql.core.ast.GraphQLNamedType child: interfaces){
-                    processor.accept(child);
-                }
-            }
     }
 
     @Override
@@ -168,12 +128,6 @@ public abstract class _GraphQLObjectDefinition extends io.nop.graphql.core.ast.G
             }
             if(fields != null){
                for(io.nop.graphql.core.ast.GraphQLFieldDefinition child: fields){
-                    if(processor.apply(child) == ProcessResult.STOP)
-                        return ProcessResult.STOP;
-               }
-            }
-            if(interfaces != null){
-               for(io.nop.graphql.core.ast.GraphQLNamedType child: interfaces){
                     if(processor.apply(child) == ProcessResult.STOP)
                         return ProcessResult.STOP;
                }
@@ -200,14 +154,6 @@ public abstract class _GraphQLObjectDefinition extends io.nop.graphql.core.ast.G
                    return true;
                }
             }
-            if(this.interfaces != null){
-               int index = this.interfaces.indexOf(oldChild);
-               if(index >= 0){
-                   java.util.List<io.nop.graphql.core.ast.GraphQLNamedType> list = this.replaceInList(this.interfaces,index,newChild);
-                   this.setInterfaces(list);
-                   return true;
-               }
-            }
         return false;
     }
 
@@ -230,14 +176,6 @@ public abstract class _GraphQLObjectDefinition extends io.nop.graphql.core.ast.G
                    return true;
                }
             }
-            if(this.interfaces != null){
-               int index = this.interfaces.indexOf(child);
-               if(index >= 0){
-                   java.util.List<io.nop.graphql.core.ast.GraphQLNamedType> list = this.removeInList(this.interfaces,index);
-                   this.setInterfaces(list);
-                   return true;
-               }
-            }
     return false;
     }
 
@@ -245,7 +183,7 @@ public abstract class _GraphQLObjectDefinition extends io.nop.graphql.core.ast.G
     public boolean isEquivalentTo(GraphQLASTNode node){
        if(this.getASTKind() != node.getASTKind())
           return false;
-    GraphQLObjectDefinition other = (GraphQLObjectDefinition)node;
+    GraphQLInterfaceDefinition other = (GraphQLInterfaceDefinition)node;
     
             if(isListEquivalent(this.directives,other.getDirectives())){
                return false;
@@ -265,15 +203,12 @@ public abstract class _GraphQLObjectDefinition extends io.nop.graphql.core.ast.G
             if(isListEquivalent(this.fields,other.getFields())){
                return false;
             }
-            if(isListEquivalent(this.interfaces,other.getInterfaces())){
-               return false;
-            }
         return true;
     }
 
     @Override
     public GraphQLASTKind getASTKind(){
-       return GraphQLASTKind.GraphQLObjectDefinition;
+       return GraphQLASTKind.GraphQLInterfaceDefinition;
     }
 
     protected void serializeFields(IJsonHandler json) {
@@ -306,13 +241,6 @@ public abstract class _GraphQLObjectDefinition extends io.nop.graphql.core.ast.G
                           
                     }
                 
-                    if(interfaces != null){
-                      
-                              if(!interfaces.isEmpty())
-                                json.put("interfaces", interfaces);
-                          
-                    }
-                
     }
 
     @Override
@@ -321,7 +249,6 @@ public abstract class _GraphQLObjectDefinition extends io.nop.graphql.core.ast.G
         
                 directives = io.nop.api.core.util.FreezeHelper.freezeList(directives,cascade);         
                 fields = io.nop.api.core.util.FreezeHelper.freezeList(fields,cascade);         
-                interfaces = io.nop.api.core.util.FreezeHelper.freezeList(interfaces,cascade);         
     }
 
 }

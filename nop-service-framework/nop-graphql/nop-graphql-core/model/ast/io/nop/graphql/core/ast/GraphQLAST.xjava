@@ -121,6 +121,11 @@ class GraphQLAST {
 
     class GraphQLObjectDefinition extends GraphQLTypeDefinition {
         List<GraphQLFieldDefinition> fields;
+        List<GraphQLNamedType> interfaces;
+    }
+
+    class GraphQLInterfaceDefinition extends GraphQLTypeDefinition {
+        List<GraphQLFieldDefinition> fields;
     }
 
     class GraphQLFieldDefinition extends WithDirectives {

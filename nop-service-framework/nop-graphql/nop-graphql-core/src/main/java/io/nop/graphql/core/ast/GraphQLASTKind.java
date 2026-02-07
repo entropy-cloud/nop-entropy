@@ -39,22 +39,24 @@ public enum GraphQLASTKind{
         
             GraphQLObjectDefinition, // ordinal: 17
         
-            GraphQLFieldDefinition, // ordinal: 18
+            GraphQLInterfaceDefinition, // ordinal: 18
         
-            GraphQLInputDefinition, // ordinal: 19
+            GraphQLFieldDefinition, // ordinal: 19
         
-            GraphQLInputFieldDefinition, // ordinal: 20
+            GraphQLInputDefinition, // ordinal: 20
         
-            GraphQLArgumentDefinition, // ordinal: 21
+            GraphQLInputFieldDefinition, // ordinal: 21
         
-            GraphQLDirectiveDefinition, // ordinal: 22
+            GraphQLArgumentDefinition, // ordinal: 22
         
-            GraphQLUnionTypeDefinition, // ordinal: 23
+            GraphQLDirectiveDefinition, // ordinal: 23
         
-            GraphQLScalarDefinition, // ordinal: 24
+            GraphQLUnionTypeDefinition, // ordinal: 24
         
-            GraphQLEnumDefinition, // ordinal: 25
+            GraphQLScalarDefinition, // ordinal: 25
         
-            GraphQLEnumValueDefinition, // ordinal: 26
+            GraphQLEnumDefinition, // ordinal: 26
+        
+            GraphQLEnumValueDefinition, // ordinal: 27
         
 }

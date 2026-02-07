@@ -1,23 +1,22 @@
 # ========================================
-# JAVA CODE INDEXING GRAPHQL SCHEMA
-# FINAL VERSION - AI CODE UNDERSTANDING
+# NOP CODE INDEXING GRAPHQL SCHEMA
+# REFACTORED VERSION - DATABASE PERSISTED
 # ========================================
 #
 # Design Philosophy:
-# - Designed for AI code generation to understand existing codebases
-# - NO interactive features (completion, text editing, hover, signature help)
-# - NO IDE-specific features (inlay hints, code lenses, semantic tokens)
-# - Focus on static analysis, code relationships, and structural understanding
-# - All queries use 'codeIndex_' prefix to avoid conflicts
-# - Uses offset-based pagination for usages only
-# - Plain lists for methods/fields/interfaces (no pagination)
+# - All symbols belong to a NopCodeIndex
+# - All entities use NopCode prefix and map to database tables
+# - Follows Nop GraphQL conventions (Type__action naming)
+# - Optimized for AI code generation and codebase understanding
 #
-# Use Cases:
-# 1. Find symbols and their definitions
-# 2. Understand type hierarchies and implementations
-# 3. Trace call graphs and method relationships
-# 4. Analyze code usage patterns
-# 5. Read source code with context
+# Entity Mapping:
+# - NopCodeIndex → nop_code_index table
+# - NopCodeSymbol → nop_code_symbol table
+# - NopCodeClass → nop_code_class table
+# - NopCodeMethod → nop_code_method table
+# - NopCodeField → nop_code_field table
+# - NopCodeAnnotation → nop_code_annotation table
+# - NopCodeUsage → nop_code_usage table
 
 # ========================================
 # SCALARS & ENUMS
@@ -25,7 +24,7 @@
 
 scalar CodeID
 
-enum SymbolKind {
+enum NopCodeSymbolKind {
   CLASS
   INTERFACE
   ENUM
@@ -39,7 +38,7 @@ enum SymbolKind {
   PACKAGE
 }
 
-enum AccessModifier {
+enum NopCodeAccessModifier {
   PUBLIC
   PROTECTED
   PRIVATE
@@ -47,7 +46,7 @@ enum AccessModifier {
   DEFAULT
 }
 
-enum ReferenceKind {
+enum NopCodeReferenceKind {
   READ
   WRITE
   CALL
@@ -57,268 +56,376 @@ enum ReferenceKind {
   ANNOTATES
 }
 
-# ========================================
-# CORE TYPES
-# ========================================
-
-interface Node {
-  id: ID!
-}
-
-type Location {
-  filePath: String!
-  line: Int!
-  column: Int!
-  display: String!
-}
-
-# Base Symbol type
-type Symbol implements Node {
-  id: ID!
-  kind: SymbolKind!
-  name: String!
-  qualifiedName: String!
-  definition: Location!
-  deprecated: Boolean!
-  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
-  documentation: String
-  modifiers: [AccessModifier!]
-  annotations: [Annotation!]
-  parent: Symbol
-  usageCount: Int!
-}
-
-# ========================================
-# DETAILED TYPES
-# ========================================
-
-type ClassType implements Node {
-  id: ID!
-  name: String!
-  qualifiedName: String!
-  definition: Location!
-  deprecated: Boolean!
-  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
-  documentation: String
-  modifiers: [AccessModifier!]
-  annotations: [Annotation!]
-  parent: Symbol
-  usageCount: Int!
-
-  superclass: ClassType
-  interfaces: [InterfaceType!]!
-  fields: [Field!]!
-  methods: [Method!]!
-  subClasses: [ClassType!]!
-}
-
-type InterfaceType implements Node {
-  id: ID!
-  name: String!
-  qualifiedName: String!
-  definition: Location!
-  deprecated: Boolean!
-  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
-  documentation: String
-  modifiers: [AccessModifier!]
-  annotations: [Annotation!]
-  parent: Symbol
-  usageCount: Int!
-
-  methods: [Method!]!
-  implementors: [ClassType!]!
-}
-
-type Method implements Node {
-  id: ID!
-  name: String!
-  qualifiedName: String!
-  definition: Location!
-  deprecated: Boolean!
-  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
-  documentation: String
-  modifiers: [AccessModifier!]
-  annotations: [Annotation!]
-  parent: Symbol
-  usageCount: Int!
-
-  returnType: Symbol!
-  parameters: [Parameter!]!
-  exceptions: [Symbol!]!
-  overrides: [Method!]!
-  signature: String!
-}
-
-type Field implements Node {
-  id: ID!
-  name: String!
-  qualifiedName: String!
-  definition: Location!
-  deprecated: Boolean!
-  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
-  documentation: String
-  modifiers: [AccessModifier!]
-  annotations: [Annotation!]
-  parent: Symbol
-  usageCount: Int!
-
-  type: Symbol!
-}
-
-type Parameter implements Node {
-  id: ID!
-  name: String!
-  qualifiedName: String!
-  definition: Location!
-  deprecated: Boolean!
-  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
-  documentation: String
-  modifiers: [AccessModifier!]
-  annotations: [Annotation!]
-  parent: Symbol
-  usageCount: Int!
-
-  type: Symbol!
-}
-
-type Annotation implements Node {
-  id: ID!
-  name: String!
-  qualifiedName: String!
-  definition: Location!
-  deprecated: Boolean!
-  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
-  documentation: String
-  modifiers: [AccessModifier!]
-  annotations: [Annotation!]
-  parent: Symbol
-  usageCount: Int!
-
-  arguments: [AnnotationArgument!]!
-}
-
-type AnnotationArgument {
-  name: String!
-  value: String!
-}
-
-# ========================================
-# USAGES & RELATIONSHIPS
-# ========================================
-
-type Usage {
-  location: Location!
-  kind: ReferenceKind!
-  symbol: Symbol!
-  context(before: Int = 2, after: Int = 2): String!
-}
-
-type UsagePage {
-  items: [Usage!]!
-  totalCount: Int!
-  offset: Int!
-  limit: Int!
-  hasNext: Boolean!
-}
-
-# ========================================
-# HIERARCHY TYPES (Code Understanding)
-# ========================================
-
-# Type Hierarchy - full inheritance structure
-# Essential for AI to understand polymorphic relationships
-type TypeHierarchy {
-  root: TypeHierarchyNode!
-  direction: HierarchyDirection!
-}
-
-type TypeHierarchyNode {
-  symbol: ClassType!
-  superTypes: [ClassType!]!
-  superInterfaces: [InterfaceType!]!
-  subTypes: [TypeHierarchyNode!]!
-}
-
-enum HierarchyDirection {
+enum NopCodeHierarchyDirection {
   SUPER
   SUB
   BOTH
 }
 
-# Call Hierarchy - call graph relationships
-# Essential for AI to understand execution flow and dependencies
-type CallHierarchy {
-  root: CallHierarchyNode!
-  direction: CallDirection!
-}
-
-type CallHierarchyNode {
-  symbol: Method!
-  toSymbols: [Method!]!
-  incomingCalls: [CallHierarchyNode!]!
-  outgoingCalls: [CallHierarchyNode!]!
-}
-
-enum CallDirection {
+enum NopCodeCallDirection {
   INCOMING
   OUTGOING
   BOTH
 }
 
 # ========================================
-# ROOT QUERY TYPE
+# CORE TYPES
+# ========================================
+
+interface NopCodeNode {
+  id: ID!
+}
+
+type NopCodeLocation {
+  filePath: String!
+  line: Int!
+  column: Int!
+  display: String!
+}
+
+# ========================================
+# ENTITY TYPES
+# ========================================
+
+type NopCodeIndex implements NopCodeNode {
+  id: ID!
+  name: String!
+  rootPath: String!
+  language: String!
+  symbolCount: Int!
+  fileCount: Int!
+  createTime: String
+  updateTime: String
+
+  files: [String!]!
+}
+
+type NopCodeSymbol implements NopCodeNode {
+  id: ID!
+  kind: NopCodeSymbolKind!
+  name: String!
+  qualifiedName: String!
+  definition: NopCodeLocation!
+  deprecated: Boolean!
+  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
+  documentation: String
+  modifiers: [NopCodeAccessModifier!]
+  annotations: [NopCodeAnnotation!]
+  parent: NopCodeSymbol
+  usageCount: Int!
+
+  indexId: String
+  filePath: String
+}
+
+type NopCodeClass implements NopCodeNode {
+  id: ID!
+  name: String!
+  qualifiedName: String!
+  definition: NopCodeLocation!
+  deprecated: Boolean!
+  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
+  documentation: String
+  modifiers: [NopCodeAccessModifier!]
+  annotations: [NopCodeAnnotation!]
+  parent: NopCodeSymbol
+  usageCount: Int!
+
+  superClass: NopCodeClass
+  interfaces: [NopCodeInterface!]!
+  fields: [NopCodeField!]!
+  methods: [NopCodeMethod!]!
+  subClasses: [NopCodeClass!]!
+
+  indexId: String
+  filePath: String
+}
+
+type NopCodeInterface implements NopCodeNode {
+  id: ID!
+  name: String!
+  qualifiedName: String!
+  definition: NopCodeLocation!
+  deprecated: Boolean!
+  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
+  documentation: String
+  modifiers: [NopCodeAccessModifier!]
+  annotations: [NopCodeAnnotation!]
+  parent: NopCodeSymbol
+  usageCount: Int!
+
+  methods: [NopCodeMethod!]!
+  implementors: [NopCodeClass!]!
+
+  indexId: String
+  filePath: String
+}
+
+type NopCodeMethod implements NopCodeNode {
+  id: ID!
+  name: String!
+  qualifiedName: String!
+  definition: NopCodeLocation!
+  deprecated: Boolean!
+  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
+  documentation: String
+  modifiers: [NopCodeAccessModifier!]
+  annotations: [NopCodeAnnotation!]
+  parent: NopCodeSymbol
+  usageCount: Int!
+
+  returnType: NopCodeSymbol!
+  parameters: [NopCodeParameter!]!
+  exceptions: [NopCodeSymbol!]!
+  overrides: [NopCodeMethod!]!
+  signature: String!
+
+  indexId: String
+  filePath: String
+}
+
+type NopCodeField implements NopCodeNode {
+  id: ID!
+  name: String!
+  qualifiedName: String!
+  definition: NopCodeLocation!
+  deprecated: Boolean!
+  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
+  documentation: String
+  modifiers: [NopCodeAccessModifier!]
+  annotations: [NopCodeAnnotation!]
+  parent: NopCodeSymbol
+  usageCount: Int!
+
+  type: NopCodeSymbol!
+
+  indexId: String
+  filePath: String
+}
+
+type NopCodeParameter implements NopCodeNode {
+  id: ID!
+  name: String!
+  qualifiedName: String!
+  definition: NopCodeLocation!
+  deprecated: Boolean!
+  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
+  documentation: String
+  modifiers: [NopCodeAccessModifier!]
+  annotations: [NopCodeAnnotation!]
+  parent: NopCodeSymbol
+  usageCount: Int!
+
+  type: NopCodeSymbol!
+
+  indexId: String
+  filePath: String
+}
+
+type NopCodeAnnotation implements NopCodeNode {
+  id: ID!
+  name: String!
+  qualifiedName: String!
+  definition: NopCodeLocation!
+  deprecated: Boolean!
+  sourceCode(linesBefore: Int = 0, linesAfter: Int = 5): String!
+  documentation: String
+  modifiers: [NopCodeAccessModifier!]
+  annotations: [NopCodeAnnotation!]
+  parent: NopCodeSymbol
+  usageCount: Int!
+
+  arguments: [NopCodeAnnotationArgument!]!
+
+  indexId: String
+  filePath: String
+}
+
+type NopCodeAnnotationArgument {
+  name: String!
+  value: String!
+}
+
+# ========================================
+# RELATIONSHIP & USAGE TYPES
+# ========================================
+
+type NopCodeUsage {
+  location: NopCodeLocation!
+  kind: NopCodeReferenceKind!
+  symbol: NopCodeSymbol!
+  context(before: Int = 2, after: Int = 2): String!
+
+  indexId: String
+}
+
+type PageBean_NopCodeUsage {
+  totalCount: Int!
+  offset: Int!
+  limit: Int!
+  items: [NopCodeUsage!]!
+}
+
+# ========================================
+# HIERARCHY TYPES
+# ========================================
+
+type NopCodeTypeHierarchy {
+  root: NopCodeTypeHierarchyNode!
+  direction: NopCodeHierarchyDirection!
+}
+
+type NopCodeTypeHierarchyNode {
+  symbol: NopCodeClass!
+  superTypes: [NopCodeClass!]!
+  superInterfaces: [NopCodeInterface!]!
+  subTypes: [NopCodeTypeHierarchyNode!]!
+}
+
+type NopCodeCallHierarchy {
+  root: NopCodeCallHierarchyNode!
+  direction: NopCodeCallDirection!
+}
+
+type NopCodeCallHierarchyNode {
+  symbol: NopCodeMethod!
+  toSymbols: [NopCodeMethod!]!
+  incomingCalls: [NopCodeCallHierarchyNode!]!
+  outgoingCalls: [NopCodeCallHierarchyNode!]!
+}
+
+# ========================================
+# FILE OUTLINE TYPE
+# ========================================
+
+type NopCodeFileOutline {
+  filePath: String!
+  symbols: [NopCodeSymbol!]!
+  indexId: String!
+}
+
+# ========================================
+# PAGE BEAN TYPES
+# ========================================
+
+type PageBean_NopCodeSymbol {
+  totalCount: Int!
+  offset: Int!
+  limit: Int!
+  items: [NopCodeSymbol!]!
+}
+
+type PageBean_NopCodeClass {
+  totalCount: Int!
+  offset: Int!
+  limit: Int!
+  items: [NopCodeClass!]!
+}
+
+type PageBean_NopCodeMethod {
+  totalCount: Int!
+  offset: Int!
+  limit: Int!
+  items: [NopCodeMethod!]!
+}
+
+# ========================================
+# QUERY TYPE
 # ========================================
 
 type Query {
-  # --- Core Symbol Queries ---
+  # === Index Queries ===
 
-  # Get any node by ID (polymorphic)
-  codeIndex_node(id: ID!): Node
+  "获取索引"
+  NopCodeIndex__get(id: ID!): NopCodeIndex
 
-  # Find a specific symbol by qualified name
-  codeIndex_symbol(qualifiedName: String!): Symbol
+  "通过路径获取索引"
+  NopCodeIndex__findByPath(rootPath: String!): NopCodeIndex
 
-  # Search for symbols by name pattern and kind
-  codeIndex_symbols(query: String!, kinds: [SymbolKind!], limit: Int = 20): [Symbol!]!
+  "通过索引ID获取所有文件"
+  NopCodeIndex__getFiles(indexId: ID!): [String!]!
 
-  # --- Specific Type Queries ---
+  # === Node & Symbol Queries ===
 
-  # Get class details including hierarchy
-  codeIndex_class(qualifiedName: String!): ClassType
+  "通过ID获取任意节点"
+  NopCodeIndex__node(id: ID!): NopCodeNode
 
-  # Get interface details and implementations
-  codeIndex_interface(qualifiedName: String!): InterfaceType
+  "通过ID获取符号"
+  NopCodeIndex__symbol(id: ID!): NopCodeSymbol
 
-  # Get method details including overrides
-  codeIndex_method(qualifiedName: String!): Method
+  "通过全限定名查找符号"
+  NopCodeSymbol__findByQualifiedName(qualifiedName: String!, indexId: String): NopCodeSymbol
 
-  # --- Relationship & Usage Queries ---
+  "搜索符号（分页）"
+  NopCodeSymbol__findPage(query: String!, kinds: [NopCodeSymbolKind!], indexId: String, offset: Int = 0, limit: Int = 20): PageBean_NopCodeSymbol!
 
-  # Find all usages of a symbol (paginated)
-  codeIndex_usages(symbolId: ID!, offset: Int = 0, limit: Int = 20): UsagePage!
+  # === Specific Type Queries ===
 
-  # Find all classes implementing an interface
-  codeIndex_findImplementations(interfaceId: ID!): [ClassType!]!
+  "通过ID获取类"
+  NopCodeClass__get(id: ID!): NopCodeClass
 
-  # Find all subclasses of a class
-  codeIndex_findSubclasses(classId: ID!): [ClassType!]!
+  "通过全限定名获取类"
+  NopCodeClass__findByQualifiedName(qualifiedName: String!, indexId: String): NopCodeClass
 
-  # Find all methods overriding a method
-  codeIndex_findOverrides(methodId: ID!): [Method!]!
+  "通过ID获取接口"
+  NopCodeInterface__get(id: ID!): NopCodeInterface
 
-  # --- File & Source Queries ---
+  "通过全限定名获取接口"
+  NopCodeInterface__findByQualifiedName(qualifiedName: String!, indexId: String): NopCodeInterface
 
-  # Get outline (all symbols) of a file
-  codeIndex_fileOutline(filePath: String!): [Symbol!]!
+  "通过ID获取方法"
+  NopCodeMethod__get(id: ID!): NopCodeMethod
 
-  # Get source code at a specific location
-  codeIndex_sourceCode(filePath: String!, line: Int!, column: Int!): String!
+  "通过全限定名获取方法"
+  NopCodeMethod__findByQualifiedName(qualifiedName: String!, indexId: String): NopCodeMethod
 
-  # --- Hierarchy Queries ---
+  # === Usage & Reference Queries ===
 
-  # Get type hierarchy for a symbol (supertypes and subtypes)
-  codeIndex_typeHierarchy(symbolId: ID!, direction: HierarchyDirection! = BOTH, maxDepth: Int = 3): TypeHierarchy!
+  "查找符号的所有使用（分页）"
+  NopCodeUsage__findPage(symbolId: ID!, kind: NopCodeReferenceKind, offset: Int = 0, limit: Int = 20): PageBean_NopCodeUsage!
 
-  # Get call hierarchy for a method (callers and callees)
-  codeIndex_callHierarchy(symbolId: ID!, direction: CallDirection! = BOTH, maxDepth: Int = 3): CallHierarchy!
+  "查找接口的所有实现类"
+  NopCodeInterface__findImplementors(interfaceId: ID!): [NopCodeClass!]!
+
+  "查找类的所有子类"
+  NopCodeClass__findSubClasses(classId: ID!): [NopCodeClass!]!
+
+  "查找方法的所有重写方法"
+  NopCodeMethod__findOverrides(methodId: ID!): [NopCodeMethod!]!
+
+  # === File & Source Queries ===
+
+  "获取文件大纲"
+  NopCodeFileOutline__get(filePath: String!, indexId: String!): NopCodeFileOutline
+
+  "获取指定位置的源代码"
+  NopCodeSource__get(filePath: String!, line: Int!, column: Int!, indexId: String!): String!
+
+  # === Hierarchy Queries ===
+
+  "获取类型层级"
+  NopCodeTypeHierarchy__get(symbolId: ID!, direction: NopCodeHierarchyDirection! = BOTH, maxDepth: Int = 3): NopCodeTypeHierarchy!
+
+  "获取调用层级"
+  NopCodeCallHierarchy__get(symbolId: ID!, direction: NopCodeCallDirection! = BOTH, maxDepth: Int = 3): NopCodeCallHierarchy!
+
+  # === List Queries ===
+
+  "搜索符号列表（不分页）"
+  NopCodeSymbol__findList(query: String!, kinds: [NopCodeSymbolKind!], indexId: String, limit: Int = 20): [NopCodeSymbol!]!
+}
+
+# ========================================
+# MUTATION TYPE
+# ========================================
+
+type Mutation {
+  "索引代码文件"
+  NopCodeIndex__indexFiles(filePaths: [String!]!, indexId: ID!): Boolean
+
+  "重新索引"
+  NopCodeIndex__reindex(indexId: ID!): Boolean
+
+  "删除索引"
+  NopCodeIndex__delete(indexId: ID!): Boolean
 }

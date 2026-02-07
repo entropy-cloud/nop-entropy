@@ -82,6 +82,10 @@ public class GraphQLASTVisitor extends AbstractVisitor<GraphQLASTNode>{
                     visitGraphQLObjectDefinition((GraphQLObjectDefinition)node);
                     return;
             
+                case GraphQLInterfaceDefinition:
+                    visitGraphQLInterfaceDefinition((GraphQLInterfaceDefinition)node);
+                    return;
+            
                 case GraphQLFieldDefinition:
                     visitGraphQLFieldDefinition((GraphQLFieldDefinition)node);
                     return;
@@ -214,6 +218,13 @@ public class GraphQLASTVisitor extends AbstractVisitor<GraphQLASTNode>{
             }
         
             public void visitGraphQLObjectDefinition(GraphQLObjectDefinition node){
+            
+                    this.visitChildren(node.getDirectives());         
+                    this.visitChildren(node.getFields());         
+                    this.visitChildren(node.getInterfaces());         
+            }
+        
+            public void visitGraphQLInterfaceDefinition(GraphQLInterfaceDefinition node){
             
                     this.visitChildren(node.getDirectives());         
                     this.visitChildren(node.getFields());         

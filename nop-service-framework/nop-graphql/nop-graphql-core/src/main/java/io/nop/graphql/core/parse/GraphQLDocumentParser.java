@@ -90,6 +90,8 @@ public class GraphQLDocumentParser extends AbstractCharReaderResourceParser<Grap
     private GraphQLTypeDefinition parseType(TextScanner sc) {
         if (sc.tryMatchToken("type")) {
             return objType(sc);
+        } else if (sc.tryMatchToken("interface")) {
+            return interfaceType(sc);
         } else if (sc.tryMatchToken("enum")) {
             return enumDef(sc);
         } else if (sc.tryMatchToken("scalar")) {
@@ -145,6 +147,12 @@ public class GraphQLDocumentParser extends AbstractCharReaderResourceParser<Grap
         sc.skipBlank();
         def.setName(name);
 
+        // Parse implements clause
+        if (sc.tryMatchToken("implements")) {
+            List<GraphQLNamedType> interfaces = implementsClause(sc);
+            def.setInterfaces(interfaces);
+        }
+
         List<GraphQLDirective> directives = directives(sc);
         def.setDirectives(directives);
 
@@ -153,6 +161,44 @@ public class GraphQLDocumentParser extends AbstractCharReaderResourceParser<Grap
         sc.match('}');
         def.setFields(fields);
         return def;
+    }
+
+    private GraphQLInterfaceDefinition interfaceType(TextScanner sc) {
+        GraphQLInterfaceDefinition def = new GraphQLInterfaceDefinition();
+        def.setLocation(sc.location());
+
+        String name = sc.nextGraphQLVar();
+        sc.skipBlank();
+        def.setName(name);
+
+        List<GraphQLDirective> directives = directives(sc);
+        def.setDirectives(directives);
+
+        sc.match('{');
+        List<GraphQLFieldDefinition> fields = fields(sc);
+        sc.match('}');
+        def.setFields(fields);
+        return def;
+    }
+
+    private List<GraphQLNamedType> implementsClause(TextScanner sc) {
+        List<GraphQLNamedType> interfaces = new ArrayList<>();
+        if (sc.tryMatch('&')) {
+            do {
+                GraphQLNamedType type = namedType(sc);
+                interfaces.add(type);
+                sc.skipBlank();
+            } while (sc.tryMatch('&'));
+        }
+        return interfaces;
+    }
+
+    private GraphQLNamedType namedType(TextScanner sc) {
+        String typeName = sc.nextGraphQLVar();
+        GraphQLNamedType type = new GraphQLNamedType();
+        type.setName(typeName);
+        type.setLocation(sc.location());
+        return type;
     }
 
     private GraphQLInputDefinition inputDef(TextScanner sc) {

@@ -64,6 +64,9 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                 case GraphQLObjectDefinition:
                 return optimizeGraphQLObjectDefinition((GraphQLObjectDefinition)node,context);
             
+                case GraphQLInterfaceDefinition:
+                return optimizeGraphQLInterfaceDefinition((GraphQLInterfaceDefinition)node,context);
+            
                 case GraphQLFieldDefinition:
                 return optimizeGraphQLFieldDefinition((GraphQLFieldDefinition)node,context);
             
@@ -449,6 +452,46 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
     
 	public GraphQLASTNode optimizeGraphQLObjectDefinition(GraphQLObjectDefinition node, C context){
         GraphQLObjectDefinition ret = node;
+
+        
+                    if(node.getDirectives() != null){
+                    
+                            java.util.List<io.nop.graphql.core.ast.GraphQLDirective> directivesOpt = optimizeList(node.getDirectives(),true, context);
+                            if(directivesOpt != node.getDirectives()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(directivesOpt); ret = node.deepClone();}
+                                ret.setDirectives(directivesOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getFields() != null){
+                    
+                            java.util.List<io.nop.graphql.core.ast.GraphQLFieldDefinition> fieldsOpt = optimizeList(node.getFields(),true, context);
+                            if(fieldsOpt != node.getFields()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(fieldsOpt); ret = node.deepClone();}
+                                ret.setFields(fieldsOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getInterfaces() != null){
+                    
+                            java.util.List<io.nop.graphql.core.ast.GraphQLNamedType> interfacesOpt = optimizeList(node.getInterfaces(),true, context);
+                            if(interfacesOpt != node.getInterfaces()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(interfacesOpt); ret = node.deepClone();}
+                                ret.setInterfaces(interfacesOpt);
+                            }
+                        
+                    }
+                
+		return ret;
+	}
+    
+	public GraphQLASTNode optimizeGraphQLInterfaceDefinition(GraphQLInterfaceDefinition node, C context){
+        GraphQLInterfaceDefinition ret = node;
 
         
                     if(node.getDirectives() != null){
