@@ -26,6 +26,7 @@ import io.nop.graphql.core.ast.GraphQLEnumValueDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLInputDefinition;
 import io.nop.graphql.core.ast.GraphQLInputFieldDefinition;
+import io.nop.graphql.core.ast.GraphQLInterfaceDefinition;
 import io.nop.graphql.core.ast.GraphQLListType;
 import io.nop.graphql.core.ast.GraphQLNamedType;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
@@ -34,6 +35,7 @@ import io.nop.graphql.core.ast.GraphQLScalarDefinition;
 import io.nop.graphql.core.ast.GraphQLType;
 import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.ast.GraphQLUnionTypeDefinition;
+import io.nop.graphql.core.engine.GraphQLInterfaceValidator;
 import io.nop.graphql.core.parse.GraphQLDocumentParser;
 import io.nop.graphql.core.schema.introspection.__Directive;
 import io.nop.graphql.core.schema.introspection.__EnumValue;
@@ -87,6 +89,9 @@ public class BuiltinSchemaLoader {
         if (introspection) {
             initIntrospection();
         }
+
+        // Validate interface implementations
+        GraphQLInterfaceValidator.INSTANCE.validate(schema);
 
         return schema;
     }
@@ -143,7 +148,17 @@ public class BuiltinSchemaLoader {
     List<__Type> fetchInterfaces(IDataFetchingEnvironment env) {
         __Type type = (__Type) env.getSource();
         if (type.getKind() == __TypeKind.OBJECT) {
-            // 不允许为null指针
+            // Get interfaces implemented by object type
+            String typeName = type.getName();
+            GraphQLTypeDefinition typeDef = getTypeDefinition(typeName);
+            if (typeDef instanceof GraphQLObjectDefinition) {
+                GraphQLObjectDefinition objDef = (GraphQLObjectDefinition) typeDef;
+                List<__Type> interfaces = new ArrayList<>();
+                for (GraphQLNamedType interfaceType : objDef.getInterfaces()) {
+                    interfaces.add(toGraphQLType(interfaceType, false));
+                }
+                return interfaces;
+            }
             return Collections.emptyList();
         }
         return type.getInterfaces();
@@ -189,6 +204,12 @@ public class BuiltinSchemaLoader {
             ret.setKind(__TypeKind.UNION);
         } else if (def instanceof GraphQLEnumDefinition) {
             ret.setKind(__TypeKind.ENUM);
+        } else if (def instanceof GraphQLInterfaceDefinition) {
+            ret.setKind(__TypeKind.INTERFACE);
+            GraphQLInterfaceDefinition interfaceDef = (GraphQLInterfaceDefinition) def;
+            if (interfaceDef.getFields() != null) {
+                ret.setFields(toFields(interfaceDef.getFields()));
+            }
         } else if (def instanceof GraphQLInputDefinition) {
             ret.setKind(__TypeKind.INPUT_OBJECT);
         } else {
@@ -427,6 +448,29 @@ public class BuiltinSchemaLoader {
             }
             return ret;
         }
+
+        if (type.getKind() == __TypeKind.INTERFACE) {
+            List<__Type> ret = new ArrayList<>();
+            Map<String, GraphQLTypeDefinition> typeMap = schema.getTypes();
+
+            // Find all object types that implement this interface
+            for (GraphQLTypeDefinition typeDef : typeMap.values()) {
+                if (typeDef instanceof GraphQLObjectDefinition) {
+                    GraphQLObjectDefinition objDef = (GraphQLObjectDefinition) typeDef;
+                    List<GraphQLNamedType> interfaces = objDef.getInterfaces();
+                    if (interfaces != null) {
+                        for (GraphQLNamedType interfaceType : interfaces) {
+                            if (interfaceType.getName().equals(type.getName())) {
+                                ret.add(toType(objDef));
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            return ret;
+        }
+
         return type.getPossibleTypes();
     }
 

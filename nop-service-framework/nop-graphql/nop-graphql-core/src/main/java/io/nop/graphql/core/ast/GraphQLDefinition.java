@@ -18,6 +18,10 @@ public abstract class GraphQLDefinition extends _GraphQLDefinition implements IN
         return getASTKind() == GraphQLASTKind.GraphQLObjectDefinition;
     }
 
+    public boolean isInterfaceDefinition() {
+        return getASTKind() == GraphQLASTKind.GraphQLInterfaceDefinition;
+    }
+
     public boolean isEnumDefinition() {
         return getASTKind() == GraphQLASTKind.GraphQLEnumDefinition;
     }

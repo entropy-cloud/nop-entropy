@@ -1,0 +1,20 @@
+# Test GraphQL Interface support
+
+# Interface definition
+interface Node {
+    id: ID!
+    name: String!
+}
+
+# Type implementing Interface
+type Dog implements Node {
+    id: ID!
+    name: String!
+    breed: String
+}
+
+# Query
+type Query {
+    Node__find(id: ID!): Node
+    Dog__get(id: ID!): Dog
+}

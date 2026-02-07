@@ -23,6 +23,8 @@ import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldSelection;
 import io.nop.graphql.core.ast.GraphQLFragment;
 import io.nop.graphql.core.ast.GraphQLFragmentSelection;
+import io.nop.graphql.core.ast.GraphQLInterfaceDefinition;
+import io.nop.graphql.core.ast.GraphQLNamedType;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectValue;
 import io.nop.graphql.core.ast.GraphQLOperation;
@@ -145,7 +147,7 @@ public class GraphQLSelectionResolver {
             if (typeDef == null)
                 throw new NopException(ERR_GRAPHQL_UNDEFINED_OBJECT).source(selectionSet).param(ARG_OBJ_NAME, objName);
 
-            if (!(typeDef instanceof GraphQLObjectDefinition)) {
+            if (!(typeDef instanceof GraphQLObjectDefinition || typeDef instanceof GraphQLInterfaceDefinition)) {
                 throw new NopException(ERR_GRAPHQL_NOT_OBJ_TYPE).source(selectionSet).param(ARG_TYPE, objName)
                         .param(ARG_SELECTION_SET, selectionSet.toSource());
             }
@@ -156,16 +158,15 @@ public class GraphQLSelectionResolver {
                         .param(ARG_LEVEL, level);
             }
 
-            GraphQLObjectDefinition objDef = (GraphQLObjectDefinition) typeDef;
-            selectionSet.setObjectDefinition(objDef);
+            selectionSet.setTypeDefinition(typeDef);
 
             for (GraphQLSelection selection : selectionSet.getSelections()) {
                 if (selection instanceof GraphQLFieldSelection) {
                     GraphQLFieldSelection fieldSelection = (GraphQLFieldSelection) selection;
-                    resolveFieldSelection(doc, objDef, fieldSelection, vars, level + 1);
+                    resolveFieldSelection(doc, typeDef, fieldSelection, vars, level + 1);
                 } else if (selection instanceof GraphQLFragmentSelection) {
                     GraphQLFragmentSelection fragmentSelection = (GraphQLFragmentSelection) selection;
-                    resolveFragmentSelection(doc, objDef, fragmentSelection, level);
+                    resolveFragmentSelection(doc, typeDef, fragmentSelection, level);
                 } else {
                     throw new NopException(ERR_GRAPHQL_UNSUPPORTED_AST).param(ARG_AST_NODE, selection);
                 }
@@ -213,20 +214,22 @@ public class GraphQLSelectionResolver {
         }
     }
 
-    private void resolveFragmentSelection(GraphQLDocument doc, GraphQLObjectDefinition objDef,
+    private void resolveFragmentSelection(GraphQLDocument doc, GraphQLTypeDefinition typeDef,
                                           GraphQLFragmentSelection fragmentSelection, int level) {
         String name = fragmentSelection.getFragmentName();
         if (name.startsWith(GraphQLConstants.FRAGMENT_SELECTION_PREFIX)) {
             // 预定义的fragment selection, 从engine获取
-            FieldSelectionBean selection = engine.getSchemaLoader().getFragmentDefinition(objDef.getName(), name);
+            FieldSelectionBean selection = engine.getSchemaLoader().getFragmentDefinition(typeDef.getName(), name);
             GraphQLFragment fragment = new GraphQLFragment();
             GraphQLSelectionSet selectionSet = new GraphQLSelectionSet();
-            selectionSet.setObjectDefinition(objDef);
+            selectionSet.setTypeDefinition(typeDef);
             fragment.setSelectionSet(selectionSet);
             fragment.setName(name);
             fragmentSelection.setResolvedFragment(fragment);
-            new RpcSelectionSetBuilder(builtinSchema, this.engine.getSchemaLoader(), maxDepth)
-                    .addNonLazyFields(fragment.getSelectionSet(), objDef, level, selection);
+            if (typeDef instanceof GraphQLObjectDefinition) {
+                new RpcSelectionSetBuilder(builtinSchema, this.engine.getSchemaLoader(), maxDepth)
+                        .addNonLazyFields(fragment.getSelectionSet(), (GraphQLObjectDefinition) typeDef, level, selection);
+            }
             fragment.setResolved(true);
             return;
         }
@@ -236,11 +239,39 @@ public class GraphQLSelectionResolver {
             throw new NopException(ERR_GRAPHQL_UNKNOWN_FRAGMENT).param(ARG_AST_NODE, fragmentSelection);
         fragmentSelection.setResolvedFragment(fragment);
 
-        if (!objDef.getName().equals(fragment.getOnType()))
+        // Check if typeDef matches the fragment's onType or implements it (for interfaces)
+        if (!isTypeCompatibleWithFragment(typeDef, fragment.getOnType()))
             throw new NopException(ERR_GRAPHQL_INVALID_FRAGMENT).param(ARG_AST_NODE, fragmentSelection)
                     .param(ARG_FRAGMENT_NAME, fragment.getName());
 
         resolveFragment(doc, fragment, level);
+    }
+
+    /**
+     * Check if a type is compatible with a fragment's onType.
+     * A type is compatible if:
+     * 1. The type name matches the fragment's onType exactly, OR
+     * 2. The type is an object type that implements the fragment's onType (if onType is an interface)
+     */
+    private boolean isTypeCompatibleWithFragment(GraphQLTypeDefinition typeDef, String onType) {
+        if (typeDef.getName().equals(onType)) {
+            return true;
+        }
+
+        // Check if typeDef implements the interface specified by onType
+        if (typeDef instanceof GraphQLObjectDefinition) {
+            GraphQLObjectDefinition objType = (GraphQLObjectDefinition) typeDef;
+            List<GraphQLNamedType> interfaces = objType.getInterfaces();
+            if (interfaces != null) {
+                for (GraphQLNamedType interfaceType : interfaces) {
+                    if (interfaceType.getName().equals(onType)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     // private void resolveTypeSelection(GraphQLType type, GraphQLSelectionSet selectionSet,
@@ -265,22 +296,37 @@ public class GraphQLSelectionResolver {
     // }
     // }
 
-    private void resolveFieldSelection(GraphQLDocument doc, GraphQLObjectDefinition objDef,
+    private void resolveFieldSelection(GraphQLDocument doc, GraphQLTypeDefinition typeDef,
                                        GraphQLFieldSelection selection, Map<String, GraphQLVariableDefinition> vars, int level) {
         if (selection.getName().equals(GraphQLConstants.PROP___TYPENAME)) {
             GraphQLFieldDefinition fieldDef = new GraphQLFieldDefinition();
             fieldDef.setName(GraphQLConstants.PROP___TYPENAME);
             fieldDef.setType(GraphQLTypeHelper.scalarType(GraphQLScalarType.String));
-            fieldDef.setFetcher(new FixedValueFetcher(objDef.getName()));
-            resolveFieldSelection(doc, objDef.getName(), fieldDef, selection, vars, level);
+            fieldDef.setFetcher(new FixedValueFetcher(typeDef.getName()));
+            resolveFieldSelection(doc, typeDef.getName(), fieldDef, selection, vars, level);
             return;
         }
 
-        GraphQLFieldDefinition fieldDef = objDef.getField(selection.getName());
+        GraphQLFieldDefinition fieldDef = null;
+        if (typeDef instanceof GraphQLObjectDefinition) {
+            GraphQLObjectDefinition objDef = (GraphQLObjectDefinition) typeDef;
+            fieldDef = objDef.getField(selection.getName());
+            if (fieldDef == null)
+                throw new NopException(ERR_GRAPHQL_UNDEFINED_FIELD).source(selection).param(ARG_OBJ_NAME, objDef.getName())
+                        .param(ARG_FIELD_NAME, selection.getName()).param(ARG_ALLOWED_NAMES, objDef.getFieldNames());
+        } else if (typeDef instanceof GraphQLInterfaceDefinition) {
+            GraphQLInterfaceDefinition interfaceDef = (GraphQLInterfaceDefinition) typeDef;
+            fieldDef = interfaceDef.getField(selection.getName());
+            if (fieldDef == null)
+                throw new NopException(ERR_GRAPHQL_UNDEFINED_FIELD).source(selection).param(ARG_OBJ_NAME, interfaceDef.getName())
+                        .param(ARG_FIELD_NAME, selection.getName());
+        }
+
         if (fieldDef == null)
-            throw new NopException(ERR_GRAPHQL_UNDEFINED_FIELD).source(selection).param(ARG_OBJ_NAME, objDef.getName())
-                    .param(ARG_FIELD_NAME, selection.getName()).param(ARG_ALLOWED_NAMES, objDef.getFieldNames());
-        resolveFieldSelection(doc, objDef.getName(), fieldDef, selection, vars, level);
+            throw new NopException(ERR_GRAPHQL_UNDEFINED_FIELD).source(selection).param(ARG_OBJ_NAME, typeDef.getName())
+                    .param(ARG_FIELD_NAME, selection.getName());
+
+        resolveFieldSelection(doc, typeDef.getName(), fieldDef, selection, vars, level);
     }
 
     private void resolveFieldSelection(GraphQLDocument doc, String objName, GraphQLFieldDefinition fieldDef,

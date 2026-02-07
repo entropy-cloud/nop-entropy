@@ -1,0 +1,16 @@
+interface Node {
+  id: ID!
+  name: String!
+}
+
+type Dog implements Node {
+  id: ID!
+  name: String!
+  breed: String
+}
+
+type Cat implements Node {
+  id: ID!
+  name: String!
+  color: String
+}

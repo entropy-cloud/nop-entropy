@@ -90,6 +90,8 @@ public interface GraphQLErrors {
 
     String ARG_DICT_NAME = "dictName";
 
+    String ARG_INTERFACE_NAME = "interfaceName";
+
     String ARG_MAX = "max";
 
     ErrorCode ERR_GRAPHQL_PARSE_INVALID_ARG_NAME = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.parse.invalid-arg-name", "参数名不合法：{name}",
@@ -331,6 +333,16 @@ public interface GraphQLErrors {
 
     ErrorCode ERR_GRAPHQL_EXCEED_MAX_DIRECTIVE_PER_REQUEST =
             define("nop.err.graphql.exceed-max-directive-per-request", "当前请求的Directive个数超出限制，最多允许{maxCount}个", ARG_MAX_COUNT);
+
+    ErrorCode ERR_GRAPHQL_OBJ_MISSING_REQUIRED_INTERFACE_FIELD =
+            define("nop.err.graphql.obj-missing-required-interface-field",
+                    "对象[{objName}]实现接口[{interfaceName}]时缺少必需字段[{fieldName}]",
+                    ARG_OBJ_NAME, ARG_TYPE_NAME, ARG_FIELD_NAME);
+
+    ErrorCode ERR_GRAPHQL_OBJ_FIELD_TYPE_MISMATCH_INTERFACE =
+            define("nop.err.graphql.obj-field-type-mismatch-interface",
+                    "对象[{objName}]的字段[{fieldName}]类型[{type}]与接口[{interfaceName}]中定义的类型[{expectedType}]不匹配",
+                    ARG_OBJ_NAME, ARG_FIELD_NAME, ARG_TYPE, ARG_TYPE_NAME, ARG_EXPECTED_TYPE);
 
     ErrorCode ERR_JSONRPC_EXCEED_MAX_COMMAND_COUNT = define("nop.err.jsonrpc.exceed-max-command-count",
             "JsonRpc单次请求包含的命令过多，超过最大个数限制。最大个数为{maxCount}", ARG_MAX_COUNT);

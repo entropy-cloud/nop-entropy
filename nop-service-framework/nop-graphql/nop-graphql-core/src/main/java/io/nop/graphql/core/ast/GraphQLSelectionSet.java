@@ -16,28 +16,40 @@ import java.util.Map;
 
 public class GraphQLSelectionSet extends _GraphQLSelectionSet {
 
-    private GraphQLObjectDefinition objectDefinition;
-
     private Map<String, GraphQLSelection> selectionMap;
 
-    public GraphQLObjectDefinition getObjectDefinition() {
-        return objectDefinition;
-    }
-
-    public void setObjectDefinition(GraphQLObjectDefinition objectDefinition) {
-        this.objectDefinition = objectDefinition;
-    }
-
-    public String getObjTypeName() {
-        if (objectDefinition == null)
-            return null;
-        return objectDefinition.getName();
-    }
+    private GraphQLTypeDefinition typeDefinition;
 
     public GraphQLSelectionSet newInstance() {
         GraphQLSelectionSet ret = new GraphQLSelectionSet();
-        ret.setObjectDefinition(objectDefinition);
+        ret.setTypeDefinition(null);
         return ret;
+    }
+
+    public GraphQLTypeDefinition getTypeDefinition() {
+        return typeDefinition;
+    }
+
+    public void setTypeDefinition(GraphQLTypeDefinition typeDefinition) {
+        this.typeDefinition = typeDefinition;
+    }
+
+    public GraphQLObjectDefinition getObjectDefinition() {
+        if (typeDefinition instanceof GraphQLObjectDefinition) {
+            return (GraphQLObjectDefinition) typeDefinition;
+        }
+        return null;
+    }
+
+    public void setObjectDefinition(GraphQLObjectDefinition objectDefinition) {
+        this.typeDefinition = objectDefinition;
+    }
+
+    public String getObjTypeName() {
+        if (typeDefinition != null) {
+            return typeDefinition.getName();
+        }
+        return null;
     }
 
     private Map<String, GraphQLSelection> buildSelectionMap() {

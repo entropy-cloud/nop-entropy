@@ -1,0 +1,32 @@
+# Test GraphQL Interface Support
+
+# Interface definition
+interface Node {
+    id: ID!
+    name: String!
+}
+
+# Type implementing Interface
+type User implements Node {
+    id: ID!
+    name: String!
+    email: String
+}
+
+# Query
+type Query {
+    User__get(id: ID!): User
+    User__findList: [User!]!
+}
+
+type PageBean_User {
+    totalCount: Int
+    offset: Int
+    limit: Int
+    items: [User!]!
+}
+
+# Extend Query to add more queries
+extend type Query {
+    User__findPage(query: String!, offset: Int = 0, limit: Int = 10): PageBean_User
+}

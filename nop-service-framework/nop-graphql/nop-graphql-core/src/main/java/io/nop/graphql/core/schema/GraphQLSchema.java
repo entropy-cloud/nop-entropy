@@ -13,6 +13,7 @@ import io.nop.graphql.core.ast.GraphQLDefinition;
 import io.nop.graphql.core.ast.GraphQLDirectiveDefinition;
 import io.nop.graphql.core.ast.GraphQLFragment;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
+import io.nop.graphql.core.ast.GraphQLInterfaceDefinition;
 import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 
 import java.util.Collection;
@@ -40,6 +41,10 @@ public class GraphQLSchema {
 
     public GraphQLObjectDefinition getObjectType(String name) {
         return (GraphQLObjectDefinition) getType(name);
+    }
+
+    public GraphQLInterfaceDefinition getInterfaceType(String name) {
+        return (GraphQLInterfaceDefinition) getType(name);
     }
 
     public Map<String, GraphQLDirectiveDefinition> getDirectives() {
