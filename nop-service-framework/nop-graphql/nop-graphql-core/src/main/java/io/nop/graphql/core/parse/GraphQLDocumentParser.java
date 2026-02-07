@@ -13,7 +13,40 @@ import io.nop.commons.text.MutableString;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.core.resource.component.parse.AbstractCharReaderResourceParser;
 import io.nop.graphql.core.GraphQLErrors;
-import io.nop.graphql.core.ast.*;
+import io.nop.graphql.core.ast.GraphQLArgument;
+import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
+import io.nop.graphql.core.ast.GraphQLArrayValue;
+import io.nop.graphql.core.ast.GraphQLDefinition;
+import io.nop.graphql.core.ast.GraphQLDirective;
+import io.nop.graphql.core.ast.GraphQLDirectiveDefinition;
+import io.nop.graphql.core.ast.GraphQLDirectiveLocation;
+import io.nop.graphql.core.ast.GraphQLDocument;
+import io.nop.graphql.core.ast.GraphQLEnumDefinition;
+import io.nop.graphql.core.ast.GraphQLEnumValueDefinition;
+import io.nop.graphql.core.ast.GraphQLFieldDefinition;
+import io.nop.graphql.core.ast.GraphQLFieldSelection;
+import io.nop.graphql.core.ast.GraphQLFragment;
+import io.nop.graphql.core.ast.GraphQLFragmentSelection;
+import io.nop.graphql.core.ast.GraphQLInputDefinition;
+import io.nop.graphql.core.ast.GraphQLInputFieldDefinition;
+import io.nop.graphql.core.ast.GraphQLInterfaceDefinition;
+import io.nop.graphql.core.ast.GraphQLListType;
+import io.nop.graphql.core.ast.GraphQLLiteral;
+import io.nop.graphql.core.ast.GraphQLNamedType;
+import io.nop.graphql.core.ast.GraphQLNonNullType;
+import io.nop.graphql.core.ast.GraphQLObjectDefinition;
+import io.nop.graphql.core.ast.GraphQLObjectValue;
+import io.nop.graphql.core.ast.GraphQLOperation;
+import io.nop.graphql.core.ast.GraphQLOperationType;
+import io.nop.graphql.core.ast.GraphQLPropertyValue;
+import io.nop.graphql.core.ast.GraphQLScalarDefinition;
+import io.nop.graphql.core.ast.GraphQLSelection;
+import io.nop.graphql.core.ast.GraphQLSelectionSet;
+import io.nop.graphql.core.ast.GraphQLType;
+import io.nop.graphql.core.ast.GraphQLTypeDefinition;
+import io.nop.graphql.core.ast.GraphQLValue;
+import io.nop.graphql.core.ast.GraphQLVariable;
+import io.nop.graphql.core.ast.GraphQLVariableDefinition;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -183,12 +216,18 @@ public class GraphQLDocumentParser extends AbstractCharReaderResourceParser<Grap
 
     private List<GraphQLNamedType> implementsClause(TextScanner sc) {
         List<GraphQLNamedType> interfaces = new ArrayList<>();
-        if (sc.tryMatch('&')) {
-            do {
-                GraphQLNamedType type = namedType(sc);
-                interfaces.add(type);
-                sc.skipBlank();
-            } while (sc.tryMatch('&'));
+        // Always parse the first interface name
+
+        GraphQLNamedType type = namedType(sc);
+        interfaces.add(type);
+        sc.skipBlank();
+
+        // Then parse additional interfaces separated by &
+        while (sc.tryMatch('&')) {
+            sc.skipBlank();
+            GraphQLNamedType infType = namedType(sc);
+            interfaces.add(infType);
+            sc.skipBlank();
         }
         return interfaces;
     }
