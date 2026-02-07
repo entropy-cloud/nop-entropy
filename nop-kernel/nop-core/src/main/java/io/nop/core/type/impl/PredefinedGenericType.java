@@ -43,6 +43,8 @@ public abstract class PredefinedGenericType implements IGenericType, IJsonString
     }
 
     public static PredefinedRawType simpleType(StdDataType stdDataType, String predefinedName) {
+        if (stdDataType.getMandatoryJavaClass().isPrimitive())
+            return new PredefinedBoxType(stdDataType.getClassName(), stdDataType.getJavaClass(), predefinedName);
         return new PredefinedRawType(stdDataType.getClassName(), stdDataType.getJavaClass(), predefinedName);
     }
 

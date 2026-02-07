@@ -32,6 +32,18 @@ public class PredefinedPrimitiveType extends PredefinedGenericType implements IR
     }
 
     @Override
+    public boolean isAssignableFrom(Class clazz) {
+        StdDataType dataType = getStdDataType();
+        return dataType.getJavaClass() == clazz || dataType.getMandatoryJavaClass() == clazz;
+    }
+
+    @Override
+    public boolean isAssignableTo(Class clazz) {
+        StdDataType dataType = getStdDataType();
+        return dataType.getJavaClass() == clazz || dataType.getMandatoryJavaClass() == clazz;
+    }
+
+    @Override
     public boolean isPrimitive() {
         return true;
     }

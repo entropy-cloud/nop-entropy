@@ -35,6 +35,21 @@ public class TestGenericType {
     }
 
     @Test
+    public void testBoxType() {
+        IGenericType intType = PredefinedGenericTypes.PRIMITIVE_INT_TYPE;
+        assertTrue(intType.isAssignableFrom(Integer.class));
+        assertTrue(intType.isAssignableTo(Integer.class));
+
+        IGenericType boolType = PredefinedGenericTypes.PRIMITIVE_BOOLEAN_TYPE;
+        assertTrue(boolType.isAssignableTo(Boolean.class));
+        assertTrue(boolType.isAssignableFrom(Boolean.class));
+
+        boolType = PredefinedGenericTypes.BOOLEAN_TYPE;
+        assertTrue(boolType.isAssignableFrom(boolean.class));
+        assertTrue(boolType.isAssignableTo(boolean.class));
+    }
+
+    @Test
     public void testCollectionType() {
         IGenericType type = ReflectionManager.instance().buildGenericType(new TypeReference<List<String>>() {
         }.getType());
