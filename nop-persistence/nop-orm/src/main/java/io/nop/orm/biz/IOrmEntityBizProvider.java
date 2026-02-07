@@ -1,4 +1,4 @@
-package io.nop.orm;
+package io.nop.orm.biz;
 
 public interface IOrmEntityBizProvider {
     /**

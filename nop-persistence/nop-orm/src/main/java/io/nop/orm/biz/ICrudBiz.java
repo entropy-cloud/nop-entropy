@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.biz.crud;
+package io.nop.orm.biz;
 
 import io.nop.api.core.annotations.biz.BizAction;
 import io.nop.api.core.annotations.biz.BizMutation;
@@ -20,7 +20,6 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.beans.std.StdTreeEntity;
 import io.nop.core.context.IServiceContext;
 import io.nop.orm.IOrmEntity;
-import io.nop.orm.IOrmEntityBiz;
 import io.nop.xlang.xmeta.IObjMeta;
 
 import java.util.Collection;
@@ -320,7 +319,7 @@ public interface ICrudBiz<T extends IOrmEntity> extends IOrmEntityBiz {
      */
     @BizMutation
     void addManyToManyRelations(@Name("id") String id, @Name("propName") String propName, @Name("relValues") Collection<String> relValues,
-                                 @Optional @Name("filter") TreeBean filter, IServiceContext context);
+                                @Optional @Name("filter") TreeBean filter, IServiceContext context);
 
     /**
      * 删除多对多关联关系
@@ -335,7 +334,7 @@ public interface ICrudBiz<T extends IOrmEntity> extends IOrmEntityBiz {
      */
     @BizMutation
     void removeManyToManyRelations(@Name("id") String id, @Name("propName") String propName, @Name("relValues") Collection<String> relValues,
-                                    @Optional @Name("filter") TreeBean filter, IServiceContext context);
+                                   @Optional @Name("filter") TreeBean filter, IServiceContext context);
 
     /**
      * 更新多对多关联关系
@@ -350,7 +349,7 @@ public interface ICrudBiz<T extends IOrmEntity> extends IOrmEntityBiz {
      */
     @BizMutation
     void updateManyToManyRelations(@Name("id") String id, @Name("propName") String propName, @Name("relValues") Collection<String> relValues,
-                                    @Optional @Name("filter") TreeBean filter, IServiceContext context);
+                                   @Optional @Name("filter") TreeBean filter, IServiceContext context);
 
     // ==================== 树形结构操作 ====================
 
