@@ -11,6 +11,7 @@ import io.nop.api.core.context.IContext;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 
+import java.io.InputStream;
 import java.net.HttpCookie;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -81,6 +82,8 @@ public interface IHttpServerContext {
     void sendRedirect(String url);
 
     void sendResponse(int httpStatus, String body);
+
+    void sendResponse(int httpStatus, InputStream body);
 
     boolean isResponseSent();
 

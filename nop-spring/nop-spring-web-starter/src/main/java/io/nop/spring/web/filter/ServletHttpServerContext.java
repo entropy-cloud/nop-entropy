@@ -19,6 +19,8 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpCookie;
 import java.util.Enumeration;
 import java.util.LinkedHashMap;
@@ -173,8 +175,25 @@ public class ServletHttpServerContext implements IHttpServerContext {
 
     @Override
     public void sendResponse(int httpStatus, String body) {
-        try {
-            response.sendError(httpStatus, body);
+        response.setStatus(httpStatus);
+
+        if (!StringHelper.isEmpty(body)) {
+            try (OutputStream out = response.getOutputStream()) {
+                IoHelper.write(out, body.getBytes(), null);
+                out.flush();
+            } catch (Exception e) {
+                throw NopException.adapt(e);
+            }
+        }
+    }
+
+    @Override
+    public void sendResponse(int httpStatus, InputStream body) {
+        response.setStatus(httpStatus);
+
+        try (OutputStream out = response.getOutputStream()) {
+            IoHelper.copy(body, out);
+            out.flush();
         } catch (Exception e) {
             throw NopException.adapt(e);
         }

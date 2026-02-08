@@ -28,6 +28,8 @@ public interface HttpApiConstants {
 
     String HEADER_CONTENT_TYPE = "content-type";
 
+    String HEADER_CONTENT_ENCODING = "content-encoding";
+
     String HEADER_CONTENT_DISPOSITION = "content-disposition";
 
     String HEADER_USER_AGENT = "user-agent";
@@ -80,6 +82,7 @@ public interface HttpApiConstants {
 
     String DATA_TYPE_FORM = "form";
     String DATA_TYPE_JSON = "json";
+    String DATA_TYPE_GZIP = "gzip";
 
     /**
      * 采用form multipart方式编码提交。一般body为Map，Map中的每个元素可能是String或者IResource
