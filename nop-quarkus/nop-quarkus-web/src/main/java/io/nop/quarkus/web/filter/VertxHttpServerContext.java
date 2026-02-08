@@ -9,17 +9,24 @@ package io.nop.quarkus.web.filter;
 
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.http.api.server.IAsyncBody;
 import io.nop.http.api.server.IHttpServerContext;
 import io.nop.quarkus.web.utils.QuarkusExecutorHelper;
 import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.http.impl.CookieImpl;
 import io.vertx.ext.web.RoutingContext;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpCookie;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -164,6 +171,23 @@ public class VertxHttpServerContext implements IHttpServerContext {
         routingContext.response().send(body);
     }
 
+    @Override
+    public void sendResponse(int httpStatus, InputStream body) {
+        responseSent = true;
+
+        HttpServerResponse resp = routingContext.response();
+        resp.setStatusCode(httpStatus);
+
+        resp.setChunked(true);
+        try {
+            IoHelper.copy(body, new ResponseOutputStream(resp));
+            resp.end();
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
+    }
+
+    @Override
     public boolean isResponseSent() {
         return responseSent;
     }
@@ -241,5 +265,22 @@ public class VertxHttpServerContext implements IHttpServerContext {
     @Override
     public void setContext(IContext context) {
         this.context = context;
+    }
+
+    static class ResponseOutputStream extends OutputStream {
+        final HttpServerResponse resp;
+
+        ResponseOutputStream(HttpServerResponse resp) {
+            this.resp = resp;
+        }
+
+        @Override
+        public void write(int b) throws IOException {}
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            Buffer buf = Buffer.buffer().appendBytes(b, off, len);
+            resp.write(buf);
+        }
     }
 }
