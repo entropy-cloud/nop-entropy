@@ -87,9 +87,9 @@ public class ArrayHelper {
     }
 
     public static Object[] concat(Object[] a, Object[] b) {
-        if (a == EMPTY_OBJECTS)
+        if (a == EMPTY_OBJECTS || a.length == 0)
             return b;
-        if (b == EMPTY_OBJECTS)
+        if (b == EMPTY_OBJECTS || b.length == 0)
             return a;
 
         Object[] ret = Arrays.copyOf(a, a.length + b.length);

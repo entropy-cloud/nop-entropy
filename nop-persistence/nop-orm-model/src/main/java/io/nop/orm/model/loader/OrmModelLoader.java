@@ -25,6 +25,7 @@ import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.DslModelParser;
 
 import java.util.Collection;
+import java.util.List;
 
 public class OrmModelLoader {
     static final SourceLocation merged_loc = SourceLocation.fromPath("/nop/main/orm/merged-app.orm.xml");
@@ -40,11 +41,16 @@ public class OrmModelLoader {
     }
 
     public OrmModel loadOrmModel(Collection<ModuleModel> modules) {
+        List<IResource> resources = ModuleManager.instance().getAllModuleResourcesInModules(modules, "orm/app.orm.xml");
+        return loadOrmModel(resources);
+    }
+
+    public OrmModel loadOrmModel(List<IResource> resources) {
         OrmModel model = new OrmModel();
         model.setLocation(merged_loc);
         model.setMerged(true);
 
-        ModuleManager.instance().getAllModuleResourcesInModules(modules, "orm/app.orm.xml").forEach(resource -> {
+        resources.forEach(resource -> {
             OrmModel moduleModel = loadFromResource(resource, true);
             if (moduleModel != null) {
                 merge(model, moduleModel, false);

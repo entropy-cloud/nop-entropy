@@ -95,7 +95,9 @@ public class AppConfig {
      * 注意，若引用的配置项值为 {@code null} 则不做替换，且仅做一次替换，也不支持嵌套引用！
      */
     public static <T> IConfigReference<T> withPlaceholder(IConfigReference<T> ref) {
-        return new PlaceholderConfigReference<>(ref);
+        return ref instanceof PlaceholderConfigReference //
+               || ref.getProvider() instanceof PlaceholderConfigReference //
+               ? ref : new PlaceholderConfigReference<>(ref);
     }
 
     public static Object var(String name) {
