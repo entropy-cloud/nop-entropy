@@ -28,6 +28,9 @@ public OrderDTO placeOrder(PlaceOrderRequest request) {
         .map(p -> p.getPrice())
         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+    // 手动构造订单项DTO列表
+    List<OrderItemDTO> items = buildOrderItems(request, products);
+
     // 手动创建订单DTO
     OrderDTO order = new OrderDTO();
     order.setUserId(user.getId());
@@ -88,7 +91,7 @@ public Order placeOrder(@Name("request") PlaceOrderRequest request,
     // - ✅ 执行数据权限检查（关键！）
     // - 触发验证回调
     // ✅ 注意：如果已经获取了实体，直接传递实体对象，不需要EntityData.make()
-    update(order, context);
+    updateEntity(order, context);
 }
 ```
 
@@ -197,8 +200,8 @@ public class OrderConstants {
     // 重新生成代码后，AUDITED会出现在Constants中
 }
 
-// ✅ 一般我们使用这些常量
-Order order = new Order();
+// ✅ 一般我们使用这些常量（实体创建建议走BizModel/ICrudBiz的newEntity）
+Order order = orderBiz.newEntity();
 order.setStatus(OrderConstants.PENDING);  // 使用常量
 ```
 
@@ -216,29 +219,57 @@ order.setStatus(OrderConstants.PENDING);  // 使用常量
 
 ```java
 // ✅ 推荐：实体字段使用String类型，配合Constants
-@Entity
-@Table(name = "mall_order")
+// 注意：NopORM不使用JPA的@Entity/@ManyToOne等注解来建模。
+// 实体与关联关系在orm.xml中定义，然后由代码生成器生成实体类（通常无需手写注解）。
+// 业务代码一般直接使用生成的实体类，并在其上补充只读帮助函数（若需要）。
 public class Order extends OrmEntity {
 
-    @Id
     private String id;
 
-    // ✅ 推荐：String类型 + 使用Constants
-    private String status;  // "1", "2", "3", "4", "5", "6"...
+    // ✅ 推荐：String类型 + 使用Constants/字典
+    private String status;  // "1", "2", "3", "4", ...
 
-    private OrderType orderType; // 普通类型
-    private Integer payType;  // 支付类型
+    private String orderType;
+    private Integer payType;
 
     // ✅ 只读帮助函数（领域事实）
     public boolean canBeCancelled() {
         return OrderConstants.CANCELLED.equals(this.status)
             || OrderConstants.PENDING.equals(this.status);
     }
-
-    // ❌ 避免：enum类型字段
-    // private OrderStatus status;  // enum，值编译期确定
-    // private OrderType orderType;  // enum
 }
+```
+
+对应的`orm.xml`（示意，结构以`/nop/schema/orm/orm.xdef`与`/nop/schema/orm/entity.xdef`为准）：
+
+```xml
+<orm x:schema="/nop/schema/orm/orm.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef">
+    <entities>
+        <entity name="Order" tableName="mall_order">
+            <columns>
+                <column name="id" code="id" stdDomain="string" primary="true"/>
+                <column name="status" code="status" stdDomain="string" domain="mall_order_status"/>
+                <column name="orderType" code="order_type" stdDomain="string" domain="mall_order_type"/>
+                <column name="payType" code="pay_type" stdDomain="int" domain="mall_pay_type"/>
+            </columns>
+
+            <relations>
+                <to-one name="user" refEntityName="User">
+                    <join>
+                        <on leftProp="userId" rightProp="id"/>
+                    </join>
+                </to-one>
+
+                <to-many name="items" refEntityName="OrderItem">
+                    <join>
+                        <on leftProp="id" rightProp="orderId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+    </entities>
+</orm>
 ```
 
 ### BizModel中的使用
@@ -345,22 +376,16 @@ Nop平台中，聚合根（实体）和BizModel的职责有明确的划分：
 
 ```java
 // ✅ 推荐：聚合根只提供只读帮助函数
-@Entity
-@Table(name = "mall_order")
+// 注意：实体字段/关联通常由orm.xml建模并生成，这里只演示只读帮助函数应如何编写。
 public class Order extends OrmEntity {
 
-    @Id
     private String id;
 
     private String status;
     private BigDecimal totalAmount;
 
-    // === 关联关系（稳定的关系） ===
-    @ManyToOne
-    private User user;
-
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
-    private List<OrderItem> items;
+    // === 关联关系（如user/items）由orm.xml定义并生成对应的导航属性/方法 ===
+    // 示例：getUser()/getItems() 均为生成代码提供（懒加载按需触发）
 
     // === 只读帮助函数（领域语言的一部分） ===
     /**
@@ -457,7 +482,8 @@ public class OrderBizModel extends CrudBizModel<Order> {
         order.setCancelReason("user_cancel");
 
         // 4. 更新（触发数据权限检查、验证等）
-        return update(order, context);
+        updateEntity(order, context);
+        return order;
     }
 
     /**
@@ -479,8 +505,9 @@ public class OrderBizModel extends CrudBizModel<Order> {
         order.setStatus(OrderConstants.SHIPPED);
         order.setShipTime(LocalDateTime.now());
 
-        // 复杂逻辑：创建物流记录
-        LogisticsInfo logisticsInfoEntity = new LogisticsInfo();
+    // 复杂逻辑：创建物流记录
+    // 注意：一般不直接new实体实现类，避免Delta把实现类定制为 LogisticsInfoEx 等导致不一致
+    LogisticsInfo logisticsInfoEntity = newEntity("LogisticsInfo");
         logisticsInfoEntity.setOrderId(orderId);
         logisticsInfoEntity.setCompany(logistics.getCompany());
         logisticsInfoEntity.setTrackingNo(logistics.getTrackingNo());
@@ -489,7 +516,8 @@ public class OrderBizModel extends CrudBizModel<Order> {
         // 保存物流信息（通过关联自动保存）
         order.setLogisticsInfo(logisticsInfoEntity);
 
-        return update(order, context);
+        updateEntity(order, context);
+        return order;
     }
 }
 ```
@@ -499,14 +527,48 @@ public class OrderBizModel extends CrudBizModel<Order> {
 ```java
 // 可以通过Delta机制定制订单的取消逻辑
 // @delta/tenantA/Order.xbiz
-<BizModel>
-  <BizMethod name="cancel">
-    <!-- 租户A有自己的取消规则 -->
-    <Step name="custom-cancel-check" />
-    <Step name="cancel" />
-  </BizMethod>
-</BizModel>
+<biz x:schema="/nop/schema/biz/xbiz.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef">
+    <actions>
+        <!-- .xbiz 中通过 actions/query|mutation 等节点定义或覆盖后端动作 -->
+        <!-- 覆盖Java BizModel上已有的cancel方法：不要写arg/return（可通过Java方法反射获取） -->
+        <mutation name="cancel">
+            <source>
+                <!-- 租户A有自己的取消规则（示意：实际可用xpl/bo/task等） -->
+                <!-- ... -->
+            </source>
+        </mutation>
+    </actions>
+</biz>
 ```
+
+说明：`.xbiz`文件的结构不是`<BizModel><BizMethod>`，而是以`<biz ...>`为根节点，具体结构以`/nop/schema/biz/xbiz.xdef`为准。
+
+补充：
+
+- 如果是**覆盖Java BizModel中已有的方法**（例如Java里已定义`cancel`），一般**不写**`<arg>`/`<return>`，这些信息可以通过反射得到。
+- 如果是**新增action**（Java里没有对应方法），需要按`xbiz.xdef`要求补全`<arg>`/`<return>`配置。
+
+例如新增一个内部action（示意）：
+
+```xml
+<biz x:schema="/nop/schema/biz/xbiz.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef">
+    <actions>
+        <action name="validateAndNormalize">
+            <arg name="orderId" type="string" mandatory="true"/>
+            <return type="string"/>
+            <source>
+                <!-- ... -->
+            </source>
+        </action>
+    </actions>
+</biz>
+```
+可参考真实示例：
+
+- `nop-auth/nop-auth-service/src/main/resources/_vfs/nop/auth/model/NopAuthUser/_NopAuthUser.xbiz`
+- `nop-auth/nop-auth-service/src/main/resources/_vfs/nop/auth/model/NopAuthUser/NopAuthUser.xbiz`
 
 ---
 
@@ -565,7 +627,6 @@ public class OrderBizModel extends CrudBizModel<Order> {
 
 ```java
 // ❌ 错误：在实体上包含可定制的业务逻辑
-@Entity
 public class Order extends OrmEntity {
     // ... 字段定义
 
@@ -588,11 +649,9 @@ public class Order extends OrmEntity {
 
 ```java
 // ✅ 正确：实体只提供只读帮助函数（领域事实）
-@Entity
-@Table(name = "mall_order")
+// 注意：这里不使用JPA注解。实体/关联建模在orm.xml中完成。
 public class Order extends OrmEntity {
 
-    @Id
     private String id;
 
     // ✅ 推荐：String类型 + 使用Constants
@@ -602,11 +661,7 @@ public class Order extends OrmEntity {
     private Integer payType;  // 支付类型
 
     // === 关联关系（稳定的领域结构） ===
-    @ManyToOne
-    private User user;
-
-    @OneToMany(mappedBy = "order")
-    private List<OrderItem> items;
+    // user/items 由orm.xml定义并生成关联导航
 
     // === 只读帮助函数（领域事实，稳定） ===
     /**
@@ -678,13 +733,18 @@ Nop平台的Delta定制机制支持对BizModel的定制，但不支持对实体�
 ```java
 // ✅ 可以：通过Delta定制BizModel方法
 // @delta/tenantA/Order.xbiz
-<BizModel>
-  <BizMethod name="cancel">
-    <!-- 租户A有自己的取消逻辑 -->
-    <Step name="tenantA-cancel-check" />
-    <Step name="tenantA-cancel-action" />
-  </BizMethod>
-</BizModel>
+<biz x:schema="/nop/schema/biz/xbiz.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef">
+    <actions>
+        <!-- 覆盖Java BizModel上已有的cancel方法：不要写arg/return（可通过Java方法反射获取） -->
+        <mutation name="cancel">
+            <source>
+                <!-- 租户A有自己的取消逻辑（示意） -->
+                <!-- ... -->
+            </source>
+        </mutation>
+    </actions>
+</biz>
 
 // ❌ 不可以：通过Delta定制实体方法
 // 实体类的方法不能被覆盖，因为实体类是稳定的
@@ -722,11 +782,8 @@ Nop平台采用**职责分离**的设计，将"结构"与"行为"彻底分开：
 // ✅ 聚合根充的是"结构"和"领域语言"的血
 public class Order extends OrmEntity {
     // 1. 关联关系（稳定的领域结构）
-    @ManyToOne
-    private User user;
-
-    @OneToMany(mappedBy = "order")
-    private List<OrderItem> items;
+    // 这里不使用JPA注解。user/items等关联由orm.xml定义并生成导航方法。
+    // 业务代码把它当成可导航的领域语言即可：order.getUser(), order.getItems()
 
     // 2. 只读帮助函数（领域事实，稳定）
     public BigDecimal calculateTotal() {
@@ -804,6 +861,9 @@ public class OrderBizModel extends CrudBizModel<Order> {
 
 ## NopORM类似JPA的自动持久化
 
+> 说明：这里说“类似JPA”指的是**使用体验**（关联导航、懒加载、脏检查、级联保存等）。
+> NopORM的实体/关联定义来自`orm.xml`模型文件，实体代码通常由生成器产生，不需要手工写JPA注解。
+
 ### 关联关系的自动处理
 
 NopORM与JPA非常相似，支持自动的关联关系处理：
@@ -812,34 +872,54 @@ NopORM与JPA非常相似，支持自动的关联关系处理：
 public class Order extends OrmEntity {
     private String id;
 
-    // 一对一关联
-    @ManyToOne
-    private User user;
-
-    // 一对多关联
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
-    private List<OrderItem> items;
-
-    // 多对多关联（通过中间实体）
-    @OneToMany(mappedBy = "order")
-    private List<OrderTag> tags;
-
-    // Getter方法自动处理懒加载
-    public User getUser() {
-        // 第一次访问时自动加载
-        return user;
-    }
-
-    public List<OrderItem> getItems() {
-        // 第一次访问时自动加载
-        return items;
-    }
+    // user/items/tags 等关联由 orm.xml 模型定义：
+    // - 运行时按需懒加载
+    // - 代码生成器提供 getUser()/getItems()/getTags() 等导航能力
 }
+```
+
+对应的`orm.xml`关联定义示意：
+
+```xml
+<orm x:schema="/nop/schema/orm/orm.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef">
+    <entities>
+        <entity name="Order" tableName="mall_order">
+            <columns>
+                <column name="id" code="id" stdDomain="string" primary="true"/>
+            </columns>
+
+            <relations>
+                <to-one name="user" refEntityName="User">
+                    <join>
+                        <on leftProp="userId" rightProp="id"/>
+                    </join>
+                </to-one>
+
+                <to-many name="items" refEntityName="OrderItem" cascadeDelete="true">
+                    <join>
+                        <on leftProp="id" rightProp="orderId"/>
+                    </join>
+                </to-many>
+
+                <to-many name="tags" refEntityName="OrderTag">
+                    <join>
+                        <on leftProp="id" rightProp="orderId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+    </entities>
+</orm>
 ```
 
 ### 自动保存和更新
 
 **添加到关联集合的实体会被自动保存**（适用于子表无数据权限要求的场景）：
+
+> 注意：一般不建议直接`new OrderItem()`这类ORM实体。
+> 因为实体实现类可能被Delta定制（例如从`OrderItem`定制为`OrderItemEx`），
+> 更稳妥的方式是通过BizModel/ICrudBiz提供的`newEntity(...)`来创建。
 
 ```java
 @BizMutation
@@ -850,7 +930,7 @@ public void addOrderItem(@Name("orderId") String orderId,
     Order order = this.requireEntity(orderId, "update", context);
 
     // 2. 创建订单项
-    OrderItem item = new OrderItem();
+    OrderItem item = newEntity("OrderItem");
     item.setOrder(order);
     item.setProductId(productId);
     item.setPrice(new BigDecimal("100"));
@@ -891,7 +971,8 @@ public class OrderBizModel extends CrudBizModel<Order> {
         Product product = this.requireEntity(productId, "read", context);
 
         // 3. 创建订单项
-        OrderItem item = new OrderItem();
+    // ✅ 有子表权限/独立约束时，优先用子表Biz来创建实体
+    OrderItem item = orderItemBiz.newEntity();
         item.setOrder(order);
         item.setProduct(product);
         item.setQuantity(quantity);
@@ -958,9 +1039,8 @@ public class OrderBizModel extends CrudBizModel<Order> {
 **重要说明**：
 
 ```java
-// ❌ 错误：子表有数据权限要求时直接调用dao()
-orderItemBiz.dao().saveEntity(item, context);
-// 问题：绕过了数据权限检查，可能导致安全问题
+// ❌ 避免：不要通过dao()去保存ORM实体（也不要假设ICrudBiz暴露dao()）
+// 问题：容易绕过数据权限检查、唯一性检查、扩展点回调等治理机制
 
 // ✅ 正确：通过ICrudBiz的实体方法
 orderItemBiz.saveEntity(item, context);
@@ -1024,28 +1104,27 @@ public class OrmEntity {
 ```java
 // ✅ 推荐：小范围聚合（几百行）
 public class Order extends OrmEntity {
-    @OneToMany(mappedBy = "order")
-    private List<OrderItem> items;  // 一般几十行，最多几百行
-
-    @ManyToOne
-    private User user;  // 单个对象
-
-    @ManyToOne
-    private Address shippingAddress;  // 单个对象
+    // items/user/shippingAddress 等关联由 orm.xml 模型定义并生成导航
+    // 一般几十行，最多几百行（关键是控制加载到内存的数据量）
 }
 
 // ⚠️ 避免：大数据量聚合
 public class Order extends OrmEntity {
     // ❌ 不推荐：将所有订单历史放在聚合根中
     // 可能是几万行数据，导致性能问题
-    @OneToMany(mappedBy = "order")
-    private List<OrderHistory> histories;
+    // histories 这种大集合不建议作为聚合根的常驻关联属性
 
     // ✅ 推荐：大数据量通过查询获取
-    public List<OrderHistory> getHistories(IServiceContext context) {
+    public List<OrderHistory> getHistories() {
+        // 实体上不提供dao()，也不建议在实体方法中直接使用dao().xxx
+        // 需要查询时：
+        // 1) 用 IServiceContext.requireCtx() 获取当前服务上下文
+        // 2) 通过 OrmEntity 继承得到的 requireBiz(...) 获取实体对应的Biz接口来做查询/服务调用
+        IServiceContext context = IServiceContext.requireCtx();
+        IOrderHistoryBiz historyBiz = requireBiz(IOrderHistoryBiz.class);
         QueryBean query = new QueryBean();
-        query.setFilter(FilterBeans.eq("orderId", this.getId()));
-        return dao().findList(query, null, context);
+        query.addFilter(FilterBeans.eq("orderId", this.getId()));
+        return historyBiz.findList(query, null, context);
     }
 }
 ```
@@ -1056,7 +1135,7 @@ public class Order extends OrmEntity {
 
 ```java
 // 示例：获取订单的用户及其地址
-Order order = dao().requireEntity(orderId, "read", context);
+Order order = orderBiz.requireEntity(orderId, "read", context);
 
 // 自动加载关联（懒加载）
 User user = order.getUser();
@@ -1098,7 +1177,8 @@ String cityName = address.getCity().getName();  // 自动加载
 // ❌ 不推荐：直接调用dao()方法
 public void updateOrder(Order order, IServiceContext context) {
     // 问题：绕过了数据权限检查、验证、回调等
-    dao().updateEntity(order);
+    // 走BizModel的update/updateEntity确保扩展点与治理逻辑执行
+    update(order, context);
 }
 
 // ✅ 推荐：使用CrudBizModel基类方法（主表）
@@ -1158,40 +1238,34 @@ CrudBizModel和ICrudBiz内置了数据权限检查机制：
 - 使用`this.get(id, context)`而不是`dao().getEntityById(id)`
 - 使用`save()`、`update()`等方法而不是直接调用dao()
 
-### doXXX方法的使用
+### doXXX方法：一般不建议复写
+
+`doSave/doUpdate/doDelete`属于**更底层**的执行入口，一般情况下不建议直接复写它们。
+
+- 常见定制：优先使用`defaultPrepareSave/defaultPrepareUpdate/defaultValidate`等**扩展点**
+- 只有在确实需要改变执行流程（例如变更prepare回调的组合方式、绕开/替换某个环节）时，才考虑复写`doXXX`
 
 ```java
 @BizModel("Order")
 public class OrderBizModel extends CrudBizModel<Order> {
 
-    // ✅ 使用doSave()：有更多控制权
+    // ✅ 推荐：复写 defaultPrepareSave/defaultPrepareUpdate 等扩展点
     @Override
-    protected Order doSave(EntityData<Order> entityData,
-                       PrepareActionCallback<Order> prepareCallback,
-                       IServiceContext context) {
-        // 可以添加自定义逻辑
+    protected void defaultPrepareSave(EntityData<Order> entityData,
+                                      IServiceContext context) {
+        super.defaultPrepareSave(entityData, context);
+
         Order order = entityData.getEntity();
-
-        // 调用父类方法，触发所有扩展点
-        return super.doSave(entityData, prepareCallback, context);
-    }
-
-    // ✅ 使用doUpdate()：有更多控制权
-    @Override
-    protected Order doUpdate(EntityData<Order> entityData,
-                         PrepareActionCallback<Order> prepareCallback,
-                         IServiceContext context) {
-        // 可以添加自定义逻辑
-        Order order = entityData.getEntity();
-
-        // 修改实体属性
-        order.setUpdateTime(LocalDateTime.now());
-
-        // 调用父类方法
-        return super.doUpdate(entityData, prepareCallback, context);
+        // 在保存前统一补默认值/派生字段
+        if (order.getStatus() == null) {
+            order.setStatus(OrderConstants.DRAFT);
+        }
+        order.calculateTotal();
     }
 }
 ```
+
+另外，`doSave/doUpdate`调用时本身允许传入`PrepareActionCallback`，所以在某些场景下，你也可以**不复写**`defaultPrepareSave`，而是在调用`doSave`时传入不同的回调函数（例如在某个特定入口临时追加一段prepare逻辑），从而把“定制”限制在调用点。
 
 ## 扩展点的使用
 
@@ -1245,21 +1319,12 @@ public class OrderBizModel extends CrudBizModel<Order> {
 
 ```java
 // app.mall.dao.entity.Order.java
-@Entity
-@Table(name = "mall_order")
+// 注意：实体/字段/关联在 orm.xml 中定义并生成。
+// 这里展示的 Order 类可以理解为“生成的实体类（或其可扩展部分）+ 只读帮助函数”。
 public class Order extends OrmEntity {
-
-    @Id
     private String id;
 
-    // 关联用户
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User user;
-
-    // 关联订单项
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
-    private List<OrderItem> items;
+    // user/items 等关联由 orm.xml 定义并生成导航能力：getUser()/getItems()
 
     // 订单状态
     private String status;
@@ -1274,6 +1339,37 @@ public class Order extends OrmEntity {
             .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }
+```
+
+对应的`orm.xml`模型片段（示意）：
+
+```xml
+<orm x:schema="/nop/schema/orm/orm.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef">
+    <entities>
+        <entity name="Order" tableName="mall_order">
+            <columns>
+                <column name="id" code="id" stdDomain="string" primary="true"/>
+                <column name="status" code="status" stdDomain="string" domain="mall_order_status"/>
+                <column name="totalAmount" code="total_amount" stdDomain="decimal"/>
+            </columns>
+
+            <relations>
+                <to-one name="user" refEntityName="User">
+                    <join>
+                        <on leftProp="userId" rightProp="id"/>
+                    </join>
+                </to-one>
+
+                <to-many name="items" refEntityName="OrderItem">
+                    <join>
+                        <on leftProp="id" rightProp="orderId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+    </entities>
+</orm>
 ```
 
 ### 定义BizModel
@@ -1294,26 +1390,25 @@ public Order createOrder(@Name("request") CreateOrderRequest request,
     User user = this.requireEntity(request.getUserId(), "read", context);
 
     // 2. 创建订单实体
-    Order order = new Order();
+    Order order = newEntity();
     order.setUser(user);
     order.setStatus(OrderConstants.DRAFT);
     order.setTotalAmount(BigDecimal.ZERO);
 
     // 3. 创建订单项并关联
-    List<OrderItem> items = new ArrayList<>();
+    // 注意：关联集合属性一般是“始终存在且与owner绑定”的，不能用setItems(list)整体替换集合实例。
+    // 只能通过 order.getItems().add/addAll 这类方式修改集合内容。
     for (CreateOrderItemRequest itemReq : request.getItems()) {
         Product product = this.requireEntity(itemReq.getProductId(), "read", context);
 
-        OrderItem item = new OrderItem();
+        OrderItem item = newEntity("OrderItem");
         item.setOrder(order);  // 设置关联
         item.setProduct(product);  // 设置关联
         item.setQuantity(itemReq.getQuantity());
         item.setPrice(product.getPrice());
 
-        items.add(item);
+        order.getItems().add(item);
     }
-
-    order.setItems(items);  // 设置关联集合
 
     // 4. 计算总价
     order.calculateTotal(); 
@@ -1346,6 +1441,15 @@ public Order updateOrderStatus(@Name("orderId") String orderId,
 
 ## 常见问题
 
+### Q0: Nop平台的DDD为什么强调“结构充血”，而不是把所有行为都放进聚合根？
+
+**答案**：这是Nop平台在平台化、可演化、可定制场景下对DDD实践的一个关键取舍。
+
+- **结构充血（Entity负责）**：让聚合根成为**领域语言载体**与**信息访问地图**（可导航的领域表达式），提供稳定的关联关系与只读帮助函数（领域事实）。
+- **行为外置（BizModel/Flow负责）**：把**易变的业务流程/策略**上移到`BizModel`或流程编排（如`NopTaskFlow`）中，便于通过Delta机制按租户/场景覆盖与扩展。
+
+这种拆分的目标，是避免把聚合根做成“上帝对象”，同时最大化利用平台的差量定制能力：**稳定的结构放在不可覆盖的实体上；可变的行为放在可覆盖的BizModel/流程上**。
+
 ### Q1: 如何避免加载过多数据到内存？
 
 **答案**：**关键是控制取到内存中的数据量，而不是"用关联还是用查询"**。
@@ -1358,13 +1462,13 @@ List<OrderLog> logs = order.getLogs();  // 会加载所有logs，可能几千条
 
 // 方式2：通过查询（不使用分页）
 QueryBean query = new QueryBean();
-query.setFilter(FilterBeans.eq("orderId", orderId));
-List<OrderLog> logs = dao().findList(query, null, context);  // 也会加载所有logs
+query.addFilter(FilterBeans.eq("orderId", orderId));
+List<OrderLog> logs = findList(query, null, context);  // 也会加载所有logs
 
 // ✅ 正确：大数据量必须使用分页
 // 方式1：使用findPage
 QueryBean query = new QueryBean();
-query.setFilter(FilterBeans.eq("orderId", orderId));
+query.addFilter(FilterBeans.eq("orderId", orderId));
 PageBean<OrderLog> logs = findPage(query, 1, 20, null, context);  // 只加载20条
 
 // 方式2：使用QueryBean分页参数
@@ -1394,6 +1498,8 @@ for (Order order : orders) {
 
 // ✅ 高效：批量加载
 List<Order> orders = findList(query, null, context);
+// 批量加载属于ORM能力，一般由BizModel/DAO层统一处理（不要在实体方法里做）
+// 这里写成伪代码示意：
 dao().batchLoadProps(orders, Arrays.asList("user"));  // 一次批量查询
 ```
 
@@ -1405,6 +1511,7 @@ dao().batchLoadProps(orders, Arrays.asList("user"));  // 一次批量查询
 // 方式1：使用批量加载
 // 避免循环中查询关联属性
 List<Order> orders = findList(query, null, context);
+// 同上：批量加载建议在BizModel层集中处理，而不是放在实体方法里
 dao().batchLoadProps(orders, List.of("user", "items"));  // 批量加载关联
 
 // 方式2：使用分页查询（大数据量）
@@ -1416,46 +1523,86 @@ List<Order> orders = findList(query, null, context);  // 每次只加载20条
 
 ### Q3: 什么时候使用doSave/doUpdate？
 
-**答案**：需要精细控制时使用。
+**答案**：大多数情况下不需要。
+
+- **常规扩展**（补默认值、计算派生字段、统一校验、权限/过滤等）：复写`defaultPrepareSave/defaultPrepareUpdate/defaultValidate`即可
+- **更底层控制**（确实要调整执行路径/prepare回调的组合方式）：才考虑`doSave/doUpdate`
 
 ```java
 // 使用save()：标准保存
 return save(data, context);
 
-// 使用doSave()：需要额外控制
-@Override
-protected Order doSave(EntityData<Order> entityData,
-                   PrepareActionCallback<Order> prepareCallback,
-                   IServiceContext context) {
-    // 自定义逻辑
-    Order order = entityData.getEntity();
-    order.setCreateTime(LocalDateTime.now());
-
-    // 调用父类
-    return super.doSave(entityData, prepareCallback, context);
-}
+// 如果确实需要更精细的控制：调用doSave并传入不同的prepareCallback
+// （示意：在调用点临时追加一段prepare逻辑，而不是复写defaultPrepareSave）
+return doSave(entityData,
+    (prepareCtx) -> {
+        // 这里可以叠加/替换某些prepare逻辑
+        // ...
+    },
+    context);
 ```
 
 ### Q4: 如何处理并发更新？
 
 **答案**：使用乐观锁。
 
-```java
-@Entity
-@Table(name = "mall_order")
-@OptimisticLocking  // 启用乐观锁
-public class Order extends OrmEntity {
-    @Id
-    private String id;
+在NopORM中，乐观锁通常通过在`orm.xml`中声明版本字段（如`version`/`rev`等）来实现，更新时会把版本号带到`WHERE`条件中。
 
-    @Version  // 版本号字段
-    private Integer version;
+`orm.xml`示例（示意）：
 
-    // ...
-}
+```xml
+<orm x:schema="/nop/schema/orm/orm.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef">
+    <entities>
+        <!-- versionProp 表示哪个属性作为版本号参与乐观锁控制 -->
+        <entity name="Order" tableName="mall_order" versionProp="version">
+            <columns>
+                <column name="id" code="id" stdDomain="string" primary="true"/>
+                <column name="version" code="version" stdDomain="int"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>
 ```
 
 当发生并发冲突时，框架会自动抛出异常，业务层可以决定重试或提示用户。
+
+### Q5: 不变量（Invariants）与业务策略（Policy）应该怎么放，才不会导致“贫血模型/事务脚本”？
+
+**答案**：区分“结构性不变量”和“可变业务策略”，并将它们放在不同层。
+
+- **结构性不变量（少且稳定）**：例如金额不能为负、数量不能为负、状态机的基础约束等。这类约束适合放在**实体的只读语义/基础校验**与**保存/更新扩展点**（如`defaultPrepareSave`、`defaultValidate`等）中统一兜底。
+- **业务策略（多且易变）**：例如VIP可透支额度、营销折扣、风控规则、跨实体协作流程等，应放在**BizModel方法**或**流程编排**中（并尽量拆成小步骤/小函数），以便定制和演化。
+
+实践上的判断规则（与前文“实体 vs BizModel”一致）：
+
+- 会因租户/场景变化、会调用外部服务、跨多个实体协同、或需要编排多步骤的——放BizModel/流程
+- 只表达稳定领域事实、纯函数、只读、不需要定制的——可放实体
+
+### Q6: 复杂查询会不会反过来“逼迫领域模型变形”？
+
+**答案**：原则上不需要。Nop体系鼓励通过多道防线隔离“查询形状”对写模型/领域内核的影响。
+
+1. **协议层按需投影**：在GraphQL场景下，字段选择（selection）可以让输出按需裁剪，避免为了接口返回而手写DTO/强行改领域模型。
+2. **服务编排层隔离查询逻辑**：把跨聚合、复杂的查询封装在`BizModel`的专用方法或独立的领域服务中，而不是污染实体。
+3. **读写分离（可选）**：当查询与写模型差异极大、或性能要求极高时，可以通过事件同步维护读模型，实现更彻底的CQRS分离。
+
+### Q7: 流程编排（NopTaskFlow/步骤链）如何避免“流程脚本化/意大利面”？
+
+**答案**：通过“步骤（Step）单一职责 + 可替换能力（Kit）+ 上下文（Context）约束”来治理。
+
+- **每个步骤只做一件事**：要么校验一个局部约束，要么执行一次明确的状态变换；避免在单一步骤里堆大量if-else。
+- **外部能力用Kit封装**：促销、库存、风控、三方接口等“易变能力”通过接口抽象隔离，步骤调用Kit而不是直接耦合实现。
+- **上下文字段集中管理**：Context/黑板模式能避免参数爆炸，但要约束命名与生命周期，避免随意塞值导致不可读。
+
+### Q8: 为什么文档强调“契约在模型中（XMeta/字典），而不是靠手写DTO/enum维持”？
+
+**答案**：Nop更倾向把契约上移到统一模型（如`XMeta`、字典/元数据）中，运行时根据请求做无损投影和裁剪。
+
+- 手写DTO/enum通常带来大量胶水代码和版本演化成本。
+- 契约中心化后，接口形状和枚举集合更容易随模型演化，并通过差量机制做定制。
+
+**注意**：实体字段使用`String + Constants/字典`后，类型安全主要靠**模型约束 + 运行时校验**（例如在BizModel mutation入口校验字典合法性），而不是靠Java编译期enum。
 
 ## 总结
 

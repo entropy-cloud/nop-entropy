@@ -12,8 +12,9 @@
 
 ## 权威入口
 
-- `../04-core-components/exception-guide.md`
-- `../12-tasks/error-codes-and-nop-exception.md`（任务/代码生成优先）
+- `docs-for-ai/04-core-components/exception-guide.md`
+- `docs-for-ai/07-best-practices/INDEX.md`
+
 
 ## NopException 使用示例
 
