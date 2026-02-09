@@ -69,10 +69,11 @@ public abstract class AbstractServerEventSubscription implements Flow.Subscripti
             return;
 
         if (line.startsWith("data:")) {
-            if (data != null) {
-                data = line.substring("data:".length());
+            String value = line.substring("data:".length());
+            if (data == null) {
+                data = value;
             } else {
-                data += "\n" + line.substring("data:".length());
+                data = data + "\n" + value;
             }
             return;
         }
