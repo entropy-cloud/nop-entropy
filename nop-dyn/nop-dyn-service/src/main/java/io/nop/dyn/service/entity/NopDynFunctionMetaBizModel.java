@@ -29,8 +29,8 @@ public class NopDynFunctionMetaBizModel extends CrudBizModel<NopDynFunctionMeta>
 
     @BizAction
     @Override
-    protected void afterEntityChange(@Name("entity") NopDynFunctionMeta entity, IServiceContext context, @Name("action") String action) {
-        super.afterEntityChange(entity, context, action);
+    protected void afterEntityChange(@Name("entity") NopDynFunctionMeta entity, @Name("action") String action, IServiceContext context) {
+        super.afterEntityChange(entity, action, context);
 
         entity.validateSource();
 

@@ -776,10 +776,10 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         } else {
             dao().saveEntity(entityData.getEntity());
         }
-        afterEntityChange(entityData.getEntity(), context, BizConstants.METHOD_SAVE);
+        afterEntityChange(entityData.getEntity(), BizConstants.METHOD_SAVE, context);
     }
 
-    protected void afterEntityChange(@Name("entity") T entity, IServiceContext context, @Name("action") String action) {
+    protected void afterEntityChange(@Name("entity") T entity, @Name("action") String action, IServiceContext context) {
         afterEntityChange(entity, context);
     }
 
@@ -942,7 +942,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     @BizAction
     protected void doUpdateEntity(@Name("entityData") EntityData<T> entityData, IServiceContext context) {
         dao().updateEntity(entityData.getEntity());
-        afterEntityChange(entityData.getEntity(), context, BizConstants.METHOD_UPDATE);
+        afterEntityChange(entityData.getEntity(), BizConstants.METHOD_UPDATE, context);
     }
 
     @Description("@i18n:biz.get|根据id获取单条数据")
@@ -1175,14 +1175,14 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         }
         // 先标记实体被删除，避免递归删除的时候出现死循环
         dao().deleteEntity(entity);
-        deleteReferences(entity, context);
+        deleteReferences(entity, BizConstants.METHOD_DELETE, context);
         afterEntityChange(entity, context);
     }
 
     /**
      * 删除所有关联对象
      */
-    protected void deleteReferences(@Name("entity") T entity, IServiceContext context) {
+    protected void deleteReferences(@Name("entity") T entity, @Name("action") String action, IServiceContext context) {
         IOrmBatchLoadQueue loadQueue = orm().requireSession().getBatchLoadQueue();
         boolean empty = loadQueue.isEmpty();
 
@@ -1901,15 +1901,19 @@ public abstract class CrudBizModel<T extends IOrmEntity>
      * 包含数据权限检查、唯一性检查、状态机初始化等逻辑
      */
     @BizAction
-    public void saveEntity(@Name("entity") T entity, IServiceContext context) {
+    public void saveEntity(@Name("entity") T entity, @Optional @Name("action") String action,
+                           IServiceContext context) {
         Guard.notNull(entity, "entity");
+        if (action == null)
+            action = BizConstants.METHOD_SAVE;
+
         IObjMeta objMeta = getThisObj().requireObjMeta();
 
         // 检查唯一性约束
         checkUniqueForSaveEntity(entity, objMeta);
 
         // 检查数据权限
-        checkDataAuth(BizConstants.METHOD_SAVE, entity, context);
+        checkDataAuth(action, entity, context);
 
         // 初始化状态机
         IStateMachine stm = getThisObj().getStateMachine();
@@ -1918,10 +1922,10 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         }
 
         // 保存实体。考虑到逻辑删除后再保存，这里有可能是update
-        dao().saveEntity(entity);
+        daoSaveEntity(entity, context);
 
         // 触发实体变更后处理
-        afterEntityChange(entity, context, BizConstants.METHOD_SAVE);
+        afterEntityChange(entity, action, context);
     }
 
     /**
@@ -1929,27 +1933,27 @@ public abstract class CrudBizModel<T extends IOrmEntity>
      * 包含数据权限检查、唯一性检查等逻辑
      */
     @BizAction
-    public void updateEntity(@Name("entity") T entity, IServiceContext context) {
+    public void updateEntity(@Name("entity") T entity, @Optional @Name("action") String action,
+                             IServiceContext context) {
         Guard.notNull(entity, "entity");
+        if (action == null)
+            action = BizConstants.METHOD_UPDATE;
+
         IObjMeta objMeta = getThisObj().requireObjMeta();
 
         // 检查元数据过滤器
         checkMetaFilter(entity, objMeta, context);
 
-        // 检查数据权限
-        checkDataAuth(BizConstants.METHOD_UPDATE, entity, context);
-
         // 检查唯一性约束（仅针对脏属性）
         checkUniqueForUpdate(entity, context);
 
-        // 更新实体
-        dao().updateEntity(entity);
+        checkDataAuth(action, entity, context);
 
-        // 检查更新后的数据权限
-        checkDataAuthAfterUpdate(entity, context);
+        // 更新实体
+        daoUpdateEntity(entity, context);
 
         // 触发实体变更后处理
-        afterEntityChange(entity, context, BizConstants.METHOD_UPDATE);
+        afterEntityChange(entity, action, context);
     }
 
     /**
@@ -1957,33 +1961,47 @@ public abstract class CrudBizModel<T extends IOrmEntity>
      * 包含数据权限检查、关联引用检查、级联删除等逻辑
      */
     @BizAction
-    public void deleteEntity(@Name("entity") T entity, IServiceContext context) {
+    public void deleteEntity(@Name("entity") T entity, @Optional @Name("action") String action,
+                             IServiceContext context) {
         Guard.notNull(entity, "entity");
+        if (action == null)
+            action = BizConstants.METHOD_DELETE;
+
         IObjMeta objMeta = getThisObj().requireObjMeta();
 
         // 检查元数据过滤器
         checkMetaFilter(entity, objMeta, context);
 
-        // 检查数据权限
-        checkDataAuth(BizConstants.METHOD_DELETE, entity, context);
-
         // 检查关联引用是否存在
-        Set<String> refNamesToCheck = getDefaultRefNamesToCheckExists();
+        Set<String> refNamesToCheck = getRefNamesToCheckExists(action);
         if (refNamesToCheck != null) {
             checkEntityRefsNotExists(entity, refNamesToCheck, context);
         }
 
-        // 准备删除操作（检查子节点等）
-        invokeDefaultPrepareDelete(entity, context);
-
         // 删除实体
-        dao().deleteEntity(entity);
+        daoDeleteEntity(entity, context);
 
         // 删除关联对象
-        deleteReferences(entity, context);
+        deleteReferences(entity, action, context);
 
         // 触发实体变更后处理
-        afterEntityChange(entity, context);
+        afterEntityChange(entity, action, context);
+    }
+
+    protected Set<String> getRefNamesToCheckExists(String action) {
+        return getDefaultRefNamesToCheckExists();
+    }
+
+    protected void daoSaveEntity(T entity, IServiceContext context) {
+        dao().saveEntity(entity);
+    }
+
+    protected void daoUpdateEntity(T entity, IServiceContext context) {
+        dao().updateEntity(entity);
+    }
+
+    protected void daoDeleteEntity(T entity, IServiceContext context) {
+        dao().deleteEntity(entity);
     }
 
     /**
@@ -1992,19 +2010,20 @@ public abstract class CrudBizModel<T extends IOrmEntity>
      */
     @BizAction
     public void assignToEntity(@Name("entity") T entity,
-                               @Name("data") Map<String, Object> data, IServiceContext context) {
+                               @Name("data") Map<String, Object> data,
+                               @Name("action") String action, IServiceContext context) {
         Guard.notNull(entity, "entity");
         Guard.notNull(data, "data");
 
-        IBizObject bizObj = getThisObj();
-        IObjMeta objMeta = bizObj.requireObjMeta();
+        if (action == null)
+            action = BizConstants.METHOD_UPDATE;
 
-        ObjMetaBasedValidator validator = crudToolProvider.newValidator(bizObj.getBizObjName(), objMeta,
-                context, true);
+        EntityData<T> entityData = buildEntityDataForUpdate(data, null, context);
+        if (BizConstants.METHOD_UPDATE.equals(action)) {
+            this.invokeDefaultPrepareUpdate(entityData, context);
+        }
 
-        Map<String, Object> validated = validator.validateForUpdate(data, null);
-
-        copyToEntity(validated, entity, BizConstants.METHOD_UPDATE, context);
+        copyToEntity(entityData.getValidatedData(), entity, action, context);
     }
 
     /**
@@ -2015,6 +2034,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     public T buildEntityForSave(@Name("data") Map<String, Object> data,
                                 @Name("action") String action, IServiceContext context) {
         Guard.notNull(data, "data");
+        if (action == null)
+            action = BizConstants.METHOD_SAVE;
 
         EntityData<T> entityData = buildEntityDataForSave(data, null, context);
 
@@ -2038,5 +2059,11 @@ public abstract class CrudBizModel<T extends IOrmEntity>
 
         checkMetaFilter(entity, getObjMeta(), context);
         checkDataAuth(action, entity, context);
+    }
+
+    @Override
+    public void batchLoadSelection(@Name("entityList") Collection<T> entityList,
+                                   @Name("selection") FieldSelectionBean selection, IServiceContext context) {
+        dao().batchLoadSelection(entityList, selection);
     }
 }

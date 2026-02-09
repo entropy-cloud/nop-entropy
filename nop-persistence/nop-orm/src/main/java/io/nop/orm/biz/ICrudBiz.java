@@ -493,7 +493,7 @@ public interface ICrudBiz<T extends IOrmEntity> extends IOrmEntityBiz {
      * @param context 服务上下文
      */
     @BizAction
-    void deleteEntity(@Name("entity") T entity, IServiceContext context);
+    void deleteEntity(@Name("entity") T entity, @Optional @Name("action") String action, IServiceContext context);
 
     /**
      * 保存实体对象
@@ -505,7 +505,7 @@ public interface ICrudBiz<T extends IOrmEntity> extends IOrmEntityBiz {
      * @param context 服务上下文
      */
     @BizAction
-    void saveEntity(@Name("entity") T entity, IServiceContext context);
+    void saveEntity(@Name("entity") T entity, @Optional @Name("action") String action, IServiceContext context);
 
     /**
      * 更新实体对象
@@ -517,7 +517,7 @@ public interface ICrudBiz<T extends IOrmEntity> extends IOrmEntityBiz {
      * @param context 服务上下文
      */
     @BizAction
-    void updateEntity(@Name("entity") T entity, IServiceContext context);
+    void updateEntity(@Name("entity") T entity, @Optional @Name("action") String action, IServiceContext context);
 
     /**
      * 给实体对象赋值
@@ -529,7 +529,8 @@ public interface ICrudBiz<T extends IOrmEntity> extends IOrmEntityBiz {
      * @param context 服务上下文
      */
     @BizAction
-    void assignToEntity(@Name("entity") T entity, @Name("data") Map<String, Object> data, IServiceContext context);
+    void assignToEntity(@Name("entity") T entity, @Name("data") Map<String, Object> data,
+                        @Optional @Name("action") String action, IServiceContext context);
 
     /**
      * 根据传入的数据创建实体对象
@@ -543,7 +544,8 @@ public interface ICrudBiz<T extends IOrmEntity> extends IOrmEntityBiz {
      * @return 构建好的实体对象
      */
     @BizAction
-    T buildEntityForSave(@Name("data") Map<String, Object> data, @Name("action") String action, IServiceContext context);
+    T buildEntityForSave(@Name("data") Map<String, Object> data,
+                         @Optional @Name("action") String action, IServiceContext context);
 
     /**
      * 检查是否允许访问指定实体
@@ -556,5 +558,7 @@ public interface ICrudBiz<T extends IOrmEntity> extends IOrmEntityBiz {
      * @throws io.nop.api.core.exceptions.NopException 如果没有权限访问该实体
      */
     @BizAction
-    void checkAllowAccess(@Name("entity") T entity, @Name("action") String action, IServiceContext context);
+    void checkAllowAccess(@Name("entity") T entity, @Optional @Name("action") String action, IServiceContext context);
+
+    void batchLoadSelection(@Name("entityList") Collection<T> entityList, FieldSelectionBean selection, IServiceContext context);
 }
