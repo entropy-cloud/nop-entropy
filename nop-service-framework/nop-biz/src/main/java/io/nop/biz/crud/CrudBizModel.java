@@ -229,6 +229,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     }
 
     public void setEntityName(String entityName) {
+        if (this.entityName != null && !this.entityName.equals(entityName))
+            throw new IllegalArgumentException("nop.err.biz.entity-name-not-allow-change:oldEntityName=" + this.entityName + ",newEntityName=" + entityName);
         this.entityName = entityName;
     }
 
