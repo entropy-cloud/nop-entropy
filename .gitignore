@@ -87,3 +87,4 @@ node_modules/
 .worktree-base
 .worktree-branch
 .worktree-base
+/nop-network/nop-http/nop-http-client-apache/src/test/java/io/nop/http/apache/TestLiteLlmStreaming.java

@@ -27,9 +27,11 @@ For architecture changes, proposals, or ambiguous requests, follow the OPENSPEC 
 
 - **Check skills first**: Before exploring code or implementing solutions, check if an existing skill can solve the problem directly. Skills provide curated best practices and commands.
 - Primary index: `docs-for-ai/INDEX.md`
-- Coding conventions: `docs-for-ai/best-practices/code-style.md`
-- Error handling: `docs-for-ai/best-practices/error-handling.md`
-- Testing: `docs-for-ai/best-practices/testing.md`
+- AI development guide: `docs-for-ai/01-core-concepts/ai-development.md`
+- Coding conventions: `docs-for-ai/07-best-practices/code-style.md`
+- Error handling: `docs-for-ai/07-best-practices/error-handling.md`
+- Testing: `docs-for-ai/07-best-practices/testing.md`
+- Task-based runbook: `docs-for-ai/12-tasks/README.md`
 
 ## Nop IoC vs Spring (high-impact differences)
 
@@ -76,9 +78,8 @@ mvn test
 
 - **Naming**: PascalCase (classes), camelCase (methods/variables), UPPER_SNAKE_CASE (constants)
 - **Formatting**: 4-space indentation, keep lines ~80–120 chars where reasonable
- - **Imports**: grouped and stable ordering: java.* → jakarta.* → third-party → io.nop.*
- - **Package names**: modules use `io.nop.<module-name>` (e.g., `io.nop.ai.core`, `io.nop.ai.shell`)
- - Avoid noisy refactors; keep diffs minimal and focused
+  - **Package names**: modules use `io.nop.<module-name>` (e.g., `io.nop.ai.core`, `io.nop.ai.shell`)
+  - Avoid noisy refactors; keep diffs minimal and focused
 
 ## Error handling essentials
 
@@ -92,10 +93,17 @@ mvn test
 
 | Topic | Doc |
 |------|-----|
-| AI development conventions | `docs-for-ai/getting-started/ai/nop-ai-development.md` |
-| Service layer | `docs-for-ai/getting-started/service/service-layer-development.md` |
-| CRUD | `docs-for-ai/getting-started/business/crud-development.md` |
-| Data access | `docs-for-ai/getting-started/dao/entitydao-usage.md` |
-| Transactions | `docs-for-ai/getting-started/core/transaction-guide.md` |
-| GraphQL | `docs-for-ai/getting-started/api/graphql-guide.md` |
- | API quick reference | `docs-for-ai/quick-reference/api-quick-reference.md` |
+| AI development conventions | `docs-for-ai/01-core-concepts/ai-development.md` |
+| AI developer guide | `docs-for-ai/01-core-concepts/ai-developer-guide.md` |
+| Service layer | `docs-for-ai/03-development-guide/service-layer.md` |
+| CRUD | `docs-for-ai/03-development-guide/crud-development.md` |
+| Data access | `docs-for-ai/03-development-guide/data-access.md` |
+| Transactions | `docs-for-ai/04-core-components/transaction.md` |
+| Exception handling | `docs-for-ai/04-core-components/exception-handling.md` |
+| GraphQL | `docs-for-ai/03-development-guide/api-development.md` |
+| API quick reference | `docs-for-ai/09-quick-reference/api-reference.md` |
+| Task-based runbook | `docs-for-ai/12-tasks/README.md` |
+| Project structure | `docs-for-ai/03-development-guide/project-structure.md` |
+| ORM SQLLib | `docs-for-ai/03-development-guide/orm-sqllib.md` |
+| ORM advanced features | `docs-for-ai/03-development-guide/orm-advanced-features.md` |
+| AutoTest | `docs-for-ai/11-test-and-debug/autotest-guide.md` |
