@@ -71,6 +71,10 @@ public class DefaultHttpResponse implements IHttpResponse {
         if (bodyAsBytes != null) {
             return bodyAsBytes;
         }
+
+        if (bodyAsText == null && body != null)
+            body = JSON.stringify(body);
+
         if (bodyAsText != null) {
             try {
                 bodyAsBytes = bodyAsText.getBytes(charset != null ? charset : StandardCharsets.US_ASCII.name());
@@ -88,6 +92,11 @@ public class DefaultHttpResponse implements IHttpResponse {
     public String getBodyAsText() {
         if (bodyAsText != null)
             return bodyAsText;
+
+        if (body != null) {
+            bodyAsText = JSON.stringify(body);
+            return bodyAsText;
+        }
 
         if (bodyAsBytes != null) {
             try {
@@ -118,5 +127,11 @@ public class DefaultHttpResponse implements IHttpResponse {
         if (body == null)
             body = getBodyAsBean(Map.class);
         return body;
+    }
+
+    public void setBody(Object body) {
+        this.body = body;
+        this.bodyAsText = null;
+        this.bodyAsBytes = null;
     }
 }

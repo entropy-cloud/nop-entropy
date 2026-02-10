@@ -10,6 +10,7 @@ package io.nop.http.api.client;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 
@@ -25,6 +26,39 @@ public interface IHttpClient {
 
     default Flow.Publisher<IServerEventResponse> fetchServerEventFlow(HttpRequest request, ICancelToken cancelToken) {
         throw new UnsupportedOperationException();
+    }
+
+    default IHttpResponse fetchStream(HttpRequest request, IServerEventAggregator aggregator, ICancelToken cancelToken) {
+        return FutureHelper.syncGet(fetchStreamAsync(request, aggregator, cancelToken));
+    }
+
+    default CompletionStage<IHttpResponse> fetchStreamAsync(HttpRequest request, IServerEventAggregator aggregator, ICancelToken cancelToken) {
+        CompletableFuture<IHttpResponse> future = new CompletableFuture<>();
+        fetchServerEventFlow(request, cancelToken).subscribe(new Flow.Subscriber<>() {
+
+
+            @Override
+            public void onSubscribe(Flow.Subscription subscription) {
+                subscription.request(Long.MAX_VALUE);
+            }
+
+            @Override
+            public void onNext(IServerEventResponse item) {
+                aggregator.onNext(item);
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                aggregator.onError(throwable);
+                future.completeExceptionally(throwable);
+            }
+
+            @Override
+            public void onComplete() {
+                future.complete(aggregator.getFinalResult());
+            }
+        });
+        return future;
     }
 
     CompletionStage<IHttpResponse> downloadAsync(HttpRequest request, IHttpOutputFile targetFile, DownloadOptions options,
