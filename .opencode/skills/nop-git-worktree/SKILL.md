@@ -3,6 +3,35 @@ name: nop-git-worktree
 description: 涉及git worktree的操作优先使用这个skill。管理 Git bare 仓库和多个并行 worktree 的开发环境。支持初始化 bare 仓库结构、自动生成分支名并创建 feature worktree。
 ---
 
+## 重要提示
+
+### ⚠️ 必须遵守的操作规则
+
+1. **所有 `git worktree` 相关命令必须在 `.bare` 目录中执行**
+   - ✅ 正确：`git -C .bare worktree add ../feature-xxx -b feature-xxx`
+   - ❌ 错误：`git -C .bare worktree add feature-xxx -b feature-xxx`
+
+2. **创建 worktree 时使用相对路径**
+   - ✅ 正确：使用相对路径 `../`
+   - ❌ 错误：使用绝对路径
+
+3. **遇到错误时，按顺序清理**
+   ```bash
+   cd ~/nop/nop-entropy-wt
+   git -C .bare worktree remove ../feature-xxx 2>/dev/null || true
+   rm -rf feature-xxx 2>/dev/null || true
+   git -C .bare worktree prune
+   git -C .bare branch -D feature-xxx
+   ```
+
+4. **操作目录**
+   | 操作类型 | 执行目录 |
+   |---------|---------|
+   | 创建/删除 worktree | `cd ~/nop/nop-entropy-wt && git -C .bare worktree ...` |
+   | 查看 worktree 列表 | `cd ~/nop/nop-entropy-wt && git -C .bare worktree list` |
+   | 查看/操作分支 | `cd ~/nop/nop-entropy-wt && git -C .bare branch ...` |
+   | 在 worktree 中开发 | `cd ~/nop/nop-entropy-wt/feature-xxx` |
+
 ## 功能
 
 ### 操作类型 1: 初始化 bare + worktree 项目结构
@@ -33,136 +62,249 @@ description: 涉及git worktree的操作优先使用这个skill。管理 Git bar
 ## 目录结构
 
 ```
-project-root/
-├── .bare/              # Git bare 仓库（中心）
-├── main/               # 主分支 worktree
-├── feature-auth/       # 特性分支 worktree
-└── fix-login/          # 修复分支 worktree
+project-root/                          # 项目根目录（如 ~/nop/nop-entropy-wt）
+├── .bare/                            # Git bare 仓库（中心），所有 git worktree 操作在此执行
+│   ├── HEAD                          # 当前默认分支
+│   ├── config                        # Git 配置
+│   ├── objects/                      # Git 对象存储
+│   ├── refs/                         # Git 引用
+│   └── ...
+├── main/                             # 主分支 worktree（开发时在此目录）
+│   └── ...                          # 项目文件
+├── feature-auth/                     # 特性分支 worktree
+│   ├── .mvn/
+│   │   └── maven.config
+│   └── ...
+└── fix-login/                        # 修复分支 worktree
+    ├── .mvn/
+    │   └── maven.config
+    └── ...
 ```
+
+**关键说明**：
+- `.bare/` 目录：这是 Git bare 仓库，所有 `git worktree` 命令必须在此目录或通过 `git -C .bare` 执行
+- `main/`, `feature-auth/` 等目录：这些是实际的工作目录，开发时在这些目录中进行 git 操作（如 `git commit`, `git status`）
 
 ## 操作说明
 
 ### 初始化 bare + worktree 项目结构
 
 **参数**：
+- **项目根目录** (必填): 如 `~/nop/nop-entropy-wt`
 - **远程仓库 URL** (可选): 如 `git@github.com:user/repo.git`
 - **本地仓库路径** (可选): 现有 git 仓库的路径
 
 **步骤**：
-1. 检查当前目录是否为空
-2. 创建 `.bare` 目录作为 bare 仓库
-3. 执行 `git clone --bare <url|path> .bare`
-4. 识别默认分支（main 或 master）
-5. 执行 `git worktree add main <default-branch>` 创建主分支 worktree
-6. **创建 Maven 配置文件**（重要，用于限制分支使用本地仓库）：
-   - 在主分支 worktree 中创建 `.mvn/maven.config` 文件，内容为：
-     ```bash
-     -Dmaven.repo.local.head=.nop/repository
-     -Dmaven.repo.local.tail.ignoreAvailability=true
-     ```
+```bash
+cd ~/nop/nop-entropy-wt
+
+# 1. 创建 bare 仓库
+git clone --bare ~/nop/nop-entropy .bare    # 或: git clone --bare git@github.com:user/repo.git .bare
+
+# 2. 识别默认分支并创建主分支 worktree
+DEFAULT_BRANCH=$(git -C .bare symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')
+git -C .bare worktree add "../$DEFAULT_BRANCH" "$DEFAULT_BRANCH"
+
+# 3. 验证
+git -C .bare worktree list
+```
 
 ### 创建新的 feature worktree
 
 **参数**：
 - **需求描述** (必填): 自然语言描述的功能需求
+- **项目根目录** (必填): 如 `~/nop/nop-entropy-wt`
 
 **分支名生成规则**：
-
 | 需求类型 | 前缀 | 示例 |
 |---------|------|------|
 | 新功能 | `add-`, `feat-` | `add-user-auth`, `feat-payment` |
 | 修复 | `fix-` | `fix-login-error`, `fix-crash` |
-| 重构 | `refactor-` | `refactor-auth`, `refactor-db` |
+| 重构 | `refactor-` | `refactor-db`, `refactor-job-scheduling` |
 | 性能优化 | `perf-`, `optimize-` | `perf-query`, `optimize-cache` |
 | 紧急修复 | `hotfix-` | `hotfix-security` |
 | 文档 | `docs-` | `docs-api` |
 | 测试/杂项 | `test-`, `chore-` | `test-auth`, `chore-deps` |
 
 **步骤**：
-1. 分析需求描述，选择合适的前缀
-2. 提取核心关键词组合生成分支名
-3. 检查分支名是否已存在，必要时添加序号
-4. 执行 `git worktree add <branch-name> -b <branch-name>`
-5. **创建 Maven 配置文件**（重要，用于限制分支使用本地仓库）：
-   - 创建 `.mvn/maven.config` 文件，内容为：
-     ```bash
-     -Dmaven.repo.local.head=.nop/repository
-     -Dmaven.repo.local.tail.ignoreAvailability=true
-     ```
-   - 此配置让每个 worktree 使用独立的本地仓库（`.nop/repository`），避免相互干扰
-   - 可选：创建元数据文件 `.worktree-branch` 和 `.worktree-base` 并添加到 `.gitignore`
+```bash
+cd ~/nop/nop-entropy-wt
+
+BRANCH_NAME="refactor-job-scheduling"
+
+# 1. 如果分支已存在，先清理
+if git -C .bare branch --list "$BRANCH_NAME" > /dev/null; then
+    git -C .bare worktree remove "../$BRANCH_NAME" 2>/dev/null || true
+    rm -rf "$BRANCH_NAME" 2>/dev/null || true
+    git -C .bare worktree prune
+    git -C .bare branch -D "$BRANCH_NAME"
+fi
+
+# 2. 创建 worktree
+git -C .bare worktree add "../$BRANCH_NAME" -b "$BRANCH_NAME"
+
+# 3. 创建 Maven 配置（Feature 分支专用）
+mkdir -p "$BRANCH_NAME/.mvn"
+cat > "$BRANCH_NAME/.mvn/maven.config" <<'EOF'
+-Dmaven.repo.local.head=.nop/repository
+-Dmaven.repo.local.tail.ignoreAvailability=true
+EOF
+
+# 4. 验证
+git -C .bare worktree list
+```
 
 ## 常用命令
 
+**注意**：所有 `git worktree` 相关命令必须在 `.bare` 目录中执行，或使用 `git -C .bare` 参数。
+
 ```bash
-# 查看所有 worktree
-git worktree list
+# 查看 worktree 列表
+git -C .bare worktree list
 
 # 删除 worktree
-git worktree remove feature-auth
-git worktree prune  # 清理无效引用
+git -C .bare worktree remove feature-auth
+
+# 清理无效引用
+git -C .bare worktree prune
 
 # 移动 worktree
-git worktree move old-path new-path
+git -C .bare worktree move old-path new-path
 
-# 切换 worktree
-cd main/           # 主分支
-cd feature-auth/   # 功能分支
+# 切换 worktree 目录
+cd ~/nop/nop-entropy-wt/main/           # 主分支
+cd ~/nop/nop-entropy-wt/feature-auth/   # 功能分支
+
+# 在 worktree 中查看状态
+cd ~/nop/nop-entropy-wt/feature-auth
+git status
+git branch
 ```
 
 ## 最佳实践
 
-1. **分支命名**: 使用清晰的语义化分支名（小写字母、数字、连字符，20-30 字符）
-2. **及时清理**: 完成功能后及时删除 worktree
-3. **定期同步**: 在 main worktree 中定期 pull 远程更新
-4. **独立环境**: 每个 worktree 独立安装依赖，避免冲突
+1. **分支命名**：使用清晰的语义化分支名（小写字母、数字、连字符，20-30 字符）
+2. **命令执行位置**：
+   - `git worktree` 相关命令：在 `.bare` 目录中执行，或使用 `git -C .bare`
+   - git 提交、状态查看等：在对应的 worktree 目录中执行
+3. **及时清理**：完成功能后及时删除 worktree
+4. **定期同步**：在 main worktree 中定期 pull 远程更新
+5. **独立环境**：每个 worktree 独立安装依赖
+6. **路径使用**：始终使用相对路径（如 `../feature-xxx`）
 
 ## Maven 配置说明
 
-### 为什么要配置 Maven 本地仓库
+**主分支 vs Feature 分支的 Maven 配置**：
+| 分支类型 | Maven 配置 | 说明 |
+|---------|-----------|------|
+| **主分支 (main/master)** | **不配置** | 使用系统默认仓库（`~/.m2/repository`） |
+| **Feature 分支** | **配置** `.mvn/maven.config` | 使用独立局部仓库（`.nop/repository`），避免依赖冲突 |
 
-每个 worktree 使用独立的 Maven 本地仓库有以下好处：
-1. **隔离性**: 避免不同分支之间的依赖冲突
-2. **速度**: 不需要频繁切换或清理本地仓库
-3. **稳定性**: 每个分支有其稳定的依赖环境
-
-### Maven 配置文件格式
-
-在 worktree 根目录下创建 `.mvn/maven.config` 文件：
-
+**Feature 分支 Maven 配置文件格式**：
 ```bash
 -Dmaven.repo.local.head=.nop/repository
 -Dmaven.repo.local.tail.ignoreAvailability=true
 ```
 
 **参数说明**：
-- `maven.repo.local.head`: Maven 4.x 支持的本地仓库链的前端路径
-  - 设置为 `.nop/repository` 意味着优先使用当前 worktree 下的 `.nop/repository` 目录
-  - Maven 会先从 head 仓库查找依赖，找不到再从主仓库查找
-- `maven.repo.local.tail.ignoreAvailability=true`: 忽略尾部仓库的可用性检查
-  - 提高启动速度，避免不必要的网络检查
+- `maven.repo.local.head`: 优先使用当前 worktree 的 `.nop/repository` 目录
+- `maven.repo.local.tail.ignoreAvailability=true`: 忽略尾部仓库可用性检查，提高启动速度
 
-### 目录结构
 
+## Worktree 提交流程
+
+**流程假设**：
+- 项目根目录：`~/nop/nop-entropy-wt`
+- feature worktree：`~/nop/nop-entropy-wt/feat-stream-processing`
+- 主分支 worktree：`~/nop/nop-entropy-wt/main`
+
+**步骤**：
+```bash
+# 1. 更新主分支到最新
+cd ~/nop/nop-entropy-wt/main
+git pull origin master
+
+# 2. 软重置 feature 分支到基础分支（保留所有修改，但撤销提交历史）
+cd ../feat-stream-processing
+git reset --soft master
+
+# 3. 查看修改内容
+git diff --cached --stat
+
+# 4. 生成提交信息并提交（遵循约定式提交格式）
+git commit -m "feat: 实现流处理数据源接入
+
+支持多种数据源接入：
+- Kafka 数据源
+- 文件数据源
+- HTTP 数据源
+- 数据库数据源"
+
+# 5. 生成差异文件（可选）
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+git diff master > "feat-stream-processing-${TIMESTAMP}.diff"
+
+# 6. 合并到主分支
+cd ../main
+git merge feat-stream-processing --ff-only
+
+# 7. 同步主分支最新内容回 feature 分支
+cd ../feat-stream-processing
+git rebase master
 ```
-project-root/
-├── .bare/                      # Git bare 仓库
-├── main/                       # 主分支 worktree
-│   ├── .mvn/
-│   │   └── maven.config        # Maven 配置
-│   └── .nop/
-│       └── repository/          # 独立的本地仓库
-└── feat-auth/                  # 功能分支 worktree
-    ├── .mvn/
-    │   └── maven.config
-    └── .nop/
-        └── repository/
-```
 
+**约定式提交格式**：
+| 类型 | 含义 | 示例 |
+|------|------|------|
+| `feat` | 新功能 | `feat: 添加用户登录功能` |
+| `fix` | 修复 bug | `fix: 修复登录时的空指针异常` |
+| `refactor` | 重构 | `refactor: 优化数据库查询逻辑` |
+| `perf` | 性能优化 | `perf: 减少重复的网络请求` |
+| `docs` | 文档 | `docs: 更新 API 文档` |
+| `test` | 测试 | `test: 添加单元测试覆盖` |
+| `chore` | 构建/工具 | `chore: 升级依赖版本` |
 
 ## 故障排查
 
-- **worktree 目录损坏**: `git worktree prune`
-- **无法切换分支**: 使用 `git worktree list` 检查状态
-- **bare 仓库推送失败**: 检查 remote 配置和访问权限
-- **Maven 配置未生效**: 确保 `.mvn/maven.config` 文件位于 worktree 根目录，路径正确
+### 常见错误
+
+| 错误信息 | 原因 | 解决方案 |
+|---------|------|---------|
+| `fatal: a branch named 'xxx' already exists` | 分支已存在 | `git -C .bare branch -D xxx` |
+| `fatal: '../xxx' already exists` | worktree 目录已存在 | `rm -rf xxx` |
+| `Preparing worktree (new branch 'xxx') failed` | 路径格式错误或无效引用 | 参考[清理步骤](#清理步骤) |
+| `worktree list` 显示奇怪路径 | 在错误目录执行命令 | 参考[清理步骤](#清理步骤) |
+
+### 清理步骤
+
+遇到路径混乱或无效引用时：
+```bash
+cd ~/nop/nop-entropy-wt
+
+# 删除 worktree 引用
+git -C .bare worktree remove ../xxx 2>/dev/null || true
+
+# 删除目录
+rm -rf xxx 2>/dev/null || true
+
+# 清理无效引用
+git -C .bare worktree prune
+
+# 删除分支
+git -C .bare branch -D xxx
+
+# 重新创建
+git -C .bare worktree add ../xxx -b xxx
+```
+
+### 诊断命令
+
+```bash
+cd ~/nop/nop-entropy-wt
+
+# 查看 worktree 详细状态
+git -C .bare worktree list --porcelain
+
+# 查看所有分支
+git -C .bare branch -a
+```
