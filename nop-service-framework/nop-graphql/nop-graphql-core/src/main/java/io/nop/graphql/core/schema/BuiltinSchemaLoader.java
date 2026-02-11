@@ -153,6 +153,8 @@ public class BuiltinSchemaLoader {
             GraphQLTypeDefinition typeDef = getTypeDefinition(typeName);
             if (typeDef instanceof GraphQLObjectDefinition) {
                 GraphQLObjectDefinition objDef = (GraphQLObjectDefinition) typeDef;
+                if (objDef.getInterfaces() == null)
+                    return Collections.emptyList();
                 List<__Type> interfaces = new ArrayList<>();
                 for (GraphQLNamedType interfaceType : objDef.getInterfaces()) {
                     interfaces.add(toGraphQLType(interfaceType, false));

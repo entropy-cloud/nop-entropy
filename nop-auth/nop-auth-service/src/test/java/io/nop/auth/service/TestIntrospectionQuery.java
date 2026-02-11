@@ -7,7 +7,6 @@
  */
 package io.nop.auth.service;
 
-import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.autotest.NopTestProperty;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
