@@ -54,7 +54,7 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
                 "update io.nop.app.SimsClass o set o.className='x'", false);
 
         assertEquals("update\n" +
-                "  sims_class\n" +
+                "  SIMS_CLASS\n" +
                 "set \n" +
                 "  CLASS_NAME= 'x' \n", sql.getSql().getText());
     }
@@ -66,7 +66,7 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
                 "update io.nop.app.SimsClass set className='x'", false);
 
         assertEquals("update\n" +
-                "  sims_class\n" +
+                "  SIMS_CLASS\n" +
                 "set \n" +
                 "  CLASS_NAME= 'x' \n", sql.getSql().getText());
     }
@@ -79,7 +79,7 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
 
         assertEquals("delete\n" +
                 "from\n" +
-                "  sims_class\n" +
+                "  SIMS_CLASS\n" +
                 "where \n" +
                 "  CLASS_NAME =  'x' \n", sql.getSql().getText());
     }
@@ -92,7 +92,7 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
 
         assertEquals("delete\n" +
                 "from\n" +
-                "  sims_class\n" +
+                "  SIMS_CLASS\n" +
                 "where \n" +
                 "  CLASS_NAME =  'x' \n", sql.getSql().getText());
     }
