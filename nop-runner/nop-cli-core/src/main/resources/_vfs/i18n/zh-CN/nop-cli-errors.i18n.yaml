@@ -646,6 +646,8 @@ nop.err.graphql.multi-meta-file-for-biz-obj: 存在多个meta文件对应于同�
 nop.err.graphql.not-allow-directive-at-location: GraphQL扩展[{directive}]不允许出现在位置[{location}]
 nop.err.graphql.not-obj-type: '[{type}]不是对象类型，不支持字段选择'
 nop.err.graphql.not-obj-type-for-field: 对象[{objType}]的属性[{fieldName}]的类型[{type}]未定义
+nop.err.graphql.obj-field-type-mismatch-interface: 对象[{objName}]的字段[{fieldName}]类型[{type}]与接口[{interfaceName}]中定义的类型[{expectedType}]不匹配
+nop.err.graphql.obj-missing-required-interface-field: 对象[{objName}]实现接口[{interfaceName}]时缺少必需字段[{fieldName}]
 nop.err.graphql.only-allow-one-context-source-param: 方法[{methodName}]上最多只允许一个参数具有@ContextSource注解
 nop.err.graphql.parse.empty-string: GraphQL查询语句为空
 nop.err.graphql.parse.exceed-max-length: GraphQL查询语句过长，超过长度限制

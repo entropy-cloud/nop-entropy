@@ -144,7 +144,7 @@ public class GenSqlTransformer {
                 // {原表名}_{shardName}
                 String tableName = marker.getMarkedText(sql.getText());
                 tableName = dialect.unescapeSQLName(tableName);
-                tableName = dialect.escapeSQLName(tableName + '_' + shard.getShardName());
+                tableName = dialect.normalizeTableName(tableName + '_' + shard.getShardName());
                 return new MarkedString(tableName);
             }
         }

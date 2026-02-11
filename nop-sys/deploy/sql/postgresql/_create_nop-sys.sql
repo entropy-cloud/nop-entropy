@@ -1,755 +1,755 @@
 
 CREATE TABLE nop_sys_sequence(
-  SEQ_NAME VARCHAR(150) NOT NULL ,
-  SEQ_TYPE VARCHAR(10)  ,
-  IS_UUID INT4 default 0  NOT NULL ,
-  NEXT_VALUE INT8 NOT NULL ,
-  STEP_SIZE INT4 NOT NULL ,
-  CACHE_SIZE INT4  ,
-  MAX_VALUE INT8  ,
-  RESET_TYPE INT4  ,
-  DEL_FLAG INT4 NOT NULL ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_sys_sequence primary key (SEQ_NAME)
+  seq_name VARCHAR(150) NOT NULL ,
+  seq_type VARCHAR(10)  ,
+  is_uuid INT4 default 0  NOT NULL ,
+  next_value INT8 NOT NULL ,
+  step_size INT4 NOT NULL ,
+  cache_size INT4  ,
+  max_value INT8  ,
+  reset_type INT4  ,
+  del_flag INT4 NOT NULL ,
+  version INT4 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_sys_sequence primary key (seq_name)
 );
 
 CREATE TABLE nop_sys_dict(
-  SID VARCHAR(32) NOT NULL ,
-  DICT_NAME VARCHAR(150) NOT NULL ,
-  DISPLAY_NAME VARCHAR(50) NOT NULL ,
-  DEL_FLAG INT4 NOT NULL ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_sys_dict primary key (SID)
+  sid VARCHAR(32) NOT NULL ,
+  dict_name VARCHAR(150) NOT NULL ,
+  display_name VARCHAR(50) NOT NULL ,
+  del_flag INT4 NOT NULL ,
+  version INT4 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_sys_dict primary key (sid)
 );
 
 CREATE TABLE nop_sys_i18n(
-  I18N_KEY VARCHAR(200) NOT NULL ,
-  I18N_LOCALE VARCHAR(20) NOT NULL ,
-  VALUE VARCHAR(300) NOT NULL ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_sys_i18n primary key (I18N_KEY,I18N_LOCALE)
+  i18n_key VARCHAR(200) NOT NULL ,
+  i18n_locale VARCHAR(20) NOT NULL ,
+  value VARCHAR(300) NOT NULL ,
+  version INT4 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_sys_i18n primary key (i18n_key,i18n_locale)
 );
 
 CREATE TABLE nop_sys_checker_record(
-  SID VARCHAR(32) NOT NULL ,
-  BIZ_OBJ_NAME VARCHAR(200) NOT NULL ,
-  BIZ_OBJ_ID VARCHAR(100)  ,
-  MAKER_ID VARCHAR(50) NOT NULL ,
-  MAKER_NAME VARCHAR(150) NOT NULL ,
-  REQUEST_ACTION VARCHAR(100) NOT NULL ,
-  REQUEST_DATA TEXT  ,
-  REQUEST_TIME TIMESTAMP NOT NULL ,
-  CHECKER_ID VARCHAR(50)  ,
-  CHECKER_NAME VARCHAR(150)  ,
-  CHECK_TIME TIMESTAMP  ,
-  TRY_RESULT TEXT  ,
-  INPUT_PAGE VARCHAR(1000)  ,
-  STATUS INT4 NOT NULL ,
-  CANCEL_ACTION VARCHAR(200)  ,
-  CB_ERR_CODE VARCHAR(150)  ,
-  CE_ERR_MSG VARCHAR(1000)  ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_sys_checker_record primary key (SID)
+  sid VARCHAR(32) NOT NULL ,
+  biz_obj_name VARCHAR(200) NOT NULL ,
+  biz_obj_id VARCHAR(100)  ,
+  maker_id VARCHAR(50) NOT NULL ,
+  maker_name VARCHAR(150) NOT NULL ,
+  request_action VARCHAR(100) NOT NULL ,
+  request_data TEXT  ,
+  request_time TIMESTAMP NOT NULL ,
+  checker_id VARCHAR(50)  ,
+  checker_name VARCHAR(150)  ,
+  check_time TIMESTAMP  ,
+  try_result TEXT  ,
+  input_page VARCHAR(1000)  ,
+  status INT4 NOT NULL ,
+  cancel_action VARCHAR(200)  ,
+  cb_err_code VARCHAR(150)  ,
+  ce_err_msg VARCHAR(1000)  ,
+  version INT4 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_sys_checker_record primary key (sid)
 );
 
 CREATE TABLE nop_sys_code_rule(
-  SID VARCHAR(32) NOT NULL ,
-  NAME VARCHAR(100) NOT NULL ,
-  DISPLAY_NAME VARCHAR(100) NOT NULL ,
-  CODE_PATTERN VARCHAR(200) NOT NULL ,
-  SEQ_NAME VARCHAR(100)  ,
-  DEL_FLAG INT4 NOT NULL ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_sys_code_rule primary key (SID)
+  sid VARCHAR(32) NOT NULL ,
+  name VARCHAR(100) NOT NULL ,
+  display_name VARCHAR(100) NOT NULL ,
+  code_pattern VARCHAR(200) NOT NULL ,
+  seq_name VARCHAR(100)  ,
+  del_flag INT4 NOT NULL ,
+  version INT4 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_sys_code_rule primary key (sid)
 );
 
 CREATE TABLE nop_sys_notice_template(
-  SID VARCHAR(32) NOT NULL ,
-  NAME VARCHAR(100) NOT NULL ,
-  TPL_TYPE VARCHAR(10) NOT NULL ,
-  CONTENT VARCHAR(4000) NOT NULL ,
-  DEL_FLAG INT4 NOT NULL ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_sys_notice_template primary key (SID)
+  sid VARCHAR(32) NOT NULL ,
+  name VARCHAR(100) NOT NULL ,
+  tpl_type VARCHAR(10) NOT NULL ,
+  content VARCHAR(4000) NOT NULL ,
+  del_flag INT4 NOT NULL ,
+  version INT4 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_sys_notice_template primary key (sid)
 );
 
 CREATE TABLE nop_sys_user_variable(
-  USER_ID VARCHAR(32) NOT NULL ,
-  VAR_NAME VARCHAR(32) NOT NULL ,
-  VAR_VALUE VARCHAR(4000)  ,
-  STD_DOMAIN VARCHAR(100)  ,
-  VAR_TYPE VARCHAR(100)  ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_sys_user_variable primary key (USER_ID,VAR_NAME)
+  user_id VARCHAR(32) NOT NULL ,
+  var_name VARCHAR(32) NOT NULL ,
+  var_value VARCHAR(4000)  ,
+  std_domain VARCHAR(100)  ,
+  var_type VARCHAR(100)  ,
+  version INT4 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_sys_user_variable primary key (user_id,var_name)
 );
 
 CREATE TABLE nop_sys_variable(
-  VAR_NAME VARCHAR(32) NOT NULL ,
-  VAR_VALUE VARCHAR(4000)  ,
-  STD_DOMAIN VARCHAR(100)  ,
-  VAR_TYPE VARCHAR(100)  ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_sys_variable primary key (VAR_NAME)
+  var_name VARCHAR(32) NOT NULL ,
+  var_value VARCHAR(4000)  ,
+  std_domain VARCHAR(100)  ,
+  var_type VARCHAR(100)  ,
+  version INT4 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_sys_variable primary key (var_name)
 );
 
 CREATE TABLE nop_sys_ext_field(
-  ENTITY_NAME VARCHAR(200) NOT NULL ,
-  ENTITY_ID VARCHAR(100) NOT NULL ,
-  FIELD_NAME VARCHAR(100) NOT NULL ,
-  FIELD_TYPE INT4 NOT NULL ,
-  DECIMAL_SCALE INT4  ,
-  DECIMAL_VALUE NUMERIC(24,8)  ,
-  DATE_VALUE DATE  ,
-  TIMESTAMP_VALUE TIMESTAMP  ,
-  STRING_VALUE VARCHAR(4000)  ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_sys_ext_field primary key (ENTITY_NAME,ENTITY_ID,FIELD_NAME)
+  entity_name VARCHAR(200) NOT NULL ,
+  entity_id VARCHAR(100) NOT NULL ,
+  field_name VARCHAR(100) NOT NULL ,
+  field_type INT4 NOT NULL ,
+  decimal_scale INT4  ,
+  decimal_value NUMERIC(24,8)  ,
+  date_value DATE  ,
+  timestamp_value TIMESTAMP  ,
+  string_value VARCHAR(4000)  ,
+  version INT4 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_sys_ext_field primary key (entity_name,entity_id,field_name)
 );
 
 CREATE TABLE nop_sys_lock(
-  LOCK_NAME VARCHAR(200) NOT NULL ,
-  LOCK_GROUP VARCHAR(200) NOT NULL ,
-  LOCK_TIME TIMESTAMP NOT NULL ,
-  EXPIRE_AT TIMESTAMP NOT NULL ,
-  LOCK_REASON VARCHAR(200)  ,
-  HOLDER_ID VARCHAR(100) NOT NULL ,
-  HOLDER_ADDER VARCHAR(100) NOT NULL ,
-  APP_ID VARCHAR(100) NOT NULL ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  constraint PK_nop_sys_lock primary key (LOCK_NAME,LOCK_GROUP)
+  lock_name VARCHAR(200) NOT NULL ,
+  lock_group VARCHAR(200) NOT NULL ,
+  lock_time TIMESTAMP NOT NULL ,
+  expire_at TIMESTAMP NOT NULL ,
+  lock_reason VARCHAR(200)  ,
+  holder_id VARCHAR(100) NOT NULL ,
+  holder_adder VARCHAR(100) NOT NULL ,
+  app_id VARCHAR(100) NOT NULL ,
+  version INT4 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  constraint PK_nop_sys_lock primary key (lock_name,lock_group)
 );
 
 CREATE TABLE nop_sys_cluster_leader(
-  CLUSTER_ID VARCHAR(200) NOT NULL ,
-  LEADER_ID VARCHAR(100) NOT NULL ,
-  LEADER_ADDER VARCHAR(100) NOT NULL ,
-  LEADER_EPOCH INT8 NOT NULL ,
-  ELECT_TIME TIMESTAMP NOT NULL ,
-  EXPIRE_AT TIMESTAMP NOT NULL ,
-  REFRESH_TIME TIMESTAMP NOT NULL ,
-  VERSION INT4 NOT NULL ,
-  APP_NAME VARCHAR(100) NOT NULL ,
-  constraint PK_nop_sys_cluster_leader primary key (CLUSTER_ID)
+  cluster_id VARCHAR(200) NOT NULL ,
+  leader_id VARCHAR(100) NOT NULL ,
+  leader_adder VARCHAR(100) NOT NULL ,
+  leader_epoch INT8 NOT NULL ,
+  elect_time TIMESTAMP NOT NULL ,
+  expire_at TIMESTAMP NOT NULL ,
+  refresh_time TIMESTAMP NOT NULL ,
+  version INT4 NOT NULL ,
+  app_name VARCHAR(100) NOT NULL ,
+  constraint PK_nop_sys_cluster_leader primary key (cluster_id)
 );
 
 CREATE TABLE nop_sys_event(
-  EVENT_ID INT8 NOT NULL ,
-  EVENT_TOPIC VARCHAR(100) NOT NULL ,
-  EVENT_NAME VARCHAR(100) NOT NULL ,
-  EVENT_HEADERS JSON NOT NULL ,
-  EVENT_DATA JSON NOT NULL ,
-  SELECTION VARCHAR(1000)  ,
-  EVENT_TIME TIMESTAMP NOT NULL ,
-  EVENT_STATUS INT4 NOT NULL ,
-  PROCESS_TIME TIMESTAMP NOT NULL ,
-  SCHEDULE_TIME TIMESTAMP NOT NULL ,
-  IS_BROADCAST BOOLEAN NOT NULL ,
-  BIZ_OBJ_NAME VARCHAR(100)  ,
-  BIZ_KEY VARCHAR(50)  ,
-  BIZ_DATE DATE NOT NULL ,
-  PARTITION_INDEX INT4 NOT NULL ,
-  RETRY_TIMES INT4 NOT NULL ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  constraint PK_nop_sys_event primary key (EVENT_ID)
+  event_id INT8 NOT NULL ,
+  event_topic VARCHAR(100) NOT NULL ,
+  event_name VARCHAR(100) NOT NULL ,
+  event_headers JSON NOT NULL ,
+  event_data JSON NOT NULL ,
+  selection VARCHAR(1000)  ,
+  event_time TIMESTAMP NOT NULL ,
+  event_status INT4 NOT NULL ,
+  process_time TIMESTAMP NOT NULL ,
+  schedule_time TIMESTAMP NOT NULL ,
+  is_broadcast BOOLEAN NOT NULL ,
+  biz_obj_name VARCHAR(100)  ,
+  biz_key VARCHAR(50)  ,
+  biz_date DATE NOT NULL ,
+  partition_index INT4 NOT NULL ,
+  retry_times INT4 NOT NULL ,
+  version INT4 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  constraint PK_nop_sys_event primary key (event_id)
 );
 
 CREATE TABLE nop_sys_service_instance(
-  INSTANCE_ID VARCHAR(50) NOT NULL ,
-  SERVICE_NAME VARCHAR(100) NOT NULL ,
-  CLUSTER_NAME VARCHAR(100) NOT NULL ,
-  GROUP_NAME VARCHAR(100) NOT NULL ,
-  TAGS_TEXT VARCHAR(100) NOT NULL ,
-  SERVER_ADDR VARCHAR(20) NOT NULL ,
-  SERVER_PORT INT4 NOT NULL ,
-  WEIGHT INT4 NOT NULL ,
-  META_DATA VARCHAR(1000)  ,
-  IS_HEALTHY BOOLEAN NOT NULL ,
-  IS_ENABLED BOOLEAN NOT NULL ,
-  IS_EPHEMERAL BOOLEAN NOT NULL ,
-  VERSION INT4 NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  constraint PK_nop_sys_service_instance primary key (INSTANCE_ID)
+  instance_id VARCHAR(50) NOT NULL ,
+  service_name VARCHAR(100) NOT NULL ,
+  cluster_name VARCHAR(100) NOT NULL ,
+  group_name VARCHAR(100) NOT NULL ,
+  tags_text VARCHAR(100) NOT NULL ,
+  server_addr VARCHAR(20) NOT NULL ,
+  server_port INT4 NOT NULL ,
+  weight INT4 NOT NULL ,
+  meta_data VARCHAR(1000)  ,
+  is_healthy BOOLEAN NOT NULL ,
+  is_enabled BOOLEAN NOT NULL ,
+  is_ephemeral BOOLEAN NOT NULL ,
+  version INT4 NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  constraint PK_nop_sys_service_instance primary key (instance_id)
 );
 
 CREATE TABLE nop_sys_change_log(
-  SID VARCHAR(32) NOT NULL ,
-  BIZ_OBJ_NAME VARCHAR(100) NOT NULL ,
-  OBJ_ID VARCHAR(100) NOT NULL ,
-  BIZ_KEY VARCHAR(100)  ,
-  OPERATION_NAME VARCHAR(150) NOT NULL ,
-  PROP_NAME VARCHAR(100) NOT NULL ,
-  OLD_VALUE VARCHAR(4000)  ,
-  NEW_VALUE VARCHAR(4000)  ,
-  CHANGE_TIME TIMESTAMP NOT NULL ,
-  APP_ID VARCHAR(100)  ,
-  OPERATOR_ID VARCHAR(50) NOT NULL ,
-  APPROVER_ID VARCHAR(50)  ,
-  constraint PK_nop_sys_change_log primary key (SID)
+  sid VARCHAR(32) NOT NULL ,
+  biz_obj_name VARCHAR(100) NOT NULL ,
+  obj_id VARCHAR(100) NOT NULL ,
+  biz_key VARCHAR(100)  ,
+  operation_name VARCHAR(150) NOT NULL ,
+  prop_name VARCHAR(100) NOT NULL ,
+  old_value VARCHAR(4000)  ,
+  new_value VARCHAR(4000)  ,
+  change_time TIMESTAMP NOT NULL ,
+  app_id VARCHAR(100)  ,
+  operator_id VARCHAR(50) NOT NULL ,
+  approver_id VARCHAR(50)  ,
+  constraint PK_nop_sys_change_log primary key (sid)
 );
 
 CREATE TABLE nop_sys_tag(
-  SID INT8 NOT NULL ,
-  NAME VARCHAR(100) NOT NULL ,
-  DESCRIPTION VARCHAR(500)  ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  constraint PK_nop_sys_tag primary key (SID)
+  sid INT8 NOT NULL ,
+  name VARCHAR(100) NOT NULL ,
+  description VARCHAR(500)  ,
+  version INT4 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  constraint PK_nop_sys_tag primary key (sid)
 );
 
 CREATE TABLE nop_sys_dict_option(
-  SID VARCHAR(32) NOT NULL ,
-  DICT_ID VARCHAR(32) NOT NULL ,
-  LABEL VARCHAR(150) NOT NULL ,
-  VALUE VARCHAR(150) NOT NULL ,
-  CODE_VALUE VARCHAR(100)  ,
-  GROUP_NAME VARCHAR(50)  ,
-  IS_INTERNAL INT4 default 0  NOT NULL ,
-  IS_DEPRECATED INT4 default 0  NOT NULL ,
-  DEL_FLAG INT4 NOT NULL ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_sys_dict_option primary key (SID)
+  sid VARCHAR(32) NOT NULL ,
+  dict_id VARCHAR(32) NOT NULL ,
+  label VARCHAR(150) NOT NULL ,
+  value VARCHAR(150) NOT NULL ,
+  code_value VARCHAR(100)  ,
+  group_name VARCHAR(50)  ,
+  is_internal INT4 default 0  NOT NULL ,
+  is_deprecated INT4 default 0  NOT NULL ,
+  del_flag INT4 NOT NULL ,
+  version INT4 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_sys_dict_option primary key (sid)
 );
 
 CREATE TABLE nop_sys_obj_tag(
-  BIZ_OBJ_ID VARCHAR(50) NOT NULL ,
-  BIZ_OBJ_NAME VARCHAR(100) NOT NULL ,
-  TAG_ID INT8 NOT NULL ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  constraint PK_nop_sys_obj_tag primary key (BIZ_OBJ_ID,BIZ_OBJ_NAME,TAG_ID)
+  biz_obj_id VARCHAR(50) NOT NULL ,
+  biz_obj_name VARCHAR(100) NOT NULL ,
+  tag_id INT8 NOT NULL ,
+  version INT4 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  constraint PK_nop_sys_obj_tag primary key (biz_obj_id,biz_obj_name,tag_id)
 );
 
 
       COMMENT ON TABLE nop_sys_sequence IS '序列号';
                 
-      COMMENT ON COLUMN nop_sys_sequence.SEQ_NAME IS '名称';
+      COMMENT ON COLUMN nop_sys_sequence.seq_name IS '名称';
                     
-      COMMENT ON COLUMN nop_sys_sequence.SEQ_TYPE IS '类型';
+      COMMENT ON COLUMN nop_sys_sequence.seq_type IS '类型';
                     
-      COMMENT ON COLUMN nop_sys_sequence.IS_UUID IS '是否UUID';
+      COMMENT ON COLUMN nop_sys_sequence.is_uuid IS '是否UUID';
                     
-      COMMENT ON COLUMN nop_sys_sequence.NEXT_VALUE IS '下一个值';
+      COMMENT ON COLUMN nop_sys_sequence.next_value IS '下一个值';
                     
-      COMMENT ON COLUMN nop_sys_sequence.STEP_SIZE IS '步长';
+      COMMENT ON COLUMN nop_sys_sequence.step_size IS '步长';
                     
-      COMMENT ON COLUMN nop_sys_sequence.CACHE_SIZE IS '缓存个数';
+      COMMENT ON COLUMN nop_sys_sequence.cache_size IS '缓存个数';
                     
-      COMMENT ON COLUMN nop_sys_sequence.MAX_VALUE IS '最大值';
+      COMMENT ON COLUMN nop_sys_sequence.max_value IS '最大值';
                     
-      COMMENT ON COLUMN nop_sys_sequence.RESET_TYPE IS '重置方式';
+      COMMENT ON COLUMN nop_sys_sequence.reset_type IS '重置方式';
                     
-      COMMENT ON COLUMN nop_sys_sequence.DEL_FLAG IS '删除标识';
+      COMMENT ON COLUMN nop_sys_sequence.del_flag IS '删除标识';
                     
-      COMMENT ON COLUMN nop_sys_sequence.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_sys_sequence.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_sys_sequence.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_sys_sequence.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_sys_sequence.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_sys_sequence.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_sys_sequence.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_sys_sequence.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_sys_sequence.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_sys_sequence.update_time IS '修改时间';
                     
-      COMMENT ON COLUMN nop_sys_sequence.REMARK IS '备注';
+      COMMENT ON COLUMN nop_sys_sequence.remark IS '备注';
                     
       COMMENT ON TABLE nop_sys_dict IS '字典表';
                 
-      COMMENT ON COLUMN nop_sys_dict.SID IS '主键';
+      COMMENT ON COLUMN nop_sys_dict.sid IS '主键';
                     
-      COMMENT ON COLUMN nop_sys_dict.DICT_NAME IS '字典名';
+      COMMENT ON COLUMN nop_sys_dict.dict_name IS '字典名';
                     
-      COMMENT ON COLUMN nop_sys_dict.DISPLAY_NAME IS '显示名';
+      COMMENT ON COLUMN nop_sys_dict.display_name IS '显示名';
                     
-      COMMENT ON COLUMN nop_sys_dict.DEL_FLAG IS '删除标识';
+      COMMENT ON COLUMN nop_sys_dict.del_flag IS '删除标识';
                     
-      COMMENT ON COLUMN nop_sys_dict.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_sys_dict.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_sys_dict.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_sys_dict.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_sys_dict.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_sys_dict.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_sys_dict.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_sys_dict.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_sys_dict.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_sys_dict.update_time IS '修改时间';
                     
-      COMMENT ON COLUMN nop_sys_dict.REMARK IS '备注';
+      COMMENT ON COLUMN nop_sys_dict.remark IS '备注';
                     
       COMMENT ON TABLE nop_sys_i18n IS '多语言消息';
                 
-      COMMENT ON COLUMN nop_sys_i18n.I18N_KEY IS '字符串Key';
+      COMMENT ON COLUMN nop_sys_i18n.i18n_key IS '字符串Key';
                     
-      COMMENT ON COLUMN nop_sys_i18n.I18N_LOCALE IS '语言';
+      COMMENT ON COLUMN nop_sys_i18n.i18n_locale IS '语言';
                     
-      COMMENT ON COLUMN nop_sys_i18n.VALUE IS '值';
+      COMMENT ON COLUMN nop_sys_i18n.value IS '值';
                     
-      COMMENT ON COLUMN nop_sys_i18n.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_sys_i18n.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_sys_i18n.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_sys_i18n.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_sys_i18n.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_sys_i18n.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_sys_i18n.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_sys_i18n.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_sys_i18n.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_sys_i18n.update_time IS '修改时间';
                     
-      COMMENT ON COLUMN nop_sys_i18n.REMARK IS '备注';
+      COMMENT ON COLUMN nop_sys_i18n.remark IS '备注';
                     
       COMMENT ON TABLE nop_sys_checker_record IS 'MakerChecker审批记录';
                 
-      COMMENT ON COLUMN nop_sys_checker_record.SID IS '主键';
+      COMMENT ON COLUMN nop_sys_checker_record.sid IS '主键';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.BIZ_OBJ_NAME IS '业务对象名';
+      COMMENT ON COLUMN nop_sys_checker_record.biz_obj_name IS '业务对象名';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.BIZ_OBJ_ID IS '业务对象ID';
+      COMMENT ON COLUMN nop_sys_checker_record.biz_obj_id IS '业务对象ID';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.MAKER_ID IS '请求发起人ID';
+      COMMENT ON COLUMN nop_sys_checker_record.maker_id IS '请求发起人ID';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.MAKER_NAME IS '请求发起人';
+      COMMENT ON COLUMN nop_sys_checker_record.maker_name IS '请求发起人';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.REQUEST_ACTION IS '请求操作';
+      COMMENT ON COLUMN nop_sys_checker_record.request_action IS '请求操作';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.REQUEST_DATA IS '请求数据';
+      COMMENT ON COLUMN nop_sys_checker_record.request_data IS '请求数据';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.REQUEST_TIME IS '请求时间';
+      COMMENT ON COLUMN nop_sys_checker_record.request_time IS '请求时间';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.CHECKER_ID IS '审批人ID';
+      COMMENT ON COLUMN nop_sys_checker_record.checker_id IS '审批人ID';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.CHECKER_NAME IS '审批人';
+      COMMENT ON COLUMN nop_sys_checker_record.checker_name IS '审批人';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.CHECK_TIME IS '审批时间';
+      COMMENT ON COLUMN nop_sys_checker_record.check_time IS '审批时间';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.TRY_RESULT IS '请求结果';
+      COMMENT ON COLUMN nop_sys_checker_record.try_result IS '请求结果';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.INPUT_PAGE IS '输入页面';
+      COMMENT ON COLUMN nop_sys_checker_record.input_page IS '输入页面';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.STATUS IS '审批状态';
+      COMMENT ON COLUMN nop_sys_checker_record.status IS '审批状态';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.CANCEL_ACTION IS '取消方法';
+      COMMENT ON COLUMN nop_sys_checker_record.cancel_action IS '取消方法';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.CB_ERR_CODE IS '回调错误码';
+      COMMENT ON COLUMN nop_sys_checker_record.cb_err_code IS '回调错误码';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.CE_ERR_MSG IS '回调错误消息';
+      COMMENT ON COLUMN nop_sys_checker_record.ce_err_msg IS '回调错误消息';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_sys_checker_record.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_sys_checker_record.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_sys_checker_record.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_sys_checker_record.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_sys_checker_record.update_time IS '修改时间';
                     
-      COMMENT ON COLUMN nop_sys_checker_record.REMARK IS '备注';
+      COMMENT ON COLUMN nop_sys_checker_record.remark IS '备注';
                     
       COMMENT ON TABLE nop_sys_code_rule IS '编码规则';
                 
-      COMMENT ON COLUMN nop_sys_code_rule.SID IS '主键';
+      COMMENT ON COLUMN nop_sys_code_rule.sid IS '主键';
                     
-      COMMENT ON COLUMN nop_sys_code_rule.NAME IS '名称';
+      COMMENT ON COLUMN nop_sys_code_rule.name IS '名称';
                     
-      COMMENT ON COLUMN nop_sys_code_rule.DISPLAY_NAME IS '显示名称';
+      COMMENT ON COLUMN nop_sys_code_rule.display_name IS '显示名称';
                     
-      COMMENT ON COLUMN nop_sys_code_rule.CODE_PATTERN IS '编码模式';
+      COMMENT ON COLUMN nop_sys_code_rule.code_pattern IS '编码模式';
                     
-      COMMENT ON COLUMN nop_sys_code_rule.SEQ_NAME IS '序列号名称';
+      COMMENT ON COLUMN nop_sys_code_rule.seq_name IS '序列号名称';
                     
-      COMMENT ON COLUMN nop_sys_code_rule.DEL_FLAG IS '删除标识';
+      COMMENT ON COLUMN nop_sys_code_rule.del_flag IS '删除标识';
                     
-      COMMENT ON COLUMN nop_sys_code_rule.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_sys_code_rule.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_sys_code_rule.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_sys_code_rule.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_sys_code_rule.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_sys_code_rule.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_sys_code_rule.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_sys_code_rule.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_sys_code_rule.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_sys_code_rule.update_time IS '修改时间';
                     
-      COMMENT ON COLUMN nop_sys_code_rule.REMARK IS '备注';
+      COMMENT ON COLUMN nop_sys_code_rule.remark IS '备注';
                     
       COMMENT ON TABLE nop_sys_notice_template IS '通知模板';
                 
-      COMMENT ON COLUMN nop_sys_notice_template.SID IS '主键';
+      COMMENT ON COLUMN nop_sys_notice_template.sid IS '主键';
                     
-      COMMENT ON COLUMN nop_sys_notice_template.NAME IS '名称';
+      COMMENT ON COLUMN nop_sys_notice_template.name IS '名称';
                     
-      COMMENT ON COLUMN nop_sys_notice_template.TPL_TYPE IS '模板类型';
+      COMMENT ON COLUMN nop_sys_notice_template.tpl_type IS '模板类型';
                     
-      COMMENT ON COLUMN nop_sys_notice_template.CONTENT IS '模板内容';
+      COMMENT ON COLUMN nop_sys_notice_template.content IS '模板内容';
                     
-      COMMENT ON COLUMN nop_sys_notice_template.DEL_FLAG IS '删除标识';
+      COMMENT ON COLUMN nop_sys_notice_template.del_flag IS '删除标识';
                     
-      COMMENT ON COLUMN nop_sys_notice_template.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_sys_notice_template.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_sys_notice_template.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_sys_notice_template.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_sys_notice_template.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_sys_notice_template.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_sys_notice_template.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_sys_notice_template.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_sys_notice_template.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_sys_notice_template.update_time IS '修改时间';
                     
-      COMMENT ON COLUMN nop_sys_notice_template.REMARK IS '备注';
+      COMMENT ON COLUMN nop_sys_notice_template.remark IS '备注';
                     
       COMMENT ON TABLE nop_sys_user_variable IS '用户变量';
                 
-      COMMENT ON COLUMN nop_sys_user_variable.USER_ID IS '用户ID';
+      COMMENT ON COLUMN nop_sys_user_variable.user_id IS '用户ID';
                     
-      COMMENT ON COLUMN nop_sys_user_variable.VAR_NAME IS '变量名';
+      COMMENT ON COLUMN nop_sys_user_variable.var_name IS '变量名';
                     
-      COMMENT ON COLUMN nop_sys_user_variable.VAR_VALUE IS '变量值';
+      COMMENT ON COLUMN nop_sys_user_variable.var_value IS '变量值';
                     
-      COMMENT ON COLUMN nop_sys_user_variable.STD_DOMAIN IS '变量域';
+      COMMENT ON COLUMN nop_sys_user_variable.std_domain IS '变量域';
                     
-      COMMENT ON COLUMN nop_sys_user_variable.VAR_TYPE IS '变量类型';
+      COMMENT ON COLUMN nop_sys_user_variable.var_type IS '变量类型';
                     
-      COMMENT ON COLUMN nop_sys_user_variable.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_sys_user_variable.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_sys_user_variable.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_sys_user_variable.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_sys_user_variable.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_sys_user_variable.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_sys_user_variable.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_sys_user_variable.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_sys_user_variable.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_sys_user_variable.update_time IS '修改时间';
                     
-      COMMENT ON COLUMN nop_sys_user_variable.REMARK IS '备注';
+      COMMENT ON COLUMN nop_sys_user_variable.remark IS '备注';
                     
       COMMENT ON TABLE nop_sys_variable IS '系统变量';
                 
-      COMMENT ON COLUMN nop_sys_variable.VAR_NAME IS '变量名';
+      COMMENT ON COLUMN nop_sys_variable.var_name IS '变量名';
                     
-      COMMENT ON COLUMN nop_sys_variable.VAR_VALUE IS '变量值';
+      COMMENT ON COLUMN nop_sys_variable.var_value IS '变量值';
                     
-      COMMENT ON COLUMN nop_sys_variable.STD_DOMAIN IS '变量域';
+      COMMENT ON COLUMN nop_sys_variable.std_domain IS '变量域';
                     
-      COMMENT ON COLUMN nop_sys_variable.VAR_TYPE IS '变量类型';
+      COMMENT ON COLUMN nop_sys_variable.var_type IS '变量类型';
                     
-      COMMENT ON COLUMN nop_sys_variable.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_sys_variable.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_sys_variable.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_sys_variable.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_sys_variable.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_sys_variable.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_sys_variable.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_sys_variable.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_sys_variable.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_sys_variable.update_time IS '修改时间';
                     
-      COMMENT ON COLUMN nop_sys_variable.REMARK IS '备注';
+      COMMENT ON COLUMN nop_sys_variable.remark IS '备注';
                     
       COMMENT ON TABLE nop_sys_ext_field IS '扩展字段';
                 
-      COMMENT ON COLUMN nop_sys_ext_field.ENTITY_NAME IS '实体名';
+      COMMENT ON COLUMN nop_sys_ext_field.entity_name IS '实体名';
                     
-      COMMENT ON COLUMN nop_sys_ext_field.ENTITY_ID IS '实体ID';
+      COMMENT ON COLUMN nop_sys_ext_field.entity_id IS '实体ID';
                     
-      COMMENT ON COLUMN nop_sys_ext_field.FIELD_NAME IS '字段名';
+      COMMENT ON COLUMN nop_sys_ext_field.field_name IS '字段名';
                     
-      COMMENT ON COLUMN nop_sys_ext_field.FIELD_TYPE IS '字段类型';
+      COMMENT ON COLUMN nop_sys_ext_field.field_type IS '字段类型';
                     
-      COMMENT ON COLUMN nop_sys_ext_field.DECIMAL_SCALE IS '浮点精度';
+      COMMENT ON COLUMN nop_sys_ext_field.decimal_scale IS '浮点精度';
                     
-      COMMENT ON COLUMN nop_sys_ext_field.DECIMAL_VALUE IS '浮点值';
+      COMMENT ON COLUMN nop_sys_ext_field.decimal_value IS '浮点值';
                     
-      COMMENT ON COLUMN nop_sys_ext_field.DATE_VALUE IS '日期值';
+      COMMENT ON COLUMN nop_sys_ext_field.date_value IS '日期值';
                     
-      COMMENT ON COLUMN nop_sys_ext_field.TIMESTAMP_VALUE IS '时间点值';
+      COMMENT ON COLUMN nop_sys_ext_field.timestamp_value IS '时间点值';
                     
-      COMMENT ON COLUMN nop_sys_ext_field.STRING_VALUE IS '字符串值';
+      COMMENT ON COLUMN nop_sys_ext_field.string_value IS '字符串值';
                     
-      COMMENT ON COLUMN nop_sys_ext_field.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_sys_ext_field.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_sys_ext_field.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_sys_ext_field.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_sys_ext_field.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_sys_ext_field.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_sys_ext_field.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_sys_ext_field.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_sys_ext_field.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_sys_ext_field.update_time IS '修改时间';
                     
-      COMMENT ON COLUMN nop_sys_ext_field.REMARK IS '备注';
+      COMMENT ON COLUMN nop_sys_ext_field.remark IS '备注';
                     
       COMMENT ON TABLE nop_sys_lock IS '资源锁';
                 
-      COMMENT ON COLUMN nop_sys_lock.LOCK_NAME IS '锁名称';
+      COMMENT ON COLUMN nop_sys_lock.lock_name IS '锁名称';
                     
-      COMMENT ON COLUMN nop_sys_lock.LOCK_GROUP IS '分组';
+      COMMENT ON COLUMN nop_sys_lock.lock_group IS '分组';
                     
-      COMMENT ON COLUMN nop_sys_lock.LOCK_TIME IS '锁定时间';
+      COMMENT ON COLUMN nop_sys_lock.lock_time IS '锁定时间';
                     
-      COMMENT ON COLUMN nop_sys_lock.EXPIRE_AT IS '过期时间';
+      COMMENT ON COLUMN nop_sys_lock.expire_at IS '过期时间';
                     
-      COMMENT ON COLUMN nop_sys_lock.LOCK_REASON IS '锁定原因';
+      COMMENT ON COLUMN nop_sys_lock.lock_reason IS '锁定原因';
                     
-      COMMENT ON COLUMN nop_sys_lock.HOLDER_ID IS '锁的持有者';
+      COMMENT ON COLUMN nop_sys_lock.holder_id IS '锁的持有者';
                     
-      COMMENT ON COLUMN nop_sys_lock.HOLDER_ADDER IS '持有者地址';
+      COMMENT ON COLUMN nop_sys_lock.holder_adder IS '持有者地址';
                     
-      COMMENT ON COLUMN nop_sys_lock.APP_ID IS '应用ID';
+      COMMENT ON COLUMN nop_sys_lock.app_id IS '应用ID';
                     
-      COMMENT ON COLUMN nop_sys_lock.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_sys_lock.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_sys_lock.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_sys_lock.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_sys_lock.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_sys_lock.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_sys_lock.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_sys_lock.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_sys_lock.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_sys_lock.update_time IS '修改时间';
                     
       COMMENT ON TABLE nop_sys_cluster_leader IS '集群选举';
                 
-      COMMENT ON COLUMN nop_sys_cluster_leader.CLUSTER_ID IS '集群ID';
+      COMMENT ON COLUMN nop_sys_cluster_leader.cluster_id IS '集群ID';
                     
-      COMMENT ON COLUMN nop_sys_cluster_leader.LEADER_ID IS '主服务器ID';
+      COMMENT ON COLUMN nop_sys_cluster_leader.leader_id IS '主服务器ID';
                     
-      COMMENT ON COLUMN nop_sys_cluster_leader.LEADER_ADDER IS '主服务器地址';
+      COMMENT ON COLUMN nop_sys_cluster_leader.leader_adder IS '主服务器地址';
                     
-      COMMENT ON COLUMN nop_sys_cluster_leader.LEADER_EPOCH IS '选举世代';
+      COMMENT ON COLUMN nop_sys_cluster_leader.leader_epoch IS '选举世代';
                     
-      COMMENT ON COLUMN nop_sys_cluster_leader.ELECT_TIME IS '选举时间';
+      COMMENT ON COLUMN nop_sys_cluster_leader.elect_time IS '选举时间';
                     
-      COMMENT ON COLUMN nop_sys_cluster_leader.EXPIRE_AT IS '过期时间';
+      COMMENT ON COLUMN nop_sys_cluster_leader.expire_at IS '过期时间';
                     
-      COMMENT ON COLUMN nop_sys_cluster_leader.REFRESH_TIME IS '刷新时间';
+      COMMENT ON COLUMN nop_sys_cluster_leader.refresh_time IS '刷新时间';
                     
-      COMMENT ON COLUMN nop_sys_cluster_leader.VERSION IS '修改版本';
+      COMMENT ON COLUMN nop_sys_cluster_leader.version IS '修改版本';
                     
-      COMMENT ON COLUMN nop_sys_cluster_leader.APP_NAME IS '应用名';
+      COMMENT ON COLUMN nop_sys_cluster_leader.app_name IS '应用名';
                     
       COMMENT ON TABLE nop_sys_event IS '事件队列';
                 
-      COMMENT ON COLUMN nop_sys_event.EVENT_ID IS '事件ID';
+      COMMENT ON COLUMN nop_sys_event.event_id IS '事件ID';
                     
-      COMMENT ON COLUMN nop_sys_event.EVENT_TOPIC IS '事件主题';
+      COMMENT ON COLUMN nop_sys_event.event_topic IS '事件主题';
                     
-      COMMENT ON COLUMN nop_sys_event.EVENT_NAME IS '事件名称';
+      COMMENT ON COLUMN nop_sys_event.event_name IS '事件名称';
                     
-      COMMENT ON COLUMN nop_sys_event.EVENT_HEADERS IS '事件元数据';
+      COMMENT ON COLUMN nop_sys_event.event_headers IS '事件元数据';
                     
-      COMMENT ON COLUMN nop_sys_event.EVENT_DATA IS '数据';
+      COMMENT ON COLUMN nop_sys_event.event_data IS '数据';
                     
-      COMMENT ON COLUMN nop_sys_event.SELECTION IS '字段选择';
+      COMMENT ON COLUMN nop_sys_event.selection IS '字段选择';
                     
-      COMMENT ON COLUMN nop_sys_event.EVENT_TIME IS '事件时间';
+      COMMENT ON COLUMN nop_sys_event.event_time IS '事件时间';
                     
-      COMMENT ON COLUMN nop_sys_event.EVENT_STATUS IS '事件状态';
+      COMMENT ON COLUMN nop_sys_event.event_status IS '事件状态';
                     
-      COMMENT ON COLUMN nop_sys_event.PROCESS_TIME IS '处理时间';
+      COMMENT ON COLUMN nop_sys_event.process_time IS '处理时间';
                     
-      COMMENT ON COLUMN nop_sys_event.SCHEDULE_TIME IS '调度时间';
+      COMMENT ON COLUMN nop_sys_event.schedule_time IS '调度时间';
                     
-      COMMENT ON COLUMN nop_sys_event.IS_BROADCAST IS '是否广播';
+      COMMENT ON COLUMN nop_sys_event.is_broadcast IS '是否广播';
                     
-      COMMENT ON COLUMN nop_sys_event.BIZ_OBJ_NAME IS '业务对象名';
+      COMMENT ON COLUMN nop_sys_event.biz_obj_name IS '业务对象名';
                     
-      COMMENT ON COLUMN nop_sys_event.BIZ_KEY IS '业务标识';
+      COMMENT ON COLUMN nop_sys_event.biz_key IS '业务标识';
                     
-      COMMENT ON COLUMN nop_sys_event.BIZ_DATE IS '业务日期';
+      COMMENT ON COLUMN nop_sys_event.biz_date IS '业务日期';
                     
-      COMMENT ON COLUMN nop_sys_event.PARTITION_INDEX IS '数据分区';
+      COMMENT ON COLUMN nop_sys_event.partition_index IS '数据分区';
                     
-      COMMENT ON COLUMN nop_sys_event.RETRY_TIMES IS '重试次数';
+      COMMENT ON COLUMN nop_sys_event.retry_times IS '重试次数';
                     
-      COMMENT ON COLUMN nop_sys_event.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_sys_event.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_sys_event.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_sys_event.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_sys_event.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_sys_event.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_sys_event.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_sys_event.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_sys_event.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_sys_event.update_time IS '修改时间';
                     
       COMMENT ON TABLE nop_sys_service_instance IS '服务实例';
                 
-      COMMENT ON COLUMN nop_sys_service_instance.INSTANCE_ID IS '服务实例ID';
+      COMMENT ON COLUMN nop_sys_service_instance.instance_id IS '服务实例ID';
                     
-      COMMENT ON COLUMN nop_sys_service_instance.SERVICE_NAME IS '服务名';
+      COMMENT ON COLUMN nop_sys_service_instance.service_name IS '服务名';
                     
-      COMMENT ON COLUMN nop_sys_service_instance.CLUSTER_NAME IS '集群名';
+      COMMENT ON COLUMN nop_sys_service_instance.cluster_name IS '集群名';
                     
-      COMMENT ON COLUMN nop_sys_service_instance.GROUP_NAME IS '分组名';
+      COMMENT ON COLUMN nop_sys_service_instance.group_name IS '分组名';
                     
-      COMMENT ON COLUMN nop_sys_service_instance.TAGS_TEXT IS '标签';
+      COMMENT ON COLUMN nop_sys_service_instance.tags_text IS '标签';
                     
-      COMMENT ON COLUMN nop_sys_service_instance.SERVER_ADDR IS '服务地址';
+      COMMENT ON COLUMN nop_sys_service_instance.server_addr IS '服务地址';
                     
-      COMMENT ON COLUMN nop_sys_service_instance.SERVER_PORT IS '服务端口';
+      COMMENT ON COLUMN nop_sys_service_instance.server_port IS '服务端口';
                     
-      COMMENT ON COLUMN nop_sys_service_instance.WEIGHT IS '权重';
+      COMMENT ON COLUMN nop_sys_service_instance.weight IS '权重';
                     
-      COMMENT ON COLUMN nop_sys_service_instance.META_DATA IS '扩展数据';
+      COMMENT ON COLUMN nop_sys_service_instance.meta_data IS '扩展数据';
                     
-      COMMENT ON COLUMN nop_sys_service_instance.IS_HEALTHY IS '是否健康';
+      COMMENT ON COLUMN nop_sys_service_instance.is_healthy IS '是否健康';
                     
-      COMMENT ON COLUMN nop_sys_service_instance.IS_ENABLED IS '是否启用';
+      COMMENT ON COLUMN nop_sys_service_instance.is_enabled IS '是否启用';
                     
-      COMMENT ON COLUMN nop_sys_service_instance.IS_EPHEMERAL IS '是否临时';
+      COMMENT ON COLUMN nop_sys_service_instance.is_ephemeral IS '是否临时';
                     
-      COMMENT ON COLUMN nop_sys_service_instance.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_sys_service_instance.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_sys_service_instance.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_sys_service_instance.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_sys_service_instance.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_sys_service_instance.update_time IS '修改时间';
                     
       COMMENT ON TABLE nop_sys_change_log IS '变更跟踪日志';
                 
-      COMMENT ON COLUMN nop_sys_change_log.SID IS '主键';
+      COMMENT ON COLUMN nop_sys_change_log.sid IS '主键';
                     
-      COMMENT ON COLUMN nop_sys_change_log.BIZ_OBJ_NAME IS '业务对象';
+      COMMENT ON COLUMN nop_sys_change_log.biz_obj_name IS '业务对象';
                     
-      COMMENT ON COLUMN nop_sys_change_log.OBJ_ID IS '对象ID';
+      COMMENT ON COLUMN nop_sys_change_log.obj_id IS '对象ID';
                     
-      COMMENT ON COLUMN nop_sys_change_log.BIZ_KEY IS '业务键';
+      COMMENT ON COLUMN nop_sys_change_log.biz_key IS '业务键';
                     
-      COMMENT ON COLUMN nop_sys_change_log.OPERATION_NAME IS '业务操作';
+      COMMENT ON COLUMN nop_sys_change_log.operation_name IS '业务操作';
                     
-      COMMENT ON COLUMN nop_sys_change_log.PROP_NAME IS '属性名';
+      COMMENT ON COLUMN nop_sys_change_log.prop_name IS '属性名';
                     
-      COMMENT ON COLUMN nop_sys_change_log.OLD_VALUE IS '旧值';
+      COMMENT ON COLUMN nop_sys_change_log.old_value IS '旧值';
                     
-      COMMENT ON COLUMN nop_sys_change_log.NEW_VALUE IS '新值';
+      COMMENT ON COLUMN nop_sys_change_log.new_value IS '新值';
                     
-      COMMENT ON COLUMN nop_sys_change_log.CHANGE_TIME IS '变更时间';
+      COMMENT ON COLUMN nop_sys_change_log.change_time IS '变更时间';
                     
-      COMMENT ON COLUMN nop_sys_change_log.APP_ID IS '应用ID';
+      COMMENT ON COLUMN nop_sys_change_log.app_id IS '应用ID';
                     
-      COMMENT ON COLUMN nop_sys_change_log.OPERATOR_ID IS '操作人';
+      COMMENT ON COLUMN nop_sys_change_log.operator_id IS '操作人';
                     
-      COMMENT ON COLUMN nop_sys_change_log.APPROVER_ID IS '审核人';
+      COMMENT ON COLUMN nop_sys_change_log.approver_id IS '审核人';
                     
       COMMENT ON TABLE nop_sys_tag IS '标签';
                 
-      COMMENT ON COLUMN nop_sys_tag.SID IS '主键';
+      COMMENT ON COLUMN nop_sys_tag.sid IS '主键';
                     
-      COMMENT ON COLUMN nop_sys_tag.NAME IS '名称';
+      COMMENT ON COLUMN nop_sys_tag.name IS '名称';
                     
-      COMMENT ON COLUMN nop_sys_tag.DESCRIPTION IS '描述';
+      COMMENT ON COLUMN nop_sys_tag.description IS '描述';
                     
-      COMMENT ON COLUMN nop_sys_tag.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_sys_tag.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_sys_tag.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_sys_tag.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_sys_tag.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_sys_tag.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_sys_tag.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_sys_tag.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_sys_tag.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_sys_tag.update_time IS '修改时间';
                     
       COMMENT ON TABLE nop_sys_dict_option IS '字典明细';
                 
-      COMMENT ON COLUMN nop_sys_dict_option.SID IS '主键';
+      COMMENT ON COLUMN nop_sys_dict_option.sid IS '主键';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.DICT_ID IS '字典ID';
+      COMMENT ON COLUMN nop_sys_dict_option.dict_id IS '字典ID';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.LABEL IS '显示名';
+      COMMENT ON COLUMN nop_sys_dict_option.label IS '显示名';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.VALUE IS '值';
+      COMMENT ON COLUMN nop_sys_dict_option.value IS '值';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.CODE_VALUE IS '内部编码';
+      COMMENT ON COLUMN nop_sys_dict_option.code_value IS '内部编码';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.GROUP_NAME IS '分组名';
+      COMMENT ON COLUMN nop_sys_dict_option.group_name IS '分组名';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.IS_INTERNAL IS '是否内部';
+      COMMENT ON COLUMN nop_sys_dict_option.is_internal IS '是否内部';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.IS_DEPRECATED IS '是否已废弃';
+      COMMENT ON COLUMN nop_sys_dict_option.is_deprecated IS '是否已废弃';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.DEL_FLAG IS '删除标识';
+      COMMENT ON COLUMN nop_sys_dict_option.del_flag IS '删除标识';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_sys_dict_option.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_sys_dict_option.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_sys_dict_option.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_sys_dict_option.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_sys_dict_option.update_time IS '修改时间';
                     
-      COMMENT ON COLUMN nop_sys_dict_option.REMARK IS '备注';
+      COMMENT ON COLUMN nop_sys_dict_option.remark IS '备注';
                     
       COMMENT ON TABLE nop_sys_obj_tag IS '对象标签';
                 
-      COMMENT ON COLUMN nop_sys_obj_tag.BIZ_OBJ_ID IS '对象ID';
+      COMMENT ON COLUMN nop_sys_obj_tag.biz_obj_id IS '对象ID';
                     
-      COMMENT ON COLUMN nop_sys_obj_tag.BIZ_OBJ_NAME IS '对象名';
+      COMMENT ON COLUMN nop_sys_obj_tag.biz_obj_name IS '对象名';
                     
-      COMMENT ON COLUMN nop_sys_obj_tag.TAG_ID IS '标签ID';
+      COMMENT ON COLUMN nop_sys_obj_tag.tag_id IS '标签ID';
                     
-      COMMENT ON COLUMN nop_sys_obj_tag.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_sys_obj_tag.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_sys_obj_tag.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_sys_obj_tag.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_sys_obj_tag.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_sys_obj_tag.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_sys_obj_tag.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_sys_obj_tag.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_sys_obj_tag.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_sys_obj_tag.update_time IS '修改时间';
                     

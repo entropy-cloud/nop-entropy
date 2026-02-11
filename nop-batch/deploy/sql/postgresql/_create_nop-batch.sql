@@ -1,248 +1,248 @@
 
 CREATE TABLE nop_batch_file(
-  SID VARCHAR(32) NOT NULL ,
-  FILE_NAME VARCHAR(500) NOT NULL ,
-  FILE_PATH VARCHAR(2000) NOT NULL ,
-  FILE_LENGTH INT8 NOT NULL ,
-  FILE_CATEGORY VARCHAR(100) NOT NULL ,
-  FILE_SOURCE VARCHAR(10) NOT NULL ,
-  BATCH_TASK_ID VARCHAR(32) NOT NULL ,
-  PROCESS_STATE VARCHAR(10) NOT NULL ,
-  ACCEPT_DATE DATE NOT NULL ,
-  VERSION INT8 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_batch_file primary key (SID)
+  sid VARCHAR(32) NOT NULL ,
+  file_name VARCHAR(500) NOT NULL ,
+  file_path VARCHAR(2000) NOT NULL ,
+  file_length INT8 NOT NULL ,
+  file_category VARCHAR(100) NOT NULL ,
+  file_source VARCHAR(10) NOT NULL ,
+  batch_task_id VARCHAR(32) NOT NULL ,
+  process_state VARCHAR(10) NOT NULL ,
+  accept_date DATE NOT NULL ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_batch_file primary key (sid)
 );
 
 CREATE TABLE nop_batch_task(
-  SID VARCHAR(32) NOT NULL ,
-  TASK_NAME VARCHAR(50) NOT NULL ,
-  TASK_KEY VARCHAR(100) NOT NULL ,
-  TASK_STATUS INT4 NOT NULL ,
-  START_TIME TIMESTAMP  ,
-  END_TIME TIMESTAMP  ,
-  TASK_PARAMS VARCHAR(4000)  ,
-  EXEC_COUNT INT4 NOT NULL ,
-  WORKER_ID VARCHAR(100) NOT NULL ,
-  INPUT_FILE_ID VARCHAR(32)  ,
-  FLOW_STEP_ID VARCHAR(50)  ,
-  FLOW_ID VARCHAR(50)  ,
-  RESTART_TIME TIMESTAMP  ,
-  RESULT_STATUS INT4  ,
-  RESULT_CODE VARCHAR(100)  ,
-  RESULT_MSG VARCHAR(500)  ,
-  ERROR_STACK VARCHAR(4000)  ,
-  COMPLETED_INDEX INT8 NOT NULL ,
-  COMPLETE_ITEM_COUNT INT8 NOT NULL ,
-  LOAD_RETRY_COUNT INT4 NOT NULL ,
-  LOAD_SKIP_COUNT INT8 NOT NULL ,
-  RETRY_ITEM_COUNT INT4 NOT NULL ,
-  PROCESS_ITEM_COUNT INT8 NOT NULL ,
-  SKIP_ITEM_COUNT INT8 NOT NULL ,
-  WRITE_ITEM_COUNT INT8 NOT NULL ,
-  VERSION INT8 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_batch_task primary key (SID)
+  sid VARCHAR(32) NOT NULL ,
+  task_name VARCHAR(50) NOT NULL ,
+  task_key VARCHAR(100) NOT NULL ,
+  task_status INT4 NOT NULL ,
+  start_time TIMESTAMP  ,
+  end_time TIMESTAMP  ,
+  task_params VARCHAR(4000)  ,
+  exec_count INT4 NOT NULL ,
+  worker_id VARCHAR(100) NOT NULL ,
+  input_file_id VARCHAR(32)  ,
+  flow_step_id VARCHAR(50)  ,
+  flow_id VARCHAR(50)  ,
+  restart_time TIMESTAMP  ,
+  result_status INT4  ,
+  result_code VARCHAR(100)  ,
+  result_msg VARCHAR(500)  ,
+  error_stack VARCHAR(4000)  ,
+  completed_index INT8 NOT NULL ,
+  complete_item_count INT8 NOT NULL ,
+  load_retry_count INT4 NOT NULL ,
+  load_skip_count INT8 NOT NULL ,
+  retry_item_count INT4 NOT NULL ,
+  process_item_count INT8 NOT NULL ,
+  skip_item_count INT8 NOT NULL ,
+  write_item_count INT8 NOT NULL ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_batch_task primary key (sid)
 );
 
 CREATE TABLE nop_batch_task_var(
-  BATCH_TASK_ID VARCHAR(32) NOT NULL ,
-  FIELD_NAME VARCHAR(100) NOT NULL ,
-  FIELD_TYPE INT4 NOT NULL ,
-  STRING_VALUE VARCHAR(4000)  ,
-  DECIMAL_VALUE NUMERIC(30,6)  ,
-  LONG_VALUE INT8  ,
-  DATE_VALUE DATE  ,
-  TIMESTAMP_VALUE TIMESTAMP  ,
-  VERSION INT8 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  constraint PK_nop_batch_task_var primary key (BATCH_TASK_ID,FIELD_NAME)
+  batch_task_id VARCHAR(32) NOT NULL ,
+  field_name VARCHAR(100) NOT NULL ,
+  field_type INT4 NOT NULL ,
+  string_value VARCHAR(4000)  ,
+  decimal_value NUMERIC(30,6)  ,
+  long_value INT8  ,
+  date_value DATE  ,
+  timestamp_value TIMESTAMP  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  constraint PK_nop_batch_task_var primary key (batch_task_id,field_name)
 );
 
 CREATE TABLE nop_batch_record_result(
-  BATCH_TASK_ID VARCHAR(32) NOT NULL ,
-  RECORD_KEY VARCHAR(200) NOT NULL ,
-  RESULT_STATUS INT4 NOT NULL ,
-  RESULT_CODE VARCHAR(100)  ,
-  RESULT_MSG VARCHAR(500)  ,
-  ERROR_STACK VARCHAR(4000)  ,
-  RECORD_INFO VARCHAR(2000)  ,
-  RETRY_COUNT INT4 NOT NULL ,
-  BATCH_SIZE INT4 NOT NULL ,
-  HANDLE_STATUS INT4 NOT NULL ,
-  VERSION INT8 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  constraint PK_nop_batch_record_result primary key (BATCH_TASK_ID,RECORD_KEY)
+  batch_task_id VARCHAR(32) NOT NULL ,
+  record_key VARCHAR(200) NOT NULL ,
+  result_status INT4 NOT NULL ,
+  result_code VARCHAR(100)  ,
+  result_msg VARCHAR(500)  ,
+  error_stack VARCHAR(4000)  ,
+  record_info VARCHAR(2000)  ,
+  retry_count INT4 NOT NULL ,
+  batch_size INT4 NOT NULL ,
+  handle_status INT4 NOT NULL ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  constraint PK_nop_batch_record_result primary key (batch_task_id,record_key)
 );
 
 
       COMMENT ON TABLE nop_batch_file IS '批处理文件';
                 
-      COMMENT ON COLUMN nop_batch_file.SID IS '主键';
+      COMMENT ON COLUMN nop_batch_file.sid IS '主键';
                     
-      COMMENT ON COLUMN nop_batch_file.FILE_NAME IS '文件名';
+      COMMENT ON COLUMN nop_batch_file.file_name IS '文件名';
                     
-      COMMENT ON COLUMN nop_batch_file.FILE_PATH IS '文件路径';
+      COMMENT ON COLUMN nop_batch_file.file_path IS '文件路径';
                     
-      COMMENT ON COLUMN nop_batch_file.FILE_LENGTH IS '文件长度';
+      COMMENT ON COLUMN nop_batch_file.file_length IS '文件长度';
                     
-      COMMENT ON COLUMN nop_batch_file.FILE_CATEGORY IS '文件分类';
+      COMMENT ON COLUMN nop_batch_file.file_category IS '文件分类';
                     
-      COMMENT ON COLUMN nop_batch_file.FILE_SOURCE IS '文件来源';
+      COMMENT ON COLUMN nop_batch_file.file_source IS '文件来源';
                     
-      COMMENT ON COLUMN nop_batch_file.BATCH_TASK_ID IS '批处理任务';
+      COMMENT ON COLUMN nop_batch_file.batch_task_id IS '批处理任务';
                     
-      COMMENT ON COLUMN nop_batch_file.PROCESS_STATE IS '处理状态';
+      COMMENT ON COLUMN nop_batch_file.process_state IS '处理状态';
                     
-      COMMENT ON COLUMN nop_batch_file.ACCEPT_DATE IS '文件接收时间';
+      COMMENT ON COLUMN nop_batch_file.accept_date IS '文件接收时间';
                     
-      COMMENT ON COLUMN nop_batch_file.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_batch_file.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_batch_file.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_batch_file.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_batch_file.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_batch_file.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_batch_file.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_batch_file.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_batch_file.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_batch_file.update_time IS '修改时间';
                     
-      COMMENT ON COLUMN nop_batch_file.REMARK IS '备注';
+      COMMENT ON COLUMN nop_batch_file.remark IS '备注';
                     
       COMMENT ON TABLE nop_batch_task IS '批处理任务';
                 
-      COMMENT ON COLUMN nop_batch_task.SID IS 'SID';
+      COMMENT ON COLUMN nop_batch_task.sid IS 'SID';
                     
-      COMMENT ON COLUMN nop_batch_task.TASK_NAME IS '任务名';
+      COMMENT ON COLUMN nop_batch_task.task_name IS '任务名';
                     
-      COMMENT ON COLUMN nop_batch_task.TASK_KEY IS '唯一Key';
+      COMMENT ON COLUMN nop_batch_task.task_key IS '唯一Key';
                     
-      COMMENT ON COLUMN nop_batch_task.TASK_STATUS IS '任务状态';
+      COMMENT ON COLUMN nop_batch_task.task_status IS '任务状态';
                     
-      COMMENT ON COLUMN nop_batch_task.START_TIME IS '任务启动时间';
+      COMMENT ON COLUMN nop_batch_task.start_time IS '任务启动时间';
                     
-      COMMENT ON COLUMN nop_batch_task.END_TIME IS '任务结束时间';
+      COMMENT ON COLUMN nop_batch_task.end_time IS '任务结束时间';
                     
-      COMMENT ON COLUMN nop_batch_task.TASK_PARAMS IS '任务参数';
+      COMMENT ON COLUMN nop_batch_task.task_params IS '任务参数';
                     
-      COMMENT ON COLUMN nop_batch_task.EXEC_COUNT IS '执行次数';
+      COMMENT ON COLUMN nop_batch_task.exec_count IS '执行次数';
                     
-      COMMENT ON COLUMN nop_batch_task.WORKER_ID IS '执行者';
+      COMMENT ON COLUMN nop_batch_task.worker_id IS '执行者';
                     
-      COMMENT ON COLUMN nop_batch_task.INPUT_FILE_ID IS '输入文件';
+      COMMENT ON COLUMN nop_batch_task.input_file_id IS '输入文件';
                     
-      COMMENT ON COLUMN nop_batch_task.FLOW_STEP_ID IS '关联流程步骤ID';
+      COMMENT ON COLUMN nop_batch_task.flow_step_id IS '关联流程步骤ID';
                     
-      COMMENT ON COLUMN nop_batch_task.FLOW_ID IS '关联流程ID';
+      COMMENT ON COLUMN nop_batch_task.flow_id IS '关联流程ID';
                     
-      COMMENT ON COLUMN nop_batch_task.RESTART_TIME IS '重启时间';
+      COMMENT ON COLUMN nop_batch_task.restart_time IS '重启时间';
                     
-      COMMENT ON COLUMN nop_batch_task.RESULT_STATUS IS '返回状态码';
+      COMMENT ON COLUMN nop_batch_task.result_status IS '返回状态码';
                     
-      COMMENT ON COLUMN nop_batch_task.RESULT_CODE IS '返回码';
+      COMMENT ON COLUMN nop_batch_task.result_code IS '返回码';
                     
-      COMMENT ON COLUMN nop_batch_task.RESULT_MSG IS '返回消息';
+      COMMENT ON COLUMN nop_batch_task.result_msg IS '返回消息';
                     
-      COMMENT ON COLUMN nop_batch_task.ERROR_STACK IS '错误堆栈';
+      COMMENT ON COLUMN nop_batch_task.error_stack IS '错误堆栈';
                     
-      COMMENT ON COLUMN nop_batch_task.COMPLETED_INDEX IS '已完成记录下标';
+      COMMENT ON COLUMN nop_batch_task.completed_index IS '已完成记录下标';
                     
-      COMMENT ON COLUMN nop_batch_task.COMPLETE_ITEM_COUNT IS '完成条目数量';
+      COMMENT ON COLUMN nop_batch_task.complete_item_count IS '完成条目数量';
                     
-      COMMENT ON COLUMN nop_batch_task.LOAD_RETRY_COUNT IS '重试加载次数';
+      COMMENT ON COLUMN nop_batch_task.load_retry_count IS '重试加载次数';
                     
-      COMMENT ON COLUMN nop_batch_task.LOAD_SKIP_COUNT IS '加载跳过数量';
+      COMMENT ON COLUMN nop_batch_task.load_skip_count IS '加载跳过数量';
                     
-      COMMENT ON COLUMN nop_batch_task.RETRY_ITEM_COUNT IS '重试条目次数';
+      COMMENT ON COLUMN nop_batch_task.retry_item_count IS '重试条目次数';
                     
-      COMMENT ON COLUMN nop_batch_task.PROCESS_ITEM_COUNT IS '处理条目数量';
+      COMMENT ON COLUMN nop_batch_task.process_item_count IS '处理条目数量';
                     
-      COMMENT ON COLUMN nop_batch_task.SKIP_ITEM_COUNT IS '跳过条目数量';
+      COMMENT ON COLUMN nop_batch_task.skip_item_count IS '跳过条目数量';
                     
-      COMMENT ON COLUMN nop_batch_task.WRITE_ITEM_COUNT IS '写入条目数量';
+      COMMENT ON COLUMN nop_batch_task.write_item_count IS '写入条目数量';
                     
-      COMMENT ON COLUMN nop_batch_task.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_batch_task.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_batch_task.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_batch_task.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_batch_task.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_batch_task.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_batch_task.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_batch_task.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_batch_task.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_batch_task.update_time IS '修改时间';
                     
-      COMMENT ON COLUMN nop_batch_task.REMARK IS '备注';
+      COMMENT ON COLUMN nop_batch_task.remark IS '备注';
                     
       COMMENT ON TABLE nop_batch_task_var IS '批处理任务状态变量';
                 
-      COMMENT ON COLUMN nop_batch_task_var.BATCH_TASK_ID IS '主键';
+      COMMENT ON COLUMN nop_batch_task_var.batch_task_id IS '主键';
                     
-      COMMENT ON COLUMN nop_batch_task_var.FIELD_NAME IS '变量名';
+      COMMENT ON COLUMN nop_batch_task_var.field_name IS '变量名';
                     
-      COMMENT ON COLUMN nop_batch_task_var.FIELD_TYPE IS '变量类型';
+      COMMENT ON COLUMN nop_batch_task_var.field_type IS '变量类型';
                     
-      COMMENT ON COLUMN nop_batch_task_var.STRING_VALUE IS '字符串值';
+      COMMENT ON COLUMN nop_batch_task_var.string_value IS '字符串值';
                     
-      COMMENT ON COLUMN nop_batch_task_var.DECIMAL_VALUE IS '浮点值';
+      COMMENT ON COLUMN nop_batch_task_var.decimal_value IS '浮点值';
                     
-      COMMENT ON COLUMN nop_batch_task_var.LONG_VALUE IS '整数型';
+      COMMENT ON COLUMN nop_batch_task_var.long_value IS '整数型';
                     
-      COMMENT ON COLUMN nop_batch_task_var.DATE_VALUE IS '日期值';
+      COMMENT ON COLUMN nop_batch_task_var.date_value IS '日期值';
                     
-      COMMENT ON COLUMN nop_batch_task_var.TIMESTAMP_VALUE IS '时间点值';
+      COMMENT ON COLUMN nop_batch_task_var.timestamp_value IS '时间点值';
                     
-      COMMENT ON COLUMN nop_batch_task_var.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_batch_task_var.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_batch_task_var.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_batch_task_var.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_batch_task_var.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_batch_task_var.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_batch_task_var.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_batch_task_var.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_batch_task_var.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_batch_task_var.update_time IS '修改时间';
                     
       COMMENT ON TABLE nop_batch_record_result IS '批处理记录结果';
                 
-      COMMENT ON COLUMN nop_batch_record_result.BATCH_TASK_ID IS '主键';
+      COMMENT ON COLUMN nop_batch_record_result.batch_task_id IS '主键';
                     
-      COMMENT ON COLUMN nop_batch_record_result.RECORD_KEY IS '记录唯一键';
+      COMMENT ON COLUMN nop_batch_record_result.record_key IS '记录唯一键';
                     
-      COMMENT ON COLUMN nop_batch_record_result.RESULT_STATUS IS '返回状态码';
+      COMMENT ON COLUMN nop_batch_record_result.result_status IS '返回状态码';
                     
-      COMMENT ON COLUMN nop_batch_record_result.RESULT_CODE IS '返回码';
+      COMMENT ON COLUMN nop_batch_record_result.result_code IS '返回码';
                     
-      COMMENT ON COLUMN nop_batch_record_result.RESULT_MSG IS '返回消息';
+      COMMENT ON COLUMN nop_batch_record_result.result_msg IS '返回消息';
                     
-      COMMENT ON COLUMN nop_batch_record_result.ERROR_STACK IS '错误堆栈';
+      COMMENT ON COLUMN nop_batch_record_result.error_stack IS '错误堆栈';
                     
-      COMMENT ON COLUMN nop_batch_record_result.RECORD_INFO IS '记录信息';
+      COMMENT ON COLUMN nop_batch_record_result.record_info IS '记录信息';
                     
-      COMMENT ON COLUMN nop_batch_record_result.RETRY_COUNT IS '重试次数';
+      COMMENT ON COLUMN nop_batch_record_result.retry_count IS '重试次数';
                     
-      COMMENT ON COLUMN nop_batch_record_result.BATCH_SIZE IS '批次大小';
+      COMMENT ON COLUMN nop_batch_record_result.batch_size IS '批次大小';
                     
-      COMMENT ON COLUMN nop_batch_record_result.HANDLE_STATUS IS '处理状态';
+      COMMENT ON COLUMN nop_batch_record_result.handle_status IS '处理状态';
                     
-      COMMENT ON COLUMN nop_batch_record_result.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_batch_record_result.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_batch_record_result.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_batch_record_result.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_batch_record_result.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_batch_record_result.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_batch_record_result.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_batch_record_result.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_batch_record_result.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_batch_record_result.update_time IS '修改时间';
                     

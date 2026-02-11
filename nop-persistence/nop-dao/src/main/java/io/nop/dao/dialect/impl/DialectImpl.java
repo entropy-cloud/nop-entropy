@@ -398,7 +398,7 @@ public class DialectImpl implements IDialect {
     public String getDropTableSql(String tableName, boolean ifExists) {
         return StringHelper.renderTemplate(dialectModel.getSqls().getDropTable(), name -> {
             if (name.equals("tableName"))
-                return escapeSQLName(tableName);
+                return normalizeTableName(tableName);
             if (name.equals("ifExists")) {
                 if (ifExists)
                     return " if exists ";
@@ -420,6 +420,11 @@ public class DialectImpl implements IDialect {
         String rename = renameMap.get(name);
         if (rename != null)
             return rename;
+
+        // 用双引号来表示已经转义
+        if(name.charAt(0) == '"'){
+            return StringHelper.quoteDupEscapeString(StringHelper.unquoteDupEscapeString(name), getKeywordQuote());
+        }
 
         if (Boolean.FALSE.equals(dialectModel.getKeywordUnderscore())) {
             if (name.startsWith("_")) {
@@ -444,7 +449,7 @@ public class DialectImpl implements IDialect {
     public char getKeywordQuote() {
         Character c = dialectModel.getKeywordQuote();
         if (c == null)
-            c = '`';
+            c = '"';
         return c;
     }
 

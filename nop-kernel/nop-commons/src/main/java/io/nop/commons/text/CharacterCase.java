@@ -7,10 +7,12 @@
  */
 package io.nop.commons.text;
 
+import java.util.Locale;
+
 public enum CharacterCase {
     upper, lower;
 
     public String normalize(String str) {
-        return this == upper ? str.toUpperCase() : str.toLowerCase();
+        return this == upper ? str.toUpperCase(Locale.ROOT) : str.toLowerCase(Locale.ROOT);
     }
 }

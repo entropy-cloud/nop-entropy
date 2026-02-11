@@ -159,7 +159,7 @@ CREATE TABLE nop_auth_resource(
   IS_LEAF SMALLINT default 0  NOT NULL ,
   STATUS INTEGER default 1  NOT NULL ,
   AUTH_CASCADE_UP SMALLINT default 0   ,
-  Meta_CONFIG VARCHAR2(1000)  ,
+  META_CONFIG VARCHAR2(1000)  ,
   PROPS_CONFIG VARCHAR2(1000)  ,
   DEL_FLAG SMALLINT NOT NULL ,
   VERSION INTEGER NOT NULL ,
@@ -588,7 +588,7 @@ CREATE TABLE nop_auth_group_user(
                     
       COMMENT ON COLUMN nop_auth_resource.AUTH_CASCADE_UP IS '自动更新父节点的权限';
                     
-      COMMENT ON COLUMN nop_auth_resource.Meta_CONFIG IS '扩展配置';
+      COMMENT ON COLUMN nop_auth_resource.META_CONFIG IS '扩展配置';
                     
       COMMENT ON COLUMN nop_auth_resource.PROPS_CONFIG IS '组件属性';
                     

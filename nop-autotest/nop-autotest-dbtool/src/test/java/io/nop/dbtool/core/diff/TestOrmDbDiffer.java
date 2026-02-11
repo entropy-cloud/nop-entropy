@@ -88,7 +88,7 @@ public class TestOrmDbDiffer extends JunitBaseTestCase {
         String resultsJson = JsonTool.stringify(diffDdlList, null, "  ");
 
         LOG.info("nop.test.orm.db-differ.by-entities.ddl={}", resultsJson);
-        Assertions.assertEquals(normalizeJsonString(attachmentJsonText("db-diff-results.json")), normalizeJsonString(resultsJson));
+        Assertions.assertEquals(normalizeJsonString(attachmentJsonText("db-diff-results2.json")), normalizeJsonString(resultsJson));
 
         diffDdlList = OrmDbDiffer.forDialect("h2").genDiffDdl(null, newOrmModel.getEntities());
         resultsJson = JsonTool.stringify(diffDdlList, null, "  ");

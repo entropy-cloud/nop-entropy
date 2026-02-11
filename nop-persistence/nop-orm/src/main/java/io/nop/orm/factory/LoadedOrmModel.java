@@ -128,12 +128,12 @@ public class LoadedOrmModel implements ILoadedOrmModel {
         IDialect dialect = env.getDialectForQuerySpace(entityModel.getQuerySpace());
 
         if (prop.isColumnModel()) {
-            return alias + "." + dialect.escapeSQLName(((IColumnModel) prop).getCode());
+            return alias + "." + dialect.normalizeColumnName(((IColumnModel) prop).getCode());
         } else {
             StringBuilder sb = new StringBuilder();
             for (int i = 0, n = entityModel.getPkColumns().size(); i < n; i++) {
                 String code = entityModel.getColumns().get(i).getCode();
-                sb.append(alias).append(".").append(dialect.escapeSQLName(code));
+                sb.append(alias).append(".").append(dialect.normalizeColumnName(code));
                 if (i != 0)
                     sb.append(',');
             }

@@ -50,10 +50,10 @@
             </attr>
 
             <source>
-                <c:unit><![CDATA[CREATE TABLE ${dialect.escapeSQLName(table.tableName)}(
+                <c:unit><![CDATA[CREATE TABLE ${dialect.normalizeTableName(table.tableName)}(
  ]]></c:unit>
                 <c:for var="col" items="${table.columns}">
-                    <c:unit><![CDATA[ ${     dialect.escapeSQLName(col.code)} ]]></c:unit>
+                    <c:unit><![CDATA[ ${     dialect.normalizeColumnName(col.code)} ]]></c:unit>
                     <thisLib:ColSqlType/>
                     <thisLib:DefaultValue/>
                     <thisLib:ColNullDef/>  <!-- oracle要求 default 0 not null这种顺序，缺省值要放到not null的前面-->
@@ -68,7 +68,7 @@
                     const tenantPk = useTenantPk ? 'NOP_TENANT_ID,' : ''
                 </c:script>
                 <c:unit><![CDATA[ constraint PK_${table.tableName} primary key (${tenantPk}${
-                table.compositePk ? table.idProp.columns.map(col=>dialect.escapeSQLName(col.code)).join(',') : dialect.escapeSQLName(table.idProp.code)})
+                table.compositePk ? table.idProp.columns.map(col=>dialect.normalizeColumnName(col.code)).join(',') : dialect.normalizeColumnName(table.idProp.code)})
 ]]></c:unit>
                 <c:unit>)</c:unit><thisLib:TableCollation/>
             </source>
@@ -82,7 +82,7 @@
                     <c:if test="${uniqueKey.constraint}">
                         <c:script>
                             let columns = uniqueKey.getColumnModelsWithTenant(table).map(col =>
-                            dialect.escapeSQLName(col.code))
+                            dialect.normalizeColumnName(col.code))
                         </c:script>
                         <c:unit><![CDATA[ constraint ${uniqueKey.constraint} unique (${
                         columns.join(',')})]]></c:unit>
@@ -170,13 +170,13 @@
             <source>
                 <thisLib:TableComment table="${table}" xpl:return="tableComment"/>
                 <c:if test="${tableComment}"><![CDATA[
-      COMMENT ON TABLE ${dialect.escapeSQLName(table.tableName)} IS ${dialect.getStringLiteral(tableComment)};
+      COMMENT ON TABLE ${dialect.normalizeTableName(table.tableName)} IS ${dialect.getStringLiteral(tableComment)};
                 ]]></c:if>
 
                 <c:for var="col" items="${table.columns}">
                     <thisLib:ColumnComment col="${col}" xpl:return="colComment"/>
                     <c:if test="${colComment}"><![CDATA[
-      COMMENT ON COLUMN ${dialect.escapeSQLName(table.tableName)}.${dialect.escapeSQLName(col.code)} IS ${dialect.getStringLiteral(colComment)};
+      COMMENT ON COLUMN ${dialect.normalizeTableName(table.tableName)}.${dialect.normalizeColumnName(col.code)} IS ${dialect.getStringLiteral(colComment)};
                     ]]></c:if>
                 </c:for>
             </source>
@@ -251,7 +251,7 @@
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
-                <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} add NOP_TENANT_ID ${dialect.stdToNativeSqlType('VARCHAR', 32, 0)} DEFAULT '0' NOT NULL</c:unit>
+                <c:unit>alter table ${dialect.normalizeTableName(table.tableName)} add NOP_TENANT_ID ${dialect.stdToNativeSqlType('VARCHAR', 32, 0)} DEFAULT '0' NOT NULL</c:unit>
 
                 <c:if test="${addToPk}">
                     <c:unit>;&#10;</c:unit>
@@ -265,10 +265,10 @@
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
-                <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} drop constraint PK_${table.tableName}</c:unit>
+                <c:unit>alter table ${dialect.normalizeTableName(table.tableName)} drop constraint PK_${table.tableName}</c:unit>
                 <c:unit>;&#10;</c:unit>
-                <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} add constraint PK_${table.tableName} primary key (NOP_TENANT_ID, ${
-                table.compositePk ? table.idProp.columns.map(col=> dialect.escapeSQLName(col.code)).join(',') : dialect.escapeSQLName(table.idProp.code)})</c:unit>
+                <c:unit>alter table ${dialect.normalizeTableName(table.tableName)} add constraint PK_${table.tableName} primary key (NOP_TENANT_ID, ${
+                table.compositePk ? table.idProp.columns.map(col=> dialect.normalizeColumnName(col.code)).join(',') : dialect.normalizeColumnName(table.idProp.code)})</c:unit>
             </source>
         </AddTenantIdToPrimaryKey>
 
@@ -279,13 +279,13 @@
 
             <source>
                 <c:script>
-                    let columns = uniqueKey.columnModels.map(col => dialect.escapeSQLName(col.code))
+                    let columns = uniqueKey.columnModels.map(col => dialect.normalizeColumnName(col.code))
                 </c:script>
 
-                <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} drop constraint ${uniqueKey.constraint}</c:unit>
+                <c:unit>alter table ${dialect.normalizeTableName(table.tableName)} drop constraint ${uniqueKey.constraint}</c:unit>
                 <c:unit>;&#10;</c:unit>
                 <thisLib:UniqueKeyComment uniqueKey="${uniqueKey}" xpl:return="uniqueComment"/>
-                <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} add constraint ${uniqueKey.constraint} unique (NOP_TENANT_ID,${columns.join(',')})${uniqueComment ? $String.format(' %s %s','COMMENT',dialect.getStringLiteral(uniqueComment)) : ''};&#10;
+                <c:unit>alter table ${dialect.normalizeTableName(table.tableName)} add constraint ${uniqueKey.constraint} unique (NOP_TENANT_ID,${columns.join(',')})${uniqueComment ? $String.format(' %s %s','COMMENT',dialect.getStringLiteral(uniqueComment)) : ''};&#10;
                 </c:unit>
             </source>
         </AddTenantIdToUniqueKey>
@@ -306,7 +306,7 @@
 
             <source>
                 <!-- oracle 不允许add column，只支持add-->
-                <c:unit>alter table ${dialect.escapeSQLName(col.ownerEntityModel.tableName)} add ${dialect.escapeSQLName(col.code)} </c:unit>
+                <c:unit>alter table ${dialect.normalizeTableName(col.ownerEntityModel.tableName)} add ${dialect.normalizeColumnName(col.code)} </c:unit>
                 <thisLib:ColSqlType/>
                 <thisLib:DefaultValue allNullable="${false}"/>
                 <thisLib:ColNullDef allNullable="${false}"/>
@@ -319,7 +319,7 @@
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
-                <c:unit>alter table ${dialect.escapeSQLName(col.ownerEntityModel.tableName)} drop column ${dialect.escapeSQLName(col.code)}</c:unit>
+                <c:unit>alter table ${dialect.normalizeTableName(col.ownerEntityModel.tableName)} drop column ${dialect.normalizeColumnName(col.code)}</c:unit>
             </source>
         </DropColumn>
 
@@ -329,9 +329,9 @@
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
-                <c:unit><![CDATA[alter table ${dialect.escapeSQLName(col.ownerEntityModel.tableName)} ]]></c:unit>
+                <c:unit><![CDATA[alter table ${dialect.normalizeTableName(col.ownerEntityModel.tableName)} ]]></c:unit>
                 <thisLib:ColModifyClause/>
-                <c:unit><![CDATA[ ${dialect.escapeSQLName(col.code)} ]]></c:unit>
+                <c:unit><![CDATA[ ${dialect.normalizeColumnName(col.code)} ]]></c:unit>
                 <thisLib:ColSqlType/>
                 <thisLib:ColNullDef allNullable="${false}"/>
                 <thisLib:DefaultValue allNullable="${false}"/>
@@ -346,7 +346,7 @@
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
-                <c:unit>alter table ${dialect.escapeSQLName(tableName)} rename column ${dialect.escapeSQLName(colName)} to ${dialect.escapeSQLName(newName)} </c:unit>
+                <c:unit>alter table ${dialect.normalizeTableName(tableName)} rename column ${dialect.normalizeColumnName(colName)} to ${dialect.normalizeColumnName(newName)} </c:unit>
             </source>
         </RenameColumn>
 
@@ -358,9 +358,9 @@
             <source>
                 <c:script>
                     let columns = uniqueKey.getColumnModelsWithTenant(table).map(col =>
-                    dialect.escapeSQLName(col.code));
+                    dialect.normalizeColumnName(col.code));
                 </c:script>
-                <c:unit><![CDATA[alter table ${dialect.escapeSQLName(table.tableName)} ]]></c:unit>
+                <c:unit><![CDATA[alter table ${dialect.normalizeTableName(table.tableName)} ]]></c:unit>
                 <c:unit><![CDATA[  add constraint ${uniqueKey.constraint} ]]></c:unit>
                 <c:unit><![CDATA[    unique (${columns.join(',')}) ]]></c:unit>
             </source>
@@ -372,7 +372,7 @@
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
-                <c:unit><![CDATA[alter table ${dialect.escapeSQLName(table.tableName)} ]]></c:unit>
+                <c:unit><![CDATA[alter table ${dialect.normalizeTableName(table.tableName)} ]]></c:unit>
                 <c:unit><![CDATA[  drop constraint ${uniqueKey.constraint} ]]></c:unit>
             </source>
         </DropUniqueKey>
@@ -384,9 +384,9 @@
 
             <source>
                 <c:script>
-                    let columns = index.columns.map(col => dialect.escapeSQLName(col.columnCode));
+                    let columns = index.columns.map(col => dialect.normalizeColumnName(col.columnCode));
                 </c:script>
-                <c:unit><![CDATA[create ${index.unique ? 'unique ' : ''}index ${dialect.escapeSQLName(index.name)} on ${dialect.escapeSQLName(table.tableName)} (${columns.join(',')}) ]]></c:unit>
+                <c:unit><![CDATA[create ${index.unique ? 'unique ' : ''}index ${dialect.escapeSQLName(index.name)} on ${dialect.normalizeTableName(table.tableName)} (${columns.join(',')}) ]]></c:unit>
             </source>
         </AddIndex>
 
@@ -396,7 +396,7 @@
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
-                <c:unit><![CDATA[drop index ${dialect.escapeSQLName(index.name)} on ${dialect.escapeSQLName(table.tableName)} ]]></c:unit>
+                <c:unit><![CDATA[drop index ${dialect.escapeSQLName(index.name)} on ${dialect.normalizeTableName(table.tableName)} ]]></c:unit>
             </source>
         </DropIndex>
     </tags>

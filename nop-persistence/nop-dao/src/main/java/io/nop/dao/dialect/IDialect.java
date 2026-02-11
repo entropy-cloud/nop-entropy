@@ -27,6 +27,7 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Locale;
 import java.util.Set;
 
 public interface IDialect extends IComponentModel {
@@ -110,6 +111,28 @@ public interface IDialect extends IComponentModel {
     CharacterCase getTableNameCase();
 
     CharacterCase getColumnNameCase();
+
+    default String normalizeTableName(String tableName) {
+        CharacterCase charCase = getTableNameCase();
+        if (charCase != null) {
+            if (tableName.charAt(0) != '"') {
+                String name = charCase.normalize(tableName);
+                return escapeSQLName(name);
+            }
+        }
+        return escapeSQLName(tableName);
+    }
+
+    default String normalizeColumnName(String colName) {
+        CharacterCase charCase = getColumnNameCase();
+        if (charCase != null) {
+            if (colName.charAt(0) != '"') {
+                String name = charCase.normalize(colName);
+                return escapeSQLName(name);
+            }
+        }
+        return colName;
+    }
 
     default String getInsertKeyword() {
         return "insert";

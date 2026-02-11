@@ -14089,6 +14089,14 @@
         ]
       },
       {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthResource",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "getMenuTree",
         "parameterTypes": [
           "java.lang.String",
@@ -15026,6 +15034,14 @@
         ]
       },
       {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "appendOrderByPk",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean"
@@ -15231,6 +15247,13 @@
         "parameterTypes": []
       },
       {
+        "name": "daoDeleteEntity",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "daoFor",
         "parameterTypes": [
           "java.lang.Class"
@@ -15239,6 +15262,20 @@
       {
         "name": "daoProvider",
         "parameterTypes": []
+      },
+      {
+        "name": "daoSaveEntity",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "daoUpdateEntity",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.core.context.IServiceContext"
+        ]
       },
       {
         "name": "defaultPrepareCopyForNew",
@@ -15293,6 +15330,14 @@
         "name": "deleteReferences",
         "parameterTypes": [
           "io.nop.orm.IOrmEntity",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "deleteReferences",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "java.lang.String",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -15742,6 +15787,12 @@
           "io.nop.orm.IOrmEntity",
           "java.lang.String",
           "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "getRefNamesToCheckExists",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {

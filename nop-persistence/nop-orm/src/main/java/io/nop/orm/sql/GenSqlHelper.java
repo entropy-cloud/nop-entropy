@@ -608,7 +608,7 @@ public class GenSqlHelper {
                         // {原表名}_{shardName}
                         String tableName = syntaxMarker.getMarkedText(sb.getTextSequence());
                         tableName = dialect.unescapeSQLName(tableName);
-                        tableName = dialect.escapeSQLName(tableName + '_' + shard.getShardName());
+                        tableName = dialect.normalizeTableName(tableName + '_' + shard.getShardName());
                         return new MarkedString(tableName);
                     }
                 }
@@ -655,7 +655,7 @@ public class GenSqlHelper {
     }
 
     public static void table(SQL.SqlBuilder sb, IDialect dialect, IEntityModel entityModel, String owner) {
-        sb.markTable(dialect.escapeSQLName(entityModel.getTableName()), owner, entityModel.getName(), dialect.isUseAsInFrom());
+        sb.markTable(dialect.normalizeTableName(entityModel.getTableName()), owner, entityModel.getName(), dialect.isUseAsInFrom());
     }
 
     public static void genIdEq(MutableIntArray params, SQL.SqlBuilder sb, IDialect dialect, String owner,
@@ -821,7 +821,7 @@ public class GenSqlHelper {
 
             IColumnModel col = entityModel.getColumn(orderField.getName(), false);
             sb.owner(owner);
-            sb.append(dialect.escapeSQLName(col.getCode()));
+            sb.append(dialect.normalizeColumnName(col.getCode()));
             sb.desc(orderField.isDesc());
             sb.nullsFirst(orderField.getNullsFirst());
         }

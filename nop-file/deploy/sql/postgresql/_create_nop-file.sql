@@ -1,59 +1,59 @@
 
 CREATE TABLE nop_file_record(
-  FILE_ID VARCHAR(50) NOT NULL ,
-  FILE_NAME VARCHAR(300)  ,
-  FILE_PATH VARCHAR(2000) NOT NULL ,
-  FILE_EXT VARCHAR(50)  ,
-  MIME_TYPE VARCHAR(100) NOT NULL ,
-  FILE_LENGTH INT8  ,
-  FILE_LAST_MODIFIED TIMESTAMP  ,
-  BIZ_OBJ_NAME VARCHAR(200)  ,
-  BIZ_OBJ_ID VARCHAR(200)  ,
-  FIELD_NAME VARCHAR(100)  ,
-  FILE_HASH VARCHAR(200)  ,
-  ORIGIN_FILE_ID VARCHAR(50) NOT NULL ,
-  IS_PUBLIC BOOLEAN NOT NULL ,
-  DEL_FLAG INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_file_record primary key (FILE_ID)
+  file_id VARCHAR(50) NOT NULL ,
+  file_name VARCHAR(300)  ,
+  file_path VARCHAR(2000) NOT NULL ,
+  file_ext VARCHAR(50)  ,
+  mime_type VARCHAR(100) NOT NULL ,
+  file_length INT8  ,
+  file_last_modified TIMESTAMP  ,
+  biz_obj_name VARCHAR(200)  ,
+  biz_obj_id VARCHAR(200)  ,
+  field_name VARCHAR(100)  ,
+  file_hash VARCHAR(200)  ,
+  origin_file_id VARCHAR(50) NOT NULL ,
+  is_public BOOLEAN NOT NULL ,
+  del_flag INT4 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_file_record primary key (file_id)
 );
 
 
       COMMENT ON TABLE nop_file_record IS '文件记录';
                 
-      COMMENT ON COLUMN nop_file_record.FILE_ID IS '文件ID';
+      COMMENT ON COLUMN nop_file_record.file_id IS '文件ID';
                     
-      COMMENT ON COLUMN nop_file_record.FILE_NAME IS '文件名';
+      COMMENT ON COLUMN nop_file_record.file_name IS '文件名';
                     
-      COMMENT ON COLUMN nop_file_record.FILE_PATH IS '文件路径';
+      COMMENT ON COLUMN nop_file_record.file_path IS '文件路径';
                     
-      COMMENT ON COLUMN nop_file_record.FILE_EXT IS '扩展名';
+      COMMENT ON COLUMN nop_file_record.file_ext IS '扩展名';
                     
-      COMMENT ON COLUMN nop_file_record.MIME_TYPE IS '内容类型';
+      COMMENT ON COLUMN nop_file_record.mime_type IS '内容类型';
                     
-      COMMENT ON COLUMN nop_file_record.FILE_LENGTH IS '文件长度';
+      COMMENT ON COLUMN nop_file_record.file_length IS '文件长度';
                     
-      COMMENT ON COLUMN nop_file_record.FILE_LAST_MODIFIED IS '文件修改时间';
+      COMMENT ON COLUMN nop_file_record.file_last_modified IS '文件修改时间';
                     
-      COMMENT ON COLUMN nop_file_record.BIZ_OBJ_NAME IS '对象名';
+      COMMENT ON COLUMN nop_file_record.biz_obj_name IS '对象名';
                     
-      COMMENT ON COLUMN nop_file_record.BIZ_OBJ_ID IS '对象ID';
+      COMMENT ON COLUMN nop_file_record.biz_obj_id IS '对象ID';
                     
-      COMMENT ON COLUMN nop_file_record.FIELD_NAME IS '字段名';
+      COMMENT ON COLUMN nop_file_record.field_name IS '字段名';
                     
-      COMMENT ON COLUMN nop_file_record.FILE_HASH IS '文件摘要';
+      COMMENT ON COLUMN nop_file_record.file_hash IS '文件摘要';
                     
-      COMMENT ON COLUMN nop_file_record.ORIGIN_FILE_ID IS '原始文件ID';
+      COMMENT ON COLUMN nop_file_record.origin_file_id IS '原始文件ID';
                     
-      COMMENT ON COLUMN nop_file_record.IS_PUBLIC IS '是否允许公开访问';
+      COMMENT ON COLUMN nop_file_record.is_public IS '是否允许公开访问';
                     
-      COMMENT ON COLUMN nop_file_record.DEL_FLAG IS '删除标识';
+      COMMENT ON COLUMN nop_file_record.del_flag IS '删除标识';
                     
-      COMMENT ON COLUMN nop_file_record.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_file_record.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_file_record.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_file_record.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_file_record.REMARK IS '备注';
+      COMMENT ON COLUMN nop_file_record.remark IS '备注';
                     

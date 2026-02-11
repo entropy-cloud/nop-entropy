@@ -77,7 +77,7 @@ public class EqlHelper {
         String sqlText = col.getSqlText();
         if (sqlText != null)
             return "@" + sqlText;
-        sqlText = dialect.escapeSQLName(col.getCode());
+        sqlText = dialect.normalizeColumnName(col.getCode());
         return sqlText;
     }
 
@@ -98,19 +98,11 @@ public class EqlHelper {
     }
 
     public static String normalizeTableName(IDialect dialect, String tableName) {
-        CharacterCase characterCase = dialect.getTableNameCase();
-        if (characterCase != null) {
-            tableName = characterCase.normalize(tableName);
-        }
-        return dialect.escapeSQLName(tableName);
+        return dialect.normalizeTableName(tableName);
     }
 
-    public static String normalizeColName(IDialect dialect, String tableName) {
-        CharacterCase characterCase = dialect.getColumnNameCase();
-        if (characterCase != null) {
-            tableName = characterCase.normalize(tableName);
-        }
-        return dialect.escapeSQLName(tableName);
+    public static String normalizeColName(IDialect dialect, String colName) {
+        return dialect.normalizeColumnName(colName);
     }
 
 
@@ -130,7 +122,7 @@ public class EqlHelper {
         } else {
             String code = col.getCode();
             sb.owner(owner);
-            code = dialect.escapeSQLName(code);
+            code = dialect.normalizeColumnName(code);
             sb.append(code);
         }
     }

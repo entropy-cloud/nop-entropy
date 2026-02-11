@@ -753,6 +753,7 @@
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/{metaInfo.objName}.view.xml.xgen
 /nop/templates/orm/.dockerignore
 /nop/templates/orm/.gitattributes
+/nop/templates/orm/.gitignore
 /nop/templates/orm/@init.xrun
 /nop/templates/orm/deploy/sql/{dialect}/_add_tenant_{appName}.sql.xgen
 /nop/templates/orm/deploy/sql/{dialect}/_create_{appName}.sql.xgen
