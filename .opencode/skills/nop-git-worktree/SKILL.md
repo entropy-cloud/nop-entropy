@@ -8,29 +8,29 @@ description: 涉及git worktree的操作优先使用这个skill。管理 Git bar
 ### ⚠️ 必须遵守的操作规则
 
 1. **所有 `git worktree` 相关命令必须在 `.bare` 目录中执行**
-   - ✅ 正确：`git -C .bare worktree add ../feature-xxx -b feature-xxx`
-   - ❌ 错误：`git -C .bare worktree add feature-xxx -b feature-xxx`
+    - ✅ 正确：`git -C .bare worktree add ../feature-xxx -b feature-xxx`
+    - ❌ 错误：`git -C .bare worktree add feature-xxx -b feature-xxx`
 
 2. **创建 worktree 时使用相对路径**
-   - ✅ 正确：使用相对路径 `../`
-   - ❌ 错误：使用绝对路径
+    - ✅ 正确：使用相对路径 `../`
+    - ❌ 错误：使用绝对路径
 
 3. **遇到错误时，按顺序清理**
-   ```bash
-   cd ~/nop/nop-entropy-wt
-   git -C .bare worktree remove ../feature-xxx 2>/dev/null || true
-   rm -rf feature-xxx 2>/dev/null || true
-   git -C .bare worktree prune
-   git -C .bare branch -D feature-xxx
-   ```
+    ```bash
+    cd ~/app/nop-entropy-wt
+    git -C .bare worktree remove ../nop-entropy-feature-xxx 2>/dev/null || true
+    rm -rf nop-entropy-feature-xxx 2>/dev/null || true
+    git -C .bare worktree prune
+    git -C .bare branch -D feature-xxx
+    ```
 
 4. **操作目录**
-   | 操作类型 | 执行目录 |
-   |---------|---------|
-   | 创建/删除 worktree | `cd ~/nop/nop-entropy-wt && git -C .bare worktree ...` |
-   | 查看 worktree 列表 | `cd ~/nop/nop-entropy-wt && git -C .bare worktree list` |
-   | 查看/操作分支 | `cd ~/nop/nop-entropy-wt && git -C .bare branch ...` |
-   | 在 worktree 中开发 | `cd ~/nop/nop-entropy-wt/feature-xxx` |
+    | 操作类型 | 执行目录 |
+    |---------|---------|
+    | 创建/删除 worktree | `cd ~/app/nop-entropy-wt && git -C .bare worktree ...` |
+    | 查看 worktree 列表 | `cd ~/app/nop-entropy-wt && git -C .bare worktree list` |
+    | 查看/操作分支 | `cd ~/app/nop-entropy-wt && git -C .bare branch ...` |
+    | 在 worktree 中开发 | `cd ~/app/nop-entropy-wt/nop-entropy-feature-xxx` |
 
 ## 功能
 
@@ -62,20 +62,20 @@ description: 涉及git worktree的操作优先使用这个skill。管理 Git bar
 ## 目录结构
 
 ```
-project-root/                          # 项目根目录（如 ~/nop/nop-entropy-wt）
+project-root/                          # 项目根目录（如 ~/app/nop-entropy-wt）
 ├── .bare/                            # Git bare 仓库（中心），所有 git worktree 操作在此执行
 │   ├── HEAD                          # 当前默认分支
 │   ├── config                        # Git 配置
 │   ├── objects/                      # Git 对象存储
 │   ├── refs/                         # Git 引用
 │   └── ...
-├── main/                             # 主分支 worktree（开发时在此目录）
+├── nop-entropy-master/               # 主分支 worktree（开发时在此目录），目录名=项目名-分支名
 │   └── ...                          # 项目文件
-├── feature-auth/                     # 特性分支 worktree
+├── nop-entropy-feat-auth/            # 特性分支 worktree，目录名=项目名-分支名
 │   ├── .mvn/
 │   │   └── maven.config
 │   └── ...
-└── fix-login/                        # 修复分支 worktree
+└── nop-entropy-fix-login/            # 修复分支 worktree，目录名=项目名-分支名
     ├── .mvn/
     │   └── maven.config
     └── ...
@@ -83,29 +83,47 @@ project-root/                          # 项目根目录（如 ~/nop/nop-entropy
 
 **关键说明**：
 - `.bare/` 目录：这是 Git bare 仓库，所有 `git worktree` 命令必须在此目录或通过 `git -C .bare` 执行
-- `main/`, `feature-auth/` 等目录：这些是实际的工作目录，开发时在这些目录中进行 git 操作（如 `git commit`, `git status`）
+- **worktree 目录命名**：`<PROJECT_NAME>-<BRANCH_NAME>` 格式，便于在 IDE 中区分不同项目的 worktree
+- `nop-entropy-master/`, `nop-entropy-feat-auth/` 等目录：这些是实际的工作目录，开发时在这些目录中进行 git 操作（如 `git commit`, `git status`）
 
 ## 操作说明
 
 ### 初始化 bare + worktree 项目结构
 
 **参数**：
-- **项目根目录** (必填): 如 `~/nop/nop-entropy-wt`
-- **远程仓库 URL** (可选): 如 `git@github.com:user/repo.git`
+- **项目根目录** (必填): 如 `~/app/nop-entropy-wt`
+- **远程仓库 URL** (可选): 如 `https://gitee.com/user/repo.git`
 - **本地仓库路径** (可选): 现有 git 仓库的路径
 
 **步骤**：
 ```bash
-cd ~/nop/nop-entropy-wt
+cd ~/app/nop-entropy-wt
 
 # 1. 创建 bare 仓库
-git clone --bare ~/nop/nop-entropy .bare    # 或: git clone --bare git@github.com:user/repo.git .bare
+git clone --bare https://gitee.com/canonical-entropy/nop-entropy.git .bare
+# 或从本地克隆: git clone --bare ~/app/nop-entropy .bare
 
-# 2. 识别默认分支并创建主分支 worktree
-DEFAULT_BRANCH=$(git -C .bare symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')
-git -C .bare worktree add "../$DEFAULT_BRANCH" "$DEFAULT_BRANCH"
+# 2. 启用长路径支持（Windows 平台重要配置）
+# Windows 默认路径限制 260 字符，某些项目文件路径可能超限
+git -C .bare config core.longpaths true
+echo "Long paths enabled"
 
-# 3. 验证
+# 3. 识别项目名称（从 remote URL 提取）
+PROJECT_NAME=$(git -C .bare config --get remote.origin.url | sed -E 's|.*/([^/]+?)(\.git)?$|\1|')
+echo "Project name: $PROJECT_NAME"
+
+# 4. 识别默认分支（优先从 .bare/HEAD 读取，兼容 bare 仓库）
+DEFAULT_BRANCH=$(cat .bare/HEAD 2>/dev/null | sed 's@^refs/heads/@@')
+# 如果 .bare/HEAD 读取失败，尝试从 remote 读取
+if [ -z "$DEFAULT_BRANCH" ]; then
+    DEFAULT_BRANCH=$(git -C .bare symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+fi
+echo "Default branch: $DEFAULT_BRANCH"
+
+# 5. 创建主分支 worktree（目录名: PROJECT_NAME-BRANCH_NAME）
+git -C .bare worktree add "../${PROJECT_NAME}-${DEFAULT_BRANCH}" "$DEFAULT_BRANCH"
+
+# 6. 验证
 git -C .bare worktree list
 ```
 
@@ -113,7 +131,7 @@ git -C .bare worktree list
 
 **参数**：
 - **需求描述** (必填): 自然语言描述的功能需求
-- **项目根目录** (必填): 如 `~/nop/nop-entropy-wt`
+- **项目根目录** (必填): 如 `~/app/nop-entropy-wt`
 
 **分支名生成规则**：
 | 需求类型 | 前缀 | 示例 |
@@ -128,24 +146,28 @@ git -C .bare worktree list
 
 **步骤**：
 ```bash
-cd ~/nop/nop-entropy-wt
+cd ~/app/nop-entropy-wt
+
+# 获取项目名称（从 remote URL 提取）
+PROJECT_NAME=$(git -C .bare config --get remote.origin.url | sed -E 's|.*/([^/]+?)(\.git)?$|\1|')
 
 BRANCH_NAME="refactor-job-scheduling"
+WORKTREE_NAME="${PROJECT_NAME}-${BRANCH_NAME}"  # worktree 目录名: PROJECT_NAME-BRANCH_NAME
 
 # 1. 如果分支已存在，先清理
 if git -C .bare branch --list "$BRANCH_NAME" > /dev/null; then
-    git -C .bare worktree remove "../$BRANCH_NAME" 2>/dev/null || true
-    rm -rf "$BRANCH_NAME" 2>/dev/null || true
+    git -C .bare worktree remove "../$WORKTREE_NAME" 2>/dev/null || true
+    rm -rf "$WORKTREE_NAME" 2>/dev/null || true
     git -C .bare worktree prune
     git -C .bare branch -D "$BRANCH_NAME"
 fi
 
-# 2. 创建 worktree
-git -C .bare worktree add "../$BRANCH_NAME" -b "$BRANCH_NAME"
+# 2. 创建 worktree（目录名: PROJECT_NAME-BRANCH_NAME）
+git -C .bare worktree add "../$WORKTREE_NAME" -b "$BRANCH_NAME"
 
 # 3. 创建 Maven 配置（Feature 分支专用）
-mkdir -p "$BRANCH_NAME/.mvn"
-cat > "$BRANCH_NAME/.mvn/maven.config" <<'EOF'
+mkdir -p "$WORKTREE_NAME/.mvn"
+cat > "$WORKTREE_NAME/.mvn/maven.config" <<'EOF'
 -Dmaven.repo.local.head=.nop/repository
 -Dmaven.repo.local.tail.ignoreAvailability=true
 EOF
@@ -162,35 +184,36 @@ git -C .bare worktree list
 # 查看 worktree 列表
 git -C .bare worktree list
 
-# 删除 worktree
-git -C .bare worktree remove feature-auth
+# 删除 worktree（指定 worktree 目录名）
+git -C .bare worktree remove nop-entropy-feature-auth
 
 # 清理无效引用
 git -C .bare worktree prune
 
 # 移动 worktree
-git -C .bare worktree move old-path new-path
+git -C .bare worktree move nop-entropy-old-name nop-entropy-new-name
 
-# 切换 worktree 目录
-cd ~/nop/nop-entropy-wt/main/           # 主分支
-cd ~/nop/nop-entropy-wt/feature-auth/   # 功能分支
+# 切换 worktree 目录（目录名 = PROJECT_NAME-BRANCH_NAME）
+cd ~/app/nop-entropy-wt/nop-entropy-master           # 主分支
+cd ~/app/nop-entropy-wt/nop-entropy-feature-auth      # 功能分支
 
 # 在 worktree 中查看状态
-cd ~/nop/nop-entropy-wt/feature-auth
+cd ~/app/nop-entropy-wt/nop-entropy-feature-auth
 git status
 git branch
 ```
 
 ## 最佳实践
 
-1. **分支命名**：使用清晰的语义化分支名（小写字母、数字、连字符，20-30 字符）
-2. **命令执行位置**：
+1. **worktree 目录命名**：使用 `<PROJECT_NAME>-<BRANCH_NAME>` 格式（如 `nop-entropy-master`, `nop-entropy-feat-auth`），便于在 IDE 中区分不同项目的 worktree
+2. **分支命名**：使用清晰的语义化分支名（小写字母、数字、连字符，20-30 字符）
+3. **命令执行位置**：
    - `git worktree` 相关命令：在 `.bare` 目录中执行，或使用 `git -C .bare`
    - git 提交、状态查看等：在对应的 worktree 目录中执行
-3. **及时清理**：完成功能后及时删除 worktree
-4. **定期同步**：在 main worktree 中定期 pull 远程更新
-5. **独立环境**：每个 worktree 独立安装依赖
-6. **路径使用**：始终使用相对路径（如 `../feature-xxx`）
+4. **及时清理**：完成功能后及时删除 worktree
+5. **定期同步**：在主分支 worktree 中定期 pull 远程更新
+6. **独立环境**：每个 worktree 独立安装依赖
+7. **路径使用**：始终使用相对路径（如 `../nop-entropy-feature-xxx`）
 
 ## Maven 配置说明
 
@@ -214,18 +237,22 @@ git branch
 ## Worktree 提交流程
 
 **流程假设**：
-- 项目根目录：`~/nop/nop-entropy-wt`
-- feature worktree：`~/nop/nop-entropy-wt/feat-stream-processing`
-- 主分支 worktree：`~/nop/nop-entropy-wt/main`
+- 项目根目录：`~/app/nop-entropy-wt`
+- 项目名称：`nop-entropy`
+- feature worktree：`~/app/nop-entropy-wt/nop-entropy-feat-stream-processing`
+- 主分支 worktree：`~/app/nop-entropy-wt/nop-entropy-master`
 
 **步骤**：
 ```bash
+# 获取项目名称
+PROJECT_NAME="nop-entropy"
+
 # 1. 更新主分支到最新
-cd ~/nop/nop-entropy-wt/main
+cd ~/app/nop-entropy-wt/${PROJECT_NAME}-master
 git pull origin master
 
 # 2. 软重置 feature 分支到基础分支（保留所有修改，但撤销提交历史）
-cd ../feat-stream-processing
+cd ../${PROJECT_NAME}-feat-stream-processing
 git reset --soft master
 
 # 3. 查看修改内容
@@ -242,14 +269,14 @@ git commit -m "feat: 实现流处理数据源接入
 
 # 5. 生成差异文件（可选）
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-git diff master > "feat-stream-processing-${TIMESTAMP}.diff"
+git diff master > "${PROJECT_NAME}-feat-stream-processing-${TIMESTAMP}.diff"
 
 # 6. 合并到主分支
-cd ../main
+cd ../${PROJECT_NAME}-master
 git merge feat-stream-processing --ff-only
 
 # 7. 同步主分支最新内容回 feature 分支
-cd ../feat-stream-processing
+cd ../${PROJECT_NAME}-feat-stream-processing
 git rebase master
 ```
 
@@ -274,18 +301,55 @@ git rebase master
 | `fatal: '../xxx' already exists` | worktree 目录已存在 | `rm -rf xxx` |
 | `Preparing worktree (new branch 'xxx') failed` | 路径格式错误或无效引用 | 参考[清理步骤](#清理步骤) |
 | `worktree list` 显示奇怪路径 | 在错误目录执行命令 | 参考[清理步骤](#清理步骤) |
+| `Filename too long` | Windows 路径超过 260 字符限制 | 启用长路径支持：`git -C .bare config core.longpaths true` |
+| `error: unable to create file: Filename too long` | Windows 路径超过 260 字符限制 | 启用长路径支持：`git -C .bare config core.longpaths true` |
+
+### Windows 长路径问题
+
+**问题描述**：
+Windows 默认路径限制为 260 字符（MAX_PATH），某些项目（如 Nop 平台）的模板文件路径可能超过此限制。
+
+**解决方案**：
+
+1. **启用 Git 长路径支持**（推荐）：
+```bash
+cd ~/app/nop-entropy-wt
+git -C .bare config core.longpaths true
+```
+
+2. **系统级别启用长路径**（可选，需要管理员权限）：
+```powershell
+# 以管理员身份运行 PowerShell
+New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" `
+    -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+```
+
+**配置写入位置**：
+- Git 长路径配置写入 `.bare/config` 文件：
+```ini
+[core]
+    longpaths = true
+```
+
+**适用场景**：
+- 创建 worktree 时遇到路径过长错误
+- checkout 时遇到 `Filename too long` 错误
+- 包含深层嵌套目录的项目
 
 ### 清理步骤
 
 遇到路径混乱或无效引用时：
 ```bash
-cd ~/nop/nop-entropy-wt
+cd ~/app/nop-entropy-wt
 
-# 删除 worktree 引用
-git -C .bare worktree remove ../xxx 2>/dev/null || true
+# 获取项目名称（从 remote URL 提取）
+PROJECT_NAME=$(git -C .bare config --get remote.origin.url | sed -E 's|.*/([^/]+?)(\.git)?$|\1|')
+
+# 删除 worktree 引用（使用完整的 worktree 目录名）
+git -C .bare worktree remove "../${PROJECT_NAME}-xxx" 2>/dev/null || true
 
 # 删除目录
-rm -rf xxx 2>/dev/null || true
+rm -rf "${PROJECT_NAME}-xxx" 2>/dev/null || true
 
 # 清理无效引用
 git -C .bare worktree prune
@@ -293,14 +357,14 @@ git -C .bare worktree prune
 # 删除分支
 git -C .bare branch -D xxx
 
-# 重新创建
-git -C .bare worktree add ../xxx -b xxx
+# 重新创建（目录名: PROJECT_NAME-BRANCH_NAME）
+git -C .bare worktree add "../${PROJECT_NAME}-xxx" -b xxx
 ```
 
 ### 诊断命令
 
 ```bash
-cd ~/nop/nop-entropy-wt
+cd ~/app/nop-entropy-wt
 
 # 查看 worktree 详细状态
 git -C .bare worktree list --porcelain
