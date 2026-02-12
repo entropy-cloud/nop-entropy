@@ -5,10 +5,10 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.graphql.gateway.model;
+package io.nop.gateway.model;
 
 import io.nop.api.core.util.INeedInit;
-import io.nop.graphql.gateway.model._gen._GatewayModel;
+import io.nop.gateway.model._gen._GatewayModel;
 import io.nop.router.TriePathRouter;
 
 public class GatewayModel extends _GatewayModel implements INeedInit {
@@ -23,8 +23,9 @@ public class GatewayModel extends _GatewayModel implements INeedInit {
     public void init() {
         router = new TriePathRouter<>();
         for (GatewayRouteModel route : getRoutes()) {
-            for (GatewayOnPathModel onPath : route.getOnPaths()) {
-                router.addPathPattern(onPath.getPath(), route);
+            GatewayMatchModel match = route.getMatch();
+            if (match != null && match.getPath() != null) {
+                router.addPathPattern(match.getPath(), route);
             }
         }
     }
