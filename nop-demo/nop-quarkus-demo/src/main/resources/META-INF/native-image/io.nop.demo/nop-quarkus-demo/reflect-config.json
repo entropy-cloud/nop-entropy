@@ -7411,7 +7411,7 @@
         ]
       }
     ],
-    "name": "io.nop.graphql.gateway.http.GatewayHttpFilter"
+    "name": "io.nop.gateway.http.GatewayHttpFilter"
   },
   {
     "allDeclaredConstructors": true,
@@ -7421,7 +7421,7 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.graphql.gateway.model.GatewayModel"
+    "name": "io.nop.gateway.model.GatewayModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -7431,7 +7431,7 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.graphql.gateway.model.GatewayOnPathModel"
+    "name": "io.nop.gateway.model.GatewayOnPathModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -7441,7 +7441,7 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
-    "name": "io.nop.graphql.gateway.model.GatewayRouteModel"
+    "name": "io.nop.gateway.model.GatewayRouteModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -7454,7 +7454,7 @@
       {
         "name": "copyTo",
         "parameterTypes": [
-          "io.nop.graphql.gateway.model.GatewayModel"
+          "io.nop.gateway.model.GatewayModel"
         ]
       },
       {
@@ -7468,7 +7468,7 @@
         ]
       }
     ],
-    "name": "io.nop.graphql.gateway.model._gen._GatewayModel"
+    "name": "io.nop.gateway.model._gen._GatewayModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -7481,7 +7481,7 @@
       {
         "name": "copyTo",
         "parameterTypes": [
-          "io.nop.graphql.gateway.model.GatewayOnPathModel"
+          "io.nop.gateway.model.GatewayOnPathModel"
         ]
       },
       {
@@ -7495,7 +7495,7 @@
         ]
       }
     ],
-    "name": "io.nop.graphql.gateway.model._gen._GatewayOnPathModel"
+    "name": "io.nop.gateway.model._gen._GatewayOnPathModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -7508,7 +7508,7 @@
       {
         "name": "copyTo",
         "parameterTypes": [
-          "io.nop.graphql.gateway.model.GatewayRouteModel"
+          "io.nop.gateway.model.GatewayRouteModel"
         ]
       },
       {
@@ -7522,7 +7522,7 @@
         ]
       }
     ],
-    "name": "io.nop.graphql.gateway.model._gen._GatewayRouteModel"
+    "name": "io.nop.gateway.model._gen._GatewayRouteModel"
   },
   {
     "allDeclaredConstructors": true,

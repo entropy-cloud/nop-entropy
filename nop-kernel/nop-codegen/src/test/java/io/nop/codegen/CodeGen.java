@@ -56,6 +56,7 @@ public class CodeGen {
             XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-rule/nop-rule-core"), "", false);
             XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-stream/nop-stream-cep"), "", false);
             XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-service-framework/nop-biz-auth-core"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-service-framework/nop-gateway"), "", false);
 
             XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-batch/nop-batch-exp"), "", false);
 

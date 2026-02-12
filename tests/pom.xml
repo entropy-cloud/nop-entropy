@@ -585,7 +585,7 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-graphql-gateway</artifactId>
+            <artifactId>nop-gateway</artifactId>
             <version>${nop-entropy.version}</version>
         </dependency>
 
