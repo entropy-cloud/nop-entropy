@@ -224,7 +224,7 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
     /**
      *  
      * xml name: xdef:prop
-     * xdef转换为objMeta时，objPropMeta上存在的扩展属性
+     * 转换为objMeta时prop节点上的附加属性
      */
     private KeyedList<io.nop.xlang.xdef.impl.XDefProp> _xdefProps = KeyedList.emptyList();
     
@@ -267,7 +267,7 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
      *  
      * xml name: xdef:unknown-tag
      * 这里的xdef:unknown-tag表示在xdef文件的节点中可以存在xdef:unknown-tag定义。因为xdef名字空间设置为check-ns，因此上面的
-     * meta:unknown-tag是无法匹配xdef名字空间的，xdef名字空间中的所有属性和节点都必须明确声明。
+     * xdef-meta:unknown-tag是无法匹配xdef名字空间的，xdef名字空间中的所有属性和节点都必须明确声明。
      */
     private io.nop.xlang.xdef.impl.XDefNode _xdefUnknownTag ;
     
@@ -842,7 +842,7 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
     /**
      * 
      * xml name: xdef:prop
-     *  xdef转换为objMeta时，objPropMeta上存在的扩展属性
+     *  转换为objMeta时prop节点上的附加属性
      */
     
     public java.util.List<io.nop.xlang.xdef.impl.XDefProp> getXdefProps(){
@@ -983,7 +983,7 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
      * 
      * xml name: xdef:unknown-tag
      *  这里的xdef:unknown-tag表示在xdef文件的节点中可以存在xdef:unknown-tag定义。因为xdef名字空间设置为check-ns，因此上面的
-     * meta:unknown-tag是无法匹配xdef名字空间的，xdef名字空间中的所有属性和节点都必须明确声明。
+     * xdef-meta:unknown-tag是无法匹配xdef名字空间的，xdef名字空间中的所有属性和节点都必须明确声明。
      */
     
     public io.nop.xlang.xdef.impl.XDefNode getXdefUnknownTag(){

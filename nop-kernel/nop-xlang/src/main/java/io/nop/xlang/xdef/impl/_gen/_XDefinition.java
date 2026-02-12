@@ -12,6 +12,10 @@ import io.nop.commons.util.ClassHelper;
  * generate from /nop/schema/xdef.xdef <p>
  * xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即使用xdef来定义xdef本身。
  * 本文件定义了一般的xdef元模型定义文件中允许使用的xdef属性和标签的具体位置和格式。
+ * 设计核心——同像约束（homoiconic）：
+ * 1. 元模型文件的结构与它要约束的最终XML实例文件的结构基本一致，即“模板即是约束”。
+ * 2. 区别仅在于：实例文件中的具体标签名、属性值被替换为类型声明（如string、int、var-name），
+ * 并通过xdef命名空间的属性（xdef:value、xdef:mandatory等）附加约束规则。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
@@ -40,6 +44,13 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
     
     /**
      *  
+     * xml name: xdef:check-mutex
+     * 互斥约束（至少一个或完全互斥）
+     */
+    private KeyedList<io.nop.xlang.xdef.impl.XDefCheckMutex> _xdefCheckMutexs = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: xdef:check-ns
      * 指定一组必须要校验的名字空间。这些名字空间中定义的属性和子节点必须在xdef文件中明确声明，
      * xdef:unknown-attr和xdef:unknown-tag不会匹配这些名字空间。
@@ -55,10 +66,24 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
     
     /**
      *  
+     * xml name: xdef:check-require
+     * 条件必填/禁止约束
+     */
+    private io.nop.xlang.xdef.impl.XDefCheckRequire _xdefCheckRequire ;
+    
+    /**
+     *  
      * xml name: xdef:check-unique
      * xdef:check-unique 在指定范围内检查唯一性。
      */
     private KeyedList<io.nop.xlang.xdef.impl.XDefCheckUnique> _xdefCheckUniques = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: xdef:def-type
+     * 引入自定义的def-type类型约束，可以在本文件中使用
+     */
+    private KeyedList<io.nop.xlang.xdef.impl.XDefTypeModel> _xdefDefTypes = KeyedList.emptyList();
     
     /**
      *  
@@ -213,6 +238,51 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
     
     /**
      * 
+     * xml name: xdef:check-mutex
+     *  互斥约束（至少一个或完全互斥）
+     */
+    
+    public java.util.List<io.nop.xlang.xdef.impl.XDefCheckMutex> getXdefCheckMutexs(){
+      return _xdefCheckMutexs;
+    }
+
+    
+    public void setXdefCheckMutexs(java.util.List<io.nop.xlang.xdef.impl.XDefCheckMutex> value){
+        checkAllowChange();
+        
+        this._xdefCheckMutexs = KeyedList.fromList(value, io.nop.xlang.xdef.impl.XDefCheckMutex::getId);
+           
+    }
+
+    
+    public io.nop.xlang.xdef.impl.XDefCheckMutex getXdefCheckMutex(String name){
+        return this._xdefCheckMutexs.getByKey(name);
+    }
+
+    public boolean hasXdefCheckMutex(String name){
+        return this._xdefCheckMutexs.containsKey(name);
+    }
+
+    public void addXdefCheckMutex(io.nop.xlang.xdef.impl.XDefCheckMutex item) {
+        checkAllowChange();
+        java.util.List<io.nop.xlang.xdef.impl.XDefCheckMutex> list = this.getXdefCheckMutexs();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.xlang.xdef.impl.XDefCheckMutex::getId);
+            setXdefCheckMutexs(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_xdefCheckMutexs(){
+        return this._xdefCheckMutexs.keySet();
+    }
+
+    public boolean hasXdefCheckMutexs(){
+        return !this._xdefCheckMutexs.isEmpty();
+    }
+    
+    /**
+     * 
      * xml name: xdef:check-ns
      *  指定一组必须要校验的名字空间。这些名字空间中定义的属性和子节点必须在xdef文件中明确声明，
      * xdef:unknown-attr和xdef:unknown-tag不会匹配这些名字空间。
@@ -278,6 +348,25 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
     
     /**
      * 
+     * xml name: xdef:check-require
+     *  条件必填/禁止约束
+     */
+    
+    public io.nop.xlang.xdef.impl.XDefCheckRequire getXdefCheckRequire(){
+      return _xdefCheckRequire;
+    }
+
+    
+    public void setXdefCheckRequire(io.nop.xlang.xdef.impl.XDefCheckRequire value){
+        checkAllowChange();
+        
+        this._xdefCheckRequire = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: xdef:check-unique
      *  xdef:check-unique 在指定范围内检查唯一性。
      */
@@ -319,6 +408,51 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
 
     public boolean hasXdefCheckUniques(){
         return !this._xdefCheckUniques.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: xdef:def-type
+     *  引入自定义的def-type类型约束，可以在本文件中使用
+     */
+    
+    public java.util.List<io.nop.xlang.xdef.impl.XDefTypeModel> getXdefDefTypes(){
+      return _xdefDefTypes;
+    }
+
+    
+    public void setXdefDefTypes(java.util.List<io.nop.xlang.xdef.impl.XDefTypeModel> value){
+        checkAllowChange();
+        
+        this._xdefDefTypes = KeyedList.fromList(value, io.nop.xlang.xdef.impl.XDefTypeModel::getName);
+           
+    }
+
+    
+    public io.nop.xlang.xdef.impl.XDefTypeModel getXdefDefType(String name){
+        return this._xdefDefTypes.getByKey(name);
+    }
+
+    public boolean hasXdefDefType(String name){
+        return this._xdefDefTypes.containsKey(name);
+    }
+
+    public void addXdefDefType(io.nop.xlang.xdef.impl.XDefTypeModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.xlang.xdef.impl.XDefTypeModel> list = this.getXdefDefTypes();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.xlang.xdef.impl.XDefTypeModel::getName);
+            setXdefDefTypes(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_xdefDefTypes(){
+        return this._xdefDefTypes.keySet();
+    }
+
+    public boolean hasXdefDefTypes(){
+        return !this._xdefDefTypes.isEmpty();
     }
     
     /**
@@ -605,9 +739,15 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._xdefCheckMutexs = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefCheckMutexs);
+            
            this._xdefCheckRefs = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefCheckRefs);
             
+           this._xdefCheckRequire = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefCheckRequire);
+            
            this._xdefCheckUniques = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefCheckUniques);
+            
+           this._xdefDefTypes = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefDefTypes);
             
            this._xdefDefines = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefDefines);
             
@@ -621,9 +761,12 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
         out.putNotNull("xdefAllowUnknownStdDomain",this.getXdefAllowUnknownStdDomain());
         out.putNotNull("xdefBase",this.getXdefBase());
         out.putNotNull("xdefBeanPackage",this.getXdefBeanPackage());
+        out.putNotNull("xdefCheckMutexs",this.getXdefCheckMutexs());
         out.putNotNull("xdefCheckNs",this.getXdefCheckNs());
         out.putNotNull("xdefCheckRefs",this.getXdefCheckRefs());
+        out.putNotNull("xdefCheckRequire",this.getXdefCheckRequire());
         out.putNotNull("xdefCheckUniques",this.getXdefCheckUniques());
+        out.putNotNull("xdefDefTypes",this.getXdefDefTypes());
         out.putNotNull("xdefDefaultExtends",this.getXdefDefaultExtends());
         out.putNotNull("xdefDefines",this.getXdefDefines());
         out.putNotNull("xdefModelNameProp",this.getXdefModelNameProp());
@@ -651,9 +794,12 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
         instance.setXdefAllowUnknownStdDomain(this.getXdefAllowUnknownStdDomain());
         instance.setXdefBase(this.getXdefBase());
         instance.setXdefBeanPackage(this.getXdefBeanPackage());
+        instance.setXdefCheckMutexs(this.getXdefCheckMutexs());
         instance.setXdefCheckNs(this.getXdefCheckNs());
         instance.setXdefCheckRefs(this.getXdefCheckRefs());
+        instance.setXdefCheckRequire(this.getXdefCheckRequire());
         instance.setXdefCheckUniques(this.getXdefCheckUniques());
+        instance.setXdefDefTypes(this.getXdefDefTypes());
         instance.setXdefDefaultExtends(this.getXdefDefaultExtends());
         instance.setXdefDefines(this.getXdefDefines());
         instance.setXdefModelNameProp(this.getXdefModelNameProp());

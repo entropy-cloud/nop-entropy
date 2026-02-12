@@ -2,7 +2,7 @@ package io.nop.xlang.xdef.impl._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.xlang.xdef.impl.XDefProp;
+import io.nop.xlang.xdef.impl.XDefCheckMutex;
 import io.nop.commons.util.ClassHelper;
 
 
@@ -10,60 +10,60 @@ import io.nop.commons.util.ClassHelper;
 // tell cpd to start ignoring code - CPD-OFF
 /**
  * generate from /nop/schema/xdef.xdef <p>
- * 转换为objMeta时prop节点上的附加属性
+ * 互斥约束（至少一个或完全互斥）
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
-public abstract class _XDefProp extends io.nop.core.resource.component.AbstractComponentModel {
+public abstract class _XDefCheckMutex extends io.nop.xlang.xdef.impl.XDefAbstractCheck {
     
     /**
      *  
-     * xml name: name
+     * xml name: atLeastOne
      * 
      */
-    private java.lang.String _name ;
+    private java.lang.Boolean _atLeastOne ;
     
     /**
      *  
-     * xml name: tagSet
+     * xml name: props
      * 
      */
-    private java.util.Set<java.lang.String> _tagSet ;
+    private java.util.List<java.lang.String> _props ;
     
     /**
      * 
-     * xml name: name
+     * xml name: atLeastOne
      *  
      */
     
-    public java.lang.String getName(){
-      return _name;
+    public java.lang.Boolean getAtLeastOne(){
+      return _atLeastOne;
     }
 
     
-    public void setName(java.lang.String value){
+    public void setAtLeastOne(java.lang.Boolean value){
         checkAllowChange();
         
-        this._name = value;
+        this._atLeastOne = value;
            
     }
 
     
     /**
      * 
-     * xml name: tagSet
+     * xml name: props
      *  
      */
     
-    public java.util.Set<java.lang.String> getTagSet(){
-      return _tagSet;
+    public java.util.List<java.lang.String> getProps(){
+      return _props;
     }
 
     
-    public void setTagSet(java.util.Set<java.lang.String> value){
+    public void setProps(java.util.List<java.lang.String> value){
         checkAllowChange();
         
-        this._tagSet = value;
+        this._props = value;
            
     }
 
@@ -83,25 +83,25 @@ public abstract class _XDefProp extends io.nop.core.resource.component.AbstractC
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("name",this.getName());
-        out.putNotNull("tagSet",this.getTagSet());
+        out.putNotNull("atLeastOne",this.getAtLeastOne());
+        out.putNotNull("props",this.getProps());
     }
 
-    public XDefProp cloneInstance(){
-        XDefProp instance = newInstance();
+    public XDefCheckMutex cloneInstance(){
+        XDefCheckMutex instance = newInstance();
         this.copyTo(instance);
         return instance;
     }
 
-    protected void copyTo(XDefProp instance){
+    protected void copyTo(XDefCheckMutex instance){
         super.copyTo(instance);
         
-        instance.setName(this.getName());
-        instance.setTagSet(this.getTagSet());
+        instance.setAtLeastOne(this.getAtLeastOne());
+        instance.setProps(this.getProps());
     }
 
-    protected XDefProp newInstance(){
-        return (XDefProp) ClassHelper.newInstance(getClass());
+    protected XDefCheckMutex newInstance(){
+        return (XDefCheckMutex) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -14,7 +14,7 @@ import io.nop.commons.util.ClassHelper;
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
-public abstract class _XDefCheckRef extends io.nop.core.resource.component.AbstractComponentModel {
+public abstract class _XDefCheckRef extends io.nop.xlang.xdef.impl.XDefAbstractCheck {
     
     /**
      *  
@@ -25,32 +25,11 @@ public abstract class _XDefCheckRef extends io.nop.core.resource.component.Abstr
     
     /**
      *  
-     * xml name: errorCode
-     * 违反约束时的错误码
-     */
-    private java.lang.String _errorCode ;
-    
-    /**
-     *  
-     * xml name: id
-     * 规则自身的标识
-     */
-    private java.lang.String _id ;
-    
-    /**
-     *  
-     * xml name: message
-     * 
-     */
-    private java.lang.String _message ;
-    
-    /**
-     *  
-     * xml name: ref
-     * 从 select 选中的节点上抽取引用集合（例如 @depends）。
+     * xml name: prop
+     * 从 select 选中的节点上抽取引用集合（例如 depends）。
      * 引用集合的解析由字段 defType 决定（如 csv-set/csv-list），这里不负责 split。
      */
-    private java.lang.String _ref ;
+    private java.lang.String _prop ;
     
     /**
      *  
@@ -58,13 +37,6 @@ public abstract class _XDefCheckRef extends io.nop.core.resource.component.Abstr
      * 校验范围（document/siblings/...，由 XDefCheckScope 枚举定义）
      */
     private io.nop.xlang.xdef.XDefCheckScope _scope ;
-    
-    /**
-     *  
-     * xml name: select
-     * 选择参与校验的节点集合（xpath/xselector 字符串）
-     */
-    private java.lang.String _select ;
     
     /**
      * 
@@ -87,77 +59,20 @@ public abstract class _XDefCheckRef extends io.nop.core.resource.component.Abstr
     
     /**
      * 
-     * xml name: errorCode
-     *  违反约束时的错误码
-     */
-    
-    public java.lang.String getErrorCode(){
-      return _errorCode;
-    }
-
-    
-    public void setErrorCode(java.lang.String value){
-        checkAllowChange();
-        
-        this._errorCode = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: id
-     *  规则自身的标识
-     */
-    
-    public java.lang.String getId(){
-      return _id;
-    }
-
-    
-    public void setId(java.lang.String value){
-        checkAllowChange();
-        
-        this._id = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: message
-     *  
-     */
-    
-    public java.lang.String getMessage(){
-      return _message;
-    }
-
-    
-    public void setMessage(java.lang.String value){
-        checkAllowChange();
-        
-        this._message = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: ref
-     *  从 select 选中的节点上抽取引用集合（例如 @depends）。
+     * xml name: prop
+     *  从 select 选中的节点上抽取引用集合（例如 depends）。
      * 引用集合的解析由字段 defType 决定（如 csv-set/csv-list），这里不负责 split。
      */
     
-    public java.lang.String getRef(){
-      return _ref;
+    public java.lang.String getProp(){
+      return _prop;
     }
 
     
-    public void setRef(java.lang.String value){
+    public void setProp(java.lang.String value){
         checkAllowChange();
         
-        this._ref = value;
+        this._prop = value;
            
     }
 
@@ -181,25 +96,6 @@ public abstract class _XDefCheckRef extends io.nop.core.resource.component.Abstr
     }
 
     
-    /**
-     * 
-     * xml name: select
-     *  选择参与校验的节点集合（xpath/xselector 字符串）
-     */
-    
-    public java.lang.String getSelect(){
-      return _select;
-    }
-
-    
-    public void setSelect(java.lang.String value){
-        checkAllowChange();
-        
-        this._select = value;
-           
-    }
-
-    
 
     @Override
     public void freeze(boolean cascade){
@@ -216,12 +112,8 @@ public abstract class _XDefCheckRef extends io.nop.core.resource.component.Abstr
         super.outputJson(out);
         
         out.putNotNull("disallowSelf",this.getDisallowSelf());
-        out.putNotNull("errorCode",this.getErrorCode());
-        out.putNotNull("id",this.getId());
-        out.putNotNull("message",this.getMessage());
-        out.putNotNull("ref",this.getRef());
+        out.putNotNull("prop",this.getProp());
         out.putNotNull("scope",this.getScope());
-        out.putNotNull("select",this.getSelect());
     }
 
     public XDefCheckRef cloneInstance(){
@@ -234,12 +126,8 @@ public abstract class _XDefCheckRef extends io.nop.core.resource.component.Abstr
         super.copyTo(instance);
         
         instance.setDisallowSelf(this.getDisallowSelf());
-        instance.setErrorCode(this.getErrorCode());
-        instance.setId(this.getId());
-        instance.setMessage(this.getMessage());
-        instance.setRef(this.getRef());
+        instance.setProp(this.getProp());
         instance.setScope(this.getScope());
-        instance.setSelect(this.getSelect());
     }
 
     protected XDefCheckRef newInstance(){

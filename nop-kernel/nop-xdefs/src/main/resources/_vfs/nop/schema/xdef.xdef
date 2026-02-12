@@ -104,7 +104,7 @@ xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即
     <!-- 引入自定义的def-type类型约束，可以在本文件中使用
     @ref 可以引用系统内置的def-type定义，对其进行特化
     -->
-    <xdef:def-type name="!xml-name" ref="xml-name" min="number" max="number" minItems="int" maxItems="int"
+    <xdef:def-type xdef-meta:name="XDefTypeModel" name="!xml-name" ref="xml-name" min="number" max="number" minItems="int" maxItems="int"
                    minLength="int" maxLength="int" pattern="regex" dict="string" type="generic-type"
                    description="string" xdef-meta:unique-attr="name"/>
 
