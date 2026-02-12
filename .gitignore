@@ -11,6 +11,8 @@ release.properties
 .classpath
 .settings/
 bin/
+.nop/repository/
+.nop/log/
 
 # IntelliJ
 .idea

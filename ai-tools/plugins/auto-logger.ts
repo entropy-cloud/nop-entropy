@@ -30,7 +30,7 @@ function extractContent(message: any) {
   return fullContent
 }
 
-const LOG_DIR = ".nop"
+const LOG_DIR = ".nop/log"
 const LOCK_ACQUIRE_TIMEOUT_MS = 30000
 
 class FileLock {
