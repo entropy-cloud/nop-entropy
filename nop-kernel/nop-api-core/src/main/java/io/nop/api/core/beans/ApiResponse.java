@@ -52,14 +52,24 @@ public final class ApiResponse<T> extends ApiMessage {
      */
     private boolean wrapper;
 
+    @Deprecated
     public static <T> ApiResponse<T> buildSuccess(T data) {
+        return success(data);
+    }
+
+    public static <T> ApiResponse<T> success(T data) {
         ApiResponse<T> ret = new ApiResponse<>();
         ret.setStatus(ApiConstants.API_STATUS_OK);
         ret.setData(data);
         return ret;
     }
 
+    @Deprecated
     public static <T> ApiResponse<T> buildError(ErrorBean error) {
+        return error(error);
+    }
+
+    public static <T> ApiResponse<T> error(ErrorBean error) {
         ApiResponse<T> ret = new ApiResponse<>();
         ret.setStatus(ApiConstants.API_STATUS_FAIL);
         ret.setError(error);
@@ -69,7 +79,7 @@ public final class ApiResponse<T> extends ApiMessage {
     public static ApiResponse<?> wrap(Object data) {
         if (data instanceof ApiResponse)
             return (ApiResponse<?>) data;
-        return buildSuccess(data);
+        return success(data);
     }
 
     public T get() {
@@ -125,7 +135,7 @@ public final class ApiResponse<T> extends ApiMessage {
         return ret;
     }
 
-    public ApiResponse<T> withHeader(String name, Object value){
+    public ApiResponse<T> withHeader(String name, Object value) {
         setHeader(name, value);
         return this;
     }

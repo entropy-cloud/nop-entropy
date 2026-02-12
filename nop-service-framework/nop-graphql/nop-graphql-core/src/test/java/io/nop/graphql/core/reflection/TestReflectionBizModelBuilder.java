@@ -23,7 +23,7 @@ public class TestReflectionBizModelBuilder {
     public static class MyServiceBizModel {
         @BizMutation
         public ApiResponse<String> myMethod() {
-            return ApiResponse.buildSuccess("sss");
+            return ApiResponse.success("sss");
         }
     }
 

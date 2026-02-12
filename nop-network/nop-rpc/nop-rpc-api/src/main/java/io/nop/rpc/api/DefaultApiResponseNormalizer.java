@@ -21,7 +21,7 @@ public class DefaultApiResponseNormalizer implements IApiResponseNormalizer {
         if (ret instanceof GraphQLResponseBean) {
             return ((GraphQLResponseBean) ret).toApiResponse();
         }
-        ApiResponse<Object> res = ApiResponse.buildSuccess(ret);
+        ApiResponse<Object> res = ApiResponse.success(ret);
         res.setWrapper(true);
         return res;
     }

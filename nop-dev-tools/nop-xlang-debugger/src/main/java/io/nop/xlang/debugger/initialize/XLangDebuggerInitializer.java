@@ -100,7 +100,7 @@ public class XLangDebuggerInitializer implements ICoreInitializer {
             StackInfo stackInfo = debugger.getStackInfo(thread.getThreadId());
             message.setStackInfo(stackInfo);
             message.setType("notice");
-            ApiResponse<?> res = ApiResponse.buildSuccess(message);
+            ApiResponse<?> res = ApiResponse.success(message);
             server.sendNoticeTo(addr, res);
         }
     }
@@ -112,7 +112,7 @@ public class XLangDebuggerInitializer implements ICoreInitializer {
             message.setStackInfo(stackInfo);
             message.setType(type);
 
-            ApiResponse<?> res = ApiResponse.buildSuccess(message);
+            ApiResponse<?> res = ApiResponse.success(message);
             server.broadcast(RpcConstants.CMD_NOTICE, (short) 0, res);
         }
 

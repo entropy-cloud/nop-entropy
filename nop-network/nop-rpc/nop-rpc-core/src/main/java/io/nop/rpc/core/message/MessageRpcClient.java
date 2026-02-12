@@ -89,7 +89,7 @@ public class MessageRpcClient extends LifeCycleSupport implements IRpcService {
         String topic = getTopic(request);
 
         if (oneWay) {
-            return messageService.sendAsync(topic, request, options).thenApply(r -> ApiResponse.buildSuccess(null));
+            return messageService.sendAsync(topic, request, options).thenApply(r -> ApiResponse.success(null));
         } else {
             CompletionStage<ApiResponse<?>> promise = (CompletionStage<ApiResponse<?>>) channelState.prepareSend(id,
                     request, timeout);

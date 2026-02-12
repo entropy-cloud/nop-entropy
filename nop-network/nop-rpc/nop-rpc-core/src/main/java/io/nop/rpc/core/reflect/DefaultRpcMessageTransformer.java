@@ -196,7 +196,7 @@ public class DefaultRpcMessageTransformer implements IRpcMessageTransformer {
     public ApiResponse<?> toResponse(String serviceName, IFunctionModel method, Object result) {
         if (result instanceof ApiResponse)
             return (ApiResponse<?>) result;
-        return ApiResponse.buildSuccess(result);
+        return ApiResponse.success(result);
     }
 
     @Override

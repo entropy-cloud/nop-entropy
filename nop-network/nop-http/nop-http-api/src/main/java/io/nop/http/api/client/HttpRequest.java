@@ -33,6 +33,13 @@ public class HttpRequest {
      */
     private Map<String, Object> attrs;
 
+    public HttpRequest(){}
+
+    public HttpRequest(String url){
+        setUrl(url);
+        setMethod(HttpApiConstants.METHOD_GET);
+    }
+
     public static HttpRequest get(String url) {
         HttpRequest request = new HttpRequest();
         request.setUrl(url);
@@ -156,6 +163,10 @@ public class HttpRequest {
 
     public void setHeaders(Map<String, Object> headers) {
         this.headers = headers;
+    }
+
+    public void setHeader(String name, Object value){
+        this.header(name,value);
     }
 
     public String getBearerToken() {

@@ -191,7 +191,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
             Collections.sort(rt.getErrorBeans(), Comparator.comparing(ErrorBean::getSeverity));
             response = ErrorMessageManager.instance().buildResponseForErrorBean(locale, rt.getErrorBeans().get(0));
         } else {
-            response = ApiResponse.buildSuccess(result);
+            response = ApiResponse.success(result);
         }
         response.setHeaders(rt.getResponseHeaders());
 

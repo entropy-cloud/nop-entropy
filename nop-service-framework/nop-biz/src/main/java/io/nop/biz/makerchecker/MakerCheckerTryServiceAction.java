@@ -58,7 +58,7 @@ public class MakerCheckerTryServiceAction implements IServiceAction {
         req.setBizMethod(bizMethod);
         req.setTryResult(toTryResponse(result));
         return makerCheckerProvider.sendForCheckAsync(req).thenApply(reqId -> {
-            return ApiResponse.buildSuccess(reqId);
+            return ApiResponse.success(reqId);
         });
     }
 

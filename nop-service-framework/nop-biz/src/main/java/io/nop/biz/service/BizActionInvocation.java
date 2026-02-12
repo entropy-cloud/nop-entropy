@@ -76,7 +76,7 @@ public class BizActionInvocation implements IRpcServiceInvocation {
     private ApiResponse<?> toResponse(Object value) {
         if (value instanceof ApiResponse)
             return (ApiResponse<?>) value;
-        return ApiResponse.buildSuccess(value);
+        return ApiResponse.success(value);
     }
 
     @Override

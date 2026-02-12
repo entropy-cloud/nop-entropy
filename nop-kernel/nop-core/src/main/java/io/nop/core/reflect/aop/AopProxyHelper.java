@@ -56,7 +56,7 @@ public class AopProxyHelper {
         if (ret instanceof ApiResponse<?>)
             return (ApiResponse<?>) ret;
 
-        ApiResponse<Object> res = ApiResponse.buildSuccess(ret);
+        ApiResponse<Object> res = ApiResponse.success(ret);
         res.setHeaders(ctx.getResponseHeaders());
         return res;
     }

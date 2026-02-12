@@ -117,7 +117,7 @@ public class RpcMessageSubscriber implements IMessageSubscriber, IRpcService {
         if (message instanceof ApiResponse) {
             rep = (ApiResponse<Object>) message;
         } else {
-            rep = ApiResponse.buildSuccess(message);
+            rep = ApiResponse.success(message);
         }
         String reqId = ApiHeaders.getId(request);
         if (!StringHelper.isEmpty(reqId)) {

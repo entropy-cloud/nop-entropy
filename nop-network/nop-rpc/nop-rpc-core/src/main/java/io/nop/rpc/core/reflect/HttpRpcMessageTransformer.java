@@ -165,7 +165,7 @@ public class HttpRpcMessageTransformer extends DefaultRpcMessageTransformer {
 
     ApiResponse<?> buildResponse(IFunctionModel method, Object res) {
         if (res == null)
-            return ApiResponse.buildSuccess(null);
+            return ApiResponse.success(null);
 
         IGenericType type = method.getAsyncReturnType();
         if (res instanceof String) {
@@ -177,6 +177,6 @@ public class HttpRpcMessageTransformer extends DefaultRpcMessageTransformer {
         }
         if (res instanceof ApiResponse)
             return (ApiResponse<?>) res;
-        return ApiResponse.buildSuccess(res);
+        return ApiResponse.success(res);
     }
 }

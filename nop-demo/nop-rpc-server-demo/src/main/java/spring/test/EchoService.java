@@ -30,7 +30,7 @@ public class EchoService {
 
     @PostMapping("/r/Demo__hello")
     public ApiResponse<?> hello(@RequestBody Map<String,Object> body) {
-        return ApiResponse.buildSuccess("result:" + body);
+        return ApiResponse.success("result:" + body);
     }
 
     @Autowired

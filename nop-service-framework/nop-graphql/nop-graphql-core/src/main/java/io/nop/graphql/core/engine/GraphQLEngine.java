@@ -595,7 +595,7 @@ public class GraphQLEngine implements IGraphQLEngine {
         } else if (result instanceof ApiResponse<?>) {
             res = (ApiResponse<?>) result;
         } else {
-            res = ApiResponse.buildSuccess(result);
+            res = ApiResponse.success(result);
         }
 
         if (context != null) {

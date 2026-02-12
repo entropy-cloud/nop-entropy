@@ -118,7 +118,7 @@ public class RpcTaskMonitor extends LifeCycleSupport {
     public void updateTaskStatus(TaskStatusBean status) {
         RpcTask task = activeTasks.get(status.getTaskId());
         if (task != null) {
-            handleTaskStatus(task, ApiResponse.buildSuccess(status), null);
+            handleTaskStatus(task, ApiResponse.success(status), null);
         }
     }
 

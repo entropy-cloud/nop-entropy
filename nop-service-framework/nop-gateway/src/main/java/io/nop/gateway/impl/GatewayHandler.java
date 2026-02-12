@@ -230,7 +230,7 @@ public class GatewayHandler {
                             streaming.getOnStreamComplete().call2(null, null, null, scope);
                         }
                         // Return an empty success response
-                        streamingFuture.complete(ApiResponse.buildSuccess(null));
+                        streamingFuture.complete(ApiResponse.success(null));
                     } catch (Exception e) {
                         streamingFuture.completeExceptionally(NopException.adapt(e));
                     }

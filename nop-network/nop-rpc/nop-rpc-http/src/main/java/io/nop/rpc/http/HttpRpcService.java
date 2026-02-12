@@ -108,7 +108,7 @@ public class HttpRpcService implements IRpcService {
         }
 
         if (ret == null) {
-            ret = ApiResponse.buildSuccess(null);
+            ret = ApiResponse.success(null);
         }
         if(status != 200)
             ret.setHttpStatus(status);

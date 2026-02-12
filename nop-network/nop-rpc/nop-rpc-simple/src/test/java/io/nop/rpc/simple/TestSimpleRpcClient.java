@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestSimpleRpcClient {
     @Test
     public void testException() {
-        ApiResponse<Object> res = ApiResponse.buildError(new ErrorBean("abc"));
+        ApiResponse<Object> res = ApiResponse.error(new ErrorBean("abc"));
 
         AtomicReference<Object> ref = new AtomicReference<>();
 
