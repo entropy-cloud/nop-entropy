@@ -54,7 +54,7 @@ public class HttpRpcService implements IRpcService {
         req.setUrl(url);
         Map<String, Object> headers = new HashMap<>();
 
-        if (request.getHeaders() != null) {
+        if (request.hasHeaders()) {
             for (Map.Entry<String, Object> entry : request.getHeaders().entrySet()) {
                 String name = entry.getKey();
                 Object value = entry.getValue();

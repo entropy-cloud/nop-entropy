@@ -25,7 +25,7 @@ public class SpringJsonRpcWebService extends GraphQLWebService {
 
         return runJsonRpc(body, getHeaders()).thenApply(ret -> {
             ret.setHeader(HttpHeaders.CONTENT_TYPE, "application/json;charset=UTF-8");
-            return SpringMvcHelper.buildResponseEntity(ret.getHeaders(), ret.getData(), ret.getHttpStatus());
+            return SpringMvcHelper.buildResponseEntity(ret.getHeadersOrNull(), ret.getData(), ret.getHttpStatus());
         });
     }
 }

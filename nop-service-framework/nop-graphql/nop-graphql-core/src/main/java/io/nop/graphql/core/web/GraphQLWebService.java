@@ -308,7 +308,7 @@ public abstract class GraphQLWebService {
         String body = JSON.stringify(response.cloneInstance(false));
         Map<String, Object> headers = response.getHeaders();
 
-        return responseBuilder.apply(headers != null ? new HashMap<>(headers) : new HashMap<>(), body, status);
+        return responseBuilder.apply(headers, body, status);
     }
 
     protected Response buildJaxrsRestResponse(ApiResponse<?> res, IGraphQLExecutionContext context) {

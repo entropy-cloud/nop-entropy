@@ -36,6 +36,11 @@ public final class ApiRequest<T> extends ApiMessage {
         return request;
     }
 
+    public ApiRequest<T> withHeader(String name, Object value){
+        setHeader(name, value);
+        return this;
+    }
+
     @JsonIgnore
     public Map<String, Object> getProperties() {
         return properties;
@@ -78,6 +83,10 @@ public final class ApiRequest<T> extends ApiMessage {
             properties.remove(name);
     }
 
+    public void clearProperties() {
+        this.properties = null;
+    }
+
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public FieldSelectionBean getSelection() {
         return selection;
@@ -107,7 +116,7 @@ public final class ApiRequest<T> extends ApiMessage {
     @Override
     public ApiRequest<T> cloneInstance(boolean includeHeaders) {
         ApiRequest<T> ret = new ApiRequest<>();
-        if (includeHeaders) {
+        if (includeHeaders && hasHeaders()) {
             Map<String, Object> headers = getHeaders();
             if (headers != null) {
                 ret.setHeaders(new TreeMap<>(headers));
@@ -115,6 +124,8 @@ public final class ApiRequest<T> extends ApiMessage {
         }
         ret.setSelection(selection);
         ret.setData(data);
+        if (this.properties != null)
+            this.properties = new HashMap<>(this.properties);
         return ret;
     }
 }

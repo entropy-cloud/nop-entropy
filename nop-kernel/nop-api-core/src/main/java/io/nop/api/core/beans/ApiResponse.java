@@ -107,11 +107,13 @@ public final class ApiResponse<T> extends ApiMessage {
     @Override
     public ApiResponse<T> cloneInstance(boolean includeHeaders) {
         ApiResponse<T> ret = new ApiResponse<>();
-        Map<String, Object> headers = getHeaders();
-        if (headers != null) {
-            headers = new TreeMap<>(headers);
+        if (hasHeaders()) {
+            Map<String, Object> headers = getHeaders();
+            if (headers != null) {
+                headers = new TreeMap<>(headers);
+            }
+            ret.setHeaders(headers);
         }
-        ret.setHeaders(headers);
         ret.setHttpStatus(httpStatus);
         ret.setStatus(status);
         ret.setCode(code);
@@ -119,7 +121,13 @@ public final class ApiResponse<T> extends ApiMessage {
         ret.setMsgTimeout(msgTimeout);
         ret.setErrors(errors);
         ret.setData(data);
+        ret.setWrapper(wrapper);
         return ret;
+    }
+
+    public ApiResponse<T> withHeader(String name, Object value){
+        setHeader(name, value);
+        return this;
     }
 
     @JsonInclude(Include.NON_DEFAULT)

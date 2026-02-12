@@ -4,9 +4,14 @@
 xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即使用xdef来定义xdef本身。
 本文件定义了一般的xdef元模型定义文件中允许使用的xdef属性和标签的具体位置和格式。
 
-@xmlns:meta 在本文件中，将内置的xdef名字空间重命名为meta，所以xdef:xxx不再表达xdef语言的语法。利用这种方式，我们可以用xdef元语言
+设计核心——同像约束（homoiconic）：
+1. 元模型文件的结构与它要约束的最终XML实例文件的结构基本一致，即“模板即是约束”。
+2. 区别仅在于：实例文件中的具体标签名、属性值被替换为类型声明（如string、int、var-name），
+   并通过xdef命名空间的属性（xdef:value、xdef:mandatory等）附加约束规则。
+
+@xmlns:xdef-meta 在本文件中，将内置的xdef名字空间重命名为xdef-meta，所以xdef:xxx不再表达xdef语言的语法。利用这种方式，我们可以用xdef元语言
      来定义xdef语言自身。
-@xmlns:xdef 在本文件中，xdef不再代表xdef元模型定义的名字空间，而是普通的业务领域名字空间。xdef名字空间被重命名为meta
+@xmlns:xdef 在本文件中，xdef不再代表xdef元模型定义的名字空间，而是普通的业务领域名字空间。xdef名字空间被重命名为xdef-meta
 @xdef:default-extends 规定缺省的extends模型文件。如果非空，则由此xdef文件描述的模型文件中，总是会缺省继承default-extends所指定的模型文件，
   通过此机制可以引入全局模型假定，简化模型配置。特别是结合x:post-extends机制可以实现自定义的可视化设计器。
 @xdef:check-ns  指定一组必须要校验的名字空间。这些名字空间中定义的属性和子节点必须在xdef文件中明确声明，
@@ -19,20 +24,20 @@ xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即
 @xdef:model-name-prop 将模型的名称保存到解析后的模型对象上，成为某个属性。因为模型名称有可能体现在它的资源路径中，并不直接在模型中指定
 @xdef:transformer-class 加载得到XNode节点之后调用这个类进行格式转换，可以转换得到标准格式，或者执行版本迁移等
 -->
-<meta:unknown-tag x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-                  xmlns:meta="/nop/schema/xdef.xdef" meta:check-ns="xdef"
-                  meta:parse-keep-comment="true"
-                  meta:bean-package="io.nop.xlang.xdef.impl" meta:name="XDefinition"
-                  meta:ref="XDefNode" meta:prop-ns="xdef"
+<xdef-meta:unknown-tag x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+                       xmlns:xdef-meta="/nop/schema/xdef.xdef" xdef-meta:check-ns="xdef"
+                       xdef-meta:parse-keep-comment="true"
+                       xdef-meta:bean-package="io.nop.xlang.xdef.impl" xdef-meta:name="XDefinition"
+                       xdef-meta:ref="XDefNode" xdef-meta:prop-ns="xdef"
 
-                  xdef:version="string" xdef:default-extends="v-path"
-                  xdef:transform="v-path" xdef:transformer-class="class-name-set"
-                  xdef:parse-for-html="boolean" xdef:parse-keep-comment="boolean"
-                  xdef:bean-package="package-name"
-                  xdef:parser-class="class-name"
-                  xdef:check-ns="word-set" xdef:prop-ns="word-set" xdef:allow-unknown-std-domain="boolean"
-                  xdef:base="v-path" xdef:model-name-prop="string" xdef:model-version-prop="string"
-                  xmlns:xdef="xdef">
+                       xdef:version="string" xdef:default-extends="v-path"
+                       xdef:transform="v-path" xdef:transformer-class="class-name-set"
+                       xdef:parse-for-html="boolean" xdef:parse-keep-comment="boolean"
+                       xdef:bean-package="package-name"
+                       xdef:parser-class="class-name"
+                       xdef:check-ns="word-set" xdef:prop-ns="word-set" xdef:allow-unknown-std-domain="boolean"
+                       xdef:base="v-path" xdef:model-name-prop="string" xdef:model-version-prop="string"
+                       xmlns:xdef="xdef">
     <!--
     @xdef:name 将本节点注册为xdef片段，其他节点可以通过xdef:ref来引用该片段。一般对应于Java类名，会根据它和根节点上的xdef:bean-package设置
        自动生成xdef:bean-class属性。
@@ -48,87 +53,108 @@ xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即
     @xdef:deprecated 已废弃，不应再使用
     @xdef:mandatory 是否是必须存在的子节点
     -->
-    <meta:define meta:name="XDefNode"
-                 meta:bean-tag-prop="tagName" meta:unknown-attr="!xdef-attr" meta:bean-comment-prop="comment"
-                 meta:bean-unknown-attrs-prop="attributes" meta:bean-unknown-children-prop="children"
-                 meta:value="def-type"
-                 xdef:id="~string" xdef:name="var-name" xdef:ref="xdef-ref"
-                 xdef:value="def-type" xdef:body-type="enum:io.nop.xlang.xdef.XDefBodyType"
-                 xdef:unique-attr="xml-name" xdef:key-attr="xml-name" xdef:order-attr="xml-name"
-                 xdef:mandatory="boolean" xdef:ref-resolved="~boolean"
-                 xdef:allow-multiple="boolean" xdef:support-extends="boolean"
-                 xdef:default-override="enum:io.nop.xlang.xdef.XDefOverride"
-                 xdef:internal="boolean" xdef:deprecated="boolean"
-                 xdef:unknown-attr="def-type"
-                 xdef:bean-class="class-name" xdef:bean-body-type="generic-type"
-                 xdef:bean-ref-prop="prop-name" xdef:bean-sub-type-prop="prop-name"
-                 xdef:bean-unknown-attrs-prop="prop-name" xdef:bean-unknown-children-prop="prop-name"
-                 xdef:bean-body-prop="prop-name" xdef:bean-child-name="var-name"
-                 xdef:bean-comment-prop="prop-name"
-                 xdef:bean-tag-prop="prop-name" xdef:bean-prop="prop-name"
-                 xdef:bean-extends-type="generic-type" xdef:bean-implements-types="generic-type-list"
+    <xdef-meta:define xdef-meta:name="XDefNode"
+                      xdef-meta:bean-tag-prop="tagName" xdef-meta:unknown-attr="!xdef-attr"
+                      xdef-meta:bean-comment-prop="comment"
+                      xdef-meta:bean-unknown-attrs-prop="attributes" xdef-meta:bean-unknown-children-prop="children"
+                      xdef-meta:value="def-type"
+                      xdef:id="~string" xdef:name="var-name" xdef:ref="xdef-ref"
+                      xdef:value="def-type" xdef:body-type="enum:io.nop.xlang.xdef.XDefBodyType"
+                      xdef:unique-attr="xml-name" xdef:key-attr="xml-name" xdef:order-attr="xml-name"
+                      xdef:mandatory="boolean" xdef:ref-resolved="~boolean"
+                      xdef:allow-multiple="boolean" xdef:support-extends="boolean"
+                      xdef:default-override="enum:io.nop.xlang.xdef.XDefOverride"
+                      xdef:internal="boolean" xdef:deprecated="boolean"
+                      xdef:unknown-attr="def-type"
+                      xdef:bean-class="class-name" xdef:bean-body-type="generic-type"
+                      xdef:bean-ref-prop="prop-name" xdef:bean-sub-type-prop="prop-name"
+                      xdef:bean-unknown-attrs-prop="prop-name" xdef:bean-unknown-children-prop="prop-name"
+                      xdef:bean-body-prop="prop-name" xdef:bean-child-name="var-name"
+                      xdef:bean-comment-prop="prop-name"
+                      xdef:bean-tag-prop="prop-name" xdef:bean-prop="prop-name"
+                      xdef:bean-extends-type="generic-type" xdef:bean-implements-types="generic-type-list"
     >
         <!--
-        这里的meta:unknown-tag表示节点下允许任意名称的子节点。因为xdef名字空间已经设置为check-ns，所以这里的meta:unknown-tag
+        这里的xdef-meta:unknown-tag表示节点下允许任意名称的子节点。因为xdef名字空间已经设置为check-ns，所以这里的xdef-meta:unknown-tag
         不会匹配xdef:unknown-tag节点。
         -->
-        <meta:unknown-tag meta:ref="XDefNode"/>
+        <xdef-meta:unknown-tag xdef-meta:ref="XDefNode"/>
 
         <!--
        这里的xdef:unknown-tag表示在xdef文件的节点中可以存在xdef:unknown-tag定义。因为xdef名字空间设置为check-ns，因此上面的
-       meta:unknown-tag是无法匹配xdef名字空间的，xdef名字空间中的所有属性和节点都必须明确声明。
+       xdef-meta:unknown-tag是无法匹配xdef名字空间的，xdef名字空间中的所有属性和节点都必须明确声明。
         -->
-        <xdef:unknown-tag meta:ref="XDefNode"/>
+        <xdef:unknown-tag xdef-meta:ref="XDefNode"/>
 
-        <!--
-        xdef转换为objMeta时，objPropMeta上存在的扩展属性
-        -->
-        <xdef:prop name="!xml-name" tagSet="csv-set" meta:unknown-attr="string" meta:unique-attr="name"
-                   meta:name="XDefProp"/>
+        <!-- 转换为objMeta时prop节点上的附加属性 -->
+        <xdef:prop name="!xml-name" tagSet="csv-set" xdef-meta:unknown-attr="string" xdef-meta:unique-attr="name"
+                   xdef-meta:name="XDefProp"/>
 
-        <xdef:meta meta:value="xml"/>
+        <xdef:meta xdef-meta:value="xml"/>
 
-    </meta:define>
+    </xdef-meta:define>
+
 
     <!--
    定义xdef片段，可以通过xdef:ref来引用
     -->
-    <xdef:define xdef:name="!var-name" meta:ref="XDefNode" meta:unique-attr="xdef:name"
-                 meta:bean-child-name="xdefDefine"/>
+    <xdef:define xdef:name="!var-name" xdef-meta:ref="XDefNode" xdef-meta:unique-attr="xdef:name"
+                 xdef-meta:bean-child-name="xdefDefine"/>
+
+    <!-- 引入自定义的def-type类型约束，可以在本文件中使用
+    @ref 可以引用系统内置的def-type定义，对其进行特化
+    -->
+    <xdef:def-type name="!xml-name" ref="xml-name" min="number" max="number" minItems="int" maxItems="int"
+                   minLength="int" maxLength="int" pattern="regex" dict="string" type="generic-type"
+                   description="string" xdef-meta:unique-attr="name"/>
+
+    <!--
+    所有XDef约束规则的公共部分
+    @id 规则自身的标识
+    @select 选择参与校验的节点集合（xpath/xselector 字符串）
+    -->
+    <xdef-meta:define xdef-meta:name="XDefAbstractCheck" id="!var-name" select="!string" errorCode="!string"
+                      message="string"/>
 
     <!--
     xdef:check-unique 在指定范围内检查唯一性。
 
-    @id 规则自身的标识
     @scope 校验范围（document/siblings/...，由 XDefCheckScope 枚举定义）
-    @select 选择参与校验的节点集合（xpath/xselector 字符串）
-    @ref 从 select 选中的节点上抽取需要唯一的值，通常为 @id 之类的属性表达式
-    @errorCode 违反约束时的错误码
+    @prop 从 select 选中的节点获取的唯一属性名
     -->
-    <xdef:check-unique id="var-name" meta:unique-attr="id" meta:name="XDefCheckUnique"
-                       scope="enum:io.nop.xlang.xdef.XDefCheckScope"
-                       select="string" ref="string"
-                       errorCode="string" message="string"/>
+    <xdef:check-unique id="!var-name" xdef-meta:unique-attr="id" xdef-meta:name="XDefCheckUnique"
+                       xdef-meta:ref="XDefAbstractCheck"
+                       scope="enum:io.nop.xlang.xdef.XDefCheckScope" prop="string"/>
 
     <!--
     xdef:check-ref 在指定范围内检查引用合法性。
 
-    @id 规则自身的标识
     @scope 校验范围（document/siblings/...，由 XDefCheckScope 枚举定义）
-    @select 选择参与校验的节点集合（xpath/xselector 字符串）
-    @ref 从 select 选中的节点上抽取引用集合（例如 @depends）。
+    @prop 从 select 选中的节点上抽取引用集合（例如 depends）。
        引用集合的解析由字段 defType 决定（如 csv-set/csv-list），这里不负责 split。
     @disallowSelf 是否禁止引用自身（缺省 false）
-    @errorCode 违反约束时的错误码
     -->
-    <xdef:check-ref id="var-name" meta:unique-attr="id" meta:name="XDefCheckRef"
-                    scope="enum:io.nop.xlang.xdef.XDefCheckScope"
-                    select="string" ref="string"
-                    disallowSelf="boolean=false"
-                    errorCode="string" message="string"/>
+    <xdef:check-ref id="!var-name" xdef-meta:unique-attr="id" xdef-meta:name="XDefCheckRef"
+                    xdef-meta:ref="XDefAbstractCheck"
+                    scope="enum:io.nop.xlang.xdef.XDefCheckScope" prop="string"
+                    disallowSelf="boolean=false"/>
 
-    <xdef:pre-parse meta:value="xpl"/>
+    <!-- 互斥约束（至少一个或完全互斥） -->
+    <xdef:check-mutex id="!var-name" xdef-meta:unique-attr="id" xdef-meta:name="XDefCheckMutex"
+                      xdef-meta:ref="XDefAbstractCheck"
+                      props="!csv-list" atLeastOne="boolean"/>
 
-    <xdef:post-parse meta:value="xpl"/>
+    <!-- 条件必填/禁止约束
+     @condition 触发条件
+     @requiredProps 必须存在的属性列表
+     @forbiddenProps 禁止存在的属性列表
+     -->
+    <xdef:check-require id="!var-name" xdef-meta:name="XDefCheckRequire" xdef-meta:ref="XDefAbstractCheck"
+                        condition="expr" requiredProps="csv-set" forbiddenProps="csv-set"/>
 
-</meta:unknown-tag>
+
+    <xdef:pre-parse xdef-meta:value="xpl"/>
+
+    <xdef:post-parse xdef-meta:value="xpl"/>
+
+</xdef-meta:unknown-tag>

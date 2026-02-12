@@ -27,7 +27,7 @@ public class QuarkusJsonRpcWebService extends GraphQLWebService {
         return withRoutingContext(routingContext, () -> {
             return runJsonRpc(body, getHeaders()).thenApply(ret -> {
                 ret.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
-                return JaxrsHelper.buildJaxrsResponse(ret.getHeaders(), ret.getData(), ret.getHttpStatus());
+                return JaxrsHelper.buildJaxrsResponse(ret.getHeadersOrNull(), ret.getData(), ret.getHttpStatus());
             });
         });
     }

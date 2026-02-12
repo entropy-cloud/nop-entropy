@@ -93,7 +93,7 @@ public class GatewayHttpFilter implements IHttpServerFilter {
             body = JsonTool.serialize(response, false);
         }
 
-        if (response.getHeaders() != null) {
+        if (response.hasHeaders()) {
             writeHeaders(context, response.getHeaders());
         }
         context.sendResponse(status, body);

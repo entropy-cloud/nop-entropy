@@ -202,7 +202,7 @@ public class ApacheHttpClient implements IHttpClient, IConfigRefreshable {
     }
 
     private void setApiRequestBody(SimpleRequestBuilder builder, ApiRequest request, ContentType contentType) {
-        if (request.getHeaders() != null) {
+        if (request.hasHeaders()) {
             request.getHeaders().forEach((name, value) -> {
                 if (value == null)
                     return;

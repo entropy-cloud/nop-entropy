@@ -50,7 +50,7 @@ public class GraphQLResponseHelper {
 
         return responseConsumer.apply( //
                 (headerSet) -> {
-                    if (response.getHeaders() != null) {
+                    if (response.hasHeaders()) {
                         response.getHeaders().forEach(headerSet);
                     }
 
@@ -103,7 +103,7 @@ public class GraphQLResponseHelper {
 
         return contentConsumer.apply( //
                 (headerSet) -> {
-                    if (response.getHeaders() != null) {
+                    if (response.hasHeaders()) {
                         response.getHeaders().forEach(headerSet);
                     }
 

@@ -59,7 +59,7 @@ public class SysEventHelper {
                     }
                 }
             }
-            if (request.getHeaders() != null)
+            if (request.hasHeaders())
                 event.setEventHeaders(JsonTool.stringify(request.getHeaders()));
             if (request.getSelection() != null) {
                 event.setSelection(request.getSelection().toString());

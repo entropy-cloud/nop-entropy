@@ -8,6 +8,7 @@
 package io.nop.xlang.expr;
 
 import io.nop.api.core.ApiConfigs;
+import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.util.ICancellable;
@@ -185,6 +186,17 @@ public class TestSimpleExprParser {
     public void testConcat() {
         String str = "'//File:' + filePath.$fileFullName()+'\\n\\n'+fileTextChunk";
         XLang.newCompileTool().allowUnregisteredScopeVar(true).compileSimpleExpr(null, str);
+    }
+
+    @Test
+    public void testAssign() {
+        ApiRequest<Object> request = new ApiRequest<>();
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue("request", request);
+
+        IEvalAction action = XLang.newCompileTool().allowUnregisteredScopeVar(true).compileFullExpr(null, "request.headers['id'] = 'a'");
+        action.invoke(scope);
+        assertEquals("a", request.getHeader("id"));
     }
 
 

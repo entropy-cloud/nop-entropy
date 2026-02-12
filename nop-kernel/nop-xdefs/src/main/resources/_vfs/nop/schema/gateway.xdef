@@ -3,37 +3,100 @@
 
     <routes xdef:body-type="list" xdef:key-attr="id">
         <!--
-        @serviceName 通过RPC机制调用分布式RPC服务
-        @rawResponse 返回的response对象是否原始响应对象还是标准的ApiResponse对象。集成外部服务时会使用rawResponse
-        @mock 如果设置为true，则只会调用handler返回，不会执行分布式RPC
+        整体执行过程如下：match => requestMapping => onRequest => invoke|forward => onResponse => responseMapping
+
+        流式返回时：
+        [拦截器onStreamElement] → [路由onStreamElement] → [elementMapping]
+
+        @rawResponse 如果设置为true，则gateway返回给调用者的不是ApiResponse，而是ApiResponse的body
+        @errorRouteId 如果配置了errorRouteId，当发生未被捕获的异常时路由到此route进行处理，它的response将作为response返回。
         -->
-        <route id="!string" serviceName="string" xdef:name="GatewayRouteModel" mock="!boolean=false"
-               rawResponse="!boolean=false">
+        <route id="!string" xdef:name="GatewayRouteModel" rawResponse="boolean" errorRouteId="string">
             <!--
             @path 对应REST请求链接，例如 /r/NopAuthUser__findPage
             -->
-            <on-path id="string" path="!string" xdef:name="GatewayOnPathModel" xdef:unique-attr="path"/>
+            <match path="!string" xdef:name="GatewayMatchModel" httpMethod="csv-set">
+                <when>xpl-fn:(request,svcCtx)=>boolean</when>
+            </match>
 
             <!--
-            路由的动态匹配条件
+            request是ApiRequest类型，response是
+            @bodyMapping 对应于IRecordMappingManager管理的mapping模型
             -->
-            <match>xpl-predicate</match>
+            <requestMapping allowHeaders="csv-set" disallowHeaders="csv-set" bodyMapping="string"
+                            xdef:name="GatewayMessageMappingModel"
+                            xdef:body-type="list" xdef:key-attr="name">
+                <header name="!string" value="t-expr" xdef:name="GatewayMessageHeaderModel" xdef:unique-attr="name"/>
+            </requestMapping>
+
+            <!-- request是ApiRequest类型，包含headers,selection,data -->
+            <onRequest>xpl-fn:(request:ApiRequest,svcCtx)=>ApiRequest</onRequest>
 
             <!--
-            匹配路由后可以直接响应。如果配置了serviceName且不是mock模式，则在执行handler之后会调用分布式RPC服务
+            如果指定了source，则直接执行source代码。否则调用分布式RPC。source/serviceName/url不允许同时为空
+
+            @serviceName  分布式RPC的服务名
+            @url 如果没有指定serviceName，则需要指定远程路径，会直接调用这里的url，通过body传参
             -->
-            <handler>xpl</handler>
+            <invoke xdef:name="GatewayInvokeModel" serviceName="string" serviceMethod="string" url="t-expr">
+                <source>xpl-fn:(request:ApiRequest,svcCtx)=>any</source>
+            </invoke>
 
-            <!--
-            对应分布式RPC返回的结果进行处理
-            -->
-            <on-response>xpl</on-response>
-
-            <!--
-            调用过程出现异常时会调用这里的代码，将异常对象包装为异常消息
+            <!-- 路由到已有的route。执行后返回到本route继续执行onResponse和responseMapping。
+             若源路由是streaming模式，则目标路由必须也为流式路由。不满足条件时网关会抛出异常。
              -->
-            <on-error>xpl</on-error>
+            <forward xdef:name="GatewayForwardModel" routeId="string">
+                <!-- 动态计算将要路由到的routeId。它会覆盖routeId属性设置 -->
+                <dynamicRoute>xpl-fn:(request,svcCtx)=>string</dynamicRoute>
+            </forward>
+
+            <!-- response是ApiResponse类型，包含headers,selection,data -->
+            <onResponse>xpl-fn:(response:ApiResponse,svcCtx)=>ApiResponse</onResponse>
+
+            <!-- 如果进入streaming传送截断，这里的配置将失效 -->
+            <responseMapping xdef:ref="GatewayMessageMappingModel"/>
+
+            <!--
+            整个路由过程中出现任何异常都会调用这里的处理函数。如果内部不处理，则可以继续抛出异常。
+             -->
+            <onError>xpl-fn:(exception,svcCtx)=>any</onError>
+
+            <!-- 如果启用了streaming模式，则进入流式传输截断，onResponse/responseMapping/onError等部分不再使用。
+               如果onRequest/invoke失败，整体没有进入流式传输，则仍然使用上面的配置
+
+              @contentType SSE场景为 text/event-stream，JSON Lines 则为 application/x-ndjson
+             -->
+            <streaming xdef:name="GatewayStreamingModel" enabled="t-expr" contentType="string">
+                <elementMapping xdef:ref="GatewayMessageMappingModel"/>
+
+                <onStreamStart>xpl-fn:(request, svcCtx)=>void</onStreamStart>
+
+                <onStreamElement>xpl-fn:(element,svcCtx)=>any</onStreamElement>
+
+                <!-- 流式处理过程中如果出现问题，此时不能再通过通过onError来返回完整响应，则需要调用onStreamError返回特殊的错误信息 -->
+                <onStreamError>xpl-fn:(exception,svcCtx)=>any</onStreamError>
+
+                <onStreamComplete>xpl-fn:(svcCtx)=>any</onStreamComplete>
+            </streaming>
+
         </route>
     </routes>
+
+    <interceptors xdef:body-type="list" xdef:key-attr="id">
+        <!--
+        @bean 可以在NopIoC容器中配置interceptor对应的bean
+        -->
+        <interceptor id="!xml-name" bean="bean-name" xdef:name="GatewayInterceptorModel">
+            <!-- 匹配条件才执行 -->
+            <match xdef:ref="GatewayMatchModel"/>
+
+            <source>xpl-fn:(request,invocation,svcCtx)=>any</source>
+
+            <onStreamStart>xpl-fn:(request,invocation,svcCtx)=>void</onStreamStart>
+            <onStreamElement>xpl-fn:(element,invocation,svcCtx)=>any</onStreamElement>
+            <onStreamError>xpl-fn:(exception,invocation,svcCtx)=>any</onStreamError>
+            <onStreamComplete>xpl-fn:(invocation,svcCtx)=>any</onStreamComplete>
+        </interceptor>
+    </interceptors>
 
 </gateway>

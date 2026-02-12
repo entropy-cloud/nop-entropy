@@ -10,7 +10,7 @@ import io.nop.commons.util.ClassHelper;
 // tell cpd to start ignoring code - CPD-OFF
 /**
  * generate from /nop/schema/gateway.xdef <p>
- * 
+ * 整体执行过程如下：matchOnPath  => match => requestMapping => onRequest => handler => onResponse => responseMapping
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
@@ -18,10 +18,17 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: forward
+     * 
+     */
+    private io.nop.graphql.gateway.model.GatewayForwardModel _forward ;
+    
+    /**
+     *  
      * xml name: handler
      * 匹配路由后可以直接响应。如果配置了serviceName且不是mock模式，则在执行handler之后会调用分布式RPC服务
      */
-    private io.nop.core.lang.eval.IEvalAction _handler ;
+    private io.nop.core.lang.eval.IEvalFunction _handler ;
     
     /**
      *  
@@ -35,49 +42,82 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
      * xml name: match
      * 路由的动态匹配条件
      */
-    private io.nop.core.lang.eval.IEvalPredicate _match ;
+    private io.nop.core.lang.eval.IEvalFunction _match ;
     
     /**
      *  
-     * xml name: mock
-     * 如果设置为true，则只会调用handler返回，不会执行分布式RPC
-     */
-    private boolean _mock  = false;
-    
-    /**
-     *  
-     * xml name: on-error
-     * 调用过程出现异常时会调用这里的代码，将异常对象包装为异常消息
-     */
-    private io.nop.core.lang.eval.IEvalAction _onError ;
-    
-    /**
-     *  
-     * xml name: on-path
+     * xml name: matchOnPath
      * 
      */
-    private KeyedList<io.nop.graphql.gateway.model.GatewayOnPathModel> _onPaths = KeyedList.emptyList();
+    private KeyedList<io.nop.graphql.gateway.model.GatewayOnPathModel> _matchOnPaths = KeyedList.emptyList();
     
     /**
      *  
-     * xml name: on-response
-     * 对应分布式RPC返回的结果进行处理
+     * xml name: onError
+     * 整个路由过程中出现任何异常都会调用这里的处理函数。如果内部不处理，则可以继续抛出异常
      */
-    private io.nop.core.lang.eval.IEvalAction _onResponse ;
+    private io.nop.core.lang.eval.IEvalFunction _onError ;
     
     /**
      *  
-     * xml name: rawResponse
-     * 返回的response对象是否原始响应对象还是标准的ApiResponse对象。集成外部服务时会使用rawResponse
+     * xml name: onRequest
+     * request是ApiRequest类型，包含headers,selection,body
      */
-    private boolean _rawResponse  = false;
+    private io.nop.core.lang.eval.IEvalFunction _onRequest ;
+    
+    /**
+     *  
+     * xml name: onResponse
+     * response是ApiResponse类型，包含headers,selection,body
+     */
+    private io.nop.core.lang.eval.IEvalFunction _onResponse ;
+    
+    /**
+     *  
+     * xml name: requestMapping
+     * request是ApiRequest类型，response是
+     */
+    private io.nop.graphql.gateway.model.GatewayMessageMappingModel _requestMapping ;
+    
+    /**
+     *  
+     * xml name: responseMapping
+     * request是ApiRequest类型，response是
+     */
+    private io.nop.graphql.gateway.model.GatewayMessageMappingModel _responseMapping ;
     
     /**
      *  
      * xml name: serviceName
-     * 通过RPC机制调用分布式RPC服务
+     * 
      */
     private java.lang.String _serviceName ;
+    
+    /**
+     *  
+     * xml name: tcc
+     * 
+     */
+    private io.nop.graphql.gateway.model.GatewayTccModel _tcc ;
+    
+    /**
+     * 
+     * xml name: forward
+     *  
+     */
+    
+    public io.nop.graphql.gateway.model.GatewayForwardModel getForward(){
+      return _forward;
+    }
+
+    
+    public void setForward(io.nop.graphql.gateway.model.GatewayForwardModel value){
+        checkAllowChange();
+        
+        this._forward = value;
+           
+    }
+
     
     /**
      * 
@@ -85,12 +125,12 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
      *  匹配路由后可以直接响应。如果配置了serviceName且不是mock模式，则在执行handler之后会调用分布式RPC服务
      */
     
-    public io.nop.core.lang.eval.IEvalAction getHandler(){
+    public io.nop.core.lang.eval.IEvalFunction getHandler(){
       return _handler;
     }
 
     
-    public void setHandler(io.nop.core.lang.eval.IEvalAction value){
+    public void setHandler(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._handler = value;
@@ -123,12 +163,12 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
      *  路由的动态匹配条件
      */
     
-    public io.nop.core.lang.eval.IEvalPredicate getMatch(){
+    public io.nop.core.lang.eval.IEvalFunction getMatch(){
       return _match;
     }
 
     
-    public void setMatch(io.nop.core.lang.eval.IEvalPredicate value){
+    public void setMatch(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._match = value;
@@ -138,35 +178,61 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
     
     /**
      * 
-     * xml name: mock
-     *  如果设置为true，则只会调用handler返回，不会执行分布式RPC
+     * xml name: matchOnPath
+     *  
      */
     
-    public boolean isMock(){
-      return _mock;
+    public java.util.List<io.nop.graphql.gateway.model.GatewayOnPathModel> getMatchOnPaths(){
+      return _matchOnPaths;
     }
 
     
-    public void setMock(boolean value){
+    public void setMatchOnPaths(java.util.List<io.nop.graphql.gateway.model.GatewayOnPathModel> value){
         checkAllowChange();
         
-        this._mock = value;
+        this._matchOnPaths = KeyedList.fromList(value, io.nop.graphql.gateway.model.GatewayOnPathModel::getPath);
            
     }
 
     
+    public io.nop.graphql.gateway.model.GatewayOnPathModel getMatchOnPath(String name){
+        return this._matchOnPaths.getByKey(name);
+    }
+
+    public boolean hasMatchOnPath(String name){
+        return this._matchOnPaths.containsKey(name);
+    }
+
+    public void addMatchOnPath(io.nop.graphql.gateway.model.GatewayOnPathModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.graphql.gateway.model.GatewayOnPathModel> list = this.getMatchOnPaths();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.graphql.gateway.model.GatewayOnPathModel::getPath);
+            setMatchOnPaths(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_matchOnPaths(){
+        return this._matchOnPaths.keySet();
+    }
+
+    public boolean hasMatchOnPaths(){
+        return !this._matchOnPaths.isEmpty();
+    }
+    
     /**
      * 
-     * xml name: on-error
-     *  调用过程出现异常时会调用这里的代码，将异常对象包装为异常消息
+     * xml name: onError
+     *  整个路由过程中出现任何异常都会调用这里的处理函数。如果内部不处理，则可以继续抛出异常
      */
     
-    public io.nop.core.lang.eval.IEvalAction getOnError(){
+    public io.nop.core.lang.eval.IEvalFunction getOnError(){
       return _onError;
     }
 
     
-    public void setOnError(io.nop.core.lang.eval.IEvalAction value){
+    public void setOnError(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._onError = value;
@@ -176,61 +242,35 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
     
     /**
      * 
-     * xml name: on-path
-     *  
+     * xml name: onRequest
+     *  request是ApiRequest类型，包含headers,selection,body
      */
     
-    public java.util.List<io.nop.graphql.gateway.model.GatewayOnPathModel> getOnPaths(){
-      return _onPaths;
+    public io.nop.core.lang.eval.IEvalFunction getOnRequest(){
+      return _onRequest;
     }
 
     
-    public void setOnPaths(java.util.List<io.nop.graphql.gateway.model.GatewayOnPathModel> value){
+    public void setOnRequest(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
-        this._onPaths = KeyedList.fromList(value, io.nop.graphql.gateway.model.GatewayOnPathModel::getPath);
+        this._onRequest = value;
            
     }
 
     
-    public io.nop.graphql.gateway.model.GatewayOnPathModel getOnPath(String name){
-        return this._onPaths.getByKey(name);
-    }
-
-    public boolean hasOnPath(String name){
-        return this._onPaths.containsKey(name);
-    }
-
-    public void addOnPath(io.nop.graphql.gateway.model.GatewayOnPathModel item) {
-        checkAllowChange();
-        java.util.List<io.nop.graphql.gateway.model.GatewayOnPathModel> list = this.getOnPaths();
-        if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.graphql.gateway.model.GatewayOnPathModel::getPath);
-            setOnPaths(list);
-        }
-        list.add(item);
-    }
-    
-    public java.util.Set<String> keySet_onPaths(){
-        return this._onPaths.keySet();
-    }
-
-    public boolean hasOnPaths(){
-        return !this._onPaths.isEmpty();
-    }
-    
     /**
      * 
-     * xml name: on-response
-     *  对应分布式RPC返回的结果进行处理
+     * xml name: onResponse
+     *  response是ApiResponse类型，包含headers,selection,body
      */
     
-    public io.nop.core.lang.eval.IEvalAction getOnResponse(){
+    public io.nop.core.lang.eval.IEvalFunction getOnResponse(){
       return _onResponse;
     }
 
     
-    public void setOnResponse(io.nop.core.lang.eval.IEvalAction value){
+    public void setOnResponse(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._onResponse = value;
@@ -240,19 +280,38 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
     
     /**
      * 
-     * xml name: rawResponse
-     *  返回的response对象是否原始响应对象还是标准的ApiResponse对象。集成外部服务时会使用rawResponse
+     * xml name: requestMapping
+     *  request是ApiRequest类型，response是
      */
     
-    public boolean isRawResponse(){
-      return _rawResponse;
+    public io.nop.graphql.gateway.model.GatewayMessageMappingModel getRequestMapping(){
+      return _requestMapping;
     }
 
     
-    public void setRawResponse(boolean value){
+    public void setRequestMapping(io.nop.graphql.gateway.model.GatewayMessageMappingModel value){
         checkAllowChange();
         
-        this._rawResponse = value;
+        this._requestMapping = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: responseMapping
+     *  request是ApiRequest类型，response是
+     */
+    
+    public io.nop.graphql.gateway.model.GatewayMessageMappingModel getResponseMapping(){
+      return _responseMapping;
+    }
+
+    
+    public void setResponseMapping(io.nop.graphql.gateway.model.GatewayMessageMappingModel value){
+        checkAllowChange();
+        
+        this._responseMapping = value;
            
     }
 
@@ -260,7 +319,7 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
     /**
      * 
      * xml name: serviceName
-     *  通过RPC机制调用分布式RPC服务
+     *  
      */
     
     public java.lang.String getServiceName(){
@@ -276,6 +335,25 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
     }
 
     
+    /**
+     * 
+     * xml name: tcc
+     *  
+     */
+    
+    public io.nop.graphql.gateway.model.GatewayTccModel getTcc(){
+      return _tcc;
+    }
+
+    
+    public void setTcc(io.nop.graphql.gateway.model.GatewayTccModel value){
+        checkAllowChange();
+        
+        this._tcc = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -284,7 +362,15 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._onPaths = io.nop.api.core.util.FreezeHelper.deepFreeze(this._onPaths);
+           this._forward = io.nop.api.core.util.FreezeHelper.deepFreeze(this._forward);
+            
+           this._matchOnPaths = io.nop.api.core.util.FreezeHelper.deepFreeze(this._matchOnPaths);
+            
+           this._requestMapping = io.nop.api.core.util.FreezeHelper.deepFreeze(this._requestMapping);
+            
+           this._responseMapping = io.nop.api.core.util.FreezeHelper.deepFreeze(this._responseMapping);
+            
+           this._tcc = io.nop.api.core.util.FreezeHelper.deepFreeze(this._tcc);
             
         }
     }
@@ -293,15 +379,18 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("forward",this.getForward());
         out.putNotNull("handler",this.getHandler());
         out.putNotNull("id",this.getId());
         out.putNotNull("match",this.getMatch());
-        out.putNotNull("mock",this.isMock());
+        out.putNotNull("matchOnPaths",this.getMatchOnPaths());
         out.putNotNull("onError",this.getOnError());
-        out.putNotNull("onPaths",this.getOnPaths());
+        out.putNotNull("onRequest",this.getOnRequest());
         out.putNotNull("onResponse",this.getOnResponse());
-        out.putNotNull("rawResponse",this.isRawResponse());
+        out.putNotNull("requestMapping",this.getRequestMapping());
+        out.putNotNull("responseMapping",this.getResponseMapping());
         out.putNotNull("serviceName",this.getServiceName());
+        out.putNotNull("tcc",this.getTcc());
     }
 
     public GatewayRouteModel cloneInstance(){
@@ -313,15 +402,18 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
     protected void copyTo(GatewayRouteModel instance){
         super.copyTo(instance);
         
+        instance.setForward(this.getForward());
         instance.setHandler(this.getHandler());
         instance.setId(this.getId());
         instance.setMatch(this.getMatch());
-        instance.setMock(this.isMock());
+        instance.setMatchOnPaths(this.getMatchOnPaths());
         instance.setOnError(this.getOnError());
-        instance.setOnPaths(this.getOnPaths());
+        instance.setOnRequest(this.getOnRequest());
         instance.setOnResponse(this.getOnResponse());
-        instance.setRawResponse(this.isRawResponse());
+        instance.setRequestMapping(this.getRequestMapping());
+        instance.setResponseMapping(this.getResponseMapping());
         instance.setServiceName(this.getServiceName());
+        instance.setTcc(this.getTcc());
     }
 
     protected GatewayRouteModel newInstance(){

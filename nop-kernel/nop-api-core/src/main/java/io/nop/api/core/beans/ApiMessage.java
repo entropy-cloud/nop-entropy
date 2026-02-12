@@ -26,6 +26,13 @@ public abstract class ApiMessage implements Serializable, ICloneable {
 
     @JsonInclude(Include.NON_EMPTY)
     public Map<String, Object> getHeaders() {
+        if (headers == null)
+            headers = new TreeMap<>();
+        return headers;
+    }
+
+    @JsonIgnore
+    public Map<String, Object> getHeadersOrNull() {
         return headers;
     }
 
@@ -41,6 +48,10 @@ public abstract class ApiMessage implements Serializable, ICloneable {
 
     public Object getHeader(String name) {
         return ApiHeaders.getHeader(headers, name);
+    }
+
+    public boolean hasHeaders() {
+        return headers != null && !headers.isEmpty();
     }
 
     public boolean hasHeader(String name) {
