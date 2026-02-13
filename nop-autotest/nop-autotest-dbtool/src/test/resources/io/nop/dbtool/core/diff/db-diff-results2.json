@@ -115,7 +115,7 @@
     "ddl": "drop table  if exists  DEV_APP_MODULE",
     "querySpace": "default",
     "target": null,
-    "targetTable": "DEV_APP_MODULE",
+    "targetTable": "dev_app_module",
     "targetType": "table",
     "type": "remove"
   }
