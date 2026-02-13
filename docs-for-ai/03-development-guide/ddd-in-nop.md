@@ -1102,32 +1102,108 @@ public class OrmEntity {
 聚合根应该包含数据量在一定范围内的关联集合（比如几百行）：
 
 ```java
-// ✅ 推荐：小范围聚合（几百行）
+// ✅ 推荐：主子表关系 - 直接使用 orm.xml 定义的关联属性
+// items/user/shippingAddress 等关联由 orm.xml 模型定义并生成导航方法
 public class Order extends OrmEntity {
-    // items/user/shippingAddress 等关联由 orm.xml 模型定义并生成导航
-    // 一般几十行，最多几百行（关键是控制加载到内存的数据量）
-}
-
-// ⚠️ 避免：大数据量聚合
-public class Order extends OrmEntity {
-    // ❌ 不推荐：将所有订单历史放在聚合根中
-    // 可能是几万行数据，导致性能问题
-    // histories 这种大集合不建议作为聚合根的常驻关联属性
-
-    // ✅ 推荐：大数据量通过查询获取
-    public List<OrderHistory> getHistories() {
-        // 实体上不提供dao()，也不建议在实体方法中直接使用dao().xxx
-        // 需要查询时：
-        // 1) 用 IServiceContext.requireCtx() 获取当前服务上下文
-        // 2) 通过 OrmEntity 继承得到的 requireBiz(...) 获取实体对应的Biz接口来做查询/服务调用
-        IServiceContext context = IServiceContext.requireCtx();
-        IOrderHistoryBiz historyBiz = requireBiz(IOrderHistoryBiz.class);
-        QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.eq("orderId", this.getId()));
-        return historyBiz.findList(query, null, context);
+    // 对于主子表（如 Order-OrderItem），直接使用 getItems()
+    // 框架自动懒加载，且能利用 N+1 优化（batchLoadProps）
+    
+    // ✅ 小数据量关联（几十到几百行）：直接用关联属性
+    public BigDecimal calculateTotal() {
+        return getItems().stream()
+            .map(OrderItem::getPrice)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+    
+    // ✅ 判断逻辑：直接用关联属性
+    public boolean hasItems() {
+        return !getItems().isEmpty();
     }
 }
 ```
+
+### requireBiz 的使用场景
+
+`requireBiz` + `findList`/`findCount` 主要用于**非聚合内**的查询，或**计数/存在性检查**：
+
+```java
+public class Order extends OrmEntity {
+    
+    // ✅ 场景1：计数 - 不需要返回数据，只返回数量
+    public long getIncompleteTaskCount() {
+        IServiceContext context = IServiceContext.requireCtx();
+        IOrderTaskBiz taskBiz = requireBiz(IOrderTaskBiz.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("orderId", this.getId()));
+        query.addFilter(FilterBeans.notEq("status", "COMPLETED"));
+        return taskBiz.findCount(query, context);
+    }
+    
+    // ✅ 场景2：存在性检查 - 检查是否有符合条件的记录
+    public boolean hasActiveShipping() {
+        IServiceContext context = IServiceContext.requireCtx();
+        IShippingBiz shippingBiz = requireBiz(IShippingBiz.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("orderId", this.getId()));
+        query.addFilter(FilterBeans.eq("status", "IN_PROGRESS"));
+        return shippingBiz.findCount(query, context) > 0;
+    }
+    
+    // ✅ 场景3：分页查询 - 大数据量时按需加载部分数据
+    public PageBean<OrderLog> getRecentLogs(int pageNo, int pageSize) {
+        IServiceContext context = IServiceContext.requireCtx();
+        IOrderLogBiz logBiz = requireBiz(IOrderLogBiz.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("orderId", this.getId()));
+        query.addOrderBy(OrderFieldBean.desc("createTime"));
+        return logBiz.findPage(query, null, context);
+    }
+}
+```
+
+### ⚠️ 重要原则
+
+```java
+// ❌ 避免：对主子表使用 requireBiz + findList
+// 如果 OrderItem 是 Order 的子表，直接用 getItems() 即可
+public class Order extends OrmEntity {
+    // ❌ 错误：主子表不应该这样查询
+    public List<OrderItem> getItemsWrong() {
+        IServiceContext context = IServiceContext.requireCtx();
+        IOrderItemBiz itemBiz = requireBiz(IOrderItemBiz.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("orderId", this.getId()));
+        return itemBiz.findList(query, null, context);  // 多此一举
+    }
+    
+    // ✅ 正确：直接使用 getItems()，由 orm.xml 中的 to-many 关系自动生成
+    // 无需重载，直接调用即可
+    // getItems() 框架自动懒加载，且支持批量预加载优化
+}
+```
+
+### 业务层面的数据量控制
+
+如果关联数据量真的很大（超过几百行），应该在**业务层面规避**，而不是通过技术手段解决：
+
+```java
+// ❌ 错误思路：试图通过 requireBiz 加载大量数据
+public List<OrderHistory> getAllHistories() {
+    // 即使分页，如果业务上需要一次性处理所有历史，仍然会有问题
+    // 几万条历史记录不应该一次性加载到内存
+}
+
+// ✅ 正确思路：业务层面控制
+// 1. 限制时间范围：只查询最近30天的历史
+// 2. 限制返回字段：只返回必要的摘要信息
+// 3. 分批处理：使用批处理框架处理大数据量
+// 4. 异步导出：大数据量导出为文件，而不是内存处理
+```
+
+**关键原则**：
+- 主子表关系（聚合内）：直接用 `getItems()` 等关联属性
+- 聚合外查询、计数、存在性检查：用 `requireBiz` + `findCount`/`findPage`
+- 大数据量场景：业务层面规避，避免一次性加载
 
 ### 多层关联查询
 

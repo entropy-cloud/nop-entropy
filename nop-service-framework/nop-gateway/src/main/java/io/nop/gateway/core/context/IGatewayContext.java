@@ -8,6 +8,8 @@
 package io.nop.gateway.core.context;
 
 import io.nop.core.context.IServiceContext;
+import io.nop.gateway.model.GatewayRouteModel;
+
 import java.util.Map;
 
 /**
@@ -22,14 +24,14 @@ public interface IGatewayContext extends IServiceContext {
      *
      * @return 当前路由对象，如果未匹配到路由则返回null
      */
-    Object getCurrentRoute();
+    GatewayRouteModel getCurrentRoute();
 
     /**
      * 设置当前匹配的路由
      *
      * @param route 当前路由对象
      */
-    void setCurrentRoute(Object route);
+    void setCurrentRoute(GatewayRouteModel route);
 
     /**
      * 获取路径变量

@@ -3,163 +3,235 @@
 ## Core Principle
 
 Nop platform is a low-code platform based on Reversible Computation: `App = Delta x-extends Generator<DSL>`.
+
 - **Model-driven**: DSL models define business structure → generate code (entities, APIs, etc.)
 - **Delta customization**: modify/extend WITHOUT changing base source code
 - **Framework-agnostic**: runs on Spring/Quarkus/Solon
+- **Incremental code generation**: `_gen/` and `_`-prefixed files auto-overwritten; hand-written code in separate files with inheritance
 
 **Key**: Before coding, check if code can be derived from models. Extend generated code via Delta/inheritance.
 
-## Directory Mapping (WHEN TO READ WHAT)
+---
 
-### Quick Start
-- New to Nop? → `00-quick-start/10-min-quickstart.md`
-- Need task reference? → `00-quick-start/common-tasks.md`
+## Development Scenarios
 
-### Development Tasks (Primary)
+### Scenario 1: XDef Meta-Model Development (No Database)
+
+For DSL-based systems like `nop-gateway` without database persistence.
+
+**Workflow:** `Define XDef → Compile nop-xdefs → precompile script → mvn install`
+
+1. **Define XDef schema** in `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/`
+   ```xml
+   <gateway xdef:bean-package="io.nop.gateway.model" xdef:name="GatewayModel">
+       <routes xdef:body-type="list" xdef:key-attr="id">
+           <route id="!string" xdef:name="GatewayRouteModel">...</route>
+       </routes>
+   </gateway>
+   ```
+
+2. **Compile nop-xdefs**: `cd nop-kernel/nop-xdefs && mvn install`
+
+3. **Add precompile script** in `precompile/gen-xxx-ast.xgen`:
+   ```xml
+   <c:script>
+       codeGenerator.renderModel('/nop/schema/gateway.xdef','/nop/templates/xdsl', '/',$scope);
+   </c:script>
+   ```
+
+4. **Run mvn install** - parent POM's `exec-maven-plugin` auto-executes precompile
+
+5. **Generated files** in `_gen/` - extend with non-underscored class:
+   ```java
+   public class GatewayRouteModel extends _GatewayRouteModel { ... }
+   ```
+
+**Reference:** `05-xlang/xdef-core.md`
+
+---
+
+### Scenario 2: Database-Backed Module Development (ORM)
+
+For modules with database persistence.
+
+**Workflow:** `Create ORM model → nop-cli gen (once) → mvn install codegen for changes`
+
+1. **Define ORM model** in `model/nop-xxx.orm.xml`
+
+2. **Generate scaffold** (only once):
+   ```bash
+   cd nop-xxx
+   .opencode/scripts/nop-cli.sh gen model/nop-xxx.orm.xml -t=/nop/templates/orm -o=.
+   ```
+
+3. **Model changes**: `cd nop-xxx-codegen && mvn install` - auto-regenerates
+
+**Key Points:**
+- `_gen/` and `_`-prefixed files: AUTO-OVERWRITTEN, never edit
+- Non-underscored files: YOUR code, preserved
+- Use `x:extends` (XML/JSON/YAML) or Java inheritance
+
+**Reference:** `03-development-guide/project-structure.md`
+
+---
+
+### Scenario 3: Feature Development
+
+When models are stable, focus on business logic.
+
+**Key Principles:**
+1. **CRUD** - NO coding needed, inherited from `CrudBizModel`, uses `Map<String, Object>` + xmeta validation
+2. **DDD** - Entity: read-only helpers; BizModel: mutable logic; Complex: `XXXProcessor`
+3. **Testing** - Use `nop-autotest` (auto-records snapshots)
+
+**Reference:** `03-development-guide/service-layer.md`, `03-development-guide/ddd-in-nop.md`
+
+---
+
+### Scenario 4: Delta Customization
+
+For customizing base products without modifying source.
+
+```xml
+<meta x:extends="super,_NopAuthUser.xmeta">
+    <props>
+        <prop name="customField" displayName="Custom Field"/>
+    </props>
+</meta>
+```
+
+**Reference:** `01-core-concepts/delta-basics.md`
+
+---
+
+## Quick Reference
+
+### By Task
 
 | Task | Reference |
 |------|-----------|
-| Create CRUD functionality | `03-development-guide/service-layer.md`, `08-examples/crud-example.md` |
-| Handle complex queries | `03-development-guide/data-access.md`, `08-examples/query-example.md` |
-| Manage transactions | `04-core-components/transaction.md`, `12-tasks/transaction-boundaries.md` |
-| Handle errors | `04-core-components/exception-handling.md` |
-| Develop GraphQL APIs | `03-development-guide/api-development.md` |
-| Batch processing | `03-development-guide/batch-engine.md` |
-| Project structure & code gen | `03-development-guide/project-structure.md` |
+| CRUD / Service | `03-development-guide/service-layer.md` |
+| Queries | `03-development-guide/data-access.md`, `03-development-guide/querybean-guide.md` |
+| DDD patterns | `03-development-guide/ddd-in-nop.md` |
+| CRUD hooks | `12-tasks/extend-crud-with-hooks.md` |
+| Transactions | `04-core-components/transaction.md` |
+| Exceptions | `04-core-components/exception-handling.md` |
+| Testing | `07-best-practices/testing.md`, `11-test-and-debug/autotest-guide.md` |
 
-### Advanced Features
-
-| Feature | Reference |
-|---------|-----------|
-| Delta customization | `05-xlang/xdsl-delta.md`, `01-core-concepts/delta-basics.md`, `12-tasks/README.md` |
-| ORM advanced (sharding, encryption, masking, hooks) | `03-development-guide/orm-advanced-features.md` |
-| SQLLib SQL management | `03-development-guide/orm-sqllib.md` |
-| XDef & XMeta | `05-xlang/xdef-core.md`, `05-xlang/meta-programming.md` |
-| XScript/Xpl templates | `05-xlang/xscript.md`, `05-xlang/xpl.md` |
-
-### Extend CRUD
-
-| Extension | Reference |
-|-----------|-----------|
-| Extend CRUD hooks | `12-tasks/extend-crud-with-hooks.md` |
-| Custom queries with QueryBean | `12-tasks/custom-query-with-querybean.md` |
-| Extend API fields with Delta + BizLoader | `12-tasks/extend-api-with-delta-bizloader.md` |
-
-### Core Components
+### By Component
 
 | Component | Reference |
 |-----------|-----------|
-| IoC container | `04-core-components/ioc-container.md` |
-| Config management (@InjectValue) | `04-core-components/config-management.md` |
+| IoC | `04-core-components/ioc-container.md` |
+| Config (@InjectValue) | `04-core-components/config-management.md` |
 | Error codes | `04-core-components/error-codes.md` |
-| DTO/Enum standards | `04-core-components/enum-dto-standards.md` |
+| XDef/XMeta | `05-xlang/xdef-core.md`, `05-xlang/meta-programming.md` |
+| ORM advanced | `03-development-guide/orm-advanced-features.md` |
 
-### Testing & Debugging
+---
 
-| Task | Reference |
-|------|-----------|
-| Write tests | `07-best-practices/testing.md`, `11-test-and-debug/autotest-guide.md` |
-| Debug/diagnose | `11-test-and-debug/nop-debug-and-diagnosis-guide.md` |
-| Troubleshoot issues | `09-quick-reference/troubleshooting.md` |
+## Code Patterns
 
-### Best Practices
-
-| Topic | Reference |
-|-------|-----------|
-| Code style | `07-best-practices/code-style.md` |
-| Performance | `07-best-practices/performance.md` |
-| Security | `07-best-practices/security.md` |
-
-### Reference
-
-| Topic | Reference |
-|-------|-----------|
-| Quick API reference | `09-quick-reference/api-reference.md` |
-| Source code anchors | `13-reference/source-anchors.md` |
-| Utility classes | `06-utilities/*.md` |
-
-## Quick API Reference
-
-### CrudBizModel (Service Layer)
-
-**IMPORTANT**: Extending `CrudBizModel` provides built-in CRUD. DO NOT implement simple CRUD methods!
+### CrudBizModel
 
 ```java
 @BizModel("User")
 public class UserBizModel extends CrudBizModel<User> {
-    // Built-in methods available:
-    // - User__findPage(request: {...}, pageNo, pageSize)
-    // - User__get(data: {id})
-    // - User__save(data: {...})
-    // - User__update(data: {...})
-    // - User__delete(data: {id})
+    // Built-in: findPage, get, save, update, delete - NO need to implement
 
-    // Customize via overrides:
-    @Override
-    protected void defaultPrepareSave(EntityData<User> entityData, IServiceContext context) {
-        super.defaultPrepareSave(entityData, context);
-        // Custom logic
+    @BizQuery
+    public List<User> findActiveUsers(FieldSelectionBean selection, IServiceContext context) {
+        QueryBean query = new QueryBean();
+        query.setFilter(FilterBeans.eq("status", 1));
+        return doFindList(query, selection, context);
+    }
+
+    @BizMutation  // Auto-transaction
+    public void activateUser(@Name("userId") String userId, IServiceContext context) {
+        User user = requireEntity(userId, "update", context);
+        user.setStatus(UserConstants.ACTIVE);
+        updateEntity(user, context);
     }
 }
 ```
 
-**PREFERRED**: `getEntity()`, `requireEntity()`, `doFindList()`, `doFindPage()`, `doSave()`, `doUpdate()`, `doDelete()`
-**AVOID**: Direct `dao().getEntityById()`, `dao().saveEntity()`, `dao().deleteEntity()` - they bypass data permissions and callbacks
+**Preferred:** `requireEntity()`, `doFindList()`, `doFindPage()`, `save()`, `update()`
+**Avoid:** `dao().xxx()` - bypasses data permissions
 
-### Custom Query
+### Entity (DDD)
 
 ```java
-@BizQuery
-public PageBean<User> searchUsers(@Name("request") Map<String, Object> request,
-                                  FieldSelectionBean selection, IServiceContext context) {
-    QueryBean query = new QueryBean();
-    List<TreeBean> filters = new ArrayList<>();
-
-    if (request.containsKey("keyword")) {
-        filters.add(FilterBeans.contains("name", request.get("keyword")));
-    }
-    if (request.containsKey("status")) {
-        filters.add(FilterBeans.eq("status", request.get("status")));
+public class Order extends OrmEntity {
+    // ✅ Read-only helper
+    public boolean canBeCancelled() {
+        return OrderConstants.PENDING.equals(this.status);
     }
 
-    if (!filters.isEmpty()) {
-        query.setFilter(FilterBeans.and(filters));
+    // ✅ Master-detail: use orm.xml associations (getItems)
+    public BigDecimal calculateTotal() {
+        return getItems().stream()
+            .map(OrderItem::getPrice)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
-    return doFindPage(query, selection, context);
+
+    // ✅ Counting: requireBiz + findCount
+    public long getIncompleteTaskCount() {
+        IServiceContext context = IServiceContext.requireCtx();
+        IOrderTaskBiz taskBiz = requireBiz(IOrderTaskBiz.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("orderId", this.getId()));
+        return taskBiz.findCount(query, context);
+    }
 }
 ```
 
-### Transaction Management
+**Rules:**
+- Master-detail (aggregate): `getItems()` from orm.xml
+- Outside aggregate / counting: `requireBiz` + `findCount`/`findPage`
 
-**BizModel**: Use `@BizMutation` (auto transaction boundary)
-**Non-BizModel/Fine control**: Use `ITransactionTemplate`
-
-```java
-@BizMutation  // Auto-transaction, no need for txn()
-public void transferOrder(@Name("request") Map<String, Object> request, IServiceContext context) {
-    Order from = requireEntity((String) request.get("fromId"));
-    Order to = requireEntity((String) request.get("toId"));
-
-    from.setStatus("TRANSFERRED");
-    to.setStatus("PENDING");
-
-    updateEntity(from,context);
-    updateEntity(to,context);
-}
-```
-
-### Exception Handling
+### Exception
 
 ```java
-throw new NopException(MyErrors.ERR_NAME_REQUIRED)
-    .param("field", "name");
+throw new NopException(MyErrors.ERR_FIELD_REQUIRED).param("field", "name");
 ```
 
-### FilterBeans
+---
 
-- Compare: `eq`, `ne`, `gt`, `ge`, `lt`, `le`
-- Collection: `in`, `notIn`
-- Range: `between`
-- String: `contains`, `startsWith`, `endsWith`, `like`, `regex`
-- Null: `isNull`, `notNull`, `isEmpty`, `isNotEmpty`, `isBlank`, `notBlank`
-- Logic: `and`, `or`, `not`
+## Critical Rules
+
+### Code Generation
+1. `_gen/` directories: **ALWAYS overwritten** - never edit
+2. `_`-prefixed files: **ALWAYS overwritten** - never edit
+3. Non-underscored files: **Preserved** - your custom code
+
+### Entity vs BizModel
+
+| | Entity | BizModel |
+|--|--------|----------|
+| Read-only helpers | ✅ | - |
+| Mutable logic | ❌ | ✅ |
+| Customizable | ❌ (stable) | ✅ (Delta) |
+
+### CRUD
+- Simple CRUD: No code needed
+- Input: `Map<String, Object>` + xmeta validation
+- Transaction: `@BizMutation` auto-enables
+
+---
+
+## Directory Mapping
+
+| Directory | Purpose |
+|-----------|---------|
+| `00-quick-start/` | Getting started |
+| `01-core-concepts/` | Platform fundamentals |
+| `02-architecture/` | System architecture |
+| `03-development-guide/` | Development guides |
+| `04-core-components/` | Core components |
+| `05-xlang/` | XLang language |
+| `06-utilities/` | Utility classes |
+| `07-best-practices/` | Best practices |
+| `08-examples/` | Code examples |
+| `09-quick-reference/` | Quick references |
+| `11-test-and-debug/` | Testing & debugging |
+| `12-tasks/` | Task-based guides |

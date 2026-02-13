@@ -8,6 +8,7 @@
 package io.nop.gateway.core.context;
 
 import io.nop.core.context.ServiceContextImpl;
+import io.nop.gateway.model.GatewayRouteModel;
 
 import java.util.Map;
 
@@ -16,16 +17,22 @@ import java.util.Map;
  *
  * <p>该类扩展了ServiceContextImpl，在继承服务上下文所有功能的基础上，增加了网关特定的上下文信息，
  * 如当前路由、路径变量、流式模式标记和请求路径等。</p>
+ *
+ * <p>所有网关特定的数据通过getAttribute/setAttribute存储，不引入新的成员变量。</p>
  */
 public class GatewayContextImpl extends ServiceContextImpl implements IGatewayContext {
 
-    private Object currentRoute;
+    /** 属性名：当前路由 */
+    public static final String ATTR_CURRENT_ROUTE = "currentRoute";
 
-    private Map<String, Object> pathVariables;
+    /** 属性名：路径变量 */
+    public static final String ATTR_PATH_VARIABLES = "pathVariables";
 
-    private boolean streamingMode;
+    /** 属性名：流式模式标记 */
+    public static final String ATTR_STREAMING_MODE = "streamingMode";
 
-    private String requestPath;
+    /** 属性名：请求路径 */
+    public static final String ATTR_REQUEST_PATH = "requestPath";
 
     /**
      * 默认构造函数
@@ -44,42 +51,44 @@ public class GatewayContextImpl extends ServiceContextImpl implements IGatewayCo
     }
 
     @Override
-    public synchronized Object getCurrentRoute() {
-        return currentRoute;
+    public GatewayRouteModel getCurrentRoute() {
+        return (GatewayRouteModel) getAttribute(ATTR_CURRENT_ROUTE);
     }
 
     @Override
-    public synchronized void setCurrentRoute(Object route) {
-        this.currentRoute = route;
+    public void setCurrentRoute(GatewayRouteModel route) {
+        setAttribute(ATTR_CURRENT_ROUTE, route);
     }
 
     @Override
-    public synchronized Map<String, Object> getPathVariables() {
-        return pathVariables;
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getPathVariables() {
+        return (Map<String, Object>) getAttribute(ATTR_PATH_VARIABLES);
     }
 
     @Override
-    public synchronized void setPathVariables(Map<String, Object> pathVariables) {
-        this.pathVariables = pathVariables;
+    public void setPathVariables(Map<String, Object> pathVariables) {
+        setAttribute(ATTR_PATH_VARIABLES, pathVariables);
     }
 
     @Override
-    public synchronized boolean isStreamingMode() {
-        return streamingMode;
+    public boolean isStreamingMode() {
+        Boolean mode = (Boolean) getAttribute(ATTR_STREAMING_MODE);
+        return mode != null && mode;
     }
 
     @Override
-    public synchronized void setStreamingMode(boolean streamingMode) {
-        this.streamingMode = streamingMode;
+    public void setStreamingMode(boolean streamingMode) {
+        setAttribute(ATTR_STREAMING_MODE, streamingMode);
     }
 
     @Override
-    public synchronized String getRequestPath() {
-        return requestPath;
+    public String getRequestPath() {
+        return (String) getAttribute(ATTR_REQUEST_PATH);
     }
 
     @Override
-    public synchronized void setRequestPath(String requestPath) {
-        this.requestPath = requestPath;
+    public void setRequestPath(String requestPath) {
+        setAttribute(ATTR_REQUEST_PATH, requestPath);
     }
 }
