@@ -3,7 +3,7 @@ package ${basePackageName}.biz;
 
 import io.nop.orm.biz.ICrudBiz;
 
-import ${entityModel.className || entityModel.name};
+import ${entityModel.name};
 
 public interface I${entityModel.shortName}Biz extends ICrudBiz&lt;${entityModel.shortName}>{
 
