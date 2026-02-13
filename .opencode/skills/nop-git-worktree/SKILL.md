@@ -168,7 +168,7 @@ git -C .bare worktree add "../$WORKTREE_NAME" -b "$BRANCH_NAME"
 # 3. 创建 Maven 配置（Feature 分支专用）
 mkdir -p "$WORKTREE_NAME/.mvn"
 cat > "$WORKTREE_NAME/.mvn/maven.config" <<'EOF'
--Dmaven.repo.local.head=.nop/repository
+-Dmaven.repo.local.head=${maven.multiModuleProjectDirectory}/.nop/repository
 -Dmaven.repo.local.tail.ignoreAvailability=true
 EOF
 
@@ -225,7 +225,7 @@ git branch
 
 **Feature 分支 Maven 配置文件格式**：
 ```bash
--Dmaven.repo.local.head=.nop/repository
+-Dmaven.repo.local.head=${maven.multiModuleProjectDirectory}/.nop/repository
 -Dmaven.repo.local.tail.ignoreAvailability=true
 ```
 
