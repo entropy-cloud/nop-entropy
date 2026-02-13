@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 退避策略
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 固定间隔
+    value: 1
+    description: 
+  
+  - label: 指数退避
+    value: 2
+    description: 
+  
+  - label: Cron表达式
+    value: 3
+    description: 
+  

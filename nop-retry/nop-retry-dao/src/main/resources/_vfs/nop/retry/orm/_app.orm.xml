@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm ext:registerShortName="true" ext:appName="nop-retry" ext:entityPackageName="io.nop.retry.dao.entity"
+     ext:basePackageName="io.nop.retry" ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-retry"
+     ext:mavenVersion="2.0.0-SNAPSHOT" ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql"
+     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
+     xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:ui="ui">
+
+    <x:post-extends x:override="replace">
+        <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:post-extends>
+
+    <x:gen-extends x:override="replace">
+        <orm-gen:DefaultGenExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:gen-extends>
+
+    <dicts>
+        <dict label="重试记录状态" name="retry/retry-record-status" valueType="int" i18n-en:label="Retry Record Status">
+            <option code="PENDING" label="待调度" value="0" i18n-en:label="Pending"/>
+            <option code="RETRYING" label="重试中" value="1" i18n-en:label="Retrying"/>
+            <option code="COMPLETED" label="已完成" value="2" i18n-en:label="Completed"/>
+            <option code="MAX_RETRIES" label="超限" value="3" i18n-en:label="Max Retries"/>
+            <option code="SUSPENDED" label="已暂停" value="4" i18n-en:label="Suspended"/>
+        </dict>
+        <dict label="重试尝试状态" name="retry/retry-attempt-status" valueType="int" i18n-en:label="Retry Attempt Status">
+            <option code="WAITING" label="等待中" value="0" i18n-en:label="Waiting"/>
+            <option code="RUNNING" label="执行中" value="1" i18n-en:label="Running"/>
+            <option code="SUCCESS" label="成功" value="2" i18n-en:label="Success"/>
+            <option code="FAILED" label="失败" value="3" i18n-en:label="Failed"/>
+            <option code="STOPPED" label="已停止" value="4" i18n-en:label="Stopped"/>
+            <option code="CANCELED" label="已取消" value="5" i18n-en:label="Canceled"/>
+        </dict>
+        <dict label="重试任务类型" name="retry/retry-task-type" valueType="int" i18n-en:label="Retry Task Type">
+            <option code="RETRY" label="业务重试" value="1" i18n-en:label="Retry"/>
+            <option code="CALLBACK" label="回调任务" value="2" i18n-en:label="Callback"/>
+        </dict>
+        <dict label="退避策略" name="retry/backoff-strategy" valueType="int" i18n-en:label="Backoff Strategy">
+            <option code="FIXED_INTERVAL" label="固定间隔" value="1" i18n-en:label="Fixed Interval"/>
+            <option code="EXPONENTIAL_BACKOFF" label="指数退避" value="2" i18n-en:label="Exponential Backoff"/>
+            <option code="CRON_EXPRESSION" label="Cron表达式" value="3" i18n-en:label="Cron Expression"/>
+        </dict>
+        <dict label="阻塞策略" name="retry/block-strategy" valueType="int" i18n-en:label="Block Strategy">
+            <option code="DISCARD" label="丢弃" value="1" i18n-en:label="Discard"/>
+            <option code="OVERWRITE" label="覆盖" value="2" i18n-en:label="Overwrite"/>
+            <option code="PARALLEL" label="并行" value="3" i18n-en:label="Parallel"/>
+        </dict>
+        <dict label="回调触发类型" name="retry/callback-trigger-type" valueType="int" i18n-en:label="Callback Trigger Type">
+            <option code="ON_SUCCESS" label="成功时触发" value="1" i18n-en:label="On Success"/>
+            <option code="ON_FAILURE" label="失败时触发" value="2" i18n-en:label="On Failure"/>
+            <option code="ALWAYS" label="总是触发" value="3" i18n-en:label="Always"/>
+        </dict>
+    </dicts>
+
+    <domains>
+        <domain name="version" stdSqlType="INTEGER"/>
+        <domain name="createTime" stdSqlType="TIMESTAMP"/>
+        <domain name="createdBy" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="updateTime" stdSqlType="TIMESTAMP"/>
+        <domain name="updatedBy" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="namespaceId" precision="64" stdSqlType="VARCHAR"/>
+        <domain name="groupId" precision="64" stdSqlType="VARCHAR"/>
+        <domain name="templateId" precision="32" stdSqlType="VARCHAR"/>
+        <domain name="idempotentId" precision="64" stdSqlType="VARCHAR"/>
+        <domain name="bizNo" precision="64" stdSqlType="VARCHAR"/>
+        <domain name="executorName" precision="512" stdSqlType="VARCHAR"/>
+        <domain name="json-4000" precision="4000" stdDomain="json" stdSqlType="VARCHAR"/>
+        <domain name="retryCount" stdSqlType="INTEGER"/>
+        <domain name="maxRetryCount" stdSqlType="INTEGER"/>
+        <domain name="nextTriggerTime" stdSqlType="TIMESTAMP"/>
+        <domain name="boolFlag" precision="1" stdDomain="boolFlag" stdSqlType="VARCHAR"/>
+        <domain name="backoffStrategy" stdSqlType="INTEGER"/>
+        <domain name="executionTimeoutSeconds" stdSqlType="INTEGER"/>
+        <domain name="deadlineTimeoutMs" stdSqlType="BIGINT"/>
+        <domain name="blockStrategy" stdSqlType="INTEGER"/>
+        <domain name="callbackEnabled" precision="1" stdDomain="boolFlag" stdSqlType="VARCHAR"/>
+        <domain name="callbackTriggerType" stdSqlType="INTEGER"/>
+        <domain name="callbackMaxAttempts" stdSqlType="INTEGER"/>
+        <domain name="callbackIntervalSeconds" stdSqlType="INTEGER"/>
+        <domain name="taskType" stdSqlType="INTEGER"/>
+        <domain name="retryRecordStatus" stdSqlType="INTEGER"/>
+        <domain name="partitionIndex" stdSqlType="INTEGER"/>
+        <domain name="attemptNo" stdSqlType="INTEGER"/>
+        <domain name="retryAttemptStatus" stdSqlType="INTEGER"/>
+        <domain name="durationMs" stdSqlType="BIGINT"/>
+    </domains>
+
+    <entities>
+        <entity className="io.nop.retry.dao.entity.NopRetryTemplate" createTimeProp="createTime" createrProp="createdBy"
+                displayName="重试模板" name="io.nop.retry.dao.entity.NopRetryTemplate" registerShortName="true"
+                tableName="nop_retry_template" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                i18n-en:displayName="Retry Template">
+            <columns>
+                <column code="SID" displayName="主键" domain="templateId" mandatory="true" name="sid" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Primary Key"/>
+                <column code="NAMESPACE_ID" displayName="命名空间ID" domain="namespaceId" mandatory="true"
+                        name="namespaceId" precision="64" propId="2" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Namespace ID"/>
+                <column code="GROUP_ID" displayName="组ID" domain="groupId" mandatory="true" name="groupId"
+                        precision="64" propId="3" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Group ID"/>
+                <column code="NAME" displayName="模板名称" mandatory="true" name="name" precision="100" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Template Name"/>
+                <column code="STATUS" defaultValue="1" displayName="状态" domain="boolFlag" name="status" precision="1"
+                        propId="5" stdDataType="string" stdDomain="boolFlag" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Status"/>
+                <column code="MAX_RETRY_COUNT" displayName="最大重试次数" domain="maxRetryCount" mandatory="true"
+                        name="maxRetryCount" propId="6" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Max Retry Count"/>
+                <column code="BACKOFF_STRATEGY" displayName="退避策略" domain="backoffStrategy" name="backoffStrategy"
+                        propId="7" stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Backoff Strategy"
+                        ext:dict="retry/backoff-strategy"/>
+                <column code="BACKOFF_CONFIG" displayName="退避配置" domain="json-4000" name="backoffConfig"
+                        precision="4000" propId="8" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Backoff Config"/>
+                <column code="EXECUTION_TIMEOUT_SECONDS" displayName="执行超时(秒)" domain="executionTimeoutSeconds"
+                        name="executionTimeoutSeconds" propId="9" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Execution Timeout (Seconds)"/>
+                <column code="DEADLINE_TIMEOUT_MS" displayName="截止超时(毫秒)" domain="deadlineTimeoutMs"
+                        name="deadlineTimeoutMs" propId="10" stdDataType="long" stdSqlType="BIGINT"
+                        i18n-en:displayName="Deadline Timeout (Milliseconds)"/>
+                <column code="BLOCK_STRATEGY" displayName="阻塞策略" domain="blockStrategy" name="blockStrategy" propId="11"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Block Strategy"
+                        ext:dict="retry/block-strategy"/>
+                <column code="CALLBACK_ENABLED" defaultValue="0" displayName="启用回调" domain="callbackEnabled"
+                        name="callbackEnabled" precision="1" propId="12" stdDataType="string" stdDomain="boolFlag"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Callback Enabled"/>
+                <column code="CALLBACK_TRIGGER_TYPE" displayName="回调触发类型" domain="callbackTriggerType"
+                        name="callbackTriggerType" propId="13" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Callback Trigger Type" ext:dict="retry/callback-trigger-type"/>
+                <column code="CALLBACK_MAX_ATTEMPTS" displayName="回调最大次数" domain="callbackMaxAttempts"
+                        name="callbackMaxAttempts" propId="14" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Callback Max Attempts"/>
+                <column code="CALLBACK_INTERVAL_SECONDS" displayName="回调间隔(秒)" domain="callbackIntervalSeconds"
+                        name="callbackIntervalSeconds" propId="15" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Callback Interval (Seconds)"/>
+                <column code="OWNER_ID" displayName="所有者ID" name="ownerId" precision="50" propId="16"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner ID"/>
+                <column code="DESCRIPTION" displayName="描述" name="description" precision="4000" propId="17"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
+                <column code="VERSION" displayName="版本" domain="version" name="version" propId="18" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" name="createdBy" precision="50"
+                        propId="19" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" name="createTime" propId="20"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="更新人" domain="updatedBy" name="updatedBy" precision="50"
+                        propId="21" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="更新时间" domain="updateTime" name="updateTime" propId="22"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Update Time"/>
+            </columns>
+            <relations>
+                <to-many cascadeDelete="true" displayName="重试记录" name="records"
+                         refEntityName="io.nop.retry.dao.entity.NopRetryRecord" refPropName="template"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="Retry Records">
+                    <join>
+                        <on leftProp="sid" rightProp="templateId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+        <entity className="io.nop.retry.dao.entity.NopRetryRecord" createTimeProp="createTime" createrProp="createdBy"
+                displayName="重试记录" name="io.nop.retry.dao.entity.NopRetryRecord" registerShortName="true"
+                tableName="nop_retry_record" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                i18n-en:displayName="Retry Record">
+            <columns>
+                <column code="SID" displayName="主键" domain="templateId" mandatory="true" name="sid" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Primary Key"/>
+                <column code="NAMESPACE_ID" displayName="命名空间ID" domain="namespaceId" mandatory="true"
+                        name="namespaceId" precision="64" propId="2" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Namespace ID"/>
+                <column code="GROUP_ID" displayName="组ID" domain="groupId" mandatory="true" name="groupId"
+                        precision="64" propId="3" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Group ID"/>
+                <column code="TEMPLATE_ID" displayName="模板ID" domain="templateId" name="templateId" precision="32"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Template ID"/>
+                <column code="IDEMPOTENT_ID" displayName="幂等ID" domain="idempotentId" mandatory="true"
+                        name="idempotentId" precision="64" propId="5" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Idempotent ID"/>
+                <column code="BIZ_NO" displayName="业务号" domain="bizNo" name="bizNo" precision="64" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Business Number"/>
+                <column code="TASK_TYPE" displayName="任务类型" domain="taskType" name="taskType" propId="7"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Task Type"
+                        ext:dict="retry/retry-task-type"/>
+                <column code="STATUS" displayName="状态" domain="retryRecordStatus" name="status" propId="8"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Status"
+                        ext:dict="retry/retry-record-status"/>
+                <column code="RETRY_COUNT" displayName="重试次数" domain="retryCount" name="retryCount" propId="9"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Retry Count"/>
+                <column code="MAX_RETRY_COUNT" displayName="最大重试次数" domain="maxRetryCount" name="maxRetryCount"
+                        propId="10" stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Max Retry Count"/>
+                <column code="NEXT_TRIGGER_TIME" displayName="下次触发时间" domain="nextTriggerTime" name="nextTriggerTime"
+                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Next Trigger Time"/>
+                <column code="PARTITION_INDEX" displayName="分区索引" domain="partitionIndex" name="partitionIndex"
+                        propId="12" stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Partition Index"/>
+                <column code="EXECUTOR_NAME" displayName="执行器名称" domain="executorName" name="executorName"
+                        precision="512" propId="13" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Executor Name"/>
+                <column code="SERIALIZER_NAME" displayName="序列化器名称" name="serializerName" precision="32" propId="14"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Serializer Name"/>
+                <column code="REQUEST_PAYLOAD" displayName="请求参数" domain="json-4000" name="requestPayload"
+                        precision="4000" propId="15" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Request Payload"/>
+                <column code="CONTEXT_PAYLOAD" displayName="上下文参数" domain="json-4000" name="contextPayload"
+                        precision="4000" propId="16" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Context Payload"/>
+                <column code="VERSION" displayName="版本" domain="version" name="version" propId="17" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" name="createdBy" precision="50"
+                        propId="18" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" name="createTime" propId="19"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="更新人" domain="updatedBy" name="updatedBy" precision="50"
+                        propId="20" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="更新时间" domain="updateTime" name="updateTime" propId="21"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Update Time"/>
+            </columns>
+            <indexes>
+                <index name="IDX_RETRY_SCHEDULER_SCAN" unique="false">
+                    <column name="status"/>
+                    <column name="partitionIndex"/>
+                    <column name="nextTriggerTime"/>
+                </index>
+                <index name="UK_RETRY_IDEMPOTENT_ID" unique="true">
+                    <column name="idempotentId"/>
+                </index>
+                <index name="IDX_RETRY_MGMT_LOOKUP" unique="false">
+                    <column name="namespaceId"/>
+                    <column name="groupId"/>
+                    <column name="templateId"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="模板" name="template" refEntityName="io.nop.retry.dao.entity.NopRetryTemplate"
+                        refPropName="records" tagSet="pub,ref-pub" i18n-en:displayName="Template">
+                    <join>
+                        <on leftProp="templateId" rightProp="sid"/>
+                    </join>
+                </to-one>
+                <to-many cascadeDelete="true" displayName="重试尝试" name="attempts"
+                         refEntityName="io.nop.retry.dao.entity.NopRetryAttempt" refPropName="record"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="Retry Attempts">
+                    <join>
+                        <on leftProp="sid" rightProp="recordId"/>
+                    </join>
+                </to-many>
+                <to-many name="deadLetter" refEntityName="io.nop.retry.dao.entity.NopRetryDeadLetter"
+                         refPropName="record" tagSet="pub">
+                    <join>
+                        <on leftProp="sid" rightProp="recordId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+        <entity className="io.nop.retry.dao.entity.NopRetryAttempt" createTimeProp="createTime" createrProp="createdBy"
+                displayName="重试尝试" name="io.nop.retry.dao.entity.NopRetryAttempt" registerShortName="true"
+                tableName="nop_retry_attempt" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                i18n-en:displayName="Retry Attempt">
+            <columns>
+                <column code="SID" displayName="主键" domain="templateId" mandatory="true" name="sid" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Primary Key"/>
+                <column code="RECORD_ID" displayName="记录ID" domain="templateId" mandatory="true" name="recordId"
+                        precision="32" propId="2" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Record ID"/>
+                <column code="ATTEMPT_NO" displayName="尝试序号" domain="attemptNo" name="attemptNo" propId="3"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Attempt Number"/>
+                <column code="STATUS" displayName="状态" domain="retryAttemptStatus" name="status" propId="4"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Status"
+                        ext:dict="retry/retry-attempt-status"/>
+                <column code="START_TIME" displayName="开始时间" domain="createTime" name="startTime" propId="5"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Start Time"/>
+                <column code="END_TIME" displayName="结束时间" domain="updateTime" name="endTime" propId="6"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="End Time"/>
+                <column code="DURATION_MS" displayName="持续时间(毫秒)" domain="durationMs" name="durationMs" propId="7"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Duration (Milliseconds)"/>
+                <column code="ERROR_CODE" displayName="错误码" name="errorCode" precision="50" propId="8"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Code"/>
+                <column code="ERROR_MESSAGE" displayName="错误消息" name="errorMessage" precision="500" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Message"/>
+                <column code="ERROR_STACK" displayName="错误堆栈" name="errorStack" precision="4000" propId="10"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Stack"/>
+                <column code="CLIENT_ADDRESS" displayName="客户端地址" name="clientAddress" precision="100" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Client Address"/>
+                <column code="REASON" displayName="原因" name="reason" precision="500" propId="12" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Reason"/>
+                <column code="REQUEST_PAYLOAD_SNAPSHOT" displayName="请求参数快照" domain="json-4000"
+                        name="requestPayloadSnapshot" precision="4000" propId="13" stdDataType="string" stdDomain="json"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Request Payload Snapshot"/>
+                <column code="VERSION" displayName="版本" domain="version" name="version" propId="14" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" name="createdBy" precision="50"
+                        propId="15" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" name="createTime" propId="16"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="更新人" domain="updatedBy" name="updatedBy" precision="50"
+                        propId="17" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="更新时间" domain="updateTime" name="updateTime" propId="18"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Update Time"/>
+            </columns>
+            <indexes>
+                <index name="IDX_RETRY_ATTEMPT_RECORD" unique="false">
+                    <column name="recordId"/>
+                </index>
+                <index name="IDX_RETRY_ATTEMPT_STATUS" unique="false">
+                    <column name="status"/>
+                </index>
+                <index name="UK_RETRY_ATTEMPT_RECORD_NO" unique="true">
+                    <column name="recordId"/>
+                    <column name="attemptNo"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="记录" name="record" refEntityName="io.nop.retry.dao.entity.NopRetryRecord"
+                        refPropName="attempts" tagSet="pub,ref-pub" i18n-en:displayName="Record">
+                    <join>
+                        <on leftProp="recordId" rightProp="sid"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="io.nop.retry.dao.entity.NopRetryDeadLetter" createTimeProp="createTime"
+                createrProp="createdBy" displayName="重试死信" name="io.nop.retry.dao.entity.NopRetryDeadLetter"
+                registerShortName="true" tableName="nop_retry_dead_letter" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Retry Dead Letter">
+            <columns>
+                <column code="SID" displayName="主键" domain="templateId" mandatory="true" name="sid" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Primary Key"/>
+                <column code="NAMESPACE_ID" displayName="命名空间ID" domain="namespaceId" mandatory="true"
+                        name="namespaceId" precision="64" propId="2" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Namespace ID"/>
+                <column code="GROUP_ID" displayName="组ID" domain="groupId" mandatory="true" name="groupId"
+                        precision="64" propId="3" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Group ID"/>
+                <column code="TEMPLATE_ID" displayName="模板ID" domain="templateId" name="templateId" precision="32"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Template ID"/>
+                <column code="RECORD_ID" displayName="记录ID" domain="templateId" mandatory="true" name="recordId"
+                        precision="32" propId="5" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Record ID"/>
+                <column code="IDEMPOTENT_ID" displayName="幂等ID" domain="idempotentId" mandatory="true"
+                        name="idempotentId" precision="64" propId="6" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Idempotent ID"/>
+                <column code="BIZ_NO" displayName="业务号" domain="bizNo" name="bizNo" precision="64" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Business Number"/>
+                <column code="EXECUTOR_NAME" displayName="执行器名称" domain="executorName" name="executorName"
+                        precision="512" propId="8" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Executor Name"/>
+                <column code="SERIALIZER_NAME" displayName="序列化器名称" name="serializerName" precision="32" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Serializer Name"/>
+                <column code="REQUEST_PAYLOAD" displayName="请求参数" domain="json-4000" name="requestPayload"
+                        precision="4000" propId="10" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Request Payload"/>
+                <column code="FAILURE_CODE" displayName="失败码" name="failureCode" precision="50" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Failure Code"/>
+                <column code="FAILURE_MESSAGE" displayName="失败消息" name="failureMessage" precision="500" propId="12"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Failure Message"/>
+                <column code="ERROR_STACK" displayName="错误堆栈" name="errorStack" precision="4000" propId="13"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Stack"/>
+                <column code="FINAL_STATUS" displayName="最终状态" domain="retryRecordStatus" name="finalStatus" propId="14"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Final Status"
+                        ext:dict="retry/retry-record-status"/>
+                <column code="VERSION" displayName="版本" domain="version" name="version" propId="15" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" name="createdBy" precision="50"
+                        propId="16" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" name="createTime" propId="17"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="更新人" domain="updatedBy" name="updatedBy" precision="50"
+                        propId="18" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="更新时间" domain="updateTime" name="updateTime" propId="19"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Update Time"/>
+            </columns>
+            <indexes>
+                <index name="IDX_RETRY_DL_RECORD" unique="false">
+                    <column name="recordId"/>
+                </index>
+                <index name="UK_RETRY_DL_IDEMPOTENT_ID" unique="true">
+                    <column name="idempotentId"/>
+                </index>
+                <index name="IDX_RETRY_DL_MGMT_LOOKUP" unique="false">
+                    <column name="namespaceId"/>
+                    <column name="groupId"/>
+                    <column name="templateId"/>
+                </index>
+            </indexes>
+            <relations>
+                <to-one displayName="记录" name="record" refEntityName="io.nop.retry.dao.entity.NopRetryRecord"
+                        refPropName="deadLetter" tagSet="pub,ref-pub" i18n-en:displayName="Record">
+                    <join>
+                        <on leftProp="recordId" rightProp="sid"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+    </entities>
+</orm>

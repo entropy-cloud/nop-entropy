@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 重试任务类型
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 业务重试
+    value: 1
+    description: 
+  
+  - label: 回调任务
+    value: 2
+    description: 
+  

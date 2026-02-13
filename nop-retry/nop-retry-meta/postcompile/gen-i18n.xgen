@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<c:script>
+codeGenerator.withTplDir('/nop/templates/i18n').execute("/",{ moduleId: "nop/retry" },$scope);
+</c:script>

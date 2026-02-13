@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 回调触发类型
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 成功时触发
+    value: 1
+    description: 
+  
+  - label: 失败时触发
+    value: 2
+    description: 
+  
+  - label: 总是触发
+    value: 3
+    description: 
+  

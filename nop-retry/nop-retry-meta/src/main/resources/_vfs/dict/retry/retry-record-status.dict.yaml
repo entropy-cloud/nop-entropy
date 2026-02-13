@@ -1,0 +1,27 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 重试记录状态
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 待调度
+    value: 0
+    description: 
+  
+  - label: 重试中
+    value: 1
+    description: 
+  
+  - label: 已完成
+    value: 2
+    description: 
+  
+  - label: 超限
+    value: 3
+    description: 
+  
+  - label: 已暂停
+    value: 4
+    description: 
+  
