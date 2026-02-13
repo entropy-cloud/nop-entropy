@@ -5,7 +5,7 @@ import io.nop.orm.biz.ICrudBiz;
 
 import ${entityModel.className || entityModel.name};
 
-public interface ${entityModel.shortName}Biz extends ICrudBiz&lt;${entityModel.shortName}>{
+public interface I${entityModel.shortName}Biz extends ICrudBiz&lt;${entityModel.shortName}>{
 
 }
 </c:unit>
