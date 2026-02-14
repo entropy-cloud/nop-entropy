@@ -69,7 +69,7 @@
               toolCallsPath="prop-path"
     />
 
-    <buildHttpRequest>xpl-fn:(httpRequest,prompt,chatOptions)=>void</buildHttpRequest>
+    <buildHttpRequest>xpl-fn:(httpRequest,chatRequest,chatOptions)=>void</buildHttpRequest>
 
     <parseHttpResponse>xpl-fn:(httpResponse,chatResponse, chatOptions)=>void</parseHttpResponse>
 

@@ -18,7 +18,7 @@
     <dependencies>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-ai-llms</artifactId>
+            <artifactId>nop-ai-llm</artifactId>
         </dependency>
 
         <dependency>

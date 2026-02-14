@@ -19,7 +19,7 @@
     <modules>
         <module>nop-ai-codegen</module>
         <module>nop-ai-core</module>
-        <module>nop-ai-llms</module>
+        <module>nop-ai-llm</module>
         <module>nop-ai-dsl-orm</module>
         <module>nop-ai-coder</module>
         <module>nop-ai-api</module>

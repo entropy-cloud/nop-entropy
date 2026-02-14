@@ -9,7 +9,7 @@
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nop-ai-llms</artifactId>
+    <artifactId>nop-ai-llm</artifactId>
 
     <dependencies>
         <dependency>

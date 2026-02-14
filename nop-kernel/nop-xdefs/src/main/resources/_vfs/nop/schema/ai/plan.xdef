@@ -58,7 +58,7 @@ Agent Plan Metamodel Definition
 
     <!-- 需要回答的关键问题列表 -->
     <keyQuestions xdef:body-type="list" xdef:key-attr="id">
-        <question id="!string" xdef:name="AgentPlanQuestion" >string</question>
+        <keyQuestion id="!string" xdef:name="AgentPlanQuestion">string</keyQuestion>
     </keyQuestions>
 
     <!-- ========== 决策记录 ========== -->
@@ -78,7 +78,8 @@ Agent Plan Metamodel Definition
 
     <!-- 任务执行过程中遇到的错误记录 -->
     <errors xdef:body-type="list" xdef:key-attr="id">
-        <error id="string" encounteredAt="datetime" attemptNumber="int" resolvedAt="datetime" xdef:name="AgentPlanError">
+        <error id="string" encounteredAt="datetime" attemptNumber="int" resolvedAt="datetime"
+               xdef:name="AgentPlanError">
             <!-- 错误描述（大文本） -->
             <errorText>string</errorText>
             <!-- 错误解决方案（大文本） -->
