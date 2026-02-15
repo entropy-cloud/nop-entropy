@@ -13,6 +13,11 @@ import java.util.Set;
 
 import static io.nop.ai.core.api.tool.DefaultAiChatFunctionTool.fromMethod;
 
+/**
+ * @deprecated This internal AI core class is deprecated and will be removed in future versions.
+ * Please use the new AI API instead.
+ */
+@Deprecated
 public class DefaultAiChatToolSet implements IAiChatToolSet {
     protected final Map<String, IAiChatFunctionTool> toolMap;
 

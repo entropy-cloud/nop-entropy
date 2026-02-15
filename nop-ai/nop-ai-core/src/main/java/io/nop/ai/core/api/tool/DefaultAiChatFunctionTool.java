@@ -13,6 +13,11 @@ import java.util.function.Function;
 import static io.nop.core.type.utils.GenericTypeToJsonSchema.buildInputSchema;
 import static io.nop.core.type.utils.GenericTypeToJsonSchema.buildOutputSchema;
 
+/**
+ * @deprecated This internal AI core class is deprecated and will be removed in future versions.
+ * Please use the new AI API instead.
+ */
+@Deprecated
 public class DefaultAiChatFunctionTool implements IAiChatFunctionTool {
     private String name;
     private String description;

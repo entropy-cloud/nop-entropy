@@ -12,7 +12,12 @@ import java.util.Map;
 import static io.nop.ai.core.AiCoreConstants.RESOURCE_TYPE_AUDIO;
 import static io.nop.ai.core.AiCoreConstants.RESOURCE_TYPE_IMAGE;
 
+/**
+ * @deprecated This internal AI core class is deprecated and will be removed in future versions.
+ * Please use the new AI API instead.
+ */
 @DataBean
+@Deprecated
 public class AiMessageAttachment {
     private String resourceType;
     private String resourceUrl;

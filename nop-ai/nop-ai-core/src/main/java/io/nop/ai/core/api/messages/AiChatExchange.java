@@ -53,7 +53,12 @@ import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_NO_EXPECTED_PART;
 import static io.nop.ai.core.api.messages.AiMessage.indexOfMark;
 
+/**
+ * @deprecated This internal AI core class is deprecated and will be removed in future versions.
+ * Please use the new AI API instead.
+ */
 @DataBean
+@Deprecated
 public class AiChatExchange {
     static final Logger LOG = LoggerFactory.getLogger(AiChatExchange.class);
 

@@ -8,10 +8,16 @@
 package io.nop.ai.api.chat.stream;
 
 /**
- * 流式响应回调处理器
+ * 流式响应回调处理器（已弃用）
  * <p>
- * 用于处理 AI 流式响应的事件回调
+ * 该接口已被弃用，请使用 {@link java.util.concurrent.Flow.Publisher} 和
+ * {@link java.util.concurrent.Flow.Subscriber} 替代。
+ *
+ * @deprecated 使用 JDK 标准响应式流接口 Flow.Publisher/Flow.Subscriber 替代
+ * @see java.util.concurrent.Flow.Publisher
+ * @see java.util.concurrent.Flow.Subscriber
  */
+@Deprecated
 public interface IChatStreamHandler {
 
     /**
@@ -27,66 +33,4 @@ public interface IChatStreamHandler {
      * @param error 错误信息
      */
     void onError(Throwable error);
-
-    /**
-     * 组合另一个处理器，形成链式处理
-     * <p>
-     * 执行顺序：先执行当前处理器，再执行另一个处理器。
-     * 如果当前处理器抛出异常，另一个处理器仍然会被执行（错误会传播）。
-     *
-     * <p>用法示例：
-     * <pre>
-     * // 累积器 + 实时输出
-     * IChatStreamHandler handler = accumulator.asHandler()
-     *     .compose(IChatStreamHandler.of(System.out::print));
-     *
-     * // 多个处理器链
-     * IChatStreamHandler handler = loggerHandler
-     *     .compose(metricsHandler)
-     *     .compose(uiUpdateHandler);
-     * </pre>
-     *
-     * @param after 后执行的处理器
-     * @return 组合后的处理器
-     */
-    default IChatStreamHandler compose(IChatStreamHandler after) {
-        return new IChatStreamHandler() {
-            @Override
-            public void onNext(ChatStreamChunk chunk) {
-                IChatStreamHandler.this.onNext(chunk);
-                after.onNext(chunk);
-            }
-
-            @Override
-            public void onError(Throwable error) {
-                try {
-                    IChatStreamHandler.this.onError(error);
-                } finally {
-                    after.onError(error);
-                }
-            }
-        };
-    }
-
-    /**
-     * 创建一个简单的处理器（仅处理文本内容）
-     *
-     * @param contentConsumer 内容消费者
-     * @return 简单处理器
-     */
-    static IChatStreamHandler of(java.util.function.Consumer<String> contentConsumer) {
-        return new IChatStreamHandler() {
-            @Override
-            public void onNext(ChatStreamChunk chunk) {
-                if (chunk.hasContent()) {
-                    contentConsumer.accept(chunk.getContent());
-                }
-            }
-
-            @Override
-            public void onError(Throwable error) {
-                error.printStackTrace();
-            }
-        };
-    }
 }

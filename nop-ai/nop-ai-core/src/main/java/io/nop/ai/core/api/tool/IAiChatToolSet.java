@@ -4,6 +4,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * @deprecated This internal AI core interface is deprecated and will be removed in future versions.
+ * Please use the new AI API instead.
+ */
+@Deprecated
 public interface IAiChatToolSet {
     Set<String> getToolNames();
 

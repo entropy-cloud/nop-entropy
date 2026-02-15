@@ -4,6 +4,11 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 
+/**
+ * @deprecated This internal AI core class is deprecated and will be removed in future versions.
+ * Please use the new AI API instead.
+ */
+@Deprecated
 public class ToolSpecificationLoader {
     public static ToolSpecification loadSpecification(String toolName) {
         String path = "/nop/ai/tools/" + toolName + ".tool.json";

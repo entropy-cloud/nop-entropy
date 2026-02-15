@@ -9,6 +9,11 @@ package io.nop.ai.core.api.chat;
 
 import io.nop.ai.core.api.messages.AiChatExchange;
 
+/**
+ * @deprecated This internal AI core interface is deprecated and will be removed in future versions.
+ * Please use the new AI API instead.
+ */
+@Deprecated
 public interface IAiChatProgressListener {
     void onReceiveMessage(AiChatExchange message);
 }

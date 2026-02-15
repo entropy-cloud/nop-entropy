@@ -18,8 +18,12 @@ package io.nop.ai.core.api.messages;
 import java.io.Serializable;
 
 /**
+ * @deprecated This internal AI core enum is deprecated and will be removed in future versions.
+ * Please use the new AI API instead.
+ * 
  * 消息状态，用于在流式（stream）的场景下，用于标识当前消息的状态
  */
+@Deprecated
 public enum MessageStatus implements Serializable {
 
     /**

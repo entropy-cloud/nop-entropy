@@ -7,6 +7,11 @@ import io.nop.api.core.util.ICancelToken;
 
 import java.util.concurrent.CompletionStage;
 
+/**
+ * @deprecated This internal AI core interface is deprecated and will be removed in future versions.
+ * Please use the new AI API instead.
+ */
+@Deprecated
 public interface IAiChatService {
     IAiChatSession newSession(AiChatOptions options);
 

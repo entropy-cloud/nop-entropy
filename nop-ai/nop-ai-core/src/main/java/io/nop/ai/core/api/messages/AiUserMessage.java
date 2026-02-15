@@ -23,7 +23,12 @@ import io.nop.core.resource.IResource;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * @deprecated This internal AI core class is deprecated and will be removed in future versions.
+ * Please use the new AI API instead.
+ */
 @DataBean
+@Deprecated
 public class AiUserMessage extends AbstractTextMessage {
     private List<AiMessageAttachment> attachments;
 

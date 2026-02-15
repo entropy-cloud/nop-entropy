@@ -12,6 +12,11 @@ import io.nop.ai.core.api.messages.AiMessage;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * @deprecated This internal AI core interface is deprecated and will be removed in future versions.
+ * Please use the new AI API instead.
+ */
+@Deprecated
 public interface IAiChatSession extends AutoCloseable {
     String getSessionId();
 

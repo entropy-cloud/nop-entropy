@@ -19,7 +19,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
+/**
+ * @deprecated This internal AI core class is deprecated and will be removed in future versions.
+ * Please use the new AI API instead.
+ */
 @DataBean
+@Deprecated
 public class AiChatOptions extends ExtensibleBean {
     private String sessionId;
     private String provider;

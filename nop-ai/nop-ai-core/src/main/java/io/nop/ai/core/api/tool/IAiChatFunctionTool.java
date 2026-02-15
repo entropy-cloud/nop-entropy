@@ -6,6 +6,11 @@ import io.nop.api.core.util.FutureHelper;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
+/**
+ * @deprecated This internal AI core interface is deprecated and will be removed in future versions.
+ * Please use the new AI API instead.
+ */
+@Deprecated
 public interface IAiChatFunctionTool {
     String getName();
 

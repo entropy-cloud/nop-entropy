@@ -6,7 +6,12 @@ import io.nop.api.core.annotations.data.DataBean;
 
 import java.util.List;
 
+/**
+ * @deprecated This internal AI core class is deprecated and will be removed in future versions.
+ * Please use the new AI API instead.
+ */
 @DataBean
+@Deprecated
 public class AiAssistantMessage extends AbstractTextMessage {
     private String think;
 

@@ -26,11 +26,16 @@ import io.nop.commons.util.StringHelper;
 
 import java.util.List;
 
+/**
+ * @deprecated This internal AI core class is deprecated and will be removed in future versions.
+ * Please use the new AI API instead.
+ */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "role")
 @JsonSubTypes({@JsonSubTypes.Type(value = AiUserMessage.class, name = "user"),
         @JsonSubTypes.Type(value = AiAssistantMessage.class, name = "assistant"),
         @JsonSubTypes.Type(value = AiSystemMessage.class, name = "system"),
 })
+@Deprecated
 public abstract class AiMessage extends Metadata {
     private String messageId;
 
