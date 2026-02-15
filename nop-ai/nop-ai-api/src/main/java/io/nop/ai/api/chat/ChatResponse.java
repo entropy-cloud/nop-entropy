@@ -7,6 +7,7 @@
  */
 package io.nop.ai.api.chat;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatUsage;
@@ -43,10 +44,7 @@ public class ChatResponse {
      */
     private String finishReason;
 
-    /**
-     * 是否为流式响应
-     */
-    private Boolean streaming;
+    private long responseTime;
 
     /**
      * 响应ID
@@ -120,13 +118,12 @@ public class ChatResponse {
         this.finishReason = finishReason;
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public Boolean getStreaming() {
-        return streaming;
+    public long getResponseTime() {
+        return responseTime;
     }
 
-    public void setStreaming(Boolean streaming) {
-        this.streaming = streaming;
+    public void setResponseTime(long responseTime) {
+        this.responseTime = responseTime;
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -168,8 +165,24 @@ public class ChatResponse {
     /**
      * 检查是否成功
      */
+    @JsonIgnore
     public boolean isSuccess() {
         return error == null;
+    }
+
+    @JsonIgnore
+    public Integer getPromptTokens() {
+        return usage == null ? null : usage.getPromptTokens();
+    }
+
+    @JsonIgnore
+    public Integer getCompletionTokens() {
+        return usage == null ? null : usage.getCompletionTokens();
+    }
+
+    @JsonIgnore
+    public String getFullContent() {
+        return message == null ? null : message.getFullContent();
     }
 
     /**
@@ -207,7 +220,7 @@ public class ChatResponse {
         }
         copy.model = this.model;
         copy.finishReason = this.finishReason;
-        copy.streaming = this.streaming;
+        copy.responseTime = this.responseTime;
         copy.id = this.id;
         copy.requestId = this.requestId;
         copy.error = this.error;

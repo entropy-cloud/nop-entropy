@@ -50,7 +50,7 @@ public class ChatServiceImpl implements IChatService {
     public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
         HttpRequest httpRequest = buildHttpRequest(request);
         return httpClient.fetchAsync(httpRequest, cancelToken)
-                .thenApply(response -> parseChatResponse(response.getBodyAsText(), request.getOptions()));
+                .thenApply(response -> parseChatResponse(response.getBodyAsString(), request.getOptions()));
     }
 
     @Override
@@ -60,10 +60,12 @@ public class ChatServiceImpl implements IChatService {
         httpRequest.setHeader("Accept", "text/event-stream");
 
         Flow.Publisher<IServerEventResponse> eventPublisher = httpClient.fetchServerEventFlow(httpRequest, cancelToken);
-        eventPublisher.subscribe(new Flow.Subscriber<IServerEventResponse>() {
+        eventPublisher.subscribe(new Flow.Subscriber<>() {
             @Override
             public void onSubscribe(Flow.Subscription subscription) {
                 subscription.request(Long.MAX_VALUE);
+                if (cancelToken != null)
+                    cancelToken.appendOnCancelTask(subscription::cancel);
             }
 
             @Override
@@ -79,9 +81,6 @@ public class ChatServiceImpl implements IChatService {
 
             @Override
             public void onComplete() {
-                ChatStreamChunk finalChunk = new ChatStreamChunk();
-                finalChunk.setFinishReason("stop");
-                publisher.submit(finalChunk);
                 publisher.close();
             }
         });

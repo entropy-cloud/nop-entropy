@@ -40,7 +40,7 @@ public class TestJdkHttpClient extends BaseTestCase {
         HttpRequest request = new HttpRequest();
         request.setUrl("https://www.baidu.com");
         IHttpResponse response = FutureHelper.syncGet(client.fetchAsync(request, null));
-        System.out.println(response.getBodyAsText());
+        System.out.println(response.getBodyAsString());
         client.stop();
     }
 

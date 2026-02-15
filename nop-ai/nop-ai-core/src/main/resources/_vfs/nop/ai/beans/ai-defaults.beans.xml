@@ -5,7 +5,7 @@
 
     <bean id="nopAiChatService" class="io.nop.ai.core.service.DefaultAiChatService" ioc:default="true"/>
 
-    <bean id="nopAiChatLogger" class="io.nop.ai.core.service.DefaultAiChatLogger" ioc:default="true"/>
+    <bean id="nopAiChatLogger" class="io.nop.ai.core.service.DefaultChatLogger" ioc:default="true"/>
 
     <bean id="nopAiChatResponseCache" class="io.nop.ai.core.persist.DefaultAiChatResponseCache" ioc:default="true">
         <property name="cacheDir" value="/nop/ai/cache"/>

@@ -1,7 +1,7 @@
 package io.nop.ai.core.command;
 
 import io.nop.ai.core.api.chat.AiChatOptions;
-import io.nop.ai.core.api.chat.IAiChatLogger;
+import io.nop.ai.api.chat.IChatLogger;
 import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.messages.AiAssistantMessage;
 import io.nop.ai.core.api.messages.AiChatExchange;
@@ -62,7 +62,7 @@ public class AiCommand {
     private AiChatOptions chatOptions;
     private IAiChatResponseCache chatCache;
     private boolean returnExceptionAsResponse = true;
-    private IAiChatLogger chatLogger;
+    private IChatLogger chatLogger;
 
     private int maxSteps;
     private List<AiMessageAttachment> attachments;
@@ -252,7 +252,7 @@ public class AiCommand {
         return attachments;
     }
 
-    public AiCommand chatLogger(IAiChatLogger chatLogger) {
+    public AiCommand chatLogger(IChatLogger chatLogger) {
         this.chatLogger = chatLogger;
         return this;
     }
@@ -282,16 +282,16 @@ public class AiCommand {
         return FutureHelper.syncGet(executeAsync(vars, cancelToken, ctx));
     }
 
-    public IAiChatLogger getChatLogger() {
+    public IChatLogger getChatLogger() {
         if (chatLogger == null)
-            chatLogger = BeanContainer.getBeanByType(IAiChatLogger.class);
+            chatLogger = BeanContainer.getBeanByType(IChatLogger.class);
         return chatLogger;
     }
 
     protected void logCachedResponse(AiChatExchange exchange) {
         boolean logMessage = CFG_AI_SERVICE_LOG_MESSAGE.get();
         if (logMessage) {
-            getChatLogger().logChatExchange(exchange);
+            //getChatLogger().logChatExchange(exchange);
         }
     }
 

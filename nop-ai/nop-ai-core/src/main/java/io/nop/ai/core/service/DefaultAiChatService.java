@@ -2,7 +2,7 @@ package io.nop.ai.core.service;
 
 import io.nop.ai.core.AiCoreConstants;
 import io.nop.ai.core.api.chat.AiChatOptions;
-import io.nop.ai.core.api.chat.IAiChatLogger;
+import io.nop.ai.api.chat.IChatLogger;
 import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.chat.IAiChatSession;
 import io.nop.ai.core.api.messages.AiAssistantMessage;
@@ -77,7 +77,7 @@ public class DefaultAiChatService implements IAiChatService {
 
     private IHttpClient httpClient;
 
-    private IAiChatLogger chatLogger;
+    private IChatLogger chatLogger;
 
     private Map<String, IRateLimiter> rateLimiters = new ConcurrentHashMap<>();
 
@@ -93,7 +93,7 @@ public class DefaultAiChatService implements IAiChatService {
     }
 
     @Inject
-    public void setChatLogger(IAiChatLogger chatLogger) {
+    public void setChatLogger(IChatLogger chatLogger) {
         this.chatLogger = chatLogger;
     }
 
@@ -178,7 +178,7 @@ public class DefaultAiChatService implements IAiChatService {
 
         boolean logMessage = CFG_AI_SERVICE_LOG_MESSAGE.get();
         if (logMessage) {
-            chatLogger.logRequest(chatExchange);
+            //chatLogger.logRequest(chatExchange);
         }
 
         HttpRequest request = buildHttpRequest(llmName, llmModel, prompt, options);
@@ -501,7 +501,7 @@ public class DefaultAiChatService implements IAiChatService {
 
 
             if (CFG_AI_SERVICE_LOG_MESSAGE.get()) {
-                chatLogger.logResponse(chatResponse);
+                //chatLogger.logResponse(chatResponse);
             }
         } catch (Exception e) {
             LOG.info("nop.ai.parse-result-fail", e);

@@ -256,15 +256,15 @@ public abstract class _AgentPlanModel extends io.nop.core.resource.component.Abs
     }
 
     
-    public io.nop.ai.agent.model.AgentPlanQuestion getQuestion(String name){
+    public io.nop.ai.agent.model.AgentPlanQuestion getKeyQuestion(String name){
         return this._keyQuestions.getByKey(name);
     }
 
-    public boolean hasQuestion(String name){
+    public boolean hasKeyQuestion(String name){
         return this._keyQuestions.containsKey(name);
     }
 
-    public void addQuestion(io.nop.ai.agent.model.AgentPlanQuestion item) {
+    public void addKeyQuestion(io.nop.ai.agent.model.AgentPlanQuestion item) {
         checkAllowChange();
         java.util.List<io.nop.ai.agent.model.AgentPlanQuestion> list = this.getKeyQuestions();
         if (list == null || list.isEmpty()) {

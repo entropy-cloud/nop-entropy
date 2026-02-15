@@ -392,7 +392,7 @@ public class GatewayHandler {
             future = httpClient.fetchAsync(httpRequest, null).thenApply(httpResponse -> {
                 ApiResponse<String> apiResponse = new ApiResponse<>();
                 apiResponse.setHttpStatus(httpResponse.getHttpStatus());
-                apiResponse.setData(httpResponse.getBodyAsText());
+                apiResponse.setData(httpResponse.getBodyAsString());
                 return apiResponse;
             });
         } else {

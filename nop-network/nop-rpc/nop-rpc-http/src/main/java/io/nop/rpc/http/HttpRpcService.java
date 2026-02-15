@@ -79,7 +79,7 @@ public class HttpRpcService implements IRpcService {
 
     protected ApiResponse<?> toApiResponse(IHttpResponse response, ApiRequest<?> request) {
         int status = response.getHttpStatus();
-        String text = response.getBodyAsText();
+        String text = response.getBodyAsString();
 
         IApiResponseNormalizer responseNormalizer = RpcHelper.getResponseNormalizer(request);
 

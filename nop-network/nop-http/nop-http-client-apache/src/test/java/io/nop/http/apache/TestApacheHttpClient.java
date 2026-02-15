@@ -33,7 +33,7 @@ public class TestApacheHttpClient extends BaseTestCase {
         HttpRequest request = new HttpRequest();
         request.setUrl("https://www.baidu.com");
         IHttpResponse response = FutureHelper.syncGet(client.fetchAsync(request, null));
-        System.out.println(response.getBodyAsText());
+        System.out.println(response.getBodyAsString());
         client.stop();
     }
 
@@ -47,7 +47,7 @@ public class TestApacheHttpClient extends BaseTestCase {
         HttpRequest request = new HttpRequest();
         request.setUrl("http://localhost:8080/r/LoginApi__login");
         IHttpResponse response = FutureHelper.syncGet(client.fetchAsync(request, null));
-        System.out.println(response.getHttpStatus() + ":" + response.getBodyAsText());
+        System.out.println(response.getHttpStatus() + ":" + response.getBodyAsString());
         client.stop();
     }
 

@@ -187,30 +187,6 @@ public class ChatStreamAccumulator {
 
 
     /**
-     * 将累积器包装为 IChatStreamHandler，并添加自定义回调
-     *
-     * @return IChatStreamHandler 包装后的处理器
-     */
-    public IChatStreamHandler asHandler() {
-
-        ChatStreamAccumulator self = this;
-
-        return new IChatStreamHandler() {
-            @Override
-            public void onNext(ChatStreamChunk chunk) {
-                // 先累积
-                self.accumulate(chunk);
-            }
-
-            @Override
-            public void onError(Throwable error) {
-                // 默认不处理，由调用方捕获异常
-            }
-        };
-    }
-
-
-    /**
      * 内部类：单个工具调用累积器
      */
     private static class ToolCallAccumulator {

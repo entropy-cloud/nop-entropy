@@ -9,7 +9,13 @@ package io.nop.ai.api.chat;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import io.nop.ai.api.chat.messages.*;
+import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.api.chat.messages.ChatSystemMessage;
+import io.nop.ai.api.chat.messages.ChatToolCall;
+import io.nop.ai.api.chat.messages.ChatToolDefinition;
+import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
+import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.api.core.annotations.data.DataBean;
 
 import java.util.ArrayList;
@@ -32,6 +38,10 @@ public class ChatRequest {
      */
     private ChatOptions options;
 
+    private long requestTime;
+    private String requestId;
+    private int retryTimes;
+
     public ChatRequest() {
     }
 
@@ -42,6 +52,32 @@ public class ChatRequest {
     public ChatRequest(List<ChatMessage> messages, ChatOptions options) {
         this.messages = messages;
         this.options = options;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    public long getRequestTime() {
+        return requestTime;
+    }
+
+    public void setRequestTime(long requestTime) {
+        this.requestTime = requestTime;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getRequestId() {
+        return requestId;
+    }
+
+    public void setRequestId(String requestId) {
+        this.requestId = requestId;
+    }
+
+    public int getRetryTimes() {
+        return retryTimes;
+    }
+
+    public void setRetryTimes(int retryTimes) {
+        this.retryTimes = retryTimes;
     }
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
@@ -401,6 +437,10 @@ public class ChatRequest {
         if (options != null) {
             copy.options = options.copy(); // 假设ChatOptions有copy方法
         }
+
+        copy.requestId = requestId;
+        copy.retryTimes = retryTimes;
+        copy.requestTime = requestTime;
         return copy;
     }
 

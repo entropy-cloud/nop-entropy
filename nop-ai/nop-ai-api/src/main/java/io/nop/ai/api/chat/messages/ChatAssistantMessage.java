@@ -83,6 +83,23 @@ public class ChatAssistantMessage extends ChatMessage {
         return toolCalls != null && !toolCalls.isEmpty();
     }
 
+    @JsonIgnore
+    public String getFullContent() {
+        String think = getThink();
+        if (think == null)
+            return getContent();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("<think>\n");
+        sb.append(think);
+        sb.append("\n</think>\n");
+
+        String content = getContent();
+        if (content != null)
+            sb.append(content);
+        return sb.toString();
+    }
+
     /**
      * 获取第一个工具调用（通常只有一个）
      */

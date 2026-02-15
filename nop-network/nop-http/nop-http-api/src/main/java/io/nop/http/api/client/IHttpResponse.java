@@ -18,7 +18,7 @@ public interface IHttpResponse extends IHttpHeaders {
 
     byte[] getBodyAsBytes();
 
-    String getBodyAsText();
+    String getBodyAsString();
 
     <T> T getBodyAsBean(Class<T> beanClass);
 

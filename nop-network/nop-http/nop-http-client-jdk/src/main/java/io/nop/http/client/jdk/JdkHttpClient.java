@@ -323,7 +323,7 @@ public class JdkHttpClient implements IHttpClient {
         }
 
         if (LOG.isDebugEnabled())
-            LOG.debug("http.response:status={},body={}", response.statusCode(), ret.getBodyAsText());
+            LOG.debug("http.response:status={},body={}", response.statusCode(), ret.getBodyAsString());
 
         return ret;
     }

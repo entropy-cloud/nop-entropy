@@ -89,7 +89,7 @@ public class DefaultHttpResponse implements IHttpResponse {
         this.bodyAsBytes = bodyAsBytes;
     }
 
-    public String getBodyAsText() {
+    public String getBodyAsString() {
         if (bodyAsText != null)
             return bodyAsText;
 
@@ -117,7 +117,7 @@ public class DefaultHttpResponse implements IHttpResponse {
         if (body != null && beanClass.isAssignableFrom(body.getClass()))
             return (T) body;
 
-        T bean = (T) JSON.parseToBean(null, getBodyAsText(), beanClass);
+        T bean = (T) JSON.parseToBean(null, getBodyAsString(), beanClass);
         this.body = bean;
         return bean;
     }
