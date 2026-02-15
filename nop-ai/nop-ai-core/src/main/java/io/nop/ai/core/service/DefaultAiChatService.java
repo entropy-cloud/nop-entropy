@@ -68,6 +68,10 @@ import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_NO_BASE_URL;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_NO_DEFAULT_LLMS;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_OPTION_NOT_SET;
 
+/**
+ * 被ChatServiceImpl替代
+ */
+@Deprecated
 public class DefaultAiChatService implements IAiChatService {
     static final Logger LOG = LoggerFactory.getLogger(DefaultAiChatService.class);
 

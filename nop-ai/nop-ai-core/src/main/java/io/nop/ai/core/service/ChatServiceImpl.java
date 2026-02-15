@@ -36,8 +36,6 @@ import java.util.concurrent.SubmissionPublisher;
 
 /**
  * 实现 nop-ai-api 中定义的 IChatService 接口。
- * <p>
- * 该实现类直接使用 IHttpClient 进行 HTTP 调用，不再依赖内部 AI core API。
  */
 public class ChatServiceImpl implements IChatService {
 
@@ -52,7 +50,7 @@ public class ChatServiceImpl implements IChatService {
     public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
         HttpRequest httpRequest = buildHttpRequest(request);
         return httpClient.fetchAsync(httpRequest, cancelToken)
-                .thenApply(response -> parseChatResponse(response.getBodyAsString(), request.getOptions()));
+                .thenApply(response -> parseChatResponse(response.getBodyAsText(), request.getOptions()));
     }
 
     @Override
@@ -165,7 +163,7 @@ public class ChatServiceImpl implements IChatService {
             return ChatResponse.error("NULL_RESPONSE", "Empty response");
         }
         try {
-            Map<String, Object> responseMap = JSON.parseObject(body, Map.class);
+            Map<String, Object> responseMap = (Map<String, Object>) JSON.parse(body);
             ChatResponse response = new ChatResponse();
             response.setId((String) responseMap.get("id"));
             response.setModel((String) responseMap.get("model"));
@@ -206,24 +204,21 @@ public class ChatServiceImpl implements IChatService {
         if (event == null || event.getData() == null) return null;
         String data = event.getData();
         if (data.isEmpty() || data.equals("[DONE]")) return null;
-        try {
-            Map<String, Object> dataMap = JSON.parseObject(data, Map.class);
-            ChatStreamChunk chunk = new ChatStreamChunk();
-            chunk.setId((String) dataMap.get("id"));
-            chunk.setRole("assistant");
-            List<Map<String, Object>> choices = (List<Map<String, Object>>) dataMap.get("choices");
-            if (choices != null && !choices.isEmpty()) {
-                Map<String, Object> choice = choices.get(0);
-                Map<String, Object> delta = (Map<String, Object>) choice.get("delta");
-                if (delta != null) {
-                    chunk.setContent((String) delta.get("content"));
-                    chunk.setThinking((String) delta.get("thinking"));
-                }
-                chunk.setFinishReason((String) choice.get("finish_reason"));
+
+        Map<String, Object> dataMap = (Map<String, Object>) JSON.parse(data);
+        ChatStreamChunk chunk = new ChatStreamChunk();
+        chunk.setId((String) dataMap.get("id"));
+        chunk.setRole("assistant");
+        List<Map<String, Object>> choices = (List<Map<String, Object>>) dataMap.get("choices");
+        if (choices != null && !choices.isEmpty()) {
+            Map<String, Object> choice = choices.get(0);
+            Map<String, Object> delta = (Map<String, Object>) choice.get("delta");
+            if (delta != null) {
+                chunk.setContent((String) delta.get("content"));
+                chunk.setThinking((String) delta.get("thinking"));
             }
-            return chunk;
-        } catch (Exception e) {
-            return null;
+            chunk.setFinishReason((String) choice.get("finish_reason"));
         }
+        return chunk;
     }
 }
