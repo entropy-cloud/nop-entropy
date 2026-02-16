@@ -1,0 +1,40 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     apiStyle="gemini" supportToolCalls="true" defaultModel="gemini-1.5-pro">
+
+    <baseUrl>https://generativelanguage.googleapis.com/v1beta</baseUrl>
+    <chatUrl>/models/{model}:generateContent</chatUrl>
+
+    <models>
+        <model name="gemini-1.5-pro" maxTokensLimit="8192" defaultMaxTokens="4096"/>
+        <model name="gemini-1.5-flash" maxTokensLimit="8192" defaultMaxTokens="4096"/>
+        <model name="gemini-1.0-pro" maxTokensLimit="2048" defaultMaxTokens="2048"/>
+    </models>
+
+    <aliasMap>
+        gemini-pro=gemini-1.5-pro
+    </aliasMap>
+
+    <!--
+      Gemini API特性：
+      1. 使用URL查询参数传递API key（非Header）
+      2. 请求体结构为 {contents: [...], generationConfig: {...}}
+      3. system消息使用 systemInstruction 字段
+      4. 角色为 "model" 而非 "assistant"
+      5. 响应用 usageMetadata 而非 usage
+    -->
+
+    <request temperaturePath="generationConfig.temperature"
+             maxTokensPath="generationConfig.maxOutputTokens"
+             topPPath="generationConfig.topP"
+             topKPath="generationConfig.topK"
+             stopPath="generationConfig.stopSequences"/>
+
+    <response contentPath="candidates.0.content.parts.0.text"
+              rolePath="candidates.0.content.role"
+              promptTokensPath="usageMetadata.promptTokenCount"
+              completionTokensPath="usageMetadata.candidatesTokenCount"
+              totalTokensPath="usageMetadata.totalTokenCount"
+              statusPath="candidates.0.finishReason"
+              errorPath="error.message"/>
+
+</llm>

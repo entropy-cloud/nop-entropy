@@ -1,0 +1,36 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     apiStyle="anthropic" apiKeyHeader="x-api-key" supportToolCalls="true"
+     defaultModel="claude-3-5-sonnet-20240620">
+
+    <baseUrl>https://api.anthropic.com</baseUrl>
+    <chatUrl>/v1/messages</chatUrl>
+
+    <models>
+        <model name="claude-3-opus-20240229" maxTokensLimit="4096" defaultMaxTokens="4096"/>
+        <model name="claude-3-sonnet-20240229" maxTokensLimit="4096" defaultMaxTokens="4096"/>
+        <model name="claude-3-haiku-20240307" maxTokensLimit="4096" defaultMaxTokens="4096"/>
+        <model name="claude-3-5-sonnet-20240620" maxTokensLimit="8192" defaultMaxTokens="4096"/>
+        <model name="claude-3-5-sonnet-latest" maxTokensLimit="8192" defaultMaxTokens="4096"/>
+    </models>
+
+    <!-- 
+      Anthropic API特性：
+      1. system消息需要放在system字段，而不是messages数组中
+      2. 角色为"model"而非"assistant"
+      3. 工具定义使用input_schema而非parameters
+    -->
+    <request maxTokensPath="max_tokens"
+             temperaturePath="temperature"
+             topPPath="top_p"
+             stopPath="stop_sequences"/>
+
+    <response contentPath="content.0.text"
+              rolePath="role"
+              promptTokensPath="usage.input_tokens"
+              completionTokensPath="usage.output_tokens"
+              totalTokensPath="usage.input_tokens"
+              statusPath="stop_reason"
+              toolCallsPath="content.0.tool_use"
+              errorPath="error.message"/>
+
+</llm>
