@@ -76,7 +76,7 @@ public class MockAiChatService {
     }
 
     protected IResource getResource(AiChatExchange exchange, String postfix) {
-        return AiLogHelper.getSessionResource(CFG_AI_SERVICE_MOCK_DIR.get(), exchange, postfix);
+        return ChatLogHelper.getSessionResource(CFG_AI_SERVICE_MOCK_DIR.get(), exchange, postfix);
     }
 
     protected IThreadPoolExecutor getExecutor() {
