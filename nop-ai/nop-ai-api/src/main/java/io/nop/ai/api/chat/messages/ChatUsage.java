@@ -31,6 +31,16 @@ public class ChatUsage {
      */
     private Integer totalTokens;
 
+    /**
+     * 缓存命中的token数量（用于Prompt Caching）
+     */
+    private Integer cacheHitTokens;
+
+    /**
+     * 缓存创建的token数量（创建 Prompt Cache 时消耗的 token）
+     */
+    private Integer cacheCreationTokens;
+
     public ChatUsage() {
     }
 
@@ -67,10 +77,31 @@ public class ChatUsage {
         this.totalTokens = totalTokens;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Integer getCacheHitTokens() {
+        return cacheHitTokens;
+    }
+
+    public void setCacheHitTokens(Integer cacheHitTokens) {
+        this.cacheHitTokens = cacheHitTokens;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Integer getCacheCreationTokens() {
+        return cacheCreationTokens;
+    }
+
+    public void setCacheCreationTokens(Integer cacheCreationTokens) {
+        this.cacheCreationTokens = cacheCreationTokens;
+    }
+
     /**
      * 创建Token使用信息的深拷贝
      */
     public ChatUsage copy() {
-        return new ChatUsage(this.promptTokens, this.completionTokens);
+        ChatUsage copy = new ChatUsage(this.promptTokens, this.completionTokens);
+        copy.setCacheHitTokens(this.cacheHitTokens);
+        copy.setCacheCreationTokens(this.cacheCreationTokens);
+        return copy;
     }
 }

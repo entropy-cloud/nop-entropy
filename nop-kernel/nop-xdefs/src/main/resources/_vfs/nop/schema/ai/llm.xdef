@@ -62,7 +62,7 @@
               totalTokensPath="prop-path"
               completionTokensPath="prop-path"
               promptCacheHitTokensPath="prop-path"
-              promptCacheMissTokensPath="prop-path"
+              promptCacheCreationTokensPath="prop-path"
               reasoningContentPath="prop-path"
               errorPath="prop-path"
               statusPath="prop-path"

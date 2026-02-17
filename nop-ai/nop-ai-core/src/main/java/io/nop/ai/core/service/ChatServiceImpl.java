@@ -12,14 +12,19 @@ import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatLogger;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
+import io.nop.ai.core.dialect.ILlmDialect;
 import io.nop.ai.core.model.LlmModel;
+import io.nop.ai.core.model.LlmModelModel;
+import io.nop.ai.core.dialect.LlmDialectFactory;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.json.JSON;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
 import io.nop.http.api.client.IServerEventResponse;
@@ -42,18 +47,15 @@ import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_LOG_MESSAGE;
 import static io.nop.ai.core.AiCoreErrors.ARG_HTTP_STATUS;
 import static io.nop.ai.core.AiCoreErrors.ARG_LLM_NAME;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR;
+import static io.nop.ai.core.AiCoreErrors.ERR_AI_SERVICE_NO_BASE_URL;
 
 /**
  * 基于 llm.xml 配置的多模型 ChatService 实现。
  * <p>
- * 通过组合多个帮助类实现功能：
- * <ul>
- *   <li>{@link ChatRequestBuilder} - 构建HTTP请求</li>
- *   <li>{@link ChatResponseParser} - 解析HTTP响应</li>
- *   <li>{@link LlmConfigHelper} - 配置管理</li>
- *   <li>{@link MessageConverter} - 消息格式转换</li>
- *   <li>{@link ToolCallHelper} - 工具调用处理</li>
- * </ul>
+ * 使用 LlmDialect 处理不同 API 风格的特定逻辑，将请求构建、响应解析、流式处理
+ * 等功能委托给对应的方言实现。
+ *
+ * @author canonical_entropy@163.com
  */
 public class ChatServiceImpl implements IChatService {
     private static final Logger LOG = LoggerFactory.getLogger(ChatServiceImpl.class);
@@ -94,6 +96,7 @@ public class ChatServiceImpl implements IChatService {
 
         String provider = LlmConfigHelper.getProvider(request.getOptions());
         LlmModel config = LlmConfigHelper.loadConfig(provider);
+        ILlmDialect dialect = LlmDialectFactory.getDialect(config.getApiStyle());
 
         // 速率限制检查
         checkRateLimit(provider, config);
@@ -110,7 +113,7 @@ public class ChatServiceImpl implements IChatService {
 
         // 构建请求
         String model = LlmConfigHelper.resolveModel(config, request.getOptions());
-        HttpRequest httpRequest = new ChatRequestBuilder(config, provider, model, request, false).build();
+        HttpRequest httpRequest = buildHttpRequest(config, provider, model, request, false, dialect);
 
         return httpClient.fetchAsync(httpRequest, cancelToken)
                 .thenApply(response -> {
@@ -120,8 +123,7 @@ public class ChatServiceImpl implements IChatService {
                                 .param(ARG_HTTP_STATUS, response.getHttpStatus());
                     }
 
-                    ChatResponse chatResponse = new ChatResponseParser(config, request)
-                            .parse(response.getBodyAsString());
+                    ChatResponse chatResponse = dialect.parseResponse(response.getBodyAsString(), config);
                     chatResponse.setRequestId(request.getRequestId());
                     chatResponse.setResponseTime(CoreMetrics.currentTimeMillis());
 
@@ -136,6 +138,7 @@ public class ChatServiceImpl implements IChatService {
     public Flow.Publisher<ChatStreamChunk> callStream(ChatRequest request, ICancelToken cancelToken) {
         String provider = LlmConfigHelper.getProvider(request.getOptions());
         LlmModel config = LlmConfigHelper.loadConfig(provider);
+        ILlmDialect dialect = LlmDialectFactory.getDialect(config.getApiStyle());
 
         // 速率限制检查
         checkRateLimit(provider, config);
@@ -152,11 +155,10 @@ public class ChatServiceImpl implements IChatService {
 
         // 构建流式请求
         String model = LlmConfigHelper.resolveModel(config, request.getOptions());
-        HttpRequest httpRequest = new ChatRequestBuilder(config, provider, model, request, true).build();
+        HttpRequest httpRequest = buildHttpRequest(config, provider, model, request, true, dialect);
         httpRequest.setHeader("accept", "text/event-stream");
 
         SubmissionPublisher<ChatStreamChunk> publisher = new SubmissionPublisher<>();
-        StreamChunkParser chunkParser = new StreamChunkParser(config);
 
         Flow.Publisher<IServerEventResponse> eventPublisher = httpClient.fetchServerEventFlow(httpRequest, cancelToken);
         eventPublisher.subscribe(new Flow.Subscriber<>() {
@@ -170,7 +172,7 @@ public class ChatServiceImpl implements IChatService {
 
             @Override
             public void onNext(IServerEventResponse item) {
-                ChatStreamChunk chunk = chunkParser.parse(item.getData());
+                ChatStreamChunk chunk = dialect.parseStreamChunk(item.getData());
                 if (chunk != null) {
                     publisher.submit(chunk);
                 }
@@ -188,6 +190,48 @@ public class ChatServiceImpl implements IChatService {
         });
 
         return publisher;
+    }
+
+    /**
+     * 构建 HTTP 请求
+     */
+    private HttpRequest buildHttpRequest(LlmModel config, String provider, String model,
+                                          ChatRequest request, boolean stream, ILlmDialect dialect) {
+        String baseUrl = resolveBaseUrl(config, provider);
+        String apiKey = LlmConfigHelper.resolveApiKey(provider);
+        LlmModelModel modelConfig = LlmConfigHelper.getModelConfig(config, model);
+
+        HttpRequest httpRequest = new HttpRequest();
+        httpRequest.setMethod("POST");
+        httpRequest.setUrl(dialect.buildUrl(baseUrl, config.getChatUrl(), apiKey));
+        dialect.setHeaders(httpRequest, apiKey, config.getApiKeyHeader());
+        
+        Map<String, Object> body = dialect.buildBody(request, config, modelConfig, model, stream);
+        httpRequest.setBody(JsonTool.serialize(body, false));
+
+        return httpRequest;
+    }
+
+    /**
+     * 解析 Base URL
+     */
+    private String resolveBaseUrl(LlmModel config, String provider) {
+        String baseUrlKey = StringHelper.replace(
+            io.nop.ai.core.AiCoreConstants.CONFIG_VAR_LLM_BASE_URL,
+            io.nop.ai.core.AiCoreConstants.PLACE_HOLDER_LLM_NAME,
+            provider
+        );
+        String baseUrl = (String) io.nop.api.core.config.AppConfig.var(baseUrlKey);
+
+        if (StringHelper.isEmpty(baseUrl)) {
+            baseUrl = config.getBaseUrl();
+        }
+
+        if (StringHelper.isEmpty(baseUrl)) {
+            throw new NopException(ERR_AI_SERVICE_NO_BASE_URL).param(ARG_LLM_NAME, provider);
+        }
+
+        return baseUrl;
     }
 
     /**
@@ -217,8 +261,6 @@ public class ChatServiceImpl implements IChatService {
      * 将流式响应汇聚为 ChatResponse
      */
     protected CompletionStage<ChatResponse> aggregateStreamToResponse(ChatRequest request, ICancelToken cancelToken) {
-
-        // 汇聚器
         StreamAggregator aggregator = new StreamAggregator();
         CompletableFuture<ChatResponse> future = new CompletableFuture<>();
 
@@ -262,7 +304,6 @@ public class ChatServiceImpl implements IChatService {
     private static class StreamAggregator {
         private final StringBuilder contentBuilder = new StringBuilder();
         private final StringBuilder thinkingBuilder = new StringBuilder();
-        // 按 index 累积 tool calls，支持多工具调用
         private final Map<Integer, ToolCallAccumulator> toolCallAccumulators = new LinkedHashMap<>();
         private String id;
         private String model;
@@ -284,7 +325,6 @@ public class ChatServiceImpl implements IChatService {
             if (chunk.getFinishReason() != null) {
                 this.finishReason = chunk.getFinishReason();
             }
-            // 处理工具调用增量
             if (chunk.getToolCall() != null) {
                 addToolCallChunk(chunk.getToolCall());
             }
@@ -320,7 +360,6 @@ public class ChatServiceImpl implements IChatService {
                 message.setThink(thinking);
             }
 
-            // 组装工具调用列表
             if (!toolCallAccumulators.isEmpty()) {
                 List<io.nop.ai.api.chat.messages.ChatToolCall> toolCalls = new ArrayList<>();
                 for (ToolCallAccumulator acc : toolCallAccumulators.values()) {
@@ -337,40 +376,38 @@ public class ChatServiceImpl implements IChatService {
             response.setMessage(message);
             return response;
         }
+    }
 
-        /**
-         * 工具调用累积器 - 累积单个工具调用的增量数据
-         */
-        private static class ToolCallAccumulator {
-            String id;
-            String name;
-            final StringBuilder argumentsBuilder = new StringBuilder();
+    /**
+     * 工具调用累积器
+     */
+    private static class ToolCallAccumulator {
+        String id;
+        String name;
+        final StringBuilder argumentsBuilder = new StringBuilder();
 
-            io.nop.ai.api.chat.messages.ChatToolCall toToolCall() {
-                if (id == null || name == null) {
-                    return null;
-                }
-                io.nop.ai.api.chat.messages.ChatToolCall toolCall = 
-                    new io.nop.ai.api.chat.messages.ChatToolCall();
-                toolCall.setId(id);
-                toolCall.setName(name);
-                
-                // 解析累积的 arguments JSON
-                String argsStr = argumentsBuilder.toString();
-                if (!argsStr.isEmpty()) {
-                    try {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> args = (Map<String, Object>) io.nop.api.core.json.JSON.parse(argsStr);
-                        toolCall.setArguments(args);
-                    } catch (Exception e) {
-                        // JSON 解析失败，设置为空对象
-                        toolCall.setArguments(new LinkedHashMap<>());
-                    }
-                } else {
+        io.nop.ai.api.chat.messages.ChatToolCall toToolCall() {
+            if (id == null || name == null) {
+                return null;
+            }
+            io.nop.ai.api.chat.messages.ChatToolCall toolCall = 
+                new io.nop.ai.api.chat.messages.ChatToolCall();
+            toolCall.setId(id);
+            toolCall.setName(name);
+            
+            String argsStr = argumentsBuilder.toString();
+            if (!argsStr.isEmpty()) {
+                try {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> args = (Map<String, Object>) JSON.parse(argsStr);
+                    toolCall.setArguments(args);
+                } catch (Exception e) {
                     toolCall.setArguments(new LinkedHashMap<>());
                 }
-                return toolCall;
+            } else {
+                toolCall.setArguments(new LinkedHashMap<>());
             }
+            return toolCall;
         }
     }
 }
