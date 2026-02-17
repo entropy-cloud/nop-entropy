@@ -4,6 +4,8 @@
 
 Nop平台服务层基于BizModel设计，提供了CrudBizModel基类用于快速实现CRUD操作，同时支持复杂业务逻辑的扩展。
 
+> **BizModel 编写核心规范**：请参考 [BizModel 编写指南](./bizmodel-guide.md)，其中包含完整的编写规范、参数/返回类型约定、数据访问方式等核心内容。本文档重点介绍服务层架构和扩展机制。
+
 ## 重要说明
 
 ### 模型驱动架构（Model-Driven Architecture）
@@ -444,7 +446,6 @@ public void approveUser(@Name("userId") String userId,
 - ❌ 禁止直接注入BizModel类
 - ✅ 必须使用接口（ICrudBiz或自定义接口）
 - 接口可通过Java类implements或xbiz配置实现
-- 注入命名规则：`@Named("biz_{bizObjName}")`
 
 ```java
 interface IOrderBiz extends ICrudBiz<Order>{
@@ -467,7 +468,6 @@ public class OrderBizModel extends CrudBizModel<Order> implements IOrderBiz {
 public class UserBizModel extends CrudBizModel<User> {
 
     @Inject
-    @Name("biz_Order")
     protected IOrderBiz orderBiz;
 
     @BizQuery
@@ -482,20 +482,20 @@ public class UserBizModel extends CrudBizModel<User> {
 
 ### Q2: 如何在BizModel中进行批量操作？
 
-**答案**: 使用DAO的批量方法：
+**答案**: 使用内置的批量操作方法：
 
 ```java
 @BizMutation
 public void batchUpdateStatus(@Name("userIds") List<String> userIds,
                              @Name("status") int status, IServiceContext context) {
-        List<User> users = dao().batchGetEntitiesByIds(userIds);
-        for (User user : users) {
-            this.checkDataAuthForEntity(user, context);
-            user.setStatus(status);
-        }
-        dao().batchSaveEntities(users);
-    }
+    // ✅ 使用内置的 batchUpdate 方法，自动处理数据权限
+    Map<String, Object> data = new HashMap<>();
+    data.put("status", status);
+    batchUpdate(new HashSet<>(userIds), data, false, context);
+}
 ```
+
+> **更多 BizModel 编写规范**：参见 [BizModel 编写指南](./bizmodel-guide.md)
 
 ### Q3：关联查询
 
@@ -531,8 +531,7 @@ BizModel是Nop平台服务层的核心组件，它封装了业务逻辑，为Gra
 5. **异常处理**: 抛出NopException，框架自动处理
 ## 相关文档
 
-- [IEntityDao使用指南](../dao/entitydao-usage.md)
-- [QueryBean使用指南](../dao/querybean-guide.md)： 分页/排序/过滤条件都通过QueryBean指定
-- [事务管理指南](../core/transaction-guide.md)：一般不需要显式使用事务，只在需要非常细粒度事务控制时才参考这个问题。否则就是整个服务函数一个事务，抛出异常后会自动回滚。
-- [异常处理指南](../core/exception-guide.md)：只使用通用的NopException异常类，不要引入自定义异常类
-- [GraphQL服务开发指南](../api/graphql-guide.md)
+- [BizModel 编写指南](./bizmodel-guide.md) - BizModel 核心编写规范
+- [CRUD 开发指南](./crud-development.md) - CRUD 扩展点和 XMeta 配置
+- [DDD 在 Nop 中的实践](./ddd-in-nop.md) - 实体与 BizModel 职责划分
+- [DTO 编码规范](../04-core-components/enum-dto-standards.md) - @DataBean 注解规范

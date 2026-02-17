@@ -75,29 +75,21 @@ public class DemoUserBizModel extends CrudBizModel<DemoUser> {
     /**
      * 创建用户
      *
-     * @param user 用户信息
+     * @param data 用户数据（Map形式，通过XMeta校验）
      * @return 创建的用户
      */
     @BizMutation
-    @Transactional
-    public DemoUser createUser(@Name("user") DemoUser user) {
-        // 1. 验证输入
-        validateUser(user);
-
-        // 2. 检查邮箱是否已存在
-        if (emailExists(user.getEmail())) {
+    public DemoUser createUser(@Name("data") Map<String, Object> data,
+                               IServiceContext context) {
+        // 1. 检查邮箱是否已存在
+        String email = (String) data.get("email");
+        if (emailExists(email)) {
             throw new NopException(ERR_EMAIL_ALREADY_EXISTS)
-                    .param("email", user.getEmail());
+                    .param("email", email);
         }
 
-        // 3. 设置默认值
-        user.setUserId(IdGenerator.nextId());
-        user.setStatus(1); // 正常状态
-        user.setCreateTime(new Date());
-        user.setUpdateTime(new Date());
-
-        // 4. 保存用户
-        DemoUser created = save(user);
+        // 2. 保存用户（框架自动设置审计字段：createTime, createBy等）
+        DemoUser created = save(data, context);
         LOG.info("User created: userId={}, email={}", created.getUserId(), created.getEmail());
 
         return created;
@@ -112,8 +104,10 @@ public class DemoUserBizModel extends CrudBizModel<DemoUser> {
      * @return 用户信息
      */
     @BizQuery
-    public DemoUser getUserById(@Name("userId") String userId) {
-        return dao().requireEntityById(userId);
+    public DemoUser getUserById(@Name("userId") String userId,
+                                 IServiceContext context) {
+        // 使用 requireEntity 确保数据权限检查
+        return requireEntity(userId, "read", context);
     }
 
     /**
@@ -123,25 +117,26 @@ public class DemoUserBizModel extends CrudBizModel<DemoUser> {
      * @return 用户信息
      */
     @BizQuery
-    public DemoUser getUserByEmail(@Name("email") String email) {
-        DemoUser example = new DemoUser();
-        example.setEmail(email);
-        return dao().findFirstByExample(example);
+    public DemoUser getUserByEmail(@Name("email") String email,
+                                    IServiceContext context) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("email", email));
+        return doFindFirst(query, null, context);
     }
 
     /**
      * 分页查询用户
      *
      * @param query 查询条件
-     * @param pageNo 页码
-     * @param pageSize 每页大小
+     * @param selection 字段选择
+     * @param context 服务上下文
      * @return 分页结果
      */
     @BizQuery
     public PageBean<DemoUser> findUsers(@Name("query") QueryBean query,
-                                     @Name("pageNo") Integer pageNo,
-                                     @Name("pageSize") Integer pageSize) {
-        return findPage(query, pageNo, pageSize);
+                                         FieldSelectionBean selection,
+                                         IServiceContext context) {
+        return findPage(query, selection, context);
     }
 
     // ==================== Update ====================
@@ -149,26 +144,22 @@ public class DemoUserBizModel extends CrudBizModel<DemoUser> {
     /**
      * 更新用户
      *
-     * @param user 用户信息
+     * @param data 用户数据
      * @return 更新后的用户
      */
     @BizMutation
-    @Transactional
-    public DemoUser updateUser(@Name("user") DemoUser user) {
-        // 1. 验证输入
-        validateUser(user);
+    public DemoUser updateUser(@Name("data") Map<String, Object> data,
+                               IServiceContext context) {
+        String userId = (String) data.get("userId");
+        if (userId == null) {
+            throw new NopException(ERR_USER_ID_REQUIRED);
+        }
 
-        // 2. 检查用户是否存在
-        DemoUser existingUser = dao().requireEntityById(user.getUserId());
-        existingUser.setUserName(user.getUserName());
-        existingUser.setPhone(user.getPhone());
-        existingUser.setUpdateTime(new Date());
+        // 使用 requireEntity 验证存在性和权限
+        DemoUser existingUser = requireEntity(userId, "update", context);
 
-        // 3. 更新用户
-        dao().updateEntity(existingUser);
-        LOG.info("User updated: userId={}", user.getUserId());
-
-        return existingUser;
+        // 更新用户（框架自动设置 updateTime, updateBy）
+        return update(data, context);
     }
 
     // ==================== Delete ====================
@@ -179,58 +170,22 @@ public class DemoUserBizModel extends CrudBizModel<DemoUser> {
      * @param userId 用户ID
      */
     @BizMutation
-    @Transactional
-    public void deleteUser(@Name("userId") String userId) {
-        // 1. 检查用户是否存在
-        DemoUser user = dao().requireEntityById(userId);
-
-        // 2. 删除用户
-        dao().deleteEntity(user);
+    public void deleteUser(@Name("userId") String userId,
+                           IServiceContext context) {
+        // 使用 requireEntity 验证存在性和权限，然后删除
+        delete(userId, context);
         LOG.info("User deleted: userId={}", userId);
     }
 
     // ==================== 辅助方法 ====================
 
     /**
-     * 验证用户信息
-     *
-     * @param user 用户信息
-     */
-    private void validateUser(DemoUser user) {
-        if (StringHelper.isEmpty(user.getUserName())) {
-            throw new NopException(ERR_USER_NAME_REQUIRED);
-        }
-        if (StringHelper.isEmpty(user.getEmail())) {
-            throw new NopException(ERR_EMAIL_REQUIRED);
-        }
-        if (!isValidEmail(user.getEmail())) {
-            throw new NopException(ERR_EMAIL_INVALID)
-                        .param("email", user.getEmail());
-        }
-    }
-
-    /**
      * 检查邮箱是否已存在
-     *
-     * @param email 邮箱地址
-     * @return 是否已存在
      */
     private boolean emailExists(String email) {
-        DemoUser example = new DemoUser();
-        example.setEmail(email);
-        DemoUser existingUser = dao().findFirstByExample(example);
-        return existingUser != null;
-    }
-
-    /**
-     * 验证邮箱格式
-     *
-     * @param email 邮箱地址
-     * @return 是否有效
-     */
-    private boolean isValidEmail(String email) {
-        // 简化的邮箱验证
-        return email != null && email.matches("^[A-Za-z0-9+._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("email", email));
+        return findCount(query, null) > 0;
     }
 }
 ```
@@ -254,10 +209,12 @@ public class DemoUserBizModel extends CrudBizModel<DemoUser> {
      * @return 用户列表
      */
     @BizQuery
-    public List<DemoUser> findUsersByStatus(@Name("status") Integer status) {
-        DemoUser example = new DemoUser();
-        example.setStatus(status);
-        return dao().findAllByExample(example);
+    public List<DemoUser> findUsersByStatus(@Name("status") Integer status,
+                                            FieldSelectionBean selection,
+                                            IServiceContext context) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("status", status));
+        return doFindList(query, selection, null, context);
     }
 
     /**
@@ -267,10 +224,12 @@ public class DemoUserBizModel extends CrudBizModel<DemoUser> {
      * @return 用户列表
      */
     @BizQuery
-    public List<DemoUser> searchUsersByEmail(@Name("emailKeyword") String emailKeyword) {
+    public List<DemoUser> searchUsersByEmail(@Name("emailKeyword") String emailKeyword,
+                                              FieldSelectionBean selection,
+                                              IServiceContext context) {
         QueryBean query = new QueryBean();
-        query.setFilter(FilterBeans.contains("email", emailKeyword));
-        return dao().findAllByQuery(query);
+        query.addFilter(FilterBeans.contains("email", emailKeyword));
+        return doFindList(query, selection, null, context);
     }
 
     /**
@@ -280,20 +239,13 @@ public class DemoUserBizModel extends CrudBizModel<DemoUser> {
      * @param status 状态
      */
     @BizMutation
-    @Transactional
     public void batchUpdateStatus(@Name("userIds") List<String> userIds,
-                                @Name("status") Integer status) {
-        // 1. 批量获取用户
-        List<DemoUser> users = dao().batchGetEntitiesByIds(userIds);
-
-        // 2. 更新状态
-        for (DemoUser user : users) {
-            user.setStatus(status);
-            user.setUpdateTime(new Date());
-        }
-
-        // 3. 批量保存
-        dao().batchSaveEntities(users);
+                                  @Name("status") Integer status,
+                                  IServiceContext context) {
+        // 使用 batchUpdate 方法，自动处理数据权限
+        Map<String, Object> data = new HashMap<>();
+        data.put("status", status);
+        batchUpdate(new HashSet<>(userIds), data, false, context);
     }
 }
 ```
@@ -345,7 +297,7 @@ query {
 
 ```graphql
 mutation {
-  createUser(user: {
+  DemoUser__save(data: {
     userName: "zhangsan"
     email: "zhangsan@example.com"
     phone: "13800138000"
@@ -361,8 +313,8 @@ mutation {
 
 ```graphql
 mutation {
-  updateUser(user: {
-    userId: "001"
+  DemoUser__update(data: {
+    id: "001"
     userName: "zhangsan-updated"
     phone: "13800138001"
   }) {
@@ -378,7 +330,7 @@ mutation {
 
 ```graphql
 mutation {
-  deleteUser(userId: "001")
+  DemoUser__delete(id: "001")
 }
 ```
 
@@ -386,7 +338,7 @@ mutation {
 
 ```graphql
 query {
-  findUsersByStatus(status: 1) {
+  DemoUser__findUsersByStatus(status: 1) {
     userId
     userName
     email
@@ -396,70 +348,100 @@ query {
 
 ## 最佳实践
 
-1. **直接使用 CrudBizModel**：继承 CrudBizModel 并使用 dao() 方法，无需单独定义 DAO 接口
-2. **使用内置 CRUD 方法**：对于标准 CRUD 操作，使用 CrudBizModel 的内置方法
-3. **添加自定义查询**：在 BizModel 中添加自定义查询方法
-4. **使用事务**：对于需要多步操作的方法，添加 @Transactional 注解
-5. **异常处理**：抛出 NopException 并提供清晰的错误信息
-6. **参数验证**：在方法开始处验证输入参数
+1. **使用 CrudBizModel 内置方法**：`requireEntity()`, `doFindList()`, `save()`, `update()`, `delete()` 等，确保数据权限检查
+2. **避免直接调用 dao()**：直接调用 dao() 会绕过数据权限检查、验证、回调等机制
+3. **参数使用 Map**：CRUD 操作使用 `Map<String, Object>` 作为参数，通过 XMeta 进行校验
+4. **无需 @Transactional**：`@BizMutation` 已自动开启事务，无需额外添加
+5. **异常处理**：抛出 NopException 并提供清晰的错误信息和参数
+6. **审计字段自动设置**：`createTime`, `updateTime`, `createBy`, `updateBy` 由框架自动设置
 7. **日志记录**：使用 SLF4J 记录关键操作
 
 ## 测试
 
+使用 `nop-autotest` 进行自动化测试：
+
 ```java
-public class DemoUserBizModelTest {
+@NopTestConfig
+public class DemoUserBizModelTest extends JunitAutoTestCase {
 
     @Inject
-  protected DemoUserBizModel userBizModel;
+    protected IGraphQLExecutor graphQLExecutor;
 
+    @EnableSnapshot
     @Test
     public void testCreateUser() {
-        DemoUser user = new DemoUser();
-        user.setUserName("test");
-        user.setEmail("test@example.com");
-        user.setPhone("13800138000");
+        ContextProvider.getOrCreateContext().setUserId("1");
 
-        DemoUser created = userBizModel.createUser(user);
+        Map<String, Object> data = new HashMap<>();
+        data.put("userName", "test");
+        data.put("email", "test@example.com");
+        data.put("phone", "13800138000");
 
-        assertNotNull(created);
-        assertNotNull(created.getUserId());
-        assertEquals("test", created.getUserName());
+        ApiRequest<Object> request = new ApiRequest<>();
+        request.setData(data);
+
+        IGraphQLExecutionContext context = graphQLExecutor.newRpcContext(
+            GraphQLOperationType.mutation, "DemoUser__save", request);
+        Object result = FutureHelper.syncGet(graphQLExecutor.executeRpcAsync(context));
+        
+        output("response.json5", result);
     }
 
+    @EnableSnapshot
     @Test
     public void testGetUserById() {
-        DemoUser user = userBizModel.getUserById("001");
+        ApiRequest<Object> request = new ApiRequest<>();
+        request.setFieldSelection(FieldSelectionBean.fromPropNames("userId", "userName", "email"));
 
-        assertNotNull(user);
-        assertEquals("001", user.getUserId());
+        IGraphQLExecutionContext context = graphQLExecutor.newRpcContext(
+            GraphQLOperationType.query, "DemoUser__get", request);
+        context.setStringArg("id", "1");
+        
+        Object result = FutureHelper.syncGet(graphQLExecutor.executeRpcAsync(context));
+        output("response.json5", result);
     }
 
+    @EnableSnapshot
     @Test
     public void testUpdateUser() {
-        DemoUser user = userBizModel.getUserById("001");
-        user.setUserName("updated");
+        ContextProvider.getOrCreateContext().setUserId("1");
 
-        DemoUser updated = userBizModel.updateUser(user);
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", "1");
+        data.put("userName", "updated");
 
-        assertNotNull(updated);
-        assertEquals("updated", updated.getUserName());
+        ApiRequest<Object> request = new ApiRequest<>();
+        request.setData(data);
+
+        IGraphQLExecutionContext context = graphQLExecutor.newRpcContext(
+            GraphQLOperationType.mutation, "DemoUser__update", request);
+        Object result = FutureHelper.syncGet(graphQLExecutor.executeRpcAsync(context));
+        
+        output("response.json5", result);
     }
 
+    @EnableSnapshot
     @Test
     public void testDeleteUser() {
-        userBizModel.deleteUser("001");
+        ContextProvider.getOrCreateContext().setUserId("1");
 
-        // 验证删除后无法查询到
-        DemoUser user = userBizModel.getUserById("001");
-        assertNull(user);
+        ApiRequest<Object> request = new ApiRequest<>();
+
+        IGraphQLExecutionContext context = graphQLExecutor.newRpcContext(
+            GraphQLOperationType.mutation, "DemoUser__delete", request);
+        context.setStringArg("id", "1");
+        
+        Object result = FutureHelper.syncGet(graphQLExecutor.executeRpcAsync(context));
+        output("response.json5", result);
     }
 }
 ```
 
 ## 相关文档
 
-- [IEntityDao使用指南](../03-development-guide/entitydao-usage.md)
-- [服务层开发指南](../03-development-guide/service-layer-development.md)
-- [QueryBean使用指南](../03-development-guide/querybean-guide.md)
-- [事务管理指南](../04-core-components/transaction-guide.md)
-- [异常处理指南](../04-core-components/exception-guide.md)
+- [BizModel 编写指南](../03-development-guide/bizmodel-guide.md)
+- [CRUD 开发指南](../03-development-guide/crud-development.md)
+- [服务层开发指南](../03-development-guide/service-layer.md)
+- [DDD 在 Nop 中的实践](../03-development-guide/ddd-in-nop.md)
+- [QueryBean 使用指南](../03-development-guide/querybean-guide.md)
+- [DTO 编码规范](../04-core-components/enum-dto-standards.md)

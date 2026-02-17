@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <sqls>
+        <eql name="addStock" sqlMethod="execute">
+            <arg name="productId"/>
+            <arg name="num"/>
+
+            <source>
+                update LitemallGoodsProduct
+                set number = number + ${num}, update_time = now()
+                where id = ${productId}
+            </source>
+        </eql>
+
+        <eql name="reduceStock" sqlMethod="execute">
+            <arg name="productId"/>
+            <arg name="num"/>
+
+            <source>
+                update LitemallGoodsProduct
+                set number = number - ${num}, update_time = now()
+                where id = ${productId} and number >= ${num}
+            </source>
+        </eql>
+    </sqls>
+</sql-lib>

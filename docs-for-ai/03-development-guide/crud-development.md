@@ -4,6 +4,8 @@
 
 Nop平台提供强大的CRUD开发框架，核心组件是`CrudBizModel`类，它封装了完整的增删改查逻辑。通过继承`CrudBizModel`，开发者可以快速实现业务功能，无需编写重复的基础代码。
 
+> **BizModel 编写核心规范**：请参考 [BizModel 编写指南](./bizmodel-guide.md)，其中包含完整的数据访问规范、事务管理、参数/返回类型约定等核心内容。本文档重点介绍 XMeta 配置和 CRUD 扩展点。
+
 CrudBizModel的主要优势：
 - 封装了完整的CRUD操作逻辑
 - 自动处理多租户、逻辑删除、数据权限等
@@ -452,9 +454,10 @@ public MyEntity mySave(@Name("data") Map<String, Object> data, IServiceContext c
 
 ## 相关文档
 
-- [服务层开发指南](../service/service-layer-development.md) - BizModel开发详解
-- [IEntityDao使用指南](../dao/entitydao-usage.md) - 数据访问接口详解
-- [GraphQL服务开发指南](../api/graphql-guide.md) - GraphQL API开发
+- [BizModel 编写指南](./bizmodel-guide.md) - BizModel 核心编写规范
+- [服务层开发指南](./service-layer.md) - 服务层架构和扩展机制
+- [DDD 在 Nop 中的实践](./ddd-in-nop.md) - 实体与 BizModel 职责划分
+- [DTO 编码规范](../04-core-components/enum-dto-standards.md) - @DataBean 注解规范
 
 ## 总结
 

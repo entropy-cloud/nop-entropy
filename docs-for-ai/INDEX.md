@@ -88,6 +88,85 @@ When models are stable, focus on business logic.
 
 ---
 
+## Nop DDD 代码划分策略
+
+### 三层代码组织
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Entity (实体类)                           │
+│  - 位置：dao 模块                                                 │
+│  - 职责：稳定的领域结构 + 只读帮助函数                              │
+│  - 特点：不可通过 Delta 定制                                       │
+│  - 示例：canBeCancelled(), calculateTotal()                      │
+├─────────────────────────────────────────────────────────────────┤
+│                      BizModel (业务模型)                          │
+│  - 位置：service 模块                                             │
+│  - 职责：可定制的业务逻辑、修改操作                                  │
+│  - 特点：可通过 Delta/xbiz 定制                                    │
+│  - 示例：cancel(), ship(), checkout()                             │
+├─────────────────────────────────────────────────────────────────┤
+│                   Processor (复杂处理器)                          │
+│  - 位置：service 模块，通过 beans.xml 配置                         │
+│  - 职责：复用性高的业务逻辑、复杂流程                                │
+│  - 特点：可 Inject 到多个 BizModel                                 │
+│  - 示例：PaymentProcessor, InventoryProcessor                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 代码放置判断规则
+
+| 逻辑类型 | 放置位置 | 原因 |
+|---------|---------|------|
+| 纯函数，读取字段/关联 | **Entity** | 稳定的领域事实 |
+| 状态查询 (canXxx, isXxx) | **Entity** | 稳定的领域事实 |
+| 简单修改操作 | **BizModel** | 可定制的业务行为 |
+| 跨聚合操作 | **BizModel** | 需要协调多个实体 |
+| 调用外部服务 | **BizModel** | 易变的集成逻辑 |
+| 复用性高的业务规则 | **Processor** | 多处复用 |
+| 复杂流程/多步骤 | **Processor** | 降低 BizModel 复杂度 |
+
+### 何时拆分 Processor
+
+当 BizModel 方法出现以下情况时，应考虑拆分 Processor：
+1. 单个方法超过 50 行
+2. 需要在多个 BizModel 间复用
+3. 涉及外部服务调用（支付、库存、风控等）
+4. 业务规则复杂且可能变化
+
+```java
+// BizModel 中注入 Processor
+@BizModel("Order")
+public class OrderBizModel extends CrudBizModel<Order> {
+    
+    @Inject
+    PaymentProcessor paymentProcessor;  // 通过 beans.xml 配置
+    
+    @BizMutation
+    public Order pay(@Name("orderId") String orderId, IServiceContext context) {
+        Order order = requireEntity(orderId, "update", context);
+        paymentProcessor.processPayment(order);  // 委托给 Processor
+        updateEntity(order, context);
+        return order;
+    }
+}
+```
+
+**详细指南:** `03-development-guide/bizmodel-guide.md`
+
+---
+
+## 快速参考
+
+### By Task
+
+| Task | Reference |
+|------|-----------|
+| **BizModel 编写** | `03-development-guide/bizmodel-guide.md` |
+| CRUD / Service | `03-development-guide/service-layer.md` |
+
+---
+
 ### Scenario 4: Delta Customization
 
 For customizing base products without modifying source.
