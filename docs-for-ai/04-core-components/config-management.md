@@ -414,6 +414,6 @@ public class MyService {
 
 ## 相关文档
 
-- [IoC容器指南](./ioc-guide.md)
-- [错误处理指南](./exception-guide.md)
-- [事务管理指南](./transaction-guide.md)
+- [IoC容器指南](./ioc-container.md)
+- [错误处理指南](./exception-handling.md)
+- [事务管理指南](./transaction.md)

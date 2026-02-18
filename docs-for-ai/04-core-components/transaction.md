@@ -826,11 +826,11 @@ nop:
 
 ## 相关文档
 
-- [异常处理指南](./exception-guide.md) - 异常处理完整指南
-- [IoC容器指南](./ioc-guide.md) - 依赖注入容器使用
-- [IEntityDao使用指南](../dao/entitydao-usage.md) - 数据访问接口详解
-- [服务层开发指南](../service/service-layer-development.md) - BizModel开发详解
-- [GraphQL服务开发指南](../api/graphql-guide.md) - GraphQL API开发
+- [异常处理指南](./exception-handling.md) - 异常处理完整指南
+- [IoC容器指南](./ioc-container.md) - 依赖注入容器使用
+- [IEntityDao使用指南](../03-development-guide/data-access.md) - 数据访问接口详解
+- [服务层开发指南](../03-development-guide/service-layer.md) - BizModel开发详解
+- [GraphQL服务开发指南](../03-development-guide/api-development.md) - GraphQL API开发
 
 ## 总结
 

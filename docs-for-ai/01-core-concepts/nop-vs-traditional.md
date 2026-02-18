@@ -301,8 +301,8 @@ public class UserBizModel extends CrudBizModel<NopAuthUser> {
 
 - [CRUD开发指南](./business/crud-development.md)
 - [复杂业务开发指南](./business/complex-business-development.md)
-- [服务层开发指南](./service/service-layer-development.md)
-- [异常处理指南](./core/exception-guide.md)
+- [服务层开发指南](../03-development-guide/service-layer.md)
+- [异常处理指南](../04-core-components/exception-handling.md)
 - [代码风格标准](../07-best-practices/code-style.md)
 - [模块结构指南](../03-development-guide/module-structure-guide.md)
 

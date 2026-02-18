@@ -77,13 +77,13 @@ BeanTool.getProperty(bean, "name");
 ### 4.1 开发指南
 - [项目结构与代码生成](../../03-development-guide/module-structure-guide.md) - ⭐
 - [数据层开发](./dao/data-layer-development.md)
-- [服务层开发](./service/service-layer-development.md)
+- [服务层开发](../03-development-guide/service-layer.md)
 
 ### 4.2 核心文档
 - [完整开发规范](./nop-ai-development.md)
 - [IEntityDao使用](./dao/entitydao-usage.md)
-- [事务管理](./core/transaction-guide.md)
-- [异常处理](./core/exception-guide.md)
+- [事务管理](../04-core-components/transaction.md)
+- [异常处理](../04-core-components/exception-handling.md)
 
 ### 4.3 最佳实践
 - 使用 `CrudBizModel` 内置方法

@@ -821,7 +821,7 @@ FilterBeans.in("status", Arrays.asList(
 
 - [QueryBean使用指南](./querybean-guide.md) - 查询对象详解
 - [IEntityDao使用指南](./entitydao-usage.md) - 数据访问接口详解
-- [服务层开发指南](../service/service-layer-development.md) - BizModel开发详解
+- [服务层开发指南](./service-layer.md) - BizModel开发详解
 - [GraphQL服务开发指南](../api/graphql-guide.md) - GraphQL API开发
 - [数据处理指南](./data-processing.md) - 数据处理指南
 

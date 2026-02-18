@@ -12,9 +12,9 @@
 
 ## 权威入口（优先阅读）
 
-- `docs-for-ai/getting-started/nop-vs-traditional-frameworks.md`（避免把 Spring 安全/AOP 机制当成 Nop 默认写法）
-- `docs-for-../07-best-practices/error-handling.md`（错误码/异常链/参数化信息：避免泄漏敏感信息）
-- `docs-for-../04-core-components/ioc-guide.md`（NopIoC 注入约束：避免 Spring-only 注解）
+- `docs-for-ai/01-core-concepts/nop-vs-traditional.md`（避免把 Spring 安全/AOP 机制当成 Nop 默认写法）
+- `docs-for-ai/07-best-practices/error-handling.md`（错误码/异常链/参数化信息：避免泄漏敏感信息）
+- `docs-for-ai/04-core-components/ioc-container.md`（NopIoC 注入约束：避免 Spring-only 注解）
 
 ## docs-for-ai 的安全校验清单（只做 Nop 特有约束）
 

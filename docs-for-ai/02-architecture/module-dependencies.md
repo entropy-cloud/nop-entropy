@@ -582,8 +582,8 @@ A → B → C → A (循环依赖)
 - [API架构文档](./backend/api-architecture.md)
 - [ORM架构文档](./backend/orm-architecture.md)
 - [GraphQL架构文档](./backend/graphql-architecture.md)
-- [服务层开发指南](../03-development-guide/service-layer-development.md)
-- [IoC容器指南](../04-core-components/ioc-guide.md)
+- [服务层开发指南](../03-development-guide/service-layer.md)
+- [IoC容器指南](../04-core-components/ioc-container.md)
 
 ## 总结
 

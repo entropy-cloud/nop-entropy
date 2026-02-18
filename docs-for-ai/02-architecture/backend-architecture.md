@@ -62,10 +62,9 @@ public class UserBizModel extends CrudBizModel<NopAuthUser> {
 public class OrderBizModel extends CrudBizModel<NopOrder> {
 
     @Inject
-    private IOrderItemBizModel orderItemBizModel;
+    protected IOrderItemBizModel orderItemBizModel;
 
-    @BizMutation
-    @Transactional
+    @BizMutation  // 自动开启事务，无需 @Transactional
     public Order createOrder(@Name("order") OrderData data) {
         // 1. 验证业务规则
         validateOrderData(data);
@@ -565,10 +564,10 @@ public class CustomQueryStrategy implements IQueryStrategy {
 ## 相关文档
 
 - [GraphQL服务开发指南](../03-development-guide/graphql-guide.md)
-- [服务层开发指南](../03-development-guide/service-layer-development.md)
+- [服务层开发指南](../03-development-guide/service-layer.md)
 - [IEntityDao使用指南](../03-development-guide/entitydao-usage.md)
-- [事务管理指南](../04-core-components/transaction-guide.md)
-- [异常处理指南](../04-core-components/exception-guide.md)
+- [事务管理指南](./transaction.md)
+- [异常处理指南](./exception-handling.md)
 
 ## 总结
 

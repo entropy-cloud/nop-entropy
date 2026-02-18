@@ -140,4 +140,4 @@ mvn checkstyle:checkstyle
 
 - [代码风格指南](../07-best-practices/code-style.md)
 - [开发规范指南](./dev-standards.md)
-- [异常处理指南](../04-core-components/exception-guide.md)
+- [异常处理指南](../04-core-components/exception-handling.md)

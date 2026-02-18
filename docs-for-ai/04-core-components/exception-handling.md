@@ -810,10 +810,10 @@ public interface MyErrors {
 
 ## 相关文档
 
-- [事务管理指南](./transaction-guide.md) - 事务管理完整指南
-- [IoC容器指南](./ioc-guide.md) - 依赖注入容器使用
-- [服务层开发指南](../service/service-layer-development.md) - BizModel开发详解
-- [GraphQL服务开发指南](../api/graphql-guide.md) - GraphQL API开发
+- [事务管理指南](./transaction.md) - 事务管理完整指南
+- [IoC容器指南](./ioc-container.md) - 依赖注入容器使用
+- [服务层开发指南](../03-development-guide/service-layer.md) - BizModel开发详解
+- [GraphQL服务开发指南](../03-development-guide/api-development.md) - GraphQL API开发
 - [错误码定义](../common/error-code.md) - 错误码规范
 
 ## 总结

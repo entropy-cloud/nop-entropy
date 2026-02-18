@@ -715,9 +715,9 @@ query {
 
 - [GraphQL服务开发指南](../03-development-guide/graphql-guide.md)
 - [API架构文档](./api-architecture.md)
-- [服务层开发指南](../03-development-guide/service-layer-development.md)
-- [事务管理指南](../04-core-components/transaction-guide.md)
-- [异常处理指南](../04-core-components/exception-guide.md)
+- [服务层开发指南](../03-development-guide/service-layer.md)
+- [事务管理指南](./transaction.md)
+- [异常处理指南](../04-core-components/exception-handling.md)
 
 ## 总结
 

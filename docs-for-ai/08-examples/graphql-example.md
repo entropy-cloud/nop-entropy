@@ -1029,24 +1029,45 @@ query GetUser($userId: String!) {
 
 ### 3. 自动化测试
 
-使用 JUnit 等测试框架：
+使用 Nop 平台的测试框架（继承 `JunitBaseTestCase` 并注入 `IGraphQLEngine`）：
 
 ```java
-@ExtendWith(JunitExtension.class)
-public class GraphQLTest {
+import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.graphql.core.IGraphQLEngine;
+import io.nop.graphql.core.IGraphQLExecutionContext;
+import io.nop.api.core.beans.graphql.GraphQLRequestBean;
+import io.nop.api.core.beans.graphql.GraphQLResponseBean;
+import io.nop.test.core.annotation.NopTestConfig;
+import jakarta.inject.Inject;
+import org.junit.jupiter.api.Test;
 
-  @Inject
-  protected GraphQLTestTemplate testTemplate;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@NopTestConfig(localDb = true)
+public class GraphQLTest extends JunitBaseTestCase {
+
+    @Inject
+    protected IGraphQLEngine graphQLEngine;
 
     @Test
     public void testGetUser() {
-        String query = "{ DemoUser { getUser(userId: \"001\") { userId userName } }";
+        // 1. 构建 GraphQL 请求
+        GraphQLRequestBean request = new GraphQLRequestBean();
+        request.setQuery("{ DemoUser { getUser(userId: \"001\") { userId userName } } }");
 
-        GraphQLResponse response = testTemplate.query(query);
-        assertNull(response.getErrors());
-        assertTrue(response.isOk());
+        // 2. 创建执行上下文
+        IGraphQLExecutionContext context = graphQLEngine.newGraphQLContext(request);
 
-        Map<String, Object> data = response.getData();
+        // 3. 执行查询，返回 GraphQLResponseBean
+        GraphQLResponseBean response = graphQLEngine.executeGraphQL(context);
+
+        // 4. 验证没有错误
+        assertFalse(response.hasError());
+
+        // 5. 验证返回数据
+        Map<String, Object> data = (Map<String, Object>) response.getData();
         Map<String, Object> demoUser = (Map<String, Object>) data.get("DemoUser");
         Map<String, Object> user = (Map<String, Object>) demoUser.get("getUser");
 

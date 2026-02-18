@@ -599,10 +599,10 @@ public int executeNativeSql(String sql, Object... params) {
 
 - [QueryBean使用指南](./querybean-guide.md) - 查询对象详解
 - [FilterBeans使用指南](./filterbeans-guide.md) - 过滤条件详解
-- [服务层开发指南](../service/service-layer-development.md) - BizModel开发详解
-- [GraphQL服务开发指南](../api/graphql-guide.md) - GraphQL API开发
-- [事务管理指南](../core/transaction-guide.md) - 事务管理完整指南
-- [异常处理指南](../core/exception-guide.md) - 异常处理完整指南
+- [服务层开发指南](./service-layer.md) - BizModel开发详解
+- [GraphQL服务开发指南](./api-development.md) - GraphQL API开发
+- [事务管理指南](../04-core-components/transaction.md) - 事务管理完整指南
+- [异常处理指南](../04-core-components/exception-handling.md) - 异常处理完整指南
 - [数据层开发](./data-layer-development.md) - 数据层开发指南
 - [数据处理指南](./data-processing.md) - 数据处理指南
 

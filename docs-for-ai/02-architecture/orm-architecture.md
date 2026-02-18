@@ -659,7 +659,7 @@ for (User user : users) {
 - [IEntityDao使用指南](../03-development-guide/entitydao-usage.md)
 - [QueryBean使用指南](../03-development-guide/querybean-guide.md)
 - [FilterBeans使用指南](../03-development-guide/filterbeans-guide.md)
-- [事务管理指南](../04-core-components/transaction-guide.md)
+- [事务管理指南](../04-core-components/transaction.md)
 - [API架构文档](./api-architecture.md)
 
 ## 总结

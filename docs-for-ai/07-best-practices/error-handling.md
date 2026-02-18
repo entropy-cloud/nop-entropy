@@ -12,7 +12,7 @@
 
 ## 权威入口
 
-- `docs-for-ai/04-core-components/exception-guide.md`
+- `docs-for-ai/04-core-components/exception-handling.md`
 - `docs-for-ai/07-best-practices/INDEX.md`
 
 
@@ -109,10 +109,10 @@ public DemoUser updateUser(@Name("user") DemoUser user) {
 
 ## 相关文档
 
-- [异常处理指南](../04-core-components/exception-guide.md)
+- [异常处理指南](../04-core-components/exception-handling.md)
 - [错误码与 NopException](../12-tasks/error-codes-and-nop-exception.md)
-- [服务层开发指南](../03-development-guide/service-layer-development.md)
-- [事务管理指南](../04-core-components/transaction-guide.md)
+- [服务层开发指南](../03-development-guide/service-layer.md)
+- [事务管理指南](../04-core-components/transaction.md)
 
 ## 总结
 

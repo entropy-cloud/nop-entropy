@@ -1,5 +1,40 @@
 # Nop Platform AI Documentation Index
 
+## 🎯 AI 决策入口（必读）
+
+> **核心原则**：先模型 → 再 Delta → 最后 Java
+
+| 我要做什么 | 首选方案 | 参考文档 |
+|-----------|---------|---------|
+| **新增实体/表** | 定义 ORM → mvn install → 继承 CrudBizModel | `12-tasks/create-new-entity.md` |
+| **新增字段/校验** | 修改 xmeta（不写 Java） | `12-tasks/add-field-and-validation.md` |
+| **编写 BizModel 方法** | 继承 CrudBizModel，用 @BizQuery/@BizMutation | `12-tasks/write-bizmodel-method.md` |
+| **自定义查询** | QueryBean + doFindList/doFindPage | `12-tasks/custom-query-with-querybean.md` |
+| **扩展 CRUD 钩子** | 重写 defaultPrepareXxx 方法 | `12-tasks/extend-crud-with-hooks.md` |
+| **事务控制** | @BizMutation 自动事务，txn().afterCommit() 回调 | `12-tasks/transaction-boundaries.md` |
+| **错误处理** | NopException + ErrorCode | `12-tasks/error-codes-and-nop-exception.md` |
+| **扩展返回字段** | @BizLoader + Delta | `12-tasks/extend-api-with-delta-bizloader.md` |
+| **复杂业务逻辑** | 拆分为 Processor + Step | `03-development-guide/processor-development.md` |
+| **跨模块调用** | 通过 IXXBiz 接口注入 | `03-development-guide/bizmodel-guide.md` |
+| **差量定制** | x:extends + _delta 目录 | `01-core-concepts/delta-basics.md` |
+| **单元测试** | nop-autotest 录制回放 | `12-tasks/write-unit-test.md` |
+
+## ❌ 反模式清单（必须避免）
+
+| 反模式 | 正确做法 | 原因 |
+|--------|---------|------|
+| `dao().getEntityById(id)` | `requireEntity(id, "update", context)` | 跳过数据权限检查 |
+| `dao().findListByQuery(query)` | `doFindList(query, selection, context)` | 跳过多租户/逻辑删除过滤 |
+| `@BizMutation @Transactional` | 只用 `@BizMutation` | 重复开启事务 |
+| `private` 字段 `@Inject` | 用 `protected` 或 setter 注入 | NopIoC 不支持 private 注入 |
+| 编辑 `_gen/` 或 `_` 前缀文件 | 继承或 Delta 定制 | 自动覆盖，修改丢失 |
+| `Map<String, Object>` 作为返回类型 | 定义 `@DataBean` DTO | GraphQL 无法推断类型 |
+| 手动设置 createTime/updateTime | 框架自动设置 | 导致数据不一致 |
+| 在 Entity 中写修改逻辑 | Entity 只读，修改放 BizModel | 违反 DDD 原则 |
+| 手动实现唯一性检查 | XMeta 中配置 keys | 重复逻辑，易遗漏 |
+
+---
+
 ## Core Principle
 
 Nop platform is a low-code platform based on Reversible Computation: `App = Delta x-extends Generator<DSL>`.
@@ -8,8 +43,6 @@ Nop platform is a low-code platform based on Reversible Computation: `App = Delt
 - **Delta customization**: modify/extend WITHOUT changing base source code
 - **Framework-agnostic**: runs on Spring/Quarkus/Solon
 - **Incremental code generation**: `_gen/` and `_`-prefixed files auto-overwritten; hand-written code in separate files with inheritance
-
-**Key**: Before coding, check if code can be derived from models. Extend generated code via Delta/inheritance.
 
 ---
 
@@ -445,19 +478,48 @@ throw new NopException(MyErrors.ERR_FIELD_REQUIRED).param("field", "name");
 
 ---
 
-## Directory Mapping
+## Directory Mapping（完整目录）
 
-| Directory | Purpose |
-|-----------|---------|
-| `00-quick-start/` | Getting started |
-| `01-core-concepts/` | Platform fundamentals |
-| `02-architecture/` | System architecture |
-| `03-development-guide/` | Development guides |
-| `04-core-components/` | Core components |
-| `05-xlang/` | XLang language |
-| `06-utilities/` | Utility classes |
-| `07-best-practices/` | Best practices |
-| `08-examples/` | Code examples |
-| `09-quick-reference/` | Quick references |
-| `11-test-and-debug/` | Testing & debugging |
-| `12-tasks/` | Task-based guides |
+### 按用途分类
+
+| 目录 | 用途 | 核心文件 |
+|------|------|---------|
+| `00-quick-start/` | 快速入门 | `10-min-quickstart.md`, `common-tasks.md` |
+| `01-core-concepts/` | 核心概念 | `ai-development.md`, `delta-basics.md`, `nop-vs-traditional.md` |
+| `02-architecture/` | 架构设计 | `code-generation.md`, `module-dependencies.md`, `orm-architecture.md` |
+| `03-development-guide/` | 开发指南 | **`bizmodel-guide.md`**, `crud-development.md`, `service-layer.md`, `processor-development.md` |
+| `04-core-components/` | 核心组件 | `ioc-container.md`, `transaction.md`, `exception-handling.md`, `dto-standards.md` |
+| `05-xlang/` | XLang 语言 | `xdef-core.md`, `xpl.md`, `xscript.md` |
+| `06-utilities/` | 工具类 | `StringHelper.md`, `CollectionHelper.md`, `BeanTool.md` |
+| `07-best-practices/` | 最佳实践 | `code-style.md`, `error-handling.md`, `testing.md` |
+| `08-examples/` | 示例代码 | `graphql-example.md` |
+| `09-quick-reference/` | 快速参考 | `api-reference.md`, `troubleshooting.md` |
+| `11-test-and-debug/` | 测试调试 | `autotest-guide.md`, `nop-debug-and-diagnosis-guide.md` |
+| `12-tasks/` | 任务手册 | `add-field-and-validation.md`, `extend-crud-with-hooks.md`, `custom-query-with-querybean.md` |
+
+### 12-tasks/ 任务手册清单
+
+| 文件 | 任务场景 |
+|------|---------|
+| `add-field-and-validation.md` | 新增字段与校验 |
+| `extend-crud-with-hooks.md` | 扩展 CRUD 钩子 |
+| `custom-query-with-querybean.md` | 自定义查询 |
+| `extend-api-with-delta-bizloader.md` | 扩展返回字段 |
+| `transaction-boundaries.md` | 事务边界与回调 |
+| `error-codes-and-nop-exception.md` | 错误码与异常 |
+| `ai-core-api-migration-guide.md` | AI Core API 迁移 |
+
+### 03-development-guide/ 开发指南清单
+
+| 文件 | 主题 |
+|------|------|
+| **`bizmodel-guide.md`** | BizModel 编写规范（必读） |
+| `crud-development.md` | CRUD 开发指南 |
+| `service-layer.md` | 服务层开发 |
+| `processor-development.md` | Processor/Step 开发 |
+| `ddd-in-nop.md` | DDD 在 Nop 中的实践 |
+| `data-access.md` | 数据访问层 |
+| `querybean-guide.md` | QueryBean 使用 |
+| `filterbeans-guide.md` | FilterBeans 使用 |
+| `api-development.md` | GraphQL API 开发 |
+| `project-structure.md` | 项目结构 |

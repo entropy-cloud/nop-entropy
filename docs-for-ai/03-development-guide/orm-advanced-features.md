@@ -304,14 +304,14 @@ nop:
 #### 5.4 自定义监控Hook
 
 ```java
-@Component
+// 需要在 beans.xml 中配置: <bean id="customOrmMetrics" class="xxx.CustomOrmMetrics"/>
 public class CustomOrmMetrics {
 
     @Inject
-    private IDaoMetrics daoMetrics;
+    protected IDaoMetrics daoMetrics;
 
     @Inject
-    private IOrmMetrics ormMetrics;
+    protected IOrmMetrics ormMetrics;
 
     public void onConnectionObtained() {
         daoMetrics.onObtainConnection();
@@ -342,11 +342,11 @@ NopORM提供了强大的Hook机制，通过IPropGetMissingHook、IPropSetMissing
 #### 6.2 使用Hook实现审计
 
 ```java
-@Component
+// 需要在 beans.xml 中配置: <bean id="auditLogHook" class="xxx.AuditLogHook"/>
 public class AuditLogHook implements IPropGetMissingHook, IPropSetMissingHook {
 
     @Inject
-    private AuditLogService auditLogService;
+    protected AuditLogService auditLogService;
 
     @Override
     public Object propGetMissing(Object bean, String propName, Object currentValue) {
@@ -374,22 +374,22 @@ public class AuditLogHook implements IPropGetMissingHook, IPropSetMissingHook {
 #### 6.3 使用Hook实现缓存预热
 
 ```java
-@Component
+// 需要在 beans.xml 中配置: <bean id="cacheWarmupHook" class="xxx.CacheWarmupHook"/>
 public class CacheWarmupHook implements IPropGetMissingHook {
 
     @Inject
-    private ICacheService cacheService;
+    protected ICacheService cacheService;
 
     @Override
     public Object propGetMissing(Object bean, String propName, Object currentValue) {
         // 检查是否已缓存
         String cacheKey = bean.getClass().getName() + ":" + propName;
         Object cachedValue = cacheService.get(cacheKey);
-        
+
         if (cachedValue != null) {
             return cachedValue;
         }
-        
+
         // 查询并缓存
         Object dbValue = queryFromDatabase(bean, propName);
         cacheService.put(cacheKey, dbValue);
@@ -571,7 +571,7 @@ List<User> users = dao().findAllByQuery(query);  // 查询不到
 **答案**: 实现ITextCipher接口并通过Bean容器注入：
 
 ```java
-@Component
+// 需要在 beans.xml 中配置: <bean id="customTextCipher" class="xxx.CustomTextCipher"/>
 public class CustomTextCipher implements ITextCipher {
 
     @Override

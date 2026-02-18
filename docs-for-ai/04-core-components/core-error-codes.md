@@ -379,5 +379,5 @@ mymodule.err.order.cannot-cancel
 
 ## 相关文档
 
-- [异常处理指南](./core/exception-guide.md)
+- [异常处理指南](./exception-handling.md)
 - [错误码定义](./error-code.md)

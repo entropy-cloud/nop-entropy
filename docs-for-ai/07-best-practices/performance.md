@@ -159,7 +159,7 @@ public class CacheMonitor {
 - [ORM架构文档](../02-architecture/backend/orm-architecture.md)
 - [IEntityDao使用指南](../03-development-guide/entitydao-usage.md)
 - [QueryBean使用指南](../03-development-guide/querybean-guide.md)
-- [事务管理指南](../04-core-components/transaction-guide.md)
+- [事务管理指南](../04-core-components/transaction.md)
 
 > 注：缓存相关文档请以核心组件目录下现有文档为准（本仓库中未提供 `cache-guide.md`）。
 
