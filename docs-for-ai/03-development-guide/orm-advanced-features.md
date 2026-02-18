@@ -12,12 +12,12 @@ NopORM支持内置的分库分表功能，通过IShardSelector接口实现动态
 
 #### 1.1 核心组件
 
-| 组件 | 路径 | 说明 |
-|-----|------|------|
-| ShardSelection | `nop-dao/src/main/java/io/nop/dao/shard/ShardSelection.java` | 分库分表选择结果 |
-| ShardPropValue | `nop-dao/src/main/java/io/nop/dao/shard/ShardPropValue.java` | Shard属性值 |
-| IShardSelector | `nop-dao/src/main/java/io/nop/dao/shard/IShardSelector.java` | 分片选择器接口 |
-| EmptyShardSelector | `nop-dao/src/main/java/io/nop/dao/shard/EmptyShardSelector.java` | 空分片选择器（默认实现） |
+| 类名 | 说明 |
+|------|------|
+| `io.nop.dao.shard.ShardSelection` | 分库分表选择结果 |
+| `io.nop.dao.shard.ShardPropValue` | Shard 属性值 |
+| `io.nop.dao.shard.IShardSelector` | 分片选择器接口 |
+| `io.nop.dao.shard.EmptyShardSelector` | 空分片选择器（默认实现） |
 
 #### 1.2 实体配置
 
@@ -129,13 +129,13 @@ NopORM支持自动字段加密功能，通过TAG_ENC标记和ITextCipher实现�
 
 #### 3.1 核心组件
 
-| 组件 | 路径 | 说明 |
-|-----|------|------|
-| ITextCipher | `nop-commons/crypto/ITextCipher.java` | 加密接口 |
-| AESTextCipher | `nop-commons/crypto/impl/AESTextCipher.java` | AES加密实现 |
-| EncodedDataParameterBinder | `nop-dataset/binder/EncodedDataParameterBinder.java` | 加密数据绑定器 |
-| DefaultOrmColumnBinderEnhancer | `nop-orm/factory/DefaultOrmColumnBinderEnhancer.java` | 字段绑定器增强器 |
-| OrmConstants.TAG_ENC | `nop-orm/OrmConstants.java` | 加密标记 |
+| 类名 | 说明 |
+|------|------|
+| `io.nop.commons.crypto.ITextCipher` | 加密接口 |
+| `io.nop.commons.crypto.impl.AESTextCipher` | AES 加密实现 |
+| `io.nop.dataset.binder.EncodedDataParameterBinder` | 加密数据绑定器 |
+| `io.nop.orm.factory.DefaultOrmColumnBinderEnhancer` | 字段绑定器增强器 |
+| `io.nop.orm.OrmConstants`（`TAG_ENC`） | 加密标记常量 |
 
 #### 3.2 配置字段加密
 
@@ -267,11 +267,11 @@ NopORM提供了内置的性能监控功能，通过IDaoMetrics和OrmMetricsImpl�
 
 #### 4.1 核心组件
 
-| 组件 | 路径 | 说明 |
-|-----|------|------|
-| IDaoMetrics | `nop-dao/metrics/IDaoMetrics.java` | DAO层监控接口 |
-| OrmMetricsImpl | `nop-orm/metrics/OrmMetricsImpl.java` | ORM监控实现 |
-| GlobalMeterRegistry | `nop-commons/metrics/GlobalMeterRegistry.java` | 指标注册器 |
+| 类名 | 说明 |
+|------|------|
+| `io.nop.dao.metrics.IDaoMetrics` | DAO 层监控接口 |
+| `io.nop.orm.metrics.OrmMetricsImpl` | ORM 监控实现 |
+| `io.nop.commons.metrics.GlobalMeterRegistry` | 指标注册器 |
 
 #### 5.2 监控指标
 

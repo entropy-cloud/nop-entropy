@@ -35,6 +35,6 @@ public class UserBizModel extends CrudBizModel<User> {
 - 不要用 `@Inject private Foo foo;`（NopIoC 不支持 private 字段注入）
 - 不要写 `createUser(UserDto dto)` 一类 DTO 入参；改为 `Map` 或 `@RequestBean`（以平台约定为准）
 
-## 源码锚点
+## 相关类
 
-- `CrudBizModel`：`nop-service-framework/nop-biz/src/main/java/io/nop/biz/crud/CrudBizModel.java`
+- `io.nop.biz.crud.CrudBizModel`

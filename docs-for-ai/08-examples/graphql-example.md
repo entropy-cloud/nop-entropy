@@ -762,97 +762,7 @@ query GetUserDashboard {
 }
 ```
 
-**Java实现 - 复杂DataLoader场景**:
-
-```java
-@BizModel("DemoUser")
-public class DemoUserBizModel extends CrudBizModel<DemoUser> {
-    
-    // 批量加载用户角色
-    @BizLoader(forType = DemoUser.class)
-    public Map<DemoUser, List<DemoRole>> batchLoadRoles(List<DemoUser> users) {
-        List<String> userIds = users.stream()
-            .map(DemoUser::getUserId)
-            .collect(Collectors.toList());
-        
-        List<DemoRole> roles = roleDao().findByUserIds(userIds);
-        Map<String, List<DemoRole>> rolesByUserId = roles.stream()
-            .collect(Collectors.groupingBy(DemoRole::getUserId));
-        
-        Map<DemoUser, List<DemoRole>> result = new HashMap<>();
-        for (DemoUser user : users) {
-            result.put(user, rolesByUserId.getOrDefault(user.getUserId(), Collections.emptyList()));
-        }
-        return result;
-    }
-    
-    // 批量加载用户统计信息
-    @BizLoader(forType = DemoUser.class)
-    public Map<DemoUser, UserStatistics> batchLoadStatistics(List<DemoUser> users) {
-        List<String> userIds = users.stream()
-            .map(DemoUser::getUserId)
-            .collect(Collectors.toList());
-        
-        // 批量查询统计信息
-        Map<String, UserStatistics> statsMap = statisticsService.batchGetUserStatistics(userIds);
-        
-        Map<DemoUser, UserStatistics> result = new HashMap<>();
-        for (DemoUser user : users) {
-            result.put(user, statsMap.getOrDefault(user.getUserId(), new UserStatistics()));
-        }
-        return result;
-    }
-    
-    // 批量加载显示名称
-    @BizLoader(forType = DemoUser.class)
-    public Map<DemoUser, String> batchLoadDisplayNames(List<DemoUser> users) {
-        Map<DemoUser, String> result = new HashMap<>();
-        for (DemoUser user : users) {
-            result.put(user, user.getUserName() + "(" + user.getEmail() + ")");
-        }
-        return result;
-    }
-    
-    // 批量加载状态描述
-    @BizLoader(forType = DemoUser.class)
-    public Map<DemoUser, String> batchLoadStatusTexts(List<DemoUser> users) {
-        Map<DemoUser, String> result = new HashMap<>();
-        for (DemoUser user : users) {
-            String statusText = switch (user.getStatus()) {
-                case 1 -> "正常";
-                case 0 -> "禁用";
-                case -1 -> "删除";
-                default -> "未知";
-            };
-            result.put(user, statusText);
-        }
-        return result;
-    }
-}
-
-// 角色模型中的权限DataLoader
-@BizModel("DemoRole")
-public class DemoRoleBizModel extends CrudBizModel<DemoRole> {
-    
-    // 批量加载角色权限
-    @BizLoader(forType = DemoRole.class)
-    public Map<DemoRole, List<DemoPermission>> batchLoadPermissions(List<DemoRole> roles) {
-        List<String> roleIds = roles.stream()
-            .map(DemoRole::getRoleId)
-            .collect(Collectors.toList());
-        
-        List<DemoPermission> permissions = permissionDao().findByRoleIds(roleIds);
-        Map<String, List<DemoPermission>> permsByRoleId = permissions.stream()
-            .collect(Collectors.groupingBy(DemoPermission::getRoleId));
-        
-        Map<DemoRole, List<DemoPermission>> result = new HashMap<>();
-        for (DemoRole role : roles) {
-            result.put(role, permsByRoleId.getOrDefault(role.getRoleId(), Collections.emptyList()));
-        }
-        return result;
-    }
-}
-```
+> **Java 实现**：参见 [BizModel 编写指南 - DataLoader 章节](../03-development-guide/bizmodel-guide.md#dataloader--bizloader)
 
 ### 2. 订单创建流程
 
@@ -987,59 +897,7 @@ query GetUsersWithRoles {
 }
 ```
 
-**Java实现 - DataLoader模式**:
-
-```java
-// 在业务模型中定义DataLoader方法
-@BizModel("DemoUser")
-public class DemoUserBizModel extends CrudBizModel<DemoUser> {
-    
-    // 单个用户角色加载
-    @BizLoader(forType = DemoUser.class)
-    public List<DemoRole> loadRoles(DemoUser user) {
-        return user.getRoles();
-    }
-    
-    // 批量用户角色加载 - 解决N+1查询问题
-    @BizLoader(forType = DemoUser.class)
-    public Map<DemoUser, List<DemoRole>> batchLoadRoles(List<DemoUser> users) {
-        List<String> userIds = users.stream()
-            .map(DemoUser::getUserId)
-            .collect(Collectors.toList());
-        
-        // 批量查询用户角色
-        List<DemoRole> roles = roleDao().findByUserIds(userIds);
-        
-        // 按用户分组
-        Map<String, List<DemoRole>> rolesByUserId = roles.stream()
-            .collect(Collectors.groupingBy(DemoRole::getUserId));
-        
-        // 构建返回结果
-        Map<DemoUser, List<DemoRole>> result = new HashMap<>();
-        for (DemoUser user : users) {
-            result.put(user, rolesByUserId.getOrDefault(user.getUserId(), Collections.emptyList()));
-        }
-        
-        return result;
-    }
-    
-    // 扩展字段 - 显示名称
-    @BizLoader(forType = DemoUser.class)
-    public String loadDisplayName(DemoUser user) {
-        return user.getUserName() + "(" + user.getEmail() + ")";
-    }
-    
-    // 批量扩展字段
-    @BizLoader(forType = DemoUser.class)
-    public Map<DemoUser, String> batchLoadDisplayNames(List<DemoUser> users) {
-        Map<DemoUser, String> result = new HashMap<>();
-        for (DemoUser user : users) {
-            result.put(user, user.getUserName() + "(" + user.getEmail() + ")");
-        }
-        return result;
-    }
-}
-```
+> **Java 实现**：参见 [BizModel 编写指南 - DataLoader 章节](../03-development-guide/bizmodel-guide.md#dataloader--bizloader)
 
 ### 4. 查询优化最佳实践
 
@@ -1200,10 +1058,10 @@ public class GraphQLTest {
 
 ## 相关文档
 
-- [GraphQL服务开发指南](../03-development-guide/graphql-guide.md)
-- [GraphQL架构文档](../02-architecture/backend/graphql-architecture.md)
-- [完整CRUD示例](./complete-crud-example.md)
-- [API架构文档](../02-architecture/backend/api-architecture.md)
+- [API 开发指南](../03-development-guide/api-development.md)
+- [GraphQL 架构](../02-architecture/graphql-architecture.md)
+- [BizModel 编写指南](../03-development-guide/bizmodel-guide.md)（含 DataLoader）
+- [后端架构](../02-architecture/backend-architecture.md)
 
 ## 总结
 

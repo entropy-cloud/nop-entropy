@@ -18,7 +18,7 @@ docs-for-ai/
 │   └── [按任务组织的最短路径...]
 │
 ├── 13-reference/                  # ⭐ 源码参考（机器友好）
-│   ├── source-anchors.md           # 核心符号与源码路径
+│   ├── source-anchors.md           # 核心类速查
 │   └── [更多参考页...]
 │
 ├── 00-quick-start/                 # 快速开始
@@ -165,7 +165,7 @@ docs-for-ai/
 
 ### ✅ 以源码为准（可定位、可核对）
 
-- 关键概念会给出**源码锚点**（类/接口/注解的路径）用于快速定位
+- 关键概念会给出**全限定类名**用于快速定位
 - 示例代码追求**最小可用**，避免引入与平台无关的通用叙事
 - 如遇不一致，以源码实现为最终准绳
 
@@ -195,6 +195,9 @@ docs-for-ai/
 - **仅引用 docs-for-ai 目录内文档**：所有文档链接必须指向 docs-for-ai 目录内的文件，不得引用其他目录
   - ✅ 正确：`[相关文档](./data-access.md)` 或 `[XScript](../05-xlang/xscript.md)`
   - ❌ 错误：`[外部文档](../dev-guide/xxx.md)` 或引用主 docs 目录的文件
+- **Java 类引用只写全类名**：提及 Java 类时只提供全限定类名，不引用源码路径
+  - ✅ 正确：`io.nop.api.core.annotations.biz.BizLoader`
+  - ❌ 错误：`nop-api-core/src/main/java/io/nop/api/core/annotations/biz/BizLoader.java`
 - **禁止外部链接**：不得引用互联网链接
   - ❌ 移除所有http://或https://开头的外部链接
   - ❌ 移除所有指向外部文档、视频教程、示例项目的链接

@@ -8,9 +8,9 @@ BizModel 是 Nop 平台业务逻辑的核心载体。本文档规定编写规范
 
 ```java
 @BizModel("LitemallCart")
-public class LitemallCartBizModel extends CrudBizModel<LitemallCart> 
+public class LitemallCartBizModel extends CrudBizModel<LitemallCart>
         implements ILitemallCartBiz {
-    
+
     public LitemallCartBizModel() {
         setEntityName(LitemallCart.class.getName());
     }
@@ -44,22 +44,22 @@ public interface ILitemallCartBiz extends ICrudBiz<LitemallCart> {
 
 ```java
 @BizModel("LitemallCart")
-public class LitemallCartBizModel extends CrudBizModel<LitemallCart> 
+public class LitemallCartBizModel extends CrudBizModel<LitemallCart>
         implements ILitemallCartBiz {
-    
+
     @BizQuery
     public CartCheckoutResult checkout(@Name("cartIds") List<String> cartIds,
                                        IServiceContext context) { ... }
-    
+
     @BizMutation
     public LitemallCart updateQuantity(@Name("cartId") String cartId,
                                        @Name("number") Integer number,
                                        IServiceContext context) { ... }
-    
+
     @Override
     @BizMutation  // 接口方法也需要注解才能被 GraphQL 调用
     public void clearCart(IServiceContext context) { ... }
-    
+
     // 无注解 - 仅内部调用
     private void internalHelper() { ... }
 }
@@ -209,6 +209,83 @@ updateByQuery(query, data, context);
 batchDelete(ids, context);
 ```
 
+## DataLoader / @BizLoader
+
+`@BizLoader` 用于定义关联数据加载和扩展字段，解决 GraphQL 查询中的 N+1 问题。
+
+### 基本用法
+
+| 场景 | 方法签名 | 说明 |
+|------|----------|------|
+| 单对象加载 | `T loadXxx(Entity entity)` | 加载单个实体的关联数据 |
+| 批量加载 | `Map<Entity, T> batchLoadXxx(List<Entity> entities)` | 批量加载，避免 N+1 |
+| 扩展字段 | 配合 `@LazyLoad` | 按需计算，不破坏兼容性 |
+
+```java
+@BizModel("DemoUser")
+public class DemoUserBizModel extends CrudBizModel<DemoUser> {
+
+    // 单对象加载
+    @BizLoader(forType = DemoUser.class)
+    public List<DemoRole> loadRoles(DemoUser user) {
+        return user.getRoles();
+    }
+
+    // 批量加载 - 解决 N+1 问题
+    @BizLoader(forType = DemoUser.class)
+    public Map<DemoUser, List<DemoRole>> batchLoadRoles(List<DemoUser> users) {
+        List<String> userIds = users.stream()
+            .map(DemoUser::getUserId)
+            .collect(Collectors.toList());
+
+        // 批量查询
+        List<DemoRole> roles = roleDao().findByUserIds(userIds);
+        Map<String, List<DemoRole>> rolesByUserId = roles.stream()
+            .collect(Collectors.groupingBy(DemoRole::getUserId));
+
+        // 构建返回结果
+        Map<DemoUser, List<DemoRole>> result = new HashMap<>();
+        for (DemoUser user : users) {
+            result.put(user, rolesByUserId.getOrDefault(user.getUserId(), Collections.emptyList()));
+        }
+        return result;
+    }
+
+    // 扩展字段 - 计算属性
+    @BizLoader(forType = DemoUser.class)
+    public String loadDisplayName(DemoUser user) {
+        return user.getUserName() + "(" + user.getEmail() + ")";
+    }
+}
+```
+
+### Delta 扩展字段
+
+通过 Delta 机制为既有 API 增加字段，不修改原代码：
+
+```java
+@BizModel("LoginApi")
+public class LoginApiBizModelDelta {
+
+    @BizLoader(autoCreateField = true, forType = LoginResult.class)
+    @LazyLoad
+    public String location(@ContextSource LoginResult result, IServiceContext context) {
+        return "loc:" + result.getUserInfo().getUserId();
+    }
+}
+```
+
+**关键参数**：
+- `autoCreateField = true`：允许自动创建字段
+- `forType = Xxx.class`：挂载到指定输出类型
+- `@LazyLoad`：只有 selection 明确请求时才计算
+
+### 相关类
+
+- `io.nop.api.core.annotations.biz.BizLoader`
+- `io.nop.api.core.annotations.biz.ContextSource`
+- `io.nop.api.core.annotations.core.LazyLoad`
+
 ## 常量定义
 
 | 类型 | 位置 | 方式 |
@@ -267,7 +344,6 @@ LitemallGoods goods = daoProvider().daoFor(LitemallGoods.class).getEntityById(id
 
 // ✅ 通过 BizModel 接口
 @Inject
-@Named("biz_LitemallGoods")
 protected ILitemallGoodsBiz goodsBiz;
 
 LitemallGoods goods = goodsBiz.requireEntity(id, "read", context);
@@ -317,10 +393,10 @@ BizModel.method()
 // 1. BizModel
 @BizModel("LitemallOrder")
 public class LitemallOrderBizModel extends CrudBizModel<LitemallOrder> {
-    
+
     @Inject
     protected LitemallOrderSubmitProcessor orderSubmitProcessor;
-    
+
     @BizMutation
     public SubmitOrderResult submitOrder(@RequestBean SubmitOrderRequest request,
                                          IServiceContext context) {
@@ -330,13 +406,13 @@ public class LitemallOrderBizModel extends CrudBizModel<LitemallOrder> {
 
 // 2. Processor - 与方法一一对应
 public class LitemallOrderSubmitProcessor {
-    
+
     @Inject
     protected ILitemallAddressBiz addressBiz;
-    
+
     @Inject
     protected InventoryDeductStep inventoryDeductStep;  // 跨 Processor 复用的 Step
-    
+
     public SubmitOrderResult process(SubmitOrderRequest request, IServiceContext context) {
         LitemallAddress address = validateAddress(request.getAddressId(), context);
         List<LitemallOrderGoods> orderGoods = processCartItems(request.getCartIds(), context);
@@ -344,39 +420,38 @@ public class LitemallOrderSubmitProcessor {
         deductInventory(orderGoods, context);  // ✅ 通过子函数调用 Step
         return buildResult(orderGoods, context);
     }
-    
+
     protected LitemallAddress validateAddress(String addressId, IServiceContext context) {
         return addressBiz.requireEntity(addressId, "read", context);
     }
-    
-    protected List<LitemallOrderGoods> processCartItems(List<String> cartIds, 
+
+    protected List<LitemallOrderGoods> processCartItems(List<String> cartIds,
                                                          IServiceContext context) { ... }
-    
-    protected void calculatePrice(List<LitemallOrderGoods> orderGoods, 
+
+    protected void calculatePrice(List<LitemallOrderGoods> orderGoods,
                                    IServiceContext context) { ... }
-    
-    protected void deductInventory(List<LitemallOrderGoods> orderGoods, 
+
+    protected void deductInventory(List<LitemallOrderGoods> orderGoods,
                                     IServiceContext context) {
         inventoryDeductStep.execute(orderGoods, context);
     }
-    
+
     protected SubmitOrderResult buildResult(List<LitemallOrderGoods> orderGoods,
                                              IServiceContext context) { ... }
 }
 
 // 3. Step - 单一场景，跨 Processor 复用
 public class InventoryDeductStep {
-    
+
     @Inject
-    @Named("biz_LitemallGoodsProduct")
     protected ILitemallGoodsProductBiz productBiz;
-    
+
     public void execute(List<LitemallOrderGoods> orderGoods, IServiceContext context) {
         for (LitemallOrderGoods item : orderGoods) {
             deductForItem(item, context);
         }
     }
-    
+
     protected void deductForItem(LitemallOrderGoods item, IServiceContext context) {
         LitemallGoodsProduct product = productBiz.get(item.getProductId(), false, context);
         if (product != null && item.getNumber() != null) {
@@ -388,9 +463,9 @@ public class InventoryDeductStep {
 
 // 扩展示例
 public class LitemallOrderSubmitExProcessor extends LitemallOrderSubmitProcessor {
-    
+
     @Override
-    protected void deductInventory(List<LitemallOrderGoods> orderGoods, 
+    protected void deductInventory(List<LitemallOrderGoods> orderGoods,
                                     IServiceContext context) {
         List<LitemallOrderGoods> filtered = filterGoods(orderGoods);
         inventoryDeductStep.execute(filtered, context);
@@ -404,9 +479,9 @@ public class LitemallOrderSubmitExProcessor extends LitemallOrderSubmitProcessor
 ```xml
 <!-- _service.beans.xml -->
 <beans>
-    <bean id="litemallOrderSubmitProcessor" 
+    <bean id="litemallOrderSubmitProcessor"
           class="app.mall.service.processor.LitemallOrderSubmitProcessor"/>
-    <bean id="inventoryDeductStep" 
+    <bean id="inventoryDeductStep"
           class="app.mall.service.step.InventoryDeductStep"/>
 </beans>
 ```
@@ -425,62 +500,60 @@ public class LitemallOrderSubmitExProcessor extends LitemallOrderSubmitProcessor
 
 ```java
 @BizModel("LitemallCart")
-public class LitemallCartBizModel extends CrudBizModel<LitemallCart> 
+public class LitemallCartBizModel extends CrudBizModel<LitemallCart>
         implements ILitemallCartBiz {
-    
+
     @Inject
-    @Named("biz_LitemallGoodsProduct")
     protected ILitemallGoodsProductBiz productBiz;
-    
+
     public LitemallCartBizModel() {
         setEntityName(LitemallCart.class.getName());
     }
-    
+
     @BizMutation
     public LitemallCart updateQuantity(@Name("cartId") String cartId,
                                        @Name("number") Integer number,
                                        IServiceContext context) {
         if (number == null || number < 1 || number > 999) {
-            throw newError(AppMallErrors.ERR_CART_QUANTITY_INVALID)
+            throw new NopException(AppMallErrors.ERR_CART_QUANTITY_INVALID)
                     .param("min", 1).param("max", 999);
         }
-        
+
         String userId = context.getUserId().toString();
         LitemallCart cart = requireEntity(cartId, "update", context);
-        
+
         if (!userId.equals(cart.getUserId())) {
-            throw newError(AppMallErrors.ERR_CART_NOT_OWNER).param("cartId", cartId);
+            throw new NopException(AppMallErrors.ERR_CART_NOT_OWNER).param("cartId", cartId);
         }
-        
+
         LitemallGoodsProduct product = productBiz.get(cart.getProductId(), false, context);
         if (product != null && number > product.getNumber()) {
-            throw newError(AppMallErrors.ERR_CART_STOCK_INSUFFICIENT)
+            throw new NopException(AppMallErrors.ERR_CART_STOCK_INSUFFICIENT)
                     .param("available", product.getNumber());
         }
-        
-        Map<String, Object> data = new HashMap<>();
-        data.put("id", cartId);
-        data.put("number", number.shortValue());
-        return update(data, context);
+
+        cart.setNumber(number.shortValue());
+        updateEntity(cart, "update", context);
+        return cart;
     }
-    
+
     @BizQuery
     public CartCheckoutResult checkout(@Name("cartIds") List<String> cartIds,
                                        IServiceContext context) {
         String userId = context.getUserId().toString();
-        
+
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("userId", userId));
         query.addFilter(FilterBeans.eq("checked", true));
         List<LitemallCart> carts = doFindList(query, null, null, context);
-        
+
         BigDecimal goodsPrice = carts.stream()
             .map(c -> c.getPrice().multiply(new BigDecimal(c.getNumber())))
             .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
-        BigDecimal freight = goodsPrice.compareTo(new BigDecimal("88")) < 0 
+
+        BigDecimal freight = goodsPrice.compareTo(new BigDecimal("88")) < 0
             ? new BigDecimal("10") : BigDecimal.ZERO;
-        
+
         CartCheckoutResult result = new CartCheckoutResult();
         result.setCartGoods(carts);
         result.setGoodsPrice(goodsPrice);
@@ -488,15 +561,13 @@ public class LitemallCartBizModel extends CrudBizModel<LitemallCart>
         result.setOrderPrice(goodsPrice.add(freight));
         return result;
     }
-    
+
     @Override
     @BizMutation
     public void clearCart(IServiceContext context) {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("userId", context.getUserId()));
-        Map<String, Object> data = new HashMap<>();
-        data.put("deleted", true);
-        updateByQuery(query, data, context);
+        deleteByQuery(query, context);
     }
 }
 ```

@@ -707,10 +707,10 @@ XView是Nop平台的前端视图模型，采用与具体前端框架无关的XML
 - [Delta定制基础](../01-core-concepts/delta-basics.md) - Delta机制详解
 - [Delta定制场景](../01-core-concepts/delta-scenarios.md) - Delta实际应用
 
-## 源码参考
+## 相关类
 
-- **XView模型定义**：`io.nop.xui.model.UiViewModel`
-- **Grid模型**：`io.nop.xui.model.UiGridModel`
-- **Form模型**：`io.nop.xui.model.UiFormModel`
-- **Page模型**：`io.nop.xui.model.UiPageModel`
-- **生成器**：`io.nop.xui.generator.XuiGenerator`
+- `io.nop.xui.model.UiViewModel`
+- `io.nop.xui.model.UiGridModel`
+- `io.nop.xui.model.UiFormModel`
+- `io.nop.xui.model.UiPageModel`
+- `io.nop.xui.generator.XuiGenerator`

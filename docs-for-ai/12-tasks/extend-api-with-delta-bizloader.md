@@ -12,11 +12,9 @@
 
 ## 最小闭环
 
-本仓库存在可直接参考的真实例子：
+参考类：`io.nop.demo.biz.LoginApiBizModelDelta`
 
-- Java Delta：`nop-demo/nop-delta-demo/src/main/java/io/nop/demo/biz/LoginApiBizModelDelta.java`
-
-核心片段如下（原样结构，便于对照源码）：
+核心片段如下：
 
 ```java
 import io.nop.api.core.annotations.biz.BizLoader;
@@ -43,7 +41,8 @@ public class LoginApiBizModelDelta {
 - `forType = Xxx.class`：表示把 loader 挂到指定输出类型，不局限于当前 BizModel 的类型
 - `@LazyLoad`：只有 selection 明确请求该字段时才计算/返回，避免破坏兼容性与性能
 
-## 源码锚点
+## 相关类
 
-- `@BizLoader` 注解定义：`nop-kernel/nop-api-core/src/main/java/io/nop/api/core/annotations/biz/BizLoader.java`
-- 示例：`nop-demo/nop-delta-demo/src/main/java/io/nop/demo/biz/LoginApiBizModelDelta.java`
+- `io.nop.api.core.annotations.biz.BizLoader`
+- `io.nop.api.core.annotations.biz.ContextSource`
+- `io.nop.api.core.annotations.core.LazyLoad`

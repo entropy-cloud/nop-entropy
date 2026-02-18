@@ -1,40 +1,40 @@
-# 源码锚点（Source Anchors）
+# 核心类速查
 
-本页列出 docs-for-ai 中频繁引用的核心符号及其源码位置，便于 AI/开发者快速定位“事实来源”。
+本页列出 docs-for-ai 中频繁引用的核心类，便于快速定位。
 
-> 约定：此页只放 **可在仓库中直接定位的事实**，避免叙事性解释。
+> 约定：只列出类名和关键用途，详细用法见各开发指南文档。
 
 ## 服务层 / Biz
 
-- `io.nop.biz.crud.CrudBizModel`
-  - 路径：`nop-service-framework/nop-biz/src/main/java/io/nop/biz/crud/CrudBizModel.java`
-  - 关键点：`dao()` 来自 `IDaoProvider.dao(getEntityName())`，`txn()` 返回 `ITransactionTemplate`
-
-- `io.nop.api.core.annotations.biz.BizLoader`
-  - 路径：`nop-kernel/nop-api-core/src/main/java/io/nop/api/core/annotations/biz/BizLoader.java`
-  - 示例：`nop-demo/nop-delta-demo/src/main/java/io/nop/demo/biz/LoginApiBizModelDelta.java`
+| 类名 | 用途 |
+|------|------|
+| `io.nop.biz.crud.CrudBizModel` | CRUD 业务模型基类，提供 `dao()`、`txn()` 等方法 |
+| `io.nop.api.core.annotations.biz.BizLoader` | DataLoader 注解，定义关联数据加载 |
+| `io.nop.api.core.annotations.biz.BizQuery` | 查询方法注解 |
+| `io.nop.api.core.annotations.biz.BizMutation` | 修改方法注解（自动事务） |
+| `io.nop.api.core.annotations.biz.ContextSource` | 获取上下文来源对象 |
 
 ## DAO / 查询
 
-- `io.nop.dao.api.IEntityDao`
-  - 路径：`nop-persistence/nop-dao/src/main/java/io/nop/dao/api/IEntityDao.java`
-
-- `io.nop.api.core.beans.query.QueryBean`
-  - 路径：`nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/query/QueryBean.java`
-
-- `io.nop.api.core.beans.FieldSelectionBean`
-  - 路径：`nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/FieldSelectionBean.java`
-
-- `io.nop.api.core.beans.FilterBeans`
-  - 路径：`nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/FilterBeans.java`
+| 类名 | 用途 |
+|------|------|
+| `io.nop.dao.api.IEntityDao` | 实体 DAO 接口 |
+| `io.nop.api.core.beans.query.QueryBean` | 查询条件封装 |
+| `io.nop.api.core.beans.FieldSelectionBean` | 字段选择封装 |
+| `io.nop.api.core.beans.FilterBeans` | 过滤条件构建工具 |
+| `io.nop.api.core.beans.PageBean` | 分页结果封装 |
 
 ## 事务
 
-- `io.nop.dao.txn.ITransactionTemplate`
-  - 路径：`nop-persistence/nop-dao/src/main/java/io/nop/dao/txn/ITransactionTemplate.java`
+| 类名 | 用途 |
+|------|------|
+| `io.nop.dao.txn.ITransactionTemplate` | 事务模板接口 |
+| `io.nop.api.core.annotations.txn.Transactional` | 事务注解（非 BizModel 场景） |
+| `io.nop.api.core.annotations.txn.TransactionPropagation` | 事务传播级别 |
 
-- `io.nop.api.core.annotations.txn.Transactional`
-  - 路径：`nop-kernel/nop-api-core/src/main/java/io/nop/api/core/annotations/txn/Transactional.java`
+## 异常
 
-- `io.nop.api.core.annotations.txn.TransactionPropagation`
-  - 路径：`nop-kernel/nop-api-core/src/main/java/io/nop/api/core/annotations/txn/TransactionPropagation.java`
+| 类名 | 用途 |
+|------|------|
+| `io.nop.api.core.exceptions.NopException` | 平台异常基类 |
+| `io.nop.api.core.exceptions.ErrorCode` | 错误码定义接口 |

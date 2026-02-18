@@ -698,8 +698,7 @@ actions:
 - [API开发指南](./api-development.md) - GraphQL API开发
 - [XDef核心概念](../05-xlang/xdef-core.md) - XDef元模型
 
-## 源码参考
+## 相关类
 
-- **AMIS文档**：`https://baidu.gitee.io/amis/`
-- **GenPage标签**：`io.nop.xui.xlib.web.GenPageTag`
-- **AMIS渲染器**：`io.nop.xui.xui.AmisRenderer`
+- `io.nop.xui.xlib.web.GenPageTag`
+- `io.nop.xui.xui.AmisRenderer`

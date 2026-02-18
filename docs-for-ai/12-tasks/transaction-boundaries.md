@@ -62,8 +62,8 @@ public void nonBizWrite() {
 }
 ```
 
-## 源码锚点
+## 相关类
 
-- `CrudBizModel.txn()`：`nop-service-framework/nop-biz/src/main/java/io/nop/biz/crud/CrudBizModel.java`
-- `ITransactionTemplate`：`nop-persistence/nop-dao/src/main/java/io/nop/dao/txn/ITransactionTemplate.java`
-- `@Transactional`：`nop-kernel/nop-api-core/src/main/java/io/nop/api/core/annotations/txn/Transactional.java`
+- `io.nop.biz.crud.CrudBizModel`（`txn()` 方法）
+- `io.nop.dao.txn.ITransactionTemplate`
+- `io.nop.api.core.annotations.txn.Transactional`

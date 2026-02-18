@@ -6,13 +6,13 @@ SQLLib提供了类似MyBatis的SQL统一管理功能，支持在XML文件中定�
 
 ## 核心组件
 
-| 组件 | 路径 | 说明 |
-|-----|------|------|
-| ISqlLibManager | `nop-orm/sql_lib/ISqlLibManager.java` | SQL库管理器接口 |
-| SqlLibManager | `nop-orm/sql_lib/SqlLibManager.java` | SQL库管理器实现 |
-| SqlLibModel | `nop-orm/sql_lib/SqlLibModel.java` | SQL库模型 |
-| SqlLibProxyFactoryBean | `nop-orm/sql_lib/proxy/SqlLibProxyFactoryBean.java` | SQL库代理工厂 |
-| SqlMethod | `nop-orm/sql_lib/SqlMethod.java` | SQL执行方法枚举 |
+| 类名 | 说明 |
+|------|------|
+| `io.nop.orm.sql_lib.ISqlLibManager` | SQL 库管理器接口 |
+| `io.nop.orm.sql_lib.SqlLibManager` | SQL 库管理器实现 |
+| `io.nop.orm.sql_lib.SqlLibModel` | SQL 库模型 |
+| `io.nop.orm.sql_lib.proxy.SqlLibProxyFactoryBean` | SQL 库代理工厂 |
+| `io.nop.orm.sql_lib.SqlMethod` | SQL 执行方法枚举 |
 
 ## sql-lib.xml结构
 
@@ -386,9 +386,9 @@ public class UserService {
 | fetchSize | int | JDBC fetchSize |
 | colNameCamelCase | boolean | 列名转驼峰 |
 
-## 源码参考
+## 相关类
 
-- 核心接口: `nop-orm/src/main/java/io/nop/orm/sql_lib/ISqlLibManager.java`
-- 模型定义: `nop-kernel/src/main/resources/_vfs/nop/schema/orm/sql-lib.xdef`
-- 测试示例: `nop-orm/src/test/resources/_vfs/nop/test/sql/test.sql-lib.xml`
-- 代理实现: `nop-orm/src/main/java/io/nop/orm/sql_lib/proxy/`
+- `io.nop.orm.sql_lib.ISqlLibManager`
+- `io.nop.orm.sql_lib.SqlLibManager`
+- `io.nop.orm.sql_lib.proxy.SqlLibProxyFactoryBean`
+- XDef 模型定义：`/nop/schema/orm/sql-lib.xdef`

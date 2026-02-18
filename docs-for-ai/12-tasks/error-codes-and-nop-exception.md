@@ -16,9 +16,9 @@
 - 在 `*Errors` 接口里统一定义 `ErrorCode`
 - 在业务代码里 `throw new NopException(ERR_XXX).param(...)` 传参
 
-### 定义 ErrorCode（真实示例）
+### 定义 ErrorCode（示例）
 
-文件：`nop-wf/nop-wf-service/src/main/java/io/nop/wf/service/NopWfErrors.java`
+参考类：`io.nop.wf.service.NopWfErrors`
 
 ```java
 package io.nop.wf.service;
@@ -43,9 +43,9 @@ public interface NopWfErrors {
 }
 ```
 
-### 抛出 NopException 并传参（真实示例）
+### 抛出 NopException 并传参（示例）
 
-文件：`nop-wf/nop-wf-service/src/main/java/io/nop/wf/service/actor/DaoWfActorResolver.java`
+参考类：`io.nop.wf.service.actor.DaoWfActorResolver`
 
 ```java
 import io.nop.api.core.exceptions.NopException;
@@ -76,9 +76,9 @@ throw new NopException(ERR_WF_ACTOR_NOT_USER)
     .param(ARG_ACTOR_NAME, actor.getActorName());
 ```
 
-## 源码锚点
+## 相关类
 
-- `ErrorCode`：`nop-kernel/nop-api-core/src/main/java/io/nop/api/core/exceptions/ErrorCode.java`
-- `NopException`：`nop-kernel/nop-api-core/src/main/java/io/nop/api/core/exceptions/NopException.java`
-- 真实 `*Errors` 定义：`nop-wf/nop-wf-service/src/main/java/io/nop/wf/service/NopWfErrors.java`
-- 真实 `throw new NopException(...).param(...)`：`nop-wf/nop-wf-service/src/main/java/io/nop/wf/service/actor/DaoWfActorResolver.java`
+- `io.nop.api.core.exceptions.ErrorCode`
+- `io.nop.api.core.exceptions.NopException`
+- 示例：`io.nop.wf.service.NopWfErrors`
+- 示例：`io.nop.wf.service.actor.DaoWfActorResolver`
