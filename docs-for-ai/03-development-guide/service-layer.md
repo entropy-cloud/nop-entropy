@@ -178,17 +178,17 @@ interface ICrudBiz<T> {
   String getBizObjName();
 
   // 实体操作
-  void deleteEntity(@Name("entity") T entity, IServiceContext context);
+  void deleteEntity(@Name("entity") T entity, @Optional @Name("action") String action, IServiceContext context);
 
-  void saveEntity(@Name("entity") T entity, IServiceContext context);
+  void saveEntity(@Name("entity") T entity, @Optional @Name("action") String action, IServiceContext context);
 
-  void updateEntity(@Name("entity") T entity, IServiceContext context);
+  void updateEntity(@Name("entity") T entity, @Optional @Name("action") String action, IServiceContext context);
 
-  void assignToEntity(@Name("entity") T entity, @Name("data") Map<String, Object> data, IServiceContext context);
+  void assignToEntity(@Name("entity") T entity, @Name("data") Map<String, Object> data, @Optional @Name("action") String action, IServiceContext context);
 
-  T buildEntityForSave(@Name("data") Map<String, Object> data, @Name("action") String action, IServiceContext context);
+  T buildEntityForSave(@Name("data") Map<String, Object> data, @Optional @Name("action") String action, IServiceContext context);
 
-  void checkAllowAccess(@Name("entity") T entity, @Name("action") String action, IServiceContext context);
+  void checkAllowAccess(@Name("entity") T entity, @Optional @Name("action") String action, IServiceContext context);
 }
 ```
 
@@ -246,10 +246,10 @@ public User getUserByOpenId(@Name("openId") String openId, FieldSelectionBean se
 
 @BizMutation
 public void resetUserPassword(@Name("userId") String userId, @Name("newPassword") String newPassword, IServiceContext context) {
-    User user = this.requireEntity(userId);
+    User user = this.requireEntity(userId, "update", context);
     user.setPassword(passwordEncoder.encode(newPassword));
-    // 修改实体会自动保存，不需要手动调用dao.updateEntity。但是如果修改了有可能导致数据权限变化或者唯一键冲突的属性，则需要调用updateEntity(entity,context);
-    // updateEntity(user,context);
+    // 修改实体会自动保存，不需要手动调用updateEntity。但是如果修改了有可能导致数据权限变化或者唯一键冲突的属性，则需要调用：
+    // updateEntity(user, null, context);  // action=null 默认为 "update"
 }
 ```
 

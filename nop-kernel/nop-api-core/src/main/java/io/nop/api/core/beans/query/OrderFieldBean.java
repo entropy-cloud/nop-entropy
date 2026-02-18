@@ -38,7 +38,15 @@ public class OrderFieldBean implements Serializable, ICloneable {
                 (nullsFirst != null ? (getNullsFirst() ? " nulls first" : " nulls last") : "");
     }
 
-    public static OrderFieldBean orderBy(String name, boolean asc){
+    public static OrderFieldBean desc(String name) {
+        return orderBy(name, false);
+    }
+
+    public static OrderFieldBean asc(String name) {
+        return orderBy(name, true);
+    }
+
+    public static OrderFieldBean orderBy(String name, boolean asc) {
         return forField(name, asc);
     }
 

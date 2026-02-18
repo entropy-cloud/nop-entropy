@@ -483,6 +483,9 @@ public interface ICrudBiz<T extends IOrmEntity> extends IOrmEntityBiz {
 
     // ==================== 直接针对实体对象的操作方法 ====================
 
+    @BizAction
+    T requireEntity(@Name("id") String id, @Name("action") String action, IServiceContext context);
+
     /**
      * 删除实体对象
      * <p>

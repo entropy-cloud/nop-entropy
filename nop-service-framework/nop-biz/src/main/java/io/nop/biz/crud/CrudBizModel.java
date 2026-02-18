@@ -857,7 +857,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     }
 
     @BizAction
-    protected T requireEntity(@Name("id") String id, @Name("action") String action, IServiceContext context) {
+    public T requireEntity(@Name("id") String id, @Name("action") String action, IServiceContext context) {
         return getEntity(id, action, false, false, context);
     }
 
