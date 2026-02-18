@@ -39,17 +39,17 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: promptCacheCreationTokensPath
+     * 
+     */
+    private java.lang.String _promptCacheCreationTokensPath ;
+    
+    /**
+     *  
      * xml name: promptCacheHitTokensPath
      * 
      */
     private java.lang.String _promptCacheHitTokensPath ;
-    
-    /**
-     *  
-     * xml name: promptCacheMissTokensPath
-     * 
-     */
-    private java.lang.String _promptCacheMissTokensPath ;
     
     /**
      *  
@@ -152,6 +152,25 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: promptCacheCreationTokensPath
+     *  
+     */
+    
+    public java.lang.String getPromptCacheCreationTokensPath(){
+      return _promptCacheCreationTokensPath;
+    }
+
+    
+    public void setPromptCacheCreationTokensPath(java.lang.String value){
+        checkAllowChange();
+        
+        this._promptCacheCreationTokensPath = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: promptCacheHitTokensPath
      *  
      */
@@ -165,25 +184,6 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._promptCacheHitTokensPath = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: promptCacheMissTokensPath
-     *  
-     */
-    
-    public java.lang.String getPromptCacheMissTokensPath(){
-      return _promptCacheMissTokensPath;
-    }
-
-    
-    public void setPromptCacheMissTokensPath(java.lang.String value){
-        checkAllowChange();
-        
-        this._promptCacheMissTokensPath = value;
            
     }
 
@@ -320,8 +320,8 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
         out.putNotNull("completionTokensPath",this.getCompletionTokensPath());
         out.putNotNull("contentPath",this.getContentPath());
         out.putNotNull("errorPath",this.getErrorPath());
+        out.putNotNull("promptCacheCreationTokensPath",this.getPromptCacheCreationTokensPath());
         out.putNotNull("promptCacheHitTokensPath",this.getPromptCacheHitTokensPath());
-        out.putNotNull("promptCacheMissTokensPath",this.getPromptCacheMissTokensPath());
         out.putNotNull("promptTokensPath",this.getPromptTokensPath());
         out.putNotNull("reasoningContentPath",this.getReasoningContentPath());
         out.putNotNull("rolePath",this.getRolePath());
@@ -342,8 +342,8 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
         instance.setCompletionTokensPath(this.getCompletionTokensPath());
         instance.setContentPath(this.getContentPath());
         instance.setErrorPath(this.getErrorPath());
+        instance.setPromptCacheCreationTokensPath(this.getPromptCacheCreationTokensPath());
         instance.setPromptCacheHitTokensPath(this.getPromptCacheHitTokensPath());
-        instance.setPromptCacheMissTokensPath(this.getPromptCacheMissTokensPath());
         instance.setPromptTokensPath(this.getPromptTokensPath());
         instance.setReasoningContentPath(this.getReasoningContentPath());
         instance.setRolePath(this.getRolePath());
