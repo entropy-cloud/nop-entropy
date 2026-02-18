@@ -6,6 +6,8 @@ Nop平台服务层基于BizModel设计，提供了CrudBizModel基类用于快速
 
 > **BizModel 编写核心规范**：请参考 [BizModel 编写指南](./bizmodel-guide.md)，其中包含完整的编写规范、参数/返回类型约定、数据访问方式等核心内容。本文档重点介绍服务层架构和扩展机制。
 
+---
+
 ## 重要说明
 
 ### 模型驱动架构（Model-Driven Architecture）

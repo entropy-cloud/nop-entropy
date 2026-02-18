@@ -2,6 +2,232 @@
 
 BizModel 是 Nop 平台业务逻辑的核心载体。本文档规定编写规范、参数/返回类型约定、数据访问方式及复杂逻辑拆分策略。
 
+## 📦 必要 Import 列表
+
+以下是 BizModel 开发中最常用的 import，建议在开发时优先添加：
+
+```java
+// ===== 核心注解 =====
+import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.api.core.annotations.biz.BizMutation;
+import io.nop.api.core.annotations.biz.BizQuery;
+import io.nop.api.core.annotations.biz.BizAction;
+import io.nop.api.core.annotations.biz.RequestBean;
+import io.nop.api.core.annotations.core.Name;
+
+// ===== 服务上下文 =====
+import io.nop.core.context.IServiceContext;
+
+// ===== 依赖注入（二选一）=====
+import jakarta.inject.Inject;  // ✅ 推荐（与 Spring/Jakarta 标准一致）
+// import io.nop.api.core.annotations.inject.Inject;  // 也可用
+
+// ===== CRUD 基类 =====
+import io.nop.biz.crud.CrudBizModel;
+
+// ===== 查询构建 =====
+import io.nop.api.core.beans.query.QueryBean;
+import static io.nop.api.core.beans.FilterBeans.eq;
+import static io.nop.api.core.beans.FilterBeans.and;
+import static io.nop.api.core.beans.FilterBeans.or;
+
+// ===== 异常处理 =====
+import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.exceptions.ErrorCode;
+
+// ===== DTO 标记 =====
+import io.nop.api.core.annotations.data.DataBean;
+
+// ===== 字段选择（GraphQL）=====
+import io.nop.api.core.beans.FieldSelectionBean;
+```
+
+### Processor 中额外的 Import
+
+```java
+// Processor 需要通过 Biz 接口访问其他实体
+import app.mall.biz.ILitemallOrderBiz;     // 替换为实际的 Biz 接口
+import app.mall.biz.ILitemallCartBiz;
+```
+
+---
+
+## ⚠️ 必须规则（强制要求）
+
+### IXXBiz 和 BizModel 方法规范
+
+以下规则适用于所有 `IXXBiz` 接口和 `BizModel` 类中的业务方法：
+
+#### 1. 所有非 private 方法必须具有以下注解之一
+
+| 注解 | 用途 | 事务 |
+|------|------|------|
+| `@BizQuery` | 查询操作（只读） | 无事务 |
+| `@BizMutation` | 修改操作（新增/更新/删除） | 自动开启事务 |
+| `@BizAction` | 动作方法（通用操作） | 自动开启事务 |
+
+> **说明**：仅内部调用的辅助方法应标记为 `private`，不需要注解。
+
+```java
+@BizModel("Order")
+public class OrderBizModel extends CrudBizModel<Order> {
+
+    // ✅ 正确：public 方法有注解
+    @BizQuery
+    public Order getOrder(@Name("orderId") String orderId, IServiceContext context) { ... }
+
+    @BizMutation
+    public Order cancel(@Name("orderId") String orderId, IServiceContext context) { ... }
+
+    // ✅ 正确：private 辅助方法不需要注解
+    private void validateOrder(Order order) { ... }
+
+    // ❌ 错误：public 方法缺少注解
+    public void helperMethod(...) { ... }
+}
+```
+
+#### 2. 最后一个参数必须是 `IServiceContext`
+
+所有对外暴露的业务方法（带 BizQuery/BizMutation/BizAction 注解的方法），最后一个参数必须是 `IServiceContext`。
+
+```java
+// ✅ 正确：最后一个参数是 IServiceContext
+@BizMutation
+public Order cancel(@Name("orderId") String orderId, IServiceContext context) { ... }
+
+// ✅ 正确：多参数时 IServiceContext 在最后
+@BizMutation
+public Order updateStatus(@Name("orderId") String orderId,
+                          @Name("status") Integer status,
+                          IServiceContext context) { ... }
+
+// ❌ 错误：缺少 IServiceContext 参数
+@BizMutation
+public Order cancel(@Name("orderId") String orderId) { ... }
+```
+
+#### 3. 所有业务参数必须使用 `@Name` 注解
+
+除了 `IServiceContext`、`FieldSelectionBean` 等框架参数外，所有业务参数都必须使用 `@Name` 注解指定参数名。
+
+```java
+// ✅ 正确：所有业务参数都有 @Name
+@BizMutation
+public LitemallCart updateQuantity(@Name("cartId") String cartId,
+                                   @Name("number") Integer number,
+                                   IServiceContext context) { ... }
+
+// ✅ 正确：使用 @RequestBean 封装多参数
+@BizMutation
+public SubmitOrderResult submitOrder(@RequestBean SubmitOrderRequest request,
+                                     IServiceContext context) { ... }
+
+// ❌ 错误：业务参数缺少 @Name
+@BizMutation
+public void updateQuantity(String cartId, Integer number, IServiceContext context) { ... }
+```
+
+### 完整示例
+
+```java
+@BizModel("LitemallOrder")
+public class LitemallOrderBizModel extends CrudBizModel<LitemallOrder>
+        implements ILitemallOrderBiz {
+
+    // ✅ 查询方法
+    @BizQuery
+    public List<LitemallOrder> getOrdersByUser(
+            @Name("userId") String userId,
+            FieldSelectionBean selection,
+            IServiceContext context) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("userId", userId));
+        return doFindList(query, selection, context);
+    }
+
+    // ✅ 修改方法
+    @BizMutation
+    public LitemallOrder cancel(
+            @Name("orderId") String orderId,
+            IServiceContext context) {
+        LitemallOrder order = requireEntity(orderId, "update", context);
+        order.setOrderStatus(AppMallDaoConstants.ORDER_STATUS_CANCEL);
+        updateEntity(order, null, context);
+        return order;
+    }
+
+    // ✅ 使用 @RequestBean 封装复杂参数
+    @BizMutation
+    public SubmitOrderResult submitOrder(
+            @RequestBean SubmitOrderRequest request,
+            IServiceContext context) {
+        // ...
+    }
+
+    // ✅ private 辅助方法不需要注解和 IServiceContext
+    private void validateOrderAmount(BigDecimal amount) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new NopException(AppMallErrors.ERR_INVALID_AMOUNT);
+        }
+    }
+}
+```
+
+## IXXBiz 接口使用场景
+
+### 何时定义 IXXBiz 接口
+
+| 场景 | 是否需要接口 | 原因 |
+|------|-------------|------|
+| 方法需要被**其他 BizModel 调用** | ✅ 需要 | 通过接口注入，实现解耦 |
+| 只通过 GraphQL/REST 调用 | ❌ 不需要 | 直接在 BizModel 类中定义即可 |
+| 需要在 Delta 模块中覆盖 | ✅ 需要 | 便于 Delta 扩展 |
+
+### 接口定义规范
+
+```java
+// dao 模块中的接口
+public interface ILitemallOrderBiz extends ICrudBiz<LitemallOrder> {
+
+    // ✅ 被其他 BizModel 调用的方法
+    LitemallOrder cancel(@Name("orderId") String orderId, IServiceContext context);
+
+    // ✅ 跨聚合访问的方法
+    List<LitemallOrder> getOrdersByUser(@Name("userId") String userId,
+                                         FieldSelectionBean selection,
+                                         IServiceContext context);
+
+    // ❌ 不要定义只通过 GraphQL 调用的方法
+    // SubmitOrderResult submitOrder(@RequestBean SubmitOrderRequest request,
+    //                               IServiceContext context);
+}
+```
+
+### BizModel 之间的调用
+
+```java
+@BizModel("LitemallCart")
+public class LitemallCartBizModel extends CrudBizModel<LitemallCart> {
+
+    // ✅ 正确：通过接口注入
+    @Inject
+    protected ILitemallOrderBiz orderBiz;
+
+    @BizMutation
+    public void checkout(@Name("cartId") String cartId, IServiceContext context) {
+        // 通过接口调用其他 BizModel 的方法
+        LitemallOrder order = orderBiz.cancel(orderId, context);
+    }
+
+    // ❌ 错误：直接注入 BizModel 类
+    // @Inject
+    // protected LitemallOrderBizModel orderBizModel;
+}
+```
+
+---
+
 ## 基本结构
 
 ### 最简 BizModel

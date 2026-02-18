@@ -93,6 +93,105 @@ List<NopAuthUser> page = dao.findPageByQuery(query);
 PageBean<NopAuthUser> result = bizModel.findPage(query, 1, 20);
 ```
 
+---
+
+## BizModel 内部查询 vs Processor/跨 BizModel 查询
+
+### 关键区别
+
+| 场景 | 方法 | 说明 |
+|------|------|------|
+| **BizModel 内部** | `doFindList(query, selection, context)` | `protected` 方法，只能在 BizModel 内部调用 |
+| **Processor / 跨 BizModel** | `biz.findList(query, selection, context)` | 通过 Biz 接口调用，适用于 Processor |
+| **BizModel 内部（分页）** | `doFindPage(query, selection, context)` | `protected` 方法，返回 `PageBean<T>` |
+| **Processor / 跨 BizModel（分页）** | `biz.findPage(query, selection, context)` | 通过 Biz 接口调用 |
+
+### 示例对比
+
+```java
+// ===== BizModel 内部使用 doFindList =====
+@BizModel("LitemallCart")
+public class LitemallCartBizModel extends CrudBizModel<LitemallCart> {
+
+    @BizQuery
+    public List<LitemallCart> getCheckedCarts(IServiceContext context) {
+        QueryBean query = new QueryBean();
+        query.addFilter(eq("userId", context.getUserId()));
+        query.addFilter(eq("checked", true));
+        
+        // ✅ BizModel 内部使用 doFindList
+        return doFindList(query, null, context);
+    }
+}
+
+// ===== Processor 中使用 findList =====
+public class LitemallOrderSubmitProcessor {
+
+    @Inject
+    protected ILitemallCartBiz cartBiz;
+
+    protected List<LitemallCart> getCarts(String userId, IServiceContext context) {
+        QueryBean query = new QueryBean();
+        query.addFilter(eq("userId", userId));
+        query.addFilter(eq("checked", true));
+        
+        // ✅ Processor 中通过接口调用 findList
+        return cartBiz.findList(query, null, context);
+    }
+}
+
+// ===== 跨 BizModel 调用使用 findList =====
+@BizModel("LitemallOrder")
+public class LitemallOrderBizModel extends CrudBizModel<LitemallOrder> {
+
+    @Inject
+    protected ILitemallCartBiz cartBiz;
+
+    @BizMutation
+    public void clearUserCart(IServiceContext context) {
+        QueryBean query = new QueryBean();
+        query.addFilter(eq("userId", context.getUserId()));
+        
+        // ✅ 跨 BizModel 调用使用 findList
+        List<LitemallCart> carts = cartBiz.findList(query, null, context);
+        // ...
+    }
+}
+```
+
+### 常见错误
+
+```java
+// ❌ 错误：在 Processor 中调用 doFindList（不可访问）
+public class MyProcessor {
+    @Inject
+    protected ILitemallCartBiz cartBiz;
+    
+    public void process(IServiceContext context) {
+        // 编译错误：doFindList 是 protected 方法
+        // cartBiz.doFindList(query, null, context);
+        
+        // ✅ 正确：使用 findList
+        cartBiz.findList(query, null, context);
+    }
+}
+
+// ❌ 错误：在 BizModel 内部绕过 doFindList 直接用 dao
+@BizModel("LitemallCart")
+public class LitemallCartBizModel extends CrudBizModel<LitemallCart> {
+    
+    public List<LitemallCart> getCarts(IServiceContext context) {
+        // 绕过数据权限检查
+        // return dao().findAllByQuery(query);  // ❌ 错误
+        
+        // ✅ 正确：使用 doFindList
+        return doFindList(query, null, context);
+    }
+}
+```
+
+---
+
 ## 过滤条件构建
 
 ### FilterBeans 工具方法
