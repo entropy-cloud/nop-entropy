@@ -451,11 +451,10 @@ Nop平台内置了轻量级的IoC容器，支持依赖注入和AOP：
 ```java
 public class MyService {
     @Inject
-    private MyDao dao;
+    protected MyDao dao;
     
-    @Inject
-    @ConfigProperty(name = "nop.service.config")
-    private String config;
+    @InjectValue("nop.service.config")
+    protected String config;
     
     // 业务方法
 }

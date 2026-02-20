@@ -7,7 +7,7 @@
 ## 你应该看哪里
 
 - Nop 与传统框架差异、以及常见误用清单：`docs-for-ai/getting-started/nop-vs-traditional-frameworks.md`
-- 与持久层/查询相关的权威文档入口：`docs-for-../03-development-guide/entitydao-usage.md`
+- 与持久层/查询相关的权威文档入口：`../03-development-guide/data-access.md`
 - 若你在 docs 中引用缓存/事务/ORM 注解/接口：**必须先在仓库中搜索确认真实存在与真实用法**。
 
 ## docs-for-ai 的性能相关写作约束（只保留 Nop 特有）
@@ -157,7 +157,7 @@ public class CacheMonitor {
 ## 相关文档
 
 - [ORM架构文档](../02-architecture/backend/orm-architecture.md)
-- [IEntityDao使用指南](../03-development-guide/entitydao-usage.md)
+- [IEntityDao使用指南](../03-development-guide/data-access.md)
 - [QueryBean使用指南](../03-development-guide/querybean-guide.md)
 - [事务管理指南](../04-core-components/transaction.md)
 

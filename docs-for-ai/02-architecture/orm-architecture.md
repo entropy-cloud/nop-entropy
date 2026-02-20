@@ -656,7 +656,7 @@ for (User user : users) {
 
 ## 相关文档
 
-- [IEntityDao使用指南](../03-development-guide/entitydao-usage.md)
+- [IEntityDao使用指南](../03-development-guide/data-access.md)
 - [QueryBean使用指南](../03-development-guide/querybean-guide.md)
 - [FilterBeans使用指南](../03-development-guide/filterbeans-guide.md)
 - [事务管理指南](../04-core-components/transaction.md)

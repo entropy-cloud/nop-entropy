@@ -621,7 +621,7 @@ scrape_configs:
 - [ORM架构详解](./02-architecture/orm-architecture.md) - ORM架构完整文档
 - [数据访问层开发](./data-access.md) - 数据访问层开发指南
 - [服务层开发](./service-layer.md) - 服务层开发指南
-- [IEntityDao使用指南](./entitydao-usage.md) - IEntityDao使用完整指南
+- [IEntityDao使用指南](./data-access.md) - IEntityDao使用完整指南
 - [QueryBean使用指南](./querybean-guide.md) - QueryBean使用完整指南
 - [FilterBeans使用指南](./filterbeans-guide.md) - FilterBeans使用完整指南
 - [事务管理指南](../04-core-components/transaction.md) - 事务管理完整指南

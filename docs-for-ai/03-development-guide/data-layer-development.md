@@ -21,7 +21,7 @@ Nop平台提供多种数据访问方式，包括ORM框架、JDBC模板、SQL库�
 - 基于实体的复杂查询
 - 需要自动处理关联关系的场景
 
-**详细用法**：请参考[IEntityDao 使用指南](entitydao-usage.md)
+**详细用法**：请参考[IEntityDao 使用指南](./data-access.md)
 
 ### 2. IOrmTemplate - ORM模板
 
@@ -230,7 +230,7 @@ public class UserBizModel extends CrudBizModel<User> {
 
 ## 相关文档
 
-- [IEntityDao使用指南](./entitydao-usage.md) - 数据访问接口详解
+- [IEntityDao使用指南](./data-access.md) - 数据访问接口详解
 - [QueryBean使用指南](./querybean-guide.md) - 查询对象详解
 - [FilterBeans使用指南](./filterbeans-guide.md) - 过滤条件详解
 - [服务层开发指南](./service-layer.md) - BizModel开发详解

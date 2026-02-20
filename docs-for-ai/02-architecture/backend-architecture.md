@@ -565,7 +565,7 @@ public class CustomQueryStrategy implements IQueryStrategy {
 
 - [GraphQL服务开发指南](../03-development-guide/graphql-guide.md)
 - [服务层开发指南](../03-development-guide/service-layer.md)
-- [IEntityDao使用指南](../03-development-guide/entitydao-usage.md)
+- [IEntityDao使用指南](../03-development-guide/data-access.md)
 - [事务管理指南](./transaction.md)
 - [异常处理指南](./exception-handling.md)
 

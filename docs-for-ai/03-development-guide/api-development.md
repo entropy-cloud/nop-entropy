@@ -818,9 +818,9 @@ public User createUser(@Name("user") User user) {
 ## 相关文档
 
 - [服务层开发指南](./service-layer.md) - BizModel开发详解
-- [IEntityDao使用指南](../dao/entitydao-usage.md) - 数据访问接口详解
-- [QueryBean使用指南](../dao/querybean-guide.md) - 查询对象详解
-- [FilterBeans使用指南](../dao/filterbeans-guide.md) - 过滤条件详解
+- [IEntityDao使用指南](./data-access.md) - 数据访问接口详解
+- [QueryBean使用指南](./querybean-guide.md) - 查询对象详解
+- [FilterBeans使用指南](./filterbeans-guide.md) - 过滤条件详解
 - [事务管理指南](../04-core-components/transaction.md) - 事务管理完整指南
 - [异常处理指南](../04-core-components/exception-handling.md) - 异常处理完整指南
 - [API模型设计](./api-model-design.md) - API模型设计指南

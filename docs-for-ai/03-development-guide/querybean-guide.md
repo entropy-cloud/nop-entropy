@@ -568,7 +568,7 @@ FilterBeans.notNull("deletedAt");
 ## 相关文档
 
 - [FilterBeans使用指南](./filterbeans-guide.md) - 过滤条件详解
-- [IEntityDao使用指南](./entitydao-usage.md) - 数据访问接口详解
+- [IEntityDao使用指南](./data-access.md) - 数据访问接口详解
 - [服务层开发指南](./service-layer.md) - BizModel开发详解
 - [GraphQL服务开发指南](../api/graphql-guide.md) - GraphQL API开发
 - [数据处理指南](./data-processing.md) - 数据处理指南
