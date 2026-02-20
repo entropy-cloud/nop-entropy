@@ -17,6 +17,7 @@ import io.nop.core.lang.json.bind.ValueResolverCompilerRegistry;
 import io.nop.core.lang.json.handler.BuildJObjectJsonHandler;
 import io.nop.core.lang.json.handler.BuildObjectJsonHandler;
 import io.nop.core.lang.json.impl.DefaultJsonTool;
+import io.nop.core.lang.json.yaml.CollectYamlJsonHandler;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceConstants;
@@ -25,6 +26,7 @@ import io.nop.core.type.utils.JavaTypeHelper;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
+import java.io.StringWriter;
 import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.function.Function;
@@ -247,12 +249,78 @@ public class JsonTool {
     public static String serializeToYaml(Object value) {
         if (value == null)
             return null;
+
+        // 对于 JObject/JArray 使用保留 comment 的序列化方式
+        if (value instanceof JObject || value instanceof JArray) {
+            return serializeToYamlWithComments(value);
+        }
+
         DumperOptions options = new DumperOptions();
         options.setPrettyFlow(true);
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         BuildObjectJsonHandler handler = new BuildObjectJsonHandler();
         instance().serializeTo(value, handler);
         return new Yaml(options).dump(handler.getResult());
+    }
+
+    /**
+     * 序列化 JObject/JArray 到 YAML，保留 comment
+     * 使用 CollectYamlJsonHandler 来处理嵌套结构中的注释
+     */
+    private static String serializeToYamlWithComments(Object value) {
+        StringWriter writer = new StringWriter();
+        CollectYamlJsonHandler handler = new CollectYamlJsonHandler(writer);
+        handler.beginDoc(StringHelper.ENCODING_UTF8);
+        serializeToYamlRecursive(value, handler);
+        handler.endDoc();
+        return writer.toString();
+    }
+
+    /**
+     * 递归序列化对象到 YAML，处理 JObject/JArray 的 comment
+     */
+    private static void serializeToYamlRecursive(Object value, CollectYamlJsonHandler handler) {
+        if (value instanceof JObject) {
+            JObject obj = (JObject) value;
+            if (obj.getComment() != null) {
+                handler.comment(obj.getComment());
+            }
+            handler.beginObject(obj.getLocation());
+            for (Map.Entry<String, Object> entry : obj.entrySet()) {
+                handler.key(entry.getKey());
+                serializeToYamlRecursive(entry.getValue(), handler);
+            }
+            handler.endObject();
+        } else if (value instanceof JArray) {
+            JArray arr = (JArray) value;
+            if (arr.getComment() != null) {
+                handler.comment(arr.getComment());
+            }
+            handler.beginArray(arr.getLocation());
+            for (Object item : arr) {
+                serializeToYamlRecursive(item, handler);
+            }
+            handler.endArray();
+        } else if (value instanceof IJsonSerializable) {
+            ((IJsonSerializable) value).serializeToJson(handler);
+        } else if (value instanceof Map) {
+            Map<?, ?> map = (Map<?, ?>) value;
+            handler.beginObject(null);
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                handler.key(String.valueOf(entry.getKey()));
+                serializeToYamlRecursive(entry.getValue(), handler);
+            }
+            handler.endObject();
+        } else if (value instanceof java.util.Collection) {
+            java.util.Collection<?> coll = (java.util.Collection<?>) value;
+            handler.beginArray(null);
+            for (Object item : coll) {
+                serializeToYamlRecursive(item, handler);
+            }
+            handler.endArray();
+        } else {
+            handler.value(null, value);
+        }
     }
 
     public static Object parseYaml(SourceLocation loc, String text) {

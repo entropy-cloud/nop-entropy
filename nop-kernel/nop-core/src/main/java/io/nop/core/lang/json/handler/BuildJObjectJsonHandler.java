@@ -19,16 +19,22 @@ public class BuildJObjectJsonHandler extends BuildObjectJsonHandler {
     @Override
     protected List<Object> newArray(SourceLocation loc) {
         JArray array = new JArray(loc);
-        if (getComment() != null)
+        if (getComment() != null) {
             array.setComment(getComment());
+            // 使用后清除注释，避免被下一个对象重复使用
+            clearComment();
+        }
         return array;
     }
 
     @Override
     protected Map<String, Object> newObject(SourceLocation loc) {
         JObject obj = new JObject(loc);
-        if (getComment() != null)
+        if (getComment() != null) {
             obj.setComment(getComment());
+            // 使用后清除注释，避免被下一个对象重复使用
+            clearComment();
+        }
         return obj;
     }
 
@@ -40,5 +46,13 @@ public class BuildJObjectJsonHandler extends BuildObjectJsonHandler {
     @Override
     protected void addToMap(Map<String, Object> map, SourceLocation loc, String key, Object value) {
         map.put(key, ValueWithLocation.of(loc, value));
+    }
+
+    /**
+     * 清除当前存储的注释
+     */
+    private void clearComment() {
+        // 通过调用 comment(null) 来清除
+        comment(null);
     }
 }
