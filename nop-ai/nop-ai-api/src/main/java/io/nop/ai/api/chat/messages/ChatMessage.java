@@ -20,6 +20,7 @@ import io.nop.api.core.annotations.data.DataBean;
         @JsonSubTypes.Type(value = ChatAssistantMessage.class, name = "assistant"),
         @JsonSubTypes.Type(value = ChatSystemMessage.class, name = "system"),
         @JsonSubTypes.Type(value = ChatToolResponseMessage.class, name = "tool"),
+        @JsonSubTypes.Type(value = ChatCustomMessage.class, name = "custom"),
 })
 @DataBean
 public abstract class ChatMessage {
