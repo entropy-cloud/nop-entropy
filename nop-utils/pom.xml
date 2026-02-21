@@ -27,4 +27,16 @@
         <module>nop-shell</module>
         <module>nop-java-parser</module>
     </modules>
+
+    <profiles>
+        <profile>
+            <id>java21-modules</id>
+            <activation>
+                <jdk>[21,)</jdk>
+            </activation>
+            <modules>
+                <module>nop-commons-java21</module>
+            </modules>
+        </profile>
+    </profiles>
 </project>

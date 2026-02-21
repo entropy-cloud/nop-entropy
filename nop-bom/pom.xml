@@ -42,6 +42,12 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-commons-java21</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-dataset</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
@@ -1193,6 +1199,11 @@
                 <version>${nop-entropy.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-diff</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
