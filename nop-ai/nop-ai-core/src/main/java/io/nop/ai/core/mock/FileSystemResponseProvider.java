@@ -44,7 +44,7 @@ public class FileSystemResponseProvider implements IResponseProvider, IRequestSt
     private IThreadPoolExecutor executor;
 
     public FileSystemResponseProvider() {
-        this.executor = GlobalExecutors.globalWorker();
+        this.executor = GlobalExecutors.cachedThreadPool();
     }
 
     @Inject

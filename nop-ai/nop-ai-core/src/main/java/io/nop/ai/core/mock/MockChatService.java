@@ -14,6 +14,7 @@ import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ICancelToken;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import jakarta.inject.Inject;
 
 import java.util.concurrent.CompletionStage;
@@ -78,7 +79,7 @@ public class MockChatService implements IChatService {
             }
 
             // 在后台线程中模拟流式输出
-            Thread streamThread = new Thread(() -> {
+            GlobalExecutors.cachedThreadPool().execute(() -> {
                 try {
                     StringBuilder built = new StringBuilder();
                     for (int i = 0; i < content.length(); i++) {
@@ -113,8 +114,6 @@ public class MockChatService implements IChatService {
                     publisher.closeExceptionally(e);
                 }
             });
-            streamThread.setDaemon(true);
-            streamThread.start();
         });
 
         return publisher;
