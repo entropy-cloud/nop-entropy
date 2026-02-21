@@ -22,6 +22,8 @@ public interface DiffErrors {
     String ARG_REASON = "reason";
     String ARG_EXPECTED = "expected";
     String ARG_ACTUAL = "actual";
+    String ARG_CONTEXT = "context";
+    String ARG_MATCH_COUNT = "matchCount";
 
     ErrorCode ERR_DIFF_PARSE_INVALID_HEADER = define(
             "nop.err.diff.parse.invalid-header",
@@ -61,4 +63,18 @@ public interface DiffErrors {
             "nop.err.diff.apply.conflict",
             "diff冲突: 在{oldPath}的行{oldLine}",
             ARG_OLD_PATH, ARG_OLD_LINE);
+
+    ErrorCode ERR_DIFF_FUZZY_CONTEXT_EMPTY = define(
+            "nop.err.diff.fuzzy.context-empty",
+            "容错匹配模式下context行为空，无法定位hunk");
+
+    ErrorCode ERR_DIFF_FUZZY_CONTEXT_NOT_FOUND = define(
+            "nop.err.diff.fuzzy.context-not-found",
+            "容错匹配模式下未找到context行: {context}",
+            ARG_CONTEXT);
+
+    ErrorCode ERR_DIFF_FUZZY_CONTEXT_NOT_UNIQUE = define(
+            "nop.err.diff.fuzzy.context-not-unique",
+            "容错匹配模式下context行不唯一，找到{matchCount}处匹配: {context}",
+            ARG_CONTEXT, ARG_MATCH_COUNT);
 }
