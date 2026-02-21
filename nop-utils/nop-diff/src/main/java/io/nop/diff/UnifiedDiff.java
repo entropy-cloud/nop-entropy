@@ -152,7 +152,16 @@ public class UnifiedDiff {
      */
     public String toDiffString() {
         StringBuilder sb = new StringBuilder();
+        toDiffString(sb);
+        return sb.toString();
+    }
 
+    /**
+     * 将 diff 内容写入 StringBuilder
+     *
+     * @param sb 目标 StringBuilder
+     */
+    public void toDiffString(StringBuilder sb) {
         // 写入扩展头部
         for (String header : extendedHeaders) {
             sb.append(header).append("\n");
@@ -178,10 +187,8 @@ public class UnifiedDiff {
 
         // 写入所有 hunks
         for (UnifiedDiffHunk hunk : hunks) {
-            sb.append(hunk.toDiffString());
+            hunk.toDiffString(sb);
         }
-
-        return sb.toString();
     }
 
     @Override

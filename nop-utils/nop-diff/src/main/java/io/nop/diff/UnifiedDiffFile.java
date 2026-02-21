@@ -77,7 +77,16 @@ public class UnifiedDiffFile {
      */
     public String toDiffString() {
         StringBuilder sb = new StringBuilder();
+        toDiffString(sb);
+        return sb.toString();
+    }
 
+    /**
+     * 将 diff 文件内容写入 StringBuilder
+     *
+     * @param sb 目标 StringBuilder
+     */
+    public void toDiffString(StringBuilder sb) {
         if (gitDiffSource != null) {
             sb.append("diff --git ").append(gitDiffSource).append("\n");
         }
@@ -86,10 +95,8 @@ public class UnifiedDiffFile {
             if (i > 0) {
                 sb.append("\n");
             }
-            sb.append(diffs.get(i).toDiffString());
+            diffs.get(i).toDiffString(sb);
         }
-
-        return sb.toString();
     }
 
     @Override

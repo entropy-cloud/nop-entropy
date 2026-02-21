@@ -114,6 +114,16 @@ public class UnifiedDiffHunk {
      */
     public String toDiffString() {
         StringBuilder sb = new StringBuilder();
+        toDiffString(sb);
+        return sb.toString();
+    }
+
+    /**
+     * 将 hunk 内容写入 StringBuilder
+     *
+     * @param sb 目标 StringBuilder
+     */
+    public void toDiffString(StringBuilder sb) {
         sb.append("@@ -").append(oldStartLine);
         if (oldLineCount != 1) {
             sb.append(",").append(oldLineCount);
@@ -129,10 +139,9 @@ public class UnifiedDiffHunk {
         sb.append("\n");
 
         for (UnifiedDiffLine line : lines) {
-            sb.append(line.toDiffString()).append("\n");
+            line.toDiffString(sb);
+            sb.append("\n");
         }
-
-        return sb.toString();
     }
 
     @Override

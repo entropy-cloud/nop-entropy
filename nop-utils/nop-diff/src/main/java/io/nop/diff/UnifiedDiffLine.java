@@ -68,6 +68,15 @@ public class UnifiedDiffLine {
         return type.getPrefix() + content;
     }
 
+    /**
+     * 将 diff 行写入 StringBuilder
+     *
+     * @param sb 目标 StringBuilder
+     */
+    public void toDiffString(StringBuilder sb) {
+        sb.append(type.getPrefix()).append(content);
+    }
+
     @Override
     public String toString() {
         return toDiffString();

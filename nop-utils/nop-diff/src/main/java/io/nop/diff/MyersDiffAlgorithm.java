@@ -228,5 +228,18 @@ public class MyersDiffAlgorithm<T> {
             this.isBoundary = isBoundary;
             this.prev = prev;
         }
+
+        /**
+         * 查找当前节点之前的 snake 节点
+         */
+        PathNode previousSnake() {
+            if (isBoundary) {
+                return null;
+            }
+            if (!isSnake && prev != null) {
+                return prev.previousSnake();
+            }
+            return this;
+        }
     }
 }
