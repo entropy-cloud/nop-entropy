@@ -14,6 +14,7 @@ cd .opencode/script
 | Command | Purpose |
 |---------|---------|
 | `nop-ai` | AI command adapter (underlying tool configurable) |
+| `nop-cli` | Nop CLI tool (code generation, file watching, etc.) |
 | `nop-create-worktree` | Create worktree |
 | `nop-run-variant` | Create worktree and execute nop-ai |
 | `nop-run-multi-variants` | Generate multi-solution config and batch execute |
@@ -22,6 +23,26 @@ cd .opencode/script
 | `nop-clean-tmp-branches` | Clean up temporary branches |
 
 ## Usage
+
+### nop-cli
+
+Nop CLI tool for code generation, file format conversion, and other utilities.
+
+```bash
+nop-cli [command] [options]
+```
+
+**Examples:**
+```bash
+# Show help
+nop-cli --help
+
+# Generate code from ORM model
+nop-cli gen -t /path/to/model.orm.xlsx
+
+# Convert file format
+nop-cli help
+```
 
 ### nop-create-worktree
 

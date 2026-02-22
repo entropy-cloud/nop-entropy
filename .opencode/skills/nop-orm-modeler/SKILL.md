@@ -363,20 +363,24 @@ python3 apply_labels_from_markdown.py <orm.xml> labels.md
 ```xml
 <!-- 字段定义 -->
 <column name="status" code="STATUS" displayName="用户状态"
-        ext:dict="{app}/application-status" stdDataType="int" stdSqlType="TINYINT"/>
+        ext:dict="{app}/application-status" stdDataType="int" stdSqlType="INTEGER"/>
 
 <!-- 字典定义 -->
 <dict name="{app}/application-status" label="申请状态" valueType="int">
-    <option code="ACTIVE" label="处理中" value="ACTIVE"/>
-    <option code="COMPLETED" label="已完成" value="COMPLETED"/>
-    <option code="CANCELLED" label="已取消" value="CANCELLED"/>
+    <option code="CREATED" label="已创建" value="10"/>
+    <option code="PROCESSING" label="处理中" value="20"/>
+    <option code="COMPLETED" label="已完成" value="30"/>
+    <option code="CANCELLED" label="已取消" value="40"/>
 </dict>
 ```
 
-**注意**：
+**dict 配置规范**：
 
+- **valueType**：优先使用 `int` 类型，便于数值比较和排序
+- **value 值**：使用 10、20、30... 递增（而非 1、2、3），便于后期插入新值（如需要在 10 和 20 之间插入可使用 15）
+- **stdSqlType**：状态/枚举字段统一使用 `INTEGER`，**不要**使用 `TINYINT` 或 `SMALLINT`
+  - 原因：保持一致性，且 INTEGER 范围足够大，避免后期扩展时的类型变更
 - **boolean 型字段不用设置 dict**，直接使用 `stdSqlType="BOOLEAN"` 即可
-- dict 主要用于具有多个离散值的枚举类型（如状态、类型等）
 
 **option code 格式要求**：
 
@@ -475,3 +479,13 @@ AI:
 | displayName 全为空 | 未运行标签回填脚本                | 执行 `apply_labels_from_markdown.py` |
 | x:extends 报错    | delta 文件结构不完整            | 确认 delta 文件包含完整的 `<entities>` 根节点  |
 | domain 报错       | domain 名称重复或类型不匹配        | 检查 domain 命名唯一性                    |
+
+---
+
+## 模型验证
+
+生成 ORM 文件后，使用 `nop-cli validate` 验证：
+
+```bash
+nop-cli validate my-app.orm.xml
+```

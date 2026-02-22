@@ -52,6 +52,7 @@ SCRIPTS=(
     "nop-ai.sh"
     "nop-batch-worktree.sh"
     "nop-clean-tmp-branches.sh"
+    "nop-cli.sh"
     "nop-create-worktree.sh"
     "nop-push-worktree.sh"
     "nop-run-multi-variants.sh"
