@@ -8,5 +8,7 @@
 package io.nop.rpc.api;
 
 public interface IRpcProxy {
+    String proxy_serviceName();
+
     void proxy_destroy();
 }

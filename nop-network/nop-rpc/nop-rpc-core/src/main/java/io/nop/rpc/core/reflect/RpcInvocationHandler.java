@@ -55,6 +55,9 @@ public class RpcInvocationHandler implements InvocationHandler {
             return AopProxyHelper.invokeObjectMethod(this, proxy, method, args);
         }
 
+        if(method.getDeclaringClass() == IRpcProxy.class && method.getName().equals("proxy_serviceName"))
+            return serviceName;
+
         if (method.getDeclaringClass() == IRpcProxy.class && method.getName().equals("proxy_destroy")) {
             DestroyHelper.safeDestroy(rpcService);
             return null;
