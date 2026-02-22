@@ -107,7 +107,7 @@ We can use Filter more freely in the xpl template language.
 
 bo.xlib provides wrappers for functions such as doFindPage in CrudBizModel.
 
-* Define SQL statements in sql-lib  
+* Define SQL statements in sql-lib
   sql-lib provides SQL management functionality similar to MyBatis. You can invoke SQL statements managed in sql-lib via the SqlMapper interface, or call them directly via SqlLibManager.
 
 ```java
@@ -144,7 +144,7 @@ Here, eql indicates the use of EQL object query syntax. It accesses data via ent
 
 If you use the sql tag, it represents the native SQL syntax. That is, sql-lib manages both SQL and EQL statements.
 
-* Use in data access control configuration  
+* Use in data access control configuration
   Configure data permissions in /nop/main/auth/app.data-auth.xml
 
 ```xml
@@ -234,7 +234,7 @@ All beans that use annotations like `@Transctional` need to be registered in the
 ```xml
 
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
-  <bean id="nopTccRecordRepository" class="io.nop.tcc.dao.store.TccRecordRepository"/>
+  <bean id="nopTccRecordRepository" class="io.nop.tcc.dao.store.TccRecordStore"/>
 </beans>
 ```
 

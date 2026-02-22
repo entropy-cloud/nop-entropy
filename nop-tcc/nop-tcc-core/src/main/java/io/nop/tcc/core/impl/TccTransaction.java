@@ -11,7 +11,7 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.tcc.api.ITccBranchTransaction;
 import io.nop.tcc.api.ITccRecord;
-import io.nop.tcc.api.ITccRecordRepository;
+import io.nop.tcc.api.ITccRecordStore;
 import io.nop.tcc.api.ITccTransaction;
 import io.nop.tcc.api.TccStatus;
 
@@ -38,7 +38,7 @@ public class TccTransaction implements ITccTransaction {
         return initiator;
     }
 
-    protected ITccRecordRepository getRepository() {
+    protected ITccRecordStore getRepository() {
         return tccEngine.getTccRecordRepository();
     }
 

@@ -10,7 +10,7 @@ package io.nop.tcc.api;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
-public interface ITccRecordRepository {
+public interface ITccRecordStore {
     ITccRecord newTccRecord(String txnGroup);
 
     ITccBranchRecord newBranchRecord(ITccRecord record, TccBranchRequest request);

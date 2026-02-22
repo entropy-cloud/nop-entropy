@@ -18,11 +18,13 @@ import io.nop.tcc.api.ITccBranchTransaction;
 import io.nop.tcc.api.ITccEngine;
 import io.nop.tcc.api.ITccExceptionChecker;
 import io.nop.tcc.api.ITccRecord;
-import io.nop.tcc.api.ITccRecordRepository;
+import io.nop.tcc.api.ITccRecordStore;
 import io.nop.tcc.api.ITccTransaction;
 import io.nop.tcc.api.TccBranchRequest;
 import io.nop.tcc.api.TccStatus;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,9 +43,9 @@ import static io.nop.tcc.core.TccCoreErrors.ERR_TCC_TRANSACTION_ALREADY_FINISHED
 import static io.nop.tcc.core.TccCoreErrors.ERR_TCC_TRANSACTION_NOT_ALLOW_START_BRANCH;
 
 public class TccEngine implements ITccEngine {
-    //private static final Logger LOG = LoggerFactory.getLogger(TccEngine.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TccEngine.class);
 
-    private ITccRecordRepository repository;
+    private ITccRecordStore repository;
     private IRpcServiceLocator serviceLocator;
     private ITccExceptionChecker exceptionChecker;
     private IApiResponseNormalizer apiResponseNormalizer;
@@ -61,7 +63,7 @@ public class TccEngine implements ITccEngine {
     }
 
     @Inject
-    public void setTccRecordRepository(ITccRecordRepository repository) {
+    public void setTccRecordRepository(ITccRecordStore repository) {
         this.repository = repository;
     }
 
@@ -74,7 +76,7 @@ public class TccEngine implements ITccEngine {
         return serviceLocator;
     }
 
-    public ITccRecordRepository getTccRecordRepository() {
+    public ITccRecordStore getTccRecordRepository() {
         return repository;
     }
 
@@ -283,7 +285,25 @@ public class TccEngine implements ITccEngine {
 
     @Override
     public void checkExpiredTransactions(long expireGap, int maxRetryCount, ICancelToken canceller) {
-        //repository.forEachExpiredRecord(this::checkExpiredAsync, expireGap, maxRetryCount, canceller);
+        int pageSize = 100;
+        long checkInterval = expireGap;
+
+        while (canceller == null || !canceller.isCancelled()) {
+            List<? extends ITccRecord> records = repository.fetchExpiredRecords(pageSize, expireGap, checkInterval);
+            if (records.isEmpty())
+                break;
+
+            for (ITccRecord record : records) {
+                if (canceller != null && canceller.isCancelled())
+                    return;
+
+                try {
+                    checkExpiredAsync(record).toCompletableFuture().join();
+                } catch (Exception e) {
+                    LOG.error("TccEngine.checkExpiredTransactions failed for txnId={}", record.getTxnId(), e);
+                }
+            }
+        }
     }
 
     private CompletionStage<Void> checkExpiredAsync(ITccRecord record) {

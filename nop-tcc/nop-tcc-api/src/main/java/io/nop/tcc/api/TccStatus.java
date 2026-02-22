@@ -95,7 +95,8 @@ public enum TccStatus {
     }
 
     public boolean isCancelled() {
-        return this == TRY_FAILED || this == CANCEL_SUCCESS || this == TIMEOUT_SUCCESS || this == BIZ_CANCEL_FAILED;
+        return this == TRY_FAILED || this == CANCEL_SUCCESS || this == TIMEOUT_SUCCESS 
+                || this == BIZ_CANCEL_FAILED || this == TIMEOUT_FAILED;
     }
 
     public boolean isConfirmed() {

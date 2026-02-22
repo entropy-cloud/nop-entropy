@@ -12,7 +12,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
 import io.nop.tcc.api.ITccBranchRecord;
 import io.nop.tcc.api.ITccBranchTransaction;
-import io.nop.tcc.api.ITccRecordRepository;
+import io.nop.tcc.api.ITccRecordStore;
 import io.nop.tcc.api.TccStatus;
 
 import java.util.concurrent.CompletionStage;
@@ -26,7 +26,7 @@ public class TccBranchTransaction implements ITccBranchTransaction {
         this.branchRecord = branchRecord;
     }
 
-    protected ITccRecordRepository getRepository() {
+    protected ITccRecordStore getRepository() {
         return tccEngine.getTccRecordRepository();
     }
 

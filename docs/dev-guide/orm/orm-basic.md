@@ -241,7 +241,7 @@ public class TccRecordRepository implements ITccRecordRepository {
 ```xml
 
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
-  <bean id="nopTccRecordRepository" class="io.nop.tcc.dao.store.TccRecordRepository"/>
+  <bean id="nopTccRecordRepository" class="io.nop.tcc.dao.store.TccRecordStore"/>
 </beans>
 ```
 

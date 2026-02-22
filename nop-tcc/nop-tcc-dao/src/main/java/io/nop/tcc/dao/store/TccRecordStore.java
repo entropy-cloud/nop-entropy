@@ -22,7 +22,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.orm.dao.IOrmEntityDao;
 import io.nop.tcc.api.ITccBranchRecord;
 import io.nop.tcc.api.ITccRecord;
-import io.nop.tcc.api.ITccRecordRepository;
+import io.nop.tcc.api.ITccRecordStore;
 import io.nop.tcc.api.TccBranchRequest;
 import io.nop.tcc.api.TccStatus;
 import io.nop.tcc.dao.entity.NopTccBranchRecord;
@@ -34,15 +34,22 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
-public class TccRecordRepository implements ITccRecordRepository {
+public class TccRecordStore implements ITccRecordStore {
 
     private IDaoProvider daoProvider;
 
     private int defaultBranchTimeout;
 
+    private int defaultTxnTimeout;
+
     @InjectValue("@cfg:nop.tcc.default-branch-timeout-ms|10000")
     public void setDefaultBranchTimeout(int defaultBranchTimeoutMs) {
         this.defaultBranchTimeout = defaultBranchTimeoutMs;
+    }
+
+    @InjectValue("@cfg:nop.tcc.default-txn-timeout-ms|60000")
+    public void setDefaultTxnTimeout(int defaultTxnTimeoutMs) {
+        this.defaultTxnTimeout = defaultTxnTimeoutMs;
     }
 
     @Inject
@@ -64,7 +71,9 @@ public class TccRecordRepository implements ITccRecordRepository {
 
         NopTccRecord record = new NopTccRecord();
         record.setTxnGroup(txnGroup);
-        record.setBeginTime(CoreMetrics.currentTimestamp());
+        Timestamp beginTime = CoreMetrics.currentTimestamp();
+        record.setBeginTime(beginTime);
+        record.setExpireTime(new Timestamp(beginTime.getTime() + defaultTxnTimeout));
         record.setStatus(TccStatus.CREATED.getCode());
         dao.initEntityId(record);
         return record;
@@ -232,8 +241,8 @@ public class TccRecordRepository implements ITccRecordRepository {
         QueryBean subQuery = new QueryBean();
         subQuery.addFilter(FilterBeans.lt(NopTccBranchRecord.PROP_NAME_beginTime, minTime));
         if (onlyCompleted) {
-            query.addFilter(FilterBeans.in(NopTccBranchRecord.PROP_NAME_status, TccStatus.getFinishedStatus()));
+            subQuery.addFilter(FilterBeans.in(NopTccBranchRecord.PROP_NAME_status, TccStatus.getFinishedStatus()));
         }
-        this.branchDao().deleteByQuery(query);
+        this.branchDao().deleteByQuery(subQuery);
     }
 }
