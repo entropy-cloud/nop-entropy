@@ -27,6 +27,7 @@ import picocli.CommandLine;
                 CliImportDbCommand.class,
                 CliGenFileCommand.class,
                 CliConvertCommand.class,
+                CliValidateCommand.class,
                 CliRepackageCommand.class,
                 CliSplitCommand.class,
                 CliFileCommand.class

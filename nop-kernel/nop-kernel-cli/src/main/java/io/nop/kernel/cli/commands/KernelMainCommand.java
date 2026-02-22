@@ -7,7 +7,8 @@ import picocli.CommandLine;
         mixinStandardHelpOptions = true,
         subcommands = {
                 KernelCliGenCommand.class,
-                KernelCliConvertCommand.class
+                KernelCliConvertCommand.class,
+                KernelCliValidateCommand.class
         })
 public class KernelMainCommand {
 }
