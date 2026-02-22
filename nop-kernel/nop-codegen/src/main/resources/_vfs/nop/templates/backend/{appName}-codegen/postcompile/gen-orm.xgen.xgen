@@ -1,6 +1,6 @@
 <c:script xpl:ignoreTag="true"><![CDATA[
 // 根据ORM模型生成dao/entity/xbiz
-codeGenerator.withTargetDir("../").renderModel('../../model/${moduleName}.orm.xlsx','/nop/templates/backend', '/',$scope);
+codeGenerator.withTargetDir("../").renderModel('../../model/${moduleName}.orm.${codeGenPath.endsWith(".xlsx")?"xlsx":"xml"}','/nop/templates/backend', '/',$scope);
 codeGenerator.withTargetDir("../${appName}-dao/src/main/java").renderModel('../../${appName}-dao/src/main/resources/_vfs/${moduleId}/orm/app.orm.xml',
     '/nop/templates/orm-entity','/',$scope);
 ]]></c:script>
