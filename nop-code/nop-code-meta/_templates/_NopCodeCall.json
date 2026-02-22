@@ -1,0 +1,18 @@
+{
+  "id": "",
+  "indexId": "",
+  "callerId": "",
+  "calleeId": "",
+  "fileId": "",
+  "line": 0,
+  "column": 0,
+  "callType": "",
+  "context": "",
+  "index": null,
+  "caller": null,
+  "caller.name": "",
+  "callee": null,
+  "callee.name": "",
+  "file": null,
+  "file.filePath": ""
+}

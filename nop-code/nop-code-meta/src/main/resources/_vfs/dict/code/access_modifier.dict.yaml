@@ -1,0 +1,23 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 访问修饰符
+locale: zh-CN
+valueType: int
+description: 符号的访问级别
+options:
+
+  - label: 公开
+    value: 10
+    description: 
+  
+  - label: 受保护
+    value: 20
+    description: 
+  
+  - label: 私有
+    value: 30
+    description: 
+  
+  - label: 包私有
+    value: 40
+    description: 
+  

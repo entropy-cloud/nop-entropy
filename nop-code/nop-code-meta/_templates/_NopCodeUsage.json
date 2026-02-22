@@ -1,0 +1,19 @@
+{
+  "id": "",
+  "indexId": "",
+  "symbolId": "",
+  "fileId": "",
+  "kind": "",
+  "kind_label": "",
+  "line": 0,
+  "column": 0,
+  "enclosingSymbolId": "",
+  "context": "",
+  "index": null,
+  "symbol": null,
+  "symbol.name": "",
+  "file": null,
+  "file.filePath": "",
+  "enclosingSymbol": null,
+  "enclosingSymbol.name": ""
+}

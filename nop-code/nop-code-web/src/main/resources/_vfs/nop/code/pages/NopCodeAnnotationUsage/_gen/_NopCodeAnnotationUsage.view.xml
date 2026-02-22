@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopCodeAnnotationUsage" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
+
+    <objMeta>/nop/code/model/NopCodeAnnotationUsage/NopCodeAnnotationUsage.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--索引ID-->
+                <col id="indexId" mandatory="true" sortable="true"/>
+
+                <!--注解类型ID-->
+                <col id="annotationTypeId" mandatory="true" sortable="true"/>
+
+                <!--被注解符号ID-->
+                <col id="annotatedSymbolId" sortable="true"/>
+
+                <!--行号-->
+                <col id="line" ui:number="true" sortable="true"/>
+
+                <!--列号-->
+                <col id="column" ui:number="true" sortable="true"/>
+
+                <!--属性值-->
+                <col id="attributes" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-注解使用" i18n-en:title="View ">
+            <layout>
+ indexId[索引ID]
+ annotationTypeId[注解类型ID]
+ annotatedSymbolId[被注解符号ID]
+ line[行号]
+ column[列号]
+ attributes[属性值]
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-注解使用" i18n-en:title="Add " x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-注解使用" i18n-en:title="Edit ">
+            <layout>
+ indexId[索引ID]
+ annotationTypeId[注解类型ID]
+ annotatedSymbolId[被注解符号ID]
+ line[行号]
+ column[列号]
+ attributes[属性值]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-注解使用" i18n-en:title="Update "/>
+    </forms>
+
+    <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopCodeAnnotationUsage__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopCodeAnnotationUsage__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopCodeAnnotationUsage__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopCodeAnnotationUsage__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopCodeAnnotationUsage__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table noOperations="true">
+                <api url="@query:NopCodeAnnotationUsage__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopCodeAnnotationUsage__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopCodeAnnotationUsage__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopCodeAnnotationUsage__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopCodeAnnotationUsage__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

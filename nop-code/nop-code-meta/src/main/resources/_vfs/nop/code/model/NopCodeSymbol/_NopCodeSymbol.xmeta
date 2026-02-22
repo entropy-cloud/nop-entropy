@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="符号" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>io.nop.code.dao.entity.NopCodeSymbol</entityName>
+
+    <primaryKey>id</primaryKey>
+
+    <displayProp>name</displayProp>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="id" displayName="符号ID" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="false" internal="true" ui:show="X">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="indexId" displayName="索引ID" propId="2" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="index">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="fileId" displayName="文件ID" propId="3" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="file">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="kind" displayName="符号类型" propId="4" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="20" dict="code/symbol_kind"/>
+        </prop>
+        <prop name="name" displayName="名称" propId="5" tagSet="disp" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="symbolName" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="qualifiedName" displayName="全限定名" propId="6" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema domain="qualifiedName" type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="accessModifier" displayName="访问修饰符" propId="7" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="20" dict="code/access_modifier"/>
+        </prop>
+        <prop name="deprecated" displayName="已废弃" propId="8" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="documentation" displayName="文档注释" propId="9" queryable="true" sortable="true" insertable="true"
+              updatable="true" ui:control="textarea">
+            <schema domain="documentation" type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="line" displayName="起始行" propId="10" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema domain="lineNumber" type="java.lang.Integer"/>
+        </prop>
+        <prop name="column" displayName="起始列" propId="11" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema domain="columnNumber" type="java.lang.Integer"/>
+        </prop>
+        <prop name="endLine" displayName="结束行" propId="12" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema domain="lineNumber" type="java.lang.Integer"/>
+        </prop>
+        <prop name="endColumn" displayName="结束列" propId="13" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema domain="columnNumber" type="java.lang.Integer"/>
+        </prop>
+        <prop name="usageCount" displayName="使用次数" propId="14" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="parentId" displayName="父符号ID" propId="15" queryable="true" sortable="true" insertable="true"
+              updatable="true" ext:relation="parent">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="declaringSymbolId" displayName="所属类型ID" propId="16" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="declaringSymbol">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="superClassName" displayName="父类名" propId="17" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema domain="qualifiedName" type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="isAbstract" displayName="抽象" propId="18" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="isFinal" displayName="final" propId="19" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="signature" displayName="签名" propId="20" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema domain="signature" type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="returnType" displayName="返回类型" propId="21" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema domain="qualifiedName" type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="isStatic" displayName="static" propId="22" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="isSynchronized" displayName="synchronized" propId="23" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="isNative" displayName="native" propId="24" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="fieldType" displayName="字段类型" propId="25" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema domain="qualifiedName" type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="isVolatile" displayName="volatile" propId="26" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="isTransient" displayName="transient" propId="27" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="extData" displayName="扩展数据" propId="28" queryable="true" sortable="true" insertable="true"
+              updatable="true" graphql:jsonComponentProp="extDataComponent" ui:control="textarea">
+            <schema stdDomain="json" domain="jsonContent" type="java.lang.String" precision="65536"/>
+        </prop>
+        <prop name="index" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="indexId"
+              ext:joinRightProp="id" insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopCodeIndex"/>
+        </prop>
+        <prop name="file" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="fileId"
+              ext:joinRightProp="id" ext:joinRightDisplayProp="filePath" insertable="false" updatable="false"
+              mandatory="true" lazy="true">
+            <schema bizObjName="NopCodeFile"/>
+        </prop>
+        <prop name="file.filePath" internal="true" queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="parent" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="parentId"
+              ext:joinRightProp="id" ext:joinRightDisplayProp="name" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopCodeSymbol"/>
+        </prop>
+        <prop name="parent.name" internal="true" queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="declaringSymbol" tagSet="pub" ext:kind="to-one" internal="true" queryable="true"
+              ext:joinLeftProp="declaringSymbolId" ext:joinRightProp="id" ext:joinRightDisplayProp="name"
+              insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopCodeSymbol"/>
+        </prop>
+        <prop name="declaringSymbol.name" internal="true" queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="children" displayName="子符号" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="parentId" ext:joinRightDisplayProp="name" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeSymbol"/>
+            </schema>
+        </prop>
+        <prop name="members" displayName="成员" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="declaringSymbolId" ext:joinRightDisplayProp="name" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeSymbol"/>
+            </schema>
+        </prop>
+        <prop name="usages" displayName="引用" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="symbolId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeUsage"/>
+            </schema>
+        </prop>
+        <prop name="annotations" displayName="注解使用" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="annotatedSymbolId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeAnnotationUsage"/>
+            </schema>
+        </prop>
+        <prop name="enclosingUsages" displayName="引用" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="enclosingSymbolId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeUsage"/>
+            </schema>
+        </prop>
+        <prop name="callees" displayName="被调用者" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="callerId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeCall"/>
+            </schema>
+        </prop>
+        <prop name="callers" displayName="调用者" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="calleeId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeCall"/>
+            </schema>
+        </prop>
+        <prop name="superTypes" displayName="父类型" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="subTypeId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeInheritance"/>
+            </schema>
+        </prop>
+        <prop name="subTypes" displayName="子类型" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="superTypeId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeInheritance"/>
+            </schema>
+        </prop>
+        <prop name="annotationUsages" displayName="注解使用" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="annotationTypeId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeAnnotationUsage"/>
+            </schema>
+        </prop>
+        <prop name="extDataComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+    </props>
+</meta>

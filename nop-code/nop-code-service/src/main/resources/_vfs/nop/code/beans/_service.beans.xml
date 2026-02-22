@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc"
+       xmlns="http://www.springframework.org/schema/beans" x:extends="/nop/biz/defaults/service-base.beans.xml"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <bean id="io.nop.code.service.entity.NopCodeIndexBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopCodeIndex" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.code.biz.INopCodeIndexBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
+        <property name="bizObjName" value="NopCodeIndex"/>
+    </bean>
+
+    <bean id="io.nop.code.service.entity.NopCodeFileBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopCodeFile" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.code.biz.INopCodeFileBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
+        <property name="bizObjName" value="NopCodeFile"/>
+    </bean>
+
+    <bean id="io.nop.code.service.entity.NopCodeSymbolBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopCodeSymbol" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.code.biz.INopCodeSymbolBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
+        <property name="bizObjName" value="NopCodeSymbol"/>
+    </bean>
+
+    <bean id="io.nop.code.service.entity.NopCodeUsageBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopCodeUsage" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.code.biz.INopCodeUsageBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
+        <property name="bizObjName" value="NopCodeUsage"/>
+    </bean>
+
+    <bean id="io.nop.code.service.entity.NopCodeCallBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopCodeCall" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.code.biz.INopCodeCallBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
+        <property name="bizObjName" value="NopCodeCall"/>
+    </bean>
+
+    <bean id="io.nop.code.service.entity.NopCodeInheritanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopCodeInheritance" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.code.biz.INopCodeInheritanceBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopCodeInheritance"/>
+    </bean>
+
+    <bean id="io.nop.code.service.entity.NopCodeAnnotationUsageBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopCodeAnnotationUsage" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.code.biz.INopCodeAnnotationUsageBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopCodeAnnotationUsage"/>
+    </bean>
+</beans>

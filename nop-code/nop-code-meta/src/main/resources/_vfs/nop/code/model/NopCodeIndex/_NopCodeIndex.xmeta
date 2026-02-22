@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="代码索引" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>io.nop.code.dao.entity.NopCodeIndex</entityName>
+
+    <primaryKey>id</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="id" displayName="索引ID" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="false" internal="true" ui:show="X">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="name" displayName="索引名称" propId="2" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="rootPath" displayName="根路径" propId="3" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="language" displayName="编程语言" propId="4" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema domain="language" type="java.lang.String" precision="20"/>
+        </prop>
+        <prop name="symbolCount" displayName="符号数量" propId="5" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="fileCount" displayName="文件数量" propId="6" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="status" displayName="状态" propId="7" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="20" dict="code/index_status"/>
+        </prop>
+        <prop name="files" displayName="文件列表" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="indexId" ext:joinRightDisplayProp="filePath" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeFile"/>
+            </schema>
+        </prop>
+        <prop name="symbols" displayName="符号列表" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="indexId" ext:joinRightDisplayProp="name" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeSymbol"/>
+            </schema>
+        </prop>
+        <prop name="usages" displayName="引用" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="indexId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeUsage"/>
+            </schema>
+        </prop>
+        <prop name="calls" displayName="调用" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="indexId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeCall"/>
+            </schema>
+        </prop>
+        <prop name="inheritances" displayName="继承" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="indexId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeInheritance"/>
+            </schema>
+        </prop>
+        <prop name="annotationUsages" displayName="注解使用" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="indexId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopCodeAnnotationUsage"/>
+            </schema>
+        </prop>
+    </props>
+</meta>

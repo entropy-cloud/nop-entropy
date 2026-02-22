@@ -1,0 +1,23 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 索引状态
+locale: zh-CN
+valueType: int
+description: 索引状态
+options:
+
+  - label: 已创建
+    value: 10
+    description: 
+  
+  - label: 索引中
+    value: 20
+    description: 
+  
+  - label: 就绪
+    value: 30
+    description: 
+  
+  - label: 错误
+    value: 40
+    description: 
+  

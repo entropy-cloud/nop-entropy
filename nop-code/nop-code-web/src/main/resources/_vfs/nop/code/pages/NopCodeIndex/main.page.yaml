@@ -1,0 +1,3 @@
+
+x:gen-extends: |
+    <web:GenPage view="NopCodeIndex.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />

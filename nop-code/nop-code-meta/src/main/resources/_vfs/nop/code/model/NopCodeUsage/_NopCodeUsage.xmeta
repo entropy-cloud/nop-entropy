@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="符号引用" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>io.nop.code.dao.entity.NopCodeUsage</entityName>
+
+    <primaryKey>id</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="id" displayName="ID" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="false" internal="true" ui:show="X">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="indexId" displayName="索引ID" propId="2" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="index">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="symbolId" displayName="被引用符号ID" propId="3" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="symbol">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="fileId" displayName="文件ID" propId="4" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="file">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="kind" displayName="引用类型" propId="5" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="20" dict="code/reference_kind"/>
+        </prop>
+        <prop name="line" displayName="行号" propId="6" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="lineNumber" type="java.lang.Integer"/>
+        </prop>
+        <prop name="column" displayName="列号" propId="7" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema domain="columnNumber" type="java.lang.Integer"/>
+        </prop>
+        <prop name="enclosingSymbolId" displayName="所在符号ID" propId="8" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="enclosingSymbol">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="context" displayName="上下文" propId="9" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="index" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="indexId"
+              ext:joinRightProp="id" insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopCodeIndex"/>
+        </prop>
+        <prop name="symbol" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="symbolId"
+              ext:joinRightProp="id" ext:joinRightDisplayProp="name" insertable="false" updatable="false"
+              mandatory="true" lazy="true">
+            <schema bizObjName="NopCodeSymbol"/>
+        </prop>
+        <prop name="symbol.name" internal="true" queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="file" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="fileId"
+              ext:joinRightProp="id" ext:joinRightDisplayProp="filePath" insertable="false" updatable="false"
+              mandatory="true" lazy="true">
+            <schema bizObjName="NopCodeFile"/>
+        </prop>
+        <prop name="file.filePath" internal="true" queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="enclosingSymbol" tagSet="pub" ext:kind="to-one" internal="true" queryable="true"
+              ext:joinLeftProp="enclosingSymbolId" ext:joinRightProp="id" ext:joinRightDisplayProp="name"
+              insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopCodeSymbol"/>
+        </prop>
+        <prop name="enclosingSymbol.name" internal="true" queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+    </props>
+</meta>

@@ -1,0 +1,39 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 符号类型
+locale: zh-CN
+valueType: int
+description: 代码符号类型枚举
+options:
+
+  - label: 类
+    value: 10
+    description: 
+  
+  - label: 接口
+    value: 20
+    description: 
+  
+  - label: 枚举
+    value: 30
+    description: 
+  
+  - label: 注解类型
+    value: 40
+    description: 
+  
+  - label: 方法
+    value: 50
+    description: 
+  
+  - label: 构造器
+    value: 60
+    description: 
+  
+  - label: 字段
+    value: 70
+    description: 
+  
+  - label: 枚举常量
+    value: 80
+    description: 
+  

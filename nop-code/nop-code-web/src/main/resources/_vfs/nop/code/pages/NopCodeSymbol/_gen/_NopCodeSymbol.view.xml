@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopCodeSymbol" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
+
+    <objMeta>/nop/code/model/NopCodeSymbol/NopCodeSymbol.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--索引ID-->
+                <col id="indexId" mandatory="true" sortable="true"/>
+
+                <!--文件ID-->
+                <col id="fileId" mandatory="true" sortable="true"/>
+
+                <!--符号类型-->
+                <col id="kind" mandatory="true" sortable="true"/>
+
+                <!--名称-->
+                <col id="name" mandatory="true" sortable="true"/>
+
+                <!--全限定名-->
+                <col id="qualifiedName" sortable="true"/>
+
+                <!--访问修饰符-->
+                <col id="accessModifier" sortable="true"/>
+
+                <!--已废弃-->
+                <col id="deprecated" sortable="true"/>
+
+                <!--文档注释-->
+                <col id="documentation" sortable="true"/>
+
+                <!--起始行-->
+                <col id="line" ui:number="true" sortable="true"/>
+
+                <!--起始列-->
+                <col id="column" ui:number="true" sortable="true"/>
+
+                <!--结束行-->
+                <col id="endLine" ui:number="true" sortable="true"/>
+
+                <!--结束列-->
+                <col id="endColumn" ui:number="true" sortable="true"/>
+
+                <!--使用次数-->
+                <col id="usageCount" ui:number="true" sortable="true"/>
+
+                <!--父符号ID-->
+                <col id="parentId" sortable="true"/>
+
+                <!--所属类型ID-->
+                <col id="declaringSymbolId" sortable="true"/>
+
+                <!--父类名-->
+                <col id="superClassName" sortable="true"/>
+
+                <!--抽象-->
+                <col id="isAbstract" sortable="true"/>
+
+                <!--final-->
+                <col id="isFinal" sortable="true"/>
+
+                <!--签名-->
+                <col id="signature" sortable="true"/>
+
+                <!--返回类型-->
+                <col id="returnType" sortable="true"/>
+
+                <!--static-->
+                <col id="isStatic" sortable="true"/>
+
+                <!--synchronized-->
+                <col id="isSynchronized" sortable="true"/>
+
+                <!--native-->
+                <col id="isNative" sortable="true"/>
+
+                <!--字段类型-->
+                <col id="fieldType" sortable="true"/>
+
+                <!--volatile-->
+                <col id="isVolatile" sortable="true"/>
+
+                <!--transient-->
+                <col id="isTransient" sortable="true"/>
+
+                <!--扩展数据-->
+                <col id="extData" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-符号" i18n-en:title="View ">
+            <layout>
+ indexId[索引ID] fileId[文件ID]
+ kind[符号类型] name[名称]
+ qualifiedName[全限定名] accessModifier[访问修饰符]
+ deprecated[已废弃] documentation[文档注释]
+ line[起始行] column[起始列]
+ endLine[结束行] endColumn[结束列]
+ usageCount[使用次数] parentId[父符号ID]
+ declaringSymbolId[所属类型ID] superClassName[父类名]
+ isAbstract[抽象] isFinal[final]
+ signature[签名] returnType[返回类型]
+ isStatic[static] isSynchronized[synchronized]
+ isNative[native] fieldType[字段类型]
+ isVolatile[volatile] isTransient[transient]
+ extData[扩展数据] 
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-符号" i18n-en:title="Add " x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-符号" i18n-en:title="Edit ">
+            <layout>
+ indexId[索引ID] fileId[文件ID]
+ kind[符号类型] name[名称]
+ qualifiedName[全限定名] accessModifier[访问修饰符]
+ deprecated[已废弃] documentation[文档注释]
+ line[起始行] column[起始列]
+ endLine[结束行] endColumn[结束列]
+ usageCount[使用次数] parentId[父符号ID]
+ declaringSymbolId[所属类型ID] superClassName[父类名]
+ isAbstract[抽象] isFinal[final]
+ signature[签名] returnType[返回类型]
+ isStatic[static] isSynchronized[synchronized]
+ isNative[native] fieldType[字段类型]
+ isVolatile[volatile] isTransient[transient]
+ extData[扩展数据] 
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-符号" i18n-en:title="Update "/>
+    </forms>
+
+    <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopCodeSymbol__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopCodeSymbol__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopCodeSymbol__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopCodeSymbol__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopCodeSymbol__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table noOperations="true">
+                <api url="@query:NopCodeSymbol__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopCodeSymbol__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopCodeSymbol__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopCodeSymbol__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopCodeSymbol__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

@@ -1,0 +1,524 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm ext:registerShortName="true" ext:appName="nop-code" ext:entityPackageName="io.nop.code.dao.entity"
+     ext:basePackageName="io.nop.code" ext:mavenGroupId="io.github.entropy-cloud" ext:mavenArtifactId="nop-code"
+     ext:allowIdAsColName="true" ext:useStdFields="true"
+     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ext="ext">
+
+    <domains>
+        <domain name="codeId" precision="36" stdSqlType="VARCHAR"/>
+        <domain name="filePath" precision="500" stdSqlType="VARCHAR"/>
+        <domain name="qualifiedName" precision="500" stdSqlType="VARCHAR"/>
+        <domain name="symbolName" precision="200" stdSqlType="VARCHAR"/>
+        <domain name="packageName" precision="200" stdSqlType="VARCHAR"/>
+        <domain name="signature" precision="1000" stdSqlType="VARCHAR"/>
+        <domain name="documentation" precision="4000" stdSqlType="VARCHAR"/>
+        <domain name="language" precision="20" stdSqlType="VARCHAR"/>
+        <domain name="lineNumber" stdSqlType="INTEGER"/>
+        <domain name="columnNumber" stdSqlType="INTEGER"/>
+        <domain name="jsonContent" precision="65536" stdDomain="json" stdSqlType="VARCHAR"/>
+    </domains>
+
+    <dicts>
+        <dict label="符号类型" name="code/symbol_kind" valueType="int">
+            <description>代码符号类型枚举</description>
+            <option code="CLASS" label="类" value="10"/>
+            <option code="INTERFACE" label="接口" value="20"/>
+            <option code="ENUM" label="枚举" value="30"/>
+            <option code="ANNOTATION_TYPE" label="注解类型" value="40"/>
+            <option code="METHOD" label="方法" value="50"/>
+            <option code="CONSTRUCTOR" label="构造器" value="60"/>
+            <option code="FIELD" label="字段" value="70"/>
+            <option code="ENUM_CONSTANT" label="枚举常量" value="80"/>
+        </dict>
+        <dict label="访问修饰符" name="code/access_modifier" valueType="int">
+            <description>符号的访问级别</description>
+            <option code="PUBLIC" label="公开" value="10"/>
+            <option code="PROTECTED" label="受保护" value="20"/>
+            <option code="PRIVATE" label="私有" value="30"/>
+            <option code="PACKAGE_PRIVATE" label="包私有" value="40"/>
+        </dict>
+        <dict label="引用类型" name="code/reference_kind" valueType="int">
+            <description>符号引用的类型</description>
+            <option code="READ" label="读取" value="10"/>
+            <option code="WRITE" label="写入" value="20"/>
+            <option code="CALL" label="调用" value="30"/>
+            <option code="TYPE_REFERENCE" label="类型引用" value="40"/>
+            <option code="EXTENDS" label="继承" value="50"/>
+            <option code="IMPLEMENTS" label="实现" value="60"/>
+            <option code="ANNOTATES" label="注解" value="70"/>
+            <option code="IMPORTS" label="导入" value="80"/>
+            <option code="OVERRIDES" label="重写" value="90"/>
+        </dict>
+        <dict label="索引状态" name="code/index_status" valueType="int">
+            <description>索引状态</description>
+            <option code="CREATED" label="已创建" value="10"/>
+            <option code="INDEXING" label="索引中" value="20"/>
+            <option code="READY" label="就绪" value="30"/>
+            <option code="ERROR" label="错误" value="40"/>
+        </dict>
+    </dicts>
+
+    <entities>
+        <!-- ========================================
+             核心索引实体
+             ======================================== -->
+
+        <!-- 代码索引 -->
+        <entity className="io.nop.code.dao.entity.NopCodeIndex" displayName="代码索引"
+                name="io.nop.code.dao.entity.NopCodeIndex" registerShortName="true"
+                tableName="nop_code_index">
+            <columns>
+                <column code="id" displayName="索引ID" domain="codeId" mandatory="true" name="id"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
+                <column code="name" displayName="索引名称" mandatory="true" name="name"
+                        precision="100" propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="root_path" displayName="根路径" mandatory="true" name="rootPath"
+                        precision="500" propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="language" displayName="编程语言" domain="language" name="language"
+                        precision="20" propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="symbol_count" displayName="符号数量" name="symbolCount"
+                        propId="5" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="file_count" displayName="文件数量" name="fileCount"
+                        propId="6" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="status" displayName="状态" name="status" precision="20"
+                        propId="7" stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/index_status"/>
+            </columns>
+            <comment>代码索引主表</comment>
+            <relations>
+                <to-many displayName="文件列表" name="files" refEntityName="io.nop.code.dao.entity.NopCodeFile"
+                         refPropName="index">
+                    <join>
+                        <on leftProp="id" rightProp="indexId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="符号列表" name="symbols" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                         refPropName="index">
+                    <join>
+                        <on leftProp="id" rightProp="indexId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+
+        <!-- 文件 -->
+        <entity className="io.nop.code.dao.entity.NopCodeFile" displayName="代码文件"
+                name="io.nop.code.dao.entity.NopCodeFile" registerShortName="true"
+                tableName="nop_code_file">
+            <columns>
+                <column code="id" displayName="文件ID" domain="codeId" mandatory="true" name="id"
+                        primary="true" propId="1" stdDataType="string" tagSet="seq" ui:show="X" stdSqlType="VARCHAR" />
+                <column code="index_id" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="file_path" displayName="文件路径" domain="filePath" mandatory="true" name="filePath"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"/>
+                <column code="package_name" displayName="包名" domain="packageName" name="packageName"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="language" displayName="语言" domain="language" name="language"
+                        precision="20" propId="5" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="line_count" displayName="行数" name="lineCount"
+                        propId="6" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="imports" displayName="导入列表" domain="jsonContent" name="imports"
+                        propId="7" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
+                <column code="source_code" displayName="源代码" domain="jsonContent" name="sourceCode"
+                        propId="8" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
+            </columns>
+            <comment>源代码文件，imports字段存储JSON数组</comment>
+            <relations>
+                <to-one name="index" refDisplayName="文件列表" refEntityName="io.nop.code.dao.entity.NopCodeIndex"
+                        refPropName="files" tagSet="pub">
+                    <join>
+                        <on leftProp="indexId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-many displayName="符号列表" name="symbols" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                         refPropName="file">
+                    <join>
+                        <on leftProp="id" rightProp="fileId"/>
+                    </join>
+                </to-many>
+            </relations>
+            <unique-keys>
+                <unique-key columns="indexId,filePath" constraint="UK_NOP_CODE_FILE_PATH" name="filePathKey"/>
+            </unique-keys>
+        </entity>
+
+        <!-- ========================================
+             符号统一表 - 支持所有符号类型
+             ======================================== -->
+
+        <!-- 符号表 - 统一存储类、接口、枚举、注解、方法、字段等 -->
+        <entity className="io.nop.code.dao.entity.NopCodeSymbol" displayName="符号"
+                name="io.nop.code.dao.entity.NopCodeSymbol" registerShortName="true"
+                tableName="nop_code_symbol">
+            <columns>
+                <column code="id" displayName="符号ID" domain="codeId" mandatory="true" name="id"
+                        primary="true" propId="1" stdDataType="string" tagSet="seq" ui:show="X" stdSqlType="VARCHAR" />
+                <column code="index_id" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="file_id" displayName="文件ID" domain="codeId" mandatory="true" name="fileId"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="kind" displayName="符号类型" mandatory="true" name="kind"
+                        precision="20" propId="4" stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/symbol_kind"/>
+                <column code="name" displayName="名称" domain="symbolName" mandatory="true" name="name"
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"/>
+                <column code="qualified_name" displayName="全限定名" domain="qualifiedName" name="qualifiedName"
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="access_modifier" displayName="访问修饰符" name="accessModifier"
+                        precision="20" propId="7" stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/access_modifier"/>
+                <column code="deprecated" displayName="已废弃" name="deprecated"
+                        propId="8" stdDataType="boolean" stdSqlType="BOOLEAN"/>
+                <column code="documentation" displayName="文档注释" domain="documentation" name="documentation"
+                        propId="9" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
+                <column code="line" displayName="起始行" domain="lineNumber" name="line"
+                        propId="10" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="column" displayName="起始列" domain="columnNumber" name="column"
+                        propId="11" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="end_line" displayName="结束行" domain="lineNumber" name="endLine"
+                        propId="12" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="end_column" displayName="结束列" domain="columnNumber" name="endColumn"
+                        propId="13" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="usage_count" displayName="使用次数" name="usageCount"
+                        propId="14" stdDataType="int" stdSqlType="INTEGER"/>
+                <!-- 层级关系 -->
+                <column code="parent_id" displayName="父符号ID" domain="codeId" name="parentId"
+                        propId="15" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="declaring_symbol_id" displayName="所属类型ID" domain="codeId" name="declaringSymbolId"
+                        propId="16" stdDataType="string" stdSqlType="VARCHAR"/>
+                <!-- 类/接口/枚举特有字段 -->
+                <column code="super_class_name" displayName="父类名" domain="qualifiedName" name="superClassName"
+                        propId="17" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="is_abstract" displayName="抽象" name="isAbstract"
+                        propId="18" stdDataType="boolean" stdSqlType="BOOLEAN"/>
+                <column code="is_final" displayName="final" name="isFinal"
+                        propId="19" stdDataType="boolean" stdSqlType="BOOLEAN"/>
+                <!-- 方法特有字段 -->
+                <column code="signature" displayName="签名" domain="signature" name="signature"
+                        propId="20" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="return_type" displayName="返回类型" domain="qualifiedName" name="returnType"
+                        propId="21" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="is_static" displayName="static" name="isStatic"
+                        propId="22" stdDataType="boolean" stdSqlType="BOOLEAN"/>
+                <column code="is_synchronized" displayName="synchronized" name="isSynchronized"
+                        propId="23" stdDataType="boolean" stdSqlType="BOOLEAN"/>
+                <column code="is_native" displayName="native" name="isNative"
+                        propId="24" stdDataType="boolean" stdSqlType="BOOLEAN"/>
+                <!-- 字段特有字段 -->
+                <column code="field_type" displayName="字段类型" domain="qualifiedName" name="fieldType"
+                        propId="25" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="is_volatile" displayName="volatile" name="isVolatile"
+                        propId="26" stdDataType="boolean" stdSqlType="BOOLEAN"/>
+                <column code="is_transient" displayName="transient" name="isTransient"
+                        propId="27" stdDataType="boolean" stdSqlType="BOOLEAN"/>
+                <!-- JSON扩展字段 - 存储详细信息 -->
+                <column code="ext_data" displayName="扩展数据" domain="jsonContent" name="extData"
+                        propId="28" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
+            </columns>
+            <comment>
+                符号统一表。extData存储JSON格式的扩展信息：
+                - 类/接口: {typeParameters:[], interfaces:[], innerClasses:[]}
+                - 枚举: {constants:[{name,line,documentation,annotations[]}], interfaces:[]}
+                - 注解类型: {attributes:[], isRepeatable, targets, retention}
+                - 方法: {parameters:[], exceptions:[], typeParameters:[], overrides:[]}
+                - 构造器: {parameters:[], exceptions:[]}
+                - 字段: {defaultValue, annotations:[]}
+            </comment>
+            <relations>
+                <to-one name="index" refDisplayName="符号列表" refEntityName="io.nop.code.dao.entity.NopCodeIndex"
+                        refPropName="symbols" tagSet="pub">
+                    <join>
+                        <on leftProp="indexId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="file" refDisplayName="符号列表" refEntityName="io.nop.code.dao.entity.NopCodeFile"
+                        refPropName="symbols" tagSet="pub">
+                    <join>
+                        <on leftProp="fileId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="parent" refDisplayName="子符号" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                        refPropName="children" tagSet="pub">
+                    <join>
+                        <on leftProp="parentId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="declaringSymbol" refDisplayName="成员" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                        refPropName="members" tagSet="pub">
+                    <join>
+                        <on leftProp="declaringSymbolId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-many displayName="子符号" name="children" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                         refPropName="parent">
+                    <join>
+                        <on leftProp="id" rightProp="parentId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="成员" name="members" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                         refPropName="declaringSymbol">
+                    <join>
+                        <on leftProp="id" rightProp="declaringSymbolId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="引用" name="usages" refEntityName="io.nop.code.dao.entity.NopCodeUsage"
+                         refPropName="symbol">
+                    <join>
+                        <on leftProp="id" rightProp="symbolId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="注解使用" name="annotations" refEntityName="io.nop.code.dao.entity.NopCodeAnnotationUsage"
+                         refPropName="annotatedSymbol">
+                    <join>
+                        <on leftProp="id" rightProp="annotatedSymbolId"/>
+                    </join>
+                </to-many>
+            </relations>
+            <indexes>
+                <index name="idx_symbol_qualified_name">
+                    <column name="indexId"/>
+                    <column name="qualifiedName"/>
+                </index>
+                <index name="idx_symbol_name">
+                    <column name="indexId"/>
+                    <column name="name"/>
+                </index>
+                <index name="idx_symbol_kind">
+                    <column name="indexId"/>
+                    <column name="kind"/>
+                </index>
+                <index name="idx_symbol_declaring">
+                    <column name="indexId"/>
+                    <column name="declaringSymbolId"/>
+                </index>
+            </indexes>
+        </entity>
+
+        <!-- ========================================
+             关系实体（引用、调用、继承）
+             ======================================== -->
+
+        <!-- 符号引用 -->
+        <entity className="io.nop.code.dao.entity.NopCodeUsage" displayName="符号引用"
+                name="io.nop.code.dao.entity.NopCodeUsage" registerShortName="true"
+                tableName="nop_code_usage">
+            <columns>
+                <column code="id" displayName="ID" domain="codeId" mandatory="true" name="id"
+                        primary="true" propId="1" stdDataType="string" tagSet="seq" ui:show="X" stdSqlType="VARCHAR" />
+                <column code="index_id" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="symbol_id" displayName="被引用符号ID" domain="codeId" mandatory="true" name="symbolId"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="file_id" displayName="文件ID" domain="codeId" mandatory="true" name="fileId"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="kind" displayName="引用类型" mandatory="true" name="kind"
+                        precision="20" propId="5" stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/reference_kind"/>
+                <column code="line" displayName="行号" domain="lineNumber" mandatory="true" name="line"
+                        propId="6" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="column" displayName="列号" domain="columnNumber" name="column"
+                        propId="7" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="enclosing_symbol_id" displayName="所在符号ID" domain="codeId" name="enclosingSymbolId"
+                        propId="8" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="context" displayName="上下文" name="context"
+                        precision="1000" propId="9" stdDataType="string" stdSqlType="VARCHAR"/>
+            </columns>
+            <comment>符号引用关系</comment>
+            <relations>
+                <to-one name="index" refDisplayName="引用" refEntityName="io.nop.code.dao.entity.NopCodeIndex"
+                        refPropName="usages" tagSet="pub">
+                    <join>
+                        <on leftProp="indexId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="symbol" refDisplayName="引用" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                        refPropName="usages" tagSet="pub">
+                    <join>
+                        <on leftProp="symbolId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="file" refDisplayName="引用" refEntityName="io.nop.code.dao.entity.NopCodeFile"
+                        refPropName="usages" tagSet="pub">
+                    <join>
+                        <on leftProp="fileId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="enclosingSymbol" refDisplayName="引用" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                        refPropName="enclosingUsages" tagSet="pub">
+                    <join>
+                        <on leftProp="enclosingSymbolId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+            <indexes>
+                <index name="idx_usage_symbol">
+                    <column name="symbolId"/>
+                </index>
+                <index name="idx_usage_kind">
+                    <column name="indexId"/>
+                    <column name="kind"/>
+                </index>
+            </indexes>
+        </entity>
+
+        <!-- 方法调用 -->
+        <entity className="io.nop.code.dao.entity.NopCodeCall" displayName="方法调用"
+                name="io.nop.code.dao.entity.NopCodeCall" registerShortName="true"
+                tableName="nop_code_call">
+            <columns>
+                <column code="id" displayName="ID" domain="codeId" mandatory="true" name="id"
+                        primary="true" propId="1" stdDataType="string" tagSet="seq" ui:show="X" stdSqlType="VARCHAR" />
+                <column code="index_id" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="caller_id" displayName="调用方ID" domain="codeId" mandatory="true" name="callerId"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="callee_id" displayName="被调用方ID" domain="codeId" mandatory="true" name="calleeId"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="file_id" displayName="文件ID" domain="codeId" mandatory="true" name="fileId"
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="line" displayName="行号" domain="lineNumber" mandatory="true" name="line"
+                        propId="6" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="column" displayName="列号" domain="columnNumber" name="column"
+                        propId="7" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="call_type" displayName="调用类型" name="callType"
+                        precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="context" displayName="上下文" name="context"
+                        precision="1000" propId="9" stdDataType="string" stdSqlType="VARCHAR"/>
+            </columns>
+            <comment>方法调用关系</comment>
+            <relations>
+                <to-one name="index" refDisplayName="调用" refEntityName="io.nop.code.dao.entity.NopCodeIndex"
+                        refPropName="calls" tagSet="pub">
+                    <join>
+                        <on leftProp="indexId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="caller" refDisplayName="被调用者" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                        refPropName="callees" tagSet="pub">
+                    <join>
+                        <on leftProp="callerId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="callee" refDisplayName="调用者" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                        refPropName="callers" tagSet="pub">
+                    <join>
+                        <on leftProp="calleeId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="file" refDisplayName="调用" refEntityName="io.nop.code.dao.entity.NopCodeFile"
+                        refPropName="calls" tagSet="pub">
+                    <join>
+                        <on leftProp="fileId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+            <indexes>
+                <index name="idx_call_caller">
+                    <column name="callerId"/>
+                </index>
+                <index name="idx_call_callee">
+                    <column name="calleeId"/>
+                </index>
+            </indexes>
+        </entity>
+
+        <!-- 继承关系 -->
+        <entity className="io.nop.code.dao.entity.NopCodeInheritance" displayName="继承关系"
+                name="io.nop.code.dao.entity.NopCodeInheritance" registerShortName="true"
+                tableName="nop_code_inheritance">
+            <columns>
+                <column code="id" displayName="ID" domain="codeId" mandatory="true" name="id"
+                        primary="true" propId="1" stdDataType="string" tagSet="seq" ui:show="X" stdSqlType="VARCHAR" />
+                <column code="index_id" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="sub_type_id" displayName="子类型ID" domain="codeId" mandatory="true" name="subTypeId"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="super_type_id" displayName="父类型ID" domain="codeId" mandatory="true" name="superTypeId"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="relation_type" displayName="关系类型" mandatory="true" name="relationType"
+                        precision="20" propId="5" stdDataType="string" stdSqlType="VARCHAR"/>
+            </columns>
+            <comment>
+                继承关系。relationType: EXTENDS(类继承类/接口继承接口), IMPLEMENTS(类实现接口)
+            </comment>
+            <relations>
+                <to-one name="index" refDisplayName="继承" refEntityName="io.nop.code.dao.entity.NopCodeIndex"
+                        refPropName="inheritances" tagSet="pub">
+                    <join>
+                        <on leftProp="indexId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="subType" refDisplayName="父类型" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                        refPropName="superTypes" tagSet="pub">
+                    <join>
+                        <on leftProp="subTypeId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="superType" refDisplayName="子类型" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                        refPropName="subTypes" tagSet="pub">
+                    <join>
+                        <on leftProp="superTypeId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+            <indexes>
+                <index name="idx_inheritance_sub">
+                    <column name="subTypeId"/>
+                </index>
+                <index name="idx_inheritance_super">
+                    <column name="superTypeId"/>
+                </index>
+            </indexes>
+        </entity>
+
+        <!-- 注解使用 -->
+        <entity className="io.nop.code.dao.entity.NopCodeAnnotationUsage" displayName="注解使用"
+                name="io.nop.code.dao.entity.NopCodeAnnotationUsage" registerShortName="true"
+                tableName="nop_code_annotation_usage">
+            <columns>
+                <column code="id" displayName="ID" domain="codeId" mandatory="true" name="id"
+                        primary="true" propId="1" stdDataType="string" tagSet="seq" ui:show="X" stdSqlType="VARCHAR" />
+                <column code="index_id" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="annotation_type_id" displayName="注解类型ID" domain="codeId" mandatory="true" name="annotationTypeId"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="annotated_symbol_id" displayName="被注解符号ID" domain="codeId" name="annotatedSymbolId"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="line" displayName="行号" domain="lineNumber" name="line"
+                        propId="5" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="column" displayName="列号" domain="columnNumber" name="column"
+                        propId="6" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="attributes" displayName="属性值" domain="jsonContent" name="attributes"
+                        propId="7" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
+            </columns>
+            <comment>
+                注解使用记录。attributes存储JSON: {name:value, ...}
+            </comment>
+            <relations>
+                <to-one name="index" refDisplayName="注解使用" refEntityName="io.nop.code.dao.entity.NopCodeIndex"
+                        refPropName="annotationUsages" tagSet="pub">
+                    <join>
+                        <on leftProp="indexId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="annotationType" refDisplayName="注解使用" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                        refPropName="annotationUsages" tagSet="pub">
+                    <join>
+                        <on leftProp="annotationTypeId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="annotatedSymbol" refDisplayName="注解使用" refEntityName="io.nop.code.dao.entity.NopCodeSymbol"
+                        refPropName="annotations" tagSet="pub">
+                    <join>
+                        <on leftProp="annotatedSymbolId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+            <indexes>
+                <index name="idx_annotation_type">
+                    <column name="annotationTypeId"/>
+                </index>
+                <index name="idx_annotation_symbol">
+                    <column name="annotatedSymbolId"/>
+                </index>
+            </indexes>
+        </entity>
+    </entities>
+</orm>

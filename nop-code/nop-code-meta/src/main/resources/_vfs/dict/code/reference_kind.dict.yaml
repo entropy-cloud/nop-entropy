@@ -1,0 +1,43 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 引用类型
+locale: zh-CN
+valueType: int
+description: 符号引用的类型
+options:
+
+  - label: 读取
+    value: 10
+    description: 
+  
+  - label: 写入
+    value: 20
+    description: 
+  
+  - label: 调用
+    value: 30
+    description: 
+  
+  - label: 类型引用
+    value: 40
+    description: 
+  
+  - label: 继承
+    value: 50
+    description: 
+  
+  - label: 实现
+    value: 60
+    description: 
+  
+  - label: 注解
+    value: 70
+    description: 
+  
+  - label: 导入
+    value: 80
+    description: 
+  
+  - label: 重写
+    value: 90
+    description: 
+  
