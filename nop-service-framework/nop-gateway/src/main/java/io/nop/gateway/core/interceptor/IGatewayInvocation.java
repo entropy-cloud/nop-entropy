@@ -11,6 +11,8 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.gateway.core.context.IGatewayContext;
 
+import java.util.concurrent.CompletionStage;
+
 public interface IGatewayInvocation {
     ApiRequest<?> proceedOnRequest(ApiRequest<?> request, IGatewayContext svcCtx);
 
@@ -25,4 +27,14 @@ public interface IGatewayInvocation {
     Object proceedOnStreamError(Throwable exception, IGatewayContext svcCtx);
 
     void proceedOnStreamComplete(IGatewayContext svcCtx);
+
+    /**
+     * 执行完整的调用流程，包括请求处理、实际调用和响应处理。
+     * 拦截器可以通过调用此方法来继续执行后续逻辑。
+     *
+     * @param request 请求对象
+     * @param svcCtx  网关上下文
+     * @return 异步响应对象
+     */
+    CompletionStage<ApiResponse<?>> proceedInvoke(ApiRequest<?> request, IGatewayContext svcCtx);
 }

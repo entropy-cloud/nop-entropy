@@ -21,7 +21,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-public class CancelTokenManager implements ICancelTokenManger{
+public class CancelTokenManager implements ICancelTokenManger {
     static final Logger LOG = LoggerFactory.getLogger(CancelTokenManager.class);
     private final Map<String, ICancellable> cancelTokens = new ConcurrentHashMap<>();
 
@@ -47,7 +47,7 @@ public class CancelTokenManager implements ICancelTokenManger{
         if (StringHelper.isEmpty(reqId))
             return invoker;
 
-        String idempotent = ApiHeaders.getIdempotentFromHeaders(ctx.getRequestHeaders());
+        //String idempotent = ApiHeaders.getIdempotentFromHeaders(ctx.getRequestHeaders());
         register(reqId, ctx);
 
         IAsyncFunctionInvoker wrapped = new IAsyncFunctionInvoker() {

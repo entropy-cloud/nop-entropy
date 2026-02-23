@@ -5,8 +5,9 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.tcc.core.interceptor;
+package io.nop.core.context;
 
+import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
@@ -38,6 +39,23 @@ public class TccContext {
         return tccContext;
     }
 
+    public static TccContext buildFromServiceContext(IServiceContext context) {
+        String txnId = ApiHeaders.getStringHeader(context.getRequestHeaders(), ApiConstants.HEADER_TXN_ID);
+        if (txnId == null)
+            return null;
+
+        String txnGroup = ApiHeaders.getStringHeader(context.getRequestHeaders(), ApiConstants.HEADER_TXN_GROUP);
+        String branchId = ApiHeaders.getStringHeader(context.getRequestHeaders(), ApiConstants.HEADER_TXN_BRANCH_ID);
+        int branchNo = ApiHeaders.getIntHeader(context.getRequestHeaders(), ApiConstants.HEADER_TXN_BRANCH_NO, 0);
+
+        TccContext tccContext = new TccContext();
+        tccContext.setTxnGroup(txnGroup);
+        tccContext.setBranchId(branchId);
+        tccContext.setBranchNo(branchNo);
+        tccContext.setTxnId(txnId);
+        return tccContext;
+    }
+
     /**
      * TccContext存放在系统内置的IContext中
      */
@@ -56,7 +74,7 @@ public class TccContext {
 
     public static IContext removeCurrent(TccContext tccContext) {
         IContext context = ContextProvider.currentContext();
-        if(context != null) {
+        if (context != null) {
             context.removeAttribute(TccContext.class.getName(), tccContext);
         }
         return context;

@@ -1,0 +1,59 @@
+nop:
+  # TCC Gateway配置
+  tcc:
+    gateway:
+      default-txn-group: demo
+      auto-create-transaction: true
+
+  # ORM配置
+  orm:
+    init-database-schema: true
+    enable-tenant-by-default: false
+
+  # 使用Spring管理的数据源
+  dao:
+    use-parent-data-source: true
+
+# Spring数据源配置
+spring:
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:./db/gateway-demo
+    username: sa
+    password:
+
+# 服务器配置
+server:
+  port: 8081
+  http2:
+    enabled: true
+
+# 日志配置
+logging:
+  level:
+    ROOT: INFO
+    io.nop.tcc: DEBUG
+    io.nop.gateway: DEBUG
+
+# 健康检查
+management:
+  health:
+    probes:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+# 开发模式配置
+"%dev":
+  nop:
+    debug: true
+    tcc:
+      gateway:
+        auto-create-transaction: true
+
+  logging:
+    level:
+      ROOT: DEBUG
+      io.nop.tcc: TRACE

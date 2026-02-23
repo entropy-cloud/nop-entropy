@@ -231,7 +231,7 @@ class TestGatewayHandler extends BaseTestCase {
         }
 
         @Override
-        public String getBodyAsText() {
+        public String getBodyAsString() {
             return "{\"mocked\":true}";
         }
 

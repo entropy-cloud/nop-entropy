@@ -43,4 +43,7 @@ public interface GatewayErrors {
 
     ErrorCode ERR_GATEWAY_UNKNOWN_ROUTE = define("nop.err.gateway.unknown-route",
             "未知的路由ID: ${id}");
+
+    ErrorCode ERR_GATEWAY_FORWARD_NOT_SUPPORTED_IN_INVOKE = define("nop.err.gateway.forward-not-supported-in-invoke",
+            "在GatewayRouteExecution的proceedInvoke方法中不支持forward操作，请在RouteExecutor层面处理: ${routeId}");
 }

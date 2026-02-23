@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<gateway x:schema="/nop/schema/gateway.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!-- TCC事务拦截器 -->
+    <interceptors>
+        <interceptor id="tcc-interceptor" bean="nopTccGatewayInterceptor">
+            <!-- 匹配所有需要TCC事务的API请求 -->
+            <match path="/**">
+                <when>${request.headers['X-TCC-Enabled'] == 'true' || svcCtx.requestPath.startsWith('/api/tx/')}</when>
+            </match>
+        </interceptor>
+    </interceptors>
+
+    <!-- 路由配置 -->
+    <routes>
+        <!-- 示例路由：需要TCC事务的服务 -->
+        <route id="tcc-service">
+            <match path="/api/tx/**"/>
+            <invoke serviceName="DemoTccService"/>
+        </route>
+
+        <!-- 示例路由：普通服务（不需要TCC事务） -->
+        <route id="normal-service">
+            <match path="/api/**"/>
+            <invoke serviceName="DemoService"/>
+        </route>
+    </routes>
+
+</gateway>

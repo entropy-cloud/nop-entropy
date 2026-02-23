@@ -38,7 +38,9 @@
             @serviceName  分布式RPC的服务名
             @url 如果没有指定serviceName，则需要指定远程路径，会直接调用这里的url，通过body传参
             -->
-            <invoke xdef:name="GatewayInvokeModel" serviceName="string" serviceMethod="string" url="t-expr" wrapResponse="boolean">
+            <invoke xdef:name="GatewayInvokeModel" serviceName="string" serviceMethod="string"
+                    confirmMethod="string" cancelMethod="string"
+                    url="t-expr" wrapResponse="boolean">
                 <source>xpl-fn:(request:ApiRequest,svcCtx)=>any</source>
             </invoke>
 

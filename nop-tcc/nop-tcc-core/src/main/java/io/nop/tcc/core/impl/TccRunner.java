@@ -9,11 +9,10 @@ package io.nop.tcc.core.impl;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.rpc.IRpcServiceInvoker;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.IApiResponseNormalizer;
-import io.nop.api.core.rpc.IRpcService;
-import io.nop.api.core.rpc.IRpcServiceLocator;
 import io.nop.tcc.api.ITccBranchRecord;
 import io.nop.tcc.api.ITccBranchTransaction;
 import io.nop.tcc.api.TccStatus;
@@ -42,6 +41,7 @@ public class TccRunner {
             }
             ApiHeaders.setTxnId(request, branchTxn.getTxnId());
             ApiHeaders.setTxnBranchId(request, branchTxn.getBranchId());
+            ApiHeaders.setTxnBranchNo(request, branchTxn.getBranchNo());
 
             // 如果执行失败，则需要更新txn状态
             CompletableFuture<T> future = new CompletableFuture<>();
@@ -61,18 +61,16 @@ public class TccRunner {
     }
 
     public static CompletionStage<ApiResponse<?>> runBranchConfirmAsync(ITccBranchTransaction branchTxn,
-                                                                        IRpcServiceLocator serviceLocator) {
+                                                                        IRpcServiceInvoker serviceInvoker) {
         ITccBranchRecord branchRecord = branchTxn.getBranchRecord();
         if (branchRecord.getBranchStatus().isConfirmed())
             return FutureHelper.success(null);
-
-        IRpcService service = serviceLocator.getService(branchRecord.getServiceName());
 
         // 如果标记状态失败，则不会去执行服务函数
         return branchTxn.beginConfirmAsync().thenCompose(arg -> {
             // 如果执行失败，则需要更新txn状态
             CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
-            service.callAsync(branchRecord.getConfirmMethod(), branchRecord.getRequest(), null)
+            serviceInvoker.invokeAsync(branchRecord.getServiceName(), branchRecord.getConfirmMethod(), branchRecord.getRequest(), null)
                     .whenComplete((ret, ex) -> {
                         branchTxn.finishConfirmAsync(ret, ex).whenComplete((ret2, ex2) -> {
                             if (ex != null) {
@@ -89,18 +87,16 @@ public class TccRunner {
     }
 
     public static CompletionStage<ApiResponse<?>> runBranchCancelAsync(ITccBranchTransaction branchTxn, boolean timeout,
-                                                                       IRpcServiceLocator serviceLocator) {
+                                                                       IRpcServiceInvoker serviceInvoker) {
         ITccBranchRecord branchRecord = branchTxn.getBranchRecord();
         if (branchRecord.getBranchStatus().isCancelled())
             return FutureHelper.success(null);
-
-        IRpcService service = serviceLocator.getService(branchRecord.getServiceName());
 
         // 如果标记状态失败，则不会去执行服务函数
         return branchTxn.beginCancelAsync(timeout).thenCompose(arg -> {
             // 如果执行失败，则需要更新txn状态
             CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
-            service.callAsync(branchRecord.getCancelMethod(), branchRecord.getRequest(), null)
+            serviceInvoker.invokeAsync(branchRecord.getServiceName(), branchRecord.getCancelMethod(), branchRecord.getRequest(), null)
                     .whenComplete((ret, ex) -> {
                         branchTxn.finishCancelAsync(timeout, ret, ex).whenComplete((ret2, ex2) -> {
                             if (ex != null) {
@@ -126,23 +122,23 @@ public class TccRunner {
     }
 
     public static CompletionStage<Void> confirmAllAsync(List<ITccBranchTransaction> branchTxns,
-                                                        IRpcServiceLocator serviceLocator) {
+                                                        IRpcServiceInvoker serviceInvoker) {
         List<CompletionStage<?>> futures = new ArrayList<>(branchTxns.size());
         for (ITccBranchTransaction branchTxn : branchTxns) {
             if (branchTxn.getBranchStatus() == TccStatus.CONFIRM_SUCCESS)
                 continue;
-            futures.add(runBranchConfirmAsync(branchTxn, serviceLocator));
+            futures.add(runBranchConfirmAsync(branchTxn, serviceInvoker));
         }
         return FutureHelper.waitAll(futures);
     }
 
     public static CompletionStage<Void> cancelAllAsync(List<ITccBranchTransaction> branchTxns, boolean timeout,
-                                                       IRpcServiceLocator serviceLocator) {
+                                                       IRpcServiceInvoker serviceInvoker) {
         List<CompletionStage<?>> futures = new ArrayList<>(branchTxns.size());
         for (ITccBranchTransaction branchTxn : branchTxns) {
             if (branchTxn.getBranchStatus().isCancelled())
                 continue;
-            futures.add(runBranchCancelAsync(branchTxn, timeout, serviceLocator));
+            futures.add(runBranchCancelAsync(branchTxn, timeout, serviceInvoker));
         }
         return FutureHelper.waitAll(futures);
     }

@@ -22,7 +22,9 @@ import io.nop.http.api.client.IHttpClient;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
-import static io.nop.gateway.GatewayErrors.*;
+import static io.nop.gateway.GatewayErrors.ERR_GATEWAY_INVOKE_WITH_NULL_URL;
+import static io.nop.gateway.GatewayErrors.ERR_GATEWAY_NO_HTTP_CLIENT;
+import static io.nop.gateway.GatewayErrors.ERR_GATEWAY_NO_RPC_SUPPORT;
 
 /**
  * 处理路由调用逻辑，支持三种调用方式：
@@ -93,6 +95,12 @@ public class InvokeProcessor {
         String svcMethod = invoke.getServiceMethod();
         if (svcMethod == null) {
             svcMethod = ApiHeaders.getSvcAction(request);
+        }
+        if (invoke.getConfirmMethod() != null) {
+            ApiHeaders.setTccConfirm(request, invoke.getConfirmMethod());
+        }
+        if (invoke.getCancelMethod() != null) {
+            ApiHeaders.setTccCancel(request, invoke.getCancelMethod());
         }
 
         return invoker.invokeAsync(serviceName, svcMethod, request, context);

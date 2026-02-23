@@ -11,12 +11,20 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.gateway.core.context.IGatewayContext;
 import io.nop.gateway.core.interceptor.IGatewayInvocation;
 import io.nop.gateway.model.GatewayRouteModel;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
+import static io.nop.gateway.GatewayErrors.ARG_ROUTE_ID;
+import static io.nop.gateway.GatewayErrors.ERR_GATEWAY_FORWARD_NOT_SUPPORTED_IN_INVOKE;
+import static io.nop.gateway.GatewayErrors.ERR_GATEWAY_NO_RPC_SUPPORT;
 
 /**
  * IGatewayInvocation implementation that wraps a GatewayRouteModel.
@@ -28,11 +36,15 @@ public class GatewayRouteExecution implements IGatewayInvocation {
 
     private final GatewayRouteModel route;
     private final MappingProcessor mappingProcessor;
+    private final RouteExecutor routeExecutor;
+
 
     public GatewayRouteExecution(GatewayRouteModel route,
-                                 MappingProcessor mappingProcessor) {
+                                 MappingProcessor mappingProcessor,
+                                 RouteExecutor routeExecutor) {
         this.route = route;
-        this.mappingProcessor = Guard.notNull(mappingProcessor,"mappingProcessor");
+        this.mappingProcessor = Guard.notNull(mappingProcessor, "mappingProcessor");
+        this.routeExecutor = Guard.notNull(routeExecutor, "routeExecutor");
     }
 
     public GatewayRouteModel getRoute() {
@@ -87,6 +99,11 @@ public class GatewayRouteExecution implements IGatewayInvocation {
     }
 
     @Override
+    public CompletionStage<ApiResponse<?>> proceedInvoke(ApiRequest<?> request, IGatewayContext svcCtx) {
+        return routeExecutor.executeRouteLogic(route, request,svcCtx);
+    }
+
+    @Override
     public void proceedOnStreamStart(ApiRequest<?> request, IGatewayContext svcCtx) {
         if (route.getStreaming() != null) {
             IEvalFunction onStreamStart = route.getStreaming().getOnStreamStart();
@@ -107,7 +124,7 @@ public class GatewayRouteExecution implements IGatewayInvocation {
             element = onStreamElement.call2(null, element, svcCtx, svcCtx.getEvalScope());
         }
 
-        if (route.getStreaming().getElementMapping() != null ) {
+        if (route.getStreaming().getElementMapping() != null) {
             element = mappingProcessor.mapElement(
                     route.getStreaming().getElementMapping(), element, svcCtx);
         }
@@ -154,7 +171,7 @@ public class GatewayRouteExecution implements IGatewayInvocation {
         }
         IEvalAction enabled = route.getStreaming().getEnabled();
         if (enabled != null) {
-            Object result =  enabled.invoke(svcCtx.getEvalScope());
+            Object result = enabled.invoke(svcCtx.getEvalScope());
             return ConvertHelper.toBoolean(result);
         }
         return true;

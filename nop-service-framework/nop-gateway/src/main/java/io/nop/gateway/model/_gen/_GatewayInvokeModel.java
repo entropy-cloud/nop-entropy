@@ -18,6 +18,20 @@ public abstract class _GatewayInvokeModel extends io.nop.core.resource.component
     
     /**
      *  
+     * xml name: cancelMethod
+     * 
+     */
+    private java.lang.String _cancelMethod ;
+    
+    /**
+     *  
+     * xml name: confirmMethod
+     * 
+     */
+    private java.lang.String _confirmMethod ;
+    
+    /**
+     *  
      * xml name: serviceMethod
      * 
      */
@@ -50,6 +64,44 @@ public abstract class _GatewayInvokeModel extends io.nop.core.resource.component
      * 
      */
     private java.lang.Boolean _wrapResponse ;
+    
+    /**
+     * 
+     * xml name: cancelMethod
+     *  
+     */
+    
+    public java.lang.String getCancelMethod(){
+      return _cancelMethod;
+    }
+
+    
+    public void setCancelMethod(java.lang.String value){
+        checkAllowChange();
+        
+        this._cancelMethod = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: confirmMethod
+     *  
+     */
+    
+    public java.lang.String getConfirmMethod(){
+      return _confirmMethod;
+    }
+
+    
+    public void setConfirmMethod(java.lang.String value){
+        checkAllowChange();
+        
+        this._confirmMethod = value;
+           
+    }
+
     
     /**
      * 
@@ -161,6 +213,8 @@ public abstract class _GatewayInvokeModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("cancelMethod",this.getCancelMethod());
+        out.putNotNull("confirmMethod",this.getConfirmMethod());
         out.putNotNull("serviceMethod",this.getServiceMethod());
         out.putNotNull("serviceName",this.getServiceName());
         out.putNotNull("source",this.getSource());
@@ -177,6 +231,8 @@ public abstract class _GatewayInvokeModel extends io.nop.core.resource.component
     protected void copyTo(GatewayInvokeModel instance){
         super.copyTo(instance);
         
+        instance.setCancelMethod(this.getCancelMethod());
+        instance.setConfirmMethod(this.getConfirmMethod());
         instance.setServiceMethod(this.getServiceMethod());
         instance.setServiceName(this.getServiceName());
         instance.setSource(this.getSource());

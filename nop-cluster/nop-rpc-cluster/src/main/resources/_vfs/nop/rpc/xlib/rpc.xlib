@@ -5,6 +5,8 @@
         <invoke>
             <attr name="serviceName" type="String" mandatory="true"/>
             <attr name="serviceMethod" type="String" mandatory="true"/>
+            <attr name="confirmMethod" type="String" optional="true" />
+            <attr name="cancelMethod" type="String" optional="true" />
             <attr name="data" optional="true"/>
             <attr name="headers" type="Map" optional="true"/>
             <attr name="selection" type="io.nop.api.core.beans.FieldSelectionBean"
@@ -13,9 +15,14 @@
 
             <source>
                 <c:script><![CDATA[
-                    const rpcService = inject('nopDynamicRpcService');
-                    return rpcService.dynamicInvokeWithArgs(serviceName, serviceMethod,
-                        headers, data, selection, cancelToken);
+                    const rpcInvoker = inject('nopRpcServiceInvoker');
+                    const request = ApiRequest.build(data).withHeaders(headers).withSelection(selection);
+                    if(confirmMethod)
+                       request.setHeader('nop-tcc-confirm',confirmMethod);
+                    if(cancelMethod)
+                       request.setHeader('nop-tcc-cancel', cancelMethod)
+
+                    return rpcInvoker.invokeAsync(serviceName, serviceMethod,request, cancelToken);
                 ]]></c:script>
             </source>
         </invoke>

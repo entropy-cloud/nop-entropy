@@ -13,16 +13,28 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.gateway.core.context.IGatewayContext;
 
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 
 public class InterceptedGatewayInvocation implements IGatewayInvocation {
 
     private final List<IGatewayInterceptor> interceptors;
     private final IGatewayInvocation invocation;
+    private int currentInterceptorIndex = 0;
 
     public InterceptedGatewayInvocation(List<IGatewayInterceptor> interceptors, IGatewayInvocation invocation) {
         this.interceptors = interceptors;
         this.invocation = invocation;
     }
+
+    @Override
+    public CompletionStage<ApiResponse<?>> proceedInvoke(ApiRequest<?> request, IGatewayContext svcCtx) {
+        if (currentInterceptorIndex < interceptors.size()) {
+            IGatewayInterceptor interceptor = interceptors.get(currentInterceptorIndex++);
+            return interceptor.invoke(this, request, svcCtx);
+        }
+        return invocation.proceedInvoke(request, svcCtx);
+    }
+
 
 
     @Override

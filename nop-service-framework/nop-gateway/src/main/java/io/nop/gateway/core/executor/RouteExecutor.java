@@ -74,7 +74,7 @@ public class RouteExecutor {
             if (route.getStreaming() != null && isStreamingEnabled(route, context))
                 return executeStreaming(route, request, context, invocation);
 
-            CompletionStage<ApiResponse<?>> future = executeRouteLogic(route, request, context)
+            CompletionStage<ApiResponse<?>> future = invocation.proceedInvoke(request, context)
                     .thenApply(response -> {
                         return invocation.proceedOnResponse(response, context);
                     });
@@ -93,7 +93,8 @@ public class RouteExecutor {
     }
 
     IGatewayInvocation buildInvocation(GatewayRouteModel route, List<IGatewayInterceptor> interceptors) {
-        IGatewayInvocation routeExecution = new GatewayRouteExecution(route, mappingProcessor);
+        IGatewayInvocation routeExecution = new GatewayRouteExecution(
+            route, mappingProcessor, this);
         if (interceptors.isEmpty())
             return routeExecution;
 
@@ -127,7 +128,7 @@ public class RouteExecutor {
     /**
      * 执行路由逻辑（invoke或forward）
      */
-    private CompletionStage<ApiResponse<?>> executeRouteLogic(GatewayRouteModel route, ApiRequest<?> request,
+    public CompletionStage<ApiResponse<?>> executeRouteLogic(GatewayRouteModel route, ApiRequest<?> request,
                                                               IGatewayContext context) {
         // 优先使用 forward
         if (route.getForward() != null) {

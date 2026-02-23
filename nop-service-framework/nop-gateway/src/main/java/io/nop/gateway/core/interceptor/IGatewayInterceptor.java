@@ -64,4 +64,22 @@ public interface IGatewayInterceptor {
 
     default void onStreamComplete(IGatewayContext svcCtx) {
     }
+
+    /**
+     * 拦截器主入口，可以包装整个调用过程。
+     * 默认实现直接调用 invocation.proceedInvoke()
+     * <p>
+     * 此方法允许拦截器完全控制调用链的执行，例如：
+     * - 在事务中包装整个调用
+     * - 添加超时控制
+     * - 实现重试逻辑
+     *
+     * @param invocation 调用对象，包含后续拦截器和实际执行的引用
+     * @param request    请求对象
+     * @param svcCtx     网关上下文
+     * @return 异步响应对象
+     */
+    default CompletionStage<ApiResponse<?>> invoke(IGatewayInvocation invocation, ApiRequest<?> request, IGatewayContext svcCtx) {
+        return invocation.proceedInvoke(request, svcCtx);
+    }
 }

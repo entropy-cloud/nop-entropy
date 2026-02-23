@@ -6,7 +6,12 @@ import io.nop.api.core.util.ICancelToken;
 
 import java.util.concurrent.CompletionStage;
 
-public interface IRpcServiceInvoker {
+public interface IRpcServiceInvoker extends IRpcServiceLocator {
     CompletionStage<ApiResponse<?>> invokeAsync(String serviceName, String serviceMethod,
                                                 ApiRequest<?> request, ICancelToken cancelToken);
+
+    default IRpcService getRpcService(String serviceName) {
+        return (serviceMethod, request, cancelToken)
+                -> invokeAsync(serviceName, serviceMethod, request, cancelToken);
+    }
 }

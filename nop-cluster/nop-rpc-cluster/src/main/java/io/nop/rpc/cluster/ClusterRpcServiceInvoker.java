@@ -3,15 +3,15 @@ package io.nop.rpc.cluster;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.rpc.IRpcService;
+import io.nop.api.core.rpc.IRpcServiceInterceptor;
+import io.nop.api.core.rpc.IRpcServiceInvoker;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.cluster.chooser.IServerChooser;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.rpc.api.AopRpcService;
-import io.nop.api.core.rpc.IRpcService;
-import io.nop.api.core.rpc.IRpcServiceInterceptor;
-import io.nop.api.core.rpc.IRpcServiceInvoker;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 
@@ -71,7 +71,8 @@ public class ClusterRpcServiceInvoker implements IRpcServiceInvoker {
             this.interceptors = Collections.emptyList();
     }
 
-    protected IRpcService getRpcService(String serviceName) {
+    @Override
+    public IRpcService getRpcService(String serviceName) {
         IRpcService rpcService = newBaseRpcService(serviceName);
 
         if (interceptors.isEmpty())

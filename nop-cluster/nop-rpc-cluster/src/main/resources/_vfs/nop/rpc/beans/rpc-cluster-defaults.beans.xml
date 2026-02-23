@@ -135,10 +135,16 @@
         <property name="allowedServiceNames" value="@cfg:nop.rpc.proxy.allowed-service-names|"/>
     </bean>
 
-    <alias name="nopClusterRpcServiceInvoker" alias="nopProxyRpcServiceInvoker"/>
-
-    <bean id="nopDynamicRpcService" parent="AbstractRpcProxyFactoryBean"
-          ioc:type="io.nop.rpc.api.IDynamicRpcService">
-        <property name="serviceName" value="DynamicRpcService"/>
+    <bean id="nopHttpRpcServiceInvoker" class="io.nop.rpc.cluster.http.HttpRpcServiceInvoker">
+        <property name="interceptors" ref="nopRpcServiceClientInterceptors"/>
+        <property name="defaultBaseUrl" value="@cfg:nop.rpc.service-mesh.base-url|"/>
+        <property name="allowedServiceNames" value="@cfg:nop.rpc.proxy.allowed-service-names|"/>
     </bean>
+
+    <alias name="nopClusterRpcServiceInvoker" alias="nopRpcServiceInvoker"
+           feature:off="nop.rpc.service-mesh.enabled or nop.rpc.mock-all"/>
+
+    <alias name="nopHttpRpcServiceInvoker" alias="nopRpcServiceInvoker"
+           feature:on="nop.rpc.service-mesh.enabled and !nop.rpc.mock-all"/>
+
 </beans>

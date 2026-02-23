@@ -612,10 +612,15 @@ public class GraphQLEngine implements IGraphQLEngine {
     }
 
     protected IAsyncFunctionInvoker getExecutionInvoker(IGraphQLExecutionContext context) {
-        IAsyncFunctionInvoker executionInvoker = cancelTokenManager.wrap(this.executionInvoker, context.getServiceContext());
+        IAsyncFunctionInvoker invoker = this.executionInvoker;
+        invoker = new TccContextInvoker(invoker);
+
         if (flowControlRunner != null)
-            executionInvoker = new GraphQLFlowControlInvoker(flowControlRunner, executionInvoker);
-        return executionInvoker;
+            invoker = new GraphQLFlowControlInvoker(flowControlRunner, invoker);
+
+        invoker = cancelTokenManager.wrap(invoker, context.getServiceContext());
+
+        return invoker;
     }
 
     @Override

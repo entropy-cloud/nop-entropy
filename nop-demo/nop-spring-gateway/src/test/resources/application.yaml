@@ -1,0 +1,24 @@
+nop:
+  tcc:
+    gateway:
+      default-txn-group: test
+      auto-create-transaction: true
+
+  orm:
+    init-database-schema: true
+    enable-tenant-by-default: false
+
+  dao:
+    use-parent-data-source: true
+
+spring:
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+
+logging:
+  level:
+    ROOT: WARN
+    io.nop.tcc: DEBUG

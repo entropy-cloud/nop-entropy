@@ -66,7 +66,7 @@ public class TccTransaction implements ITccTransaction {
             return FutureHelper.success(null);
 
         CompletionStage<Void> future = getRepository().updateTccStatusAsync(tccRecord, TccStatus.CANCELLING, null)
-                .thenCompose(r -> TccRunner.cancelAllAsync(branchTxns, timeout, tccEngine.getServiceLocator()));
+                .thenCompose(r -> TccRunner.cancelAllAsync(branchTxns, timeout, tccEngine.getServiceInvoker()));
 
         return FutureHelper.whenCompleteAsync(future, (response, err) -> {
             TccStatus status = TccRunner.aggregateCancelBranchStatus(branchTxns);
@@ -79,7 +79,7 @@ public class TccTransaction implements ITccTransaction {
             return FutureHelper.success(null);
 
         CompletionStage<Void> future = getRepository().updateTccStatusAsync(tccRecord, TccStatus.CONFIRMING, null)
-                .thenCompose(r -> TccRunner.confirmAllAsync(branchTxns, tccEngine.getServiceLocator()));
+                .thenCompose(r -> TccRunner.confirmAllAsync(branchTxns, tccEngine.getServiceInvoker()));
         return FutureHelper.whenCompleteAsync(future, (r2, err) -> {
             TccStatus status = TccRunner.aggregateConfirmBranchStatus(branchTxns);
             return getRepository().updateTccStatusAsync(tccRecord, status, err);

@@ -92,6 +92,9 @@ public class TccRecordStore implements ITccRecordStore {
         branchRecord.setServiceMethod(request.getServiceMethod());
         branchRecord.setServiceName(request.getServiceName());
         branchRecord.setStatus(TccStatus.CREATED.getCode());
+        branchRecord.setParentBranchId(request.getParentBranchId());
+        branchRecord.setBranchNo(request.getParentBranchNo());
+        branchRecord.setBranchNo(request.getParentBranchNo() + 1);
         dao.initEntityId(branchRecord);
 
         return branchRecord;

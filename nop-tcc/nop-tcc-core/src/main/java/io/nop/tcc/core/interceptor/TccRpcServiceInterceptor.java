@@ -11,6 +11,7 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.rpc.IRpcServiceInterceptor;
 import io.nop.api.core.rpc.IRpcServiceInvocation;
+import io.nop.core.context.TccContext;
 import io.nop.tcc.api.ITccEngine;
 import io.nop.tcc.api.TccBranchRequest;
 import io.nop.tcc.core.impl.TccHelper;
@@ -19,8 +20,6 @@ import io.nop.tcc.core.meta.TccMethodMeta;
 import jakarta.inject.Inject;
 
 import java.util.concurrent.CompletionStage;
-
-import static io.nop.api.core.context.ContextProvider.thenOnContext;
 
 public class TccRpcServiceInterceptor implements IRpcServiceInterceptor {
 
@@ -35,23 +34,8 @@ public class TccRpcServiceInterceptor implements IRpcServiceInterceptor {
 
     @Override
     public CompletionStage<ApiResponse<?>> interceptAsync(IRpcServiceInvocation inv) {
-        TccContext tccContext;
-        if (inv.isInbound()) {
-            // 如果是服务端，则根据ApiRequest中的tcc信息来初始化TccContext
-            tccContext = TccContext.buildFromRequest(inv.getRequest());
-            if (tccContext != null) {
-                TccContext.setCurrent(tccContext);
-                return thenOnContext(runWithTccContext(tccContext, inv)).whenComplete((ret, err) -> {
-                    TccContext.removeCurrent(tccContext);
-                });
-            } else {
-                return inv.proceedAsync();
-            }
-        } else {
-            // 如果是客户端调用，则获取上下文中的TccContext
-            tccContext = TccContext.getCurrent();
-            return runWithTccContext(tccContext, inv);
-        }
+        TccContext tccContext = TccContext.getCurrent();
+        return runWithTccContext(tccContext, inv);
     }
 
     private CompletionStage<ApiResponse<?>> runWithTccContext(TccContext tccContext, IRpcServiceInvocation inv) {

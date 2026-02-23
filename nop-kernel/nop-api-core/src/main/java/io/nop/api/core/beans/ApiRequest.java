@@ -36,7 +36,17 @@ public final class ApiRequest<T> extends ApiMessage {
         return request;
     }
 
-    public ApiRequest<T> withHeader(String name, Object value){
+    public ApiRequest<T> withHeaders(Map<String, Object> headers) {
+        this.addHeaders(headers);
+        return this;
+    }
+
+    public ApiRequest<T> withSelection(FieldSelectionBean selection) {
+        this.setSelection(selection);
+        return this;
+    }
+
+    public ApiRequest<T> withHeader(String name, Object value) {
         setHeader(name, value);
         return this;
     }

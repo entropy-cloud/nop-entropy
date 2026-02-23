@@ -8,11 +8,11 @@
 package io.nop.tcc.core.impl;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.rpc.IRpcServiceInvoker;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.IApiResponseNormalizer;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.util.StringHelper;
-import io.nop.api.core.rpc.IRpcServiceLocator;
 import io.nop.tcc.api.ITccBranchRecord;
 import io.nop.tcc.api.ITccBranchTransaction;
 import io.nop.tcc.api.ITccEngine;
@@ -46,7 +46,7 @@ public class TccEngine implements ITccEngine {
     private static final Logger LOG = LoggerFactory.getLogger(TccEngine.class);
 
     private ITccRecordStore repository;
-    private IRpcServiceLocator serviceLocator;
+    private IRpcServiceInvoker serviceInvoker;
     private ITccExceptionChecker exceptionChecker;
     private IApiResponseNormalizer apiResponseNormalizer;
 
@@ -68,12 +68,12 @@ public class TccEngine implements ITccEngine {
     }
 
     @Inject
-    public void setServiceLocator(IRpcServiceLocator apiServiceLocator) {
-        this.serviceLocator = apiServiceLocator;
+    public void setServiceInvoker(IRpcServiceInvoker serviceInvoker) {
+        this.serviceInvoker = serviceInvoker;
     }
 
-    public IRpcServiceLocator getServiceLocator() {
-        return serviceLocator;
+    public IRpcServiceInvoker getServiceInvoker() {
+        return serviceInvoker;
     }
 
     public ITccRecordStore getTccRecordRepository() {
