@@ -45,6 +45,13 @@ public abstract class _GatewayInvokeModel extends io.nop.core.resource.component
     private io.nop.core.lang.eval.IEvalAction _url ;
     
     /**
+     *  
+     * xml name: wrapResponse
+     * 
+     */
+    private java.lang.Boolean _wrapResponse ;
+    
+    /**
      * 
      * xml name: serviceMethod
      *  
@@ -120,6 +127,25 @@ public abstract class _GatewayInvokeModel extends io.nop.core.resource.component
     }
 
     
+    /**
+     * 
+     * xml name: wrapResponse
+     *  
+     */
+    
+    public java.lang.Boolean getWrapResponse(){
+      return _wrapResponse;
+    }
+
+    
+    public void setWrapResponse(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._wrapResponse = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -139,6 +165,7 @@ public abstract class _GatewayInvokeModel extends io.nop.core.resource.component
         out.putNotNull("serviceName",this.getServiceName());
         out.putNotNull("source",this.getSource());
         out.putNotNull("url",this.getUrl());
+        out.putNotNull("wrapResponse",this.getWrapResponse());
     }
 
     public GatewayInvokeModel cloneInstance(){
@@ -154,6 +181,7 @@ public abstract class _GatewayInvokeModel extends io.nop.core.resource.component
         instance.setServiceName(this.getServiceName());
         instance.setSource(this.getSource());
         instance.setUrl(this.getUrl());
+        instance.setWrapResponse(this.getWrapResponse());
     }
 
     protected GatewayInvokeModel newInstance(){

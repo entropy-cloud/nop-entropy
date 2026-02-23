@@ -10,10 +10,12 @@ package io.nop.quarkus.web.filter;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.http.api.server.IAsyncBody;
 import io.nop.http.api.server.IHttpServerContext;
+import io.nop.http.api.server.IStreamResponseWriter;
 import io.nop.quarkus.web.utils.QuarkusExecutorHelper;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
@@ -36,6 +38,9 @@ import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 public class VertxHttpServerContext implements IHttpServerContext {
     private final RoutingContext routingContext;
@@ -60,6 +65,11 @@ public class VertxHttpServerContext implements IHttpServerContext {
     @Override
     public String getRequestPath() {
         return routingContext.normalizedPath();
+    }
+
+    @Override
+    public String getMethod() {
+        return routingContext.request().method().name();
     }
 
     @Override
@@ -185,6 +195,154 @@ public class VertxHttpServerContext implements IHttpServerContext {
         } catch (Exception e) {
             throw NopException.adapt(e);
         }
+    }
+
+    @Override
+    public CompletionStage<Void> sendStreamingResponse(int httpStatus, String contentType,
+                                                       Flow.Publisher<String> publisher) {
+        responseSent = true;
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        HttpServerResponse resp = routingContext.response();
+        resp.setStatusCode(httpStatus);
+        resp.setChunked(true);
+        if (contentType != null) {
+            resp.putHeader(HttpHeaders.CONTENT_TYPE, contentType);
+        }
+        resp.putHeader(HttpHeaders.CACHE_CONTROL, "no-cache");
+        resp.putHeader(HttpHeaders.CONNECTION, "keep-alive");
+
+        AtomicBoolean completed = new AtomicBoolean(false);
+
+        publisher.subscribe(new Flow.Subscriber<String>() {
+            private Flow.Subscription subscription;
+
+            @Override
+            public void onSubscribe(Flow.Subscription subscription) {
+                this.subscription = subscription;
+                subscription.request(1);
+            }
+
+            @Override
+            public void onNext(String item) {
+                if (item != null && !completed.get()) {
+                    resp.write(item, ar -> {
+                        if (ar.failed()) {
+                            subscription.cancel();
+                            completeWithError(ar.cause());
+                        } else {
+                            subscription.request(1);
+                        }
+                    });
+                } else {
+                    subscription.request(1);
+                }
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                completeWithError(throwable);
+            }
+
+            @Override
+            public void onComplete() {
+                if (completed.compareAndSet(false, true)) {
+                    resp.end(ar -> {
+                        if (ar.succeeded()) {
+                            future.complete(null);
+                        } else {
+                            future.completeExceptionally(ar.cause());
+                        }
+                    });
+                }
+            }
+
+            private void completeWithError(Throwable error) {
+                if (completed.compareAndSet(false, true)) {
+                    resp.reset();
+                    future.completeExceptionally(error);
+                }
+            }
+        });
+
+        return future;
+    }
+
+    @Override
+    public CompletionStage<Void> sendStreamingResponse(int httpStatus, String contentType,
+                                                       Function<IStreamResponseWriter, CompletionStage<Void>> writerFn) {
+        responseSent = true;
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        HttpServerResponse resp = routingContext.response();
+        resp.setStatusCode(httpStatus);
+        resp.setChunked(true);
+        if (contentType != null) {
+            resp.putHeader(HttpHeaders.CONTENT_TYPE, contentType);
+        }
+        resp.putHeader(HttpHeaders.CACHE_CONTROL, "no-cache");
+        resp.putHeader(HttpHeaders.CONNECTION, "keep-alive");
+
+        AtomicBoolean completed = new AtomicBoolean(false);
+
+        IStreamResponseWriter writer = new IStreamResponseWriter() {
+            @Override
+            public CompletionStage<Void> write(String chunk) {
+                CompletableFuture<Void> writeFuture = new CompletableFuture<>();
+                resp.write(chunk, ar -> {
+                    if (ar.succeeded()) {
+                        writeFuture.complete(null);
+                    } else {
+                        writeFuture.completeExceptionally(ar.cause());
+                    }
+                });
+                return writeFuture;
+            }
+
+            @Override
+            public CompletionStage<Void> complete() {
+                if (completed.compareAndSet(false, true)) {
+                    CompletableFuture<Void> endFuture = new CompletableFuture<>();
+                    resp.end(ar -> {
+                        if (ar.succeeded()) {
+                            endFuture.complete(null);
+                            future.complete(null);
+                        } else {
+                            endFuture.completeExceptionally(ar.cause());
+                            future.completeExceptionally(ar.cause());
+                        }
+                    });
+                    return endFuture;
+                }
+                return FutureHelper.success(null);
+            }
+
+            @Override
+            public CompletionStage<Void> fail(Throwable error) {
+                if (completed.compareAndSet(false, true)) {
+                    resp.reset();
+                    future.completeExceptionally(error);
+                }
+                return FutureHelper.success(null);
+            }
+        };
+
+        try {
+            CompletionStage<Void> result = writerFn.apply(writer);
+            if (result != null) {
+                result.whenComplete((v, err) -> {
+                    if (err != null) {
+                        writer.fail(err);
+                    } else {
+                        writer.complete();
+                    }
+                });
+            }
+        } catch (Exception e) {
+            writer.fail(e);
+        }
+
+        return future;
     }
 
     @Override

@@ -8,10 +8,10 @@
         流式返回时：
         [拦截器onStreamElement] → [路由onStreamElement] → [elementMapping]
 
-        @rawResponse 如果设置为true，则gateway返回给调用者的不是ApiResponse，而是ApiResponse的body
+        @unwrapResponse 如果设置为true，则gateway返回给调用者的不是ApiResponse，而是ApiResponse的body
         @errorRouteId 如果配置了errorRouteId，当发生未被捕获的异常时路由到此route进行处理，它的response将作为response返回。
         -->
-        <route id="!string" xdef:name="GatewayRouteModel" rawResponse="boolean" errorRouteId="string">
+        <route id="!string" xdef:name="GatewayRouteModel" unwrapResponse="boolean" errorRouteId="string">
             <!--
             @path 对应REST请求链接，例如 /r/NopAuthUser__findPage
             -->
@@ -38,7 +38,7 @@
             @serviceName  分布式RPC的服务名
             @url 如果没有指定serviceName，则需要指定远程路径，会直接调用这里的url，通过body传参
             -->
-            <invoke xdef:name="GatewayInvokeModel" serviceName="string" serviceMethod="string" url="t-expr">
+            <invoke xdef:name="GatewayInvokeModel" serviceName="string" serviceMethod="string" url="t-expr" wrapResponse="boolean">
                 <source>xpl-fn:(request:ApiRequest,svcCtx)=>any</source>
             </invoke>
 
@@ -59,16 +59,14 @@
             <!--
             整个路由过程中出现任何异常都会调用这里的处理函数。如果内部不处理，则可以继续抛出异常。
              -->
-            <onError>xpl-fn:(exception,svcCtx)=>any</onError>
+            <onError>xpl-fn:(exception,svcCtx)=>ApiResponse</onError>
 
             <!-- 如果启用了streaming模式，则进入流式传输截断，onResponse/responseMapping/onError等部分不再使用。
                如果onRequest/invoke失败，整体没有进入流式传输，则仍然使用上面的配置
 
               @contentType SSE场景为 text/event-stream，JSON Lines 则为 application/x-ndjson
              -->
-            <streaming xdef:name="GatewayStreamingModel" enabled="t-expr" contentType="string">
-                <elementMapping xdef:ref="GatewayMessageMappingModel"/>
-
+            <streaming xdef:name="GatewayStreamingModel" enabled="t-expr" contentType="string" elementMapping="string">
                 <onStreamStart>xpl-fn:(request, svcCtx)=>void</onStreamStart>
 
                 <onStreamElement>xpl-fn:(element,svcCtx)=>any</onStreamElement>
@@ -90,12 +88,16 @@
             <!-- 匹配条件才执行 -->
             <match xdef:ref="GatewayMatchModel"/>
 
-            <source>xpl-fn:(request,invocation,svcCtx)=>any</source>
+            <onRequest>xpl-fn:(request,ctx)=>ApiRequest</onRequest>
 
-            <onStreamStart>xpl-fn:(request,invocation,svcCtx)=>void</onStreamStart>
-            <onStreamElement>xpl-fn:(element,invocation,svcCtx)=>any</onStreamElement>
-            <onStreamError>xpl-fn:(exception,invocation,svcCtx)=>any</onStreamError>
-            <onStreamComplete>xpl-fn:(invocation,svcCtx)=>any</onStreamComplete>
+            <onResponse>xpl-fn:(response,svcCtx)=>ApiResponse</onResponse>
+
+            <onError>xpl-fn:(exception,svcCtx)=>ApiResponse</onError>
+
+            <onStreamStart>xpl-fn:(request,svcCtx)=>void</onStreamStart>
+            <onStreamElement>xpl-fn:(element,svcCtx)=>any</onStreamElement>
+            <onStreamError>xpl-fn:(exception,svcCtx)=>any</onStreamError>
+            <onStreamComplete>xpl-fn:(svcCtx)=>any</onStreamComplete>
         </interceptor>
     </interceptors>
 

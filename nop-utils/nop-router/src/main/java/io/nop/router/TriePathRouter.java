@@ -14,9 +14,30 @@ import io.nop.router.trie.TrieNode;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class TriePathRouter<E> extends Trie<List<RouteValue<E>>> {
+
+    public void addMultiPathPattern(String pattern, E value) {
+        if (pattern.indexOf('|') < 0) {
+            addPathPattern(pattern, value);
+        } else {
+            List<String> list = StringHelper.split(pattern, '|');
+            list.forEach(item -> addPathPattern(item, value));
+        }
+    }
+
+    public void addMatchAll(E value) {
+        List<String> list = List.of("*path");
+        makeNode(list, node -> {
+            List<String> varNames = List.of("path");
+            node.setTillEnd(true);
+            addValue(node, varNames, value);
+        });
+    }
+
     public void addPathPattern(String pattern, E value) {
         List<String> list = parseRoute(pattern);
 
@@ -37,6 +58,27 @@ public class TriePathRouter<E> extends Trie<List<RouteValue<E>>> {
 
     public MatchResult<List<RouteValue<E>>> matchPath(String path) {
         return match(this.parseRoute(path));
+    }
+
+    /**
+     * 匹配所有可能的路径模式，返回所有匹配结果
+     */
+    public List<MatchResult<List<RouteValue<E>>>> matchAllPath(String path) {
+        return matchAll(this.parseRoute(path));
+    }
+
+    /**
+     * 匹配所有可能的路径模式，只返回匹配的值集合
+     */
+    public Set<E> matchAllPathValues(String path) {
+        Set<List<RouteValue<E>>> matched = matchAllValues(this.parseRoute(path));
+        Set<E> result = new HashSet<>();
+        for (List<RouteValue<E>> routeValues : matched) {
+            for (RouteValue<E> rv : routeValues) {
+                result.add(rv.getValue());
+            }
+        }
+        return result;
     }
 
     public List<String> parseRoute(String path) {

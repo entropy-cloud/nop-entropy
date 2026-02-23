@@ -39,6 +39,27 @@ public abstract class _GatewayInterceptorModel extends io.nop.core.resource.comp
     
     /**
      *  
+     * xml name: onError
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _onError ;
+    
+    /**
+     *  
+     * xml name: onRequest
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _onRequest ;
+    
+    /**
+     *  
+     * xml name: onResponse
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _onResponse ;
+    
+    /**
+     *  
      * xml name: onStreamComplete
      * 
      */
@@ -64,13 +85,6 @@ public abstract class _GatewayInterceptorModel extends io.nop.core.resource.comp
      * 
      */
     private io.nop.core.lang.eval.IEvalFunction _onStreamStart ;
-    
-    /**
-     *  
-     * xml name: source
-     * 
-     */
-    private io.nop.core.lang.eval.IEvalFunction _source ;
     
     /**
      * 
@@ -125,6 +139,63 @@ public abstract class _GatewayInterceptorModel extends io.nop.core.resource.comp
         checkAllowChange();
         
         this._match = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: onError
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getOnError(){
+      return _onError;
+    }
+
+    
+    public void setOnError(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._onError = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: onRequest
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getOnRequest(){
+      return _onRequest;
+    }
+
+    
+    public void setOnRequest(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._onRequest = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: onResponse
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getOnResponse(){
+      return _onResponse;
+    }
+
+    
+    public void setOnResponse(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._onResponse = value;
            
     }
 
@@ -205,25 +276,6 @@ public abstract class _GatewayInterceptorModel extends io.nop.core.resource.comp
     }
 
     
-    /**
-     * 
-     * xml name: source
-     *  
-     */
-    
-    public io.nop.core.lang.eval.IEvalFunction getSource(){
-      return _source;
-    }
-
-    
-    public void setSource(io.nop.core.lang.eval.IEvalFunction value){
-        checkAllowChange();
-        
-        this._source = value;
-           
-    }
-
-    
 
     @Override
     public void freeze(boolean cascade){
@@ -244,11 +296,13 @@ public abstract class _GatewayInterceptorModel extends io.nop.core.resource.comp
         out.putNotNull("bean",this.getBean());
         out.putNotNull("id",this.getId());
         out.putNotNull("match",this.getMatch());
+        out.putNotNull("onError",this.getOnError());
+        out.putNotNull("onRequest",this.getOnRequest());
+        out.putNotNull("onResponse",this.getOnResponse());
         out.putNotNull("onStreamComplete",this.getOnStreamComplete());
         out.putNotNull("onStreamElement",this.getOnStreamElement());
         out.putNotNull("onStreamError",this.getOnStreamError());
         out.putNotNull("onStreamStart",this.getOnStreamStart());
-        out.putNotNull("source",this.getSource());
     }
 
     public GatewayInterceptorModel cloneInstance(){
@@ -263,11 +317,13 @@ public abstract class _GatewayInterceptorModel extends io.nop.core.resource.comp
         instance.setBean(this.getBean());
         instance.setId(this.getId());
         instance.setMatch(this.getMatch());
+        instance.setOnError(this.getOnError());
+        instance.setOnRequest(this.getOnRequest());
+        instance.setOnResponse(this.getOnResponse());
         instance.setOnStreamComplete(this.getOnStreamComplete());
         instance.setOnStreamElement(this.getOnStreamElement());
         instance.setOnStreamError(this.getOnStreamError());
         instance.setOnStreamStart(this.getOnStreamStart());
-        instance.setSource(this.getSource());
     }
 
     protected GatewayInterceptorModel newInstance(){

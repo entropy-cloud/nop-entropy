@@ -77,13 +77,6 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
     
     /**
      *  
-     * xml name: rawResponse
-     * 如果设置为true，则gateway返回给调用者的不是ApiResponse，而是ApiResponse的body
-     */
-    private java.lang.Boolean _rawResponse ;
-    
-    /**
-     *  
      * xml name: requestMapping
      * request是ApiRequest类型，response是
      */
@@ -103,6 +96,13 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
      * 如果onRequest/invoke失败，整体没有进入流式传输，则仍然使用上面的配置
      */
     private io.nop.gateway.model.GatewayStreamingModel _streaming ;
+    
+    /**
+     *  
+     * xml name: unwrapResponse
+     * 如果设置为true，则gateway返回给调用者的不是ApiResponse，而是ApiResponse的body
+     */
+    private java.lang.Boolean _unwrapResponse ;
     
     /**
      * 
@@ -259,25 +259,6 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
     
     /**
      * 
-     * xml name: rawResponse
-     *  如果设置为true，则gateway返回给调用者的不是ApiResponse，而是ApiResponse的body
-     */
-    
-    public java.lang.Boolean getRawResponse(){
-      return _rawResponse;
-    }
-
-    
-    public void setRawResponse(java.lang.Boolean value){
-        checkAllowChange();
-        
-        this._rawResponse = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: requestMapping
      *  request是ApiRequest类型，response是
      */
@@ -334,6 +315,25 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
     }
 
     
+    /**
+     * 
+     * xml name: unwrapResponse
+     *  如果设置为true，则gateway返回给调用者的不是ApiResponse，而是ApiResponse的body
+     */
+    
+    public java.lang.Boolean getUnwrapResponse(){
+      return _unwrapResponse;
+    }
+
+    
+    public void setUnwrapResponse(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._unwrapResponse = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -369,10 +369,10 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
         out.putNotNull("onError",this.getOnError());
         out.putNotNull("onRequest",this.getOnRequest());
         out.putNotNull("onResponse",this.getOnResponse());
-        out.putNotNull("rawResponse",this.getRawResponse());
         out.putNotNull("requestMapping",this.getRequestMapping());
         out.putNotNull("responseMapping",this.getResponseMapping());
         out.putNotNull("streaming",this.getStreaming());
+        out.putNotNull("unwrapResponse",this.getUnwrapResponse());
     }
 
     public GatewayRouteModel cloneInstance(){
@@ -392,10 +392,10 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
         instance.setOnError(this.getOnError());
         instance.setOnRequest(this.getOnRequest());
         instance.setOnResponse(this.getOnResponse());
-        instance.setRawResponse(this.getRawResponse());
         instance.setRequestMapping(this.getRequestMapping());
         instance.setResponseMapping(this.getResponseMapping());
         instance.setStreaming(this.getStreaming());
+        instance.setUnwrapResponse(this.getUnwrapResponse());
     }
 
     protected GatewayRouteModel newInstance(){

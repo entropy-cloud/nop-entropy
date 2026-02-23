@@ -7,7 +7,11 @@
  */
 package io.nop.router.trie;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 
@@ -63,6 +67,104 @@ public class Trie<V> {
         }
     }
 
+    /**
+     * 匹配所有可能的路径模式，返回所有匹配结果列表
+     *
+     * @param path 要匹配的路径段列表
+     * @return 所有匹配结果列表，如果没有匹配则返回空列表
+     */
+    public List<MatchResult<V>> matchAll(List<String> path) {
+        if (path.isEmpty())
+            return Collections.emptyList();
+
+        lock.readLock().lock();
+        try {
+            List<MatchResult<V>> results = new ArrayList<>();
+            _matchAll(rootNode, path, 0, results);
+            return results;
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    /**
+     * 匹配所有可能的路径模式，只返回匹配的值集合
+     *
+     * @param path 要匹配的路径段列表
+     * @return 所有匹配值的集合，如果没有匹配则返回空集合
+     */
+    public Set<V> matchAllValues(List<String> path) {
+        if (path.isEmpty())
+            return Collections.emptySet();
+
+        lock.readLock().lock();
+        try {
+            Set<V> results = new HashSet<>();
+            _matchAllValues(rootNode, path, 0, results);
+            return results;
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    private void _matchAllValues(TrieNode<V> node, List<String> path, int index, Set<V> results) {
+        boolean last = path.size() == index + 1;
+        String name = path.get(index);
+
+        TrieNode<V> exactChild = node.getExactMatchChild(name);
+        if (exactChild != null) {
+            if (last) {
+                if (exactChild.getValue() != null) {
+                    results.add(exactChild.getValue());
+                }
+            } else if (exactChild.hasChild()) {
+                _matchAllValues(exactChild, path, index + 1, results);
+            }
+        }
+
+        TrieNode<V> wildcardChild = node.getWildcardChild();
+        if (wildcardChild != null) {
+            if (wildcardChild.getValue() != null) {
+                if (last || wildcardChild.isTillEnd()) {
+                    results.add(wildcardChild.getValue());
+                }
+            }
+
+            if (!last && !wildcardChild.isTillEnd()) {
+                _matchAllValues(wildcardChild, path, index + 1, results);
+            }
+        }
+    }
+
+    private void _matchAll(TrieNode<V> node, List<String> path, int index, List<MatchResult<V>> results) {
+        boolean last = path.size() == index + 1;
+        String name = path.get(index);
+
+        TrieNode<V> exactChild = node.getExactMatchChild(name);
+        if (exactChild != null) {
+            if (last) {
+                if (exactChild.getValue() != null) {
+                    results.add(new MatchResult<>(path, exactChild.getValue()));
+                }
+            } else if (exactChild.hasChild()) {
+                _matchAll(exactChild, path, index + 1, results);
+            }
+        }
+
+        TrieNode<V> wildcardChild = node.getWildcardChild();
+        if (wildcardChild != null) {
+            if (wildcardChild.getValue() != null) {
+                if (last || wildcardChild.isTillEnd()) {
+                    results.add(new MatchResult<>(path, wildcardChild.getValue()));
+                }
+            }
+
+            if (!last && !wildcardChild.isTillEnd()) {
+                _matchAll(wildcardChild, path, index + 1, results);
+            }
+        }
+    }
+
     private MatchResult<V> _match(TrieNode<V> node, List<String> path, int index, TrieNode<V> candidate) {
         boolean last = path.size() == index + 1;
 
@@ -84,11 +186,13 @@ public class Trie<V> {
                 return makeResult(path, candidate);
             }
         } else {
-            if (node.getWildcardChild() != null) {
-                if (node.getWildcardChild().isTillEnd()) {
-                    candidate = node.getWildcardChild();
+            TrieNode<V> wildcardChild = node.getWildcardChild();
+            if (wildcardChild != null) {
+                if (wildcardChild.isTillEnd()) {
+                    candidate = wildcardChild;
+                    return makeResult(path, candidate);
                 }
-                return _match(node.getWildcardChild(), path, index + 1, candidate);
+                return _match(wildcardChild, path, index + 1, candidate);
             } else {
                 // 没有任何匹配的子节点，只能返回已经匹配的节点
                 return makeResult(path, candidate);

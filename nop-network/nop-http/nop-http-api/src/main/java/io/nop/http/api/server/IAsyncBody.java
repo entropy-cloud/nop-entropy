@@ -7,8 +7,19 @@
  */
 package io.nop.http.api.server;
 
+import io.nop.api.core.json.JSON;
+import io.nop.api.core.util.FutureHelper;
+
 import java.util.concurrent.CompletionStage;
 
 public interface IAsyncBody {
     CompletionStage<String> getTextAsync();
+
+    default String getText() {
+        return FutureHelper.syncGet(getTextAsync());
+    }
+
+    default Object getJson() {
+        return JSON.parse(getText());
+    }
 }

@@ -14,6 +14,7 @@ import io.nop.router.TriePathRouter;
 public class GatewayModel extends _GatewayModel implements INeedInit {
 
     private TriePathRouter<GatewayRouteModel> router;
+    private TriePathRouter<GatewayInterceptorModel> interceptorRouter;
 
     public GatewayModel() {
 
@@ -22,15 +23,36 @@ public class GatewayModel extends _GatewayModel implements INeedInit {
     @Override
     public void init() {
         router = new TriePathRouter<>();
-        for (GatewayRouteModel route : getRoutes()) {
-            GatewayMatchModel match = route.getMatch();
-            if (match != null && match.getPath() != null) {
-                router.addPathPattern(match.getPath(), route);
+        if (getRoutes() != null) {
+            for (GatewayRouteModel route : getRoutes()) {
+                GatewayMatchModel match = route.getMatch();
+                if (match != null && match.getPath() != null) {
+                    router.addMultiPathPattern(match.getPath(), route);
+                } else {
+                    router.addMatchAll(route);
+                }
+            }
+        }
+
+        interceptorRouter = new TriePathRouter<>();
+
+        if (getInterceptors() != null) {
+            for (GatewayInterceptorModel interceptorModel : getInterceptors()) {
+                GatewayMatchModel match = interceptorModel.getMatch();
+                if (match != null && match.getPath() != null) {
+                    interceptorRouter.addMultiPathPattern(match.getPath(), interceptorModel);
+                } else {
+                    interceptorRouter.addMatchAll(interceptorModel);
+                }
             }
         }
     }
 
     public TriePathRouter<GatewayRouteModel> getRouter() {
         return router;
+    }
+
+    public TriePathRouter<GatewayInterceptorModel> getInterceptorRouter() {
+        return interceptorRouter;
     }
 }

@@ -16,6 +16,8 @@ import java.net.HttpCookie;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
+import java.util.function.Function;
 
 import static io.nop.http.api.HttpApiErrors.ARG_HEADER_NAME;
 
@@ -40,6 +42,10 @@ public interface IHttpServerContext {
      * 不包含queryString的后端服务路径
      */
     String getRequestPath();
+
+    default String getMethod(){
+        return null;
+    }
 
     /**
      * 包含queryString的完整请求链接
@@ -84,6 +90,32 @@ public interface IHttpServerContext {
     void sendResponse(int httpStatus, String body);
 
     void sendResponse(int httpStatus, InputStream body);
+
+    /**
+     * 发送流式响应
+     *
+     * @param httpStatus HTTP状态码
+     * @param contentType Content-Type，如 "text/event-stream" 或 "application/x-ndjson"
+     * @param publisher 流式数据发布者
+     * @return 完成时返回的Future
+     */
+    default CompletionStage<Void> sendStreamingResponse(int httpStatus, String contentType,
+                                                        Flow.Publisher<String> publisher) {
+        throw new UnsupportedOperationException("Streaming response not supported");
+    }
+
+    /**
+     * 使用回调方式发送流式响应
+     *
+     * @param httpStatus HTTP状态码
+     * @param contentType Content-Type
+     * @param writerFn 写入器函数，接收 IStreamResponseWriter，返回完成时的 Future
+     * @return 完成时返回的Future
+     */
+    default CompletionStage<Void> sendStreamingResponse(int httpStatus, String contentType,
+                                                        Function<IStreamResponseWriter, CompletionStage<Void>> writerFn) {
+        throw new UnsupportedOperationException("Streaming response not supported");
+    }
 
     boolean isResponseSent();
 

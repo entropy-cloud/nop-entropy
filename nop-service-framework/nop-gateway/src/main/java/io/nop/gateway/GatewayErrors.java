@@ -12,18 +12,35 @@ import io.nop.api.core.exceptions.ErrorCode;
 import static io.nop.api.core.exceptions.ErrorCode.define;
 
 public interface GatewayErrors {
+    String ARG_INTERCEPTOR = "interceptor";
+    String ARG_ROUTE_ID = "routeId";
+    String ARG_ID = "id";
+    String ARG_URL = "url";
+
     ErrorCode ERR_GATEWAY_NO_RPC_SUPPORT = define("nop.err.gateway.no-rpc-support",
             "没有引入nop-rpc-cluster模块，不支持RPC代理调用");
 
     ErrorCode ERR_GATEWAY_NO_HTTP_CLIENT = define("nop.err.gateway.no-http-client",
-            "GatewayHandler requires IHttpClient for URL-based invocations and streaming");
+            "网关缺少IHttpClient，无法执行URL调用和流式传输");
+
+    ErrorCode ERR_GATEWAY_INVOKE_WITH_NULL_URL = define("nop.err.gateway.invoke-with-null-url",
+            "URL表达式计算结果为空");
 
     ErrorCode ERR_GATEWAY_STREAMING_NOT_ENABLED = define("nop.err.gateway.streaming-not-enabled",
-            "Streaming is not enabled for this route");
+            "当前路由未启用流式传输");
 
     ErrorCode ERR_GATEWAY_FORWARD_TO_NON_STREAMING = define("nop.err.gateway.forward-to-non-streaming",
-            "Cannot forward from a streaming route to a non-streaming route");
+            "不能从流式路由转发到非流式路由");
 
     ErrorCode ERR_GATEWAY_INTERCEPTOR_ERROR = define("nop.err.gateway.interceptor-error",
-            "Interceptor execution failed: {0}");
+            "拦截器执行失败: ${interceptor}");
+
+    ErrorCode ERR_GATEWAY_ROUTE_NOT_FOUND = define("nop.err.gateway.route-not-found",
+            "未找到路由: ${routeId}");
+
+    ErrorCode ERR_GATEWAY_FORWARD_STREAMING_INCOMPATIBLE = define("nop.err.gateway.forward-streaming-incompatible",
+            "不允许从流式路由转发到非流式路由");
+
+    ErrorCode ERR_GATEWAY_UNKNOWN_ROUTE = define("nop.err.gateway.unknown-route",
+            "未知的路由ID: ${id}");
 }

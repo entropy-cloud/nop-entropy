@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<gateway x:schema="/nop/schema/gateway.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <routes>
+        <route id="test-simple">
+            <match path="/test/simple"/>
+            <invoke serviceName="test-service" serviceMethod="simpleMethod"/>
+        </route>
+
+        <route id="test-get-only">
+            <match path="/test/get-only" httpMethod="GET"/>
+            <invoke serviceName="test-service" serviceMethod="getMethod"/>
+        </route>
+
+        <route id="test-post-only">
+            <match path="/test/post-only" httpMethod="POST"/>
+            <invoke serviceName="test-service" serviceMethod="postMethod"/>
+        </route>
+    </routes>
+
+</gateway>

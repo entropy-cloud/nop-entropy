@@ -7,9 +7,12 @@
  */
 package io.nop.gateway.core.context;
 
+import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.ApiResponse;
 import io.nop.core.context.IServiceContext;
 import io.nop.gateway.model.GatewayRouteModel;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -81,4 +84,32 @@ public interface IGatewayContext extends IServiceContext {
      * @param requestPath 请求路径
      */
     void setRequestPath(String requestPath);
+
+    Map<String, String> getQueryParams();
+
+    void setQueryParams(Map<String, String> queryParams);
+
+    default String getQueryParam(String name) {
+        Map<String, String> params = getQueryParams();
+        return params == null ? null : params.get(name);
+    }
+
+    default void setQueryParam(String name, String value) {
+        Map<String, String> params = getQueryParams();
+        if (params == null) {
+            params = new LinkedHashMap<>();
+            setQueryParams(params);
+        }
+        params.put(name, value);
+    }
+
+    String getHttpMethod();
+
+    ApiRequest<?> getRequest();
+
+    void setRequest(ApiRequest<?> request);
+
+    ApiResponse<?> getResponse();
+
+    void setResponse(ApiResponse<?> response);
 }

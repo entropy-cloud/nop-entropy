@@ -9,7 +9,10 @@ package io.nop.gateway.core.interceptor;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
-import io.nop.core.context.IServiceContext;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.gateway.core.context.IGatewayContext;
+
+import java.util.concurrent.CompletionStage;
 
 /**
  * Gateway拦截器接口，用于在网关请求处理过程中执行拦截逻辑
@@ -35,102 +38,30 @@ import io.nop.core.context.IServiceContext;
  */
 public interface IGatewayInterceptor {
 
-    /**
-     * 请求发送前调用
-     *
-     * @param request     API请求对象，包含请求头、选择器和数据
-     * @param invocation  网关调用上下文，包含路由配置等信息
-     * @param serviceContext 服务上下文
-     * @throws Exception 可以抛出异常中断请求处理
-     */
-    void onRequest(ApiRequest<?> request, GatewayInvocation invocation, IServiceContext serviceContext)
-            throws Exception;
-
-    /**
-     * 响应返回后调用
-     *
-     * @param response    API响应对象，包含状态码、错误信息和响应数据
-     * @param invocation  网关调用上下文，包含路由配置等信息
-     * @param serviceContext 服务上下文
-     * @throws Exception 可以抛出异常中断响应处理
-     */
-    void onResponse(ApiResponse<?> response, GatewayInvocation invocation, IServiceContext serviceContext)
-            throws Exception;
-
-    /**
-     * 请求处理过程中发生异常时调用
-     *
-     * @param exception   抛出的异常对象
-     * @param invocation  网关调用上下文，包含路由配置等信息
-     * @param serviceContext 服务上下文
-     * @throws Exception 可以抛出新的异常或继续传播原异常
-     */
-    void onError(Throwable exception, GatewayInvocation invocation, IServiceContext serviceContext)
-            throws Exception;
-
-    /**
-     * 流式传输开始时调用
-     * <p>
-     * 此方法在onRequest执行成功后，进入流式传输模式时调用
-     *
-     * @param request     API请求对象，包含请求头、选择器和数据
-     * @param invocation  网关调用上下文，包含路由配置等信息
-     * @param serviceContext 服务上下文
-     * @throws Exception 可以抛出异常中断流式传输
-     */
-    default void onStreamStart(ApiRequest<?> request, GatewayInvocation invocation, IServiceContext serviceContext)
-            throws Exception {
-        // 默认空实现
+    default ApiRequest<?> onRequest(ApiRequest<?> request, IGatewayContext svcCtx) {
+        return request;
     }
 
-    /**
-     * 每个流元素到达时调用
-     * <p>
-     * 此方法在流式传输过程中，每当收到一个新的数据元素时调用
-     *
-     * @param element     流数据元素，具体类型取决于数据源
-     * @param invocation  网关调用上下文，包含路由配置等信息
-     * @param serviceContext 服务上下文
-     * @return 可以返回处理后的元素，或返回null过滤掉该元素
-     * @throws Exception 可以抛出异常中断流式传输
-     */
-    default Object onStreamElement(Object element, GatewayInvocation invocation, IServiceContext serviceContext)
-            throws Exception {
-        // 默认空实现，直接返回原元素
+    default ApiResponse<?> onResponse(ApiResponse<?> response, IGatewayContext svcCtx) {
+        return response;
+    }
+
+    default ApiResponse<?> onError(Throwable exception, IGatewayContext svcCtx) {
+        throw NopException.adapt(exception);
+    }
+
+    default void onStreamStart(ApiRequest<?> request, IGatewayContext svcCtx) {
+    }
+
+
+    default Object onStreamElement(Object element, IGatewayContext svcCtx) {
         return element;
     }
 
-    /**
-     * 流式传输过程中发生错误时调用
-     * <p>
-     * 此方法在流式传输过程中发生异常时调用，此时无法返回完整响应
-     *
-     * @param exception   抛出的异常对象
-     * @param invocation  网关调用上下文，包含路由配置等信息
-     * @param serviceContext 服务上下文
-     * @return 可以返回特殊的错误信息对象
-     * @throws Exception 可以抛出新的异常或继续传播原异常
-     */
-    default Object onStreamError(Throwable exception, GatewayInvocation invocation, IServiceContext serviceContext)
-            throws Exception {
-        // 默认实现，将异常包装后抛出
-        if (exception instanceof RuntimeException) {
-            throw (RuntimeException) exception;
-        }
-        throw new RuntimeException(exception);
+    default Object onStreamError(Throwable exception, IGatewayContext svcCtx) {
+        throw NopException.adapt(exception);
     }
 
-    /**
-     * 流式传输完成时调用
-     * <p>
-     * 此方法在所有流元素处理完成后调用，无论是否发生错误
-     *
-     * @param invocation  网关调用上下文，包含路由配置等信息
-     * @param serviceContext 服务上下文
-     * @throws Exception 可以抛出异常
-     */
-    default void onStreamComplete(GatewayInvocation invocation, IServiceContext serviceContext)
-            throws Exception {
-        // 默认空实现
+    default void onStreamComplete(IGatewayContext svcCtx) {
     }
 }

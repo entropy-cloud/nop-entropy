@@ -27,9 +27,9 @@ public abstract class _GatewayStreamingModel extends io.nop.core.resource.compon
     /**
      *  
      * xml name: elementMapping
-     * request是ApiRequest类型，response是
+     * 
      */
-    private io.nop.gateway.model.GatewayMessageMappingModel _elementMapping ;
+    private java.lang.String _elementMapping ;
     
     /**
      *  
@@ -88,15 +88,15 @@ public abstract class _GatewayStreamingModel extends io.nop.core.resource.compon
     /**
      * 
      * xml name: elementMapping
-     *  request是ApiRequest类型，response是
+     *  
      */
     
-    public io.nop.gateway.model.GatewayMessageMappingModel getElementMapping(){
+    public java.lang.String getElementMapping(){
       return _elementMapping;
     }
 
     
-    public void setElementMapping(io.nop.gateway.model.GatewayMessageMappingModel value){
+    public void setElementMapping(java.lang.String value){
         checkAllowChange();
         
         this._elementMapping = value;
@@ -207,8 +207,6 @@ public abstract class _GatewayStreamingModel extends io.nop.core.resource.compon
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._elementMapping = io.nop.api.core.util.FreezeHelper.deepFreeze(this._elementMapping);
-            
         }
     }
 
