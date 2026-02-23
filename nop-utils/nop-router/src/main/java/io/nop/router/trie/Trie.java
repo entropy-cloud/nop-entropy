@@ -188,6 +188,13 @@ public class Trie<V> {
         } else {
             TrieNode<V> wildcardChild = node.getWildcardChild();
             if (wildcardChild != null) {
+                if (last) {
+                    // 已经是最后一段路径，如果通配符节点有值则作为候选
+                    if (wildcardChild.getValue() != null) {
+                        candidate = wildcardChild;
+                    }
+                    return makeResult(path, candidate);
+                }
                 if (wildcardChild.isTillEnd()) {
                     candidate = wildcardChild;
                     return makeResult(path, candidate);
