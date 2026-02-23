@@ -203,6 +203,66 @@ git status
 git branch
 ```
 
+## 分支更新模式
+
+### ⚠️ 重要：区分两种更新模式
+
+在更新分支时，必须明确区分以下两种情况：
+
+| 模式 | 场景 | 操作 | 是否需要确认 |
+|------|------|------|-------------|
+| **普通更新** | 特性分支同步主分支最新内容，保留自己的修改 | `git rebase origin/master` | 否（默认行为） |
+| **强制重置** | 丢弃本地所有修改，完全同步主分支 | `git reset --hard origin/master` | **是（必须确认）** |
+
+### 普通更新（保留本地修改）
+
+特性分支的默认行为：拉取主分支最新内容，然后将自己的提交叠加在上面。
+
+```bash
+cd ~/app/nop-entropy-wt
+
+# 1. 在 .bare 中更新远程引用
+git -C .bare fetch origin
+
+# 2. 在特性分支中 rebase（保留本地修改）
+cd nop-entropy-feat-xxx
+git rebase origin/master
+
+# 3. 如果有冲突，智能解决后继续
+git add .
+git rebase --continue
+```
+
+### 强制重置（丢弃本地修改）
+
+⚠️ **必须先向用户确认**：此操作会丢失所有本地修改！
+
+```bash
+cd ~/app/nop-entropy-wt
+
+# 1. 在 .bare 中更新远程引用
+git -C .bare fetch origin
+
+# 2. 确认后强制重置
+cd nop-entropy-feat-xxx
+git reset --hard origin/master
+```
+
+### 主分支更新
+
+主分支（master）始终与远程同步：
+
+```bash
+cd ~/app/nop-entropy-wt
+
+# 1. 在 .bare 中更新远程引用
+git -C .bare fetch origin
+
+# 2. 重置主分支到远程最新
+cd nop-entropy-master
+git reset --hard origin/master
+```
+
 ## 最佳实践
 
 1. **worktree 目录命名**：使用 `<PROJECT_NAME>-<BRANCH_NAME>` 格式（如 `nop-entropy-master`, `nop-entropy-feat-auth`），便于在 IDE 中区分不同项目的 worktree
@@ -210,10 +270,11 @@ git branch
 3. **命令执行位置**：
    - `git worktree` 相关命令：在 `.bare` 目录中执行，或使用 `git -C .bare`
    - git 提交、状态查看等：在对应的 worktree 目录中执行
+   - **更新远程引用**：必须在 `.bare` 目录中执行 `git -C .bare fetch origin`
 4. **及时清理**：完成功能后及时删除 worktree
-5. **定期同步**：在主分支 worktree 中定期 pull 远程更新
-6. **独立环境**：每个 worktree 独立安装依赖
-7. **路径使用**：始终使用相对路径（如 `../nop-entropy-feature-xxx`）
+5. **独立环境**：每个 worktree 独立安装依赖
+6. **路径使用**：始终使用相对路径（如 `../nop-entropy-feature-xxx`）
+7. **特性分支更新**：默认使用 rebase 保留本地修改，只有明确要求时才 reset --hard
 
 ## Maven 配置说明
 
