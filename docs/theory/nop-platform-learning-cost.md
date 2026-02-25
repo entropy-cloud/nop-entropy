@@ -48,8 +48,8 @@ flowchart TD
 
     A --> B
     B --> C
-    D -.->|Optional Integration| C
-    C --> E
+    C -.->|Optional Integration| D
+    D --> E
     
     style NopRuntime fill:#e1f5fe,stroke:#01579b,stroke-width:2px
     style SpringEcosystem fill:#fff3e0,stroke:#e65100,stroke-width:2px
