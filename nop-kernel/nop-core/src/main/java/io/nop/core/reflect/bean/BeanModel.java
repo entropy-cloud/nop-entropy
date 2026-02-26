@@ -32,6 +32,7 @@ import java.util.function.Function;
 import java.util.function.ObjIntConsumer;
 
 import static io.nop.core.CoreErrors.ARG_CLASS_NAME;
+import static io.nop.core.CoreErrors.ERR_REFLECT_BEAN_CLASS_IS_ABSTRACT_OR_INTERFACE;
 import static io.nop.core.CoreErrors.ERR_REFLECT_BEAN_NO_DEFAULT_CONSTRUCTOR;
 
 public class BeanModel extends ReadonlyModel implements IBeanModel {
@@ -238,6 +239,8 @@ public class BeanModel extends ReadonlyModel implements IBeanModel {
     @Override
     public Object newInstance() {
         if (constructor == null) {
+            if (this.isAbstract() || getRawClass().isInterface())
+                throw new NopException(ERR_REFLECT_BEAN_CLASS_IS_ABSTRACT_OR_INTERFACE).param(ARG_CLASS_NAME, getClassName());
             throw new NopException(ERR_REFLECT_BEAN_NO_DEFAULT_CONSTRUCTOR).param(ARG_CLASS_NAME, getClassName());
         }
         return constructor.newInstance();

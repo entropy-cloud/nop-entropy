@@ -517,6 +517,13 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         this.content = content == null || content.isEmpty() ? NULL_VALUE : content;
     }
 
+    /**
+     * AI有时会自动生成这个函数名，提供多个同样功能但是不同名称的函数，减少AI生成错误。
+     */
+    public String contentAsString(){
+        return contentText();
+    }
+
     public int contentAsInt(int defaultValue) {
         return ConvertHelper.toPrimitiveInt(getContentValue(), defaultValue, err -> new NopException(err).param(ARG_NODE, this));
     }

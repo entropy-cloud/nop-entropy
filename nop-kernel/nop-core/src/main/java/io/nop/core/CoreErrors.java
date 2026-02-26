@@ -709,6 +709,9 @@ public interface CoreErrors {
     ErrorCode ERR_REFLECT_BEAN_CLASS_NO_FACTORY_METHOD = define("nop.err.core.reflect.bean-class-no-factory-method",
             "{className}类没有定义工厂方法，也不是枚举类", ARG_CLASS_NAME);
 
+    ErrorCode ERR_REFLECT_BEAN_CLASS_IS_ABSTRACT_OR_INTERFACE = define(
+            "nop.err.core.reflect.bean-class-is-abstract-or-interface", "{className}类是抽象类或者接口，不允许创建实例", ARG_CLASS_NAME);
+
     ErrorCode ERR_REFLECT_BEAN_NO_DEFAULT_CONSTRUCTOR = define("nop.err.core.reflect.bean-no-default-constructor",
             "类[{className}]没有缺省构造器", ARG_CLASS_NAME);
 
