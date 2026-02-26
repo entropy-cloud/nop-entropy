@@ -214,6 +214,32 @@ git branch
 | **普通更新** | 特性分支同步主分支最新内容，保留自己的修改 | `git rebase origin/master` | 否（默认行为） |
 | **强制重置** | 丢弃本地所有修改，完全同步主分支 | `git reset --hard origin/master` | **是（必须确认）** |
 
+### ⚠️ 关键：正确更新远程跟踪分支
+
+**问题**：`git fetch origin` 可能只更新 FETCH_HEAD，而不更新 `refs/remotes/origin/master`，导致 `origin/master` 指向旧版本。
+
+**解决方案**：必须使用强制更新语法：
+
+```bash
+# ❌ 错误：可能不会更新 refs/remotes/origin/master
+git fetch origin
+
+# ✅ 正确：强制更新远程跟踪分支
+git fetch origin +refs/heads/master:refs/remotes/origin/master
+```
+
+**验证远程同步状态**：在执行任何分支更新前，必须验证本地 `origin/master` 是否真正同步：
+
+```bash
+# 1. 检查远程实际最新提交
+git ls-remote origin refs/heads/master
+
+# 2. 检查本地 origin/master 指向的提交
+git rev-parse origin/master
+
+# 3. 两者应该相同，如果不同说明需要强制 fetch
+```
+
 ### 普通更新（保留本地修改）
 
 特性分支的默认行为：拉取主分支最新内容，然后将自己的提交叠加在上面。
@@ -221,14 +247,18 @@ git branch
 ```bash
 cd ~/app/nop-entropy-wt
 
-# 1. 在 .bare 中更新远程引用
-git -C .bare fetch origin
+# 1. 【关键】强制更新远程跟踪分支（不是简单的 git fetch origin）
+git fetch origin +refs/heads/master:refs/remotes/origin/master
 
-# 2. 在特性分支中 rebase（保留本地修改）
+# 2. 验证同步状态（可选但推荐）
+git ls-remote origin refs/heads/master  # 远程实际
+git rev-parse origin/master              # 本地跟踪
+
+# 3. 在特性分支中 rebase（保留本地修改）
 cd nop-entropy-feat-xxx
 git rebase origin/master
 
-# 3. 如果有冲突，智能解决后继续
+# 4. 如果有冲突，智能解决后继续
 git add .
 git rebase --continue
 ```
@@ -240,8 +270,8 @@ git rebase --continue
 ```bash
 cd ~/app/nop-entropy-wt
 
-# 1. 在 .bare 中更新远程引用
-git -C .bare fetch origin
+# 1. 【关键】强制更新远程跟踪分支
+git fetch origin +refs/heads/master:refs/remotes/origin/master
 
 # 2. 确认后强制重置
 cd nop-entropy-feat-xxx
@@ -255,12 +285,42 @@ git reset --hard origin/master
 ```bash
 cd ~/app/nop-entropy-wt
 
-# 1. 在 .bare 中更新远程引用
-git -C .bare fetch origin
+# 1. 【关键】强制更新远程跟踪分支
+git fetch origin +refs/heads/master:refs/remotes/origin/master
 
-# 2. 重置主分支到远程最新
+# 2. 验证同步
+git log --oneline HEAD..origin/master  # 应该为空
+
+# 3. 更新主分支
 cd nop-entropy-master
-git reset --hard origin/master
+git pull --ff-only origin master
+# 或者：git reset --hard origin/master
+```
+
+### 批量更新所有分支
+
+当需要更新所有 worktree 分支时：
+
+```bash
+cd ~/app/nop-entropy-wt
+
+# 1. 【关键】强制更新远程跟踪分支
+git fetch origin +refs/heads/master:refs/remotes/origin/master
+
+# 2. 遍历所有 worktree 并更新
+for wt in nop-entropy-*; do
+  if [ -d "$wt" ]; then
+    echo "=== Updating $wt ==="
+    cd "$wt"
+    behind=$(git rev-list --count HEAD..origin/master 2>/dev/null || echo "N/A")
+    if [ "$behind" != "0" ] && [ "$behind" != "N/A" ]; then
+      git stash -u -m "pre-rebase stash" 2>/dev/null
+      git rebase origin/master 2>&1 | head -5
+      git stash pop 2>/dev/null || true
+    fi
+    cd ..
+  fi
+done
 ```
 
 ## 最佳实践
@@ -270,11 +330,15 @@ git reset --hard origin/master
 3. **命令执行位置**：
    - `git worktree` 相关命令：在 `.bare` 目录中执行，或使用 `git -C .bare`
    - git 提交、状态查看等：在对应的 worktree 目录中执行
-   - **更新远程引用**：必须在 `.bare` 目录中执行 `git -C .bare fetch origin`
 4. **及时清理**：完成功能后及时删除 worktree
 5. **独立环境**：每个 worktree 独立安装依赖
 6. **路径使用**：始终使用相对路径（如 `../nop-entropy-feature-xxx`）
 7. **特性分支更新**：默认使用 rebase 保留本地修改，只有明确要求时才 reset --hard
+8. **⚠️ 远程同步检查**：
+   - **永远不要假设 `git fetch origin` 已同步远程**
+   - 更新前必须用 `git ls-remote origin refs/heads/master` 验证远程实际状态
+   - 使用 `git fetch origin +refs/heads/master:refs/remotes/origin/master` 强制更新
+   - 用 `git log --oneline HEAD..origin/master` 确认是否有新提交
 
 ## Maven 配置说明
 
@@ -364,6 +428,34 @@ git rebase master
 | `worktree list` 显示奇怪路径 | 在错误目录执行命令 | 参考[清理步骤](#清理步骤) |
 | `Filename too long` | Windows 路径超过 260 字符限制 | 启用长路径支持：`git -C .bare config core.longpaths true` |
 | `error: unable to create file: Filename too long` | Windows 路径超过 260 字符限制 | 启用长路径支持：`git -C .bare config core.longpaths true` |
+| 分支显示已同步但实际落后远程 | `git fetch` 未更新远程跟踪分支 | 使用强制 fetch：`git fetch origin +refs/heads/master:refs/remotes/origin/master` |
+
+### 远程同步问题诊断
+
+**症状**：`git status` 显示与 origin/master 同步，但实际远程有新提交。
+
+**诊断步骤**：
+```bash
+# 1. 检查远程实际最新提交
+git ls-remote origin refs/heads/master
+# 输出: 4ed4a35629860072fec6f7c1c0f16b3aadd2c31b	refs/heads/master
+
+# 2. 检查本地 origin/master
+git rev-parse origin/master
+# 输出: 813f1552cb826e3ddc72af8bd1fedc9d4d40df66
+
+# 3. 如果两者不同，说明本地跟踪分支过期
+```
+
+**解决方案**：
+```bash
+# 强制更新远程跟踪分支
+git fetch origin +refs/heads/master:refs/remotes/origin/master
+
+# 验证更新成功
+git rev-parse origin/master
+# 应该输出与 git ls-remote 相同的 commit hash
+```
 
 ### Windows 长路径问题
 
