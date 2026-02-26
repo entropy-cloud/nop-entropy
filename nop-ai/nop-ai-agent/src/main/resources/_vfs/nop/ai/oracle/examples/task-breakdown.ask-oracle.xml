@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+AI Agent 任务分解决策示例
+
+演示条件显示、选项禁用、跳过问题的用法。
+-->
+<ask-oracle name="task-breakdown" displayName="任务分解策略"
+            x:schema="/nop/ai/schema/ask-oracle.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <description>
+        根据任务特征，选择最优的任务分解策略。
+    </description>
+
+    <questions>
+        <!-- Q1: 任务复杂度 -->
+        <question name="complexity" displayName="任务复杂度">
+            <prompt>评估任务的复杂度级别：</prompt>
+            <options>
+                <option value="simple" displayName="简单 - 单一明确目标">
+                    <!-- 简单任务跳过后续问题 -->
+                    <skipQuestions>subTaskCount,riskLevel,parallelism</skipQuestions>
+                </option>
+                <option value="medium" displayName="中等 - 多步骤但有规律"/>
+                <option value="complex" displayName="复杂 - 涉及多系统/不确定性高"/>
+            </options>
+        </question>
+
+        <!-- Q2: 子任务数量 -->
+        <question name="subTaskCount" displayName="子任务数量">
+            <when>$answers['complexity'] != 'simple'</when>
+            <prompt>预计需要拆分的子任务数量：</prompt>
+            <options>
+                <option value="few" displayName="2-5 个"/>
+                <option value="moderate" displayName="6-10 个"/>
+                <option value="many" displayName="10+ 个"/>
+            </options>
+        </question>
+
+        <!-- Q3: 风险级别 -->
+        <question name="riskLevel" displayName="风险级别">
+            <when>$answers['complexity'] == 'complex'</when>
+            <prompt>任务的风险级别：</prompt>
+            <options>
+                <option value="low" displayName="低 - 失败可回滚"/>
+                <option value="medium" displayName="中 - 失败有影响但可控"/>
+                <option value="high" displayName="高 - 失败影响重大"/>
+            </options>
+        </question>
+
+        <!-- Q4: 分解策略 -->
+        <question name="strategy" displayName="分解策略">
+            <when>$answers['complexity'] != 'simple'</when>
+            <prompt>选择任务分解策略：</prompt>
+            <options>
+                <option value="sequential" displayName="顺序执行">
+                    <disabledWhen>
+                        $answers['subTaskCount'] != 'few'
+                    </disabledWhen>
+                </option>
+                <option value="parallel" displayName="并行执行">
+                    <disabledWhen>
+                        $answers['riskLevel'] == 'high'
+                    </disabledWhen>
+                </option>
+                <option value="dag" displayName="DAG 调度">
+                    <disabledWhen>
+                        $answers['complexity'] != 'complex'
+                    </disabledWhen>
+                </option>
+                <option value="iterative" displayName="迭代执行">
+                    <disabledWhen>
+                        $answers['riskLevel'] != 'high'
+                    </disabledWhen>
+                </option>
+            </options>
+        </question>
+
+        <!-- Q5: 并行度 -->
+        <question name="parallelism" displayName="并行度">
+            <when>
+                $answers['strategy'] == 'parallel' || $answers['strategy'] == 'dag'
+            </when>
+            <prompt>最大并行任务数：</prompt>
+            <options>
+                <option value="2" displayName="2"/>
+                <option value="4" displayName="4"/>
+                <option value="8" displayName="8"/>
+                <option value="16" displayName="16+"/>
+            </options>
+        </question>
+    </questions>
+
+</ask-oracle>

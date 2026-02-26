@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+ask-oracle.xdef - 超级智能体选择性问题元模型
+
+用于描述向超级智能体(Oracle)提问的流程。每个问题都是选择性问题，
+后续问题的选项或问题本身可以根据前面问题的答案动态变化。
+
+执行流程：
+1. 按顺序评估每个问题
+2. 评估问题的 when 条件，决定是否显示此问题
+3. 对显示的问题，评估每个选项的 when 条件，决定可用选项
+4. 用户/系统选择选项后，记录答案
+5. 继续处理下一个问题，直到所有问题处理完毕
+
+返回结果：Map<问题名, 答案值>
+  - 单选：String（选项的value）
+  - 多选：List<String>（多个选项的value）
+
+@name 流程名称
+@displayName 显示名称
+-->
+<ask-oracle name="!xml-name" displayName="string"
+            x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+            xmlns:xdef="/nop/schema/xdef.xdef"
+            xdef:name="AskOracleModel" xdef:bean-package="io.nop.ai.agent.oracle.model">
+
+    <description>string</description>
+
+    <!--
+    问题列表
+
+    @name 问题唯一标识（返回结果中的键）
+    @displayName 显示名称
+    @multiSelect 是否允许多选，默认false（单选）
+    -->
+    <questions xdef:body-type="list" xdef:key-attr="name" xdef:bean-child-name="question">
+        <question name="!var-name" displayName="string"
+                  multiSelect="!boolean=false"
+                  xdef:name="AskQuestionModel" xdef:unique-attr="name">
+
+            <description>string</description>
+
+            <!--
+            问题文本/提示
+            可以使用 ${answers['questionName']} 引用前面问题的答案
+            -->
+            <prompt>string</prompt>
+
+            <!--
+            动态显示条件。只有当条件满足时才会显示此问题。
+            可通过 $answers['questionName'] 引用前面问题的答案
+            -->
+            <when>xpl-predicate</when>
+
+            <!--
+            选项列表
+
+            @value 选项值（唯一标识，也是返回到答案中的值）
+            @displayName 显示名称
+            -->
+            <options xdef:body-type="list" xdef:key-attr="value" xdef:bean-child-name="option">
+                <option value="!var-name" displayName="string"
+                        xdef:name="AskOptionModel" xdef:unique-attr="value">
+
+                    <description>string</description>
+
+                    <!-- 选项被禁用的条件 -->
+                    <disabledWhen>xpl-predicate</disabledWhen>
+
+                    <!-- 选择此选项后，跳过指定的问题 -->
+                    <skipQuestions>csv-set</skipQuestions>
+                </option>
+            </options>
+
+        </question>
+    </questions>
+
+</ask-oracle>

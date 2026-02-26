@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ask-oracle 使用示例：技术方案选型
+
+通过一系列选择性问题，帮助确定最适合项目的技术方案。
+-->
+<ask-oracle name="tech-selection" displayName="技术方案选型"
+            x:schema="/nop/ai/schema/ask-oracle.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <description>
+        Oracle 根据您的选择给出技术栈推荐。
+    </description>
+
+    <questions>
+        <!-- Q1: 项目类型 -->
+        <question name="projectType" displayName="项目类型">
+            <prompt>请选择您的项目类型：</prompt>
+            <options>
+                <option value="web" displayName="Web 应用"/>
+                <option value="api" displayName="API 服务"/>
+                <option value="microservice" displayName="微服务架构"/>
+                <option value="batch" displayName="批处理/ETL"/>
+            </options>
+        </question>
+
+        <!-- Q2: 后端技术选型 - 条件显示 -->
+        <question name="backend" displayName="后端技术">
+            <prompt>请选择偏好的后端技术栈：</prompt>
+            <!-- 只有选择了 web/api/microservice 才显示此问题 -->
+            <when>
+                ['web', 'api', 'microservice'].contains($answers['projectType'])
+            </when>
+            <options>
+                <option value="java" displayName="Java">
+                    <description>企业级应用首选，生态完善</description>
+                </option>
+                <option value="nodejs" displayName="Node.js">
+                    <description>适合快速开发，前后端统一</description>
+                </option>
+                <option value="go" displayName="Go">
+                    <description>高性能，适合云原生场景</description>
+                </option>
+                <option value="python" displayName="Python">
+                    <description>AI/数据科学友好</description>
+                    <!-- 选择 Python 时跳过性能相关问题 -->
+                    <skipQuestions>performanceReq</skipQuestions>
+                </option>
+            </options>
+        </question>
+
+        <!-- Q3: 团队经验 -->
+        <question name="teamExperience" displayName="团队经验">
+            <prompt>团队对所选技术的熟悉程度：</prompt>
+            <options>
+                <option value="expert" displayName="专家级"/>
+                <option value="intermediate" displayName="中级"/>
+                <option value="beginner" displayName="初级"/>
+            </options>
+        </question>
+
+        <!-- Q4: 性能要求 - 条件显示 -->
+        <question name="performanceReq" displayName="性能要求">
+            <prompt>对系统性能的要求：</prompt>
+            <!-- 批处理类型不需要问性能 -->
+            <when>
+                $answers['projectType'] != 'batch'
+            </when>
+            <options>
+                <option value="low" displayName="低 - 普通业务系统"/>
+                <option value="medium" displayName="中 - 有一定并发要求"/>
+                <option value="high" displayName="高 - 高并发/低延迟"/>
+            </options>
+        </question>
+
+        <!-- Q5: 部署方式 - 根据前面答案动态选项 -->
+        <question name="deployment" displayName="部署方式">
+            <prompt>选择部署方式：</prompt>
+            <options>
+                <option value="vm" displayName="虚拟机部署"/>
+                <option value="container" displayName="容器化部署 (Docker)"/>
+                <option value="k8s" displayName="Kubernetes 集群">
+                    <!-- 微服务才显示 K8s 选项 -->
+                    <disabledWhen>
+                        $answers['projectType'] != 'microservice'
+                    </disabledWhen>
+                </option>
+                <option value="serverless" displayName="Serverless">
+                    <!-- 只有 API 且性能要求不高才推荐 Serverless -->
+                    <disabledWhen>
+                        $answers['performanceReq'] == 'high'
+                    </disabledWhen>
+                </option>
+            </options>
+        </question>
+
+        <!-- Q6: 数据库选型 - 多选 -->
+        <question name="database" displayName="数据库选型" multiSelect="true">
+            <prompt>选择需要的数据库类型（可多选）：</prompt>
+            <when>
+                ['web', 'api', 'microservice'].contains($answers['projectType'])
+            </when>
+            <options>
+                <option value="mysql" displayName="MySQL"/>
+                <option value="postgresql" displayName="PostgreSQL"/>
+                <option value="mongodb" displayName="MongoDB"/>
+                <option value="redis" displayName="Redis (缓存)"/>
+                <option value="elasticsearch" displayName="Elasticsearch (搜索)">
+                    <disabledWhen>
+                        $answers['teamExperience'] == 'beginner'
+                    </disabledWhen>
+                </option>
+            </options>
+        </question>
+    </questions>
+
+</ask-oracle>
