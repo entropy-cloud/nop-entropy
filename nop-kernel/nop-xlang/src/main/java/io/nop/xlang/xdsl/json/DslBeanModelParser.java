@@ -52,7 +52,14 @@ public class DslBeanModelParser extends DslXNodeToJsonTransformer {
         // 有可能只是接口
         IBeanModel objBeanModel = ReflectionManager.instance().loadBeanModel(objName);
 
-        Object obj = objBeanModel.newInstance();
+        Object obj;
+        try {
+            obj = objBeanModel.newInstance();
+        } catch (NopException e) {
+            e.addXplStack(node);
+            throw e;
+        }
+
         if (!obj.getClass().getName().equals(objBeanModel.getClassName())) {
             objBeanModel = ReflectionManager.instance().getBeanModelForClass(obj.getClass());
         }
@@ -73,10 +80,10 @@ public class DslBeanModelParser extends DslXNodeToJsonTransformer {
             try {
                 IXDefAttribute attr = defNode.getAttribute(name);
                 if (attr == null) {
-                    if(name.equals(keys.VALIDATED))
+                    if (name.equals(keys.VALIDATED))
                         return;
 
-                    if (defNode.getXdefUnknownAttr() != null && defNode.getXdefBeanUnknownAttrsProp()!=null) {
+                    if (defNode.getXdefUnknownAttr() != null && defNode.getXdefBeanUnknownAttrsProp() != null) {
                         Object value = parseValue(vl, name, defNode.getXdefUnknownAttr());
                         String propName = defNode.getXdefBeanUnknownAttrsProp();
                         Map<String, Object> props = beanModel.makeMapProperty(obj, propName);
