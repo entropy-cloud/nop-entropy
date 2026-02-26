@@ -18,10 +18,36 @@ public abstract class _XtChooseWhenModel extends io.nop.xlang.xt.model.XtRuleGro
     
     /**
      *  
+     * xml name: id
+     * 
+     */
+    private java.lang.String _id ;
+    
+    /**
+     *  
      * xml name: test
      * 
      */
     private io.nop.core.lang.eval.IEvalAction _test ;
+    
+    /**
+     * 
+     * xml name: id
+     *  
+     */
+    
+    public java.lang.String getId(){
+      return _id;
+    }
+
+    
+    public void setId(java.lang.String value){
+        checkAllowChange();
+        
+        this._id = value;
+           
+    }
+
     
     /**
      * 
@@ -57,6 +83,7 @@ public abstract class _XtChooseWhenModel extends io.nop.xlang.xt.model.XtRuleGro
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("id",this.getId());
         out.putNotNull("test",this.getTest());
     }
 
@@ -69,6 +96,7 @@ public abstract class _XtChooseWhenModel extends io.nop.xlang.xt.model.XtRuleGro
     protected void copyTo(XtChooseWhenModel instance){
         super.copyTo(instance);
         
+        instance.setId(this.getId());
         instance.setTest(this.getTest());
     }
 

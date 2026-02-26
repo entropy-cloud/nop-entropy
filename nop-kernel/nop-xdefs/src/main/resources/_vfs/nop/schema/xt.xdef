@@ -74,7 +74,7 @@
         <xt:each xpath="xpath" xdef:ref="XtRuleGroupModel" xdef:name="XtEachModel"/>
 
         <xt:choose xdef:name="XtChooseModel" xdef:ref="XtRuleModel">
-            <when test="!xt-expr" xdef:name="XtChooseWhenModel" xdef:ref="XtRuleGroupModel" xdef:allow-multiple="true"/>
+            <when id="!string" test="!xt-expr" xdef:name="XtChooseWhenModel" xdef:ref="XtRuleGroupModel" xdef:unique-attr="id"/>
             <otherwise xdef:ref="XtRuleGroupModel"/>
         </xt:choose>
 

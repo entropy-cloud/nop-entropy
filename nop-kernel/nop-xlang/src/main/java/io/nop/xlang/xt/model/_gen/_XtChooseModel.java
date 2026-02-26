@@ -28,7 +28,7 @@ public abstract class _XtChooseModel extends io.nop.xlang.xt.model.XtRuleModel {
      * xml name: when
      * 
      */
-    private io.nop.xlang.xt.model.XtChooseWhenModel _when ;
+    private KeyedList<io.nop.xlang.xt.model.XtChooseWhenModel> _whens = KeyedList.emptyList();
     
     /**
      *  
@@ -62,18 +62,44 @@ public abstract class _XtChooseModel extends io.nop.xlang.xt.model.XtRuleModel {
      *  
      */
     
-    public io.nop.xlang.xt.model.XtChooseWhenModel getWhen(){
-      return _when;
+    public java.util.List<io.nop.xlang.xt.model.XtChooseWhenModel> getWhens(){
+      return _whens;
     }
 
     
-    public void setWhen(io.nop.xlang.xt.model.XtChooseWhenModel value){
+    public void setWhens(java.util.List<io.nop.xlang.xt.model.XtChooseWhenModel> value){
         checkAllowChange();
         
-        this._when = value;
+        this._whens = KeyedList.fromList(value, io.nop.xlang.xt.model.XtChooseWhenModel::getId);
            
     }
 
+    
+    public io.nop.xlang.xt.model.XtChooseWhenModel getWhen(String name){
+        return this._whens.getByKey(name);
+    }
+
+    public boolean hasWhen(String name){
+        return this._whens.containsKey(name);
+    }
+
+    public void addWhen(io.nop.xlang.xt.model.XtChooseWhenModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.xlang.xt.model.XtChooseWhenModel> list = this.getWhens();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.xlang.xt.model.XtChooseWhenModel::getId);
+            setWhens(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_whens(){
+        return this._whens.keySet();
+    }
+
+    public boolean hasWhens(){
+        return !this._whens.isEmpty();
+    }
     
     /**
      * 
@@ -104,7 +130,7 @@ public abstract class _XtChooseModel extends io.nop.xlang.xt.model.XtRuleModel {
         
            this._otherwise = io.nop.api.core.util.FreezeHelper.deepFreeze(this._otherwise);
             
-           this._when = io.nop.api.core.util.FreezeHelper.deepFreeze(this._when);
+           this._whens = io.nop.api.core.util.FreezeHelper.deepFreeze(this._whens);
             
         }
     }
@@ -114,7 +140,7 @@ public abstract class _XtChooseModel extends io.nop.xlang.xt.model.XtRuleModel {
         super.outputJson(out);
         
         out.putNotNull("otherwise",this.getOtherwise());
-        out.putNotNull("when",this.getWhen());
+        out.putNotNull("whens",this.getWhens());
         out.putNotNull("xtType",this.getXtType());
     }
 
@@ -128,7 +154,7 @@ public abstract class _XtChooseModel extends io.nop.xlang.xt.model.XtRuleModel {
         super.copyTo(instance);
         
         instance.setOtherwise(this.getOtherwise());
-        instance.setWhen(this.getWhen());
+        instance.setWhens(this.getWhens());
         instance.setXtType(this.getXtType());
     }
 

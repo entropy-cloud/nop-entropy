@@ -9,7 +9,7 @@ package io.nop.xlang.xt.model;
 
 import io.nop.xlang.xt.model._gen._XtRuleGroupModel;
 
-public abstract class XtRuleGroupModel extends _XtRuleGroupModel {
+public class XtRuleGroupModel extends _XtRuleGroupModel {
     public XtRuleGroupModel() {
 
     }

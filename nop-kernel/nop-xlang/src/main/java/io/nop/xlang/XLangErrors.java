@@ -99,6 +99,10 @@ public interface XLangErrors {
 
     String ARG_ID = "id";
 
+    String ARG_TEMPLATE_ID = "templateId";
+    String ARG_MAPPING_ID = "mappingId";
+    String ARG_XPATH = "xpath";
+
     String ARG_BIZ_OBJ_NAME = "bizObjName";
     String ARG_PROP_NAME = "propName";
     String ARG_CLASS_NAME = "className";
@@ -1063,4 +1067,9 @@ public interface XLangErrors {
     ErrorCode ERR_SCRIPT_COMPILE_ERROR = define("nop.err.script.compile-error", "脚本编译报错:{errMsg}", ARG_ERR_MSG);
 
     ErrorCode ERR_FILTER_NOT_ALLOW_EXPR = define("nop.err.filter.not-allow-expr", "Filter不支持的表达式", ARG_EXPR);
+
+    // XT Transform errors
+    ErrorCode ERR_XT_TEMPLATE_NOT_FOUND = define("nop.err.xt.template-not-found", "未找到模板:{templateId}", ARG_TEMPLATE_ID);
+    ErrorCode ERR_XT_MAPPING_NOT_FOUND = define("nop.err.xt.mapping-not-found", "未找到映射:{mappingId}", ARG_MAPPING_ID);
+    ErrorCode ERR_XT_MANDATORY_NODE_NOT_FOUND = define("nop.err.xt.mandatory-node-not-found", "强制要求的节点未找到:{xpath}", ARG_XPATH, ARG_NODE);
 }
