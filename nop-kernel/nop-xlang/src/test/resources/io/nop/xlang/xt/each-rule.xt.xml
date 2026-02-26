@@ -1,0 +1,16 @@
+<transform x:schema="/nop/schema/xt.xdef"
+           xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xt="/nop/schema/xt.xdef">
+    <main>
+        <items>
+            <xt:each xpath="/root/item">
+                <item id="item-1">
+                    <xt:value>${text()}</xt:value>
+                </item>
+                <item id="item-2">
+                    <xt:value>${text()}</xt:value>
+                </item>
+            </xt:each>
+        </items>
+    </main>
+</transform>

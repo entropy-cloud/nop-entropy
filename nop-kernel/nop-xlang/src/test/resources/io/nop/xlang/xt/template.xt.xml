@@ -1,0 +1,18 @@
+<transform x:schema="/nop/schema/xt.xdef"
+           xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xt="/nop/schema/xt.xdef">
+    <template id="header">
+        <header>
+            <title><xt:value xpath="@title"/></title>
+        </header>
+    </template>
+
+    <main>
+        <html>
+            <xt:apply-template id="header" xpath="/root"/>
+            <body>
+                <xt:copy-body xpath="/root/content"/>
+            </body>
+        </html>
+    </main>
+</transform>

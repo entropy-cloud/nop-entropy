@@ -1,0 +1,19 @@
+<transform x:schema="/nop/schema/xt.xdef"
+           xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xt="/nop/schema/xt.xdef">
+    <main>
+        <result>
+            <xt:choose>
+                <when id="when-a" test="${@type = 'A'}">
+                    <type>TypeA</type>
+                </when>
+                <when id="when-b" test="${@type = 'B'}">
+                    <type>TypeB</type>
+                </when>
+                <otherwise>
+                    <type>Unknown</type>
+                </otherwise>
+            </xt:choose>
+        </result>
+    </main>
+</transform>

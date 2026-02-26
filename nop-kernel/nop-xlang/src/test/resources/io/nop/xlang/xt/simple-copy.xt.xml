@@ -1,0 +1,9 @@
+<transform x:schema="/nop/schema/xt.xdef"
+           xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xt="/nop/schema/xt.xdef">
+    <main>
+        <result>
+            <xt:copy-body xpath="/"/>
+        </result>
+    </main>
+</transform>
