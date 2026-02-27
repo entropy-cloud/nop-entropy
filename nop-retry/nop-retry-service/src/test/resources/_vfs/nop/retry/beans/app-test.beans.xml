@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
+
+    <!-- Mock RpcServiceInvoker for testing, override default with primary -->
+    <bean id="io.nop.api.core.rpc.IRpcServiceInvoker" primary="true"
+          class="io.nop.retry.service.impl.MockRpcServiceInvoker"/>
+
+</beans>

@@ -7,4 +7,14 @@
     <import resource="_dao.beans.xml"/>
 
     <import resource="_service.beans.xml"/>
+
+    <!-- Retry Service -->
+    <bean id="io.nop.retry.service.store.IRetryRecordStore"
+          class="io.nop.retry.service.store.RetryRecordStoreImpl"/>
+
+    <bean id="io.nop.retry.service.scanner.IRetryScanner"
+          class="io.nop.retry.service.scanner.RetryScannerImpl"/>
+
+    <bean id="io.nop.retry.service.impl.RetryServiceImpl"
+          class="io.nop.retry.service.impl.RetryServiceImpl"/>
 </beans>

@@ -5,12 +5,11 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="io.nop.retry.service.entity.NopRetryTemplateBizModel" ioc:type="@bean:id" ioc:default="true"/>
+    <bean id="io.nop.retry.service.entity.NopRetryPolicyBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopRetryTemplate" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.retry.biz.INopRetryTemplateBiz" ioc:force-lazy-property="true" lazy-init="true"
-          primary="true">
-        <property name="bizObjName" value="NopRetryTemplate"/>
+    <bean id="biz_NopRetryPolicy" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.retry.biz.INopRetryPolicyBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
+        <property name="bizObjName" value="NopRetryPolicy"/>
     </bean>
 
     <bean id="io.nop.retry.service.entity.NopRetryRecordBizModel" ioc:type="@bean:id" ioc:default="true"/>
