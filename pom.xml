@@ -475,6 +475,7 @@
         <module>nop-migration</module>
         <module>nop-runner</module>
         <module>nop-service-framework</module>
-        <module>nop-code</module>
+        <module>nop-retry</module>
+        <!--        <module>nop-commons-java21</module>-->
     </modules>
 </project>
