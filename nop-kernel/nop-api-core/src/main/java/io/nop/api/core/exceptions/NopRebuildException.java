@@ -64,7 +64,7 @@ public class NopRebuildException extends NopException {
                 .description(description).params(params);
     }
 
-    public static NopException rebuild(ApiResponse error) {
+    public static NopException rebuild(ApiResponse<?> error) {
         Guard.checkArgument(!error.isOk(), "response is not error message");
         Guard.checkArgument(error.getCode() != null, "response.error is null");
 

@@ -15,20 +15,36 @@ import io.nop.api.core.util.ICancelToken;
 import java.util.concurrent.CompletionStage;
 
 /**
- * 对Api服务的弱类型调用接口。 RPC请求发出请求包，必须等待响应包到达。
+ * RPC 服务接口。
+ * <p>
+ * 返回的 {@link ApiResponse} 保证不为 null，调用方可直接使用。
+ * 如果调用失败，会通过 {@link CompletionStage#toCompletableFuture()} 抛出异常。
  */
 public interface IRpcService {
 
     /**
-     * 异步调用API服务
+     * 异步执行 RPC 调用
      *
-     * @param serviceMethod API服务方法名
-     * @param request       请求对象
-     * @return 异步返回的结果对象
+     * @param serviceMethod 服务方法名
+     * @param request       请求对象，不为 null
+     * @param cancelToken   取消令牌，可为 null
+     * @return 返回的 ApiResponse 保证不为 null
      */
     CompletionStage<ApiResponse<?>> callAsync(String serviceMethod, ApiRequest<?> request, ICancelToken cancelToken);
 
+    /**
+     * 同步执行 RPC 调用
+     *
+     * @param serviceMethod 服务方法名
+     * @param request       请求对象，不为 null
+     * @param cancelToken   取消令牌，可为 null
+     * @return 返回的 ApiResponse 保证不为 null
+     */
     default ApiResponse<?> call(String serviceMethod, ApiRequest<?> request, ICancelToken cancelToken) {
         return FutureHelper.syncGet(callAsync(serviceMethod, request, cancelToken));
+    }
+
+    default IRpcCall toRpcCall(String serviceMethod) {
+        return (request, cancelToken) -> callAsync(serviceMethod, request, cancelToken);
     }
 }

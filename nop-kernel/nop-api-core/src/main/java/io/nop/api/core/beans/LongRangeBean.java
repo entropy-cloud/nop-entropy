@@ -27,6 +27,8 @@ public class LongRangeBean implements Serializable, Comparable<LongRangeBean> {
 
     //public static final LongRangeBean FIRST = longRange(0, 1);
 
+    public static final LongRangeBean EMPTY = new LongRangeBean(0, 0);
+
     private static final char SEPARATOR = ',';
 
     private final long offset;
@@ -43,6 +45,8 @@ public class LongRangeBean implements Serializable, Comparable<LongRangeBean> {
     }
 
     public static LongRangeBean of(long offset, long limit) {
+        if (offset == 0 && limit == 0)
+            return EMPTY;
         return new LongRangeBean(offset, limit);
     }
 

@@ -38,11 +38,11 @@ public class IntRangeBean implements Serializable, Comparable<IntRangeBean>, Ite
     }
 
     public static IntRangeBean build(int begin, int end) {
-        return new IntRangeBean(begin, end - begin);
+        return of(begin, end - begin);
     }
 
     public static IntRangeBean shortRange() {
-        return intRange(0, 32768);
+        return intRange(0, Short.MAX_VALUE);
     }
 
     public static IntRangeBean intRange(int offset, int limit) {
@@ -50,6 +50,8 @@ public class IntRangeBean implements Serializable, Comparable<IntRangeBean>, Ite
     }
 
     public static IntRangeBean of(int offset, int limit) {
+        if (offset == 0 && limit == 0)
+            return EMPTY;
         return new IntRangeBean(offset, limit);
     }
 
@@ -174,6 +176,13 @@ public class IntRangeBean implements Serializable, Comparable<IntRangeBean>, Ite
     @JsonIgnore
     public boolean isAllowSplit() {
         return limit > 1;
+    }
+
+    /**
+     * 将当前区间转换为 IntRangeSet
+     */
+    public IntRangeSet toRangeSet() {
+        return new IntRangeSet(java.util.Collections.singletonList(this), true);
     }
 
     public IntRangeBean move(int offset) {
