@@ -79,11 +79,6 @@ public interface _NopRetryDaoConstants {
     int BACKOFF_STRATEGY_EXPONENTIAL_BACKOFF = 2;
                     
     /**
-     * 退避策略: Cron表达式 
-     */
-    int BACKOFF_STRATEGY_CRON_EXPRESSION = 3;
-                    
-    /**
      * 阻塞策略: 丢弃 
      */
     int BLOCK_STRATEGY_DISCARD = 1;
@@ -112,5 +107,15 @@ public interface _NopRetryDaoConstants {
      * 回调触发类型: 总是触发 
      */
     int CALLBACK_TRIGGER_TYPE_ALWAYS = 3;
+                    
+    /**
+     * 保存记录策略: 调用前保存 
+     */
+    int SAVE_RECORD_STRATEGY_BEFORE_CALL = 1;
+                    
+    /**
+     * 保存记录策略: 失败后保存 
+     */
+    int SAVE_RECORD_STRATEGY_AFTER_FAILURE = 2;
                     
 }

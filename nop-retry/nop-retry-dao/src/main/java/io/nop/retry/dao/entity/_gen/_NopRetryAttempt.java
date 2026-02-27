@@ -99,6 +99,9 @@ public class _NopRetryAttempt extends DynamicOrmEntity{
     /* relation: 记录 */
     public static final String PROP_NAME_record = "record";
     
+    /* component:  */
+    public static final String PROP_NAME_requestPayloadSnapshotComponent = "requestPayloadSnapshotComponent";
+    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
@@ -1043,5 +1046,22 @@ public class _NopRetryAttempt extends DynamicOrmEntity{
        
     }
        
+   private io.nop.orm.component.JsonOrmComponent _requestPayloadSnapshotComponent;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_requestPayloadSnapshotComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_requestPayloadSnapshotComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_requestPayloadSnapshot);
+      
+   }
+
+   public final io.nop.orm.component.JsonOrmComponent getRequestPayloadSnapshotComponent(){
+      if(_requestPayloadSnapshotComponent == null){
+          _requestPayloadSnapshotComponent = new io.nop.orm.component.JsonOrmComponent();
+          _requestPayloadSnapshotComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_requestPayloadSnapshotComponent);
+      }
+      return _requestPayloadSnapshotComponent;
+   }
+
 }
 // resume CPD analysis - CPD-ON

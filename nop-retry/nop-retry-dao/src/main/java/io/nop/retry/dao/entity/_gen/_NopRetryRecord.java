@@ -32,9 +32,9 @@ public class _NopRetryRecord extends DynamicOrmEntity{
     public static final String PROP_NAME_groupId = "groupId";
     public static final int PROP_ID_groupId = 3;
     
-    /* 模板ID: TEMPLATE_ID VARCHAR */
-    public static final String PROP_NAME_templateId = "templateId";
-    public static final int PROP_ID_templateId = 4;
+    /* 策略ID: POLICY_ID VARCHAR */
+    public static final String PROP_NAME_policyId = "policyId";
+    public static final int PROP_ID_policyId = 4;
     
     /* 幂等ID: IDEMPOTENT_ID VARCHAR */
     public static final String PROP_NAME_idempotentId = "idempotentId";
@@ -72,56 +72,60 @@ public class _NopRetryRecord extends DynamicOrmEntity{
     public static final String PROP_NAME_executorName = "executorName";
     public static final int PROP_ID_executorName = 13;
     
-    /* 序列化器名称: SERIALIZER_NAME VARCHAR */
-    public static final String PROP_NAME_serializerName = "serializerName";
-    public static final int PROP_ID_serializerName = 14;
-    
     /* 请求参数: REQUEST_PAYLOAD VARCHAR */
     public static final String PROP_NAME_requestPayload = "requestPayload";
-    public static final int PROP_ID_requestPayload = 15;
+    public static final int PROP_ID_requestPayload = 14;
     
     /* 上下文参数: CONTEXT_PAYLOAD VARCHAR */
     public static final String PROP_NAME_contextPayload = "contextPayload";
-    public static final int PROP_ID_contextPayload = 16;
+    public static final int PROP_ID_contextPayload = 15;
     
     /* 版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 17;
+    public static final int PROP_ID_version = 16;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 18;
+    public static final int PROP_ID_createdBy = 17;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 19;
+    public static final int PROP_ID_createTime = 18;
     
     /* 更新人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 20;
+    public static final int PROP_ID_updatedBy = 19;
     
     /* 更新时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 21;
+    public static final int PROP_ID_updateTime = 20;
+    
+    /* 服务名: SERVICE_NAME VARCHAR */
+    public static final String PROP_NAME_serviceName = "serviceName";
+    public static final int PROP_ID_serviceName = 21;
+    
+    /* 服务方法: SERVICE_METHOD VARCHAR */
+    public static final String PROP_NAME_serviceMethod = "serviceMethod";
+    public static final int PROP_ID_serviceMethod = 22;
     
 
-    private static int _PROP_ID_BOUND = 22;
+    private static int _PROP_ID_BOUND = 23;
 
     
-    /* relation: 模板 */
-    public static final String PROP_NAME_template = "template";
+    /* relation: 策略 */
+    public static final String PROP_NAME_policy = "policy";
     
-    /* relation: 重试尝试 */
-    public static final String PROP_NAME_attempts = "attempts";
+    /* component:  */
+    public static final String PROP_NAME_requestPayloadComponent = "requestPayloadComponent";
     
-    /* relation:  */
-    public static final String PROP_NAME_deadLetter = "deadLetter";
+    /* component:  */
+    public static final String PROP_NAME_contextPayloadComponent = "contextPayloadComponent";
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[22];
+    private static final String[] PROP_ID_TO_NAME = new String[23];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -134,8 +138,8 @@ public class _NopRetryRecord extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_groupId] = PROP_NAME_groupId;
           PROP_NAME_TO_ID.put(PROP_NAME_groupId, PROP_ID_groupId);
       
-          PROP_ID_TO_NAME[PROP_ID_templateId] = PROP_NAME_templateId;
-          PROP_NAME_TO_ID.put(PROP_NAME_templateId, PROP_ID_templateId);
+          PROP_ID_TO_NAME[PROP_ID_policyId] = PROP_NAME_policyId;
+          PROP_NAME_TO_ID.put(PROP_NAME_policyId, PROP_ID_policyId);
       
           PROP_ID_TO_NAME[PROP_ID_idempotentId] = PROP_NAME_idempotentId;
           PROP_NAME_TO_ID.put(PROP_NAME_idempotentId, PROP_ID_idempotentId);
@@ -164,9 +168,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_executorName] = PROP_NAME_executorName;
           PROP_NAME_TO_ID.put(PROP_NAME_executorName, PROP_ID_executorName);
       
-          PROP_ID_TO_NAME[PROP_ID_serializerName] = PROP_NAME_serializerName;
-          PROP_NAME_TO_ID.put(PROP_NAME_serializerName, PROP_ID_serializerName);
-      
           PROP_ID_TO_NAME[PROP_ID_requestPayload] = PROP_NAME_requestPayload;
           PROP_NAME_TO_ID.put(PROP_NAME_requestPayload, PROP_ID_requestPayload);
       
@@ -188,6 +189,12 @@ public class _NopRetryRecord extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_updateTime] = PROP_NAME_updateTime;
           PROP_NAME_TO_ID.put(PROP_NAME_updateTime, PROP_ID_updateTime);
       
+          PROP_ID_TO_NAME[PROP_ID_serviceName] = PROP_NAME_serviceName;
+          PROP_NAME_TO_ID.put(PROP_NAME_serviceName, PROP_ID_serviceName);
+      
+          PROP_ID_TO_NAME[PROP_ID_serviceMethod] = PROP_NAME_serviceMethod;
+          PROP_NAME_TO_ID.put(PROP_NAME_serviceMethod, PROP_ID_serviceMethod);
+      
     }
 
     
@@ -200,8 +207,8 @@ public class _NopRetryRecord extends DynamicOrmEntity{
     /* 组ID: GROUP_ID */
     private java.lang.String _groupId;
     
-    /* 模板ID: TEMPLATE_ID */
-    private java.lang.String _templateId;
+    /* 策略ID: POLICY_ID */
+    private java.lang.String _policyId;
     
     /* 幂等ID: IDEMPOTENT_ID */
     private java.lang.String _idempotentId;
@@ -230,9 +237,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
     /* 执行器名称: EXECUTOR_NAME */
     private java.lang.String _executorName;
     
-    /* 序列化器名称: SERIALIZER_NAME */
-    private java.lang.String _serializerName;
-    
     /* 请求参数: REQUEST_PAYLOAD */
     private java.lang.String _requestPayload;
     
@@ -253,6 +257,12 @@ public class _NopRetryRecord extends DynamicOrmEntity{
     
     /* 更新时间: UPDATE_TIME */
     private java.sql.Timestamp _updateTime;
+    
+    /* 服务名: SERVICE_NAME */
+    private java.lang.String _serviceName;
+    
+    /* 服务方法: SERVICE_METHOD */
+    private java.lang.String _serviceMethod;
     
 
     public _NopRetryRecord(){
@@ -337,8 +347,8 @@ public class _NopRetryRecord extends DynamicOrmEntity{
             case PROP_ID_groupId:
                return getGroupId();
         
-            case PROP_ID_templateId:
-               return getTemplateId();
+            case PROP_ID_policyId:
+               return getPolicyId();
         
             case PROP_ID_idempotentId:
                return getIdempotentId();
@@ -367,9 +377,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
             case PROP_ID_executorName:
                return getExecutorName();
         
-            case PROP_ID_serializerName:
-               return getSerializerName();
-        
             case PROP_ID_requestPayload:
                return getRequestPayload();
         
@@ -390,6 +397,12 @@ public class _NopRetryRecord extends DynamicOrmEntity{
         
             case PROP_ID_updateTime:
                return getUpdateTime();
+        
+            case PROP_ID_serviceName:
+               return getServiceName();
+        
+            case PROP_ID_serviceMethod:
+               return getServiceMethod();
         
            default:
               return super.orm_propValue(propId);
@@ -432,13 +445,13 @@ public class _NopRetryRecord extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_templateId:{
+            case PROP_ID_policyId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_templateId));
+                       err-> newTypeConversionError(PROP_NAME_policyId));
                }
-               setTemplateId(typedValue);
+               setPolicyId(typedValue);
                break;
             }
         
@@ -532,16 +545,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_serializerName:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_serializerName));
-               }
-               setSerializerName(typedValue);
-               break;
-            }
-        
             case PROP_ID_requestPayload:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -612,6 +615,26 @@ public class _NopRetryRecord extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_serviceName:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_serviceName));
+               }
+               setServiceName(typedValue);
+               break;
+            }
+        
+            case PROP_ID_serviceMethod:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_serviceMethod));
+               }
+               setServiceMethod(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -642,9 +665,9 @@ public class _NopRetryRecord extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_templateId:{
+            case PROP_ID_policyId:{
                onInitProp(propId);
-               this._templateId = (java.lang.String)value;
+               this._policyId = (java.lang.String)value;
                
                break;
             }
@@ -712,13 +735,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_serializerName:{
-               onInitProp(propId);
-               this._serializerName = (java.lang.String)value;
-               
-               break;
-            }
-        
             case PROP_ID_requestPayload:{
                onInitProp(propId);
                this._requestPayload = (java.lang.String)value;
@@ -764,6 +780,20 @@ public class _NopRetryRecord extends DynamicOrmEntity{
             case PROP_ID_updateTime:{
                onInitProp(propId);
                this._updateTime = (java.sql.Timestamp)value;
+               
+               break;
+            }
+        
+            case PROP_ID_serviceName:{
+               onInitProp(propId);
+               this._serviceName = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_serviceMethod:{
+               onInitProp(propId);
+               this._serviceMethod = (java.lang.String)value;
                
                break;
             }
@@ -832,20 +862,20 @@ public class _NopRetryRecord extends DynamicOrmEntity{
     }
     
     /**
-     * 模板ID: TEMPLATE_ID
+     * 策略ID: POLICY_ID
      */
-    public final java.lang.String getTemplateId(){
-         onPropGet(PROP_ID_templateId);
-         return _templateId;
+    public final java.lang.String getPolicyId(){
+         onPropGet(PROP_ID_policyId);
+         return _policyId;
     }
 
     /**
-     * 模板ID: TEMPLATE_ID
+     * 策略ID: POLICY_ID
      */
-    public final void setTemplateId(java.lang.String value){
-        if(onPropSet(PROP_ID_templateId,value)){
-            this._templateId = value;
-            internalClearRefs(PROP_ID_templateId);
+    public final void setPolicyId(java.lang.String value){
+        if(onPropSet(PROP_ID_policyId,value)){
+            this._policyId = value;
+            internalClearRefs(PROP_ID_policyId);
             
         }
     }
@@ -1022,25 +1052,6 @@ public class _NopRetryRecord extends DynamicOrmEntity{
     }
     
     /**
-     * 序列化器名称: SERIALIZER_NAME
-     */
-    public final java.lang.String getSerializerName(){
-         onPropGet(PROP_ID_serializerName);
-         return _serializerName;
-    }
-
-    /**
-     * 序列化器名称: SERIALIZER_NAME
-     */
-    public final void setSerializerName(java.lang.String value){
-        if(onPropSet(PROP_ID_serializerName,value)){
-            this._serializerName = value;
-            internalClearRefs(PROP_ID_serializerName);
-            
-        }
-    }
-    
-    /**
      * 请求参数: REQUEST_PAYLOAD
      */
     public final java.lang.String getRequestPayload(){
@@ -1174,47 +1185,99 @@ public class _NopRetryRecord extends DynamicOrmEntity{
     }
     
     /**
-     * 模板
+     * 服务名: SERVICE_NAME
      */
-    public final io.nop.retry.dao.entity.NopRetryTemplate getTemplate(){
-       return (io.nop.retry.dao.entity.NopRetryTemplate)internalGetRefEntity(PROP_NAME_template);
+    public final java.lang.String getServiceName(){
+         onPropGet(PROP_ID_serviceName);
+         return _serviceName;
     }
 
-    public final void setTemplate(io.nop.retry.dao.entity.NopRetryTemplate refEntity){
+    /**
+     * 服务名: SERVICE_NAME
+     */
+    public final void setServiceName(java.lang.String value){
+        if(onPropSet(PROP_ID_serviceName,value)){
+            this._serviceName = value;
+            internalClearRefs(PROP_ID_serviceName);
+            
+        }
+    }
+    
+    /**
+     * 服务方法: SERVICE_METHOD
+     */
+    public final java.lang.String getServiceMethod(){
+         onPropGet(PROP_ID_serviceMethod);
+         return _serviceMethod;
+    }
+
+    /**
+     * 服务方法: SERVICE_METHOD
+     */
+    public final void setServiceMethod(java.lang.String value){
+        if(onPropSet(PROP_ID_serviceMethod,value)){
+            this._serviceMethod = value;
+            internalClearRefs(PROP_ID_serviceMethod);
+            
+        }
+    }
+    
+    /**
+     * 策略
+     */
+    public final io.nop.retry.dao.entity.NopRetryPolicy getPolicy(){
+       return (io.nop.retry.dao.entity.NopRetryPolicy)internalGetRefEntity(PROP_NAME_policy);
+    }
+
+    public final void setPolicy(io.nop.retry.dao.entity.NopRetryPolicy refEntity){
    
            if(refEntity == null){
            
-                   this.setTemplateId(null);
+                   this.setPolicyId(null);
                
            }else{
-           internalSetRefEntity(PROP_NAME_template, refEntity,()->{
+           internalSetRefEntity(PROP_NAME_policy, refEntity,()->{
            
-                           this.setTemplateId(refEntity.getSid());
+                           this.setPolicyId(refEntity.getSid());
                        
            });
            }
        
     }
        
-    private final OrmEntitySet<io.nop.retry.dao.entity.NopRetryAttempt> _attempts = new OrmEntitySet<>(this, PROP_NAME_attempts,
-        io.nop.retry.dao.entity.NopRetryAttempt.PROP_NAME_record, null,io.nop.retry.dao.entity.NopRetryAttempt.class);
+   private io.nop.orm.component.JsonOrmComponent _requestPayloadComponent;
 
-    /**
-     * 重试尝试。 refPropName: record, keyProp: {rel.keyProp}
-     */
-    public final IOrmEntitySet<io.nop.retry.dao.entity.NopRetryAttempt> getAttempts(){
-       return _attempts;
-    }
-       
-    private final OrmEntitySet<io.nop.retry.dao.entity.NopRetryDeadLetter> _deadLetter = new OrmEntitySet<>(this, PROP_NAME_deadLetter,
-        io.nop.retry.dao.entity.NopRetryDeadLetter.PROP_NAME_record, null,io.nop.retry.dao.entity.NopRetryDeadLetter.class);
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_requestPayloadComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_requestPayloadComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_requestPayload);
+      
+   }
 
-    /**
-     * 。 refPropName: record, keyProp: {rel.keyProp}
-     */
-    public final IOrmEntitySet<io.nop.retry.dao.entity.NopRetryDeadLetter> getDeadLetter(){
-       return _deadLetter;
-    }
-       
+   public final io.nop.orm.component.JsonOrmComponent getRequestPayloadComponent(){
+      if(_requestPayloadComponent == null){
+          _requestPayloadComponent = new io.nop.orm.component.JsonOrmComponent();
+          _requestPayloadComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_requestPayloadComponent);
+      }
+      return _requestPayloadComponent;
+   }
+
+   private io.nop.orm.component.JsonOrmComponent _contextPayloadComponent;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_contextPayloadComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_contextPayloadComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_contextPayload);
+      
+   }
+
+   public final io.nop.orm.component.JsonOrmComponent getContextPayloadComponent(){
+      if(_contextPayloadComponent == null){
+          _contextPayloadComponent = new io.nop.orm.component.JsonOrmComponent();
+          _contextPayloadComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_contextPayloadComponent);
+      }
+      return _contextPayloadComponent;
+   }
+
 }
 // resume CPD analysis - CPD-ON
