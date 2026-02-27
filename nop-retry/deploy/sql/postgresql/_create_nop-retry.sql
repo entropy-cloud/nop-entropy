@@ -1,20 +1,24 @@
 
-CREATE TABLE nop_retry_template(
+CREATE TABLE nop_retry_policy(
   sid VARCHAR(32) NOT NULL ,
   namespace_id VARCHAR(64) NOT NULL ,
   group_id VARCHAR(64) NOT NULL ,
   name VARCHAR(100) NOT NULL ,
   status VARCHAR(1) default '1'   ,
+  save_record_strategy INT4 default 2   ,
+  immediate_retry_count INT4 default 0   ,
+  immediate_retry_interval_ms INT8 default 1000   ,
   max_retry_count INT4 NOT NULL ,
-  backoff_strategy INT4  ,
-  backoff_config VARCHAR(4000)  ,
+  backoff_strategy INT4 default 1   ,
+  initial_interval_ms INT8 default 5000   ,
+  max_interval_ms INT8 default 60000   ,
+  jitter_ratio NUMERIC(5,4) default 0.5   ,
   execution_timeout_seconds INT4  ,
   deadline_timeout_ms INT8  ,
   block_strategy INT4  ,
   callback_enabled VARCHAR(1) default '0'   ,
   callback_trigger_type INT4  ,
-  callback_max_attempts INT4  ,
-  callback_interval_seconds INT4  ,
+  callback_policy_id VARCHAR(32)  ,
   owner_id VARCHAR(50)  ,
   description VARCHAR(4000)  ,
   version INT4  ,
@@ -22,14 +26,15 @@ CREATE TABLE nop_retry_template(
   create_time TIMESTAMP  ,
   updated_by VARCHAR(50)  ,
   update_time TIMESTAMP  ,
-  constraint PK_nop_retry_template primary key (sid)
+  retrying_timeout_ms INT8 default 600000   ,
+  constraint PK_nop_retry_policy primary key (sid)
 );
 
 CREATE TABLE nop_retry_record(
   sid VARCHAR(32) NOT NULL ,
   namespace_id VARCHAR(64) NOT NULL ,
   group_id VARCHAR(64) NOT NULL ,
-  template_id VARCHAR(32)  ,
+  policy_id VARCHAR(32)  ,
   idempotent_id VARCHAR(64) NOT NULL ,
   biz_no VARCHAR(64)  ,
   task_type INT4  ,
@@ -39,7 +44,6 @@ CREATE TABLE nop_retry_record(
   next_trigger_time TIMESTAMP  ,
   partition_index INT4  ,
   executor_name VARCHAR(512)  ,
-  serializer_name VARCHAR(32)  ,
   request_payload VARCHAR(4000)  ,
   context_payload VARCHAR(4000)  ,
   version INT4  ,
@@ -47,6 +51,8 @@ CREATE TABLE nop_retry_record(
   create_time TIMESTAMP  ,
   updated_by VARCHAR(50)  ,
   update_time TIMESTAMP  ,
+  service_name VARCHAR(200)  ,
+  service_method VARCHAR(100)  ,
   constraint PK_nop_retry_record primary key (sid)
 );
 
@@ -76,12 +82,11 @@ CREATE TABLE nop_retry_dead_letter(
   sid VARCHAR(32) NOT NULL ,
   namespace_id VARCHAR(64) NOT NULL ,
   group_id VARCHAR(64) NOT NULL ,
-  template_id VARCHAR(32)  ,
+  policy_id VARCHAR(32)  ,
   record_id VARCHAR(32) NOT NULL ,
   idempotent_id VARCHAR(64) NOT NULL ,
   biz_no VARCHAR(64)  ,
   executor_name VARCHAR(512)  ,
-  serializer_name VARCHAR(32)  ,
   request_payload VARCHAR(4000)  ,
   failure_code VARCHAR(50)  ,
   failure_message VARCHAR(500)  ,
@@ -92,55 +97,67 @@ CREATE TABLE nop_retry_dead_letter(
   create_time TIMESTAMP  ,
   updated_by VARCHAR(50)  ,
   update_time TIMESTAMP  ,
+  service_name VARCHAR(200)  ,
+  service_method VARCHAR(100)  ,
   constraint PK_nop_retry_dead_letter primary key (sid)
 );
 
 
-      COMMENT ON TABLE nop_retry_template IS '重试模板';
+      COMMENT ON TABLE nop_retry_policy IS '重试策略';
                 
-      COMMENT ON COLUMN nop_retry_template.sid IS '主键';
+      COMMENT ON COLUMN nop_retry_policy.sid IS '主键';
                     
-      COMMENT ON COLUMN nop_retry_template.namespace_id IS '命名空间ID';
+      COMMENT ON COLUMN nop_retry_policy.namespace_id IS '命名空间ID';
                     
-      COMMENT ON COLUMN nop_retry_template.group_id IS '组ID';
+      COMMENT ON COLUMN nop_retry_policy.group_id IS '组ID';
                     
-      COMMENT ON COLUMN nop_retry_template.name IS '模板名称';
+      COMMENT ON COLUMN nop_retry_policy.name IS '策略名称';
                     
-      COMMENT ON COLUMN nop_retry_template.status IS '状态';
+      COMMENT ON COLUMN nop_retry_policy.status IS '状态';
                     
-      COMMENT ON COLUMN nop_retry_template.max_retry_count IS '最大重试次数';
+      COMMENT ON COLUMN nop_retry_policy.save_record_strategy IS '保存记录策略';
                     
-      COMMENT ON COLUMN nop_retry_template.backoff_strategy IS '退避策略';
+      COMMENT ON COLUMN nop_retry_policy.immediate_retry_count IS '立刻重试次数';
                     
-      COMMENT ON COLUMN nop_retry_template.backoff_config IS '退避配置';
+      COMMENT ON COLUMN nop_retry_policy.immediate_retry_interval_ms IS '立刻重试间隔(毫秒)';
                     
-      COMMENT ON COLUMN nop_retry_template.execution_timeout_seconds IS '执行超时(秒)';
+      COMMENT ON COLUMN nop_retry_policy.max_retry_count IS '最大重试次数';
                     
-      COMMENT ON COLUMN nop_retry_template.deadline_timeout_ms IS '截止超时(毫秒)';
+      COMMENT ON COLUMN nop_retry_policy.backoff_strategy IS '退避策略';
                     
-      COMMENT ON COLUMN nop_retry_template.block_strategy IS '阻塞策略';
+      COMMENT ON COLUMN nop_retry_policy.initial_interval_ms IS '初始间隔(毫秒)';
                     
-      COMMENT ON COLUMN nop_retry_template.callback_enabled IS '启用回调';
+      COMMENT ON COLUMN nop_retry_policy.max_interval_ms IS '最大间隔(毫秒)';
                     
-      COMMENT ON COLUMN nop_retry_template.callback_trigger_type IS '回调触发类型';
+      COMMENT ON COLUMN nop_retry_policy.jitter_ratio IS '抖动比例';
                     
-      COMMENT ON COLUMN nop_retry_template.callback_max_attempts IS '回调最大次数';
+      COMMENT ON COLUMN nop_retry_policy.execution_timeout_seconds IS '执行超时(秒)';
                     
-      COMMENT ON COLUMN nop_retry_template.callback_interval_seconds IS '回调间隔(秒)';
+      COMMENT ON COLUMN nop_retry_policy.deadline_timeout_ms IS '截止超时(毫秒)';
                     
-      COMMENT ON COLUMN nop_retry_template.owner_id IS '所有者ID';
+      COMMENT ON COLUMN nop_retry_policy.block_strategy IS '阻塞策略';
                     
-      COMMENT ON COLUMN nop_retry_template.description IS '描述';
+      COMMENT ON COLUMN nop_retry_policy.callback_enabled IS '启用回调';
                     
-      COMMENT ON COLUMN nop_retry_template.version IS '版本';
+      COMMENT ON COLUMN nop_retry_policy.callback_trigger_type IS '回调触发类型';
                     
-      COMMENT ON COLUMN nop_retry_template.created_by IS '创建人';
+      COMMENT ON COLUMN nop_retry_policy.callback_policy_id IS '回调策略ID';
                     
-      COMMENT ON COLUMN nop_retry_template.create_time IS '创建时间';
+      COMMENT ON COLUMN nop_retry_policy.owner_id IS '所有者ID';
                     
-      COMMENT ON COLUMN nop_retry_template.updated_by IS '更新人';
+      COMMENT ON COLUMN nop_retry_policy.description IS '描述';
                     
-      COMMENT ON COLUMN nop_retry_template.update_time IS '更新时间';
+      COMMENT ON COLUMN nop_retry_policy.version IS '版本';
+                    
+      COMMENT ON COLUMN nop_retry_policy.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_retry_policy.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_retry_policy.updated_by IS '更新人';
+                    
+      COMMENT ON COLUMN nop_retry_policy.update_time IS '更新时间';
+                    
+      COMMENT ON COLUMN nop_retry_policy.retrying_timeout_ms IS '执行中锁定超时(毫秒)';
                     
       COMMENT ON TABLE nop_retry_record IS '重试记录';
                 
@@ -150,7 +167,7 @@ CREATE TABLE nop_retry_dead_letter(
                     
       COMMENT ON COLUMN nop_retry_record.group_id IS '组ID';
                     
-      COMMENT ON COLUMN nop_retry_record.template_id IS '模板ID';
+      COMMENT ON COLUMN nop_retry_record.policy_id IS '策略ID';
                     
       COMMENT ON COLUMN nop_retry_record.idempotent_id IS '幂等ID';
                     
@@ -170,8 +187,6 @@ CREATE TABLE nop_retry_dead_letter(
                     
       COMMENT ON COLUMN nop_retry_record.executor_name IS '执行器名称';
                     
-      COMMENT ON COLUMN nop_retry_record.serializer_name IS '序列化器名称';
-                    
       COMMENT ON COLUMN nop_retry_record.request_payload IS '请求参数';
                     
       COMMENT ON COLUMN nop_retry_record.context_payload IS '上下文参数';
@@ -185,6 +200,10 @@ CREATE TABLE nop_retry_dead_letter(
       COMMENT ON COLUMN nop_retry_record.updated_by IS '更新人';
                     
       COMMENT ON COLUMN nop_retry_record.update_time IS '更新时间';
+                    
+      COMMENT ON COLUMN nop_retry_record.service_name IS '服务名';
+                    
+      COMMENT ON COLUMN nop_retry_record.service_method IS '服务方法';
                     
       COMMENT ON TABLE nop_retry_attempt IS '重试尝试';
                 
@@ -232,7 +251,7 @@ CREATE TABLE nop_retry_dead_letter(
                     
       COMMENT ON COLUMN nop_retry_dead_letter.group_id IS '组ID';
                     
-      COMMENT ON COLUMN nop_retry_dead_letter.template_id IS '模板ID';
+      COMMENT ON COLUMN nop_retry_dead_letter.policy_id IS '策略ID';
                     
       COMMENT ON COLUMN nop_retry_dead_letter.record_id IS '记录ID';
                     
@@ -241,8 +260,6 @@ CREATE TABLE nop_retry_dead_letter(
       COMMENT ON COLUMN nop_retry_dead_letter.biz_no IS '业务号';
                     
       COMMENT ON COLUMN nop_retry_dead_letter.executor_name IS '执行器名称';
-                    
-      COMMENT ON COLUMN nop_retry_dead_letter.serializer_name IS '序列化器名称';
                     
       COMMENT ON COLUMN nop_retry_dead_letter.request_payload IS '请求参数';
                     
@@ -263,4 +280,8 @@ CREATE TABLE nop_retry_dead_letter(
       COMMENT ON COLUMN nop_retry_dead_letter.updated_by IS '更新人';
                     
       COMMENT ON COLUMN nop_retry_dead_letter.update_time IS '更新时间';
+                    
+      COMMENT ON COLUMN nop_retry_dead_letter.service_name IS '服务名';
+                    
+      COMMENT ON COLUMN nop_retry_dead_letter.service_method IS '服务方法';
                     
