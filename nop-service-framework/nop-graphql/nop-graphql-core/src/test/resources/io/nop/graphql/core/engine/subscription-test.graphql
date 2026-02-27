@@ -1,0 +1,17 @@
+type TestEvent {
+    id: ID
+    message: String
+}
+
+type Subscription {
+    TestSubscription__onTestEvent(filter: String): TestEvent
+    TestSubscription__onContinuousEvent: TestEvent
+}
+
+type Query {
+    TestSubscription__get(id: String): TestEvent
+}
+
+type Mutation {
+    TestSubscription__update(id: String, message: String): TestEvent
+}
