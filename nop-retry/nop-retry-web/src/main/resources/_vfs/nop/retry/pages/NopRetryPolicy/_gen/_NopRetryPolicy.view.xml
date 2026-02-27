@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopRetryPolicy" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
+
+    <objMeta>/nop/retry/model/NopRetryPolicy/NopRetryPolicy.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--主键-->
+                <col id="sid" mandatory="true" sortable="true"/>
+
+                <!--命名空间ID-->
+                <col id="namespaceId" mandatory="true" sortable="true"/>
+
+                <!--组ID-->
+                <col id="groupId" mandatory="true" sortable="true"/>
+
+                <!--策略名称-->
+                <col id="name" mandatory="true" sortable="true"/>
+
+                <!--状态-->
+                <col id="status" sortable="true"/>
+
+                <!--保存记录策略-->
+                <col id="saveRecordStrategy" ui:number="true" sortable="true"/>
+
+                <!--立刻重试次数-->
+                <col id="immediateRetryCount" ui:number="true" sortable="true"/>
+
+                <!--立刻重试间隔(毫秒)-->
+                <col id="immediateRetryIntervalMs" ui:number="true" sortable="true"/>
+
+                <!--最大重试次数-->
+                <col id="maxRetryCount" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--退避策略-->
+                <col id="backoffStrategy" ui:number="true" sortable="true"/>
+
+                <!--初始间隔(毫秒)-->
+                <col id="initialIntervalMs" ui:number="true" sortable="true"/>
+
+                <!--最大间隔(毫秒)-->
+                <col id="maxIntervalMs" ui:number="true" sortable="true"/>
+
+                <!--抖动比例-->
+                <col id="jitterRatio" ui:number="true" sortable="true"/>
+
+                <!--执行超时(秒)-->
+                <col id="executionTimeoutSeconds" ui:number="true" sortable="true"/>
+
+                <!--截止超时(毫秒)-->
+                <col id="deadlineTimeoutMs" ui:number="true" sortable="true"/>
+
+                <!--阻塞策略-->
+                <col id="blockStrategy" ui:number="true" sortable="true"/>
+
+                <!--启用回调-->
+                <col id="callbackEnabled" sortable="true"/>
+
+                <!--回调触发类型-->
+                <col id="callbackTriggerType" ui:number="true" sortable="true"/>
+
+                <!--回调最大次数-->
+                <col id="callbackMaxAttempts" ui:number="true" sortable="true"/>
+
+                <!--回调间隔(秒)-->
+                <col id="callbackIntervalSeconds" ui:number="true" sortable="true"/>
+
+                <!--所有者ID-->
+                <col id="ownerId" sortable="true"/>
+
+                <!--描述-->
+                <col id="description" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" sortable="true"/>
+
+                <!--更新人-->
+                <col id="updatedBy" sortable="true"/>
+
+                <!--更新时间-->
+                <col id="updateTime" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-重试策略" i18n-en:title="View Retry Policy">
+            <layout>
+ sid[主键] namespaceId[命名空间ID]
+ groupId[组ID] name[策略名称]
+ status[状态] saveRecordStrategy[保存记录策略]
+ immediateRetryCount[立刻重试次数] immediateRetryIntervalMs[立刻重试间隔(毫秒)]
+ maxRetryCount[最大重试次数] backoffStrategy[退避策略]
+ initialIntervalMs[初始间隔(毫秒)] maxIntervalMs[最大间隔(毫秒)]
+ jitterRatio[抖动比例] executionTimeoutSeconds[执行超时(秒)]
+ deadlineTimeoutMs[截止超时(毫秒)] blockStrategy[阻塞策略]
+ callbackEnabled[启用回调] callbackTriggerType[回调触发类型]
+ callbackMaxAttempts[回调最大次数] callbackIntervalSeconds[回调间隔(秒)]
+ ownerId[所有者ID] description[描述]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[更新人] updateTime[更新时间]
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-重试策略" i18n-en:title="Add Retry Policy" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-重试策略" i18n-en:title="Edit Retry Policy">
+            <layout>
+ sid[主键] namespaceId[命名空间ID]
+ groupId[组ID] name[策略名称]
+ status[状态] saveRecordStrategy[保存记录策略]
+ immediateRetryCount[立刻重试次数] immediateRetryIntervalMs[立刻重试间隔(毫秒)]
+ maxRetryCount[最大重试次数] backoffStrategy[退避策略]
+ initialIntervalMs[初始间隔(毫秒)] maxIntervalMs[最大间隔(毫秒)]
+ jitterRatio[抖动比例] executionTimeoutSeconds[执行超时(秒)]
+ deadlineTimeoutMs[截止超时(毫秒)] blockStrategy[阻塞策略]
+ callbackEnabled[启用回调] callbackTriggerType[回调触发类型]
+ callbackMaxAttempts[回调最大次数] callbackIntervalSeconds[回调间隔(秒)]
+ ownerId[所有者ID] description[描述]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-重试策略" i18n-en:title="Update Retry Policy"/>
+    </forms>
+
+    <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopRetryPolicy__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopRetryPolicy__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopRetryPolicy__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopRetryPolicy__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopRetryPolicy__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table noOperations="true">
+                <api url="@query:NopRetryPolicy__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopRetryPolicy__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopRetryPolicy__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopRetryPolicy__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopRetryPolicy__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

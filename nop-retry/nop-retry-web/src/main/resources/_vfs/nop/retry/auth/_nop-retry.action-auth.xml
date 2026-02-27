@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
+
+    <site id="main">
+        <resource id="test-orm-nop-retry" displayName="测试nop-retry" icon="ion:grid-outline" resourceType="TOPM"
+                  orderNo="10000" routePath="/test-orm-nop-retry" component="layouts/default/index">
+            <children>
+                <resource id="NopRetryAttempt-main" displayName="重试尝试" orderNo="10001"
+                          i18n-en:displayName="Retry Attempt" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/retry/pages/NopRetryAttempt/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopRetryAttempt:query" displayName="查询重试尝试" orderNo="10002"
+                                  resourceType="FNPT">
+                            <permissions>NopRetryAttempt:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopRetryAttempt:mutation" displayName="修改重试尝试" orderNo="10003"
+                                  resourceType="FNPT">
+                            <permissions>NopRetryAttempt:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopRetryDeadLetter-main" displayName="重试死信" orderNo="10004"
+                          i18n-en:displayName="Retry Dead Letter" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/retry/pages/NopRetryDeadLetter/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopRetryDeadLetter:query" displayName="查询重试死信" orderNo="10005"
+                                  resourceType="FNPT">
+                            <permissions>NopRetryDeadLetter:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopRetryDeadLetter:mutation" displayName="修改重试死信" orderNo="10006"
+                                  resourceType="FNPT">
+                            <permissions>NopRetryDeadLetter:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopRetryPolicy-main" displayName="重试策略" orderNo="10007" i18n-en:displayName="Retry Policy"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/retry/pages/NopRetryPolicy/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopRetryPolicy:query" displayName="查询重试策略" orderNo="10008"
+                                  resourceType="FNPT">
+                            <permissions>NopRetryPolicy:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopRetryPolicy:mutation" displayName="修改重试策略" orderNo="10009"
+                                  resourceType="FNPT">
+                            <permissions>NopRetryPolicy:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopRetryRecord-main" displayName="重试记录" orderNo="10010" i18n-en:displayName="Retry Record"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/retry/pages/NopRetryRecord/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopRetryRecord:query" displayName="查询重试记录" orderNo="10011"
+                                  resourceType="FNPT">
+                            <permissions>NopRetryRecord:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopRetryRecord:mutation" displayName="修改重试记录" orderNo="10012"
+                                  resourceType="FNPT">
+                            <permissions>NopRetryRecord:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopRetryTemplate-main" displayName="重试模板" orderNo="10013"
+                          i18n-en:displayName="Retry Template" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/retry/pages/NopRetryTemplate/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopRetryTemplate:query" displayName="查询重试模板" orderNo="10014"
+                                  resourceType="FNPT">
+                            <permissions>NopRetryTemplate:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopRetryTemplate:mutation" displayName="修改重试模板" orderNo="10015"
+                                  resourceType="FNPT">
+                            <permissions>NopRetryTemplate:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+            </children>
+        </resource>
+    </site>
+</auth>

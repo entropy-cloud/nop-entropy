@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopRetryAttempt" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
+
+    <objMeta>/nop/retry/model/NopRetryAttempt/NopRetryAttempt.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--主键-->
+                <col id="sid" mandatory="true" sortable="true"/>
+
+                <!--记录ID-->
+                <col id="recordId" mandatory="true" sortable="true"/>
+
+                <!--尝试序号-->
+                <col id="attemptNo" ui:number="true" sortable="true"/>
+
+                <!--状态-->
+                <col id="status" ui:number="true" sortable="true"/>
+
+                <!--开始时间-->
+                <col id="startTime" sortable="true"/>
+
+                <!--结束时间-->
+                <col id="endTime" sortable="true"/>
+
+                <!--持续时间(毫秒)-->
+                <col id="durationMs" ui:number="true" sortable="true"/>
+
+                <!--错误码-->
+                <col id="errorCode" sortable="true"/>
+
+                <!--错误消息-->
+                <col id="errorMessage" sortable="true"/>
+
+                <!--错误堆栈-->
+                <col id="errorStack" sortable="true"/>
+
+                <!--客户端地址-->
+                <col id="clientAddress" sortable="true"/>
+
+                <!--原因-->
+                <col id="reason" sortable="true"/>
+
+                <!--请求参数快照-->
+                <col id="requestPayloadSnapshot" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" sortable="true"/>
+
+                <!--更新人-->
+                <col id="updatedBy" sortable="true"/>
+
+                <!--更新时间-->
+                <col id="updateTime" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-重试尝试" i18n-en:title="View Retry Attempt">
+            <layout>
+ sid[主键] recordId[记录ID]
+ attemptNo[尝试序号] status[状态]
+ startTime[开始时间] endTime[结束时间]
+ durationMs[持续时间(毫秒)] errorCode[错误码]
+ errorMessage[错误消息] errorStack[错误堆栈]
+ clientAddress[客户端地址] reason[原因]
+ requestPayloadSnapshot[请求参数快照] createdBy[创建人]
+ createTime[创建时间] updatedBy[更新人]
+ updateTime[更新时间] 
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-重试尝试" i18n-en:title="Add Retry Attempt" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-重试尝试" i18n-en:title="Edit Retry Attempt">
+            <layout>
+ sid[主键] recordId[记录ID]
+ attemptNo[尝试序号] status[状态]
+ startTime[开始时间] endTime[结束时间]
+ durationMs[持续时间(毫秒)] errorCode[错误码]
+ errorMessage[错误消息] errorStack[错误堆栈]
+ clientAddress[客户端地址] reason[原因]
+ requestPayloadSnapshot[请求参数快照] 
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-重试尝试" i18n-en:title="Update Retry Attempt"/>
+    </forms>
+
+    <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopRetryAttempt__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopRetryAttempt__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopRetryAttempt__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopRetryAttempt__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopRetryAttempt__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table noOperations="true">
+                <api url="@query:NopRetryAttempt__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopRetryAttempt__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopRetryAttempt__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopRetryAttempt__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopRetryAttempt__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>
