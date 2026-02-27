@@ -65,44 +65,44 @@ public class GatewayContextImpl extends ServiceContextImpl implements IGatewayCo
     }
 
     @Override
-    public GatewayRouteModel getCurrentRoute() {
+    public synchronized GatewayRouteModel getCurrentRoute() {
         return (GatewayRouteModel) getAttribute(ATTR_CURRENT_ROUTE);
     }
 
     @Override
-    public void setCurrentRoute(GatewayRouteModel route) {
+    public synchronized void setCurrentRoute(GatewayRouteModel route) {
         setAttribute(ATTR_CURRENT_ROUTE, route);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public Map<String, Object> getPathVariables() {
+    public synchronized Map<String, Object> getPathVariables() {
         return (Map<String, Object>) getAttribute(ATTR_PATH_VARIABLES);
     }
 
     @Override
-    public void setPathVariables(Map<String, Object> pathVariables) {
+    public synchronized void setPathVariables(Map<String, Object> pathVariables) {
         setAttribute(ATTR_PATH_VARIABLES, pathVariables);
     }
 
     @Override
-    public boolean isStreamingMode() {
+    public synchronized boolean isStreamingMode() {
         Boolean mode = (Boolean) getAttribute(ATTR_STREAMING_MODE);
         return mode != null && mode;
     }
 
     @Override
-    public void setStreamingMode(boolean streamingMode) {
+    public synchronized void setStreamingMode(boolean streamingMode) {
         setAttribute(ATTR_STREAMING_MODE, streamingMode);
     }
 
     @Override
-    public String getRequestPath() {
+    public synchronized String getRequestPath() {
         return (String) getAttribute(ATTR_REQUEST_PATH);
     }
 
     @Override
-    public void setRequestPath(String requestPath) {
+    public synchronized void setRequestPath(String requestPath) {
         setAttribute(ATTR_REQUEST_PATH, requestPath);
     }
 
