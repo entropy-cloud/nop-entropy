@@ -15,6 +15,7 @@ import io.nop.api.core.annotations.biz.BizMakerCheckerMeta;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
+import io.nop.api.core.annotations.biz.BizSubscription;
 import io.nop.api.core.annotations.biz.ContextRoot;
 import io.nop.api.core.annotations.biz.ContextSource;
 import io.nop.api.core.annotations.biz.RequestBean;
@@ -62,6 +63,7 @@ import io.nop.graphql.core.utils.GraphQLNameHelper;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Flow;
 import java.util.function.Function;
 
 import static io.nop.graphql.core.GraphQLErrors.ARG_ARG_NAME;
@@ -138,6 +140,19 @@ public class ReflectionBizModelBuilder {
 //                }
 
                 ret.addQueryAction(action, field);
+                continue;
+            }
+
+            BizSubscription subscription = func.getAnnotation(BizSubscription.class);
+            if (subscription != null) {
+                String action = getSubscriptionName(subscription, func);
+                if (!isLocalMethod(classModel, func) && !isAllowed(action, disabledActions, inheritActions))
+                    continue;
+                GraphQLFieldDefinition field = buildActionField(bizObjName, bean, GraphQLOperationType.subscription,
+                        loc, action, func, registry);
+                field.setSourceClassModel(classModel);
+                field.setOperationName(GraphQLNameHelper.getOperationName(bizObjName, action));
+                ret.addSubscriptionAction(action, field);
                 continue;
             }
 
@@ -249,6 +264,14 @@ public class ReflectionBizModelBuilder {
         return name;// GraphQLNameHelper.getOperationName(bizObjName, name);
     }
 
+    protected String getSubscriptionName(BizSubscription subscription, IFunctionModel funcModel) {
+        String name = subscription.value();
+        if (StringHelper.isEmpty(name)) {
+            name = getActionName(funcModel);
+        }
+        return name;
+    }
+
     protected String getLoaderName(BizLoader loader, IFunctionModel funcModel) {
         String name = loader.value();
         if (StringHelper.isEmpty(name))
@@ -280,6 +303,9 @@ public class ReflectionBizModelBuilder {
         BizMutation mutation = funcModel.getAnnotation(BizMutation.class);
         if (mutation != null)
             return getMutationName(mutation, funcModel);
+        BizSubscription subscription = funcModel.getAnnotation(BizSubscription.class);
+        if (subscription != null)
+            return getSubscriptionName(subscription, funcModel);
 
         BizAction action = funcModel.getAnnotation(BizAction.class);
         if (action != null)
@@ -290,14 +316,10 @@ public class ReflectionBizModelBuilder {
     protected GraphQLFieldDefinition buildActionField(String bizObjName, Object bean, GraphQLOperationType opType,
                                                       SourceLocation loc, String name,
                                                       IFunctionModel func, TypeRegistry registry) {
-        IServiceAction action = buildAction(bean, loc, name, func);
-        IDataFetcher fetcher = new ServiceActionFetcher(action);
-
         GraphQLFieldDefinition field = new GraphQLFieldDefinition();
         field.setFunctionModel(func);
         field.setLocation(loc);
         field.setName(GraphQLNameHelper.getOperationName(bizObjName, name));
-        field.setServiceAction(action);
 
         ReflectionGraphQLTypeFactory.INSTANCE.getArgDefinitions(field, func, registry);
 
@@ -323,6 +345,9 @@ public class ReflectionBizModelBuilder {
             field.setArgsNormalizer(new LazyGraphQLArgsNormalizer(argsNormalizer.value()));
         }
 
+        IServiceAction action = buildAction(bean, loc, name, func);
+        IDataFetcher fetcher = new ServiceActionFetcher(action);
+        field.setServiceAction(action);
         field.setFetcher(fetcher);
 
         if (func.getAsyncReturnType().getRawClass() == ApiResponse.class)
@@ -332,7 +357,11 @@ public class ReflectionBizModelBuilder {
                     .param(ARG_RETURN_TYPE, func.getReturnType());
 
         try {
-            field.setType(ReflectionGraphQLTypeFactory.INSTANCE.buildGraphQLType(func.getReturnType(), bizObjName,
+            IGenericType returnType = func.getReturnType();
+            if (opType == GraphQLOperationType.subscription && returnType.isAssignableTo(Flow.Publisher.class)) {
+                returnType = returnType.getTypeParameter0();
+            }
+            field.setType(ReflectionGraphQLTypeFactory.INSTANCE.buildGraphQLType(returnType, bizObjName,
                     getReturnBizObjName(func), registry, false));
         } catch (NopException e) {
             e.addXplStack("buildActionField:" + func.getName());

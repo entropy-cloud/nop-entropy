@@ -22,12 +22,14 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.functional.IAsyncFunctionInvoker;
+import io.nop.commons.util.FlowHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.resource.cache.ResourceCacheEntryWithLoader;
 import io.nop.graphql.core.GraphQLConfigs;
 import io.nop.graphql.core.GraphQLErrors;
+import io.nop.graphql.core.IDataFetcher;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.IGraphQLHook;
 import io.nop.graphql.core.ParsedGraphQLRequest;
@@ -488,6 +490,14 @@ public class GraphQLEngine implements IGraphQLEngine {
 
     @Override
     public CompletionStage<ApiResponse<?>> executeRpcAsync(IGraphQLExecutionContext gqlCtx) {
+        // 检查 operation 类型不是 subscription
+        GraphQLOperation op = gqlCtx.getOperation();
+        if (op != null && op.getOperationType() == GraphQLOperationType.subscription) {
+            throw new NopException(ERR_GRAPHQL_UNEXPECTED_OPERATION_TYPE)
+                    .param(ARG_OPERATION_TYPE, op.getOperationType())
+                    .param(ARG_EXPECTED_OPERATION_TYPE, "query or mutation");
+        }
+
         IGraphQLExecutor executor = newGraphQLExecutor();
         IAsyncFunctionInvoker executionInvoker = getExecutionInvoker(gqlCtx);
 
@@ -523,6 +533,14 @@ public class GraphQLEngine implements IGraphQLEngine {
 
     @Override
     public CompletionStage<GraphQLResponseBean> executeGraphQLAsync(IGraphQLExecutionContext gqlCtx) {
+        // 检查 operation 类型不是 subscription
+        GraphQLOperation op = gqlCtx.getOperation();
+        if (op != null && op.getOperationType() == GraphQLOperationType.subscription) {
+            throw new NopException(ERR_GRAPHQL_UNEXPECTED_OPERATION_TYPE)
+                    .param(ARG_OPERATION_TYPE, op.getOperationType())
+                    .param(ARG_EXPECTED_OPERATION_TYPE, "query or mutation");
+        }
+
         IGraphQLExecutor executor = newGraphQLExecutor();
         IAsyncFunctionInvoker executionInvoker = getExecutionInvoker(gqlCtx);
 
@@ -612,15 +630,10 @@ public class GraphQLEngine implements IGraphQLEngine {
     }
 
     protected IAsyncFunctionInvoker getExecutionInvoker(IGraphQLExecutionContext context) {
-        IAsyncFunctionInvoker invoker = this.executionInvoker;
-        invoker = new TccContextInvoker(invoker);
-
+        IAsyncFunctionInvoker executionInvoker = cancelTokenManager.wrap(this.executionInvoker, context.getServiceContext());
         if (flowControlRunner != null)
-            invoker = new GraphQLFlowControlInvoker(flowControlRunner, invoker);
-
-        invoker = cancelTokenManager.wrap(invoker, context.getServiceContext());
-
-        return invoker;
+            executionInvoker = new GraphQLFlowControlInvoker(flowControlRunner, executionInvoker);
+        return executionInvoker;
     }
 
     @Override
@@ -631,7 +644,160 @@ public class GraphQLEngine implements IGraphQLEngine {
 
     @Override
     public Flow.Publisher<GraphQLResponseBean> subscribeGraphQL(IGraphQLExecutionContext context) {
-        return null;
+        GraphQLOperation op = context.getOperation();
+        if (op == null || op.getOperationType() != GraphQLOperationType.subscription) {
+            throw new NopException(ERR_GRAPHQL_UNEXPECTED_OPERATION_TYPE)
+                    .param(ARG_OPERATION_TYPE, op == null ? null : op.getOperationType())
+                    .param(ARG_EXPECTED_OPERATION_TYPE, GraphQLOperationType.subscription);
+        }
+
+        GraphQLActionAuthChecker.INSTANCE.check(context);
+        GraphQLArgumentValidator.INSTANCE.validate(context);
+
+        GraphQLSelectionSet selectionSet = op.getSelectionSet();
+        if (selectionSet == null || selectionSet.isEmpty()) {
+            throw new NopException(ERR_GRAPHQL_QUERY_NO_OPERATION);
+        }
+
+        GraphQLSelection selection = selectionSet.getSelections().get(0);
+        if (!(selection instanceof GraphQLFieldSelection)) {
+            throw new NopException(ERR_GRAPHQL_UNKNOWN_OPERATION)
+                    .param(ARG_OPERATION_NAME, "non-field selection");
+        }
+
+        GraphQLFieldSelection fieldSelection = (GraphQLFieldSelection) selection;
+        GraphQLFieldDefinition fieldDef = fieldSelection.getFieldDefinition();
+        if (fieldDef == null) {
+            throw new NopException(ERR_GRAPHQL_UNKNOWN_OPERATION)
+                    .param(ARG_OPERATION_NAME, fieldSelection.getName());
+        }
+
+        DataFetchingEnvironment env = new DataFetchingEnvironment();
+        env.setExecutionContext(context);
+        env.setSource(null);
+        env.setRoot(null);
+        env.setSelection(fieldSelection);
+        env.setOpRequest(fieldSelection.getOpRequest());
+        env.setSelectionBean(context.getFieldSelection().getField(fieldSelection.getAliasOrName()));
+        env.setOperationName(fieldSelection.getName());
+
+        IDataFetcher fetcher = fieldDef.getFetcher();
+        if (fetcher == null) {
+            throw new NopException(ERR_GRAPHQL_UNKNOWN_OPERATION)
+                    .param(ARG_OPERATION_NAME, fieldSelection.getName());
+        }
+
+        Object result;
+        try {
+            result = fetcher.get(env);
+        } catch (Exception e) {
+            return errorPublisher(e);
+        }
+
+        if (result instanceof Flow.Publisher) {
+            @SuppressWarnings("unchecked")
+            Flow.Publisher<Object> sourcePublisher = (Flow.Publisher<Object>) result;
+            return new GraphQLSubscriptionPublisher(sourcePublisher, context, this, env);
+        }
+
+        return new GraphQLSubscriptionPublisher(
+                FlowHelper.toPublisher(FutureHelper.toCompletionStage(result), null),
+                context, this, env);
+    }
+
+    @Override
+    public Flow.Publisher<ApiResponse<?>> subscribeRpc(IGraphQLExecutionContext context) {
+        GraphQLOperation op = context.getOperation();
+        if (op == null || op.getOperationType() != GraphQLOperationType.subscription) {
+            throw new NopException(ERR_GRAPHQL_UNEXPECTED_OPERATION_TYPE)
+                    .param(ARG_OPERATION_TYPE, op == null ? null : op.getOperationType())
+                    .param(ARG_EXPECTED_OPERATION_TYPE, GraphQLOperationType.subscription);
+        }
+
+        GraphQLActionAuthChecker.INSTANCE.check(context);
+        GraphQLArgumentValidator.INSTANCE.validate(context);
+
+        GraphQLSelectionSet selectionSet = op.getSelectionSet();
+        if (selectionSet == null || selectionSet.isEmpty()) {
+            throw new NopException(ERR_GRAPHQL_QUERY_NO_OPERATION);
+        }
+
+        GraphQLSelection selection = selectionSet.getSelections().get(0);
+        if (!(selection instanceof GraphQLFieldSelection)) {
+            throw new NopException(ERR_GRAPHQL_UNKNOWN_OPERATION)
+                    .param(ARG_OPERATION_NAME, "non-field selection");
+        }
+
+        GraphQLFieldSelection fieldSelection = (GraphQLFieldSelection) selection;
+        GraphQLFieldDefinition fieldDef = fieldSelection.getFieldDefinition();
+        if (fieldDef == null) {
+            throw new NopException(ERR_GRAPHQL_UNKNOWN_OPERATION)
+                    .param(ARG_OPERATION_NAME, fieldSelection.getName());
+        }
+
+        DataFetchingEnvironment env = new DataFetchingEnvironment();
+        env.setExecutionContext(context);
+        env.setSource(null);
+        env.setRoot(null);
+        env.setSelection(fieldSelection);
+        env.setOpRequest(fieldSelection.getOpRequest());
+        env.setSelectionBean(context.getFieldSelection().getField(fieldSelection.getAliasOrName()));
+        env.setOperationName(fieldSelection.getName());
+
+        IDataFetcher fetcher = fieldDef.getFetcher();
+        if (fetcher == null) {
+            throw new NopException(ERR_GRAPHQL_UNKNOWN_OPERATION)
+                    .param(ARG_OPERATION_NAME, fieldSelection.getName());
+        }
+
+        Object result;
+        try {
+            result = fetcher.get(env);
+        } catch (Exception e) {
+            return errorRpcPublisher(e);
+        }
+
+        if (result instanceof Flow.Publisher) {
+            @SuppressWarnings("unchecked")
+            Flow.Publisher<Object> sourcePublisher = (Flow.Publisher<Object>) result;
+            return new RpcSubscriptionPublisher(sourcePublisher, context, this);
+        }
+
+        return new RpcSubscriptionPublisher(
+                FlowHelper.toPublisher(FutureHelper.toCompletionStage(result), null),
+                context, this);
+    }
+
+    private Flow.Publisher<ApiResponse<?>> errorRpcPublisher(Throwable error) {
+        return subscriber -> {
+            Flow.Subscription subscription = new Flow.Subscription() {
+                @Override
+                public void request(long n) {
+                }
+
+                @Override
+                public void cancel() {
+                }
+            };
+            subscriber.onSubscribe(subscription);
+            subscriber.onError(error);
+        };
+    }
+
+    private Flow.Publisher<GraphQLResponseBean> errorPublisher(Throwable error) {
+        return subscriber -> {
+            Flow.Subscription subscription = new Flow.Subscription() {
+                @Override
+                public void request(long n) {
+                }
+
+                @Override
+                public void cancel() {
+                }
+            };
+            subscriber.onSubscribe(subscription);
+            subscriber.onError(error);
+        };
     }
 
     @Override

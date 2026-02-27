@@ -44,6 +44,7 @@ public class GraphQLBizModel {
     private final String bizObjName;
     private final Map<String, GraphQLFieldDefinition> queryActions = new HashMap<>();
     private final Map<String, GraphQLFieldDefinition> mutationActions = new HashMap<>();
+    private final Map<String, GraphQLFieldDefinition> subscriptionActions = new HashMap<>();
 
     private final Map<String, GraphQLFieldDefinition> loaders = new HashMap<>();
 
@@ -67,6 +68,7 @@ public class GraphQLBizModel {
         ret.bizModelBeans.addAll(bizModelBeans);
         ret.queryActions.putAll(queryActions);
         ret.mutationActions.putAll(mutationActions);
+        ret.subscriptionActions.putAll(subscriptionActions);
         ret.loaders.putAll(loaders);
         ret.bizActions.putAll(bizActions);
         ret.metaPath = metaPath;
@@ -159,6 +161,10 @@ public class GraphQLBizModel {
         return mutationActions;
     }
 
+    public Map<String, GraphQLFieldDefinition> getSubscriptionActions() {
+        return subscriptionActions;
+    }
+
     public Map<String, GraphQLFieldDefinition> getLoaders() {
         return loaders;
     }
@@ -173,6 +179,10 @@ public class GraphQLBizModel {
 
     public GraphQLFieldDefinition getMutationAction(String action) {
         return mutationActions.get(action);
+    }
+
+    public GraphQLFieldDefinition getSubscriptionAction(String action) {
+        return subscriptionActions.get(action);
     }
 
     public BeanMethodAction getBizAction(String action) {
@@ -216,6 +226,24 @@ public class GraphQLBizModel {
 
         if (cmp > 0) {
             mutationActions.put(action, field);
+            return;
+        }
+        throw new NopException(ERR_GRAPHQL_DUPLICATE_ACTION).param(ARG_BIZ_OBJ_NAME, bizObjName)
+                .param(ARG_ACTION_NAME, action).param(ARG_METHOD, field.getFunctionModel())
+                .param(ARG_CLASS, field.getSourceClassModel())
+                .param(ARG_OLD_METHOD, old.getFunctionModel())
+                .param(ARG_OLD_CLASS, old.getSourceClassModel());
+    }
+
+    public void addSubscriptionAction(String action, GraphQLFieldDefinition field) {
+        field.setOperationType(GraphQLOperationType.subscription);
+        GraphQLFieldDefinition old = subscriptionActions.get(action);
+        int cmp = comparePriority(old, field);
+        if (cmp < 0)
+            return;
+
+        if (cmp > 0) {
+            subscriptionActions.put(action, field);
             return;
         }
         throw new NopException(ERR_GRAPHQL_DUPLICATE_ACTION).param(ARG_BIZ_OBJ_NAME, bizObjName)
@@ -300,6 +328,10 @@ public class GraphQLBizModel {
             addMutationAction(entry.getKey(), entry.getValue());
         }
 
+        for (Map.Entry<String, GraphQLFieldDefinition> entry : bizModel.subscriptionActions.entrySet()) {
+            addSubscriptionAction(entry.getKey(), entry.getValue());
+        }
+
         for (Map.Entry<String, GraphQLFieldDefinition> entry : bizModel.loaders.entrySet()) {
             addLoader(entry.getKey(), entry.getValue());
         }
@@ -320,10 +352,14 @@ public class GraphQLBizModel {
             return getQueryAction(action);
         } else if (opType == GraphQLOperationType.mutation) {
             return getMutationAction(action);
+        } else if (opType == GraphQLOperationType.subscription) {
+            return getSubscriptionAction(action);
         } else {
             GraphQLFieldDefinition field = getQueryAction(action);
             if (field == null)
                 field = getMutationAction(action);
+            if (field == null)
+                field = getSubscriptionAction(action);
             return field;
         }
     }

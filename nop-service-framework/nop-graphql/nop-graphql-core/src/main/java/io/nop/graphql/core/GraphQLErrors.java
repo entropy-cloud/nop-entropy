@@ -347,4 +347,19 @@ public interface GraphQLErrors {
     ErrorCode ERR_JSONRPC_EXCEED_MAX_COMMAND_COUNT = define("nop.err.jsonrpc.exceed-max-command-count",
             "JsonRpc单次请求包含的命令过多，超过最大个数限制。最大个数为{maxCount}", ARG_MAX_COUNT);
 
+    // Subscription errors
+    String ARG_OPERATION_ID = "operationId";
+    String ARG_TOPIC = "topic";
+
+    ErrorCode ERR_GRAPHQL_SUBSCRIPTION_TOO_MANY =
+            define("nop.err.graphql.subscription.too-many",
+                    "活跃订阅数过多，无法注册: {operationId}", ARG_OPERATION_ID);
+
+    ErrorCode ERR_GRAPHQL_SUBSCRIPTION_DUPLICATE_OPERATION =
+            define("nop.err.graphql.subscription.duplicate-operation",
+                    "重复的订阅操作: {operationId}", ARG_OPERATION_ID);
+
+    ErrorCode ERR_GRAPHQL_SUBSCRIPTION_INVALID_TOPIC =
+            define("nop.err.graphql.subscription.invalid-topic",
+                    "无效的订阅主题格式: {topic}", ARG_TOPIC);
 }

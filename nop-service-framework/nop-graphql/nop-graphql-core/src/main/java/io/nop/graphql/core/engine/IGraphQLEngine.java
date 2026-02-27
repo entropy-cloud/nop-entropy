@@ -110,6 +110,11 @@ public interface IGraphQLEngine {
         return FutureHelper.syncGet(executeRpcAsync(context));
     }
 
+    /**
+     * 通过RPC方式订阅，返回Flow.Publisher。类似于executeRpcAsync，但用于subscription操作。
+     */
+    Flow.Publisher<ApiResponse<?>> subscribeRpc(IGraphQLExecutionContext context);
+
     void initRpcContext(IGraphQLExecutionContext context, GraphQLOperationType opType,
                         String operationName, ApiRequest<?> request);
 
