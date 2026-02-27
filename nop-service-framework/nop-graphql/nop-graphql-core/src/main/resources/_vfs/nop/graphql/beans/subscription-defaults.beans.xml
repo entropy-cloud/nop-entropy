@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="ioc"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <bean id="graphqlSubscriptionManager" class="io.nop.graphql.core.subscription.GraphQLSubscriptionManager"
+          ioc:type="@bean:id" ioc:default="true">
+        <property name="graphQLEngine" ref="graphQLEngine"/>
+        <property name="messageService" ref="nopMessageService"/>
+        <property name="maxActiveSubscriptions" value="@cfg:nop.graphql.subscription.max-active|1000"/>
+    </bean>
+
+</beans>

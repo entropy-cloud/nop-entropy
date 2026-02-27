@@ -22,7 +22,7 @@
         <module>nop-biz-auth-core</module>
         <module>nop-biz-file-core</module>
         <module>nop-biz</module>
-        <module>nop-gateway</module>
+<!--        <module>nop-gateway</module>-->
         <module>nop-graphql</module>
     </modules>
 </project>
