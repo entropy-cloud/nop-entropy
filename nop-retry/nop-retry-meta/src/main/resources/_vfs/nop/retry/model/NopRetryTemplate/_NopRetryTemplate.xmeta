@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="重试模板" i18n-en:displayName="Retry Template" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>io.nop.retry.dao.entity.NopRetryTemplate</entityName>
+
+    <primaryKey>sid</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="sid" displayName="主键" propId="1" i18n-en:displayName="Primary Key" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema domain="templateId" type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="namespaceId" displayName="命名空间ID" propId="2" i18n-en:displayName="Namespace ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema domain="namespaceId" type="java.lang.String" precision="64"/>
+        </prop>
+        <prop name="groupId" displayName="组ID" propId="3" i18n-en:displayName="Group ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema domain="groupId" type="java.lang.String" precision="64"/>
+        </prop>
+        <prop name="name" displayName="模板名称" propId="4" i18n-en:displayName="Template Name" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="status" displayName="状态" propId="5" i18n-en:displayName="Status" queryable="true" sortable="true"
+              insertable="true" updatable="true" defaultValue="1">
+            <schema stdDomain="boolFlag" domain="boolFlag" type="java.lang.String" precision="1"/>
+        </prop>
+        <prop name="maxRetryCount" displayName="最大重试次数" propId="6" i18n-en:displayName="Max Retry Count"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema domain="maxRetryCount" type="java.lang.Integer"/>
+        </prop>
+        <prop name="backoffStrategy" displayName="退避策略" propId="7" i18n-en:displayName="Backoff Strategy"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema domain="backoffStrategy" type="java.lang.Integer" dict="retry/backoff-strategy"/>
+        </prop>
+        <prop name="backoffConfig" displayName="退避配置" propId="8" i18n-en:displayName="Backoff Config" queryable="true"
+              sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="backoffConfigComponent">
+            <schema stdDomain="json" domain="json-4000" type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="executionTimeoutSeconds" displayName="执行超时(秒)" propId="9"
+              i18n-en:displayName="Execution Timeout (Seconds)" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema domain="executionTimeoutSeconds" type="java.lang.Integer"/>
+        </prop>
+        <prop name="deadlineTimeoutMs" displayName="截止超时(毫秒)" propId="10"
+              i18n-en:displayName="Deadline Timeout (Milliseconds)" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema domain="deadlineTimeoutMs" type="java.lang.Long"/>
+        </prop>
+        <prop name="blockStrategy" displayName="阻塞策略" propId="11" i18n-en:displayName="Block Strategy" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema domain="blockStrategy" type="java.lang.Integer" dict="retry/block-strategy"/>
+        </prop>
+        <prop name="callbackEnabled" displayName="启用回调" propId="12" i18n-en:displayName="Callback Enabled"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema stdDomain="boolFlag" domain="callbackEnabled" type="java.lang.String" precision="1"/>
+        </prop>
+        <prop name="callbackTriggerType" displayName="回调触发类型" propId="13" i18n-en:displayName="Callback Trigger Type"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema domain="callbackTriggerType" type="java.lang.Integer" dict="retry/callback-trigger-type"/>
+        </prop>
+        <prop name="callbackMaxAttempts" displayName="回调最大次数" propId="14" i18n-en:displayName="Callback Max Attempts"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema domain="callbackMaxAttempts" type="java.lang.Integer"/>
+        </prop>
+        <prop name="callbackIntervalSeconds" displayName="回调间隔(秒)" propId="15"
+              i18n-en:displayName="Callback Interval (Seconds)" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema domain="callbackIntervalSeconds" type="java.lang.Integer"/>
+        </prop>
+        <prop name="ownerId" displayName="所有者ID" propId="16" i18n-en:displayName="Owner ID" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="description" displayName="描述" propId="17" i18n-en:displayName="Description" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="version" displayName="版本" propId="18" i18n-en:displayName="Version" queryable="true" sortable="true"
+              insertable="false" updatable="false" internal="true">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="19" i18n-en:displayName="Created By" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="20" i18n-en:displayName="Create Time" tagSet="clock"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="更新人" propId="21" i18n-en:displayName="Updated By" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="更新时间" propId="22" i18n-en:displayName="Update Time" tagSet="clock"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="records" displayName="重试记录" i18n-en:displayName="Retry Records"
+              tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true" ext:joinLeftProp="sid"
+              ext:joinRightProp="templateId" insertable="true" updatable="true" lazy="true">
+            <schema>
+                <item bizObjName="NopRetryRecord"/>
+            </schema>
+        </prop>
+        <prop name="backoffConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true"
+              insertable="true" updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+    </props>
+</meta>

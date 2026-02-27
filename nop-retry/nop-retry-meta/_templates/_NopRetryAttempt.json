@@ -1,0 +1,23 @@
+{
+  "sid": "",
+  "recordId": "",
+  "attemptNo": 0,
+  "status": 0,
+  "status_label": "",
+  "startTime": "2000-01-01 14:00:00",
+  "endTime": "2000-01-01 14:00:00",
+  "durationMs": 0,
+  "errorCode": "",
+  "errorMessage": "",
+  "errorStack": "",
+  "clientAddress": "",
+  "reason": "",
+  "requestPayloadSnapshot": "",
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "record": null,
+  "requestPayloadSnapshotComponent": null
+}

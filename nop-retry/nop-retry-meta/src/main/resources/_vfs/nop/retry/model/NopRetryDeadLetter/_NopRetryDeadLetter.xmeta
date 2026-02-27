@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="重试死信" i18n-en:displayName="Retry Dead Letter" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>io.nop.retry.dao.entity.NopRetryDeadLetter</entityName>
+
+    <primaryKey>sid</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="sid" displayName="主键" propId="1" i18n-en:displayName="Primary Key" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema domain="policyId" type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="namespaceId" displayName="命名空间ID" propId="2" i18n-en:displayName="Namespace ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema domain="namespaceId" type="java.lang.String" precision="64"/>
+        </prop>
+        <prop name="groupId" displayName="组ID" propId="3" i18n-en:displayName="Group ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema domain="groupId" type="java.lang.String" precision="64"/>
+        </prop>
+        <prop name="policyId" displayName="策略ID" propId="4" i18n-en:displayName="Policy ID" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema domain="policyId" type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="recordId" displayName="记录ID" propId="5" i18n-en:displayName="Record ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="record">
+            <schema domain="policyId" type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="idempotentId" displayName="幂等ID" propId="6" i18n-en:displayName="Idempotent ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema domain="idempotentId" type="java.lang.String" precision="64"/>
+        </prop>
+        <prop name="bizNo" displayName="业务号" propId="7" i18n-en:displayName="Business Number" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema domain="bizNo" type="java.lang.String" precision="64"/>
+        </prop>
+        <prop name="executorName" displayName="执行器名称" propId="8" i18n-en:displayName="Executor Name" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema domain="executorName" type="java.lang.String" precision="512"/>
+        </prop>
+        <prop name="requestPayload" displayName="请求参数" propId="9" i18n-en:displayName="Request Payload" queryable="true"
+              sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="requestPayloadComponent">
+            <schema stdDomain="json" domain="json-4000" type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="failureCode" displayName="失败码" propId="10" i18n-en:displayName="Failure Code" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="failureMessage" displayName="失败消息" propId="11" i18n-en:displayName="Failure Message"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="errorStack" displayName="错误堆栈" propId="12" i18n-en:displayName="Error Stack" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="finalStatus" displayName="最终状态" propId="13" i18n-en:displayName="Final Status" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema domain="retryRecordStatus" type="java.lang.Integer" dict="retry/retry-record-status"/>
+        </prop>
+        <prop name="version" displayName="版本" propId="14" i18n-en:displayName="Version" queryable="true" sortable="true"
+              insertable="false" updatable="false" internal="true">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="15" i18n-en:displayName="Created By" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="16" i18n-en:displayName="Create Time" tagSet="clock"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="更新人" propId="17" i18n-en:displayName="Updated By" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="更新时间" propId="18" i18n-en:displayName="Update Time" tagSet="clock"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="serviceName" displayName="服务名" propId="19" i18n-en:displayName="Service Name" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema domain="serviceName" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="serviceMethod" displayName="服务方法" propId="20" i18n-en:displayName="Service Method" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema domain="serviceMethod" type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="record" displayName="记录" i18n-en:displayName="Record" tagSet="pub" ext:kind="to-one" internal="true"
+              queryable="true" ext:joinLeftProp="recordId" ext:joinRightProp="sid" insertable="false" updatable="false"
+              mandatory="true" lazy="true">
+            <schema bizObjName="NopRetryRecord"/>
+        </prop>
+        <prop name="requestPayloadComponent" tagSet="json,pub,edit" ext:kind="component" internal="true"
+              insertable="true" updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+    </props>
+</meta>

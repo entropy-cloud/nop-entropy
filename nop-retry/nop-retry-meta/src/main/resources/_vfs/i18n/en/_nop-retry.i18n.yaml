@@ -1,0 +1,110 @@
+entity:
+  label:
+    NopRetryAttempt: Retry Attempt
+    NopRetryDeadLetter: Retry Dead Letter
+    NopRetryRecord: Retry Record
+    NopRetryTemplate: Retry Template
+prop:
+  label:
+    NopRetryAttempt:
+      sid: Primary Key
+      recordId: Record ID
+      attemptNo: Attempt Number
+      status: Status
+      status_label: null
+      startTime: Start Time
+      endTime: End Time
+      durationMs: Duration (Milliseconds)
+      errorCode: Error Code
+      errorMessage: Error Message
+      errorStack: Error Stack
+      clientAddress: Client Address
+      reason: Reason
+      requestPayloadSnapshot: Request Payload Snapshot
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      record: Record
+      requestPayloadSnapshotComponent: null
+    NopRetryDeadLetter:
+      sid: Primary Key
+      namespaceId: Namespace ID
+      groupId: Group ID
+      templateId: Template ID
+      recordId: Record ID
+      idempotentId: Idempotent ID
+      bizNo: Business Number
+      executorName: Executor Name
+      serializerName: Serializer Name
+      requestPayload: Request Payload
+      failureCode: Failure Code
+      failureMessage: Failure Message
+      errorStack: Error Stack
+      finalStatus: Final Status
+      finalStatus_label: null
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      record: Record
+      requestPayloadComponent: null
+    NopRetryRecord:
+      sid: Primary Key
+      namespaceId: Namespace ID
+      groupId: Group ID
+      templateId: Template ID
+      idempotentId: Idempotent ID
+      bizNo: Business Number
+      taskType: Task Type
+      taskType_label: null
+      status: Status
+      status_label: null
+      retryCount: Retry Count
+      maxRetryCount: Max Retry Count
+      nextTriggerTime: Next Trigger Time
+      partitionIndex: Partition Index
+      executorName: Executor Name
+      serializerName: Serializer Name
+      requestPayload: Request Payload
+      contextPayload: Context Payload
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      template: Template
+      attempts: Retry Attempts
+      deadLetter: null
+      requestPayloadComponent: null
+      contextPayloadComponent: null
+    NopRetryTemplate:
+      sid: Primary Key
+      namespaceId: Namespace ID
+      groupId: Group ID
+      name: Template Name
+      status: Status
+      maxRetryCount: Max Retry Count
+      backoffStrategy: Backoff Strategy
+      backoffStrategy_label: null
+      backoffConfig: Backoff Config
+      executionTimeoutSeconds: Execution Timeout (Seconds)
+      deadlineTimeoutMs: Deadline Timeout (Milliseconds)
+      blockStrategy: Block Strategy
+      blockStrategy_label: null
+      callbackEnabled: Callback Enabled
+      callbackTriggerType: Callback Trigger Type
+      callbackTriggerType_label: null
+      callbackMaxAttempts: Callback Max Attempts
+      callbackIntervalSeconds: Callback Interval (Seconds)
+      ownerId: Owner ID
+      description: Description
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      records: Retry Records
+      backoffConfigComponent: null

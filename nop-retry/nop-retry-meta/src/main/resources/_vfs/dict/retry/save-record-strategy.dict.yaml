@@ -1,15 +1,15 @@
 # __XGEN_FORCE_OVERRIDE__
-label: 退避策略
+label: 保存记录策略
 locale: zh-CN
 valueType: int
 description: 
 options:
 
-  - label: 固定间隔
+  - label: 调用前保存
     value: 1
     description: 
   
-  - label: 指数退避
+  - label: 失败后保存
     value: 2
     description: 
   
