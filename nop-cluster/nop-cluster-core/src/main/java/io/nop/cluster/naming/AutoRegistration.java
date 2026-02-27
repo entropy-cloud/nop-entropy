@@ -21,6 +21,7 @@ import jakarta.inject.Inject;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -159,7 +160,7 @@ public class AutoRegistration {
         instance.setWeight(weight);
         instance.setMetadata(metadata);
         instance.setTags(tags);
-        // instance.setInstanceId(UUID.randomUUID().toString());
+        instance.setInstanceId(AppConfig.hostId());
         this.instance = instance;
         return instance;
     }
@@ -187,7 +188,7 @@ public class AutoRegistration {
 
     protected void refreshRegistration() {
         if (instance != null) {
-            namingService.updateInstance(getServiceInstance());
+            namingService.updateInstance(instance);
         }
     }
 

@@ -69,6 +69,10 @@ public class WeightedPartitionAssigner implements IPartitionAssigner {
                 ret.add(IntRangeBean.intRange(offset, 0));
             } else {
                 int subLimit = (int) Math.round((getWeight(server) * 1.0 / ttlWeight) * limit);
+                // 确保至少分配 1 个（如果还有剩余）
+                if (subLimit == 0 && offset < end) {
+                    subLimit = 1;
+                }
                 if (i == n - 1) {
                     subLimit = end - offset;
                 }
