@@ -8,6 +8,9 @@
 package io.nop.auth.core.login;
 
 import io.nop.api.core.auth.IUserContext;
+import io.nop.api.core.auth.IUserContextExtractor;
+import io.nop.api.core.exceptions.NopLoginException;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.api.messages.LoginRequest;
 import io.nop.auth.api.messages.LoginUserInfo;
 import io.nop.auth.api.messages.LogoutRequest;
@@ -18,7 +21,7 @@ import java.util.concurrent.CompletionStage;
 /**
  * 用户登录后产生UserContext，保存在全局缓存中。
  */
-public interface ILoginService {
+public interface ILoginService extends IUserContextExtractor {
 
     CompletionStage<IUserContext> loginAsync(LoginRequest request, Map<String, Object> headers);
 
@@ -34,7 +37,7 @@ public interface ILoginService {
      */
     CompletionStage<Void> flushUserContextAsync(IUserContext userContext);
 
-    CompletionStage<IUserContext> getUserContextAsync(AuthToken accessToken, Map<String,Object> headers);
+    CompletionStage<IUserContext> getUserContextAsync(AuthToken accessToken, Map<String, Object> headers);
 
     /**
      * 得到指定用户当前的登录上下文
@@ -58,4 +61,51 @@ public interface ILoginService {
 
     String refreshToken(IUserContext userContext, AuthToken authToken);
 
+    /**
+     * 从请求头中提取认证信息并构建用户上下文。
+     * <p>
+     * 默认实现从 headers 中获取 Authorization 头，解析 token 后调用 getUserContextAsync 获取用户上下文。
+     *
+     * @param headers 请求头信息
+     * @return 用户上下文对象，如果没有认证信息则返回 null
+     * @throws NopLoginException 如果认证信息存在但验证失败
+     */
+    @Override
+    default IUserContext extractFromHeaders(Map<String, Object> headers) throws NopLoginException {
+        if (headers == null)
+            return null;
+
+        Object authHeader = headers.get("Authorization");
+        if (authHeader == null) {
+            authHeader = headers.get("authorization");
+        }
+        if (authHeader == null)
+            return null;
+
+        String authStr = authHeader.toString();
+        if (authStr.isEmpty())
+            return null;
+
+        // 支持 Bearer token 格式
+        String accessToken;
+        if (authStr.startsWith("Bearer ") || authStr.startsWith("bearer ")) {
+            accessToken = authStr.substring(7);
+        } else {
+            accessToken = authStr;
+        }
+
+        if (accessToken.isEmpty())
+            return null;
+
+        AuthToken token = parseAuthToken(accessToken);
+        if (token == null)
+            return null;
+
+
+        return getUserContext(token, headers);
+    }
+
+    default IUserContext getUserContext(AuthToken authToken, Map<String, Object> headers) {
+        return FutureHelper.syncGet(getUserContextAsync(authToken, headers));
+    }
 }

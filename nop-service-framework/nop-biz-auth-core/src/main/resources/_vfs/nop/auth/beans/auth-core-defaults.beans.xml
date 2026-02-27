@@ -41,5 +41,4 @@
     <bean id="io.nop.auth.core.login.UserContextConfig" ioc:type="@bean:id"
           ioc:config-prefix="nop.auth.user-context-config"/>
 
-
 </beans>

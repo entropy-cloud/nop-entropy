@@ -82,6 +82,13 @@ public interface IGenericType extends Serializable, Type, IJsonString {
         return Collections.emptyList();
     }
 
+    default IGenericType getTypeParameter0(){
+        List<IGenericType> params = getTypeParameters();
+        if(params.isEmpty())
+            return null;
+        return params.get(0);
+    }
+
     /**
      * 是否包含泛型参数
      */
