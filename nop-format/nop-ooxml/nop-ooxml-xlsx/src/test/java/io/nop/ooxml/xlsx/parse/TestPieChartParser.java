@@ -50,8 +50,8 @@ public class TestPieChartParser extends BaseTestCase {
         assertNotNull(chart.getType(), "Chart should have a type");
 
         // 注释掉生成文件的代码，避免修改samples目录下的文件
-        // File targetFile = getTargetFile("../samples/generated-pie-chart.xlsx");
-        // new ExcelTemplate(wk).generateToFile(targetFile, XLang.newEvalScope());
+        File targetFile = getTargetFile("generated-pie-chart.xlsx");
+        new ExcelTemplate(wk).generateToFile(targetFile, XLang.newEvalScope());
 
         File originalDir = getTargetFile("../samples/original-pie-chart");
         //FileHelper.deleteAll(originalDir);

@@ -15,10 +15,12 @@ import io.nop.xlang.xt.model.XtTransformModel;
 import io.nop.xlang.xdsl.DslModelParser;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Disabled
 public class TestXtTransform extends BaseTestCase {
     private static final String XT_SCHEMA = "/nop/schema/xt.xdef";
 

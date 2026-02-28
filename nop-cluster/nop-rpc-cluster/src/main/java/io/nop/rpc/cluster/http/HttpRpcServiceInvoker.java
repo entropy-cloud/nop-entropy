@@ -6,6 +6,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.rpc.IRpcService;
 import io.nop.api.core.rpc.IRpcServiceInterceptor;
 import io.nop.api.core.rpc.IRpcServiceInvoker;
+import io.nop.api.core.rpc.IRpcServiceLocator;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
@@ -24,7 +25,7 @@ import java.util.concurrent.CompletionStage;
 import static io.nop.rpc.api.RpcErrors.ARG_SERVICE_NAME;
 import static io.nop.rpc.api.RpcErrors.ERR_RPC_NOT_ALLOWED_SERVICE_NAME;
 
-public class HttpRpcServiceInvoker implements IRpcServiceInvoker {
+public class HttpRpcServiceInvoker implements IRpcServiceInvoker , IRpcServiceLocator {
     private IHttpClient httpClient;
     private Map<String, String> urlMap;
     private String defaultBaseUrl;

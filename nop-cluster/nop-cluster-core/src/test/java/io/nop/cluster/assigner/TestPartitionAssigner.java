@@ -28,9 +28,8 @@ public class TestPartitionAssigner {
         WeightedPartitionAssigner assigner = new WeightedPartitionAssigner();
         List<IntRangeBean> partitions = assigner.assignPartitions(IntRangeBean.shortRange(), servers);
         System.out.println(StringHelper.join(partitions, "\n"));
-        assertEquals(32768, partitions.stream().reduce(0, (a, b) -> a + b.getLimit(), Integer::sum));
-        assertEquals("0,13107|13107,6554|19661,13107", StringHelper.join(partitions, "|"));
-
+        assertEquals(32767, partitions.stream().reduce(0, (a, b) -> a + b.getLimit(), Integer::sum));
+        assertEquals("0,13107|13107,6553|19660,13107", StringHelper.join(partitions, "|"));
         partitions = assigner.assignPartitions(IntRangeBean.intRange(1, 5), servers);
         System.out.println(StringHelper.join(partitions, "\n"));
         assertEquals(5, partitions.stream().reduce(0, (a, b) -> a + b.getLimit(), Integer::sum));

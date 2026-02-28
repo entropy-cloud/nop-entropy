@@ -263,8 +263,9 @@ public class TestGraphQLSubscriptionManager {
 
         List<String> sentMessages = session.getSentMessages();
         assertFalse(sentMessages.isEmpty());
-        assertTrue(sentMessages.get(0).contains("\"type\":\"next\""));
+        assertTrue(sentMessages.get(0).contains("\"jsonrpc\":\"2.0\""));
         assertTrue(sentMessages.get(0).contains("\"id\":\"op-1\""));
+        assertTrue(sentMessages.get(0).contains("\"result\""));
     }
 
     @Test

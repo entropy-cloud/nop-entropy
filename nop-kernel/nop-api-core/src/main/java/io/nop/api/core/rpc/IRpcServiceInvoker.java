@@ -12,7 +12,7 @@ import java.util.concurrent.CompletionStage;
  * 返回的 {@link ApiResponse} 保证不为 null，调用方可直接使用。
  * 如果调用失败，会通过 {@link CompletionStage#toCompletableFuture()} 抛出异常。
  */
-public interface IRpcServiceInvoker {
+public interface IRpcServiceInvoker extends IRpcServiceLocator{
     /**
      * 异步执行 RPC 调用
      *
@@ -25,7 +25,7 @@ public interface IRpcServiceInvoker {
     CompletionStage<ApiResponse<?>> invokeAsync(String serviceName, String serviceMethod,
                                                 ApiRequest<?> request, ICancelToken cancelToken);
 
-    default IRpcService toRpcService(String serviceName) {
+    default IRpcService getRpcService(String serviceName) {
         return (serviceMethod, request, cancelToken) -> invokeAsync(serviceName, serviceMethod, request, cancelToken);
     }
 

@@ -21,6 +21,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -39,6 +42,7 @@ public class GraphQLSubscriptionManager {
     static final Logger LOG = LoggerFactory.getLogger(GraphQLSubscriptionManager.class);
 
     private static final String TOPIC_PREFIX = "graphql-subscription/";
+    private static final String JSONRPC_VERSION = "2.0";
 
     private IMessageService messageService;
     private int maxActiveSubscriptions = 1000;
@@ -191,7 +195,7 @@ public class GraphQLSubscriptionManager {
     }
 
     /**
-     * Push message to WebSocket client
+     * Push message to WebSocket client using JSON-RPC format
      */
     protected void pushToClient(SubscriptionInfo subscription, String topic, String message) throws IOException {
         IWebSocketSession session = subscription.getSession();
@@ -200,7 +204,13 @@ public class GraphQLSubscriptionManager {
             return;
         }
 
-        session.sendMessage(message);
+        // Build JSON-RPC response format (same as JsonRpcWebSocketHandler)
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("jsonrpc", JSONRPC_VERSION);
+        response.put("id", subscription.getOperationId());
+        response.put("result", JsonTool.parse(message));
+
+        session.sendMessage(JsonTool.stringify(response));
     }
 
     /**
