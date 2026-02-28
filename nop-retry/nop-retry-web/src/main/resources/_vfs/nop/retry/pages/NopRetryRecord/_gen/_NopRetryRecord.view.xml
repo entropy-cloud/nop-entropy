@@ -74,6 +74,12 @@
 
                 <!--更新时间-->
                 <col id="updateTime" sortable="true"/>
+
+                <!--服务名-->
+                <col id="serviceName" sortable="true"/>
+
+                <!--服务方法-->
+                <col id="serviceMethod" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -91,7 +97,8 @@
  executorName[执行器名称] requestPayload[请求参数]
  contextPayload[上下文参数] createdBy[创建人]
  createTime[创建时间] updatedBy[更新人]
- updateTime[更新时间] 
+ updateTime[更新时间] serviceName[服务名]
+ serviceMethod[服务方法] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-重试记录" i18n-en:title="Add Retry Record" x:prototype="edit"/>
@@ -104,7 +111,8 @@
  retryCount[重试次数] maxRetryCount[最大重试次数]
  nextTriggerTime[下次触发时间] partitionIndex[分区索引]
  executorName[执行器名称] requestPayload[请求参数]
- contextPayload[上下文参数] 
+ contextPayload[上下文参数] serviceName[服务名]
+ serviceMethod[服务方法] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

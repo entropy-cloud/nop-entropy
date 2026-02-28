@@ -19,6 +19,7 @@
         <module>nop-retry-api</module>
         <module>nop-retry-dao</module>
         <module>nop-retry-meta</module>
+        <module>nop-retry-engine</module>
         <module>nop-retry-service</module>
         <module>nop-retry-app</module>
         <module>nop-retry-web</module>

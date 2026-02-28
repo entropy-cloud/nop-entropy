@@ -68,6 +68,12 @@
 
                 <!--更新时间-->
                 <col id="updateTime" sortable="true"/>
+
+                <!--服务名-->
+                <col id="serviceName" sortable="true"/>
+
+                <!--服务方法-->
+                <col id="serviceMethod" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -84,7 +90,8 @@
  failureMessage[失败消息] errorStack[错误堆栈]
  finalStatus[最终状态] createdBy[创建人]
  createTime[创建时间] updatedBy[更新人]
- updateTime[更新时间] 
+ updateTime[更新时间] serviceName[服务名]
+ serviceMethod[服务方法] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-重试死信" i18n-en:title="Add Retry Dead Letter" x:prototype="edit"/>
@@ -96,7 +103,8 @@
  bizNo[业务号] executorName[执行器名称]
  requestPayload[请求参数] failureCode[失败码]
  failureMessage[失败消息] errorStack[错误堆栈]
- finalStatus[最终状态] 
+ finalStatus[最终状态] serviceName[服务名]
+ serviceMethod[服务方法] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

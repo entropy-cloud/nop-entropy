@@ -2,6 +2,7 @@ entity:
   label:
     NopRetryAttempt: Retry Attempt
     NopRetryDeadLetter: Retry Dead Letter
+    NopRetryPolicy: Retry Policy
     NopRetryRecord: Retry Record
     NopRetryTemplate: Retry Template
 prop:
@@ -32,12 +33,11 @@ prop:
       sid: Primary Key
       namespaceId: Namespace ID
       groupId: Group ID
-      templateId: Template ID
+      policyId: Policy ID
       recordId: Record ID
       idempotentId: Idempotent ID
       bizNo: Business Number
       executorName: Executor Name
-      serializerName: Serializer Name
       requestPayload: Request Payload
       failureCode: Failure Code
       failureMessage: Failure Message
@@ -49,13 +49,47 @@ prop:
       createTime: Create Time
       updatedBy: Updated By
       updateTime: Update Time
+      serviceName: Service Name
+      serviceMethod: Service Method
       record: Record
       requestPayloadComponent: null
+    NopRetryPolicy:
+      sid: Primary Key
+      namespaceId: Namespace ID
+      groupId: Group ID
+      name: Policy Name
+      status: Status
+      saveRecordStrategy: Save Record Strategy
+      saveRecordStrategy_label: null
+      immediateRetryCount: Immediate Retry Count
+      immediateRetryIntervalMs: Immediate Retry Interval (Milliseconds)
+      maxRetryCount: Max Retry Count
+      backoffStrategy: Backoff Strategy
+      backoffStrategy_label: null
+      initialIntervalMs: Initial Interval (Milliseconds)
+      maxIntervalMs: Max Interval (Milliseconds)
+      jitterRatio: Jitter Ratio
+      executionTimeoutSeconds: Execution Timeout (Seconds)
+      deadlineTimeoutMs: Deadline Timeout (Milliseconds)
+      blockStrategy: Block Strategy
+      blockStrategy_label: null
+      callbackEnabled: Callback Enabled
+      callbackTriggerType: Callback Trigger Type
+      callbackTriggerType_label: null
+      callbackPolicyId: Callback Policy ID
+      ownerId: Owner ID
+      description: Description
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      retryingTimeoutMs: Retrying Lock Timeout (Milliseconds)
     NopRetryRecord:
       sid: Primary Key
       namespaceId: Namespace ID
       groupId: Group ID
-      templateId: Template ID
+      policyId: Policy ID
       idempotentId: Idempotent ID
       bizNo: Business Number
       taskType: Task Type
@@ -67,7 +101,6 @@ prop:
       nextTriggerTime: Next Trigger Time
       partitionIndex: Partition Index
       executorName: Executor Name
-      serializerName: Serializer Name
       requestPayload: Request Payload
       contextPayload: Context Payload
       version: Version
@@ -75,9 +108,9 @@ prop:
       createTime: Create Time
       updatedBy: Updated By
       updateTime: Update Time
-      template: Template
-      attempts: Retry Attempts
-      deadLetter: null
+      serviceName: Service Name
+      serviceMethod: Service Method
+      policy: Policy
       requestPayloadComponent: null
       contextPayloadComponent: null
     NopRetryTemplate:

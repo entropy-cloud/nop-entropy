@@ -72,11 +72,8 @@
                 <!--回调触发类型-->
                 <col id="callbackTriggerType" ui:number="true" sortable="true"/>
 
-                <!--回调最大次数-->
-                <col id="callbackMaxAttempts" ui:number="true" sortable="true"/>
-
-                <!--回调间隔(秒)-->
-                <col id="callbackIntervalSeconds" ui:number="true" sortable="true"/>
+                <!--回调策略ID-->
+                <col id="callbackPolicyId" sortable="true"/>
 
                 <!--所有者ID-->
                 <col id="ownerId" sortable="true"/>
@@ -95,6 +92,9 @@
 
                 <!--更新时间-->
                 <col id="updateTime" sortable="true"/>
+
+                <!--执行中锁定超时(毫秒)-->
+                <col id="retryingTimeoutMs" ui:number="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -112,10 +112,10 @@
  jitterRatio[抖动比例] executionTimeoutSeconds[执行超时(秒)]
  deadlineTimeoutMs[截止超时(毫秒)] blockStrategy[阻塞策略]
  callbackEnabled[启用回调] callbackTriggerType[回调触发类型]
- callbackMaxAttempts[回调最大次数] callbackIntervalSeconds[回调间隔(秒)]
- ownerId[所有者ID] description[描述]
- createdBy[创建人] createTime[创建时间]
- updatedBy[更新人] updateTime[更新时间]
+ callbackPolicyId[回调策略ID] ownerId[所有者ID]
+ description[描述] createdBy[创建人]
+ createTime[创建时间] updatedBy[更新人]
+ updateTime[更新时间] retryingTimeoutMs[执行中锁定超时(毫秒)]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-重试策略" i18n-en:title="Add Retry Policy" x:prototype="edit"/>
@@ -130,8 +130,8 @@
  jitterRatio[抖动比例] executionTimeoutSeconds[执行超时(秒)]
  deadlineTimeoutMs[截止超时(毫秒)] blockStrategy[阻塞策略]
  callbackEnabled[启用回调] callbackTriggerType[回调触发类型]
- callbackMaxAttempts[回调最大次数] callbackIntervalSeconds[回调间隔(秒)]
- ownerId[所有者ID] description[描述]
+ callbackPolicyId[回调策略ID] ownerId[所有者ID]
+ description[描述] retryingTimeoutMs[执行中锁定超时(毫秒)]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

@@ -2,6 +2,7 @@ entity:
   label:
     NopRetryAttempt: 重试尝试
     NopRetryDeadLetter: 重试死信
+    NopRetryPolicy: 重试策略
     NopRetryRecord: 重试记录
     NopRetryTemplate: 重试模板
 prop:
@@ -41,24 +42,55 @@ prop:
       groupId: 组ID
       idempotentId: 幂等ID
       namespaceId: 命名空间ID
+      policyId: 策略ID
       record: 记录
       recordId: 记录ID
       requestPayload: 请求参数
       requestPayloadComponent: null
-      serializerName: 序列化器名称
+      serviceMethod: 服务方法
+      serviceName: 服务名
       sid: 主键
-      templateId: 模板ID
+      updateTime: 更新时间
+      updatedBy: 更新人
+      version: 版本
+    NopRetryPolicy:
+      backoffStrategy: 退避策略
+      backoffStrategy_label: 退避策略
+      blockStrategy: 阻塞策略
+      blockStrategy_label: 阻塞策略
+      callbackEnabled: 启用回调
+      callbackPolicyId: 回调策略ID
+      callbackTriggerType: 回调触发类型
+      callbackTriggerType_label: 回调触发类型
+      createTime: 创建时间
+      createdBy: 创建人
+      deadlineTimeoutMs: 截止超时(毫秒)
+      description: 描述
+      executionTimeoutSeconds: 执行超时(秒)
+      groupId: 组ID
+      immediateRetryCount: 立刻重试次数
+      immediateRetryIntervalMs: 立刻重试间隔(毫秒)
+      initialIntervalMs: 初始间隔(毫秒)
+      jitterRatio: 抖动比例
+      maxIntervalMs: 最大间隔(毫秒)
+      maxRetryCount: 最大重试次数
+      name: 策略名称
+      namespaceId: 命名空间ID
+      ownerId: 所有者ID
+      retryingTimeoutMs: 执行中锁定超时(毫秒)
+      saveRecordStrategy: 保存记录策略
+      saveRecordStrategy_label: 保存记录策略
+      sid: 主键
+      status: 状态
       updateTime: 更新时间
       updatedBy: 更新人
       version: 版本
     NopRetryRecord:
-      attempts: 重试尝试
       bizNo: 业务号
       contextPayload: 上下文参数
       contextPayloadComponent: null
       createTime: 创建时间
       createdBy: 创建人
-      deadLetter: null
       executorName: 执行器名称
       groupId: 组ID
       idempotentId: 幂等ID
@@ -66,17 +98,18 @@ prop:
       namespaceId: 命名空间ID
       nextTriggerTime: 下次触发时间
       partitionIndex: 分区索引
+      policy: 策略
+      policyId: 策略ID
       requestPayload: 请求参数
       requestPayloadComponent: null
       retryCount: 重试次数
-      serializerName: 序列化器名称
+      serviceMethod: 服务方法
+      serviceName: 服务名
       sid: 主键
       status: 状态
       status_label: 状态
       taskType: 任务类型
       taskType_label: 任务类型
-      template: 模板
-      templateId: 模板ID
       updateTime: 更新时间
       updatedBy: 更新人
       version: 版本
