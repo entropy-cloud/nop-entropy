@@ -319,11 +319,11 @@ public class BaseTestCase {
     }
 
     public File getSrcDir() {
-        return new File(getTargetDir(), "../src");
+        return FileHelper.getAbsoluteFile(new File(getTargetDir(), "../src"));
     }
 
     public File getModuleDir() {
-        return new File(getTargetDir(), "..");
+        return FileHelper.getAbsoluteFile(new File(getTargetDir(), ".."));
     }
 
     public File getCasesDir() {
