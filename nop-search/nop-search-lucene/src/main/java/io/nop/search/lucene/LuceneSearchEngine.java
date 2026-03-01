@@ -65,6 +65,11 @@ import org.apache.lucene.search.highlight.SimpleHTMLFormatter;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.index.VectorSimilarityFunction;
+import org.apache.lucene.search.KnnFloatVectorQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.ScoreDoc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,6 +79,8 @@ import java.io.StringReader;
 import java.nio.file.Path;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -82,7 +89,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import static io.nop.search.api.SearchConstants.FIELD_BIZ_KEY;
+// Optional embedding support via ITextEmbedding interface
+import io.nop.search.api.ITextEmbedding;
+
 import static io.nop.search.api.SearchConstants.FIELD_CONTENT;
 import static io.nop.search.api.SearchConstants.FIELD_FILE_SIZE;
 import static io.nop.search.api.SearchConstants.FIELD_ID;
@@ -92,13 +101,22 @@ import static io.nop.search.api.SearchConstants.FIELD_PATH;
 import static io.nop.search.api.SearchConstants.FIELD_PUBLISH_TIME;
 import static io.nop.search.api.SearchConstants.FIELD_SUMMARY;
 import static io.nop.search.api.SearchConstants.FIELD_TAG;
+import static io.nop.search.api.SearchConstants.FIELD_BIZ_KEY;
+
+import static io.nop.search.lucene.LuceneErrors.ARG_TOPIC;
+import static io.nop.search.lucene.LuceneErrors.ERR_LUCENE_OPEN_INDEX_FAIL;
+import static io.nop.search.lucene.LuceneErrors.ERR_LUCENE_VECTOR_SEARCH_NOT_IMPLEMENTED;
+import static io.nop.search.lucene.LuceneErrors.ERR_LUCENE_HYBRID_SEARCH_NOT_IMPLEMENTED;
 import static io.nop.search.api.SearchConstants.FIELD_TITLE;
-import static io.nop.search.lucene.LuceneErrors.ARG_INDEX_DIR;
+
+import io.nop.search.api.SearchType;
 import static io.nop.search.lucene.LuceneErrors.ARG_TOPIC;
 import static io.nop.search.lucene.LuceneErrors.ERR_LUCENE_OPEN_INDEX_FAIL;
 
 public class LuceneSearchEngine implements ISearchEngine {
     static final Logger LOG = LoggerFactory.getLogger(LuceneSearchEngine.class);
+
+    private static final String FIELD_EMBEDDING = "embedding";
 
     private Analyzer analyzer;
     private final Map<String, Directory> indexDirs = new ConcurrentHashMap<>();
@@ -107,9 +125,23 @@ public class LuceneSearchEngine implements ISearchEngine {
     private LuceneConfig config;
     private File rootPath;
 
+    /**
+     * Optional embedding provider for generating vector embeddings.
+     * If not set, a hash-based mock embedding will be used.
+     */
+    private ITextEmbedding textEmbedding;
+
     @Inject
     public void setConfig(LuceneConfig config) {
         this.config = config;
+    }
+
+    /**
+     * Optional injection of text embedding provider.
+     * If not injected, hash-based mock embeddings will be used.
+     */
+    public void setTextEmbedding(ITextEmbedding textEmbedding) {
+        this.textEmbedding = textEmbedding;
     }
 
     @PostConstruct
@@ -122,8 +154,7 @@ public class LuceneSearchEngine implements ISearchEngine {
         try {
             this.analyzer = buildAnalyzer();
         } catch (Exception e) {
-            throw new NopException(ERR_LUCENE_OPEN_INDEX_FAIL, e)
-                    .param(ARG_INDEX_DIR, config.getIndexDir());
+            throw new NopException(ERR_LUCENE_OPEN_INDEX_FAIL, e);
         }
     }
 
@@ -199,8 +230,7 @@ public class LuceneSearchEngine implements ISearchEngine {
                 return FSDirectory.open(topicPath);
             } catch (IOException e) {
                 throw new NopException(ERR_LUCENE_OPEN_INDEX_FAIL, e)
-                        .param(ARG_TOPIC, finalTopic)
-                        .param(ARG_INDEX_DIR, config.getIndexDir());
+                        .param(ARG_TOPIC, finalTopic);
             }
         });
     }
@@ -340,6 +370,34 @@ public class LuceneSearchEngine implements ISearchEngine {
         return sd;
     }
 
+    /**
+     * 将Document转换为SearchHit
+     */
+    protected SearchHit convertDocumentToSearchHit(Document doc) {
+        SearchHit hit = new SearchHit();
+        hit.setId(doc.get(FIELD_ID));
+        hit.setName(doc.get(FIELD_NAME));
+        hit.setTitle(doc.get(FIELD_TITLE));
+        hit.setSummary(doc.get(FIELD_SUMMARY));
+        hit.setContent(doc.get(FIELD_CONTENT));
+        hit.setBizKey(doc.get(FIELD_BIZ_KEY));
+        hit.setPath(doc.get(FIELD_PATH));
+        hit.setPublishTime(processNumericField(doc, FIELD_PUBLISH_TIME));
+        hit.setModifyTime(processNumericField(doc, FIELD_MODIFY_TIME));
+        hit.setFileSize(processNumericField(doc, FIELD_FILE_SIZE));
+
+        // Tags
+        IndexableField[] tagFields = doc.getFields(FIELD_TAG);
+        if (tagFields != null && tagFields.length > 0) {
+            Set<String> tags = new LinkedHashSet<>(tagFields.length);
+            for (IndexableField field : tagFields) {
+                tags.add(field.stringValue());
+            }
+            hit.setTags(tags);
+        }
+        return hit;
+    }
+
     @Override
     public List<SearchableDoc> getDocsByTerm(String topic, String termText) {
         List<SearchableDoc> docs = new ArrayList<>();
@@ -394,10 +452,29 @@ public class LuceneSearchEngine implements ISearchEngine {
 
     @Override
     public SearchResponse search(SearchRequest request) {
+        SearchType searchType = request.getSearchType() != null
+                ? request.getSearchType()
+                : SearchType.TEXT;
+
+        switch (searchType) {
+            case VECTOR:
+                return vectorSearch(request);
+            case HYBRID:
+                return hybridSearch(request);
+            case TEXT:
+            default:
+                return textSearch(request);
+        }
+    }
+
+    /**
+     * 纯文本搜索（原有逻辑）
+     */
+    protected SearchResponse textSearch(SearchRequest request) {
         SearcherManager manager = getSearcherManager(request.getTopic());
 
         try {
-            manager.maybeRefresh(); // 尝试刷新获取最新索引
+            manager.maybeRefresh();
             IndexSearcher searcher = manager.acquire();
 
             try {
@@ -423,6 +500,279 @@ public class LuceneSearchEngine implements ISearchEngine {
         } catch (IOException | InvalidTokenOffsetsException e) {
             throw NopException.adapt(e);
         }
+    }
+
+    /**
+     * 纯向量搜索
+     */
+    /**
+     * 纯向量搜索
+     */
+    protected SearchResponse vectorSearch(SearchRequest request) {
+        SearcherManager manager = getSearcherManager(request.getTopic());
+
+        try {
+            manager.maybeRefresh();
+            IndexSearcher searcher = manager.acquire();
+
+            try {
+                long beginTime = CoreMetrics.currentTimeMillis();
+
+                // 对于vector搜索，query应该是预先生成的embedding向量的base64编码
+                // 或者是一个简单的文本，我们使用简单的hash模拟
+                float[] queryVector = parseQueryVector(request.getQuery());
+
+                if (queryVector == null || queryVector.length == 0) {
+                    throw new NopException(ERR_LUCENE_VECTOR_SEARCH_NOT_IMPLEMENTED)
+                            .param(ARG_TOPIC, request.getTopic())
+                            .param("reason", "Query vector is empty or invalid");
+                }
+
+                // 创建kNN查询
+                int k = (int) (request.getLimit() * 1.5); // 多取一些用于阈值过滤
+                KnnFloatVectorQuery knnQuery = new KnnFloatVectorQuery(
+                    FIELD_EMBEDDING,
+                    queryVector,
+                    k
+                );
+
+                // 执行搜索
+                TopDocs topDocs = searcher.search(knnQuery, k);
+
+                // 转换结果
+                List<SearchHit> hits = new ArrayList<>();
+                for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
+                    // Lucene COSINE similarity的score范围是[0,1]
+                    double similarity = (double) scoreDoc.score;
+
+                    // 应用阈值过滤（similarityThreshold范围[0,1]）
+                    if (similarity < request.getSimilarityThreshold()) {
+                        continue;
+                    }
+
+                    Document doc = searcher.storedFields().document(scoreDoc.doc);
+                    SearchHit hit = convertDocumentToSearchHit(doc);
+
+                    // 设置分数（方案A：复用score字段）
+                    hit.setScore((float) similarity);
+
+                    hits.add(hit);
+
+                    if (hits.size() >= request.getLimit()) {
+                        break;
+                    }
+                }
+
+                // 构建响应
+                SearchResponse response = new SearchResponse();
+                response.setItems(hits);
+                response.setTotal(hits.size());
+                response.setQuery(request.getQuery());
+                response.setLimit(request.getLimit());
+                response.setProcessTime(CoreMetrics.currentTimeMillis() - beginTime);
+
+                return response;
+
+            } finally {
+                manager.release(searcher);
+            }
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
+    }
+
+    /**
+     * 解析查询向量
+     * 支持三种格式：
+     * 1. JSON数组格式：[0.1, 0.2, 0.3, ...]
+     * 2. 纯文本 + ITextEmbedding：使用嵌入模型生成embedding
+     * 3. 纯文本（无ITextEmbedding）：使用简单的hash模拟（仅用于测试）
+     */
+
+    private float[] parseQueryVector(String query) {
+        if (StringHelper.isEmpty(query)) {
+            return null;
+        }
+
+        // 尝试解析JSON数组
+        if (query.startsWith("[") && query.endsWith("]")) {
+            try {
+                String content = query.substring(1, query.length() - 1);
+                String[] parts = content.split(",");
+                float[] vector = new float[parts.length];
+                for (int i = 0; i < parts.length; i++) {
+                    vector[i] = Float.parseFloat(parts[i].trim());
+                }
+                return vector;
+            } catch (Exception e) {
+                LOG.warn("nop.search.parse-query-vector-failed:query={}", query, e);
+            }
+        }
+
+        // 如果有ITextEmbedding，使用它生成embedding
+        if (textEmbedding != null) {
+            float[] vector = textEmbedding.embed(query);
+            if (vector != null && vector.length > 0) {
+                return vector;
+            }
+        }
+
+        // 使用简单的文本hash模拟（仅用于测试，实际应使用ITextEmbedding）
+        return generateSimpleEmbedding(query);
+    }
+
+
+    /**
+     * 生成简单的文本embedding（仅用于测试）
+     * 实际生产环境应使用ITextEmbedding
+     */
+    private float[] generateSimpleEmbedding(String text) {
+        int dim = config != null ? config.getEmbeddingDimension() : 768;
+        float[] embedding = new float[dim];
+
+        // 使用字符串hash生成伪随机向量
+        int hash = text.hashCode();
+        java.util.Random random = new java.util.Random(hash);
+
+        for (int i = 0; i < dim; i++) {
+            embedding[i] = random.nextFloat() * 2 - 1; // 范围[-1, 1]
+        }
+
+        // 归一化
+        float norm = 0;
+        for (float v : embedding) {
+            norm += v * v;
+        }
+        norm = (float) Math.sqrt(norm);
+
+        if (norm > 0) {
+            for (int i = 0; i < dim; i++) {
+                embedding[i] /= norm;
+            }
+        }
+
+        return embedding;
+    }
+
+
+    /**
+     * 混合搜索（文本 + 向量，使用RRF融合）
+     */
+    protected SearchResponse hybridSearch(SearchRequest request) {
+        SearcherManager manager = getSearcherManager(request.getTopic());
+
+        try {
+            manager.maybeRefresh();
+            IndexSearcher searcher = manager.acquire();
+
+            try {
+                long beginTime = CoreMetrics.currentTimeMillis();
+
+                // 1. 文本搜索
+                Query textQuery = buildQuery(request);
+                TopDocs textResults = searcher.search(textQuery, request.getLimit() * 2);
+
+                // 2. 向量搜索
+                float[] queryVector = parseQueryVector(request.getQuery());
+                TopDocs vectorResults = null;
+                if (queryVector != null && queryVector.length > 0) {
+                    KnnFloatVectorQuery vectorQuery = new KnnFloatVectorQuery(
+                        FIELD_EMBEDDING,
+                        queryVector,
+                        request.getLimit() * 2
+                    );
+                    vectorResults = searcher.search(vectorQuery, request.getLimit() * 2);
+                }
+
+                // 3. RRF融合
+                List<SearchHit> mergedHits = mergeWithRRF(
+                    textResults,
+                    vectorResults,
+                    searcher,
+                    60  // RRF k parameter
+                );
+
+                // 4. 应用阈值并限制数量
+                List<SearchHit> filteredHits = mergedHits.stream()
+                    .filter(hit -> hit.getScore() >= request.getSimilarityThreshold())
+                    .limit(request.getLimit())
+                    .collect(Collectors.toList());
+
+                // 5. 构建响应
+                SearchResponse response = new SearchResponse();
+                response.setItems(filteredHits);
+                response.setTotal(filteredHits.size());
+                response.setQuery(request.getQuery());
+                response.setLimit(request.getLimit());
+                response.setProcessTime(CoreMetrics.currentTimeMillis() - beginTime);
+
+                return response;
+
+            } finally {
+                manager.release(searcher);
+            }
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
+    }
+
+    /**
+     * Reciprocal Rank Fusion (RRF) 融合算法
+     */
+    private List<SearchHit> mergeWithRRF(
+        TopDocs textResults,
+        TopDocs vectorResults,
+        IndexSearcher searcher,
+        int k
+    ) throws IOException {
+        Map<String, Double> scoreMap = new HashMap<>();
+        Map<String, SearchHit> hitMap = new HashMap<>();
+
+        // 处理文本搜索结果
+        if (textResults != null) {
+            for (int i = 0; i < textResults.scoreDocs.length; i++) {
+                ScoreDoc scoreDoc = textResults.scoreDocs[i];
+                Document doc = searcher.storedFields().document(scoreDoc.doc);
+                String docId = doc.get(FIELD_ID);
+
+                double rrfScore = 1.0 / (k + i + 1);
+                scoreMap.merge(docId, rrfScore, Double::sum);
+
+                if (!hitMap.containsKey(docId)) {
+                    SearchHit hit = convertDocumentToSearchHit(doc);
+                    hitMap.put(docId, hit);
+                }
+            }
+        }
+
+        // 处理向量搜索结果
+        if (vectorResults != null) {
+            for (int i = 0; i < vectorResults.scoreDocs.length; i++) {
+                ScoreDoc scoreDoc = vectorResults.scoreDocs[i];
+                Document doc = searcher.storedFields().document(scoreDoc.doc);
+                String docId = doc.get(FIELD_ID);
+
+                double rrfScore = 1.0 / (k + i + 1);
+                scoreMap.merge(docId, rrfScore, Double::sum);
+
+                if (hitMap.containsKey(docId)) {
+                    // 如果已存在（hybrid），说明来自文本搜索，无需额外处理
+                } else {
+                    SearchHit hit = convertDocumentToSearchHit(doc);
+                    hitMap.put(docId, hit);
+                }
+            }
+        }
+
+        // 排序并设置融合分数
+        return hitMap.entrySet().stream()
+            .sorted((e1, e2) -> Double.compare(
+                scoreMap.get(e2.getKey()),
+                scoreMap.get(e1.getKey())
+            ))
+            .peek(e -> e.getValue().setScore(scoreMap.get(e.getKey()).floatValue()))
+            .map(Map.Entry::getValue)
+            .collect(Collectors.toList());
     }
 
     protected Highlighter newHighligher(Query query, SearchRequest request) {
@@ -642,7 +992,49 @@ public class LuceneSearchEngine implements ISearchEngine {
             }
         }
 
+        // Embedding vector field
+        float[] embedding = doc.getEmbedding();
+        
+        // If no embedding but autoGenerate is true and we have an embedding provider, generate it
+        if (embedding == null && doc.isAutoGenerateEmbedding() && textEmbedding != null) {
+            String textForEmbedding = buildTextForEmbedding(doc);
+            if (!StringHelper.isEmpty(textForEmbedding)) {
+                try {
+                    embedding = textEmbedding.embed(textForEmbedding);
+                    if (embedding != null && embedding.length > 0) {
+                        doc.setEmbedding(embedding); // Cache for potential reuse
+                    }
+                } catch (Exception e) {
+                    LOG.warn("nop.search.generate-embedding-failed:docId={}", doc.getId(), e);
+                }
+            }
+        }
+
+
+        // Add embedding field if available
+        if (embedding != null && embedding.length > 0) {
+            ret.add(new KnnFloatVectorField(FIELD_EMBEDDING, embedding, VectorSimilarityFunction.COSINE));
+        }
+
         return ret;
+    }
+
+    /**
+     * Build text content for embedding generation.
+     * Combines title, summary, and content.
+     */
+    private String buildTextForEmbedding(SearchableDoc doc) {
+        StringBuilder sb = new StringBuilder();
+        if (!StringHelper.isEmpty(doc.getTitle())) {
+            sb.append(doc.getTitle()).append(" ");
+        }
+        if (!StringHelper.isEmpty(doc.getSummary())) {
+            sb.append(doc.getSummary()).append(" ");
+        }
+        if (!StringHelper.isEmpty(doc.getContent())) {
+            sb.append(doc.getContent());
+        }
+        return sb.toString().trim();
     }
 
     protected void addTextField(Document doc, String fieldName, String value, boolean store) {
