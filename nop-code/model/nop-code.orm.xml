@@ -68,19 +68,19 @@
                 name="io.nop.code.dao.entity.NopCodeIndex" registerShortName="true"
                 tableName="nop_code_index">
             <columns>
-                <column code="id" displayName="索引ID" domain="codeId" mandatory="true" name="id"
+                <column code="ID" displayName="索引ID" domain="codeId" mandatory="true" name="id"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
-                <column code="name" displayName="索引名称" mandatory="true" name="name"
+                <column code="NAME" displayName="索引名称" mandatory="true" name="name"
                         precision="100" propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="root_path" displayName="根路径" mandatory="true" name="rootPath"
+                <column code="ROOT_PATH" displayName="根路径" mandatory="true" name="rootPath"
                         precision="500" propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="language" displayName="编程语言" domain="language" name="language"
+                <column code="LANGUAGE" displayName="编程语言" domain="language" name="language"
                         precision="20" propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="symbol_count" displayName="符号数量" name="symbolCount"
+                <column code="SYMBOL_COUNT" displayName="符号数量" name="symbolCount"
                         propId="5" stdDataType="int" stdSqlType="INTEGER"/>
-                <column code="file_count" displayName="文件数量" name="fileCount"
+                <column code="FILE_COUNT" displayName="文件数量" name="fileCount"
                         propId="6" stdDataType="int" stdSqlType="INTEGER"/>
-                <column code="status" displayName="状态" name="status" precision="20"
+                <column code="STATUS" displayName="状态" name="status" precision="20"
                         propId="7" stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/index_status"/>
             </columns>
             <comment>代码索引主表</comment>
@@ -105,21 +105,21 @@
                 name="io.nop.code.dao.entity.NopCodeFile" registerShortName="true"
                 tableName="nop_code_file">
             <columns>
-                <column code="id" displayName="文件ID" domain="codeId" mandatory="true" name="id"
+                <column code="ID" displayName="文件ID" domain="codeId" mandatory="true" name="id"
                         primary="true" propId="1" stdDataType="string" tagSet="seq" ui:show="X" stdSqlType="VARCHAR" />
-                <column code="index_id" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
+                <column code="INDEX_ID" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="file_path" displayName="文件路径" domain="filePath" mandatory="true" name="filePath"
+                <column code="FILE_PATH" displayName="文件路径" domain="filePath" mandatory="true" name="filePath"
                         propId="3" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"/>
-                <column code="package_name" displayName="包名" domain="packageName" name="packageName"
+                <column code="PACKAGE_NAME" displayName="包名" domain="packageName" name="packageName"
                         propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="language" displayName="语言" domain="language" name="language"
+                <column code="LANGUAGE" displayName="语言" domain="language" name="language"
                         precision="20" propId="5" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="line_count" displayName="行数" name="lineCount"
+                <column code="LINE_COUNT" displayName="行数" name="lineCount"
                         propId="6" stdDataType="int" stdSqlType="INTEGER"/>
-                <column code="imports" displayName="导入列表" domain="jsonContent" name="imports"
+                <column code="IMPORTS" displayName="导入列表" domain="jsonContent" name="imports"
                         propId="7" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
-                <column code="source_code" displayName="源代码" domain="jsonContent" name="sourceCode"
+                <column code="SOURCE_CODE" displayName="源代码" domain="jsonContent" name="sourceCode"
                         propId="8" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
             </columns>
             <comment>源代码文件，imports字段存储JSON数组</comment>
@@ -151,66 +151,66 @@
                 name="io.nop.code.dao.entity.NopCodeSymbol" registerShortName="true"
                 tableName="nop_code_symbol">
             <columns>
-                <column code="id" displayName="符号ID" domain="codeId" mandatory="true" name="id"
+                <column code="ID" displayName="符号ID" domain="codeId" mandatory="true" name="id"
                         primary="true" propId="1" stdDataType="string" tagSet="seq" ui:show="X" stdSqlType="VARCHAR" />
-                <column code="index_id" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
+                <column code="INDEX_ID" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="file_id" displayName="文件ID" domain="codeId" mandatory="true" name="fileId"
+                <column code="FILE_ID" displayName="文件ID" domain="codeId" mandatory="true" name="fileId"
                         propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="kind" displayName="符号类型" mandatory="true" name="kind"
+                <column code="KIND" displayName="符号类型" mandatory="true" name="kind"
                         precision="20" propId="4" stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/symbol_kind"/>
-                <column code="name" displayName="名称" domain="symbolName" mandatory="true" name="name"
+                <column code="NAME" displayName="名称" domain="symbolName" mandatory="true" name="name"
                         propId="5" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"/>
-                <column code="qualified_name" displayName="全限定名" domain="qualifiedName" name="qualifiedName"
+                <column code="QUALIFIED_NAME" displayName="全限定名" domain="qualifiedName" name="qualifiedName"
                         propId="6" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="access_modifier" displayName="访问修饰符" name="accessModifier"
+                <column code="ACCESS_MODIFIER" displayName="访问修饰符" name="accessModifier"
                         precision="20" propId="7" stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/access_modifier"/>
-                <column code="deprecated" displayName="已废弃" name="deprecated"
+                <column code="DEPRECATED" displayName="已废弃" name="deprecated"
                         propId="8" stdDataType="boolean" stdSqlType="BOOLEAN"/>
-                <column code="documentation" displayName="文档注释" domain="documentation" name="documentation"
+                <column code="DOCUMENTATION" displayName="文档注释" domain="documentation" name="documentation"
                         propId="9" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
-                <column code="line" displayName="起始行" domain="lineNumber" name="line"
+                <column code="LINE" displayName="起始行" domain="lineNumber" name="line"
                         propId="10" stdDataType="int" stdSqlType="INTEGER"/>
-                <column code="column" displayName="起始列" domain="columnNumber" name="column"
+                <column code="COLUMN" displayName="起始列" domain="columnNumber" name="column"
                         propId="11" stdDataType="int" stdSqlType="INTEGER"/>
-                <column code="end_line" displayName="结束行" domain="lineNumber" name="endLine"
+                <column code="END_LINE" displayName="结束行" domain="lineNumber" name="endLine"
                         propId="12" stdDataType="int" stdSqlType="INTEGER"/>
-                <column code="end_column" displayName="结束列" domain="columnNumber" name="endColumn"
+                <column code="END_COLUMN" displayName="结束列" domain="columnNumber" name="endColumn"
                         propId="13" stdDataType="int" stdSqlType="INTEGER"/>
-                <column code="usage_count" displayName="使用次数" name="usageCount"
+                <column code="USAGE_COUNT" displayName="使用次数" name="usageCount"
                         propId="14" stdDataType="int" stdSqlType="INTEGER"/>
                 <!-- 层级关系 -->
-                <column code="parent_id" displayName="父符号ID" domain="codeId" name="parentId"
+                <column code="PARENT_ID" displayName="父符号ID" domain="codeId" name="parentId"
                         propId="15" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="declaring_symbol_id" displayName="所属类型ID" domain="codeId" name="declaringSymbolId"
+                <column code="DECLARING_SYMBOL_ID" displayName="所属类型ID" domain="codeId" name="declaringSymbolId"
                         propId="16" stdDataType="string" stdSqlType="VARCHAR"/>
                 <!-- 类/接口/枚举特有字段 -->
-                <column code="super_class_name" displayName="父类名" domain="qualifiedName" name="superClassName"
+                <column code="SUPER_CLASS_NAME" displayName="父类名" domain="qualifiedName" name="superClassName"
                         propId="17" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="is_abstract" displayName="抽象" name="isAbstract"
+                <column code="IS_ABSTRACT" displayName="抽象" name="isAbstract"
                         propId="18" stdDataType="boolean" stdSqlType="BOOLEAN"/>
-                <column code="is_final" displayName="final" name="isFinal"
+                <column code="IS_FINAL" displayName="final" name="isFinal"
                         propId="19" stdDataType="boolean" stdSqlType="BOOLEAN"/>
                 <!-- 方法特有字段 -->
-                <column code="signature" displayName="签名" domain="signature" name="signature"
+                <column code="SIGNATURE" displayName="签名" domain="signature" name="signature"
                         propId="20" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="return_type" displayName="返回类型" domain="qualifiedName" name="returnType"
+                <column code="RETURN_TYPE" displayName="返回类型" domain="qualifiedName" name="returnType"
                         propId="21" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="is_static" displayName="static" name="isStatic"
+                <column code="IS_STATIC" displayName="static" name="isStatic"
                         propId="22" stdDataType="boolean" stdSqlType="BOOLEAN"/>
-                <column code="is_synchronized" displayName="synchronized" name="isSynchronized"
+                <column code="IS_SYNCHRONIZED" displayName="synchronized" name="isSynchronized"
                         propId="23" stdDataType="boolean" stdSqlType="BOOLEAN"/>
-                <column code="is_native" displayName="native" name="isNative"
+                <column code="IS_NATIVE" displayName="native" name="isNative"
                         propId="24" stdDataType="boolean" stdSqlType="BOOLEAN"/>
                 <!-- 字段特有字段 -->
-                <column code="field_type" displayName="字段类型" domain="qualifiedName" name="fieldType"
+                <column code="FIELD_TYPE" displayName="字段类型" domain="qualifiedName" name="fieldType"
                         propId="25" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="is_volatile" displayName="volatile" name="isVolatile"
+                <column code="IS_VOLATILE" displayName="volatile" name="isVolatile"
                         propId="26" stdDataType="boolean" stdSqlType="BOOLEAN"/>
-                <column code="is_transient" displayName="transient" name="isTransient"
+                <column code="IS_TRANSIENT" displayName="transient" name="isTransient"
                         propId="27" stdDataType="boolean" stdSqlType="BOOLEAN"/>
                 <!-- JSON扩展字段 - 存储详细信息 -->
-                <column code="ext_data" displayName="扩展数据" domain="jsonContent" name="extData"
+                <column code="EXT_DATA" displayName="扩展数据" domain="jsonContent" name="extData"
                         propId="28" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
             </columns>
             <comment>
@@ -301,23 +301,23 @@
                 name="io.nop.code.dao.entity.NopCodeUsage" registerShortName="true"
                 tableName="nop_code_usage">
             <columns>
-                <column code="id" displayName="ID" domain="codeId" mandatory="true" name="id"
+                <column code="ID" displayName="ID" domain="codeId" mandatory="true" name="id"
                         primary="true" propId="1" stdDataType="string" tagSet="seq" ui:show="X" stdSqlType="VARCHAR" />
-                <column code="index_id" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
+                <column code="INDEX_ID" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="symbol_id" displayName="被引用符号ID" domain="codeId" mandatory="true" name="symbolId"
+                <column code="SYMBOL_ID" displayName="被引用符号ID" domain="codeId" mandatory="true" name="symbolId"
                         propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="file_id" displayName="文件ID" domain="codeId" mandatory="true" name="fileId"
+                <column code="FILE_ID" displayName="文件ID" domain="codeId" mandatory="true" name="fileId"
                         propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="kind" displayName="引用类型" mandatory="true" name="kind"
+                <column code="KIND" displayName="引用类型" mandatory="true" name="kind"
                         precision="20" propId="5" stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/reference_kind"/>
-                <column code="line" displayName="行号" domain="lineNumber" mandatory="true" name="line"
+                <column code="LINE" displayName="行号" domain="lineNumber" mandatory="true" name="line"
                         propId="6" stdDataType="int" stdSqlType="INTEGER"/>
-                <column code="column" displayName="列号" domain="columnNumber" name="column"
+                <column code="COLUMN" displayName="列号" domain="columnNumber" name="column"
                         propId="7" stdDataType="int" stdSqlType="INTEGER"/>
-                <column code="enclosing_symbol_id" displayName="所在符号ID" domain="codeId" name="enclosingSymbolId"
+                <column code="ENCLOSING_SYMBOL_ID" displayName="所在符号ID" domain="codeId" name="enclosingSymbolId"
                         propId="8" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="context" displayName="上下文" name="context"
+                <column code="CONTEXT" displayName="上下文" name="context"
                         precision="1000" propId="9" stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
             <comment>符号引用关系</comment>
@@ -363,23 +363,23 @@
                 name="io.nop.code.dao.entity.NopCodeCall" registerShortName="true"
                 tableName="nop_code_call">
             <columns>
-                <column code="id" displayName="ID" domain="codeId" mandatory="true" name="id"
+                <column code="ID" displayName="ID" domain="codeId" mandatory="true" name="id"
                         primary="true" propId="1" stdDataType="string" tagSet="seq" ui:show="X" stdSqlType="VARCHAR" />
-                <column code="index_id" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
+                <column code="INDEX_ID" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="caller_id" displayName="调用方ID" domain="codeId" mandatory="true" name="callerId"
+                <column code="CALLER_ID" displayName="调用方ID" domain="codeId" mandatory="true" name="callerId"
                         propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="callee_id" displayName="被调用方ID" domain="codeId" mandatory="true" name="calleeId"
+                <column code="CALLEE_ID" displayName="被调用方ID" domain="codeId" mandatory="true" name="calleeId"
                         propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="file_id" displayName="文件ID" domain="codeId" mandatory="true" name="fileId"
+                <column code="FILE_ID" displayName="文件ID" domain="codeId" mandatory="true" name="fileId"
                         propId="5" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="line" displayName="行号" domain="lineNumber" mandatory="true" name="line"
+                <column code="LINE" displayName="行号" domain="lineNumber" mandatory="true" name="line"
                         propId="6" stdDataType="int" stdSqlType="INTEGER"/>
-                <column code="column" displayName="列号" domain="columnNumber" name="column"
+                <column code="COLUMN" displayName="列号" domain="columnNumber" name="column"
                         propId="7" stdDataType="int" stdSqlType="INTEGER"/>
-                <column code="call_type" displayName="调用类型" name="callType"
+                <column code="CALL_TYPE" displayName="调用类型" name="callType"
                         precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="context" displayName="上下文" name="context"
+                <column code="CONTEXT" displayName="上下文" name="context"
                         precision="1000" propId="9" stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
             <comment>方法调用关系</comment>
@@ -424,15 +424,15 @@
                 name="io.nop.code.dao.entity.NopCodeInheritance" registerShortName="true"
                 tableName="nop_code_inheritance">
             <columns>
-                <column code="id" displayName="ID" domain="codeId" mandatory="true" name="id"
+                <column code="ID" displayName="ID" domain="codeId" mandatory="true" name="id"
                         primary="true" propId="1" stdDataType="string" tagSet="seq" ui:show="X" stdSqlType="VARCHAR" />
-                <column code="index_id" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
+                <column code="INDEX_ID" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="sub_type_id" displayName="子类型ID" domain="codeId" mandatory="true" name="subTypeId"
+                <column code="SUB_TYPE_ID" displayName="子类型ID" domain="codeId" mandatory="true" name="subTypeId"
                         propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="super_type_id" displayName="父类型ID" domain="codeId" mandatory="true" name="superTypeId"
+                <column code="SUPER_TYPE_ID" displayName="父类型ID" domain="codeId" mandatory="true" name="superTypeId"
                         propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="relation_type" displayName="关系类型" mandatory="true" name="relationType"
+                <column code="RELATION_TYPE" displayName="关系类型" mandatory="true" name="relationType"
                         precision="20" propId="5" stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
             <comment>
@@ -473,19 +473,19 @@
                 name="io.nop.code.dao.entity.NopCodeAnnotationUsage" registerShortName="true"
                 tableName="nop_code_annotation_usage">
             <columns>
-                <column code="id" displayName="ID" domain="codeId" mandatory="true" name="id"
+                <column code="ID" displayName="ID" domain="codeId" mandatory="true" name="id"
                         primary="true" propId="1" stdDataType="string" tagSet="seq" ui:show="X" stdSqlType="VARCHAR" />
-                <column code="index_id" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
+                <column code="INDEX_ID" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="annotation_type_id" displayName="注解类型ID" domain="codeId" mandatory="true" name="annotationTypeId"
+                <column code="ANNOTATION_TYPE_ID" displayName="注解类型ID" domain="codeId" mandatory="true" name="annotationTypeId"
                         propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="annotated_symbol_id" displayName="被注解符号ID" domain="codeId" name="annotatedSymbolId"
+                <column code="ANNOTATED_SYMBOL_ID" displayName="被注解符号ID" domain="codeId" name="annotatedSymbolId"
                         propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="line" displayName="行号" domain="lineNumber" name="line"
+                <column code="LINE" displayName="行号" domain="lineNumber" name="line"
                         propId="5" stdDataType="int" stdSqlType="INTEGER"/>
-                <column code="column" displayName="列号" domain="columnNumber" name="column"
+                <column code="COLUMN" displayName="列号" domain="columnNumber" name="column"
                         propId="6" stdDataType="int" stdSqlType="INTEGER"/>
-                <column code="attributes" displayName="属性值" domain="jsonContent" name="attributes"
+                <column code="ATTRIBUTES" displayName="属性值" domain="jsonContent" name="attributes"
                         propId="7" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
             </columns>
             <comment>
