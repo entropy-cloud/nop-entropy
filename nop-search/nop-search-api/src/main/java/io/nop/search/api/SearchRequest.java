@@ -25,6 +25,8 @@ public class SearchRequest {
 
     private double similarityThreshold;
 
+    private SearchType searchType = SearchType.TEXT;
+
     private TreeBean filter;
 
     public boolean isMatchAllTags() {
@@ -81,5 +83,13 @@ public class SearchRequest {
 
     public void setFilter(TreeBean filter) {
         this.filter = filter;
+    }
+
+    public SearchType getSearchType() {
+        return searchType;
+    }
+
+    public void setSearchType(SearchType searchType) {
+        this.searchType = searchType;
     }
 }

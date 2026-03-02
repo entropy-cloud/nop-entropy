@@ -76,4 +76,19 @@ public class LuceneConfig {
     public void setHighlightPostTag(String highlightPostTag) {
         this.highlightPostTag = highlightPostTag;
     }
+
+    /**
+     * embedding向量的维度（例如768），用于生成mock embedding
+     */
+    private int embeddingDimension = 768;
+
+    public int getEmbeddingDimension() {
+        return embeddingDimension;
+    }
+
+    public void setEmbeddingDimension(int embeddingDimension) {
+        this.embeddingDimension = embeddingDimension;
+    }
 }
+
+

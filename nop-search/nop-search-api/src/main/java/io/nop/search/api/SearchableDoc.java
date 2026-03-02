@@ -31,6 +31,16 @@ public class SearchableDoc extends ExtensibleBean {
     private String path;
     private boolean storeContent;
 
+    /**
+     * 文档的embedding向量
+     */
+    private float[] embedding;
+
+    /**
+     * 是否自动生成embedding
+     */
+    private boolean autoGenerateEmbedding;
+
     public String getId() {
         return id;
     }
@@ -131,5 +141,21 @@ public class SearchableDoc extends ExtensibleBean {
 
     public void setFileSize(long fileSize) {
         this.fileSize = fileSize;
+    }
+
+    public float[] getEmbedding() {
+        return embedding;
+    }
+
+    public void setEmbedding(float[] embedding) {
+        this.embedding = embedding;
+    }
+
+    public boolean isAutoGenerateEmbedding() {
+        return autoGenerateEmbedding;
+    }
+
+    public void setAutoGenerateEmbedding(boolean autoGenerateEmbedding) {
+        this.autoGenerateEmbedding = autoGenerateEmbedding;
     }
 }

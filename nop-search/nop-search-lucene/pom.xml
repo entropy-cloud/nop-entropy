@@ -48,6 +48,8 @@
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-analysis-common</artifactId>
         </dependency>
+
+        <!-- No dependency on nop-ai. Use ITextEmbedding interface for vector support -->
     </dependencies>
 
 </project>
