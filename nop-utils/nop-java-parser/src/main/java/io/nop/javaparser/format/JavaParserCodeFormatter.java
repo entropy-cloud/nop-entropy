@@ -2,6 +2,7 @@ package io.nop.javaparser.format;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseResult;
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.printer.DefaultPrettyPrinter;
 import com.github.javaparser.printer.configuration.DefaultConfigurationOption;
@@ -29,6 +30,10 @@ public class JavaParserCodeFormatter implements ITextFormatter {
                     .addOption(new DefaultConfigurationOption(
                             DefaultPrinterConfiguration.ConfigOption.END_OF_LINE_CHARACTER, "\n"));
 
+    // 使用 JAVA_17 语言级别创建 JavaParser
+    private static final JavaParser JAVA_PARSER = new JavaParser(
+            new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17));
+
     public String formatCompilationUnit(CompilationUnit cu) {
         return new DefaultPrettyPrinter(DEFAULT_CONFIG).print(cu);
     }
@@ -42,8 +47,8 @@ public class JavaParserCodeFormatter implements ITextFormatter {
                 throw new IllegalArgumentException("sourceCode is empty");
         }
 
-        // 解析源代码
-        ParseResult<CompilationUnit> parseResult = new JavaParser().parse(sourceCode);
+        // 解析源代码（使用 JAVA_17 语言级别）
+        ParseResult<CompilationUnit> parseResult = JAVA_PARSER.parse(sourceCode);
 
         if (parseResult.isSuccessful() && parseResult.getResult().isPresent()) {
             // 格式化代码
