@@ -165,6 +165,7 @@ The author emphasizes that Deltas rely on “domain coordinate systems” (e.g.,
 ### Conclusion
 Through cross-disciplinary analogies and Delta-driven system evolution, Reversible Computation offers a new methodology for software engineering. Its core innovation lies in introducing the intuition of perturbation theory and field theory from physics into computational models, aiming to solve the problem of coarse-grained reuse. However, the theory’s scientific rigor still requires further validation through mathematical formalization, extensive empirical studies, and toolchain improvements. If breakthroughs can be made in these areas, Reversible Computation may become a bridge between theoretical computer science and practical software engineering, driving a revolution in software development paradigms.
 
-【Return Format】
- <TRANSLATE_RESULT>translated-text
-<!-- SOURCE_MD5:21e404d5cdc7b372debd60518c393657-->
+### available-skills
+
+- **git-master**: Expert in Git operations including atomic commits, rebase/squash, history search.
+- **nop-orm-modeler**: Generate and modify Nop ORM models from MySQL DDL or business requirements.
