@@ -516,15 +516,15 @@ Process B ──┘
 
 ```toml
 # Agent A (researcher)
-[capabilities]
-tools = ["web_search", "web_fetch", "github"]
+[available-skills]
+include = ["git-master"]
 
 # Agent B (coder)
-[capabilities]
-tools = ["file_read", "file_write", "github", "docker"]
+[available-skills]
+include = ["git-master", "playwright", "frontend-ui-ux"]
 ```
 
-`github` skill 被两个 Agent 共享。就像 DLL 被多个进程加载一样。
+`git-master` skill 被两个 Agent 共享。就像 DLL 被多个进程加载一样。
 
 有趣的是，AIOS 论文也提出了类似的观点：Agent OS 应该提供类似传统 OS 的内核服务。这或许说明，**当一个系统足够复杂时，它会不可避免地重新发明操作系统的核心概念**。
 
