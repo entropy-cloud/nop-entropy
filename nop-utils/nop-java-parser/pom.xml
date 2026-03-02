@@ -37,6 +37,19 @@
 <!--        </dependency>-->
 
         <dependency>
+            <groupId>org.jgrapht</groupId>
+            <artifactId>jgrapht-core</artifactId>
+            <version>1.5.2</version>
+        </dependency>
+
+        <!-- Leiden/Louvain algorithm from Leiden University -->
+        <dependency>
+            <groupId>nl.cwts</groupId>
+            <artifactId>networkanalysis</artifactId>
+            <version>1.3.0</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
