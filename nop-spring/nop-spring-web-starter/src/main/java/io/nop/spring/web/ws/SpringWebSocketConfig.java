@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.server.standard.ServerEndpointExporter;
 
 @Configuration
-@ConditionalOnProperty(name = "nop.spring.graphql-websocket.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "nop.spring.graphql-websocket.enabled", havingValue = "true", matchIfMissing = false)
 public class SpringWebSocketConfig {
 
     @Bean

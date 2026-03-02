@@ -316,6 +316,7 @@ nop.err.core.loop.var-not-defined: 循环变量[{varName}]没有在NestedLoop中
 nop.err.core.no-api-service-context: 缺少没有Api服务上下文
 nop.err.core.no-tenant-id: 上下文环境没有设置租户id
 nop.err.core.query.invalid-order-by-sql: 排序语句格式不正确
+nop.err.core.reflect.bean-class-is-abstract-or-interface: '{className}类是抽象类或者接口，不允许创建实例'
 nop.err.core.reflect.bean-class-no-factory-method: '{className}类没有定义工厂方法，也不是枚举类'
 nop.err.core.reflect.bean-no-class-for-type: '{typeValue}没有对应的实现类'
 nop.err.core.reflect.bean-no-default-constructor: 类[{className}]没有缺省构造器
@@ -658,6 +659,9 @@ nop.err.graphql.query.exceed-max-depth: GraphQL查询语句嵌套层次过多，
 nop.err.graphql.query.exceed-max-operation-count: GraphQL查询语句包含操作过多，超过最大操作个数限制。最大个数为{maxCount}
 nop.err.graphql.query.no-operation: GraphQL查询语句不能为空，必须包含具体的操作
 nop.err.graphql.sub-type-of-union-must-be-obj-type: Union类型的子类型必须是对象类型
+nop.err.graphql.subscription.duplicate-operation: '重复的订阅操作: {operationId}'
+nop.err.graphql.subscription.invalid-topic: '无效的订阅主题格式: {topic}'
+nop.err.graphql.subscription.too-many: '活跃订阅数过多，无法注册: {operationId}'
 nop.err.graphql.undefined-field: 对象[{objName}]上没有定义字段[{fieldName}]
 nop.err.graphql.undefined-field-arg: 对象[{objName}]的属性[{fieldName}]没有定义参数[{argName}]
 nop.err.graphql.undefined-object: 未定义的对象:{objName}
@@ -1331,6 +1335,9 @@ nop.err.xpt.undefined-image-model-prop: 未定义的图片模型的属性[{propN
 nop.err.xpt.unknown-report-model: 未知的报表模型：{reportName}
 nop.err.xpt.unsupported-render-type: 不支持的报表输出类型：{renderType}
 nop.err.xpt.unsupported-xpt-file-type: 不支持的报表文件后缀:{fileType}，允许的文件后缀名为:{allowedFileTypes}
+nop.err.xt.mandatory-node-not-found: 强制要求的节点未找到:{xpath}
+nop.err.xt.mapping-not-found: 未找到映射:{mappingId}
+nop.err.xt.template-not-found: 未找到模板:{templateId}
 nop.err.xui.form.cell-not-prop: 表单[{formId}]的字段[{cellId}]不是已定义的实体属性
 nop.err.xui.form.cell.unknown-depend: 表单[{formId}]的字段[{cellId}]依赖了未定义的对象属性[{propName}]
 nop.err.xui.form.unknown-prop: 表单[{formId}]引用了未定义的对象属性[{propName}]

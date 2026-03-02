@@ -91,3 +91,13 @@ node_modules/
 .worktree-base
 /nop-network/nop-http/nop-http-client-apache/src/test/java/io/nop/http/apache/TestLiteLlmStreaming.java
 .mvn/maven.config
+
+
+# Maven shade plugin generated
+dependency-reduced-pom.xml
+
+# Generated sample files
+/nop-format/nop-ooxml/nop-ooxml-xlsx/samples/generated-*/
+
+# Log directories
+**/log/

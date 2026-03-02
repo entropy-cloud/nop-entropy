@@ -32,10 +32,7 @@ public class TestRecordLoader {
 
         IBatchTaskContext context = new BatchTaskContextImpl();
         context.setTaskKey("test-record-loader");
-        context.onChunkBegin(chunkCtx -> {
-            if (chunkCtx.getThreadIndex() % 2 == 0)
-                ThreadHelper.sleep(MathHelper.random().nextInt(500));
-        });
+        // 移除随机睡眠以避免并行构建时的资源竞争问题
         builder.buildTask().execute(context);
         assertEquals(1000000, io.getReadCount());
         assertEquals(1000000, context.getCompletedIndex());

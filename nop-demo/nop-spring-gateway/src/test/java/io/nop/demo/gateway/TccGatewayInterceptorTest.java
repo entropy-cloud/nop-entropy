@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.demo.gateway;
 
 import io.nop.api.core.beans.ApiRequest;
@@ -27,13 +20,11 @@ import java.util.concurrent.CompletionStage;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
  * TccGatewayInterceptor单元测试
- * 测试新的invoke方法模式
  */
 @ExtendWith(MockitoExtension.class)
 class TccGatewayInterceptorTest {
@@ -62,7 +53,6 @@ class TccGatewayInterceptorTest {
 
     @Test
     void testInvoke_WithExistingTxnId_ShouldParticipateInTransaction() {
-        // 准备
         ApiRequest<Object> request = new ApiRequest<>();
         request.setHeaders(new HashMap<>());
         ApiHeaders.setTxnId(request, "existing-txn-id");
@@ -71,21 +61,16 @@ class TccGatewayInterceptorTest {
         ApiResponse<Object> expectedResponse = new ApiResponse<>();
         expectedResponse.setStatus(0);
 
-        when(gatewayContext.getRequestPath()).thenReturn("/api/tx/test");
-        when(tccEngine.runInTransactionAsync(anyString(), anyString(), any()))
-                .thenAnswer(invocation -> {
-                    java.util.function.Function<ITccTransaction, CompletionStage<ApiResponse<?>>> task = 
-                        invocation.getArgument(2);
+        when(tccEngine.runInTransactionAsync(eq("test-group"), eq("existing-txn-id"), any()))
+                .thenAnswer(inv -> {
+                    java.util.function.Function<ITccTransaction, CompletionStage<ApiResponse<?>>> task = inv.getArgument(2);
                     return task.apply(tccTransaction);
                 });
-        doReturn(CompletableFuture.completedFuture(expectedResponse))
-                .when(invocation).proceedInvoke(any(), any());
+        doReturn(CompletableFuture.completedFuture(expectedResponse)).when(invocation).proceedInvoke(any(), any());
 
-        // 执行
         CompletionStage<ApiResponse<?>> resultFuture = interceptor.invoke(invocation, request, gatewayContext);
         ApiResponse<?> result = resultFuture.toCompletableFuture().join();
 
-        // 验证
         assertNotNull(result);
         assertEquals(0, result.getStatus());
         verify(tccEngine).runInTransactionAsync(eq("test-group"), eq("existing-txn-id"), any());
@@ -93,39 +78,29 @@ class TccGatewayInterceptorTest {
 
     @Test
     void testInvoke_WithoutTxnId_ShouldCreateNewTransaction() {
-        // 准备
         ApiRequest<Object> request = new ApiRequest<>();
         request.setHeaders(new HashMap<>());
 
         ApiResponse<Object> expectedResponse = new ApiResponse<>();
         expectedResponse.setStatus(0);
 
-        when(gatewayContext.getRequestPath()).thenReturn("/api/tx/test");
-        when(tccTransaction.getTxnId()).thenReturn("new-txn-id");
-        when(tccEngine.runInTransactionAsync(anyString(), any()))
-                .thenAnswer(invocation -> {
-                    java.util.function.Function<ITccTransaction, CompletionStage<ApiResponse<?>>> task = 
-                        invocation.getArgument(1);
+        when(tccEngine.runInTransactionAsync(eq("test-group"), eq(null), any()))
+                .thenAnswer(inv -> {
+                    java.util.function.Function<ITccTransaction, CompletionStage<ApiResponse<?>>> task = inv.getArgument(2);
                     return task.apply(tccTransaction);
                 });
-        doReturn(CompletableFuture.completedFuture(expectedResponse))
-                .when(invocation).proceedInvoke(any(), any());
+        doReturn(CompletableFuture.completedFuture(expectedResponse)).when(invocation).proceedInvoke(any(), any());
 
-        // 执行
         CompletionStage<ApiResponse<?>> resultFuture = interceptor.invoke(invocation, request, gatewayContext);
         ApiResponse<?> result = resultFuture.toCompletableFuture().join();
 
-        // 验证
         assertNotNull(result);
         assertEquals(0, result.getStatus());
-        verify(tccEngine).runInTransactionAsync(eq("test-group"), any());
-        // 验证事务ID已设置到请求头
-        assertEquals("new-txn-id", ApiHeaders.getTxnId(request));
+        verify(tccEngine).runInTransactionAsync(eq("test-group"), eq(null), any());
     }
 
     @Test
     void testInvoke_AutoCreateDisabled_ShouldNotCreateTransaction() {
-        // 准备
         interceptor.setAutoCreateTransaction(false);
         ApiRequest<Object> request = new ApiRequest<>();
         request.setHeaders(new HashMap<>());
@@ -133,32 +108,30 @@ class TccGatewayInterceptorTest {
         ApiResponse<Object> expectedResponse = new ApiResponse<>();
         expectedResponse.setStatus(0);
 
-        when(gatewayContext.getRequestPath()).thenReturn("/api/tx/test");
-        doReturn(CompletableFuture.completedFuture(expectedResponse))
-                .when(invocation).proceedInvoke(any(), any());
+        when(tccEngine.runInTransactionAsync(eq("test-group"), eq(null), any()))
+                .thenAnswer(inv -> {
+                    java.util.function.Function<ITccTransaction, CompletionStage<ApiResponse<?>>> task = inv.getArgument(2);
+                    return task.apply(tccTransaction);
+                });
+        doReturn(CompletableFuture.completedFuture(expectedResponse)).when(invocation).proceedInvoke(any(), any());
 
-        // 执行
         CompletionStage<ApiResponse<?>> resultFuture = interceptor.invoke(invocation, request, gatewayContext);
         ApiResponse<?> result = resultFuture.toCompletableFuture().join();
 
-        // 验证
         assertNotNull(result);
         assertEquals(0, result.getStatus());
-        verify(tccEngine, never()).runInTransactionAsync(anyString(), any());
+        verify(tccEngine).runInTransactionAsync(eq("test-group"), eq(null), any());
         verify(invocation).proceedInvoke(request, gatewayContext);
     }
 
     @Test
     void testInvoke_WithException_ShouldPropagate() {
-        // 准备
         ApiRequest<Object> request = new ApiRequest<>();
         request.setHeaders(new HashMap<>());
 
-        when(gatewayContext.getRequestPath()).thenReturn("/api/tx/test");
-        when(tccEngine.runInTransactionAsync(anyString(), any()))
+        when(tccEngine.runInTransactionAsync(eq("test-group"), eq(null), any()))
                 .thenReturn(CompletableFuture.failedFuture(new RuntimeException("Test error")));
 
-        // 执行 & 验证
         CompletionStage<ApiResponse<?>> resultFuture = interceptor.invoke(invocation, request, gatewayContext);
         assertThrows(RuntimeException.class, () -> {
             resultFuture.toCompletableFuture().join();

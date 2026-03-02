@@ -909,6 +909,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.auth.IUserContextExtractor"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "addHeaders",
@@ -37447,6 +37457,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.markdown.simple.MarkdownDocumentLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "handleMessageResult",
@@ -44308,6 +44328,16 @@
       }
     ],
     "name": "io.nop.orm.utils.SingleSessionFunctionInvoker"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.record_mapping.md.MarkdownDslResourceLoaderFactory"
   },
   {
     "allDeclaredConstructors": true,
