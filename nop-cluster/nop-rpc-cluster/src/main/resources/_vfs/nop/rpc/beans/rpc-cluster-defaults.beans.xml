@@ -128,7 +128,7 @@
         <ref bean="nopRpcServiceInterceptor_tcc" ioc:optional="true"/>
     </util:list>
 
-    <bean id="nopClusterRpcServiceInvoker" class="io.nop.rpc.cluster.ClusterRpcServiceInvoker">
+    <bean id="nopClusterRpcServiceInvoker" class="io.nop.rpc.cluster.ClusterRpcServiceInvoker" primary="true">
         <property name="serverChooser" ref="nopServerChooser_default"/>
         <property name="interceptors" ref="nopRpcServiceClientInterceptors"/>
         <property name="retryCount" value="@cfg:nop.rpc.proxy.client-retry-count|1"/>

@@ -18,6 +18,7 @@ public class TestRecordLoader {
         provider.setResourceLocator(new DebugResourceLocator());
         DebugResourceRecordIO io = new DebugResourceRecordIO(1000000);
         provider.setRecordIO(io);
+        provider.setMaxProcessingItems(100000);
 
         BatchTaskBuilder builder = new BatchTaskBuilder();
         builder.loader(provider);
