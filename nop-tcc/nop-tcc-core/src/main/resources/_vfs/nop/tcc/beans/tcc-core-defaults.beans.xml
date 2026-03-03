@@ -9,4 +9,6 @@
         </property>
     </bean>
 
+    <bean id="nopTccEngine" class="io.nop.tcc.core.impl.TccEngine" />
+
 </beans>

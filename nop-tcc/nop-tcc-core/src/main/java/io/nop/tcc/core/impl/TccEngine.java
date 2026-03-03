@@ -13,6 +13,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.IApiResponseNormalizer;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.util.StringHelper;
+import io.nop.rpc.api.DefaultApiResponseNormalizer;
 import io.nop.tcc.api.ITccBranchRecord;
 import io.nop.tcc.api.ITccBranchTransaction;
 import io.nop.tcc.api.ITccEngine;
@@ -48,7 +49,7 @@ public class TccEngine implements ITccEngine {
     private ITccRecordStore repository;
     private IRpcServiceInvoker serviceInvoker;
     private ITccExceptionChecker exceptionChecker;
-    private IApiResponseNormalizer apiResponseNormalizer;
+    private IApiResponseNormalizer apiResponseNormalizer = DefaultApiResponseNormalizer.INSTANCE;
 
     public IApiResponseNormalizer getApiResponseNormalizer() {
         return apiResponseNormalizer;
@@ -63,7 +64,7 @@ public class TccEngine implements ITccEngine {
     }
 
     @Inject
-    public void setTccRecordRepository(ITccRecordStore repository) {
+    public void setTccRecordStore(ITccRecordStore repository) {
         this.repository = repository;
     }
 

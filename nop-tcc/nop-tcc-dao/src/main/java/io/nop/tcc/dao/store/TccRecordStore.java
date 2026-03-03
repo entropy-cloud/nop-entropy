@@ -13,6 +13,7 @@ import io.nop.api.core.annotations.txn.Transactional;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
@@ -71,6 +72,7 @@ public class TccRecordStore implements ITccRecordStore {
 
         NopTccRecord record = new NopTccRecord();
         record.setTxnGroup(txnGroup);
+        record.setAppId(AppConfig.appName());
         Timestamp beginTime = CoreMetrics.currentTimestamp();
         record.setBeginTime(beginTime);
         record.setExpireTime(new Timestamp(beginTime.getTime() + defaultTxnTimeout));
@@ -123,7 +125,7 @@ public class TccRecordStore implements ITccRecordStore {
             NopTccRecord tccRecord = (NopTccRecord) record;
             tccRecord.setStatus(initStatus.getCode());
             recordDao().saveEntityDirectly(tccRecord);
-            return tccRecord;
+            return null;
         });
     }
 
@@ -141,7 +143,7 @@ public class TccRecordStore implements ITccRecordStore {
                 tccRecord.setErrorMessage(errorBean.getDescription());
             }
             recordDao().updateEntityDirectly(tccRecord);
-            return tccRecord;
+            return null;
         });
     }
 
@@ -155,7 +157,7 @@ public class TccRecordStore implements ITccRecordStore {
             if (record.getExpireTime() == null)
                 record.setExpireTime(new Timestamp(record.getBeginTime().getTime() + defaultBranchTimeout));
             branchDao().saveEntityDirectly(record);
-            return record;
+            return null;
         });
     }
 
@@ -183,7 +185,7 @@ public class TccRecordStore implements ITccRecordStore {
                 }
             }
             branchDao().updateEntityDirectly(record);
-            return record;
+            return null;
         });
     }
 

@@ -22,6 +22,11 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-tcc-dao</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-gateway</artifactId>
         </dependency>
 

@@ -8,17 +8,22 @@
 package io.nop.tcc.core.impl;
 
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.tcc.api.ITccBranchTransaction;
 import io.nop.tcc.api.ITccRecord;
 import io.nop.tcc.api.ITccRecordStore;
 import io.nop.tcc.api.ITccTransaction;
 import io.nop.tcc.api.TccStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 public class TccTransaction implements ITccTransaction {
+    static final Logger LOG = LoggerFactory.getLogger(TccTransaction.class);
+
     private final TccEngine tccEngine;
     private final ITccRecord tccRecord;
     private final boolean initiator;
@@ -55,6 +60,10 @@ public class TccTransaction implements ITccTransaction {
             } else {
                 return doConfirmAsync(branchTxns);
             }
+        }).whenComplete((ret, err2) -> {
+            // 出现异常时避免将异常吃掉
+            if (ex != null)
+                throw NopException.adapt(ex);
         });
     }
 
