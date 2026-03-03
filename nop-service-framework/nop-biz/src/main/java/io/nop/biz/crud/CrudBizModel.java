@@ -30,6 +30,7 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.beans.std.StdTreeEntity;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.auth.api.utils.AuthHelper;
 import io.nop.biz.BizConstants;
@@ -54,6 +55,7 @@ import io.nop.fsm.model.StateModel;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IBizModelImpl;
 import io.nop.graphql.core.biz.IBizObjectQueryProcessor;
+import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.orm.IOrmBatchLoadQueue;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
@@ -164,6 +166,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
 
     private CrudToolProvider crudToolProvider;
 
+    private IGraphQLEngine graphQLEngine;
+
     @Inject
     public void setTransactionTemplate(ITransactionTemplate transactionTemplate) {
         this.transactionTemplate = transactionTemplate;
@@ -182,6 +186,11 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     @Inject
     public void setCrudToolProvider(CrudToolProvider crudToolProvider) {
         this.crudToolProvider = crudToolProvider;
+    }
+
+    @Inject
+    public void setGraphQLEngine(IGraphQLEngine graphQLEngine) {
+        this.graphQLEngine = graphQLEngine;
     }
 
     public String getBizObjName() {
@@ -2067,5 +2076,31 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     public void batchLoadSelection(@Name("entityList") Collection<T> entityList,
                                    @Name("selection") FieldSelectionBean selection, IServiceContext context) {
         dao().batchLoadSelection(entityList, selection);
+    }
+
+    @BizAction
+    @Override
+    public Map<String, Object> fetchSelection(@Name("entity") T entity, @Name("selection") FieldSelectionBean selection,
+                                              IServiceContext context) {
+        Guard.notNull(entity, "entity");
+        Guard.notNull(selection, "selection");
+
+        return (Map<String, Object>) FutureHelper.syncGet(
+                graphQLEngine.fetchResultWithSelection(entity, getBizObjName(), selection, context));
+    }
+
+    @BizAction
+    @Override
+    public List<Map<String, Object>> fetchSelectionForList(@Name("entityList") Collection<T> entityList,
+                                                           @Name("selection") FieldSelectionBean selection,
+                                                           IServiceContext context) {
+        Guard.notNull(entityList, "entityList");
+        Guard.notNull(selection, "selection");
+        
+        if (entityList.isEmpty())
+            return Collections.emptyList();
+
+        return (List<Map<String, Object>>) FutureHelper.syncGet(
+                graphQLEngine.fetchResultWithSelection(entityList, getBizObjName(), selection, context));
     }
 }
