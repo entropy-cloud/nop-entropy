@@ -16,8 +16,11 @@ import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.GraphQLErrors;
 import io.nop.graphql.core.ast.*;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static io.nop.commons.util.CollectionHelper.toNotNull;
 import static io.nop.graphql.core.GraphQLErrors.*;
@@ -30,28 +33,31 @@ public class SelectionBeanBuilder {
     }
 
     public FieldSelectionBean buildSelectionBean(String name, GraphQLSelectionSet selectionSet,
-                                                 Map<String, Object> vars) {
+                                                  Map<String, Object> vars) {
         FieldSelectionBean bean = new FieldSelectionBean();
         bean.setName(name);
         if (selectionSet != null) {
-            resolveSelections(bean, selectionSet.getSelections(), vars);
+            resolveSelections(bean, selectionSet.getSelections(), vars, Collections.emptySet());
         }
         return bean;
     }
 
     private void resolveSelections(FieldSelectionBean bean, List<GraphQLSelection> selections,
-                                   Map<String, Object> vars) {
+                                   Map<String, Object> vars, Set<String> excludeFields) {
         for (GraphQLSelection selection : toNotNull(selections)) {
             if (selection instanceof GraphQLFieldSelection) {
                 GraphQLFieldSelection fieldSelection = (GraphQLFieldSelection) selection;
 
                 String alias = fieldSelection.getAliasOrName();
+
+                if (excludeFields.contains(alias))
+                    continue;
+
                 if (bean.hasField(alias))
                     throw new NopException(ERR_GRAPHQL_FIELD_NAME_DUPLICATED).source(selection)
                             .param(ARG_PARENT_NAME, bean.getName()).param(ARG_FIELD_NAME, alias);
 
                 FieldSelectionBean fieldBean = resolveFieldSelection(fieldSelection, vars);
-                // 根据条件跳过此字段
                 if (fieldBean == null)
                     continue;
 
@@ -63,9 +69,33 @@ public class SelectionBeanBuilder {
                     throw new IllegalArgumentException(
                             "nop.graphql.fragment-not-resolved:" + fragmentSelection.getFragmentName());
 
-                resolveSelections(bean, fragment.getSelectionSet().getSelections(), vars);
+                Set<String> fragmentExcludes = getExcludeFields(fragmentSelection, vars);
+                Set<String> mergedExcludes = excludeFields;
+                if (!fragmentExcludes.isEmpty()) {
+                    mergedExcludes = new HashSet<>(excludeFields);
+                    mergedExcludes.addAll(fragmentExcludes);
+                }
+
+                resolveSelections(bean, fragment.getSelectionSet().getSelections(), vars, mergedExcludes);
             }
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Set<String> getExcludeFields(GraphQLFragmentSelection fragmentSelection, Map<String, Object> vars) {
+        GraphQLDirective directive = fragmentSelection.getDirective(GraphQLConstants.DIRECTIVE_EXCLUDE);
+        if (directive == null)
+            return Collections.emptySet();
+
+        Object fieldsValue = directive.getArgValue(GraphQLConstants.DIRECTIVE_ARG_FIELDS, vars);
+        if (fieldsValue == null)
+            return Collections.emptySet();
+
+        if (fieldsValue instanceof List) {
+            List<String> fields = (List<String>) fieldsValue;
+            return new HashSet<>(fields);
+        }
+        return Collections.emptySet();
     }
 
     private FieldSelectionBean resolveFieldSelection(GraphQLFieldSelection selection, Map<String, Object> vars) {
@@ -79,7 +109,7 @@ public class SelectionBeanBuilder {
 
         bean.setArgs(selection.buildArgs(vars));
         if (selection.getSelectionSet() != null) {
-            resolveSelections(bean, selection.getSelectionSet().getSelections(), vars);
+            resolveSelections(bean, selection.getSelectionSet().getSelections(), vars, Collections.emptySet());
         }
         return bean;
     }

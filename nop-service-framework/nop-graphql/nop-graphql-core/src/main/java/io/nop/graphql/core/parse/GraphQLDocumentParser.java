@@ -640,6 +640,13 @@ public class GraphQLDocumentParser extends AbstractCharReaderResourceParser<Grap
             GraphQLValue value = value(sc);
             ret.add(value);
         } while (sc.tryMatch(','));
+        
+        if (sc.cur == ']') {
+            sc.next();
+            sc.skipBlank();
+        }
+        
+        array.setItems(ret);
         return array;
     }
 

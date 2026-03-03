@@ -63,6 +63,10 @@ public interface GraphQLConstants {
 
     String DIRECTIVE_LABEL = "Label";
 
+    String DIRECTIVE_EXCLUDE = "Exclude";
+
+    String DIRECTIVE_ARG_FIELDS = "fields";
+
     String ARG_ID = "id";
     String ARG_IDS = "ids";
     String ARG_QUERY = "query";

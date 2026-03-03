@@ -216,6 +216,8 @@ public class GraphQLSelectionResolver {
 
     private void resolveFragmentSelection(GraphQLDocument doc, GraphQLTypeDefinition typeDef,
                                           GraphQLFragmentSelection fragmentSelection, int level) {
+        resolveDirectives(fragmentSelection.getDirectives(), GraphQLDirectiveLocation.FRAGMENT_SPREAD, new HashMap<>());
+
         String name = fragmentSelection.getFragmentName();
         if (name.startsWith(GraphQLConstants.FRAGMENT_SELECTION_PREFIX)) {
             // 预定义的fragment selection, 从engine获取

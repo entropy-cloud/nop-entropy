@@ -40,3 +40,6 @@ directive @Auth(roles:[String!],permissions:[String!]) on FIELD_DEFINITION
 
 "显示名称"
 directive @Label( value:String!) on FIELD_DEFINITION | OBJECT | INPUT_OBJECT | ENUM_VALUE |INPUT_FIELD_DEFINITION
+
+"从片段中排除指定字段，例如 ...F_defaults @Exclude(fields: [\"totalCount\"]) 表示使用F_defaults片段但排除totalCount字段"
+directive @Exclude(fields:[String!]!) on FRAGMENT_SPREAD
