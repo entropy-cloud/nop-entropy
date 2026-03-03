@@ -28,14 +28,8 @@ import org.slf4j.LoggerFactory;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -261,7 +255,7 @@ public class NacosNamingService implements INamingService {
                 }
                 this.instanceMap = map;
                 serviceInfo.setServiceInstances(CollectionHelper
-                        .immutableList(map.values().stream().map(Pair::getRight).collect(Collectors.toList())));
+                        .immutableList(map.values().stream().map(Pair::getRight).sorted().collect(Collectors.toList())));
             }
 
             for (ServiceInstance serviceInstance : removed) {
@@ -291,7 +285,7 @@ public class NacosNamingService implements INamingService {
         ret.setServiceName(inst.getServiceName().substring(pos + 2));
 
         if (inst.getMetadata() != null) {
-            ret.setMetadata(new HashMap<>(inst.getMetadata()));
+            ret.setMetadata(new TreeMap<>(inst.getMetadata()));
 
             Set<String> tags = ConvertHelper.toCsvSet(inst.getMetadata().get(ApiConstants.META_KEY_TAGS));
             ret.setTags(tags);

@@ -19,16 +19,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.annotations.data.DataBean;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 // modify from Nacos Instance
 @DataBean
-public class ServiceInstance implements Serializable {
+public class ServiceInstance implements Serializable, Comparable<ServiceInstance> {
     public static final String META_ZONE = "zone";
     public static final String META_VERSION = "version";
     public static final String META_GROUP = "group";
@@ -93,6 +89,11 @@ public class ServiceInstance implements Serializable {
     private Map<String, Object> attrs = new ConcurrentHashMap<>();
 
     private long modifyIndex;
+
+    @Override
+    public int compareTo(ServiceInstance o) {
+        return instanceId.compareTo(o.getInstanceId());
+    }
 
     @JsonIgnore
     public String getHost() {

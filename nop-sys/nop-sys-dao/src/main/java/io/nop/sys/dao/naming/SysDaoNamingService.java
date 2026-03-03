@@ -114,12 +114,15 @@ public class SysDaoNamingService implements INamingService {
 
     @Override
     public List<ServiceInstance> getInstances(String serviceName) {
+        IEntityDao<NopSysServiceInstance> dao = dao();
+        IEstimatedClock clock = dao.getDbEstimatedClock();
+
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq(NopSysServiceInstance.PROP_NAME_serviceName, serviceName));
 
         // 如果长时间没有更新，则认为服务实例已经失效
-        query.addFilter(FilterBeans.gt(NopSysServiceInstance.PROP_NAME_updateTime, new Timestamp(System.currentTimeMillis() - getMaxUpdateInterval())));
-        return dao().findAllByQuery(query).stream().map(this::fromEntity).collect(Collectors.toList());
+        query.addFilter(FilterBeans.gt(NopSysServiceInstance.PROP_NAME_updateTime, new Timestamp(clock.getMinCurrentTimeMillis() - getMaxUpdateInterval())));
+        return dao.findAllByQuery(query).stream().map(this::fromEntity).sorted().collect(Collectors.toList());
     }
 
     protected NopSysServiceInstance toEntity(ServiceInstance instance) {

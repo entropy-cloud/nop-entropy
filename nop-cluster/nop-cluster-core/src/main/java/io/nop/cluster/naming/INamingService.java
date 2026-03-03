@@ -26,5 +26,8 @@ public interface INamingService extends IDiscoveryClient {
 
     List<String> getServices();
 
+    /**
+     * 按照instanceId 排序
+     */
     List<ServiceInstance> getInstances(String serviceName);
 }
