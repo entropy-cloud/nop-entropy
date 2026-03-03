@@ -23,6 +23,7 @@ import io.nop.gateway.core.context.IGatewayContext;
 import io.nop.gateway.core.streaming.StreamingResponse;
 import io.nop.gateway.impl.GatewayHandler;
 import io.nop.gateway.model.GatewayModel;
+import io.nop.http.api.HttpApiConstants;
 import io.nop.http.api.HttpStatus;
 import io.nop.http.api.client.IHttpClient;
 import io.nop.http.api.server.IHttpServerContext;
@@ -256,6 +257,7 @@ public class GatewayHttpFilter implements IHttpServerFilter {
         if (response.getHeaders() != null && !response.getHeaders().isEmpty()) {
             writeHeaders(context, response.getHeaders());
         }
+        context.setResponseContentType(HttpApiConstants.CONTENT_TYPE_JSON);
         context.sendResponse(status, body);
     }
 

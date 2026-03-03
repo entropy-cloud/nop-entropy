@@ -70,6 +70,9 @@ public class GatewayRouteExecution implements IGatewayInvocation {
 
     @Override
     public ApiResponse<?> proceedOnResponse(ApiResponse<?> response, IGatewayContext svcCtx) {
+        if(response == null)
+            response = new ApiResponse<>();
+
         IEvalFunction onResponse = route.getOnResponse();
         if (onResponse != null) {
             Object result = onResponse.call2(null, response, svcCtx, svcCtx.getEvalScope());

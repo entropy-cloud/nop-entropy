@@ -133,6 +133,8 @@ public class GatewayHandler {
             return ErrorMessageManager.instance().buildResponseForException(locale, err);
         });
         promise = promise.thenApply(res -> {
+            if(res == null)
+                res = new ApiResponse<>();
             res.setWrapper(Boolean.TRUE.equals(route.getUnwrapResponse()));
             return res;
         });
