@@ -4,61 +4,27 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.github.entropy-cloud</groupId>
-    <artifactId>nop-spring-gateway</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <parent>
+        <groupId>io.github.entropy-cloud</groupId>
+        <artifactId>nop-demo</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nop-spring-gateway-demo-service</artifactId>
+    <packaging>jar</packaging>
+
+    <description>
+        Demo service implementation for nop-spring-gateway module.
+        Provides DemoService with TCC transaction support and DB-based service discovery.
+    </description>
 
     <properties>
-        <java.version>17</java.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
-        <maven.compiler.release>${java.version}</maven.compiler.release>
-        <nop-entropy.version>2.0.0-SNAPSHOT</nop-entropy.version>
-
-        <!-- 该模块为独立服务包，不会被其他项目所依赖，故，不发布至仓库 -->
         <maven.deploy.skip>true</maven.deploy.skip>
         <maven.install.skip>true</maven.install.skip>
     </properties>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-bom</artifactId>
-                <version>${nop-entropy.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
     <dependencies>
-        <!-- Nop Gateway -->
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-gateway</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-rpc-cluster</artifactId>
-        </dependency>
-
-        <!-- TCC Integration -->
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-tcc-integration</artifactId>
-        </dependency>
-
-        <!-- TCC DAO for persistence -->
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-tcc-dao</artifactId>
-        </dependency>
-
-        <!-- Sys DAO for service discovery -->
+        <!-- Nop Sys DAO for DB-based service discovery -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-sys-dao</artifactId>
@@ -68,19 +34,6 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-spring-web-orm-starter</artifactId>
-        </dependency>
-
-        <!-- HTTP Server Filters -->
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-http-server-filters</artifactId>
-        </dependency>
-
-        <!-- Demo Service -->
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-spring-gateway-demo-service</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
         </dependency>
 
         <!-- Spring Boot -->
@@ -105,7 +58,7 @@
             <artifactId>h2</artifactId>
         </dependency>
 
-        <!-- Test -->
+        <!-- Test dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

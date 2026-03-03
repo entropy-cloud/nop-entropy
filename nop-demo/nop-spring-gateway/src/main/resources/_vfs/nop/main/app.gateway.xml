@@ -5,8 +5,8 @@
     <interceptors>
         <interceptor id="tcc-interceptor" bean="nopTccGatewayInterceptor">
             <!-- 匹配所有需要TCC事务的API请求 -->
-            <match path="/**">
-                <when>${request.headers['X-TCC-Enabled'] == 'true' || svcCtx.requestPath.startsWith('/api/tx/')}</when>
+            <match path="/{*path}">
+                <when>request.headers['x-tcc-enabled'].$toBoolean() || svcCtx.requestPath.startsWith('/api/tx/')</when>
             </match>
         </interceptor>
     </interceptors>
@@ -15,14 +15,14 @@
     <routes>
         <!-- 示例路由：需要TCC事务的服务 -->
         <route id="tcc-service">
-            <match path="/api/tx/**"/>
-            <invoke serviceName="DemoTccService"/>
+            <match path="/api/tx/{*path}"/>
+            <invoke serviceName="demo-service" serviceMethod="DemoService__testTcc" cancelMethod="DemoService__cancelTestTcc"/>
         </route>
 
         <!-- 示例路由：普通服务（不需要TCC事务） -->
         <route id="normal-service">
-            <match path="/api/**"/>
-            <invoke serviceName="DemoService"/>
+            <match path="/api/{*path}"/>
+            <invoke serviceName="demo-service" serviceMethod="DemoService__test"/>
         </route>
     </routes>
 

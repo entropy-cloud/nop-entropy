@@ -1,54 +1,38 @@
 nop:
-  # TCC Gateway配置
-  tcc:
-    gateway:
-      default-txn-group: demo
-      auto-create-transaction: true
-  gateway:
-    http-filter:
-      enabled: true
+  application:
+    name: demo-service
 
-  rpc:
-    proxy:
-      allowed-service-names: demo-service
-
-  # 启用DB模式的服务发现
   cluster:
     discovery:
       sys-dao-naming-service:
         enabled: true
 
-  # ORM配置
   orm:
     init-database-schema: true
     enable-tenant-by-default: false
 
-  # 使用Spring管理的数据源
   dao:
     use-parent-data-source: true
 
-# Spring数据源配置 - 使用与demo-service共享的数据库
 spring:
   datasource:
     driver-class-name: org.h2.Driver
+    # AUTO_SERVER=TRUE 允许多个进程同时访问同一个数据库文件
+    # 第一个连接自动启动内嵌TCP服务器，其他连接作为客户端
     url: jdbc:h2:./db/demo-service;AUTO_SERVER=TRUE
     username: sa
     password:
 
-# 服务器配置
 server:
-  port: 8081
+  port: 8082
   http2:
     enabled: true
 
-# 日志配置
 logging:
   level:
     ROOT: INFO
-    io.nop.tcc: DEBUG
-    io.nop.gateway: DEBUG
+    io.nop: DEBUG
 
-# 健康检查
 management:
   health:
     probes:
@@ -58,15 +42,11 @@ management:
       exposure:
         include: health
 
-# 开发模式配置
 "%dev":
   nop:
     debug: true
-    tcc:
-      gateway:
-        auto-create-transaction: true
 
   logging:
     level:
       ROOT: DEBUG
-      io.nop.tcc: TRACE
+      io.nop: TRACE
