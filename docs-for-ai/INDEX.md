@@ -386,6 +386,7 @@ For customizing base products without modifying source.
 | Error codes | `04-core-components/error-codes.md` |
 | XDef/XMeta | `05-xlang/xdef-core.md`, `05-xlang/meta-programming.md` |
 | ORM advanced | `03-development-guide/orm-advanced-features.md` |
+| **分布式微服务/网关** | `03-development-guide/distributed-service-and-gateway.md` |
 
 ---
 
