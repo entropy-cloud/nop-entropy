@@ -23,6 +23,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Writer;
 import java.net.HttpCookie;
 import java.util.Enumeration;
 import java.util.LinkedHashMap;
@@ -189,8 +190,8 @@ public class ServletHttpServerContext implements IHttpServerContext {
         response.setStatus(httpStatus);
 
         if (!StringHelper.isEmpty(body)) {
-            try (OutputStream out = response.getOutputStream()) {
-                IoHelper.write(out, body.getBytes(), null);
+            try (Writer out = response.getWriter()) {
+                out.write(body);
                 out.flush();
             } catch (Exception e) {
                 throw NopException.adapt(e);
@@ -226,13 +227,13 @@ public class ServletHttpServerContext implements IHttpServerContext {
 
         publisher.subscribe(new Flow.Subscriber<String>() {
             private Flow.Subscription subscription;
-            private OutputStream out;
+            private Writer out;
 
             @Override
             public void onSubscribe(Flow.Subscription subscription) {
                 this.subscription = subscription;
                 try {
-                    this.out = response.getOutputStream();
+                    this.out = response.getWriter();
                     subscription.request(1);
                 } catch (Exception e) {
                     subscription.cancel();
@@ -244,7 +245,7 @@ public class ServletHttpServerContext implements IHttpServerContext {
             public void onNext(String item) {
                 if (item != null && !completed.get()) {
                     try {
-                        out.write(item.getBytes(StringHelper.CHARSET_UTF8));
+                        out.write(item);
                         out.flush();
                     } catch (Exception e) {
                         subscription.cancel();
@@ -301,12 +302,12 @@ public class ServletHttpServerContext implements IHttpServerContext {
         AtomicBoolean completed = new AtomicBoolean(false);
 
         try {
-            OutputStream out = response.getOutputStream();
+            Writer out = response.getWriter();
             IStreamResponseWriter writer = new IStreamResponseWriter() {
                 @Override
                 public CompletionStage<Void> write(String chunk) {
                     try {
-                        out.write(chunk.getBytes(StringHelper.CHARSET_UTF8));
+                        out.write(chunk);
                         out.flush();
                         return FutureHelper.success(null);
                     } catch (Exception e) {
