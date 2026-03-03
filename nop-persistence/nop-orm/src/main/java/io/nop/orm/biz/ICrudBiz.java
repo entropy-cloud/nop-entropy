@@ -563,5 +563,14 @@ public interface ICrudBiz<T extends IOrmEntity> extends IOrmEntityBiz {
     @BizAction
     void checkAllowAccess(@Name("entity") T entity, @Optional @Name("action") String action, IServiceContext context);
 
-    void batchLoadSelection(@Name("entityList") Collection<T> entityList, FieldSelectionBean selection, IServiceContext context);
+    void batchLoadSelection(@Name("entityList") Collection<T> entityList, @Name("selection") FieldSelectionBean selection, IServiceContext context);
+
+    /**
+     * 从实体上按照GraphQL字段选择语法获取数据。这里的执行经过GraphQL引擎，因此会使用XMeta中的字段映射机制，并不是直接访问实体上的字段
+     */
+    @BizAction
+    Map<String, Object> fetchSelection(@Name("entity") T entity, @Name("selection") FieldSelectionBean selection, IServiceContext context);
+
+    @BizAction
+    List<Map<String, Object>> fetchSelectionForList(@Name("entityList") Collection<T> entityList, @Name("selection") FieldSelectionBean selection, IServiceContext context);
 }
