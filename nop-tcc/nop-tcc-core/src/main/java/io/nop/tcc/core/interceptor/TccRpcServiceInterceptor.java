@@ -11,6 +11,7 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.rpc.IRpcServiceInterceptor;
 import io.nop.api.core.rpc.IRpcServiceInvocation;
+import io.nop.api.core.util.ApiHeaders;
 import io.nop.core.context.TccContext;
 import io.nop.tcc.api.ITccEngine;
 import io.nop.tcc.api.TccBranchRequest;
@@ -54,16 +55,21 @@ public class TccRpcServiceInterceptor implements IRpcServiceInterceptor {
         }
 
         ApiRequest<?> request = inv.getRequest();
+        String txnGroup = methodMeta.getTxnGroup();
         String txnId = null;
         if (tccContext != null) {
             txnId = tccContext.getTxnId();
         }
 
         TccContext finalContext = tccContext;
-        return tccEngine.runInTransactionAsync(methodMeta.getTxnGroup(), txnId, txn -> {
+        return tccEngine.runInTransactionAsync(txnGroup, txnId, txn -> {
             if (shouldStartBranch(inv.isInbound(), txn.isInitiator(), methodMeta)) {
                 TccBranchRequest req = buildBranchRequest(inv.getServiceName(), methodMeta, finalContext, request);
-                return tccEngine.runBranchTransactionAsync(txn, req, t -> inv.proceedAsync());
+                return tccEngine.runBranchTransactionAsync(txn, req, t -> {
+                    ApiHeaders.setTxnBranchId(request, t.getBranchId());
+                    ApiHeaders.setTxnBranchNo(request, t.getBranchNo());
+                    return inv.proceedAsync();
+                });
             }
             return inv.proceedAsync();
         });

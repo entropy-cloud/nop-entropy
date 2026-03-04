@@ -9,6 +9,7 @@ package io.nop.tcc.integration.gateway;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.util.ApiHeaders;
 import io.nop.core.context.TccContext;
 import io.nop.gateway.core.context.IGatewayContext;
 import io.nop.gateway.core.interceptor.IGatewayInterceptor;
@@ -86,6 +87,9 @@ public class TccGatewayInterceptor implements IGatewayInterceptor {
                 newCtx.setTxnId(txn.getTxnId());
                 TccContext.setCurrent(newCtx);
             }
+            ApiHeaders.setTxnGroup(request, txn.getTxnGroup());
+            ApiHeaders.setTxnId(request, txn.getTxnId());
+
             return invocation.proceedInvoke(request, svcCtx);
         })).whenComplete((ret, err) -> {
             if (oldContext != null) {
