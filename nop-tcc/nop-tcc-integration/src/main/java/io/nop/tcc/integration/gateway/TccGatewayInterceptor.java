@@ -80,6 +80,12 @@ public class TccGatewayInterceptor implements IGatewayInterceptor {
             txnGroup = defaultTxnGroup;
         }
         return thenOnContext(tccEngine.runInTransactionAsync(txnGroup, txnId, txn -> {
+            if (oldContext == null && tccContext == null) {
+                TccContext newCtx = new TccContext();
+                newCtx.setTxnGroup(txn.getTxnGroup());
+                newCtx.setTxnId(txn.getTxnId());
+                TccContext.setCurrent(newCtx);
+            }
             return invocation.proceedInvoke(request, svcCtx);
         })).whenComplete((ret, err) -> {
             if (oldContext != null) {

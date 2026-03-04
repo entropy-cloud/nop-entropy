@@ -26,7 +26,12 @@ public abstract class _GatewayMatchModel extends io.nop.core.resource.component.
     /**
      *  
      * xml name: path
-     * 对应REST请求链接，例如 /r/NopAuthUser__findPage
+     * 路径匹配规则（按优先级排序）：
+     * 1. 精确匹配: /api/users
+     * 2. 路径变量: /api/{type} 匹配单段，变量值通过path获取
+     * 3. 后缀匹配: /files/*.json 仅最后一段支持
+     * 4. 前缀+变量: /pages/page_{id}.json 仅最后一段支持
+     * 5. 通配所有: /api/** 或 /api/{*path} 匹配所有剩余路径
      */
     private java.lang.String _path ;
     
@@ -59,7 +64,12 @@ public abstract class _GatewayMatchModel extends io.nop.core.resource.component.
     /**
      * 
      * xml name: path
-     *  对应REST请求链接，例如 /r/NopAuthUser__findPage
+     *  路径匹配规则（按优先级排序）：
+     * 1. 精确匹配: /api/users
+     * 2. 路径变量: /api/{type} 匹配单段，变量值通过path获取
+     * 3. 后缀匹配: /files/*.json 仅最后一段支持
+     * 4. 前缀+变量: /pages/page_{id}.json 仅最后一段支持
+     * 5. 通配所有: /api/** 或 /api/{*path} 匹配所有剩余路径
      */
     
     public java.lang.String getPath(){

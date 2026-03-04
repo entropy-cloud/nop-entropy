@@ -18,6 +18,7 @@ import io.nop.gateway.model.GatewayInvokeModel;
 import io.nop.gateway.model.GatewayRouteModel;
 import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
+import io.nop.rpc.core.utils.RpcHelper;
 
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -58,6 +59,9 @@ public class InvokeProcessor {
         if (invoke == null) {
             throw new NopException(ERR_GATEWAY_NO_RPC_SUPPORT).source(route);
         }
+
+        RpcHelper.setHttpUrl(request,null);
+        RpcHelper.setHttpMethod(request,null);
 
         // 优先级: source > serviceName > url
         if (invoke.getSource() != null) {
