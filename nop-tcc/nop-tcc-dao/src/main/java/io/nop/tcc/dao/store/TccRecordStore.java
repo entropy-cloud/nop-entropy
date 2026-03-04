@@ -21,11 +21,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.dao.IOrmEntityDao;
-import io.nop.tcc.api.ITccBranchRecord;
-import io.nop.tcc.api.ITccRecord;
-import io.nop.tcc.api.ITccRecordStore;
-import io.nop.tcc.api.TccBranchRequest;
-import io.nop.tcc.api.TccStatus;
+import io.nop.tcc.api.*;
 import io.nop.tcc.dao.entity.NopTccBranchRecord;
 import io.nop.tcc.dao.entity.NopTccRecord;
 import jakarta.inject.Inject;
@@ -43,6 +39,8 @@ public class TccRecordStore implements ITccRecordStore {
 
     private int defaultTxnTimeout;
 
+    private int defaultMaxRetryTimes;
+
     @InjectValue("@cfg:nop.tcc.default-branch-timeout-ms|10000")
     public void setDefaultBranchTimeout(int defaultBranchTimeoutMs) {
         this.defaultBranchTimeout = defaultBranchTimeoutMs;
@@ -58,6 +56,11 @@ public class TccRecordStore implements ITccRecordStore {
         this.daoProvider = daoProvider;
     }
 
+    @InjectValue("@cfg:nop.tcc.default-max-retry-times|10000")
+    public void setDefaultMaxRetryTimes(int defaultMaxRetryTimes) {
+        this.defaultMaxRetryTimes = defaultMaxRetryTimes;
+    }
+
     private IOrmEntityDao<NopTccRecord> recordDao() {
         return (IOrmEntityDao<NopTccRecord>) daoProvider.daoFor(NopTccRecord.class);
     }
@@ -70,7 +73,7 @@ public class TccRecordStore implements ITccRecordStore {
     public ITccRecord newTccRecord(String txnGroup) {
         IEntityDao<NopTccRecord> dao = recordDao();
 
-        NopTccRecord record = new NopTccRecord();
+        NopTccRecord record = dao.newEntity();
         record.setTxnGroup(txnGroup);
         record.setAppId(AppConfig.appName());
         Timestamp beginTime = CoreMetrics.currentTimestamp();
@@ -85,7 +88,7 @@ public class TccRecordStore implements ITccRecordStore {
     public ITccBranchRecord newBranchRecord(ITccRecord record, TccBranchRequest request) {
         IEntityDao<NopTccBranchRecord> dao = branchDao();
 
-        NopTccBranchRecord branchRecord = new NopTccBranchRecord();
+        NopTccBranchRecord branchRecord = dao.newEntity();
         branchRecord.setTxnId(record.getTxnId());
         branchRecord.setBeginTime(CoreMetrics.currentTimestamp());
         branchRecord.setRequestData(JsonTool.stringify(request.getRequest()));
@@ -97,6 +100,7 @@ public class TccRecordStore implements ITccRecordStore {
         branchRecord.setParentBranchId(request.getParentBranchId());
         branchRecord.setBranchNo(request.getParentBranchNo());
         branchRecord.setBranchNo(request.getParentBranchNo() + 1);
+        branchRecord.setMaxRetryTimes(defaultMaxRetryTimes);
         dao.initEntityId(branchRecord);
 
         return branchRecord;

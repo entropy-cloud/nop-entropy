@@ -78,14 +78,15 @@ public class DefaultTccServiceMetaLoader implements ITccServiceMetaLoader {
         if (serviceMeta != null)
             return serviceMeta.getMethod(methodName);
 
-        if (!guessTccMethod)
-            return null;
-
+        String txnGroup = ApiHeaders.getTxnGroup(request);
         String confirmMethod = ApiHeaders.getTccConfirm(request);
         String cancelMethod = ApiHeaders.getTccCancel(request);
-        if (cancelMethod == null)
+        if (cancelMethod == null) {
+            if (!guessTccMethod)
+                return null;
             cancelMethod = "cancel" + StringHelper.capitalize(methodName);
+        }
 
-        return new TccMethodMeta(null, methodName, confirmMethod, cancelMethod);
+        return new TccMethodMeta(txnGroup, methodName, confirmMethod, cancelMethod);
     }
 }

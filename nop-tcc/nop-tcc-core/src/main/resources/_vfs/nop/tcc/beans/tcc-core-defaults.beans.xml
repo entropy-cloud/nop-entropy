@@ -11,4 +11,5 @@
 
     <bean id="nopTccEngine" class="io.nop.tcc.core.impl.TccEngine" />
 
+    <bean id="nopRpcServiceInterceptor_tcc" class="io.nop.tcc.core.interceptor.TccRpcServiceInterceptor" />
 </beans>
