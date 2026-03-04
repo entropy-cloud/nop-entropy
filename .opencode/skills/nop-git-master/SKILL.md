@@ -63,14 +63,22 @@ type(scope): 简短描述（20字以内）
 
 ## 智能提交拆分规则
 
-### 强制拆分条件（HARD RULES）
+### 拆分原则（简化版）
+
+**核心原则：按逻辑分组，一个commit只做一件事**
 
 ```
-3+ 文件 → 必须 2+ commits
-5+ 文件 → 必须 3+ commits
-10+ 文件 → 必须 5+ commits
+1. 不同模块 → 不同commit（最高优先级）
+   - nop-sys的变更不和nop-cluster混在一起
+   - nop-orm的变更不和nop-gateway混在一起
 
-公式：min_commits = ceil(file_count / 3)
+2. 同一模块内按功能分组
+   - 数据库schema变更单独commit
+   - API接口变更单独commit
+   - 配置变更单独commit
+   - 文档变更单独commit
+
+3. 测试和实现在同一commit
 ```
 
 ### 拆分维度（优先级从高到低）
@@ -162,36 +170,27 @@ nop-gateway/     # 网关模块
   - orm/src/test/java/TestCrudBizModel.java
 ```
 
-### 拆分验证（MANDATORY OUTPUT）
+### 拆分验证（简化版）
 
-执行commits前必须输出：
+执行commits前输出计划即可：
 
 ```
 COMMIT PLAN
 ===========
-Files changed: 8
-Minimum commits: ceil(8/3) = 3
-Planned commits: 4 ✓
+Files changed: 8 | Planned commits: 4
 
 COMMIT 1: feat(sys): 增强服务注册功能
   - nop-sys/api/IServiceInstance.java
   - nop-sys/dao/ServiceInstanceDao.java
-  Justification: API定义+DAO实现，同一功能
+  Justification: 同一功能
 
 COMMIT 2: feat(cluster): 增强集群发现机制
   - nop-cluster/service/DiscoveryService.java
-  - nop-cluster/api/IDiscovery.java
-  Justification: 服务发现接口+实现
+  Justification: 不同模块
 
-COMMIT 3: docs: 更新集群配置文档
+COMMIT 3: docs: 更新文档
   - docs/cluster-setup.md
-  Justification: 独立的文档更新
-
-COMMIT 4: test: 添加服务发现测试
-  - nop-cluster/test/TestDiscovery.java
-  Justification: 测试代码单独提交（非unit test）
-
-验证：4 >= 3 ✓
+  Justification: 文档独立提交
 ```
 
 ## 提交流程（零冗余）
@@ -716,3 +715,4 @@ git log --follow -- path/file.java      # 文件历史
 - [ ] 工作目录干净？
 - [ ] 构建成功（如果修改了代码）？
 - [ ] Commit消息符合风格？
+- [ ] CHANGELOG已更新（如有破坏性变更/新功能/数据库变更）？
