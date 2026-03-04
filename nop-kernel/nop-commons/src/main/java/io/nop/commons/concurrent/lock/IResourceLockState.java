@@ -23,5 +23,5 @@ public interface IResourceLockState {
 
     String getLockReason();
 
-    int getVersion();
+    long getVersion();
 }

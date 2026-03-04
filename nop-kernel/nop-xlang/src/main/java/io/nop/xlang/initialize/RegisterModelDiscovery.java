@@ -255,7 +255,8 @@ public class RegisterModelDiscovery {
             if (!optional) {
                 throw NopException.adapt(e);
             } else {
-                LOG.warn("nop.register-model.ignore-invalid-loader:fileType={},className={}", fileType, className, e);
+                // optional loader: just log a warning without bubbling up the exception
+                LOG.warn("nop.register-model.ignore-invalid-loader:fileType={},className={}", fileType, className);
             }
         }
     }
@@ -272,7 +273,8 @@ public class RegisterModelDiscovery {
             if (!optional) {
                 throw NopException.adapt(e);
             } else {
-                LOG.warn("nop.register-model.ignore-invalid-transformer:modelType={},className={}", modelType, className, e);
+                // optional transformer: just log a warning without stack trace
+                LOG.warn("nop.register-model.ignore-invalid-transformer:modelType={},className={}", modelType, className);
             }
         }
     }

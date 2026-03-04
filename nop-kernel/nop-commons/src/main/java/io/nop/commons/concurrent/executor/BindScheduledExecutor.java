@@ -8,6 +8,8 @@
 package io.nop.commons.concurrent.executor;
 
 import io.nop.api.core.util.FutureHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -21,6 +23,8 @@ import java.util.concurrent.atomic.AtomicReference;
  * 具体执行任务时总是调度到某个特定的Executor上执行
  */
 public class BindScheduledExecutor implements IScheduledExecutor {
+    static final Logger LOG = LoggerFactory.getLogger(BindScheduledExecutor.class);
+
     private final IScheduledExecutor timer;
     private final Executor executor;
 
@@ -95,6 +99,7 @@ public class BindScheduledExecutor implements IScheduledExecutor {
                     try {
                         command.run();
                     } catch (Throwable e) {
+                        LOG.error("nop.err.thread-pool.execute-fail",e);
                         future.completeExceptionally(e);
                         return;
                     }
@@ -140,6 +145,7 @@ public class BindScheduledExecutor implements IScheduledExecutor {
                 try {
                     future.complete(callable.call());
                 } catch (Throwable e) {
+                    LOG.error("nop.err.thread-pool.execute-fail",e);
                     future.completeExceptionally(e);
                 }
             });
