@@ -26,8 +26,13 @@ public class TrieNode<V> {
 
     private TrieNode<V> wildcardChild;
 
+    /**
+     * 最后一段路径的模式匹配，支持 *.json, page_{var}.json 等模式
+     */
+    private PatternChild<V> patternChild;
+
     public boolean hasChild() {
-        return wildcardChild != null || !children.isEmpty();
+        return wildcardChild != null || patternChild != null || !children.isEmpty();
     }
 
     public V getValue() {
@@ -69,5 +74,12 @@ public class TrieNode<V> {
 
     public void setWildcardChild(TrieNode<V> wildcardChild) {
         this.wildcardChild = wildcardChild;
+    }
+    public PatternChild<V> getPatternChild() {
+        return patternChild;
+    }
+
+    public void setPatternChild(PatternChild<V> patternChild) {
+        this.patternChild = patternChild;
     }
 }

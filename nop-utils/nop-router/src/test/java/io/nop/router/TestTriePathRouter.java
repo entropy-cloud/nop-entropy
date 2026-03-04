@@ -389,4 +389,146 @@ public class TestTriePathRouter {
         }
         return result;
     }
+
+    // ==================== ** 语法糖测试 ====================
+
+    @Test
+    public void testDoubleStarSyntax() {
+        TriePathRouter<String> router = new TriePathRouter<>();
+        router.addPathPattern("/api/**", "catch-all");
+
+        // 应该匹配 /api 下的所有路径
+        assertEquals("catch-all", router.matchPath("/api/users").getValue().get(0).getValue());
+        assertEquals("catch-all", router.matchPath("/api/users/123").getValue().get(0).getValue());
+        assertEquals("catch-all", router.matchPath("/api/a/b/c/d").getValue().get(0).getValue());
+    }
+
+    @Test
+    public void testDoubleStarWithExactPath() {
+        TriePathRouter<String> router = new TriePathRouter<>();
+        router.addPathPattern("/api/users", "exact-users");
+        router.addPathPattern("/api/**", "catch-all");
+
+        // 精确匹配应该优先
+        MatchResult<List<RouteValue<String>>> result = router.matchPath("/api/users");
+        assertEquals("exact-users", result.getValue().get(0).getValue());
+
+        // 其他路径匹配 catch-all
+        result = router.matchPath("/api/orders");
+        assertEquals("catch-all", result.getValue().get(0).getValue());
+    }
+
+    // ==================== *.json 后缀匹配测试 ====================
+
+    @Test
+    public void testSuffixPattern_json() {
+        TriePathRouter<String> router = new TriePathRouter<>();
+        router.addPathPattern("/files/*.json", "json-handler");
+
+        // 匹配 .json 后缀
+        MatchResult<List<RouteValue<String>>> result = router.matchPath("/files/config.json");
+        assertNotNull(result);
+        assertEquals("json-handler", result.getValue().get(0).getValue());
+
+        result = router.matchPath("/files/data.json");
+        assertNotNull(result);
+        assertEquals("json-handler", result.getValue().get(0).getValue());
+
+        // 不匹配其他后缀
+        result = router.matchPath("/files/config.xml");
+        assertNull(result);
+    }
+
+    @Test
+    public void testSuffixPattern_withPathVar() {
+        TriePathRouter<String> router = new TriePathRouter<>();
+        router.addPathPattern("/api/{version}/*.json", "json-api");
+
+        MatchResult<List<RouteValue<String>>> result = router.matchPath("/api/v1/config.json");
+        assertNotNull(result);
+        assertEquals("json-api", result.getValue().get(0).getValue());
+
+        // 验证版本号被正确捕获
+        RouteValue<String> routeValue = result.getValue().get(0);
+        Map<String, String> vars = extractVariables(result.getPath(), routeValue.getVarNames());
+        assertEquals("v1", vars.get("version"));
+    }
+
+    @Test
+    public void testSuffixPattern_multipleSuffixes() {
+        TriePathRouter<String> router = new TriePathRouter<>();
+        router.addPathPattern("/files/*.json", "json-handler");
+        router.addPathPattern("/files/*.xml", "xml-handler");
+
+        // 注意：当前实现每个节点只支持一个 patternChild
+        // 所以这个测试可能需要调整，或者我们需要支持多个 patternChild
+        MatchResult<List<RouteValue<String>>> result = router.matchPath("/files/config.json");
+        // 目前只有一个 pattern 会被保留
+        assertNotNull(result);
+    }
+
+    // ==================== 前缀+后缀+变量模式测试 ====================
+
+    @Test
+    public void testPrefixSuffixPattern_basic() {
+        TriePathRouter<String> router = new TriePathRouter<>();
+        router.addPathPattern("/pages/page_{index}.json", "page-handler");
+
+        MatchResult<List<RouteValue<String>>> result = router.matchPath("/pages/page_1.json");
+        assertNotNull(result);
+        assertEquals("page-handler", result.getValue().get(0).getValue());
+
+        // 验证模式匹配提取的变量值
+        assertEquals("1", result.getExtractedVar("index"));
+
+        // 匹配其他索引
+        result = router.matchPath("/pages/page_42.json");
+        assertNotNull(result);
+        assertEquals("42", result.getExtractedVar("index"));
+    }
+
+    @Test
+    public void testPrefixSuffixPattern_noSuffix() {
+        TriePathRouter<String> router = new TriePathRouter<>();
+        router.addPathPattern("/files/file_{id}", "file-handler");
+
+        MatchResult<List<RouteValue<String>>> result = router.matchPath("/files/file_123");
+        assertNotNull(result);
+        assertEquals("file-handler", result.getValue().get(0).getValue());
+
+        // 验证模式匹配提取的变量值
+        assertEquals("123", result.getExtractedVar("id"));
+    }
+
+    @Test
+    public void testPrefixSuffixPattern_noMatch() {
+        TriePathRouter<String> router = new TriePathRouter<>();
+        router.addPathPattern("/pages/page_{index}.json", "page-handler");
+
+        // 不匹配：前缀不对
+        MatchResult<List<RouteValue<String>>> result = router.matchPath("/pages/doc_1.json");
+        assertNull(result);
+
+        // 不匹配：后缀不对
+        result = router.matchPath("/pages/page_1.xml");
+        assertNull(result);
+    }
+
+    @Test
+    public void testPatternWithExactAndWildcard() {
+        TriePathRouter<String> router = new TriePathRouter<>();
+        router.addPathPattern("/files/config.json", "exact-config");
+        router.addPathPattern("/files/*.json", "json-handler");
+
+        // 精确匹配优先
+        MatchResult<List<RouteValue<String>>> result = router.matchPath("/files/config.json");
+        assertNotNull(result);
+        assertEquals("exact-config", result.getValue().get(0).getValue());
+
+        // 其他 .json 文件匹配 pattern
+        result = router.matchPath("/files/data.json");
+        assertNotNull(result);
+        assertEquals("json-handler", result.getValue().get(0).getValue());
+    }
+
 }

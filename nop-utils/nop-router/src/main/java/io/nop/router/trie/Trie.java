@@ -9,8 +9,10 @@ package io.nop.router.trie;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
@@ -61,7 +63,7 @@ public class Trie<V> {
 
         lock.readLock().lock();
         try {
-            return _match(rootNode, path, 0, null);
+            return _match(rootNode, path, 0, null, null);
         } finally {
             lock.readLock().unlock();
         }
@@ -134,6 +136,17 @@ public class Trie<V> {
                 _matchAllValues(wildcardChild, path, index + 1, results);
             }
         }
+
+        // 最后一段：检查 pattern child
+        if (last) {
+            PatternChild<V> patternChild = node.getPatternChild();
+            if (patternChild != null && patternChild.matches(name)) {
+                TrieNode<V> patternNode = patternChild.getChild();
+                if (patternNode.getValue() != null) {
+                    results.add(patternNode.getValue());
+                }
+            }
+        }
     }
 
     private void _matchAll(TrieNode<V> node, List<String> path, int index, List<MatchResult<V>> results) {
@@ -163,9 +176,28 @@ public class Trie<V> {
                 _matchAll(wildcardChild, path, index + 1, results);
             }
         }
+
+        // 最后一段：检查 pattern child
+        if (last) {
+            PatternChild<V> patternChild = node.getPatternChild();
+            if (patternChild != null && patternChild.matches(name)) {
+                TrieNode<V> patternNode = patternChild.getChild();
+                if (patternNode.getValue() != null) {
+                    // 提取模式变量值
+                    String varName = patternChild.getVarName();
+                    if (varName != null) {
+                        String extractedValue = patternChild.extractValue(name);
+                        results.add(MatchResult.withExtractedVar(path, patternNode.getValue(), varName, extractedValue));
+                    } else {
+                        results.add(new MatchResult<>(path, patternNode.getValue()));
+                    }
+                }
+            }
+        }
     }
 
-    private MatchResult<V> _match(TrieNode<V> node, List<String> path, int index, TrieNode<V> candidate) {
+    private MatchResult<V> _match(TrieNode<V> node, List<String> path, int index,
+            TrieNode<V> candidate, PatternMatchInfo<V> patternInfo) {
         boolean last = path.size() == index + 1;
 
         String name = path.get(index);
@@ -175,15 +207,24 @@ public class Trie<V> {
                 if (child.getValue() != null) {
                     // 严格匹配
                     candidate = child;
+                    patternInfo = null; // 清除模式信息，因为精确匹配优先
                 }
-                return makeResult(path, candidate);
+                // 最后一段也要检查 patternChild
+                if (candidate == null) {
+                    PatternMatchInfo<V> pInfo = matchPatternChild(node, name);
+                    if (pInfo != null) {
+                        candidate = pInfo.node;
+                        patternInfo = pInfo;
+                    }
+                }
+                return makeResult(path, candidate, patternInfo);
             } else {
                 if (child.hasChild()) {
-                    return _match(child, path, index + 1, candidate);
+                    return _match(child, path, index + 1, candidate, patternInfo);
                 }
 
                 // 如果path只匹配了一部分，但是已经没有子模式能够匹配，则检查是否已经存在可匹配模式
-                return makeResult(path, candidate);
+                return makeResult(path, candidate, patternInfo);
             }
         } else {
             TrieNode<V> wildcardChild = node.getWildcardChild();
@@ -192,24 +233,74 @@ public class Trie<V> {
                     // 已经是最后一段路径，如果通配符节点有值则作为候选
                     if (wildcardChild.getValue() != null) {
                         candidate = wildcardChild;
+                        patternInfo = null;
                     }
-                    return makeResult(path, candidate);
+                    // 最后一段也要检查 patternChild
+                    if (candidate == null) {
+                        PatternMatchInfo<V> pInfo = matchPatternChild(node, name);
+                        if (pInfo != null) {
+                            candidate = pInfo.node;
+                            patternInfo = pInfo;
+                        }
+                    }
+                    return makeResult(path, candidate, patternInfo);
                 }
                 if (wildcardChild.isTillEnd()) {
                     candidate = wildcardChild;
-                    return makeResult(path, candidate);
+                    return makeResult(path, candidate, patternInfo);
                 }
-                return _match(wildcardChild, path, index + 1, candidate);
+                return _match(wildcardChild, path, index + 1, candidate, patternInfo);
             } else {
+                // 最后一段：检查 pattern child
+                if (last) {
+                    PatternMatchInfo<V> pInfo = matchPatternChild(node, name);
+                    if (pInfo != null) {
+                        candidate = pInfo.node;
+                        patternInfo = pInfo;
+                    }
+                    return makeResult(path, candidate, patternInfo);
+                }
                 // 没有任何匹配的子节点，只能返回已经匹配的节点
-                return makeResult(path, candidate);
+                return makeResult(path, candidate, patternInfo);
             }
         }
     }
 
-    MatchResult<V> makeResult(List<String> path, TrieNode<V> candidate) {
+    /**
+     * 模式匹配结果信息
+     */
+    private static class PatternMatchInfo<V> {
+        final TrieNode<V> node;
+        final String varName;
+        final String extractedValue;
+
+        PatternMatchInfo(TrieNode<V> node, String varName, String extractedValue) {
+            this.node = node;
+            this.varName = varName;
+            this.extractedValue = extractedValue;
+        }
+    }
+
+    /**
+     * 尝试匹配 pattern child
+     */
+    private PatternMatchInfo<V> matchPatternChild(TrieNode<V> node, String name) {
+        PatternChild<V> patternChild = node.getPatternChild();
+        if (patternChild != null && patternChild.matches(name)) {
+            String varName = patternChild.getVarName();
+            String extractedValue = varName != null ? patternChild.extractValue(name) : null;
+            return new PatternMatchInfo<>(patternChild.getChild(), varName, extractedValue);
+        }
+        return null;
+    }
+
+    MatchResult<V> makeResult(List<String> path, TrieNode<V> candidate, PatternMatchInfo<V> patternInfo) {
         if (candidate == null)
             return null;
+        if (patternInfo != null && patternInfo.varName != null) {
+            return MatchResult.withExtractedVar(path, candidate.getValue(),
+                patternInfo.varName, patternInfo.extractedValue);
+        }
         return new MatchResult<>(path, candidate.getValue());
     }
 }
