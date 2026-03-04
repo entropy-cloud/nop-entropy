@@ -17,11 +17,12 @@ import io.nop.commons.util.StringHelper;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -32,11 +33,13 @@ import static io.nop.cluster.ClusterErrors.ERR_CLUSTER_APP_VERSION_MUST_BE_NPM_L
  * 启动时自动把本服务注册到NamingService上，并在停止时自动注销注册
  */
 public class AutoRegistration {
+    static final Logger LOG = LoggerFactory.getLogger(AutoRegistration.class);
 
     private INamingService namingService;
 
     private String serviceName;
     private String clusterName = "DEFAULT";
+    private String groupName;
     private String addr;
     private int port = 9001;
     private int weight = 100;
@@ -48,6 +51,7 @@ public class AutoRegistration {
 
     private ServiceInstance instance;
 
+    private boolean autoUpdate;
     private Duration autoUpdateInterval;
 
     private Future<?> autoUpdateTimerFuture;
@@ -95,6 +99,14 @@ public class AutoRegistration {
         this.clusterName = clusterName;
     }
 
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
+    }
+
     public String getAddr() {
         return addr;
     }
@@ -139,10 +151,19 @@ public class AutoRegistration {
         this.autoUpdateInterval = autoUpdateInterval;
     }
 
+    public boolean isAutoUpdate() {
+        return autoUpdate;
+    }
+
+    public void setAutoUpdate(boolean autoUpdate) {
+        this.autoUpdate = autoUpdate;
+    }
+
     protected ServiceInstance getServiceInstance() {
         ServiceInstance instance = new ServiceInstance();
         instance.setEnabled(true);
         instance.setEphemeral(ephemeral);
+        instance.setGroupName(getGroupName());
 
         String serviceName = this.serviceName;
         if (serviceName == null)
@@ -180,7 +201,7 @@ public class AutoRegistration {
         }
         namingService.registerInstance(getServiceInstance());
 
-        if (autoUpdateInterval != null && autoUpdateInterval.toMillis() > 0) {
+        if (autoUpdate && autoUpdateInterval != null && autoUpdateInterval.toMillis() > 0) {
             autoUpdateTimerFuture = GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker())
                     .scheduleWithFixedDelay(this::refreshRegistration, autoUpdateInterval.toMillis(), autoUpdateInterval.toMillis(), TimeUnit.MILLISECONDS);
         }
@@ -188,7 +209,11 @@ public class AutoRegistration {
 
     protected void refreshRegistration() {
         if (instance != null) {
-            namingService.updateInstance(instance);
+            try {
+                namingService.updateInstance(instance);
+            } catch (Exception e) {
+                LOG.warn("nop.err.cluster.refresh-registration-fail:instance={}", instance, e);
+            }
         }
     }
 

@@ -9,13 +9,16 @@
     <bean id="nopAutoRegistration" class="io.nop.cluster.naming.AutoRegistration"
           feature:on="nop.cluster.registration.enabled">
         <property name="addr" value="@cfg:nop.server.addr|"/>
-        <property name="port" value="@cfg:nop.server.port"/>
+        <property name="port" value="@cfg:nop.server.port,server.port"/>
         <property name="serviceName" value="@cfg:nop.application.name"/>
+        <property name="groupName" value="@cfg:nop.application.group|DEFAULT" />
+        <property name="clusterName" value="@cfg:nop.cluster.name|DEFAULT" />
         <property name="tags" value="@cfg:nop.cluster.registration.tags|"/>
+        <property name="autoUpdate" value="@cfg:nop.cluster.registration.auto-update,nop.cluster.discovery.sys-dao-naming-service.enabled" />
+        <property name="autoUpdateInterval" value="@cfg:nop.cluster.registration.auto-update-interval|30s" />
         <property name="metadata">
             <map>
                 <entry key="version" value="@cfg:nop.application.version|1.0.0"/>
-                <entry key="group" value="@cfg:nop.application.group|default"/>
                 <entry key="zone" value="@cfg:nop.application.zone|"/>
                 <entry key="kind" value="@cfg:nop.application.kind|http"/>
             </map>

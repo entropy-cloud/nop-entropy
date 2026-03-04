@@ -17,8 +17,10 @@ import com.alibaba.nacos.api.naming.listener.NamingEvent;
 import com.alibaba.nacos.api.naming.pojo.Instance;
 import com.alibaba.nacos.client.naming.event.InstancesChangeEvent;
 import io.nop.api.core.ApiConstants;
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.cluster.naming.INamingService;
 import io.nop.commons.util.CollectionHelper;
@@ -55,6 +57,7 @@ public class NacosNamingService implements INamingService {
         return groupName;
     }
 
+    @InjectValue("@cfg:nop.application.group|DEFAULT")
     public void setGroupName(String groupName) {
         this.groupName = groupName;
     }
@@ -118,6 +121,8 @@ public class NacosNamingService implements INamingService {
 
     @Override
     public void registerInstance(ServiceInstance instance) {
+        Guard.checkEquals(instance.getGroupName(), groupName);
+
         Instance inst = toInstance(instance);
         try {
             // nacos内部会通过心跳机制不断的更新注册信息
@@ -133,6 +138,8 @@ public class NacosNamingService implements INamingService {
 
     @Override
     public void unregisterInstance(ServiceInstance instance) {
+        Guard.checkEquals(instance.getGroupName(), groupName);
+
         try {
             Instance inst = toInstance(instance);
             getNamingService().deregisterInstance(instance.getServiceName(), groupName, inst);

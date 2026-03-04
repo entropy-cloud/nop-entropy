@@ -36,7 +36,9 @@ public class ZoneServiceInstanceFilter implements IRequestServiceInstanceFilter<
         }
 
         if (force || !onlyPreferred) {
-            instances.removeIf(instance -> !zone.equals(instance.getMetadata(ServiceInstance.META_ZONE)));
+            instances.removeIf(instance -> {
+                return !zone.equals(instance.getMetadata(ServiceInstance.META_ZONE)) && !zone.equals(instance.getClusterName());
+            });
         }
     }
 
