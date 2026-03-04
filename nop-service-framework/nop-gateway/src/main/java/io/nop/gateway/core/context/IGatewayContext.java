@@ -107,9 +107,6 @@ public interface IGatewayContext extends IServiceContext {
 
     ApiRequest<?> getRequest();
 
-    void setRequest(ApiRequest<?> request);
-
     ApiResponse<?> getResponse();
 
-    void setResponse(ApiResponse<?> response);
 }

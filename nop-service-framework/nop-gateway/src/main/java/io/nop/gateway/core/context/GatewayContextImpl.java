@@ -126,21 +126,11 @@ public class GatewayContextImpl extends ServiceContextImpl implements IGatewayCo
         return (ApiResponse<?>) super.getResponse();
     }
 
-    @Override
-    public void setRequest(ApiRequest<?> request) {
-        super.setRequest(request);
-    }
-
-    @Override
-    public void setResponse(ApiResponse<?> response) {
-        super.setResponse(response);
-    }
-
-    public String getHttpMethod(){
+    public String getHttpMethod() {
         return (String) getAttribute(ATTR_HTTP_METHOD);
     }
 
-    public void setHttpMethod(String httpMethod){
+    public void setHttpMethod(String httpMethod) {
         setAttribute(ATTR_HTTP_METHOD, httpMethod);
     }
 }
