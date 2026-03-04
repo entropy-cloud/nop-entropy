@@ -35,6 +35,9 @@ Nop 平台采用与 Spring Boot 不同的配置体系，使用 `nop.*` 作为配
 | 配置项 | 说明 | 对应 Spring Boot 配置 |
 |--------|------|---------------------|
 | `nop.application.name` | **应用名称/服务注册名** | `spring.application.name` |
+| `nop.application.group` | **服务分组名（逻辑隔离）** | - |
+| `nop.cluster.name` | **集群名称（物理/机房隔离）** | - |
+| `nop.application.zone` | **可用区（地理标识）** | - |
 | `nop.server.port` | 服务端口 | `server.port` |
 | `nop.cluster.discovery.*` | 服务发现配置 | `spring.cloud.nacos.discovery.*` |
 | `nop.cluster.registration.enabled` | 是否启用服务注册 | `spring.cloud.nacos.discovery.enabled` |
@@ -51,13 +54,14 @@ Nop 平台通过 `AutoRegistration` bean 自动将服务注册到服务发现中
 <bean id="nopAutoRegistration" class="io.nop.cluster.naming.AutoRegistration"
       feature:on="nop.cluster.registration.enabled">
     <property name="serviceName" value="@cfg:nop.application.name"/>
+    <property name="groupName" value="@cfg:nop.application.group|DEFAULT" />
+    <property name="clusterName" value="@cfg:nop.cluster.name|DEFAULT" />
     <property name="addr" value="@cfg:nop.server.addr|"/>
     <property name="port" value="@cfg:nop.server.port"/>
     <property name="tags" value="@cfg:nop.cluster.registration.tags|"/>
     <property name="metadata">
         <map>
             <entry key="version" value="@cfg:nop.application.version|1.0.0"/>
-            <entry key="group" value="@cfg:nop.application.group|default"/>
             <entry key="zone" value="@cfg:nop.application.zone|"/>
             <entry key="kind" value="@cfg:nop.application.kind|http"/>
         </map>
@@ -149,11 +153,12 @@ nop:
 
 ```yaml
 # nop-spring-gateway-demo-service/src/main/resources/application.yaml
-nop:
   application:
-    name: demo-service    # 服务注册名
+    name: demo-service        # 服务注册名
+    group: user-center       # 服务分组（逻辑隔离）
 
   cluster:
+    name: BJ-IDC            # 集群名称（物理/机房隔离）
     discovery:
       sys-dao-naming-service:
         enabled: true     # 启用 DB 模式服务发现
