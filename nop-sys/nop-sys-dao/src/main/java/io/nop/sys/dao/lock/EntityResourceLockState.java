@@ -50,7 +50,7 @@ public class EntityResourceLockState implements IResourceLockState {
     }
 
     @Override
-    public int getVersion() {
+    public long getVersion() {
         return entity.getVersion();
     }
 }

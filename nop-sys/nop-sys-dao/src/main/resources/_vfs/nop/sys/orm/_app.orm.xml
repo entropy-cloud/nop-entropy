@@ -33,7 +33,7 @@
         <domain name="boolFlag" stdSqlType="TINYINT"/>
         <domain name="json-1000" precision="1" stdDomain="json" stdSqlType="VARCHAR"/>
         <domain name="remark" precision="1" stdSqlType="VARCHAR"/>
-        <domain name="version" stdSqlType="INTEGER"/>
+        <domain name="version" stdSqlType="BIGINT"/>
         <domain name="createTime" stdSqlType="TIMESTAMP"/>
         <domain name="createdBy" precision="50" stdSqlType="VARCHAR"/>
         <domain name="updateTime" stdSqlType="TIMESTAMP"/>
@@ -67,7 +67,7 @@
                         stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" ui:show="X"
                         i18n-en:displayName="Deleted"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -98,7 +98,7 @@
                         stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" ui:show="X"
                         i18n-en:displayName="Deleted"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="5"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="6" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -149,7 +149,7 @@
                         stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" ui:show="X"
                         i18n-en:displayName="Deleted"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -187,7 +187,7 @@
                 <column code="VALUE" displayName="值" mandatory="true" name="value" precision="300" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Value"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="4"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="5" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -246,7 +246,7 @@
                 <column code="CE_ERR_MSG" displayName="回调错误消息" name="ceErrMsg" precision="1000" propId="17"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Callback Error Message"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="18"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="19" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -282,7 +282,7 @@
                         stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" ui:show="X"
                         i18n-en:displayName="Deleted"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="7"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -316,7 +316,7 @@
                         stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" ui:show="X"
                         i18n-en:displayName="Deleted"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="6"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="7" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -349,7 +349,7 @@
                 <column code="VAR_TYPE" displayName="变量类型" name="varType" precision="100" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Var Type"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="6"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="7" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -378,7 +378,7 @@
                 <column code="VAR_TYPE" displayName="变量类型" name="varType" precision="100" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Var Type"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="5"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="6" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -420,7 +420,7 @@
                 <column code="STRING_VALUE" displayName="字符串值" name="stringValue" precision="4000" propId="9"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="String Value"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -459,7 +459,7 @@
                 <column code="APP_ID" displayName="应用ID" mandatory="true" name="appId" precision="100" propId="8"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="App ID"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -492,7 +492,7 @@
                 <column code="REFRESH_TIME" displayName="刷新时间" mandatory="true" name="refreshTime" propId="7"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Refresh Time"/>
                 <column code="VERSION" displayName="修改版本" domain="version" mandatory="true" name="version" propId="8"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="APP_NAME" displayName="应用名" mandatory="true" name="appName" precision="100" propId="9"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="App Name"/>
             </columns>
@@ -537,7 +537,7 @@
                 <column code="RETRY_TIMES" displayName="重试次数" mandatory="true" name="retryTimes" propId="16"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Retry Times"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="17"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="18" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -564,7 +564,7 @@
                         propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Cluster Name"/>
                 <column code="GROUP_NAME" displayName="分组名" mandatory="true" name="groupName" precision="100" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Group Name"/>
-                <column code="TAGS_TEXT" displayName="标签" mandatory="true" name="tagsText" precision="100" propId="5"
+                <column code="TAGS_TEXT" displayName="标签" name="tagsText" precision="100" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Tags"/>
                 <column code="SERVER_ADDR" displayName="服务地址" mandatory="true" name="serverAddr" precision="20"
                         propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Server Addr"/>
@@ -581,7 +581,7 @@
                 <column code="IS_EPHEMERAL" displayName="是否临时" mandatory="true" name="isEphemeral" propId="12"
                         stdDataType="boolean" stdSqlType="BOOLEAN" i18n-en:displayName="Is Ephemeral"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="13"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
                         propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
@@ -630,7 +630,7 @@
                 <column code="DESCRIPTION" displayName="描述" name="description" precision="500" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="4"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="5" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -657,7 +657,7 @@
                 <column code="TAG_ID" displayName="标签ID" mandatory="true" name="tagId" primary="true" propId="3"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Tag ID"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="4"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="5" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>

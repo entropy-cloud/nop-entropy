@@ -1,9 +1,12 @@
 package io.nop.sys.dao.naming;
 
+import io.nop.api.core.annotations.ioc.InjectValue;
+import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.beans.query.QueryFieldBean;
-import io.nop.api.core.time.IEstimatedClock;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.util.Guard;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.cluster.naming.INamingService;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
@@ -15,6 +18,8 @@ import io.nop.sys.dao.entity.NopSysServiceInstance;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -25,11 +30,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class SysDaoNamingService implements INamingService {
+    static final Logger LOG = LoggerFactory.getLogger(SysDaoNamingService.class);
 
     private IDaoProvider daoProvider;
     private Duration autoUpdateInterval;
+    private boolean autoCleanup;
     private Duration cleanupInterval;
     private Future<?> cleanupFuture;
+    private String groupName;
 
     public void setAutoUpdateInterval(Duration autoUpdateInterval) {
         this.autoUpdateInterval = autoUpdateInterval;
@@ -37,6 +45,15 @@ public class SysDaoNamingService implements INamingService {
 
     public void setCleanupInterval(Duration cleanupInterval) {
         this.cleanupInterval = cleanupInterval;
+    }
+
+    public void setAutoCleanup(boolean autoCleanup) {
+        this.autoCleanup = autoCleanup;
+    }
+
+    @InjectValue("@cfg:nop.application.group|DEFAULT")
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
     }
 
     @Inject
@@ -56,7 +73,7 @@ public class SysDaoNamingService implements INamingService {
 
     @PostConstruct
     public void init() {
-        if (cleanupInterval != null) {
+        if (autoCleanup && cleanupInterval != null && cleanupInterval.toMillis() > 0) {
             cleanupFuture = GlobalExecutors.globalTimer().scheduleWithFixedDelay(this::cleanup, cleanupInterval.toMillis(), cleanupInterval.toMillis(), TimeUnit.MILLISECONDS);
         }
     }
@@ -72,19 +89,25 @@ public class SysDaoNamingService implements INamingService {
     void cleanup() {
         IEntityDao<NopSysServiceInstance> dao = dao();
         QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.lt(NopSysServiceInstance.PROP_NAME_updateTime, new Timestamp(System.currentTimeMillis() - 2 * getMaxUpdateInterval())));
+        query.addFilter(FilterBeans.eq(NopSysServiceInstance.PROP_NAME_groupName, groupName));
+        query.addFilter(FilterBeans.lt(NopSysServiceInstance.PROP_NAME_updateTime, new Timestamp(CoreMetrics.currentTimeMillis() - 2 * getMaxUpdateInterval())));
         query.addFilter(FilterBeans.eq(NopSysServiceInstance.PROP_NAME_isEphemeral, true));
         dao.deleteByQuery(query);
     }
 
+    @SingleSession
     @Override
     public void registerInstance(ServiceInstance instance) {
+        if (instance.getGroupName() == null)
+            instance.setGroupName(groupName);
+
+        Guard.checkEquals(groupName, instance.getGroupName());
+
         IEntityDao<NopSysServiceInstance> dao = dao();
-        IEstimatedClock clock = dao.getDbEstimatedClock();
         NopSysServiceInstance entity = dao.getEntityById(instance.getInstanceId());
         if (entity != null) {
             copyToEntity(entity, instance);
-            entity.setUpdateTime(clock.getMaxCurrentTime());
+            entity.setUpdateTime(CoreMetrics.currentTimestamp());
             dao.updateEntity(entity);
         } else {
             entity = toEntity(instance);
@@ -99,29 +122,33 @@ public class SysDaoNamingService implements INamingService {
 
     @Override
     public void unregisterInstance(ServiceInstance instance) {
-        dao().deleteEntityById(instance.getInstanceId());
+        try {
+            dao().deleteEntityById(instance.getInstanceId());
+        } catch (Exception e) {
+            LOG.error("nop.err.cluster.delete-service-instance-fail", e);
+        }
     }
 
     @Override
     public List<String> getServices() {
         IEntityDao<NopSysServiceInstance> dao = dao();
-        IEstimatedClock clock = dao.getDbEstimatedClock();
         QueryBean query = new QueryBean();
         query.distinct().addField(QueryFieldBean.forField(NopSysServiceInstance.PROP_NAME_serviceName));
-        query.addFilter(FilterBeans.gt(NopSysServiceInstance.PROP_NAME_updateTime, new Timestamp(clock.getMinCurrentTimeMillis() - getMaxUpdateInterval())));
+        query.addFilter(FilterBeans.eq(NopSysServiceInstance.PROP_NAME_groupName, groupName));
+        query.addFilter(FilterBeans.gt(NopSysServiceInstance.PROP_NAME_updateTime, new Timestamp(CoreMetrics.currentTimeMillis() - getMaxUpdateInterval())));
         return dao.selectStringFieldByQuery(query);
     }
 
     @Override
     public List<ServiceInstance> getInstances(String serviceName) {
         IEntityDao<NopSysServiceInstance> dao = dao();
-        IEstimatedClock clock = dao.getDbEstimatedClock();
 
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq(NopSysServiceInstance.PROP_NAME_serviceName, serviceName));
+        query.addFilter(FilterBeans.eq(NopSysServiceInstance.PROP_NAME_groupName, groupName));
 
         // 如果长时间没有更新，则认为服务实例已经失效
-        query.addFilter(FilterBeans.gt(NopSysServiceInstance.PROP_NAME_updateTime, new Timestamp(clock.getMinCurrentTimeMillis() - getMaxUpdateInterval())));
+        query.addFilter(FilterBeans.gt(NopSysServiceInstance.PROP_NAME_updateTime, new Timestamp(CoreMetrics.currentTimeMillis() - getMaxUpdateInterval())));
         return dao.findAllByQuery(query).stream().map(this::fromEntity).sorted().collect(Collectors.toList());
     }
 
@@ -132,12 +159,16 @@ public class SysDaoNamingService implements INamingService {
     }
 
     protected void copyToEntity(NopSysServiceInstance entity, ServiceInstance instance) {
+        String groupName = instance.getGroupName() == null ? "DEFAULT" : instance.getGroupName();
+
         entity.setInstanceId(instance.getInstanceId());
         entity.setServiceName(instance.getServiceName());
         entity.setServerAddr(instance.getAddr());
         entity.setServerPort(instance.getPort());
-        entity.setClusterName(instance.getClusterName());
-        entity.setGroupName(instance.getGroupName());
+        entity.setClusterName(instance.getClusterName() == null ? "DEFAULT" : instance.getClusterName());
+        entity.setGroupName(groupName);
+
+
         entity.setIsEnabled(instance.isEnabled());
         entity.setIsEphemeral(instance.isEphemeral());
         entity.setIsHealthy(instance.isHealthy());

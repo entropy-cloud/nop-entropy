@@ -42,5 +42,9 @@
         <ioc:condition>
             <if-property name="nop.cluster.discovery.sys-dao-naming-service.enabled" enableIfMissing="false"/>
         </ioc:condition>
+
+        <property name="autoUpdateInterval" value="@cfg:nop.cluster.registration.auto-update-interval|30s" />
+        <property name="cleanupInterval" value="@cfg:nop.cluster.registration.cleanup-interval|60s" />
+        <property name="autoCleanup" value="@cfg:nop.cluster.discovery.sys-dao-naming-service.auto-cleanup|" />
     </bean>
 </beans>

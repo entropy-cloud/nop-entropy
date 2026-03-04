@@ -48,7 +48,7 @@
         </prop>
         <prop name="version" displayName="修改版本" propId="8" i18n-en:displayName="Version" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
-            <schema domain="version" type="java.lang.Integer"/>
+            <schema domain="version" type="java.lang.Long"/>
         </prop>
         <prop name="appName" displayName="应用名" propId="9" i18n-en:displayName="App Name" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">

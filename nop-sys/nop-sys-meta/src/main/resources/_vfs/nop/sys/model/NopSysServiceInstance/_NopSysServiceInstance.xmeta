@@ -34,8 +34,8 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="tagsText" displayName="标签" propId="5" i18n-en:displayName="Tags" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="tagsText" displayName="标签" propId="5" i18n-en:displayName="Tags" queryable="true" sortable="true"
+              insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
         <prop name="serverAddr" displayName="服务地址" propId="6" i18n-en:displayName="Server Addr" mandatory="true"
@@ -68,7 +68,7 @@
         </prop>
         <prop name="version" displayName="数据版本" propId="13" i18n-en:displayName="Version" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
-            <schema domain="version" type="java.lang.Integer"/>
+            <schema domain="version" type="java.lang.Long"/>
         </prop>
         <prop name="createTime" displayName="创建时间" propId="14" i18n-en:displayName="Create Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">

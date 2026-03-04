@@ -31,7 +31,7 @@
                 <col id="groupName" mandatory="true" sortable="true"/>
 
                 <!--标签-->
-                <col id="tagsText" mandatory="true" sortable="true"/>
+                <col id="tagsText" sortable="true"/>
 
                 <!--服务地址-->
                 <col id="serverAddr" mandatory="true" sortable="true"/>

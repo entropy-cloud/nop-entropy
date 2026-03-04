@@ -32,7 +32,7 @@ public class TestOptimisticLock extends JunitBaseTestCase {
         leader.setLeaderEpoch(100L);
         dao.saveEntity(leader);
 
-        leader.setVersion(100);
+        leader.setVersion(100L);
         leader.orm_clearDirty();
 
         leader.setLeaderEpoch(120L);

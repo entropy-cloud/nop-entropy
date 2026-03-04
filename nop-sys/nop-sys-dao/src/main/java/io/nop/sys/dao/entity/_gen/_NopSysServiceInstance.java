@@ -68,7 +68,7 @@ public class _NopSysServiceInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_isEphemeral = "isEphemeral";
     public static final int PROP_ID_isEphemeral = 12;
     
-    /* 数据版本: VERSION INTEGER */
+    /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
     public static final int PROP_ID_version = 13;
     
@@ -177,7 +177,7 @@ public class _NopSysServiceInstance extends DynamicOrmEntity{
     private java.lang.Boolean _isEphemeral;
     
     /* 数据版本: VERSION */
-    private java.lang.Integer _version;
+    private java.lang.Long _version;
     
     /* 创建时间: CREATE_TIME */
     private java.sql.Timestamp _createTime;
@@ -436,9 +436,9 @@ public class _NopSysServiceInstance extends DynamicOrmEntity{
             }
         
             case PROP_ID_version:{
-               java.lang.Integer typedValue = null;
+               java.lang.Long typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
+                   typedValue = ConvertHelper.toLong(value,
                        err-> newTypeConversionError(PROP_NAME_version));
                }
                setVersion(typedValue);
@@ -560,7 +560,7 @@ public class _NopSysServiceInstance extends DynamicOrmEntity{
         
             case PROP_ID_version:{
                onInitProp(propId);
-               this._version = (java.lang.Integer)value;
+               this._version = (java.lang.Long)value;
                
                break;
             }
@@ -816,7 +816,7 @@ public class _NopSysServiceInstance extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public final java.lang.Integer getVersion(){
+    public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -824,7 +824,7 @@ public class _NopSysServiceInstance extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public final void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);

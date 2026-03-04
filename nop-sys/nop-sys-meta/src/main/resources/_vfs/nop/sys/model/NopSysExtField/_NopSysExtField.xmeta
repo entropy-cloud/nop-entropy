@@ -56,7 +56,7 @@
         </prop>
         <prop name="version" displayName="数据版本" propId="10" i18n-en:displayName="Version" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
-            <schema domain="version" type="java.lang.Integer"/>
+            <schema domain="version" type="java.lang.Long"/>
         </prop>
         <prop name="createdBy" displayName="创建人" propId="11" i18n-en:displayName="Created By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
