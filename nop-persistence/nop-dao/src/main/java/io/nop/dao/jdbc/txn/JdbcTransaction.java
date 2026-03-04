@@ -16,12 +16,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 public class JdbcTransaction extends AbstractTransaction implements IJdbcTransaction {
     static final Logger LOG = LoggerFactory.getLogger(JdbcTransaction.class);
+    static final AtomicLong S_SEQ = new AtomicLong();
+
     private final Supplier<Connection> dataSource;
     private final IDialect dialect;
+    private final String txnId = String.valueOf(S_SEQ.incrementAndGet());
 
     /**
      * 提交或者回滚后是否自动释放连接。每次访问连接时再重新获取
@@ -39,6 +43,11 @@ public class JdbcTransaction extends AbstractTransaction implements IJdbcTransac
         this.dialect = dialect;
         this.eagerReleaseConnection = eagerReleaseConnection;
         this.daoMetrics = daoMetrics;
+    }
+
+    @Override
+    public String getTxnId() {
+        return txnId;
     }
 
     Connection getConnection0() {
@@ -70,7 +79,7 @@ public class JdbcTransaction extends AbstractTransaction implements IJdbcTransac
         if (connection == null)
             return;
 
-        LOG.info("nop.dao.jdbc.rollback:{}",this);
+        LOG.info("nop.dao.jdbc.rollback:{}", this);
         JdbcHelper.rollback(connection, dialect);
         if (eagerReleaseConnection)
             releaseConnection();
