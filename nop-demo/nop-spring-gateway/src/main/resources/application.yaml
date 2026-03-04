@@ -2,7 +2,6 @@ nop:
   # TCC Gateway配置
   tcc:
     gateway:
-      default-txn-group: demo
       auto-create-transaction: true
   gateway:
     http-filter:
