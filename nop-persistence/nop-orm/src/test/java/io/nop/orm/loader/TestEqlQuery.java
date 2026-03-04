@@ -259,4 +259,33 @@ public class TestEqlQuery extends AbstractOrmTestCase {
         List<SimsClass> list2 = orm().findAll(new SQL(sql2));
         assertEquals(1, list2.size());
     }
+
+    @Test
+    public void testExistsWithCollectionTableSource() {
+        orm().runInSession(() -> {
+            String sqlBase = "select o.collegeName"
+                    + " from io.nop.app.SimsCollege o"
+                    + " where exists ("
+                    + "   select 1"
+                    + "   from io.nop.app.SimsClass c"
+                    + "   where c.collegeId = o.collegeId"
+                    + "     and c.classId = '11'"
+                    + " )";
+
+            String sqlCollection = "select o.collegeName"
+                    + " from io.nop.app.SimsCollege o"
+                    + " where exists ("
+                    + "   select 1"
+                    + "   from o.simsClasses c"
+                    + "   where c.classId = '11'"
+                    + " )";
+
+            List<String> base = orm().findAll(SQL.begin().sql(sqlBase).end());
+            List<String> actual = orm().findAll(SQL.begin().sql(sqlCollection).end());
+
+            assertEquals(base, actual);
+            assertEquals(1, actual.size());
+            assertEquals("CollegeA", actual.get(0));
+        });
+    }
 }

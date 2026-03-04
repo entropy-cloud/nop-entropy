@@ -12,6 +12,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.nop.orm.eql.ast.SqlExpr;
+
 public class CollectionScope {
     private final SqlCollectionOperator operator;
     private final String collectionProp;
@@ -20,8 +22,6 @@ public class CollectionScope {
     private SqlColumnName colNameNode;
     private boolean singleCondition;
 
-    // 向上提升，直到parent为and/or/where。
-    // 比如 o.roles._some.status > 3 and o.status =1 ， loginUnitNode为 o.roles._some.status>3解析得到的SqlBinaryExpr
     private EqlASTNode logicUnitNode;
 
     private SourceLocation location;
@@ -30,6 +30,8 @@ public class CollectionScope {
     private List<SqlColumnName> mergedColNames;
 
     private Map<String, CollectionScope> children;
+
+    private SqlExpr clonedCondition;
 
     public CollectionScope(SqlCollectionOperator operator, String collectionProp) {
         this.operator = operator;
@@ -82,16 +84,14 @@ public class CollectionScope {
     }
 
     private static void buildNestedScopes(CollectionScope parentScope, String remainingPath) {
-        // 检查剩余路径中是否还有集合操作符
+        
         int allPos = remainingPath.indexOf(SqlCollectionOperator.ALL.getPathPattern());
         int somePos = remainingPath.indexOf(SqlCollectionOperator.SOME.getPathPattern());
 
-        // 如果没有更多操作符，则设置finalProperty并返回
         if (allPos < 0 && somePos < 0) {
             return;
         }
 
-        // 找到下一个操作符
         int nextPos = Integer.MAX_VALUE;
         SqlCollectionOperator nextOperator = null;
 
@@ -105,21 +105,18 @@ public class CollectionScope {
             nextOperator = SqlCollectionOperator.SOME;
         }
 
-        // 提取当前操作符之前的路径作为前缀
         String prefix = remainingPath.substring(0, nextPos);
         String newRemainingPath = remainingPath.substring(nextPos + nextOperator.getPathPattern().length());
+        
 
-        // 如果前缀为空，说明有连续的操作符，这是不合法的
         if (prefix.isEmpty()) {
             throw new IllegalArgumentException("Consecutive collection operators are not allowed: " + remainingPath);
         }
 
-        // 创建子scope并添加到父scope
         CollectionScope childScope = new CollectionScope(nextOperator, prefix);
         childScope.setColNameNode(parentScope.getColNameNode());
         parentScope.addChildScope(childScope);
 
-        // 递归处理剩余路径
         buildNestedScopes(childScope, newRemainingPath);
     }
 
@@ -224,33 +221,42 @@ public class CollectionScope {
     public void merge(CollectionScope other) {
         if (other == null)
             return;
-        
-        // 合并 mergedColNames
+
+        if (this.mergedColNames == null)
+            this.mergedColNames = new ArrayList<>();
+
+        if (other.colNameNode != null) {
+            this.mergedColNames.add(other.colNameNode);
+        }
+
         if (other.mergedColNames != null) {
-            if (this.mergedColNames == null)
-                this.mergedColNames = new ArrayList<>();
             this.mergedColNames.addAll(other.mergedColNames);
         }
-        
-        // 合并 children
+
         if (other.children != null && !other.children.isEmpty()) {
             if (this.children == null)
                 this.children = new HashMap<>();
-            
+
             for (Map.Entry<String, CollectionScope> entry : other.children.entrySet()) {
                 String key = entry.getKey();
                 CollectionScope childScope = entry.getValue();
-                
-                // 如果当前scope已经存在相同key的子scope，则递归合并
+
                 CollectionScope existingChild = this.children.get(key);
                 if (existingChild != null) {
                     existingChild.merge(childScope);
                 } else {
-                    // 否则直接添加子scope，并设置父关系
                     this.children.put(key, childScope);
                     childScope.setParent(this);
                 }
             }
         }
+    }
+
+    public SqlExpr getClonedCondition() {
+        return clonedCondition;
+    }
+
+    public void setClonedCondition(SqlExpr clonedCondition) {
+        this.clonedCondition = clonedCondition;
     }
 }

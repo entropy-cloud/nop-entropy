@@ -5,12 +5,15 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.orm.eql.ast.EqlASTKind;
 import io.nop.orm.eql.ast.EqlASTNode;
 import io.nop.orm.eql.ast.EqlASTVisitor;
+import io.nop.orm.eql.ast.SqlAndExpr;
 import io.nop.orm.eql.ast.SqlBinaryExpr;
 import io.nop.orm.eql.ast.SqlColumnName;
 import io.nop.orm.eql.ast.SqlExistsExpr;
+import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlExprProjection;
 import io.nop.orm.eql.ast.SqlFrom;
 import io.nop.orm.eql.ast.SqlNumberLiteral;
+import io.nop.orm.eql.ast.SqlOrExpr;
 import io.nop.orm.eql.ast.SqlProjection;
 import io.nop.orm.eql.ast.SqlQuerySelect;
 import io.nop.orm.eql.ast.SqlSingleTableSource;
@@ -19,14 +22,17 @@ import io.nop.orm.eql.ast.SqlTableName;
 import io.nop.orm.eql.ast.SqlTableSource;
 import io.nop.orm.eql.ast.SqlWhere;
 import io.nop.orm.eql.enums.SqlCollectionOperator;
+import io.nop.orm.eql.enums.SqlOperator;
 import io.nop.orm.eql.sql.IAliasGenerator;
 import io.nop.orm.eql.utils.EqlASTBuilder;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 
 import static io.nop.orm.eql.OrmEqlErrors.ARG_COLLECTION_PREFIX1;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_COLLECTION_PREFIX2;
@@ -51,14 +57,12 @@ public class CollectionOperatorTransformer {
     }
 
     public void transform(SqlWhere where) {
-        // 第一步：收集所有包含集合操作符的SqlColumnName
         List<CollectionScope> collectionScopes = new ArrayList<>();
         collectCollectionScopes(where, collectionScopes);
 
         if (collectionScopes.isEmpty())
             return;
 
-        // 第二步：为每个CollectionScope构建逻辑节点
         buildLogicNodes(collectionScopes);
 
         if (collectionScopes.size() == 1) {
@@ -66,12 +70,11 @@ public class CollectionOperatorTransformer {
             return;
         }
 
-        // 第三步：合并相同collectionPrefix的条件
-        // removedScopes 对应于scope合并后，已经不作为独立scope存在，被合并到已有scope中的哪些scope
         List<CollectionScope> removedScopes = new ArrayList<>();
         mergeConditions(collectionScopes, removedScopes);
 
-        // 第四步：将合并后的条件转换为EXISTS/NOT EXISTS子句
+        collectionScopes.removeAll(removedScopes);
+
         transformToExistsClauses(collectionScopes);
     }
 
@@ -99,7 +102,6 @@ public class CollectionOperatorTransformer {
     }
 
     private EqlASTNode findLogicUnitNode(EqlASTNode fromNode) {
-        // 向上查找逻辑节点（AND/OR/WHERE等）
         EqlASTNode node = fromNode;
         EqlASTNode parent = node.getASTParent();
         while (parent != null) {
@@ -108,18 +110,21 @@ public class CollectionOperatorTransformer {
                     kind == EqlASTKind.SqlWhere) {
                 return node;
             }
+            node = parent;
             parent = parent.getASTParent();
         }
         return node;
     }
 
     private void mergeConditions(List<CollectionScope> collectionScopes,
-                                 List<CollectionScope> removedScopes) {
+                                  List<CollectionScope> removedScopes) {
         if (collectionScopes.size() <= 1) {
             return;
         }
 
         Queue<CollectionScope> processing = new ArrayDeque<>(collectionScopes);
+        Set<CollectionScope> alreadyMerged = new HashSet<>();
+        
         do {
             CollectionScope scope = processing.poll();
             if (scope == null)
@@ -128,18 +133,50 @@ public class CollectionOperatorTransformer {
             Iterator<CollectionScope> it = processing.iterator();
             while (it.hasNext()) {
                 CollectionScope scope2 = it.next();
+                
+                // Skip if comparing with itself
+                if (scope == scope2) {
+                    continue;
+                }
+                
                 // 同一个分支
                 if (canMergeSameBranch(scope, scope2)) {
                     removedScopes.add(scope2);
+                    it.remove();
                 } else if (canMergeScope(scope, scope2)) {
                     removedScopes.add(scope2);
+                    it.remove();
                     scope.setLogicUnitNode(findLogicUnitNode(scope2.getLogicUnitNode().getASTParent()));
 
-                    // 合并scope之后重新检查
-                    processing.add(scope);
+                    // Only re-add if not already merged in this round
+                    if (!alreadyMerged.contains(scope)) {
+                        processing.add(scope);
+                        alreadyMerged.add(scope);
+                    }
                 }
             }
         } while (true);
+    }
+
+    private boolean canMergeScope(CollectionScope scope1, CollectionScope scope2) {
+        if (!scope1.getCollectionPrefix().equals(scope2.getCollectionPrefix())) {
+            return false;
+        }
+
+        if (scope1.getOperator() != scope2.getOperator()) {
+            return false;
+        }
+
+        EqlASTNode logic1 = scope1.getLogicUnitNode();
+        EqlASTNode logic2 = scope2.getLogicUnitNode();
+
+        if (scope1.getOperator() == SqlCollectionOperator.SOME) {
+            return canMergeSomeScopes(scope1, scope2, logic1, logic2);
+        } else if (scope1.getOperator() == SqlCollectionOperator.ALL) {
+            return canMergeAllScopes(scope1, scope2, logic1, logic2);
+        }
+
+        return false;
     }
 
     /**
@@ -180,53 +217,66 @@ public class CollectionOperatorTransformer {
         return true;
     }
 
-    /**
-     * 判断两个CollectionScope是否可以合并。
-     * 根据eql-collection-operator.md文档：
-     * - _some条件：同一集合的AND条件可以合并，OR条件也可以合并到同一个EXISTS子句
-     * - _all条件：AND条件可以合并，但OR条件不合并
-     *
-     * @throws NopException 当collectionPrefix不匹配或无法合并时
-     */
-    private boolean canMergeScope(CollectionScope scope1, CollectionScope scope2) {
-        // 检查逻辑结构是否可以合并
-        EqlASTNode logic1 = scope1.getLogicUnitNode();
-        EqlASTNode logic2 = scope2.getLogicUnitNode();
+    private boolean canMergeSomeScopes(CollectionScope scope1, CollectionScope scope2,
+                                              EqlASTNode logic1, EqlASTNode logic2) {
+        EqlASTNode parent1 = logic1.getASTParent();
+        EqlASTNode parent2 = logic2.getASTParent();
 
-        // 找到共同的父节点
+        if (parent1 == parent2) {
+                if (parent1.getASTKind() == EqlASTKind.SqlAndExpr ||
+                    parent1.getASTKind() == EqlASTKind.SqlOrExpr) {
+                    scope1.merge(scope2);
+                    return true;
+                }
+                return false;
+            }
+
+        SqlAndExpr commonAnd = findCommonAndAncestor(logic1, logic2);
+        if (commonAnd != null) {
+            scope1.merge(scope2);
+            scope1.setLogicUnitNode(commonAnd);
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean canMergeAllScopes(CollectionScope scope1, CollectionScope scope2,
+                                             EqlASTNode logic1, EqlASTNode logic2) {
         EqlASTNode parent1 = logic1.getASTParent();
         EqlASTNode parent2 = logic2.getASTParent();
 
         if (parent1 != parent2) {
             return false;
-        }
+            }
 
-        // 必须具有相同的集合前缀（同一集合）
-        if (!scope1.getCollectionPrefix().equals(scope2.getCollectionPrefix())) {
-            return false;
-        }
-
-        // 操作符类型必须相同
-        if (scope1.getOperator() != scope2.getOperator()) {
-            return false;
-        }
-
-        // 如果父节点相同
-        // 对于_some操作符，AND和OR条件都可以合并
-        if (scope1.getOperator() == SqlCollectionOperator.SOME) {
-            if (parent1.getASTKind() != EqlASTKind.SqlAndExpr &&
-                    parent1.getASTKind() != EqlASTKind.SqlOrExpr) {
+        if (parent1.getASTKind() != EqlASTKind.SqlAndExpr) {
                 return false;
             }
-        } else if (scope1.getOperator() == SqlCollectionOperator.ALL) {
-            // 对于_all操作符，只有AND条件可以合并，OR条件不合并
-            if (parent1.getASTKind() != EqlASTKind.SqlAndExpr) {
-                return false;
-            }
-        }
 
         scope1.merge(scope2);
         return true;
+    }
+
+    private SqlAndExpr findCommonAndAncestor(EqlASTNode node1, EqlASTNode node2) {
+        Set<EqlASTNode> ancestors = new HashSet<>();
+        EqlASTNode current = node1;
+        while (current != null) {
+            if (current.getASTKind() == EqlASTKind.SqlAndExpr) {
+                ancestors.add(current);
+            }
+            current = current.getASTParent();
+        }
+
+        current = node2;
+        while (current != null) {
+            if (current.getASTKind() == EqlASTKind.SqlAndExpr && ancestors.contains(current)) {
+                return (SqlAndExpr) current;
+            }
+            current = current.getASTParent();
+        }
+
+        return null;
     }
 
     private void transformToExistsClauses(List<CollectionScope> scopes) {
@@ -236,10 +286,14 @@ public class CollectionOperatorTransformer {
     }
 
     private void transformCollectionScope(CollectionScope scope) {
-        // 根据操作符类型创建对应的EXISTS子句
-        SqlExistsExpr existsExpr = createExistsExpr(scope);
+        
+        makeAlias(scope);
+        
+        if (scope.hasChild()) {
+            transformNestedScopes(scope);
+        }
 
-        // 替换原来的逻辑节点
+        SqlExistsExpr existsExpr = createExistsExpr(scope);
         replaceLogicNode(scope, existsExpr);
 
         if (scope.getMergedColNames() != null) {
@@ -249,13 +303,197 @@ public class CollectionOperatorTransformer {
             }
         }
 
-        if (scope.hasChild()) {
-            scope.getChildren().values().forEach(this::transformCollectionScope);
-        } else {
+        if (!scope.hasChild()) {
             SqlColumnName colName = scope.getColNameNode();
             colName.setOwner(EqlASTBuilder.qualifier(scope.getAlias()));
         }
     }
+
+    private void processNestedScopesInSubquery(CollectionScope parentScope, SqlExistsExpr parentExistsExpr) {
+        SqlQuerySelect subquery = (SqlQuerySelect) parentExistsExpr.getQuery().getSelect();
+        SqlWhere subqueryWhere = subquery.getWhere();
+        if (subqueryWhere == null || subqueryWhere.getExpr() == null)
+            return;
+
+        SqlExpr condition = subqueryWhere.getExpr();
+
+        for (CollectionScope childScope : parentScope.getChildren().values()) {
+            String fullPrefix = getFullCollectionPrefix(childScope);
+            EqlASTNode nestedLogicNode = findNestedLogicNode(condition, fullPrefix);
+            if (nestedLogicNode != null) {
+                childScope.setLogicUnitNode(nestedLogicNode);
+                childScope.setAlias(makeAlias(childScope));
+                transformCollectionScope(childScope);
+            }
+        }
+    }
+
+    private EqlASTNode findNestedLogicNode(SqlExpr condition, String collectionPrefix) {
+        final List<EqlASTNode> logicNodes = new ArrayList<>();
+        EqlASTVisitor visitor = new EqlASTVisitor() {
+            @Override
+            public void visitSqlColumnName(SqlColumnName colName) {
+                String fullName = colName.getFullName();
+                if (fullName != null && fullName.startsWith(collectionPrefix)) {
+                    EqlASTNode logicNode = findLogicUnitNode(colName);
+                    if (logicNode != null && !logicNodes.contains(logicNode)) {
+                        logicNodes.add(logicNode);
+                    }
+                }
+            }
+        };
+        visitor.visit(condition);
+        
+        if (logicNodes.isEmpty()) {
+            return null;
+        }
+        
+        if (logicNodes.size() == 1) {
+            return logicNodes.get(0);
+        }
+        
+        return findCommonAncestor(logicNodes);
+    }
+
+    private EqlASTNode findCommonAncestor(List<EqlASTNode> nodes) {
+        if (nodes == null || nodes.isEmpty()) {
+            return null;
+        }
+        
+        EqlASTNode common = nodes.get(0);
+        for (int i = 1; i < nodes.size(); i++) {
+            common = findLowestCommonAncestor(common, nodes.get(i));
+            if (common == null) {
+                return null;
+            }
+        }
+        return common;
+    }
+
+    private EqlASTNode findLowestCommonAncestor(EqlASTNode node1, EqlASTNode node2) {
+        Set<EqlASTNode> ancestors = new HashSet<>();
+        EqlASTNode current = node1;
+        while (current != null) {
+            ancestors.add(current);
+            current = current.getASTParent();
+        }
+        
+        current = node2;
+        while (current != null) {
+            if (ancestors.contains(current)) {
+                return current;
+            }
+            current = current.getASTParent();
+        }
+        return null;
+    }
+
+    private void transformNestedScopes(CollectionScope scope) {
+        SqlExpr conditionExpr;
+        boolean isNestedScope = scope.getParent() != null && scope.getParent().getClonedCondition() != null;
+        
+        if (isNestedScope) {
+            conditionExpr = scope.getParent().getClonedCondition();
+            scope.setClonedCondition(conditionExpr);
+        } else if (scope.getClonedCondition() != null) {
+            conditionExpr = scope.getClonedCondition();
+        } else {
+            SqlExpr originalCondition = (SqlExpr) scope.getLogicUnitNode();
+            conditionExpr = (SqlExpr) originalCondition.deepClone();
+            scope.setClonedCondition(conditionExpr);
+        }
+
+        for (CollectionScope child : scope.getChildren().values()) {
+            String fullPrefix = getFullCollectionPrefix(child);
+            EqlASTNode nestedLogicNode = findNestedLogicNode(conditionExpr, fullPrefix);
+            if (nestedLogicNode != null) {
+                child.setLogicUnitNode(nestedLogicNode);
+                transformCollectionScope(child);
+            }
+        }
+
+        if (!isNestedScope) {
+            SqlExpr finalCondition = scope.getClonedCondition();
+            EqlASTNode parent = scope.getLogicUnitNode().getASTParent();
+            if (parent != null) {
+                parent.replaceChild(scope.getLogicUnitNode(), finalCondition);
+            }
+            scope.setLogicUnitNode(finalCondition);
+        }
+    }
+
+    private List<EqlASTNode> findAllNestedLogicNodes(SqlExpr condition, CollectionScope parentScope) {
+        List<EqlASTNode> result = new ArrayList<>();
+        for (CollectionScope child : parentScope.getChildren().values()) {
+            String fullPrefix = getFullCollectionPrefix(child);
+            EqlASTNode nestedLogicNode = findNestedLogicNode(condition, fullPrefix);
+            if (nestedLogicNode != null) {
+                result.add(nestedLogicNode);
+            }
+        }
+        return result;
+    }
+
+//    private EqlASTNode findCorrespondingNode(SqlExpr clonedCondition, EqlASTNode originalNode) {
+//        if (originalNode == null || clonedCondition == null)
+//            return null;
+//
+//        String originalSql = originalNode.toSqlString();
+//        return findNodeBySqlString(clonedCondition, originalSql);
+//    }
+
+//    private EqlASTNode findNodeBySqlString(EqlASTNode node, String targetSql) {
+//        if (node == null)
+//            return null;
+//
+//        String normalizedTarget = normalizeSql(targetSql);
+//        if (normalizeSql(node.toSqlString()).equals(normalizedTarget)) {
+//            return node;
+//        }
+//
+//        if (node instanceof SqlBinaryExpr) {
+//            SqlBinaryExpr binaryExpr = (SqlBinaryExpr) node;
+//            EqlASTNode leftResult = findNodeBySqlString(binaryExpr.getLeft(), targetSql);
+//            if (leftResult != null)
+//                return leftResult;
+//            return findNodeBySqlString(binaryExpr.getRight(), targetSql);
+//        }
+//
+//        if (node instanceof SqlAndExpr) {
+//            SqlAndExpr andExpr = (SqlAndExpr) node;
+//            EqlASTNode leftResult = findNodeBySqlString(andExpr.getLeft(), targetSql);
+//            if (leftResult != null)
+//                return leftResult;
+//            return findNodeBySqlString(andExpr.getRight(), targetSql);
+//        }
+//
+//        if (node instanceof SqlOrExpr) {
+//            SqlOrExpr orExpr = (SqlOrExpr) node;
+//            EqlASTNode leftResult = findNodeBySqlString(orExpr.getLeft(), targetSql);
+//            if (leftResult != null)
+//                return leftResult;
+//            return findNodeBySqlString(orExpr.getRight(), targetSql);
+//        }
+//
+//        return null;
+//    }
+
+//    private String normalizeSql(String sql) {
+//        return sql.replaceAll("\\s+", " ").trim();
+//    }
+//
+//    private void buildLogicNodesForChildren(CollectionScope scope) {
+//        if (scope.getChildren() != null) {
+//            for (CollectionScope child : scope.getChildren().values()) {
+//                SqlColumnName colName = child.getColNameNode();
+//                if (colName != null) {
+//                    EqlASTNode logicNode = findLogicUnitNode(colName);
+//                    child.setLogicUnitNode(logicNode);
+//                }
+//                buildLogicNodesForChildren(child);
+//            }
+//        }
+//    }
 
     private SqlExistsExpr createExistsExpr(CollectionScope scope) {
         SqlCollectionOperator operator = scope.getOperator();
@@ -267,7 +505,6 @@ public class CollectionOperatorTransformer {
 
         SourceLocation loc = scope.getLocation();
 
-        // 创建子查询
         SqlQuerySelect subquery = createSubquery(loc, tableCollection, alias);
         SqlSubQueryExpr subqueryExpr = new SqlSubQueryExpr();
         subqueryExpr.setSelect(subquery);
@@ -275,12 +512,32 @@ public class CollectionOperatorTransformer {
         SqlExistsExpr existsExpr = new SqlExistsExpr();
         existsExpr.setQuery(subqueryExpr);
 
-        // 根据操作符类型设置NOT EXISTS
-        if (operator == SqlCollectionOperator.ALL) {
+        boolean shouldNegate = shouldNegateExists(scope);
+        if (shouldNegate) {
             existsExpr.setNot(true);
         }
 
         return existsExpr;
+    }
+
+    private boolean shouldNegateExists(CollectionScope scope) {
+        if (scope.hasChild()) {
+            return false;
+        }
+        int allCount = countAllAncestors(scope);
+        return (allCount % 2) == 1;
+    }
+
+    private int countAllAncestors(CollectionScope scope) {
+        int count = 0;
+        CollectionScope current = scope;
+        while (current != null) {
+            if (current.getOperator() == SqlCollectionOperator.ALL) {
+                count++;
+            }
+            current = current.getParent();
+        }
+        return count;
     }
 
     private String makeAlias(CollectionScope scope) {
@@ -334,15 +591,59 @@ public class CollectionOperatorTransformer {
     }
 
     private void replaceLogicNode(CollectionScope scope, SqlExistsExpr existsExpr) {
+        
         EqlASTNode oldLogicNode = scope.getLogicUnitNode();
-
+        
         EqlASTNode parent = oldLogicNode.getASTParent();
-        oldLogicNode.setASTParent(null);
-        oldLogicNode.setASTParent(existsExpr.getQuery().getWhere());
 
-        if (parent instanceof SqlBinaryExpr) {
+        SqlExpr conditionExpr;
+        if (scope.getClonedCondition() != null) {
+            conditionExpr = scope.getClonedCondition();
+            conditionExpr.setASTParent(null);
+        } else {
+            conditionExpr = (SqlExpr) oldLogicNode.deepClone();
+            conditionExpr.setASTParent(null);
+        }
+
+
+        String alias = scope.getAlias();
+        String collectionPrefix = getFullCollectionPrefix(scope);
+        updateColNameOwners(conditionExpr, alias, collectionPrefix);
+
+        if (!scope.hasChild()) {
+            int allCount = countAllAncestors(scope);
+            if (allCount % 2 == 1) {
+                conditionExpr = negateConditionForAll(conditionExpr);
+            }
+        }
+
+        SqlQuerySelect subquery = (SqlQuerySelect) existsExpr.getQuery().getSelect();
+        subquery.makeWhere().setExpr(conditionExpr);
+
+        if (parent == null) {
+            if (scope.getParent() != null && scope.getParent().getClonedCondition() == oldLogicNode) {
+                scope.getParent().setClonedCondition(existsExpr);
+            }
+            scope.setLogicUnitNode(existsExpr);
+            return;
+        }
+
+        if (parent instanceof SqlAndExpr) {
+            SqlAndExpr andExpr = (SqlAndExpr) parent;
+            if (andExpr.getLeft() == oldLogicNode) {
+                andExpr.setLeft(existsExpr);
+            } else if (andExpr.getRight() == oldLogicNode) {
+                andExpr.setRight(existsExpr);
+            }
+        } else if (parent instanceof SqlOrExpr) {
+            SqlOrExpr orExpr = (SqlOrExpr) parent;
+            if (orExpr.getLeft() == oldLogicNode) {
+                orExpr.setLeft(existsExpr);
+            } else if (orExpr.getRight() == oldLogicNode) {
+                orExpr.setRight(existsExpr);
+            }
+        } else if (parent instanceof SqlBinaryExpr) {
             SqlBinaryExpr binaryExpr = (SqlBinaryExpr) parent;
-            // 替换二元表达式中的对应分支
             if (binaryExpr.getLeft() == oldLogicNode) {
                 binaryExpr.setLeft(existsExpr);
             } else if (binaryExpr.getRight() == oldLogicNode) {
@@ -351,6 +652,112 @@ public class CollectionOperatorTransformer {
         } else if (parent instanceof SqlWhere) {
             SqlWhere where = (SqlWhere) parent;
             where.setExpr(existsExpr);
+        }
+        
+        scope.setLogicUnitNode(existsExpr);
+    }
+
+    private String getFullCollectionPrefix(CollectionScope scope) {
+        if (scope.getParent() == null) {
+            return scope.getCollectionPrefix();
+        }
+        return getFullCollectionPrefix(scope.getParent()) + scope.getCollectionPrefix();
+    }
+
+    private void updateColNameOwners(SqlExpr expr, String alias, String collectionPrefix) {
+        EqlASTVisitor visitor = new EqlASTVisitor() {
+            @Override
+            public void visitSqlColumnName(SqlColumnName colName) {
+                String fullName = colName.getFullName();
+                if (fullName != null && fullName.startsWith(collectionPrefix)) {
+                    String remaining = fullName.substring(collectionPrefix.length());
+                    if (!containsCollectionOperator(remaining)) {
+                        colName.setOwner(EqlASTBuilder.qualifier(alias));
+                    }
+                }
+            }
+        };
+        visitor.visit(expr);
+    }
+
+    private boolean containsCollectionOperator(String path) {
+        return path.contains(SqlCollectionOperator.SOME.getPathPattern()) ||
+               path.contains(SqlCollectionOperator.ALL.getPathPattern());
+    }
+
+    private SqlExpr negateConditionForAll(SqlExpr expr) {
+        if (expr instanceof SqlAndExpr) {
+            SqlAndExpr andExpr = (SqlAndExpr) expr;
+            SqlExpr negatedLeft = negateConditionForAll(andExpr.getLeft());
+            SqlExpr negatedRight = negateConditionForAll(andExpr.getRight());
+
+            SqlOrExpr orExpr = new SqlOrExpr();
+            orExpr.setLocation(expr.getLocation());
+            orExpr.setLeft(negatedLeft.deepClone());
+            orExpr.setRight(negatedRight.deepClone());
+            return orExpr;
+        }
+
+        if (expr instanceof SqlOrExpr) {
+            SqlOrExpr orExpr = (SqlOrExpr) expr;
+            SqlExpr negatedLeft = negateConditionForAll(orExpr.getLeft());
+            SqlExpr negatedRight = negateConditionForAll(orExpr.getRight());
+
+            SqlAndExpr andExpr = new SqlAndExpr();
+            andExpr.setLocation(expr.getLocation());
+            andExpr.setLeft(negatedLeft.deepClone());
+            andExpr.setRight(negatedRight.deepClone());
+            return andExpr;
+        }
+
+        if (expr instanceof SqlBinaryExpr) {
+            SqlBinaryExpr binaryExpr = (SqlBinaryExpr) expr;
+            SqlOperator op = binaryExpr.getOperator();
+
+            if (op == SqlOperator.AND) {
+                SqlExpr negatedLeft = negateConditionForAll(binaryExpr.getLeft());
+                SqlExpr negatedRight = negateConditionForAll(binaryExpr.getRight());
+                binaryExpr.setLeft(negatedLeft);
+                binaryExpr.setRight(negatedRight);
+                binaryExpr.setOperator(SqlOperator.OR);
+                return expr;
+            }
+
+            if (op == SqlOperator.OR) {
+                SqlExpr negatedLeft = negateConditionForAll(binaryExpr.getLeft());
+                SqlExpr negatedRight = negateConditionForAll(binaryExpr.getRight());
+                binaryExpr.setLeft(negatedLeft);
+                binaryExpr.setRight(negatedRight);
+                binaryExpr.setOperator(SqlOperator.AND);
+                return expr;
+            }
+
+            SqlOperator negatedOp = negateComparisonOperator(op);
+            if (negatedOp != null) {
+                binaryExpr.setOperator(negatedOp);
+            }
+        }
+        return expr;
+    }
+
+    private SqlOperator negateComparisonOperator(SqlOperator op) {
+        if (op == null)
+            return null;
+        switch (op) {
+            case EQ:
+                return SqlOperator.NE;
+            case NE:
+                return SqlOperator.EQ;
+            case GT:
+                return SqlOperator.LE;
+            case GE:
+                return SqlOperator.LT;
+            case LT:
+                return SqlOperator.GE;
+            case LE:
+                return SqlOperator.GT;
+            default:
+                return null;
         }
     }
 }

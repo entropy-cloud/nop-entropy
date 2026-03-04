@@ -51,8 +51,10 @@ import io.nop.orm.eql.ast.SqlTableName;
 import io.nop.orm.eql.ast.SqlTableSource;
 import io.nop.orm.eql.ast.SqlUnionSelect;
 import io.nop.orm.eql.ast.SqlUpdate;
+import io.nop.orm.eql.ast.SqlWhere;
 import io.nop.orm.eql.enums.SqlJoinType;
 import io.nop.orm.eql.enums.SqlOperator;
+import io.nop.orm.eql.compile.CollectionOperatorTransformer;
 import io.nop.orm.eql.meta.ISqlExprMeta;
 import io.nop.orm.eql.meta.ISqlSelectionMeta;
 import io.nop.orm.eql.meta.ISqlTableMeta;
@@ -158,10 +160,12 @@ public class EqlTransformVisitor extends EqlASTVisitor {
      */
     private boolean inOrderBy;
     private boolean inGroupBy;
+    private CollectionOperatorTransformer collectionOperatorTransformer;
 
     public EqlTransformVisitor(ISqlCompileContext context) {
         this.context = context;
         this.aliasGenerator = context.getAliasGenerator();
+        this.collectionOperatorTransformer = new CollectionOperatorTransformer(aliasGenerator);
     }
 
     public List<String> getReadEntityModels() {
@@ -271,8 +275,13 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
         resolveSelectFields(node);
 
+        if (node.getWhere() != null) {
+            collectionOperatorTransformer.transform(node.getWhere());
+        }
+        
         if (node.getWhere() != null)
             visitSqlWhere(node.getWhere());
+
 
         if (node.getGroupBy() != null) {
             visitSqlGroupBy(node.getGroupBy());
@@ -440,8 +449,26 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     void visitTableSource(SqlTableScope tableScope, SqlTableSource table) {
         if (table instanceof SqlSingleTableSource) {
             SqlSingleTableSource source = (SqlSingleTableSource) table;
-            resolveEntity(source);
-            tableScope.addTable(source.getScopeName(), source);
+            SqlQuerySelect select = getQuerySelect(source);
+
+            // Try to treat collection-valued property paths (e.g., from o.simsClasses c)
+            // as real entity table sources in correlated subqueries.
+            SqlSingleTableSource transformed = null;
+            if (select != null) {
+                // 使用当前 scope 作为 ownerScope，确保能解析到本层的别名（例如 o）
+                SqlTableScope ownerScope = tableScope;
+                transformed = CollectionTableSourceHelper.transformCollectionTableSource(this, ownerScope, select,
+                        source);
+            }
+
+            if (transformed != null) {
+                // The helper already resolved the underlying entity and join condition;
+                // do NOT call resolveEntity again to avoid regenerating aliases.
+                tableScope.addTable(transformed.getScopeName(), transformed);
+            } else {
+                resolveEntity(source);
+                tableScope.addTable(source.getScopeName(), source);
+            }
         } else if (table instanceof SqlSubqueryTableSource) {
             // lateral 表示可以看到同级的表
             SqlSubqueryTableSource source = (SqlSubqueryTableSource) table;
@@ -873,6 +900,30 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         return join;
     }
 
+    /**
+     * 用于集合属性作为表来源的场景：只基于关系元数据生成关联，不使用 keyProp 额外过滤。
+     * 例如 from o.simsClasses c 这种写法，仅需要 College 与 Class 的 join 条件即可。
+     */
+    SqlPropJoin addToManyCollectionJoin(SqlSingleTableSource source, IEntityRelationModel ref, String propJoinName) {
+        SqlSingleTableSource refTable = makeTableSource(source.getLocation(), ref.getRefEntityModel(), null);
+        SqlExpr joinCondition = makeCondition(ref.getJoin(), source, refTable);
+
+        refTable.setForPropJoin(true);
+        SqlPropJoin join = new SqlPropJoin();
+        join.setLeft(source);
+        join.setRight(refTable);
+        // 集合表源语义上等价于左表拥有一组子记录，这里使用 left join 更安全
+        join.setJoinType(SqlJoinType.LEFT_JOIN);
+
+        join.setExplicit(false);
+        join.setCondition(joinCondition);
+
+        addTableFilterForPropJoin(join);
+
+        source.addPropJoin(propJoinName, join);
+        return join;
+    }
+
     SqlExpr makeEqExpr(SqlTableSource source, IColumnModel keyCol, String keyValue) {
         SqlBinaryExpr expr = new SqlBinaryExpr();
         expr.setOperator(SqlOperator.EQ);
@@ -992,7 +1043,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             // 对应全类名或者简单类名
             tableName.setResolvedTableMeta(tableMeta);
         } else {
-            // 不是实体对象，需要检查是否是属性表达式
+            // 不是实体对象，需要检查是否是属性表达式或 CTE
             SqlQualifiedName owner = tableName.getOwner();
             if (owner == null) {
                 SqlSelect cte = getCte(table, tableName.getName());
