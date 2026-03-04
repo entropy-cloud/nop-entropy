@@ -364,7 +364,8 @@ public class DefaultConfigProvider extends AbstractConfigProvider {
             defaultValue = varModel.getDefaultValue();
         }
 
-        IConfigValue configValue = configValueEnhancer.enhance(value, targetClass);
+        // 传递 this (IConfigProvider) 给 Enhancer，支持 ${...} 表达式解析
+        IConfigValue configValue = configValueEnhancer.enhance(value, targetClass, this);
         DefaultConfigReference<Object> ref = new DefaultConfigReference<>(loc, name, targetClass, defaultValue,
                 configValue);
         return ref;

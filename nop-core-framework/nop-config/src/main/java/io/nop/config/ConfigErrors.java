@@ -36,4 +36,17 @@ public interface ConfigErrors {
             "配置值[{configName}]的类型[{valueType}]与定义类型[{defineType}]不一致", ARG_CONFIG_NAME, ARG_VALUE_TYPE,
             ARG_DEFINE_TYPE);
 
+    String ARG_PROPERTY = "property";
+    String ARG_REASON = "reason";
+    String ARG_RESOLUTION_CHAIN = "resolutionChain";
+    String ARG_VALUE = "value";
+
+    ErrorCode ERR_CONFIG_EXPR_UNRESOLVED = define("nop.err.config.expr-unresolved",
+            "配置表达式解析失败: 属性 ${property} 在配置值 \"${value}\" 中未找到定义, 原因: ${reason}",
+            ARG_PROPERTY, ARG_VALUE, ARG_REASON);
+
+    ErrorCode ERR_CONFIG_EXPR_CIRCULAR_REFERENCE = define("nop.err.config.expr-circular-reference",
+            "配置表达式存在循环引用: 属性 ${property}, 解析链: ${resolutionChain}",
+            ARG_PROPERTY, ARG_RESOLUTION_CHAIN);
+
 }

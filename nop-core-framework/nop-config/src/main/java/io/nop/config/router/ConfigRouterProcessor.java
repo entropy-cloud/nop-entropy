@@ -53,7 +53,7 @@ public class ConfigRouterProcessor {
         if (StringHelper.isEmpty(text))
             return null;
 
-        NopConfigRouter router = (NopConfigRouter) JsonTool.parseBeanFromText(text, NopConfigRouter.class);
+        NopConfigRouter router = JsonTool.parseBeanFromText(text, NopConfigRouter.class);
         String routeName = chooseRoute(router, new VarScope(vars));
         if (StringHelper.isEmpty(routeName))
             return null;
