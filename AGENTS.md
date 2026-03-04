@@ -17,8 +17,7 @@ This file is the **project-local** quick reference for AI assistants contributin
 **IMPORTANT**: Commit frequently to avoid losing work.
 
 - After completing a significant feature or fix, commit immediately
-- Each commit should represent a logical unit of work
-- Use clear, descriptive commit messages
+- use nop-git-master skill
 - Never let uncommitted changes accumulate across multiple features
 
 ## Nop IoC vs Spring (high-impact differences)
@@ -34,31 +33,33 @@ This file is the **project-local** quick reference for AI assistants contributin
 
 ## Build & test
 
-This repository is Maven-based (see `pom.xml`).
+This repository is Maven-based (see `pom.xml`). We use **Maven Wrapper (`./mvnw`)** to ensure consistent builds across environments.
 
 ### Full build (recommended)
 
 Windows PowerShell:
 
 ```powershell
-mvn clean install -T 1C
+./mvnw clean install -T 1C
 ```
 
 ### Quick build without tests
 
 ```powershell
-mvn clean install -DskipTests -T 1C
+./mvnw clean install -DskipTests -T 1C
 ```
 
 ### Run tests
 
 ```powershell
-mvn test
+./mvnw test
 ```
+
+> **Note**: Using Maven Wrapper (`./mvnw` or `mvnw.cmd`) ensures everyone uses the same Maven version (currently 4.0.0-rc-5) without needing to install Maven manually.
 
 ## Quality gates (before you finish)
 
-1. Build: `mvn -q -DskipTests=false test` (or full `clean install` if you touched multiple modules)
+1. Build: `./mvnw -q -DskipTests=false test` (or full `clean install` if you touched multiple modules)
 2. Check style: follow `checkstyle.xml` and keep imports grouped (java.* → jakarta.* → third-party → io.nop.*)
 3. Tests: add/extend JUnit 5 tests; use Nop AutoTest where the project already uses it
 
