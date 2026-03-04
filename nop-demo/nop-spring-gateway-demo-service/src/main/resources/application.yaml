@@ -6,6 +6,8 @@ nop:
     discovery:
       sys-dao-naming-service:
         enabled: true
+    registration:
+      enabled: true
 
   orm:
     init-database-schema: true
@@ -13,6 +15,9 @@ nop:
 
   dao:
     use-parent-data-source: true
+
+  server:
+    port: 8082
 
 spring:
   datasource:
@@ -24,7 +29,7 @@ spring:
     password:
 
 server:
-  port: 8082
+  port: ${nop.server.port}
   http2:
     enabled: true
 

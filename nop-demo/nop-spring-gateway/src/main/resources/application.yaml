@@ -17,6 +17,7 @@ nop:
     discovery:
       sys-dao-naming-service:
         enabled: true
+        auto-cleanup: true
 
   # ORM配置
   orm:
