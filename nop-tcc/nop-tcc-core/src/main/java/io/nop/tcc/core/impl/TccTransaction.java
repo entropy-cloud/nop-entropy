@@ -10,11 +10,8 @@ package io.nop.tcc.core.impl;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
-import io.nop.tcc.api.ITccBranchTransaction;
-import io.nop.tcc.api.ITccRecord;
-import io.nop.tcc.api.ITccRecordStore;
-import io.nop.tcc.api.ITccTransaction;
-import io.nop.tcc.api.TccStatus;
+import io.nop.core.lang.json.JsonTool;
+import io.nop.tcc.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +31,10 @@ public class TccTransaction implements ITccTransaction {
         this.tccEngine = tccEngine;
     }
 
+    public String toString() {
+        return "TccTransaction[txnId=" + getTxnId() + ",txnGroup=" + getTxnGroup() + ",status=" + tccRecord.getTccStatus() + "]";
+    }
+
     public ITccRecord getTccRecord() {
         return tccRecord;
     }
@@ -49,6 +50,7 @@ public class TccTransaction implements ITccTransaction {
 
     @Override
     public CompletionStage<Void> beginAsync() {
+        LOG.info("nop.tcc.begin:txn={}", this);
         return getRepository().saveTccRecordAsync(tccRecord, TccStatus.TRYING);
     }
 
@@ -56,6 +58,11 @@ public class TccTransaction implements ITccTransaction {
     public CompletionStage<Void> endAsync(boolean timeout, ApiResponse<?> response, Throwable ex) {
         return tccEngine.loadBranchTransactionsAsync(this).thenCompose(branchTxns -> {
             if (isRollbackOnly(branchTxns) || isFailed(response, ex)) {
+                if (ex != null) {
+                    LOG.info("nop.tcc.exec-fail", ex);
+                } else if (response != null && !response.isOk()) {
+                    LOG.info("nop.tcc.response:{}", JsonTool.stringify(response));
+                }
                 return doCancelAsync(timeout, branchTxns);
             } else {
                 return doConfirmAsync(branchTxns);
@@ -68,6 +75,8 @@ public class TccTransaction implements ITccTransaction {
     }
 
     private CompletionStage<Void> doCancelAsync(boolean timeout, List<ITccBranchTransaction> branchTxns) {
+        LOG.info("nop.tcc.cancel:txn={},branches={}", this, branchTxns);
+
         if (tccRecord.getTccStatus().isCancelled())
             return FutureHelper.success(null);
 
@@ -84,6 +93,8 @@ public class TccTransaction implements ITccTransaction {
     }
 
     private CompletionStage<Void> doConfirmAsync(List<ITccBranchTransaction> branchTxns) {
+        LOG.info("nop.tcc.confirm:txn={},branches={}", this, branchTxns);
+
         if (tccRecord.getTccStatus().isConfirmed())
             return FutureHelper.success(null);
 
