@@ -55,7 +55,7 @@ class TestGatewayHandler extends BaseTestCase {
                 model,
                 new MockRpcServiceInvoker(),
                 new MockHttpClient(),
-                null
+                null,null
         );
     }
 

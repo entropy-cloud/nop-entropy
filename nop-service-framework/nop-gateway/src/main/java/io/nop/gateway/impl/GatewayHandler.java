@@ -12,6 +12,7 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.rpc.IRpcServiceInvoker;
+import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.gateway.core.context.IGatewayContext;
 import io.nop.gateway.core.executor.*;
@@ -55,9 +56,7 @@ public class GatewayHandler {
     private static final Logger LOG = LoggerFactory.getLogger(GatewayHandler.class);
 
     private final GatewayModel model;
-    private final IRpcServiceInvoker rpcServiceInvoker;
-    private final IHttpClient httpClient;
-    private final IRecordMappingManager mappingManager;
+    private final IAsyncFunctionInvoker executionInvoker;
 
     // 处理器组件
     private final RouteExecutor routeExecutor;
@@ -67,11 +66,9 @@ public class GatewayHandler {
     private final StreamingProcessor streamingProcessor;
 
     public GatewayHandler(GatewayModel model, IRpcServiceInvoker rpcServiceInvoker,
-                          IHttpClient httpClient, IRecordMappingManager mappingManager) {
+                          IHttpClient httpClient, IRecordMappingManager mappingManager, IAsyncFunctionInvoker executionInvoker) {
         this.model = model;
-        this.rpcServiceInvoker = rpcServiceInvoker;
-        this.httpClient = httpClient;
-        this.mappingManager = mappingManager;
+        this.executionInvoker = executionInvoker;
 
         // 初始化处理器组件
         this.mappingProcessor = new MappingProcessor(mappingManager);
@@ -122,24 +119,33 @@ public class GatewayHandler {
             return null;
         }
 
-        // 加载拦截器
-        List<IGatewayInterceptor> interceptors = loadInterceptors(context);
-
         // 使用RouteExecutor执行路由
-        CompletionStage<ApiResponse<?>> promise = routeExecutor.execute(route, request, context, interceptors);
+        CompletionStage<ApiResponse<?>> promise = invokeRoute(route, request, context);
         promise = promise.exceptionally(err -> {
             LOG.error("nop.gateway.process-route-fail:routeId={}", route.getId(), err);
             String locale = ContextProvider.currentLocale();
             return ErrorMessageManager.instance().buildResponseForException(locale, err);
         });
         promise = promise.thenApply(res -> {
-            if(res == null)
+            if (res == null)
                 res = new ApiResponse<>();
             res.setWrapper(Boolean.TRUE.equals(route.getUnwrapResponse()));
             return res;
         });
 
         // 应用错误处理
+        return promise;
+    }
+
+    CompletionStage<ApiResponse<?>> invokeRoute(GatewayRouteModel route, ApiRequest<?> request, IGatewayContext context) {
+        // 加载拦截器
+        List<IGatewayInterceptor> interceptors = loadInterceptors(context);
+
+        if (executionInvoker == null)
+            return routeExecutor.execute(route, request, context, interceptors);
+
+        // 使用RouteExecutor执行路由
+        CompletionStage<ApiResponse<?>> promise = executionInvoker.invokeAsync((ctx) -> routeExecutor.execute(route, request, context, interceptors), context);
         return promise;
     }
 

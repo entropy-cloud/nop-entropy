@@ -12,6 +12,7 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.rpc.IRpcServiceInvoker;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.json.JsonTool;
@@ -64,6 +65,8 @@ public class GatewayHttpFilter implements IHttpServerFilter {
 
     private ResourceCacheEntry<GatewayHandler> handlerCache;
 
+    private IAsyncFunctionInvoker executionInvoker;
+
     @Inject
     public void setRpcServiceInvoker(IRpcServiceInvoker rpcServiceInvoker) {
         this.rpcServiceInvoker = rpcServiceInvoker;
@@ -77,6 +80,10 @@ public class GatewayHttpFilter implements IHttpServerFilter {
     @Inject
     public void setRecordMappingManager(IRecordMappingManager recordMappingManager) {
         this.recordMappingManager = recordMappingManager;
+    }
+
+    public void setExecutionInvoker(IAsyncFunctionInvoker executionInvoker){
+        this.executionInvoker = executionInvoker;
     }
 
     @PostConstruct
@@ -99,7 +106,7 @@ public class GatewayHttpFilter implements IHttpServerFilter {
         if (model == null) {
             return null;
         }
-        return new GatewayHandler(model, rpcServiceInvoker, httpClient, recordMappingManager);
+        return new GatewayHandler(model, rpcServiceInvoker, httpClient, recordMappingManager,executionInvoker);
     };
 
     @Override

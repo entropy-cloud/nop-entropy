@@ -11,6 +11,8 @@
         <ioc:condition>
             <if-property name="nop.gateway.http-filter.enabled" />
         </ioc:condition>
+
+        <property name="executionInvoker" ref="nopSingleSessionFunctionInvoker" />
     </bean>
 
 </beans>
