@@ -215,6 +215,9 @@ nop.err.commons.utils.invalid-quoted-string: 转义字符串格式不合法:{str
 nop.err.commons.utils.invalid-url: URL格式不合法:{url}
 nop.err.commons.utils.url-open-stream-fail: URL打开流失败:{url}
 nop.err.concurrent.cycle-already-begin: 正在处理过程中，不能再次启动一个处理过程
+nop.err.config.expr-circular-reference: '配置表达式存在循环引用: 属性 ${property}, 解析链: ${resolutionChain}'
+nop.err.config.expr-unresolved: '配置表达式解析失败: 属性 ${property} 在配置值 "${value}" 中未找到定义,
+  原因: ${reason}'
 nop.err.config.invalid-config-bean-name: 不合法的配置对象名:{configName}
 nop.err.config.missing-application-name: 缺少nop.application.name配置项
 nop.err.config.missing-bootstrap-file: 缺少配置文件:{resourcePath}
