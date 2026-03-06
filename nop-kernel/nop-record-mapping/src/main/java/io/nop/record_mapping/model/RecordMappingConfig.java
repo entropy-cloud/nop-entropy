@@ -14,10 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static io.nop.record_mapping.RecordMappingErrors.ARG_ALLOWED_FIELD_NAMES;
-import static io.nop.record_mapping.RecordMappingErrors.ARG_FIELD_NAME;
-import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_UNKNOWN_FIELD;
-import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_UNKNOWN_FROM_FIELD;
+import static io.nop.record_mapping.RecordMappingErrors.*;
 
 public class RecordMappingConfig extends _RecordMappingConfig {
     private IClassModel toClassModel;
@@ -65,6 +62,10 @@ public class RecordMappingConfig extends _RecordMappingConfig {
                     this.fromFields.putIfAbsent(alias, field);
                 }
             }
+        }
+
+        for (RecordPatternFieldConfig field : getPatternFields()) {
+            field.init(definitions);
         }
     }
 

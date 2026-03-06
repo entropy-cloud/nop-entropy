@@ -9,6 +9,10 @@ public interface RecordMappingConstants {
 
     String VAR_TARGET = "target";
 
+    String VAR_SOURCE_FIELD_NAME = "sourceFieldName";
+
+    String VAR_TARGET_FIELD_NAME = "targetFieldName";
+
     String VAR_CTX = "ctx";
 
     String VAR_MD_TITLE_FIELD = "md:titleField";

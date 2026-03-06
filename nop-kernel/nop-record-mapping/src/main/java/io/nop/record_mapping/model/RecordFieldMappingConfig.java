@@ -15,11 +15,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.function.Supplier;
 
-import static io.nop.record_mapping.RecordMappingErrors.ARG_FIELD_NAME;
-import static io.nop.record_mapping.RecordMappingErrors.ARG_MAPPING_NAME;
-import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_FIELD_MAPPING_NOT_FOUND;
+import static io.nop.record_mapping.RecordMappingErrors.*;
 
-public class RecordFieldMappingConfig extends _RecordFieldMappingConfig {
+public class RecordFieldMappingConfig extends _RecordFieldMappingConfig implements IRecordFieldMappingConfig {
     private RecordMappingConfig resolvedMapping;
     private RecordMappingConfig resolvedItemMapping;
     private IClassModel itemClassModel;
@@ -30,6 +28,23 @@ public class RecordFieldMappingConfig extends _RecordFieldMappingConfig {
 
     public RecordFieldMappingConfig() {
 
+    }
+
+
+    public void setItemClassModel(IClassModel itemClassModel) {
+        this.itemClassModel = itemClassModel;
+    }
+
+    public void setClassModel(IClassModel classModel) {
+        this.classModel = classModel;
+    }
+
+    public IClassModel getItemClassModel() {
+        return itemClassModel;
+    }
+
+    public IClassModel getClassModel() {
+        return classModel;
     }
 
     public Object getNormalizedDefaultValue() {

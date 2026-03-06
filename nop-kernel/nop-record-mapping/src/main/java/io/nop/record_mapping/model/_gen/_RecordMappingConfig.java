@@ -74,6 +74,13 @@ public abstract class _RecordMappingConfig extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: patternFields
+     * 
+     */
+    private KeyedList<io.nop.record_mapping.model.RecordPatternFieldConfig> _patternFields = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: tagSet
      * 
      */
@@ -266,6 +273,51 @@ public abstract class _RecordMappingConfig extends io.nop.core.resource.componen
     
     /**
      * 
+     * xml name: patternFields
+     *  
+     */
+    
+    public java.util.List<io.nop.record_mapping.model.RecordPatternFieldConfig> getPatternFields(){
+      return _patternFields;
+    }
+
+    
+    public void setPatternFields(java.util.List<io.nop.record_mapping.model.RecordPatternFieldConfig> value){
+        checkAllowChange();
+        
+        this._patternFields = KeyedList.fromList(value, io.nop.record_mapping.model.RecordPatternFieldConfig::getId);
+           
+    }
+
+    
+    public io.nop.record_mapping.model.RecordPatternFieldConfig getPatternField(String name){
+        return this._patternFields.getByKey(name);
+    }
+
+    public boolean hasPatternField(String name){
+        return this._patternFields.containsKey(name);
+    }
+
+    public void addPatternField(io.nop.record_mapping.model.RecordPatternFieldConfig item) {
+        checkAllowChange();
+        java.util.List<io.nop.record_mapping.model.RecordPatternFieldConfig> list = this.getPatternFields();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.record_mapping.model.RecordPatternFieldConfig::getId);
+            setPatternFields(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_patternFields(){
+        return this._patternFields.keySet();
+    }
+
+    public boolean hasPatternFields(){
+        return !this._patternFields.isEmpty();
+    }
+    
+    /**
+     * 
      * xml name: tagSet
      *  
      */
@@ -312,6 +364,8 @@ public abstract class _RecordMappingConfig extends io.nop.core.resource.componen
         
            this._fields = io.nop.api.core.util.FreezeHelper.deepFreeze(this._fields);
             
+           this._patternFields = io.nop.api.core.util.FreezeHelper.deepFreeze(this._patternFields);
+            
         }
     }
 
@@ -327,6 +381,7 @@ public abstract class _RecordMappingConfig extends io.nop.core.resource.componen
         out.putNotNull("fields",this.getFields());
         out.putNotNull("fromClass",this.getFromClass());
         out.putNotNull("name",this.getName());
+        out.putNotNull("patternFields",this.getPatternFields());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("toClass",this.getToClass());
     }
@@ -348,6 +403,7 @@ public abstract class _RecordMappingConfig extends io.nop.core.resource.componen
         instance.setFields(this.getFields());
         instance.setFromClass(this.getFromClass());
         instance.setName(this.getName());
+        instance.setPatternFields(this.getPatternFields());
         instance.setTagSet(this.getTagSet());
         instance.setToClass(this.getToClass());
     }
