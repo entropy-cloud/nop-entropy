@@ -167,8 +167,11 @@ git -C .bare worktree add "../$WORKTREE_NAME" -b "$BRANCH_NAME"
 
 # 3. 创建 Maven 配置（Feature 分支专用）
 mkdir -p "$WORKTREE_NAME/.mvn"
-cat > "$WORKTREE_NAME/.mvn/maven.config" <<'EOF'
--Dmaven.repo.local.head=${maven.multiModuleProjectDirectory}/.nop/repository
+
+# 获取 worktree 的绝对路径并替换变量为实际路径
+WORKTREE_ABS_PATH="$(cd "$WORKTREE_NAME" && pwd)"
+cat > "$WORKTREE_NAME/.mvn/maven.config" <<EOF
+-Dmaven.repo.local.head=$WORKTREE_ABS_PATH/.nop/repository
 -Dmaven.repo.local.tail.ignoreAvailability=true
 EOF
 
@@ -350,7 +353,17 @@ done
 
 **Feature 分支 Maven 配置文件格式**：
 ```bash
--Dmaven.repo.local.head=${maven.multiModuleProjectDirectory}/.nop/repository
+# 示例：创建时自动计算绝对路径
+WORKTREE_ABS_PATH="$(cd "nop-entropy-feat-auth" && pwd)"
+cat > "nop-entropy-feat-auth/.mvn/maven.config" <<EOF
+-Dmaven.repo.local.head=$WORKTREE_ABS_PATH/.nop/repository
+-Dmaven.repo.local.tail.ignoreAvailability=true
+EOF
+```
+
+**实际生成的配置文件内容示例**：
+```bash
+-Dmaven.repo.local.head=/Users/abc/app/nop-entropy-wt/nop-entropy-feat-auth/.nop/repository
 -Dmaven.repo.local.tail.ignoreAvailability=true
 ```
 
