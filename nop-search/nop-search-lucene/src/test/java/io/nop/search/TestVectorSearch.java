@@ -30,7 +30,7 @@ public class TestVectorSearch extends JunitBaseTestCase {
 
     @Test
     public void testTextSearch() {
-        searchEngine.removeTopic("testVec");
+        searchEngine.removeTopic("testVec_text");
 
         // Add document
         SearchableDoc doc = new SearchableDoc();
@@ -40,11 +40,11 @@ public class TestVectorSearch extends JunitBaseTestCase {
         doc.setContent("This is a comprehensive tutorial about machine learning algorithms and techniques.");
         doc.setStoreContent(true);
 
-        searchEngine.addDoc("testVec", doc);
+        searchEngine.addDoc("testVec_text", doc);
 
         // Search with TEXT type
         SearchRequest request = new SearchRequest();
-        request.setTopic("testVec");
+        request.setTopic("testVec_text");
         request.setQuery("machine learning");
         request.setSearchType(SearchType.TEXT);
         request.setLimit(10);
@@ -56,12 +56,12 @@ public class TestVectorSearch extends JunitBaseTestCase {
         assertNotNull(response.getItems().get(0));
         assertEquals("doc1", response.getItems().get(0).getId());
 
-        searchEngine.removeTopic("testVec");
+        searchEngine.removeTopic("testVec_text");
     }
 
     @Test
     public void testVectorSearch() {
-        searchEngine.removeTopic("testVec");
+        searchEngine.removeTopic("testVec_vector");
 
         // Add document with embedding
         SearchableDoc doc = new SearchableDoc();
@@ -87,11 +87,11 @@ public class TestVectorSearch extends JunitBaseTestCase {
         }
         doc.setEmbedding(embedding);
 
-        searchEngine.addDoc("testVec", doc);
+        searchEngine.addDoc("testVec_vector", doc);
 
         // VECTOR search should now work
         SearchRequest request = new SearchRequest();
-        request.setTopic("testVec");
+        request.setTopic("testVec_vector");
         request.setQuery("deep learning");
         request.setSearchType(SearchType.VECTOR);
         request.setLimit(10);
@@ -102,7 +102,7 @@ public class TestVectorSearch extends JunitBaseTestCase {
         assertNotNull(response);
         // May return results or empty list depending on vector similarity
         
-        searchEngine.removeTopic("testVec");
+        searchEngine.removeTopic("testVec_vector");
     }
 
     @Test
