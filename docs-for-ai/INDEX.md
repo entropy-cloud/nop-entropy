@@ -522,5 +522,7 @@ throw new NopException(MyErrors.ERR_FIELD_REQUIRED).param("field", "name");
 | `data-access.md` | 数据访问层 |
 | `querybean-guide.md` | QueryBean 使用 |
 | `filterbeans-guide.md` | FilterBeans 使用 |
-| `api-development.md` | GraphQL API 开发 |
+|| `api-development.md` | GraphQL API 开发 |
+|| `record-mapping.md` | Record Mapping 配置与测试 |
+|| `project-structure.md` | 项目结构 |
 | `project-structure.md` | 项目结构 |
