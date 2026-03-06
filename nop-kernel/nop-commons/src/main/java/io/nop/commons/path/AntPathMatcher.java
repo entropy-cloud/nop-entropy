@@ -209,6 +209,18 @@ public class AntPathMatcher implements IPathMatcher {
     }
 
     /**
+     * Compile the given pattern into a pre-compiled matcher for efficient repeated matching.
+     * <p>The returned matcher is optimized for the specific pattern and does not need
+     * to perform pattern parsing or cache lookup on each match.
+     *
+     * @param pattern the pattern to compile
+     * @return a compiled matcher that can be used for efficient matching
+     */
+    public ICompiledPathMatcher compile(String pattern) {
+        String[] tokenized = tokenizePattern(pattern);
+        return new CompiledPathMatcher(pattern, this.pathSeparator, this.caseSensitive, this.trimTokens, tokenized);
+    }
+    /**
      * Actually match the given {@code path} against the given {@code pattern}.
      *
      * @param pattern   the pattern to match against
@@ -755,10 +767,13 @@ public class AntPathMatcher implements IPathMatcher {
                 }
             }
             return false;
+
         }
 
+        public String rawPattern() {
+            return this.rawPattern;
     }
-
+    }
 
     /**
      * The default {@link Comparator} implementation returned by
