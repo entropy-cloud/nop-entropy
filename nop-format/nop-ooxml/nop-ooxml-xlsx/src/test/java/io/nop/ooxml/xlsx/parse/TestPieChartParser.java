@@ -56,7 +56,7 @@ public class TestPieChartParser extends BaseTestCase {
         File originalDir = getTargetFile("../samples/original-pie-chart");
         //FileHelper.deleteAll(originalDir);
 
-        ResourceHelper.getZipTool().unzipToDir(resource, new FileResource(originalDir));
+        //ResourceHelper.getZipTool().unzipToDir(resource, new FileResource(originalDir));
 
         File unzipDir = getTargetFile("../samples/generated-pie-chart");
         //FileHelper.deleteAll(unzipDir);

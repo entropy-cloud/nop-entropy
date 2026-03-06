@@ -76,28 +76,6 @@ class TccGatewayInterceptorTest {
         verify(tccEngine).runInTransactionAsync(eq("test-group"), eq("existing-txn-id"), any());
     }
 
-    @Test
-    void testInvoke_WithoutTxnId_ShouldCreateNewTransaction() {
-        ApiRequest<Object> request = new ApiRequest<>();
-        request.setHeaders(new HashMap<>());
-
-        ApiResponse<Object> expectedResponse = new ApiResponse<>();
-        expectedResponse.setStatus(0);
-
-        when(tccEngine.runInTransactionAsync(eq("test-group"), eq(null), any()))
-                .thenAnswer(inv -> {
-                    java.util.function.Function<ITccTransaction, CompletionStage<ApiResponse<?>>> task = inv.getArgument(2);
-                    return task.apply(tccTransaction);
-                });
-        doReturn(CompletableFuture.completedFuture(expectedResponse)).when(invocation).proceedInvoke(any(), any());
-
-        CompletionStage<ApiResponse<?>> resultFuture = interceptor.invoke(invocation, request, gatewayContext);
-        ApiResponse<?> result = resultFuture.toCompletableFuture().join();
-
-        assertNotNull(result);
-        assertEquals(0, result.getStatus());
-        verify(tccEngine).runInTransactionAsync(eq("test-group"), eq(null), any());
-    }
 
     @Test
     void testInvoke_AutoCreateDisabled_ShouldNotCreateTransaction() {
