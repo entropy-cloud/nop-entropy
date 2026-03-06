@@ -16,14 +16,15 @@
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-ai-llm</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-markdown</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ai-core</artifactId>
         </dependency>
 
         <dependency>
