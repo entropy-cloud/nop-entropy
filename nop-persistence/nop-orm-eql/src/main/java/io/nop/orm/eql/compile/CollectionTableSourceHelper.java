@@ -7,14 +7,7 @@
  */
 package io.nop.orm.eql.compile;
 
-import io.nop.orm.eql.ast.EqlASTNode;
-import io.nop.orm.eql.ast.SqlExpr;
-import io.nop.orm.eql.ast.SqlQualifiedName;
-import io.nop.orm.eql.ast.SqlQuerySelect;
-import io.nop.orm.eql.ast.SqlSingleTableSource;
-import io.nop.orm.eql.ast.SqlTableName;
-import io.nop.orm.eql.ast.SqlTableSource;
-import io.nop.orm.eql.ast.SqlWhere;
+import io.nop.orm.eql.ast.*;
 import io.nop.orm.eql.meta.ISqlExprMeta;
 import io.nop.orm.eql.meta.ISqlSelectionMeta;
 import io.nop.orm.eql.meta.ISqlTableMeta;
@@ -62,54 +55,25 @@ public final class CollectionTableSourceHelper {
             SqlQuerySelect currentSelect,
             SqlSingleTableSource table) {
 
-        if (currentSelect == null || outerScope == null) {
-            return null;
-        }
-
         SqlTableName tableName = table.getTableName();
-        if (tableName == null) {
-            return null;
-        }
-
-        String rawName = tableName.getName();
-        String fullName = tableName.getFullName();
-
-        // 解析 ownerAlias 和属性名 propName
-        String ownerAlias;
-        String propName;
-
         SqlQualifiedName owner = tableName.getOwner();
-        if (owner != null) {
-            // 典型形式：from o.simsClasses c
-            ownerAlias = owner.getName();
-            propName = rawName;
-        } else {
-            // 兼容 name="o.simsClasses" 的形式
-            int dot = rawName != null ? rawName.indexOf('.') : -1;
-            if (dot <= 0) {
-                // 如 "SimsClass"、"io.nop.app.SimsClass" 等实体名，直接跳过
-                return null;
-            }
-            ownerAlias = rawName.substring(0, dot);
-            propName = rawName.substring(dot + 1);
-        }
 
-        SqlTableSource ownerSource = outerScope.getTableByAlias(ownerAlias);
+        SqlTableSource ownerSource = outerScope.getTableByAlias(owner.getName());
         if (!(ownerSource instanceof SqlSingleTableSource)) {
             return null;
         }
+
+        String propName = tableName.getName();
+
         SqlSingleTableSource ownerTable = (SqlSingleTableSource) ownerSource;
 
-        SqlPropJoin join = buildRelationJoin(visitor, ownerTable, propName);
+        SqlPropJoin join = buildRelationJoin(visitor, ownerTable, propName, table.getAlias());
         if (join == null) {
             return null;
         }
 
         SqlSingleTableSource right = join.getRight();
-        // 保留用户在 from 子句上指定的别名（例如 from o.simsClasses c）
-        if (table.getAlias() != null) {
-            right.setAlias(table.getAlias());
-        }
+
 
         SqlExpr condition = join.getCondition();
         if (condition != null) {
@@ -134,7 +98,7 @@ public final class CollectionTableSourceHelper {
      */
     private static SqlPropJoin buildRelationJoin(EqlTransformVisitor visitor,
                                                  SqlSingleTableSource ownerTable,
-                                                 String propName) {
+                                                 String propName, SqlAlias alias) {
         SqlTableName ownerTableName = ownerTable.getTableName();
         ISqlSelectionMeta selMeta = ownerTableName.getResolvedTableMeta();
         if (!(selMeta instanceof ISqlTableMeta)) {
@@ -156,10 +120,10 @@ public final class CollectionTableSourceHelper {
         IEntityRelationModel ref = (IEntityRelationModel) dataType;
         SqlPropJoin join;
         if (ref.isToOneRelation()) {
-            join = visitor.addToOneRelationJoin(ownerTable, ref);
+            join = visitor.addToOneRelationJoin(ownerTable, ref, alias);
         } else {
             // 集合关系：只根据 join 条件展开子表，不使用 keyProp 附加过滤
-            join = visitor.addToManyCollectionJoin(ownerTable, ref, propName);
+            join = visitor.addToManyCollectionJoin(ownerTable, ref, propName, alias);
         }
         return join;
     }

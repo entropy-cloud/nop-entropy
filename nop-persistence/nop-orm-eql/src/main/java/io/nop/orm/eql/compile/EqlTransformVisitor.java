@@ -16,120 +16,24 @@ import io.nop.dao.DaoConstants;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.function.ISQLFunction;
 import io.nop.orm.eql.OrmEqlConstants;
-import io.nop.orm.eql.ast.EqlASTKind;
-import io.nop.orm.eql.ast.EqlASTNode;
-import io.nop.orm.eql.ast.EqlASTVisitor;
-import io.nop.orm.eql.ast.SqlAlias;
-import io.nop.orm.eql.ast.SqlAllProjection;
-import io.nop.orm.eql.ast.SqlAndExpr;
-import io.nop.orm.eql.ast.SqlBinaryExpr;
-import io.nop.orm.eql.ast.SqlColumnName;
-import io.nop.orm.eql.ast.SqlCteStatement;
-import io.nop.orm.eql.ast.SqlDecorator;
-import io.nop.orm.eql.ast.SqlDelete;
-import io.nop.orm.eql.ast.SqlExpr;
-import io.nop.orm.eql.ast.SqlExprProjection;
-import io.nop.orm.eql.ast.SqlFrom;
-import io.nop.orm.eql.ast.SqlGroupBy;
-import io.nop.orm.eql.ast.SqlInsert;
-import io.nop.orm.eql.ast.SqlJoinTableSource;
-import io.nop.orm.eql.ast.SqlLiteral;
-import io.nop.orm.eql.ast.SqlNumberLiteral;
-import io.nop.orm.eql.ast.SqlOrderBy;
-import io.nop.orm.eql.ast.SqlParameterMarker;
-import io.nop.orm.eql.ast.SqlProgram;
-import io.nop.orm.eql.ast.SqlProjection;
-import io.nop.orm.eql.ast.SqlQualifiedName;
-import io.nop.orm.eql.ast.SqlQuerySelect;
-import io.nop.orm.eql.ast.SqlRegularFunction;
-import io.nop.orm.eql.ast.SqlSelect;
-import io.nop.orm.eql.ast.SqlSelectWithCte;
-import io.nop.orm.eql.ast.SqlSingleTableSource;
-import io.nop.orm.eql.ast.SqlStringLiteral;
-import io.nop.orm.eql.ast.SqlSubqueryTableSource;
-import io.nop.orm.eql.ast.SqlTableName;
-import io.nop.orm.eql.ast.SqlTableSource;
-import io.nop.orm.eql.ast.SqlUnionSelect;
-import io.nop.orm.eql.ast.SqlUpdate;
-import io.nop.orm.eql.ast.SqlWhere;
+import io.nop.orm.eql.ast.*;
 import io.nop.orm.eql.enums.SqlJoinType;
 import io.nop.orm.eql.enums.SqlOperator;
-import io.nop.orm.eql.compile.CollectionOperatorTransformer;
-import io.nop.orm.eql.meta.ISqlExprMeta;
-import io.nop.orm.eql.meta.ISqlSelectionMeta;
-import io.nop.orm.eql.meta.ISqlTableMeta;
-import io.nop.orm.eql.meta.RenamedSqlExprMeta;
-import io.nop.orm.eql.meta.SelectResultTableMeta;
-import io.nop.orm.eql.meta.SingleColumnExprMeta;
+import io.nop.orm.eql.meta.*;
 import io.nop.orm.eql.param.ISqlParamBuilder;
 import io.nop.orm.eql.param.TenantParamBuilder;
 import io.nop.orm.eql.sql.IAliasGenerator;
 import io.nop.orm.eql.utils.EqlASTBuilder;
 import io.nop.orm.eql.utils.EqlHelper;
-import io.nop.orm.model.IColumnModel;
-import io.nop.orm.model.IEntityJoinConditionModel;
-import io.nop.orm.model.IEntityModel;
-import io.nop.orm.model.IEntityPropModel;
-import io.nop.orm.model.IEntityRelationModel;
-import io.nop.orm.model.IOrmDataType;
-import io.nop.orm.model.OrmEntityFilterModel;
+import io.nop.orm.model.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_RETURNING_FOR_UPDATE;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_ALIAS;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_ARG_COUNT;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_ARG_INDEX;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_COL_NAME;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_DECORATOR;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_DIALECT;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_ENTITY_NAME;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_EXPECTED;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_EXPECTED_COUNT;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_FEATURE;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_FIELD_NAME;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_FUNC_NAME;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_LEFT_SOURCE;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_MAX_ARG_COUNT;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_MIN_ARG_COUNT;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_PROP_NAME;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_PROP_PATH;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_QUERY_SPACE;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_QUERY_SPACE_MAP;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_TABLE;
-import static io.nop.orm.eql.OrmEqlErrors.ARG_TABLE_SOURCE;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_COUNT_IS_NOT_EXPECTED;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_TYPE_IS_NOT_EXPECTED;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FIELD_NOT_IN_SUBQUERY;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_ONLY_ALLOW_IN_WINDOW_EXPR;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_TOO_FEW_ARGS;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_TOO_MANY_ARGS;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_JOIN_NO_CONDITION;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_JOIN_PROP_PATH_IS_DUPLICATED;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_ALLOW_MULTIPLE_QUERY_SPACE;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_MULTI_JOIN_ON_ALIAS;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_ONLY_SUPPORT_SINGLE_TABLE_SOURCE;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_OWNER_NOT_REF_TO_ENTITY;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PROP_PATH_JOIN_NOT_ALLOW_CONDITION;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_QUERY_NO_FROM_CLAUSE;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_SELECT_NO_PROJECTIONS;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_TABLE_SOURCE_NOT_RESOLVED;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_ALIAS;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_COLUMN_NAME;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_ENTITY_NAME;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_FUNCTION;
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_QUERY_SPACE;
+import static io.nop.orm.eql.OrmEqlErrors.*;
 
 public class EqlTransformVisitor extends EqlASTVisitor {
 
@@ -278,7 +182,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         if (node.getWhere() != null) {
             collectionOperatorTransformer.transform(node.getWhere());
         }
-        
+
         if (node.getWhere() != null)
             visitSqlWhere(node.getWhere());
 
@@ -449,26 +353,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     void visitTableSource(SqlTableScope tableScope, SqlTableSource table) {
         if (table instanceof SqlSingleTableSource) {
             SqlSingleTableSource source = (SqlSingleTableSource) table;
-            SqlQuerySelect select = getQuerySelect(source);
+            resolveSingleTableSource(tableScope, source);
 
-            // Try to treat collection-valued property paths (e.g., from o.simsClasses c)
-            // as real entity table sources in correlated subqueries.
-            SqlSingleTableSource transformed = null;
-            if (select != null) {
-                // 使用当前 scope 作为 ownerScope，确保能解析到本层的别名（例如 o）
-                SqlTableScope ownerScope = tableScope;
-                transformed = CollectionTableSourceHelper.transformCollectionTableSource(this, ownerScope, select,
-                        source);
-            }
-
-            if (transformed != null) {
-                // The helper already resolved the underlying entity and join condition;
-                // do NOT call resolveEntity again to avoid regenerating aliases.
-                tableScope.addTable(transformed.getScopeName(), transformed);
-            } else {
-                resolveEntity(source);
-                tableScope.addTable(source.getScopeName(), source);
-            }
         } else if (table instanceof SqlSubqueryTableSource) {
             // lateral 表示可以看到同级的表
             SqlSubqueryTableSource source = (SqlSubqueryTableSource) table;
@@ -713,7 +599,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
                 IEntityRelationModel ref = (IEntityRelationModel) dataType;
                 if (ref.isToOneRelation()) {
-                    join = addToOneRelationJoin(source, ref);
+                    join = addToOneRelationJoin(source, ref,null);
                 } else {
                     if (ref.getKeyProp() == null)
                         throw new NopException(ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE).source(source)
@@ -758,11 +644,11 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         }
     }
 
-    SqlPropJoin addToOneRelationJoin(SqlSingleTableSource source, IEntityRelationModel ref) {
+    SqlPropJoin addToOneRelationJoin(SqlSingleTableSource source, IEntityRelationModel ref, SqlAlias alias) {
         if (ref.isDynamicJoin())
-            return addToOneDynamicRelationJoin(source, ref);
+            return addToOneDynamicRelationJoin(source, ref, alias);
 
-        SqlSingleTableSource refTable = makeTableSource(source.getLocation(), ref.getRefEntityModel(), null);
+        SqlSingleTableSource refTable = makeTableSource(source.getLocation(), ref.getRefEntityModel(), alias);
         SqlExpr condition = makeCondition(ref.getJoin(), source, refTable);
 
         refTable.setForPropJoin(true);
@@ -807,8 +693,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         }
     }
 
-    SqlPropJoin addToOneDynamicRelationJoin(SqlSingleTableSource source, IEntityRelationModel ref) {
-        SqlSingleTableSource refTable = makeTableSource(source.getLocation(), ref.getRefEntityModel(), null);
+    SqlPropJoin addToOneDynamicRelationJoin(SqlSingleTableSource source, IEntityRelationModel ref, SqlAlias alias) {
+        SqlSingleTableSource refTable = makeTableSource(source.getLocation(), ref.getRefEntityModel(), alias);
 
         SqlSingleTableSource leftSource = source, rightSource = refTable;
 
@@ -904,8 +790,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
      * 用于集合属性作为表来源的场景：只基于关系元数据生成关联，不使用 keyProp 额外过滤。
      * 例如 from o.simsClasses c 这种写法，仅需要 College 与 Class 的 join 条件即可。
      */
-    SqlPropJoin addToManyCollectionJoin(SqlSingleTableSource source, IEntityRelationModel ref, String propJoinName) {
-        SqlSingleTableSource refTable = makeTableSource(source.getLocation(), ref.getRefEntityModel(), null);
+    SqlPropJoin addToManyCollectionJoin(SqlSingleTableSource source, IEntityRelationModel ref, String propJoinName, SqlAlias alias) {
+        SqlSingleTableSource refTable = makeTableSource(source.getLocation(), ref.getRefEntityModel(), alias);
         SqlExpr joinCondition = makeCondition(ref.getJoin(), source, refTable);
 
         refTable.setForPropJoin(true);
@@ -1033,7 +919,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     // }
     // }
 
-    void resolveEntity(SqlSingleTableSource table) {
+    void resolveSingleTableSource(SqlTableScope tableScope, SqlSingleTableSource table) {
         SqlTableName tableName = table.getTableName();
         String fullName = tableName.getFullName();
         ISqlTableMeta tableMeta = context.resolveEntityTableMeta(fullName);
@@ -1042,6 +928,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             addResolvedEntity(tableName.getLocation(), tableMeta);
             // 对应全类名或者简单类名
             tableName.setResolvedTableMeta(tableMeta);
+            tableScope.addTable(table.getScopeName(), table);
         } else {
             // 不是实体对象，需要检查是否是属性表达式或 CTE
             SqlQualifiedName owner = tableName.getOwner();
@@ -1063,7 +950,18 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                     } else {
                         addAliasToScope(currentScope, querySource);
                     }
+                    tableScope.addTable(table.getScopeName(), table);
                     return;
+                }
+            } else if (owner.getNext() == null) {
+                SqlQuerySelect select = getQuerySelect(table);
+                if (select != null) {
+                    SqlSingleTableSource transformed = CollectionTableSourceHelper.transformCollectionTableSource(this, tableScope, select,
+                            table);
+                    if (transformed != null) {
+                        tableScope.addTable(transformed.getScopeName(), transformed);
+                        return;
+                    }
                 }
             }
             throw new NopException(ERR_EQL_UNKNOWN_ENTITY_NAME).source(table).param(ARG_ENTITY_NAME, fullName);
