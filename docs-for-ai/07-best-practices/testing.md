@@ -170,7 +170,8 @@ public void testDeleteUser_WhenUserHasOrders_ShouldThrowException() {
 
     assertEquals(ERR_USER_HAS_ORDERS, exception.getErrorCode());
 }
-```
+
+## 单元测试 vs 集成测试
 
 ### 5. 异步测试
 
@@ -221,7 +222,7 @@ public class CalculatorTest {
         // 手写 stub/fake，无需 IoC 容器
         SimpleTestRegistry registry = new SimpleTestRegistry();
         CommandExecutor executor = new CommandExecutor(parser, registry, null);
-        
+
         ExecutionResult result = executor.execute("echo hello");
         assertEquals(0, result.exitCode());
     }
@@ -365,7 +366,7 @@ jobs:
         with:
           java-version: '17'
       - name: Build with Maven
-                run: mvn test
+          run: mvn test
 ```
 
 ### 2. 测试报告
