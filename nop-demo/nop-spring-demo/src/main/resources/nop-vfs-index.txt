@@ -244,6 +244,7 @@
 /nop/autoconfig/nop-integration-zxing.beans
 /nop/autoconfig/nop-message-core.beans
 /nop/autoconfig/nop-orm.beans
+/nop/autoconfig/nop-record-mapping.beans
 /nop/autoconfig/nop-report-ext.beans
 /nop/autoconfig/nop-report.beans
 /nop/autoconfig/nop-web.beans
@@ -361,6 +362,7 @@
 /nop/orm/xlib/orm-gen.xlib
 /nop/orm/xlib/pdman.xlib
 /nop/orm/xlib/sql.xlib
+/nop/record/beans/record-mapping-defaults.beans.xml
 /nop/record/imp/record-mappings.imp.xml
 /nop/record/imp/template.record-mappings.xlsx
 /nop/record/mapping/orm.record-mappings.xml
