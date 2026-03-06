@@ -57,4 +57,44 @@
         </field>
     </fields>
 
+    <patternFields xdef:key-attr="id" xdef:body-type="list">
+        <!--
+        patternField和field配置的区别仅在于来源和目标字段名都可以是动态的，其他属性配置完全一样
+
+        @fromPattern 源字段匹配模式，支持{namedGroup}命名捕获组和*通配符
+        @to 目标字段名表达式，支持${var}变量插值和表达式
+        @ignore 如果设置为true，则匹配的字段将被忽略，不进行映射
+        @virtual 虚拟字段，不直接映射值，而是通过computeExpr计算
+        -->
+        <patternField id="!xml-name" fromPattern="string" to="t-expr"
+                      ignore="!boolean=false" sourceType="generic-type"
+                      mapping="var-name" virtual="!boolean=false"
+                      type="generic-type" mandatory="!boolean=false" itemMapping="var-name" optional="!boolean=false"
+                      ignoreWhenEmpty="!boolean=false" flattenFrom="!boolean=false" flattenTo="!boolean=false"
+                      keyProp="xml-name"
+                      varName="var-name" disableFromPropPath="!boolean=false" disableToPropPath="!boolean=false"
+                      xdef:name="RecordPatternFieldConfig">
+            <when>xpl-fn:(source,target,ctx)=>boolean</when>
+            <valueExpr>xpl-fn:(value,ctx)=>any</valueExpr>
+            <computeExpr>xpl-fn:(source,target,ctx)=>any</computeExpr>
+            <schema xdef:ref="../schema/schema.xdef"/>
+
+            <newItemExpr>xpl-fn:(source,target,ctx)=>any</newItemExpr>
+
+            <newInstanceExpr>xpl-fn:(source,target,ctx)=>any</newInstanceExpr>
+
+            <!--
+            当Map或者Collection结构进行映射时，可以判断每个条目是否需要映射
+            -->
+            <itemFilterExpr>xpl-fn:(item,key,ctx)=>boolean</itemFilterExpr>
+
+            <valueMapper>value-mapper</valueMapper>
+
+            <beforeFieldMapping>xpl-fn:(source,target,ctx)=>void</beforeFieldMapping>
+
+            <afterFieldMapping>xpl-fn:(source,target,ctx)=>void</afterFieldMapping>
+        </patternField>
+    </patternFields>
+
+
 </mapping>

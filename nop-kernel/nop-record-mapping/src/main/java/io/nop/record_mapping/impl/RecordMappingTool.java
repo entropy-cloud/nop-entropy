@@ -8,13 +8,18 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.collections.IKeyedList;
+import io.nop.commons.path.ICompiledPathMatcher;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.dict.DictProvider;
+import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.core.type.IGenericType;
 import io.nop.record_mapping.RecordMappingContext;
+import io.nop.record_mapping.model.IRecordFieldMappingConfig;
 import io.nop.record_mapping.model.RecordFieldMappingConfig;
 import io.nop.record_mapping.model.RecordMappingConfig;
+import io.nop.record_mapping.model.RecordPatternFieldConfig;
 import io.nop.xlang.api.EvalCode;
 import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.source.IWithSourceCode;
@@ -25,24 +30,13 @@ import io.nop.xlang.xmeta.SimpleSchemaValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static io.nop.record_mapping.RecordMappingErrors.ARG_DICT;
-import static io.nop.record_mapping.RecordMappingErrors.ARG_FIELD_NAME;
-import static io.nop.record_mapping.RecordMappingErrors.ARG_KEY_PROP;
-import static io.nop.record_mapping.RecordMappingErrors.ARG_KEY_VALUE;
-import static io.nop.record_mapping.RecordMappingErrors.ARG_MAPPING_NAME;
-import static io.nop.record_mapping.RecordMappingErrors.ARG_SOURCE_LOC;
-import static io.nop.record_mapping.RecordMappingErrors.ARG_VALUE;
-import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_FIELD_IS_MANDATORY;
-import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_FIELD_VALUE_NOT_IN_DICT;
-import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_LIST_DUPLICATE_ITEM;
+import static io.nop.record_mapping.RecordMappingConstants.*;
+import static io.nop.record_mapping.RecordMappingErrors.*;
 
 /**
  * 记录映射核心操作辅助类
@@ -51,6 +45,8 @@ import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_LIST_DUPLICAT
 public class RecordMappingTool {
     private static final Logger LOG = LoggerFactory.getLogger(RecordMappingTool.class);
     public static final RecordMappingTool DEFAULT = new RecordMappingTool();
+    private static final io.nop.commons.path.IPathMatcher PATH_MATCHER = new io.nop.commons.path.AntPathMatcher();
+    private static final java.util.Map<String, io.nop.commons.path.IPathMatcher> PATTERN_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
 
     // ========== 字段条件检查 ==========
     public boolean checkFieldCondition(RecordFieldMappingConfig field,
@@ -106,8 +102,18 @@ public class RecordMappingTool {
                                         Object source, Object target,
                                         RecordMappingContext ctx, Consumer<RecordFieldMappingConfig> action) {
         executeForObject(mapping, source, target, ctx, () -> {
+            java.util.Set<String> processedFields = new java.util.HashSet<>();
+
             for (RecordFieldMappingConfig field : mapping.getFields()) {
                 action.accept(field);
+                if (field.getFrom() != null) {
+                    processedFields.add(field.getFrom());
+                }
+            }
+
+            if (!mapping.getPatternFields().isEmpty()) {
+                Set<String> fieldNames = getAllFieldNames(source);
+                processPatternFields(mapping, source, target, ctx, action, fieldNames, processedFields);
             }
         });
     }
@@ -138,7 +144,7 @@ public class RecordMappingTool {
     public Object getProcessedFromValue(RecordMappingConfig mapping, RecordFieldMappingConfig field,
                                         Object source, Object target, RecordMappingContext ctx) {
         Object value = getFromValue(field, source, target, ctx);
-        return processFieldValue(mapping, field, value, ctx);
+        return processFieldValue(mapping, field, field.getName(), value, ctx);
     }
 
     public Object getFromValue(RecordFieldMappingConfig field,
@@ -173,7 +179,8 @@ public class RecordMappingTool {
      * 完整的值处理流程：值映射 → 类型转换 → 验证 → 必填检查
      */
     public Object processFieldValue(RecordMappingConfig mapping,
-                                    RecordFieldMappingConfig field,
+                                    IRecordFieldMappingConfig field,
+                                    String fieldName,
                                     Object value,
                                     RecordMappingContext ctx) {
         if (field.getValueExpr() != null) {
@@ -181,23 +188,23 @@ public class RecordMappingTool {
         }
 
         // 1. 对源对象返回的值进行映射，如果为null，则返回defaultValue
-        value = applyValueMapper(field, value);
+        value = applyValueMapper(field, fieldName, value);
 
         if (!ctx.isSkipValidation()) {
             // 2. 类型转换
-            value = castType(field, value, ctx);
+            value = castType(field, fieldName, value, ctx);
 
             // 3. 验证
-            validateValue(mapping, field, value, ctx);
+            validateValue(mapping, field, fieldName, value, ctx);
 
             // 4. 必填检查
-            validateMandatoryField(mapping.getName(), field, value);
+            validateMandatoryField(mapping.getName(), field, fieldName, value);
         }
 
         return value;
     }
 
-    public Object applyValueMapper(RecordFieldMappingConfig field, Object value) {
+    public Object applyValueMapper(IRecordFieldMappingConfig field, String fieldName, Object value) {
         if (value == null)
             return field.getNormalizedDefaultValue();
 
@@ -223,17 +230,17 @@ public class RecordMappingTool {
         }
     }
 
-    public void setTargetValue(RecordFieldMappingConfig field,
-                               Object target, Object value,
+    public void setTargetValue(IRecordFieldMappingConfig field,
+                               Object target, String fieldName, Object value,
                                RecordMappingContext ctx) {
         if (field.getVarName() != null) {
             ctx.setValue(field.getVarName(), value);
             return;
         }
         if (field.isDisableToPropPath()) {
-            BeanTool.setProperty(target, field.getName(), value);
+            BeanTool.setProperty(target, fieldName, value);
         } else {
-            BeanTool.setComplexProperty(target, field.getName(), value);
+            BeanTool.setComplexProperty(target, fieldName, value);
         }
     }
 
@@ -368,7 +375,7 @@ public class RecordMappingTool {
     }
 
     // ========== 验证相关 ==========
-    public Object castType(RecordFieldMappingConfig field, Object value, RecordMappingContext ctx) {
+    public Object castType(IRecordFieldMappingConfig field, String fieldName, Object value, RecordMappingContext ctx) {
         if (StringHelper.isEmptyObject(value))
             return null;
 
@@ -377,7 +384,7 @@ public class RecordMappingTool {
             if (stdDomain != null) {
                 IStdDomainHandler handler = StdDomainRegistry.instance().requireStdDomainHandler(field.getLocation(), stdDomain);
                 Object source = value;
-                value = handler.parseProp(field.getSchema().getStdDomainOptions(), field.getLocation(), field.getName(), value, ctx.makeCompileTool());
+                value = handler.parseProp(field.getSchema().getStdDomainOptions(), field.getLocation(), fieldName, value, ctx.makeCompileTool());
                 if (value instanceof ExprEvalAction && !(value instanceof IWithSourceCode)) {
                     value = EvalCode.addSource((ExprEvalAction) value, source.toString());
                 }
@@ -396,7 +403,7 @@ public class RecordMappingTool {
     }
 
     public void validateValue(RecordMappingConfig mapping,
-                              RecordFieldMappingConfig field, Object value,
+                              IRecordFieldMappingConfig field, String fieldName, Object value,
                               RecordMappingContext ctx) {
         String mappingName = mapping.getName();
         ISchema schema = field.getSchema();
@@ -409,9 +416,6 @@ public class RecordMappingTool {
         if (type == null)
             type = schema.getType();
 
-        String fieldName = field.getName();
-        if (fieldName == null)
-            fieldName = field.getFrom();
 
         if (type != null) {
             if (type.getStdDataType().isSimpleType()) {
@@ -425,7 +429,7 @@ public class RecordMappingTool {
     }
 
     protected void validateDictValue(ISchema schema, String mappingName,
-                                     RecordFieldMappingConfig field, String fieldName,
+                                     IRecordFieldMappingConfig field, String fieldName,
                                      Object value, RecordMappingContext ctx) {
         String dictName = schema.getDict();
         if (dictName != null) {
@@ -446,11 +450,12 @@ public class RecordMappingTool {
     }
 
     public void validateMandatoryField(String mappingName,
-                                       RecordFieldMappingConfig field,
+                                       IRecordFieldMappingConfig field,
+                                       String fieldName,
                                        Object value) {
         if (StringHelper.isEmptyObject(value) && field.isMandatory()) {
             throw new NopException(ERR_RECORD_FIELD_IS_MANDATORY).source(field)
-                    .param(ARG_FIELD_NAME, field.getName())
+                    .param(ARG_FIELD_NAME, fieldName)
                     .param(ARG_MAPPING_NAME, mappingName);
         }
     }
@@ -496,4 +501,142 @@ public class RecordMappingTool {
         return field.getItemMapping() != null &&
                 (value instanceof Map || value instanceof Collection);
     }
+
+    protected void processPatternFields(RecordMappingConfig mapping,
+                                        Object source, Object target,
+                                        RecordMappingContext ctx,
+                                        Consumer<RecordFieldMappingConfig> action,
+                                        Set<String> fieldNames,
+                                        java.util.Set<String> processedFields) {
+
+        for (RecordPatternFieldConfig patternField : mapping.getPatternFields()) {
+            ICompiledPathMatcher matcher = patternField.getCompiledPattern();
+            if(matcher == null){
+                //  不需要匹配来源，完全是动态生成
+                String targetFieldName = evaluateToExpression(patternField.getTo(), patternField.getCompiledPattern(), null, source, target, ctx);
+                if (targetFieldName == null) {
+                    continue;
+                }
+
+                ctx.setValue(VAR_SOURCE_FIELD_NAME, null);
+                ctx.setValue(VAR_TARGET_FIELD_NAME, targetFieldName);
+
+                RecordFieldMappingConfig fieldConfig = createFieldConfigFromPattern(patternField, targetFieldName, null);
+                action.accept(fieldConfig);
+                continue;
+            }
+
+            for (String fieldName : fieldNames) {
+                if (processedFields.contains(fieldName)) {
+                    continue;
+                }
+
+                if (matcher.match(fieldName)) {
+                    if (patternField.isIgnore()) {
+                        processedFields.add(fieldName);
+                        continue;
+                    }
+
+                    String targetFieldName = evaluateToExpression(patternField.getTo(), patternField.getCompiledPattern(), fieldName, source, target, ctx);
+                    if (targetFieldName == null) {
+                        continue;
+                    }
+
+                    ctx.setValue(VAR_SOURCE_FIELD_NAME, fieldName);
+                    ctx.setValue(VAR_TARGET_FIELD_NAME, targetFieldName);
+
+                    RecordFieldMappingConfig fieldConfig = createFieldConfigFromPattern(patternField, targetFieldName, fieldName);
+                    action.accept(fieldConfig);
+                    processedFields.add(fieldName);
+                }
+            }
+        }
+    }
+
+
+    protected String evaluateToExpression(io.nop.core.lang.eval.IEvalAction toExpr,
+                                          ICompiledPathMatcher patternExpr,
+                                          String fieldName,
+                                          Object source,
+                                          Object target,
+                                          RecordMappingContext ctx) {
+        if (toExpr == null) {
+            return null;
+        }
+
+        java.util.Map<String, String> vars = extractVariablesFromPattern(patternExpr, fieldName);
+        if (vars != null) {
+            for (java.util.Map.Entry<String, String> entry : vars.entrySet()) {
+                ctx.setValue(entry.getKey(), entry.getValue());
+            }
+        }
+        ctx.setValue(VAR_SOURCE, source);
+        ctx.setValue(VAR_TARGET, target);
+
+        return ConvertHelper.toString(toExpr.invoke(ctx));
+    }
+
+    protected java.util.Map<String, String> extractVariablesFromPattern(ICompiledPathMatcher matcher, String fieldName) {
+        if (matcher == null)
+            return null;
+
+        return matcher.extractUriTemplateVariables(fieldName);
+    }
+
+    protected Set<String> getAllFieldNames(Object source) {
+        if (source instanceof java.util.Map) {
+            return ((java.util.Map<String, Object>) source).keySet();
+        }
+
+        Set<String> ret = new LinkedHashSet<>();
+
+        IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(source.getClass());
+        beanModel.forEachReadableProp(prop -> {
+            ret.add(prop.getName());
+        });
+
+        Set<String> propNames = beanModel.getExtPropertyNames(source);
+        if (propNames != null) {
+            ret.addAll(propNames);
+        }
+
+        return ret;
+    }
+
+    protected RecordFieldMappingConfig createFieldConfigFromPattern(RecordPatternFieldConfig patternField,
+                                                                    String targetFieldName,
+                                                                    String sourceFieldName) {
+        RecordFieldMappingConfig fieldConfig = new RecordFieldMappingConfig();
+        fieldConfig.setName(targetFieldName);
+        fieldConfig.setFrom(sourceFieldName);
+        fieldConfig.setComputeExpr(patternField.getComputeExpr());
+        fieldConfig.setValueExpr(patternField.getValueExpr());
+        fieldConfig.setWhen(patternField.getWhen());
+        fieldConfig.setSchema(patternField.getSchema());
+        fieldConfig.setType(patternField.getType());
+        fieldConfig.setMapping(patternField.getMapping());
+        fieldConfig.setItemMapping(patternField.getItemMapping());
+        fieldConfig.setMandatory(patternField.isMandatory());
+        fieldConfig.setAfterFieldMapping(patternField.getAfterFieldMapping());
+        fieldConfig.setBeforeFieldMapping(patternField.getBeforeFieldMapping());
+        fieldConfig.setValueMapper(patternField.getValueMapper());
+        fieldConfig.setResolvedItemMapping(patternField.getResolvedItemMapping());
+        fieldConfig.setResolvedMapping(patternField.getResolvedMapping());
+        fieldConfig.setClassModel(patternField.getClassModel());
+        fieldConfig.setItemClassModel(patternField.getItemClassModel());
+        fieldConfig.setDisableFromPropPath(patternField.isDisableFromPropPath());
+        fieldConfig.setDisableToPropPath(patternField.isDisableToPropPath());
+        fieldConfig.setFlattenFrom(patternField.isFlattenFrom());
+        fieldConfig.setFlattenTo(patternField.isFlattenTo());
+        fieldConfig.setIgnoreWhenEmpty(patternField.isIgnoreWhenEmpty());
+        fieldConfig.setItemFilterExpr(patternField.getItemFilterExpr());
+        fieldConfig.setKeyProp(patternField.getKeyProp());
+        fieldConfig.setNewInstanceExpr(patternField.getNewInstanceExpr());
+        fieldConfig.setNewItemExpr(patternField.getNewItemExpr());
+        fieldConfig.setOptional(patternField.isOptional());
+        fieldConfig.setVarName(patternField.getVarName());
+        fieldConfig.setVirtual(patternField.isVirtual());
+        return fieldConfig;
+    }
+
 }

@@ -23,25 +23,10 @@ import io.nop.record_mapping.impl.RecordMappingTool;
 import io.nop.record_mapping.model.RecordFieldMappingConfig;
 import io.nop.record_mapping.model.RecordMappingConfig;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import static io.nop.record_mapping.RecordMappingConstants.FORMAT_CODE;
-import static io.nop.record_mapping.RecordMappingConstants.FORMAT_TABLE;
-import static io.nop.record_mapping.RecordMappingConstants.VAR_MD_FORMAT;
-import static io.nop.record_mapping.RecordMappingConstants.VAR_MD_TITLE_FIELD;
-import static io.nop.record_mapping.RecordMappingErrors.ARG_CONTENT;
-import static io.nop.record_mapping.RecordMappingErrors.ARG_FIELD_NAME;
-import static io.nop.record_mapping.RecordMappingErrors.ARG_FROM_NAME;
-import static io.nop.record_mapping.RecordMappingErrors.ARG_MAPPING_NAME;
-import static io.nop.record_mapping.RecordMappingErrors.ARG_MD_FORMAT;
-import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_MD_LIST_ITEM_NOT_SIMPLE_VALUE;
-import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_MD_MISSING_FIELD;
-import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_MD_SECTION_CONTENT_NOT_TABLE;
-import static io.nop.record_mapping.RecordMappingErrors.ERR_RECORD_MD_SECTION_NOT_ALLOW_SUB_SECTION;
+import static io.nop.record_mapping.RecordMappingConstants.*;
+import static io.nop.record_mapping.RecordMappingErrors.*;
 
 public class MappingBasedMarkdownParser implements IRecordMapping {
     private final RecordMappingConfig mapping;
@@ -90,11 +75,11 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
         RecordFieldMappingConfig titleField = getTitleField(mapping);
         if (titleField != null) {
             tool.executeForField(mapping, titleField, section, target, ctx, field -> {
-                Object titleValue = tool.processFieldValue(mapping, field, section.getTitle(), ctx);
+                Object titleValue = tool.processFieldValue(mapping, field, field.getName(), section.getTitle(), ctx);
                 if (target instanceof JObject)
                     titleValue = ValueWithLocation.of(section.getLocation(), titleValue);
 
-                tool.setTargetValue(field, target, titleValue, ctx);
+                tool.setTargetValue(field, target, field.getName(), titleValue, ctx);
                 processedFields.add(titleField.getName());
             });
         }
@@ -153,10 +138,10 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
                         .param(ARG_FROM_NAME, pair.getKey());
             }
 
-            Object value = tool.processFieldValue(mapping, field, pair.getValue(), ctx);
+            Object value = tool.processFieldValue(mapping, field, field.getName(), pair.getValue(), ctx);
             if (target instanceof JObject)
                 value = ValueWithLocation.of(item.getLocation(), value);
-            tool.setTargetValue(field, target, value, ctx);
+            tool.setTargetValue(field, target, field.getName(), value, ctx);
         }
     }
 
@@ -202,11 +187,11 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
             if (titleField != null) {
                 tool.executeForField(itemMapping, titleField, item, target, ctx, field -> {
                     processedFields.add(titleField.getName());
-                    Object titleValue = tool.processFieldValue(itemMapping, field, item.getContent(), ctx);
+                    Object titleValue = tool.processFieldValue(itemMapping, field, field.getName(), item.getContent(), ctx);
 
                     if (target instanceof JObject)
                         titleValue = ValueWithLocation.of(item.getLocation(), titleValue);
-                    tool.setTargetValue(field, target, titleValue, ctx);
+                    tool.setTargetValue(field, target, field.getName(), titleValue, ctx);
                 });
             }
 
@@ -261,9 +246,9 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
 
         Object tableData = parseContentTable(field, section, target, ctx);
         if (!ctx.isSkipValidation())
-            tool.validateMandatoryField(mapping.getName(), field, tableData);
+            tool.validateMandatoryField(mapping.getName(), field, field.getName(), tableData);
 
-        tool.setTargetValue(field, target, tableData, ctx);
+        tool.setTargetValue(field, target, field.getName(), tableData, ctx);
     }
 
     protected void mapObjectField(RecordFieldMappingConfig field, MarkdownSection section,
@@ -308,14 +293,14 @@ public class MappingBasedMarkdownParser implements IRecordMapping {
         }
 
         Object contentValue = parseSectionContent(field, format, section);
-        Object value = tool.processFieldValue(mapping, field, contentValue, ctx);
+        Object value = tool.processFieldValue(mapping, field, field.getName(), contentValue, ctx);
         if (field.isIgnoreWhenEmpty() && StringHelper.isEmptyObject(value))
             return;
 
         if (target instanceof JObject)
             value = ValueWithLocation.of(section.getContentLocation(), value);
 
-        tool.setTargetValue(field, target, value, ctx);
+        tool.setTargetValue(field, target, field.getName(), value, ctx);
     }
 
     RecordFieldMappingConfig getTitleField(RecordMappingConfig mapping) {

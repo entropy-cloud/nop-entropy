@@ -3,6 +3,7 @@ package io.nop.record_mapping;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.unittest.BaseTestCase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -47,6 +48,125 @@ public class TestRecordMappingManager extends BaseTestCase {
         Map<String, Object> map = new LinkedHashMap<>();
         mapping.map(t1, map, new RecordMappingContext());
         Assertions.assertEquals("{\"base\":{\"name1\":\"f1\"},\"ext\":{\"name2\":\"f2\",\"name3\":123},\"name4\":\"f4\",\"listA\":[{\"a\":\"b1\",\"b\":\"b2\"}],\"mapA\":{\"k1\":{\"a\":\"b3\",\"b\":\"b4\"}}}", JsonTool.stringify(map));
+    }
+
+    @Test
+    public void testPatternFields_BasicPatternMatch() {
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("user_name", "John");
+        source.put("user_age", "30");
+        source.put("item_code", "A001");
+
+        Map<String, Object> target = new LinkedHashMap<>();
+        IRecordMapping mapping = RecordMappingManager.instance().getRecordMapping("test.demo.PatternFieldTest");
+        mapping.map(source, target, new RecordMappingContext());
+
+        Assertions.assertEquals("John", target.get("name"));
+        Assertions.assertEquals("30", target.get("age"));
+        Assertions.assertEquals("A001", target.get("code"));
+    }
+
+    @Test
+    public void testPatternFields_WildcardMatch() {
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("temp_field", "value1");
+        source.put("unknown_field", "value2");
+
+        Map<String, Object> target = new LinkedHashMap<>();
+        IRecordMapping mapping = RecordMappingManager.instance().getRecordMapping("test.demo.PatternFieldTest");
+        mapping.map(source, target, new RecordMappingContext());
+
+        Assertions.assertEquals("value2", target.get("anyField"));
+    }
+
+    @Test
+    public void testPatternFields_WhenCondition() {
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("data_field1", null);
+        source.put("data_field2", "value");
+        source.put("data_field3", "test");
+
+        Map<String, Object> target = new LinkedHashMap<>();
+        IRecordMapping mapping = RecordMappingManager.instance().getRecordMapping("test.demo.PatternFieldTestWithWhen");
+        mapping.map(source, target, new RecordMappingContext());
+
+        Assertions.assertEquals("value", target.get("field2"));
+        Assertions.assertEquals("test", target.get("field3"));
+        Assertions.assertNull(target.get("field1"));
+    }
+
+    @Test
+    public void testPatternFields_IgnoreFlag() {
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("temp_value", "should_be_ignored");
+        source.put("keep_value", "should_be_kept");
+
+        Map<String, Object> target = new LinkedHashMap<>();
+        IRecordMapping mapping = RecordMappingManager.instance().getRecordMapping("test.demo.PatternFieldTest");
+        mapping.map(source, target, new RecordMappingContext());
+
+        Assertions.assertEquals("should_be_kept", target.get("anyField"));
+    }
+
+    @Test
+    public void testPatternFields_VirtualField() {
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("amount", 100);
+        source.put("price", 10);
+
+        Map<String, Object> target = new LinkedHashMap<>();
+        IRecordMapping mapping = RecordMappingManager.instance().getRecordMapping("test.demo.PatternFieldTestWithVirtual");
+        mapping.map(source, target, new RecordMappingContext());
+
+        Assertions.assertEquals(1000, target.get("total"));
+    }
+
+    @Test
+    public void testPatternFields_UnmatchedField() {
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("unmatched_field", "value");
+
+        Map<String, Object> target = new LinkedHashMap<>();
+        IRecordMapping mapping = RecordMappingManager.instance().getRecordMapping("test.demo.PatternFieldTest");
+        mapping.map(source, target, new RecordMappingContext());
+
+        Assertions.assertNull(target.get("field"));
+    }
+
+    @Test
+    public void testPatternFields_NestedMapping() {
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("name", "John");
+        source.put("age", 30);
+
+        Map<String, Object> target = new LinkedHashMap<>();
+        IRecordMapping mapping = RecordMappingManager.instance().getRecordMapping("test.demo.PatternFieldTestWithNested");
+        mapping.map(source, target, new RecordMappingContext());
+
+        Map<String,Object> user = (Map<String, Object>)target.get("user");
+        Assertions.assertEquals("John", user.get("name"));
+        Assertions.assertEquals(30, user.get("age"));
+    }
+
+    @Test
+    public void testPatternFields_ToExpressionEvaluation() {
+        // 测试 to 表达式的变量插值功能
+        // fromPattern="user.{name}" 匹配 source 字段
+        // 提取变量 name="age", name="code" 等
+        // to="${name}" 使用变量作为目标字段名
+
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("user_age", "25");         // 匹配 user.{name}，提取 name="age"
+        source.put("item_code", "A001");       // 匹配 user.{name}，提取 name="code"
+
+        Map<String, Object> target = new LinkedHashMap<>();
+        IRecordMapping mapping = RecordMappingManager.instance().getRecordMapping("test.demo.PatternFieldTest");
+        mapping.map(source, target, new RecordMappingContext());
+
+        // 验证变量插值：${name} 被正确求值
+        Assertions.assertEquals("25", target.get("age"));
+        Assertions.assertEquals("A001", target.get("code"));
+
     }
 
     @DataBean

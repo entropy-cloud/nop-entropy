@@ -27,6 +27,49 @@
             </field>
         </fields>
     </mapping>
+
+    <mapping name="PatternFieldTest">
+        <patternFields>
+            <patternField id="user_age_pattern" fromPattern="user_age" to="age"/>
+            <patternField id="user_name_pattern" fromPattern="user_{name}" to="name"/>
+            <patternField id="item_code_pattern" fromPattern="item_{code}" to="code"/>
+            <patternField id="data_field_pattern" fromPattern="data_{field}" to="${field}"/>
+            <patternField id="ignore_pattern" fromPattern="temp_*" ignore="true"/>
+            <patternField id="default_pattern" fromPattern="*" to="anyField"/>
+        </patternFields>
+    </mapping>
+    
+    <!-- Test for to expression evaluation with variable interpolation -->
+    <mapping name="PatternFieldTestWithToExpression">
+        <patternFields>
+            <patternField id="user_prop_pattern" fromPattern="user.{prop}" to="${prop}"/>
+        </patternFields>
+    </mapping>
+    
+    <!-- Test for nested object mapping -->
+    <mapping name="PatternFieldTestWithNested">
+        <patternFields>
+            <patternField id="nested_pattern" fromPattern="{field}" to="user.${field}">
+            </patternField>
+        </patternFields>
+    </mapping>
+
+    <mapping name="PatternFieldTestWithWhen">
+        <patternFields>
+            <patternField id="when_pattern" fromPattern="data_{field}" to="${field}">
+                <when><![CDATA[source[sourceFieldName] != null]]></when>
+            </patternField>
+        </patternFields>
+    </mapping>
+
+    <mapping name="PatternFieldTestWithVirtual">
+        <patternFields>
+            <patternField id="total_virtual" to="${'total'}">
+                <computeExpr>source.amount * source.price</computeExpr>
+            </patternField>
+        </patternFields>
+    </mapping>
+
     <mapping name="Item_to_Test">
         <fields>
             <field from="c" mandatory="true" name="a">
@@ -37,4 +80,5 @@
             </field>
         </fields>
     </mapping>
+
 </definitions>

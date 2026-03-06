@@ -73,7 +73,7 @@ public class ModelBasedRecordMapping implements IRecordMapping {
                     return;
 
                 // 4. 设置到目标对象
-                tool.setTargetValue(field, target, value, ctx);
+                tool.setTargetValue(field, target, field.getName(), value, ctx);
             }
         }
     }
