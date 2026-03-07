@@ -45,7 +45,7 @@
     前置条件检查（Preconditions）
     只有满足所有前置条件时才会执行此迁移
     -->
-    <preconditions xdef:body-type="list" xdef:key-attr="id">
+    <preconditions xdef:body-type="list">
         <!--
         检查表是否存在
         @tableName 表名
@@ -53,7 +53,6 @@
         @expect 期望结果：exists(存在) | notExists(不存在)
         -->
         <tableExists xdef:name="TableExistsPrecondition"
-                             id="!string"
                      tableName="!string" 
                      schemaName="string"
                      expect="enum:io.nop.db.migration.PreconditionExpect"/>
@@ -66,7 +65,6 @@
         @expect 期望结果
         -->
         <columnExists xdef:name="ColumnExistsPrecondition"
-                             id="!string"
                       tableName="!string" 
                       columnName="!string"
                       schemaName="string"
@@ -80,7 +78,6 @@
         @expect 期望结果
         -->
         <indexExists xdef:name="IndexExistsPrecondition"
-                             id="!string"
                      indexName="!string" 
                      tableName="string"
                      schemaName="string"
@@ -94,7 +91,6 @@
         @expect 期望结果
         -->
         <foreignKeyExists xdef:name="ForeignKeyExistsPrecondition"
-                             id="!string"
                           constraintName="!string" 
                           tableName="string"
                           schemaName="string"
@@ -106,7 +102,6 @@
         @expect 期望结果
         -->
         <customCondition xdef:name="CustomConditionPrecondition"
-                             id="!string"
                          expect="enum:io.nop.db.migration.PreconditionExpect">
             <expression>xpl</expression>
         </customCondition>
@@ -115,16 +110,8 @@
     <!--
     变更集（Changeset）
     包含一组要执行的数据库变更操作
-    
-    @body-type=list 有序列表，按定义顺序执行
-    @bean-sub-type-prop=type 支持多种变更类型的多态
     -->
-    <changeset xdef:name="DbChangeset" 
-               xdef:body-type="list"
-               xdef:bean-sub-type-prop="type"
-               xdef:bean-child-name="change"
-               xdef:bean-body-type="List&lt;io.nop.db.migration.model.DbChangeModel>">
-               xdef:key-attr="id">
+    <changeset xdef:name="DbChangeset">
         <!--
         创建表
         @name 表名
@@ -132,7 +119,6 @@
         @remark 表注释
         -->
         <createTable xdef:name="CreateTableChange"
-                             id="!string"
                      name="!string" 
                      schemaName="string"
                      remark="string">
@@ -205,7 +191,6 @@
         @cascadeConstraints 是否级联删除约束（某些数据库支持）
         -->
         <dropTable xdef:name="DropTableChange"
-                             id="!string"
                    name="!string" 
                    schemaName="string"
                    cascadeConstraints="!boolean=false"/>
@@ -217,7 +202,6 @@
         @schemaName 模式名（可选）
         -->
         <renameTable xdef:name="RenameTableChange"
-                             id="!string"
                      oldTableName="!string" 
                      newTableName="!string"
                      schemaName="string"/>
@@ -228,7 +212,6 @@
         @schemaName 模式名（可选）
         -->
         <addColumn xdef:name="AddColumnChange"
-                             id="!string"
                    tableName="!string" 
                    schemaName="string">
             <columns xdef:body-type="list" xdef:key-attr="name">
@@ -243,7 +226,6 @@
         @schemaName 模式名（可选）
         -->
         <dropColumn xdef:name="DropColumnChange"
-                             id="!string"
                     tableName="!string" 
                     columnName="!string"
                     schemaName="string"/>
@@ -262,7 +244,6 @@
         @newRemark 新的列注释
         -->
         <alterColumn xdef:name="AlterColumnChange"
-                             id="!string"
                      tableName="!string" 
                      columnName="!string"
                      schemaName="string"
@@ -283,7 +264,6 @@
         @columnNames 列名列表（逗号分隔）
         -->
         <createIndex xdef:name="CreateIndexChange"
-                             id="!string"
                      name="!string" 
                      tableName="!string"
                      schemaName="string"
@@ -297,7 +277,6 @@
         @schemaName 模式名（可选）
         -->
         <dropIndex xdef:name="DropIndexChange"
-                             id="!string"
                    name="!string" 
                    tableName="string"
                    schemaName="string"/>
@@ -309,7 +288,6 @@
         @remark 视图注释
         -->
         <createView xdef:name="CreateViewChange"
-                             id="!string"
                     name="!string" 
                     schemaName="string"
                     remark="string">
@@ -322,7 +300,6 @@
         @schemaName 模式名（可选）
         -->
         <dropView xdef:name="DropViewChange"
-                             id="!string"
                   name="!string" 
                   schemaName="string"/>
 
@@ -334,7 +311,6 @@
         @stripComments 是否移除注释（默认 false）
         -->
         <sql xdef:name="SqlChange"
-                             id="!string"
              splitStatements="!boolean=true"
              stripComments="!boolean=false">
             <!--
@@ -359,7 +335,6 @@
         @schemaName 模式名（可选）
         -->
         <insert xdef:name="InsertDataChange"
-                             id="!string"
                 tableName="!string" 
                 schemaName="string">
             <columns xdef:body-type="list" xdef:key-attr="name">
@@ -373,7 +348,6 @@
         @schemaName 模式名（可选）
         -->
         <update xdef:name="UpdateDataChange"
-                             id="!string"
                 tableName="!string" 
                 schemaName="string">
             <columns xdef:body-type="list" xdef:key-attr="name">
@@ -388,7 +362,6 @@
         @schemaName 模式名（可选）
         -->
         <delete xdef:name="DeleteDataChange"
-                             id="!string"
                 tableName="!string" 
                 schemaName="string">
             <where>string</where>
@@ -398,8 +371,7 @@
         自定义变更（使用 XPL 脚本实现）
         用于实现复杂的迁移逻辑
         -->
-        <customChange xdef:name="CustomChange"
-                      id="!string">
+        <customChange xdef:name="CustomChange">
             <implementation>xpl</implementation>
         </customChange>
 
@@ -409,7 +381,6 @@
         @comment 注释说明
         -->
         <executeMark xdef:name="ExecuteMarkChange"
-                     id="!string"
                      continueOnError="!boolean=false"
                      comment="string"/>
 
@@ -419,12 +390,8 @@
         @dbTypes 数据库类型列表（逗号分隔）
         -->
         <dbTypeFilter xdef:name="DbTypeFilterChange"
-                             id="!string"
                       dbTypes="csv-set">
-            <changes xdef:body-type="list" xdef:key-attr="id"
-                     xdef:bean-sub-type-prop="type"
-                     xdef:bean-child-name="change"
-                     xdef:bean-body-type="List&lt;io.nop.db.migration.model.DbChangeModel>">
+            <changes xdef:body-type="list">
                 <!-- 递归引用所有变更类型 -->
                 <createTable xdef:ref="CreateTableChange"/>
                 <dropTable xdef:ref="DropTableChange"/>
@@ -460,10 +427,7 @@
         回滚变更集，结构与 changeset 相同
         通常包含与 changeset 相反的操作
         -->
-        <changes xdef:body-type="list" xdef:key-attr="id"
-                 xdef:bean-sub-type-prop="type"
-                 xdef:bean-child-name="change"
-                 xdef:bean-body-type="List&lt;io.nop.db.migration.model.DbChangeModel>">
+        <changes xdef:body-type="list">
             <dropTable xdef:ref="DropTableChange"/>
             <createTable xdef:ref="CreateTableChange"/>
             <dropColumn xdef:ref="DropColumnChange"/>
