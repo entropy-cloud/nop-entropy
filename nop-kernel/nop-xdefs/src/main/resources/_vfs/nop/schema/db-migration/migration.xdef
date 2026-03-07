@@ -110,8 +110,15 @@
     <!--
     变更集（Changeset）
     包含一组要执行的数据库变更操作
+    
+    @body-type=list 有序列表，按定义顺序执行
+    @bean-sub-type-prop=type 支持多种变更类型的多态
     -->
-    <changeset xdef:name="DbChangeset">
+    <changeset xdef:name="DbChangeset" 
+               xdef:body-type="list"
+               xdef:bean-sub-type-prop="type"
+               xdef:bean-child-name="change"
+               xdef:bean-body-type="List&lt;io.nop.db.migration.model.DbChangeModel>">
         <!--
         创建表
         @name 表名
@@ -391,7 +398,10 @@
         -->
         <dbTypeFilter xdef:name="DbTypeFilterChange"
                       dbTypes="csv-set">
-            <changes xdef:body-type="list">
+            <changes xdef:body-type="list"
+                     xdef:bean-sub-type-prop="type"
+                     xdef:bean-child-name="change"
+                     xdef:bean-body-type="List&lt;io.nop.db.migration.model.DbChangeModel>">
                 <!-- 递归引用所有变更类型 -->
                 <createTable xdef:ref="CreateTableChange"/>
                 <dropTable xdef:ref="DropTableChange"/>
@@ -427,7 +437,10 @@
         回滚变更集，结构与 changeset 相同
         通常包含与 changeset 相反的操作
         -->
-        <changes xdef:body-type="list">
+        <changes xdef:body-type="list"
+                 xdef:bean-sub-type-prop="type"
+                 xdef:bean-child-name="change"
+                 xdef:bean-body-type="List&lt;io.nop.db.migration.model.DbChangeModel>">
             <dropTable xdef:ref="DropTableChange"/>
             <createTable xdef:ref="CreateTableChange"/>
             <dropColumn xdef:ref="DropColumnChange"/>
