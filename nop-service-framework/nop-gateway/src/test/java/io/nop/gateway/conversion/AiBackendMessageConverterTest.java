@@ -1,13 +1,12 @@
 package io.nop.gateway.conversion;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import io.nop.core.lang.json.JsonTool;
+import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.gateway.conversion.ai.AiBackendMessageConverter;
 import io.nop.gateway.conversion.ai.AiBackendType;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -109,13 +108,6 @@ class AiBackendMessageConverterTest {
     }
 
     private static Map<String, Object> readJson(String resource) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        try (InputStream stream = AiBackendMessageConverterTest.class.getClassLoader().getResourceAsStream(resource)) {
-            if (stream == null) {
-                throw new IOException("Missing resource: " + resource);
-            }
-            return mapper.readValue(stream, new TypeReference<Map<String, Object>>() {
-            });
-        }
+        return (Map<String, Object>) JsonTool.parseBeanFromResource(new ClassPathResource("classpath:"+resource));
     }
 }
