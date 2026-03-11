@@ -20,8 +20,9 @@ import java.util.List;
  * 完整格式示例:
  * --- a/file.txt
  * +++ b/file.txt
- * @@ -1,2 +1,3 @@
- *  Hello
+ *
+ * @@ -1, 2 +1,3 @@
+ * Hello
  * -World
  * +Git
  * +World
@@ -104,6 +105,9 @@ public class UnifiedDiff {
      * 是否为新文件（add）
      */
     public boolean isNewFile() {
+        // 这是一个特殊情况，没有指定路径，则必然是修改
+        if (oldPath == null && newPath == null)
+            return false;
         return "/dev/null".equals(oldPath) || oldPath == null;
     }
 
@@ -111,6 +115,8 @@ public class UnifiedDiff {
      * 是否为删除文件（delete）
      */
     public boolean isDeletedFile() {
+        if(newPath == null && oldPath == null)
+            return false;
         return "/dev/null".equals(newPath) || newPath == null;
     }
 
@@ -120,7 +126,7 @@ public class UnifiedDiff {
     public boolean isRename() {
         if (oldPath == null || newPath == null) return false;
         if ("/dev/null".equals(oldPath) || "/dev/null".equals(newPath)) return false;
-        
+
         String normalizedOld = normalizePath(oldPath);
         String normalizedNew = normalizePath(newPath);
         return !normalizedOld.equals(normalizedNew);
