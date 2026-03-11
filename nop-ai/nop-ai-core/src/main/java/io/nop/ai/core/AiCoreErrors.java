@@ -38,6 +38,10 @@ public interface AiCoreErrors {
 
     String ARG_TOOL_NAME = "toolName";
 
+    String ARG_COMMAND = "command";
+    String ARG_NODE_NAME = "nodeName";
+    String ARG_FILE_PATH = "filePath";
+
     ErrorCode ERR_AI_SERVICE_NO_DEFAULT_LLMS =
             define("nop.err.ai.service.no-default-llms", "没有指定调用的大语言模型，也没有配置nop.ai.service.default-llm来指定缺省的大语言模型");
 
@@ -89,4 +93,16 @@ public interface AiCoreErrors {
             define("nop.err.ai.unknown-tool-call", "调用的工具未注册:{toolName}", ARG_TOOL_NAME);
 
     ErrorCode ERR_AI_FILE_CONTENT_NO_PATH = define("nop.err.ai.file-content.no-path", "文件对象没有指定路径属性");
+
+    ErrorCode ERR_AI_COMMAND_NOT_FOUND =
+            define("nop.err.ai.command.not-found", "命令未找到:{command}", ARG_COMMAND);
+
+    ErrorCode ERR_AI_EMPTY_TOOLS_NODE =
+            define("nop.err.ai.command.empty-tools-node", "call-tools节点为空");
+
+    ErrorCode ERR_AI_TOOLS_NODE_PARSE_FAILED =
+            define("nop.err.ai.command.tools-node-parse-failed", "解析call-tools节点失败");
+
+    ErrorCode ERR_AI_FILE_PATH_IS_EMPTY =
+            define("nop.err.ai.command.file-path-empty", "文件路径不能为空", ARG_NODE_NAME);
 }
