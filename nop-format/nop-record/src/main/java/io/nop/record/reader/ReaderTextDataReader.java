@@ -276,8 +276,7 @@ public class ReaderTextDataReader implements ITextDataReader {
 
             String allText = fullText.toString();
             SimpleTextDataReader detached = new SimpleTextDataReader(allText);
-
-            return detached;
+            return new OffsetTextDataReader(detached, position);
         } catch (IOException e) {
             throw new NopException(ERR_RECORD_NO_ENOUGH_DATA).cause(e);
         }
@@ -337,5 +336,79 @@ public class ReaderTextDataReader implements ITextDataReader {
     private void clearPushedBackChar() {
         hasPushedBack = false;
         pushedBackChar = -1;
+    }
+
+    private static final class OffsetTextDataReader implements ITextDataReader {
+        private final ITextDataReader delegate;
+        private final long baseOffset;
+
+        private OffsetTextDataReader(ITextDataReader delegate, long baseOffset) {
+            this.delegate = delegate;
+            this.baseOffset = baseOffset;
+        }
+
+        @Override
+        public long available() throws IOException {
+            return delegate.available();
+        }
+
+        @Override
+        public void skip(int n) throws IOException {
+            delegate.skip(n);
+        }
+
+        @Override
+        public String tryReadFully(int len) throws IOException {
+            return delegate.tryReadFully(len);
+        }
+
+        @Override
+        public int readChar() throws IOException {
+            return delegate.readChar();
+        }
+
+        @Override
+        public String readLine(int maxLength) throws IOException {
+            return delegate.readLine(maxLength);
+        }
+
+        @Override
+        public boolean isEof() throws IOException {
+            return delegate.isEof();
+        }
+
+        @Override
+        public long pos() throws IOException {
+            return baseOffset + delegate.pos();
+        }
+
+        @Override
+        public void seek(long pos) throws IOException {
+            if (pos < baseOffset) {
+                throw new UnsupportedOperationException("Detached reader cannot seek before detached position: " + baseOffset);
+            }
+            delegate.seek(pos - baseOffset);
+        }
+
+        @Override
+        public void reset() throws IOException {
+            delegate.reset();
+        }
+
+        @Override
+        public ITextDataReader detach() throws IOException {
+            ITextDataReader detachedDelegate = delegate.detach();
+            return new OffsetTextDataReader(detachedDelegate, baseOffset);
+        }
+
+        @Override
+        public boolean isDetached() {
+            return true;
+        }
+
+        @Override
+        public void close() throws IOException {
+            delegate.close();
+        }
     }
 }

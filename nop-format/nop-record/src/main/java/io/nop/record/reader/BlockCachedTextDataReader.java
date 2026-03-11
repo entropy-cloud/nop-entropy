@@ -422,11 +422,17 @@ public class BlockCachedTextDataReader implements ITextDataReader {
 
     @Override
     public ITextDataReader detach() throws IOException {
-
         ITextDataReader detachedUnderlying = underlyingReader.detach();
-
         BlockCachedTextDataReader detached = new BlockCachedTextDataReader(detachedUnderlying, defaultBlockSize, strictBlockSize, maxCacheBlocks, maxSkipDistance, backwardCacheBlocks);
-        detached.seek(currentPosition);
+
+        for (TextBlock block : cachedBlocks) {
+            detached.cachedBlocks.add(new TextBlock(block.getContent(), block.getStartPosition()));
+        }
+
+        detached.currentPosition = this.currentPosition;
+        detached.maxReadPosition = this.maxReadPosition;
+        detached.underlyingPosition = this.underlyingPosition;
+        detached.eofReached = this.eofReached;
         return detached;
     }
 

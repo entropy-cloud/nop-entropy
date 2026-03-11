@@ -393,7 +393,25 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
         BlockCachedBinaryDataReader detached = new BlockCachedBinaryDataReader(
                 detachedUnderlying, defaultBlockSize, strictBlockSize, maxCacheBlocks,
                 maxSkipDistance, backwardCacheBlocks);
-        detached.seek(currentPosition);
+
+        for (DataBlock block : cachedBlocks) {
+            ByteBuffer source = block.getBuffer().duplicate();
+            source.position(0);
+            source.limit(block.getSize());
+
+            ByteBuffer copied = ByteBuffer.allocate(block.getSize());
+            copied.put(source);
+            copied.flip();
+
+            detached.cachedBlocks.add(new DataBlock(copied, block.getStartPosition(), block.getSize()));
+        }
+
+        detached.currentPosition = this.currentPosition;
+        detached.maxReadPosition = this.maxReadPosition;
+        detached.underlyingPosition = this.underlyingPosition;
+        detached.eofReached = this.eofReached;
+        detached.bitsLeft = this.bitsLeft;
+        detached.bits = this.bits;
         return detached;
     }
 
