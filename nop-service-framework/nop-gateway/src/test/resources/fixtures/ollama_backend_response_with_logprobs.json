@@ -1,0 +1,7 @@
+{
+  "message": {
+    "role": "assistant",
+    "content": "ok"
+  },
+  "logprobs": {"content": ["token1", "token2"]}
+}

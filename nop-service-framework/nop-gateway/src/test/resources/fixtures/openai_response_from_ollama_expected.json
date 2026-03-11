@@ -1,0 +1,31 @@
+{
+  "id": "req-4",
+  "object": "chat.completion",
+  "model": "llama3",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "hi",
+        "tool_calls": [
+          {
+            "id": "call_2",
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"location\":\"shanghai\"}"
+            }
+          }
+        ],
+        "name": "assistant_name",
+        "audio": {"id": "aud_2"},
+        "annotations": [
+          {"type": "citation", "text": "source"}
+        ]
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {"input_tokens": 2, "output_tokens": 4}
+}

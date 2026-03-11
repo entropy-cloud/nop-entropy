@@ -1,0 +1,18 @@
+{
+  "type": "content_block_delta",
+  "delta": {
+    "text": "part",
+    "role": "assistant",
+    "tool_calls": [
+      {
+        "id": "call_9",
+        "type": "function",
+        "function": {
+          "name": "get_weather",
+          "arguments": "{\"location\":\"shenzhen\"}"
+        }
+      }
+    ]
+  },
+  "logprobs": {"content": []}
+}

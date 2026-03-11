@@ -1,0 +1,14 @@
+{
+  "id": "req-7",
+  "object": "chat.completion",
+  "model": "gpt-4o",
+  "choices": [
+    {
+      "index": 0,
+      "message": {"role": "assistant", "content": "hi"},
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {"input_tokens": 1, "output_tokens": 1},
+  "system_fingerprint": "fp_789"
+}

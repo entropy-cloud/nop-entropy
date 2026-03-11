@@ -1,0 +1,13 @@
+{
+  "id": "req-2",
+  "object": "chat.completion.chunk",
+  "model": "claude-3",
+  "choices": [
+    {
+      "index": 0,
+      "delta": {"content": "part", "role": "assistant"},
+      "finish_reason": null
+    }
+  ],
+  "system_fingerprint": "fp_123"
+}

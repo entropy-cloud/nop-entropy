@@ -1,0 +1,7 @@
+{
+  "content": [
+    {"type": "text", "text": "hi"}
+  ],
+  "usage": {"input_tokens": 1, "output_tokens": 1},
+  "system_fingerprint": "fp_789"
+}

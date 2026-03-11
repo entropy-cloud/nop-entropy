@@ -1,0 +1,13 @@
+{
+  "id": "req-6",
+  "object": "chat.completion",
+  "model": "llama3",
+  "choices": [
+    {
+      "index": 0,
+      "message": {"role": "assistant", "content": "ok"},
+      "finish_reason": "stop",
+      "logprobs": {"content": ["token1", "token2"]}
+    }
+  ]
+}

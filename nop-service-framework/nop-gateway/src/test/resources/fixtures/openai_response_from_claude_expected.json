@@ -1,0 +1,14 @@
+{
+  "id": "req-1",
+  "object": "chat.completion",
+  "model": "claude-3",
+  "choices": [
+    {
+      "index": 0,
+      "message": {"role": "assistant", "content": "hi"},
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {"input_tokens": 5, "output_tokens": 3},
+  "system_fingerprint": "fp_123"
+}

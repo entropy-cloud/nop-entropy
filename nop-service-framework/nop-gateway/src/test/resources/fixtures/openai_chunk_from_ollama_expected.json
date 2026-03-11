@@ -1,0 +1,13 @@
+{
+  "id": "req-3",
+  "object": "chat.completion.chunk",
+  "model": "llama3",
+  "choices": [
+    {
+      "index": 0,
+      "delta": {"content": "final"},
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {"input_tokens": 1, "output_tokens": 1}
+}

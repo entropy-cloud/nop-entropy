@@ -1,0 +1,26 @@
+{
+  "id": "req-5",
+  "object": "chat.completion.chunk",
+  "model": "claude-3",
+  "choices": [
+    {
+      "index": 0,
+      "delta": {
+        "content": "part",
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "id": "call_9",
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"location\":\"shenzhen\"}"
+            }
+          }
+        ]
+      },
+      "finish_reason": null,
+      "logprobs": {"content": []}
+    }
+  ]
+}

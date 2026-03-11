@@ -1,0 +1,22 @@
+{
+  "message": {
+    "role": "assistant",
+    "content": "hi",
+    "tool_calls": [
+      {
+        "id": "call_2",
+        "type": "function",
+        "function": {
+          "name": "get_weather",
+          "arguments": "{\"location\":\"shanghai\"}"
+        }
+      }
+    ],
+    "name": "assistant_name",
+    "audio": {"id": "aud_2"},
+    "annotations": [
+      {"type": "citation", "text": "source"}
+    ]
+  },
+  "usage": {"input_tokens": 2, "output_tokens": 4}
+}

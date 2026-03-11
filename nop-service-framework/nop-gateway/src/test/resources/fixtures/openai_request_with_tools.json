@@ -1,0 +1,62 @@
+{
+  "model": "gpt-4o-mini",
+  "reasoning": {"effort": "medium"},
+  "tool_choice": {"type": "function", "function": {"name": "get_weather"}},
+  "response_format": {"type": "json_schema", "json_schema": {"name": "weather"}},
+  "metadata": {"customer_id": "c1"},
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "location": {"type": "string"}
+          }
+        }
+      }
+    }
+  ],
+  "messages": [
+    {
+      "role": "system",
+      "name": "system_guide",
+      "content": "You are helpful"
+    },
+    {
+      "role": "user",
+      "content": [
+        {"type": "text", "text": "hi"},
+        {"type": "image_url", "image_url": {"url": "https://example.com/a.png"}}
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "audio": {"id": "aud_1"},
+      "tool_calls": [
+        {
+          "id": "call_1",
+          "type": "function",
+          "function": {
+            "name": "get_weather",
+            "arguments": "{\"location\":\"beijing\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "call_1",
+      "content": "beijing weather"
+    },
+    {
+      "role": "user",
+      "content": "hello",
+      "annotations": [
+        {"type": "source", "text": "ref"}
+      ]
+    }
+  ]
+}
