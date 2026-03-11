@@ -14,7 +14,7 @@ import picocli.CommandLine;
 @CommandLine.Command(
         name = "nop-cli", description = "Nop command line tool", version = "nop-cli 2.0",
         mixinStandardHelpOptions = true,
-        subcommands = {
+         subcommands = {
                 CliGenCommand.class,
                 CliReverseDbCommand.class,
                 CliWatchCommand.class,
@@ -30,7 +30,8 @@ import picocli.CommandLine;
                 CliValidateCommand.class,
                 CliRepackageCommand.class,
                 CliSplitCommand.class,
-                CliFileCommand.class
+                CliFileCommand.class,
+                CliCallToolsCommand.class
         })
 public class MainCommand {
 }

@@ -1,5 +1,9 @@
 nop.err.ai.coder.headers-and-data-not-match: 表头和数据的列数不匹配:headers={headers},data={data}
 nop.err.ai.coder.unknown-sql-type: '未知的SQL类型: {sqlType}'
+nop.err.ai.command.empty-tools-node: call-tools节点为空
+nop.err.ai.command.file-path-empty: 文件路径不能为空
+nop.err.ai.command.not-found: 命令未找到:{command}
+nop.err.ai.command.tools-node-parse-failed: 解析call-tools节点失败
 nop.err.ai.file-content.no-path: 文件对象没有指定路径属性
 nop.err.ai.invalid-expr-var-name: 提示词表达式中的变量名无效:{varName}
 nop.err.ai.mandatory-input-is-empty: 输入参数{inputName}不能为空
