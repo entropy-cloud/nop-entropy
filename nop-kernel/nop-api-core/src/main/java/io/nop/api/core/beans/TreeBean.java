@@ -7,12 +7,8 @@
  */
 package io.nop.api.core.beans;
 
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.ApiConstants;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLMap;
@@ -25,19 +21,11 @@ import io.nop.api.core.util.SourceLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static io.nop.api.core.ApiErrors.ARG_ATTR_NAME;
-import static io.nop.api.core.ApiErrors.ARG_TAG_NAME;
-import static io.nop.api.core.ApiErrors.ERR_JSON_TREE_BEAN_INVALID_ATTR_NAME;
-import static io.nop.api.core.ApiErrors.ERR_JSON_TREE_BEAN_INVALID_TAG_NAME;
+import static io.nop.api.core.ApiErrors.*;
 
 @DataBean
 @GraphQLMap
@@ -206,6 +194,15 @@ public class TreeBean extends ExtensibleBean implements ITreeBean, IComponentMod
                 return child;
         }
         return null;
+    }
+
+    @JsonIgnore
+    public Object getValue() {
+        return value;
+    }
+
+    public void setValue(Object value) {
+        this.value = value;
     }
 
     @JsonIgnore

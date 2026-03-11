@@ -15,13 +15,7 @@ import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.Guard;
-import io.nop.api.core.util.ICloneable;
-import io.nop.api.core.util.IFreezable;
-import io.nop.api.core.util.ISourceLocationGetter;
-import io.nop.api.core.util.ISourceLocationSetter;
-import io.nop.api.core.util.ITextSerializable;
-import io.nop.api.core.util.SourceLocation;
+import io.nop.api.core.util.*;
 import io.nop.commons.functional.IEqualsChecker;
 import io.nop.commons.lang.ITagSetSupport;
 import io.nop.commons.util.CollectionHelper;
@@ -51,52 +45,13 @@ import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Serializable;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import java.io.*;
+import java.util.*;
+import java.util.function.*;
 
 import static io.nop.commons.util.objects.ValueWithLocation.NULL_VALUE;
-import static io.nop.core.CoreConstants.ATTR_CLASS;
-import static io.nop.core.CoreConstants.ATTR_ID;
-import static io.nop.core.CoreConstants.ATTR_NAME;
-import static io.nop.core.CoreConstants.ATTR_TAG_SET;
-import static io.nop.core.CoreConstants.ATTR_V_ID;
-import static io.nop.core.CoreConstants.DUMMY_TAG_NAME;
-import static io.nop.core.CoreConstants.TEXT_TAG_NAME;
-import static io.nop.core.CoreErrors.ARG_ATTR_NAME;
-import static io.nop.core.CoreErrors.ARG_CHILD;
-import static io.nop.core.CoreErrors.ARG_INDEX;
-import static io.nop.core.CoreErrors.ARG_NODE;
-import static io.nop.core.CoreErrors.ARG_TAG_NAME;
-import static io.nop.core.CoreErrors.ARG_VALUE;
-import static io.nop.core.CoreErrors.ERR_XML_ATTACH_CHILD_NOT_ALLOW_NULL;
-import static io.nop.core.CoreErrors.ERR_XML_ATTACH_CHILD_SHOULD_NOT_HAS_PARENT;
-import static io.nop.core.CoreErrors.ERR_XML_ATTR_IS_EMPTY;
-import static io.nop.core.CoreErrors.ERR_XML_INVALID_CHILD_INDEX;
-import static io.nop.core.CoreErrors.ERR_XML_MULTIPLE_CHILD_WITH_SAME_TAG_NAME;
-import static io.nop.core.CoreErrors.ERR_XML_NOT_NODE_VALUE;
-import static io.nop.core.CoreErrors.ERR_XNODE_IS_READONLY;
+import static io.nop.core.CoreConstants.*;
+import static io.nop.core.CoreErrors.*;
 
 /**
  * 通用的树形结构模型，节点具有属性(attr)，内容(content)，以及子节点(child)。 XNode.equals是指针相等
@@ -490,8 +445,9 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         forEachNode(child -> child.normalizeExprInContent());
     }
 
+    @Deprecated
     public Object getContentValue() {
-        return content.getValue();
+        return getValue();
     }
 
     public String contentText() {
@@ -502,9 +458,21 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return content;
     }
 
+    @Deprecated
     public void setContentValue(Object value) {
+        setValue(value);
+    }
+
+    @Override
+    public Object getValue() {
+        return content.getValue();
+    }
+
+    public void setValue(Object value) {
         content(null, value);
-        this.clearChildren();
+        if (value != null && value != NULL_VALUE) {
+            this.clearChildren();
+        }
     }
 
     public void content(Object value) {
@@ -520,7 +488,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
     /**
      * AI有时会自动生成这个函数名，提供多个同样功能但是不同名称的函数，减少AI生成错误。
      */
-    public String contentAsString(){
+    public String contentAsString() {
         return contentText();
     }
 

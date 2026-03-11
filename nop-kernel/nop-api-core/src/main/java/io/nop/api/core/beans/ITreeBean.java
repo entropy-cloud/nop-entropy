@@ -32,6 +32,9 @@ public interface ITreeBean extends ISourceLocationGetter, ISourceLocationSetter 
 
     void setAttr(String name, Object value);
 
+    Object getValue();
+
+    @Deprecated
     Object getContentValue();
 
     List<? extends ITreeBean> getChildren();
