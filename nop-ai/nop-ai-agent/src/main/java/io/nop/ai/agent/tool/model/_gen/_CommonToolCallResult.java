@@ -1,0 +1,79 @@
+package io.nop.ai.agent.tool.model._gen;
+
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
+import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ai.agent.tool.model.CommonToolCallResult;
+import io.nop.commons.util.ClassHelper;
+
+
+
+// tell cpd to start ignoring code - CPD-OFF
+/**
+ * generate from /nop/schema/ai/tool/call-tools-response.xdef <p>
+ * 
+ */
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
+public abstract class _CommonToolCallResult extends io.nop.ai.agent.tool.model.ToolCallResult {
+    
+    /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
+
+    @Override
+    public void freeze(boolean cascade){
+        if(frozen()) return;
+        super.freeze(cascade);
+
+        if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
+        
+        }
+    }
+
+    @Override
+    protected void outputJson(IJsonHandler out){
+        super.outputJson(out);
+        
+        out.putNotNull("type",this.getType());
+    }
+
+    public CommonToolCallResult cloneInstance(){
+        CommonToolCallResult instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(CommonToolCallResult instance){
+        super.copyTo(instance);
+        
+        instance.setType(this.getType());
+    }
+
+    protected CommonToolCallResult newInstance(){
+        return (CommonToolCallResult) ClassHelper.newInstance(getClass());
+    }
+}
+ // resume CPD analysis - CPD-ON

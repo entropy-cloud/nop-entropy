@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from /nop/schema/ai/plan.xdef <p>
+ * generate from /nop/schema/ai/agent-plan.xdef <p>
  * 每个阶段包含多个任务，任务支持递归子任务
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

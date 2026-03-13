@@ -18,10 +18,10 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
-     * xml name: capabilities
+     * xml name: availableSkills
      * 
      */
-    private java.util.Set<java.lang.String> _capabilities ;
+    private java.util.Set<java.lang.String> _availableSkills ;
     
     /**
      *  
@@ -70,7 +70,7 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
      * xml name: permissions
      * 
      */
-    private java.util.List<io.nop.ai.agent.model.AgentPermissionModel> _permissions = java.util.Collections.emptyList();
+    private KeyedList<io.nop.ai.agent.model.AgentPermissionModel> _permissions = KeyedList.emptyList();
     
     /**
      *  
@@ -78,6 +78,13 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
      * 系统提示词，指导agent的行为模式
      */
     private io.nop.ai.core.prompt.node.IPromptSyntaxNode _prompt ;
+    
+    /**
+     *  
+     * xml name: requiredSkills
+     * 
+     */
+    private java.util.Set<java.lang.String> _requiredSkills ;
     
     /**
      *  
@@ -95,19 +102,19 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
-     * xml name: capabilities
+     * xml name: availableSkills
      *  
      */
     
-    public java.util.Set<java.lang.String> getCapabilities(){
-      return _capabilities;
+    public java.util.Set<java.lang.String> getAvailableSkills(){
+      return _availableSkills;
     }
 
     
-    public void setCapabilities(java.util.Set<java.lang.String> value){
+    public void setAvailableSkills(java.util.Set<java.lang.String> value){
         checkAllowChange();
         
-        this._capabilities = value;
+        this._availableSkills = value;
            
     }
 
@@ -270,10 +277,36 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     public void setPermissions(java.util.List<io.nop.ai.agent.model.AgentPermissionModel> value){
         checkAllowChange();
         
-        this._permissions = value;
+        this._permissions = KeyedList.fromList(value, io.nop.ai.agent.model.AgentPermissionModel::getId);
            
     }
 
+    
+    public io.nop.ai.agent.model.AgentPermissionModel getPermission(String name){
+        return this._permissions.getByKey(name);
+    }
+
+    public boolean hasPermission(String name){
+        return this._permissions.containsKey(name);
+    }
+
+    public void addPermission(io.nop.ai.agent.model.AgentPermissionModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.ai.agent.model.AgentPermissionModel> list = this.getPermissions();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.ai.agent.model.AgentPermissionModel::getId);
+            setPermissions(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_permissions(){
+        return this._permissions.keySet();
+    }
+
+    public boolean hasPermissions(){
+        return !this._permissions.isEmpty();
+    }
     
     /**
      * 
@@ -290,6 +323,25 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
         checkAllowChange();
         
         this._prompt = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: requiredSkills
+     *  
+     */
+    
+    public java.util.Set<java.lang.String> getRequiredSkills(){
+      return _requiredSkills;
+    }
+
+    
+    public void setRequiredSkills(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._requiredSkills = value;
            
     }
 
@@ -355,7 +407,7 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("capabilities",this.getCapabilities());
+        out.putNotNull("availableSkills",this.getAvailableSkills());
         out.putNotNull("chatOptions",this.getChatOptions());
         out.putNotNull("constraints",this.getConstraints());
         out.putNotNull("description",this.getDescription());
@@ -364,6 +416,7 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
         out.putNotNull("name",this.getName());
         out.putNotNull("permissions",this.getPermissions());
         out.putNotNull("prompt",this.getPrompt());
+        out.putNotNull("requiredSkills",this.getRequiredSkills());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("tools",this.getTools());
     }
@@ -377,7 +430,7 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
     protected void copyTo(AgentModel instance){
         super.copyTo(instance);
         
-        instance.setCapabilities(this.getCapabilities());
+        instance.setAvailableSkills(this.getAvailableSkills());
         instance.setChatOptions(this.getChatOptions());
         instance.setConstraints(this.getConstraints());
         instance.setDescription(this.getDescription());
@@ -386,6 +439,7 @@ public abstract class _AgentModel extends io.nop.core.resource.component.Abstrac
         instance.setName(this.getName());
         instance.setPermissions(this.getPermissions());
         instance.setPrompt(this.getPrompt());
+        instance.setRequiredSkills(this.getRequiredSkills());
         instance.setTagSet(this.getTagSet());
         instance.setTools(this.getTools());
     }

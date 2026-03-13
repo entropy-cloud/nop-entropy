@@ -25,6 +25,13 @@ public abstract class _AgentPermissionModel extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: id
+     * 
+     */
+    private java.lang.String _id ;
+    
+    /**
+     *  
      * xml name: resource
      * 
      */
@@ -45,6 +52,25 @@ public abstract class _AgentPermissionModel extends io.nop.core.resource.compone
         checkAllowChange();
         
         this._action = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: id
+     *  
+     */
+    
+    public java.lang.String getId(){
+      return _id;
+    }
+
+    
+    public void setId(java.lang.String value){
+        checkAllowChange();
+        
+        this._id = value;
            
     }
 
@@ -84,6 +110,7 @@ public abstract class _AgentPermissionModel extends io.nop.core.resource.compone
         super.outputJson(out);
         
         out.putNotNull("action",this.getAction());
+        out.putNotNull("id",this.getId());
         out.putNotNull("resource",this.getResource());
     }
 
@@ -97,6 +124,7 @@ public abstract class _AgentPermissionModel extends io.nop.core.resource.compone
         super.copyTo(instance);
         
         instance.setAction(this.getAction());
+        instance.setId(this.getId());
         instance.setResource(this.getResource());
     }
 

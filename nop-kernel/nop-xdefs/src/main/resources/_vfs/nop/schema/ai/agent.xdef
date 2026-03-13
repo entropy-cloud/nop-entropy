@@ -12,11 +12,21 @@
     <meta>xjson-map</meta>
 
     <!-- 可选的AI大模型访问参数 -->
-    <chatOptions xdef:ref="chat-options.xdef" />
+    <chatOptions xdef:ref="chat-options.xdef"/>
 
     <tools>csv-set</tools>
 
-    <capabilities>csv-set</capabilities>
+    <availableSkills>csv-set</availableSkills>
+
+    <requiredSkills>csv-set</requiredSkills>
+
+    <permissions xdef:body-type="list" xdef:key-attr="id">
+        <permission id="!string" resource="!string" action="!string" xdef:name="AgentPermissionModel"/>
+    </permissions>
+
+    <constraints xdef:name="AgentConstraintsModel"
+                 maxIterations="int" toolTimeoutSeconds="int" maxParallelTools="int"
+                 tokenCompressionThreashold="double-percent"/>
 
     <!-- 系统提示词，指导agent的行为模式 -->
     <prompt>prompt-syntax</prompt>
@@ -26,13 +36,5 @@
             event="!event-pattern-string">xpl-fn:(event, agentRt)=>void
         </on>
     </hooks>
-
-    <permissions xdef:body-type="list">
-        <permission resource="!string" action="!string" xdef:name="AgentPermissionModel"/>
-    </permissions>
-
-    <constraints xdef:name="AgentConstraintsModel"
-                 maxIterations="int" toolTimeoutSeconds="int" maxParallelTools="int"
-                 tokenCompressionThreashold="double-percent"/>
 
 </agent>

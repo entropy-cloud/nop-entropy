@@ -1,0 +1,36 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="ask-oracle">
+
+    <schema>
+        <ask-oracle id="!int" explanation="!string" timeoutMs="int">
+            <question>string</question>
+            <options xdef:body-type="list" xdef:key-attr="key">
+                <option key="!string">string</option>
+            </options>
+        </ask-oracle>
+    </schema>
+
+    <description><![CDATA[当执行过程中遇到不确定事项时，调用Oracle高级智能体进行决策。需要提供问题描述和选项列表。
+        选项需用A、B、C等字母作为key，且将AI自身倾向的选项放在第一个（即A选项）。Oracle会分析并返回所选选项的字母（如"A"）。
+        适用于需要外部智能辅助决策的场景。]]></description>
+
+    <example>
+        <!-- 示例：选择数据库类型 -->
+        <call-tools>
+            <ask-oracle id="1" explanation="Decide which database to use" timeoutMs="10000">
+                <question><![CDATA[Which database should we use for the new microservice?]]></question>
+                <options>
+                    <option key="A"><![CDATA[PostgreSQL (ACID compliance, strong community)]]></option>
+                    <option key="B"><![CDATA[MongoDB (schema-less, horizontal scaling)]]></option>
+                    <option key="C"><![CDATA[Redis (in-memory, fast but limited)]]></option>
+                </options>
+            </ask-oracle>
+        </call-tools>
+        <call-tools-response>
+            <tool-result id="1" status="success">
+                <output><![CDATA[A]]></output>
+            </tool-result>
+        </call-tools-response>
+    </example>
+
+</tool>

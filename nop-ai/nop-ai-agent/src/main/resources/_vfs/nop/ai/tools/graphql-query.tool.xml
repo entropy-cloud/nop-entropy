@@ -1,0 +1,47 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="graphql-query">
+
+    <schema>
+        <graphql-query id="!int" explanation="!string" timeoutMs="int"
+                       endpoint="url">
+            <input>!string</input>
+        </graphql-query>
+    </schema>
+
+    <description><![CDATA[执行 GraphQL 查询。所有值应直接内联在查询字符串中（而非使用变量）。<input> 内容为 GraphQL 查询字符串。
+endpoint 可选，指定 GraphQL 服务地址（默认系统知识库）。
+返回结果为 JSON 格式（用 CDATA 包裹），包含 data 和 errors 字段。]]></description>
+
+    <example>
+        <call-tools>
+            <graphql-query id="1" explanation="Query user projects" timeoutMs="5000">
+                <input><![CDATA[{
+  user(id: "123") {
+    name
+    email
+    projects {
+      title
+      status
+    }
+  }
+}]]></input>
+            </graphql-query>
+        </call-tools>
+        <call-tools-response>
+            <tool-result id="1" status="success">
+                <output><![CDATA[{
+  "data": {
+    "user": {
+      "name": "Alice",
+      "email": "alice@example.com",
+      "projects": [
+        {"title": "Agent System", "status": "active"}
+      ]
+    }
+  }
+}]]></output>
+            </tool-result>
+        </call-tools-response>
+    </example>
+
+</tool>

@@ -8,7 +8,6 @@
 package io.nop.ai.api.chat.messages;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.json.JSON;
 
@@ -24,19 +23,16 @@ public class ChatToolCall {
     /**
      * 工具ID
      */
-    @JsonProperty("id")
     private String id;
 
     /**
      * 函数名称
      */
-    @JsonProperty("name")
     private String name;
 
     /**
      * 函数参数（JSON字符串）
      */
-    @JsonProperty("arguments")
     private Map<String, Object> arguments;
 
     public String getId() {

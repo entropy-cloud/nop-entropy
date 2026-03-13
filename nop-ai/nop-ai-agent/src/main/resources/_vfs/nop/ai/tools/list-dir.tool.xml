@@ -1,0 +1,64 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+      name="list-dir">
+
+    <schema>
+        <list-dir id="!int" explanation="!string" timeoutMs="int"
+                  path="!full-path" recursive="boolean" maxDepth="int"/>
+    </schema>
+
+    <description><![CDATA[列出指定目录的内容。支持：
+- path：目录路径
+- recursive：是否递归列出子目录内容（默认 false）
+- maxDepth：最大递归深度（仅当 recursive=true 时有效，可选；例如 depth=1 表示只列出直接子项，depth=2 表示列出子项及其子项）
+返回文件和目录列表，每行格式：[类型] 名称 大小（字节） 修改时间。类型为 DIR 或 FILE。适用于目录浏览、文件管理等场景。]]></description>
+
+    <example>
+        <!-- 示例1：非递归 -->
+        <call-tools>
+            <list-dir id="1" explanation="列出当前目录" timeoutMs="2000"
+                      path="/etc/app" recursive="false"/>
+        </call-tools>
+        <call-tools-response>
+            <tool-result id="1" status="success">
+                <output><![CDATA[
+[DIR]  config  4096  2025-03-12 10:00
+[FILE] app.conf  1024  2025-03-11 15:30
+[FILE] README.md  512  2025-03-10 09:15
+]]></output>
+            </tool-result>
+        </call-tools-response>
+
+        <!-- 示例2：递归深度为1（仅直接子项） -->
+        <call-tools>
+            <list-dir id="2" explanation="递归深度1" timeoutMs="5000"
+                      path="/etc/app" recursive="true" maxDepth="1"/>
+        </call-tools>
+        <call-tools-response>
+            <tool-result id="2" status="success">
+                <output><![CDATA[
+[DIR]  config  4096  2025-03-12 10:00
+[FILE] app.conf  1024  2025-03-11 15:30
+[FILE] README.md  512  2025-03-10 09:15
+]]></output>
+            </tool-result>
+        </call-tools-response>
+
+        <!-- 示例3：递归深度2 -->
+        <call-tools>
+            <list-dir id="3" explanation="递归深度2" timeoutMs="5000"
+                      path="/etc/app" recursive="true" maxDepth="2"/>
+        </call-tools>
+        <call-tools-response>
+            <tool-result id="3" status="success">
+                <output><![CDATA[
+[DIR]  /etc/app
+[FILE] /etc/app/app.conf  1024  2025-03-11
+[FILE] /etc/app/README.md  512  2025-03-10
+[DIR]  /etc/app/config
+[FILE] /etc/app/config/db.conf  2048  2025-03-12
+]]></output>
+            </tool-result>
+        </call-tools-response>
+    </example>
+
+</tool>

@@ -9,7 +9,6 @@ package io.nop.ai.core.command;
 
 import io.nop.ai.core.response.XmlResponseParser;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.text.CDataText;
 import io.nop.core.lang.xml.XNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +16,10 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.nop.ai.core.AiCoreErrors.*;
+import static io.nop.ai.core.AiCoreErrors.ARG_COMMAND;
+import static io.nop.ai.core.AiCoreErrors.ERR_AI_COMMAND_NOT_FOUND;
+import static io.nop.ai.core.AiCoreErrors.ERR_AI_EMPTY_TOOLS_NODE;
+import static io.nop.ai.core.AiCoreErrors.ERR_AI_TOOLS_NODE_PARSE_FAILED;
 
 public class CallToolsExecutor {
     private static final Logger LOG = LoggerFactory.getLogger(CallToolsExecutor.class);
@@ -31,6 +33,10 @@ public class CallToolsExecutor {
 
     public void registerCommand(IToolCommand command) {
         commands.put(command.getName(), command);
+    }
+
+    public void registerCommand(IToolCommand command, String alias) {
+        commands.put(alias, command);
     }
 
 
@@ -100,7 +106,7 @@ public class CallToolsExecutor {
         }
 
         if (result.getOutput() != null) {
-            node.setValue(CDataText.encodeIfNecessary(result.getOutput()));
+            node.setAttr("status", String.valueOf(result.getStatus()));
         }
 
         return node;

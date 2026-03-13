@@ -1,4 +1,9 @@
-# Node.js 后端服务技术架构设计文档（SQLite 原型版，完整修正版）
+---
+name: nop-nodejs-backend
+description: (opencode-project - Skill) Node.js 后端服务技术架构设计。基于 NestJS + Prisma + SQLite 的原型开发规范，支持快速原型开发和未来迁移到 Java。触发词：Node.js 后端、NestJS、Prisma、后端架构、API 设计。
+---
+
+# Node.js 后端服务技术架构设计文档（SQLite 原型版）
 
 ## 1. 引言
 ### 1.1 背景
@@ -14,7 +19,7 @@
 - 确保 API 契约清晰、与语言无关，便于未来技术栈迁移
 
 ## 2. 技术选型（原型版）
-### 2.1 核心框架（基于 2026 年最新稳定版）
+### 2.1 核心框架（基于最新稳定版）
 | 组件 | 选型 | 版本 | 说明 |
 |------|------|------|------|
 | 运行时 | Node.js | **22.x LTS** | 最新的长期支持版本 |
@@ -27,6 +32,7 @@
 | 配置管理 | @nestjs/config | 最新 | 环境变量管理 |
 | 日志 | NestJS 内置日志 | - | 开发阶段简洁日志 |
 | 测试 | Jest | 29.x | 单元测试、e2e测试 |
+| **包管理器** | **pnpm** | **8.x** | 高效磁盘利用、严格依赖管理，推荐使用 corepack 启用 |
 
 ## 3. 架构原则
 - **模块化**：业务功能按模块划分。
@@ -243,7 +249,7 @@ export class UsersService {
 
 **注意**：`UserResponseDto` 的字段也应使用 camelCase，与模型一致，可直接通过构造函数赋值。
 
-## 7. 异常处理与响应拦截（同前）
+## 7. 异常处理与响应拦截
 - 全局异常过滤器统一错误格式。
 - 全局响应拦截器包装成功响应。
 
@@ -280,8 +286,11 @@ NODE_ENV=development
 ## 12. 快速开始
 ```bash
 git clone <repo>
-npm install
+# 启用 corepack（如未启用）
+corepack enable
+# 安装依赖
+pnpm install
 cp .env.example .env
-npm run start:dev
+pnpm run start:dev
 # 访问 http://localhost:3000/api
 ```

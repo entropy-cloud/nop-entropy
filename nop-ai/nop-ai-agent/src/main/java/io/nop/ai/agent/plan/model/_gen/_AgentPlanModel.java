@@ -10,7 +10,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from /nop/schema/ai/plan.xdef <p>
+ * generate from /nop/schema/ai/agent-plan.xdef <p>
  * Agent Plan Metamodel Definition
  * 定义AI Agent执行计划的元模型，支持任务分解、状态跟踪和备注管理
  */

@@ -1,0 +1,19 @@
+<tool x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xdef:name="AgentToolModel" xdef:bean-package="io.nop.ai.agent.tool.model"
+      name="!string">
+
+    <!-- schema：描述具体工具的调用格式，内容为任意XML（如patch-text-file、manage-todo-list等） -->
+    <schema xdef:mandatory="true">xml</schema>
+
+    <!-- description：工具的详细说明，支持纯文本或CDATA -->
+    <description xdef:mandatory="true">string</description>
+
+    <!-- example：工具的使用示例，可包含一个或多个具体调用实例 -->
+    <examples xdef:body-type="list">
+        <example xdef:name="AgentToolExample">
+            <call-tools xdef:ref="call-tools.xdef"/>
+            <call-tools-response xdef:ref="call-tools-response.xdef"/>
+        </example>
+    </examples>
+
+</tool>

@@ -10,18 +10,28 @@ Agent Plan Metamodel Definition
 
 -->
 <plan x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-      xdef:name="AgentPlanModel" xdef:bean-package="io.nop.ai.agent.model"
+      xdef:name="AgentPlan" xdef:bean-package="io.nop.ai.agent.plan.model"
       xmlns:xdef="/nop/schema/xdef.xdef"
       currentPhase="string" createdAt="datetime" updatedAt="datetime"
       status="enum:io.nop.ai.agent.model.AgentExecStatus">
 
     <goal>string</goal>
 
+    <!-- 读取过的有用文件 -->
+    <readFiles xdef:body-type="list">
+        <readFile path="!full-path" purpose="string" readAt="datetime" xdef:name="AgentPlanReadFileRecord"/>
+    </readFiles>
+
+    <!-- 编写的文件 -->
+    <writtenFiles xdef:body-type="list">
+        <writtenFile path="!full-path" summary="string" lastModified="datetime" xdef:name="AgentPlanWriteFileRecord"/>
+    </writtenFiles>
+
     <!-- 任务阶段列表：用于高层任务分类 -->
     <phases xdef:body-type="list" xdef:key-attr="name">
 
         <!-- 每个阶段包含多个任务，任务支持递归子任务 -->
-        <phase xdef:name="AgentPlanPhaseModel" name="!string"
+        <phase xdef:name="AgentPlanPhase" name="!string"
                status="enum:io.nop.ai.agent.model.AgentExecStatus"
                startedAt="datetime" completedAt="datetime">
             <!-- 阶段描述（大文本） -->
@@ -29,21 +39,19 @@ Agent Plan Metamodel Definition
 
             <!-- 阶段任务列表：支持递归子任务 -->
             <tasks xdef:body-type="list" xdef:key-attr="taskNo">
-                <task taskNo="!string" title="!string"
+                <!--
+                @dependsOn 指定依赖的任务编号，使用逗号分隔
+                -->
+                <task taskNo="!string" title="!string" dependsOn="csv-set"
                       status="enum:io.nop.ai.agent.model.AgentExecStatus"
                       startedAt="datetime" completedAt="datetime"
                       xdef:name="AgentPlanTaskModel">
 
                     <!-- 任务指令（大文本） -->
-                    <instructions>markdown-string</instructions>
+                    <instructions>!string</instructions>
 
                     <!-- 任务结果消息（大文本） -->
                     <resultMessage>string</resultMessage>
-
-                    <!-- 任务笔记列表 -->
-                    <notes xdef:body-type="list" xdef:key-attr="id">
-                        <note id="!string" xdef:name="AgentPlanNote">string</note>
-                    </notes>
 
                     <!-- 递归子任务列表：支持任务分解 -->
                     <subTasks xdef:body-type="list" xdef:key-attr="taskNo">
@@ -57,15 +65,19 @@ Agent Plan Metamodel Definition
     <!-- ========== 关键问题 ========== -->
 
     <!-- 需要回答的关键问题列表 -->
-    <keyQuestions xdef:body-type="list" xdef:key-attr="id">
-        <keyQuestion id="!string" xdef:name="AgentPlanQuestion">string</keyQuestion>
-    </keyQuestions>
+    <questions xdef:body-type="list" xdef:key-attr="id">
+        <question id="!string" xdef:name="AgentPlanQuestion" relatedTaskNo="string" askedAt="datetime"
+                  answeredAt="datetime">
+            <questionText>string</questionText>
+            <answerText>string</answerText>
+        </question>
+    </questions>
 
     <!-- ========== 决策记录 ========== -->
 
     <!-- 任务执行过程中做出的决策记录 -->
     <decisions xdef:body-type="list" xdef:key-attr="id">
-        <decision id="!string" madeAt="datetime" xdef:name="AgentPlanDecision">
+        <decision id="!string" madeAt="!datetime" xdef:name="AgentPlanDecision" relatedTaskNo="string">
             <!-- 决策内容（大文本） -->
             <decisionText>string</decisionText>
 
@@ -76,9 +88,9 @@ Agent Plan Metamodel Definition
 
     <!-- ========== 错误记录 ========== -->
 
-    <!-- 任务执行过程中遇到的错误记录 -->
+    <!-- 任务执行过程中遇到的值得记录的错误记录 -->
     <errors xdef:body-type="list" xdef:key-attr="id">
-        <error id="string" encounteredAt="datetime" attemptNumber="int" resolvedAt="datetime"
+        <error id="!string" encounteredAt="datetime" attemptNumber="int" resolvedAt="datetime" relatedTaskNo="string"
                xdef:name="AgentPlanError">
             <!-- 错误描述（大文本） -->
             <errorText>string</errorText>
@@ -87,8 +99,8 @@ Agent Plan Metamodel Definition
         </error>
     </errors>
 
-    <!-- 计划级别的笔记列表，可被任务引用 -->
-    <notes xdef:body-type="list" xdef:key-attr="id">
-        <note id="!string" xdef:ref="AgentPlanNote"/>
-    </notes>
+    <!-- 任务笔记列表, 用于记录任意扩展信息 -->
+    <additionalNotes xdef:body-type="list" xdef:key-attr="id">
+        <additionalNote id="!string" xdef:name="AgentPlanNote" relatedTaskNo="string">string</additionalNote>
+    </additionalNotes>
 </plan>

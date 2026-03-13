@@ -1,0 +1,52 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="glob">
+
+    <schema>
+        <glob id="!int" explanation="!string" timeoutMs="int"
+              pattern="!string" directory="full-path" recursive="boolean" maxResults="int" maxDepth="int"/>
+    </schema>
+
+    <description><![CDATA[根据通配符模式匹配文件路径。支持：
+- pattern：通配符模式（如 *.txt, **/*.log）
+- directory：搜索根目录（可选，若指定则必须为绝对路径；若未指定，默认使用当前工作目录）
+- recursive：是否递归子目录（默认 false）
+- maxResults：最大返回行数（可选，默认无限制）
+- maxDepth：最大递归深度（仅当 recursive=true 时有效，可选；例如 depth=1 表示只搜索指定目录本身，depth=2 包括直接子目录，以此类推；若未指定则深度无限制）
+返回匹配的文件路径列表（每行一个），路径格式：
+- 若指定了 directory（绝对路径），返回包含 directory 的绝对路径
+- 若未指定 directory，返回相对于当前工作目录的相对路径
+适用于批量文件查找、日志收集等场景。]]></description>
+
+    <example>
+        <!-- 示例1：指定绝对路径目录，递归查找所有 .log 文件，限制返回前 3 个 -->
+        <call-tools>
+            <glob id="1" explanation="查找前3个日志文件" timeoutMs="5000"
+                  pattern="**/*.log" directory="/var/log" recursive="true" maxResults="3"/>
+        </call-tools>
+        <call-tools-response>
+            <tool-result id="1" status="success">
+                <output><![CDATA[
+/var/log/system.log
+/var/log/app/access.log
+/var/log/app/error.log
+]]></output>
+            </tool-result>
+        </call-tools-response>
+
+        <!-- 示例2：递归查找所有 .conf 文件，限制深度为2 -->
+        <call-tools>
+            <glob id="2" explanation="查找深度2内的配置文件" timeoutMs="5000"
+                  pattern="**/*.conf" directory="/etc" recursive="true" maxDepth="2"/>
+        </call-tools>
+        <call-tools-response>
+            <tool-result id="2" status="success">
+                <output><![CDATA[
+/etc/app.conf
+/etc/network.conf
+/etc/ssh/sshd.conf
+]]></output>
+            </tool-result>
+        </call-tools-response>
+    </example>
+
+</tool>

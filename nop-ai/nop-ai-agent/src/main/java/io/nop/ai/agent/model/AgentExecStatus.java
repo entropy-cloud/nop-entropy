@@ -1,11 +1,11 @@
 package io.nop.ai.agent.model;
 
 public enum AgentExecStatus {
-    PENDING,
+    pending,
 
-    RUNNING,
+    running,
 
-    COMPLETED,
+    completed,
 
-    FAILED
+    failed
 }

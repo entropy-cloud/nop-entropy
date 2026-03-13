@@ -1,0 +1,28 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="move-file">
+
+    <schema>
+        <move-file id="!int" explanation="!string" timeoutMs="int"
+                   source="!full-path" target="!full-path" overwrite="boolean"/>
+    </schema>
+
+    <description><![CDATA[移动或重命名文件/目录。支持：
+- source：源路径（文件或目录）
+- target：目标路径
+- overwrite：是否覆盖已存在的目标（默认 false）
+操作成功时返回确认信息。]]></description>
+
+    <example>
+        <call-tools>
+            <move-file id="1" explanation="Rename config file" timeoutMs="3000"
+                       source="/etc/app/config.ini" target="/etc/app/config.backup.ini" overwrite="true"/>
+        </call-tools>
+        <call-tools-response>
+            <tool-result id="1" status="success">
+                <output>
+                    <![CDATA[File moved successfully from /etc/app/config.ini to /etc/app/config.backup.ini]]></output>
+            </tool-result>
+        </call-tools-response>
+    </example>
+
+</tool>
