@@ -21,6 +21,6 @@
         <module>nop-stream-flow</module>
         <module>nop-stream-cep</module>
         <module>nop-stream-runtime</module>
+        <module>nop-stream-fraud-example</module>
     </modules>
-
 </project>

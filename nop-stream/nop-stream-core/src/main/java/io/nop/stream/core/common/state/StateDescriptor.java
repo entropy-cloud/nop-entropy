@@ -10,12 +10,21 @@ package io.nop.stream.core.common.state;
 import java.io.Serializable;
 
 public class StateDescriptor<T> implements Serializable {
+    private static final long serialVersionUID = 1L;
     private final String name;
     private final Class<T> valueType;
+    private final T defaultValue;
 
     public StateDescriptor(String name, Class<T> valueType) {
         this.name = name;
         this.valueType = valueType;
+        this.defaultValue = null;
+    }
+
+    public StateDescriptor(String name, Class<T> valueType, T defaultValue) {
+        this.name = name;
+        this.valueType = valueType;
+        this.defaultValue = defaultValue;
     }
 
     public String getName() {
@@ -24,5 +33,9 @@ public class StateDescriptor<T> implements Serializable {
 
     public Class<T> getValueType() {
         return valueType;
+    }
+
+    public T getDefaultValue() {
+        return defaultValue;
     }
 }

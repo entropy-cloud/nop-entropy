@@ -8,4 +8,11 @@
 package io.nop.stream.core.common.typeinfo;
 
 public interface TypeInformation<T> {
+    
+    /**
+     * Gets the class of the type.
+     * 
+     * @return the class of the type
+     */
+    Class<T> getTypeClass();
 }

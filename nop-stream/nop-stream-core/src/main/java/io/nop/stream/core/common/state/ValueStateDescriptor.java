@@ -58,4 +58,15 @@ public class ValueStateDescriptor<T> extends StateDescriptor<T> {
         super(name, null);
     }
 
+    /**
+     * Creates a new {@code ValueStateDescriptor} with the given name, type and default value.
+     *
+     * @param name         The (unique) name for the state.
+     * @param typeClass    The type of the values in the state.
+     * @param defaultValue The default value for the state.
+     */
+    public ValueStateDescriptor(String name, Class<T> typeClass, T defaultValue) {
+        super(name, typeClass, defaultValue);
+    }
+
 }

@@ -101,3 +101,4 @@ dependency-reduced-pom.xml
 
 # Log directories
 **/log/
+.sisyphus/
