@@ -49,14 +49,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # List of scripts to register
 # Command name is derived from script filename by removing .sh extension
 SCRIPTS=(
-    "nop-ai.sh"
-    "nop-batch-worktree.sh"
-    "nop-clean-tmp-branches.sh"
-    "nop-cli.sh"
+"nop-ai.sh"
+"nop-batch-worktree.sh"
+"nop-clean-tmp-branches.sh"
+"nop-cli.sh"
     "nop-create-worktree.sh"
-    "nop-push-worktree.sh"
-    "nop-run-multi-variants.sh"
-    "nop-run-variant.sh"
+    "nop-link-dirs.sh"
+"nop-push-worktree.sh"
+"nop-run-multi-variants.sh"
+"nop-run-variant.sh"
 )
 
 # Detect operating system
