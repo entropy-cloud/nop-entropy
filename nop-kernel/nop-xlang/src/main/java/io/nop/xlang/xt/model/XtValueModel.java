@@ -16,6 +16,6 @@ public class XtValueModel extends _XtValueModel {
 
     @Override
     public String getXtType() {
-        return "xt:value";
+        return "value";
     }
 }

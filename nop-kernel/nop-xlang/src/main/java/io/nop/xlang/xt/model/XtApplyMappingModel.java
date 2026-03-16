@@ -16,6 +16,6 @@ public class XtApplyMappingModel extends _XtApplyMappingModel {
 
     @Override
     public String getXtType() {
-        return "xt:apply-mapping";
+        return "apply-mapping";
     }
 }

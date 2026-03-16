@@ -16,7 +16,7 @@ public class XtCopyBodyModel extends _XtCopyBodyModel {
 
     @Override
     public String getXtType() {
-        return "xt:copy-body";
+        return "copy-body";
     }
 
 }

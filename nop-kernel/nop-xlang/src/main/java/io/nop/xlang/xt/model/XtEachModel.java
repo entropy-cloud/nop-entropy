@@ -16,7 +16,7 @@ public class XtEachModel extends _XtEachModel {
 
     @Override
     public String getXtType() {
-        return "xt:each";
+        return "each";
     }
 
 }

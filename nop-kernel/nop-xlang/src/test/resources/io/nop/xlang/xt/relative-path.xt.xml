@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<transform x:schema="/nop/schema/xt.xdef"
+           xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xt="/nop/schema/xt.xdef">
+
+    <main>
+        <summary>
+            <orderId>ORDER-001</orderId>
+            
+            <items>
+                <xt:each xpath="/order/items/item">
+                    <item id="%{node.getAttr('id')}">
+                        <name>
+                            <xt:copy-node xpath="name"/>
+                        </name>
+                        <price>
+                            <xt:copy-node xpath="price"/>
+                        </price>
+                        <tags>
+                            <xt:each xpath="tags/tag">
+                                <tag>
+                                    <xt:copy-body/>
+                                </tag>
+                            </xt:each>
+                        </tags>
+                    </item>
+                </xt:each>
+            </items>
+        </summary>
+    </main>
+</transform>

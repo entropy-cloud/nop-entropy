@@ -69,7 +69,7 @@ xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即
                       xdef:bean-class="class-name" xdef:bean-body-type="generic-type"
                       xdef:bean-ref-prop="prop-name" xdef:bean-sub-type-prop="prop-name"
                       xdef:bean-unknown-attrs-prop="prop-name" xdef:bean-unknown-children-prop="prop-name"
-                      xdef:bean-body-prop="prop-name" xdef:bean-child-name="var-name"
+                      xdef:bean-body-prop="prop-name" xdef:bean-value-prop="prop-name" xdef:bean-child-name="var-name"
                       xdef:bean-comment-prop="prop-name"
                       xdef:bean-tag-prop="prop-name" xdef:bean-prop="prop-name"
                       xdef:bean-extends-type="generic-type" xdef:bean-implements-types="generic-type-list"

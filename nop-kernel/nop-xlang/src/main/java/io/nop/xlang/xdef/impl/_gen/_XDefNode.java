@@ -152,6 +152,13 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
     
     /**
      *  
+     * xml name: xdef:bean-value-prop
+     * 
+     */
+    private java.lang.String _xdefBeanValueProp ;
+    
+    /**
+     *  
      * xml name: xdef:body-type
      * 定义节点的结构类型。set表示子节点需要具有唯一标签名或者唯一key，而list表示可以出现重复的子节点
      */
@@ -650,6 +657,25 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
     
     /**
      * 
+     * xml name: xdef:bean-value-prop
+     *  
+     */
+    
+    public java.lang.String getXdefBeanValueProp(){
+      return _xdefBeanValueProp;
+    }
+
+    
+    public void setXdefBeanValueProp(java.lang.String value){
+        checkAllowChange();
+        
+        this._xdefBeanValueProp = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: xdef:body-type
      *  定义节点的结构类型。set表示子节点需要具有唯一标签名或者唯一key，而list表示可以出现重复的子节点
      */
@@ -1060,6 +1086,7 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
         out.putNotNull("xdefBeanTagProp",this.getXdefBeanTagProp());
         out.putNotNull("xdefBeanUnknownAttrsProp",this.getXdefBeanUnknownAttrsProp());
         out.putNotNull("xdefBeanUnknownChildrenProp",this.getXdefBeanUnknownChildrenProp());
+        out.putNotNull("xdefBeanValueProp",this.getXdefBeanValueProp());
         out.putNotNull("xdefBodyType",this.getXdefBodyType());
         out.putNotNull("xdefDefaultOverride",this.getXdefDefaultOverride());
         out.putNotNull("xdefDeprecated",this.getXdefDeprecated());
@@ -1108,6 +1135,7 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
         instance.setXdefBeanTagProp(this.getXdefBeanTagProp());
         instance.setXdefBeanUnknownAttrsProp(this.getXdefBeanUnknownAttrsProp());
         instance.setXdefBeanUnknownChildrenProp(this.getXdefBeanUnknownChildrenProp());
+        instance.setXdefBeanValueProp(this.getXdefBeanValueProp());
         instance.setXdefBodyType(this.getXdefBodyType());
         instance.setXdefDefaultOverride(this.getXdefDefaultOverride());
         instance.setXdefDeprecated(this.getXdefDeprecated());

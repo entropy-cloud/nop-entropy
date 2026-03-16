@@ -332,6 +332,7 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
 
         String beanTagProp = parseAttrPropName(node, keys.BEAN_TAG_PROP);
         String beanBodyProp = parseAttrPropName(node, keys.BEAN_BODY_PROP);
+        String beanValueProp = parseAttrPropName(node, keys.BEAN_VALUE_PROP);
         // String beanChildrenProp = parseAttrPropName(node, keys.BEAN_CHILD_NAME);
         String beanProp = parseAttrPropName(node, keys.BEAN_PROP);
         String beanCommentProp = parseAttrPropName(node, keys.BEAN_COMMENT_PROP);
@@ -375,6 +376,7 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
         defNode.setXdefBeanClass(beanClass);
         defNode.setXdefBeanProp(beanProp);
         defNode.setXdefBeanBodyProp(beanBodyProp);
+        defNode.setXdefBeanValueProp(beanValueProp);
         defNode.setXdefBeanTagProp(beanTagProp);
         defNode.setXdefBeanCommentProp(beanCommentProp);
         defNode.setXdefBeanSubTypeProp(beanSubTypeProp);
@@ -548,7 +550,9 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
         }
 
         if (defNode.getXdefBodyType() == XDefBodyType.list) {
-            if (defNode.getXdefValue() != null)
+            // 如果同时配置了bean-value-prop和bean-body-prop，则允许xdef:value
+            // 因为简单值会存储到bean-value-prop，子节点会存储到bean-body-prop
+            if (defNode.getXdefValue() != null && defNode.getXdefBeanValueProp() == null)
                 throw new NopException(ERR_XDEF_LIST_NODE_NOT_ALLOW_VALUE).param(ARG_NODE, node);
 
             if (defNode.getXdefKeyAttr() != null) {
@@ -561,7 +565,8 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
                 }
             }
         } else if (defNode.getXdefBodyType() == XDefBodyType.map) {
-            if (defNode.getXdefValue() != null)
+            // 如果同时配置了bean-value-prop和bean-body-prop，则允许xdef:value
+            if (defNode.getXdefValue() != null && defNode.getXdefBeanValueProp() == null)
                 throw new NopException(ERR_XDEF_MAP_NODE_NOT_ALLOW_VALUE).param(ARG_NODE, node);
 
             if (defNode.getXdefKeyAttr() != null) {

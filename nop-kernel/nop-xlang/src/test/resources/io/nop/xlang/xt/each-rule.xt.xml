@@ -4,12 +4,7 @@
     <main>
         <items>
             <xt:each xpath="/root/item">
-                <item id="item-1">
-                    <xt:value>${text()}</xt:value>
-                </item>
-                <item id="item-2">
-                    <xt:value>${text()}</xt:value>
-                </item>
+                <xt:copy-node/>
             </xt:each>
         </items>
     </main>

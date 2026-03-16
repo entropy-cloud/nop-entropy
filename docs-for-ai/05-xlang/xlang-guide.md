@@ -106,7 +106,7 @@ XTransform是专用于AST转换的简化版本，类似于xslt但更加简洁：
 - 通过属性表达式生成属性
 - 利用嵌套结构自然表达生成过程
 
-**示例**：
+**基本示例**：
 ```xml
 <xt:transform>
   <div xt:xpath="root">
@@ -115,6 +115,91 @@ XTransform是专用于AST转换的简化版本，类似于xslt但更加简洁：
     </div>
   </div>
 </xt:transform>
+```
+
+#### 2.6.1 简单文本值（新增特性）
+
+支持直接使用简单文本内容，无需 `<xt:value>` 包装：
+
+```xml
+<!-- 之前需要 -->
+<transform>
+    <main>
+        <div><xt:value>test</xt:value></div>
+    </main>
+</transform>
+
+<!-- 现在可以直接写 -->
+<transform>
+    <main>
+        <div>test</div>
+    </main>
+</transform>
+```
+
+解析时：
+- 纯文本内容（如 `<div>test</div>`）→ 存储到 `value` 属性
+- 包含子元素（如 `<div><span>content</span></div>`）→ 存储到 `body` 属性
+
+#### 2.6.2 表达式语法
+
+XTransform 中属性值使用 `%{}` 表达式语法（不是 `${}`），这是 `ExprPhase.transform` 阶段的约定：
+
+```xml
+<!-- 正确：使用 %{} 语法 -->
+<item id="%{node.getAttr('id')}">
+
+<!-- 错误：${} 不会被识别为表达式 -->
+<item id="${node.getAttr('id')}">
+```
+
+**可用变量**（在 `xt:each`、自定义标签等上下文中）：
+
+| 变量名 | 说明 |
+|--------|------|
+| `node` | 当前选中的源节点（XNode 类型） |
+| `context` | 转换上下文（IXTransformContext 类型） |
+| `params` | 转换参数（Map 类型） |
+
+**注意**：XPath 语法如 `@id` 不能直接在属性表达式中使用，应使用 `node.getAttr('id')`。
+
+#### 2.6.3 常用转换指令
+
+| 指令 | 说明 | 示例 |
+|------|------|------|
+| `xt:xpath` | 选择目标节点 | `<div xt:xpath="child">` |
+| `xt:attrs` | 设置属性 | `xt:attrs="{a,b,c}"` |
+| `xt:value` | 输出值 | `<xt:value>%{text()}</xt:value>` |
+| `xt:copy-body` | 复制子节点 | `<xt:copy-body xpath="/"/>` |
+| `xt:each` | 循环处理 | `<xt:each xpath="/root/item">` |
+| `xt:if` | 条件判断 | `<xt:if test="@enabled = 'true'">` |
+| `xt:choose` | 多条件分支 | `<xt:choose><xt:when test="...">...` |
+
+**完整示例**：
+```xml
+<transform x:schema="/nop/schema/xt.xdef">
+    <main>
+        <!-- 循环处理 -->
+        <items>
+            <xt:each xpath="/root/item">
+                <item id="%{node.getAttr('id')}">
+                    <!-- 输出文本值 -->
+                    <name><xt:value>%{node.contentText()}</xt:value></name>
+                </item>
+            </xt:each>
+        </items>
+        
+        <!-- 条件判断 -->
+        <result>
+            <xt:if test="@status = 'active'">
+                <status>启用</status>
+            </xt:if>
+        </result>
+        
+        <!-- 直接文本（新增特性） -->
+        <greeting>hello world</greeting>
+    </main>
+</transform>
 ```
 
 ## 3. 基本使用示例

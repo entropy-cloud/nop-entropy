@@ -15,12 +15,10 @@ import io.nop.xlang.xt.model.XtTransformModel;
 import io.nop.xlang.xdsl.DslModelParser;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@Disabled
 public class TestXtTransform extends BaseTestCase {
     private static final String XT_SCHEMA = "/nop/schema/xt.xdef";
 
@@ -115,5 +113,61 @@ public class TestXtTransform extends BaseTestCase {
         assertEquals("html", result.getTagName());
         assertEquals("header", result.child(0).getTagName());
         assertEquals("body", result.child(1).getTagName());
+    }
+
+    @Test
+    public void testSimpleValue() {
+        XtTransformModel model = loadModel("simple-value.xt.xml");
+        XtTransform transform = new XtTransform(model);
+
+        XNode source = attachmentXml("simple-value.input.xml");
+        XNode result = transform.transform(source);
+
+        assertNotNull(result);
+        assertEquals("div", result.getTagName());
+        assertEquals("test", result.contentText());
+    }
+
+    @Test
+    public void testRelativePath() {
+        XtTransformModel model = loadModel("relative-path.xt.xml");
+        XtTransform transform = new XtTransform(model);
+
+        XNode source = attachmentXml("relative-path.input.xml");
+        XNode result = transform.transform(source);
+
+        assertNotNull(result);
+        assertEquals("summary", result.getTagName());
+
+        XNode orderId = result.childByTag("orderId");
+        assertNotNull(orderId);
+        assertEquals("ORDER-001", orderId.contentText());
+
+        XNode items = result.childByTag("items");
+        assertNotNull(items);
+        assertEquals(2, items.getChildCount());
+
+        XNode item1 = items.child(0);
+        assertEquals("ITEM-1", item1.attrText("id"));
+    }
+
+    @Test
+    public void testComplexExample() {
+        XtTransformModel model = loadModel("complex-example.xt.xml");
+        XtTransform transform = new XtTransform(model);
+
+        XNode source = attachmentXml("complex-example.input.xml");
+        XNode result = transform.transform(source);
+
+        assertNotNull(result);
+        assertEquals("report", result.getTagName());
+
+        XNode header = result.childByTag("header");
+        assertNotNull(header);
+        assertEquals("Order Report", header.childByTag("title").contentText());
+
+        XNode items = result.childByTag("items");
+        assertNotNull(items);
+        assertEquals(3, items.getChildCount());
     }
 }

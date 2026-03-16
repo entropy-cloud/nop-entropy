@@ -52,6 +52,7 @@ public class XDefKeys implements Serializable {
     public final String BEAN_CLASS;
     public final String BEAN_TAG_PROP;
     public final String BEAN_BODY_PROP;
+    public final String BEAN_VALUE_PROP;
     public final String BEAN_COMMENT_PROP;
     public final String BEAN_SUB_TYPE_PROP;
     public final String BEAN_UNKNOWN_ATTRS_PROP;
@@ -124,10 +125,11 @@ public class XDefKeys implements Serializable {
         BEAN_INTERFACES = getFullName(ns, "bean-interfaces");
         BEAN_TAG_PROP = getFullName(ns, "bean-tag-prop");
         BEAN_BODY_PROP = getFullName(ns, "bean-body-prop");
+        BEAN_VALUE_PROP = getFullName(ns, "bean-value-prop");
         BEAN_COMMENT_PROP = getFullName(ns, "bean-comment-prop");
         BEAN_SUB_TYPE_PROP = getFullName(ns, "bean-sub-type-prop");
-        BEAN_UNKNOWN_CHILDREN_PROP = getFullName(ns, "bean-unknown-children-prop");
         BEAN_UNKNOWN_ATTRS_PROP = getFullName(ns, "bean-unknown-attrs-prop");
+        BEAN_UNKNOWN_CHILDREN_PROP = getFullName(ns, "bean-unknown-children-prop");
         BEAN_CHILD_NAME = getFullName(ns, "bean-child-name");
         BEAN_PROP = getFullName(ns, "bean-prop");
         BEAN_BODY_TYPE = getFullName(ns, "bean-body-type");
@@ -170,7 +172,7 @@ public class XDefKeys implements Serializable {
         PRE_PARSE = getFullName(ns, "pre-parse");
 
         ATTR_NAMES = CollectionHelper.buildImmutableSet(SUPPORT_EXTENDS, BEAN_CLASS, BEAN_INTERFACES, BEAN_TAG_PROP,
-                BEAN_BODY_PROP, BEAN_COMMENT_PROP, BEAN_CHILD_NAME, BEAN_PROP, ID, REF_RESOLVED, BEAN_IMPLEMENTS_TYPES,
+                BEAN_BODY_PROP, BEAN_VALUE_PROP, BEAN_COMMENT_PROP, BEAN_CHILD_NAME, BEAN_PROP, ID, REF_RESOLVED, BEAN_IMPLEMENTS_TYPES,
                 BEAN_EXTENDS_TYPE, BEAN_SUB_TYPE_PROP, BEAN_UNKNOWN_ATTRS_PROP, BEAN_UNKNOWN_CHILDREN_PROP, BODY_TYPE,
                 BEAN_BODY_TYPE, KEY_ATTR, UNIQUE_ATTR, ORDER_ATTR, NAME, REF, ALLOW_MULTIPLE, MANDATORY, VALUE,
                 UNKNOWN_ATTR, DEFAULT_OVERRIDE, INTERNAL, DEPRECATED);

@@ -3,7 +3,9 @@
            xmlns:xt="/nop/schema/xt.xdef">
     <main>
         <result>
-            <xt:copy-body xpath="/"/>
+            <xt:each xpath="/root/*">
+                <xt:copy-node/>
+            </xt:each>
         </result>
     </main>
 </transform>

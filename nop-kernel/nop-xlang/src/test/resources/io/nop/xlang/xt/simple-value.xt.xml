@@ -2,8 +2,6 @@
            xmlns:x="/nop/schema/xdsl.xdef"
            xmlns:xt="/nop/schema/xt.xdef">
     <main>
-        <html>
-            <body>test</body>
-        </html>
+        <div>test</div>
     </main>
 </transform>

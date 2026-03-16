@@ -3,15 +3,15 @@
            xmlns:xt="/nop/schema/xt.xdef">
     <template id="header">
         <header>
-            <title><xt:value xpath="@title"/></title>
+            <title>Test</title>
         </header>
     </template>
 
     <main>
         <html>
-            <xt:apply-template id="header" xpath="/root"/>
+            <xt:apply-template id="header"/>
             <body>
-                <xt:copy-body xpath="/root/content"/>
+                <text>content</text>
             </body>
         </html>
     </main>

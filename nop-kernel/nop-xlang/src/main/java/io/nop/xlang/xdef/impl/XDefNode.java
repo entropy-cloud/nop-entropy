@@ -253,7 +253,7 @@ public class XDefNode extends _XDefNode implements IXDefNode {
             setAttr(node, keys.BEAN_PROP, getXdefBeanProp());
         setAttr(node, keys.BEAN_TAG_PROP, getXdefBeanTagProp());
         setAttr(node, keys.BEAN_BODY_PROP, getXdefBeanBodyProp());
-
+        setAttr(node, keys.BEAN_VALUE_PROP, getXdefBeanValueProp());
         return node;
     }
 

@@ -10,6 +10,7 @@ package io.nop.xlang.xdsl.json;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ISourceLocationSetter;
 import io.nop.commons.collections.KeyedList;
+import io.nop.core.CoreConstants;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanModel;
@@ -123,10 +124,31 @@ public class DslBeanModelParser extends DslXNodeToJsonTransformer {
             }
         }
 
-        if (defNode.getXdefValue() != null || defNode.getXdefBodyType() != null) {
-            if (node.hasBody()) {
-                Object value = parseBody(defNode, node);
-                beanModel.setProperty(obj, defNode.getXdefBeanBodyProp(), value);
+        // 简化逻辑：
+        // - 没有child节点 → 检查xdefValue配置，解析为value
+        // - 有child节点 → 必须有xdefBodyType配置，否则走报错路径
+        if (useValue(defNode, node) || defNode.getXdefBodyType() != null) {
+            if (defNode.getXdefBeanValueProp() != null && defNode.getXdefBeanBodyProp() != null) {
+                // 没有child节点，解析为简单value
+                if (!node.hasChild()) {
+                    if (defNode.getXdefValue() != null) {
+                        Object simpleValue = extractTextValue(defNode, node);
+                        if (simpleValue != null) {
+                            beanModel.setProperty(obj, defNode.getXdefBeanValueProp(), simpleValue);
+                        }
+                    }
+                } else {
+                    // 有child节点，必须有xdefBodyType配置
+                    if (defNode.getXdefBodyType() != null) {
+                        Object bodyValue = parseComplexBody(defNode, node);
+                        beanModel.setProperty(obj, defNode.getXdefBeanBodyProp(), bodyValue);
+                    }
+                }
+            } else {
+                if (node.hasBody()) {
+                    Object value = parseBody(defNode, node);
+                    beanModel.setProperty(obj, defNode.getXdefBeanBodyProp(), value);
+                }
             }
         } else {
             for (XNode child : node.getChildren()) {

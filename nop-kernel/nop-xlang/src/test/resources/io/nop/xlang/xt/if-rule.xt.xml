@@ -3,7 +3,7 @@
            xmlns:xt="/nop/schema/xt.xdef">
     <main>
         <result>
-            <enabled>unknown</enabled>
+            <enabled>true</enabled>
         </result>
     </main>
 </transform>

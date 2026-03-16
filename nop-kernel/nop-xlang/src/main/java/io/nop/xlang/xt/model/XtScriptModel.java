@@ -16,6 +16,6 @@ public class XtScriptModel extends _XtScriptModel {
 
     @Override
     public String getXtType() {
-        return "xt:script";
+        return "script";
     }
 }

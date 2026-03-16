@@ -10,6 +10,7 @@ package io.nop.xlang.xt.rules;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.xml.IXSelector;
 import io.nop.core.lang.xml.XNode;
+import io.nop.xlang.XLangConstants;
 import io.nop.xlang.xt.IXTransformRule;
 import io.nop.xlang.xt.IXTransformContext;
 
@@ -42,8 +43,7 @@ public class CustomTagRule extends AbstractSelectorRule {
         XNode outputNode = context.getOutput().newOutputNode(tagName);
 
         context.getEvalScope().setLocalValue("node", selected);
-        context.getEvalScope().setLocalValue("context", context);
-        context.getEvalScope().setLocalValue("params", context.getParameters());
+        context.getEvalScope().setLocalValue(XLangConstants.XPATH_VAR_THIS_NODE, selected);
 
         if (attrs != null) {
             for (Map.Entry<String, IEvalAction> entry : attrs.entrySet()) {

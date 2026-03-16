@@ -1,6 +1,7 @@
 package io.nop.xlang.xt.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.json.IJsonHandler;
 import io.nop.xlang.xt.model.XtRuleGroupModel;
 import io.nop.commons.util.ClassHelper;
@@ -24,6 +25,13 @@ public abstract class _XtRuleGroupModel extends io.nop.xlang.xt.model.XtRuleMode
     private java.util.List<io.nop.xlang.xt.model.XtRuleModel> _body = java.util.Collections.emptyList();
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _value ;
+    
+    /**
      * 
      * xml name: 
      *  
@@ -42,6 +50,25 @@ public abstract class _XtRuleGroupModel extends io.nop.xlang.xt.model.XtRuleMode
     }
 
     
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getValue(){
+      return _value;
+    }
+
+    
+    public void setValue(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._value = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -51,6 +78,7 @@ public abstract class _XtRuleGroupModel extends io.nop.xlang.xt.model.XtRuleMode
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
            this._body = io.nop.api.core.util.FreezeHelper.deepFreeze(this._body);
+           this._value = io.nop.api.core.util.FreezeHelper.deepFreeze(this._value);
             
         }
     }
@@ -60,6 +88,7 @@ public abstract class _XtRuleGroupModel extends io.nop.xlang.xt.model.XtRuleMode
         super.outputJson(out);
         
         out.putNotNull("body",this.getBody());
+        out.putNotNull("value",this.getValue());
     }
 
     public XtRuleGroupModel cloneInstance(){
@@ -72,6 +101,7 @@ public abstract class _XtRuleGroupModel extends io.nop.xlang.xt.model.XtRuleMode
         super.copyTo(instance);
         
         instance.setBody(this.getBody());
+        instance.setValue(this.getValue());
     }
 
     protected XtRuleGroupModel newInstance(){

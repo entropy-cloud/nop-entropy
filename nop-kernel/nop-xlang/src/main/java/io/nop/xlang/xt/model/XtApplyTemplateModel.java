@@ -16,7 +16,7 @@ public class XtApplyTemplateModel extends _XtApplyTemplateModel {
 
     @Override
     public String getXtType() {
-        return "xt:apply-template";
+    return "apply-template";
     }
 
 }

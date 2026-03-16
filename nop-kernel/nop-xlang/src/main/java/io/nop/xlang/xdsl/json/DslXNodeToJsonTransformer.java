@@ -118,6 +118,26 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
                 return null;
         }
     }
+
+    /**
+     * 只解析复杂body（子节点），不包含简单值
+     */
+    protected Object parseComplexBody(IXDefNode defNode, XNode node) {
+        if (defNode.getXdefBodyType() == null)
+            return null;
+
+        switch (defNode.getXdefBodyType()) {
+            case list:
+                return parseBodyList(defNode, node);
+            case union:
+                return parseBodyUnion(defNode, node);
+            case map:
+                return parseBodyMap(defNode, node);
+            default:
+                return null;
+        }
+    }
+
     //
     // private KeyedList<IKeyedElement> parseBodySet(IXDefNode defNode, XNode node) {
     // KeyedList<IKeyedElement> list = new KeyedList<>();
@@ -132,9 +152,14 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
     // }
 
     protected List<?> parseBodyList(IXDefNode defNode, XNode node) {
+        boolean skipTextNode = defNode.getXdefBeanValueProp() != null && defNode.getXdefBeanBodyProp() != null;
+
         if (defNode.getXdefKeyAttr() == null) {
             List<Object> list = new ArrayList<>(node.getChildCount());
             for (XNode child : node.getChildren()) {
+                if (skipTextNode && child.isTextNode())
+                    continue;
+
                 IXDefNode childDef = defNode.getChild(child.getTagName());
                 if (childDef != null) {
                     Object obj = transformToObject(childDef, child);
@@ -153,6 +178,9 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
             KeyedList<Object> list = new KeyedList<>(node.getChildCount(),
                     item -> getKey(item, defNode.getXdefKeyProp()));
             for (XNode child : node.getChildren()) {
+                if (skipTextNode && child.isTextNode())
+                    continue;
+
                 IXDefNode childDef = defNode.getChild(child.getTagName());
                 if (childDef != null) {
                     Object obj = parseObject(childDef, child, defNode.getXdefBeanSubTypeProp());
@@ -287,11 +315,26 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
         }
 
         if (useValue(defNode, node) || defNode.getXdefBodyType() != null) {
-            Object value = parseBody(defNode, node);
-            if (node.hasBody()) {
-                obj.addProp(defNode.getXdefBeanBodyProp(), value);
+            if (defNode.getXdefBeanValueProp() != null && defNode.getXdefBeanBodyProp() != null) {
+                if (!node.hasChild()) {
+                    if (defNode.getXdefValue() != null) {
+                        Object simpleValue = extractTextValue(defNode, node);
+                        obj.addProp(defNode.getXdefBeanValueProp(), simpleValue);
+                    }
+                } else {
+                    if (defNode.getXdefBodyType() != null) {
+                        Object bodyValue = parseComplexBody(defNode, node);
+                        obj.addProp(defNode.getXdefBeanBodyProp(), bodyValue);
+                    }
+                }
             } else {
-                obj.addPropDefault(defNode.getXdefBeanBodyProp(), value);
+                // 原有逻辑：所有内容都存储到bean-body-prop
+                Object value = parseBody(defNode, node);
+                if (node.hasBody()) {
+                    obj.addProp(defNode.getXdefBeanBodyProp(), value);
+                } else {
+                    obj.addPropDefault(defNode.getXdefBeanBodyProp(), value);
+                }
             }
         } else {
             for (IXDefNode childDef : defNode.getChildren().values()) {
@@ -328,9 +371,14 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
         return obj;
     }
 
-    private boolean useValue(IXDefNode defNode, XNode node) {
+    protected boolean useValue(IXDefNode defNode, XNode node) {
         if (defNode.getXdefValue() == null)
             return false;
+
+        if (defNode.getXdefBeanValueProp() != null && defNode.getXdefBeanBodyProp() != null) {
+            return !node.hasChild();
+        }
+
         if (defNode.hasChild() && node.hasChild())
             return false;
         return true;
@@ -386,6 +434,24 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
 
         value = handler.parseXmlChild(type.getOptions(), node, getCompileTool());
         return value;
+    }
+
+    protected Object extractTextValue(IXDefNode defNode, XNode node) {
+        XDefTypeDecl type = defNode.getXdefValue();
+        if (type == null)
+            return null;
+
+        ValueWithLocation content = node.content();
+        if (!content.isEmpty()) {
+            return parseValue(content, CoreConstants.XML_PROP_BODY, type);
+        }
+
+        for (XNode child : node.getChildren()) {
+            if (child.isTextNode()) {
+                return parseValue(child.content(), CoreConstants.XML_PROP_BODY, type);
+            }
+        }
+        return null;
     }
 
     protected IStdDomainHandler getHandler(SourceLocation loc, XDefTypeDecl type) {

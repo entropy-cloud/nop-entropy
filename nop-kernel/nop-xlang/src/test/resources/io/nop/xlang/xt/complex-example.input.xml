@@ -1,0 +1,19 @@
+<order id="ORD-001" customer="John Doe" date="2024-01-15">
+    <items>
+        <product sku="P001" name="Laptop" price="999.99" quantity="1">
+            <description>High-performance laptop</description>
+        </product>
+        <product sku="P002" name="Mouse" price="29.99" quantity="2">
+            <description>Wireless mouse</description>
+        </product>
+        <service sku="S001" name="Extended Warranty" price="99.00">
+            <description>2-year warranty coverage</description>
+        </service>
+    </items>
+    <address type="shipping">
+        <street>123 Main St</street>
+        <city>San Francisco</city>
+        <state>CA</state>
+        <zip>94102</zip>
+    </address>
+</order>

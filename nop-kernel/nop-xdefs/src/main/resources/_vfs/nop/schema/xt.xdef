@@ -35,8 +35,8 @@
     <xdef:define xdef:name="XtRuleModel" xdef:bean-implements-types="io.nop.xlang.xt.model.IXtRuleModel"/>
 
     <xdef:define xdef:name="XtRuleGroupModel" xdef:ref="XtRuleModel"
-                 xdef:body-type="list" xdef:bean-sub-type-prop="xtType"
-                 xdef:bean-body-prop="body" xdef:bean-body-type="List&lt;io.nop.xlang.xt.model.XtRuleModel>">
+                  xdef:body-type="list" xdef:bean-sub-type-prop="xtType" xdef:bean-value-prop="value" xdef:value="xt-value"
+                  xdef:bean-body-prop="body" xdef:bean-body-type="List&lt;io.nop.xlang.xt.model.XtRuleModel>">
         <!--
         应用指定template
         @xpath 选择目标节点，只会匹配第一个满足要求的节点。如果要对多个节点进行处理，需要使用xt:each。如果不指定,则标识应用于当前节点
@@ -83,7 +83,10 @@
         <xdef:unknown-tag xdef:bean-tag-prop="tagName" xt:xpath="xpath"
                           xdef:ref="XtRuleGroupModel" xt:attrs="expr" xdef:unknown-attr="xt-value"
                           xdef:bean-unknown-attrs-prop="attrs"
-                          xdef:name="XtCustomTagModel"/>
+                          xdef:name="XtCustomTagModel"
+                          xdef:body-type="list" xdef:bean-sub-type-prop="xtType"
+                          xdef:bean-value-prop="value" xdef:value="xt-value"
+                          xdef:bean-body-prop="body"/>
 
     </xdef:define>
 

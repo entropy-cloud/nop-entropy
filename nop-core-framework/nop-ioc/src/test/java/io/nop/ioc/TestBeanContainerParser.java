@@ -102,7 +102,7 @@ public class TestBeanContainerParser extends BaseTestCase {
             assertTrue(false);
         } catch (NopException e) {
             e.printStackTrace();
-            assertEquals(XLangErrors.ERR_XDSL_UNDEFINED_CHILD_NODE.getErrorCode(), e.getErrorCode());
+            assertEquals(XLangErrors.ERR_XDSL_NODE_UNEXPECTED_TAG_NAME.getErrorCode(), e.getErrorCode());
         }
     }
 

@@ -1,0 +1,45 @@
+<!-- 
+  复杂示例：订单转换
+  
+  功能演示：
+  1. 使用 template 定义可重用模板
+  2. 使用 xt:each 循环处理
+  3. 使用 xt:copy-node 复制节点
+  4. 使用 xt:copy-body 复制内容
+  5. 使用自定义标签输出
+-->
+<transform x:schema="/nop/schema/xt.xdef"
+           xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xt="/nop/schema/xt.xdef">
+
+    <!-- 定义头部模板 -->
+    <template id="header">
+        <header>
+            <title>Order Report</title>
+            <generatedAt>2024-01-01</generatedAt>
+        </header>
+    </template>
+
+    <!-- 主转换规则 -->
+    <main>
+        <report>
+            <!-- 应用头部模板 -->
+            <xt:apply-template id="header"/>
+            
+            <!-- 循环处理订单项 -->
+            <items>
+                <xt:each xpath="/order/items/*">
+                    <item>
+                        <!-- 复制当前节点 -->
+                        <xt:copy-node/>
+                    </item>
+                </xt:each>
+            </items>
+            
+            <!-- 复制整个地址节点 -->
+            <shippingAddress>
+                <xt:copy-node xpath="/order/address"/>
+            </shippingAddress>
+        </report>
+    </main>
+</transform>

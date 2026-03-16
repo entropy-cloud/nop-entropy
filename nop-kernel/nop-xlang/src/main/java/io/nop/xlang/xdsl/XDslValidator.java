@@ -115,7 +115,11 @@ public class XDslValidator {
 
                     IXDefNode childDef = defNode.getChild(child.getTagName());
                     if (childDef == null) {
-                        if (defNode.getXdefValue() == null || !defNode.getXdefValue().isSupportBody(stdDomainRegistry)) {
+                        // 如果配置了bean-body-prop，则允许子节点（它们会存储到bean-body-prop）
+                        // 如果xdef:value支持body（如xpl），也允许子节点
+                        boolean allowChild = defNode.getXdefBeanBodyProp() != null
+                                || (defNode.getXdefValue() != null && defNode.getXdefValue().isSupportBody(stdDomainRegistry));
+                        if (!allowChild) {
                             if (!isIgnorableChild(child.getTagName())) {
                                 throw new NopException(ERR_XDSL_UNDEFINED_CHILD_NODE).param(ARG_NODE, child)
                                         .param(ARG_XDEF_NODE_NAME, defNode.getTagName())

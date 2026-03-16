@@ -16,7 +16,7 @@ public class XtCopyNodeModel extends _XtCopyNodeModel {
 
     @Override
     public String getXtType() {
-        return "xt:copy-node";
+        return "copy-node";
     }
 
 }

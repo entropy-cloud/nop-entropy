@@ -1,0 +1,26 @@
+<order id="ORD-2024-001" customer="John Doe">
+    <items>
+        <item id="ITEM-1" qty="2">
+            <name>Laptop Computer</name>
+            <price currency="USD">999.99</price>
+            <tags>
+                <tag>electronics</tag>
+                <tag>computer</tag>
+            </tags>
+        </item>
+        <item id="ITEM-2" qty="1">
+            <name>Wireless Mouse</name>
+            <price currency="USD">29.99</price>
+            <tags>
+                <tag>electronics</tag>
+                <tag>accessory</tag>
+            </tags>
+        </item>
+    </items>
+    <address type="shipping">
+        <street>123 Main Street</street>
+        <city>San Francisco</city>
+        <state>CA</state>
+        <zip>94102</zip>
+    </address>
+</order>

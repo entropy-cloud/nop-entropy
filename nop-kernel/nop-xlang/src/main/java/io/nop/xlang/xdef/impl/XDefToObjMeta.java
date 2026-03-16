@@ -292,7 +292,14 @@ public class XDefToObjMeta {
                 props.add(valueToProp(node));
             }
         } else {
-            props.add(bodyToProp(node));
+            if (node.getXdefBeanValueProp() != null && node.getXdefBeanBodyProp() != null) {
+                props.add(bodyToProp(node));
+                if (node.getXdefValue() != null) {
+                    props.add(valueToProp(node));
+                }
+            } else {
+                props.add(bodyToProp(node));
+            }
         }
 
         for (IXDefProp propNode : node.getXdefProps()) {
@@ -601,7 +608,8 @@ public class XDefToObjMeta {
         if (node.getXdefUnknownTag() != null)
             subs.add(toUnionItem(node.getXdefUnknownTag(), node.getXdefBeanSubTypeProp()));
 
-        if (node.getXdefValue() != null) {
+        if (node.getXdefValue() != null
+                && !(node.getXdefBeanValueProp() != null && node.getXdefBeanBodyProp() != null)) {
             subs.add(toSimpleSchema(node.getLocation(), node.getXdefValue()));
         }
 
@@ -660,7 +668,11 @@ public class XDefToObjMeta {
     private ObjPropMetaImpl valueToProp(IXDefNode node) {
         XDefTypeDecl type = node.getXdefValue();
         ISchema schema = toSimpleSchema(node.getLocation(), type);
-        String name = node.getXdefBeanBodyProp();
+        // 优先使用bean-value-prop，否则使用bean-body-prop或默认值
+        String name = node.getXdefBeanValueProp();
+        if (name == null) {
+            name = node.getXdefBeanBodyProp();
+        }
         if (name == null)
             name = XDslConstants.PROP_BODY;
 

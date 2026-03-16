@@ -16,6 +16,6 @@ public class XtGenModel extends _XtGenModel {
 
     @Override
     public String getXtType() {
-        return "xt:gen";
+        return "gen";
     }
 }

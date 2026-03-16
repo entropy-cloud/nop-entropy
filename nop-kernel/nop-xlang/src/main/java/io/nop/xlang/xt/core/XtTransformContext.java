@@ -47,6 +47,9 @@ public class XtTransformContext implements IXTransformContext {
         this.output = new XtTransformOutputImpl(outputRoot);
         this.currentNode = null;
         this.rootNode = null;
+
+        this.scope.setLocalValue("context", this);
+        this.scope.setLocalValue("params", this.parameters);
     }
 
     public XtTransformModel getTransformModel() {

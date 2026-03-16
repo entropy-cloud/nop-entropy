@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<TestElement x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+             xdef:bean-value-prop="value"
+             xdef:bean-body-prop="items"
+             xdef:body-type="list"
+             xdef:value="string">
+    <item xdef:unique-attr="name" name="!string" content="string"/>
+</TestElement>

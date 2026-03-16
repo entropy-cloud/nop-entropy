@@ -47,15 +47,21 @@ public class XtTransformCompiler {
     }
 
     public IXTransformRule compileRuleGroup(XtRuleGroupModel group) {
-        if (group == null || group.getBody() == null || group.getBody().isEmpty()) {
+        if (group == null)
             return null;
-        }
 
         List<IXTransformRule> rules = new ArrayList<>();
-        for (XtRuleModel rule : group.getBody()) {
-            IXTransformRule compiled = compileRule(rule);
-            if (compiled != null) {
-                rules.add(compiled);
+        
+        if (group.getValue() != null) {
+            rules.add(new ValueOutputRule(group.getValue()));
+        }
+        
+        if (group.getBody() != null && !group.getBody().isEmpty()) {
+            for (XtRuleModel rule : group.getBody()) {
+                IXTransformRule compiled = compileRule(rule);
+                if (compiled != null) {
+                    rules.add(compiled);
+                }
             }
         }
 

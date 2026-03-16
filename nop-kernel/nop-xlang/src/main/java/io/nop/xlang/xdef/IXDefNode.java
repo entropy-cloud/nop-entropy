@@ -170,9 +170,14 @@ public interface IXDefNode extends IComponentModel, IFreezable {
 
     String getXdefBeanRefProp();
 
+    String getXdefBeanTagProp();
+
     String getXdefBeanBodyProp();
 
-    String getXdefBeanTagProp();
+    /**
+     * 简单值（纯文本body或xdef:value属性）对应的bean属性名
+     */
+    String getXdefBeanValueProp();
 
     String getXdefBeanCommentProp();
 
@@ -224,11 +229,11 @@ public interface IXDefNode extends IComponentModel, IFreezable {
     }
 
     /**
-     * 没有attr和tagProp定义
+     * 没有attr和tagProp定义，且不需要区分bean-value-prop和bean-body-prop
      */
     default boolean isSimple() {
         return !hasAttr() && (getXdefBodyType() != null || getXdefValue() != null) && getXdefBeanTagProp() == null
-                && getXdefBeanBodyProp() == null && getXdefBeanCommentProp() == null;
+                && getXdefBeanBodyProp() == null && getXdefBeanCommentProp() == null && getXdefBeanValueProp() == null;
     }
 
     default boolean isObjSchema() {
