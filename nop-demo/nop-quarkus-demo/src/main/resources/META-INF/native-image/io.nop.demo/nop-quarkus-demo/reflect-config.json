@@ -336,24 +336,6 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [
-      {
-        "name": "getResource",
-        "parameterTypes": [
-          "io.nop.ai.api.chat.ChatRequest",
-          "java.lang.String"
-        ]
-      }
-    ],
-    "name": "io.nop.ai.core.service.DefaultChatLogger"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
     "methods": [],
     "name": "io.nop.api.core.ApiConstants"
   },
@@ -396,16 +378,6 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.api.core.auth.ISecurityContext"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
-    "name": "io.nop.api.core.auth.IUserContextExtractor"
   },
   {
     "allDeclaredConstructors": true,
@@ -2096,14 +2068,6 @@
           "io.nop.core.context.IServiceContext",
           "java.lang.String"
         ]
-      },
-      {
-        "name": "afterEntityChange",
-        "parameterTypes": [
-          "io.nop.auth.dao.entity.NopAuthResource",
-          "java.lang.String",
-          "io.nop.core.context.IServiceContext"
-        ]
       }
     ],
     "name": "io.nop.auth.service.entity.NopAuthResourceBizModel"
@@ -2484,14 +2448,6 @@
         ]
       },
       {
-        "name": "afterEntityChange",
-        "parameterTypes": [
-          "io.nop.orm.IOrmEntity",
-          "java.lang.String",
-          "io.nop.core.context.IServiceContext"
-        ]
-      },
-      {
         "name": "appendOrderByPk",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean"
@@ -2573,13 +2529,6 @@
         ]
       },
       {
-        "name": "checkUniqueForSaveEntity",
-        "parameterTypes": [
-          "io.nop.orm.IOrmEntity",
-          "io.nop.xlang.xmeta.IObjMeta"
-        ]
-      },
-      {
         "name": "checkUniqueForUpdate",
         "parameterTypes": [
           "io.nop.orm.IOrmEntity",
@@ -2587,39 +2536,9 @@
         ]
       },
       {
-        "name": "copyToEntity",
-        "parameterTypes": [
-          "java.util.Map",
-          "io.nop.orm.IOrmEntity",
-          "java.lang.String",
-          "io.nop.core.context.IServiceContext"
-        ]
-      },
-      {
         "name": "countTreeEntity",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean"
-        ]
-      },
-      {
-        "name": "daoDeleteEntity",
-        "parameterTypes": [
-          "io.nop.orm.IOrmEntity",
-          "io.nop.core.context.IServiceContext"
-        ]
-      },
-      {
-        "name": "daoSaveEntity",
-        "parameterTypes": [
-          "io.nop.orm.IOrmEntity",
-          "io.nop.core.context.IServiceContext"
-        ]
-      },
-      {
-        "name": "daoUpdateEntity",
-        "parameterTypes": [
-          "io.nop.orm.IOrmEntity",
-          "io.nop.core.context.IServiceContext"
         ]
       },
       {
@@ -2665,14 +2584,6 @@
         ]
       },
       {
-        "name": "deleteReferences",
-        "parameterTypes": [
-          "io.nop.orm.IOrmEntity",
-          "java.lang.String",
-          "io.nop.core.context.IServiceContext"
-        ]
-      },
-      {
         "name": "doCopyForNew",
         "parameterTypes": [
           "java.util.Map",
@@ -2685,15 +2596,6 @@
         "name": "doDeleteEntity",
         "parameterTypes": [
           "io.nop.orm.IOrmEntity",
-          "io.nop.core.context.IServiceContext"
-        ]
-      },
-      {
-        "name": "doDeleteEntity",
-        "parameterTypes": [
-          "io.nop.orm.IOrmEntity",
-          "java.util.Set",
-          "java.util.function.BiConsumer",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -2764,12 +2666,6 @@
         "parameterTypes": [
           "java.util.List",
           "io.nop.core.context.IServiceContext"
-        ]
-      },
-      {
-        "name": "getRefNamesToCheckExists",
-        "parameterTypes": [
-          "java.lang.String"
         ]
       },
       {
@@ -3249,16 +3145,6 @@
       }
     ],
     "name": "io.nop.biz.model._gen._BizReturnModel"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
-    "name": "io.nop.biz.proxy.BizProxyFactoryBean"
   },
   {
     "allDeclaredConstructors": true,
@@ -4884,16 +4770,6 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
-    "name": "io.nop.core.type.impl.PredefinedBoxType"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
     "methods": [
       {
         "name": "writeReplace",
@@ -6117,12 +5993,6 @@
         ]
       },
       {
-        "name": "loadAndCacheModuleModel",
-        "parameterTypes": [
-          "io.nop.dyn.dao.entity.NopDynModule"
-        ]
-      },
-      {
         "name": "newInMemoryCodeCache",
         "parameterTypes": [
           "java.lang.String"
@@ -6272,14 +6142,6 @@
           "io.nop.dyn.dao.entity.NopDynFunctionMeta",
           "io.nop.core.context.IServiceContext",
           "java.lang.String"
-        ]
-      },
-      {
-        "name": "afterEntityChange",
-        "parameterTypes": [
-          "io.nop.dyn.dao.entity.NopDynFunctionMeta",
-          "java.lang.String",
-          "io.nop.core.context.IServiceContext"
         ]
       }
     ],
@@ -7321,184 +7183,6 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [
-      {
-        "name": "buildGatewayContext",
-        "parameterTypes": [
-          "io.nop.api.core.beans.ApiRequest",
-          "io.nop.http.api.server.IHttpServerContext"
-        ]
-      },
-      {
-        "name": "buildRequest",
-        "parameterTypes": [
-          "io.nop.http.api.server.IHttpServerContext"
-        ]
-      },
-      {
-        "name": "write",
-        "parameterTypes": [
-          "io.nop.http.api.server.IHttpServerContext",
-          "io.nop.api.core.beans.ApiResponse"
-        ]
-      },
-      {
-        "name": "write",
-        "parameterTypes": [
-          "io.nop.http.api.server.IHttpServerContext",
-          "io.nop.api.core.beans.ApiResponse",
-          "io.nop.gateway.core.context.IGatewayContext"
-        ]
-      },
-      {
-        "name": "writeErrorResponse",
-        "parameterTypes": [
-          "io.nop.http.api.server.IHttpServerContext",
-          "io.nop.api.core.beans.ApiResponse"
-        ]
-      },
-      {
-        "name": "writeHeaders",
-        "parameterTypes": [
-          "io.nop.http.api.server.IHttpServerContext",
-          "java.util.Map"
-        ]
-      },
-      {
-        "name": "writeNormalResponse",
-        "parameterTypes": [
-          "io.nop.http.api.server.IHttpServerContext",
-          "io.nop.api.core.beans.ApiResponse"
-        ]
-      },
-      {
-        "name": "writeStreamingResponse",
-        "parameterTypes": [
-          "io.nop.http.api.server.IHttpServerContext",
-          "io.nop.gateway.core.streaming.StreamingResponse"
-        ]
-      }
-    ],
-    "name": "io.nop.gateway.http.GatewayHttpFilter"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
-    "name": "io.nop.gateway.model.GatewayModel"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
-    "name": "io.nop.gateway.model.GatewayOnPathModel"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
-    "name": "io.nop.gateway.model.GatewayRouteModel"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [
-      {
-        "name": "copyTo",
-        "parameterTypes": [
-          "io.nop.gateway.model.GatewayModel"
-        ]
-      },
-      {
-        "name": "newInstance",
-        "parameterTypes": []
-      },
-      {
-        "name": "outputJson",
-        "parameterTypes": [
-          "io.nop.core.lang.json.IJsonHandler"
-        ]
-      }
-    ],
-    "name": "io.nop.gateway.model._gen._GatewayModel"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [
-      {
-        "name": "copyTo",
-        "parameterTypes": [
-          "io.nop.gateway.model.GatewayOnPathModel"
-        ]
-      },
-      {
-        "name": "newInstance",
-        "parameterTypes": []
-      },
-      {
-        "name": "outputJson",
-        "parameterTypes": [
-          "io.nop.core.lang.json.IJsonHandler"
-        ]
-      }
-    ],
-    "name": "io.nop.gateway.model._gen._GatewayOnPathModel"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [
-      {
-        "name": "copyTo",
-        "parameterTypes": [
-          "io.nop.gateway.model.GatewayRouteModel"
-        ]
-      },
-      {
-        "name": "newInstance",
-        "parameterTypes": []
-      },
-      {
-        "name": "outputJson",
-        "parameterTypes": [
-          "io.nop.core.lang.json.IJsonHandler"
-        ]
-      }
-    ],
-    "name": "io.nop.gateway.model._gen._GatewayRouteModel"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
     "methods": [],
     "name": "io.nop.graphql.core.IBizModelImpl"
   },
@@ -7697,6 +7381,148 @@
     ],
     "methods": [],
     "name": "io.nop.graphql.core.web.SysBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "buildRequest",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext"
+        ]
+      },
+      {
+        "name": "write",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "io.nop.api.core.beans.ApiResponse"
+        ]
+      },
+      {
+        "name": "writeHeaders",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "java.util.Map"
+        ]
+      }
+    ],
+    "name": "io.nop.gateway.http.GatewayHttpFilter"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.gateway.model.GatewayModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.gateway.model.GatewayOnPathModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.gateway.model.GatewayRouteModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.gateway.model.GatewayModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.gateway.model._gen._GatewayModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.gateway.model.GatewayOnPathModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.gateway.model._gen._GatewayOnPathModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.gateway.model.GatewayRouteModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.gateway.model._gen._GatewayRouteModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -8779,26 +8605,6 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.orm.IOrmObject"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
-    "name": "io.nop.orm.biz.ICrudBiz"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
-    "name": "io.nop.orm.biz.IOrmEntityBiz"
   },
   {
     "allDeclaredConstructors": true,
@@ -10143,12 +9949,6 @@
         ]
       },
       {
-        "name": "requireBiz",
-        "parameterTypes": [
-          "java.lang.Class"
-        ]
-      },
-      {
         "name": "requireEnhancer",
         "parameterTypes": []
       },
@@ -10228,26 +10028,6 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.quarkus.core.dao.AgroalDataSourceFactoryBean"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
-    "name": "io.nop.record_mapping.impl.RecordMappingManagerImpl"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
-    "name": "io.nop.record_mapping.md.MarkdownDslResourceLoaderFactory"
   },
   {
     "allDeclaredConstructors": true,
@@ -10804,29 +10584,6 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [
-      {
-        "name": "getBaseUrl",
-        "parameterTypes": [
-          "java.lang.String"
-        ]
-      },
-      {
-        "name": "isAllowedService",
-        "parameterTypes": [
-          "java.lang.String"
-        ]
-      }
-    ],
-    "name": "io.nop.rpc.cluster.http.HttpRpcServiceInvoker"
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicFields": true,
-    "allPublicMethods": true,
-    "fields": [],
     "methods": [],
     "name": "io.nop.rpc.core.interceptors.ClientContextRpcServiceInterceptor"
   },
@@ -11366,12 +11123,6 @@
         ]
       },
       {
-        "name": "convertDocumentToSearchHit",
-        "parameterTypes": [
-          "org.apache.lucene.document.Document"
-        ]
-      },
-      {
         "name": "convertDocumentToSearchableDoc",
         "parameterTypes": [
           "org.apache.lucene.document.Document"
@@ -11393,12 +11144,6 @@
         "name": "getSearcherManager",
         "parameterTypes": [
           "java.lang.String"
-        ]
-      },
-      {
-        "name": "hybridSearch",
-        "parameterTypes": [
-          "io.nop.search.api.SearchRequest"
         ]
       },
       {
@@ -11435,18 +11180,6 @@
         "name": "rollback",
         "parameterTypes": [
           "org.apache.lucene.index.IndexWriter"
-        ]
-      },
-      {
-        "name": "textSearch",
-        "parameterTypes": [
-          "io.nop.search.api.SearchRequest"
-        ]
-      },
-      {
-        "name": "vectorSearch",
-        "parameterTypes": [
-          "io.nop.search.api.SearchRequest"
         ]
       }
     ],
