@@ -316,16 +316,21 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
 
         if (useValue(defNode, node) || defNode.getXdefBodyType() != null) {
             if (defNode.getXdefBeanValueProp() != null && defNode.getXdefBeanBodyProp() != null) {
-                if (!node.hasChild()) {
-                    if (defNode.getXdefValue() != null) {
-                        Object simpleValue = extractTextValue(defNode, node);
+                // 同时处理文本内容和子节点
+                if (defNode.getXdefValue() != null) {
+                    Object simpleValue = extractTextValue(defNode, node);
+                    if (simpleValue != null) {
                         obj.addProp(defNode.getXdefBeanValueProp(), simpleValue);
+                    } else {
+                        obj.addPropDefault(defNode.getXdefBeanValueProp(), null);
                     }
+                }
+
+                if (defNode.getXdefBodyType() != null && node.hasChild()) {
+                    Object bodyValue = parseComplexBody(defNode, node);
+                    obj.addProp(defNode.getXdefBeanBodyProp(), bodyValue);
                 } else {
-                    if (defNode.getXdefBodyType() != null) {
-                        Object bodyValue = parseComplexBody(defNode, node);
-                        obj.addProp(defNode.getXdefBeanBodyProp(), bodyValue);
-                    }
+                    obj.addPropDefault(defNode.getXdefBeanBodyProp(), null);
                 }
             } else {
                 // 原有逻辑：所有内容都存储到bean-body-prop
