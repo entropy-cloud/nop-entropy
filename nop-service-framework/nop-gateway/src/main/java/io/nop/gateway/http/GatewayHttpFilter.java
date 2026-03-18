@@ -127,12 +127,10 @@ public class GatewayHttpFilter implements IHttpServerFilter {
                 return next.get();
             }
 
-
-            context.resumeRequest();
-
             ApiRequest<?> request = buildRequest(context);
             IGatewayContext gatewayCtx = buildGatewayContext(request, context);
 
+            context.resumeRequest();
 
             CompletionStage<ApiResponse<?>> future = handler.handle(request, gatewayCtx);
             if (future == null) {

@@ -202,7 +202,7 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
         if (opType != null && operation.getOperationType() != opType)
             throw new NopException(ERR_GRAPHQL_UNEXPECTED_OPERATION_TYPE)
                     .param(ARG_OPERATION_NAME, getBizObjName() + "__" + name)
-                    .param(ARG_EXPECTED_OPERATION_TYPE, operation.getOperationType()).param(ARG_OPERATION_TYPE, opType);
+                    .param(ARG_OPERATION_TYPE, operation.getOperationType()).param(ARG_EXPECTED_OPERATION_TYPE, opType);
         return operation;
     }
 
