@@ -8,13 +8,6 @@
     </x:config>
 
     <routes>
-        <route id="test">
-            <on-path path="/api/test"/>
 
-            <handler>
-                <file:LoadJson path="/nop/demo/data/test.json5"/>
-            </handler>
-
-        </route>
     </routes>
 </gateway>

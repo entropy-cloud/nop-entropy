@@ -16,5 +16,10 @@
   [
     "java.lang.Object",
     "io.nop.rpc.api.IAopDynamicProxy"
+  ],
+  [
+    "io.nop.api.core.graphql.GraphQLApi",
+    "io.nop.rpc.api.IAopDynamicProxy",
+    "io.nop.rpc.api.IRpcProxy"
   ]
 ]
