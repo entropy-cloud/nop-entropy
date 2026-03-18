@@ -73,10 +73,6 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
 
     static final Set<String> PROLOG_ATTR_NAMES = new HashSet<>(Arrays.asList("version", "encoding", "standalone"));
 
-    static final String XML_SPACE_ATTR = "xml:space";
-    static final String PRESERVE_VALUE = "preserve";
-    static final String DEFAULT_VALUE = "default";
-
     private int _depth;
     private int maxDepth = CFG_XML_MAX_NESTED_LEVEL.get();
     private boolean intern;
@@ -100,7 +96,6 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
 
     private boolean keepComment;
     private boolean keepWhitespace;
-    private int preserveWhitespaceDepth;
     private boolean forFragments;
     private boolean forHtml;
 
@@ -391,13 +386,7 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
             } else if (sc.cur == '>') {
                 handler.beginNode(loc, tagName, attrs);
                 sc.next();
-                int spaceDelta = getSpaceDelta(attrs);
-                preserveWhitespaceDepth += spaceDelta;
-                try {
-                    parseBody();
-                } finally {
-                    preserveWhitespaceDepth -= spaceDelta;
-                }
+                parseBody();
                 String expected = '/' + tagName + '>';
                 if (!sc.tryConsume(expected))
                     throw sc.newError(ERR_XML_TAG_NOT_END_PROPERLY).param(ARG_EXPECTED, expected).param(ARG_START_LOC,
@@ -558,7 +547,7 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
 
     void flushText() {
         if (prevText != null) {
-            if (!shouldKeepWhitespace()) {
+            if (!keepWhitespace) {
                 if (StringHelper.isBlank(prevText)) {
                     prevText = null;
                     return;
@@ -572,24 +561,6 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
             this.prevText = null;
             this.prevCDATA = false;
         }
-    }
-
-    private boolean shouldKeepWhitespace() {
-        return keepWhitespace || preserveWhitespaceDepth > 0;
-    }
-
-    private int getSpaceDelta(Map<String, ValueWithLocation> attrs) {
-        if (attrs.isEmpty())
-            return 0;
-        ValueWithLocation vl = attrs.get(XML_SPACE_ATTR);
-        if (vl == null)
-            return 0;
-        String value = vl.asString();
-        if (PRESERVE_VALUE.equalsIgnoreCase(value))
-            return 1;
-        if (DEFAULT_VALUE.equalsIgnoreCase(value) && preserveWhitespaceDepth > 0)
-            return -1;
-        return 0;
     }
 
     char parseEntity() {
