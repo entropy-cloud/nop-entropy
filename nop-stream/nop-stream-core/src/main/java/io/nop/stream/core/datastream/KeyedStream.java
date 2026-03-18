@@ -9,6 +9,7 @@ package io.nop.stream.core.datastream;
 
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
+import io.nop.stream.core.windowing.windows.GlobalWindow;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.windowing.windows.Window;
 
@@ -64,7 +65,7 @@ public interface KeyedStream<T, KEY> extends DataStream<T> {
      * @param size The number of elements per window.
      * @return The windowed data stream.
      */
-    WindowedStream<T, KEY, Window> countWindow(long size);
+    WindowedStream<T, KEY, GlobalWindow> countWindow(long size);
 
     /**
      * Windows this {@code KeyedStream} into sliding count windows.
@@ -76,7 +77,7 @@ public interface KeyedStream<T, KEY> extends DataStream<T> {
      * @param slide The slide interval (number of elements).
      * @return The windowed data stream.
      */
-    WindowedStream<T, KEY, Window> countWindow(long size, long slide);
+    WindowedStream<T, KEY, GlobalWindow> countWindow(long size, long slide);
 
     /**
      * Windows this data stream to a {@code WindowedStream}, which allows for

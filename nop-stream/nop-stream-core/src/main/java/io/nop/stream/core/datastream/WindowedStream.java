@@ -10,6 +10,8 @@ package io.nop.stream.core.datastream;
 import io.nop.stream.core.common.functions.AggregateFunction;
 import io.nop.stream.core.common.functions.WindowFunction;
 import io.nop.stream.core.common.functions.ReduceFunction;
+import io.nop.stream.core.windowing.evictors.Evictor;
+import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.Window;
 
 /**
@@ -64,4 +66,20 @@ public interface WindowedStream<T, K, W extends Window> extends DataStream<T> {
      * @return The resulting data stream.
      */
     SingleOutputStreamOperator<T> reduce(ReduceFunction<T> function);
+
+    /**
+     * Sets the trigger for this windowed stream.
+     *
+     * @param trigger The trigger to use.
+     * @return This windowed stream.
+     */
+    WindowedStream<T, K, W> trigger(Trigger<? super T, ? super W> trigger);
+
+    /**
+     * Sets the evictor for this windowed stream.
+     *
+     * @param evictor The evictor to use.
+     * @return This windowed stream.
+     */
+    WindowedStream<T, K, W> evictor(Evictor<? super T, ? super W> evictor);
 }

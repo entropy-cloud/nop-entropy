@@ -12,7 +12,14 @@ import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.operators.OneInputStreamOperator;
 import io.nop.stream.core.transformation.Transformation;
+import io.nop.stream.core.windowing.assigners.GlobalWindows;
+import io.nop.stream.core.windowing.assigners.SlidingEventTimeWindows;
+import io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
+import io.nop.stream.core.windowing.evictors.CountEvictor;
+import io.nop.stream.core.windowing.triggers.CountTrigger;
+import io.nop.stream.core.windowing.triggers.PurgingTrigger;
+import io.nop.stream.core.windowing.windows.GlobalWindow;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.windowing.windows.Window;
 
@@ -153,32 +160,28 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
         }
     }
 
-    // ------------------------------------------------------------------------
-    //  Windowing operations (placeholder implementations for I8)
-    // ------------------------------------------------------------------------
-
     @Override
     public WindowedStream<T, KEY, TimeWindow> timeWindow(long size) {
-        throw new UnsupportedOperationException("timeWindow() not yet implemented. Will be implemented in I8.");
+        return window(TumblingEventTimeWindows.of(size));
     }
 
     @Override
     public WindowedStream<T, KEY, TimeWindow> timeWindow(long size, long slide) {
-        throw new UnsupportedOperationException("timeWindow() with slide not yet implemented. Will be implemented in I8.");
+        return window(SlidingEventTimeWindows.of(size, slide));
     }
 
     @Override
-    public WindowedStream<T, KEY, Window> countWindow(long size) {
-        throw new UnsupportedOperationException("countWindow() not yet implemented. Will be implemented in I8.");
+    public WindowedStream<T, KEY, GlobalWindow> countWindow(long size) {
+        return window(GlobalWindows.create()).trigger(PurgingTrigger.of(CountTrigger.of(size)));
     }
 
     @Override
-    public WindowedStream<T, KEY, Window> countWindow(long size, long slide) {
-        throw new UnsupportedOperationException("countWindow() with slide not yet implemented. Will be implemented in I8.");
+    public WindowedStream<T, KEY, GlobalWindow> countWindow(long size, long slide) {
+        return window(GlobalWindows.create()).evictor(CountEvictor.of(size)).trigger(CountTrigger.of(slide));
     }
 
     @Override
     public <W extends Window> WindowedStream<T, KEY, W> window(WindowAssigner<? super T, W> assigner) {
-        throw new UnsupportedOperationException("window() not yet implemented. Will be implemented in I8.");
+        return new WindowedStreamImpl<>(this, assigner);
     }
 }
