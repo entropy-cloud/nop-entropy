@@ -29,6 +29,7 @@ public class CallToolsExecutor {
     public CallToolsExecutor() {
         registerCommand(new WriteFileCommand());
         registerCommand(new PatchFileCommand());
+        registerCommand(new ApplyDeltaCommand());
     }
 
     public void registerCommand(IToolCommand command) {
@@ -94,21 +95,6 @@ public class CallToolsExecutor {
     }
 
     protected XNode buildResultNode(ToolCommandResult result) {
-        XNode node = XNode.make("tool-result");
-
-        if (result.getId() != null) {
-            node.setAttr("id", result.getId());
-        }
-        node.setAttr("status", String.valueOf(result.getStatus()));
-
-        if (result.getError() != null) {
-            node.setAttr("error", result.getError());
-        }
-
-        if (result.getOutput() != null) {
-            node.setAttr("status", String.valueOf(result.getStatus()));
-        }
-
-        return node;
+        return result.toNode();
     }
 }

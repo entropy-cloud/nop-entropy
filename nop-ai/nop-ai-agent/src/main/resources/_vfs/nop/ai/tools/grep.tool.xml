@@ -17,44 +17,48 @@
 - maxDepth：最大递归深度（仅当 recursive=true 时有效，可选；例如 depth=1 表示只搜索指定目录本身，depth=2 包括直接子目录，以此类推；若未指定则深度无限制）
 返回匹配的行，每行格式为“文件名:行号:内容”。适用于日志分析、代码搜索等场景。]]></description>
 
-    <example>
-        <!-- 示例1：递归搜索目录中的 ERROR 日志，限制每文件最多5行，最多3个文件 -->
-        <call-tools>
-            <grep id="1" explanation="Search ERROR logs" timeoutMs="8000"
-                  pattern="ERROR" path="/var/log" recursive="true" ignoreCase="false"
-                  maxMatchesPerFile="5" maxFiles="3"/>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="1" status="success">
-                <output><![CDATA[
-/var/log/app.log:15: 2025-03-12 ERROR Database connection failed
-/var/log/app.log:23: 2025-03-12 ERROR Connection timeout
-/var/log/app.log:47: 2025-03-12 ERROR Permission denied
-... (truncated, only first 5 lines shown for this file)
-/var/log/system.log:8: 2025-03-12 ERROR Disk space low
-/var/log/system.log:12: 2025-03-12 ERROR Service crashed
-... (truncated, only first 5 lines shown for this file)
-/var/log/access.log:3: 2025-03-12 ERROR 404 Not Found
-... (truncated, only first 5 lines shown for this file)
-... (more files not shown, found 10 files, only first 3 displayed)
-]]></output>
-            </tool-result>
-        </call-tools-response>
+    <examples>
+        <example index="1">
+            <!-- 示例1：递归搜索目录中的 ERROR 日志，限制每文件最多5行，最多3个文件 -->
+            <call-tools>
+                <grep id="1" explanation="Search ERROR logs" timeoutMs="8000"
+                      pattern="ERROR" path="/var/log" recursive="true" ignoreCase="false"
+                      maxMatchesPerFile="5" maxFiles="3"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[
+    /var/log/app.log:15: 2025-03-12 ERROR Database connection failed
+    /var/log/app.log:23: 2025-03-12 ERROR Connection timeout
+    /var/log/app.log:47: 2025-03-12 ERROR Permission denied
+    ... (truncated, only first 5 lines shown for this file)
+    /var/log/system.log:8: 2025-03-12 ERROR Disk space low
+    /var/log/system.log:12: 2025-03-12 ERROR Service crashed
+    ... (truncated, only first 5 lines shown for this file)
+    /var/log/access.log:3: 2025-03-12 ERROR 404 Not Found
+    ... (truncated, only first 5 lines shown for this file)
+    ... (more files not shown, found 10 files, only first 3 displayed)
+    ]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
 
-        <!-- 示例2：递归搜索目录，限制深度为2 -->
-        <call-tools>
-            <grep id="2" explanation="Search errors within depth 2" timeoutMs="8000"
-                  pattern="error" path="/var/log" recursive="true" ignoreCase="true"
-                  maxDepth="2"/>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="2" status="success">
-                <output><![CDATA[
-/var/log/app.log:15: 2025-03-12 ERROR Database connection failed
-/var/log/system.log:8: 2025-03-12 ERROR Disk space low
-]]></output>
-            </tool-result>
-        </call-tools-response>
-    </example>
+        <example index="2">
+            <!-- 示例2：递归搜索目录，限制深度为2 -->
+            <call-tools>
+                <grep id="2" explanation="Search errors within depth 2" timeoutMs="8000"
+                      pattern="error" path="/var/log" recursive="true" ignoreCase="true"
+                      maxDepth="2"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="success">
+                    <output><![CDATA[
+    /var/log/app.log:15: 2025-03-12 ERROR Database connection failed
+    /var/log/system.log:8: 2025-03-12 ERROR Disk space low
+    ]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
 
 </tool>

@@ -17,36 +17,40 @@
 - 若未指定 directory，返回相对于当前工作目录的相对路径
 适用于批量文件查找、日志收集等场景。]]></description>
 
-    <example>
-        <!-- 示例1：指定绝对路径目录，递归查找所有 .log 文件，限制返回前 3 个 -->
-        <call-tools>
-            <glob id="1" explanation="查找前3个日志文件" timeoutMs="5000"
-                  pattern="**/*.log" directory="/var/log" recursive="true" maxResults="3"/>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="1" status="success">
-                <output><![CDATA[
-/var/log/system.log
-/var/log/app/access.log
-/var/log/app/error.log
-]]></output>
-            </tool-result>
-        </call-tools-response>
+    <examples>
+        <example index="1">
+            <!-- 示例1：指定绝对路径目录，递归查找所有 .log 文件，限制返回前 3 个 -->
+            <call-tools>
+                <glob id="1" explanation="查找前3个日志文件" timeoutMs="5000"
+                      pattern="**/*.log" directory="/var/log" recursive="true" maxResults="3"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[
+    /var/log/system.log
+    /var/log/app/access.log
+    /var/log/app/error.log
+    ]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
 
-        <!-- 示例2：递归查找所有 .conf 文件，限制深度为2 -->
-        <call-tools>
-            <glob id="2" explanation="查找深度2内的配置文件" timeoutMs="5000"
-                  pattern="**/*.conf" directory="/etc" recursive="true" maxDepth="2"/>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="2" status="success">
-                <output><![CDATA[
-/etc/app.conf
-/etc/network.conf
-/etc/ssh/sshd.conf
-]]></output>
-            </tool-result>
-        </call-tools-response>
-    </example>
+        <example index="2">
+            <!-- 示例2：递归查找所有 .conf 文件，限制深度为2 -->
+            <call-tools>
+                <glob id="2" explanation="查找深度2内的配置文件" timeoutMs="5000"
+                      pattern="**/*.conf" directory="/etc" recursive="true" maxDepth="2"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="success">
+                    <output><![CDATA[
+    /etc/app.conf
+    /etc/network.conf
+    /etc/ssh/sshd.conf
+    ]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
 
 </tool>

@@ -9,8 +9,8 @@
     <description xdef:mandatory="true">string</description>
 
     <!-- example：工具的使用示例，可包含一个或多个具体调用实例 -->
-    <examples xdef:body-type="list">
-        <example xdef:name="AgentToolExample">
+    <examples xdef:body-type="list" xdef:key-attr="index">
+        <example index="!int" xdef:name="AgentToolExample">
             <call-tools xdef:ref="call-tools.xdef"/>
             <call-tools-response xdef:ref="call-tools-response.xdef"/>
         </example>

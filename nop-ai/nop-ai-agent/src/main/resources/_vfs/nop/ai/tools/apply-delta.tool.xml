@@ -16,39 +16,43 @@
 若同时提供，优先使用deltaContent。
 dryRun=true时仅返回合并结果预览，不实际写入文件；dryRun=false时将合并结果写回path指定的文件（覆盖原内容），成功后仅返回确认信息。]]></description>
 
-    <example>
-        <!-- 示例1：通过delta内容预览合并（dryRun） -->
-        <call-tools>
-            <apply-delta id="1" explanation="Preview adding mobile field"
-                         path="/nop/auth/app.orm.xml" dryRun="true">
-                <deltaContent>
-                    <orm>
-                        <entities>
-                            <entity name="io.nop.auth.dao.entity.NopAuthUser">
-                                <columns>
-                                    <column name="mobile" stdDomain="string" displayName="手机号" length="20"/>
-                                </columns>
-                            </entity>
-                        </entities>
-                    </orm>
-                </deltaContent>
-            </apply-delta>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="1" status="success"/>
-        </call-tools-response>
+    <examples>
+        <example index="1">
+            <!-- 示例1：通过delta内容预览合并（dryRun） -->
+            <call-tools>
+                <apply-delta id="1" explanation="Preview adding mobile field"
+                             path="/nop/auth/app.orm.xml" dryRun="true">
+                    <deltaContent>
+                        <orm>
+                            <entities>
+                                <entity name="io.nop.auth.dao.entity.NopAuthUser">
+                                    <columns>
+                                        <column name="mobile" stdDomain="string" displayName="手机号" length="20"/>
+                                    </columns>
+                                </entity>
+                            </entities>
+                        </orm>
+                    </deltaContent>
+                </apply-delta>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success"/>
+            </call-tools-response>
+        </example>
 
-        <!-- 示例2：通过已有delta文件实际更新文件（dryRun=false，不返回合并内容） -->
-        <call-tools>
-            <apply-delta id="2" explanation="Apply beans delta and save"
-                         path="/nop/auth/auth-service.beans.xml"
-                         deltaPath="/_delta/default/nop/auth/auth-service.beans.xml"/>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="2" status="success">
-                <output><![CDATA[Delta applied successfully. File updated: /nop/auth/auth-service.beans.xml]]></output>
-            </tool-result>
-        </call-tools-response>
-    </example>
+        <example index="2">
+            <!-- 示例2：通过已有delta文件实际更新文件（dryRun=false，不返回合并内容） -->
+            <call-tools>
+                <apply-delta id="2" explanation="Apply beans delta and save"
+                             path="/nop/auth/auth-service.beans.xml"
+                             deltaPath="/_delta/default/nop/auth/auth-service.beans.xml"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="success">
+                    <output><![CDATA[Delta applied successfully. File updated: /nop/auth/auth-service.beans.xml]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
 
 </tool>

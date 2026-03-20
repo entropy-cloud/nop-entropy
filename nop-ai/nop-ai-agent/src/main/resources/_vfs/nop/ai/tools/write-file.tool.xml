@@ -14,36 +14,38 @@
 如果文件所在目录不存在，会自动创建。
 文件内容通过 <input> 子元素传递，支持包含换行符等特殊字符。适用于生成配置文件、保存日志等场景。]]></description>
 
-    <example>
-        <!-- 示例1：覆盖写入新文件 -->
-        <call-tools>
-            <write-file id="1" explanation="写入配置文件"
-                        path="/etc/app/config.ini" append="false">
-                <input><![CDATA[# 应用配置
-server.port=8080
-]]></input>
-            </write-file>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="1" status="success">
-                <output><![CDATA[文件已写入，大小 42 字节]]></output>
-            </tool-result>
-        </call-tools-response>
-    </example>
+    <examples>
+        <example index="1">
+            <!-- 示例1：覆盖写入新文件 -->
+            <call-tools>
+                <write-file id="1" explanation="写入配置文件"
+                            path="/etc/app/config.ini" append="false">
+                    <input><![CDATA[# 应用配置
+    server.port=8080
+    ]]></input>
+                </write-file>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[文件已写入，大小 42 字节]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
 
-    <example>
-        <!-- 示例2：追加写入日志 -->
-        <call-tools>
-            <write-file id="2" explanation="追加日志"
-                        path="/var/log/app.log" append="true">
-                <input><![CDATA[2025-03-12 INFO 操作完成]]></input>
-            </write-file>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="2" status="success">
-                <output><![CDATA[内容已追加，当前文件总行数 128]]></output>
-            </tool-result>
-        </call-tools-response>
-    </example>
+        <example index="2">
+            <!-- 示例2：追加写入日志 -->
+            <call-tools>
+                <write-file id="2" explanation="追加日志"
+                            path="/var/log/app.log" append="true">
+                    <input><![CDATA[2025-03-12 INFO 操作完成]]></input>
+                </write-file>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="success">
+                    <output><![CDATA[内容已追加，当前文件总行数 128]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
 
 </tool>

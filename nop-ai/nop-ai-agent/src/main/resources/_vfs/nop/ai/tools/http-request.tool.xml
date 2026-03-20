@@ -37,82 +37,86 @@
 
 适用于API调用、数据获取、服务集成等场景。]]></description>
 
-    <example>
-        <!-- 示例1：GET请求获取数据 -->
-        <call-tools>
-            <http-request id="1" explanation="Fetch weather data" timeoutMs="5000"
-                          url="https://api.open-meteo.com/v1/forecast" method="GET">
-                <params>
-                    <param name="latitude" value="52.52"/>
-                    <param name="longitude" value="13.41"/>
-                    <param name="current_weather" value="true"/>
-                </params>
-                <headers>
-                    <header name="Accept" value="application/json"/>
-                </headers>
-            </http-request>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="1" status="success">
-                <output><![CDATA[{
-  "status": 200,
-  "headers": {
-    "content-type": "application/json",
-    "date": "Wed, 13 Mar 2026 10:00:00 GMT"
-  },
-  "body": {
-    "latitude": 52.52,
-    "longitude": 13.41,
-    "current_weather": {
-      "temperature": 12.3,
-      "windspeed": 15.5,
-      "weathercode": 1
-    }
-  },
-  "redirected": false,
-  "url": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current_weather=true"
-}]]></output>
-            </tool-result>
-        </call-tools-response>
+    <examples>
+        <example index="1">
+            <!-- 示例1：GET请求获取数据 -->
+            <call-tools>
+                <http-request id="1" explanation="Fetch weather data" timeoutMs="5000"
+                              url="https://api.open-meteo.com/v1/forecast" method="GET">
+                    <params>
+                        <param name="latitude" value="52.52"/>
+                        <param name="longitude" value="13.41"/>
+                        <param name="current_weather" value="true"/>
+                    </params>
+                    <headers>
+                        <header name="Accept" value="application/json"/>
+                    </headers>
+                </http-request>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[{
+      "status": 200,
+      "headers": {
+        "content-type": "application/json",
+        "date": "Wed, 13 Mar 2026 10:00:00 GMT"
+      },
+      "body": {
+        "latitude": 52.52,
+        "longitude": 13.41,
+        "current_weather": {
+          "temperature": 12.3,
+          "windspeed": 15.5,
+          "weathercode": 1
+        }
+      },
+      "redirected": false,
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current_weather=true"
+    }]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
 
-        <!-- 示例2：POST请求创建资源 -->
-        <call-tools>
-            <http-request id="2" explanation="Create new todo item" timeoutMs="3000"
-                          url="https://jsonplaceholder.typicode.com/todos" method="POST">
-                <headers>
-                    <header name="Content-Type" value="application/json"/>
-                    <header name="Accept" value="application/json"/>
-                </headers>
-                <body><![CDATA[{
-  "title": "Learn MCP",
-  "completed": false,
-  "userId": 1
-}]]></body>
-                <auth type="bearer">
-                    <token>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</token>
-                </auth>
-            </http-request>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="2" status="success">
-                <output><![CDATA[{
-  "status": 201,
-  "statusText": "Created",
-  "headers": {
-    "content-type": "application/json",
-    "location": "/todos/201"
-  },
-  "body": {
-    "id": 201,
-    "title": "Learn MCP",
-    "completed": false,
-    "userId": 1
-  },
-  "redirected": false,
-  "url": "https://jsonplaceholder.typicode.com/todos"
-}]]></output>
-            </tool-result>
-        </call-tools-response>
-    </example>
+        <example index="2">
+            <!-- 示例2：POST请求创建资源 -->
+            <call-tools>
+                <http-request id="2" explanation="Create new todo item" timeoutMs="3000"
+                              url="https://jsonplaceholder.typicode.com/todos" method="POST">
+                    <headers>
+                        <header name="Content-Type" value="application/json"/>
+                        <header name="Accept" value="application/json"/>
+                    </headers>
+                    <body><![CDATA[{
+      "title": "Learn MCP",
+      "completed": false,
+      "userId": 1
+    }]]></body>
+                    <auth type="bearer">
+                        <token>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</token>
+                    </auth>
+                </http-request>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="success">
+                    <output><![CDATA[{
+      "status": 201,
+      "statusText": "Created",
+      "headers": {
+        "content-type": "application/json",
+        "location": "/todos/201"
+      },
+      "body": {
+        "id": 201,
+        "title": "Learn MCP",
+        "completed": false,
+        "userId": 1
+      },
+      "redirected": false,
+      "url": "https://jsonplaceholder.typicode.com/todos"
+    }]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
 
 </tool>

@@ -12,17 +12,19 @@
 - overwrite：是否覆盖已存在的目标（默认 false）
 操作成功时返回确认信息。]]></description>
 
-    <example>
-        <call-tools>
-            <move-file id="1" explanation="Rename config file" timeoutMs="3000"
-                       source="/etc/app/config.ini" target="/etc/app/config.backup.ini" overwrite="true"/>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="1" status="success">
-                <output>
-                    <![CDATA[File moved successfully from /etc/app/config.ini to /etc/app/config.backup.ini]]></output>
-            </tool-result>
-        </call-tools-response>
-    </example>
+    <examples>
+        <example index="1">
+            <call-tools>
+                <move-file id="1" explanation="Rename config file" timeoutMs="3000"
+                           source="/etc/app/config.ini" target="/etc/app/config.backup.ini" overwrite="true"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output>
+                        <![CDATA[File moved successfully from /etc/app/config.ini to /etc/app/config.backup.ini]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
 
 </tool>

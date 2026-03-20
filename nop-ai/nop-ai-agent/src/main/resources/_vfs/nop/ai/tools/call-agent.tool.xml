@@ -20,52 +20,58 @@
 - input-files：附加文件列表（可选）
 返回agent-result，包含sessionId（新建会话时返回新ID）、output文本及可能生成的output-files。]]></description>
 
-    <example>
-        <!-- 示例1：创建当前agent副本，执行任务（不继承上下文） -->
-        <call-tools>
-            <call-agent id="1" explanation="Spawn sub-agent to analyze logs" timeoutMs="30000"
-                        agentId="self" skills="log-analysis" inheritContext="false">
-                <input><![CDATA[请分析附件的日志文件，汇总错误行。]]></input>
-                <input-files>
-                    <input-file path="/var/log/app.log" description="Application log"/>
-                </input-files>
-            </call-agent>
-        </call-tools>
-        <call-tools-response>
-            <agent-result id="1" status="success" sessionId="sess_abc123">
-                <output><![CDATA[共发现3处错误：
-1. 2025-03-13 10:15:23 ERROR 数据库连接失败
-2. 2025-03-13 10:17:45 ERROR 连接超时
-3. 2025-03-13 10:22:10 ERROR 权限不足]]></output>
-                <output-files>
-                    <output-file path="/tmp/analysis.txt" lines="3" description="错误摘要"/>
-                </output-files>
-            </agent-result>
-        </call-tools-response>
+    <examples>
+        <example index="1">
+            <!-- 示例1：创建当前agent副本，执行任务（不继承上下文） -->
+            <call-tools>
+                <call-agent id="1" explanation="Spawn sub-agent to analyze logs" timeoutMs="30000"
+                            agentId="self" skills="log-analysis" inheritContext="false">
+                    <input><![CDATA[请分析附件的日志文件，汇总错误行。]]></input>
+                    <input-files>
+                        <input-file path="/var/log/app.log" description="Application log"/>
+                    </input-files>
+                </call-agent>
+            </call-tools>
+            <call-tools-response>
+                <agent-result id="1" status="success" sessionId="sess_abc123">
+                    <output><![CDATA[共发现3处错误：
+    1. 2025-03-13 10:15:23 ERROR 数据库连接失败
+    2. 2025-03-13 10:17:45 ERROR 连接超时
+    3. 2025-03-13 10:22:10 ERROR 权限不足]]></output>
+                    <output-files>
+                        <output-file path="/tmp/analysis.txt" lines="3" description="错误摘要"/>
+                    </output-files>
+                </agent-result>
+            </call-tools-response>
+        </example>
 
-        <!-- 示例2：仅创建当前agent副本（无输入），返回新会话ID，后续可用 -->
-        <call-tools>
-            <call-agent id="2" explanation="Create sub-agent instance for later use" timeoutMs="5000"
-                        agentId="self" skills="calculator"/>
-        </call-tools>
-        <call-tools-response>
-            <agent-result id="2" status="success" sessionId="sess_xyz789">
-                <output><![CDATA[Sub-agent created. Use sessionId to interact via call-agent.]]></output>
-            </agent-result>
-        </call-tools-response>
+        <example index="2">
+            <!-- 示例2：仅创建当前agent副本（无输入），返回新会话ID，后续可用 -->
+            <call-tools>
+                <call-agent id="2" explanation="Create sub-agent instance for later use" timeoutMs="5000"
+                            agentId="self" skills="calculator"/>
+            </call-tools>
+            <call-tools-response>
+                <agent-result id="2" status="success" sessionId="sess_xyz789">
+                    <output><![CDATA[Sub-agent created. Use sessionId to interact via call-agent.]]></output>
+                </agent-result>
+            </call-tools-response>
+        </example>
 
-        <!-- 示例3：调用外部翻译agent，延续已有会话，指定技能 -->
-        <call-tools>
-            <call-agent id="3" explanation="Translate English to Chinese" timeoutMs="10000"
-                        agentId="translator" sessionId="sess_xyz789" skills="technical,formal">
-                <input><![CDATA[Hello, world!]]></input>
-            </call-agent>
-        </call-tools>
-        <call-tools-response>
-            <agent-result id="3" status="success" sessionId="sess_xyz789">
-                <output><![CDATA[你好，世界！]]></output>
-            </agent-result>
-        </call-tools-response>
-    </example>
+        <example index="3">
+            <!-- 示例3：调用外部翻译agent，延续已有会话，指定技能 -->
+            <call-tools>
+                <call-agent id="3" explanation="Translate English to Chinese" timeoutMs="10000"
+                            agentId="translator" sessionId="sess_xyz789" skills="technical,formal">
+                    <input><![CDATA[Hello, world!]]></input>
+                </call-agent>
+            </call-tools>
+            <call-tools-response>
+                <agent-result id="3" status="success" sessionId="sess_xyz789">
+                    <output><![CDATA[你好，世界！]]></output>
+                </agent-result>
+            </call-tools-response>
+        </example>
+    </examples>
 
 </tool>

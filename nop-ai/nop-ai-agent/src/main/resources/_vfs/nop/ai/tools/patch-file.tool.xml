@@ -18,46 +18,50 @@
 dryRun=true 时仅预览修改效果，不实际更改文件。
 新增文件请使用 write-file，删除文件请使用其他工具。]]></description>
 
-    <example>
-        <!-- 示例1：一处添加（末尾附近） -->
-        <call-tools>
-            <patch-file id="1" explanation="Add debug log level to config"
-                        path="/etc/app/config.ini" dryRun="false">
-                <input><![CDATA[@@ -1,3 +1,4 @@
- # 应用配置
- server.port=8080
- database.url=jdbc:mysql://localhost/db
-+log.level=DEBUG]]></input>
-            </patch-file>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="1" status="success">
-                <output><![CDATA[Patch applied successfully, 1 line added.]]></output>
-            </tool-result>
-        </call-tools-response>
+    <examples>
+        <example index="1">
+            <!-- 示例1：一处添加（末尾附近） -->
+            <call-tools>
+                <patch-file id="1" explanation="Add debug log level to config"
+                            path="/etc/app/config.ini" dryRun="false">
+                    <input><![CDATA[@@ -1,3 +1,4 @@
+     # 应用配置
+     server.port=8080
+     database.url=jdbc:mysql://localhost/db
+    +log.level=DEBUG]]></input>
+                </patch-file>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[Patch applied successfully, 1 line added.]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
 
-        <!-- 示例2：两处修改（添加 + 修改），预览模式，使用唯一上下文行 -->
-        <call-tools>
-            <patch-file id="2" explanation="Add debug level and change DB URL"
-                        path="/etc/app/config.ini" dryRun="true">
-                <input><![CDATA[@@ -1,3 +1,4 @@
- # 应用配置
- server.port=8080
- database.url=jdbc:mysql://localhost/db
-+log.level=DEBUG
-@@ -2,4 +2,4 @@
- server.port=8080
--database.url=jdbc:mysql://localhost/db
-+database.url=jdbc:postgresql://localhost:5432/app
- log.level=INFO]]></input>
-            </patch-file>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="2" status="success">
-                <output><![CDATA[ Dry run: two changes would be applied (add line after line 3, modify line 3 to use PostgreSQL).
-]]></output>
-            </tool-result>
-        </call-tools-response>
-    </example>
+        <example index="2">
+            <!-- 示例2：两处修改（添加 + 修改），预览模式，使用唯一上下文行 -->
+            <call-tools>
+                <patch-file id="2" explanation="Add debug level and change DB URL"
+                            path="/etc/app/config.ini" dryRun="true">
+                    <input><![CDATA[@@ -1,3 +1,4 @@
+     # 应用配置
+     server.port=8080
+     database.url=jdbc:mysql://localhost/db
+    +log.level=DEBUG
+    @@ -2,4 +2,4 @@
+     server.port=8080
+    -database.url=jdbc:mysql://localhost/db
+    +database.url=jdbc:postgresql://localhost:5432/app
+     log.level=INFO]]></input>
+                </patch-file>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="success">
+                    <output><![CDATA[ Dry run: two changes would be applied (add line after line 3, modify line 3 to use PostgreSQL).
+    ]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
 
 </tool>

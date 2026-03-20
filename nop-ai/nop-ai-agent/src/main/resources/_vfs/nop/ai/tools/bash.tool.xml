@@ -15,35 +15,39 @@
 成功时返回 stdout 作为 output，exitCode 为 0；失败时（exitCode ≠ 0）将 stderr 放入 error，status 设为 failure，并提供具体退出码。
 适用于系统操作、脚本执行等场景。]]></description>
 
-    <example>
-        <!-- 示例1：执行简单命令，成功返回 -->
-        <call-tools>
-            <bash id="1" explanation="List files" timeoutMs="5000" workingDir="/tmp">
-                <command><![CDATA[ls -la]]></command>
-                <env name="LANG" value="en_US.UTF-8"/>
-            </bash>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="1" status="success" exitCode="0">
-                <output><![CDATA[
-total 8
-drwxr-xr-x  2 user user 4096 Mar 12 10:00 .
-drwxr-xr-x 24 user user 4096 Mar 12 09:00 ..
-]]></output>
-            </tool-result>
-        </call-tools-response>
+    <examples>
+        <example index="1">
+            <!-- 示例1：执行简单命令，成功返回 -->
+            <call-tools>
+                <bash id="1" explanation="List files" timeoutMs="5000" workingDir="/tmp">
+                    <command><![CDATA[ls -la]]></command>
+                    <env name="LANG" value="en_US.UTF-8"/>
+                </bash>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success" exitCode="0">
+                    <output><![CDATA[
+    total 8
+    drwxr-xr-x  2 user user 4096 Mar 12 10:00 .
+    drwxr-xr-x 24 user user 4096 Mar 12 09:00 ..
+    ]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
 
-        <!-- 示例2：执行失败命令，返回错误信息及退出码 -->
-        <call-tools>
-            <bash id="2" explanation="Run invalid command" timeoutMs="3000">
-                <command><![CDATA[cat /nonexistent/file]]></command>
-            </bash>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="2" status="failure" exitCode="1">
-                <error><![CDATA[cat: /nonexistent/file: No such file or directory]]></error>
-            </tool-result>
-        </call-tools-response>
-    </example>
+        <example index="2">
+            <!-- 示例2：执行失败命令，返回错误信息及退出码 -->
+            <call-tools>
+                <bash id="2" explanation="Run invalid command" timeoutMs="3000">
+                    <command><![CDATA[cat /nonexistent/file]]></command>
+                </bash>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="failure" exitCode="1">
+                    <error><![CDATA[cat: /nonexistent/file: No such file or directory]]></error>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
 
 </tool>

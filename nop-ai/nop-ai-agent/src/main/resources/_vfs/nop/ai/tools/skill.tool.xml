@@ -11,31 +11,35 @@
 - load：动态加载指定技能到当前agent上下文（需skillName）
 适用于技能发现、动态扩展能力等场景。]]></description>
 
-    <example>
-        <!-- 示例1：列出所有可用技能 -->
-        <call-tools>
-            <skill id="1" explanation="List all available skills"
-                   action="list"/>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="1" status="success">
-                <output><![CDATA[<skills>
-  <skill name="log-analysis">Analyze log files for errors and patterns</skill>
-  <skill name="translator">Translate text between languages</skill>
-</skills>]]></output>
-            </tool-result>
-        </call-tools-response>
+    <examples>
+        <example index="1">
+            <!-- 示例1：列出所有可用技能 -->
+            <call-tools>
+                <skill id="1" explanation="List all available skills"
+                       action="list"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[<skills>
+      <skill name="log-analysis">Analyze log files for errors and patterns</skill>
+      <skill name="translator">Translate text between languages</skill>
+    </skills>]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
 
-        <!-- 示例2：动态加载技能到当前上下文 -->
-        <call-tools>
-            <skill id="2" explanation="Load python skill to calculate data statistics"
-                   action="load" skillName="python"/>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="2" status="success">
-                <output><![CDATA[Skill 'python' loaded successfully.]]></output>
-            </tool-result>
-        </call-tools-response>
-    </example>
+        <example index="2">
+            <!-- 示例2：动态加载技能到当前上下文 -->
+            <call-tools>
+                <skill id="2" explanation="Load python skill to calculate data statistics"
+                       action="load" skillName="python"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="success">
+                    <output><![CDATA[Skill 'python' loaded successfully.]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
 
 </tool>

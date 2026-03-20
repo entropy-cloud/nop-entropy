@@ -13,28 +13,32 @@
 - overwrite：是否覆盖已存在的目标（默认 false）
 操作成功时返回确认信息。]]></description>
 
-    <example>
-        <!-- 示例：复制文件 -->
-        <call-tools>
-            <copy-file id="1" explanation="Copy config file" timeoutMs="4000"
-                       source="/etc/app/config.ini" target="/backup/config.ini" overwrite="false"/>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="1" status="success">
-                <output><![CDATA[File copied successfully from /etc/app/config.ini to /backup/config.ini]]></output>
-            </tool-result>
-        </call-tools-response>
+    <examples>
+        <example index="1">
+            <!-- 示例：复制文件 -->
+            <call-tools>
+                <copy-file id="1" explanation="Copy config file" timeoutMs="4000"
+                           source="/etc/app/config.ini" target="/backup/config.ini" overwrite="false"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[File copied successfully from /etc/app/config.ini to /backup/config.ini]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
 
-        <!-- 示例：递归复制目录 -->
-        <call-tools>
-            <copy-file id="2" explanation="Backup project folder" timeoutMs="10000"
-                       source="/projects/myapp" target="/backups/myapp" recursive="true" overwrite="true"/>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="2" status="success">
-                <output><![CDATA[Directory copied successfully from /projects/myapp to /backups/myapp]]></output>
-            </tool-result>
-        </call-tools-response>
-    </example>
+        <example index="2">
+            <!-- 示例：递归复制目录 -->
+            <call-tools>
+                <copy-file id="2" explanation="Backup project folder" timeoutMs="10000"
+                           source="/projects/myapp" target="/backups/myapp" recursive="true" overwrite="true"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="success">
+                    <output><![CDATA[Directory copied successfully from /projects/myapp to /backups/myapp]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
 
 </tool>

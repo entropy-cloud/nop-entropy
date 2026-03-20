@@ -11,16 +11,18 @@
 - createParents：是否同时创建不存在的父目录（类似 mkdir -p，默认 false）
 操作成功时返回确认信息。]]></description>
 
-    <example>
-        <call-tools>
-            <create-dir id="1" explanation="Create data directory"
-                        path="/var/data/app/logs" createParents="true"/>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="1" status="success">
-                <output><![CDATA[Directory created successfully: /var/data/app/logs]]></output>
-            </tool-result>
-        </call-tools-response>
-    </example>
+    <examples>
+        <example index="1">
+            <call-tools>
+                <create-dir id="1" explanation="Create data directory"
+                            path="/var/data/app/logs" createParents="true"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[Directory created successfully: /var/data/app/logs]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
 
 </tool>

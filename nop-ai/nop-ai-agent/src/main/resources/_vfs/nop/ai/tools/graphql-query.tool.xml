@@ -12,36 +12,38 @@
 endpoint 可选，指定 GraphQL 服务地址（默认系统知识库）。
 返回结果为 JSON 格式（用 CDATA 包裹），包含 data 和 errors 字段。]]></description>
 
-    <example>
-        <call-tools>
-            <graphql-query id="1" explanation="Query user projects" timeoutMs="5000">
-                <input><![CDATA[{
-  user(id: "123") {
-    name
-    email
-    projects {
-      title
-      status
-    }
-  }
-}]]></input>
-            </graphql-query>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="1" status="success">
-                <output><![CDATA[{
-  "data": {
-    "user": {
-      "name": "Alice",
-      "email": "alice@example.com",
-      "projects": [
-        {"title": "Agent System", "status": "active"}
-      ]
-    }
-  }
-}]]></output>
-            </tool-result>
-        </call-tools-response>
-    </example>
+    <examples>
+        <example index="1">
+            <call-tools>
+                <graphql-query id="1" explanation="Query user projects" timeoutMs="5000">
+                    <input><![CDATA[{
+      user(id: "123") {
+        name
+        email
+        projects {
+          title
+          status
+        }
+      }
+    }]]></input>
+                </graphql-query>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[{
+      "data": {
+        "user": {
+          "name": "Alice",
+          "email": "alice@example.com",
+          "projects": [
+            {"title": "Agent System", "status": "active"}
+          ]
+        }
+      }
+    }]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
 
 </tool>

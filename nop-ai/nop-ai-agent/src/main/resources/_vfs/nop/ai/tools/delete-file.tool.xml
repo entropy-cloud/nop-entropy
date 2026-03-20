@@ -12,28 +12,32 @@
 - force：是否强制删除只读文件等（默认 false）
 操作成功时返回确认信息。]]></description>
 
-    <example>
-        <!-- 示例：删除文件 -->
-        <call-tools>
-            <delete-file id="1" explanation="Remove temporary file"
-                         path="/tmp/temp.log"/>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="1" status="success">
-                <output><![CDATA[File deleted successfully: /tmp/temp.log]]></output>
-            </tool-result>
-        </call-tools-response>
+    <examples>
+        <example index="1">
+            <!-- 示例：删除文件 -->
+            <call-tools>
+                <delete-file id="1" explanation="Remove temporary file"
+                             path="/tmp/temp.log"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[File deleted successfully: /tmp/temp.log]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
 
-        <!-- 示例：递归删除目录 -->
-        <call-tools>
-            <delete-file id="2" explanation="Clean up old logs"
-                         path="/var/log/old" recursive="true" force="true"/>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="2" status="success">
-                <output><![CDATA[Directory deleted successfully: /var/log/old]]></output>
-            </tool-result>
-        </call-tools-response>
-    </example>
+        <example index="2">
+            <!-- 示例：递归删除目录 -->
+            <call-tools>
+                <delete-file id="2" explanation="Clean up old logs"
+                             path="/var/log/old" recursive="true" force="true"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="success">
+                    <output><![CDATA[Directory deleted successfully: /var/log/old]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
 
 </tool>

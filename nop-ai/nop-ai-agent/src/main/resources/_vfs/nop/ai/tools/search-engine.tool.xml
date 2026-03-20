@@ -28,82 +28,86 @@ filter为Lucene查询语法字符串，用于精确过滤，支持字段限定�
 scope限定搜索范围，可指定一个或多个要包含的集合（collection）；若需排除特定集合，可在filter中使用如 `-collection_name:draft` 的语法。
 返回结果为JSON格式，包含results数组，每个result包含score、source、title、snippet、metadata等字段，其中metadata可包含任意自定义属性（如tags、rating等）。]]></description>
 
-    <example>
-        <!-- 示例1：混合模式查询，按tags过滤 -->
-        <call-tools>
-            <search-engine id="1" explanation="Search hotels with pool and spa in Paris" timeoutMs="5000"
-                           mode="hybrid" maxResults="5" minScore="0.3">
-                <input><![CDATA[luxury hotels in Paris with pool and spa]]></input>
-                <filter><![CDATA[category:hotel AND city:paris AND metadata.tags:pool AND metadata.tags:spa]]></filter>
-                <scope>
-                    <collection name="hotels"/>
-                </scope>
-            </search-engine>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="1" status="success">
-                <output><![CDATA[{
-  "results": [
-    {
-      "score": 0.95,
-      "source": "/hotels/paris-ritz",
-      "title": "Ritz Paris - Luxury Hotel",
-      "snippet": "5-star palace hotel featuring indoor pool, spa, and Michelin-starred dining...",
-      "metadata": {
-        "rating": 4.9,
-        "price": "€1200/night",
-        "tags": ["pool", "spa", "luxury", "restaurant"]
-      }
-    },
-    {
-      "score": 0.88,
-      "source": "/hotels/shangri-la-paris",
-      "title": "Shangri-La Hotel Paris",
-      "snippet": "Luxury hotel with indoor heated pool, Eiffel Tower views...",
-      "metadata": {
-        "rating": 4.8,
-        "price": "€950/night",
-        "tags": ["pool", "spa", "valet parking", "view"]
-      }
-    }
-  ]
-}]]></output>
-            </tool-result>
-        </call-tools-response>
+    <examples>
+        <example index="1">
+            <!-- 示例1：混合模式查询，按tags过滤 -->
+            <call-tools>
+                <search-engine id="1" explanation="Search hotels with pool and spa in Paris" timeoutMs="5000"
+                               mode="hybrid" maxResults="5" minScore="0.3">
+                    <input><![CDATA[luxury hotels in Paris with pool and spa]]></input>
+                    <filter><![CDATA[category:hotel AND city:paris AND metadata.tags:pool AND metadata.tags:spa]]></filter>
+                    <scope>
+                        <collection name="hotels"/>
+                    </scope>
+                </search-engine>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[{
+      "results": [
+        {
+          "score": 0.95,
+          "source": "/hotels/paris-ritz",
+          "title": "Ritz Paris - Luxury Hotel",
+          "snippet": "5-star palace hotel featuring indoor pool, spa, and Michelin-starred dining...",
+          "metadata": {
+            "rating": 4.9,
+            "price": "€1200/night",
+            "tags": ["pool", "spa", "luxury", "restaurant"]
+          }
+        },
+        {
+          "score": 0.88,
+          "source": "/hotels/shangri-la-paris",
+          "title": "Shangri-La Hotel Paris",
+          "snippet": "Luxury hotel with indoor heated pool, Eiffel Tower views...",
+          "metadata": {
+            "rating": 4.8,
+            "price": "€950/night",
+            "tags": ["pool", "spa", "valet parking", "view"]
+          }
+        }
+      ]
+    }]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
 
-        <!-- 示例2：向量模式查询，按tags排除 -->
-        <call-tools>
-            <search-engine id="2" explanation="Find research papers about search, excluding drafts" timeoutMs="3000"
-                           mode="vector" maxResults="10">
-                <input><![CDATA[optimizing search engine query performance]]></input>
-                <filter>
-                    <![CDATA[(category:research OR category:paper) AND date:[2024 TO 2026] AND -metadata.tags:draft]]></filter>
-                <scope>
-                    <collection name="research-papers"/>
-                    <collection name="conference-articles"/>
-                </scope>
-            </search-engine>
-        </call-tools>
-        <call-tools-response>
-            <tool-result id="2" status="success">
-                <output><![CDATA[{
-  "results": [
-    {
-      "score": 0.92,
-      "source": "/papers/lucene-optimization",
-      "title": "Optimizing Lucene Query Performance",
-      "snippet": "This paper presents novel approaches to Boolean query optimization...",
-      "metadata": {
-        "date": "2025-03-15",
-        "category": "research",
-        "citations": 24,
-        "tags": ["lucene", "performance", "search"]
-      }
-    }
-  ]
-}]]></output>
-            </tool-result>
-        </call-tools-response>
-    </example>
+        <example index="2">
+            <!-- 示例2：向量模式查询，按tags排除 -->
+            <call-tools>
+                <search-engine id="2" explanation="Find research papers about search, excluding drafts" timeoutMs="3000"
+                               mode="vector" maxResults="10">
+                    <input><![CDATA[optimizing search engine query performance]]></input>
+                    <filter>
+                        <![CDATA[(category:research OR category:paper) AND date:[2024 TO 2026] AND -metadata.tags:draft]]></filter>
+                    <scope>
+                        <collection name="research-papers"/>
+                        <collection name="conference-articles"/>
+                    </scope>
+                </search-engine>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="success">
+                    <output><![CDATA[{
+      "results": [
+        {
+          "score": 0.92,
+          "source": "/papers/lucene-optimization",
+          "title": "Optimizing Lucene Query Performance",
+          "snippet": "This paper presents novel approaches to Boolean query optimization...",
+          "metadata": {
+            "date": "2025-03-15",
+            "category": "research",
+            "citations": 24,
+            "tags": ["lucene", "performance", "search"]
+          }
+        }
+      ]
+    }]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
 
 </tool>
