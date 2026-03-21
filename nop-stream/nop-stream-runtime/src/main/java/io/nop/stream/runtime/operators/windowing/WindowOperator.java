@@ -25,7 +25,13 @@ import io.nop.commons.tuple.Tuple2;
 import io.nop.stream.core.common.accumulators.SimpleAccumulator;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.state.KeyedStateStore;
+import io.nop.stream.core.common.state.InternalAppendingState;
+import io.nop.stream.core.common.state.InternalListState;
+import io.nop.stream.core.common.state.KeyedStateStore;
+import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
+import io.nop.stream.core.common.state.VoidNamespace;
+import io.nop.stream.core.common.state.backend.IInternalStateBackend;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.InternalTimer;
@@ -40,6 +46,7 @@ import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.triggers.TriggerResult;
 import io.nop.stream.core.windowing.windows.Window;
+import io.nop.stream.runtime.operators.WindowOperatorTimerService;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
 
 import java.util.Collection;
@@ -85,11 +92,17 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     private final Trigger<? super IN, ? super W> trigger;
 
     // private final StateDescriptor<? extends AppendingState<IN, ACC>, ?> windowStateDescriptor;
+    protected transient InternalAppendingState<K, W, IN, ACC, ACC> windowState;
 
     /**
      * For serializing the key in checkpoints.
      */
     protected final TypeSerializer<K> keySerializer;
+
+    /**
+     * The class of the key type, used for state backend creation.
+     */
+    protected final Class<K> keyClass;
 
     /**
      * For serializing the window in checkpoints.
@@ -132,7 +145,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     //private transient InternalMergingState<K, W, IN, ACC, ACC> windowMergingState;
 
     /** The state that holds the merging window metadata (the sets that describe what is merged). */
-    //private transient InternalListState<K, VoidNamespace, Tuple2<W, W>> mergingSetsState;
+    private transient InternalListState<K, VoidNamespace, Tuple2<W, W>> mergingSetsState;
 
     /**
      * This is given to the {@code InternalWindowFunction} for emitting elements with a given
@@ -160,6 +173,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             TypeSerializer<W> windowSerializer,
             KeySelector<IN, K> keySelector,
             TypeSerializer<K> keySerializer,
+            Class<K> keyClass,
             // StateDescriptor<? extends AppendingState<IN, ACC>, ?> windowStateDescriptor,
             InternalWindowFunction<ACC, OUT, K, W> windowFunction,
             Trigger<? super IN, ? super W> trigger,
@@ -178,6 +192,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         this.windowSerializer = checkNotNull(windowSerializer);
         this.keySelector = checkNotNull(keySelector);
         this.keySerializer = checkNotNull(keySerializer);
+        this.keyClass = checkNotNull(keyClass);
         // this.windowStateDescriptor = windowStateDescriptor;
         this.trigger = checkNotNull(trigger);
         this.allowedLateness = allowedLateness;
@@ -193,7 +208,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         this.numLateRecordsDropped = null; // metrics.counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
         timestampedCollector = new TimestampedCollector<>(output);
 
-        internalTimerService = null; // getInternalTimerService("window-timers", windowSerializer, this);
+        if (this.stateBackend != null) {
+            this.keyedStateBackend = this.stateBackend.createKeyedStateBackend(keyClass);
+        }
+
+        internalTimerService = new WindowOperatorTimerService<>(this); // getInternalTimerService("window-timers", windowSerializer, this);
 
         triggerContext = new Context(null, null);
         processContext = new WindowContext(null);
@@ -217,29 +236,18 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         // create the typed and helper states for merging windows
         if (windowAssigner instanceof MergingWindowAssigner) {
 
-            // store a typed reference for the state of merging windows - sanity check
-//            if (windowState instanceof InternalMergingState) {
-//                windowMergingState = (InternalMergingState<K, W, IN, ACC, ACC>) windowState;
-//            } else if (windowState != null) {
-//                throw new IllegalStateException(
-//                        "The window uses a merging assigner, but the window state is not mergeable.");
-//            }
-
             @SuppressWarnings("unchecked") final Class<Tuple2<W, W>> typedTuple = (Class<Tuple2<W, W>>) (Class<?>) Tuple2.class;
 
-//            final TupleSerializer<Tuple2<W, W>> tupleSerializer =
-//                    new TupleSerializer<>(
-//                            typedTuple, new TypeSerializer[] {windowSerializer, windowSerializer});
-//
-//            final ListStateDescriptor<Tuple2<W, W>> mergingSetsStateDescriptor =
-//                    new ListStateDescriptor<>("merging-window-set", tupleSerializer);
-//
-//            // get the state that stores the merging sets
-//            mergingSetsState =
-//                    (InternalListState<K, VoidNamespace, Tuple2<W, W>>)
-//                            getOrCreateKeyedState(
-//                                    VoidNamespaceSerializer.INSTANCE, mergingSetsStateDescriptor);
-//            mergingSetsState.setCurrentNamespace(VoidNamespace.INSTANCE);
+            final ListStateDescriptor<Tuple2<W, W>> mergingSetsStateDescriptor =
+                    new ListStateDescriptor<>("merging-window-set", typedTuple);
+
+            // get the state that stores the merging sets
+            if (keyedStateBackend instanceof IInternalStateBackend) {
+                @SuppressWarnings("unchecked")
+                IInternalStateBackend<K> internalBackend = (IInternalStateBackend<K>) keyedStateBackend;
+                mergingSetsState = internalBackend.getInternalListState(mergingSetsStateDescriptor);
+                mergingSetsState.setCurrentNamespace(VoidNamespace.INSTANCE);
+            }
         }
     }
 
@@ -261,7 +269,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         // if element is handled by none of assigned elementWindows
         boolean isSkippedElement = true;
 
-        final K key = null; //this.<K>getKeyedStateBackend().getCurrentKey();
+        final K key = this.<K>getKeyedStateBackend().getCurrentKey();
 
         if (windowAssigner instanceof MergingWindowAssigner) {
             MergingWindowSet<W> mergingWindows = getMergingWindowSet();

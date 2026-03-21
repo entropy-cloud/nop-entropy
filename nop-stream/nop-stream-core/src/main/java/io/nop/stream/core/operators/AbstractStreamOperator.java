@@ -8,6 +8,8 @@
 package io.nop.stream.core.operators;
 
 import io.nop.stream.core.common.eventtime.IndexedCombinedWatermarkStatus;
+import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
+import io.nop.stream.core.common.state.backend.IStateBackend;
 import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
@@ -19,12 +21,32 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
     protected transient ProcessingTimeService processingTimeService;
     private transient IndexedCombinedWatermarkStatus combinedWatermark;
 
+    protected IStateBackend stateBackend;
+    protected IKeyedStateBackend<?> keyedStateBackend;
+
     public Output<StreamRecord<OUT>> getOutput() {
         return output;
     }
 
     public ProcessingTimeService getProcessingTimeService() {
         return processingTimeService;
+    }
+
+    public void setStateBackend(IStateBackend stateBackend) {
+        this.stateBackend = stateBackend;
+    }
+
+    public IStateBackend getStateBackend() {
+        return stateBackend;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <K> IKeyedStateBackend<K> getKeyedStateBackend() {
+        return (IKeyedStateBackend<K>) keyedStateBackend;
+    }
+
+    public void setKeyedStateBackend(IKeyedStateBackend<?> keyedStateBackend) {
+        this.keyedStateBackend = keyedStateBackend;
     }
 
     @Override

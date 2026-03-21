@@ -17,6 +17,8 @@
 
 package io.nop.stream.core.operators;
 
+import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.streamrecord.StreamRecord;
 
@@ -121,17 +123,27 @@ public interface StreamOperator<OUT> extends CheckpointListener, KeyContext, Ser
      *     synchronous implementations, the runnable might already be finished.
      * @throws Exception exception that happened during snapshotting.
      */
-//    OperatorSnapshotFutures snapshotState(
-//            long checkpointId,
-//            long timestamp,
-//            CheckpointOptions checkpointOptions,
-//            CheckpointStreamFactory storageLocation)
-//            throws Exception;
+    /**
+     * 执行状态快照
+     * 
+     * @param checkpointId checkpoint ID
+     * @return 状态快照结果
+     * @throws Exception 快照过程中的异常
+     */
+    default OperatorSnapshotResult snapshotState(long checkpointId) throws Exception {
+        // 默认实现：返回空快照
+        return OperatorSnapshotResult.empty();
+    }
 
     /**
-     * Provides a context to initialize all state in the operator.
+     * 从快照恢复状态
+     * 
+     * @param taskStateSnapshot 恢复的状态数据
+     * @throws Exception 恢复过程中的异常
      */
-    //   void initializeState(StreamTaskStateInitializer streamTaskStateManager) throws Exception;
+    default void initializeState(TaskStateSnapshot taskStateSnapshot) throws Exception {
+        // 默认实现：无操作
+    }
 
     // ------------------------------------------------------------------------
     //  miscellaneous

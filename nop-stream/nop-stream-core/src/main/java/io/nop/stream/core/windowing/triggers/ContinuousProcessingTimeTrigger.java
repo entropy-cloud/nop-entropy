@@ -49,11 +49,13 @@ public class ContinuousProcessingTimeTrigger<W extends Window> extends Trigger<O
     @Override
     public TriggerResult onElement(Object element, long timestampIgnore, W window, TriggerContext ctx)
             throws Exception {
+        ctx.registerProcessingTimeTimer(window.maxTimestamp());
+
         SimpleAccumulator<Long> fireTimestampState = ctx.getSimpleAccumulator(stateDesc);
 
         long timestamp = ctx.getCurrentProcessingTime();
 
-        if (fireTimestampState.get() == null) {
+        if (fireTimestampState.get() == null || fireTimestampState.get().equals(Long.MAX_VALUE)) {
             registerNextFireTimestamp(
                     timestamp - (timestamp % interval), window, ctx, fireTimestampState);
         }
@@ -67,9 +69,14 @@ public class ContinuousProcessingTimeTrigger<W extends Window> extends Trigger<O
 
     @Override
     public TriggerResult onProcessingTime(long time, W window, TriggerContext ctx) {
+        if (time == window.maxTimestamp()) {
+            return TriggerResult.FIRE;
+        }
+
         SimpleAccumulator<Long> fireTimestampState = ctx.getSimpleAccumulator(stateDesc);
 
-        if (fireTimestampState.get().equals(time)) {
+        Long fireTimestamp = fireTimestampState.get();
+        if (fireTimestamp != null && fireTimestamp.equals(time)) {
             fireTimestampState.clear();
             registerNextFireTimestamp(time, window, ctx, fireTimestampState);
             return TriggerResult.FIRE;
@@ -79,13 +86,13 @@ public class ContinuousProcessingTimeTrigger<W extends Window> extends Trigger<O
 
     @Override
     public void clear(W window, TriggerContext ctx) {
-        // State could be merged into new window.
         SimpleAccumulator<Long> fireTimestamp = ctx.getSimpleAccumulator(stateDesc);
         Long timestamp = fireTimestamp.get();
         if (timestamp != null) {
             ctx.deleteProcessingTimeTimer(timestamp);
             fireTimestamp.clear();
         }
+        ctx.deleteProcessingTimeTimer(window.maxTimestamp());
     }
 
     @Override
@@ -95,12 +102,8 @@ public class ContinuousProcessingTimeTrigger<W extends Window> extends Trigger<O
 
     @Override
     public void onMerge(W window, OnMergeContext ctx) {
-        // States for old windows will lose after the call.
-        //ctx.mergePartitionedState(stateDesc);
-
-        // Register timer for this new window.
         Long nextFireTimestamp = ctx.getSimpleAccumulator(stateDesc).get();
-        if (nextFireTimestamp != null) {
+        if (nextFireTimestamp != null && !nextFireTimestamp.equals(Long.MAX_VALUE)) {
             ctx.registerProcessingTimeTimer(nextFireTimestamp);
         }
     }

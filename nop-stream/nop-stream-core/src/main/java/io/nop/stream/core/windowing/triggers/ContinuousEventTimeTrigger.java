@@ -52,14 +52,14 @@ public class ContinuousEventTimeTrigger<W extends Window> extends Trigger<Object
             throws Exception {
 
         if (window.maxTimestamp() <= ctx.getCurrentWatermark()) {
-            // if the watermark is already past the window fire immediately
+            // if watermark is already past the window, fire immediately
             return TriggerResult.FIRE;
         } else {
             ctx.registerEventTimeTimer(window.maxTimestamp());
         }
 
         SimpleAccumulator<Long> fireTimestampState = ctx.getSimpleAccumulator(stateDesc);
-        if (fireTimestampState.getLocalValue() == null) {
+        if (fireTimestampState.getLocalValue() == null || fireTimestampState.getLocalValue().equals(Long.MAX_VALUE)) {
             registerNextFireTimestamp(
                     timestamp - (timestamp % interval), window, ctx, fireTimestampState);
         }
@@ -78,7 +78,7 @@ public class ContinuousEventTimeTrigger<W extends Window> extends Trigger<Object
 
         Long fireTimestamp = fireTimestampState.getLocalValue();
 
-        if (fireTimestamp != null && fireTimestamp == time) {
+        if (fireTimestamp != null && !fireTimestamp.equals(Long.MAX_VALUE) && fireTimestamp == time) {
             fireTimestampState.resetLocal();
             registerNextFireTimestamp(time, window, ctx, fireTimestampState);
             return TriggerResult.FIRE;
@@ -100,6 +100,7 @@ public class ContinuousEventTimeTrigger<W extends Window> extends Trigger<Object
             ctx.deleteEventTimeTimer(timestamp);
             fireTimestamp.clear();
         }
+        ctx.deleteEventTimeTimer(window.maxTimestamp());
     }
 
     @Override
@@ -109,9 +110,8 @@ public class ContinuousEventTimeTrigger<W extends Window> extends Trigger<Object
 
     @Override
     public void onMerge(W window, OnMergeContext ctx)  {
-        //ctx.mergePartitionedState(stateDesc);
         Long nextFireTimestamp = ctx.getSimpleAccumulator(stateDesc).get();
-        if (nextFireTimestamp != null) {
+        if (nextFireTimestamp != null && !nextFireTimestamp.equals(Long.MAX_VALUE)) {
             ctx.registerEventTimeTimer(nextFireTimestamp);
         }
     }
