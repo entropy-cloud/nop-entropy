@@ -7,6 +7,12 @@
  */
 package io.nop.xlang.compile;
 
+import io.nop.api.core.util.SourceLocation;
+import io.nop.core.type.IGenericType;
+import io.nop.core.type.IUnionType;
+import io.nop.core.type.PredefinedGenericTypes;
+import io.nop.core.type.impl.GenericUnionTypeImpl;
+import io.nop.core.type.utils.GenericTypeHelper;
 import io.nop.xlang.ast.ArrayBinding;
 import io.nop.xlang.ast.ArrayElementBinding;
 import io.nop.xlang.ast.ArrayExpression;
@@ -75,21 +81,46 @@ import io.nop.xlang.ast.VariableDeclaration;
 import io.nop.xlang.ast.VariableDeclarator;
 import io.nop.xlang.ast.WhileStatement;
 import io.nop.xlang.ast.XLangASTProcessor;
+import io.nop.xlang.ast.XLangOperator;
+import io.nop.xlang.ast.Expression;
+
+import java.util.ArrayList;
+import io.nop.core.reflect.bean.IBeanModel;
+import io.nop.core.reflect.bean.IBeanPropertyModel;
+import io.nop.core.reflect.IClassModel;
+import io.nop.core.reflect.ReflectionManager;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.List;
+import java.util.Map;
 
 public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, TypeInferenceState> {
+
+    private final TypeErrorCollector errors = new TypeErrorCollector();
+
+    public TypeErrorCollector getErrors() {
+        return errors;
+    }
+
     @Override
     public ReturnTypeInfo processIfStatement(IfStatement node, TypeInferenceState context) {
         if (context == null)
             return null;
 
         processAST(node.getTest(), context);
-        TypeInferenceState s1 = context.newChild(); // true Branch
+        TypeInferenceState s1 = context.newChild();
 
-        // inferInstance(node.getTest(), s1);
+        // Collect narrowed types from condition for true branch
+        Map<String, IGenericType> narrowedTypes = UnionTypeNarrower.collectNarrowedTypes(node.getTest(), true, context);
+        s1.setNarrowedTypes(narrowedTypes);
+
         ReturnTypeInfo r1 = processAST(node.getConsequent(), s1);
 
         if (node.getAlternate() != null) {
             TypeInferenceState s2 = context.newChild();
+            // Collect narrowed types from condition for false branch (negated)
+            Map<String, IGenericType> narrowedTypesElse = UnionTypeNarrower.collectNarrowedTypes(node.getTest(), false, context);
+            s2.setNarrowedTypes(narrowedTypesElse);
             ReturnTypeInfo r2 = processAST(node.getAlternate(), s2);
             r1 = union(r1, r2);
         } else {
@@ -113,7 +144,59 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
             return r1;
         }
 
-        return null;
+        // 两个分支都有返回，合并类型
+        IGenericType mergedType = mergeTypes(r1.getReturnType(), r2.getReturnType());
+        
+        ReturnTypeInfo result = new ReturnTypeInfo();
+        result.setReturnType(mergedType);
+        // 两个分支都返回，所以 otherBranchNoReturn = false (默认值)
+        return result;
+    }
+
+    private IGenericType mergeTypes(IGenericType t1, IGenericType t2) {
+        if (t1 == null && t2 == null)
+            return PredefinedGenericTypes.ANY_TYPE;
+        if (t1 == null)
+            return t2;
+        if (t2 == null)
+            return t1;
+        
+        // 相同类型直接返回
+        if (t1.equals(t2))
+            return t1;
+        
+        String name1 = t1.getTypeName();
+        String name2 = t2.getTypeName();
+        if (name1 != null && name1.equals(name2))
+            return t1;
+        
+        // 创建 Union 类型，展平已有的 union 类型并去重
+        List<IGenericType> types = new ArrayList<>(2);
+        Set<String> seen = new HashSet<>();
+        flattenUnionTypes(t1, types, seen);
+        flattenUnionTypes(t2, types, seen);
+
+        if (types.isEmpty()) {
+            return PredefinedGenericTypes.ANY_TYPE;
+        }
+        if (types.size() == 1) {
+            return types.get(0);
+        }
+        return new GenericUnionTypeImpl(types);
+    }
+
+    private void flattenUnionTypes(IGenericType type, List<IGenericType> result, Set<String> seen) {
+        if (type instanceof IUnionType) {
+            for (IGenericType subType : ((IUnionType) type).getSubTypes()) {
+                flattenUnionTypes(subType, result, seen);
+            }
+        } else {
+            String typeName = type.getTypeName();
+            if (typeName != null && !seen.contains(typeName)) {
+                seen.add(typeName);
+                result.add(type);
+            }
+        }
     }
 
     @Override
@@ -130,12 +213,52 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
 
     @Override
     public ReturnTypeInfo processIdentifier(Identifier node, TypeInferenceState context) {
-        return super.processIdentifier(node, context);
+        if (context == null)
+            return null;
+
+        IGenericType type = context.getVariableType(node.getName());
+        if (type != null) {
+            node.setReturnTypeInfo(type);
+            ReturnTypeInfo info = new ReturnTypeInfo();
+            info.setReturnType(type);
+            return info;
+        }
+        return null;
     }
 
     @Override
     public ReturnTypeInfo processLiteral(Literal node, TypeInferenceState context) {
-        return super.processLiteral(node, context);
+        IGenericType type = inferLiteralType(node);
+        node.setReturnTypeInfo(type);
+        ReturnTypeInfo info = new ReturnTypeInfo();
+        info.setReturnType(type);
+        return info;
+    }
+
+    private IGenericType inferLiteralType(Literal node) {
+        Object value = node.getValue();
+        if (value == null) {
+            return PredefinedGenericTypes.NULL_TYPE;
+        }
+        if (value instanceof String) {
+            return PredefinedGenericTypes.STRING_TYPE;
+        }
+        if (value instanceof Boolean) {
+            return PredefinedGenericTypes.BOOLEAN_TYPE;
+        }
+        if (value instanceof Integer) {
+            return PredefinedGenericTypes.INT_TYPE;
+        }
+        if (value instanceof Long) {
+            return PredefinedGenericTypes.LONG_TYPE;
+        }
+        if (value instanceof Double || value instanceof Float) {
+            return PredefinedGenericTypes.DOUBLE_TYPE;
+        }
+        if (value instanceof Number) {
+            return PredefinedGenericTypes.NUMBER_TYPE;
+        }
+        return PredefinedGenericTypes.ANY_TYPE;
     }
 
     @Override
@@ -201,11 +324,6 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
     @Override
     public ReturnTypeInfo processDoWhileStatement(DoWhileStatement node, TypeInferenceState context) {
         return super.processDoWhileStatement(node, context);
-    }
-
-    @Override
-    public ReturnTypeInfo processVariableDeclarator(VariableDeclarator node, TypeInferenceState context) {
-        return super.processVariableDeclarator(node, context);
     }
 
     @Override
@@ -295,7 +413,67 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
 
     @Override
     public ReturnTypeInfo processBinaryExpression(BinaryExpression node, TypeInferenceState context) {
-        return super.processBinaryExpression(node, context);
+        if (context == null)
+            return null;
+
+        ReturnTypeInfo leftInfo = processAST(node.getLeft(), context);
+        ReturnTypeInfo rightInfo = processAST(node.getRight(), context);
+
+        IGenericType leftType = leftInfo != null ? leftInfo.getReturnType() : null;
+        IGenericType rightType = rightInfo != null ? rightInfo.getReturnType() : null;
+
+        IGenericType resultType = inferBinaryType(node.getOperator(), leftType, rightType);
+        node.setReturnTypeInfo(resultType);
+        ReturnTypeInfo info = new ReturnTypeInfo();
+        info.setReturnType(resultType);
+        return info;
+    }
+
+    private IGenericType inferBinaryType(XLangOperator op, IGenericType left, IGenericType right) {
+        if (left == null || right == null) {
+            return PredefinedGenericTypes.ANY_TYPE;
+        }
+
+        if (op == XLangOperator.ADD) {
+            if (left == PredefinedGenericTypes.STRING_TYPE || right == PredefinedGenericTypes.STRING_TYPE) {
+                return PredefinedGenericTypes.STRING_TYPE;
+            }
+            if (left.isNumericType() && right.isNumericType()) {
+                return promoteNumericTypes(left, right);
+            }
+            return PredefinedGenericTypes.ANY_TYPE;
+        }
+
+        if (op == XLangOperator.MINUS || op == XLangOperator.DIVIDE || op == XLangOperator.MULTIPLY || op == XLangOperator.MOD) {
+            if (left.isNumericType() && right.isNumericType()) {
+                return promoteNumericTypes(left, right);
+            }
+            return PredefinedGenericTypes.ANY_TYPE;
+        }
+
+        if (op == XLangOperator.LT || op == XLangOperator.LE || op == XLangOperator.GT || op == XLangOperator.GE
+                || op == XLangOperator.EQ || op == XLangOperator.NE) {
+            return PredefinedGenericTypes.BOOLEAN_TYPE;
+        }
+
+        if (op == XLangOperator.AND || op == XLangOperator.OR) {
+            return PredefinedGenericTypes.BOOLEAN_TYPE;
+        }
+
+        return PredefinedGenericTypes.ANY_TYPE;
+    }
+
+    private IGenericType promoteNumericTypes(IGenericType a, IGenericType b) {
+        if (a == PredefinedGenericTypes.DOUBLE_TYPE || b == PredefinedGenericTypes.DOUBLE_TYPE) {
+            return PredefinedGenericTypes.DOUBLE_TYPE;
+        }
+        if (a == PredefinedGenericTypes.FLOAT_TYPE || b == PredefinedGenericTypes.FLOAT_TYPE) {
+            return PredefinedGenericTypes.FLOAT_TYPE;
+        }
+        if (a == PredefinedGenericTypes.LONG_TYPE || b == PredefinedGenericTypes.LONG_TYPE) {
+            return PredefinedGenericTypes.LONG_TYPE;
+        }
+        return PredefinedGenericTypes.INT_TYPE;
     }
 
     @Override
@@ -315,12 +493,176 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
 
     @Override
     public ReturnTypeInfo processMemberExpression(MemberExpression node, TypeInferenceState context) {
-        return super.processMemberExpression(node, context);
+        if (context == null)
+            return null;
+
+        ReturnTypeInfo objInfo = processAST(node.getObject(), context);
+        IGenericType objType = objInfo != null ? objInfo.getReturnType() : null;
+
+        IGenericType resultType = PredefinedGenericTypes.ANY_TYPE;
+
+        if (objType != null) {
+            Expression prop = node.getProperty();
+            if (prop instanceof Identifier) {
+                String propName = ((Identifier) prop).getName();
+                resultType = inferMemberType(objType, propName);
+            }
+        }
+
+        node.setReturnTypeInfo(resultType);
+        ReturnTypeInfo info = new ReturnTypeInfo();
+        info.setReturnType(resultType);
+        return info;
+    }
+
+    private IGenericType inferMemberType(IGenericType objType, String propName) {
+        if (objType.isListLike()) {
+            if ("length".equals(propName)) {
+                return PredefinedGenericTypes.INT_TYPE;
+            }
+            if ("size".equals(propName)) {
+                return PredefinedGenericTypes.INT_TYPE;
+            }
+            return objType.getComponentType();
+        }
+
+        if (objType.isMapLike()) {
+            if ("size".equals(propName) || "length".equals(propName)) {
+                return PredefinedGenericTypes.INT_TYPE;
+            }
+            IGenericType valueType = objType.getMapValueType();
+            return valueType != null ? valueType : PredefinedGenericTypes.ANY_TYPE;
+        }
+
+        if (objType == PredefinedGenericTypes.STRING_TYPE) {
+            if ("length".equals(propName)) {
+                return PredefinedGenericTypes.INT_TYPE;
+            }
+        }
+
+        // Use ReflectionManager with caching for class member access
+        if (objType.isResolved() && objType.getRawClass() != null) {
+            Class<?> rawClass = objType.getRawClass();
+            IClassModel classModel = ReflectionManager.instance().getClassModel(rawClass);
+            
+            // Try bean property first (handles getter methods)
+            IBeanModel beanModel = classModel.getBeanModel();
+            if (beanModel != null) {
+                IBeanPropertyModel propModel = beanModel.getPropertyModel(propName);
+                if (propModel != null && propModel.getType() != null) {
+                    return propModel.getType();
+                }
+            }
+            
+            // Try public field
+            io.nop.core.reflect.IFieldModel fieldModel = classModel.getField(propName);
+            if (fieldModel != null) {
+                return fieldModel.getType();
+            }
+        }
+
+        return PredefinedGenericTypes.ANY_TYPE;
+    }
+
+    @Override
+    public ReturnTypeInfo processVariableDeclarator(VariableDeclarator node, TypeInferenceState context) {
+        if (context == null)
+            return null;
+
+        // Process initializer
+        ReturnTypeInfo initInfo = null;
+        if (node.getInit() != null) {
+            initInfo = processAST(node.getInit(), context);
+        }
+
+        // Determine variable type
+        IGenericType varType = null;
+        IGenericType initType = initInfo != null ? initInfo.getReturnType() : null;
+
+        // Check explicit type annotation
+        if (node.getVarType() != null && node.getVarType().getTypeInfo() != null) {
+            varType = node.getVarType().getTypeInfo();
+            
+            // Check type compatibility between explicit type and initializer type
+            if (initType != null && !isTypeCompatible(varType, initType)) {
+                errors.typeMismatch(node.getLocation(), varType, initType);
+            }
+        } else if (initType != null) {
+            // Infer from initializer
+            varType = initType;
+        }
+
+        if (varType == null) {
+            varType = PredefinedGenericTypes.ANY_TYPE;
+        }
+
+        // Register variable in scope
+        io.nop.xlang.ast.XLangASTNode id = node.getId();
+        if (id instanceof Identifier) {
+            Identifier idNode = (Identifier) id;
+            context.setVariableType(idNode.getName(), varType);
+            idNode.setReturnTypeInfo(varType);
+        }
+
+        return initInfo;
+    }
+
+    private boolean isTypeCompatible(IGenericType expectedType, IGenericType actualType) {
+        if (expectedType == null || actualType == null) {
+            return true;
+        }
+        if (expectedType.isAnyType() || actualType.isAnyType()) {
+            return true;
+        }
+        return actualType.isAssignableTo(expectedType);
     }
 
     @Override
     public ReturnTypeInfo processCallExpression(CallExpression node, TypeInferenceState context) {
-        return super.processCallExpression(node, context);
+        if (context == null)
+            return null;
+
+        ReturnTypeInfo calleeInfo = processAST(node.getCallee(), context);
+
+        // Process arguments
+        List<Expression> args = node.getArguments();
+        if (args != null) {
+            for (Expression arg : args) {
+                processAST(arg, context);
+            }
+        }
+
+        // Infer return type from callee
+        IGenericType returnType = null;
+        if (calleeInfo != null) {
+            IGenericType calleeType = calleeInfo.getReturnType();
+            if (calleeType != null && calleeType.isFunction()) {
+                returnType = calleeType.getFuncReturnType();
+
+                // Generic type inference
+                if (returnType != null && returnType.containsTypeVariable()) {
+                    List<IGenericType> paramTypes = calleeType.getFuncArgTypes();
+                    List<IGenericType> argTypes = new java.util.ArrayList<>();
+                    if (args != null) {
+                        for (Expression arg : args) {
+                            argTypes.add(arg.getReturnTypeInfo() != null ? arg.getReturnTypeInfo() : PredefinedGenericTypes.ANY_TYPE);
+                        }
+                    }
+                    Map<String, IGenericType> typeArgs = GenericTypeInferencer.inferTypeArguments(
+                            calleeType.getTypeParameters(), paramTypes, argTypes, errors);
+                    returnType = GenericTypeInferencer.applyTypeArguments(returnType, typeArgs);
+                }
+            }
+        }
+
+        if (returnType == null) {
+            returnType = PredefinedGenericTypes.ANY_TYPE;
+        }
+
+        node.setReturnTypeInfo(returnType);
+        ReturnTypeInfo info = new ReturnTypeInfo();
+        info.setReturnType(returnType);
+        return info;
     }
 
     @Override

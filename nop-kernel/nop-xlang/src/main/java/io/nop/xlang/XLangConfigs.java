@@ -40,6 +40,9 @@ public interface XLangConfigs {
     @Description("是否启用XLang调试服务。如果启用，则所有的表达式会在DebugExpressionExecutor中执行")
     IConfigReference<Boolean> CFG_XLANG_DEBUGGER_ENABLED = varRef(s_loc,"nop.xlang.debugger.enabled", Boolean.class, false);
 
+    @Description("是否启用类型推导功能。启用后会在编译时进行静态类型检查和推导")
+    IConfigReference<Boolean> CFG_XLANG_TYPE_INFERENCE_ENABLED = varRef(s_loc,"nop.xlang.type-inference.enabled", Boolean.class, false);
+
     @Description("如果大于0，则表示XLang调试服务启动后在一段时间内阻塞当前程序执行，等待外部调试器连接。单位为秒")
     IConfigReference<Integer> CFG_XLANG_DEBUGGER_WAIT_CONNECTION_SECONDS = varRef(s_loc,
             "nop.xlang.debugger.wait-connection-seconds", Integer.class, 1);

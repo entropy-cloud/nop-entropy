@@ -103,6 +103,7 @@ public interface XLangErrors {
     String ARG_MAPPING_ID = "mappingId";
     String ARG_XPATH = "xpath";
 
+
     String ARG_BIZ_OBJ_NAME = "bizObjName";
     String ARG_PROP_NAME = "propName";
     String ARG_CLASS_NAME = "className";
@@ -1072,4 +1073,32 @@ public interface XLangErrors {
     ErrorCode ERR_XT_TEMPLATE_NOT_FOUND = define("nop.err.xt.template-not-found", "未找到模板:{templateId}", ARG_TEMPLATE_ID);
     ErrorCode ERR_XT_MAPPING_NOT_FOUND = define("nop.err.xt.mapping-not-found", "未找到映射:{mappingId}", ARG_MAPPING_ID);
     ErrorCode ERR_XT_MANDATORY_NODE_NOT_FOUND = define("nop.err.xt.mandatory-node-not-found", "强制要求的节点未找到:{xpath}", ARG_XPATH, ARG_NODE);
+
+    // ==================== Type Inference Errors ====================
+
+    String ARG_ACTUAL = "actual";
+    String ARG_GOT = "got";
+    String ARG_TYPE = "type";
+    String ARG_TYPE_VAR = "typeVar";
+
+    ErrorCode ERR_TYPE_INFER_TYPE_VAR_CONFLICT = define("nop.err.xlang.type-infer.type-var-conflict",
+            "类型变量[{typeVar}]推导冲突: 期望类型[{expected}], 实际类型[{got}]", ARG_TYPE_VAR, ARG_EXPECTED, ARG_GOT);
+
+    ErrorCode ERR_TYPE_INFER_ASSIGN_TYPE_MISMATCH = define("nop.err.xlang.type-infer.assign-type-mismatch",
+            "赋值类型不匹配: 期望类型[{expected}], 实际类型[{actual}]", ARG_EXPECTED, ARG_ACTUAL);
+
+    ErrorCode ERR_TYPE_INFER_UNDEFINED_VARIABLE = define("nop.err.xlang.type-infer.undefined-variable",
+            "未定义的变量: {name}", ARG_NAME);
+
+    ErrorCode ERR_TYPE_INFER_INCOMPATIBLE_TYPES = define("nop.err.xlang.type-infer.incompatible-types",
+            "类型不兼容: {type}", ARG_TYPE);
+
+    ErrorCode ERR_TYPE_INFER_RETURN_TYPE_MISMATCH = define("nop.err.xlang.type-infer.return-type-mismatch",
+            "返回类型不匹配: 期望类型[{expected}], 实际类型[{actual}]", ARG_EXPECTED, ARG_ACTUAL);
+
+    ErrorCode ERR_TYPE_INFER_NO_COMMON_TYPE = define("nop.err.xlang.type-infer.no-common-type",
+            "无法找到公共类型: {type}", ARG_TYPE);
+
+    ErrorCode ERR_TYPE_INFER_CIRCULAR_DEPENDENCY = define("nop.err.xlang.type-infer.circular-dependency",
+            "类型推导发现循环依赖: {name}", ARG_NAME);
 }

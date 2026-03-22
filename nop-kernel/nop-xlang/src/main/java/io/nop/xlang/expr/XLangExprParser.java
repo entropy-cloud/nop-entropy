@@ -25,6 +25,8 @@ import io.nop.xlang.xpl.impl.XplExprParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.nop.xlang.XLangConfigs.CFG_XLANG_TYPE_INFERENCE_ENABLED;
+
 public class XLangExprParser implements IXLangExprParser {
     private static final Logger LOG = LoggerFactory.getLogger(XLangExprParser.class);
 
@@ -65,9 +67,8 @@ public class XLangExprParser implements IXLangExprParser {
             LOG.trace(print.getOutput());
         }
 
-        if (optimize) {
+        if (CFG_XLANG_TYPE_INFERENCE_ENABLED.get()) {
             new TypeInferenceProcessor().processAST(expr, new TypeInferenceState());
-            // expr = (Expression) new ExpressionOptimizer().optimize(expr, scope);
         }
 
         return new BuildExecutableProcessor().processAST(expr, scope);
