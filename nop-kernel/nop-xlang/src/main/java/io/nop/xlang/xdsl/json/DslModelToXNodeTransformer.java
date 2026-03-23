@@ -123,19 +123,11 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
         objCache.put(map, node);
 
         IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(map.getClass());
-        beanModel.forEachReadWriteProp(propModel -> {
-            if (!propModel.isSerializable())
-                return;
-            String key = propModel.getName();
-            if (!shouldIncludeProp(objSchema, key, map, false))
-                return;
 
-            Object value = propModel.getPropertyValue(map);
-            if (value == null)
-                return;
-
-            addToNode(objSchema, node, map, key, value);
-        });
+        // 分两轮处理属性：先处理XmlPos=child的属性，再处理其他属性
+        // 这样避免先设置content后被_normalizeContent转换为textNode的问题
+        processPropsInOrder(objSchema, node, map, beanModel, false);
+        processPropsInOrder(objSchema, node, map, beanModel, true);
 
         Set<String> propNames = beanModel.getExtPropertyNames(map);
         if (propNames != null) {
@@ -153,6 +145,30 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
         onTransformObj(objSchema, map, node);
 
         return node;
+    }
+
+    private void processPropsInOrder(IObjSchema objSchema, XNode node, Object map, IBeanModel beanModel,
+                                     boolean processValueProps) {
+        beanModel.forEachReadWriteProp(propModel -> {
+            if (!propModel.isSerializable())
+                return;
+            String key = propModel.getName();
+            if (!shouldIncludeProp(objSchema, key, map, false))
+                return;
+
+            Object value = propModel.getPropertyValue(map);
+            if (value == null)
+                return;
+
+            IObjPropMeta propMeta = objSchema.getProp(key);
+            boolean isValueProp = propMeta != null && propMeta.getXmlPos() == XNodeValuePosition.value;
+
+            // 第一轮处理非value属性（包括child），第二轮处理value属性
+            if (processValueProps != isValueProp)
+                return;
+
+            addToNode(objSchema, node, map, key, value);
+        });
     }
 
     protected boolean shouldIncludeProp(IObjSchema schema, String propName, Object bean, boolean extProp) {
