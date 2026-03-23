@@ -31,6 +31,13 @@ public abstract class _AgentToolExample extends io.nop.core.resource.component.A
     private io.nop.ai.agent.tool.model.AgentCallToolsResponse _callToolsResponse ;
     
     /**
+     *  
+     * xml name: index
+     * 
+     */
+    private int _index ;
+    
+    /**
      * 
      * xml name: call-tools
      *  
@@ -68,6 +75,25 @@ public abstract class _AgentToolExample extends io.nop.core.resource.component.A
     }
 
     
+    /**
+     * 
+     * xml name: index
+     *  
+     */
+    
+    public int getIndex(){
+      return _index;
+    }
+
+    
+    public void setIndex(int value){
+        checkAllowChange();
+        
+        this._index = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -89,6 +115,7 @@ public abstract class _AgentToolExample extends io.nop.core.resource.component.A
         
         out.putNotNull("callTools",this.getCallTools());
         out.putNotNull("callToolsResponse",this.getCallToolsResponse());
+        out.putNotNull("index",this.getIndex());
     }
 
     public AgentToolExample cloneInstance(){
@@ -102,6 +129,7 @@ public abstract class _AgentToolExample extends io.nop.core.resource.component.A
         
         instance.setCallTools(this.getCallTools());
         instance.setCallToolsResponse(this.getCallToolsResponse());
+        instance.setIndex(this.getIndex());
     }
 
     protected AgentToolExample newInstance(){

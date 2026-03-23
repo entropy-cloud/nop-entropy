@@ -28,7 +28,7 @@ public abstract class _AgentToolModel extends io.nop.core.resource.component.Abs
      * xml name: examples
      * example：工具的使用示例，可包含一个或多个具体调用实例
      */
-    private java.util.List<io.nop.ai.agent.tool.model.AgentToolExample> _examples = java.util.Collections.emptyList();
+    private KeyedList<io.nop.ai.agent.tool.model.AgentToolExample> _examples = KeyedList.emptyList();
     
     /**
      *  
@@ -77,10 +77,36 @@ public abstract class _AgentToolModel extends io.nop.core.resource.component.Abs
     public void setExamples(java.util.List<io.nop.ai.agent.tool.model.AgentToolExample> value){
         checkAllowChange();
         
-        this._examples = value;
+        this._examples = KeyedList.fromList(value, io.nop.ai.agent.tool.model.AgentToolExample::getIndex);
            
     }
 
+    
+    public io.nop.ai.agent.tool.model.AgentToolExample getExample(String name){
+        return this._examples.getByKey(name);
+    }
+
+    public boolean hasExample(String name){
+        return this._examples.containsKey(name);
+    }
+
+    public void addExample(io.nop.ai.agent.tool.model.AgentToolExample item) {
+        checkAllowChange();
+        java.util.List<io.nop.ai.agent.tool.model.AgentToolExample> list = this.getExamples();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.ai.agent.tool.model.AgentToolExample::getIndex);
+            setExamples(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_examples(){
+        return this._examples.keySet();
+    }
+
+    public boolean hasExamples(){
+        return !this._examples.isEmpty();
+    }
     
     /**
      * 
