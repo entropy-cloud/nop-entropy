@@ -1,0 +1,5 @@
+{
+  "plugin": [
+    "file://./.opencode/plugins/nop-ralph-loop-plugin"
+  ]
+}
