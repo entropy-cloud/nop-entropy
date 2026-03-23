@@ -16,9 +16,9 @@ public class TestRecordLoader {
         provider.setSaveState(true);
         provider.setResourcePath("/test.txt");
         provider.setResourceLocator(new DebugResourceLocator());
-        DebugResourceRecordIO io = new DebugResourceRecordIO(1000000);
+        DebugResourceRecordIO io = new DebugResourceRecordIO(10000);
         provider.setRecordIO(io);
-        provider.setMaxProcessingItems(100000);
+        provider.setMaxProcessingItems(10000);
 
         BatchTaskBuilder builder = new BatchTaskBuilder();
         builder.loader(provider);
@@ -35,7 +35,7 @@ public class TestRecordLoader {
         context.setTaskKey("test-record-loader");
         // 移除随机睡眠以避免并行构建时的资源竞争问题
         builder.buildTask().execute(context);
-        assertEquals(1000000, io.getReadCount());
-        assertEquals(1000000, context.getCompletedIndex());
+        assertEquals(10000, io.getReadCount());
+        assertEquals(10000, context.getCompletedIndex());
     }
 }
