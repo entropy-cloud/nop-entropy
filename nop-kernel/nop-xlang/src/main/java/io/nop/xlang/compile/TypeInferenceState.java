@@ -136,6 +136,14 @@ public class TypeInferenceState {
         return all;
     }
 
+    public Map<String, IGenericType> getLocalVariableTypes() {
+        return Collections.unmodifiableMap(variableTypes);
+    }
+
+    public boolean hasLocalVariable(String name) {
+        return variableTypes.containsKey(name);
+    }
+
     private void collectVariableTypes(Map<String, IGenericType> all) {
         if (parent != null) {
             parent.collectVariableTypes(all);

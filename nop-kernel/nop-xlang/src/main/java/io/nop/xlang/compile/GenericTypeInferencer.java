@@ -111,7 +111,7 @@ public class GenericTypeInferencer {
         }
 
         // 如果有期望的返回类型，从返回类型反推
-        if (expectedReturn != null && declaredReturn != null && declaredReturn.containsTypeVariable()) {
+        if (expectedReturn != null && declaredReturn != null && hasTypeVariables(declaredReturn)) {
             inferFromReturnType(declaredReturn, expectedReturn, bindings, errors);
         }
 
@@ -133,9 +133,13 @@ public class GenericTypeInferencer {
             return;
         }
 
-        if (declaredReturn.containsTypeVariable() && expectedReturn != null) {
+        if (expectedReturn != null && hasTypeVariables(declaredReturn)) {
             inferFromComplexType(declaredReturn, expectedReturn, bindings, errors);
         }
+    }
+
+    private static boolean hasTypeVariables(IGenericType type) {
+        return type != null && !getTypeVariableNames(type).isEmpty();
     }
 
     /**
@@ -357,22 +361,9 @@ public class GenericTypeInferencer {
                 return true;
             }
 
-            // 检查新类型是否与现有绑定兼容
-            if (isCompatible(existing, type)) {
-                // 使用更具体的类型或Union类型
-                IGenericType merged = mergeTypes(existing, type);
-                bindings.put(varName, merged);
-                return true;
-            }
-
-            // 类型冲突
-            if (errors != null) {
-                errors.error(null, new io.nop.api.core.exceptions.NopException(ERR_TYPE_INFER_TYPE_VAR_CONFLICT)
-                        .param(ARG_TYPE_VAR, varName)
-                        .param(ARG_EXPECTED, existing.getTypeName())
-                        .param(ARG_GOT, type.getTypeName()));
-            }
-            return false;
+            IGenericType merged = mergeTypes(existing, type);
+            bindings.put(varName, merged);
+            return true;
         }
 
         private boolean isCompatible(IGenericType a, IGenericType b) {

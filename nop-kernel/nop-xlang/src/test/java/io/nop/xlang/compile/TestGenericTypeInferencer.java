@@ -10,6 +10,8 @@ package io.nop.xlang.compile;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
+import io.nop.core.type.impl.GenericFunctionTypeImpl;
+import io.nop.core.type.utils.GenericTypeHelper;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.Identifier;
@@ -269,5 +271,118 @@ public class TestGenericTypeInferencer extends BaseTestCase {
         boolean valid = GenericTypeInferencer.validateTypeBounds(typeParams, 
                 java.util.Collections.emptyMap(), null);
         assertTrue(valid);
+    }
+
+    @Test
+    public void testInferTypeArgumentsFromGenericContainer() {
+        java.util.List<IGenericType> typeParams = java.util.Collections.singletonList(
+                PredefinedGenericTypes.VARIABLE_T_TYPE);
+
+        java.util.List<IGenericType> paramTypes = java.util.Collections.singletonList(
+                GenericTypeHelper.buildListType(PredefinedGenericTypes.VARIABLE_T_TYPE));
+
+        java.util.List<IGenericType> argTypes = java.util.Collections.singletonList(
+                GenericTypeHelper.buildListType(PredefinedGenericTypes.STRING_TYPE));
+
+        Map<String, IGenericType> result = GenericTypeInferencer.inferTypeArguments(
+                typeParams, paramTypes, argTypes, null);
+
+        assertEquals(PredefinedGenericTypes.STRING_TYPE, result.get("T"));
+    }
+
+    @Test
+    public void testInferTypeArgumentsWithReturnFromContainerType() {
+        java.util.List<IGenericType> typeParams = java.util.Collections.singletonList(
+                PredefinedGenericTypes.VARIABLE_T_TYPE);
+
+        Map<String, IGenericType> result = GenericTypeInferencer.inferTypeArgumentsWithReturn(
+                typeParams,
+                java.util.Collections.emptyList(),
+                java.util.Collections.emptyList(),
+                GenericTypeHelper.buildListType(PredefinedGenericTypes.STRING_TYPE),
+                GenericTypeHelper.buildListType(PredefinedGenericTypes.VARIABLE_T_TYPE),
+                null);
+
+        assertEquals(PredefinedGenericTypes.STRING_TYPE, result.get("T"));
+    }
+
+    @Test
+    public void testInferTypeArgumentsFromFunctionReturnOnly() {
+        java.util.List<IGenericType> typeParams = java.util.Collections.singletonList(
+                PredefinedGenericTypes.VARIABLE_T_TYPE);
+
+        IGenericType declaredReturn = new GenericFunctionTypeImpl(
+                java.util.Collections.emptyList(),
+                java.util.Collections.singletonList("arg"),
+                java.util.Collections.singletonList(PredefinedGenericTypes.INT_TYPE),
+                PredefinedGenericTypes.VARIABLE_T_TYPE);
+
+        IGenericType expectedReturn = new GenericFunctionTypeImpl(
+                java.util.Collections.emptyList(),
+                java.util.Collections.singletonList("arg"),
+                java.util.Collections.singletonList(PredefinedGenericTypes.INT_TYPE),
+                PredefinedGenericTypes.STRING_TYPE);
+
+        Map<String, IGenericType> result = GenericTypeInferencer.inferTypeArgumentsWithReturn(
+                typeParams,
+                java.util.Collections.emptyList(),
+                java.util.Collections.emptyList(),
+                expectedReturn,
+                declaredReturn,
+                null);
+
+        assertEquals(PredefinedGenericTypes.STRING_TYPE, result.get("T"));
+    }
+
+    @Test
+    public void testApplyTypeArgumentsToFunctionType() {
+        IGenericType functionType = new GenericFunctionTypeImpl(
+                java.util.Collections.singletonList(PredefinedGenericTypes.VARIABLE_T_TYPE),
+                java.util.Collections.singletonList("x"),
+                java.util.Collections.singletonList(PredefinedGenericTypes.VARIABLE_T_TYPE),
+                GenericTypeHelper.buildListType(PredefinedGenericTypes.VARIABLE_T_TYPE));
+
+        Map<String, IGenericType> typeArgs = new java.util.HashMap<>();
+        typeArgs.put("T", PredefinedGenericTypes.STRING_TYPE);
+
+        IGenericType result = GenericTypeInferencer.applyTypeArguments(functionType, typeArgs);
+
+        assertTrue(result.isFunction());
+        assertEquals(PredefinedGenericTypes.STRING_TYPE, result.getFuncArgTypes().get(0));
+        assertEquals(PredefinedGenericTypes.STRING_TYPE,
+                result.getFuncReturnType().getComponentType());
+    }
+
+    @Test
+    public void testTypeConflictProducesUnionType() {
+        java.util.List<IGenericType> typeParams = java.util.Collections.singletonList(
+                PredefinedGenericTypes.VARIABLE_T_TYPE);
+
+        java.util.List<IGenericType> paramTypes = java.util.Arrays.asList(
+                PredefinedGenericTypes.VARIABLE_T_TYPE,
+                PredefinedGenericTypes.VARIABLE_T_TYPE);
+
+        java.util.List<IGenericType> argTypes = java.util.Arrays.asList(
+                PredefinedGenericTypes.STRING_TYPE,
+                PredefinedGenericTypes.INT_TYPE);
+
+        Map<String, IGenericType> result = GenericTypeInferencer.inferTypeArguments(
+                typeParams, paramTypes, argTypes, null);
+
+        assertTrue(result.get("T").isUnion());
+    }
+
+    @Test
+    public void testGetTypeVariableNamesFromFunctionType() {
+        IGenericType fnType = new GenericFunctionTypeImpl(
+                java.util.Collections.emptyList(),
+                java.util.Collections.singletonList("x"),
+                java.util.Collections.singletonList(GenericTypeHelper.buildListType(PredefinedGenericTypes.VARIABLE_T_TYPE)),
+                PredefinedGenericTypes.VARIABLE_K_TYPE);
+
+        java.util.Set<String> names = GenericTypeInferencer.getTypeVariableNames(fnType);
+
+        assertTrue(names.contains("T"));
+        assertTrue(names.contains("K"));
     }
 }

@@ -14,6 +14,8 @@
 
 ## [XScript: 支持宏函数的脚本语言](xscript.md)
 
+## [XLang类型推导设计说明](type-inference.md)
+
 ## [Antlr: AST定义和解析描述语言](antlr.md)
 
 ## [XPath: Tree结构路径查找语言](xpath.md)
