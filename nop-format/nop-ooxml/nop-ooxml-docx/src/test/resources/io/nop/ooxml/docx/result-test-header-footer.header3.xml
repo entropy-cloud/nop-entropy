@@ -26,7 +26,7 @@
             <w:rPr>
                 <w:rFonts w:hint="eastAsia"/>
                 <w:color w:val="000000" w:themeColor="text1"/></w:rPr>
-            <w:t xml:space="preserve"/></w:r>
+            <w:t xml:space="preserve"> </w:t></w:r>
         <w:r w:rsidRPr="0084063A">
             <w:rPr>
                 <w:rFonts w:hint="eastAsia"/>

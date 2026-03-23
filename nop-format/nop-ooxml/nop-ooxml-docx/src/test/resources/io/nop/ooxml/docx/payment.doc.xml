@@ -120,7 +120,7 @@
                                 <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
                                 <w:lang w:val="zh-CN"/>
                             </w:rPr>
-                            <w:t xml:space="preserve"/>
+                            <w:t xml:space="preserve"> </w:t>
                         </w:r>
                         <w:r w:rsidR="00FF2F22" w:rsidRPr="00FF2F22">
                             <w:rPr>
