@@ -1,7 +1,6 @@
 package io.nop.xlang.xt.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
-import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.json.IJsonHandler;
 import io.nop.xlang.xt.model.XtRuleGroupModel;
 import io.nop.commons.util.ClassHelper;
@@ -78,7 +77,6 @@ public abstract class _XtRuleGroupModel extends io.nop.xlang.xt.model.XtRuleMode
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
            this._body = io.nop.api.core.util.FreezeHelper.deepFreeze(this._body);
-           this._value = io.nop.api.core.util.FreezeHelper.deepFreeze(this._value);
             
         }
     }

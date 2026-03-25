@@ -9,6 +9,10 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+/**
+ * @deprecated 使用 io.nop.ai.toolkit.fs.IToolFileSystem 替代
+ */
+@Deprecated
 public interface IFileOperator {
     IResource getResource(String path);
 

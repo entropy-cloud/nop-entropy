@@ -1,9 +1,12 @@
 <xdef:unknown-tag x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-                  xdef:name="AgentToolCall" xdef:bean-package="io.nop.ai.agent.tool.model"
+                  xdef:name="AiToolCall" xdef:bean-package="io.nop.ai.toolkit.model"
+                  xdef:bean-tag-prop="toolName"
                   id="!int" explanation="!string" xdef:unknown-attr="string" timeoutMs="int">
     <input>string</input>
 
     <input-files xdef:body-type="list" xdef:key-attr="path">
-        <input-file path="!full-path" description="string" xdef:name="ToolCallInputFile"/>
+        <input-file path="!full-path" description="string" xdef:name="AiToolInputFile"/>
     </input-files>
+
+    <xdef:unknown-tag xdef:allow-multiple="true" xdef:unknown-attr="any">xml</xdef:unknown-tag>
 </xdef:unknown-tag>

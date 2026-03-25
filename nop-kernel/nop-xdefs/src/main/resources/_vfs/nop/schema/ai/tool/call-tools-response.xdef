@@ -1,24 +1,24 @@
 <call-tools-response x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
                      xdef:body-type="list" xdef:key-attr="id" xdef:bean-body-prop="results"
-                     xdef:bean-package="io.nop.ai.agent.tool.model" xdef:name="AgentCallToolsResponse"
-                     xdef:bean-body-type="List&lt;io.nop.ai.agent.tool.model.ToolCallResult>">
+                     xdef:bean-package="io.nop.ai.toolkit.model" xdef:name="AiToolCallsResponse"
+                      xdef:bean-body-type="List&lt;io.nop.ai.toolkit.model.AiToolCallResult>">
 
-    <xdef:define xdef:name="ToolCallResult" id="!int"
+    <xdef:define xdef:name="AiToolCallResult" id="!int"
                  status="!enum:success|failure|timeout|processing" exitCode="int">
         <!--
         @path 如果output很多，不能通过响应结果返回，则可以保存到文件中，此后可以通过read-file工具读取
         -->
-        <output path="full-path" totalLines="int" fromLine="int" toLine="int" xdef:name="ToolCallOutput">string</output>
+        <output path="full-path" totalLines="int" fromLine="int" toLine="int" xdef:name="AiToolOutput">string</output>
 
-        <error path="full-path" totalLines="int" xdef:name="ToolCallError">string</error>
+        <error path="full-path" totalLines="int" xdef:name="AiToolError">string</error>
 
         <output-files xdef:body-type="list" xdef:key-attr="path">
-            <output-file path="full-path" totalLines="int" description="string" xdef:name="ToolCallOutputFile"/>
+            <output-file path="full-path" totalLines="int" description="string" xdef:name="AiToolOutputFile"/>
         </output-files>
     </xdef:define>
 
-    <tool-result id="!int" xdef:ref="ToolCallResult" xdef:name="CommonToolCallResult" xdef:bean-tag-prop="type"/>
-    <agent-result id="int" xdef:ref="ToolCallResult" xdef:name="AgentToolCallResult" sessionId="!string"
+    <tool-result id="!int" xdef:ref="AiToolCallResult" xdef:name="AiCommonToolCallResult" xdef:bean-tag-prop="type"/>
+    <agent-result id="int" xdef:ref="AiToolCallResult" xdef:name="AiAgentCallResult" sessionId="!string"
                   xdef:bean-tag-prop="type"/>
 
 </call-tools-response>

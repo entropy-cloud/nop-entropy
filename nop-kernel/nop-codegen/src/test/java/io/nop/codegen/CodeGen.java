@@ -62,6 +62,7 @@ public class CodeGen {
 
             XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-ai/nop-ai-core"), "", false);
             XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-ai/nop-ai-agent"), "", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../../nop-ai/nop-ai-toolkit"), "", false);
 
             // System.setProperty("dryRun","true");
             // CodeGenTask.main(new String[]{new File("projectDir","../nop-graphql").getAbsolutePath()});
