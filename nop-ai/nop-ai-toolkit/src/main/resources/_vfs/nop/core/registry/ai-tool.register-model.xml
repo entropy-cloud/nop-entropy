@@ -1,0 +1,8 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="ai-tool">
+
+    <loaders>
+        <xdsl-loader fileType="tool.xml" schemaPath="/nop/schema/ai/tool/tool.xdef"/>
+    </loaders>
+
+</model>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="urn: nop-ioc:1.0">
+
+    <!-- File system tools -->
+    <bean id="ai-tools:read-file" class="io.nop.ai.toolkit.tools.ReadFileExecutor"/>
+    <bean id="ai-tools:write-file" class="io.nop.ai.toolkit.tools.WriteFileExecutor"/>
+    <bean id="ai-tools:list-dir" class="io.nop.ai.toolkit.tools.ListDirectoryExecutor"/>
+    <bean id="ai-tools:glob" class="io.nop.ai.toolkit.tools.SearchFilesExecutor"/>
+    <bean id="ai-tools:grep" class="io.nop.ai.toolkit.tools.SearchContentExecutor"/>
+    <bean id="ai-tools:move-file" class="io.nop.ai.toolkit.tools.MoveFileExecutor"/>
+    <bean id="ai-tools:copy-file" class="io.nop.ai.toolkit.tools.CopyFileExecutor"/>
+    <bean id="ai-tools:delete-file" class="io.nop.ai.toolkit.tools.DeleteFileExecutor"/>
+    <bean id="ai-tools:create-dir" class="io.nop.ai.toolkit.tools.CreateDirectoryExecutor"/>
+
+    <!-- System tools -->
+    <bean id="ai-tools:bash" class="io.nop.ai.toolkit.tools.BashExecutor"/>
+    <bean id="ai-tools:http-request" class="io.nop.ai.toolkit.tools.HttpRequestExecutor"/>
+    <bean id="ai-tools:graphql-query" class="io.nop.ai.toolkit.tools.GraphqlQueryExecutor"/>
+
+    <!-- Delta/Patch tools -->
+    <bean id="ai-tools:apply-delta" class="io.nop.ai.toolkit.tools.ApplyDeltaExecutor"/>
+    <bean id="ai-tools:patch-file" class="io.nop.ai.toolkit.tools.PatchFileExecutor"/>
+
+    <!-- Search tools -->
+<!--    <bean id="ai-tools:search-engine" class="io.nop.ai.toolkit.tools.SearchEngineExecutor"/>-->
+
+    <!-- Agent tools -->
+    <bean id="ai-tools:ask-oracle" class="io.nop.ai.toolkit.tools.AskOracleExecutor"/>
+    <bean id="ai-tools:call-agent" class="io.nop.ai.toolkit.tools.CallAgentExecutor"/>
+    <bean id="ai-tools:manage-todo-list" class="io.nop.ai.toolkit.tools.ManageTodoListExecutor"/>
+    <bean id="ai-tools:skill" class="io.nop.ai.toolkit.tools.SkillExecutor"/>
+
+    <!-- Provider and Manager -->
+    <bean id="nopToolExecutorProvider" class="io.nop.ai.toolkit.executor.DefaultToolExecutorProvider">
+        <property name="executors">
+            <ioc:collect-beans by-type="io.nop.ai.toolkit.api.IToolExecutor"/>
+        </property>
+    </bean>
+
+    <bean id="nopToolManager" class="io.nop.ai.toolkit.manager.ToolManagerImpl">
+        <property name="executorProvider" ref="nopToolExecutorProvider"/>
+        <property name="interceptors">
+            <ioc:collect-beans by-type="io.nop.ai.toolkit.api.IToolCallInterceptor"/>
+        </property>
+    </bean>
+</beans>

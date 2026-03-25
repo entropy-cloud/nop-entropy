@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="urn: nop-ioc:1.0">
+
+    <!-- Provide a mock HTTP client that satisfies the IHttpClient interface requirement -->
+    <bean id="testMockHttpClient" class="io.nop.ai.toolkit.mock.MockHttpClient" 
+          ioc:type="io.nop.http.api.client.IHttpClient"/>
+
+    <!-- Mock Search Engine for testing -->
+    <bean id="testMockSearchEngine" class="io.nop.ai.toolkit.mock.MockSearchEngine"
+          ioc:type="io.nop.search.api.ISearchEngine"/>
+
+</beans>

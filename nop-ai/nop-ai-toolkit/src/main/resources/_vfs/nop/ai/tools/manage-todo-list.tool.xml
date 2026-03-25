@@ -1,0 +1,125 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+      name="manage-todo-list">
+
+    <schema>
+        <manage-todo-list id="!int" explanation="!string" action="!enum:read|write">
+            <todos xdef:body-type="list" xdef:key-attr="id">
+                <todo id="!string" content="!string" status="!enum:pending|in_progress|completed|cancelled" priority="!enum:high|medium|low"/>
+            </todos>
+        </manage-todo-list>
+    </schema>
+
+    <description><![CDATA[管理任务待办列表（Todo List），用于跟踪多步骤任务的进度。
+
+**何时使用**：
+- 复杂的多步骤任务（3步以上）
+- 需要仔细规划的工作
+- 用户明确要求使用 todo list
+- 用户提供多个任务（编号或逗号分隔）
+- 接收到新指令时，立即创建任务列表
+
+**何时不使用**：
+- 单一简单的任务
+- 可在3步内完成的 trivial 任务
+- 纯对话或信息性任务
+
+**操作模式**：
+- action=read: 返回当前完整的 todo list
+- action=write: 传入完整 todos 数组，执行替换式更新
+
+**任务字段**：
+- id: 唯一标识符，用于区分列表中的任务
+- content: 任务的简要描述
+- status: pending(待处理) | in_progress(进行中) | completed(已完成) | cancelled(已取消)
+- priority: high | medium | low
+
+**核心原则**：
+1. 同时只能有一个任务处于 in_progress
+2. 完成任务后立即标记 completed
+3. 开始新任务前先完成当前任务
+4. 取消不再相关的任务]]></description>
+
+    <examples>
+        <example index="1">
+            <call-tools>
+                <manage-todo-list id="1" explanation="用户恢复会话，需要确认认证重构任务的当前进度" action="read"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output><![CDATA[Current todo list has 3 items:
+1. [in_progress][high] Analyze requirements document
+2. [pending][medium] Design database schema
+3. [pending][low] Write unit tests]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+
+        <example index="2">
+            <call-tools>
+                <manage-todo-list id="2" explanation="开始用户注册功能开发，共4步：表单校验、API端点、邮件验证、集成测试" action="write">
+                    <todos>
+                        <todo id="task-1" content="实现表单校验" status="in_progress" priority="high"/>
+                        <todo id="task-2" content="创建注册API端点" status="pending" priority="high"/>
+                        <todo id="task-3" content="添加邮件验证流程" status="pending" priority="medium"/>
+                        <todo id="task-4" content="编写集成测试" status="pending" priority="low"/>
+                    </todos>
+                </manage-todo-list>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="success">
+                    <output><![CDATA[Created 4 todo items]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+
+        <example index="3">
+            <call-tools>
+                <manage-todo-list id="3" explanation="表单校验已完成，API端点开发不再被阻塞，可以开始" action="write">
+                    <todos>
+                        <todo id="task-1" content="实现表单校验" status="completed" priority="high"/>
+                        <todo id="task-2" content="创建注册API端点" status="in_progress" priority="high"/>
+                        <todo id="task-3" content="添加邮件验证流程" status="pending" priority="medium"/>
+                        <todo id="task-4" content="编写集成测试" status="pending" priority="low"/>
+                    </todos>
+                </manage-todo-list>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="3" status="success">
+                    <output><![CDATA[Updated: task-1 completed, task-2 in_progress]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+
+        <example index="4">
+            <call-tools>
+                <manage-todo-list id="4" explanation="用户决定MVP版本跳过邮件验证功能，取消该任务" action="write">
+                    <todos>
+                        <todo id="task-1" content="实现表单校验" status="completed" priority="high"/>
+                        <todo id="task-2" content="创建注册API端点" status="completed" priority="high"/>
+                        <todo id="task-3" content="添加邮件验证流程" status="cancelled" priority="medium"/>
+                        <todo id="task-4" content="编写集成测试" status="in_progress" priority="low"/>
+                    </todos>
+                </manage-todo-list>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="4" status="success">
+                    <output><![CDATA[Updated: task-3 cancelled (MVP scope change)]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+
+        <example index="5">
+            <call-tools>
+                <manage-todo-list id="5" explanation="注册功能所有任务已完成，清空列表准备下一个功能" action="write">
+                    <todos/>
+                </manage-todo-list>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="5" status="success">
+                    <output><![CDATA[Todo list cleared]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
+
+</tool>

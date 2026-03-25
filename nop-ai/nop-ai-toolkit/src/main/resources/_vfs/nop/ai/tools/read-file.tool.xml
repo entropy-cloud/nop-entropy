@@ -1,0 +1,53 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      name="read-file">
+
+    <schema>
+        <read-file id="!int" explanation="!string"
+                   path="!full-path" fromLine="int" toLine="int" lastLines="int"/>
+    </schema>
+
+    <description><![CDATA[读取指定文件的内容（UTF-8 编码）。支持：
+- 按行范围读取（fromLine/toLine，包含两端）
+- 读取最后 n 行（lastLines，优先级最高）
+返回内容中每行前自动添加行号和冒号（如“1: 第一行内容”），便于定位与调试。
+适用于日志分析、配置文件查看等场景。]]></description>
+
+    <examples>
+        <example index="1">
+            <!-- 示例1：读取最后10行日志 -->
+            <call-tools>
+                <read-file id="1" explanation="查看最近10行日志"
+                           path="/var/log/app.log" lastLines="10"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="1" status="success">
+                    <output path="/var/log/app.log" totalLines="1024" fromLine="1015" toLine="1024"><![CDATA[
+    1015: 2025-03-12 10:15:23 INFO  Service started
+    1016: 2025-03-12 10:15:25 DEBUG Loading config...
+    ...
+    ]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+
+        <example index="2">
+            <!-- 示例2：读取配置文件前5行 -->
+            <call-tools>
+                <read-file id="2" explanation="读取配置文件前5行"
+                           path="/etc/app/config.ini" fromLine="1" toLine="5"/>
+            </call-tools>
+            <call-tools-response>
+                <tool-result id="2" status="success">
+                    <output path="/etc/app/config.ini" totalLines="42" fromLine="1" toLine="5"><![CDATA[
+    1: # 应用配置
+    2: server.port=8080
+    3: database.url=jdbc:mysql://localhost/db
+    4: log.level=INFO
+    5:
+    ]]></output>
+                </tool-result>
+            </call-tools-response>
+        </example>
+    </examples>
+
+</tool>
