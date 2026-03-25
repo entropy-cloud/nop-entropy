@@ -378,6 +378,118 @@ jobs:
 mvn clean test jacoco:report
 ```
 
+## 测试环境中的 IoC Bean 依赖处理
+
+当测试类继承 `JunitBaseTestCase` 时，NopIoC 容器会自动初始化。如果被测试的 bean 依赖了某些接口（如 `IHttpClient`、`ISearchEngine`），而测试环境中没有对应的实现，会导致 IoC 容器初始化失败。
+
+### 问题场景
+
+```text
+io.nop.api.core.exceptions.NopException: 
+  bean[ai-tools:graphql-query]的属性[httpClient]需要类型为[io.nop.http.api.client.IHttpClient]的bean，未找到已注册的bean
+```
+
+### 解决方案：创建测试专用的 Mock Bean
+
+#### 1. 创建 Mock 实现类
+
+在测试源码目录下创建 mock 类：
+
+```java
+// src/test/java/io/nop/xxx/mock/MockHttpClient.java
+package io.nop.xxx.mock;
+
+import io.nop.http.api.client.IHttpClient;
+import io.nop.http.api.client.IHttpResponse;
+import io.nop.http.api.client.HttpRequest;
+import io.nop.api.core.util.ICancelToken;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
+public class MockHttpClient implements IHttpClient {
+    @Override
+    public CompletionStage<IHttpResponse> fetchAsync(HttpRequest request, ICancelToken cancelToken) {
+        return CompletableFuture.completedFuture(new MockHttpResponse(200, "{}"));
+    }
+
+    @Override
+    public IHttpResponse fetch(HttpRequest request, ICancelToken cancelToken) {
+        return new MockHttpResponse(200, "{}");
+    }
+    
+    // 实现其他必要方法...
+}
+```
+
+#### 2. 创建测试专用的 Beans 配置文件
+
+在测试资源目录下创建配置：
+
+```xml
+<!-- src/test/resources/_vfs/nop/xxx/beans/test-mock.beans.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="urn: nop-ioc:1.0">
+
+    <!-- 注册 Mock Bean，不要使用 ioc:default="true" 避免与现有默认 bean 冲突 -->
+    <bean id="testMockHttpClient" class="io.nop.xxx.mock.MockHttpClient" 
+          ioc:type="io.nop.http.api.client.IHttpClient"/>
+
+    <bean id="testMockSearchEngine" class="io.nop.xxx.mock.MockSearchEngine"
+          ioc:type="io.nop.search.api.ISearchEngine"/>
+
+</beans>
+```
+
+**重要说明**：
+- Bean ID 使用 `testMock` 前缀，避免与现有 bean 重名
+- 指定 `ioc:type` 声明实现的接口类型
+- **不要**使用 `ioc:default="true"`，避免与平台默认 bean 产生冲突
+
+#### 3. 在测试类中引用配置
+
+使用 `@NopTestConfig` 注解指定测试配置文件：
+
+```java
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.autotest.junit.JunitBaseTestCase;
+
+@NopTestConfig(testBeansFile = "/nop/xxx/beans/test-mock.beans.xml")
+public class MyExecutorTest extends JunitBaseTestCase {
+
+    private MyExecutor executor;
+    private MockHttpClient mockHttpClient;
+
+    @BeforeEach
+    public void setUp() {
+        executor = new MyExecutor();
+        mockHttpClient = new MockHttpClient();
+        executor.setHttpClient(mockHttpClient);  // 手动设置 mock
+    }
+
+    @Test
+    public void testExecute() {
+        // 测试逻辑
+    }
+}
+```
+
+### 常见错误与解决
+
+| 错误信息 | 原因 | 解决方案 |
+|---------|------|---------|
+| `not-find-bean-with-type` | IoC 容器中找不到指定类型的 bean | 创建 mock bean 并注册到测试配置文件 |
+| `invalid-path` | `testBeansFile` 路径格式错误 | 使用绝对路径如 `/nop/xxx/beans/test-mock.beans.xml` |
+| `duplicate-bean-definition` | Bean ID 与现有 bean 重名 | 修改 bean ID，避免使用 `nopHttpClient` 等已存在的 ID |
+| `multiple-bean-with-type-when-for-prop` | 存在多个同类型的 default bean | 不要使用 `ioc:default="true"` |
+
+### 设计原则
+
+1. **隔离原则**：Mock 类放在测试源码目录（`src/test/java`），不影响生产代码
+2. **最小化原则**：只 mock 必要的接口，保持 mock 实现简单
+3. **命名约定**：使用 `Mock` 前缀和 `testMock` bean ID 前缀，便于识别
+4. **手动注入**：测试中优先通过 setter 手动注入 mock 对象，便于控制测试行为
+
 ## 常见测试问题
 
 | 问题 | 原因 | 解决方案 |
@@ -388,6 +500,7 @@ mvn clean test jacoco:report
 | 测试慢 | 数据库操作过多 | 使用测试数据库、Mock外部调用 |
 | 覆盖率低 | 未覆盖所有场景 | 添加更多测试用例 |
 | 测试难以维护 | 测试代码复杂 | 简化测试、提取公共方法 |
+| IoC容器初始化失败 | 缺少必需的 bean 依赖 | 创建测试专用 mock beans 配置 |
 
 ## 测试清单
 
