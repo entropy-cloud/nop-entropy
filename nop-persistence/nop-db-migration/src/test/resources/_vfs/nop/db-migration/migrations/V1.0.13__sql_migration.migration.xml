@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+  version="1.0.13"
+  description="Raw SQL migration"
+  author="test">
+
+  <changeset>
+    <sql>
+      INSERT INTO test_customer (id, user_name, created_at)
+      VALUES ('2001', 'sql_user_1', CURRENT_TIMESTAMP)
+    </sql>
+    <sql splitStatements="false">
+      -- This SQL block should not be split
+      INSERT INTO test_customer (id, user_name, created_at) VALUES ('2002', 'sql_user_2', CURRENT_TIMESTAMP);
+      INSERT INTO test_customer (id, user_name, created_at) VALUES ('2003', 'sql_user_3', CURRENT_TIMESTAMP);
+    </sql>
+  </changeset>
+</migration>

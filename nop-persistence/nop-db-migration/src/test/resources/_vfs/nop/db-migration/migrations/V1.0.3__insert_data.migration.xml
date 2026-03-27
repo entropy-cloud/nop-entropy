@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+  version="1.0.3"
+  description="Inserts test data into user table"
+  author="test">
+
+  <changeset>
+    <insert tableName="test_user">
+      <column name="id" value="1001"/>
+      <column name="user_name" value="test_user_1"/>
+      <column name="email" value="test1@example.com"/>
+      <column name="created_at" value="CURRENT_TIMESTAMP"/>
+    </insert>
+    <insert tableName="test_user">
+      <column name="id" value="1002"/>
+      <column name="user_name" value="test_user_2"/>
+      <column name="email" value="test2@example.com"/>
+      <column name="created_at" value="CURRENT_TIMESTAMP"/>
+    </insert>
+  </changeset>
+</migration>

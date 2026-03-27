@@ -20,6 +20,7 @@
     <modules>
         <module>nop-cdc</module>
         <module>nop-dao</module>
+        <module>nop-db-migration</module>
         <module>nop-dbtool</module>
         <module>nop-nosql</module>
         <module>nop-orm</module>

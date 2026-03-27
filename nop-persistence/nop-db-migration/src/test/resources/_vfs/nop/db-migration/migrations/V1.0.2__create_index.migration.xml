@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+  version="1.0.2"
+  description="Creates index on user name column"
+  author="test">
+
+  <changeset>
+    <createIndex tableName="test_user" indexName="idx_user_name" unique="false">
+      <column name="user_name"/>
+    </createIndex>
+  </changeset>
+</migration>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+示例 4：可重复迁移 - 视图和存储过程
+
+展示如何：
+1. 创建可重复迁移
+2. 管理视图
+3. 使用复杂 SQL
+-->
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+           type="repeatable"
+           description="用户统计视图"
+           author="dev-team">
+    
+    <description>
+        创建用户统计视图，展示用户的基本信息和统计数据。
+        每次视图定义变化时，会自动重新创建。
+    </description>
+
+    <changeset>
+        <!-- 先删除旧视图（如果存在） -->
+        <dropView name="v_user_statistics"/>
+        
+        <!-- 创建新视图 -->
+        <createView name="v_user_statistics" 
+                    remark="用户统计视图 - 包含用户基本信息和订单统计">
+            <selectSql>
+                SELECT 
+                    u.user_id,
+                    u.user_name,
+                    u.email,
+                    u.status,
+                    u.create_time,
+                    COUNT(DISTINCT r.role_id) as role_count,
+                    GROUP_CONCAT(DISTINCT r.role_name ORDER BY r.role_name SEPARATOR ', ') as roles
+                FROM t_user u
+                LEFT JOIN t_user_role ur ON u.user_id = ur.user_id
+                LEFT JOIN t_role r ON ur.role_id = r.role_id
+                WHERE u.del_flag = 0
+                GROUP BY u.user_id, u.user_name, u.email, u.status, u.create_time
+            </selectSql>
+        </createView>
+        
+        <!-- 另一个统计视图：活跃用户 -->
+        <dropView name="v_active_users"/>
+        <createView name="v_active_users" 
+                    remark="活跃用户视图 - 最近30天有活动的用户">
+            <selectSql>
+                SELECT 
+                    user_id,
+                    user_name,
+                    email,
+                    last_login_time,
+                    login_count
+                FROM t_user
+                WHERE del_flag = 0
+                  AND status = 1
+                  AND last_login_time >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                ORDER BY last_login_time DESC
+            </selectSql>
+        </createView>
+    </changeset>
+    
+    <!-- 可重复迁移不需要回滚定义 -->
+    <comment>
+        可重复迁移会在以下情况重新执行：
+        1. 文件内容（校验和）发生变化
+        2. 手动触发重新执行
+        
+        适用于：
+        - 视图定义
+        - 存储过程
+        - 函数
+        - 触发器
+    </comment>
+</migration>

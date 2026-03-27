@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+       xmlns:ioc="ioc">
+
+    <!-- Migration Engine -->
+    <bean id="migrationEngine" class="io.nop.db.migration.core.MigrationEngine" ioc:auto-inject="true">
+    </bean>
+
+    <!-- Migration History Manager -->
+    <bean id="migrationHistoryManager" class="io.nop.db.migration.core.MigrationHistoryManager" ioc:auto-inject="true">
+    </bean>
+
+    <!-- Migration File Scanner -->
+    <bean id="migrationFileScanner" class="io.nop.db.migration.core.MigrationFileScanner">
+    </bean>
+
+    <!-- Migration Executor -->
+    <bean id="migrationExecutor" class="io.nop.db.migration.core.MigrationExecutor" ioc:auto-inject="true">
+        <property name="executors">
+            <ioc:map keyType="java.lang.String" valueType="io.nop.db.migration.executor.IChangeExecutor">
+                <entry key="createTable" value-ref="createTableExecutor"/>
+                <entry key="dropTable" value-ref="dropTableExecutor"/>
+                <entry key="renameTable" value-ref="renameTableExecutor"/>
+                <entry key="addColumn" value-ref="addColumnExecutor"/>
+                <entry key="dropColumn" value-ref="dropColumnExecutor"/>
+                <entry key="alterColumn" value-ref="alterColumnExecutor"/>
+                <entry key="createIndex" value-ref="createIndexExecutor"/>
+                <entry key="dropIndex" value-ref="dropIndexExecutor"/>
+                <entry key="createView" value-ref="createViewExecutor"/>
+                <entry key="dropView" value-ref="dropViewExecutor"/>
+                <entry key="sql" value-ref="sqlExecutor"/>
+                <entry key="insertData" value-ref="insertDataExecutor"/>
+                <entry key="updateData" value-ref="updateDataExecutor"/>
+                <entry key="deleteData" value-ref="deleteDataExecutor"/>
+                <entry key="customChange" value-ref="customChangeExecutor"/>
+            </ioc:map>
+        </property>
+    </bean>
+
+    <!-- Change Executors -->
+    <bean id="sqlExecutor" class="io.nop.db.migration.executor.SqlExecutor"/>
+    <bean id="createTableExecutor" class="io.nop.db.migration.executor.CreateTableExecutor" ioc:auto-inject="true"/>
+    <bean id="dropTableExecutor" class="io.nop.db.migration.executor.DropTableExecutor" ioc:auto-inject="true"/>
+    <bean id="renameTableExecutor" class="io.nop.db.migration.executor.RenameTableExecutor" ioc:auto-inject="true"/>
+    <bean id="addColumnExecutor" class="io.nop.db.migration.executor.AddColumnExecutor" ioc:auto-inject="true"/>
+    <bean id="dropColumnExecutor" class="io.nop.db.migration.executor.DropColumnExecutor" ioc:auto-inject="true"/>
+    <bean id="alterColumnExecutor" class="io.nop.db.migration.executor.AlterColumnExecutor" ioc:auto-inject="true"/>
+    <bean id="createIndexExecutor" class="io.nop.db.migration.executor.CreateIndexExecutor" ioc:auto-inject="true"/>
+    <bean id="dropIndexExecutor" class="io.nop.db.migration.executor.DropIndexExecutor" ioc:auto-inject="true"/>
+    <bean id="createViewExecutor" class="io.nop.db.migration.executor.CreateViewExecutor" ioc:auto-inject="true"/>
+    <bean id="dropViewExecutor" class="io.nop.db.migration.executor.DropViewExecutor" ioc:auto-inject="true"/>
+    <bean id="insertDataExecutor" class="io.nop.db.migration.executor.InsertDataExecutor" ioc:auto-inject="true"/>
+    <bean id="updateDataExecutor" class="io.nop.db.migration.executor.UpdateDataExecutor" ioc:auto-inject="true"/>
+    <bean id="deleteDataExecutor" class="io.nop.db.migration.executor.DeleteDataExecutor" ioc:auto-inject="true"/>
+    <bean id="customChangeExecutor" class="io.nop.db.migration.executor.CustomChangeExecutor" ioc:auto-inject="true"/>
+</beans>

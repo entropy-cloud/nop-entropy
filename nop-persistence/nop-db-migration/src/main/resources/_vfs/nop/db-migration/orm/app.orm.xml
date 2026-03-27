@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     ext:appName="nop-db-migration" ext:entityPackageName="io.nop.db.migration.entity"
+     ext:basePackageName="io.nop.db.migration" ext:mavenGroupId="io.github.entropy-cloud"
+     ext:mavenArtifactId="nop-db-migration" ext:mavenVersion="2.0.0-SNAPSHOT">
+
+    <domains>
+        <domain name="version" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="description" precision="500" stdSqlType="VARCHAR"/>
+        <domain name="checksum" precision="64" stdSqlType="VARCHAR"/>
+        <domain name="migrationType" precision="20" stdSqlType="VARCHAR"/>
+        <domain name="installedBy" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="context" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="labels" precision="500" stdSqlType="VARCHAR"/>
+        <domain name="errorMessage" stdSqlType="CLOB"/>
+        <domain name="createTime" stdSqlType="TIMESTAMP"/>
+    </domains>
+
+    <entities>
+        <entity name="io.nop.db.migration.entity.NopDbMigrationHistory" 
+                displayName="Migration History" 
+                tableName="nop_db_migration_history" 
+                registerShortName="true"
+                tagSet="mapper">
+            <columns>
+                <column name="id" code="ID" precision="36" primary="true" mandatory="true" 
+                        stdDataType="string" stdSqlType="VARCHAR" displayName="ID"/>
+                <column name="version" code="VERSION" domain="version" mandatory="true" 
+                        stdDataType="string" displayName="Version"/>
+                <column name="description" code="DESCRIPTION" domain="description" 
+                        stdDataType="string" displayName="Description"/>
+                <column name="type" code="TYPE" domain="migrationType" mandatory="true" 
+                        stdDataType="string" displayName="Type"/>
+                <column name="checksum" code="CHECKSUM" domain="checksum" 
+                        stdDataType="string" displayName="Checksum"/>
+                <column name="installedOn" code="INSTALLED_ON" domain="createTime" mandatory="true" 
+                        stdDataType="timestamp" displayName="Installed On"/>
+                <column name="executionTime" code="EXECUTION_TIME" mandatory="true" 
+                        stdDataType="int" stdSqlType="INTEGER" displayName="Execution Time"/>
+                <column name="success" code="SUCCESS" mandatory="true" 
+                        stdDataType="boolean" stdSqlType="BOOLEAN" displayName="Success"/>
+                <column name="installedBy" code="INSTALLED_BY" domain="installedBy" 
+                        stdDataType="string" displayName="Installed By"/>
+                <column name="context" code="CONTEXT" domain="context" 
+                        stdDataType="string" displayName="Context"/>
+                <column name="labels" code="LABELS" domain="labels" 
+                        stdDataType="string" displayName="Labels"/>
+                <column name="errorMessage" code="ERROR_MESSAGE" domain="errorMessage" 
+                        stdDataType="string" displayName="Error Message"/>
+                <column name="createTime" code="CREATE_TIME" domain="createTime" mandatory="true" 
+                        stdDataType="timestamp" displayName="Create Time"/>
+            </columns>
+            <unique-keys>
+                <unique-key name="uk_version" columns="version"/>
+            </unique-keys>
+            <indexes>
+                <index name="idx_installed_on" columns="installedOn"/>
+            </indexes>
+        </entity>
+    </entities>
+</orm>

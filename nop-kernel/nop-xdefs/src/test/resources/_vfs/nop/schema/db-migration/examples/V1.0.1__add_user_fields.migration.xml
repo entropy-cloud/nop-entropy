@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+示例 2：添加列和修改表结构
+
+展示如何：
+1. 使用前置条件检查
+2. 添加新列
+3. 修改现有列
+4. 添加索引和约束
+-->
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+           version="1.0.1"
+           description="添加用户扩展字段"
+           author="dev-team">
+    
+    <description>
+        为用户表添加扩展字段，包括：
+        - 头像 URL
+        - 真实姓名
+        - 性别
+        - 生日
+    </description>
+
+    <!-- 前置条件：确保表存在，且这些列不存在 -->
+    <preconditions>
+        <tableExists tableName="t_user" expect="exists"/>
+        <columnExists tableName="t_user" columnName="avatar_url" expect="notExists"/>
+        <columnExists tableName="t_user" columnName="real_name" expect="notExists"/>
+    </preconditions>
+
+    <changeset>
+        <!-- 添加新列 -->
+        <addColumn tableName="t_user">
+            <columns>
+                <column name="avatar_url" type="VARCHAR" size="500" 
+                        remark="头像URL"/>
+                <column name="real_name" type="VARCHAR" size="100" 
+                        remark="真实姓名"/>
+                <column name="gender" type="INTEGER" 
+                        defaultValue="0" remark="性别：0-未知，1-男，2-女"/>
+                <column name="birthday" type="DATE" 
+                        remark="生日"/>
+            </columns>
+        </addColumn>
+        
+        <!-- 添加索引 -->
+        <createIndex name="idx_user_real_name" 
+                     tableName="t_user" 
+                     columnNames="real_name"/>
+    </changeset>
+    
+    <rollback>
+        <changes>
+            <dropIndex name="idx_user_real_name" tableName="t_user"/>
+            <dropColumn tableName="t_user" columnName="birthday"/>
+            <dropColumn tableName="t_user" columnName="gender"/>
+            <dropColumn tableName="t_user" columnName="real_name"/>
+            <dropColumn tableName="t_user" columnName="avatar_url"/>
+        </changes>
+    </rollback>
+</migration>

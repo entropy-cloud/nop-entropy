@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+  version="1.0.9"
+  description="Renames test_user table to test_customer"
+  author="test">
+
+  <changeset>
+    <renameTable oldTableName="test_user" newTableName="test_customer"/>
+  </changeset>
+</migration>

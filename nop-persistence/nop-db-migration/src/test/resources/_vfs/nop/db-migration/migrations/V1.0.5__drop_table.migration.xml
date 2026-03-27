@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+  version="1.0.5"
+  description="Drops test user table"
+  author="test">
+
+  <changeset>
+    <dropTable tableName="test_user"/>
+  </changeset>
+</migration>

@@ -38,13 +38,6 @@ public abstract class _AiToolExample extends io.nop.core.resource.component.Abst
     private int _index ;
     
     /**
-     *  
-     * xml name: index
-     * 
-     */
-    private int _index ;
-    
-    /**
      * 
      * xml name: call-tools
      *  

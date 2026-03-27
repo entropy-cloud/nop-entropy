@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+  version="1.0.10"
+  description="Alters user_name column to increase size"
+  author="test">
+
+  <changeset>
+    <modifyDataType tableName="test_customer" columnName="user_name" newDataType="VARCHAR(200)"/>
+  </changeset>
+</migration>

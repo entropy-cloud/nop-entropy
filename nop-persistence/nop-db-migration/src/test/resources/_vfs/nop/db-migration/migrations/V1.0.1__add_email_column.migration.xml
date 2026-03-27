@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+  version="1.0.1"
+  description="Adds email column to test user table"
+  author="test">
+
+  <changeset>
+    <addColumn tableName="test_user">
+      <column name="email" type="VARCHAR" size="200" nullable="true" remark="User email address"/>
+    </addColumn>
+  </changeset>
+</migration>

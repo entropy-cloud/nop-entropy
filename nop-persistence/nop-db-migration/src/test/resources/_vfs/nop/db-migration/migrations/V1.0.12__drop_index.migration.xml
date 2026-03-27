@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+  version="1.0.12"
+  description="Drops user name index from test_customer table"
+  author="test">
+
+  <changeset>
+    <dropIndex tableName="test_customer" indexName="idx_user_name"/>
+  </changeset>
+</migration>

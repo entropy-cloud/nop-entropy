@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+  version="1.0.7"
+  description="Drops test view"
+  author="test">
+
+  <changeset>
+    <dropView viewName="test_user_view"/>
+  </changeset>
+</migration>

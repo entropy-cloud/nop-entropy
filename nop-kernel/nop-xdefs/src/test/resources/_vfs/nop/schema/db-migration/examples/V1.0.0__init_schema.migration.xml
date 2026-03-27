@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+示例 1：初始化数据库 Schema
+
+这是最基础的迁移示例，展示如何创建表、索引和约束。
+
+文件名说明：
+- V1.0.0：版本号，使用语义化版本
+- init_schema：简短描述，使用下划线分隔
+-->
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+           version="1.0.0"
+           description="初始化数据库 Schema"
+           author="dev-team">
+    
+    <description>
+        创建系统的基础表结构，包括：
+        - 用户表 (t_user)
+        - 角色表 (t_role)
+        - 用户角色关联表 (t_user_role)
+    </description>
+
+    <changeset>
+        <!-- 创建用户表 -->
+        <createTable name="t_user" remark="用户表">
+            <columns>
+                <column name="user_id" type="VARCHAR" size="32" 
+                        primaryKey="true" nullable="false" 
+                        remark="用户ID"/>
+                <column name="user_name" type="VARCHAR" size="100" 
+                        nullable="false" remark="用户名"/>
+                <column name="password" type="VARCHAR" size="200" 
+                        nullable="false" remark="密码（加密）"/>
+                <column name="email" type="VARCHAR" size="200" 
+                        remark="邮箱"/>
+                <column name="phone" type="VARCHAR" size="20" 
+                        remark="手机号"/>
+                <column name="status" type="INTEGER" 
+                        defaultValue="1" remark="状态：1-正常，0-禁用，2-锁定"/>
+                <column name="del_flag" type="INTEGER" 
+                        defaultValue="0" remark="删除标记：0-未删除，1-已删除"/>
+                <column name="create_time" type="TIMESTAMP" 
+                        nullable="false" remark="创建时间"/>
+                <column name="create_by" type="VARCHAR" size="32" 
+                        remark="创建人"/>
+                <column name="update_time" type="TIMESTAMP" 
+                        remark="更新时间"/>
+                <column name="update_by" type="VARCHAR" size="32" 
+                        remark="更新人"/>
+            </columns>
+            
+            <!-- 唯一约束 -->
+            <uniqueConstraint name="uk_user_name" columnNames="user_name"/>
+            <uniqueConstraint name="uk_email" columnNames="email"/>
+        </createTable>
+        
+        <!-- 创建用户表的索引 -->
+        <createIndex name="idx_user_create_time" 
+                     tableName="t_user" 
+                     columnNames="create_time"/>
+        <createIndex name="idx_user_status" 
+                     tableName="t_user" 
+                     columnNames="status,del_flag"/>
+        
+        <!-- 创建角色表 -->
+        <createTable name="t_role" remark="角色表">
+            <columns>
+                <column name="role_id" type="VARCHAR" size="32" 
+                        primaryKey="true" nullable="false" 
+                        remark="角色ID"/>
+                <column name="role_name" type="VARCHAR" size="100" 
+                        nullable="false" remark="角色名称"/>
+                <column name="role_code" type="VARCHAR" size="50" 
+                        nullable="false" remark="角色编码"/>
+                <column name="description" type="VARCHAR" size="500" 
+                        remark="角色描述"/>
+                <column name="status" type="INTEGER" 
+                        defaultValue="1" remark="状态：1-启用，0-禁用"/>
+                <column name="create_time" type="TIMESTAMP" 
+                        nullable="false" remark="创建时间"/>
+                <column name="update_time" type="TIMESTAMP" 
+                        remark="更新时间"/>
+            </columns>
+            
+            <uniqueConstraint name="uk_role_code" columnNames="role_code"/>
+        </createTable>
+        
+        <!-- 创建用户角色关联表 -->
+        <createTable name="t_user_role" remark="用户角色关联表">
+            <columns>
+                <column name="id" type="VARCHAR" size="32" 
+                        primaryKey="true" nullable="false" 
+                        remark="主键ID"/>
+                <column name="user_id" type="VARCHAR" size="32" 
+                        nullable="false" remark="用户ID"/>
+                <column name="role_id" type="VARCHAR" size="32" 
+                        nullable="false" remark="角色ID"/>
+                <column name="create_time" type="TIMESTAMP" 
+                        nullable="false" remark="创建时间"/>
+            </columns>
+            
+            <!-- 外键约束 -->
+            <foreignKey name="fk_user_role_user" 
+                        columnNames="user_id"
+                        refTableName="t_user" 
+                        refColumnNames="user_id"
+                        onDelete="CASCADE"/>
+            <foreignKey name="fk_user_role_role" 
+                        columnNames="role_id"
+                        refTableName="t_role" 
+                        refColumnNames="role_id"
+                        onDelete="CASCADE"/>
+        </createTable>
+        
+        <!-- 创建关联表的复合索引 -->
+        <createIndex name="idx_user_role" 
+                     tableName="t_user_role" 
+                     columnNames="user_id,role_id"/>
+    </changeset>
+    
+    <!-- 回滚定义（可选，不定义会自动生成） -->
+    <rollback>
+        <changes>
+            <dropTable name="t_user_role"/>
+            <dropTable name="t_role"/>
+            <dropTable name="t_user"/>
+        </changes>
+    </rollback>
+    
+    <!-- 标签和上下文 -->
+    <labels>init,base-schema</labels>
+    <contexts>dev,test,prod</contexts>
+    
+    <comment>
+        这是系统的第一个迁移文件，创建了基础的表结构。
+        后续的迁移将在此基础上进行扩展。
+    </comment>
+</migration>

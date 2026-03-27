@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+示例 5：自定义变更和复杂逻辑
+
+展示如何：
+1. 使用 XPL 脚本实现自定义变更
+2. 执行复杂的数据迁移逻辑
+3. 使用数据库类型过滤
+-->
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+           version="1.2.0"
+           description="复杂数据迁移"
+           author="dev-team">
+    
+    <description>
+        执行复杂的数据迁移：
+        1. 数据清洗
+        2. 数据转换
+        3. 数据补全
+    </description>
+
+    <changeset>
+        <!-- 方式 1：使用 SQL 进行数据清洗 -->
+        <sql>
+            <body>
+                -- 清洗用户数据：统一邮箱格式为小写
+                UPDATE t_user 
+                SET email = LOWER(email) 
+                WHERE email != LOWER(email) AND email IS NOT NULL;
+                
+                -- 补全默认头像
+                UPDATE t_user 
+                SET avatar_url = '/default-avatar.png' 
+                WHERE avatar_url IS NULL OR avatar_url = '';
+            </body>
+        </sql>
+        
+        <!-- 方式 2：使用自定义 XPL 脚本进行复杂数据处理 -->
+        <customChange>
+            <implementation>
+                <!-- 
+                使用 XPL 脚本实现复杂的业务逻辑
+                可以访问 Nop 平台的所有服务和 DAO
+                -->
+                <c:script>
+                    import io.nop.orm.IOrmEntity;
+                    import io.nop.core.lang.sql.SQL;
+                    
+                    // 获取 DAO
+                    let userDao = inject('dao_t_user');
+                    
+                    // 查询所有需要处理的用户
+                    let query = new QueryBean();
+                    query.eq('delFlag', 0);
+                    query.eq('status', 1);
+                    
+                    let users = userDao.findListByQuery(query);
+                    let processed = 0;
+                    
+                    // 处理每个用户
+                    for (user in users) {
+                        let changed = false;
+                        
+                        // 自动生成用户名（如果为空）
+                        if (user.userName == null || user.userName == '') {
+                            user.userName = 'user_' + user.userId;
+                            changed = true;
+                        }
+                        
+                        // 根据邮箱自动设置真实姓名（示例逻辑）
+                        if (user.realName == null && user.email != null) {
+                            let emailName = user.email.split('@')[0];
+                            user.realName = emailName;
+                            changed = true;
+                        }
+                        
+                        // 保存修改
+                        if (changed) {
+                            userDao.updateEntity(user);
+                            processed++;
+                        }
+                    }
+                    
+                    // 记录日志
+                    log.info('处理了 {} 个用户数据', processed);
+                </c:script>
+            </implementation>
+        </customChange>
+        
+        <!-- 方式 3：使用数据库类型过滤执行特定数据库的操作 -->
+        <dbTypeFilter dbTypes="mysql,postgresql">
+            <changes>
+                <!-- 只在 MySQL 和 PostgreSQL 上执行 -->
+                <sql>
+                    <body>
+                        -- 创建全文索引（MySQL 和 PostgreSQL 都支持）
+                        CREATE FULLTEXT INDEX idx_user_name_ft 
+                        ON t_user(user_name);
+                    </body>
+                </sql>
+            </changes>
+        </dbTypeFilter>
+        
+        <dbTypeFilter dbTypes="oracle">
+            <changes>
+                <!-- 只在 Oracle 上执行 -->
+                <sql>
+                    <body>
+                        -- Oracle 使用位图索引
+                        CREATE BITMAP INDEX idx_user_status_bmap 
+                        ON t_user(status);
+                    </body>
+                </sql>
+            </changes>
+        </dbTypeFilter>
+        
+        <dbTypeFilter dbTypes="sqlserver">
+            <changes>
+                <!-- 只在 SQL Server 上执行 -->
+                <sql>
+                    <body>
+                        -- SQL Server 使用聚集列存储索引
+                        CREATE CLUSTERED COLUMNSTORE INDEX idx_user_cstore 
+                        ON t_user;
+                    </body>
+                </sql>
+            </changes>
+        </dbTypeFilter>
+    </changeset>
+    
+    <!-- 复杂的数据迁移通常难以自动回滚 -->
+    <rollback>
+        <changes>
+            <sql>
+                <body>
+                    -- 恢复邮箱为大写（这只是示例，实际可能无法完全恢复）
+                    UPDATE t_user 
+                    SET email = UPPER(email) 
+                    WHERE email != UPPER(email) AND email IS NOT NULL;
+                </body>
+            </sql>
+            
+            <customChange>
+                <implementation>
+                    <c:script>
+                        log.warn('数据迁移回滚可能不完整，请检查数据一致性');
+                    </c:script>
+                </implementation>
+            </customChange>
+        </changes>
+    </rollback>
+    
+    <comment>
+        此迁移包含复杂的业务逻辑，建议：
+        1. 在测试环境充分验证
+        2. 执行前备份数据
+        3. 分批处理大量数据
+        4. 监控执行性能
+    </comment>
+</migration>

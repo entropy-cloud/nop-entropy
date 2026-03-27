@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+  version="1.0.8"
+  description="Custom XPL change"
+  author="test">
+
+  <changeset>
+    <custom>
+      <c:script xmlns:c="http://www.nopplatform.org/schema/xpl-core">
+        <c:import class="io.nop.dao.dialect.IDialect"/>
+        <c:script>
+          dialect = dialectProvider.getDialect(dataSource);
+          log.info("Executing custom change for dialect: " + dialect.getName());
+        </c:script>
+      </c:script>
+    </custom>
+  </changeset>
+</migration>

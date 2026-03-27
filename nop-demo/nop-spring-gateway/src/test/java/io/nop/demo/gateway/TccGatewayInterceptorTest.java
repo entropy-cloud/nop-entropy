@@ -21,6 +21,7 @@ import java.util.concurrent.CompletionStage;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.*;
 
 /**
@@ -76,17 +77,15 @@ class TccGatewayInterceptorTest {
         verify(tccEngine).runInTransactionAsync(eq("test-group"), eq("existing-txn-id"), any());
     }
 
-
     @Test
-    void testInvoke_AutoCreateDisabled_ShouldNotCreateTransaction() {
-        interceptor.setAutoCreateTransaction(false);
+    void testInvoke_WithoutTxnId_ShouldCreateNewTransaction() {
         ApiRequest<Object> request = new ApiRequest<>();
         request.setHeaders(new HashMap<>());
 
         ApiResponse<Object> expectedResponse = new ApiResponse<>();
         expectedResponse.setStatus(0);
 
-        when(tccEngine.runInTransactionAsync(eq("test-group"), eq(null), any()))
+        when(tccEngine.runInTransactionAsync(nullable(String.class), nullable(String.class), any()))
                 .thenAnswer(inv -> {
                     java.util.function.Function<ITccTransaction, CompletionStage<ApiResponse<?>>> task = inv.getArgument(2);
                     return task.apply(tccTransaction);
@@ -98,7 +97,31 @@ class TccGatewayInterceptorTest {
 
         assertNotNull(result);
         assertEquals(0, result.getStatus());
-        verify(tccEngine).runInTransactionAsync(eq("test-group"), eq(null), any());
+        verify(tccEngine).runInTransactionAsync(nullable(String.class), nullable(String.class), any());
+    }
+
+    @Test
+    void testInvoke_AutoCreateDisabled_ShouldNotCreateNewTransaction() {
+        interceptor.setAutoCreateTransaction(false);
+        ApiRequest<Object> request = new ApiRequest<>();
+        request.setHeaders(new HashMap<>());
+
+        ApiResponse<Object> expectedResponse = new ApiResponse<>();
+        expectedResponse.setStatus(0);
+
+        when(tccEngine.runInTransactionAsync(nullable(String.class), nullable(String.class), any()))
+                .thenAnswer(inv -> {
+                    java.util.function.Function<ITccTransaction, CompletionStage<ApiResponse<?>>> task = inv.getArgument(2);
+                    return task.apply(tccTransaction);
+                });
+        doReturn(CompletableFuture.completedFuture(expectedResponse)).when(invocation).proceedInvoke(any(), any());
+
+        CompletionStage<ApiResponse<?>> resultFuture = interceptor.invoke(invocation, request, gatewayContext);
+        ApiResponse<?> result = resultFuture.toCompletableFuture().join();
+
+        assertNotNull(result);
+        assertEquals(0, result.getStatus());
+        verify(tccEngine).runInTransactionAsync(nullable(String.class), nullable(String.class), any());
         verify(invocation).proceedInvoke(request, gatewayContext);
     }
 
@@ -107,7 +130,7 @@ class TccGatewayInterceptorTest {
         ApiRequest<Object> request = new ApiRequest<>();
         request.setHeaders(new HashMap<>());
 
-        when(tccEngine.runInTransactionAsync(eq("test-group"), eq(null), any()))
+        when(tccEngine.runInTransactionAsync(nullable(String.class), nullable(String.class), any()))
                 .thenReturn(CompletableFuture.failedFuture(new RuntimeException("Test error")));
 
         CompletionStage<ApiResponse<?>> resultFuture = interceptor.invoke(invocation, request, gatewayContext);

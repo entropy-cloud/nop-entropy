@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+示例 3：数据库特定的 SQL 和数据迁移
+
+展示如何：
+1. 使用数据库特定的 SQL
+2. 插入初始化数据
+3. 使用自定义 SQL 执行复杂操作
+-->
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+           version="1.1.0"
+           description="初始化基础数据"
+           author="dev-team">
+    
+    <description>
+        初始化系统基础数据：
+        - 创建管理员账户
+        - 创建默认角色
+        - 设置初始权限
+    </description>
+
+    <changeset>
+        <!-- 插入管理员用户 -->
+        <insert tableName="t_user">
+            <columns>
+                <column name="user_id" value="admin"/>
+                <column name="user_name" value="系统管理员"/>
+                <column name="password" value="$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EHsM"/>
+                <column name="email" value="admin@example.com"/>
+                <column name="status" valueNumeric="1"/>
+                <column name="del_flag" valueNumeric="0"/>
+                <column name="create_time" valueDate="2024-01-01T00:00:00"/>
+            </columns>
+        </insert>
+        
+        <!-- 插入默认角色 -->
+        <insert tableName="t_role">
+            <columns>
+                <column name="role_id" value="admin"/>
+                <column name="role_name" value="管理员"/>
+                <column name="role_code" value="ADMIN"/>
+                <column name="description" value="系统管理员，拥有所有权限"/>
+                <column name="status" valueNumeric="1"/>
+                <column name="create_time" valueDate="2024-01-01T00:00:00"/>
+            </columns>
+        </insert>
+        
+        <insert tableName="t_role">
+            <columns>
+                <column name="role_id" value="user"/>
+                <column name="role_name" value="普通用户"/>
+                <column name="role_code" value="USER"/>
+                <column name="description" value="普通用户，拥有基本权限"/>
+                <column name="status" valueNumeric="1"/>
+                <column name="create_time" valueDate="2024-01-01T00:00:00"/>
+            </columns>
+        </insert>
+        
+        <!-- 关联管理员和角色 -->
+        <insert tableName="t_user_role">
+            <columns>
+                <column name="id" value="1"/>
+                <column name="user_id" value="admin"/>
+                <column name="role_id" value="admin"/>
+                <column name="create_time" valueDate="2024-01-01T00:00:00"/>
+            </columns>
+        </insert>
+        
+        <!-- 使用 SQL 执行批量插入 -->
+        <sql splitStatements="true">
+            <body>
+                -- 插入更多测试用户
+                INSERT INTO t_user (user_id, user_name, password, email, status, del_flag, create_time)
+                VALUES 
+                    ('user001', '张三', '$2a$10$encrypted_password', 'zhangsan@example.com', 1, 0, NOW()),
+                    ('user002', '李四', '$2a$10$encrypted_password', 'lisi@example.com', 1, 0, NOW()),
+                    ('user003', '王五', '$2a$10$encrypted_password', 'wangwu@example.com', 1, 0, NOW());
+                
+                -- 关联测试用户和普通用户角色
+                INSERT INTO t_user_role (id, user_id, role_id, create_time)
+                VALUES 
+                    ('2', 'user001', 'user', NOW()),
+                    ('3', 'user002', 'user', NOW()),
+                    ('4', 'user003', 'user', NOW());
+            </body>
+        </sql>
+        
+        <!-- 数据库特定的优化 -->
+        <sql>
+            <body>
+                -- 标准SQL：更新统计信息
+                ANALYZE TABLE t_user;
+            </body>
+            <dbSpecific>
+                <sql dbType="mysql">
+                    -- MySQL 特有的优化
+                    ALTER TABLE t_user ENGINE=InnoDB;
+                    OPTIMIZE TABLE t_user;
+                </sql>
+                <sql dbType="postgresql">
+                    -- PostgreSQL 特有的优化
+                    VACUUM ANALYZE t_user;
+                    REINDEX TABLE t_user;
+                </sql>
+                <sql dbType="oracle">
+                    -- Oracle 特有的优化
+                    EXEC DBMS_STATS.GATHER_TABLE_STATS(USER, 'T_USER');
+                </sql>
+            </dbSpecific>
+        </sql>
+    </changeset>
+    
+    <!-- 数据迁移通常不可回滚，因为可能影响后续数据 -->
+    <rollback impossible="true">
+        <comment>
+            数据初始化迁移通常不应回滚，因为：
+            1. 管理员账户可能已被使用
+            2. 关联数据可能已存在
+            3. 回滚会丢失用户数据
+        </comment>
+    </rollback>
+    
+    <!-- 只在开发和测试环境执行数据初始化 -->
+    <contexts>dev,test</contexts>
+</migration>

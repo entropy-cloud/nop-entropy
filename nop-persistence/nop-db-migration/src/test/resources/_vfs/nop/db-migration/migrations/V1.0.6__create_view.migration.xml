@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+  version="1.0.6"
+  description="Creates a test view"
+  author="test">
+
+  <changeset>
+    <createView viewName="test_user_view" replaceIfExists="false">
+      SELECT id, user_name FROM test_user WHERE user_name IS NOT NULL
+    </createView>
+  </changeset>
+</migration>

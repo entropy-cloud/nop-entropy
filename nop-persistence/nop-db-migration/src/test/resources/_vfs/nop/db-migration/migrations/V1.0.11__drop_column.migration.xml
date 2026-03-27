@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+  version="1.0.11"
+  description="Drops email column from test_customer table"
+  author="test">
+
+  <changeset>
+    <dropColumn tableName="test_customer" columnName="email"/>
+  </changeset>
+</migration>

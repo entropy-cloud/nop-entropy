@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+  version="1.0.0"
+  description="Creates test user table"
+  author="test">
+
+  <changeset>
+    <createTable name="test_user" remark="Test user table">
+      <columns>
+        <column name="id" type="VARCHAR" size="36" primaryKey="true" nullable="false"/>
+        <column name="user_name" type="VARCHAR" size="100" nullable="false"/>
+        <column name="created_at" type="TIMESTAMP" nullable="false"/>
+      </columns>
+    </createTable>
+  </changeset>
+</migration>
