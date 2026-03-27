@@ -1,0 +1,498 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+数据库迁移元模型定义（Database Migration Meta-Model Definition）
+
+设计理念：
+1. 类似 Flyway 的易用性：每个变更一个文件，文件名包含版本号
+2. 类似 Liquibase 的数据库无关性：使用抽象的变更类型，支持多数据库方言
+3. 契合 Nop 平台：使用 xdef 元模型，支持 Delta 定制
+
+文件命名规范：
+- 版本化迁移：V{version}__{description}.migration.xml
+  示例：V1.0.0__create_user_table.migration.xml
+- 可重复迁移：R__{description}.migration.xml
+  示例：R__create_statistics_view.migration.xml
+
+版本号格式：主版本.次版本.补丁版本（如 1.0.0, 1.0.1, 1.1.0）
+执行顺序：按版本号排序，从小到大依次执行
+
+@version 迁移版本号（必须符合语义化版本规范）
+@description 迁移描述
+@author 作者
+@type 迁移类型：versioned(版本化，只执行一次) | repeatable(可重复，每次校验和变化都重新执行)
+@runOn 运行时机：always(总是) | onChange(变更时) | never(从不)
+@failOnError 失败时是否抛出异常停止迁移
+@ignore 是否忽略此迁移（用于临时禁用某个迁移）
+-->
+<migration x:schema="/nop/schema/xdef.xdef" 
+           xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:xdef="/nop/schema/xdef.xdef"
+           xdef:name="DbMigrationModel" 
+           xdef:bean-package="io.nop.db.migration.model"
+           xdef:bean-extends-type="io.nop.xlang.xdsl.AbstractDslModel"
+           version="!string"
+           description="string"
+           author="string"
+           type="enum:io.nop.db.migration.MigrationType"
+           runOn="enum:io.nop.db.migration.RunOnChange"
+           failOnError="!boolean=true"
+           ignore="!boolean=false">
+
+    <comment>string</comment>
+
+    <!--
+    前置条件检查（Preconditions）
+    只有满足所有前置条件时才会执行此迁移
+    -->
+    <preconditions xdef:body-type="list" xdef:key-attr="id">
+        <!--
+        检查表是否存在
+        @tableName 表名
+        @schemaName 模式名（可选）
+        @expect 期望结果：exists(存在) | notExists(不存在)
+        -->
+        <tableExists xdef:name="TableExistsPrecondition"
+                             id="!string"
+                     tableName="!string" 
+                     schemaName="string"
+                     expect="enum:io.nop.db.migration.PreconditionExpect"/>
+        
+        <!--
+        检查列是否存在
+        @tableName 表名
+        @columnName 列名
+        @schemaName 模式名（可选）
+        @expect 期望结果
+        -->
+        <columnExists xdef:name="ColumnExistsPrecondition"
+                             id="!string"
+                      tableName="!string" 
+                      columnName="!string"
+                      schemaName="string"
+                      expect="enum:io.nop.db.migration.PreconditionExpect"/>
+        
+        <!--
+        检查索引是否存在
+        @indexName 索引名
+        @tableName 表名（可选，某些数据库需要）
+        @schemaName 模式名（可选）
+        @expect 期望结果
+        -->
+        <indexExists xdef:name="IndexExistsPrecondition"
+                             id="!string"
+                     indexName="!string" 
+                     tableName="string"
+                     schemaName="string"
+                     expect="enum:io.nop.db.migration.PreconditionExpect"/>
+        
+        <!--
+        检查外键是否存在
+        @constraintName 外键约束名
+        @tableName 表名（可选）
+        @schemaName 模式名（可选）
+        @expect 期望结果
+        -->
+        <foreignKeyExists xdef:name="ForeignKeyExistsPrecondition"
+                             id="!string"
+                          constraintName="!string" 
+                          tableName="string"
+                          schemaName="string"
+                          expect="enum:io.nop.db.migration.PreconditionExpect"/>
+        
+        <!--
+        自定义条件检查
+        使用 XPL 表达式判断条件
+        @expect 期望结果
+        -->
+        <customCondition xdef:name="CustomConditionPrecondition"
+                             id="!string"
+                         expect="enum:io.nop.db.migration.PreconditionExpect">
+            <expression>xpl</expression>
+        </customCondition>
+    </preconditions>
+
+    <!--
+    变更集（Changeset）
+    包含一组要执行的数据库变更操作
+    
+    @body-type=list 有序列表，按定义顺序执行
+    @bean-sub-type-prop=type 支持多种变更类型的多态
+    -->
+    <changeset xdef:name="DbChangeset" 
+               xdef:body-type="list"
+               xdef:bean-sub-type-prop="type"
+               xdef:bean-child-name="change"
+               xdef:bean-body-type="List&lt;io.nop.db.migration.model.DbChangeModel>">
+               xdef:key-attr="id">
+        <!--
+        创建表
+        @name 表名
+        @schemaName 模式名（可选）
+        @remark 表注释
+        -->
+        <createTable xdef:name="CreateTableChange"
+                             id="!string"
+                     name="!string" 
+                     schemaName="string"
+                     remark="string">
+            <!--
+            列定义
+            @name 列名
+            @type 列类型（使用 Nop 平台的 stdSqlType）
+            @size 列大小（如 VARCHAR(255) 中的 255）
+            @decimalDigits 小数位数（如 DECIMAL(10,2) 中的 2）
+            @nullable 是否允许 NULL
+            @defaultValue 默认值
+            @remark 列注释
+            @primaryKey 是否为主键
+            @autoIncrement 是否自增
+            -->
+            <columns xdef:body-type="list" xdef:key-attr="name">
+                <column xdef:name="ColumnDefinition"
+                        name="!string" 
+                        type="!std-sql-type"
+                        size="int" 
+                        decimalDigits="int"
+                        nullable="!boolean=true"
+                        defaultValue="string"
+                        remark="string"
+                        primaryKey="!boolean=false"
+                        autoIncrement="!boolean=false"/>
+            </columns>
+            
+            <!--
+            主键约束（可选，也可以在列上直接指定 primaryKey）
+            @name 约束名
+            @columnNames 主键列名列表（逗号分隔）
+            -->
+            <primaryKey xdef:name="PrimaryKeyConstraint"
+                        name="string" 
+                        columnNames="csv-set"/>
+            
+            <!--
+            唯一约束
+            @name 约束名
+            @columnNames 列名列表（逗号分隔）
+            -->
+            <uniqueConstraint xdef:name="UniqueConstraint"
+                              name="!string" 
+                              columnNames="csv-set"/>
+            
+            <!--
+            外键约束
+            @name 约束名
+            @columnNames 本表列名列表
+            @refTableName 引用表名
+            @refColumnNames 引用列名列表
+            @onDelete 删除时的动作：CASCADE | SET_NULL | NO_ACTION | RESTRICT
+            @onUpdate 更新时的动作：CASCADE | SET_NULL | NO_ACTION | RESTRICT
+            -->
+            <foreignKey xdef:name="ForeignKeyConstraint"
+                        name="!string" 
+                        columnNames="csv-set"
+                        refTableName="!string" 
+                        refColumnNames="csv-set"
+                        refSchemaName="string"
+                        onDelete="enum:io.nop.db.migration.ForeignKeyAction"
+                        onUpdate="enum:io.nop.db.migration.ForeignKeyAction"/>
+        </createTable>
+
+        <!--
+        删除表
+        @name 表名
+        @schemaName 模式名（可选）
+        @cascadeConstraints 是否级联删除约束（某些数据库支持）
+        -->
+        <dropTable xdef:name="DropTableChange"
+                             id="!string"
+                   name="!string" 
+                   schemaName="string"
+                   cascadeConstraints="!boolean=false"/>
+
+        <!--
+        重命名表
+        @oldTableName 旧表名
+        @newTableName 新表名
+        @schemaName 模式名（可选）
+        -->
+        <renameTable xdef:name="RenameTableChange"
+                             id="!string"
+                     oldTableName="!string" 
+                     newTableName="!string"
+                     schemaName="string"/>
+
+        <!--
+        添加列
+        @tableName 表名
+        @schemaName 模式名（可选）
+        -->
+        <addColumn xdef:name="AddColumnChange"
+                             id="!string"
+                   tableName="!string" 
+                   schemaName="string">
+            <columns xdef:body-type="list" xdef:key-attr="name">
+                <column xdef:ref="ColumnDefinition"/>
+            </columns>
+        </addColumn>
+
+        <!--
+        删除列
+        @tableName 表名
+        @columnName 列名
+        @schemaName 模式名（可选）
+        -->
+        <dropColumn xdef:name="DropColumnChange"
+                             id="!string"
+                    tableName="!string" 
+                    columnName="!string"
+                    schemaName="string"/>
+
+        <!--
+        修改列
+        @tableName 表名
+        @columnName 列名
+        @schemaName 模式名（可选）
+        @newColumnName 新列名（重命名时使用）
+        @newType 新类型
+        @newSize 新大小
+        @newDecimalDigits 新小数位数
+        @newNullable 新的 nullable 设置
+        @newDefaultValue 新的默认值
+        @newRemark 新的列注释
+        -->
+        <alterColumn xdef:name="AlterColumnChange"
+                             id="!string"
+                     tableName="!string" 
+                     columnName="!string"
+                     schemaName="string"
+                     newColumnName="string"
+                     newType="std-sql-type"
+                     newSize="int"
+                     newDecimalDigits="int"
+                     newNullable="boolean"
+                     newDefaultValue="string"
+                     newRemark="string"/>
+
+        <!--
+        创建索引
+        @name 索引名
+        @tableName 表名
+        @schemaName 模式名（可选）
+        @unique 是否为唯一索引
+        @columnNames 列名列表（逗号分隔）
+        -->
+        <createIndex xdef:name="CreateIndexChange"
+                             id="!string"
+                     name="!string" 
+                     tableName="!string"
+                     schemaName="string"
+                     unique="!boolean=false"
+                     columnNames="csv-set"/>
+
+        <!--
+        删除索引
+        @name 索引名
+        @tableName 表名（某些数据库需要）
+        @schemaName 模式名（可选）
+        -->
+        <dropIndex xdef:name="DropIndexChange"
+                             id="!string"
+                   name="!string" 
+                   tableName="string"
+                   schemaName="string"/>
+
+        <!--
+        创建视图
+        @name 视图名
+        @schemaName 模式名（可选）
+        @remark 视图注释
+        -->
+        <createView xdef:name="CreateViewChange"
+                             id="!string"
+                    name="!string" 
+                    schemaName="string"
+                    remark="string">
+            <selectSql>string</selectSql>
+        </createView>
+
+        <!--
+        删除视图
+        @name 视图名
+        @schemaName 模式名（可选）
+        -->
+        <dropView xdef:name="DropViewChange"
+                             id="!string"
+                  name="!string" 
+                  schemaName="string"/>
+
+        <!--
+        执行自定义 SQL
+        用于数据库特定的操作或复杂的数据迁移
+        
+        @splitStatements 是否按分号分割多条SQL（默认 true）
+        @stripComments 是否移除注释（默认 false）
+        -->
+        <sql xdef:name="SqlChange"
+                             id="!string"
+             splitStatements="!boolean=true"
+             stripComments="!boolean=false">
+            <!--
+            标准SQL（与数据库无关）
+            -->
+            <body>string</body>
+            
+            <!--
+            数据库特定的SQL
+            @dbType 数据库类型：mysql | postgresql | oracle | sqlserver | h2 等
+            -->
+            <dbSpecific xdef:body-type="list" xdef:key-attr="dbType">
+                <sql xdef:name="DbSpecificSql" dbType="!string">
+                    <body>string</body>
+                </sql>
+            </dbSpecific>
+        </sql>
+
+        <!--
+        插入数据
+        @tableName 表名
+        @schemaName 模式名（可选）
+        -->
+        <insert xdef:name="InsertDataChange"
+                             id="!string"
+                tableName="!string" 
+                schemaName="string">
+            <columns xdef:body-type="list" xdef:key-attr="name">
+                <column name="!string" value="string" valueNumeric="number" valueBoolean="boolean" valueDate="date"/>
+            </columns>
+        </insert>
+
+        <!--
+        更新数据
+        @tableName 表名
+        @schemaName 模式名（可选）
+        -->
+        <update xdef:name="UpdateDataChange"
+                             id="!string"
+                tableName="!string" 
+                schemaName="string">
+            <columns xdef:body-type="list" xdef:key-attr="name">
+                <column name="!string" value="string" valueNumeric="number" valueBoolean="boolean" valueDate="date"/>
+            </columns>
+            <where>string</where>
+        </update>
+
+        <!--
+        删除数据
+        @tableName 表名
+        @schemaName 模式名（可选）
+        -->
+        <delete xdef:name="DeleteDataChange"
+                             id="!string"
+                tableName="!string" 
+                schemaName="string">
+            <where>string</where>
+        </delete>
+
+        <!--
+        自定义变更（使用 XPL 脚本实现）
+        用于实现复杂的迁移逻辑
+        -->
+        <customChange xdef:name="CustomChange">
+                             id="!string"
+            <implementation>xpl</implementation>
+        </customChange>
+
+        <!--
+        执行标记（用于复杂的流程控制）
+        @continueOnError 遇到错误是否继续
+        @comment 注释说明
+        -->
+        <executeMark xdef:name="ExecuteMarkChange"
+                             id="!string"
+                     continueOnError="!boolean=false"
+                     comment="string"/>
+
+        <!--
+        数据库类型过滤
+        只有在指定的数据库类型上才执行子变更
+        @dbTypes 数据库类型列表（逗号分隔）
+        -->
+        <dbTypeFilter xdef:name="DbTypeFilterChange"
+                             id="!string"
+                      dbTypes="csv-set">
+            <changes xdef:body-type="list" xdef:key-attr="id"
+                     xdef:bean-sub-type-prop="type"
+                     xdef:bean-child-name="change"
+                     xdef:bean-body-type="List&lt;io.nop.db.migration.model.DbChangeModel>">
+                <!-- 递归引用所有变更类型 -->
+                <createTable xdef:ref="CreateTableChange"/>
+                <dropTable xdef:ref="DropTableChange"/>
+                <renameTable xdef:ref="RenameTableChange"/>
+                <addColumn xdef:ref="AddColumnChange"/>
+                <dropColumn xdef:ref="DropColumnChange"/>
+                <alterColumn xdef:ref="AlterColumnChange"/>
+                <createIndex xdef:ref="CreateIndexChange"/>
+                <dropIndex xdef:ref="DropIndexChange"/>
+                <createView xdef:ref="CreateViewChange"/>
+                <dropView xdef:ref="DropViewChange"/>
+                <sql xdef:ref="SqlChange"/>
+                <insert xdef:ref="InsertDataChange"/>
+                <update xdef:ref="UpdateDataChange"/>
+                <delete xdef:ref="DeleteDataChange"/>
+                <customChange xdef:ref="CustomChange"/>
+            </changes>
+        </dbTypeFilter>
+    </changeset>
+
+    <!--
+    回滚定义（Rollback）
+    定义如何回滚此迁移
+    
+    策略：
+    1. 如果没有定义 rollback，Nop 会尝试自动生成回滚 SQL（仅限简单变更）
+    2. 如果定义了 rollback，则使用定义的回滚逻辑
+    3. 如果设置了 rollbackImpossible="true"，则标记此迁移不可回滚
+    -->
+    <rollback xdef:name="RollbackDefinition"
+              impossible="!boolean=false">
+        <!--
+        回滚变更集，结构与 changeset 相同
+        通常包含与 changeset 相反的操作
+        -->
+        <changes xdef:body-type="list" xdef:key-attr="id"
+                 xdef:bean-sub-type-prop="type"
+                 xdef:bean-child-name="change"
+                 xdef:bean-body-type="List&lt;io.nop.db.migration.model.DbChangeModel>">
+            <dropTable xdef:ref="DropTableChange"/>
+            <createTable xdef:ref="CreateTableChange"/>
+            <dropColumn xdef:ref="DropColumnChange"/>
+            <addColumn xdef:ref="AddColumnChange"/>
+            <dropIndex xdef:ref="DropIndexChange"/>
+            <createIndex xdef:ref="CreateIndexChange"/>
+            <dropView xdef:ref="DropViewChange"/>
+            <createView xdef:ref="CreateViewChange"/>
+            <sql xdef:ref="SqlChange"/>
+            <customChange xdef:ref="CustomChange"/>
+        </changes>
+    </rollback>
+
+    <!--
+    标签（Labels）
+    用于分组和选择性执行迁移
+    -->
+    <labels>string</labels>
+
+    <!--
+    上下文（Contexts）
+    用于在不同环境（开发、测试、生产）中控制迁移的执行
+    -->
+    <contexts>string</contexts>
+
+    <!--
+    扩展属性（用于存储额外的元数据）
+    -->
+    <properties xdef:body-type="map">
+        <property name="!string" value="string"/>
+    </properties>
+</migration>

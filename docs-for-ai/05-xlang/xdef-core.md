@@ -267,9 +267,199 @@ XDef / XDSL 文件通常会在 XML 注释块中，用类似 JavaDoc 的方式记
 - `enum:io.nop.xxx.MyEnum`：枚举类型
 - `!int=100`：必填整数，默认100
 
-## 注意事项
+**重要规范**：
 
-1. **所有XDSL文件必须声明**：`x:schema`和`xmlns:x`
-2. **类型区分**：xdef文件（定义）vs xdsl文件（使用），都需要声明
-3. **xdef.xdef特殊性**：涉及命名空间重命名，一般AI生成固定使用xdef名字空间，而不需要重命名为meta
-4. **引用路径**：`xdef:ref`使用虚拟文件系统路径（如`/nop/schema/orm.xdef`）或者`xdef:name`指定的名称（如MessageModel）
+1. **enum 类型不支持在类型声明中指定默认值**
+   ```xml
+   <!-- ❌ 错误：enum 类型不能有默认值 -->
+   <attr type="enum:io.nop.xxx.MyEnum=defaultValue"/>
+   
+   <!-- ✅ 正确：enum 类型只指定类型 -->
+   <attr type="enum:io.nop.xxx.MyEnum"/>
+   ```
+   默认值应该在 Java 代码层面或者通过其他机制处理。
+
+2. **逗号分隔的字符串使用 `csv-set` 类型**
+   ```xml
+   <!-- ❌ 错误：使用 string 类型表示逗号分隔的列表 -->
+   <attr columnNames="!string"/>
+   
+   <!-- ✅ 正确：使用 csv-set 类型 -->
+   <attr columnNames="csv-set"/>
+   ```
+   `csv-set` 会在解析时自动转换为 `Set<String>`，提供类型安全和去重。
+
+3. **简单文本内容的元素定义**
+   对于只包含简单文本内容的元素，有两种方式：
+   
+   ```xml
+   <!-- 方式1：直接在元素标签内写类型（推荐） -->
+   <description>string</description>
+   <labels>string</labels>
+   
+   <!-- 方式2：使用 xdef:body-type（不推荐用于简单文本） -->
+   <description xdef:body-type="string"/>
+   ```
+   
+   **推荐使用方式1**，更简洁且符合 Nop 平台惯例。
+
+## 匽号分隔列表使用 csv-set
+
+当属性值是逗号分隔的字符串时，应使用 `csv-set` 类型：
+
+```xml
+<!-- ❌ 错误：使用 string 类型 -->
+<attr columnNames="!string"/>
+
+<!-- ✅ 正确：使用 csv-set 类型 -->
+<attr columnNames="csv-set"/>
+```
+
+`csv-set` 会在解析时自动转换为 `Set<String>`，提供类型安全和去重。
+
+## 简单文本内容的元素定义
+
+对于只包含简单文本内容的元素，有两种方式：
+
+```xml
+<!-- 方式1：直接在元素标签内写类型（推荐） -->
+<description>string</description>
+<labels>string</labels>
+
+<!-- 方式2：使用 xdef:body-type（不推荐用于简单文本） -->
+<description xdef:body-type="string"/>
+```
+
+**推荐使用方式1**，更简洁且符合 Nop 平台惯例。 `xdef:body-type` 主要用于复杂结构（list、map等）。
+
+## 模型继承：xdef:define + xdef:ref
+
+当多个元素具有共同的属性时，可以使用 `xdef:define` 定义基础结构，然后通过 `xdef:ref` 引用并扩展它。
+
+### 基本语法
+
+```xml
+<!-- 1. 定义基础模型（类似接口/抽象类） -->
+<xdef:define xdef:name="BaseModel" id="!string" type="string">
+    <description>string</description>
+</xdef:define>
+
+<!-- 2. 引用基础模型并扩展 -->
+<concreteA xdef:ref="BaseModel" xdef:name="ConcreteModelA" extraAttr="int">
+    <extraElement>string</extraElement>
+</concreteA>
+
+<concreteB xdef:ref="BaseModel" xdef:name="ConcreteModelB" anotherAttr="boolean"/>
+```
+
+### 生成的 Java 类结构
+
+上述 xdef 定义会生成具有继承关系的 Java 类：
+
+```java
+// BaseModel 的属性会被合并到每个具体类中
+public class ConcreteModelA extends AbstractComponentModel {
+    // 来自 BaseModel
+    private String id;
+    private String type;
+    private String description;
+    // 自身扩展
+    private Integer extraAttr;
+    private String extraElement;
+}
+
+public class ConcreteModelB extends AbstractComponentModel {
+    // 来自 BaseModel
+    private String id;
+    private String type;
+    private String description;
+    // 自身扩展
+    private Boolean anotherAttr;
+}
+```
+
+### 实际示例：工作流步骤（参考 wf.xdef）
+
+```xml
+<!-- 定义基础步骤模型 -->
+<step name="!string" displayName="string" xdef:name="WfStepModel" 
+      internal="!boolean=false" optional="!boolean=false">
+    <description>string</description>
+    <on-enter>xpl</on-enter>
+    <on-exit>xpl</on-exit>
+    <source>xpl</source>
+</step>
+
+<!-- Join步骤继承基础步骤，添加join特有属性 -->
+<join name="!string" xdef:ref="WfStepModel" 
+      joinType="!enum:io.nop.wf.core.model.WfJoinType=and"
+      waitStepNames="csv-set" 
+      xdef:name="WfJoinStepModel">
+    <join-group-expr>xpl</join-group-expr>
+</join>
+
+<!-- 子流程步骤继承基础步骤，添加子流程特有配置 -->
+<flow name="!string" xdef:ref="WfStepModel" xdef:name="WfSubFlowModel">
+    <start wfName="!string" wfVersion="long" xdef:name="WfSubFlowStartModel">
+        <arg name="!string" displayName="string" xdef:name="WfSubFlowArgModel">
+            <source>xpl</source>
+        </arg>
+    </start>
+</flow>
+```
+
+### 关键点
+
+1. **xdef:define**：定义可复用的基础结构，不会单独生成类
+2. **xdef:ref**：引用已定义的结构，属性和子元素会被合并
+3. **扩展方式**：在 `xdef:ref` 基础上添加新属性和子元素
+4. **命名要求**：`xdef:ref` 引用的目标可以是：
+   - 同文件中 `xdef:define` 定义的模型
+   - 同文件中其他元素声明的 `xdef:name`
+   - 外部 xdef 文件（使用路径，如 `xdef:ref="/nop/schema/assignment.xdef"`）
+
+### 与接口的区别
+
+| 特性 | xdef:ref | Java Interface |
+|-----|----------|----------------|
+| 属性继承 | ✅ 属性合并到子类 | ❌ 不支持属性 |
+| 代码生成 | 自动生成完整类 | 需手动实现 |
+| 多态支持 | 通过 `xdef:bean-sub-type-prop` | 原生支持 |
+
+## 常见的 def-type 类型
+
+### 基础类型
+- `string`：字符串
+- `int`：整数
+- `long`：长整数
+- `boolean`：布尔值
+- `double`：双精度浮点数
+
+### 字符串变体
+- `!string`：必填字符串
+- `~string`：内部字符串（不对外暴露）
+- `xml-name`：XML名称（符合XML命名规范）
+- `var-name`：变量名（符合Java变量命名规范）
+- `class-name`：类名（符合Java类命名规范）
+- `package-name`：包名（符合Java包命名规范）
+- `bean-name`：Bean名称
+- `v-path`：虚拟文件路径
+
+### 集合类型
+- `csv-set`：逗号分隔的字符串集合，自动转换为 `Set<String>`
+- `class-name-set`：类名集合（逗号分隔）
+- `tag-set`：标签集合（逗号分隔）
+- `word-set`：单词集合（逗号分隔）
+
+### 复杂类型
+- `std-sql-type`：标准SQL类型（Nop平台定义的数据库类型）
+- `std-domain`：标准域（Nop平台预定义的数据域）
+- `std-data-type`：标准数据类型
+- `enum:包名.枚举类名`：枚举类型，**注意：不支持在类型声明中指定默认值**
+- `json`：JSON格式
+- `xml`：XML格式
+- `xpl`：XPL脚本
+- `eval-code`：可执行代码（XPL或表达式）
+- `any`：任意类型
+- `map`：映射类型
+- `list`：列表类型
