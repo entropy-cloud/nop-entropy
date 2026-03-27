@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -37,7 +38,7 @@ public class TestPreconditionCheckers {
     private MigrationContext context;
     
     @BeforeAll
-    public static void init() {
+    public static void init() throws SQLException {
         CoreInitialization.initialize();
         
         dataSource = new HikariDataSource();
@@ -47,10 +48,8 @@ public class TestPreconditionCheckers {
         
         dialect = DialectManager.instance().getDialect("h2");
         JdbcFactory factory = new JdbcFactory();
-        factory.setDataSource(dataSource);
-        factory.setDialect(dialect);
-        jdbcTemplate = factory.createJdbcTemplate();
-        txnTemplate = factory.createTransactionTemplate();
+        txnTemplate = factory.newTransactionTemplate(dataSource, "h2");
+        jdbcTemplate = factory.newJdbcTemplate(txnTemplate);
         
         connection = dataSource.getConnection();
     }
@@ -146,12 +145,14 @@ public class TestPreconditionCheckers {
         IndexExistsChecker checker = new IndexExistsChecker();
         
         IndexExistsPrecondition preconditionExists = new IndexExistsPrecondition();
+        preconditionExists.setTableName("test_table");
         preconditionExists.setIndexName("idx_name");
         preconditionExists.setExpect(PreconditionExpect.EXISTS);
         
         assertTrue(checker.check(preconditionExists, context));
         
         IndexExistsPrecondition preconditionNotExists = new IndexExistsPrecondition();
+        preconditionNotExists.setTableName("test_table");
         preconditionNotExists.setIndexName("nonexistent_idx");
         preconditionNotExists.setExpect(PreconditionExpect.EXISTS);
         
@@ -166,13 +167,15 @@ public class TestPreconditionCheckers {
         ForeignKeyExistsChecker checker = new ForeignKeyExistsChecker();
         
         ForeignKeyExistsPrecondition preconditionExists = new ForeignKeyExistsPrecondition();
-        preconditionExists.setForeignKeyName("fk_other");
+        preconditionExists.setConstraintName("fk_other");
+        preconditionExists.setTableName("test_table");
         preconditionExists.setExpect(PreconditionExpect.EXISTS);
         
         assertTrue(checker.check(preconditionExists, context));
         
         ForeignKeyExistsPrecondition preconditionNotExists = new ForeignKeyExistsPrecondition();
-        preconditionNotExists.setForeignKeyName("nonexistent_fk");
+        preconditionNotExists.setConstraintName("nonexistent_fk");
+        preconditionNotExists.setTableName("test_table");
         preconditionNotExists.setExpect(PreconditionExpect.EXISTS);
         
         assertFalse(checker.check(preconditionNotExists, context));

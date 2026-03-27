@@ -398,8 +398,8 @@
         自定义变更（使用 XPL 脚本实现）
         用于实现复杂的迁移逻辑
         -->
-        <customChange xdef:name="CustomChange">
-                             id="!string"
+        <customChange xdef:name="CustomChange"
+                      id="!string">
             <implementation>xpl</implementation>
         </customChange>
 
@@ -409,7 +409,7 @@
         @comment 注释说明
         -->
         <executeMark xdef:name="ExecuteMarkChange"
-                             id="!string"
+                     id="!string"
                      continueOnError="!boolean=false"
                      comment="string"/>
 
