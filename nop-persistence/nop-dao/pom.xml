@@ -116,10 +116,7 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-            </plugin>
+            <!-- No exec plugin - let's skip precompile -->
         </plugins>
     </build>
 </project>
