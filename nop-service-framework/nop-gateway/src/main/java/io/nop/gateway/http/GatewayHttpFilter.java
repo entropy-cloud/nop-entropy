@@ -15,6 +15,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
+import io.nop.api.core.json.JSON;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.cache.ResourceCacheEntry;
@@ -127,17 +128,23 @@ public class GatewayHttpFilter implements IHttpServerFilter {
                 return next.get();
             }
 
-            ApiRequest<?> request = buildRequest(context);
-            IGatewayContext gatewayCtx = buildGatewayContext(request, context);
-
-            context.resumeRequest();
-
-            CompletionStage<ApiResponse<?>> future = handler.handle(request, gatewayCtx);
-            if (future == null) {
+            // No gateway route configured, skip body read to avoid consuming downstream payload.
+            if (handler.getModel().getRoutes().isEmpty()) {
                 return next.get();
             }
+            context.resumeRequest();
 
-            return future.thenCompose(ret -> write(context, ret, gatewayCtx));
+            return context.getRequestBody().getTextAsync().thenCompose(text -> {
+                ApiRequest<?> request = buildRequest(context, text);
+                IGatewayContext gatewayCtx = buildGatewayContext(request, context);
+
+                CompletionStage<ApiResponse<?>> future = handler.handle(request, gatewayCtx);
+                if (future == null) {
+                    return next.get();
+                }
+
+                return future.thenCompose(ret -> write(context, ret, gatewayCtx));
+            });
         } catch (Exception e) {
             LOG.error("nop.gateway.process-error:path={}", context.getRequestPath(), e);
             String locale = ContextProvider.currentLocale();
@@ -280,10 +287,10 @@ public class GatewayHttpFilter implements IHttpServerFilter {
     /**
      * 构建API请求
      */
-    protected ApiRequest<?> buildRequest(IHttpServerContext context) {
+    protected ApiRequest<?> buildRequest(IHttpServerContext context, String requestText) {
         ApiRequest<Object> request = new ApiRequest<>();
         request.setHeaders(context.getRequestHeaders());
-        request.setData(context.getRequestBody().getJson());
+        request.setData(JSON.parse(requestText));
         RpcHelper.setHttpUrl(request, context.getRequestUrl());
         RpcHelper.setHttpMethod(request, context.getMethod());
         return request;
