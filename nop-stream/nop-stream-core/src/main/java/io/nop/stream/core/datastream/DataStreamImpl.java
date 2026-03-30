@@ -92,7 +92,8 @@ public class DataStreamImpl<T> implements DataStream<T>, Serializable {
             OneInputStreamOperator<T, R> operator) {
         
         // Create the transformation
-        StreamOperatorFactory<R> operatorFactory = new SimpleStreamOperatorFactory<R>((StreamOperator<R>) operator, operatorName, environment.getParallelism());
+        StreamOperatorFactory<R> operatorFactory = new SimpleStreamOperatorFactory<R>(
+            operator, operatorName, environment.getParallelism());
         OneInputTransformation<T, R> transform = new OneInputTransformation<>(
             this.transformation,
             operatorName,
