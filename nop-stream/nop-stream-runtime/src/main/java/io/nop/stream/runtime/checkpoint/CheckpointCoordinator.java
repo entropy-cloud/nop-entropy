@@ -38,8 +38,10 @@ public class CheckpointCoordinator {
     private final ConcurrentHashMap<Long, PendingCheckpoint> pendingCheckpoints;
     private final AtomicInteger numPendingCheckpoints;
     private volatile CompletedCheckpoint latestCompletedCheckpoint;
+    private final Set<Long> tasksToAcknowledge;
 
     private ScheduledExecutorService scheduler;
+    private final ScheduledExecutorService timeoutScheduler;
     private volatile boolean isSchedulerStarted = false;
 
     private final List<CheckpointListener> listeners = new CopyOnWriteArrayList<>();
@@ -57,6 +59,14 @@ public class CheckpointCoordinator {
         this.config = config;
         this.pendingCheckpoints = new ConcurrentHashMap<>();
         this.numPendingCheckpoints = new AtomicInteger(0);
+        this.tasksToAcknowledge = ConcurrentHashMap.newKeySet();
+        this.tasksToAcknowledge.add(1L);
+        this.tasksToAcknowledge.add(2L);
+        this.timeoutScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "checkpoint-timeout-" + jobId);
+            t.setDaemon(true);
+            return t;
+        });
     }
 
     public void addListener(CheckpointListener listener) {
@@ -171,17 +181,27 @@ public class CheckpointCoordinator {
 
     public void completePendingCheckpoint(CompletedCheckpoint completed) {
         long checkpointId = completed.getCheckpointId();
+        PendingCheckpoint pending = pendingCheckpoints.get(checkpointId);
+        if (pending == null) {
+            LOG.debug("Skip completing checkpoint {} because it is no longer pending", checkpointId);
+            return;
+        }
 
         try {
             checkpointStorage.storeCheckPoint(completed);
         } catch (Exception e) {
             LOG.error("Failed to store checkpoint {}", checkpointId, e);
+            abortPendingCheckpoint(pending, "Failed to store checkpoint");
+            return;
+        }
+
+        if (!pendingCheckpoints.remove(checkpointId, pending)) {
+            LOG.debug("Skip completing checkpoint {} because pending state changed", checkpointId);
             return;
         }
 
         latestCompletedCheckpoint = completed;
-        pendingCheckpoints.remove(checkpointId);
-        numPendingCheckpoints.decrementAndGet();
+        decrementPendingCheckpointCount();
 
         cleanupOldCheckpoints();
 
@@ -193,9 +213,14 @@ public class CheckpointCoordinator {
 
     public void abortPendingCheckpoint(PendingCheckpoint pending, String reason) {
         long checkpointId = pending.getCheckpointId();
-        pending.abort(reason);
-        pendingCheckpoints.remove(checkpointId);
-        numPendingCheckpoints.decrementAndGet();
+        PendingCheckpoint removed = pendingCheckpoints.remove(checkpointId);
+        if (removed == null) {
+            LOG.debug("Skip aborting checkpoint {} because it is no longer pending", checkpointId);
+            return;
+        }
+
+        removed.abort(reason);
+        decrementPendingCheckpointCount();
 
         notifyCheckpointAborted(checkpointId);
 
@@ -225,22 +250,42 @@ public class CheckpointCoordinator {
     }
 
     protected Set<Long> getTasksToAcknowledge() {
-        Set<Long> tasks = new HashSet<>();
-        tasks.add(1L);
-        tasks.add(2L);
-        return tasks;
+        return new HashSet<>(tasksToAcknowledge);
+    }
+
+    public void setTasksToAcknowledge(Collection<Long> taskIds) {
+        tasksToAcknowledge.clear();
+        if (taskIds != null) {
+            for (Long taskId : taskIds) {
+                if (taskId != null) {
+                    tasksToAcknowledge.add(taskId);
+                }
+            }
+        }
+    }
+
+    public void registerTask(long taskId) {
+        tasksToAcknowledge.add(taskId);
+    }
+
+    public void unregisterTask(long taskId) {
+        tasksToAcknowledge.remove(taskId);
     }
 
     private void scheduleTimeout(PendingCheckpoint pending) {
-        if (scheduler == null || scheduler.isShutdown()) {
+        if (timeoutScheduler.isShutdown()) {
             return;
         }
 
-        scheduler.schedule(() -> {
+        timeoutScheduler.schedule(() -> {
             if (!pending.getCompletableFuture().isDone()) {
                 abortPendingCheckpoint(pending, "Timeout");
             }
         }, config.getCheckpointTimeout(), TimeUnit.MILLISECONDS);
+    }
+
+    private void decrementPendingCheckpointCount() {
+        numPendingCheckpoints.updateAndGet(count -> count > 0 ? count - 1 : 0);
     }
 
     private void cleanupOldCheckpoints() {
@@ -281,6 +326,8 @@ public class CheckpointCoordinator {
 
     public void shutdown() {
         stopCheckpointScheduler();
+
+        timeoutScheduler.shutdownNow();
 
         for (PendingCheckpoint pending : pendingCheckpoints.values()) {
             pending.dispose();
