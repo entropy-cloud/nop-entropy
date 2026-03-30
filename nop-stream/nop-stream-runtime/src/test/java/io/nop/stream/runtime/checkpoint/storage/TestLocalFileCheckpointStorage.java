@@ -119,6 +119,16 @@ class TestLocalFileCheckpointStorage {
         assertEquals(2, latest.size());
     }
 
+    @Test
+    void testExistsByCheckpointIdAndPipeline() throws Exception {
+        storage.storeCheckPoint(createTestCheckpoint(1L, 1, 100L));
+        storage.storeCheckPoint(createTestCheckpoint(1L, 2, 200L));
+
+        assertTrue(storage.exists(1L, 1, 100L));
+        assertFalse(storage.exists(1L, 1, 200L));
+        assertFalse(storage.exists(1L, 2, 999L));
+    }
+
     private CompletedCheckpoint createTestCheckpoint(long jobId, int pipelineId, long checkpointId) {
         return CompletedCheckpoint.builder()
                 .jobId(jobId)

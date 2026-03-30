@@ -82,7 +82,14 @@ public interface ICheckpointStorage {
      * @return true 如果存在
      */
     default boolean exists(long jobId, int pipelineId, long checkpointId) throws Exception {
-        return getLatestCheckpoint(jobId, pipelineId) != null;
+        List<CompletedCheckpoint> checkpoints = getAllCheckpoints(jobId);
+        for (CompletedCheckpoint checkpoint : checkpoints) {
+            if (checkpoint.getPipelineId() == pipelineId
+                    && checkpoint.getCheckpointId() == checkpointId) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

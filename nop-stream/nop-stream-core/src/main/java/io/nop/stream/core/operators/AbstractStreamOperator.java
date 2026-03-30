@@ -66,11 +66,16 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 
     @Override
     public void setCurrentKey(Object key) {
-
+        if (keyedStateBackend != null) {
+            keyedStateBackend.setCurrentKey(key);
+        }
     }
 
     @Override
     public Object getCurrentKey() {
+        if (keyedStateBackend != null) {
+            return keyedStateBackend.getCurrentKey();
+        }
         return null;
     }
 

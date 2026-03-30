@@ -27,11 +27,14 @@ import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.state.KeyedStateStore;
 import io.nop.stream.core.common.state.InternalAppendingState;
 import io.nop.stream.core.common.state.InternalListState;
-import io.nop.stream.core.common.state.KeyedStateStore;
 import io.nop.stream.core.common.state.ListStateDescriptor;
+import io.nop.stream.core.common.state.MapState;
+import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.common.state.VoidNamespace;
+import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.IInternalStateBackend;
+import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.InternalTimer;
@@ -80,6 +83,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         implements OneInputStreamOperator<IN, OUT>, Triggerable<K, W> {
 
     private static final long serialVersionUID = 1L;
+    private static final String WINDOW_VALUE_KEY = "__window_value__";
 
     // ------------------------------------------------------------------------
     // Configuration values and user functions
@@ -87,7 +91,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     protected final WindowAssigner<? super IN, W> windowAssigner;
 
-    private final KeySelector<IN, K> keySelector;
+    protected final KeySelector<IN, K> keySelector;
 
     private final Trigger<? super IN, ? super W> trigger;
 
@@ -166,6 +170,13 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     protected transient InternalTimerService<W> internalTimerService;
 
     /**
+     * Namespace-backed window contents state.
+     *
+     * <p>Uses `currentKey + namespace(window)` to scope each pane.
+     */
+    private transient MapState<String, ACC> windowContentsState;
+
+    /**
      * Creates a new {@code WindowOperator} based on the given policies and user functions.
      */
     public WindowOperator(
@@ -208,9 +219,16 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         this.numLateRecordsDropped = null; // metrics.counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
         timestampedCollector = new TimestampedCollector<>(output);
 
-        if (this.stateBackend != null) {
-            this.keyedStateBackend = this.stateBackend.createKeyedStateBackend(keyClass);
+        if (this.stateBackend == null) {
+            this.stateBackend = new MemoryStateBackend();
         }
+        this.keyedStateBackend = this.stateBackend.createKeyedStateBackend(keyClass);
+
+        @SuppressWarnings("unchecked")
+        Class<ACC> accType = (Class<ACC>) (Class<?>) Object.class;
+        MapStateDescriptor<String, ACC> windowContentsDescriptor =
+                new MapStateDescriptor<>("window-contents", String.class, accType);
+        windowContentsState = this.keyedStateBackend.getMapState(windowContentsDescriptor);
 
         internalTimerService = new WindowOperatorTimerService<>(this); // getInternalTimerService("window-timers", windowSerializer, this);
 
@@ -258,6 +276,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         triggerContext = null;
         processContext = null;
         windowAssignerContext = null;
+        windowContentsState = null;
     }
 
     @Override
@@ -269,7 +288,10 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         // if element is handled by none of assigned elementWindows
         boolean isSkippedElement = true;
 
-        final K key = this.<K>getKeyedStateBackend().getCurrentKey();
+        final K key = keySelector.getKey(element.getValue());
+        if (keyedStateBackend != null) {
+            this.<K>getKeyedStateBackend().setCurrentKey(key);
+        }
 
         if (windowAssigner instanceof MergingWindowAssigner) {
             MergingWindowSet<W> mergingWindows = getMergingWindowSet();
@@ -333,6 +355,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                                         // state window
 //                                        windowMergingState.mergeNamespaces(
 //                                                stateWindowResult, mergedStateWindows);
+                                        mergeWindowContents(key, stateWindowResult, mergedStateWindows);
                                     }
                                 });
 
@@ -348,9 +371,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     throw new IllegalStateException(
                             "Window " + window + " is not in in-flight window set.");
                 }
-
-//                windowState.setCurrentNamespace(stateWindow);
-//                windowState.add(element.getValue());
+                addWindowElement(key, stateWindow, element.getValue());
 
                 triggerContext.key = key;
                 triggerContext.window = actualWindow;
@@ -358,14 +379,14 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 TriggerResult triggerResult = triggerContext.onElement(element);
 
                 if (triggerResult.isFire()) {
-                    ACC contents = null;//windowState.get();
+                    ACC contents = getWindowContents(key, stateWindow);
                     if (contents != null) {
                         emitWindowContents(actualWindow, contents);
                     }
                 }
 
                 if (triggerResult.isPurge()) {
-                    //windowState.clear();
+                    clearWindowContents(key, stateWindow);
                 }
                 registerCleanupTimer(actualWindow);
             }
@@ -380,9 +401,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     continue;
                 }
                 isSkippedElement = false;
-
-//                windowState.setCurrentNamespace(window);
-//                windowState.add(element.getValue());
+                addWindowElement(key, window, element.getValue());
 
                 triggerContext.key = key;
                 triggerContext.window = window;
@@ -390,14 +409,14 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 TriggerResult triggerResult = triggerContext.onElement(element);
 
                 if (triggerResult.isFire()) {
-                    ACC contents = null; //windowState.get();
+                    ACC contents = getWindowContents(key, window);
                     if (contents != null) {
                         emitWindowContents(window, contents);
                     }
                 }
 
                 if (triggerResult.isPurge()) {
-                    //windowState.clear();
+                    clearWindowContents(key, window);
                 }
                 registerCleanupTimer(window);
             }
@@ -443,19 +462,30 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         TriggerResult triggerResult = triggerContext.onEventTime(timer.getTimestamp());
 
         if (triggerResult.isFire()) {
-            ACC contents = null; //windowState.get();
+            W stateWindow = mergingWindows != null
+                    ? mergingWindows.getStateWindow(triggerContext.window)
+                    : triggerContext.window;
+            ACC contents = getWindowContents(triggerContext.key, stateWindow);
             if (contents != null) {
                 emitWindowContents(triggerContext.window, contents);
             }
         }
 
         if (triggerResult.isPurge()) {
-            //windowState.clear();
+            W stateWindow = mergingWindows != null
+                    ? mergingWindows.getStateWindow(triggerContext.window)
+                    : triggerContext.window;
+            clearWindowContents(triggerContext.key, stateWindow);
         }
 
         if (windowAssigner.isEventTime()
                 && isCleanupTime(triggerContext.window, timer.getTimestamp())) {
-            //clearAllState(triggerContext.window, windowState, mergingWindows);
+            W stateWindow = mergingWindows != null
+                    ? mergingWindows.getStateWindow(triggerContext.window)
+                    : triggerContext.window;
+            if (stateWindow != null) {
+                clearWindowContents(triggerContext.key, stateWindow);
+            }
         }
 
         if (mergingWindows != null) {
@@ -490,19 +520,30 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         TriggerResult triggerResult = triggerContext.onProcessingTime(timer.getTimestamp());
 
         if (triggerResult.isFire()) {
-            ACC contents = null; //windowState.get();
+            W stateWindow = mergingWindows != null
+                    ? mergingWindows.getStateWindow(triggerContext.window)
+                    : triggerContext.window;
+            ACC contents = getWindowContents(triggerContext.key, stateWindow);
             if (contents != null) {
                 emitWindowContents(triggerContext.window, contents);
             }
         }
 
         if (triggerResult.isPurge()) {
-            //windowState.clear();
+            W stateWindow = mergingWindows != null
+                    ? mergingWindows.getStateWindow(triggerContext.window)
+                    : triggerContext.window;
+            clearWindowContents(triggerContext.key, stateWindow);
         }
 
         if (!windowAssigner.isEventTime()
                 && isCleanupTime(triggerContext.window, timer.getTimestamp())) {
-            // clearAllState(triggerContext.window, windowState, mergingWindows);
+            W stateWindow = mergingWindows != null
+                    ? mergingWindows.getStateWindow(triggerContext.window)
+                    : triggerContext.window;
+            if (stateWindow != null) {
+                clearWindowContents(triggerContext.key, stateWindow);
+            }
         }
 
         if (mergingWindows != null) {
@@ -658,6 +699,90 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         return time == cleanupTime(window);
     }
 
+    @SuppressWarnings("unchecked")
+    private void addWindowElement(K key, W window, IN value) {
+        keyedStateBackend.setCurrentKey(key);
+        keyedStateBackend.setCurrentNamespace(windowNamespace(window));
+
+        ACC current = windowContentsState.get(WINDOW_VALUE_KEY);
+        if (current == null) {
+            setWindowContents(key, window, (ACC) value);
+            return;
+        }
+
+        if (current instanceof SimpleAccumulator) {
+            SimpleAccumulator<IN> accumulator = (SimpleAccumulator<IN>) current;
+            accumulator.add(value);
+            setWindowContents(key, window, (ACC) accumulator.getLocalValue());
+            return;
+        }
+
+        // Last-write-wins keeps behavior deterministic for non-accumulator ACC types.
+        setWindowContents(key, window, (ACC) value);
+    }
+
+    private ACC getWindowContents(K key, W window) {
+        keyedStateBackend.setCurrentKey(key);
+        keyedStateBackend.setCurrentNamespace(windowNamespace(window));
+        return windowContentsState.get(WINDOW_VALUE_KEY);
+    }
+
+    private void clearWindowContents(K key, W window) {
+        keyedStateBackend.setCurrentKey(key);
+        keyedStateBackend.setCurrentNamespace(windowNamespace(window));
+        windowContentsState.remove(WINDOW_VALUE_KEY);
+    }
+
+    private void setWindowContents(K key, W window, ACC value) {
+        keyedStateBackend.setCurrentKey(key);
+        keyedStateBackend.setCurrentNamespace(windowNamespace(window));
+        windowContentsState.put(WINDOW_VALUE_KEY, value);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void mergeWindowContents(K key, W targetWindow, Collection<W> sourceWindows) {
+        if (sourceWindows == null || sourceWindows.isEmpty()) {
+            return;
+        }
+
+        ACC targetValue = getWindowContents(key, targetWindow);
+        for (W sourceWindow : sourceWindows) {
+            if (sourceWindow == null || sourceWindow.equals(targetWindow)) {
+                continue;
+            }
+
+            ACC sourceValue = getWindowContents(key, sourceWindow);
+            if (sourceValue == null) {
+                continue;
+            }
+
+            if (targetValue == null) {
+                targetValue = sourceValue;
+            } else if (targetValue instanceof SimpleAccumulator) {
+                try {
+                    SimpleAccumulator<IN> accumulator = (SimpleAccumulator<IN>) targetValue;
+                    accumulator.add((IN) sourceValue);
+                    targetValue = (ACC) accumulator.getLocalValue();
+                } catch (ClassCastException ignored) {
+                    targetValue = sourceValue;
+                }
+            } else {
+                // Deterministic fallback for non-accumulator values.
+                targetValue = sourceValue;
+            }
+
+            clearWindowContents(key, sourceWindow);
+        }
+
+        if (targetValue != null) {
+            setWindowContents(key, targetWindow, targetValue);
+        }
+    }
+
+    private String windowNamespace(W window) {
+        return window == null ? "_null_window_" : window.toString();
+    }
+
     /**
      * Base class for per-window {@link KeyedStateStore KeyedStateStores}. Used to allow per-window
      * state access for {@link
@@ -784,13 +909,17 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
         @Override
         public KeyedStateStore windowState() {
-            this.windowState.window = this.window;
-            return null; //this.windowState;
+            IKeyedStateBackend<K> backend = WindowOperator.this.getKeyedStateBackend();
+            if (backend == null) {
+                return null;
+            }
+            backend.setCurrentNamespace(windowNamespace(this.window));
+            return backend;
         }
 
         @Override
         public KeyedStateStore globalState() {
-            return null; //WindowOperator.this.getKeyedStateStore();
+            return WindowOperator.this.getKeyedStateBackend();
         }
 
         @Override

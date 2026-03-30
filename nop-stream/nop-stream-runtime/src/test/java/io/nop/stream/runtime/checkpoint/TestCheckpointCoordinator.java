@@ -115,6 +115,28 @@ class TestCheckpointCoordinator {
     }
 
     @Test
+    void testSetTasksToAcknowledge() {
+        coordinator.setTasksToAcknowledge(java.util.Arrays.asList(11L, 22L, 33L));
+
+        PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+        assertNotNull(pending);
+        assertEquals(3, pending.getNumberOfTasks());
+    }
+
+    @Test
+    void testAbortIsIdempotentForPendingCount() {
+        PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+        assertNotNull(pending);
+        assertEquals(1, coordinator.getNumberOfPendingCheckpoints());
+
+        coordinator.abortPendingCheckpoint(pending, "first abort");
+        assertEquals(0, coordinator.getNumberOfPendingCheckpoints());
+
+        coordinator.abortPendingCheckpoint(pending, "second abort");
+        assertEquals(0, coordinator.getNumberOfPendingCheckpoints());
+    }
+
+    @Test
     void testGetLatestCheckpoint() throws Exception {
         PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
         coordinator.acknowledgeTask(1L, pending.getCheckpointId(), TaskStateSnapshot.empty(1L));

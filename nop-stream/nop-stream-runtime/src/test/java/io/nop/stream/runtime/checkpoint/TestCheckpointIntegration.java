@@ -179,9 +179,12 @@ class TestCheckpointIntegration {
         PendingCheckpoint pending = shortTimeoutCoordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
         assertNotNull(pending);
 
-        coordinator.acknowledgeTask(1L, pending.getCheckpointId(), TaskStateSnapshot.empty(1L));
+        shortTimeoutCoordinator.acknowledgeTask(1L, pending.getCheckpointId(), TaskStateSnapshot.empty(1L));
 
         Thread.sleep(500);
+
+        assertTrue(aborted.get(), "Checkpoint timeout should trigger abort callback");
+        assertEquals(0, shortTimeoutCoordinator.getNumberOfPendingCheckpoints());
 
         shortTimeoutCoordinator.shutdown();
     }

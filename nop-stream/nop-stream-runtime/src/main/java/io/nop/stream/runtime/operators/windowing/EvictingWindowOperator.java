@@ -114,7 +114,10 @@ public class EvictingWindowOperator<K, IN, OUT, W extends Window>
         // if element is handled by none of assigned elementWindows
         boolean isSkippedElement = true;
 
-        final K key = null; //this.<K>getKeyedStateBackend().getCurrentKey();
+        final K key = keySelector.getKey(element.getValue());
+        if (keyedStateBackend != null) {
+            this.<K>getKeyedStateBackend().setCurrentKey(key);
+        }
 
         if (windowAssigner instanceof MergingWindowAssigner) {
             MergingWindowSet<W> mergingWindows = getMergingWindowSet();
