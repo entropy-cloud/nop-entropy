@@ -1,17 +1,20 @@
 # nop-stream StateBackend 技术设计文档
 
+> 注：本文档包含目标设计项。当前代码已实现内存状态后端，
+> Redis 状态后端仍处于规划阶段。
+
 ## 1. 概述
 
 ### 1.1 目标
 为 nop-stream 实现一个简化的 StateBackend 机制，支持：
 - **内存实现**：用于测试和简单场景
-- **Redis 实现**：用于生产环境，支持持久化和故障恢复
+- **Redis 实现（规划）**：用于生产环境，支持持久化和故障恢复
 
 ### 1.2 设计原则
 - **简化优先**：相比 Flink，去除 key-group 分区、Checkpoint 机制、TypeSerializer 抽象
 - **固定 JSON 序列化**：统一使用 JSON 进行状态序列化
 - **Redis Hash 存储**：使用 HSET/HGET 命令，namespace 为 key，状态名为 field
-- **依赖 Redis 持久化**：不需要额外的 Checkpoint 机制
+- **依赖 Redis 持久化（规划）**：不需要额外的 Checkpoint 机制
 
 ### 1.3 与 Flink 对比
 

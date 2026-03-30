@@ -1,6 +1,9 @@
 # nop-stream Checkpoint 架构设计
 
 > 快速参考文档 - 配合 [checkpoint-improvement-plan.md](./checkpoint-improvement-plan.md) 使用
+>
+> 注：当前代码中 `CheckpointType` 枚举项为 `CHECKPOINT`、`SAVEPOINT`、
+> `COMPLETED_POINT_TYPE`。
 
 ## 1. 整体架构
 
@@ -37,7 +40,7 @@
 │  │  ┌─────────────────────────────────────────────────────────────────────┐    │ │
 │  │  │  id: long                                                          │    │ │
 │  │  │  timestamp: long                                                    │    │ │
-│  │  │  checkpointType: CheckpointType (CHECKPOINT/SAVEPOINT/COMPLETED)   │    │ │
+│  │  │  checkpointType: CheckpointType (CHECKPOINT/SAVEPOINT/COMPLETED_POINT_TYPE) │ │ │
 │  │  └─────────────────────────────────────────────────────────────────────┘    │ │
 │  └───────────────────────────────────────────────────────────────────────────────┘ │
 │                                          │                                          │
@@ -58,7 +61,7 @@
 │  ┌───────────────────────────────────────────────────────────────────────────────┐ │
 │  │                            CheckpointStorage                                  │ │
 │  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────┐   │ │
-│  │  │ LocalFileStorage│  │ JdbcStorage     │  │ RedisStorage (Optional)     │   │ │
+│  │  │ LocalFileStorage│  │ JdbcStorage     │  │ RedisStorage (Planned)       │   │ │
 │  │  │ - 文件系统      │  │ - nop-orm       │  │ - 高性能分布式存储          │   │ │
 │  │  │ - 简单可靠      │  │ - 事务支持      │  │ - 适合集群部署              │   │ │
 │  │  └─────────────────┘  └─────────────────┘  └─────────────────────────────┘   │ │
@@ -74,7 +77,7 @@
                     │  CheckpointType  │
                     │  - CHECKPOINT    │
                     │  - SAVEPOINT     │
-                    │  - COMPLETED     │
+                    │  - COMPLETED_POINT_TYPE │
                     └────────┬─────────┘
                              │
                              ▼
