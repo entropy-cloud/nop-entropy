@@ -20,6 +20,13 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: backendMessageConverter
+     * 
+     */
+    private java.lang.String _backendMessageConverter ;
+    
+    /**
+     *  
      * xml name: errorRouteId
      * 如果配置了errorRouteId，当发生未被捕获的异常时路由到此route进行处理，它的response将作为response返回。
      */
@@ -103,6 +110,25 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
      * 如果设置为true，则gateway返回给调用者的不是ApiResponse，而是ApiResponse的body
      */
     private java.lang.Boolean _unwrapResponse ;
+    
+    /**
+     * 
+     * xml name: backendMessageConverter
+     *  
+     */
+    
+    public java.lang.String getBackendMessageConverter(){
+      return _backendMessageConverter;
+    }
+
+    
+    public void setBackendMessageConverter(java.lang.String value){
+        checkAllowChange();
+        
+        this._backendMessageConverter = value;
+           
+    }
+
     
     /**
      * 
@@ -361,6 +387,7 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("backendMessageConverter",this.getBackendMessageConverter());
         out.putNotNull("errorRouteId",this.getErrorRouteId());
         out.putNotNull("forward",this.getForward());
         out.putNotNull("id",this.getId());
@@ -384,6 +411,7 @@ public abstract class _GatewayRouteModel extends io.nop.core.resource.component.
     protected void copyTo(GatewayRouteModel instance){
         super.copyTo(instance);
         
+        instance.setBackendMessageConverter(this.getBackendMessageConverter());
         instance.setErrorRouteId(this.getErrorRouteId());
         instance.setForward(this.getForward());
         instance.setId(this.getId());

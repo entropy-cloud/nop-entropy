@@ -15,4 +15,19 @@
         <property name="executionInvoker" ref="nopSingleSessionFunctionInvoker" />
     </bean>
 
+    <bean id="nopGatewayLogger" class="io.nop.gateway.core.interceptor.Slf4jGatewayLogger"
+          ioc:default="true">
+        <ioc:condition>
+            <if-property name="nop.gateway.logging.enabled" />
+        </ioc:condition>
+    </bean>
+
+    <bean id="nopLoggingGatewayInterceptor" class="io.nop.gateway.core.interceptor.LoggingInterceptor"
+          ioc:default="true">
+        <ioc:condition>
+            <if-property name="nop.gateway.logging.enabled" />
+        </ioc:condition>
+        <constructor-arg ref="nopGatewayLogger"/>
+    </bean>
+
 </beans>

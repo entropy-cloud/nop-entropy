@@ -60,8 +60,8 @@ public class InvokeProcessor {
             throw new NopException(ERR_GATEWAY_NO_RPC_SUPPORT).source(route);
         }
 
-        RpcHelper.setHttpUrl(request,null);
-        RpcHelper.setHttpMethod(request,null);
+        RpcHelper.setHttpUrl(request, null);
+        RpcHelper.setHttpMethod(request, null);
 
         // 优先级: source > serviceName > url
         if (invoke.getSource() != null) {
@@ -128,15 +128,24 @@ public class InvokeProcessor {
 
         String url = urlObj.toString();
         HttpRequest httpRequest = buildHttpRequest(url, request);
+        if (invoke.getHttpMethod() != null) {
+            httpRequest.setMethod(invoke.getHttpMethod());
+        } else {
+            httpRequest.setMethod(svcCtx.getHttpMethod());
+        }
+
 
         return httpClient.fetchAsync(httpRequest, null).thenApply(httpResponse -> {
             ApiResponse<Object> apiResponse;
 
             if (Boolean.TRUE.equals(invoke.getWrapResponse())) {
-                apiResponse = httpResponse.getBodyAsBean(ApiResponse.class);
-            } else {
                 apiResponse = new ApiResponse<>();
-                return apiResponse;
+                apiResponse.setWrapper(true);
+                apiResponse.setData(httpResponse.getBody());
+            } else {
+                apiResponse = httpResponse.getBodyAsBean(ApiResponse.class);
+                if (apiResponse == null)
+                    apiResponse = new ApiResponse<>();
             }
             apiResponse.setHttpStatus(httpResponse.getHttpStatus());
             httpResponse.getHeaders().forEach(apiResponse::setHeader);

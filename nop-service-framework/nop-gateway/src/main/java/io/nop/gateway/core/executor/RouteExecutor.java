@@ -11,7 +11,9 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.gateway.conversion.IBackendMessageConverter;
 import io.nop.gateway.core.context.IGatewayContext;
 import io.nop.gateway.core.interceptor.IGatewayInterceptor;
 import io.nop.gateway.core.interceptor.IGatewayInvocation;
@@ -94,7 +96,7 @@ public class RouteExecutor {
 
     IGatewayInvocation buildInvocation(GatewayRouteModel route, List<IGatewayInterceptor> interceptors) {
         IGatewayInvocation routeExecution = new GatewayRouteExecution(
-            route, mappingProcessor, this);
+                route, mappingProcessor, this);
         if (interceptors.isEmpty())
             return routeExecution;
 
@@ -129,7 +131,23 @@ public class RouteExecutor {
      * 执行路由逻辑（invoke或forward）
      */
     public CompletionStage<ApiResponse<?>> executeRouteLogic(GatewayRouteModel route, ApiRequest<?> request,
-                                                              IGatewayContext context) {
+                                                             IGatewayContext context) {
+
+        IBackendMessageConverter backendMessageConverter = getConverter(route);
+        if (backendMessageConverter != null) {
+            io.nop.api.core.beans.ApiRequest<?> req = backendMessageConverter.toBackendRequest(request);
+            return executeLogic0(route, request, context).thenApply(res -> {
+                if (backendMessageConverter != null)
+                    res = backendMessageConverter.toFrontendResponse(res, request);
+                return res;
+            });
+        } else {
+            return executeLogic0(route, request, context);
+        }
+    }
+
+    protected CompletionStage<ApiResponse<?>> executeLogic0(GatewayRouteModel route, ApiRequest<?> request,
+                                                            IGatewayContext context) {
         // 优先使用 forward
         if (route.getForward() != null) {
             // forward 不再执行interceptor
@@ -144,5 +162,11 @@ public class RouteExecutor {
 
         throw new NopException(io.nop.gateway.GatewayErrors.ERR_GATEWAY_NO_RPC_SUPPORT)
                 .param("reason", "Neither invoke nor forward is configured for route: " + route.getId());
+    }
+
+    IBackendMessageConverter getConverter(GatewayRouteModel route) {
+        if (route.getBackendMessageConverter() == null)
+            return null;
+        return (IBackendMessageConverter) BeanContainer.instance().getBean("nopBackendMessageConverter_" + route.getBackendMessageConverter());
     }
 }

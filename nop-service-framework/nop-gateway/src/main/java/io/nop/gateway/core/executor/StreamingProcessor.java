@@ -10,6 +10,7 @@ package io.nop.gateway.core.executor;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.json.JSON;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.gateway.core.context.IGatewayContext;
 import io.nop.gateway.core.interceptor.IGatewayInvocation;
@@ -121,6 +122,9 @@ public class StreamingProcessor {
             public void onNext(IServerEventResponse item) {
                 try {
                     Object element = item.getData();
+                    if (element instanceof String) {
+                        element = JSON.parse(element.toString());
+                    }
 
                     // 1. 应用拦截器的onStreamElement
                     element = invocation.proceedOnStreamElement(element, context);

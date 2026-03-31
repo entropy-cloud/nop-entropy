@@ -701,7 +701,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     @SuppressWarnings("unchecked")
     private void addWindowElement(K key, W window, IN value) {
-        keyedStateBackend.setCurrentKey(key);
+        ((IKeyedStateBackend<K>) keyedStateBackend).setCurrentKey(key);
         keyedStateBackend.setCurrentNamespace(windowNamespace(window));
 
         ACC current = windowContentsState.get(WINDOW_VALUE_KEY);
@@ -722,19 +722,19 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     private ACC getWindowContents(K key, W window) {
-        keyedStateBackend.setCurrentKey(key);
+        ((IKeyedStateBackend<K>) keyedStateBackend).setCurrentKey(key);
         keyedStateBackend.setCurrentNamespace(windowNamespace(window));
         return windowContentsState.get(WINDOW_VALUE_KEY);
     }
 
     private void clearWindowContents(K key, W window) {
-        keyedStateBackend.setCurrentKey(key);
+        ((IKeyedStateBackend<K>) keyedStateBackend).setCurrentKey(key);
         keyedStateBackend.setCurrentNamespace(windowNamespace(window));
         windowContentsState.remove(WINDOW_VALUE_KEY);
     }
 
     private void setWindowContents(K key, W window, ACC value) {
-        keyedStateBackend.setCurrentKey(key);
+        ((IKeyedStateBackend<K>) keyedStateBackend).setCurrentKey(key);
         keyedStateBackend.setCurrentNamespace(windowNamespace(window));
         windowContentsState.put(WINDOW_VALUE_KEY, value);
     }

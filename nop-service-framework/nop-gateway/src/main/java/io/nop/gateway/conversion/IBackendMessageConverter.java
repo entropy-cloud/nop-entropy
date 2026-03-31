@@ -1,11 +1,14 @@
 package io.nop.gateway.conversion;
 
+import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.ApiResponse;
+
 import java.util.Map;
 
 public interface IBackendMessageConverter {
-    Map<String, Object> toBackendRequest(Map<String, Object> request);
+    ApiRequest<?> toBackendRequest(ApiRequest<?> request);
 
-    Map<String, Object> toFrontendResponse(Map<String, Object> backendResponse, Map<String, Object> request);
+    ApiResponse<?> toFrontendResponse(ApiResponse<?> backendResponse, ApiRequest<?> request);
 
-    Map<String, Object> toFrontendStreamChunk(Map<String, Object> backendDelta, Map<String, Object> request);
+    Map<String, Object> toFrontendStreamChunk(Map<String, Object> backendDelta, ApiRequest<?> request);
 }

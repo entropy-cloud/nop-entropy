@@ -17,6 +17,7 @@ public abstract class AbstractServerEventSubscription implements Flow.Subscripti
     private String id;
     private String event;
     private String data;
+    private volatile boolean completed;
 
     public AbstractServerEventSubscription(
             Flow.Subscriber<? super IServerEventResponse> subscriber
@@ -60,16 +61,34 @@ public abstract class AbstractServerEventSubscription implements Flow.Subscripti
     }
 
     protected void onComplete() {
-        subscriber.onComplete();
+        if (!completed)
+            subscriber.onComplete();
+    }
+
+    private String getValue(String line, String prefix) {
+        int start = prefix.length();
+        if (line.length() > start && line.charAt(start) == ' ')
+            start++;
+        return line.substring(start);
     }
 
     protected void processLine(String line) {
-        // 心跳
         if (line.startsWith(":"))
             return;
 
         if (line.startsWith("data:")) {
-            String value = line.substring("data:".length());
+            String value = getValue(line, "data:");
+            if ("[DONE]".equals(value)) {
+                if (data != null) {
+                    waitForDemand();
+                    subscriber.onNext(newServerEvent(id, event, data));
+                    id = null;
+                    event = null;
+                    data = null;
+                }
+                onComplete();
+                return;
+            }
             if (data == null) {
                 data = value;
             } else {
@@ -87,9 +106,9 @@ public abstract class AbstractServerEventSubscription implements Flow.Subscripti
         }
 
         if (line.startsWith("id:")) {
-            id = line.substring("id:".length()).trim();
+            id = getValue(line, "id:");
         } else if (line.startsWith("event:")) {
-            event = line.substring("event:".length()).trim();
+            event = getValue(line, "event:");
         } else if (!line.isEmpty()) {
             waitForDemand();
             subscriber.onNext(newServerEvent(id, event, line));

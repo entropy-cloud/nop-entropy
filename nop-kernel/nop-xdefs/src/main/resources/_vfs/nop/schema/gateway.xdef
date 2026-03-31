@@ -1,5 +1,5 @@
- <gateway x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
-          xdef:bean-package="io.nop.gateway.model" xdef:name="GatewayModel">
+<gateway x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+         xdef:bean-package="io.nop.gateway.model" xdef:name="GatewayModel">
 
     <routes xdef:body-type="list" xdef:key-attr="id">
         <!--
@@ -11,7 +11,8 @@
         @unwrapResponse 如果设置为true，则gateway返回给调用者的不是ApiResponse，而是ApiResponse的body
         @errorRouteId 如果配置了errorRouteId，当发生未被捕获的异常时路由到此route进行处理，它的response将作为response返回。
         -->
-        <route id="!string" xdef:name="GatewayRouteModel" unwrapResponse="boolean" errorRouteId="string">
+        <route id="!string" xdef:name="GatewayRouteModel" unwrapResponse="boolean" errorRouteId="string"
+               backendMessageConverter="bean-name">
             <!--
             @path 路径匹配规则（按优先级排序）：
             1. 精确匹配: /api/users
@@ -21,7 +22,7 @@
             5. 通配所有: /api/** 或 /api/{*path} 匹配所有剩余路径
             -->
             <match path="!string" xdef:name="GatewayMatchModel" httpMethod="csv-set" xdef:mandatory="true">
-                <when>xpl-fn:(request,svcCtx)=>boolean</when>
+                <when>xpl-fn:(request:ApiRequest,svcCtx)=>boolean</when>
             </match>
 
             <!--
@@ -45,7 +46,7 @@
             -->
             <invoke xdef:name="GatewayInvokeModel" serviceName="string" serviceMethod="string"
                     confirmMethod="string" cancelMethod="string"
-                    url="t-expr" wrapResponse="boolean">
+                    url="t-expr" wrapResponse="boolean" httpMethod="string">
                 <source>xpl-fn:(request:ApiRequest,svcCtx)=>any</source>
             </invoke>
 

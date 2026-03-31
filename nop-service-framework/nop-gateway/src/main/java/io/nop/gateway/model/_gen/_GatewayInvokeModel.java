@@ -32,6 +32,13 @@ public abstract class _GatewayInvokeModel extends io.nop.core.resource.component
     
     /**
      *  
+     * xml name: httpMethod
+     * 
+     */
+    private java.lang.String _httpMethod ;
+    
+    /**
+     *  
      * xml name: serviceMethod
      * 
      */
@@ -99,6 +106,25 @@ public abstract class _GatewayInvokeModel extends io.nop.core.resource.component
         checkAllowChange();
         
         this._confirmMethod = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: httpMethod
+     *  
+     */
+    
+    public java.lang.String getHttpMethod(){
+      return _httpMethod;
+    }
+
+    
+    public void setHttpMethod(java.lang.String value){
+        checkAllowChange();
+        
+        this._httpMethod = value;
            
     }
 
@@ -215,6 +241,7 @@ public abstract class _GatewayInvokeModel extends io.nop.core.resource.component
         
         out.putNotNull("cancelMethod",this.getCancelMethod());
         out.putNotNull("confirmMethod",this.getConfirmMethod());
+        out.putNotNull("httpMethod",this.getHttpMethod());
         out.putNotNull("serviceMethod",this.getServiceMethod());
         out.putNotNull("serviceName",this.getServiceName());
         out.putNotNull("source",this.getSource());
@@ -233,6 +260,7 @@ public abstract class _GatewayInvokeModel extends io.nop.core.resource.component
         
         instance.setCancelMethod(this.getCancelMethod());
         instance.setConfirmMethod(this.getConfirmMethod());
+        instance.setHttpMethod(this.getHttpMethod());
         instance.setServiceMethod(this.getServiceMethod());
         instance.setServiceName(this.getServiceName());
         instance.setSource(this.getSource());

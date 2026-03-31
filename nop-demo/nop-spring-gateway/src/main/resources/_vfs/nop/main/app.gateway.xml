@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <gateway x:schema="/nop/schema/gateway.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
-    <!-- TCC事务拦截器 -->
     <interceptors>
+        <interceptor id="logging-interceptor" bean="nopLoggingGatewayInterceptor">
+            <match path="/{*path}"/>
+        </interceptor>
+
+        <!-- TCC事务拦截器 -->
         <interceptor id="tcc-interceptor" bean="nopTccGatewayInterceptor">
             <!-- 匹配所有需要TCC事务的API请求 -->
             <match path="/{*path}">

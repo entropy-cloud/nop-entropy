@@ -1,5 +1,7 @@
 package io.nop.gateway.conversion.ai;
 
+import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.ApiResponse;
 import io.nop.gateway.conversion.IBackendMessageConverter;
 
 import java.util.Collections;
@@ -9,46 +11,56 @@ import java.util.Map;
 public class OpenAIMessageConverter implements IBackendMessageConverter {
 
     @Override
-    public Map<String, Object> toBackendRequest(Map<String, Object> request) {
-        if (request == null) {
-            return Collections.emptyMap();
+    @SuppressWarnings("unchecked")
+    public ApiRequest<Map<String, Object>> toBackendRequest(ApiRequest<?> request) {
+        if (request == null || request.getData() == null) {
+            return ApiRequest.build(Collections.emptyMap());
         }
-        return new HashMap<>(request);
+        Map<String, Object> data = (Map<String, Object>) request.getData();
+        return ApiRequest.build(new HashMap<>(data));
     }
 
     @Override
-    public Map<String, Object> toFrontendResponse(Map<String, Object> backendResponse, Map<String, Object> request) {
-        if (backendResponse == null) {
-            return Collections.emptyMap();
+    @SuppressWarnings("unchecked")
+    public ApiResponse<Map<String, Object>> toFrontendResponse(ApiResponse<?> backendResponse, ApiRequest<?> request) {
+        if (backendResponse == null || backendResponse.getData() == null) {
+            return ApiResponse.success(Collections.emptyMap());
         }
-        if (backendResponse.containsKey("choices")) {
-            return backendResponse;
+        @SuppressWarnings("unchecked")
+        Map<String, Object> backendData = (Map<String, Object>) backendResponse.getData();
+        if (backendData.containsKey("choices")) {
+            return ApiResponse.success(backendData);
         }
-        String content = extractContent(backendResponse.get("content"));
-        String requestId = ConverterUtils.resolveRequestId(request);
-        String model = ConverterUtils.resolveModel(request);
+        Map<String, Object> requestData = request != null && request.getData() instanceof Map
+                ? (Map<String, Object>) request.getData() : Collections.emptyMap();
+        String content = extractContent(backendData.get("content"));
+        String requestId = ConverterUtils.resolveRequestId(requestData);
+        String model = ConverterUtils.resolveModel(requestData);
         Map<String, Object> response = ConverterUtils.buildOpenAIResponse(requestId, model, content);
-        ConverterUtils.copyIfPresent(response, backendResponse, "usage", "system_fingerprint");
-    ConverterUtils.copyChoiceExtras(response, backendResponse, "logprobs");
-        Map<String, Object> message = ConverterUtils.toMap(backendResponse.get("message"));
+        ConverterUtils.copyIfPresent(response, backendData, "usage", "system_fingerprint");
+        ConverterUtils.copyChoiceExtras(response, backendData, "logprobs");
+        Map<String, Object> message = ConverterUtils.toMap(backendData.get("message"));
         ConverterUtils.copyMessageExtras(response, message,
                 "tool_calls", "tool_call_id", "name", "audio", "annotations", "refusal", "function_call");
-        return response;
+        return ApiResponse.success(response);
     }
 
     @Override
-    public Map<String, Object> toFrontendStreamChunk(Map<String, Object> backendDelta, Map<String, Object> request) {
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> toFrontendStreamChunk(Map<String, Object> backendDelta, ApiRequest<?> request) {
         if (backendDelta == null) {
             return Collections.emptyMap();
         }
         if (backendDelta.containsKey("choices")) {
             return backendDelta;
         }
+        Map<String, Object> requestData = request != null && request.getData() instanceof Map
+                ? (Map<String, Object>) request.getData() : Collections.emptyMap();
         String deltaContent = extractContent(backendDelta.get("content"));
         Object finishReasonObj = backendDelta.get("finish_reason");
         String finishReason = finishReasonObj instanceof String ? (String) finishReasonObj : null;
-        String requestId = ConverterUtils.resolveRequestId(request);
-        String model = ConverterUtils.resolveModel(request);
+        String requestId = ConverterUtils.resolveRequestId(requestData);
+        String model = ConverterUtils.resolveModel(requestData);
         Map<String, Object> chunk = ConverterUtils.buildOpenAIChunk(requestId, model, deltaContent, finishReason);
         ConverterUtils.copyIfPresent(chunk, backendDelta, "usage", "system_fingerprint");
         ConverterUtils.copyChoiceExtras(chunk, backendDelta, "logprobs");

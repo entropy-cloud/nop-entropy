@@ -10,12 +10,12 @@ package io.nop.gateway.http;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.json.JSON;
 import io.nop.api.core.rpc.IRpcServiceInvoker;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
-import io.nop.api.core.json.JSON;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.cache.ResourceCacheEntry;
@@ -83,7 +83,7 @@ public class GatewayHttpFilter implements IHttpServerFilter {
         this.recordMappingManager = recordMappingManager;
     }
 
-    public void setExecutionInvoker(IAsyncFunctionInvoker executionInvoker){
+    public void setExecutionInvoker(IAsyncFunctionInvoker executionInvoker) {
         this.executionInvoker = executionInvoker;
     }
 
@@ -107,7 +107,7 @@ public class GatewayHttpFilter implements IHttpServerFilter {
         if (model == null) {
             return null;
         }
-        return new GatewayHandler(model, rpcServiceInvoker, httpClient, recordMappingManager,executionInvoker);
+        return new GatewayHandler(model, rpcServiceInvoker, httpClient, recordMappingManager, executionInvoker);
     };
 
     @Override
@@ -280,6 +280,9 @@ public class GatewayHttpFilter implements IHttpServerFilter {
      */
     protected void writeHeaders(IHttpServerContext context, Map<String, Object> headers) {
         for (Map.Entry<String, Object> entry : headers.entrySet()) {
+            if (HttpApiConstants.HEADER_CONTENT_LENGTH.equalsIgnoreCase(entry.getKey()))
+                continue;
+
             context.setResponseHeader(entry.getKey(), entry.getValue());
         }
     }
@@ -302,6 +305,7 @@ public class GatewayHttpFilter implements IHttpServerFilter {
         svcCtx.setRequestPath(context.getRequestPath());
         svcCtx.setRequestHeaders(request.getHeaders());
         svcCtx.setQueryParams(context.getQueryParams());
+        svcCtx.setHttpMethod(context.getMethod());
         return svcCtx;
     }
 }

@@ -1,8 +1,8 @@
 nop:
-  tcc:
-    gateway:
-      default-txn-group: test
-      auto-create-transaction: true
+  gateway:
+    http-filter:
+      enabled: true
+    model-path: /nop/test/lm-studio.gateway.xml
 
   orm:
     init-database-schema: true
@@ -18,7 +18,10 @@ spring:
     username: sa
     password:
 
+server:
+  port: 0
+
 logging:
   level:
     ROOT: WARN
-    io.nop.tcc: DEBUG
+    io.nop.gateway: DEBUG

@@ -1,5 +1,7 @@
 package io.nop.gateway.conversion.ai;
 
+import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.ApiResponse;
 import io.nop.gateway.conversion.IBackendMessageConverter;
 
 import java.util.Collections;
@@ -20,19 +22,19 @@ public final class AiBackendMessageConverter {
     private AiBackendMessageConverter() {
     }
 
-    public static Map<String, Object> toBackendRequest(Map<String, Object> openAIRequest, AiBackendType backend) {
-        return getConverter(backend).toBackendRequest(openAIRequest);
+    public static ApiRequest<?> toBackendRequest(ApiRequest<?> request, AiBackendType backend) {
+        return getConverter(backend).toBackendRequest(request);
     }
 
-    public static Map<String, Object> toOpenAIResponse(Map<String, Object> backendResponse,
-                                                       AiBackendType backend,
-                                                       Map<String, Object> request) {
+    public static ApiResponse<?> toOpenAIResponse(ApiResponse<?> backendResponse,
+                                                   AiBackendType backend,
+                                                   ApiRequest<?> request) {
         return getConverter(backend).toFrontendResponse(backendResponse, request);
     }
 
     public static Map<String, Object> toOpenAIStreamChunk(Map<String, Object> backendDelta,
-                                                          AiBackendType backend,
-                                                          Map<String, Object> request) {
+                                                           AiBackendType backend,
+                                                           ApiRequest<?> request) {
         return getConverter(backend).toFrontendStreamChunk(backendDelta, request);
     }
 

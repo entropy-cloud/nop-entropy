@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<gateway x:schema="/nop/schema/gateway.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <routes>
+        <route id="lm-studio-chat" unwrapResponse="true">
+            <match path="/v1/chat/completions" httpMethod="POST"/>
+            <invoke url="http://localhost:1234/v1/chat/completions"/>
+            <streaming enabled="${request.data.stream}" contentType="text/event-stream"/>
+        </route>
+
+        <route id="lm-studio-models" unwrapResponse="true">
+            <match path="/v1/models" httpMethod="GET"/>
+            <invoke url="http://localhost:1234/v1/models" />
+        </route>
+    </routes>
+
+</gateway>
