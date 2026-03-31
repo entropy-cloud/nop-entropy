@@ -114,6 +114,46 @@
         <sequenceNextVal>select {sequenceName}.nextval from dual</sequenceNextVal>
 
         <dropSequence>drop sequence {sequenceName}</dropSequence>
+
+                <tableExists>
+                        select 1 from all_tables
+                        where table_name = {tableName}
+                            and ({schemaName} is null or owner = {schemaName})
+                </tableExists>
+
+                <columnExists>
+                        select 1 from all_tab_columns
+                        where table_name = {tableName}
+                            and column_name = {columnName}
+                            and ({schemaName} is null or owner = {schemaName})
+                </columnExists>
+
+                <indexExists>
+                        select 1 from all_indexes
+                        where index_name = {indexName}
+                            and table_name = {tableName}
+                            and ({schemaName} is null or owner = {schemaName})
+                </indexExists>
+
+                <foreignKeyExists>
+                        select 1 from all_constraints
+                        where constraint_type = 'R'
+                            and constraint_name = {constraintName}
+                            and ({tableName} is null or table_name = {tableName})
+                            and ({schemaName} is null or owner = {schemaName})
+                </foreignKeyExists>
+
+                <sequenceExists>
+                        select 1 from all_sequences
+                        where sequence_name = {sequenceName}
+                            and ({schemaName} is null or sequence_owner = {schemaName})
+                </sequenceExists>
+
+                <viewExists>
+                        select 1 from all_views
+                        where view_name = {viewName}
+                            and ({schemaName} is null or owner = {schemaName})
+                </viewExists>
     </sqls>
 
     <functions>

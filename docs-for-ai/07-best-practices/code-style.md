@@ -14,3 +14,8 @@
 - 不要硬编码中文错误信息，使用错误码 + 参数
 - 日志使用 SLF4J，不用 `System.out`/`System.err`
 - 常量使用 `UPPER_SNAKE_CASE`
+
+## IoC Bean 命名
+
+- **Nop 平台内置 bean 必须使用 `nop` 前缀**，避免与业务 bean 冲突（例如 `nopMigrationEngine`）。
+- 业务自定义 bean 不应使用 `nop` 前缀；测试用例可使用 `test`/`testMock` 前缀。

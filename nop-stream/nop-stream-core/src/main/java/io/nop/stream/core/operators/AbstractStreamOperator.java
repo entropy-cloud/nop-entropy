@@ -28,10 +28,6 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
         return output;
     }
 
-    public void setOutput(Output<StreamRecord<OUT>> output) {
-        this.output = output;
-    }
-
     public ProcessingTimeService getProcessingTimeService() {
         return processingTimeService;
     }
@@ -68,11 +64,10 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public void setCurrentKey(Object key) {
         if (keyedStateBackend != null) {
-            ((IKeyedStateBackend<Object>) keyedStateBackend).setCurrentKey(key);
+            keyedStateBackend.setCurrentKey(key);
         }
     }
 

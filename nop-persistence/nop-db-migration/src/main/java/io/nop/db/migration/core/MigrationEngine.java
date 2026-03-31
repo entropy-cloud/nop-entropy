@@ -9,8 +9,11 @@ package io.nop.db.migration.core;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.resource.component.AbstractComponentModel;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.db.migration.MigrationType;
+import io.nop.db.migration.RunOnChange;
 import io.nop.db.migration.executor.AddColumnExecutor;
 import io.nop.db.migration.executor.AlterColumnExecutor;
 import io.nop.db.migration.executor.CreateIndexExecutor;
@@ -30,18 +33,35 @@ import io.nop.db.migration.executor.SqlExecutor;
 import io.nop.db.migration.executor.UpdateDataExecutor;
 import io.nop.db.migration.model.DbChangeModel;
 import io.nop.db.migration.model.DbMigrationModel;
+import io.nop.db.migration.model.ColumnExistsPrecondition;
+import io.nop.db.migration.model.CustomConditionPrecondition;
+import io.nop.db.migration.model.ForeignKeyExistsPrecondition;
+import io.nop.db.migration.model.IndexExistsPrecondition;
+import io.nop.db.migration.model.TableExistsPrecondition;
+import io.nop.db.migration.precondition.ColumnExistsChecker;
+import io.nop.db.migration.precondition.CustomConditionChecker;
+import io.nop.db.migration.precondition.ForeignKeyExistsChecker;
+import io.nop.db.migration.precondition.IPreconditionChecker;
+import io.nop.db.migration.precondition.IndexExistsChecker;
+import io.nop.db.migration.precondition.TableExistsChecker;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import static io.nop.db.migration.DbMigrationErrors.ARG_CHECKSUM;
 import static io.nop.db.migration.DbMigrationErrors.ARG_CHANGE_TYPE;
+import static io.nop.db.migration.DbMigrationErrors.ARG_EXPECTED_CHECKSUM;
+import static io.nop.db.migration.DbMigrationErrors.ARG_PRECONDITION_TYPE;
 import static io.nop.db.migration.DbMigrationErrors.ARG_VERSION;
 import static io.nop.db.migration.DbMigrationErrors.ERR_DB_MIGRATION_CHECKSUM_MISMATCH;
-import static io.nop.db.migration.DbMigrationErrors.ERR_DB_MIGRATION_EXECUTION_FAILED;
+import static io.nop.db.migration.DbMigrationErrors.ERR_DB_MIGRATION_PRECONDITION_FAILED;
 import static io.nop.db.migration.DbMigrationErrors.ERR_DB_MIGRATION_UNKNOWN_CHANGE_TYPE;
 
 public class MigrationEngine {
@@ -50,6 +70,7 @@ public class MigrationEngine {
     private final MigrationFileScanner scanner = new MigrationFileScanner();
     private final MigrationExecutor executor = new MigrationExecutor();
     private final Map<String, IChangeExecutor> changeExecutors = new HashMap<>();
+    private final Map<Class<?>, IPreconditionChecker> preconditionCheckers = new HashMap<>();
     
     public MigrationEngine() {
         registerDefaultExecutors();
@@ -82,6 +103,12 @@ public class MigrationEngine {
             dbTypeFilterExecutor.registerExecutor(entry.getKey(), entry.getValue());
         }
         registerExecutor(DbTypeFilterExecutor.CHANGE_TYPE, dbTypeFilterExecutor);
+
+        registerPreconditionChecker(TableExistsPrecondition.class, new TableExistsChecker());
+        registerPreconditionChecker(ColumnExistsPrecondition.class, new ColumnExistsChecker());
+        registerPreconditionChecker(IndexExistsPrecondition.class, new IndexExistsChecker());
+        registerPreconditionChecker(ForeignKeyExistsPrecondition.class, new ForeignKeyExistsChecker());
+        registerPreconditionChecker(CustomConditionPrecondition.class, new CustomConditionChecker());
     }
     
     public MigrationHistoryManager getHistoryManager() {
@@ -91,6 +118,11 @@ public class MigrationEngine {
     public void registerExecutor(String changeType, IChangeExecutor executor) {
         changeExecutors.put(changeType, executor);
         this.executor.registerExecutor(changeType, executor);
+    }
+
+    public void registerPreconditionChecker(Class<?> preconditionClass,
+                                            IPreconditionChecker checker) {
+        preconditionCheckers.put(preconditionClass, checker);
     }
     
     public MigrationResult migrate(MigrationContext context) {
@@ -110,19 +142,28 @@ public class MigrationEngine {
         
         Collections.sort(migrations, MigrationVersionComparator.INSTANCE);
         
-        Set<String> executedVersions = localHistoryManager.getExecutedVersions();
-        
         MigrationResult result = new MigrationResult();
         
         for (DbMigrationModel migration : migrations) {
+            if (migration == null || migration.isIgnore()) {
+                continue;
+            }
+
+            if (!matchesMigrationContext(migration, context) || !matchesMigrationLabels(migration, context)) {
+                continue;
+            }
+
             String version = migration.getVersion();
-            
-            if (executedVersions.contains(version)) {
+
+            MigrationRecord existingRecord = localHistoryManager.getMigrationByVersion(version);
+            String checksum = calculateChecksum(migration);
+
+            if (shouldSkipMigration(migration, existingRecord, checksum, context)) {
                 continue;
             }
             
             try {
-                MigrationRecord record = executeMigration(migration, context);
+                MigrationRecord record = executeMigration(migration, context, checksum);
                 localHistoryManager.recordMigration(record);
                 result.addRecord(record);
             } catch (Exception e) {
@@ -135,7 +176,7 @@ public class MigrationEngine {
                 localHistoryManager.recordMigration(failedRecord);
                 result.addRecord(failedRecord);
                 
-                if (context.isFailFast()) {
+                if (shouldStopOnFailure(migration, context)) {
                     throw NopException.adapt(e);
                 }
             }
@@ -143,9 +184,114 @@ public class MigrationEngine {
         
         return result;
     }
+
+    protected boolean shouldSkipMigration(DbMigrationModel migration,
+                                          MigrationRecord existingRecord,
+                                          String currentChecksum,
+                                          MigrationContext context) {
+        RunOnChange runOn = migration.getRunOn();
+        if (runOn == RunOnChange.NEVER) {
+            return true;
+        }
+
+        if (existingRecord == null) {
+            return false;
+        }
+
+        if (!existingRecord.isSuccess()) {
+            return false;
+        }
+
+        if (runOn == RunOnChange.ALWAYS) {
+            return false;
+        }
+
+        boolean repeatable = isRepeatableMigration(migration);
+        if (repeatable) {
+            return Objects.equals(existingRecord.getChecksum(), currentChecksum);
+        }
+
+        if (runOn == RunOnChange.ON_CHANGE) {
+            return Objects.equals(existingRecord.getChecksum(), currentChecksum);
+        }
+
+        if (context.isValidateChecksum() && !Objects.equals(existingRecord.getChecksum(), currentChecksum)) {
+            throw new NopException(ERR_DB_MIGRATION_CHECKSUM_MISMATCH)
+                .param(ARG_VERSION, migration.getVersion())
+                .param(ARG_EXPECTED_CHECKSUM, existingRecord.getChecksum())
+                .param(ARG_CHECKSUM, currentChecksum);
+        }
+
+        return true;
+    }
+
+    protected boolean isRepeatableMigration(DbMigrationModel migration) {
+        if (migration.getType() == MigrationType.REPEATABLE) {
+            return true;
+        }
+        if (migration.getType() == MigrationType.VERSIONED) {
+            return false;
+        }
+        return MigrationVersionComparator.isRepeatable(migration.getVersion());
+    }
+
+    protected boolean shouldStopOnFailure(DbMigrationModel migration, MigrationContext context) {
+        if (!context.isFailFast()) {
+            return false;
+        }
+        return migration.isFailOnError();
+    }
+
+    protected boolean matchesMigrationContext(DbMigrationModel migration, MigrationContext context) {
+        String contexts = migration.getContexts();
+        if (contexts == null || contexts.trim().isEmpty()) {
+            return true;
+        }
+
+        String currentContext = context.getContext();
+        if (currentContext == null || currentContext.trim().isEmpty()) {
+            return false;
+        }
+
+        Set<String> contextSet = parseCsvSet(contexts);
+        return contextSet.contains(currentContext.trim());
+    }
+
+    protected boolean matchesMigrationLabels(DbMigrationModel migration, MigrationContext context) {
+        String labels = migration.getLabels();
+        if (labels == null || labels.trim().isEmpty()) {
+            return true;
+        }
+
+        List<String> currentLabels = context.getLabels();
+        if (currentLabels == null || currentLabels.isEmpty()) {
+            return false;
+        }
+
+        Set<String> required = parseCsvSet(labels);
+        for (String label : currentLabels) {
+            if (label != null && required.contains(label.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected Set<String> parseCsvSet(String csv) {
+        if (csv == null || csv.trim().isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        return Arrays.stream(csv.split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.toSet());
+    }
     
-    protected MigrationRecord executeMigration(DbMigrationModel migration, MigrationContext context) {
+    protected MigrationRecord executeMigration(DbMigrationModel migration, MigrationContext context, String checksum) {
         long startTime = System.currentTimeMillis();
+
+        validatePreconditions(migration, context);
         
         List<DbChangeModel> changeset = migration.getChangeset();
         if (changeset != null) {
@@ -159,13 +305,49 @@ public class MigrationEngine {
         MigrationRecord record = new MigrationRecord();
         record.setVersion(migration.getVersion());
         record.setDescription(migration.getDescription());
-        record.setType(MigrationVersionComparator.isRepeatable(migration.getVersion()) ? "REPEATABLE" : "VERSIONED");
-        record.setChecksum(calculateChecksum(migration));
+        record.setType(isRepeatableMigration(migration) ? "REPEATABLE" : "VERSIONED");
+        record.setChecksum(checksum);
         record.setExecutionTime(executionTime);
         record.setInstalledBy(context.getInstalledBy());
         record.setSuccess(true);
         
         return record;
+    }
+
+    protected void validatePreconditions(DbMigrationModel migration, MigrationContext context) {
+        List<?> preconditions = migration.getPreconditions();
+        if (preconditions == null || preconditions.isEmpty()) {
+            return;
+        }
+
+        for (Object item : preconditions) {
+            if (!(item instanceof AbstractComponentModel)) {
+                throw new NopException(ERR_DB_MIGRATION_PRECONDITION_FAILED)
+                    .param(ARG_VERSION, migration.getVersion())
+                    .param(ARG_PRECONDITION_TYPE, item == null ? null : item.getClass().getName());
+            }
+
+            AbstractComponentModel precondition = (AbstractComponentModel) item;
+            IPreconditionChecker checker = resolvePreconditionChecker(precondition);
+            if (checker == null || !checker.check(precondition, context)) {
+                throw new NopException(ERR_DB_MIGRATION_PRECONDITION_FAILED)
+                    .param(ARG_VERSION, migration.getVersion())
+                    .param(ARG_PRECONDITION_TYPE, precondition.getClass().getSimpleName());
+            }
+        }
+    }
+
+    protected IPreconditionChecker resolvePreconditionChecker(AbstractComponentModel precondition) {
+        if (precondition == null) {
+            return null;
+        }
+
+        for (Map.Entry<Class<?>, IPreconditionChecker> entry : preconditionCheckers.entrySet()) {
+            if (entry.getKey().isInstance(precondition)) {
+                return entry.getValue();
+            }
+        }
+        return null;
     }
     
     protected void executeChange(DbChangeModel change, MigrationContext context) {
@@ -235,7 +417,7 @@ public class MigrationEngine {
         }
         
         try {
-            List<DbChangeModel> rollbackChanges = migration.getRollback().getChanges();
+            List<DbChangeModel> rollbackChanges = new ArrayList<>(migration.getRollback().getChanges());
             Collections.reverse(rollbackChanges);
             
             for (DbChangeModel change : rollbackChanges) {

@@ -39,6 +39,30 @@ public interface IJdbcTemplate extends ISqlExecutor, IDialectProvider {
 
     boolean existsTable(String querySpace, String tableName);
 
+    default boolean existsTable(String querySpace, String schemaName, String tableName) {
+        return existsTable(querySpace, tableName);
+    }
+
+    default boolean existsColumn(String querySpace, String schemaName, String tableName, String columnName) {
+        throw new UnsupportedOperationException();
+    }
+
+    default boolean existsIndex(String querySpace, String schemaName, String tableName, String indexName) {
+        throw new UnsupportedOperationException();
+    }
+
+    default boolean existsForeignKey(String querySpace, String schemaName, String tableName, String foreignKeyName) {
+        throw new UnsupportedOperationException();
+    }
+
+    default boolean existsSequence(String querySpace, String schemaName, String sequenceName) {
+        throw new UnsupportedOperationException();
+    }
+
+    default boolean existsView(String querySpace, String schemaName, String viewName) {
+        throw new UnsupportedOperationException();
+    }
+
     /**
      * 调用数据库的current_timestamp函数来返回数据库当前时间
      *

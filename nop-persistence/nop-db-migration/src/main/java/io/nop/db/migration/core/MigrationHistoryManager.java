@@ -7,18 +7,17 @@
  */
 package io.nop.db.migration.core;
 
-import io.nop.commons.util.StringHelper;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dataset.IDataRow;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
+
+import static io.nop.db.migration.DbMigrationErrors.ARG_TABLE_NAME;
+import static io.nop.db.migration.DbMigrationErrors.ERR_DB_MIGRATION_HISTORY_QUERY_FAIL;
 
 public class MigrationHistoryManager {
     
@@ -53,7 +52,8 @@ public class MigrationHistoryManager {
                 }
             );
         } catch (Exception e) {
-            throw new RuntimeException("Failed to get executed versions", e);
+            throw new NopException(ERR_DB_MIGRATION_HISTORY_QUERY_FAIL, e)
+                .param(ARG_TABLE_NAME, TABLE_NAME);
         }
         
         return versions;
@@ -76,33 +76,56 @@ public class MigrationHistoryManager {
     }
     
     public void recordMigration(MigrationRecord record) {
-        String sql = "INSERT INTO " + TABLE_NAME + 
-            " (version, description, type, checksum, installed_on, execution_time, success, installed_by) " +
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        
-        // Default success to true for new migrations if not explicitly set to false
-        // This handles the case where MigrationRecord.isSuccess() returns false by default
-        // because the primitive boolean defaults to false when using the default constructor
+        String updateSql = "UPDATE " + TABLE_NAME +
+            " SET description = ?, type = ?, checksum = ?, installed_on = ?, execution_time = ?, " +
+            " success = ?, installed_by = ?, error_message = ? WHERE version = ?";
+
+        String insertSql = "INSERT INTO " + TABLE_NAME +
+            " (version, description, type, checksum, installed_on, execution_time, success, installed_by, error_message) " +
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
         boolean success = record.isSuccess();
         if (!success && record.getErrorMessage() == null) {
-            // If success is false but no error message, assume this is a new migration
-            // that should be marked as successful
             success = true;
         }
-        
+
+        java.sql.Timestamp installedOn = new java.sql.Timestamp(System.currentTimeMillis());
+
+        long updated = jdbcTemplate.executeUpdate(
+            SQL.begin()
+                .querySpace(querySpace)
+                .name("update-migration-record")
+                .sql(updateSql,
+                    record.getDescription(),
+                    record.getType(),
+                    record.getChecksum(),
+                    installedOn,
+                    record.getExecutionTime(),
+                    success,
+                    record.getInstalledBy(),
+                    record.getErrorMessage(),
+                    record.getVersion())
+                .end()
+        );
+
+        if (updated > 0) {
+            return;
+        }
+
         jdbcTemplate.executeUpdate(
             SQL.begin()
                 .querySpace(querySpace)
-                .name("record-migration")
-                .sql(sql, 
+                .name("insert-migration-record")
+                .sql(insertSql,
                     record.getVersion(),
                     record.getDescription(),
                     record.getType(),
                     record.getChecksum(),
-                    new java.sql.Timestamp(System.currentTimeMillis()),
+                    installedOn,
                     record.getExecutionTime(),
                     success,
-                    record.getInstalledBy())
+                    record.getInstalledBy(),
+                    record.getErrorMessage())
                 .end()
         );
     }
@@ -112,7 +135,7 @@ public class MigrationHistoryManager {
             return null;
         }
         
-        String sql = "SELECT version, description, type, checksum, installed_on, execution_time, success, installed_by " +
+        String sql = "SELECT version, description, type, checksum, installed_on, execution_time, success, installed_by, error_message " +
             " FROM " + TABLE_NAME + " WHERE version = ?";
         
         final MigrationRecord[] result = new MigrationRecord[1];
@@ -135,6 +158,7 @@ public class MigrationHistoryManager {
                         int execTimeIdx = row.getMeta().getFieldIndex("EXECUTION_TIME");
                         int successIdx = row.getMeta().getFieldIndex("SUCCESS");
                         int installedByIdx = row.getMeta().getFieldIndex("INSTALLED_BY");
+                        int errorMessageIdx = row.getMeta().getFieldIndex("ERROR_MESSAGE");
                         
                         record.setVersion(row.getString(versionIdx));
                         record.setDescription(row.getString(descIdx));
@@ -144,6 +168,7 @@ public class MigrationHistoryManager {
                         record.setExecutionTime(row.getLong(execTimeIdx));
                         record.setSuccess(row.getBoolean(successIdx));
                         record.setInstalledBy(row.getString(installedByIdx));
+                        record.setErrorMessage(row.getString(errorMessageIdx));
                         result[0] = record;
                         break;
                     }
@@ -158,29 +183,7 @@ public class MigrationHistoryManager {
     }
     
     protected boolean tableExists() {
-        try {
-            String checkSql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = ?";
-            
-            final boolean[] exists = {false};
-            jdbcTemplate.executeQuery(
-                SQL.begin()
-                    .querySpace(querySpace)
-                    .name("check-table-exists")
-                    .sql(checkSql, TABLE_NAME.toUpperCase())
-                    .end(),
-                dataSet -> {
-                    for (IDataRow row : dataSet) {
-                        long count = row.getLong(0);
-                        exists[0] = count > 0;
-                        break;
-                    }
-                    return null;
-                }
-            );
-            return exists[0];
-        } catch (Exception e) {
-            return false;
-        }
+        return jdbcTemplate.existsTable(querySpace, TABLE_NAME);
     }
     
     protected String buildCreateHistoryTableSQL(IDialect dialect) {
@@ -192,7 +195,8 @@ public class MigrationHistoryManager {
             "installed_on TIMESTAMP, " +
             "execution_time BIGINT, " +
             "success BOOLEAN, " +
-            "installed_by VARCHAR(100)" +
+                "installed_by VARCHAR(100), " +
+                "error_message CLOB" +
             ")";
     }
     

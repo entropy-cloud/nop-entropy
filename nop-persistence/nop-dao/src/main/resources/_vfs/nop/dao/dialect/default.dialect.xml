@@ -36,6 +36,46 @@
         <forUpdate>for update</forUpdate>
 
         <validationQuery>select 1</validationQuery>
+
+                <tableExists>
+                        select 1 from information_schema.tables
+                        where table_name = {tableName}
+                            and ({schemaName} is null or table_schema = {schemaName})
+                </tableExists>
+
+                <columnExists>
+                        select 1 from information_schema.columns
+                        where table_name = {tableName}
+                            and column_name = {columnName}
+                            and ({schemaName} is null or table_schema = {schemaName})
+                </columnExists>
+
+                <indexExists>
+                        select 1 from information_schema.statistics
+                        where table_name = {tableName}
+                            and index_name = {indexName}
+                            and ({schemaName} is null or table_schema = {schemaName})
+                </indexExists>
+
+                <foreignKeyExists>
+                        select 1 from information_schema.table_constraints
+                        where constraint_type = 'FOREIGN KEY'
+                            and constraint_name = {constraintName}
+                            and ({tableName} is null or table_name = {tableName})
+                            and ({schemaName} is null or table_schema = {schemaName})
+                </foreignKeyExists>
+
+                <sequenceExists>
+                        select 1 from information_schema.sequences
+                        where sequence_name = {sequenceName}
+                            and ({schemaName} is null or sequence_schema = {schemaName})
+                </sequenceExists>
+
+                <viewExists>
+                        select 1 from information_schema.views
+                        where table_name = {viewName}
+                            and ({schemaName} is null or table_schema = {schemaName})
+                </viewExists>
     </sqls>
 
     <!--

@@ -31,6 +31,29 @@ This file is the **project-local** quick reference for AI assistants contributin
 
 - **AOP usage**: Do not assume Spring AOP patterns (`@Aspect`, `@Around`) work in Nop. Verify actual implementations exist in codebase before documenting or using them. Nop uses source-code generated AOP, not runtime bytecode manipulation.
 
+## Java setup (Windows)
+
+If `./mvnw` reports `JAVA_HOME not found`, auto-discover a local JDK from `javac` and set `JAVA_HOME`:
+
+```powershell
+$javac = (Get-Command javac -ErrorAction SilentlyContinue).Source
+if (-not $javac) { throw "No javac found in PATH. Install JDK 21 first." }
+$jdk = Split-Path (Split-Path $javac -Parent) -Parent
+$env:JAVA_HOME = $jdk
+if (-not ($env:Path -split ';' | Where-Object { $_ -eq "$jdk\bin" })) {
+	$env:Path = "$jdk\bin;$env:Path"
+}
+setx JAVA_HOME "$jdk"
+```
+
+Verify:
+
+```powershell
+java -version
+javac -version
+./mvnw -v
+```
+
 ## Build & test
 
 This repository is Maven-based (see `pom.xml`). We use **Maven Wrapper (`./mvnw`)** to ensure consistent builds across environments.

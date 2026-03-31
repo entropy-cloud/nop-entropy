@@ -88,6 +88,13 @@
 
         <dropSequence>drop sequence {sequenceName}</dropSequence>
 
+        <indexExists>
+            select 1 from information_schema.indexes
+            where table_name = {tableName}
+              and index_name = {indexName}
+              and ({schemaName} is null or table_schema = {schemaName})
+        </indexExists>
+
     </sqls>
 
     <!--

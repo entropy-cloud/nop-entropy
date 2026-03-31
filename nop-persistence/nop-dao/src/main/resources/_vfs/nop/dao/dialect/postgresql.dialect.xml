@@ -101,6 +101,21 @@
         <sequenceNextVal>select nextval('{sequenceName}')</sequenceNextVal>
 
         <dropSequence>drop sequence {sequenceName}</dropSequence>
+
+                <indexExists>
+                        select 1 from pg_indexes
+                        where tablename = {tableName}
+                            and indexname = {indexName}
+                            and ({schemaName} is null or schemaname = {schemaName})
+                </indexExists>
+
+                <foreignKeyExists>
+                        select 1 from information_schema.table_constraints
+                        where constraint_type = 'FOREIGN KEY'
+                            and constraint_name = {constraintName}
+                            and ({tableName} is null or table_name = {tableName})
+                            and ({schemaName} is null or table_schema = {schemaName})
+                </foreignKeyExists>
     </sqls>
 
     <sqlDataTypes>

@@ -18,6 +18,13 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: columnExists
+     * 
+     */
+    private java.lang.String _columnExists ;
+    
+    /**
+     *  
      * xml name: createSequence
      * 
      */
@@ -86,6 +93,20 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: foreignKeyExists
+     * 
+     */
+    private java.lang.String _foreignKeyExists ;
+    
+    /**
+     *  
+     * xml name: indexExists
+     * 
+     */
+    private java.lang.String _indexExists ;
+    
+    /**
+     *  
      * xml name: insertKeyword
      * 
      */
@@ -108,10 +129,25 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: sequenceExists
+     * 
+     */
+    private java.lang.String _sequenceExists ;
+    
+    /**
+     *  
      * xml name: sequenceNextVal
      * 通过 {sequenceName}来表示参数
      */
     private java.lang.String _sequenceNextVal ;
+    
+    /**
+     *  
+     * xml name: tableExists
+     * 对象存在性检查模板，参数通常为字符串字面量：
+     * schemaName, tableName, columnName, indexName, constraintName, sequenceName, viewName
+     */
+    private java.lang.String _tableExists ;
     
     /**
      *  
@@ -151,6 +187,32 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
      * 
      */
     private java.lang.String _validationQuery ;
+    
+    /**
+     *  
+     * xml name: viewExists
+     * 
+     */
+    private java.lang.String _viewExists ;
+    
+    /**
+     * 
+     * xml name: columnExists
+     *  
+     */
+    
+    public java.lang.String getColumnExists(){
+      return _columnExists;
+    }
+
+    
+    public void setColumnExists(java.lang.String value){
+        checkAllowChange();
+        
+        this._columnExists = value;
+           
+    }
+
     
     /**
      * 
@@ -330,6 +392,44 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: foreignKeyExists
+     *  
+     */
+    
+    public java.lang.String getForeignKeyExists(){
+      return _foreignKeyExists;
+    }
+
+    
+    public void setForeignKeyExists(java.lang.String value){
+        checkAllowChange();
+        
+        this._foreignKeyExists = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: indexExists
+     *  
+     */
+    
+    public java.lang.String getIndexExists(){
+      return _indexExists;
+    }
+
+    
+    public void setIndexExists(java.lang.String value){
+        checkAllowChange();
+        
+        this._indexExists = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: insertKeyword
      *  
      */
@@ -388,6 +488,25 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: sequenceExists
+     *  
+     */
+    
+    public java.lang.String getSequenceExists(){
+      return _sequenceExists;
+    }
+
+    
+    public void setSequenceExists(java.lang.String value){
+        checkAllowChange();
+        
+        this._sequenceExists = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: sequenceNextVal
      *  通过 {sequenceName}来表示参数
      */
@@ -401,6 +520,26 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
         checkAllowChange();
         
         this._sequenceNextVal = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: tableExists
+     *  对象存在性检查模板，参数通常为字符串字面量：
+     * schemaName, tableName, columnName, indexName, constraintName, sequenceName, viewName
+     */
+    
+    public java.lang.String getTableExists(){
+      return _tableExists;
+    }
+
+    
+    public void setTableExists(java.lang.String value){
+        checkAllowChange();
+        
+        this._tableExists = value;
            
     }
 
@@ -504,6 +643,25 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     }
 
     
+    /**
+     * 
+     * xml name: viewExists
+     *  
+     */
+    
+    public java.lang.String getViewExists(){
+      return _viewExists;
+    }
+
+    
+    public void setViewExists(java.lang.String value){
+        checkAllowChange();
+        
+        this._viewExists = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -519,6 +677,7 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("columnExists",this.getColumnExists());
         out.putNotNull("createSequence",this.getCreateSequence());
         out.putNotNull("dateLiteral",this.getDateLiteral());
         out.putNotNull("dateTimeLiteral",this.getDateTimeLiteral());
@@ -528,15 +687,20 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
         out.putNotNull("exceptKeyword",this.getExceptKeyword());
         out.putNotNull("falseString",this.getFalseString());
         out.putNotNull("forUpdate",this.getForUpdate());
+        out.putNotNull("foreignKeyExists",this.getForeignKeyExists());
+        out.putNotNull("indexExists",this.getIndexExists());
         out.putNotNull("insertKeyword",this.getInsertKeyword());
         out.putNotNull("lockHint",this.getLockHint());
         out.putNotNull("selectFromDual",this.getSelectFromDual());
+        out.putNotNull("sequenceExists",this.getSequenceExists());
         out.putNotNull("sequenceNextVal",this.getSequenceNextVal());
+        out.putNotNull("tableExists",this.getTableExists());
         out.putNotNull("timeLiteral",this.getTimeLiteral());
         out.putNotNull("timestampLiteral",this.getTimestampLiteral());
         out.putNotNull("trueString",this.getTrueString());
         out.putNotNull("updateKeyword",this.getUpdateKeyword());
         out.putNotNull("validationQuery",this.getValidationQuery());
+        out.putNotNull("viewExists",this.getViewExists());
     }
 
     public DialectSqls cloneInstance(){
@@ -548,6 +712,7 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     protected void copyTo(DialectSqls instance){
         super.copyTo(instance);
         
+        instance.setColumnExists(this.getColumnExists());
         instance.setCreateSequence(this.getCreateSequence());
         instance.setDateLiteral(this.getDateLiteral());
         instance.setDateTimeLiteral(this.getDateTimeLiteral());
@@ -557,15 +722,20 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
         instance.setExceptKeyword(this.getExceptKeyword());
         instance.setFalseString(this.getFalseString());
         instance.setForUpdate(this.getForUpdate());
+        instance.setForeignKeyExists(this.getForeignKeyExists());
+        instance.setIndexExists(this.getIndexExists());
         instance.setInsertKeyword(this.getInsertKeyword());
         instance.setLockHint(this.getLockHint());
         instance.setSelectFromDual(this.getSelectFromDual());
+        instance.setSequenceExists(this.getSequenceExists());
         instance.setSequenceNextVal(this.getSequenceNextVal());
+        instance.setTableExists(this.getTableExists());
         instance.setTimeLiteral(this.getTimeLiteral());
         instance.setTimestampLiteral(this.getTimestampLiteral());
         instance.setTrueString(this.getTrueString());
         instance.setUpdateKeyword(this.getUpdateKeyword());
         instance.setValidationQuery(this.getValidationQuery());
+        instance.setViewExists(this.getViewExists());
     }
 
     protected DialectSqls newInstance(){

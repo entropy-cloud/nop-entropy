@@ -16,7 +16,9 @@ import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.cache.CacheRef;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.ICacheProvider;
+import io.nop.commons.text.CharacterCase;
 import io.nop.commons.util.IoHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.AbstractSqlExecutor;
@@ -49,14 +51,19 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
@@ -415,6 +422,24 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
 
     @Override
     public boolean existsTable(String querySpace, String tableName) {
+        return existsTable(querySpace, null, tableName);
+    }
+
+    @Override
+    public boolean existsTable(String querySpace, String schemaName, String tableName) {
+        String template = getExistsTemplate(querySpace, ExistsKind.TABLE);
+        if (!StringHelper.isEmpty(template)) {
+            Boolean ret = tryExistsByTemplate(querySpace, template, schemaName, tableName, null, null);
+            if (ret != null) {
+                return ret;
+            }
+        }
+
+        if (!StringHelper.isEmpty(schemaName)) {
+            return runWithConnection("jdbc.existsTable", null, null,
+                    conn -> existsObjectByMeta(conn, querySpace, schemaName, tableName, "TABLE"));
+        }
+
         IDialect dialect = getDialectForQuerySpace(querySpace);
         SQL sql = SQL.begin().querySpace(querySpace).sql("select 1 from ")
                 .sql(dialect.escapeSQLName(tableName)).where().sql("1=0").end();
@@ -426,6 +451,316 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
                 return false;
             throw NopException.adapt(e);
         }
+    }
+
+    @Override
+    public boolean existsColumn(String querySpace, String schemaName, String tableName, String columnName) {
+        String template = getExistsTemplate(querySpace, ExistsKind.COLUMN);
+        if (!StringHelper.isEmpty(template)) {
+            Boolean ret = tryExistsByTemplate(querySpace, template, schemaName, tableName, columnName, null);
+            if (ret != null) {
+                return ret;
+            }
+        }
+
+        return runWithConnection("jdbc.existsColumn", null, null,
+                conn -> existsColumnByMeta(conn, querySpace, schemaName, tableName, columnName));
+    }
+
+    @Override
+    public boolean existsIndex(String querySpace, String schemaName, String tableName, String indexName) {
+        String template = getExistsTemplate(querySpace, ExistsKind.INDEX);
+        if (!StringHelper.isEmpty(template)) {
+            Boolean ret = tryExistsByTemplate(querySpace, template, schemaName, tableName, null, indexName);
+            if (ret != null) {
+                return ret;
+            }
+        }
+
+        return runWithConnection("jdbc.existsIndex", null, null,
+                conn -> existsIndexByMeta(conn, querySpace, schemaName, tableName, indexName));
+    }
+
+    @Override
+    public boolean existsForeignKey(String querySpace, String schemaName, String tableName, String foreignKeyName) {
+        String template = getExistsTemplate(querySpace, ExistsKind.FOREIGN_KEY);
+        if (!StringHelper.isEmpty(template)) {
+            Boolean ret = tryExistsByTemplate(querySpace, template, schemaName, tableName, null, foreignKeyName);
+            if (ret != null) {
+                return ret;
+            }
+        }
+
+        return runWithConnection("jdbc.existsForeignKey", null, null,
+                conn -> existsForeignKeyByMeta(conn, querySpace, schemaName, tableName, foreignKeyName));
+    }
+
+    @Override
+    public boolean existsSequence(String querySpace, String schemaName, String sequenceName) {
+        String template = getExistsTemplate(querySpace, ExistsKind.SEQUENCE);
+        if (!StringHelper.isEmpty(template)) {
+            Boolean ret = tryExistsByTemplate(querySpace, template, schemaName, null, null, sequenceName);
+            if (ret != null) {
+                return ret;
+            }
+        }
+
+        return runWithConnection("jdbc.existsSequence", null, null,
+                conn -> existsObjectByMeta(conn, querySpace, schemaName, sequenceName, "SEQUENCE"));
+    }
+
+    @Override
+    public boolean existsView(String querySpace, String schemaName, String viewName) {
+        String template = getExistsTemplate(querySpace, ExistsKind.VIEW);
+        if (!StringHelper.isEmpty(template)) {
+            Boolean ret = tryExistsByTemplate(querySpace, template, schemaName, null, null, viewName);
+            if (ret != null) {
+                return ret;
+            }
+        }
+
+        return runWithConnection("jdbc.existsView", null, null,
+                conn -> existsObjectByMeta(conn, querySpace, schemaName, viewName, "VIEW"));
+    }
+
+    private enum ExistsKind {
+        TABLE,
+        COLUMN,
+        INDEX,
+        FOREIGN_KEY,
+        SEQUENCE,
+        VIEW
+    }
+
+    private String getExistsTemplate(String querySpace, ExistsKind kind) {
+        IDialect dialect = getDialectForQuerySpace(querySpace);
+        if (dialect.getDialectModel() == null || dialect.getDialectModel().getSqls() == null)
+            return null;
+
+        switch (kind) {
+            case TABLE:
+                return dialect.getDialectModel().getSqls().getTableExists();
+            case COLUMN:
+                return dialect.getDialectModel().getSqls().getColumnExists();
+            case INDEX:
+                return dialect.getDialectModel().getSqls().getIndexExists();
+            case FOREIGN_KEY:
+                return dialect.getDialectModel().getSqls().getForeignKeyExists();
+            case SEQUENCE:
+                return dialect.getDialectModel().getSqls().getSequenceExists();
+            case VIEW:
+                return dialect.getDialectModel().getSqls().getViewExists();
+            default:
+                return null;
+        }
+    }
+
+    private Boolean tryExistsByTemplate(String querySpace, String template,
+                                        String schemaName, String tableName,
+                                        String columnName, String objectName) {
+        IDialect dialect = getDialectForQuerySpace(querySpace);
+        try {
+            String sqlText = StringHelper.renderTemplate(template, name -> {
+                if (name.equals("schemaName"))
+                    return sqlStringLiteral(dialect, normalizeTableName(dialect, schemaName));
+                if (name.equals("tableName"))
+                    return sqlStringLiteral(dialect, normalizeTableName(dialect, tableName));
+                if (name.equals("columnName"))
+                    return sqlStringLiteral(dialect, normalizeColumnName(dialect, columnName));
+                if (name.equals("indexName"))
+                    return sqlStringLiteral(dialect, normalizeTableName(dialect, objectName));
+                if (name.equals("constraintName"))
+                    return sqlStringLiteral(dialect, normalizeTableName(dialect, objectName));
+                if (name.equals("foreignKeyName"))
+                    return sqlStringLiteral(dialect, normalizeTableName(dialect, objectName));
+                if (name.equals("sequenceName"))
+                    return sqlStringLiteral(dialect, normalizeTableName(dialect, objectName));
+                if (name.equals("viewName"))
+                    return sqlStringLiteral(dialect, normalizeTableName(dialect, objectName));
+                throw new IllegalArgumentException("unsupported exists template param:" + name);
+            });
+
+            SQL sql = SQL.begin().querySpace(querySpace).sql(sqlText).end();
+            return exists(sql);
+        } catch (RuntimeException e) {
+            LOG.info("nop.jdbc.exists-template-fallback:querySpace={},error={}", querySpace, e.getMessage());
+            LOG.debug("nop.jdbc.exists-template-fallback-detail", e);
+            return null;
+        }
+    }
+
+    private String sqlStringLiteral(IDialect dialect, String name) {
+        if (name == null)
+            return "null";
+        return dialect.getStringLiteral(name);
+    }
+
+    private String normalizeTableName(IDialect dialect, String name) {
+        return normalizeName(dialect.getTableNameCase(), name);
+    }
+
+    private String normalizeColumnName(IDialect dialect, String name) {
+        return normalizeName(dialect.getColumnNameCase(), name);
+    }
+
+    private String normalizeName(CharacterCase charCase, String name) {
+        if (StringHelper.isEmpty(name))
+            return null;
+        if (name.charAt(0) == '"')
+            return StringHelper.unquoteDupEscapeString(name);
+        if (charCase == null)
+            return name;
+        return charCase.normalize(name);
+    }
+
+    private boolean existsColumnByMeta(Connection conn, String querySpace, String schemaName,
+                                       String tableName, String columnName) {
+        if (StringHelper.isEmpty(tableName) || StringHelper.isEmpty(columnName))
+            return false;
+
+        IDialect dialect = getDialectForQuerySpace(querySpace);
+        String normalizedSchema = normalizeTableName(dialect, schemaName);
+        String normalizedTable = normalizeTableName(dialect, tableName);
+        String normalizedColumn = normalizeColumnName(dialect, columnName);
+
+        try {
+            DatabaseMetaData meta = conn.getMetaData();
+            for (String candidateTable : toCandidateNames(normalizedTable)) {
+                for (String candidateColumn : toCandidateNames(normalizedColumn)) {
+                    if (matchColumns(meta, conn.getCatalog(), normalizedSchema, candidateTable, candidateColumn))
+                        return true;
+                }
+            }
+            return false;
+        } catch (SQLException e) {
+            throw getDialectForQuerySpace(querySpace).getSQLExceptionTranslator()
+                    .translate(SQL.begin().querySpace(querySpace).sql("/*meta:getColumns*/select 1").end(), e);
+        }
+    }
+
+    private boolean existsIndexByMeta(Connection conn, String querySpace, String schemaName,
+                                      String tableName, String indexName) {
+        if (StringHelper.isEmpty(tableName) || StringHelper.isEmpty(indexName))
+            return false;
+
+        IDialect dialect = getDialectForQuerySpace(querySpace);
+        String normalizedSchema = normalizeTableName(dialect, schemaName);
+        String normalizedTable = normalizeTableName(dialect, tableName);
+        String normalizedIndex = normalizeTableName(dialect, indexName);
+
+        try {
+            DatabaseMetaData meta = conn.getMetaData();
+            for (String candidateTable : toCandidateNames(normalizedTable)) {
+                try (ResultSet rs = meta.getIndexInfo(conn.getCatalog(), normalizedSchema, candidateTable, false, true)) {
+                    while (rs.next()) {
+                        String found = rs.getString("INDEX_NAME");
+                        if (sameIdentifier(found, normalizedIndex))
+                            return true;
+                    }
+                }
+            }
+            return false;
+        } catch (SQLException e) {
+            throw getDialectForQuerySpace(querySpace).getSQLExceptionTranslator()
+                    .translate(SQL.begin().querySpace(querySpace).sql("/*meta:getIndexInfo*/select 1").end(), e);
+        }
+    }
+
+    private boolean existsForeignKeyByMeta(Connection conn, String querySpace, String schemaName,
+                                           String tableName, String foreignKeyName) {
+        if (StringHelper.isEmpty(foreignKeyName))
+            return false;
+
+        IDialect dialect = getDialectForQuerySpace(querySpace);
+        String normalizedSchema = normalizeTableName(dialect, schemaName);
+        String normalizedTable = normalizeTableName(dialect, tableName);
+        String normalizedForeignKey = normalizeTableName(dialect, foreignKeyName);
+
+        try {
+            DatabaseMetaData meta = conn.getMetaData();
+            if (!StringHelper.isEmpty(normalizedTable)) {
+                for (String candidateTable : toCandidateNames(normalizedTable)) {
+                    if (matchImportedKeys(meta, conn.getCatalog(), normalizedSchema, candidateTable, normalizedForeignKey))
+                        return true;
+                }
+                return false;
+            }
+
+            String[] tableTypes = new String[]{"TABLE"};
+            try (ResultSet tables = meta.getTables(conn.getCatalog(), normalizedSchema, null, tableTypes)) {
+                while (tables.next()) {
+                    String foundTable = tables.getString("TABLE_NAME");
+                    if (matchImportedKeys(meta, conn.getCatalog(), normalizedSchema, foundTable, normalizedForeignKey))
+                        return true;
+                }
+            }
+            return false;
+        } catch (SQLException e) {
+            throw getDialectForQuerySpace(querySpace).getSQLExceptionTranslator()
+                    .translate(SQL.begin().querySpace(querySpace).sql("/*meta:getImportedKeys*/select 1").end(), e);
+        }
+    }
+
+    private boolean existsObjectByMeta(Connection conn, String querySpace, String schemaName,
+                                       String objectName, String type) {
+        if (StringHelper.isEmpty(objectName))
+            return false;
+
+        IDialect dialect = getDialectForQuerySpace(querySpace);
+        String normalizedSchema = normalizeTableName(dialect, schemaName);
+        String normalizedName = normalizeTableName(dialect, objectName);
+
+        try {
+            DatabaseMetaData meta = conn.getMetaData();
+            for (String candidateName : toCandidateNames(normalizedName)) {
+                if (matchTables(meta, conn.getCatalog(), normalizedSchema, candidateName, type))
+                    return true;
+            }
+            return false;
+        } catch (SQLException e) {
+            throw getDialectForQuerySpace(querySpace).getSQLExceptionTranslator()
+                    .translate(SQL.begin().querySpace(querySpace).sql("/*meta:getTables*/select 1").end(), e);
+        }
+    }
+
+    private boolean matchColumns(DatabaseMetaData meta, String catalog, String schema,
+                                 String tableName, String columnName) throws SQLException {
+        try (ResultSet rs = meta.getColumns(catalog, schema, tableName, columnName)) {
+            return rs.next();
+        }
+    }
+
+    private boolean matchImportedKeys(DatabaseMetaData meta, String catalog, String schema,
+                                      String tableName, String foreignKeyName) throws SQLException {
+        try (ResultSet rs = meta.getImportedKeys(catalog, schema, tableName)) {
+            while (rs.next()) {
+                String found = rs.getString("FK_NAME");
+                if (sameIdentifier(found, foreignKeyName))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean matchTables(DatabaseMetaData meta, String catalog, String schema,
+                                String objectName, String type) throws SQLException {
+        try (ResultSet rs = meta.getTables(catalog, schema, objectName, new String[]{type})) {
+            return rs.next();
+        }
+    }
+
+    private boolean sameIdentifier(String left, String right) {
+        if (left == null || right == null)
+            return false;
+        return left.equals(right) || left.equalsIgnoreCase(right);
+    }
+
+    private List<String> toCandidateNames(String name) {
+        Set<String> ret = new LinkedHashSet<>();
+        ret.add(name);
+        ret.add(name.toUpperCase());
+        ret.add(name.toLowerCase());
+        return new ArrayList<>(ret);
     }
 
     @Override

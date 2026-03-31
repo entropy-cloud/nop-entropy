@@ -117,6 +117,33 @@
         <dateTimeLiteral>cast('{value:yyyy-MM-dd HH:mm:ss}' as datetime)</dateTimeLiteral>
         <timestampLiteral>cast('{value:yyyy-MM-dd HH:mm:ss.nnnnnnnnn}' as timestamp)</timestampLiteral>
 
+        <indexExists>
+            select 1
+            from sys.indexes i
+                join sys.tables t on i.object_id = t.object_id
+                join sys.schemas s on t.schema_id = s.schema_id
+            where t.name = {tableName}
+              and i.name = {indexName}
+              and ({schemaName} is null or s.name = {schemaName})
+        </indexExists>
+
+        <foreignKeyExists>
+            select 1
+            from sys.foreign_keys fk
+                join sys.tables t on fk.parent_object_id = t.object_id
+                join sys.schemas s on t.schema_id = s.schema_id
+            where fk.name = {constraintName}
+              and ({tableName} is null or t.name = {tableName})
+              and ({schemaName} is null or s.name = {schemaName})
+        </foreignKeyExists>
+
+        <sequenceExists>
+            select 1 from sys.sequences seq
+                join sys.schemas s on seq.schema_id = s.schema_id
+            where seq.name = {sequenceName}
+              and ({schemaName} is null or s.name = {schemaName})
+        </sequenceExists>
+
     </sqls>
 
     <functions>

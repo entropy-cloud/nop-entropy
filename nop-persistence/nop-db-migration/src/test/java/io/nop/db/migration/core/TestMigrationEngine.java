@@ -9,6 +9,7 @@ package io.nop.db.migration.core;
 
 import io.nop.commons.type.StdSqlType;
 import io.nop.db.migration.AbstractMigrationTestCase;
+import io.nop.db.migration.PreconditionExpect;
 import io.nop.db.migration.model.AddColumnChange;
 import io.nop.db.migration.model.ColumnDefinition;
 import io.nop.db.migration.model.CreateTableChange;
@@ -16,6 +17,7 @@ import io.nop.db.migration.model.DbChangeModel;
 import io.nop.db.migration.model.DbMigrationModel;
 import io.nop.db.migration.model.InsertColumnModel;
 import io.nop.db.migration.model.InsertDataChange;
+import io.nop.db.migration.model.TableExistsPrecondition;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -121,6 +123,124 @@ class TestMigrationEngine extends AbstractMigrationTestCase {
         assertNotNull(result);
         assertEquals(1, result.getRecords().size());
         assertFalse(result.getRecords().get(0).isSuccess());
+    }
+
+    @Test
+    void testMigrate_RetryFailedMigrationSameVersion() {
+        MigrationContext failedContext = createMigrationContext(
+            Collections.singletonList(createInvalidMigration("1.0.0", "Invalid migration"))
+        );
+        failedContext.setFailFast(false);
+
+        MigrationResult failedResult = migrationEngine.migrate(failedContext);
+        assertEquals(1, failedResult.getRecords().size());
+        assertFalse(failedResult.getRecords().get(0).isSuccess());
+
+        MigrationContext retryContext = createMigrationContext(
+            Collections.singletonList(createCreateTableMigration("1.0.0", "Create users table"))
+        );
+
+        MigrationResult retryResult = migrationEngine.migrate(retryContext);
+        assertEquals(1, retryResult.getRecords().size(), "Retry with same version should execute once");
+        assertTrue(retryResult.getRecords().get(0).isSuccess(), "Retry should succeed after fixing migration");
+        assertTrue(tableExists("users"), "Users table should be created by retry migration");
+
+        MigrationHistoryManager historyManager = new MigrationHistoryManager(jdbcTemplate, "default");
+        MigrationRecord record = historyManager.getMigrationByVersion("1.0.0");
+        assertNotNull(record);
+        assertTrue(record.isSuccess(), "History record should be updated to success after retry");
+        assertNull(record.getErrorMessage(), "Successful retry should clear previous error message");
+    }
+
+    @Test
+    void testMigrate_ChecksumMismatchForVersionedMigration() {
+        MigrationContext firstContext = createMigrationContext(
+            Collections.singletonList(createCreateTableMigration("1.0.0", "Create users table"))
+        );
+        migrationEngine.migrate(firstContext);
+
+        MigrationContext changedContext = createMigrationContext(
+            Collections.singletonList(createCreateTableMigration("1.0.0", "Create users table changed"))
+        );
+        changedContext.setValidateChecksum(true);
+
+        assertThrows(Exception.class,
+            () -> migrationEngine.migrate(changedContext),
+            "Checksum mismatch should be detected for executed versioned migration");
+    }
+
+    @Test
+    void testMigrate_PreconditionFailedSkipsChanges() {
+        TableExistsPrecondition precondition = new TableExistsPrecondition();
+        precondition.setId("pc-users-must-exist");
+        precondition.setTableName("app_users_precond");
+        precondition.setExpect(PreconditionExpect.EXISTS);
+
+        List preconditions = new ArrayList();
+        preconditions.add(precondition);
+
+        String testTableName = "app_users_precond";
+        DbMigrationModel migration = createCreateTableMigration("1.0.0", "Create users table");
+        CreateTableChange createTableChange = (CreateTableChange) migration.getChangeset().get(0);
+        createTableChange.setName(testTableName);
+        migration.setPreconditions(preconditions);
+
+        MigrationContext context = createMigrationContext(Collections.singletonList(migration));
+        context.setFailFast(false);
+
+        MigrationResult result = migrationEngine.migrate(context);
+        assertEquals(1, result.getRecords().size());
+        assertFalse(result.getRecords().get(0).isSuccess(), "Migration should fail when precondition is not met");
+        assertFalse(tableExists(testTableName), "Changeset should not execute after precondition failure");
+    }
+
+    @Test
+    void testMigrate_ContextFilterSkipsMigration() {
+        DbMigrationModel migration = createCreateTableMigration("1.0.0", "Create users table");
+        String testTableName = "app_users_ctx";
+        CreateTableChange createTableChange = (CreateTableChange) migration.getChangeset().get(0);
+        createTableChange.setName(testTableName);
+        migration.setContexts("prod");
+
+        MigrationContext context = createMigrationContext(Collections.singletonList(migration));
+        context.setContext("dev");
+
+        MigrationResult result = migrationEngine.migrate(context);
+        assertTrue(result.getRecords().isEmpty(), "Migration should be skipped when context does not match");
+        assertFalse(tableExists(testTableName), "Skipped migration should not execute changes");
+    }
+
+    @Test
+    void testMigrate_LabelsFilterSkipsMigration() {
+        DbMigrationModel migration = createCreateTableMigration("1.0.0", "Create users table");
+        String testTableName = "app_users_labels";
+        CreateTableChange createTableChange = (CreateTableChange) migration.getChangeset().get(0);
+        createTableChange.setName(testTableName);
+        migration.setLabels("billing,core");
+
+        MigrationContext context = createMigrationContext(Collections.singletonList(migration));
+        context.setLabels(Collections.singletonList("reporting"));
+
+        MigrationResult result = migrationEngine.migrate(context);
+        assertTrue(result.getRecords().isEmpty(), "Migration should be skipped when labels do not match");
+        assertFalse(tableExists(testTableName), "Skipped migration should not execute changes");
+    }
+
+    @Test
+    void testMigrate_FailOnErrorFalseContinuesWhenFailFast() {
+        DbMigrationModel migration1 = createInvalidMigration("1.0.0", "Invalid migration");
+        migration1.setFailOnError(false);
+
+        DbMigrationModel migration2 = createCreateTableMigration("1.1.0", "Create users table");
+
+        MigrationContext context = createMigrationContext(Arrays.asList(migration1, migration2));
+        context.setFailFast(true);
+
+        MigrationResult result = migrationEngine.migrate(context);
+        assertEquals(2, result.getRecords().size(), "Engine should continue to next migration");
+        assertFalse(result.getRecords().get(0).isSuccess(), "First migration should fail");
+        assertTrue(result.getRecords().get(1).isSuccess(), "Second migration should still run and succeed");
+        assertTrue(tableExists("users"), "Second migration should have executed");
     }
 
     @Test

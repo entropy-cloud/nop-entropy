@@ -27,11 +27,18 @@ nop.err.[模块].[子模块/功能].[具体错误]
 
 
 ### 2. 错误描述模板
-- 使用`[{参数名}]`作为占位符
+- 推荐使用`{参数名}`作为占位符（与 `NopException.param("参数名", 值)` 一致）
+- 为兼容历史文案可见 `[{参数名}]` 写法，但新代码应统一为 `{参数名}`
 - 简明扼要，清晰表达错误原因
+- 描述文本优先中文（如需国际化再通过 i18n 覆盖）
+
+### 2.1 占位参数声明规则
+- 在 `ErrorCode.define(...)` 的最后按顺序声明可变参数名常量（`ARG_XXX`）
+- 描述中的占位符名称必须与传入的参数名一致
+- 推荐把可变信息放在句尾，便于日志扫描与翻译
 
 **示例**：
-- `"无效字段:[{fieldName}]，允许:[{allowedFields}]""`
+- `"无效字段:{fieldName}，允许:{allowedFields}"`
 
 ### 3. 常量命名
 - 参数名：`ARG_[参数名]`，如`ARG_SHEET_NAME`
@@ -109,70 +116,23 @@ nop.err.excel.import.unknown-sheet: "未定义表格:[{sheetName}]"
 
 ## Processor 中的错误码定义
 
-Processor 中定义错误码与普通 Errors 接口类略有不同，因为 Processor 不需要接口类。
+统一要求：**Processor 中不允许直接定义 ErrorCode 常量**，必须放到专用的 Errors 类/接口中（模块级或子域级）。
 
-### 方式一：直接在 Processor 类内定义（推荐）
+推荐做法：
+- 可复用错误码：放在模块级 `XxxErrors` 接口
+- Processor 专有错误码：放在同包下专用 `XxxProcessorErrors` 接口
 
-```java
-public class LitemallOrderSubmitProcessor {
-
-    // ===== 错误码定义（private static final）=====
-    private static final ErrorCode ERR_ADDRESS_REQUIRED =
-            ErrorCode.define("nop.err.mall.order.address-required", "请选择收货地址");
-
-    private static final ErrorCode ERR_ADDRESS_NOT_OWNER =
-            ErrorCode.define("nop.err.mall.order.address-not-owner", "收货地址不属于当前用户");
-
-    private static final ErrorCode ERR_CART_EMPTY =
-            ErrorCode.define("nop.err.mall.order.cart-empty", "购物车中没有商品");
-
-    private static final ErrorCode ERR_STOCK_INSUFFICIENT =
-            ErrorCode.define("nop.err.mall.order.stock-insufficient", "商品[{goodsName}]库存不足，可用库存:[{available}]");
-
-    // ===== 使用 =====
-    protected LitemallAddress validateAddress(String addressId, String userId, IServiceContext context) {
-        if (StringHelper.isEmpty(addressId)) {
-            throw new NopException(ERR_ADDRESS_REQUIRED);
-        }
-        LitemallAddress address = addressBiz.requireEntity(addressId, "read", context);
-        if (!userId.equals(address.getUserId())) {
-            throw new NopException(ERR_ADDRESS_NOT_OWNER).param("addressId", addressId);
-        }
-        return address;
-    }
-
-    protected void validateStock(List<LitemallCart> carts, IServiceContext context) {
-        for (LitemallCart cart : carts) {
-            LitemallGoodsProduct product = productBiz.get(cart.getProductId(), true, context);
-            if (product == null) {
-                throw new NopException(ERR_PRODUCT_NOT_FOUND)
-                        .param("productId", cart.getProductId());
-            }
-            int stock = product.getNumber() != null ? product.getNumber() : 0;
-            int quantity = cart.getNumber() != null ? cart.getNumber() : 0;
-            if (stock < quantity) {
-                throw new NopException(ERR_STOCK_INSUFFICIENT)
-                        .param("goodsName", cart.getGoodsName())
-                        .param("available", stock);
-            }
-        }
-    }
-}
-```
-
-### 方式二：提取到模块级 Errors 接口
-
-如果错误码需要在多个 Processor 间共享，可以定义在模块级 Errors 接口中：
+示例（模块级 Errors 接口）：
 
 ```java
 // app-mall-service/src/main/java/app/mall/service/AppMallErrors.java
 public interface AppMallErrors {
     // 复用的错误码
     ErrorCode ERR_ENTITY_NOT_FOUND =
-            ErrorCode.define("nop.err.mall.entity-not-found", "实体[{entityType}]未找到:[{entityId}]");
+            ErrorCode.define("nop.err.mall.entity-not-found", "实体未找到，类型:{entityType},标识:{entityId}");
     
     ErrorCode ERR_PERMISSION_DENIED =
-            ErrorCode.define("nop.err.mall.permission-denied", "无权限访问[{resource}]");
+            ErrorCode.define("nop.err.mall.permission-denied", "无权限访问资源:{resource}");
 }
 
 // Processor 中使用
@@ -186,12 +146,33 @@ public class LitemallOrderSubmitProcessor {
 }
 ```
 
+示例（Processor 专用 Errors 接口）：
+
+```java
+// app-mall-service/src/main/java/app/mall/service/processor/LitemallOrderSubmitErrors.java
+public interface LitemallOrderSubmitErrors {
+    String ARG_GOODS_NAME = "goodsName";
+    String ARG_AVAILABLE = "available";
+
+    ErrorCode ERR_STOCK_INSUFFICIENT = ErrorCode.define(
+            "nop.err.mall.order.stock-insufficient",
+            "商品库存不足，商品:{goodsName},可用库存:{available}",
+            ARG_GOODS_NAME, ARG_AVAILABLE);
+}
+```
+
 ### ⚠️ 常见错误
 
 ```java
 // ❌ 错误：使用 NopException 而不是 ErrorCode 作为常量类型
 private static final NopException ERR_ADDRESS_REQUIRED =
     new NopException(ErrorCode.define("nop.err.mall.order.address-required", "..."));
+
+// ❌ 错误：在 Processor 中直接定义 ErrorCode 常量
+public class LitemallOrderSubmitProcessor {
+    private static final ErrorCode ERR_ADDRESS_REQUIRED =
+        ErrorCode.define("nop.err.mall.order.address-required", "请选择收货地址");
+}
 
 // ✅ 正确：使用 ErrorCode 作为常量类型
 private static final ErrorCode ERR_ADDRESS_REQUIRED =

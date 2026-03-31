@@ -433,7 +433,7 @@ nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/db-migration/migration.x
 #### 前置条件类型
 
 | 类型 | XDef 名称 | 说明 |
-|------|-----------|------|
+|------|----------|------|
 | 表存在检查 | `TableExistsPrecondition` | 检查表是否存在 |
 | 列存在检查 | `ColumnExistsPrecondition` | 检查列是否存在 |
 | 索引存在检查 | `IndexExistsPrecondition` | 检查索引是否存在 |
@@ -506,8 +506,7 @@ nop-db-migration/
 │   │   │   └── MigrationChecksumCalculator.java
 │   │   ├── exception/            # 异常定义
 │   │   │   └── MigrationException.java
-│   │   └── initialize/           # 平台集成
-│   │       └── DbMigrationInitializer.java   # ICoreInitializer 实现
+│   │   └── initialize/           # 平台集成（当前无 ICoreInitializer 实现）
 │   ├── src/main/resources/
 │   │   ├── _vfs/nop/db-migration/
 │   │   │   ├── _module           # 模块标识
@@ -519,7 +518,7 @@ nop-db-migration/
 │   │   │       └── migration.xlib
 │   │   └── META-INF/services/
 │   │       └── io.nop.core.initialize.ICoreInitializer
-│   └── pom.xml
+│   │   └── pom.xml
 │
 ├── nop-db-migration-dao/         # DAO 层（迁移历史表）
 │   ├── src/main/java/io/nop/db/migration/dao/
@@ -530,7 +529,7 @@ nop-db-migration/
 │   ├── src/main/resources/_vfs/nop/db-migration/
 │   │   └── orm/
 │   │       └── app.orm.xml      # ORM 模型定义
-│   └── pom.xml
+│   │   └── pom.xml
 │
 ├── nop-db-migration-service/     # 服务层（可选）
 │   ├── src/main/java/io/nop/db/migration/service/
@@ -538,17 +537,17 @@ nop-db-migration/
 │   │   │   └── MigrationBizModel.java       # GraphQL 服务
 │   │   └── processor/
 │   │       └── MigrationProcessor.java      # 迁移处理器
-│   └── pom.xml
+│   │   └── pom.xml
 │
 ├── nop-db-migration-cli/         # 命令行工具（可选）
 │   ├── src/main/java/io/nop/db/migration/cli/
 │   │   └── MigrationCli.java                # CLI 入口
-│   └── pom.xml
+│   │   └── pom.xml
 │
 ├── nop-db-migration-app/         # 测试应用（可选）
 │   ├── src/main/java/io/nop/db/migration/app/
 │   │   └── MigrationAppMain.java            # 启动类
-│   └── pom.xml
+│   │   └── pom.xml
 │
 └── model/                         # 模型文件
     └── nop-db-migration.orm.xml  # ORM 模型定义
@@ -996,112 +995,48 @@ CREATE INDEX idx_migration_installed_on ON nop_db_migration_history(installed_on
 ```xml
 <!-- src/main/resources/_vfs/nop/db-migration/beans/default.beans.xml -->
 <beans x:schema="/nop/schema/beans.xdef" 
-       xmlns:x="/nop/schema/xdsl.xdef">
+    xmlns:x="/nop/schema/xdsl.xdef"
+    xmlns:ioc="ioc">
     
     <!-- 迁移引擎 -->
-    <bean id="migrationEngine" class="io.nop.db.migration.core.MigrationEngine">
-        <property name="historyManager" ref="migrationHistoryManager"/>
-        <property name="fileScanner" ref="migrationFileScanner"/>
-        <property name="executor" ref="migrationExecutor"/>
+    <bean id="nopMigrationEngine" class="io.nop.db.migration.core.MigrationEngine">
+        <property name="historyManager" ref="nopMigrationHistoryManager"/>
+        <property name="fileScanner" ref="nopMigrationFileScanner"/>
+        <property name="executor" ref="nopMigrationExecutor"/>
     </bean>
     
     <!-- 历史记录管理器 -->
-    <bean id="migrationHistoryManager" 
+        <bean id="nopMigrationHistoryManager" 
           class="io.nop.db.migration.core.MigrationHistoryManager">
         <property name="ormTemplate" ref="nopOrmTemplate"/>
     </bean>
     
     <!-- 文件扫描器 -->
-    <bean id="migrationFileScanner" 
+    <bean id="nopMigrationFileScanner" 
           class="io.nop.db.migration.core.MigrationFileScanner"/>
     
     <!-- 迁移执行器 -->
-    <bean id="migrationExecutor" 
+    <bean id="nopMigrationExecutor" 
           class="io.nop.db.migration.core.MigrationExecutor">
         <property name="executors">
-            <map>
-                <entry key="createTable" value-ref="createTableExecutor"/>
-                <entry key="dropTable" value-ref="dropTableExecutor"/>
-                <entry key="addColumn" value-ref="addColumnExecutor"/>
-                <entry key="dropColumn" value-ref="dropColumnExecutor"/>
-                <entry key="alterColumn" value-ref="alterColumnExecutor"/>
-                <entry key="createIndex" value-ref="createIndexExecutor"/>
-                <entry key="dropIndex" value-ref="dropIndexExecutor"/>
-                <entry key="createView" value-ref="createViewExecutor"/>
-                <entry key="dropView" value-ref="dropViewExecutor"/>
-                <entry key="sql" value-ref="sqlExecutor"/>
-                <entry key="insert" value-ref="insertDataExecutor"/>
-                <entry key="update" value-ref="updateDataExecutor"/>
-                <entry key="delete" value-ref="deleteDataExecutor"/>
-                <entry key="customChange" value-ref="customChangeExecutor"/>
-            </map>
+            <ioc:collect-beans as-map="true"
+                               name-prefix="nopChangeExecutor_"
+                               by-type="io.nop.db.migration.executor.IChangeExecutor"/>
         </property>
     </bean>
     
     <!-- 变更执行器 -->
-    <bean id="createTableExecutor" 
-          class="io.nop.db.migration.change.CreateTableExecutor"/>
-    <bean id="sqlExecutor" 
-          class="io.nop.db.migration.change.SqlExecutor"/>
+                <bean id="nopChangeExecutor_createTable" 
+                    class="io.nop.db.migration.change.CreateTableExecutor"/>
+                <bean id="nopChangeExecutor_sql" 
+                    class="io.nop.db.migration.change.SqlExecutor"/>
     <!-- 其他执行器... -->
 </beans>
 ```
 
 #### 2.4.2 ICoreInitializer 实现
 
-```java
-/**
- * 数据库迁移模块初始化器
- */
-public class DbMigrationInitializer implements ICoreInitializer {
-    
-    @Override
-    public int initializePriority() {
-        return CoreConstants.INITIALIZER_PRIORITY_ANALYZE + 100;
-    }
-    
-    @Override
-    public void initialize() {
-        // 1. 注册变更执行器
-        registerChangeExecutors();
-        
-        // 2. 注册前置条件检查器
-        registerPreconditionCheckers();
-        
-        // 3. 自动执行迁移（可选）
-        if (isAutoMigrationEnabled()) {
-            executeAutoMigration();
-        }
-    }
-    
-    @Override
-    public void destroy() {
-        // 清理资源
-    }
-    
-    private void registerChangeExecutors() {
-        // 注册到 IoC 容器
-    }
-    
-    private void registerPreconditionCheckers() {
-        // 注册前置条件检查器
-    }
-    
-    private boolean isAutoMigrationEnabled() {
-        return AppConfig.getConfigProvider().getConfigValue(
-            "nop.db.migration.auto-enabled", 
-            Boolean.class, 
-            false
-        );
-    }
-    
-    private void executeAutoMigration() {
-        MigrationEngine engine = AppBeanProvider.getBean(MigrationEngine.class);
-        MigrationContext context = buildMigrationContext();
-        engine.migrate(context);
-    }
-}
-```
+当前模块不提供 ICoreInitializer 实现；初始化集成由外部调用方或 IoC 配置完成。
 
 #### 2.4.3 application.yaml 配置
 
@@ -1116,7 +1051,7 @@ nop:
       # 迁移文件路径（支持多个）
       paths:
         - /nop/db-migration/migrations
-        
+      
       # 迁移表名
       table-name: nop_db_migration_history
       
@@ -1220,7 +1155,6 @@ nop:
 | 实现 CreateTableExecutor | P0 | 3h | - | 待开始 |
 | 实现 AddColumnExecutor | P0 | 2h | - | 待开始 |
 | 实现 SqlExecutor | P0 | 2h | - | 待开始 |
-| 实现 DbMigrationInitializer | P0 | 3h | - | 待开始 |
 | 编写单元测试 | P0 | 4h | - | 待开始 |
 | 集成测试 | P0 | 4h | - | 待开始 |
 

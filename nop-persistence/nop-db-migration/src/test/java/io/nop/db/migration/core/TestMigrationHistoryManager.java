@@ -135,6 +135,42 @@ class TestMigrationHistoryManager extends AbstractMigrationTestCase {
     }
 
     @Test
+    void testRecordMigration_UpdateExistingVersion() {
+        historyManager.ensureHistoryTableExists(dialect);
+
+        MigrationRecord failed = new MigrationRecord();
+        failed.setVersion("2.0.0");
+        failed.setDescription("First try");
+        failed.setType("VERSIONED");
+        failed.setChecksum("checksum-failed");
+        failed.setExecutionTime(10);
+        failed.setInstalledBy("tester");
+        failed.setSuccess(false);
+        failed.setErrorMessage("boom");
+        historyManager.recordMigration(failed);
+
+        MigrationRecord success = new MigrationRecord();
+        success.setVersion("2.0.0");
+        success.setDescription("Retry success");
+        success.setType("VERSIONED");
+        success.setChecksum("checksum-success");
+        success.setExecutionTime(20);
+        success.setInstalledBy("tester");
+        success.setSuccess(true);
+        historyManager.recordMigration(success);
+
+        Set<String> versions = historyManager.getExecutedVersions();
+        assertEquals(1, versions.size(), "Version should be unique after update");
+        assertTrue(versions.contains("2.0.0"), "Updated version should be treated as executed");
+
+        MigrationRecord retrieved = historyManager.getMigrationByVersion("2.0.0");
+        assertNotNull(retrieved);
+        assertTrue(retrieved.isSuccess(), "Retry should update success status");
+        assertEquals("checksum-success", retrieved.getChecksum());
+        assertNull(retrieved.getErrorMessage(), "Successful retry should clear error message");
+    }
+
+    @Test
     void testGetMigrationByVersion_NoTable() {
         MigrationRecord record = historyManager.getMigrationByVersion("1.0.0");
         assertNull(record, "Should return null when table doesn't exist");

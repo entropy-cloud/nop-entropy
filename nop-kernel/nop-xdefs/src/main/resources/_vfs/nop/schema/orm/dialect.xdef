@@ -121,6 +121,17 @@
         <lockHint>string</lockHint>
 
         <validationQuery>string</validationQuery>
+
+        <!--
+        对象存在性检查模板，参数通常为字符串字面量：
+        schemaName, tableName, columnName, indexName, constraintName, sequenceName, viewName
+        -->
+        <tableExists>string</tableExists>
+        <columnExists>string</columnExists>
+        <indexExists>string</indexExists>
+        <foreignKeyExists>string</foreignKeyExists>
+        <sequenceExists>string</sequenceExists>
+        <viewExists>string</viewExists>
     </sqls>
 
     <errorCodes xdef:body-type="list" xdef:key-attr="name">

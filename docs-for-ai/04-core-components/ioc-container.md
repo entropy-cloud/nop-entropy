@@ -148,6 +148,17 @@ NopIoC的核心实现类，主要功能包括：
 </bean>
 ```
 
+`ioc:collect-beans` 也支持 `as-map` 和 `name-prefix`。当 `as-map="true"` 时，会按 bean id 组装成 `Map`；
+如果同时设置 `name-prefix`，则会先过滤前缀，并用去掉前缀后的名称作为 Map 的 key。
+
+```xml
+<property name="executors">
+    <ioc:collect-beans as-map="true"
+                       name-prefix="nopChangeExecutor_"
+                       by-type="io.nop.db.migration.executor.IChangeExecutor"/>
+</property>
+```
+
 ### 响应式配置绑定
 
 ```xml

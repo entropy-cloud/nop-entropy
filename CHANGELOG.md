@@ -1,3 +1,10 @@
+## 变更 2026-03-31
+* **数据库方言与迁移能力统一**: `IJdbcTemplate` 新增对象存在性 API，并下沉到 dialect 模板驱动 (commits: c11b5dff1, 279e02f1b, 85a59606a, b7969c80d)
+  - 新增接口: `existsTable(querySpace, schemaName, tableName)`, `existsColumn`, `existsIndex`, `existsForeignKey`, `existsSequence`, `existsView`
+  - 方言扩展: `dialect.xdef` 与主流 `*.dialect.xml` 增加 `tableExists/columnExists/indexExists/foreignKeyExists/sequenceExists/viewExists` 模板
+  - 调用迁移: `nop-db-migration` precondition checker 改为统一调用 `IJdbcTemplate` 新 API，不再在 main 路径手写 `INFORMATION_SCHEMA` exists SQL
+  - 兼容性: 旧接口 `existsTable(querySpace, tableName)` 保持可用，内部委托到新重载（`schemaName=null`）
+
 ## 变更 2026-03-04
 * **数据库变更**: nop-sys模块VERSION字段从INTEGER升级为BIGINT (commit: af4dbaf54)
   - 迁移指南: 执行ALTER TABLE修改字段类型，代码中version从Integer改为Long
