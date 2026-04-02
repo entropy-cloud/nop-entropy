@@ -29,7 +29,9 @@ import io.nop.stream.core.state.PriorityComparator;
 import io.nop.stream.core.windowing.windows.Window;
 import jakarta.annotation.Nonnull;
 
+import java.util.HashSet;
 import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
 /**
@@ -49,8 +51,14 @@ public class SimpleInternalTimerService<K, W extends Window> implements Internal
     /** Priority queue for event-time timers, ordered by timestamp. */
     private final PriorityQueue<SimpleInternalTimer<K, W>> eventTimeTimers;
 
+    /** Deduplication set for event-time timers. */
+    private final Set<SimpleInternalTimer<K, W>> eventTimeTimerSet;
+
     /** Priority queue for processing-time timers, ordered by timestamp. */
     private final PriorityQueue<SimpleInternalTimer<K, W>> processingTimeTimers;
+
+    /** Deduplication set for processing-time timers. */
+    private final Set<SimpleInternalTimer<K, W>> processingTimeTimerSet;
 
     /** The current event-time watermark. */
     private long currentWatermark = Long.MIN_VALUE;
@@ -73,8 +81,10 @@ public class SimpleInternalTimerService<K, W extends Window> implements Internal
         this.triggerTarget = triggerTarget;
         this.eventTimeTimers =
                 new PriorityQueue<>(new InternalTimerComparator<>());
+        this.eventTimeTimerSet = new HashSet<>();
         this.processingTimeTimers =
                 new PriorityQueue<>(new InternalTimerComparator<>());
+        this.processingTimeTimerSet = new HashSet<>();
         this.currentProcessingTime = System.currentTimeMillis();
     }
 
@@ -100,25 +110,33 @@ public class SimpleInternalTimerService<K, W extends Window> implements Internal
     @Override
     public void registerProcessingTimeTimer(W namespace, long time) {
         SimpleInternalTimer<K, W> timer = new SimpleInternalTimer<>(time, currentKey, namespace);
-        processingTimeTimers.add(timer);
+        if (processingTimeTimerSet.add(timer)) {
+            processingTimeTimers.add(timer);
+        }
     }
 
     @Override
     public void deleteProcessingTimeTimer(W namespace, long time) {
-        processingTimeTimers.removeIf(timer ->
-                timer.getNamespace().equals(namespace) && timer.getTimestamp() == time);
+        SimpleInternalTimer<K, W> timer = new SimpleInternalTimer<>(time, currentKey, namespace);
+        if (processingTimeTimerSet.remove(timer)) {
+            processingTimeTimers.remove(timer);
+        }
     }
 
     @Override
     public void registerEventTimeTimer(W namespace, long time) {
         SimpleInternalTimer<K, W> timer = new SimpleInternalTimer<>(time, currentKey, namespace);
-        eventTimeTimers.add(timer);
+        if (eventTimeTimerSet.add(timer)) {
+            eventTimeTimers.add(timer);
+        }
     }
 
     @Override
     public void deleteEventTimeTimer(W namespace, long time) {
-        eventTimeTimers.removeIf(timer ->
-                timer.getNamespace().equals(namespace) && timer.getTimestamp() == time);
+        SimpleInternalTimer<K, W> timer = new SimpleInternalTimer<>(time, currentKey, namespace);
+        if (eventTimeTimerSet.remove(timer)) {
+            eventTimeTimers.remove(timer);
+        }
     }
 
     @Override
@@ -148,6 +166,7 @@ public class SimpleInternalTimerService<K, W extends Window> implements Internal
             SimpleInternalTimer<K, W> timer = eventTimeTimers.peek();
             if (timer.getTimestamp() <= watermark) {
                 eventTimeTimers.poll();
+                eventTimeTimerSet.remove(timer);
                 triggerTarget.onEventTime(timer);
             } else {
                 break;
@@ -168,6 +187,7 @@ public class SimpleInternalTimerService<K, W extends Window> implements Internal
             SimpleInternalTimer<K, W> timer = processingTimeTimers.peek();
             if (timer.getTimestamp() <= time) {
                 processingTimeTimers.poll();
+                processingTimeTimerSet.remove(timer);
                 triggerTarget.onProcessingTime(timer);
             } else {
                 break;

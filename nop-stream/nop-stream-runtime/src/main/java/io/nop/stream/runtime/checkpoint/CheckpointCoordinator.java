@@ -60,8 +60,6 @@ public class CheckpointCoordinator {
         this.pendingCheckpoints = new ConcurrentHashMap<>();
         this.numPendingCheckpoints = new AtomicInteger(0);
         this.tasksToAcknowledge = ConcurrentHashMap.newKeySet();
-        this.tasksToAcknowledge.add(1L);
-        this.tasksToAcknowledge.add(2L);
         this.timeoutScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "checkpoint-timeout-" + jobId);
             t.setDaemon(true);

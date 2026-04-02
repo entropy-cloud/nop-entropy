@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class BarrierAligner {
@@ -26,6 +27,7 @@ public class BarrierAligner {
     private final List<TreeMap<Long, CheckpointBarrier>> inputBarriers;
     private final Queue<AlignedBarrier> alignedBarriers = new ArrayDeque<>();
     private final ReentrantLock lock = new ReentrantLock();
+    private final Condition alignedBarrierAvailable = lock.newCondition();
     private volatile boolean closed = false;
 
     public BarrierAligner(int numberOfInputs) {
@@ -77,6 +79,7 @@ public class BarrierAligner {
                 numberOfInputs
         );
         alignedBarriers.offer(aligned);
+        alignedBarrierAvailable.signalAll();
         
         for (TreeMap<Long, CheckpointBarrier> barriers : inputBarriers) {
             barriers.remove(completedCheckpointId);
@@ -141,17 +144,14 @@ public class BarrierAligner {
     }
 
     public AlignedBarrier pollAlignedBarrier(long timeout, TimeUnit unit) throws InterruptedException {
-        long startTime = System.currentTimeMillis();
         lock.lock();
         try {
+            long remainingNanos = unit.toNanos(timeout);
             while (alignedBarriers.isEmpty()) {
-                long elapsed = System.currentTimeMillis() - startTime;
-                if (elapsed >= unit.toMillis(timeout)) {
+                if (remainingNanos <= 0) {
                     return null;
                 }
-                lock.unlock();
-                Thread.sleep(10);
-                lock.lock();
+                remainingNanos = alignedBarrierAvailable.awaitNanos(remainingNanos);
             }
             return alignedBarriers.poll();
         } finally {

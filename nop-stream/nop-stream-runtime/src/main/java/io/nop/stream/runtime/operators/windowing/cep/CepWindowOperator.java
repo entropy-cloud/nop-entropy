@@ -11,6 +11,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.tuple.Tuple2;
 import io.nop.stream.cep.EventComparator;
+import io.nop.stream.cep.configuration.SharedBufferCacheConfig;
 import io.nop.stream.cep.functions.PatternProcessFunction;
 import io.nop.stream.cep.nfa.NFA;
 import io.nop.stream.cep.nfa.NFAState;
@@ -21,8 +22,11 @@ import io.nop.stream.cep.nfa.sharedbuffer.SharedBufferAccessor;
 import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.time.TimerService;
 import io.nop.stream.core.common.state.MapState;
+import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.state.ValueState;
+import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.VoidNamespace;
+import io.nop.stream.core.common.state.simple.SimpleKeyedStateStore;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.InternalTimerService;
@@ -40,6 +44,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 /**
@@ -117,7 +122,58 @@ public class CepWindowOperator<IN, KEY, OUT, W extends Window>
     @Override
     public void open() throws Exception {
         super.open();
-        timerService = null;
+
+        // Initialize keyed state stores
+        SimpleKeyedStateStore stateStore = new SimpleKeyedStateStore();
+        computationStates = stateStore.getState(new ValueStateDescriptor<>(NFA_STATE_NAME, NFAState.class));
+        elementQueueState = stateStore.getMapState(
+                new MapStateDescriptor<>(EVENT_QUEUE_STATE_NAME, Long.class, (Class) List.class));
+        partialMatches = new SharedBuffer<>(stateStore, inputSerializer, new SharedBufferCacheConfig());
+
+        // Initialize a minimal InternalTimerService backed by the ProcessingTimeService.
+        final io.nop.stream.core.operators.ProcessingTimeService pts = getProcessingTimeService();
+        timerService = new InternalTimerService<VoidNamespace>() {
+            @Override
+            public long currentProcessingTime() {
+                return pts.getCurrentProcessingTime();
+            }
+
+            @Override
+            public long currentWatermark() {
+                return Long.MIN_VALUE;
+            }
+
+            @Override
+            public void registerProcessingTimeTimer(VoidNamespace namespace, long time) {
+                pts.registerTimer(time, t -> onProcessingTime(t));
+            }
+
+            @Override
+            public void deleteProcessingTimeTimer(VoidNamespace namespace, long time) {
+                // not supported in simple implementation
+            }
+
+            @Override
+            public void registerEventTimeTimer(VoidNamespace namespace, long time) {
+                // event-time timers are driven by watermarks at the task level
+            }
+
+            @Override
+            public void deleteEventTimeTimer(VoidNamespace namespace, long time) {
+                // not supported in simple implementation
+            }
+
+            @Override
+            public void forEachEventTimeTimer(BiConsumer<VoidNamespace, Long> consumer) {
+                // no-op
+            }
+
+            @Override
+            public void forEachProcessingTimeTimer(BiConsumer<VoidNamespace, Long> consumer) {
+                // no-op
+            }
+        };
+
         nfa = nfaFactory.createNFA();
         context = new ContextFunctionImpl();
         collector = new TimestampedCollector<>(output);
@@ -220,7 +276,7 @@ public class CepWindowOperator<IN, KEY, OUT, W extends Window>
                             try {
                                 processEvent(nfa, event, timestamp);
                             } catch (Exception e) {
-                                throw new RuntimeException(e);
+                                throw NopException.adapt(e);
                             }
                         });
             }

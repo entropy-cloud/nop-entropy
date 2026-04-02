@@ -701,8 +701,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     @SuppressWarnings("unchecked")
     private void addWindowElement(K key, W window, IN value) {
-        ((IKeyedStateBackend<K>) keyedStateBackend).setCurrentKey(key);
-        keyedStateBackend.setCurrentNamespace(windowNamespace(window));
+        IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+        typedBackend.setCurrentKey(key);
+        typedBackend.setCurrentNamespace(windowNamespace(window));
 
         ACC current = windowContentsState.get(WINDOW_VALUE_KEY);
         if (current == null) {
@@ -722,20 +723,23 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     private ACC getWindowContents(K key, W window) {
-        ((IKeyedStateBackend<K>) keyedStateBackend).setCurrentKey(key);
-        keyedStateBackend.setCurrentNamespace(windowNamespace(window));
+        IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+        typedBackend.setCurrentKey(key);
+        typedBackend.setCurrentNamespace(windowNamespace(window));
         return windowContentsState.get(WINDOW_VALUE_KEY);
     }
 
     private void clearWindowContents(K key, W window) {
-        ((IKeyedStateBackend<K>) keyedStateBackend).setCurrentKey(key);
-        keyedStateBackend.setCurrentNamespace(windowNamespace(window));
+        IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+        typedBackend.setCurrentKey(key);
+        typedBackend.setCurrentNamespace(windowNamespace(window));
         windowContentsState.remove(WINDOW_VALUE_KEY);
     }
 
     private void setWindowContents(K key, W window, ACC value) {
-        ((IKeyedStateBackend<K>) keyedStateBackend).setCurrentKey(key);
-        keyedStateBackend.setCurrentNamespace(windowNamespace(window));
+        IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+        typedBackend.setCurrentKey(key);
+        typedBackend.setCurrentNamespace(windowNamespace(window));
         windowContentsState.put(WINDOW_VALUE_KEY, value);
     }
 

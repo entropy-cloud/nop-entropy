@@ -12,6 +12,8 @@ import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -24,6 +26,8 @@ import java.util.stream.Stream;
  * Local file system storage implementation using JSON serialization.
  */
 public class LocalFileCheckpointStorage implements ICheckpointStorage {
+
+    private static final Logger LOG = LoggerFactory.getLogger(LocalFileCheckpointStorage.class);
 
     private static final String CHECKPOINT_SUFFIX = ".checkpoint";
     private static final String TEMP_SUFFIX = ".tmp";
@@ -116,10 +120,12 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
                                                 if (cp != null) {
                                                     result.add(cp);
                                                 }
-                                            } catch (Exception ignored) {
+                                            } catch (Exception e) {
+                                                LOG.warn("Failed to deserialize checkpoint file: {}", p, e);
                                             }
                                         });
-                            } catch (Exception ignored) {
+                            } catch (Exception e) {
+                                LOG.warn("Failed to list checkpoint files in directory: {}", pipelineDir, e);
                             }
                         });
             }
@@ -145,12 +151,13 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
             try (Stream<Path> files = Files.walk(jobDir)) {
                 files.filter(p -> p.toString().endsWith(CHECKPOINT_SUFFIX))
                         .forEach(p -> {
-                            try {
+                             try {
                                 CompletedCheckpoint cp = deserializeCheckpoint(p);
                                 if (cp != null) {
                                     all.add(cp);
                                 }
-                            } catch (Exception ignored) {
+                            } catch (Exception e) {
+                                LOG.warn("Failed to deserialize checkpoint file: {}", p, e);
                             }
                         });
             }
@@ -189,7 +196,8 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
                             .forEach(p -> {
                                 try {
                                     Files.deleteIfExists(p);
-                                } catch (Exception ignored) {
+                                } catch (Exception e) {
+                                    LOG.warn("Failed to delete checkpoint file: {}", p, e);
                                 }
                             });
                 }
@@ -257,11 +265,16 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
             return null;
         }
         
-        Long jobId = ((Number) map.get("jobId")).longValue();
-        Integer pipelineId = ((Number) map.get("pipelineId")).intValue();
-        Long checkpointId = ((Number) map.get("checkpointId")).longValue();
-        Long triggerTimestamp = ((Number) map.get("triggerTimestamp")).longValue();
-        Long completedTimestamp = ((Number) map.get("completedTimestamp")).longValue();
+        Long jobId = map.get("jobId") instanceof Number ? ((Number) map.get("jobId")).longValue() : null;
+        Integer pipelineId = map.get("pipelineId") instanceof Number ? ((Number) map.get("pipelineId")).intValue() : null;
+        Long checkpointId = map.get("checkpointId") instanceof Number ? ((Number) map.get("checkpointId")).longValue() : null;
+        Long triggerTimestamp = map.get("triggerTimestamp") instanceof Number ? ((Number) map.get("triggerTimestamp")).longValue() : null;
+        Long completedTimestamp = map.get("completedTimestamp") instanceof Number ? ((Number) map.get("completedTimestamp")).longValue() : null;
+        if (jobId == null || pipelineId == null || checkpointId == null
+                || triggerTimestamp == null || completedTimestamp == null) {
+            LOG.warn("Checkpoint data missing required fields, skipping deserialization");
+            return null;
+        }
         String checkpointTypeName = (String) map.get("checkpointType");
         CheckpointType checkpointType = checkpointTypeName != null ? CheckpointType.valueOf(checkpointTypeName) : CheckpointType.CHECKPOINT;
         Boolean restored = (Boolean) map.get("restored");
@@ -298,7 +311,10 @@ public class LocalFileCheckpointStorage implements ICheckpointStorage {
         if (map == null) {
             return null;
         }
-        Long taskId = ((Number) map.get("taskId")).longValue();
+        Long taskId = map.get("taskId") instanceof Number ? ((Number) map.get("taskId")).longValue() : null;
+        if (taskId == null) {
+            return null;
+        }
         TaskStateSnapshot snapshot = new TaskStateSnapshot(taskId);
         
         Map<String, Object> operatorStates = (Map<String, Object>) map.get("operatorStates");

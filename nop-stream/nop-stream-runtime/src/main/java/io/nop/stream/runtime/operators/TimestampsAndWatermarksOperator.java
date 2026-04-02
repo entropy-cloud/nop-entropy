@@ -88,7 +88,7 @@ public class TimestampsAndWatermarksOperator<T> extends AbstractStreamOperator<T
 
     @Override
     public void open() throws Exception {
-        //super.open();
+        super.open();
 
         timestampAssigner = watermarkStrategy.createTimestampAssigner(this::getMetricGroup);
         watermarkGenerator =
