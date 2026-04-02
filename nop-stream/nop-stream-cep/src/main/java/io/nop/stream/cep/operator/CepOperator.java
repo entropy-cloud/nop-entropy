@@ -21,9 +21,11 @@ package io.nop.stream.cep.operator;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Metrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.tuple.Tuple2;
 import io.nop.stream.cep.EventComparator;
+import io.nop.stream.cep.configuration.SharedBufferCacheConfig;
 import io.nop.stream.cep.functions.PatternProcessFunction;
 import io.nop.stream.cep.functions.TimedOutPartialMatchHandler;
 import io.nop.stream.cep.nfa.NFA;
@@ -34,14 +36,18 @@ import io.nop.stream.cep.nfa.sharedbuffer.SharedBuffer;
 import io.nop.stream.cep.nfa.sharedbuffer.SharedBufferAccessor;
 import io.nop.stream.cep.time.TimerService;
 import io.nop.stream.core.common.state.MapState;
+import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.state.ValueState;
+import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.VoidNamespace;
+import io.nop.stream.core.common.state.simple.SimpleKeyedStateStore;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.InternalTimerService;
 import io.nop.stream.core.operators.OneInputStreamOperator;
 import io.nop.stream.core.operators.TimestampedCollector;
 import io.nop.stream.core.streamrecord.StreamRecord;
+import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.util.OutputTag;
 
 import jakarta.annotation.Nullable;
@@ -51,6 +57,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 /**
@@ -133,6 +140,8 @@ public class CepOperator<IN, KEY, OUT>
 
     private transient Counter numLateRecordsDropped;
 
+    private transient long currentWatermark = Long.MIN_VALUE;
+
     public CepOperator(
             final TypeSerializer<IN> inputSerializer,
             final boolean isProcessingTime,
@@ -200,30 +209,91 @@ public class CepOperator<IN, KEY, OUT>
     @Override
     public void open() throws Exception {
         super.open();
-        timerService = null;
-//                getInternalTimerService(
-//                        "watermark-callbacks", VoidNamespaceSerializer.INSTANCE, this);
+
+        // Initialize keyed state stores
+        SimpleKeyedStateStore stateStore = new SimpleKeyedStateStore();
+        computationStates = stateStore.getState(new ValueStateDescriptor<>(NFA_STATE_NAME, NFAState.class));
+        elementQueueState = stateStore.getMapState(
+                new MapStateDescriptor<>(EVENT_QUEUE_STATE_NAME, Long.class, (Class) List.class));
+        partialMatches = new SharedBuffer<>(stateStore, inputSerializer, new SharedBufferCacheConfig());
+
+        // Initialize a minimal InternalTimerService backed by the ProcessingTimeService.
+        // Full timer scheduling (event-time / processing-time callbacks) is handled by the
+        // containing task at a higher level; here we only need currentProcessingTime() and a
+        // no-op watermark to satisfy the interface contract.
+        timerService = new InternalTimerService<VoidNamespace>() {
+            @Override
+            public long currentProcessingTime() {
+                return getProcessingTimeService().getCurrentProcessingTime();
+            }
+
+            @Override
+            public long currentWatermark() {
+                return CepOperator.this.currentWatermark;
+            }
+
+            @Override
+            public void registerProcessingTimeTimer(VoidNamespace namespace, long time) {
+                getProcessingTimeService().registerTimer(time, t -> onProcessingTime(t));
+            }
+
+            @Override
+            public void deleteProcessingTimeTimer(VoidNamespace namespace, long time) {
+                // not supported in simple implementation
+            }
+
+            @Override
+            public void registerEventTimeTimer(VoidNamespace namespace, long time) {
+                // event-time timers are driven by watermarks at the task level
+            }
+
+            @Override
+            public void deleteEventTimeTimer(VoidNamespace namespace, long time) {
+                // not supported in simple implementation
+            }
+
+            @Override
+            public void forEachEventTimeTimer(BiConsumer<VoidNamespace, Long> consumer) {
+                // no-op
+            }
+
+            @Override
+            public void forEachProcessingTimeTimer(BiConsumer<VoidNamespace, Long> consumer) {
+                // no-op
+            }
+        };
 
         nfa = nfaFactory.createNFA();
-        // nfa.open(cepRuntimeContext, new Configuration());
 
         context = new ContextFunctionImpl();
         collector = new TimestampedCollector<>(output);
         cepTimerService = new TimerServiceImpl();
 
         // metrics
-        //  this.numLateRecordsDropped = metrics.counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
+        this.numLateRecordsDropped = Metrics.counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
     }
 
     @Override
     public void close() throws Exception {
-        //   super.close();
+        super.close();
         if (nfa != null) {
             nfa.close();
         }
         if (partialMatches != null) {
             partialMatches.releaseCacheStatisticsTimer();
         }
+    }
+
+    @Override
+    public void processWatermark(Watermark mark) throws Exception {
+        long newWatermark = mark.getTimestamp();
+        if (newWatermark > currentWatermark) {
+            currentWatermark = newWatermark;
+            if (!isProcessingTime) {
+                onEventTime(currentWatermark);
+            }
+        }
+        super.processWatermark(mark);
     }
 
     @Override
@@ -350,7 +420,7 @@ public class CepOperator<IN, KEY, OUT>
                             try {
                                 processEvent(nfa, event, timestamp);
                             } catch (Exception e) {
-                                throw new RuntimeException(e);
+                                throw NopException.adapt(e);
                             }
                         });
             }

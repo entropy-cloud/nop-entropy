@@ -104,7 +104,7 @@ public class NFACompiler {
                         .orElseThrow(
                                 () ->
                                         new IllegalStateException(
-                                                "Compiler produced no start state. It is a bug. File a jira."));
+                                                "Compiler produced no start state. This is a bug in NFAFactoryCompiler."));
 
         Set<State<?>> visitedStates = new HashSet<>();
         final Stack<State<?>> statesToCheck = new Stack<>();
