@@ -84,13 +84,13 @@ public abstract class AbstractUdfStreamOperator<OUT, F extends StreamFunction>
 
     @Override
     public void open() throws Exception {
-        //super.open();
+        super.open();
         // FunctionUtils.openFunction(userFunction, new Configuration());
     }
 
     @Override
     public void finish() throws Exception {
-        //super.finish();
+        super.finish();
 //        if (userFunction instanceof SinkFunction) {
 //            ((SinkFunction<?>) userFunction).finish();
 //        }
@@ -98,7 +98,7 @@ public abstract class AbstractUdfStreamOperator<OUT, F extends StreamFunction>
 
     @Override
     public void close() throws Exception {
-        //super.close();
+        super.close();
         FunctionUtils.closeFunction(userFunction);
     }
 

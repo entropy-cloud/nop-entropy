@@ -8,6 +8,7 @@
 package io.nop.stream.core.transformation;
 
 import io.nop.commons.partition.IPartitioner;
+import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 
 
@@ -44,6 +45,7 @@ public class PartitionTransformation<T> extends Transformation<T> {
 
     private final Transformation<T> input;
     private final IPartitioner<? super T> partitioner;
+    private final KeySelector<T, ?> keySelector;
 
     /**
      * Creates a new partition transformation with the specified parameters.
@@ -60,6 +62,17 @@ public class PartitionTransformation<T> extends Transformation<T> {
         super(name, outputType, parallelism);
         this.input = input;
         this.partitioner = partitioner;
+        this.keySelector = null;
+    }
+
+    public PartitionTransformation(Transformation<T> input, String name,
+                                   IPartitioner<? super T> partitioner,
+                                   KeySelector<T, ?> keySelector,
+                                   TypeInformation<T> outputType, int parallelism) {
+        super(name, outputType, parallelism);
+        this.input = input;
+        this.partitioner = partitioner;
+        this.keySelector = keySelector;
     }
 
     /**
@@ -80,6 +93,10 @@ public class PartitionTransformation<T> extends Transformation<T> {
      */
     public IPartitioner<? super T> getPartitioner() {
         return partitioner;
+    }
+
+    public KeySelector<T, ?> getKeySelector() {
+        return keySelector;
     }
 
     /**

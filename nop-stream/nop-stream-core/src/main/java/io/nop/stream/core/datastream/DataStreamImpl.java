@@ -10,6 +10,7 @@ package io.nop.stream.core.datastream;
 import io.nop.commons.partition.IPartitioner;
 import io.nop.stream.core.common.functions.*;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
+import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
 import io.nop.stream.core.common.functions.sink.PrintSinkFunction;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.operator.SimpleStreamOperatorFactory;
@@ -120,7 +121,7 @@ public class DataStreamImpl<T> implements DataStream<T>, Serializable {
     public <R> SingleOutputStreamOperator<R> map(MapFunction<T, R> mapper) {
         return transform(
             "Map",
-            null, // Type information would be inferred in a full implementation
+            (TypeInformation<R>) UnknownTypeInformation.INSTANCE,
             new StreamMap<>(mapper)
         );
     }
@@ -151,7 +152,7 @@ public class DataStreamImpl<T> implements DataStream<T>, Serializable {
     public <R> SingleOutputStreamOperator<R> flatMap(FlatMapFunction<T, R> flatMapper) {
         return transform(
             "FlatMap",
-            null, // Type information would be inferred in a full implementation
+            (TypeInformation<R>) UnknownTypeInformation.INSTANCE,
             new StreamFlatMap<>(flatMapper)
         );
     }
@@ -174,6 +175,7 @@ public class DataStreamImpl<T> implements DataStream<T>, Serializable {
             this.transformation,
             "KeyBy",
             partitioner,
+            key,
             getType(),
             environment.getParallelism()
         );
@@ -187,44 +189,33 @@ public class DataStreamImpl<T> implements DataStream<T>, Serializable {
     
     /**
      * Prints the elements of the DataStream to the standard output.
-     * 
-     * @throws Exception if an error occurs while executing the sink
      */
     @Override
-    public void print() throws Exception {
+    public void print() {
         print(new PrintSinkFunction<>());
     }
     
     /**
      * Prints the elements of the DataStream to the standard output using a custom sink function.
-     * 
-     * @param sinkFunction the sink function to use for printing elements
-     * @throws Exception if an error occurs while executing the sink
      */
     @Override
-    public void print(SinkFunction<T> sinkFunction) throws Exception {
+    public void print(SinkFunction<T> sinkFunction) {
         sink(sinkFunction);
     }
     
     /**
      * Collects the elements of the DataStream using a collector function.
-     * 
-     * @param collectorFunction the sink function to use for collecting elements
-     * @throws Exception if an error occurs while executing the collector
      */
     @Override
-    public void collect(SinkFunction<T> collectorFunction) throws Exception {
+    public void collect(SinkFunction<T> collectorFunction) {
         sink(collectorFunction);
     }
     
     /**
      * Sends the elements of the DataStream to a sink function.
-     * 
-     * @param sinkFunction the sink function to send elements to
-     * @throws Exception if an error occurs while executing the sink
      */
     @Override
-    public void sink(SinkFunction<T> sinkFunction) throws Exception {
+    public void sink(SinkFunction<T> sinkFunction) {
         // Create a sink transformation
         SinkTransformation<T> sinkTransform = new SinkTransformation<>(
             this.transformation,

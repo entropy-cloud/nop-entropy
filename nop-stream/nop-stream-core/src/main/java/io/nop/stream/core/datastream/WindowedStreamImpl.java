@@ -13,7 +13,6 @@ import io.nop.stream.core.common.functions.WindowFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.operators.OneInputStreamOperator;
-import io.nop.stream.core.transformation.OneInputTransformation;
 import io.nop.stream.core.transformation.Transformation;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.evictors.Evictor;
@@ -107,50 +106,26 @@ public class WindowedStreamImpl<T, K, W extends Window>
 
     @Override
     public <R> SingleOutputStreamOperator<R> apply(WindowFunction<T, R, K, W> function) {
-        TypeInformation<R> outTypeInfo = null;
-
-        OneInputTransformation<T, R> transform = new OneInputTransformation<>(
-                this.transformation,
-                "WindowApply",
-                null,
-                outTypeInfo,
-                environment.getParallelism()
-        );
-
-        environment.addTransformation(transform);
-        return new SingleOutputStreamOperatorImpl<>(environment, transform);
+        throw new UnsupportedOperationException(
+                "WindowedStream.apply() requires the nop-stream-runtime module's WindowOperator. "
+                + "Use WindowedStreamImpl.transform() to provide a custom OneInputStreamOperator "
+                + "that wraps a WindowOperator<K,T,?,R,W>.");
     }
 
     @Override
     public <ACC, R> SingleOutputStreamOperator<R> aggregate(AggregateFunction<T, ACC, R> function) {
-        TypeInformation<R> outTypeInfo = null;
-
-        OneInputTransformation<T, R> transform = new OneInputTransformation<>(
-                this.transformation,
-                "WindowAggregate",
-                null,
-                outTypeInfo,
-                environment.getParallelism()
-        );
-
-        environment.addTransformation(transform);
-        return new SingleOutputStreamOperatorImpl<>(environment, transform);
+        throw new UnsupportedOperationException(
+                "WindowedStream.aggregate() requires the nop-stream-runtime module's WindowOperator. "
+                + "Use WindowedStreamImpl.transform() to provide a custom OneInputStreamOperator "
+                + "that wraps a WindowOperator<K,T,ACC,R,W>.");
     }
 
     @Override
     public SingleOutputStreamOperator<T> reduce(ReduceFunction<T> function) {
-        TypeInformation<T> outTypeInfo = getType();
-
-        OneInputTransformation<T, T> transform = new OneInputTransformation<>(
-                this.transformation,
-                "WindowReduce",
-                null,
-                outTypeInfo,
-                environment.getParallelism()
-        );
-
-        environment.addTransformation(transform);
-        return new SingleOutputStreamOperatorImpl<>(environment, transform);
+        throw new UnsupportedOperationException(
+                "WindowedStream.reduce() requires the nop-stream-runtime module's WindowOperator. "
+                + "Use WindowedStreamImpl.transform() to provide a custom OneInputStreamOperator "
+                + "that wraps a WindowOperator<K,T,T,T,W>.");
     }
 
     @Override

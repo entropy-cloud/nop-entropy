@@ -81,38 +81,34 @@ public interface DataStream<T> {
      * The elements are printed line by line without any prefix.
      * 
      * <p>This is a convenience method for development and debugging purposes.
-     * 
-     * @throws Exception if an error occurs while executing the sink
+     * Calling this method only registers the sink; use {@code env.execute()} to run the job.
      */
-    void print() throws Exception;
+    void print();
 
     /**
      * Prints the elements of the DataStream to the standard output using a custom sink function.
      * 
-     * <p>This method allows for customized printing behavior through the provided SinkFunction.
+     * <p>Calling this method only registers the sink; use {@code env.execute()} to run the job.
      * 
      * @param sinkFunction the sink function to use for printing elements
-     * @throws Exception if an error occurs while executing the sink
      */
-    void print(SinkFunction<T> sinkFunction) throws Exception;
+    void print(SinkFunction<T> sinkFunction);
 
     /**
      * Collects the elements of the DataStream using a collector function.
      * 
-     * <p>This method allows for custom collection behavior through the provided SinkFunction.
+     * <p>Calling this method only registers the sink; use {@code env.execute()} to run the job.
      * 
      * @param collectorFunction the sink function to use for collecting elements
-     * @throws Exception if an error occurs while executing the collector
      */
-    void collect(SinkFunction<T> collectorFunction) throws Exception;
+    void collect(SinkFunction<T> collectorFunction);
 
     /**
      * Sends the elements of the DataStream to a sink function.
      * 
-     * <p>This is a method for sending elements to any sink function.
+     * <p>Calling this method only registers the sink; use {@code env.execute()} to run the job.
      * 
      * @param sinkFunction the sink function to send elements to
-     * @throws Exception if an error occurs while executing the sink
      */
-    void sink(SinkFunction<T> sinkFunction) throws Exception;
+    void sink(SinkFunction<T> sinkFunction);
 }

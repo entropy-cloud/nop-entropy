@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.environment;
 
+import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.datastream.DataStreamSource;
@@ -14,6 +15,8 @@ import io.nop.stream.core.datastream.SingleOutputStreamOperatorImpl;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.ChainingOutput;
 import io.nop.stream.core.operators.Input;
+import io.nop.stream.core.operators.KeyContext;
+import io.nop.stream.core.operators.KeyExtractingOutput;
 import io.nop.stream.core.operators.StreamSinkOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.core.operators.StreamOperator;
@@ -26,7 +29,9 @@ import io.nop.stream.core.transformation.Transformation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The StreamExecutionEnvironment is the context in which a streaming program is executed.
@@ -195,24 +200,21 @@ public class StreamExecutionEnvironment {
      */
     private void executePipeline(SinkTransformation<?> sinkTransform) throws Exception {
         List<Transformation<?>> chain = buildTransformationChain(sinkTransform);
+        Map<Integer, KeySelector<?, ?>> keySelectors = extractKeySelectors(chain);
         List<Object> operators = instantiateOperators(chain);
-        wireOperatorChain(operators);
+        wireOperatorChain(operators, keySelectors);
         runSource(operators);
     }
 
     /**
      * Builds an ordered list of transformations from source to sink by walking
-     * backwards from the sink through input references. Skips PartitionTransformations
-     * for single-threaded execution.
+     * backwards from the sink through input references. PartitionTransformations
+     * are included in the chain so their KeySelector can be extracted later.
      */
     private List<Transformation<?>> buildTransformationChain(SinkTransformation<?> sink) {
         List<Transformation<?>> chain = new ArrayList<>();
         Transformation<?> current = sink;
         while (current != null) {
-            if (current instanceof PartitionTransformation) {
-                current = ((PartitionTransformation<?>) current).getInput();
-                continue;
-            }
             chain.add(0, current);
             List<Transformation<?>> inputs = current.getInputs();
             if (inputs.isEmpty()) {
@@ -224,6 +226,30 @@ public class StreamExecutionEnvironment {
     }
 
     /**
+     * Scans the chain for PartitionTransformations, records the KeySelector at
+     * the downstream operator index, then removes the PartitionTransformation
+     * entries from the chain.
+     */
+    private Map<Integer, KeySelector<?, ?>> extractKeySelectors(List<Transformation<?>> chain) {
+        Map<Integer, KeySelector<?, ?>> keySelectors = new HashMap<>();
+        int i = 0;
+        while (i < chain.size()) {
+            Transformation<?> t = chain.get(i);
+            if (t instanceof PartitionTransformation) {
+                PartitionTransformation<?> pt = (PartitionTransformation<?>) t;
+                KeySelector<?, ?> ks = pt.getKeySelector();
+                if (ks != null) {
+                    keySelectors.put(i, ks);
+                }
+                chain.remove(i);
+            } else {
+                i++;
+            }
+        }
+        return keySelectors;
+    }
+
+    /**
      * Creates operator instances from the transformation chain.
      */
     private List<Object> instantiateOperators(List<Transformation<?>> chain) {
@@ -232,13 +258,16 @@ public class StreamExecutionEnvironment {
             if (t instanceof SourceTransformation) {
                 operators.add(new StreamSourceOperator<>(((SourceTransformation<?>) t).getSourceFunction()));
             } else if (t instanceof OneInputTransformation) {
-                io.nop.stream.core.operator.SimpleStreamOperatorFactory simpleFactory =
-                        (io.nop.stream.core.operator.SimpleStreamOperatorFactory)
-                                ((OneInputTransformation<?, ?>) t).getOperatorFactory();
-                if (simpleFactory != null) {
-                    operators.add(simpleFactory.getRawOperator());
+                OneInputTransformation<?, ?> oneInput = (OneInputTransformation<?, ?>) t;
+                io.nop.stream.core.operator.StreamOperatorFactory<?> factory = oneInput.getOperatorFactory();
+                if (factory == null) {
+                    throw new IllegalStateException(
+                            "Transformation '" + t.getName() + "' has no operator factory.");
+                }
+                if (factory instanceof io.nop.stream.core.operator.SimpleStreamOperatorFactory) {
+                    operators.add(((io.nop.stream.core.operator.SimpleStreamOperatorFactory<?>) factory).getRawOperator());
                 } else {
-                    operators.add(((OneInputTransformation<?, ?>) t).getOperatorFactory().createStreamOperator(null));
+                    operators.add(factory.createStreamOperator(null));
                 }
             } else if (t instanceof SinkTransformation) {
                 operators.add(new StreamSinkOperator<>(((SinkTransformation<?>) t).getSinkFunction()));
@@ -252,7 +281,8 @@ public class StreamExecutionEnvironment {
      * to a {@link ChainingOutput} that forwards to the next operator.
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private void wireOperatorChain(List<Object> operators) throws Exception {
+    private void wireOperatorChain(List<Object> operators,
+                                   Map<Integer, KeySelector<?, ?>> keySelectors) throws Exception {
         for (int i = 0; i < operators.size() - 1; i++) {
             Object current = operators.get(i);
             Object next = operators.get(i + 1);
@@ -260,6 +290,14 @@ public class StreamExecutionEnvironment {
             if (current instanceof AbstractStreamOperator) {
                 AbstractStreamOperator<?> currentOp = (AbstractStreamOperator<?>) current;
                 Input<?> nextInput = (Input<?>) next;
+
+                if (keySelectors.containsKey(i + 1) && next instanceof KeyContext) {
+                    nextInput = new KeyExtractingOutput<>(
+                            nextInput,
+                            (KeySelector) keySelectors.get(i + 1),
+                            (KeyContext) next);
+                }
+
                 currentOp.setOutput(new ChainingOutput(nextInput));
             }
         }
@@ -267,6 +305,7 @@ public class StreamExecutionEnvironment {
 
     /**
      * Opens all operators (tail-to-head order) and then runs the source operator.
+     * After the source finishes, emits a MAX_WATERMARK to trigger final timeouts.
      */
     private void runSource(List<Object> operators) throws Exception {
         for (int i = operators.size() - 1; i >= 0; i--) {
@@ -279,6 +318,11 @@ public class StreamExecutionEnvironment {
         Object head = operators.get(0);
         if (head instanceof StreamSourceOperator) {
             ((StreamSourceOperator<?>) head).run();
+        }
+
+        if (head instanceof AbstractStreamOperator) {
+            ((AbstractStreamOperator<?>) head).processWatermark(
+                    io.nop.stream.core.streamrecord.watermark.Watermark.MAX_WATERMARK);
         }
     }
 

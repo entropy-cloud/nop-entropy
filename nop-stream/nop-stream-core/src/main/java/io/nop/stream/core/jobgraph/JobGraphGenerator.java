@@ -87,14 +87,21 @@ public class JobGraphGenerator implements Serializable {
         // Step 1: Identify chains of operators that can be fused
         List<List<StreamNode>> chains = identifyChains(streamGraph);
 
+        // Build node-to-vertex map while chains are still in scope
+        Map<Integer, String> nodeToVertexMap = new HashMap<>();
+
         // Step 2: Create JobVertex for each chain
         for (List<StreamNode> chain : chains) {
             JobVertex vertex = createJobVertex(chain, streamGraph);
             jobGraph.addVertex(vertex);
+            // Map every node in the chain to this vertex
+            for (StreamNode node : chain) {
+                nodeToVertexMap.put(node.getId(), vertex.getId());
+            }
         }
 
         // Step 3: Create JobEdges to connect vertices
-        createJobEdges(streamGraph, jobGraph);
+        createJobEdges(streamGraph, jobGraph, nodeToVertexMap);
 
         return jobGraph;
     }
@@ -403,10 +410,10 @@ public class JobGraphGenerator implements Serializable {
      *
      * @param streamGraph the source StreamGraph
      * @param jobGraph the target JobGraph to add edges to
+     * @param nodeToVertexMap pre-built mapping from StreamNode ID to JobVertex ID
      */
-    private void createJobEdges(StreamGraph streamGraph, JobGraph jobGraph) {
-        // Build a map from StreamNode ID to JobVertex ID
-        Map<Integer, String> nodeToVertexMap = buildNodeToVertexMap(jobGraph);
+    private void createJobEdges(StreamGraph streamGraph, JobGraph jobGraph,
+                                Map<Integer, String> nodeToVertexMap) {
 
         // Track created edges to avoid duplicates
         Set<String> createdEdges = new HashSet<>();
@@ -439,48 +446,6 @@ public class JobGraphGenerator implements Serializable {
                 }
             }
         }
-    }
-
-    /**
-     * Builds a mapping from StreamNode IDs to JobVertex IDs.
-     *
-     * <p>This method examines all JobVertices in the JobGraph and creates a mapping
-     * that allows finding which JobVertex contains a given StreamNode. This is needed
-     * because multiple StreamNodes may be chained into a single JobVertex.
-     *
-     * <p><strong>Note</strong>: This implementation only tracks the first node in each chain
-     * (extracted from the vertex ID). A more complete implementation would maintain
-     * explicit chain membership information.
-     *
-     * @param jobGraph the JobGraph to analyze
-     * @return a map from StreamNode ID to JobVertex ID
-     */
-    private Map<Integer, String> buildNodeToVertexMap(JobGraph jobGraph) {
-        Map<Integer, String> nodeToVertexMap = new HashMap<>();
-
-        // Extract StreamNode ID from JobVertex ID
-        // JobVertex ID format is "vertex-{nodeId}" where nodeId is the first StreamNode in the chain
-        for (String vertexId : jobGraph.getVertices().keySet()) {
-            // Parse the vertex ID to get the first node ID
-            // Format: "vertex-{nodeId}"
-            if (vertexId.startsWith("vertex-")) {
-                try {
-                    int firstNodeId = Integer.parseInt(vertexId.substring("vertex-".length()));
-
-                    // Map the first node
-                    nodeToVertexMap.put(firstNodeId, vertexId);
-
-                    // Note: For a complete implementation, we would need to track all nodes in each chain
-                    // For now, we only map the first node since that's what we have in the ID
-                    // A more complete implementation would store the chain membership information
-
-                } catch (NumberFormatException e) {
-                    // Skip vertices with non-standard ID format
-                }
-            }
-        }
-
-        return nodeToVertexMap;
     }
 
     /**

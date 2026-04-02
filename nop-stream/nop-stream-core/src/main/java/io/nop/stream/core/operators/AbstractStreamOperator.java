@@ -19,10 +19,34 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
     protected transient Output<StreamRecord<OUT>> output;
 
     protected transient ProcessingTimeService processingTimeService;
+
+    /**
+     * Combined watermark for two-input operators. Lazily initialized on first use.
+     * Single-input operators that call processWatermark() directly never use this.
+     */
     private transient IndexedCombinedWatermarkStatus combinedWatermark;
 
     protected IStateBackend stateBackend;
     protected IKeyedStateBackend<?> keyedStateBackend;
+
+    // ------------------------------------------------------------------------
+    //  life cycle
+    // ------------------------------------------------------------------------
+
+    @Override
+    public void open() throws Exception {
+        // subclasses may override
+    }
+
+    @Override
+    public void finish() throws Exception {
+        // subclasses may override
+    }
+
+    @Override
+    public void close() throws Exception {
+        // subclasses may override
+    }
 
     public Output<StreamRecord<OUT>> getOutput() {
         return output;
@@ -115,6 +139,9 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
     }
 
     private void processWatermark(Watermark mark, int index) throws Exception {
+        if (combinedWatermark == null) {
+            combinedWatermark = IndexedCombinedWatermarkStatus.forInputsCount(2);
+        }
         if (combinedWatermark.updateWatermark(index, mark.getTimestamp())) {
             processWatermark(new Watermark(combinedWatermark.getCombinedWatermark()));
         }
@@ -135,6 +162,9 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
 
     private void processWatermarkStatus(WatermarkStatus watermarkStatus, int index)
             throws Exception {
+        if (combinedWatermark == null) {
+            combinedWatermark = IndexedCombinedWatermarkStatus.forInputsCount(2);
+        }
         boolean wasIdle = combinedWatermark.isIdle();
         if (combinedWatermark.updateStatus(index, watermarkStatus.isIdle())) {
             processWatermark(new Watermark(combinedWatermark.getCombinedWatermark()));

@@ -125,7 +125,7 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
     }
 
     @Override
-    public void print() throws Exception {
+    public void print() {
         if (parentStream != null) {
             parentStream.print();
         } else {
@@ -134,7 +134,7 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
     }
 
     @Override
-    public void print(SinkFunction<T> sinkFunction) throws Exception {
+    public void print(SinkFunction<T> sinkFunction) {
         if (parentStream != null) {
             parentStream.print(sinkFunction);
         } else {
@@ -143,7 +143,7 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
     }
 
     @Override
-    public void collect(SinkFunction<T> collectorFunction) throws Exception {
+    public void collect(SinkFunction<T> collectorFunction) {
         if (parentStream != null) {
             parentStream.collect(collectorFunction);
         } else {
@@ -152,7 +152,7 @@ public class KeyedStreamImpl<T, KEY> extends DataStreamImpl<T> implements KeyedS
     }
 
     @Override
-    public void sink(SinkFunction<T> sinkFunction) throws Exception {
+    public void sink(SinkFunction<T> sinkFunction) {
         if (parentStream != null) {
             parentStream.sink(sinkFunction);
         } else {

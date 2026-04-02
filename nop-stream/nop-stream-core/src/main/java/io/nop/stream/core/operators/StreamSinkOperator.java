@@ -9,6 +9,7 @@ package io.nop.stream.core.operators;
 
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.streamrecord.StreamRecord;
+import io.nop.stream.core.streamrecord.watermark.Watermark;
 
 /**
  * A stream operator that wraps a {@link SinkFunction} and consumes elements from the stream.
@@ -29,5 +30,9 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
     @Override
     public void processElement(StreamRecord<IN> element) throws Exception {
         userFunction.consume(element.getValue());
+    }
+
+    @Override
+    public void processWatermark(Watermark mark) throws Exception {
     }
 }
