@@ -43,6 +43,7 @@ class TestCheckpointRecovery {
         CheckpointConfig config = new CheckpointConfig();
         config.setCheckpointInterval(1000);
         coordinator = new CheckpointCoordinator(1L, 0, idCounter, storage, config);
+        coordinator.setTasksToAcknowledge(java.util.Arrays.asList(1L, 2L));
     }
 
     @AfterEach
@@ -102,6 +103,7 @@ class TestCheckpointRecovery {
         for (int i = 0; i < 3; i++) {
             CheckpointIDCounter iterIdCounter = new CheckpointIDCounter();
             CheckpointCoordinator iterCoordinator = new CheckpointCoordinator(1L, 0, iterIdCounter, storage, new CheckpointConfig());
+            iterCoordinator.setTasksToAcknowledge(java.util.Arrays.asList(1L, 2L));
 
             PendingCheckpoint pending = iterCoordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
             assertNotNull(pending);

@@ -44,6 +44,7 @@ class TestCheckpointIntegration {
                 .build();
 
         coordinator = new CheckpointCoordinator(1L, 1, idCounter, storage, config);
+        coordinator.setTasksToAcknowledge(java.util.Arrays.asList(1L, 2L));
     }
 
     @AfterEach
@@ -163,6 +164,7 @@ class TestCheckpointIntegration {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointCoordinator shortTimeoutCoordinator = new CheckpointCoordinator(
                 1L, 1, idCounter, storage, shortTimeoutConfig);
+        shortTimeoutCoordinator.setTasksToAcknowledge(java.util.Arrays.asList(1L, 2L));
 
         AtomicBoolean aborted = new AtomicBoolean(false);
         shortTimeoutCoordinator.addListener(new CheckpointListener() {
@@ -181,7 +183,7 @@ class TestCheckpointIntegration {
 
         shortTimeoutCoordinator.acknowledgeTask(1L, pending.getCheckpointId(), TaskStateSnapshot.empty(1L));
 
-        Thread.sleep(500);
+        Thread.sleep(1000);
 
         assertTrue(aborted.get(), "Checkpoint timeout should trigger abort callback");
         assertEquals(0, shortTimeoutCoordinator.getNumberOfPendingCheckpoints());

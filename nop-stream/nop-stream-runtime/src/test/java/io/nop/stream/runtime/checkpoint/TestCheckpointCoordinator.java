@@ -43,6 +43,7 @@ class TestCheckpointCoordinator {
                 .build();
 
         coordinator = new CheckpointCoordinator(1L, 1, idCounter, storage, config);
+        coordinator.setTasksToAcknowledge(java.util.Arrays.asList(1L, 2L));
     }
 
     @AfterEach
