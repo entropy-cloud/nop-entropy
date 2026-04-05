@@ -69,7 +69,7 @@
                       order="#{ApiConstants.INTERCEPTOR_PRIORITY_SINGLE_SESSION}"/>
     </bean>
 
-    <bean id="nopSingleSessionFunctionInvoker" class="io.nop.orm.utils.SingleSessionFunctionInvoker"/>
+     <bean id="nopSingleSessionFunctionInvoker" ioc:default="true" class="io.nop.orm.utils.SingleSessionFunctionInvoker"/>
 
     <bean id="nopTransactionalFunctionInvoker" class="io.nop.dao.utils.TransactionalFunctionInvoker"/>
 
