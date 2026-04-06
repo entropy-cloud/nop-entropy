@@ -77,7 +77,7 @@ public abstract class _ExcelStyle extends io.nop.core.resource.component.Abstrac
      * xml name: horizontalAlign
      * 
      */
-    private io.nop.excel.model.constants.ExcelHorizontalAlignment _horizontalAlign ;
+    private io.nop.office.model.constants.OfficeHorizontalAlignment _horizontalAlign ;
     
     /**
      *  
@@ -154,7 +154,7 @@ public abstract class _ExcelStyle extends io.nop.core.resource.component.Abstrac
      * xml name: verticalAlign
      * 
      */
-    private io.nop.excel.model.constants.ExcelVerticalAlignment _verticalAlign ;
+    private io.nop.office.model.constants.OfficeVerticalAlignment _verticalAlign ;
     
     /**
      *  
@@ -321,12 +321,12 @@ public abstract class _ExcelStyle extends io.nop.core.resource.component.Abstrac
      *  
      */
     
-    public io.nop.excel.model.constants.ExcelHorizontalAlignment getHorizontalAlign(){
+    public io.nop.office.model.constants.OfficeHorizontalAlignment getHorizontalAlign(){
       return _horizontalAlign;
     }
 
     
-    public void setHorizontalAlign(io.nop.excel.model.constants.ExcelHorizontalAlignment value){
+    public void setHorizontalAlign(io.nop.office.model.constants.OfficeHorizontalAlignment value){
         checkAllowChange();
         
         this._horizontalAlign = value;
@@ -530,12 +530,12 @@ public abstract class _ExcelStyle extends io.nop.core.resource.component.Abstrac
      *  
      */
     
-    public io.nop.excel.model.constants.ExcelVerticalAlignment getVerticalAlign(){
+    public io.nop.office.model.constants.OfficeVerticalAlignment getVerticalAlign(){
       return _verticalAlign;
     }
 
     
-    public void setVerticalAlign(io.nop.excel.model.constants.ExcelVerticalAlignment value){
+    public void setVerticalAlign(io.nop.office.model.constants.OfficeVerticalAlignment value){
         checkAllowChange();
         
         this._verticalAlign = value;

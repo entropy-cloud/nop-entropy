@@ -1,5 +1,4 @@
 <c:script>
-codeGenerator.renderModel('/nop/schema/excel/font.xdef','/nop/templates/xdsl', '/',$scope);
 codeGenerator.renderModel('/nop/schema/excel/style.xdef','/nop/templates/xdsl', '/',$scope);
 codeGenerator.renderModel('/nop/schema/excel/page-setup.xdef','/nop/templates/xdsl', '/',$scope);
 codeGenerator.renderModel('/nop/schema/excel/page-margins.xdef','/nop/templates/xdsl', '/',$scope);
