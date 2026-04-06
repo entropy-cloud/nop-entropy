@@ -1,11 +1,11 @@
 package io.nop.report.pdf.utils;
 
-import io.nop.excel.model.ExcelBorderStyle;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.color.ColorHelper;
-import io.nop.excel.model.constants.ExcelHorizontalAlignment;
-import io.nop.excel.model.constants.ExcelLineStyle;
-import io.nop.excel.model.constants.ExcelVerticalAlignment;
+import io.nop.office.model.OfficeBorderStyle;
+import io.nop.office.model.constants.OfficeHorizontalAlignment;
+import io.nop.office.model.constants.OfficeLineStyle;
+import io.nop.office.model.constants.OfficeVerticalAlignment;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
@@ -41,22 +41,22 @@ public class PdfStyleHelper {
     // 计算文本位置（修正版）
     public static float[] calculateTextPosition(String text, PDFont font, float fontSize,
                                                 float cellX, float cellY, float cellWidth, float cellHeight,
-                                                ExcelHorizontalAlignment hAlign, ExcelVerticalAlignment vAlign) {
+                                                OfficeHorizontalAlignment hAlign, OfficeVerticalAlignment vAlign) {
         try {
             float textWidth = font.getStringWidth(text) / 1000 * fontSize;
             float textHeight = font.getFontDescriptor().getCapHeight() / 1000 * fontSize;
 
             float x = cellX + 2; // 默认左对齐，左边距2pt
-            if (hAlign == ExcelHorizontalAlignment.CENTER) {
+            if (hAlign == OfficeHorizontalAlignment.CENTER) {
                 x = cellX + (cellWidth - textWidth) / 2;
-            } else if (hAlign == ExcelHorizontalAlignment.RIGHT) {
+            } else if (hAlign == OfficeHorizontalAlignment.RIGHT) {
                 x = cellX + cellWidth - textWidth - 2; // 右边距2pt
             }
 
             float y = cellY + cellHeight - textHeight - 2; // 默认顶部对齐，上边距2pt
-            if (vAlign == ExcelVerticalAlignment.CENTER) {
+            if (vAlign == OfficeVerticalAlignment.CENTER) {
                 y = cellY + (cellHeight - textHeight) / 2;
-            } else if (vAlign == ExcelVerticalAlignment.BOTTOM) {
+            } else if (vAlign == OfficeVerticalAlignment.BOTTOM) {
                 y = cellY + textHeight + 2; // 下边距2pt
             }
 
@@ -86,8 +86,8 @@ public class PdfStyleHelper {
             return;
         }
 
-        ExcelHorizontalAlignment hAlign = style != null ? style.getHorizontalAlign() : null;
-        ExcelVerticalAlignment vAlign = style != null ? style.getVerticalAlign() : null;
+        OfficeHorizontalAlignment hAlign = style != null ? style.getHorizontalAlign() : null;
+        OfficeVerticalAlignment vAlign = style != null ? style.getVerticalAlign() : null;
 
         float[] position = calculateTextPosition(text, font, fontSize,
                 cellRect.getLowerLeftX(), cellRect.getLowerLeftY(),
@@ -117,8 +117,8 @@ public class PdfStyleHelper {
             return;
         }
 
-        ExcelHorizontalAlignment hAlign = style != null ? style.getHorizontalAlign() : null;
-        ExcelVerticalAlignment vAlign = style != null ? style.getVerticalAlign() : null;
+        OfficeHorizontalAlignment hAlign = style != null ? style.getHorizontalAlign() : null;
+        OfficeVerticalAlignment vAlign = style != null ? style.getVerticalAlign() : null;
 
         float availableWidth = cellRect.getWidth() - 4; // 2pt边距*2
         List<String> lines = TextWrapHelper.splitTextIntoLines(text, font, fontSize, availableWidth, 2);
@@ -129,9 +129,9 @@ public class PdfStyleHelper {
 
         // 修正的起始Y位置计算
         float startY = cellRect.getLowerLeftY() + cellRect.getHeight() - 2; // 从顶部开始，留2pt边距
-        if (vAlign == ExcelVerticalAlignment.CENTER) {
+        if (vAlign == OfficeVerticalAlignment.CENTER) {
             startY = cellRect.getLowerLeftY() + (cellRect.getHeight() + textBlockHeight) / 2;
-        } else if (vAlign == ExcelVerticalAlignment.BOTTOM) {
+        } else if (vAlign == OfficeVerticalAlignment.BOTTOM) {
             startY = cellRect.getLowerLeftY() + textBlockHeight + 2;
         }
 
@@ -152,9 +152,9 @@ public class PdfStyleHelper {
             float lineWidth = font.getStringWidth(line) / 1000 * fontSize;
             float x = cellRect.getLowerLeftX() + 2; // 左边距
 
-            if (hAlign == ExcelHorizontalAlignment.CENTER) {
+            if (hAlign == OfficeHorizontalAlignment.CENTER) {
                 x = cellRect.getLowerLeftX() + (cellRect.getWidth() - lineWidth) / 2;
-            } else if (hAlign == ExcelHorizontalAlignment.RIGHT) {
+            } else if (hAlign == OfficeHorizontalAlignment.RIGHT) {
                 x = cellRect.getLowerLeftX() + cellRect.getWidth() - lineWidth - 2;
             }
 
@@ -211,8 +211,8 @@ public class PdfStyleHelper {
     private static void drawBorderLine(PDPageContentStream contentStream,
                                        float x1, float y1,
                                        float x2, float y2,
-                                       ExcelBorderStyle borderStyle) throws IOException {
-        if (borderStyle == null || borderStyle.getType() == ExcelLineStyle.NONE) {
+                                       OfficeBorderStyle borderStyle) throws IOException {
+        if (borderStyle == null || borderStyle.getType() == OfficeLineStyle.NONE) {
             return;
         }
 
@@ -311,7 +311,7 @@ public class PdfStyleHelper {
         return null;
     }
 
-    private static float getLineWidth(ExcelBorderStyle borderStyle) {
+    private static float getLineWidth(OfficeBorderStyle borderStyle) {
         switch (borderStyle.getType()) {
             case HAIR: return 0.5f;
             case SINGLE: return 1f;
