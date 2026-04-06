@@ -5,8 +5,8 @@
        id="!string" name="string" xdef:name="ExcelStyle" xdef:bean-package="io.nop.excel.model"
        indent="int" locked="boolean" hidden="boolean"
        wrapText="!boolean=false" shrinkToFit="!boolean=false" rotate="int"
-       verticalAlign="enum:io.nop.excel.model.constants.ExcelVerticalAlignment"
-       horizontalAlign="enum:io.nop.excel.model.constants.ExcelHorizontalAlignment"
+       verticalAlign="enum:io.nop.office.model.constants.OfficeVerticalAlignment"
+       horizontalAlign="enum:io.nop.office.model.constants.OfficeHorizontalAlignment"
        fillBgColor="string" fillPattern="string" fillFgColor="string"
 >
     <numberFormat>string</numberFormat>
@@ -17,8 +17,7 @@
     -->
     <font xdef:ref="font.xdef"/>
 
-    <topBorder xdef:name="ExcelBorderStyle" type="enum:io.nop.excel.model.constants.ExcelLineStyle"
-               weight="!int=0" color="string"/>
+    <topBorder xdef:name="ExcelBorderStyle" xdef:ref="../office/border-style.xdef"/>
 
     <bottomBorder xdef:ref="ExcelBorderStyle"/>
     <leftBorder xdef:ref="ExcelBorderStyle"/>
