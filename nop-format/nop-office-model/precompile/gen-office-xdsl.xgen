@@ -1,0 +1,8 @@
+<c:script>
+codeGenerator.renderModel('/nop/schema/office/font.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/office/border-style.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/office/word-run-style.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/office/word-paragraph-style.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/office/word-cell-style.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/office/word-table-style.xdef','/nop/templates/xdsl', '/',$scope);
+</c:script>
