@@ -1,0 +1,4 @@
+<c:script>
+codeGenerator.renderModel('/nop/schema/office/word-table.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/office/doc.xdef','/nop/templates/xdsl', '/',$scope);
+</c:script>
