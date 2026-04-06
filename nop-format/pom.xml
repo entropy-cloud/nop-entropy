@@ -21,6 +21,8 @@
         <module>nop-chart-echarts</module>
         <module>nop-chart-export</module>
         <module>nop-converter</module>
+        <module>nop-office-model</module>
+        <module>nop-office-doc-model</module>
         <module>nop-excel</module>
         <module>nop-mermaid</module>
         <module>nop-ooxml</module>
