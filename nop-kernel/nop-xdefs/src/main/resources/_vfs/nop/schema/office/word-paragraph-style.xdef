@@ -1,0 +1,6 @@
+<style x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+       xdef:name="WordParagraphStyle" xdef:bean-package="io.nop.office.model"
+       id="string" name="string"
+       align="enum:io.nop.office.model.constants.OfficeHorizontalAlignment"
+       leftIndent="double-pt" rightIndent="double-pt" firstLineIndent="double-pt"
+       lineSpacing="double-pt" spaceBefore="double-pt" spaceAfter="double-pt"/>

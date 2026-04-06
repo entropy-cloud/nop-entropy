@@ -1,0 +1,10 @@
+<style x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+       xdef:name="WordCellStyle" xdef:bean-package="io.nop.office.model"
+       id="string" name="string" backgroundColor="string"
+       verticalAlign="enum:io.nop.office.model.constants.OfficeVerticalAlignment">
+    <font xdef:ref="font.xdef"/>
+    <topBorder xdef:name="WordBorderStyle" xdef:ref="border-style.xdef"/>
+    <bottomBorder xdef:ref="WordBorderStyle"/>
+    <leftBorder xdef:ref="WordBorderStyle"/>
+    <rightBorder xdef:ref="WordBorderStyle"/>
+</style>

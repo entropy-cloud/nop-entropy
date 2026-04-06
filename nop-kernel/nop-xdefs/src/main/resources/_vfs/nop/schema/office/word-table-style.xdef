@@ -1,0 +1,6 @@
+<style x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+       xdef:name="WordTableStyle" xdef:bean-package="io.nop.office.model"
+       id="string" name="string" width="double-pt"
+       align="enum:io.nop.office.model.constants.OfficeHorizontalAlignment">
+    <cellStyle xdef:ref="word-cell-style.xdef"/>
+</style>

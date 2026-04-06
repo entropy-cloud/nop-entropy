@@ -1,0 +1,55 @@
+<table x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+       xdef:name="WordTable" xdef:bean-package="io.nop.office.doc.model"
+       xdef:bean-extends-type="io.nop.core.model.table.impl.AbstractTable&lt;io.nop.office.doc.model.WordTableRow&gt;"
+       id="string" styleId="string">
+
+    <cols xdef:body-type="list">
+        <col width="double" xdef:name="WordTableColumnConfig"
+             styleId="string" hidden="!boolean=false">
+            <model xdef:name="WordTableColumnTemplateModel">
+                <widthExpr>report-expr</widthExpr>
+                <styleIdExpr>report-expr</styleIdExpr>
+                <hiddenExpr>xpl</hiddenExpr>
+            </model>
+        </col>
+    </cols>
+
+    <model xdef:name="WordTableTemplateModel" renderType="string">
+        <testExpr>xpl-predicate</testExpr>
+        <dataExpr>report-expr</dataExpr>
+        <expandExpr>xpl</expandExpr>
+        <styleIdExpr>report-expr</styleIdExpr>
+        <beforeRender>xpl</beforeRender>
+        <afterRender>xpl</afterRender>
+    </model>
+
+    <rows xdef:body-type="list">
+        <row xdef:name="WordTableRow"
+             styleId="string" height="double" id="string" hidden="!boolean=false"
+             xdef:bean-extends-type="io.nop.core.model.table.impl.AbstractRow">
+            <model xdef:name="WordTableRowTemplateModel">
+                <testExpr>xpl-predicate</testExpr>
+                <visibleExpr>xpl</visibleExpr>
+                <styleIdExpr>report-expr</styleIdExpr>
+                <heightExpr>report-expr</heightExpr>
+            </model>
+            <cells xdef:body-type="list">
+                <cell id="string" mergeAcross="!int=0" mergeDown="!int=0"
+                      xdef:name="WordTableCell"
+                      xdef:bean-extends-type="io.nop.core.model.table.impl.AbstractCell"
+                      styleId="string" comment="string" value="string">
+                    <model xdef:name="WordTableCellTemplateModel"
+                           name="string" field="prop-path" ds="var-name"
+                           editorId="var-name" viewerId="var-name">
+                        <testExpr>xpl-predicate</testExpr>
+                        <valueExpr>report-expr</valueExpr>
+                        <formatExpr>report-expr</formatExpr>
+                        <styleIdExpr>report-expr</styleIdExpr>
+                        <linkExpr>report-expr</linkExpr>
+                        <processExpr>report-expr</processExpr>
+                    </model>
+                </cell>
+            </cells>
+        </row>
+    </rows>
+</table>
