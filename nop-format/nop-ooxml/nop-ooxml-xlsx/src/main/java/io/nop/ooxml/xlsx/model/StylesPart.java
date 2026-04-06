@@ -12,13 +12,14 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.format.BuiltinFormats;
-import io.nop.excel.model.ExcelBorder;
 import io.nop.excel.model.ExcelBorderStyle;
 import io.nop.excel.model.ExcelFill;
 import io.nop.excel.model.ExcelFont;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.constants.ExcelFontFamily;
 import io.nop.ooxml.common.IOfficePackagePart;
+import io.nop.office.model.OfficeBorder;
+import io.nop.office.model.OfficeBorderStyle;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -71,7 +72,7 @@ public class StylesPart implements IOfficePackagePart {
 
         List<ExcelFont> fonts = new ArrayList<>();
 
-        List<ExcelBorder> borders = new ArrayList<>();
+        List<OfficeBorder<ExcelBorderStyle>> borders = new ArrayList<>();
 
         int customIndex = 170;
 
@@ -114,7 +115,7 @@ public class StylesPart implements IOfficePackagePart {
                 styleN.setAttr("fillId", index);
             }
 
-            ExcelBorder border = style.getBorder();
+            OfficeBorder<ExcelBorderStyle> border = style.getBorder();
             if (border != null) {
                 borders.add(border);
                 styleN.setAttr("borderId", borders.size() - 1);
@@ -250,9 +251,9 @@ public class StylesPart implements IOfficePackagePart {
         }
     }
 
-    private void addBorders(XNode node, List<ExcelBorder> borders) {
+    private void addBorders(XNode node, List<OfficeBorder<ExcelBorderStyle>> borders) {
         XNode bordersN = node.addChild("borders");
-        for (ExcelBorder border : borders) {
+        for (OfficeBorder<ExcelBorderStyle> border : borders) {
             bordersN.appendChild(toBorderNode(border));
         }
 
@@ -333,7 +334,7 @@ public class StylesPart implements IOfficePackagePart {
         ext.addChild("slicerStyles").setAttr("defaultSlicerStyle", "SlicerStyleLight1");
     }
 
-    private XNode toBorderNode(ExcelBorder border) {
+    private XNode toBorderNode(OfficeBorder<? extends OfficeBorderStyle> border) {
         XNode ret = XNode.make("border");
         if (border.getLeftBorder() != null) {
             ret.appendChild(toBorderStyle("left", border.getLeftBorder()));
@@ -352,7 +353,7 @@ public class StylesPart implements IOfficePackagePart {
         return ret;
     }
 
-    private XNode toBorderStyle(String name, ExcelBorderStyle borderStyle) {
+    private XNode toBorderStyle(String name, OfficeBorderStyle borderStyle) {
         XNode node = XNode.make(name);
         if (borderStyle.getType() != null) {
             node.setAttr("style", borderStyle.getType().getExcelText());

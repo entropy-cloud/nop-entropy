@@ -4,7 +4,6 @@ import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
-import io.nop.excel.model.ExcelTable;
 import io.nop.markdown.model.MarkdownDocument;
 import io.nop.markdown.model.MarkdownSection;
 import io.nop.markdown.table.TableToMarkdownConverter;
@@ -16,6 +15,7 @@ import io.nop.ooxml.docx.model.WordOfficePackage;
 import io.nop.ooxml.docx.model.WordStylesPart;
 import io.nop.ooxml.docx.parse.WordTableParser;
 import io.nop.ooxml.docx.parse.WordXmlHelper;
+import io.nop.office.doc.model.WordTable;
 
 import java.io.File;
 import java.util.Stack;
@@ -276,7 +276,7 @@ public class DocxToMarkdownConverter {
     }
 
     private void handleTable(XNode tableNode, StringBuilder currentText, ImageUrlMapper urlMapper) {
-        ExcelTable table = new WordTableParser().forMarkdown(true).imageUrlMapper(urlMapper).parseTable(tableNode);
+        WordTable table = new WordTableParser().forMarkdown(true).imageUrlMapper(urlMapper).parseTable(tableNode);
         currentText.append("\n"); // 多插入一个空行，否则有些Markdown渲染器不识别
         new TableToMarkdownConverter().convertToMarkdown(table, currentText);
     }

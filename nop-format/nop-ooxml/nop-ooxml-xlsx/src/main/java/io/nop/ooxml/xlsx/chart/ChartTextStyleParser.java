@@ -5,8 +5,8 @@ import io.nop.excel.chart.constants.ChartTextDirection;
 import io.nop.excel.chart.model.ChartTextStyleModel;
 import io.nop.excel.model.ExcelFont;
 import io.nop.excel.model.constants.ExcelFontUnderline;
-import io.nop.excel.model.constants.ExcelHorizontalAlignment;
-import io.nop.excel.model.constants.ExcelVerticalAlignment;
+import io.nop.office.model.constants.OfficeHorizontalAlignment;
+import io.nop.office.model.constants.OfficeVerticalAlignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +52,7 @@ public class ChartTextStyleParser {
         // 解析水平对齐
         String align = pPrNode.attrText("algn");
         if (align != null) {
-            ExcelHorizontalAlignment horizontalAlign = mapHorizontalAlignment(align);
+            OfficeHorizontalAlignment horizontalAlign = mapHorizontalAlignment(align);
             if (horizontalAlign != null) {
                 textStyle.setHorizontalAlign(horizontalAlign);
             }
@@ -61,7 +61,7 @@ public class ChartTextStyleParser {
         // 解析垂直对齐
         String anchor = pPrNode.attrText("anchor");
         if (anchor != null) {
-            ExcelVerticalAlignment verticalAlign = mapVerticalAlignment(anchor);
+            OfficeVerticalAlignment verticalAlign = mapVerticalAlignment(anchor);
             if (verticalAlign != null) {
                 textStyle.setVerticalAlign(verticalAlign);
             }
@@ -236,18 +236,18 @@ public class ChartTextStyleParser {
      * @param align 对齐字符串
      * @return 对应的水平对齐枚举
      */
-    private ExcelHorizontalAlignment mapHorizontalAlignment(String align) {
+    private OfficeHorizontalAlignment mapHorizontalAlignment(String align) {
         switch (align) {
             case "l":
-                return ExcelHorizontalAlignment.LEFT;
+                return OfficeHorizontalAlignment.LEFT;
             case "ctr":
-                return ExcelHorizontalAlignment.CENTER;
+                return OfficeHorizontalAlignment.CENTER;
             case "r":
-                return ExcelHorizontalAlignment.RIGHT;
+                return OfficeHorizontalAlignment.RIGHT;
             case "just":
-                return ExcelHorizontalAlignment.JUSTIFY;
+                return OfficeHorizontalAlignment.JUSTIFY;
             case "dist":
-                return ExcelHorizontalAlignment.DISTRIBUTED;
+                return OfficeHorizontalAlignment.DISTRIBUTED;
             default:
                 return null;
         }
@@ -259,18 +259,18 @@ public class ChartTextStyleParser {
      * @param anchor 对齐字符串
      * @return 对应的垂直对齐枚举
      */
-    private ExcelVerticalAlignment mapVerticalAlignment(String anchor) {
+    private OfficeVerticalAlignment mapVerticalAlignment(String anchor) {
         switch (anchor) {
             case "t":
-                return ExcelVerticalAlignment.TOP;
+                return OfficeVerticalAlignment.TOP;
             case "ctr":
-                return ExcelVerticalAlignment.CENTER;
+                return OfficeVerticalAlignment.CENTER;
             case "b":
-                return ExcelVerticalAlignment.BOTTOM;
+                return OfficeVerticalAlignment.BOTTOM;
             case "just":
-                return ExcelVerticalAlignment.JUSTIFY;
+                return OfficeVerticalAlignment.JUSTIFY;
             case "dist":
-                return ExcelVerticalAlignment.DISTRIBUTED;
+                return OfficeVerticalAlignment.DISTRIBUTED;
             default:
                 return null;
         }

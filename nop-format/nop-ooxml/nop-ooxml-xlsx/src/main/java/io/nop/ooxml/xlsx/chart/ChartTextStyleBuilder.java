@@ -6,8 +6,8 @@ import io.nop.excel.chart.constants.ChartTextDirection;
 import io.nop.excel.chart.model.ChartTextStyleModel;
 import io.nop.excel.model.ExcelFont;
 import io.nop.excel.model.constants.ExcelFontUnderline;
-import io.nop.excel.model.constants.ExcelHorizontalAlignment;
-import io.nop.excel.model.constants.ExcelVerticalAlignment;
+import io.nop.office.model.constants.OfficeHorizontalAlignment;
+import io.nop.office.model.constants.OfficeVerticalAlignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,7 +94,7 @@ public class ChartTextStyleBuilder {
         bodyPrNode.setAttr("bIns", "19050");  // 下内边距
 
         // 设置垂直对齐
-        ExcelVerticalAlignment verticalAlign = textStyle.getVerticalAlign();
+        OfficeVerticalAlignment verticalAlign = textStyle.getVerticalAlign();
         if (verticalAlign != null) {
             String anchor = mapVerticalAlignmentToOoxml(verticalAlign);
             if (anchor != null) {
@@ -138,7 +138,7 @@ public class ChartTextStyleBuilder {
     private void buildParagraphProperties(XNode pPrNode, ChartTextStyleModel textStyle) {
 
         // 设置水平对齐
-        ExcelHorizontalAlignment horizontalAlign = textStyle.getHorizontalAlign();
+        OfficeHorizontalAlignment horizontalAlign = textStyle.getHorizontalAlign();
         if (horizontalAlign != null) {
             String align = mapHorizontalAlignmentToOoxml(horizontalAlign);
             if (align != null) {
@@ -259,7 +259,7 @@ public class ChartTextStyleBuilder {
     /**
      * 映射水平对齐方式到OOXML
      */
-    private String mapHorizontalAlignmentToOoxml(ExcelHorizontalAlignment alignment) {
+    private String mapHorizontalAlignmentToOoxml(OfficeHorizontalAlignment alignment) {
         switch (alignment) {
             case LEFT:
                 return "l";
@@ -279,7 +279,7 @@ public class ChartTextStyleBuilder {
     /**
      * 映射垂直对齐方式到OOXML
      */
-    private String mapVerticalAlignmentToOoxml(ExcelVerticalAlignment alignment) {
+    private String mapVerticalAlignmentToOoxml(OfficeVerticalAlignment alignment) {
         switch (alignment) {
             case TOP:
                 return "t";
