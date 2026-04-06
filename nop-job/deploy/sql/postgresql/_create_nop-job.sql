@@ -1,24 +1,64 @@
 
-CREATE TABLE nop_job_definition(
-  sid VARCHAR(32) NOT NULL ,
-  display_name VARCHAR(200) NOT NULL ,
+CREATE TABLE nop_job_schedule(
+  job_schedule_id VARCHAR(32) NOT NULL ,
+  namespace_id VARCHAR(50)  ,
+  group_id VARCHAR(100)  ,
   job_name VARCHAR(100) NOT NULL ,
-  job_group VARCHAR(100) NOT NULL ,
-  job_params VARCHAR(4000)  ,
-  job_invoker VARCHAR(200) NOT NULL ,
+  display_name VARCHAR(200) NOT NULL ,
   description VARCHAR(4000)  ,
-  status INT4 NOT NULL ,
+  schedule_status INT4 NOT NULL ,
+  executor_kind INT4  ,
+  executor_ref VARCHAR(200) NOT NULL ,
+  job_params VARCHAR(4000)  ,
+  trigger_type INT4  ,
   cron_expr VARCHAR(100)  ,
-  repeat_interval INT4  ,
-  is_fixed_delay INT4 default 0   ,
+  repeat_interval_ms INT8  ,
   max_execution_count INT4  ,
   min_schedule_time TIMESTAMP  ,
   max_schedule_time TIMESTAMP  ,
-  misfire_threshold INT4  ,
-  max_failed_count INT4  ,
-  max_consec_failed_count INT4  ,
-  is_use_default_calendar INT4 default 0   ,
-  pause_calendars VARCHAR(4000)  ,
+  misfire_threshold_ms INT4  ,
+  use_default_calendar INT4 default 0   ,
+  pause_calendar_spec VARCHAR(4000)  ,
+  block_strategy INT4  ,
+  timeout_seconds INT4  ,
+  retry_policy_id VARCHAR(32)  ,
+  partition_index INT4 NOT NULL ,
+  fire_count INT8 default 0  NOT NULL ,
+  active_fire_count INT4 default 0  NOT NULL ,
+  last_fire_time TIMESTAMP  ,
+  last_end_time TIMESTAMP  ,
+  next_fire_time TIMESTAMP  ,
+  last_fire_status INT4  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_job_schedule primary key (job_schedule_id)
+);
+
+CREATE TABLE nop_job_fire(
+  job_fire_id VARCHAR(32) NOT NULL ,
+  job_schedule_id VARCHAR(32) NOT NULL ,
+  namespace_id VARCHAR(50)  ,
+  group_id VARCHAR(100)  ,
+  job_name VARCHAR(100)  ,
+  trigger_source INT4  ,
+  scheduled_fire_time TIMESTAMP NOT NULL ,
+  triggered_by VARCHAR(50)  ,
+  fire_status INT4 NOT NULL ,
+  planner_instance_id VARCHAR(100)  ,
+  dispatch_instance_id VARCHAR(100)  ,
+  start_time TIMESTAMP  ,
+  end_time TIMESTAMP  ,
+  duration_ms INT8  ,
+  job_params_snapshot VARCHAR(4000)  ,
+  executor_snapshot VARCHAR(4000)  ,
+  retry_policy_id VARCHAR(32)  ,
+  retry_record_id VARCHAR(32)  ,
+  error_code VARCHAR(200)  ,
+  error_message VARCHAR(1000)  ,
   partition_index INT4 NOT NULL ,
   version INT8 NOT NULL ,
   created_by VARCHAR(50) NOT NULL ,
@@ -26,41 +66,23 @@ CREATE TABLE nop_job_definition(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
-  constraint PK_nop_job_definition primary key (sid)
+  constraint PK_nop_job_fire primary key (job_fire_id)
 );
 
-CREATE TABLE nop_job_assignment(
-  server_id VARCHAR(50) NOT NULL ,
-  assignment VARCHAR(1000) NOT NULL ,
-  version INT8 NOT NULL ,
-  created_by VARCHAR(50) NOT NULL ,
-  create_time TIMESTAMP NOT NULL ,
-  updated_by VARCHAR(50) NOT NULL ,
-  update_time TIMESTAMP NOT NULL ,
-  remark VARCHAR(200)  ,
-  constraint PK_nop_job_assignment primary key (server_id)
-);
-
-CREATE TABLE nop_job_instance_his(
-  job_instance_id VARCHAR(32) NOT NULL ,
-  job_def_id VARCHAR(32)  ,
-  job_name VARCHAR(100) NOT NULL ,
-  job_group VARCHAR(100) NOT NULL ,
-  job_params VARCHAR(4000)  ,
-  job_invoker VARCHAR(200) NOT NULL ,
-  status INT4 NOT NULL ,
-  scheduled_exec_time TIMESTAMP NOT NULL ,
-  exec_count INT8 NOT NULL ,
-  exec_begin_time TIMESTAMP  ,
-  exec_end_time TIMESTAMP  ,
-  once_task BOOLEAN  ,
-  manual_fire BOOLEAN  ,
-  fired_by VARCHAR(50)  ,
-  consecutive_fail_count INT4  ,
-  total_fail_count INT4  ,
-  err_code VARCHAR(200)  ,
-  err_msg VARCHAR(500)  ,
-  last_job_instance_id VARCHAR(32)  ,
+CREATE TABLE nop_job_task(
+  job_task_id VARCHAR(32) NOT NULL ,
+  job_fire_id VARCHAR(32) NOT NULL ,
+  task_no INT4 default 1  NOT NULL ,
+  task_status INT4 NOT NULL ,
+  worker_instance_id VARCHAR(100)  ,
+  worker_address VARCHAR(200)  ,
+  task_payload VARCHAR(4000)  ,
+  start_time TIMESTAMP  ,
+  end_time TIMESTAMP  ,
+  duration_ms INT8  ,
+  result_payload VARCHAR(4000)  ,
+  error_code VARCHAR(200)  ,
+  error_message VARCHAR(1000)  ,
   partition_index INT4 NOT NULL ,
   version INT8 NOT NULL ,
   created_by VARCHAR(50) NOT NULL ,
@@ -68,217 +90,177 @@ CREATE TABLE nop_job_instance_his(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
-  constraint PK_nop_job_instance_his primary key (job_instance_id)
-);
-
-CREATE TABLE nop_job_instance(
-  job_instance_id VARCHAR(32) NOT NULL ,
-  job_def_id VARCHAR(32)  ,
-  job_name VARCHAR(100) NOT NULL ,
-  job_group VARCHAR(100) NOT NULL ,
-  job_params VARCHAR(4000)  ,
-  job_invoker VARCHAR(200) NOT NULL ,
-  status INT4 NOT NULL ,
-  scheduled_exec_time TIMESTAMP NOT NULL ,
-  exec_count INT8 NOT NULL ,
-  exec_begin_time TIMESTAMP  ,
-  exec_end_time TIMESTAMP  ,
-  once_task BOOLEAN  ,
-  manual_fire BOOLEAN  ,
-  fired_by VARCHAR(50)  ,
-  consecutive_fail_count INT4  ,
-  total_fail_count INT4  ,
-  err_code VARCHAR(200)  ,
-  err_msg VARCHAR(500)  ,
-  last_job_instance_id VARCHAR(32)  ,
-  partition_index INT4 NOT NULL ,
-  version INT8 NOT NULL ,
-  created_by VARCHAR(50) NOT NULL ,
-  create_time TIMESTAMP NOT NULL ,
-  updated_by VARCHAR(50) NOT NULL ,
-  update_time TIMESTAMP NOT NULL ,
-  remark VARCHAR(200)  ,
-  constraint PK_nop_job_instance primary key (job_instance_id)
+  constraint PK_nop_job_task primary key (job_task_id)
 );
 
 
-      COMMENT ON TABLE nop_job_definition IS '作业定义';
+      COMMENT ON TABLE nop_job_schedule IS '调度定义';
                 
-      COMMENT ON COLUMN nop_job_definition.sid IS 'SID';
+      COMMENT ON COLUMN nop_job_schedule.job_schedule_id IS '调度ID';
                     
-      COMMENT ON COLUMN nop_job_definition.display_name IS '显示名';
+      COMMENT ON COLUMN nop_job_schedule.namespace_id IS '命名空间';
                     
-      COMMENT ON COLUMN nop_job_definition.job_name IS '任务名';
+      COMMENT ON COLUMN nop_job_schedule.group_id IS '分组';
                     
-      COMMENT ON COLUMN nop_job_definition.job_group IS '任务组';
+      COMMENT ON COLUMN nop_job_schedule.job_name IS '作业名';
                     
-      COMMENT ON COLUMN nop_job_definition.job_params IS '任务参数';
+      COMMENT ON COLUMN nop_job_schedule.display_name IS '显示名';
                     
-      COMMENT ON COLUMN nop_job_definition.job_invoker IS '任务执行函数';
+      COMMENT ON COLUMN nop_job_schedule.description IS '描述';
                     
-      COMMENT ON COLUMN nop_job_definition.description IS '任务描述';
+      COMMENT ON COLUMN nop_job_schedule.schedule_status IS '调度状态';
                     
-      COMMENT ON COLUMN nop_job_definition.status IS '任务状态';
+      COMMENT ON COLUMN nop_job_schedule.executor_kind IS '执行器类型';
                     
-      COMMENT ON COLUMN nop_job_definition.cron_expr IS '定时表达式';
+      COMMENT ON COLUMN nop_job_schedule.executor_ref IS '执行器引用';
                     
-      COMMENT ON COLUMN nop_job_definition.repeat_interval IS '定时执行间隔';
+      COMMENT ON COLUMN nop_job_schedule.job_params IS '任务参数';
                     
-      COMMENT ON COLUMN nop_job_definition.is_fixed_delay IS '是否固定延时';
+      COMMENT ON COLUMN nop_job_schedule.trigger_type IS '触发器类型';
                     
-      COMMENT ON COLUMN nop_job_definition.max_execution_count IS '最多执行次数';
+      COMMENT ON COLUMN nop_job_schedule.cron_expr IS 'CRON表达式';
                     
-      COMMENT ON COLUMN nop_job_definition.min_schedule_time IS '最近调度时间';
+      COMMENT ON COLUMN nop_job_schedule.repeat_interval_ms IS '重复间隔(毫秒)';
                     
-      COMMENT ON COLUMN nop_job_definition.max_schedule_time IS '最大调度时间';
+      COMMENT ON COLUMN nop_job_schedule.max_execution_count IS '最大执行次数';
                     
-      COMMENT ON COLUMN nop_job_definition.misfire_threshold IS '超时阈值';
+      COMMENT ON COLUMN nop_job_schedule.min_schedule_time IS '最早调度时间';
                     
-      COMMENT ON COLUMN nop_job_definition.max_failed_count IS '最大允许失败次数';
+      COMMENT ON COLUMN nop_job_schedule.max_schedule_time IS '最晚调度时间';
                     
-      COMMENT ON COLUMN nop_job_definition.max_consec_failed_count IS '最大允许连续失败次数';
+      COMMENT ON COLUMN nop_job_schedule.misfire_threshold_ms IS 'Misfire阈值(毫秒)';
                     
-      COMMENT ON COLUMN nop_job_definition.is_use_default_calendar IS '使用系统内置日历';
+      COMMENT ON COLUMN nop_job_schedule.use_default_calendar IS '使用默认日历';
                     
-      COMMENT ON COLUMN nop_job_definition.pause_calendars IS '暂停日历';
+      COMMENT ON COLUMN nop_job_schedule.pause_calendar_spec IS '暂停日历配置';
                     
-      COMMENT ON COLUMN nop_job_definition.partition_index IS '分区索引';
+      COMMENT ON COLUMN nop_job_schedule.block_strategy IS '阻塞策略';
                     
-      COMMENT ON COLUMN nop_job_definition.version IS '数据版本';
+      COMMENT ON COLUMN nop_job_schedule.timeout_seconds IS '超时时间(秒)';
                     
-      COMMENT ON COLUMN nop_job_definition.created_by IS '创建人';
+      COMMENT ON COLUMN nop_job_schedule.retry_policy_id IS '重试策略ID';
                     
-      COMMENT ON COLUMN nop_job_definition.create_time IS '创建时间';
+      COMMENT ON COLUMN nop_job_schedule.partition_index IS '分区索引';
                     
-      COMMENT ON COLUMN nop_job_definition.updated_by IS '修改人';
+      COMMENT ON COLUMN nop_job_schedule.fire_count IS '已触发次数';
                     
-      COMMENT ON COLUMN nop_job_definition.update_time IS '修改时间';
+      COMMENT ON COLUMN nop_job_schedule.active_fire_count IS '活跃触发数';
                     
-      COMMENT ON COLUMN nop_job_definition.remark IS '备注';
+      COMMENT ON COLUMN nop_job_schedule.last_fire_time IS '上次触发时间';
                     
-      COMMENT ON TABLE nop_job_assignment IS '任务分配';
+      COMMENT ON COLUMN nop_job_schedule.last_end_time IS '上次结束时间';
+                    
+      COMMENT ON COLUMN nop_job_schedule.next_fire_time IS '下次触发时间';
+                    
+      COMMENT ON COLUMN nop_job_schedule.last_fire_status IS '上次触发状态';
+                    
+      COMMENT ON COLUMN nop_job_schedule.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_job_schedule.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_job_schedule.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_job_schedule.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_job_schedule.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_job_schedule.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_job_fire IS '触发批次';
                 
-      COMMENT ON COLUMN nop_job_assignment.server_id IS '服务实例ID';
+      COMMENT ON COLUMN nop_job_fire.job_fire_id IS '触发批次ID';
                     
-      COMMENT ON COLUMN nop_job_assignment.assignment IS '任务分配';
+      COMMENT ON COLUMN nop_job_fire.job_schedule_id IS '调度ID';
                     
-      COMMENT ON COLUMN nop_job_assignment.version IS '数据版本';
+      COMMENT ON COLUMN nop_job_fire.namespace_id IS '命名空间';
                     
-      COMMENT ON COLUMN nop_job_assignment.created_by IS '创建人';
+      COMMENT ON COLUMN nop_job_fire.group_id IS '分组';
                     
-      COMMENT ON COLUMN nop_job_assignment.create_time IS '创建时间';
+      COMMENT ON COLUMN nop_job_fire.job_name IS '作业名';
                     
-      COMMENT ON COLUMN nop_job_assignment.updated_by IS '修改人';
+      COMMENT ON COLUMN nop_job_fire.trigger_source IS '触发来源';
                     
-      COMMENT ON COLUMN nop_job_assignment.update_time IS '修改时间';
+      COMMENT ON COLUMN nop_job_fire.scheduled_fire_time IS '计划触发时间';
                     
-      COMMENT ON COLUMN nop_job_assignment.remark IS '备注';
+      COMMENT ON COLUMN nop_job_fire.triggered_by IS '触发人';
                     
-      COMMENT ON TABLE nop_job_instance_his IS '任务实例历史';
+      COMMENT ON COLUMN nop_job_fire.fire_status IS '批次状态';
+                    
+      COMMENT ON COLUMN nop_job_fire.planner_instance_id IS '计划节点ID';
+                    
+      COMMENT ON COLUMN nop_job_fire.dispatch_instance_id IS '分发节点ID';
+                    
+      COMMENT ON COLUMN nop_job_fire.start_time IS '开始时间';
+                    
+      COMMENT ON COLUMN nop_job_fire.end_time IS '结束时间';
+                    
+      COMMENT ON COLUMN nop_job_fire.duration_ms IS '执行时长(毫秒)';
+                    
+      COMMENT ON COLUMN nop_job_fire.job_params_snapshot IS '参数快照';
+                    
+      COMMENT ON COLUMN nop_job_fire.executor_snapshot IS '执行器快照';
+                    
+      COMMENT ON COLUMN nop_job_fire.retry_policy_id IS '重试策略ID';
+                    
+      COMMENT ON COLUMN nop_job_fire.retry_record_id IS '重试记录ID';
+                    
+      COMMENT ON COLUMN nop_job_fire.error_code IS '错误码';
+                    
+      COMMENT ON COLUMN nop_job_fire.error_message IS '错误消息';
+                    
+      COMMENT ON COLUMN nop_job_fire.partition_index IS '分区索引';
+                    
+      COMMENT ON COLUMN nop_job_fire.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_job_fire.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_job_fire.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_job_fire.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_job_fire.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_job_fire.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_job_task IS '执行任务';
                 
-      COMMENT ON COLUMN nop_job_instance_his.job_instance_id IS '任务实例ID';
+      COMMENT ON COLUMN nop_job_task.job_task_id IS '任务ID';
                     
-      COMMENT ON COLUMN nop_job_instance_his.job_def_id IS '任务定义ID';
+      COMMENT ON COLUMN nop_job_task.job_fire_id IS '批次ID';
                     
-      COMMENT ON COLUMN nop_job_instance_his.job_name IS '任务名';
+      COMMENT ON COLUMN nop_job_task.task_no IS '任务序号';
                     
-      COMMENT ON COLUMN nop_job_instance_his.job_group IS '任务组';
+      COMMENT ON COLUMN nop_job_task.task_status IS '任务状态';
                     
-      COMMENT ON COLUMN nop_job_instance_his.job_params IS '任务参数';
+      COMMENT ON COLUMN nop_job_task.worker_instance_id IS '执行节点ID';
                     
-      COMMENT ON COLUMN nop_job_instance_his.job_invoker IS '任务执行函数';
+      COMMENT ON COLUMN nop_job_task.worker_address IS '执行节点地址';
                     
-      COMMENT ON COLUMN nop_job_instance_his.status IS '任务状态';
+      COMMENT ON COLUMN nop_job_task.task_payload IS '投递参数';
                     
-      COMMENT ON COLUMN nop_job_instance_his.scheduled_exec_time IS '调度执行时间';
+      COMMENT ON COLUMN nop_job_task.start_time IS '开始时间';
                     
-      COMMENT ON COLUMN nop_job_instance_his.exec_count IS '执行次数';
+      COMMENT ON COLUMN nop_job_task.end_time IS '结束时间';
                     
-      COMMENT ON COLUMN nop_job_instance_his.exec_begin_time IS '本次执行开始时间';
+      COMMENT ON COLUMN nop_job_task.duration_ms IS '执行时长(毫秒)';
                     
-      COMMENT ON COLUMN nop_job_instance_his.exec_end_time IS '本次执行完成时间';
+      COMMENT ON COLUMN nop_job_task.result_payload IS '执行结果';
                     
-      COMMENT ON COLUMN nop_job_instance_his.once_task IS '是否只执行一次';
+      COMMENT ON COLUMN nop_job_task.error_code IS '错误码';
                     
-      COMMENT ON COLUMN nop_job_instance_his.manual_fire IS '是否手工触发';
+      COMMENT ON COLUMN nop_job_task.error_message IS '错误消息';
                     
-      COMMENT ON COLUMN nop_job_instance_his.fired_by IS '触发执行的用户';
+      COMMENT ON COLUMN nop_job_task.partition_index IS '分区索引';
                     
-      COMMENT ON COLUMN nop_job_instance_his.consecutive_fail_count IS '连续失败次数';
+      COMMENT ON COLUMN nop_job_task.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_job_instance_his.total_fail_count IS '总失败次数';
+      COMMENT ON COLUMN nop_job_task.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_job_instance_his.err_code IS '错误码';
+      COMMENT ON COLUMN nop_job_task.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_job_instance_his.err_msg IS '错误消息';
+      COMMENT ON COLUMN nop_job_task.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_job_instance_his.last_job_instance_id IS '上次任务实例ID';
+      COMMENT ON COLUMN nop_job_task.update_time IS '修改时间';
                     
-      COMMENT ON COLUMN nop_job_instance_his.partition_index IS '分区索引';
-                    
-      COMMENT ON COLUMN nop_job_instance_his.version IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_job_instance_his.created_by IS '创建人';
-                    
-      COMMENT ON COLUMN nop_job_instance_his.create_time IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_job_instance_his.updated_by IS '修改人';
-                    
-      COMMENT ON COLUMN nop_job_instance_his.update_time IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_job_instance_his.remark IS '备注';
-                    
-      COMMENT ON TABLE nop_job_instance IS '任务实例';
-                
-      COMMENT ON COLUMN nop_job_instance.job_instance_id IS '任务实例ID';
-                    
-      COMMENT ON COLUMN nop_job_instance.job_def_id IS '任务定义ID';
-                    
-      COMMENT ON COLUMN nop_job_instance.job_name IS '任务名';
-                    
-      COMMENT ON COLUMN nop_job_instance.job_group IS '任务组';
-                    
-      COMMENT ON COLUMN nop_job_instance.job_params IS '任务参数';
-                    
-      COMMENT ON COLUMN nop_job_instance.job_invoker IS '任务执行函数';
-                    
-      COMMENT ON COLUMN nop_job_instance.status IS '任务状态';
-                    
-      COMMENT ON COLUMN nop_job_instance.scheduled_exec_time IS '调度执行时间';
-                    
-      COMMENT ON COLUMN nop_job_instance.exec_count IS '执行次数';
-                    
-      COMMENT ON COLUMN nop_job_instance.exec_begin_time IS '本次执行开始时间';
-                    
-      COMMENT ON COLUMN nop_job_instance.exec_end_time IS '本次执行完成时间';
-                    
-      COMMENT ON COLUMN nop_job_instance.once_task IS '是否只执行一次';
-                    
-      COMMENT ON COLUMN nop_job_instance.manual_fire IS '是否手工触发';
-                    
-      COMMENT ON COLUMN nop_job_instance.fired_by IS '触发执行的用户';
-                    
-      COMMENT ON COLUMN nop_job_instance.consecutive_fail_count IS '连续失败次数';
-                    
-      COMMENT ON COLUMN nop_job_instance.total_fail_count IS '总失败次数';
-                    
-      COMMENT ON COLUMN nop_job_instance.err_code IS '错误码';
-                    
-      COMMENT ON COLUMN nop_job_instance.err_msg IS '错误消息';
-                    
-      COMMENT ON COLUMN nop_job_instance.last_job_instance_id IS '上次任务实例ID';
-                    
-      COMMENT ON COLUMN nop_job_instance.partition_index IS '分区索引';
-                    
-      COMMENT ON COLUMN nop_job_instance.version IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_job_instance.created_by IS '创建人';
-                    
-      COMMENT ON COLUMN nop_job_instance.create_time IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_job_instance.updated_by IS '修改人';
-                    
-      COMMENT ON COLUMN nop_job_instance.update_time IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_job_instance.remark IS '备注';
+      COMMENT ON COLUMN nop_job_task.remark IS '备注';
                     

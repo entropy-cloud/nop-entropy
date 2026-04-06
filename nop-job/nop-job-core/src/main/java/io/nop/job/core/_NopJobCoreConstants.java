@@ -4,83 +4,158 @@ package io.nop.job.core;
 public interface _NopJobCoreConstants {
     
     /**
-     * 作业实例状态: 已创建 
+     * 调度状态: 已禁用 
      */
-    int JOB_INSTANCE_STATUS_CREATED = 0;
+    int SCHEDULE_STATUS_DISABLED = 0;
                     
     /**
-     * 作业实例状态: 已暂停 
+     * 调度状态: 已启用 
      */
-    int JOB_INSTANCE_STATUS_SUSPENDED = 10;
+    int SCHEDULE_STATUS_ENABLED = 10;
                     
     /**
-     * 作业实例状态: 等待中 等待调度
+     * 调度状态: 已暂停 
      */
-    int JOB_INSTANCE_STATUS_WAITING = 20;
+    int SCHEDULE_STATUS_PAUSED = 20;
                     
     /**
-     * 作业实例状态: 已调度 
+     * 调度状态: 已完成 
      */
-    int JOB_INSTANCE_STATUS_SCHEDULED = 30;
+    int SCHEDULE_STATUS_COMPLETED = 30;
                     
     /**
-     * 作业实例状态: 执行中 
+     * 调度状态: 已归档 
      */
-    int JOB_INSTANCE_STATUS_RUNNING = 40;
+    int SCHEDULE_STATUS_ARCHIVED = 40;
                     
     /**
-     * 作业实例状态: 执行成功 
+     * 触发批次状态: 等待分发 
      */
-    int JOB_INSTANCE_STATUS_EXEC_SUCCESS = 50;
+    int FIRE_STATUS_WAITING = 0;
                     
     /**
-     * 作业实例状态: 执行失败 
+     * 触发批次状态: 分发中 
      */
-    int JOB_INSTANCE_STATUS_EXEC_FAILED = 60;
+    int FIRE_STATUS_DISPATCHING = 10;
                     
     /**
-     * 作业实例状态: 执行取消 
+     * 触发批次状态: 执行中 
      */
-    int JOB_INSTANCE_STATUS_EXEC_CANCELLED = 70;
+    int FIRE_STATUS_RUNNING = 20;
                     
     /**
-     * 作业实例状态: 执行超时 
+     * 触发批次状态: 执行成功 
      */
-    int JOB_INSTANCE_STATUS_EXEC_TIMEOUT = 80;
+    int FIRE_STATUS_SUCCESS = 30;
                     
     /**
-     * 作业实例状态: 任务结束 
+     * 触发批次状态: 执行失败 
      */
-    int JOB_INSTANCE_STATUS_JOB_FINISHED = 90;
+    int FIRE_STATUS_FAILED = 40;
                     
     /**
-     * 作业实例状态: 任务失败 
+     * 触发批次状态: 执行超时 
      */
-    int JOB_INSTANCE_STATUS_JOB_FAILED = 100;
+    int FIRE_STATUS_TIMEOUT = 50;
                     
     /**
-     * 作业实例状态: 任务中止 
+     * 触发批次状态: 已取消 
      */
-    int JOB_INSTANCE_STATUS_JOB_KILLED = 110;
+    int FIRE_STATUS_CANCELED = 60;
                     
     /**
-     * 作业定义状态: 未发布 
+     * 执行任务状态: 等待执行 
      */
-    int JOB_DEF_STATUS_UNPUBLISHED = 0;
+    int TASK_STATUS_WAITING = 0;
                     
     /**
-     * 作业定义状态: 已发布 
+     * 执行任务状态: 已认领 
      */
-    int JOB_DEF_STATUS_PUBLISHED = 1;
+    int TASK_STATUS_CLAIMED = 10;
                     
     /**
-     * 作业定义状态: 已过时 过时的作业不推荐使用
+     * 执行任务状态: 执行中 
      */
-    int JOB_DEF_STATUS_DEPRECATED = 2;
+    int TASK_STATUS_RUNNING = 20;
                     
     /**
-     * 作业定义状态: 已归档 已归档的流程不能新建实例
+     * 执行任务状态: 执行成功 
      */
-    int JOB_DEF_STATUS_ARCHIVED = 3;
+    int TASK_STATUS_SUCCESS = 30;
+                    
+    /**
+     * 执行任务状态: 执行失败 
+     */
+    int TASK_STATUS_FAILED = 40;
+                    
+    /**
+     * 执行任务状态: 执行超时 
+     */
+    int TASK_STATUS_TIMEOUT = 50;
+                    
+    /**
+     * 执行任务状态: 已取消 
+     */
+    int TASK_STATUS_CANCELED = 60;
+                    
+    /**
+     * 触发来源: 定时触发 
+     */
+    int TRIGGER_SOURCE_SCHEDULE = 1;
+                    
+    /**
+     * 触发来源: 手工触发 
+     */
+    int TRIGGER_SOURCE_MANUAL = 2;
+                    
+    /**
+     * 触发来源: 恢复触发 
+     */
+    int TRIGGER_SOURCE_RECOVERY = 3;
+                    
+    /**
+     * 执行器类型: Bean执行器 
+     */
+    int EXECUTOR_KIND_BEAN = 1;
+                    
+    /**
+     * 执行器类型: RPC执行器 
+     */
+    int EXECUTOR_KIND_RPC = 2;
+                    
+    /**
+     * 阻塞策略: 丢弃 
+     */
+    int BLOCK_STRATEGY_DISCARD = 1;
+                    
+    /**
+     * 阻塞策略: 覆盖 
+     */
+    int BLOCK_STRATEGY_OVERLAY = 2;
+                    
+    /**
+     * 阻塞策略: 并行 
+     */
+    int BLOCK_STRATEGY_PARALLEL = 3;
+                    
+    /**
+     * 触发器类型: CRON 
+     */
+    int TRIGGER_TYPE_CRON = 1;
+                    
+    /**
+     * 触发器类型: 固定频率 
+     */
+    int TRIGGER_TYPE_FIXED_RATE = 2;
+                    
+    /**
+     * 触发器类型: 固定延时 
+     */
+    int TRIGGER_TYPE_FIXED_DELAY = 3;
+                    
+    /**
+     * 触发器类型: 单次执行 
+     */
+    int TRIGGER_TYPE_ONCE = 4;
                     
 }

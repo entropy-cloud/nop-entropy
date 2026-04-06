@@ -1,6 +1,5 @@
 
-drop table nop_job_definition;
-drop table nop_job_assignment;
-drop table nop_job_instance_his;
-drop table nop_job_instance;
+drop table nop_job_schedule;
+drop table nop_job_fire;
+drop table nop_job_task;
 

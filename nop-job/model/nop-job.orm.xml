@@ -5,25 +5,50 @@
      ext:useCoreModule="true" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <dicts>
-        <dict label="作业实例状态" name="job/job-instance-status" valueType="int" i18n-en:label="Job Instance Status">
-            <option code="CREATED" label="已创建" value="0"/>
-            <option code="SUSPENDED" label="已暂停" value="10"/>
-            <option code="WAITING" description="等待调度" label="等待中" value="20"/>
-            <option code="SCHEDULED" label="已调度" value="30"/>
-            <option code="RUNNING" label="执行中" value="40"/>
-            <option code="EXEC_SUCCESS" label="执行成功" value="50"/>
-            <option code="EXEC_FAILED" label="执行失败" value="60"/>
-            <option code="EXEC_CANCELLED" label="执行取消" value="70"/>
-            <option code="EXEC_TIMEOUT" label="执行超时" value="80"/>
-            <option code="JOB_FINISHED" label="任务结束" value="90"/>
-            <option code="JOB_FAILED" label="任务失败" value="100"/>
-            <option code="JOB_KILLED" label="任务中止" value="110"/>
+        <dict label="调度状态" name="job/schedule-status" valueType="int" i18n-en:label="Schedule Status">
+            <option code="DISABLED" label="已禁用" value="0"/>
+            <option code="ENABLED" label="已启用" value="10"/>
+            <option code="PAUSED" label="已暂停" value="20"/>
+            <option code="COMPLETED" label="已完成" value="30"/>
+            <option code="ARCHIVED" label="已归档" value="40"/>
         </dict>
-        <dict label="作业定义状态" name="job/job-def-status" valueType="int" i18n-en:label="Job Definition Status">
-            <option code="UNPUBLISHED" label="未发布" value="0"/>
-            <option code="PUBLISHED" label="已发布" value="1"/>
-            <option code="DEPRECATED" description="过时的作业不推荐使用" label="已过时" value="2"/>
-            <option code="ARCHIVED" description="已归档的流程不能新建实例" label="已归档" value="3"/>
+        <dict label="触发批次状态" name="job/fire-status" valueType="int" i18n-en:label="Fire Status">
+            <option code="WAITING" label="等待分发" value="0"/>
+            <option code="DISPATCHING" label="分发中" value="10"/>
+            <option code="RUNNING" label="执行中" value="20"/>
+            <option code="SUCCESS" label="执行成功" value="30"/>
+            <option code="FAILED" label="执行失败" value="40"/>
+            <option code="TIMEOUT" label="执行超时" value="50"/>
+            <option code="CANCELED" label="已取消" value="60"/>
+        </dict>
+        <dict label="执行任务状态" name="job/task-status" valueType="int" i18n-en:label="Task Status">
+            <option code="WAITING" label="等待执行" value="0"/>
+            <option code="CLAIMED" label="已认领" value="10"/>
+            <option code="RUNNING" label="执行中" value="20"/>
+            <option code="SUCCESS" label="执行成功" value="30"/>
+            <option code="FAILED" label="执行失败" value="40"/>
+            <option code="TIMEOUT" label="执行超时" value="50"/>
+            <option code="CANCELED" label="已取消" value="60"/>
+        </dict>
+        <dict label="触发来源" name="job/trigger-source" valueType="int" i18n-en:label="Trigger Source">
+            <option code="SCHEDULE" label="定时触发" value="1"/>
+            <option code="MANUAL" label="手工触发" value="2"/>
+            <option code="RECOVERY" label="恢复触发" value="3"/>
+        </dict>
+        <dict label="执行器类型" name="job/executor-kind" valueType="int" i18n-en:label="Executor Kind">
+            <option code="BEAN" label="Bean执行器" value="1"/>
+            <option code="RPC" label="RPC执行器" value="2"/>
+        </dict>
+        <dict label="阻塞策略" name="job/block-strategy" valueType="int" i18n-en:label="Block Strategy">
+            <option code="DISCARD" label="丢弃" value="1"/>
+            <option code="OVERLAY" label="覆盖" value="2"/>
+            <option code="PARALLEL" label="并行" value="3"/>
+        </dict>
+        <dict label="触发器类型" name="job/trigger-type" valueType="int" i18n-en:label="Trigger Type">
+            <option code="CRON" label="CRON" value="1"/>
+            <option code="FIXED_RATE" label="固定频率" value="2"/>
+            <option code="FIXED_DELAY" label="固定延时" value="3"/>
+            <option code="ONCE" label="单次执行" value="4"/>
         </dict>
     </dicts>
 
@@ -48,262 +73,335 @@
     </domains>
 
     <entities>
-        <entity className="io.nop.job.dao.entity.NopJobDefinition" createTimeProp="createTime" createrProp="createdBy"
-                displayName="作业定义" name="io.nop.job.dao.entity.NopJobDefinition" registerShortName="true"
-                tableName="nop_job_definition" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Job Definition">
+        <!-- =====================================================
+             NopJobSchedule: 调度定义（控制面聚合根）
+             保存执行器信息、trigger 定义和下一次触发游标
+             ===================================================== -->
+        <entity className="io.nop.job.dao.entity.NopJobSchedule" createTimeProp="createTime" createrProp="createdBy"
+                displayName="调度定义" name="io.nop.job.dao.entity.NopJobSchedule" registerShortName="true"
+                tableName="nop_job_schedule" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                i18n-en:displayName="Job Schedule">
             <columns>
-                <column code="SID" displayName="SID" mandatory="true" name="sid" precision="32" primary="true"
-                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
-                <column code="DISPLAY_NAME" displayName="显示名" mandatory="true" name="displayName" precision="200"
-                        propId="2" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
-                        i18n-en:displayName="Display Name"/>
-                <column code="JOB_NAME" displayName="任务名" mandatory="true" name="jobName" precision="100" propId="3"
+                <!-- 标识与隔离 -->
+                <column code="JOB_SCHEDULE_ID" displayName="调度ID" mandatory="true" name="jobScheduleId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Job Schedule Id"/>
+                <column code="NAMESPACE_ID" displayName="命名空间" name="namespaceId" precision="50" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Namespace Id"/>
+                <column code="GROUP_ID" displayName="分组" name="groupId" precision="100" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Group Id"/>
+                <column code="JOB_NAME" displayName="作业名" mandatory="true" name="jobName" precision="100" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Name"/>
-                <column code="JOB_GROUP" displayName="任务组" mandatory="true" name="jobGroup" precision="100" propId="4"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Group"/>
-                <column code="JOB_PARAMS" displayName="任务参数" domain="json-4000" name="jobParams" precision="4000"
-                        propId="5" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Job Params"/>
-                <column code="JOB_INVOKER" displayName="任务执行函数" mandatory="true" name="jobInvoker" precision="200"
-                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Invoker"/>
-                <column code="DESCRIPTION" displayName="任务描述" name="description" precision="4000" propId="7"
+                <!-- 定义信息 -->
+                <column code="DISPLAY_NAME" displayName="显示名" mandatory="true" name="displayName" precision="200"
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
+                        i18n-en:displayName="Display Name"/>
+                <column code="DESCRIPTION" displayName="描述" name="description" precision="4000" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
-                <column code="STATUS" displayName="任务状态" mandatory="true" name="status" propId="8" stdDataType="int"
-                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="job/job-def-status"/>
-                <column code="CRON_EXPR" displayName="定时表达式" name="cronExpr" precision="100" propId="9"
+                <column code="SCHEDULE_STATUS" displayName="调度状态" mandatory="true" name="scheduleStatus" propId="7"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Schedule Status"
+                        ext:dict="job/schedule-status"/>
+                <column code="EXECUTOR_KIND" displayName="执行器类型" name="executorKind" propId="8"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Executor Kind"
+                        ext:dict="job/executor-kind"/>
+                <column code="EXECUTOR_REF" displayName="执行器引用" mandatory="true" name="executorRef" precision="200"
+                        propId="9" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Executor Ref"/>
+                <column code="JOB_PARAMS" displayName="任务参数" domain="json-4000" name="jobParams" precision="4000"
+                        propId="10" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Job Params"/>
+                <!-- trigger 信息 -->
+                <column code="TRIGGER_TYPE" displayName="触发器类型" name="triggerType" propId="11"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Trigger Type"
+                        ext:dict="job/trigger-type"/>
+                <column code="CRON_EXPR" displayName="CRON表达式" name="cronExpr" precision="100" propId="12"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Cron Expr"/>
-                <column code="REPEAT_INTERVAL" displayName="定时执行间隔" name="repeatInterval" propId="10" stdDataType="int"
-                        stdSqlType="INTEGER" i18n-en:displayName="Repeat Interval"/>
-                <column code="IS_FIXED_DELAY" defaultValue="0" displayName="是否固定延时" domain="boolFlag"
-                        name="isFixedDelay" propId="11" stdDataType="byte" stdSqlType="TINYINT"
-                        i18n-en:displayName="Is Fixed Delay"/>
-                <column code="MAX_EXECUTION_COUNT" displayName="最多执行次数" name="maxExecutionCount" propId="12"
+                <column code="REPEAT_INTERVAL_MS" displayName="重复间隔(毫秒)" name="repeatIntervalMs" propId="13"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Repeat Interval Ms"/>
+                <column code="MAX_EXECUTION_COUNT" displayName="最大执行次数" name="maxExecutionCount" propId="14"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Max Execution Count"/>
-                <column code="MIN_SCHEDULE_TIME" displayName="最近调度时间" name="minScheduleTime" propId="13"
+                <column code="MIN_SCHEDULE_TIME" displayName="最早调度时间" name="minScheduleTime" propId="15"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Min Schedule Time"/>
-                <column code="MAX_SCHEDULE_TIME" comment="超过此时间将会自动停止" displayName="最大调度时间" name="maxScheduleTime"
-                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                <column code="MAX_SCHEDULE_TIME" comment="超过此时间将会自动停止" displayName="最晚调度时间" name="maxScheduleTime"
+                        propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP"
                         i18n-en:displayName="Max Schedule Time"/>
-                <column code="MISFIRE_THRESHOLD" displayName="超时阈值" name="misfireThreshold" propId="15"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Misfire Threshold"/>
-                <column code="MAX_FAILED_COUNT" displayName="最大允许失败次数" name="maxFailedCount" propId="16"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Max Failed Count"/>
-                <column code="MAX_CONSEC_FAILED_COUNT" displayName="最大允许连续失败次数" name="maxConsecFailedCount" propId="17"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Max Consecutive Failed Count"/>
-                <column code="IS_USE_DEFAULT_CALENDAR" defaultValue="0" displayName="使用系统内置日历" domain="boolFlag"
-                        name="isUseDefaultCalendar" propId="18" stdDataType="byte" stdSqlType="TINYINT"
-                        i18n-en:displayName="Is Use Default Calendar"/>
-                <column code="PAUSE_CALENDARS" comment="会跳过日历范围内的时间" displayName="暂停日历" name="pauseCalendars"
-                        precision="4000" propId="19" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Pause Calendars"/>
-                <column code="PARTITION_INDEX" displayName="分区索引" mandatory="true" name="partitionIndex" propId="20"
-                        stdDataType="short" stdSqlType="SMALLINT" i18n-en:displayName="Partition Index"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="21"
-                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="MISFIRE_THRESHOLD_MS" displayName="Misfire阈值(毫秒)" name="misfireThresholdMs"
+                        propId="17" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Misfire Threshold Ms"/>
+                <column code="USE_DEFAULT_CALENDAR" defaultValue="0" displayName="使用默认日历" domain="boolFlag"
+                        name="useDefaultCalendar" propId="18" stdDataType="byte" stdSqlType="TINYINT"
+                        i18n-en:displayName="Use Default Calendar"/>
+                <column code="PAUSE_CALENDAR_SPEC" displayName="暂停日历配置" domain="json-4000"
+                        name="pauseCalendarSpec" precision="4000" propId="19" stdDataType="string"
+                        stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Pause Calendar Spec"/>
+                <!-- 运行控制 -->
+                <column code="BLOCK_STRATEGY" displayName="阻塞策略" name="blockStrategy" propId="20"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Block Strategy"
+                        ext:dict="job/block-strategy"/>
+                <column code="TIMEOUT_SECONDS" displayName="超时时间(秒)" name="timeoutSeconds" propId="21"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Timeout Seconds"/>
+                <column code="RETRY_POLICY_ID" comment="对接 nop-retry 的策略 ID，job 本身不内建 retry 逻辑"
+                        displayName="重试策略ID" name="retryPolicyId" precision="32" propId="22"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Retry Policy Id"/>
+                <column code="PARTITION_INDEX" displayName="分区索引" mandatory="true" name="partitionIndex"
+                        propId="23" stdDataType="short" stdSqlType="SMALLINT"
+                        i18n-en:displayName="Partition Index"/>
+                <!-- 调度游标 -->
+                <column code="FIRE_COUNT" defaultValue="0" displayName="已触发次数" mandatory="true" name="fireCount"
+                        propId="24" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Fire Count"/>
+                <column code="ACTIVE_FIRE_COUNT" defaultValue="0" displayName="活跃触发数" mandatory="true"
+                        name="activeFireCount" propId="25" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Active Fire Count"/>
+                <column code="LAST_FIRE_TIME" displayName="上次触发时间" name="lastFireTime" propId="26"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Last Fire Time"/>
+                <column code="LAST_END_TIME" displayName="上次结束时间" name="lastEndTime" propId="27"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Last End Time"/>
+                <column code="NEXT_FIRE_TIME" displayName="下次触发时间" name="nextFireTime" propId="28"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Next Fire Time"/>
+                <column code="LAST_FIRE_STATUS" displayName="上次触发状态" name="lastFireStatus" propId="29"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Last Fire Status"
+                        ext:dict="job/fire-status"/>
+                <!-- 审计字段 -->
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
+                        propId="30" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="22" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="31" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
-                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="23" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true"
+                        name="createTime" propId="32" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Create Time"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="24" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="33" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By"/>
-                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="25" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="26"
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true"
+                        name="updateTime" propId="34" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="35"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
+            <unique-keys>
+                <unique-key name="UK_NOP_JOB_SCHEDULE_NS_GROUP_NAME"
+                            columns="namespaceId,groupId,jobName"
+                            i18n-en:displayName="Unique Schedule Name Per Namespace Group"/>
+            </unique-keys>
+            <indexes>
+                <index name="IX_NOP_JOB_SCHEDULE_SCAN" unique="false">
+                    <column name="scheduleStatus"/>
+                    <column name="partitionIndex"/>
+                    <column name="nextFireTime"/>
+                </index>
+                <index name="IX_NOP_JOB_SCHEDULE_EXECUTOR" unique="false">
+                    <column name="executorRef"/>
+                </index>
+            </indexes>
         </entity>
-        <entity className="io.nop.job.dao.entity.NopJobInstance" createTimeProp="createTime" createrProp="createdBy"
-                displayName="任务实例" name="io.nop.job.dao.entity.NopJobInstance" registerShortName="true"
-                tableName="nop_job_instance" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Job Instance">
+
+        <!-- =====================================================
+             NopJobFire: 触发批次（一次具体的触发事件）
+             来源可以是定时调度、手工触发或恢复触发
+             ===================================================== -->
+        <entity className="io.nop.job.dao.entity.NopJobFire" createTimeProp="createTime" createrProp="createdBy"
+                displayName="触发批次" name="io.nop.job.dao.entity.NopJobFire" registerShortName="true"
+                tableName="nop_job_fire" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                i18n-en:displayName="Job Fire">
             <columns>
-                <column code="JOB_INSTANCE_ID" displayName="任务实例ID" mandatory="true" name="jobInstanceId" precision="32"
+                <!-- 标识与快照 -->
+                <column code="JOB_FIRE_ID" displayName="触发批次ID" mandatory="true" name="jobFireId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
-                        i18n-en:displayName="Job Instance Id"/>
-                <column code="JOB_DEF_ID" displayName="任务定义ID" name="jobDefId" precision="32" propId="2"
-                        stdDataType="string" stdSqlType="VARCHAR" ui:show="X" i18n-en:displayName="Job Definition Id"/>
-                <column code="JOB_NAME" comment="不同分组的任务名称也不允许重复" displayName="任务名" mandatory="true" name="jobName"
-                        precision="100" propId="3" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Job Name"/>
-                <column code="JOB_GROUP" comment="仅用于分组" displayName="任务组" mandatory="true" name="jobGroup"
-                        precision="100" propId="4" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Job Group"/>
-                <column code="JOB_PARAMS" comment="每次执行都可能根据JobDefinition中的参数配置来创建。JobDefinition中的参数可能包含动态变量"
-                        displayName="任务参数" domain="json-4000" name="jobParams" precision="4000" propId="5"
-                        stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Job Params"/>
-                <column code="JOB_INVOKER" displayName="任务执行函数" mandatory="true" name="jobInvoker" precision="200"
-                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Invoker"/>
-                <column code="STATUS" displayName="任务状态" mandatory="true" name="status" propId="7" stdDataType="int"
-                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="job/job-instance-status"/>
-                <column code="SCHEDULED_EXEC_TIME" comment="定时器确定的调度时间" displayName="调度执行时间" mandatory="true"
-                        name="scheduledExecTime" propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP"
-                        i18n-en:displayName="Scheduled Exec Time"/>
-                <column code="EXEC_COUNT" displayName="执行次数" mandatory="true" name="execCount" propId="9"
-                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Exec Count"/>
-                <column code="EXEC_BEGIN_TIME" comment="实际开始执行的时间" displayName="本次执行开始时间" name="execBeginTime"
-                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Exec Begin Time"/>
-                <column code="EXEC_END_TIME" comment="实际执行结束的时间" displayName="本次执行完成时间" name="execEndTime" propId="11"
-                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Exec End Time"/>
-                <column code="ONCE_TASK" displayName="是否只执行一次" name="onceTask" propId="12" stdDataType="boolean"
-                        stdSqlType="BOOLEAN" i18n-en:displayName="Once Task"/>
-                <column code="MANUAL_FIRE" displayName="是否手工触发" name="manualFire" propId="13" stdDataType="boolean"
-                        stdSqlType="BOOLEAN" i18n-en:displayName="Manual Fire"/>
-                <column code="FIRED_BY" displayName="触发执行的用户" name="firedBy" precision="50" propId="14"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Fired By"/>
-                <column code="CONSECUTIVE_FAIL_COUNT" comment="连续失败的时候会不断累加。执行成功后下次执行会从零开始" displayName="连续失败次数"
-                        name="consecutiveFailCount" propId="15" stdDataType="int" stdSqlType="INTEGER"
-                        i18n-en:displayName="Consecutive Fail Count"/>
-                <column code="TOTAL_FAIL_COUNT" displayName="总失败次数" name="totalFailCount" propId="16" stdDataType="int"
-                        stdSqlType="INTEGER" i18n-en:displayName="Total Fail Count"/>
-                <column code="ERR_CODE" displayName="错误码" name="errCode" precision="200" propId="17"
+                        i18n-en:displayName="Job Fire Id"/>
+                <column code="JOB_SCHEDULE_ID" displayName="调度ID" mandatory="true" name="jobScheduleId"
+                        precision="32" propId="2" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Job Schedule Id"/>
+                <column code="NAMESPACE_ID" displayName="命名空间" name="namespaceId" precision="50" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Namespace Id"/>
+                <column code="GROUP_ID" displayName="分组" name="groupId" precision="100" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Group Id"/>
+                <column code="JOB_NAME" displayName="作业名" name="jobName" precision="100" propId="5"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Name"/>
+                <!-- 触发信息 -->
+                <column code="TRIGGER_SOURCE" displayName="触发来源" name="triggerSource" propId="6"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Trigger Source"
+                        ext:dict="job/trigger-source"/>
+                <column code="SCHEDULED_FIRE_TIME" displayName="计划触发时间" mandatory="true"
+                        name="scheduledFireTime" propId="7" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Scheduled Fire Time"/>
+                <column code="TRIGGERED_BY" displayName="触发人" name="triggeredBy" precision="50" propId="8"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Triggered By"/>
+                <!-- 运行信息 -->
+                <column code="FIRE_STATUS" displayName="批次状态" mandatory="true" name="fireStatus" propId="9"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Fire Status"
+                        ext:dict="job/fire-status"/>
+                <column code="PLANNER_INSTANCE_ID" displayName="计划节点ID" name="plannerInstanceId" precision="100"
+                        propId="10" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Planner Instance Id"/>
+                <column code="DISPATCH_INSTANCE_ID" displayName="分发节点ID" name="dispatchInstanceId" precision="100"
+                        propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Dispatch Instance Id"/>
+                <column code="START_TIME" displayName="开始时间" name="startTime" propId="12"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Start Time"/>
+                <column code="END_TIME" displayName="结束时间" name="endTime" propId="13"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="End Time"/>
+                <column code="DURATION_MS" displayName="执行时长(毫秒)" name="durationMs" propId="14"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Duration Ms"/>
+                <!-- 快照与桥接 -->
+                <column code="JOB_PARAMS_SNAPSHOT" displayName="参数快照" domain="json-4000"
+                        name="jobParamsSnapshot" precision="4000" propId="15" stdDataType="string"
+                        stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Job Params Snapshot"/>
+                <column code="EXECUTOR_SNAPSHOT" displayName="执行器快照" domain="json-4000"
+                        name="executorSnapshot" precision="4000" propId="16" stdDataType="string"
+                        stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Executor Snapshot"/>
+                <column code="RETRY_POLICY_ID" displayName="重试策略ID" name="retryPolicyId" precision="32"
+                        propId="17" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Retry Policy Id"/>
+                <column code="RETRY_RECORD_ID" comment="由 nop-retry 创建后回填" displayName="重试记录ID"
+                        name="retryRecordId" precision="32" propId="18" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Retry Record Id"/>
+                <!-- 错误信息 -->
+                <column code="ERROR_CODE" displayName="错误码" name="errorCode" precision="200" propId="19"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Code"/>
-                <column code="ERR_MSG" displayName="错误消息" name="errMsg" precision="500" propId="18" stdDataType="string"
-                        stdSqlType="VARCHAR" i18n-en:displayName="Error Message"/>
-                <column code="LAST_JOB_INSTANCE_ID" displayName="上次任务实例ID" name="lastJobInstanceId" precision="32"
-                        propId="19" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Last Job Instance ID"/>
-                <column code="PARTITION_INDEX" displayName="分区索引" mandatory="true" name="partitionIndex" propId="20"
-                        stdDataType="short" stdSqlType="SMALLINT" i18n-en:displayName="Partition Index"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="21"
-                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="ERROR_MESSAGE" displayName="错误消息" name="errorMessage" precision="1000" propId="20"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Message"/>
+                <!-- 分区控制 -->
+                <column code="PARTITION_INDEX" displayName="分区索引" mandatory="true" name="partitionIndex"
+                        propId="21" stdDataType="short" stdSqlType="SMALLINT"
+                        i18n-en:displayName="Partition Index"/>
+                <!-- 审计字段 -->
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
+                        propId="22" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="22" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="23" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
-                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="23" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true"
+                        name="createTime" propId="24" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Create Time"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="24" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="25" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By"/>
-                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="25" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="26"
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true"
+                        name="updateTime" propId="26" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="27"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <relations>
-                <to-one displayName="作业计划" name="jobDefinition" refEntityName="io.nop.job.dao.entity.NopJobDefinition"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Job Definition">
+                <to-one displayName="调度定义" name="jobSchedule"
+                        refEntityName="io.nop.job.dao.entity.NopJobSchedule" tagSet="pub,ref-pub"
+                        i18n-en:displayName="Job Schedule">
                     <join>
-                        <on leftProp="jobDefId" rightProp="sid"/>
-                    </join>
-                </to-one>
-                <to-one displayName="上次执行实例" name="lastJobInstance"
-                        refEntityName="io.nop.job.dao.entity.NopJobInstanceHis" tagSet="pub,ref-pub"
-                        i18n-en:displayName="Last Job Instance">
-                    <join>
-                        <on leftProp="lastJobInstanceId" rightProp="jobInstanceId"/>
+                        <on leftProp="jobScheduleId" rightProp="jobScheduleId"/>
                     </join>
                 </to-one>
             </relations>
+            <unique-keys>
+                <unique-key name="UK_NOP_JOB_FIRE_SCHEDULE_TIME_SOURCE"
+                            columns="jobScheduleId,scheduledFireTime,triggerSource"
+                            i18n-en:displayName="Unique Fire Per Schedule Time Source"/>
+            </unique-keys>
+            <indexes>
+                <index name="IX_NOP_JOB_FIRE_DISPATCH_SCAN" unique="false">
+                    <column name="fireStatus"/>
+                    <column name="partitionIndex"/>
+                    <column name="scheduledFireTime"/>
+                </index>
+                <index name="IX_NOP_JOB_FIRE_SCHEDULE" unique="false">
+                    <column name="jobScheduleId"/>
+                    <column name="scheduledFireTime"/>
+                </index>
+                <index name="IX_NOP_JOB_FIRE_RETRY" unique="false">
+                    <column name="retryRecordId"/>
+                </index>
+            </indexes>
         </entity>
-        <entity className="io.nop.job.dao.entity.NopJobInstanceHis" createTimeProp="createTime" createrProp="createdBy"
-                displayName="任务实例历史" name="io.nop.job.dao.entity.NopJobInstanceHis" registerShortName="true"
-                tableName="nop_job_instance_his" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" i18n-en:displayName="Job Instance History">
+
+        <!-- =====================================================
+             NopJobTask: 执行任务（一次具体执行投递）
+             V1 每个 fire 只有一个 task；后续可扩展广播/分片
+             ===================================================== -->
+        <entity className="io.nop.job.dao.entity.NopJobTask" createTimeProp="createTime" createrProp="createdBy"
+                displayName="执行任务" name="io.nop.job.dao.entity.NopJobTask" registerShortName="true"
+                tableName="nop_job_task" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                i18n-en:displayName="Job Task">
             <columns>
-                <column code="JOB_INSTANCE_ID" displayName="任务实例ID" mandatory="true" name="jobInstanceId" precision="32"
+                <!-- 标识与关联 -->
+                <column code="JOB_TASK_ID" displayName="任务ID" mandatory="true" name="jobTaskId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
-                        i18n-en:displayName="Job Instance Id"/>
-                <column code="JOB_DEF_ID" displayName="任务定义ID" name="jobDefId" precision="32" propId="2"
-                        stdDataType="string" stdSqlType="VARCHAR" ui:show="X" i18n-en:displayName="Job Definition Id"/>
-                <column code="JOB_NAME" comment="不同分组的任务名称也不允许重复" displayName="任务名" mandatory="true" name="jobName"
-                        precision="100" propId="3" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Job Name"/>
-                <column code="JOB_GROUP" comment="仅用于分组" displayName="任务组" mandatory="true" name="jobGroup"
-                        precision="100" propId="4" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Job Group"/>
-                <column code="JOB_PARAMS" comment="每次执行都可能根据JobDefinition中的参数配置来创建。JobDefinition中的参数可能包含动态变量"
-                        displayName="任务参数" domain="json-4000" name="jobParams" precision="4000" propId="5"
-                        stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Job Params"/>
-                <column code="JOB_INVOKER" displayName="任务执行函数" mandatory="true" name="jobInvoker" precision="200"
-                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Invoker"/>
-                <column code="STATUS" displayName="任务状态" mandatory="true" name="status" propId="7" stdDataType="int"
-                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="job/job-instance-status"/>
-                <column code="SCHEDULED_EXEC_TIME" comment="定时器确定的调度时间" displayName="调度执行时间" mandatory="true"
-                        name="scheduledExecTime" propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP"
-                        i18n-en:displayName="Scheduled Exec Time"/>
-                <column code="EXEC_COUNT" displayName="执行次数" mandatory="true" name="execCount" propId="9"
-                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Exec Count"/>
-                <column code="EXEC_BEGIN_TIME" comment="实际开始执行的时间" displayName="本次执行开始时间" name="execBeginTime"
-                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Exec Begin Time"/>
-                <column code="EXEC_END_TIME" comment="实际执行结束的时间" displayName="本次执行完成时间" name="execEndTime" propId="11"
-                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Exec End Time"/>
-                <column code="ONCE_TASK" displayName="是否只执行一次" name="onceTask" propId="12" stdDataType="boolean"
-                        stdSqlType="BOOLEAN" i18n-en:displayName="Once Task"/>
-                <column code="MANUAL_FIRE" displayName="是否手工触发" name="manualFire" propId="13" stdDataType="boolean"
-                        stdSqlType="BOOLEAN" i18n-en:displayName="Manual Fire"/>
-                <column code="FIRED_BY" displayName="触发执行的用户" name="firedBy" precision="50" propId="14"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Fired By"/>
-                <column code="CONSECUTIVE_FAIL_COUNT" comment="连续失败的时候会不断累加。执行成功后下次执行会从零开始" displayName="连续失败次数"
-                        name="consecutiveFailCount" propId="15" stdDataType="int" stdSqlType="INTEGER"
-                        i18n-en:displayName="Consecutive Fail Count"/>
-                <column code="TOTAL_FAIL_COUNT" displayName="总失败次数" name="totalFailCount" propId="16" stdDataType="int"
-                        stdSqlType="INTEGER" i18n-en:displayName="Total Fail Count"/>
-                <column code="ERR_CODE" displayName="错误码" name="errCode" precision="200" propId="17"
+                        i18n-en:displayName="Job Task Id"/>
+                <column code="JOB_FIRE_ID" displayName="批次ID" mandatory="true" name="jobFireId" precision="32"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Fire Id"/>
+                <column code="TASK_NO" defaultValue="1" displayName="任务序号" mandatory="true" name="taskNo"
+                        propId="3" stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Task No"/>
+                <!-- 执行信息 -->
+                <column code="TASK_STATUS" displayName="任务状态" mandatory="true" name="taskStatus" propId="4"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Task Status"
+                        ext:dict="job/task-status"/>
+                <column code="WORKER_INSTANCE_ID" displayName="执行节点ID" name="workerInstanceId" precision="100"
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Worker Instance Id"/>
+                <column code="WORKER_ADDRESS" displayName="执行节点地址" name="workerAddress" precision="200"
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Worker Address"/>
+                <column code="TASK_PAYLOAD" displayName="投递参数" domain="json-4000" name="taskPayload"
+                        precision="4000" propId="7" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Task Payload"/>
+                <!-- 生命周期 -->
+                <column code="START_TIME" displayName="开始时间" name="startTime" propId="8"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Start Time"/>
+                <column code="END_TIME" displayName="结束时间" name="endTime" propId="9"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="End Time"/>
+                <column code="DURATION_MS" displayName="执行时长(毫秒)" name="durationMs" propId="10"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Duration Ms"/>
+                <!-- 结果信息 -->
+                <column code="RESULT_PAYLOAD" displayName="执行结果" domain="json-4000" name="resultPayload"
+                        precision="4000" propId="11" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Result Payload"/>
+                <column code="ERROR_CODE" displayName="错误码" name="errorCode" precision="200" propId="12"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Code"/>
-                <column code="ERR_MSG" displayName="错误消息" name="errMsg" precision="500" propId="18" stdDataType="string"
-                        stdSqlType="VARCHAR" i18n-en:displayName="Error Message"/>
-                <column code="LAST_JOB_INSTANCE_ID" displayName="上次任务实例ID" name="lastJobInstanceId" precision="32"
-                        propId="19" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Last Job Instance ID"/>
-                <column code="PARTITION_INDEX" displayName="分区索引" mandatory="true" name="partitionIndex" propId="20"
-                        stdDataType="short" stdSqlType="SMALLINT" i18n-en:displayName="Partition Index"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="21"
-                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="ERROR_MESSAGE" displayName="错误消息" name="errorMessage" precision="1000" propId="13"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Message"/>
+                <!-- 分区控制 -->
+                <column code="PARTITION_INDEX" displayName="分区索引" mandatory="true" name="partitionIndex"
+                        propId="14" stdDataType="short" stdSqlType="SMALLINT"
+                        i18n-en:displayName="Partition Index"/>
+                <!-- 审计字段 -->
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
+                        propId="15" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="22" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="16" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
-                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="23" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true"
+                        name="createTime" propId="17" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Create Time"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="24" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="18" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By"/>
-                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="25" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="26"
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true"
+                        name="updateTime" propId="19" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="20"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <relations>
-                <to-one displayName="作业计划" name="jobDefinition" refEntityName="io.nop.job.dao.entity.NopJobDefinition"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Job Definition">
+                <to-one displayName="触发批次" name="jobFire"
+                        refEntityName="io.nop.job.dao.entity.NopJobFire" tagSet="pub,ref-pub"
+                        i18n-en:displayName="Job Fire">
                     <join>
-                        <on leftProp="jobDefId" rightProp="sid"/>
-                    </join>
-                </to-one>
-                <to-one displayName="上次执行实例" name="lastJobInstance"
-                        refEntityName="io.nop.job.dao.entity.NopJobInstanceHis" tagSet="pub,ref-pub"
-                        i18n-en:displayName="Last Job Instance">
-                    <join>
-                        <on leftProp="lastJobInstanceId" rightProp="jobInstanceId"/>
+                        <on leftProp="jobFireId" rightProp="jobFireId"/>
                     </join>
                 </to-one>
             </relations>
-        </entity>
-        <entity className="io.nop.job.dao.entity.NopJobAssignment" createTimeProp="createTime" createrProp="createdBy"
-                displayName="任务分配" name="io.nop.job.dao.entity.NopJobAssignment" registerShortName="true"
-                tableName="nop_job_assignment" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Job Assignment">
-            <columns>
-                <column code="SERVER_ID" displayName="服务实例ID" mandatory="true" name="serverId" precision="50"
-                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
-                        i18n-en:displayName="Server Id"/>
-                <column code="ASSIGNMENT" displayName="任务分配" mandatory="true" name="assignment" precision="1000"
-                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Assignment"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="3"
-                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
-                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="4" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Created By"/>
-                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="5" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
-                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="6" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Updated By"/>
-                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="7" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="8"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
-            </columns>
+            <unique-keys>
+                <unique-key name="UK_NOP_JOB_TASK_FIRE_NO" columns="jobFireId,taskNo"
+                            i18n-en:displayName="Unique Task Per Fire"/>
+            </unique-keys>
+            <indexes>
+                <index name="IX_NOP_JOB_TASK_RUN_SCAN" unique="false">
+                    <column name="taskStatus"/>
+                    <column name="partitionIndex"/>
+                    <column name="createTime"/>
+                </index>
+                <index name="IX_NOP_JOB_TASK_FIRE" unique="false">
+                    <column name="jobFireId"/>
+                </index>
+            </indexes>
         </entity>
     </entities>
 </orm>

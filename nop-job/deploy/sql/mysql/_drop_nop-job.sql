@@ -1,6 +1,5 @@
 
-drop table  if exists  nop_job_definition;
-drop table  if exists  nop_job_assignment;
-drop table  if exists  nop_job_instance_his;
-drop table  if exists  nop_job_instance;
+drop table  if exists  nop_job_schedule;
+drop table  if exists  nop_job_fire;
+drop table  if exists  nop_job_task;
 
