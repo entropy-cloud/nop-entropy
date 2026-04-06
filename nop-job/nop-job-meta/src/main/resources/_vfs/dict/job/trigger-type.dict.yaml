@@ -1,0 +1,23 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 触发器类型
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: CRON
+    value: 1
+    description: 
+  
+  - label: 固定频率
+    value: 2
+    description: 
+  
+  - label: 固定延时
+    value: 3
+    description: 
+  
+  - label: 单次执行
+    value: 4
+    description: 
+  

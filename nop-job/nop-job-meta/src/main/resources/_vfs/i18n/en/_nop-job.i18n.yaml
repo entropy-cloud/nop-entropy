@@ -2,8 +2,11 @@ entity:
   label:
     NopJobAssignment: Job Assignment
     NopJobDefinition: Job Definition
+    NopJobFire: Job Fire
     NopJobInstance: Job Instance
     NopJobInstanceHis: Job Instance History
+    NopJobSchedule: Job Schedule
+    NopJobTask: Job Task
 prop:
   label:
     NopJobAssignment:
@@ -44,6 +47,40 @@ prop:
       updateTime: Update Time
       remark: Remark
       jobParamsComponent: null
+    NopJobFire:
+      jobFireId: Job Fire Id
+      jobScheduleId: Job Schedule Id
+      namespaceId: Namespace Id
+      groupId: Group Id
+      jobName: Job Name
+      triggerSource: Trigger Source
+      triggerSource_label: null
+      scheduledFireTime: Scheduled Fire Time
+      triggeredBy: Triggered By
+      fireStatus: Fire Status
+      fireStatus_label: null
+      plannerInstanceId: Planner Instance Id
+      dispatchInstanceId: Dispatch Instance Id
+      startTime: Start Time
+      endTime: End Time
+      durationMs: Duration Ms
+      jobParamsSnapshot: Job Params Snapshot
+      executorSnapshot: Executor Snapshot
+      retryPolicyId: Retry Policy Id
+      retryRecordId: Retry Record Id
+      errorCode: Error Code
+      errorMessage: Error Message
+      partitionIndex: Partition Index
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      jobSchedule: Job Schedule
+      jobSchedule.displayName: Job Schedule
+      jobParamsSnapshotComponent: null
+      executorSnapshotComponent: null
     NopJobInstance:
       jobInstanceId: Job Instance Id
       jobDefId: Job Definition Id
@@ -108,3 +145,71 @@ prop:
       jobDefinition.displayName: Job Definition
       lastJobInstance: Last Job Instance
       jobParamsComponent: null
+    NopJobSchedule:
+      jobScheduleId: Job Schedule Id
+      namespaceId: Namespace Id
+      groupId: Group Id
+      jobName: Job Name
+      displayName: Display Name
+      description: Description
+      scheduleStatus: Schedule Status
+      scheduleStatus_label: null
+      executorKind: Executor Kind
+      executorKind_label: null
+      executorRef: Executor Ref
+      jobParams: Job Params
+      triggerType: Trigger Type
+      triggerType_label: null
+      cronExpr: Cron Expr
+      repeatIntervalMs: Repeat Interval Ms
+      maxExecutionCount: Max Execution Count
+      minScheduleTime: Min Schedule Time
+      maxScheduleTime: Max Schedule Time
+      misfireThresholdMs: Misfire Threshold Ms
+      useDefaultCalendar: Use Default Calendar
+      pauseCalendarSpec: Pause Calendar Spec
+      blockStrategy: Block Strategy
+      blockStrategy_label: null
+      timeoutSeconds: Timeout Seconds
+      retryPolicyId: Retry Policy Id
+      partitionIndex: Partition Index
+      fireCount: Fire Count
+      activeFireCount: Active Fire Count
+      lastFireTime: Last Fire Time
+      lastEndTime: Last End Time
+      nextFireTime: Next Fire Time
+      lastFireStatus: Last Fire Status
+      lastFireStatus_label: null
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      jobParamsComponent: null
+      pauseCalendarSpecComponent: null
+    NopJobTask:
+      jobTaskId: Job Task Id
+      jobFireId: Job Fire Id
+      taskNo: Task No
+      taskStatus: Task Status
+      taskStatus_label: null
+      workerInstanceId: Worker Instance Id
+      workerAddress: Worker Address
+      taskPayload: Task Payload
+      startTime: Start Time
+      endTime: End Time
+      durationMs: Duration Ms
+      resultPayload: Result Payload
+      errorCode: Error Code
+      errorMessage: Error Message
+      partitionIndex: Partition Index
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      jobFire: Job Fire
+      taskPayloadComponent: null
+      resultPayloadComponent: null

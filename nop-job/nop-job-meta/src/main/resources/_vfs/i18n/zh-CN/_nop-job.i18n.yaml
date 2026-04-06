@@ -2,8 +2,11 @@ entity:
   label:
     NopJobAssignment: 任务分配
     NopJobDefinition: 作业定义
+    NopJobFire: 触发批次
     NopJobInstance: 任务实例
     NopJobInstanceHis: 任务实例历史
+    NopJobSchedule: 调度定义
+    NopJobTask: 执行任务
 prop:
   label:
     NopJobAssignment:
@@ -41,6 +44,40 @@ prop:
       sid: SID
       status: 任务状态
       status_label: 任务状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopJobFire:
+      createTime: 创建时间
+      createdBy: 创建人
+      dispatchInstanceId: 分发节点ID
+      durationMs: 执行时长(毫秒)
+      endTime: 结束时间
+      errorCode: 错误码
+      errorMessage: 错误消息
+      executorSnapshot: 执行器快照
+      executorSnapshotComponent: null
+      fireStatus: 批次状态
+      fireStatus_label: 批次状态
+      groupId: 分组
+      jobFireId: 触发批次ID
+      jobName: 作业名
+      jobParamsSnapshot: 参数快照
+      jobParamsSnapshotComponent: null
+      jobSchedule: 调度定义
+      jobSchedule.displayName: 调度定义
+      jobScheduleId: 调度ID
+      namespaceId: 命名空间
+      partitionIndex: 分区索引
+      plannerInstanceId: 计划节点ID
+      remark: 备注
+      retryPolicyId: 重试策略ID
+      retryRecordId: 重试记录ID
+      scheduledFireTime: 计划触发时间
+      startTime: 开始时间
+      triggerSource: 触发来源
+      triggerSource_label: 触发来源
+      triggeredBy: 触发人
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
@@ -108,3 +145,71 @@ prop:
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
+    NopJobSchedule:
+      activeFireCount: 活跃触发数
+      blockStrategy: 阻塞策略
+      blockStrategy_label: 阻塞策略
+      createTime: 创建时间
+      createdBy: 创建人
+      cronExpr: CRON表达式
+      description: 描述
+      displayName: 显示名
+      executorKind: 执行器类型
+      executorKind_label: 执行器类型
+      executorRef: 执行器引用
+      fireCount: 已触发次数
+      groupId: 分组
+      jobName: 作业名
+      jobParams: 任务参数
+      jobParamsComponent: null
+      jobScheduleId: 调度ID
+      lastEndTime: 上次结束时间
+      lastFireStatus: 上次触发状态
+      lastFireStatus_label: 上次触发状态
+      lastFireTime: 上次触发时间
+      maxExecutionCount: 最大执行次数
+      maxScheduleTime: 最晚调度时间
+      minScheduleTime: 最早调度时间
+      misfireThresholdMs: Misfire阈值(毫秒)
+      namespaceId: 命名空间
+      nextFireTime: 下次触发时间
+      partitionIndex: 分区索引
+      pauseCalendarSpec: 暂停日历配置
+      pauseCalendarSpecComponent: null
+      remark: 备注
+      repeatIntervalMs: 重复间隔(毫秒)
+      retryPolicyId: 重试策略ID
+      scheduleStatus: 调度状态
+      scheduleStatus_label: 调度状态
+      timeoutSeconds: 超时时间(秒)
+      triggerType: 触发器类型
+      triggerType_label: 触发器类型
+      updateTime: 修改时间
+      updatedBy: 修改人
+      useDefaultCalendar: 使用默认日历
+      version: 数据版本
+    NopJobTask:
+      createTime: 创建时间
+      createdBy: 创建人
+      durationMs: 执行时长(毫秒)
+      endTime: 结束时间
+      errorCode: 错误码
+      errorMessage: 错误消息
+      jobFire: 触发批次
+      jobFireId: 批次ID
+      jobTaskId: 任务ID
+      partitionIndex: 分区索引
+      remark: 备注
+      resultPayload: 执行结果
+      resultPayloadComponent: null
+      startTime: 开始时间
+      taskNo: 任务序号
+      taskPayload: 投递参数
+      taskPayloadComponent: null
+      taskStatus: 任务状态
+      taskStatus_label: 任务状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+      workerAddress: 执行节点地址
+      workerInstanceId: 执行节点ID

@@ -1,0 +1,35 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 执行任务状态
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 等待执行
+    value: 0
+    description: 
+  
+  - label: 已认领
+    value: 10
+    description: 
+  
+  - label: 执行中
+    value: 20
+    description: 
+  
+  - label: 执行成功
+    value: 30
+    description: 
+  
+  - label: 执行失败
+    value: 40
+    description: 
+  
+  - label: 执行超时
+    value: 50
+    description: 
+  
+  - label: 已取消
+    value: 60
+    description: 
+  

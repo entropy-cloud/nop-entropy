@@ -1,4 +1,29 @@
 
 "x:extends": _nop-job.i18n.yaml
 
-# key: "value"
+common:
+  viewSchedule: View Schedule
+  viewFire: View Fire
+  parentFire: Parent Fire
+  runtimeSummary: Runtime Summary
+  overview: Overview
+  relatedFires: Related Fires
+  relatedTasks: Related Tasks
+  viewFires: View Fires
+  viewTasks: View Tasks
+  triggerNow: Trigger Now
+  confirmTriggerNow: Confirm Trigger Now?
+  enableSchedule: Enable Schedule
+  confirmEnableSchedule: Confirm Enable Schedule?
+  disableSchedule: Disable Schedule
+  confirmDisableSchedule: Confirm Disable Schedule?
+  pauseSchedule: Pause Schedule
+  confirmPauseSchedule: Confirm Pause Schedule?
+  resumeSchedule: Resume Schedule
+  confirmResumeSchedule: Confirm Resume Schedule?
+  archiveSchedule: Archive Schedule
+  confirmArchiveSchedule: Confirm Archive Schedule?
+  cancelFire: Cancel Fire
+  confirmCancelFire: Confirm Cancel Fire?
+  rerunFire: Rerun Fire
+  confirmRerunFire: Confirm Rerun Fire?

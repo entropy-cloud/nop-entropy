@@ -1,0 +1,27 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 调度状态
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 已禁用
+    value: 0
+    description: 
+  
+  - label: 已启用
+    value: 10
+    description: 
+  
+  - label: 已暂停
+    value: 20
+    description: 
+  
+  - label: 已完成
+    value: 30
+    description: 
+  
+  - label: 已归档
+    value: 40
+    description: 
+  

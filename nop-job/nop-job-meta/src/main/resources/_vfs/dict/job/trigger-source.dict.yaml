@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 触发来源
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 定时触发
+    value: 1
+    description: 
+  
+  - label: 手工触发
+    value: 2
+    description: 
+  
+  - label: 恢复触发
+    value: 3
+    description: 
+  

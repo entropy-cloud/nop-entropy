@@ -1,3 +1,28 @@
 
 "x:extends": _nop-job.i18n.yaml
-# key: "value"
+common:
+  viewSchedule: 查看所属调度
+  viewFire: 查看所属触发批次
+  parentFire: 所属触发批次
+  runtimeSummary: 运行态摘要
+  overview: 概览
+  relatedFires: 关联触发批次
+  relatedTasks: 关联执行任务
+  viewFires: 查看触发批次
+  viewTasks: 查看执行任务
+  triggerNow: 立即触发
+  confirmTriggerNow: 确认立即触发吗？
+  enableSchedule: 启用调度
+  confirmEnableSchedule: 确认启用调度吗？
+  disableSchedule: 禁用调度
+  confirmDisableSchedule: 确认禁用调度吗？
+  pauseSchedule: 暂停调度
+  confirmPauseSchedule: 确认暂停调度吗？
+  resumeSchedule: 恢复调度
+  confirmResumeSchedule: 确认恢复调度吗？
+  archiveSchedule: 归档调度
+  confirmArchiveSchedule: 确认归档调度吗？
+  cancelFire: 取消触发
+  confirmCancelFire: 确认取消触发吗？
+  rerunFire: 重跑触发
+  confirmRerunFire: 确认重跑触发吗？

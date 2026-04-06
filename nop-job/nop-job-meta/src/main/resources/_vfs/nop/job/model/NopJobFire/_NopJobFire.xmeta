@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="触发批次" i18n-en:displayName="Job Fire" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>io.nop.job.dao.entity.NopJobFire</entityName>
+
+    <primaryKey>jobFireId</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys>
+        <key name="UK_NOP_JOB_FIRE_SCHEDULE_TIME_SOURCE" props="jobScheduleId,scheduledFireTime,triggerSource"/>
+    </keys>
+
+    <props>
+        <prop name="jobFireId" displayName="触发批次ID" propId="1" i18n-en:displayName="Job Fire Id" tagSet="seq"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="jobScheduleId" displayName="调度ID" propId="2" i18n-en:displayName="Job Schedule Id" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="jobSchedule">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="namespaceId" displayName="命名空间" propId="3" i18n-en:displayName="Namespace Id" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="groupId" displayName="分组" propId="4" i18n-en:displayName="Group Id" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="jobName" displayName="作业名" propId="5" i18n-en:displayName="Job Name" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="triggerSource" displayName="触发来源" propId="6" i18n-en:displayName="Trigger Source" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer" dict="job/trigger-source"/>
+        </prop>
+        <prop name="scheduledFireTime" displayName="计划触发时间" propId="7" i18n-en:displayName="Scheduled Fire Time"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="triggeredBy" displayName="触发人" propId="8" i18n-en:displayName="Triggered By" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="fireStatus" displayName="批次状态" propId="9" i18n-en:displayName="Fire Status" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer" dict="job/fire-status"/>
+        </prop>
+        <prop name="plannerInstanceId" displayName="计划节点ID" propId="10" i18n-en:displayName="Planner Instance Id"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="dispatchInstanceId" displayName="分发节点ID" propId="11" i18n-en:displayName="Dispatch Instance Id"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="startTime" displayName="开始时间" propId="12" i18n-en:displayName="Start Time" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="endTime" displayName="结束时间" propId="13" i18n-en:displayName="End Time" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="durationMs" displayName="执行时长(毫秒)" propId="14" i18n-en:displayName="Duration Ms" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="jobParamsSnapshot" displayName="参数快照" propId="15" i18n-en:displayName="Job Params Snapshot"
+              queryable="true" sortable="true" insertable="true" updatable="true"
+              graphql:jsonComponentProp="jobParamsSnapshotComponent">
+            <schema stdDomain="json" domain="json-4000" type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="executorSnapshot" displayName="执行器快照" propId="16" i18n-en:displayName="Executor Snapshot"
+              queryable="true" sortable="true" insertable="true" updatable="true"
+              graphql:jsonComponentProp="executorSnapshotComponent">
+            <schema stdDomain="json" domain="json-4000" type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="retryPolicyId" displayName="重试策略ID" propId="17" i18n-en:displayName="Retry Policy Id"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="retryRecordId" displayName="重试记录ID" propId="18" i18n-en:displayName="Retry Record Id"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="errorCode" displayName="错误码" propId="19" i18n-en:displayName="Error Code" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="errorMessage" displayName="错误消息" propId="20" i18n-en:displayName="Error Message" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="partitionIndex" displayName="分区索引" propId="21" i18n-en:displayName="Partition Index"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Short"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="22" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
+            <schema domain="version" type="java.lang.Long"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="23" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="24" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" propId="25" i18n-en:displayName="Updated By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" propId="26" i18n-en:displayName="Update Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" propId="27" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="jobSchedule" displayName="调度定义" i18n-en:displayName="Job Schedule" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="jobScheduleId"
+              ext:joinRightProp="jobScheduleId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopJobSchedule"/>
+        </prop>
+        <prop name="jobSchedule.displayName" displayName="调度定义" i18n-en:displayName="Job Schedule" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="jobParamsSnapshotComponent" tagSet="json,pub,edit" ext:kind="component" internal="true"
+              insertable="true" updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+        <prop name="executorSnapshotComponent" tagSet="json,pub,edit" ext:kind="component" internal="true"
+              insertable="true" updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+    </props>
+</meta>

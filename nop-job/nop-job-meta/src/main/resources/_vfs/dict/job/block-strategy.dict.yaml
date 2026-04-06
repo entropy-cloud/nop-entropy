@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 阻塞策略
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 丢弃
+    value: 1
+    description: 
+  
+  - label: 覆盖
+    value: 2
+    description: 
+  
+  - label: 并行
+    value: 3
+    description: 
+  
