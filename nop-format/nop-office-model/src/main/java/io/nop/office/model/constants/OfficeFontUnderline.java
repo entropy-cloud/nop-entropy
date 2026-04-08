@@ -28,6 +28,11 @@ public enum OfficeFontUnderline implements IOfficeEnumValue {
     }
 
     @Override
+    public String toString() {
+        return excelText;
+    }
+
+    @Override
     public String getCssText() {
         return cssText;
     }
