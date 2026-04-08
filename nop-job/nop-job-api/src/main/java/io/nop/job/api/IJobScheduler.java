@@ -84,7 +84,7 @@ public interface IJobScheduler {
     /**
      * 获取job当前状态。如果没有找到已注册的job，则返回null
      */
-    int getTriggerStatus(@Name("jobName") String jobName);
+    JobState getJobState(@Name("jobName") String jobName);
 
     /**
      * 启动已经注册的任务
