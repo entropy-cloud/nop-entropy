@@ -438,7 +438,14 @@
 /nop/schema/lang/compilation-unit.xdef
 /nop/schema/lang/method.xdef
 /nop/schema/message.xdef
+/nop/schema/office/border-style.xdef
 /nop/schema/office/doc.xdef
+/nop/schema/office/font.xdef
+/nop/schema/office/word-cell-style.xdef
+/nop/schema/office/word-paragraph-style.xdef
+/nop/schema/office/word-run-style.xdef
+/nop/schema/office/word-table-style.xdef
+/nop/schema/office/word-table.xdef
 /nop/schema/orm/dialect.xdef
 /nop/schema/orm/dict.xdef
 /nop/schema/orm/entity.xdef
