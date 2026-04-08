@@ -8,7 +8,7 @@
 package io.nop.job.core.trigger;
 
 import io.nop.job.core.ITrigger;
-import io.nop.job.core.ITriggerContext;
+import io.nop.job.core.ITriggerEvalContext;
 
 /**
  * 只在指定时刻执行一次
@@ -22,7 +22,7 @@ public class OnceTrigger implements ITrigger {
     }
 
     @Override
-    public long nextScheduleTime(long afterTime, ITriggerContext triggerContext) {
+    public long nextScheduleTime(long afterTime, ITriggerEvalContext evalContext) {
         if (!first) {
             return -1;
         }

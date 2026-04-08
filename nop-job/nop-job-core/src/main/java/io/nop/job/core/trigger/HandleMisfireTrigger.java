@@ -9,7 +9,7 @@ package io.nop.job.core.trigger;
 
 import io.nop.api.core.util.Guard;
 import io.nop.job.core.ITrigger;
-import io.nop.job.core.ITriggerContext;
+import io.nop.job.core.ITriggerEvalContext;
 
 /**
  * @author canonical_entropy@163.com
@@ -25,18 +25,18 @@ public class HandleMisfireTrigger implements ITrigger {
     }
 
     @Override
-    public long nextScheduleTime(long afterTime, ITriggerContext triggerContext) {
-        long startTime = triggerContext.getScheduledExecTime();
+    public long nextScheduleTime(long afterTime, ITriggerEvalContext evalContext) {
+        long startTime = evalContext.getLastScheduledTime();
         if (startTime <= 0) {
-            startTime = triggerContext.getMinScheduleTime();
+            startTime = evalContext.getMinScheduleTime();
             if (startTime <= 0)
-                return trigger.nextScheduleTime(afterTime, triggerContext);
+                return trigger.nextScheduleTime(afterTime, evalContext);
         }
 
         if (startTime < afterTime - misfireThreshold)
             startTime = afterTime - misfireThreshold;
 
-        long next = trigger.nextScheduleTime(startTime, triggerContext);
+        long next = trigger.nextScheduleTime(startTime, evalContext);
         return next;
     }
 }

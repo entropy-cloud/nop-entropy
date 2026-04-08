@@ -10,7 +10,7 @@ package io.nop.job.core.trigger;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.job.core.ICalendar;
 import io.nop.job.core.ITrigger;
-import io.nop.job.core.ITriggerContext;
+import io.nop.job.core.ITriggerEvalContext;
 
 import static io.nop.job.core.JobCoreErrors.ARG_LOOP_COUNT;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_TRIGGER_LOOP_COUNT_EXCEED_LIMIT;
@@ -30,13 +30,13 @@ public class PauseCalendarTrigger implements ITrigger {
     }
 
     @Override
-    public long nextScheduleTime(long afterTime, ITriggerContext triggerContext) {
-        long time = trigger.nextScheduleTime(afterTime, triggerContext);
+    public long nextScheduleTime(long afterTime, ITriggerEvalContext evalContext) {
+        long time = trigger.nextScheduleTime(afterTime, evalContext);
         int count = 0;
         while (time > 0 && !calendar.isTimeIncluded(time)) {
             time = calendar.getNextIncludedTime(time);
             if (time > 0) {
-                time = trigger.nextScheduleTime(time - 1, triggerContext);
+                time = trigger.nextScheduleTime(time - 1, evalContext);
             }
             count++;
             if (count > MAX_TRY_COUNT)

@@ -9,7 +9,7 @@ package io.nop.job.core.trigger;
 
 import io.nop.api.core.util.Guard;
 import io.nop.job.core.ITrigger;
-import io.nop.job.core.ITriggerContext;
+import io.nop.job.core.ITriggerEvalContext;
 
 /**
  * 按照固定周期触发
@@ -33,29 +33,24 @@ public class PeriodicTrigger implements ITrigger {
      * Returns the time after which a task should run again.
      */
     @Override
-    public long nextScheduleTime(long afterTime, ITriggerContext triggerContext) {
+    public long nextScheduleTime(long afterTime, ITriggerEvalContext evalContext) {
         if (fixedDelay) {
-            if (triggerContext.getScheduledExecTime() <= 0) {
-                // 第一次执行
+            if (evalContext.getLastScheduledTime() <= 0) {
                 return afterTime + 1;
             }
 
-            long lastEnd = triggerContext.getExecEndTime();
+            long lastEnd = evalContext.getLastEndTime();
             if (lastEnd <= 0)
                 lastEnd = afterTime;
 
-            // 上次执行时间 + 延迟时间
             long time = lastEnd + period;
-            // 返回的时间一定在afterTime之后
             if (time <= afterTime)
                 time = afterTime + 1;
             return time;
         } else {
-            long start = triggerContext.getScheduledExecTime();
+            long start = evalContext.getLastScheduledTime();
             if (start < 0) {
-                // 第一次执行
-                start = triggerContext.getMinScheduleTime();
-                // 如果没有指定开始时间
+                start = evalContext.getMinScheduleTime();
                 if (start < 0) {
                     return afterTime + 1;
                 } else {
@@ -64,13 +59,11 @@ public class PeriodicTrigger implements ITrigger {
                     }
                 }
             }
-            // start为上次调度时间或者最小调度时间
 
             if (afterTime < start)
                 afterTime = start;
 
             long n = (afterTime - start) / period + 1;
-            // 在start之后至少延后一个周期
             return start + n * period;
         }
     }

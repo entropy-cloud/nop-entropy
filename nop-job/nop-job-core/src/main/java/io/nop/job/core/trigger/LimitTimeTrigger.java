@@ -8,7 +8,7 @@
 package io.nop.job.core.trigger;
 
 import io.nop.job.core.ITrigger;
-import io.nop.job.core.ITriggerContext;
+import io.nop.job.core.ITriggerEvalContext;
 
 /**
  * @author canonical_entropy@163.com
@@ -21,16 +21,16 @@ public class LimitTimeTrigger implements ITrigger {
     }
 
     @Override
-    public long nextScheduleTime(long afterTime, ITriggerContext triggerContext) {
-        long max = triggerContext.getMaxScheduleTime();
+    public long nextScheduleTime(long afterTime, ITriggerEvalContext evalContext) {
+        long max = evalContext.getMaxScheduleTime();
         if (max > 0 && max <= afterTime)
             return -1;
 
-        long min = triggerContext.getMinScheduleTime();
+        long min = evalContext.getMinScheduleTime();
         if (min > 0 && min > afterTime)
             afterTime = min - 1;
 
-        long time = trigger.nextScheduleTime(afterTime, triggerContext);
+        long time = trigger.nextScheduleTime(afterTime, evalContext);
         if (max > 0 && max < time)
             return -1;
 

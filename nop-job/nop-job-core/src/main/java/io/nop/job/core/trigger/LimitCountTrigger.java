@@ -8,7 +8,7 @@
 package io.nop.job.core.trigger;
 
 import io.nop.job.core.ITrigger;
-import io.nop.job.core.ITriggerContext;
+import io.nop.job.core.ITriggerEvalContext;
 
 /**
  * @author canonical_entropy@163.com
@@ -21,13 +21,13 @@ public class LimitCountTrigger implements ITrigger {
     }
 
     @Override
-    public long nextScheduleTime(long afterTime, ITriggerContext triggerContext) {
-        long maxRepeatCount = triggerContext.getMaxExecutionCount();
+    public long nextScheduleTime(long afterTime, ITriggerEvalContext evalContext) {
+        long maxRepeatCount = evalContext.getMaxExecutionCount();
         if (maxRepeatCount > 0) {
-            if (triggerContext.getExecCount() >= maxRepeatCount)
+            if (evalContext.getFireCount() >= maxRepeatCount)
                 return -1;
         }
 
-        return trigger.nextScheduleTime(afterTime, triggerContext);
+        return trigger.nextScheduleTime(afterTime, evalContext);
     }
 }

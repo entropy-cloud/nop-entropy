@@ -9,7 +9,7 @@ package io.nop.job.core.trigger;
 
 import io.nop.api.core.util.Guard;
 import io.nop.job.core.ITrigger;
-import io.nop.job.core.ITriggerContext;
+import io.nop.job.core.ITriggerEvalContext;
 import io.nop.job.core.utils.CronExpression;
 
 /**
@@ -23,9 +23,8 @@ public class CronTrigger implements ITrigger {
     }
 
     @Override
-    public long nextScheduleTime(long afterTime, ITriggerContext triggerContext) {
-        // 如果是第一次执行
-        long time = triggerContext.getScheduledExecTime();
+    public long nextScheduleTime(long afterTime, ITriggerEvalContext evalContext) {
+        long time = evalContext.getLastScheduledTime();
         if (time < afterTime)
             time = afterTime;
 
