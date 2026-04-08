@@ -4,23 +4,68 @@
 
     <pages xdef:body-type="list" xdef:key-attr="name">
         <page name="!string" xdef:name="OfficeDocPageModel" orientation="string">
-            <header xdef:body-type="list" xdef:key-attr="id">
-                <p id="!string" xdef:name="OfficeParagraphModel" xdef:bean-prop="paragraphs">
+            <model xdef:name="OfficeDocPageTemplateModel"
+                   loopVarName="var-name" loopIndexName="var-name" loopItemsName="var-name">
+                <testExpr>xpl-predicate</testExpr>
+                <beginLoop>xpl</beginLoop>
+                <endLoop>xpl</endLoop>
+                <beforeRender>xpl</beforeRender>
+                <afterRender>xpl</afterRender>
+            </model>
+
+            <header xdef:body-type="list"
+                    xdef:bean-sub-type-prop="type"
+                    xdef:bean-body-type="List&lt;io.nop.office.doc.model.OfficeBlock>">
+                <p id="!string" xdef:name="OfficeParagraphModel" xdef:bean-tag-prop="type">
+                    <style xdef:ref="word-paragraph-style.xdef"/>
+                    <model xdef:name="OfficeParagraphTemplateModel">
+                        <testExpr>xpl-predicate</testExpr>
+                        <visibleExpr>xpl</visibleExpr>
+                        <beforeRender>xpl</beforeRender>
+                        <afterRender>xpl</afterRender>
+                    </model>
                     <r id="!string" xdef:name="OfficeRunModel" xdef:unique-attr="id" xdef:bean-prop="runs">
-                        <style xdef:ref="../excel/style.xdef"/>
+                        <style xdef:ref="word-run-style.xdef"/>
+                        <model xdef:name="OfficeRunTemplateModel">
+                            <testExpr>xpl-predicate</testExpr>
+                            <valueExpr>report-expr</valueExpr>
+                            <formatExpr>report-expr</formatExpr>
+                            <linkExpr>report-expr</linkExpr>
+                            <templateExpr>xpl</templateExpr>
+                            <beforeRender>xpl</beforeRender>
+                            <afterRender>xpl</afterRender>
+                        </model>
                         <t>string</t>
                     </r>
                 </p>
+                <table id="!string" xdef:ref="word-table.xdef" xdef:bean-tag-prop="type"/>
             </header>
 
-            <footer xdef:body-type="list" xdef:key-attr="id">
-                <p id="!string" xdef:ref="OfficeParagraphModel"/>
+            <footer xdef:body-type="list"
+                    xdef:bean-sub-type-prop="type"
+                    xdef:bean-body-type="List&lt;io.nop.office.doc.model.OfficeBlock>">
+                <p id="!string" xdef:ref="OfficeParagraphModel" xdef:bean-tag-prop="type"/>
+                <table id="!string" xdef:ref="word-table.xdef" xdef:bean-tag-prop="type"/>
             </footer>
 
-            <body xdef:body-type="list" xdef:key-attr="id">
-                <p id="!string" xdef:ref="OfficeParagraphModel"/>
-                <table id="!string" xdef:ref="../excel/excel-table.xdef"/>
+            <body xdef:body-type="list"
+                  xdef:bean-sub-type-prop="type"
+                  xdef:bean-body-type="List&lt;io.nop.office.doc.model.OfficeBlock>">
+                <p id="!string" xdef:ref="OfficeParagraphModel" xdef:bean-tag-prop="type"/>
+                <table id="!string" xdef:ref="word-table.xdef" xdef:bean-tag-prop="type"/>
             </body>
         </page>
     </pages>
+
+    <model xdef:name="OfficeDocTemplateModel"
+           loopVarName="var-name" loopIndexName="var-name" loopItemsName="var-name"
+           dump="!boolean=false" normalizeQuote="!boolean=false"
+           deleteAllAfterConfigTable="!boolean=false" dumpFile="string">
+        <importLibs>csv-list</importLibs>
+        <testExpr>xpl-predicate</testExpr>
+        <beginLoop>xpl</beginLoop>
+        <endLoop>xpl</endLoop>
+        <beforeGen>xpl</beforeGen>
+        <afterGen>xpl</afterGen>
+    </model>
 </doc>

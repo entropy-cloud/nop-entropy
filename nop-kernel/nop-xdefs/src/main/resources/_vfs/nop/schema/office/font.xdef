@@ -1,0 +1,7 @@
+<font x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+      xdef:name="OfficeFont" xdef:bean-package="io.nop.office.model"
+      fontSize="float" charSet="int"
+      fontName="string" fontFamily="string" fontColor="string"
+      italic="!boolean=false" bold="!boolean=false" strikeout="!boolean=false"
+      underlineStyle="enum:io.nop.office.model.constants.OfficeFontUnderline"
+      verticalAlign="enum:io.nop.office.model.constants.OfficeFontVerticalAlign"/>

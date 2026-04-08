@@ -15,7 +15,6 @@ import io.nop.core.model.tree.ITreeVisitor;
 import io.nop.core.model.tree.TreeVisitResult;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
-import io.nop.excel.model.ExcelTable;
 import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.common.gen.XplGenConfig;
 import io.nop.ooxml.common.model.OfficeRelsPart;
@@ -25,6 +24,7 @@ import io.nop.ooxml.docx.model.WordDrawing;
 import io.nop.ooxml.docx.model.WordHyperlink;
 import io.nop.ooxml.docx.model.WordHyperlinkTransformer;
 import io.nop.ooxml.docx.model.WordOfficePackage;
+import io.nop.office.doc.model.WordTable;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.ast.XLangOutputMode;
 import org.slf4j.Logger;
@@ -208,7 +208,7 @@ public class WordTemplateParser {
         if (tableN == null)
             return new XplGenConfig();
 
-        ExcelTable table = new WordTableParser().parseTable(tableN);
+        WordTable table = new WordTableParser().parseTable(tableN);
         XplGenConfig config = XplGenConfig.parseFromTable(table);
         config.setLocation(tableN.getLocation());
 

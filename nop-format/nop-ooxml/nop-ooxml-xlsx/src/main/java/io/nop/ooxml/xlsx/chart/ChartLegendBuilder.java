@@ -14,8 +14,8 @@ import io.nop.excel.chart.model.ChartLegendModel;
 import io.nop.excel.chart.model.ChartManualLayoutModel;
 import io.nop.excel.chart.model.ChartShapeStyleModel;
 import io.nop.excel.chart.model.ChartTextStyleModel;
-import io.nop.excel.model.constants.ExcelHorizontalAlignment;
-import io.nop.excel.model.constants.ExcelVerticalAlignment;
+import io.nop.office.model.constants.OfficeHorizontalAlignment;
+import io.nop.office.model.constants.OfficeVerticalAlignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,7 +114,7 @@ public class ChartLegendBuilder {
     /**
      * 映射水平对齐到OOXML值
      */
-    private String mapHorizontalAlignmentToOoxml(ExcelHorizontalAlignment align) {
+    private String mapHorizontalAlignmentToOoxml(OfficeHorizontalAlignment align) {
         if (align == null) {
             return "left";
         }
@@ -137,7 +137,7 @@ public class ChartLegendBuilder {
     /**
      * 映射垂直对齐到OOXML值
      */
-    private String mapVerticalAlignmentToOoxml(ExcelVerticalAlignment verticalAlign) {
+    private String mapVerticalAlignmentToOoxml(OfficeVerticalAlignment verticalAlign) {
         if (verticalAlign == null) {
             return "center";
         }
@@ -270,8 +270,8 @@ public class ChartLegendBuilder {
      * @return 图例XNode，如果position为null则返回null
      */
     public XNode buildLegendWithAlignment(ChartLegendPosition position,
-                                          ExcelHorizontalAlignment horizontalAlign,
-                                          ExcelVerticalAlignment verticalAlign) {
+                                          OfficeHorizontalAlignment horizontalAlign,
+                                          OfficeVerticalAlignment verticalAlign) {
         if (position == null) {
             return null;
         }

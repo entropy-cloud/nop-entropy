@@ -7,8 +7,8 @@ import io.nop.excel.chart.constants.ChartOrientation;
 import io.nop.excel.chart.model.ChartLegendModel;
 import io.nop.excel.chart.model.ChartShapeStyleModel;
 import io.nop.excel.chart.model.ChartTextStyleModel;
-import io.nop.excel.model.constants.ExcelHorizontalAlignment;
-import io.nop.excel.model.constants.ExcelVerticalAlignment;
+import io.nop.office.model.constants.OfficeHorizontalAlignment;
+import io.nop.office.model.constants.OfficeVerticalAlignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,7 +127,7 @@ public class ChartLegendParser {
         // 解析水平对齐 - 从子元素获取
         String align = ChartPropertyHelper.getChildVal(legendNode, "c:align");
         if (align != null) {
-            ExcelHorizontalAlignment horizontalAlign = mapHorizontalAlignment(align);
+            OfficeHorizontalAlignment horizontalAlign = mapHorizontalAlignment(align);
             if (horizontalAlign != null) {
                 legend.setAlign(horizontalAlign);
             }
@@ -136,7 +136,7 @@ public class ChartLegendParser {
         // 解析垂直对齐 - 从子元素获取
         String verticalAlign = ChartPropertyHelper.getChildVal(legendNode, "c:verticalAlign");
         if (verticalAlign != null) {
-            ExcelVerticalAlignment verticalAlignment = mapVerticalAlignment(verticalAlign);
+            OfficeVerticalAlignment verticalAlignment = mapVerticalAlignment(verticalAlign);
             if (verticalAlignment != null) {
                 legend.setVerticalAlign(verticalAlignment);
             }
@@ -146,40 +146,40 @@ public class ChartLegendParser {
     /**
      * 映射水平对齐字符串到枚举
      */
-    private ExcelHorizontalAlignment mapHorizontalAlignment(String align) {
+    private OfficeHorizontalAlignment mapHorizontalAlignment(String align) {
         if (align == null) return null;
 
         switch (align.toLowerCase()) {
             case "left":
-                return ExcelHorizontalAlignment.LEFT;
+                return OfficeHorizontalAlignment.LEFT;
             case "center":
-                return ExcelHorizontalAlignment.CENTER;
+                return OfficeHorizontalAlignment.CENTER;
             case "right":
-                return ExcelHorizontalAlignment.RIGHT;
+                return OfficeHorizontalAlignment.RIGHT;
             case "justify":
-                return ExcelHorizontalAlignment.JUSTIFY;
+                return OfficeHorizontalAlignment.JUSTIFY;
             default:
-                return ExcelHorizontalAlignment.LEFT;
+                return OfficeHorizontalAlignment.LEFT;
         }
     }
 
     /**
      * 映射垂直对齐字符串到枚举
      */
-    private ExcelVerticalAlignment mapVerticalAlignment(String verticalAlign) {
+    private OfficeVerticalAlignment mapVerticalAlignment(String verticalAlign) {
         if (verticalAlign == null) return null;
 
         switch (verticalAlign.toLowerCase()) {
             case "top":
-                return ExcelVerticalAlignment.TOP;
+                return OfficeVerticalAlignment.TOP;
             case "center":
-                return ExcelVerticalAlignment.CENTER;
+                return OfficeVerticalAlignment.CENTER;
             case "bottom":
-                return ExcelVerticalAlignment.BOTTOM;
+                return OfficeVerticalAlignment.BOTTOM;
             case "justify":
-                return ExcelVerticalAlignment.JUSTIFY;
+                return OfficeVerticalAlignment.JUSTIFY;
             default:
-                return ExcelVerticalAlignment.CENTER;
+                return OfficeVerticalAlignment.CENTER;
         }
     }
 

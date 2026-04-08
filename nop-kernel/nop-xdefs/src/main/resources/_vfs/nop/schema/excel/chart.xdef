@@ -73,8 +73,8 @@ Supports comprehensive chart configuration for Apache POI, PDF, and ECharts outp
     <!-- 文本样式（对应 CTTextBody） -->
     <xdef:define xdef:name="ChartTextStyleModel"
                  wrapText="!boolean=false" textDirection="enum:io.nop.excel.chart.constants.ChartTextDirection"
-                 verticalAlign="enum:io.nop.excel.model.constants.ExcelVerticalAlignment"
-                 horizontalAlign="enum:io.nop.excel.model.constants.ExcelHorizontalAlignment">
+                 verticalAlign="enum:io.nop.office.model.constants.OfficeVerticalAlignment"
+                 horizontalAlign="enum:io.nop.office.model.constants.OfficeHorizontalAlignment">
         <!-- 字体 -->
         <font xdef:ref="font.xdef"/>
 
@@ -514,8 +514,8 @@ Chart type specific configurations
     <legend visible="!boolean=true" overlay="boolean=false"
             position="enum:io.nop.excel.chart.constants.ChartLegendPosition"
             orientation="enum:io.nop.excel.chart.constants.ChartOrientation"
-            align="enum:io.nop.excel.model.constants.ExcelHorizontalAlignment"
-            verticalAlign="enum:io.nop.excel.model.constants.ExcelVerticalAlignment" xdef:name="ChartLegendModel">
+            align="enum:io.nop.office.model.constants.OfficeHorizontalAlignment"
+            verticalAlign="enum:io.nop.office.model.constants.OfficeVerticalAlignment" xdef:name="ChartLegendModel">
 
         <manualLayout xdef:ref="ChartManualLayoutModel"/>
 

@@ -1,0 +1,5 @@
+<style x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+       xdef:name="WordRunStyle" xdef:bean-package="io.nop.office.model"
+       id="string" name="string" highlightColor="string">
+    <font xdef:ref="font.xdef"/>
+</style>

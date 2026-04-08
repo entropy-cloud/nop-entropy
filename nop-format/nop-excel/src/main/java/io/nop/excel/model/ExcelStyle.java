@@ -11,12 +11,13 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.excel.format.ExcelDateHelper;
 import io.nop.excel.model._gen._ExcelStyle;
 import io.nop.excel.model.color.ColorHelper;
-import io.nop.excel.model.constants.ExcelHorizontalAlignment;
-import io.nop.excel.model.constants.ExcelLineStyle;
-import io.nop.excel.model.constants.IExcelEnumValue;
 import io.nop.excel.util.UnitsHelper;
+import io.nop.office.model.OfficeBorderStyle;
+import io.nop.office.model.constants.IOfficeEnumValue;
+import io.nop.office.model.constants.OfficeHorizontalAlignment;
+import io.nop.office.model.constants.OfficeLineStyle;
 
-import static io.nop.excel.model.ExcelBorderStyle.isSameStyle;
+import static io.nop.office.model.OfficeBorderStyle.isSameStyle;
 
 public class ExcelStyle extends _ExcelStyle {
     private boolean dateFormat;
@@ -107,13 +108,13 @@ public class ExcelStyle extends _ExcelStyle {
         cssProp(sb, "vertical-align", this.getVerticalAlign());
         cssProp(sb, "text-align", this.getHorizontalAlign());
 
-        ExcelHorizontalAlignment horAlign = getHorizontalAlign();
+        OfficeHorizontalAlignment horAlign = getHorizontalAlign();
 
         if (getIndent() != null) {
             if (horAlign != null) {
-                if (horAlign == ExcelHorizontalAlignment.LEFT) {
+                if (horAlign == OfficeHorizontalAlignment.LEFT) {
                     sb.append("padding-left:").append((getIndent() * UnitsHelper.DEFAULT_CHARACTER_WIDTH_IN_PT + 2) + "pt;\n");
-                } else if (horAlign == ExcelHorizontalAlignment.RIGHT) {
+                } else if (horAlign == OfficeHorizontalAlignment.RIGHT) {
                     sb.append("padding-right:").append((getIndent() * UnitsHelper.DEFAULT_CHARACTER_WIDTH_IN_PT + +2) + "pt;\n");
                 }
             }
@@ -154,14 +155,14 @@ public class ExcelStyle extends _ExcelStyle {
         return sb.toString();
     }
 
-    private void cssProp(StringBuilder sb, String name, IExcelEnumValue value) {
+    private void cssProp(StringBuilder sb, String name, IOfficeEnumValue value) {
         if (name == null || value == null)
             return;
         sb.append(name).append(":").append(value.getCssText()).append(";\n");
     }
 
-    private void borderCss(StringBuilder sb, ExcelBorderStyle style, String name) {
-        if (style.getType() == ExcelLineStyle.NONE) {
+    private void borderCss(StringBuilder sb, OfficeBorderStyle style, String name) {
+        if (style.getType() == OfficeLineStyle.NONE) {
             sb.append(name).append(":none;");
             return;
         }
@@ -170,7 +171,7 @@ public class ExcelStyle extends _ExcelStyle {
                 .append(nvl(ColorHelper.toCssColor(style.getColor()), "black")).append(";\n");
     }
 
-    private String m(IExcelEnumValue enumValue, String defaultValue) {
+    private String m(IOfficeEnumValue enumValue, String defaultValue) {
         if (enumValue == null)
             return defaultValue;
         return enumValue.getCssText();

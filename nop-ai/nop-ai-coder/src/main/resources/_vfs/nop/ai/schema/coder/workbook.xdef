@@ -13,8 +13,8 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
         <style id="!int" name="string"
                indent="int" locked="boolean" hidden="boolean"
                wrapText="!boolean=false" shrinkToFit="!boolean=false" rotate="int"
-               verticalAlign="enum:io.nop.excel.model.constants.ExcelVerticalAlignment"
-               horizontalAlign="enum:io.nop.excel.model.constants.ExcelHorizontalAlignment"
+               verticalAlign="enum:io.nop.office.model.constants.OfficeVerticalAlignment"
+               horizontalAlign="enum:io.nop.office.model.constants.OfficeHorizontalAlignment"
                fillBgColor="string" fillPattern="string" fillFgColor="string"
         >
             <numberFormat>string</numberFormat>
@@ -26,8 +26,8 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
             <font fontSize="float" charSet="int"
                   fontName="string" fontFamily="string" fontColor="string"
                   italic="!boolean=false" bold="!boolean=false" strikeout="!boolean=false"
-                  underlineStyle="enum:single|double|none|singleAccounting|doubleAccounting"
-                  verticalAlign="enum:subscript|subscript"/>
+                  underlineStyle="enum:io.nop.office.model.constants.OfficeFontUnderline"
+                  verticalAlign="enum:io.nop.office.model.constants.OfficeFontVerticalAlign"/>
 
             <topBorder xdef:name="ExcelBorderStyle"
                        type="enum:none|thin|medium|dashed|dotted|thick|double|hair|mediumDashed|dashDot|mediumDashDot|dashDotDot|mediumDashDotDot"

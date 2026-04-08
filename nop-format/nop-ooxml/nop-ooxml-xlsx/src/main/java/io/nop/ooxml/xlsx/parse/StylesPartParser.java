@@ -11,7 +11,6 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.format.BuiltinFormats;
-import io.nop.excel.model.ExcelBorder;
 import io.nop.excel.model.ExcelBorderStyle;
 import io.nop.excel.model.ExcelFill;
 import io.nop.excel.model.ExcelFont;
@@ -21,11 +20,12 @@ import io.nop.excel.model.color.PredefinedColors;
 import io.nop.excel.model.constants.ExcelFontFamily;
 import io.nop.excel.model.constants.ExcelFontUnderline;
 import io.nop.excel.model.constants.ExcelFontVerticalAlign;
-import io.nop.excel.model.constants.ExcelHorizontalAlignment;
-import io.nop.excel.model.constants.ExcelLineStyle;
-import io.nop.excel.model.constants.ExcelVerticalAlignment;
 import io.nop.ooxml.xlsx.model.ExcelOfficePackage;
 import io.nop.ooxml.xlsx.model.ThemesPart;
+import io.nop.office.model.OfficeBorder;
+import io.nop.office.model.constants.OfficeHorizontalAlignment;
+import io.nop.office.model.constants.OfficeLineStyle;
+import io.nop.office.model.constants.OfficeVerticalAlignment;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,7 +35,7 @@ import java.util.Map;
 public class StylesPartParser {
     private final Map<String, String> numberFormats = new HashMap<>();
     private final List<ExcelFont> fonts = new ArrayList<>();
-    private final List<ExcelBorder> borders = new ArrayList<>();
+    private final List<OfficeBorder<ExcelBorderStyle>> borders = new ArrayList<>();
     private final List<ExcelFill> fills = new ArrayList<>();
     private final List<ExcelStyle> cellStyleXfs = new ArrayList<>();
     private final List<ExcelStyle> cellXfs = new ArrayList<>();
@@ -135,7 +135,7 @@ public class StylesPartParser {
         XNode bordersN = node.childByTag("borders");
         if (bordersN != null) {
             for (XNode borderN : bordersN.getChildren()) {
-                ExcelBorder border = new ExcelBorder();
+                OfficeBorder<ExcelBorderStyle> border = new OfficeBorder<>();
                 border.setLeftBorder(parseBorderStyle(borderN.childByTag("left")));
                 border.setRightBorder(parseBorderStyle(borderN.childByTag("right")));
                 border.setTopBorder(parseBorderStyle(borderN.childByTag("top")));
@@ -153,7 +153,7 @@ public class StylesPartParser {
         if (node == null) return null;
         ExcelBorderStyle style = new ExcelBorderStyle();
         String styleName = node.attrText("style");
-        style.setType(ExcelLineStyle.fromExcelText(styleName));
+        style.setType(OfficeLineStyle.fromExcelText(styleName));
 
         String color = parseColor(node.childByTag("color"));
         style.setColor(color);
@@ -273,7 +273,7 @@ public class StylesPartParser {
         }
 
         int borderId = xf.attrInt("borderId", -1);
-        ExcelBorder border = getBorder(borderId);
+        OfficeBorder<ExcelBorderStyle> border = getBorder(borderId);
         if (border != null) {
             if (border.getLeftBorder() != null) style.setLeftBorder(border.getLeftBorder());
             if (border.getRightBorder() != null) style.setRightBorder(border.getRightBorder());
@@ -300,13 +300,13 @@ public class StylesPartParser {
         if (alignment != null) {
             String vertAlign = alignment.attrText("vertical");
             if (vertAlign != null) {
-                ExcelVerticalAlignment verticalAlignment = ExcelVerticalAlignment.fromExcelText(vertAlign);
+                OfficeVerticalAlignment verticalAlignment = OfficeVerticalAlignment.fromExcelText(vertAlign);
                 if (verticalAlignment != null) style.setVerticalAlign(verticalAlignment);
             }
 
             String horAlign = alignment.attrText("horizontal");
             if (horAlign != null) {
-                ExcelHorizontalAlignment horizontalAlignment = ExcelHorizontalAlignment.fromExcelText(horAlign);
+                OfficeHorizontalAlignment horizontalAlignment = OfficeHorizontalAlignment.fromExcelText(horAlign);
                 if (horizontalAlignment != null) style.setHorizontalAlign(horizontalAlignment);
             }
 
@@ -337,7 +337,7 @@ public class StylesPartParser {
         return CollectionHelper.get(fills, fillId);
     }
 
-    private ExcelBorder getBorder(int borderId) {
+    private OfficeBorder<ExcelBorderStyle> getBorder(int borderId) {
         return CollectionHelper.get(borders, borderId);
     }
 

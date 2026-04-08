@@ -10,11 +10,10 @@ package io.nop.ooxml.docx.parse;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
-import io.nop.excel.model.ExcelCell;
-import io.nop.excel.model.ExcelRow;
-import io.nop.excel.model.ExcelTable;
-import io.nop.excel.util.UnitsHelper;
 import io.nop.ooxml.common.model.ImageUrlMapper;
+import io.nop.office.doc.model.WordTable;
+import io.nop.office.doc.model.WordTableCell;
+import io.nop.office.doc.model.WordTableRow;
 
 import java.util.Objects;
 
@@ -56,6 +55,8 @@ import java.util.Objects;
  </w:tbl>
  */
 public class WordTableParser {
+    public static final double DEFAULT_WIDTH = 72.0;
+
     private ImageUrlMapper urlMapper;
     private boolean forMarkdown;
 
@@ -69,8 +70,8 @@ public class WordTableParser {
         return this;
     }
 
-    public ExcelTable parseTable(XNode tblNode) {
-        ExcelTable tbl = new ExcelTable();
+    public WordTable parseTable(XNode tblNode) {
+        WordTable tbl = new WordTable();
         int i, n = tblNode.getChildCount();
         int rowIndex = 0;
         for (i = 0; i < n; i++) {
@@ -81,17 +82,19 @@ public class WordTableParser {
                 rowIndex++;
             }
         }
+
+        parseCols(tblNode, tbl);
         return tbl;
     }
 
-    protected ExcelRow parseRow(int rowIndex, XNode node, ExcelTable tbl) {
+    protected WordTableRow parseRow(int rowIndex, XNode node, WordTable tbl) {
         int i, n = node.getChildCount();
         int colIndex = 0;
         for (i = 0; i < n; i++) {
             XNode child = node.child(i);
             String name = child.getTagName();
             if (name.equals("w:tc")) {
-                ExcelCell cell = new ExcelCell();
+                WordTableCell cell = new WordTableCell();
                 if (parseCell(child, cell)) {
                     tbl.setCell(rowIndex, colIndex, cell);
                 }
@@ -99,7 +102,7 @@ public class WordTableParser {
             }
         }
 
-        ExcelRow row = tbl.makeRow(rowIndex);
+        WordTableRow row = tbl.makeRow(rowIndex);
 
         Double height = getRowHeight(node);
         if (height != null)
@@ -117,7 +120,7 @@ public class WordTableParser {
                 String heightRule = trHeight.attrText("w:hRule");
                 // 如果高度规则是"exact"或"atLeast"，则设置行高
                 if ("exact".equals(heightRule) || "atLeast".equals(heightRule)) {
-                    return UnitsHelper.twipsToPoints(height); // 转换为磅值
+                    return twipsToPoints(height);
                 }
             }
         }
@@ -128,7 +131,7 @@ public class WordTableParser {
         return WordXmlHelper.getText(node, forMarkdown, urlMapper);
     }
 
-    protected boolean parseCell(XNode node, ExcelCell cell) {
+    protected boolean parseCell(XNode node, WordTableCell cell) {
         XNode tcPrN = node.childByTag("w:tcPr");
         if (tcPrN != null) {
 
@@ -197,6 +200,33 @@ public class WordTableParser {
         String data = this.parseData(node);
         cell.setValue(data);
         return true;
+    }
+
+    protected void parseCols(XNode tblNode, WordTable table) {
+        XNode tblGrid = tblNode.childByTag("w:tblGrid");
+        if (tblGrid == null) {
+            return;
+        }
+
+        for (XNode colNode : tblGrid.getChildren()) {
+            if (!"w:gridCol".equals(colNode.getTagName())) {
+                continue;
+            }
+
+            String widthTwips = colNode.attrText("w:w");
+            io.nop.office.doc.model.WordTableColumnConfig config = new io.nop.office.doc.model.WordTableColumnConfig();
+            if (widthTwips != null) {
+                config.setWidth(twipsToPoints(Integer.parseInt(widthTwips)));
+            } else {
+                config.setWidth(DEFAULT_WIDTH);
+            }
+            config.setHidden("true".equalsIgnoreCase(colNode.attrText("data-hidden")));
+            table.getCols().add(config);
+        }
+    }
+
+    protected double twipsToPoints(int twips) {
+        return twips / 20.0;
     }
 
     private String getVMerge(XNode tcPr) {
