@@ -104,18 +104,144 @@ public enum ChartFillType {
 }
 ```
 
+### xdef 枚举域与 toString() 约定
+
+在 xdef 模型文件中使用 `enum:包名.枚举类名` 声明枚举属性时，框架通过 `EnumDictLoader` 构建字典，字典值取自枚举常量的 `toString()` 返回值（若无 `@Option` 注解覆盖）。
+
+**因此，如果枚举的序列化文本与枚举名（`name()`）不一致，必须覆写 `toString()` 方法，否则 xdef 验证会报 `invalid-enum-value` 错误。**
+
+```java
+// ✅ 正确：覆写 toString() 返回协议文本
+public enum OfficeHorizontalAlignment implements IOfficeEnumValue {
+    LEFT("left"),
+    CENTER("center"),
+    RIGHT("right");
+
+    private final String excelText;
+
+    OfficeHorizontalAlignment(String text) {
+        this.excelText = text;
+    }
+
+    @Override
+    public String toString() {
+        return excelText;  // 返回 "left" 而非 "LEFT"
+    }
+}
+
+// ❌ 错误：未覆写 toString()，xdef 验证期望 "SINGLE" 但实际值为 "single"
+public enum OfficeFontUnderline implements IOfficeEnumValue {
+    SINGLE(1, "single");
+
+    private final String excelText;
+
+    OfficeFontUnderline(int value, String text) {
+        this.excelText = text;
+    }
+
+    // 缺少 toString() 覆写 → toString() 返回 "SINGLE"(enum name)
+    // 但序列化时写入 "single"(excelText) → xdef 验证失败
+}
+```
+
+**关键规则**：
+- `EnumDictLoader.buildOptions()` 使用 `fieldValue.toString()` 作为字典的 value
+- `EnumStdDomainHandler.parseProp()` 通过 `dict.getOptionByValue(text)` 验证输入值
+- 如果枚举有 `@Option` 注解，字典值由 `@Option.value()` 覆盖
+- 如果枚举实现了 `IOfficeEnumValue` 且 `toString()` 返回协议文本（如 `"left"`、`"single"`），则 xdef 中写入的值也应使用同样的协议文本
+
+### Office 枚举模式（IOfficeEnumValue）
+
+对于需要与 Excel/Word 等文档格式互操作的枚举，实现 `IOfficeEnumValue` 接口：
+
+```java
+public enum OfficeHorizontalAlignment implements IOfficeEnumValue {
+    LEFT("left"),
+    CENTER("center");
+
+    private final String excelText;
+    private final String cssText;
+    private final String wmlText;
+
+    OfficeHorizontalAlignment(String text) {
+        this.excelText = text;
+        this.cssText = text.toLowerCase();
+        this.wmlText = text.toLowerCase();
+    }
+
+    @Override
+    public String toString() {
+        return excelText;  // 必须：保证 xdef 字典值与序列化值一致
+    }
+
+    @Override
+    public String getExcelText() { return excelText; }
+
+    @Override
+    public String getCssText() { return cssText; }
+
+    @Override
+    public String getWmlText() { return wmlText; }
+
+    private static final OfficeEnumMap<OfficeHorizontalAlignment> MAP = new OfficeEnumMap<>(values());
+
+    @StaticFactoryMethod
+    public static OfficeHorizontalAlignment fromExcelText(String text) {
+        return MAP.fromExcelText(text);
+    }
+
+    public static OfficeHorizontalAlignment fromCssText(String text) {
+        return MAP.fromCssText(text);
+    }
+
+    public static OfficeHorizontalAlignment fromWmlText(String text) {
+        return MAP.fromWmlText(text);
+    }
+}
+```
+
+**要点**：
+- 实现 `IOfficeEnumValue` 接口，提供 `getExcelText()`/`getCssText()`/`getWmlText()`
+- **必须覆写 `toString()` 返回 `excelText`**，确保 xdef 枚举域验证通过
+- 使用 `OfficeEnumMap` 管理文本到枚举的反向映射
+- `fromExcelText`/`fromCssText`/`fromWmlText` 提供从不同格式文本反解析的能力
+- `fromExcelText` 上标注 `@StaticFactoryMethod`，用于框架自动识别
+
+### @Option 注解
+
+使用 `@Option` 注解可以为枚举常量自定义字典值，覆盖 `toString()` 的返回值：
+
+```java
+public enum ChartFillType {
+    @Option("none")
+    NONE,
+
+    @Option("solid")
+    SOLID;
+
+    // EnumDictLoader 会使用 @Option.value() 作为字典值，
+    // 无需覆写 toString()
+}
+```
+
 ### 最佳实践
 
 1. **命名规范**
    - 缓存 Map 统一命名为 `VALUE_MAP`
-   - 方法名统一为 `fromValue`
+   - 简单枚举的工厂方法统一为 `fromValue`
+   - Office 枚举使用 `fromExcelText`/`fromCssText`/`fromWmlText`
    - 获取值的方法根据情况命名为 `value()` 或 `getValue()`
 
-2. **空值处理**
+2. **toString() 覆写**
+   - 如果枚举的文本表示与 `name()` 不同（如小写文本），**必须**覆写 `toString()`
+   - 或者使用 `@Option` 注解指定字典值
+   - 否则 xdef 枚举域验证会失败
+
+3. **空值处理**
    - fromValue 方法对空值返回 null（可选）
    - 使用 `StringHelper.isEmpty()` 进行空值判断
 
-3. **注释规范**
+4. **注释规范**
    - 为每个枚举值添加 JavaDoc 注释
    - 注释说明枚举值的含义和对应的协议值
 
@@ -275,6 +401,7 @@ public class LoginRequest extends ExtensibleBean {
 - ✅ 定义 VALUE_MAP 缓存
 - ✅ fromValue 通过缓存查找
 - ✅ 适当的空值处理
+- ✅ 如果序列化文本与 name() 不同，必须覆写 toString() 或使用 @Option 注解
 
 ### DTO 关键点
 - ✅ 使用 @DataBean 注解
