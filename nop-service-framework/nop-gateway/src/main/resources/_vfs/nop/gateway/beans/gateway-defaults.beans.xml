@@ -27,7 +27,7 @@
         <ioc:condition>
             <if-property name="nop.gateway.logging.enabled" />
         </ioc:condition>
-        <constructor-arg ref="nopGatewayLogger"/>
+        <constructor-arg index="0" ref="nopGatewayLogger"/>
     </bean>
 
 </beans>
