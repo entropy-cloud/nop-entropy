@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+       x:extends="super">
+
+    <bean id="io.nop.job.worker.engine.IJobInvokerResolver"
+          class="io.nop.job.worker.engine.DefaultJobInvokerResolver"/>
+
+    <bean id="io.nop.job.worker.engine.IJobExecutionContextBuilder"
+          class="io.nop.job.worker.engine.DefaultJobExecutionContextBuilder"/>
+
+    <bean id="io.nop.job.worker.engine.IJobWorkerScanner"
+          class="io.nop.job.worker.engine.JobWorkerScannerImpl"/>
+
+    <bean id="io.nop.job.worker.engine.JobWorker"
+          class="io.nop.job.worker.engine.JobWorker"/>
+</beans>

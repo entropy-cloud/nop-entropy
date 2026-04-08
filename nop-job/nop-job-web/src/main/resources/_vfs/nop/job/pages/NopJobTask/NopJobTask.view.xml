@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:extends="_gen/_NopJobTask.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xui="xui">
+
+    <grids>
+        <grid id="list"/>
+        <grid id="pick-list"/>
+    </grids>
+
+    <forms>
+        <form id="view">
+            <cells>
+                <cell id="taskPayload" control="textarea"/>
+                <cell id="resultPayload" control="textarea"/>
+                <cell id="errorMessage" control="textarea"/>
+            </cells>
+        </form>
+        <form id="edit"/>
+        <form id="add"/>
+        <form id="runtimeSummaryForm" editMode="view" title="运行态摘要-执行任务" i18n-en:title="Task Runtime Summary">
+            <layout>
+ taskNo[任务序号] taskStatus[任务状态]
+ workerInstanceId[执行节点ID] workerAddress[执行节点地址]
+ startTime[开始时间] endTime[结束时间]
+ durationMs[执行时长(毫秒)] partitionIndex[分区索引]
+ errorCode[错误码] errorMessage[错误消息]
+</layout>
+        </form>
+        <form id="parentFireForm" editMode="view" title="所属触发批次" i18n-en:title="Parent Fire">
+            <layout>
+ jobName[作业名] triggerSource[触发来源]
+ fireStatus[批次状态] triggeredBy[触发人]
+ scheduledFireTime[计划触发时间] plannerInstanceId[计划节点ID]
+ dispatchInstanceId[分发节点ID] startTime[开始时间]
+ endTime[结束时间] durationMs[执行时长(毫秒)]
+ retryPolicyId[重试策略ID] errorCode[错误码]
+ errorMessage[错误消息]
+</layout>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" x:inherit="true">
+            <listActions>
+                <action id="batch-delete-button" x:override="remove"/>
+                <action id="add-button" x:override="remove"/>
+            </listActions>
+            <rowActions>
+                <action id="row-update-button" x:override="remove"/>
+                <action id="row-delete-button" x:override="remove"/>
+                <actionGroup id="row-more-button">
+                    <action id="runtime-summary-button" label="@i18n:common.runtimeSummary" actionType="drawer" xui:permissions="NopJobTask:query">
+                        <dialog page="runtimeTabs" size="xl">
+                            <data>
+                                <id>$id</id>
+                                <jobFireId>$jobFireId</jobFireId>
+                            </data>
+                        </dialog>
+                    </action>
+                    <action id="view-fire-button" label="@i18n:common.viewFire" actionType="drawer" xui:permissions="NopJobFire:query">
+                        <dialog page="/nop/job/pages/NopJobFire/view.page.yaml" size="xl">
+                            <data>
+                                <id>$jobFireId</id>
+                            </data>
+                        </dialog>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+
+        <simple name="runtimeSummary" form="runtimeSummaryForm">
+            <initApi url="@query:NopJobTask__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+
+        <simple name="parentFire" form="parentFireForm">
+            <initApi url="@query:NopJobFire__get?id=$jobFireId" gql:selection="{@formSelection}"/>
+        </simple>
+
+        <tabs name="runtimeTabs" tabsMode="vertical" mountOnEnter="true" unmountOnExit="true">
+            <tab name="runtimeSummary" page="runtimeSummary" title="@i18n:common.overview"/>
+            <tab name="parentFire" page="parentFire" title="@i18n:common.parentFire"/>
+        </tabs>
+
+        <picker name="picker"/>
+    </pages>
+</view>

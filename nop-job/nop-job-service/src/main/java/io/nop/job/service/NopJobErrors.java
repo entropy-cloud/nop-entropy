@@ -7,6 +7,31 @@
  */
 package io.nop.job.service;
 
+import io.nop.api.core.exceptions.ErrorCode;
+
 public interface NopJobErrors{
-	
+    ErrorCode ERR_JOB_SCHEDULE_ALREADY_ARCHIVED = ErrorCode.define(
+            "nop.err.job.schedule.already-archived",
+            "Archived schedule cannot be enabled or resumed"
+    );
+
+    ErrorCode ERR_JOB_SCHEDULE_INVALID_STATUS_TRANSITION = ErrorCode.define(
+            "nop.err.job.schedule.invalid-status-transition",
+            "Schedule action is not allowed for the current status"
+    );
+
+    ErrorCode ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED = ErrorCode.define(
+            "nop.err.job.schedule.manual-trigger-not-allowed",
+            "Manual trigger is not allowed for the current schedule status"
+    );
+
+    ErrorCode ERR_JOB_FIRE_CANCEL_NOT_ALLOWED = ErrorCode.define(
+            "nop.err.job.fire.cancel-not-allowed",
+            "Fire cancel is not allowed for the current fire status"
+    );
+
+    ErrorCode ERR_JOB_FIRE_RERUN_NOT_ALLOWED = ErrorCode.define(
+            "nop.err.job.fire.rerun-not-allowed",
+            "Fire rerun is not allowed for the current fire status"
+    );
 }

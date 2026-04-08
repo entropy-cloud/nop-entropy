@@ -1,0 +1,3 @@
+# fixedProps用于指定关联属性，表示这是一个关联子表的crud页面。在本页面中jobScheduleId字段的值固定为传入的值。
+x:gen-extends: |
+  <web:GenPage view="NopJobFire.view.xml" page="main" fixedProps="jobScheduleId" xpl:lib="/nop/web/xlib/web.xlib" />

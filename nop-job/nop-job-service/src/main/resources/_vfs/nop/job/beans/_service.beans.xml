@@ -5,31 +5,24 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="io.nop.job.service.entity.NopJobDefinitionBizModel" ioc:type="@bean:id" ioc:default="true"/>
+    <bean id="io.nop.job.service.entity.NopJobScheduleBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopJobDefinition" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.job.biz.INopJobDefinitionBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
-        <property name="bizObjName" value="NopJobDefinition"/>
+    <bean id="biz_NopJobSchedule" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.job.biz.INopJobScheduleBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
+        <property name="bizObjName" value="NopJobSchedule"/>
     </bean>
 
-    <bean id="io.nop.job.service.entity.NopJobAssignmentBizModel" ioc:type="@bean:id" ioc:default="true"/>
+    <bean id="io.nop.job.service.entity.NopJobFireBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopJobAssignment" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.job.biz.INopJobAssignmentBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
-        <property name="bizObjName" value="NopJobAssignment"/>
+    <bean id="biz_NopJobFire" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.job.biz.INopJobFireBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
+        <property name="bizObjName" value="NopJobFire"/>
     </bean>
 
-    <bean id="io.nop.job.service.entity.NopJobInstanceHisBizModel" ioc:type="@bean:id" ioc:default="true"/>
+    <bean id="io.nop.job.service.entity.NopJobTaskBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="biz_NopJobInstanceHis" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.job.biz.INopJobInstanceHisBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
-        <property name="bizObjName" value="NopJobInstanceHis"/>
-    </bean>
-
-    <bean id="io.nop.job.service.entity.NopJobInstanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="biz_NopJobInstance" class="io.nop.biz.proxy.BizProxyFactoryBean"
-          ioc:type="io.nop.job.biz.INopJobInstanceBiz" ioc:force-lazy-property="true" lazy-init="true" primary="true">
-        <property name="bizObjName" value="NopJobInstance"/>
+    <bean id="biz_NopJobTask" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.job.biz.INopJobTaskBiz"
+          ioc:force-lazy-property="true" lazy-init="true" primary="true">
+        <property name="bizObjName" value="NopJobTask"/>
     </bean>
 </beans>

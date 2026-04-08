@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:extends="_gen/_NopJobSchedule.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xui="xui">
+
+    <grids>
+        <grid id="list"/>
+        <grid id="pick-list"/>
+    </grids>
+
+    <forms>
+        <form id="view">
+            <cells>
+                <cell id="jobParams" control="textarea"/>
+                <cell id="pauseCalendarSpec" control="textarea"/>
+                <cell id="description" control="textarea"/>
+            </cells>
+        </form>
+        <form id="edit"/>
+        <form id="add"/>
+        <form id="runtimeSummaryForm" editMode="view" title="运行态摘要-调度定义" i18n-en:title="Schedule Runtime Summary">
+            <layout>
+ jobName[作业名] displayName[显示名]
+ scheduleStatus[调度状态] blockStrategy[阻塞策略]
+ executorKind[执行器类型] executorRef[执行器引用]
+ nextFireTime[下次触发时间] lastFireTime[上次触发时间]
+ lastEndTime[上次结束时间] lastFireStatus[上次触发状态]
+ fireCount[已触发次数] activeFireCount[活跃触发数]
+ retryPolicyId[重试策略ID] partitionIndex[分区索引]
+</layout>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" x:inherit="true">
+            <rowActions>
+                <actionGroup id="row-more-button">
+                    <action id="runtime-summary-button" label="@i18n:common.runtimeSummary" actionType="drawer" xui:permissions="NopJobSchedule:query">
+                        <dialog page="runtimeTabs" size="xl">
+                            <data>
+                                <id>$id</id>
+                                <jobScheduleId>$jobScheduleId</jobScheduleId>
+                            </data>
+                        </dialog>
+                    </action>
+                    <action id="view-fires-button" label="@i18n:common.viewFires" actionType="drawer" xui:permissions="NopJobFire:query">
+                        <dialog page="/nop/job/pages/NopJobFire/ref-schedule.page.yaml" size="xl">
+                            <data>
+                                <jobScheduleId>$jobScheduleId</jobScheduleId>
+                                <jobSchedule>
+                                    <displayName>$displayName</displayName>
+                                    <jobName>$jobName</jobName>
+                                </jobSchedule>
+                            </data>
+                        </dialog>
+                    </action>
+                    <action id="trigger-now-button" label="@i18n:common.triggerNow" xui:permissions="NopJobSchedule:triggerNow">
+                        <api url="@mutation:NopJobSchedule__triggerNow">
+                            <data>
+                                <id>$id</id>
+                            </data>
+                        </api>
+                        <confirmText>@i18n:common.confirmTriggerNow</confirmText>
+                        <visibleOn>${scheduleStatus != 30 && scheduleStatus != 40}</visibleOn>
+                    </action>
+                    <action id="enable-schedule-button" label="@i18n:common.enableSchedule" xui:permissions="NopJobSchedule:enableSchedule">
+                        <api url="@mutation:NopJobSchedule__enableSchedule">
+                            <data>
+                                <id>$id</id>
+                            </data>
+                        </api>
+                        <confirmText>@i18n:common.confirmEnableSchedule</confirmText>
+                        <visibleOn>${scheduleStatus == 0}</visibleOn>
+                    </action>
+                    <action id="disable-schedule-button" label="@i18n:common.disableSchedule" xui:permissions="NopJobSchedule:disableSchedule">
+                        <api url="@mutation:NopJobSchedule__disableSchedule">
+                            <data>
+                                <id>$id</id>
+                            </data>
+                        </api>
+                        <confirmText>@i18n:common.confirmDisableSchedule</confirmText>
+                        <visibleOn>${scheduleStatus == 10 || scheduleStatus == 20}</visibleOn>
+                    </action>
+                    <action id="pause-schedule-button" label="@i18n:common.pauseSchedule" xui:permissions="NopJobSchedule:pauseSchedule">
+                        <api url="@mutation:NopJobSchedule__pauseSchedule">
+                            <data>
+                                <id>$id</id>
+                            </data>
+                        </api>
+                        <confirmText>@i18n:common.confirmPauseSchedule</confirmText>
+                        <visibleOn>${scheduleStatus == 10}</visibleOn>
+                    </action>
+                    <action id="resume-schedule-button" label="@i18n:common.resumeSchedule" xui:permissions="NopJobSchedule:resumeSchedule">
+                        <api url="@mutation:NopJobSchedule__resumeSchedule">
+                            <data>
+                                <id>$id</id>
+                            </data>
+                        </api>
+                        <confirmText>@i18n:common.confirmResumeSchedule</confirmText>
+                        <visibleOn>${scheduleStatus == 20}</visibleOn>
+                    </action>
+                    <action id="archive-schedule-button" label="@i18n:common.archiveSchedule" xui:permissions="NopJobSchedule:archiveSchedule">
+                        <api url="@mutation:NopJobSchedule__archiveSchedule">
+                            <data>
+                                <id>$id</id>
+                            </data>
+                        </api>
+                        <confirmText>@i18n:common.confirmArchiveSchedule</confirmText>
+                        <visibleOn>${scheduleStatus == 0 || scheduleStatus == 10 || scheduleStatus == 20 || scheduleStatus == 30}</visibleOn>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+
+        <simple name="runtimeSummary" form="runtimeSummaryForm">
+            <initApi url="@query:NopJobSchedule__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+
+        <crud name="runtimeFires" x:prototype="view-list">
+            <table>
+                <api url="@query:NopJobFire__findPage/{@pageSelection}?filter_jobScheduleId=$jobScheduleId"/>
+            </table>
+        </crud>
+
+        <tabs name="runtimeTabs" tabsMode="vertical" mountOnEnter="true" unmountOnExit="true">
+            <tab name="runtimeSummary" page="runtimeSummary" title="@i18n:common.overview"/>
+            <tab name="runtimeFires" page="runtimeFires" title="@i18n:common.relatedFires"/>
+        </tabs>
+
+        <picker name="picker"/>
+    </pages>
+</view>

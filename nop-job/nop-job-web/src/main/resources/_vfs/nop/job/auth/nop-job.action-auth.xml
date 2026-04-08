@@ -1,5 +1,76 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <auth x:extends="_nop-job.action-auth.xml" x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
-    <site id="main"/>
+    <site id="main">
+        <resource id="test-orm-nop-job">
+            <children>
+                <resource id="NopJobSchedule-main" displayName="调度定义" orderNo="10001"
+                          icon="ant-design:calendar-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/job/pages/NopJobSchedule/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopJobSchedule:query" displayName="查询调度定义" orderNo="10002"
+                                  resourceType="FNPT">
+                            <permissions>NopJobSchedule:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopJobSchedule:mutation" displayName="修改调度定义" orderNo="10003"
+                                  resourceType="FNPT">
+                            <permissions>NopJobSchedule:mutation</permissions>
+                        </resource>
+                        <resource id="FNPT:NopJobSchedule:triggerNow" displayName="立即触发" orderNo="10004"
+                                  resourceType="FNPT">
+                            <permissions>NopJobSchedule:triggerNow</permissions>
+                        </resource>
+                        <resource id="FNPT:NopJobSchedule:enableSchedule" displayName="启用调度" orderNo="10005"
+                                  resourceType="FNPT">
+                            <permissions>NopJobSchedule:enableSchedule</permissions>
+                        </resource>
+                        <resource id="FNPT:NopJobSchedule:disableSchedule" displayName="禁用调度" orderNo="10006"
+                                  resourceType="FNPT">
+                            <permissions>NopJobSchedule:disableSchedule</permissions>
+                        </resource>
+                        <resource id="FNPT:NopJobSchedule:pauseSchedule" displayName="暂停调度" orderNo="10007"
+                                  resourceType="FNPT">
+                            <permissions>NopJobSchedule:pauseSchedule</permissions>
+                        </resource>
+                        <resource id="FNPT:NopJobSchedule:resumeSchedule" displayName="恢复调度" orderNo="10008"
+                                  resourceType="FNPT">
+                            <permissions>NopJobSchedule:resumeSchedule</permissions>
+                        </resource>
+                        <resource id="FNPT:NopJobSchedule:archiveSchedule" displayName="归档调度" orderNo="10009"
+                                  resourceType="FNPT">
+                            <permissions>NopJobSchedule:archiveSchedule</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopJobFire-main" displayName="触发批次" orderNo="10004"
+                          icon="ant-design:thunderbolt-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/job/pages/NopJobFire/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopJobFire:query" displayName="查询触发批次" orderNo="10005"
+                                  resourceType="FNPT">
+                            <permissions>NopJobFire:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopJobFire:cancelFire" displayName="取消触发" orderNo="10006"
+                                  resourceType="FNPT">
+                            <permissions>NopJobFire:cancelFire</permissions>
+                        </resource>
+                        <resource id="FNPT:NopJobFire:rerunFire" displayName="重跑触发" orderNo="10007"
+                                  resourceType="FNPT">
+                            <permissions>NopJobFire:rerunFire</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopJobTask-main" displayName="执行任务" orderNo="10007"
+                          icon="ant-design:deployment-unit-outlined" component="AMIS" resourceType="SUBM"
+                          url="/nop/job/pages/NopJobTask/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopJobTask:query" displayName="查询执行任务" orderNo="10008"
+                                  resourceType="FNPT">
+                            <permissions>NopJobTask:query</permissions>
+                        </resource>
+                    </children>
+                </resource>
+            </children>
+        </resource>
+    </site>
 </auth>

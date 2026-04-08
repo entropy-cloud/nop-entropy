@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopJobFire" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
+
+    <objMeta>/nop/job/model/NopJobFire/NopJobFire.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--触发批次ID-->
+                <col id="jobFireId" mandatory="true" sortable="true"/>
+
+                <!--调度ID-->
+                <col id="jobScheduleId" mandatory="true" sortable="true"/>
+
+                <!--命名空间-->
+                <col id="namespaceId" sortable="true"/>
+
+                <!--分组-->
+                <col id="groupId" sortable="true"/>
+
+                <!--作业名-->
+                <col id="jobName" sortable="true"/>
+
+                <!--触发来源-->
+                <col id="triggerSource" ui:number="true" sortable="true"/>
+
+                <!--计划触发时间-->
+                <col id="scheduledFireTime" mandatory="true" sortable="true"/>
+
+                <!--触发人-->
+                <col id="triggeredBy" sortable="true"/>
+
+                <!--批次状态-->
+                <col id="fireStatus" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--计划节点ID-->
+                <col id="plannerInstanceId" sortable="true"/>
+
+                <!--分发节点ID-->
+                <col id="dispatchInstanceId" sortable="true"/>
+
+                <!--开始时间-->
+                <col id="startTime" sortable="true"/>
+
+                <!--结束时间-->
+                <col id="endTime" sortable="true"/>
+
+                <!--执行时长(毫秒)-->
+                <col id="durationMs" ui:number="true" sortable="true"/>
+
+                <!--参数快照-->
+                <col id="jobParamsSnapshot" sortable="true"/>
+
+                <!--执行器快照-->
+                <col id="executorSnapshot" sortable="true"/>
+
+                <!--重试策略ID-->
+                <col id="retryPolicyId" sortable="true"/>
+
+                <!--重试记录ID-->
+                <col id="retryRecordId" sortable="true"/>
+
+                <!--错误码-->
+                <col id="errorCode" sortable="true"/>
+
+                <!--错误消息-->
+                <col id="errorMessage" sortable="true"/>
+
+                <!--分区索引-->
+                <col id="partitionIndex" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-触发批次" i18n-en:title="View Job Fire">
+            <layout>
+ jobFireId[触发批次ID] jobScheduleId[调度ID]
+ namespaceId[命名空间] groupId[分组]
+ jobName[作业名] triggerSource[触发来源]
+ scheduledFireTime[计划触发时间] triggeredBy[触发人]
+ fireStatus[批次状态] plannerInstanceId[计划节点ID]
+ dispatchInstanceId[分发节点ID] startTime[开始时间]
+ endTime[结束时间] durationMs[执行时长(毫秒)]
+ jobParamsSnapshot[参数快照] executorSnapshot[执行器快照]
+ retryPolicyId[重试策略ID] retryRecordId[重试记录ID]
+ errorCode[错误码] errorMessage[错误消息]
+ partitionIndex[分区索引] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] remark[备注]
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-触发批次" i18n-en:title="Add Job Fire" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-触发批次" i18n-en:title="Edit Job Fire">
+            <layout>
+ jobFireId[触发批次ID] jobScheduleId[调度ID]
+ namespaceId[命名空间] groupId[分组]
+ jobName[作业名] triggerSource[触发来源]
+ scheduledFireTime[计划触发时间] triggeredBy[触发人]
+ fireStatus[批次状态] plannerInstanceId[计划节点ID]
+ dispatchInstanceId[分发节点ID] startTime[开始时间]
+ endTime[结束时间] durationMs[执行时长(毫秒)]
+ jobParamsSnapshot[参数快照] executorSnapshot[执行器快照]
+ retryPolicyId[重试策略ID] retryRecordId[重试记录ID]
+ errorCode[错误码] errorMessage[错误消息]
+ partitionIndex[分区索引] remark[备注]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-触发批次" i18n-en:title="Update Job Fire"/>
+    </forms>
+
+    <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopJobFire__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopJobFire__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopJobFire__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopJobFire__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopJobFire__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table noOperations="true">
+                <api url="@query:NopJobFire__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopJobFire__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopJobFire__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopJobFire__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopJobFire__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>
