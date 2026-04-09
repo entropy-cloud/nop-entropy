@@ -1,5 +1,7 @@
 # nop-service-layer Skill
 
+> 说明：本文档中的旧示例和旧路径不再作为当前仓库的权威规范。若与 `docs-for-ai/` 冲突，以新的 `docs-for-ai/INDEX.md` 及其下游文档为准。
+
 ## Skill 概述
 
 **名称**: nop-service-layer（服务层设计）
@@ -24,9 +26,9 @@
 - 支持事务管理和数据权限控制
 
 **依赖**:
-- Nop平台服务层开发指南（docs-for-ai/getting-started/service/service-layer-development.md）
-- Nop平台BizModel基类文档
-- GraphQL服务开发指南（docs-for-ai/getting-started/api/graphql-guide.md）
+- Nop平台服务层开发指南（`docs-for-ai/02-core-guides/service-layer.md`）
+- Nop平台默认开发规则（`docs-for-ai/00-start-here/ai-defaults.md`）
+- GraphQL 与 API 说明（`docs-for-ai/02-core-guides/api-and-graphql.md`）
 
 ## 核心原则
 
@@ -412,4 +414,3 @@ public class Order {
 ## 下一步工作
 
 当前skill完成数据库建模、DDD建模、服务层设计。下一个skill将使用这些产物生成服务层代码和配置。
-

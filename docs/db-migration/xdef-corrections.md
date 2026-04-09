@@ -138,7 +138,7 @@
 
 ## 规范参考
 
-本次修正遵循了 Nop 平台的 xdef 元模型定义规范，详见 `docs-for-ai/05-xlang/xdef-core.md`。
+本次修正遵循了 Nop 平台的 xdef 元模型定义规范，详见 `docs-for-ai/02-core-guides/xdef-and-xdsl.md`。
 
 ### 1. changeset 元素的结构
 

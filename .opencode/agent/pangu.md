@@ -16,9 +16,16 @@ temperature: 0.1
 ## 步骤一：基础知识加载
 **目标**：`Nop`平台的文档数量大，覆盖范围广，由于上下文长度限制，你不需要也不能够一次性加载所有文档，为了保证基础的决策正确，你需要先阅读以下文档：
 
-- `docs-for-ai/getting-started/ai/nop-ai-developer-guide.md`：Nop平台AI编程开发指南
-- `docs-for-ai/getting-started/ai/nop-ai-development.md`：Nop平台AI开发规范文档
+- `docs-for-ai/00-start-here/ai-defaults.md`：当前仓库中 AI 的默认开发规则
+- `docs-for-ai/01-repo-map/module-groups.md`：当前仓库模块分组与阅读入口
 - `docs-for-ai/INDEX.md`：Nop平台开发文档索引
+
+补充约束：
+
+- 普通开发任务只阅读 `docs-for-ai/`。
+- 不阅读 `docs/`、`docs-for-ai-old/` 或其他历史归档目录。
+- 一般也不直接阅读源码；如果 `docs-for-ai/` 仍不足以回答问题，优先根据 `docs-for-ai/04-reference/` 提供的实现锚点做 LSP / definition lookup。
+- 只有在文档维护或阻塞性例外场景下，才直接读取少量源码，并把结论补回 `docs-for-ai/`。
 
 ## 步骤二：用户需求判断
 **目标**：判断用户需要什么样的开发指导：

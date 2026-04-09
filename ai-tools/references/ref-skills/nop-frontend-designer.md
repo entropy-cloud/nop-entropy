@@ -1,5 +1,7 @@
 # nop-frontend-designer Skill
 
+> 说明：本文档中的旧路径和旧示例不再作为当前仓库的权威规范。若与 `docs-for-ai/` 冲突，以 `docs-for-ai/INDEX.md` 及其下游文档为准。
+
 ## Skill 概述
 
 **名称**: nop-frontend-designer（前端设计师）
@@ -24,7 +26,9 @@
 - 设计表单页和编辑页
 
 **依赖**:
-- Nop平台前端文档（docs-for-ai/getting-started/frontend/）
+- 当前仓库 AI 文档索引（`docs-for-ai/INDEX.md`）
+- GraphQL 与 API 默认模式（`docs-for-ai/02-core-guides/api-and-graphql.md`）
+- 模型与页面资源定位（`docs-for-ai/01-repo-map/where-things-live.md`）
 - AMIS组件库文档（https://baidu.github.io/amis/）
 
 ## 核心原则
@@ -526,4 +530,3 @@
 3. 前端设计文档（`frontend-design-{module}.md`）
 
 所有5个代理的技能已完成，可以调用代码生成器生成完整应用！
-

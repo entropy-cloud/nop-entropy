@@ -1,111 +1,101 @@
-# Nop Platform AI Documentation Index
+# Nop Entropy AI 文档索引
 
-`docs-for-ai` 的推荐查找顺序只有一条：
+`docs-for-ai/` 是当前仓库唯一有效、也是开发 AI 唯一应读取的开发文档目录。
+
+对于日常开发任务：
+
+1. 只读 `docs-for-ai/`。
+2. 不读 `docs/`。
+3. 不读其他非 `docs-for-ai/` 文档目录。
+4. 一般也不直接读源码；如果 `docs-for-ai/` 仍不足以回答问题，优先基于 `04-reference/` 提供的锚点做 LSP / definition lookup。
+
+## 推荐查找顺序
 
 1. 先看本页
-2. 再进 `12-tasks/` 对应任务手册
-3. 再看规范主干文档
-4. 最后才看示例和 quick reference
+2. 再看 `03-runbooks/` 中最贴近当前任务的手册
+3. 需要理解默认规则时，看 `02-core-guides/`
+4. 需要理解当前仓库结构时，看 `01-repo-map/`
+5. 需要确认实现锚点或符号定义时，看 `04-reference/`
 
-如果你是 AI 助手，请默认遵循：
+## 默认规则
 
-- **先模型，再 Delta，最后 Java**
-- **不要修改 `_gen/` 或 `_` 前缀生成物**
-- **普通 BizModel 默认使用 `CrudBizModel`、`requireEntity()`、`doFindList()`、`doFindPage()`**
-- **`@BizMutation` 默认已带事务，不要再叠加 `@Transactional`**
-- **`@Inject` 不支持 `private` 字段，配置值用 `@InjectValue`**
+- 先模型，再 Delta，最后 Java。
+- 默认不要修改 `_gen/`、`_*.java`、`_*.xml`、`_app.orm.xml`、`_service.beans.xml`。
+- 标准实体服务默认使用 `CrudBizModel<T>`。
+- 普通取数优先 `requireEntity()`、`doFindList()`、`doFindPage()`，不要先写原始 `dao()` 模板。
+- 普通 `@BizMutation` 已自动进入事务，不要默认叠加 `@Transactional`。
+- `@Inject` 不支持 `private` 字段，配置值使用 `@InjectValue`。
+- 构建和再生成优先走 Maven Reactor 与 `./mvnw`，不要手改生成物。
 
-源码锚点见：`13-reference/source-anchors.md`
-
----
-
-## 一、先做什么
+## 快速路由
 
 | 任务 | 首选文档 |
 |------|---------|
-| 新建实体 / 新建表 | `12-tasks/create-new-entity.md` |
-| 新增字段 / 新增校验 | `12-tasks/add-field-and-validation.md` |
-| 编写 BizModel 方法 | `12-tasks/write-bizmodel-method.md` |
-| 自定义查询 | `12-tasks/custom-query-with-querybean.md` |
-| 扩展 CRUD 钩子 | `12-tasks/extend-crud-with-hooks.md` |
-| 扩展 API 返回字段 | `12-tasks/extend-api-with-delta-bizloader.md` |
-| 事务边界与 afterCommit | `12-tasks/transaction-boundaries.md` |
-| 错误码与 NopException | `12-tasks/error-codes-and-nop-exception.md` |
-| 编写单元/集成测试 | `12-tasks/write-unit-test.md` |
+| 理解整体仓库结构 | `01-repo-map/module-groups.md` |
+| 判断一个业务模块怎么分层 | `01-repo-map/domain-module-pattern.md` |
+| 找模型、页面、测试、模块入口 | `01-repo-map/where-things-live.md` |
+| 从模型开始开发 | `02-core-guides/model-first-development.md` |
+| 编写 BizModel / 服务层逻辑 | `02-core-guides/service-layer.md` |
+| 判断领域逻辑和 DDD 落位 | `02-core-guides/domain-logic-and-ddd.md` |
+| 判断 DTO / JSON / message bean 写法 | `02-core-guides/dto-json-and-message-beans.md` |
+| 定制 view / page 页面 | `02-core-guides/view-and-page-customization.md` |
+| 调试与排障 | `02-core-guides/debugging-and-diagnostics.md` |
+| 做 Delta 定制 | `02-core-guides/delta-customization.md` |
+| 编写 XDef / XDSL 文件 | `02-core-guides/xdef-and-xdsl.md` |
+| 编写测试 | `02-core-guides/testing.md` |
+| 新建实体 | `03-runbooks/create-new-entity.md` |
+| 新增字段或校验 | `03-runbooks/add-field-and-validation.md` |
+| 新增字典或常量 | `03-runbooks/add-dict-and-constants.md` |
+| 模型变更后重新生成 | `03-runbooks/change-model-and-regenerate.md` |
+| 调试生成链路或生成文件 | `03-runbooks/debug-codegen-and-generated-files.md` |
+| 写 BizModel 方法 | `03-runbooks/write-bizmodel-method.md` |
+| 新增跨模块 Biz 接口 | `03-runbooks/add-cross-module-biz-interface.md` |
+| 选择 Entity / BizModel / Processor | `03-runbooks/choose-entity-bizmodel-processor.md` |
+| 实现复杂业务流程 | `03-runbooks/implement-complex-business-flow.md` |
+| 自定义查询 | `03-runbooks/custom-query-with-querybean.md` |
+| 扩展 CRUD 钩子 | `03-runbooks/extend-crud-with-hooks.md` |
+| 新增 BizLoader 字段 | `03-runbooks/add-bizloader-field.md` |
+| 通过 Delta 扩展 API 返回字段 | `03-runbooks/extend-api-with-delta-bizloader.md` |
+| 用 Delta 替代直接修改 | `03-runbooks/prefer-delta-over-direct-modification.md` |
+| 处理事务边界 | `03-runbooks/transaction-boundaries.md` |
+| 处理错误码和异常 | `03-runbooks/error-codes-and-nop-exception.md` |
+| 写测试用例 | `03-runbooks/write-tests.md` |
+| 写容器内集成测试 | `03-runbooks/write-integration-test-with-noptestconfig.md` |
+| 在测试中补 mock bean | `03-runbooks/add-test-mock-bean.md` |
+| 查询常用 Java helper | `04-reference/common-java-helpers.md` |
+| 查询安全 API | `04-reference/safe-api-reference.md` |
+| 查实现锚点 / 符号定义 | `04-reference/source-anchors.md` |
+| 维护 AI 文档 | `90-maintenance/maintenance-rules.md` |
 
-如果 `12-tasks/` 里没有命中任务，再按下面的规范主干查找。
+## 目录角色
 
----
-
-## 二、规范主干
-
-### 1. 服务层 / BizModel
-
-- `03-development-guide/bizmodel-guide.md`
-- `03-development-guide/crud-development.md`
-- `03-development-guide/service-layer.md`
-- `03-development-guide/processor-development.md`
-
-### 2. 项目结构 / 代码生成
-
-- `03-development-guide/project-structure.md`
-- `01-core-concepts/ai-development.md`
-
-### 3. IoC / 配置 / 事务 / 异常
-
-- `04-core-components/ioc-container.md`
-- `04-core-components/transaction.md`
-- `04-core-components/exception-handling.md`
-
-### 4. 测试
-
-- `11-test-and-debug/autotest-guide.md`
-- `07-best-practices/testing.md`
-
-### 5. Delta / XLang / 原理
-
-- `01-core-concepts/delta-basics.md`
-- `01-core-concepts/overview.md`
-- `05-xlang/xdef-core.md`
-- `05-xlang/xlang-guide.md`
-
----
-
-## 三、全局反模式
-
-以下写法在普通 AI 生成代码场景下应默认避免：
-
-| 反模式 | 推荐做法 | 原因 |
-|--------|---------|------|
-| `dao().getEntityById(id)` | `requireEntity(id, action, context)` | 绕过数据权限与框架流程 |
-| `dao().findAllByQuery(query)` | `doFindList(query, selection, context)` | 绕过 query 预处理与权限过滤 |
-| `dao().findPageByQuery(query)` | `doFindPage(query, selection, context)` | 绕过 query 预处理与权限过滤 |
-| `@BizMutation @Transactional` | 只用 `@BizMutation` | 普通 BizModel 写操作已自动事务 |
-| `@Inject private Foo foo;` | `protected` / package-private / setter 注入 | NopIoC 不支持 private 注入 |
-| Spring `@Value` | `@InjectValue` | Nop 配置注入约定不同 |
-| 编辑 `_gen/`、`_*.java`、`_*.xml` | 改模型、继承扩展类、Delta 覆盖 | 生成物会被覆盖 |
-| `Map<String, Object>` 作为复杂返回 DTO | 定义 `@DataBean` DTO | GraphQL 无法稳定推断类型 |
-| 直接注入另一个 BizModel 实现类 | 注入 `I*Biz` 接口 | 保持跨模块调用与可替换性 |
-
----
-
-## 四、目录角色
-
-| 目录 | 角色 |
+| 目录 | 作用 |
 |------|------|
-| `12-tasks/` | AI 首选 runbook |
-| `03-development-guide/` | 规范主干 |
-| `04-core-components/` | Nop 特有组件规则 |
-| `01-core-concepts/`、`02-architecture/`、`05-xlang/` | 原理与架构 |
-| `08-examples/`、`09-quick-reference/`、`06-utilities/` | 辅助参考，不是默认规范 |
-| `13-reference/` | 源码锚点与辅助索引 |
+| `00-start-here/` | AI 默认规则与全局反模式 |
+| `01-repo-map/` | 当前仓库结构、模块分组、文件位置 |
+| `02-core-guides/` | 规范主干，回答“默认应该怎么做” |
+| `03-runbooks/` | 任务型手册，回答“这件事具体怎么做” |
+| `04-reference/` | 速查与实现锚点，回答“需要看哪个类/方法定义” |
+| `90-maintenance/` | 文档治理规则，不是日常开发入口 |
 
----
+## 当前项目的关键认知
 
-## 五、使用规则
+- 这是一个根 `pom.xml` 驱动的大型 Maven 多模块仓库。
+- 业务模块普遍遵循 `model -> codegen -> dao -> meta -> service -> web -> app -> api` 的骨架。
+- `nop-auth`、`nop-job`、`nop-task`、`nop-wf`、`nop-ai` 是最适合用来理解这套骨架的代表模块。
+- `nop-kernel`、`nop-core-framework`、`nop-persistence`、`nop-service-framework` 是框架主干。
+- `nop-runner/` 和 `scripts/nop-cli.cmd` 是 CLI / runner 入口；`nop-demo/` 和 `demo/` 是示例入口。
 
-1. 能通过模型解决，就不要先写 Java。
-2. 能通过 Delta 解决，就不要改基础实现。
-3. 需要写 BizModel 时，先看 `12-tasks/write-bizmodel-method.md`。
-4. 需要理解“为什么这样做”时，再去看 `03-development-guide/`。
-5. 示例和 quick reference 只能辅助理解，不能反向覆盖规范主干。
+## 当 `docs-for-ai` 仍有歧义时
+
+1. 先继续在 `docs-for-ai/` 内查找对应 guide、runbook 和 reference。
+2. 再看 `04-reference/source-anchors.md` 里的实现锚点。
+3. 如果还不够，优先通过 LSP / definition lookup 查看锚点对应的类、接口、方法签名。
+4. 只有在文档维护或阻塞性例外场景下，才直接读取少量源码，并应回补 `docs-for-ai/`。
+
+## 下一步
+
+- 只想开始干活：先看 `00-start-here/ai-defaults.md`。
+- 需要定位该改哪里：看 `01-repo-map/where-things-live.md`。
+- 已经知道任务类型：直接进入 `03-runbooks/`。
+- 需要继续维护这套文档：看 `90-maintenance/maintenance-rules.md`。

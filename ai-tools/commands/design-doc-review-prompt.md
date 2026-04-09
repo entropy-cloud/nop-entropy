@@ -11,13 +11,19 @@
 
 ## 参考文档（必须严格遵守）
 
-1. **`docs-for-ai/getting-started/nop-vs-traditional-frameworks.md`** - ⭐ 最重要！Nop平台与传统框架的完整差异对比
-2. **`docs-for-ai/getting-started/business/crud-development.md`** - ⭐ CRUD开发核心原则
-3. **`docs-for-ai/getting-started/business/complex-business-development.md`** - 复杂业务逻辑处理
-4. **`docs-for-ai/getting-started/core/exception-guide.md`** - 异常处理规范
-5. **`docs-for-ai/best-practices/code-style.md`** - 代码风格标准
-6. **`docs-for-ai/development/module-structure-guide.md`** - 项目结构和代码生成规范
-7. **`docs-for-ai/examples/complete-crud-example.md`** - 完整CRUD示例参考
+1. **`docs-for-ai/00-start-here/ai-defaults.md`** - ⭐ 最重要！当前仓库的 AI 默认规则与反模式
+2. **`docs-for-ai/02-core-guides/service-layer.md`** - ⭐ 服务层与 BizModel 默认模式
+3. **`docs-for-ai/03-runbooks/choose-entity-bizmodel-processor.md`** - 复杂业务逻辑该放在哪一层
+4. **`docs-for-ai/02-core-guides/error-handling.md`** - 异常处理规范
+5. **`docs-for-ai/02-core-guides/code-style.md`** - 代码风格标准
+6. **`docs-for-ai/01-repo-map/domain-module-pattern.md`** - 项目结构和代码生成规范
+7. **`docs-for-ai/04-reference/safe-api-reference.md`** - 安全 API 速查
+
+**文档边界**：
+
+- 默认只阅读 `docs-for-ai/`
+- 不阅读 `docs/`、`docs-for-ai-old/` 或其他历史归档目录
+- 一般也不直接阅读源码；如确有歧义，优先基于 `docs-for-ai/04-reference/` 做 LSP / definition lookup
 
 ## 核心检查清单
 

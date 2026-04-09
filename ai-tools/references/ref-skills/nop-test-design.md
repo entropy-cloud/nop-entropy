@@ -1,5 +1,7 @@
 # nop-test-design Skill
 
+> 说明：本文档中的旧示例和旧路径不再作为当前仓库的权威规范。若与 `docs-for-ai/` 冲突，以新的 `docs-for-ai/INDEX.md`、`02-core-guides/testing.md` 和 `03-runbooks/write-tests.md` 为准。
+
 ## Skill 概述
 
 **名称**: nop-test-design（自动化测试设计）
@@ -28,7 +30,8 @@
 - 设计性能测试用例
 
 **依赖**:
-- Nop平台AutoTest文档（docs-for-ai/getting-started/testing/）
+- Nop平台测试规范（`docs-for-ai/02-core-guides/testing.md`）
+- 测试手册（`docs-for-ai/03-runbooks/write-tests.md`）
 - JUnit 5文档（https://junit.org/junit5/docs/current/user-guide/）
 - Playwright文档（https://playwright.dev/）
 
@@ -609,4 +612,3 @@ class {module}EndToEndTest {
 5. 测试覆盖率报告（`test-coverage-report.md`）
 
 这些产物将传递给下一个skill（nop-cicd-design）用于CI/CD设计。
-

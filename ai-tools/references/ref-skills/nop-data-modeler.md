@@ -1,5 +1,7 @@
 # nop-data-modeler Skill
 
+> 说明：本文档中的旧路径和旧示例不再作为当前仓库的权威规范。若与 `docs-for-ai/` 冲突，以 `docs-for-ai/INDEX.md` 及其下游文档为准。
+
 ## Skill 概述
 
 **名称**: nop-data-modeler（数据建模师）
@@ -25,8 +27,9 @@
 - Excel模型文件格式生成
 
 **依赖**:
-- Nop平台ORM模型文档（docs-for-ai/getting-started/dao/entitydao-usage.md）
-- Nop平台XDSL规范（docs-for-ai/getting-started/xlang/）
+- 模型优先开发（`docs-for-ai/02-core-guides/model-first-development.md`）
+- XDef 与 XDSL 规则（`docs-for-ai/02-core-guides/xdef-and-xdsl.md`）
+- 仓库文件定位（`docs-for-ai/01-repo-map/where-things-live.md`）
 
 ## 核心原则
 
@@ -326,4 +329,3 @@ CREATE INDEX `idx_order_status` ON `order` (`order_status`);
 3. 设计文档（`database-design-{module}.md`）
 
 这些产物将传递给下一个skill（nop-service-architect）用于服务层设计。
-

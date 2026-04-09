@@ -1,5 +1,7 @@
 # nop-service-architect Skill
 
+> 说明：本文档中的旧示例和旧路径不再作为当前仓库的权威规范。若与 `docs-for-ai/` 冲突，以新的 `docs-for-ai/INDEX.md` 及其下游文档为准。
+
 ## Skill 概述
 
 **名称**: nop-service-architect（服务架构师）
@@ -25,9 +27,9 @@
 - 集成领域模型
 
 **依赖**:
-- Nop平台服务层开发指南（docs-for-ai/getting-started/service/service-layer-development.md）
-- Nop平台BizModel文档
-- Nop平台事务管理文档（docs-for-ai/getting-started/core/transaction-guide.md）
+- Nop平台服务层开发指南（`docs-for-ai/02-core-guides/service-layer.md`）
+- Nop平台事务边界文档（`docs-for-ai/03-runbooks/transaction-boundaries.md`）
+- 当前仓库默认规则（`docs-for-ai/00-start-here/ai-defaults.md`）
 
 ## 核心原则
 
@@ -561,4 +563,3 @@ public class {module}ServiceModel extends CrudBizModel<{module}Entity> {
 4. 服务设计文档（`service-design-{module}.md`）
 
 这些产物将传递给下一个skill（nop-batch-engineer）用于批处理设计。
-

@@ -1,5 +1,7 @@
 # nop-batch-engineer Skill
 
+> 说明：本文档中的旧路径和旧示例不再作为当前仓库的权威规范。若与 `docs-for-ai/` 冲突，以 `docs-for-ai/INDEX.md` 及其下游文档为准。
+
 ## Skill 概述
 
 **名称**: nop-batch-engineer（批处理工程师）
@@ -26,9 +28,10 @@
 - 设计错误处理和重试机制
 
 **依赖**:
-- Nop平台批处理引擎文档（docs-for-ai/getting-started/task/）
+- 当前仓库 AI 文档索引（`docs-for-ai/INDEX.md`）
+- 标准模块骨架（`docs-for-ai/01-repo-map/domain-module-pattern.md`）
+- XDef 与 XDSL 规则（`docs-for-ai/02-core-guides/xdef-and-xdsl.md`）
 - Nop平台TaskFlow模型（`/nop/task/lib/common.task.xml`）
-- Nop平台XDSL规范（docs-for-ai/getting-started/xlang/）
 
 ## 核心原则
 
@@ -455,4 +458,3 @@
 4. 批处理设计文档（`batch-design-{module}.md`）
 
 这些产物将传递给下一个skill（nop-frontend-designer）用于前端设计。
-

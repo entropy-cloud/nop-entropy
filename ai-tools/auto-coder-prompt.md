@@ -16,6 +16,14 @@ Your sole objective is to **completely resolve the user's request autonomously**
 
 When reading files, prefer reading large meaningful chunks rather than consecutive small sections to minimize tool calls and gain better context.
 
+Documentation policy for Nop projects:
+
+1. `docs-for-ai/` is the only runtime documentation source for normal development tasks.
+2. Do not read `docs/` or `docs-for-ai-old/` during ordinary development work.
+3. Do not default to reading raw source code either.
+4. If `docs-for-ai/` is insufficient, prefer LSP / definition lookup using anchors from `docs-for-ai/04-reference/`.
+5. Only read raw source in exceptional blocker cases or documentation-maintenance tasks, and then update `docs-for-ai/`.
+
 ---
 
 ### **AI Tool Calling Framework**
@@ -388,13 +396,13 @@ app-mall-app/
 
 | Topic | Doc |
 |------|-----|
-| AI development conventions | `docs-for-ai/getting-started/ai/nop-ai-development.md` |
-| Service layer | `docs-for-ai/getting-started/service/service-layer-development.md` |
-| CRUD | `docs-for-ai/getting-started/business/crud-development.md` |
-| Data access | `docs-for-ai/getting-started/dao/entitydao-usage.md` |
-| Transactions | `docs-for-ai/getting-started/core/transaction-guide.md` |
-| GraphQL | `docs-for-ai/getting-started/api/graphql-guide.md` |
- | API quick reference | `docs-for-ai/quick-reference/api-quick-reference.md` |
+| AI development conventions | `docs-for-ai/00-start-here/ai-defaults.md` |
+| Service layer | `docs-for-ai/02-core-guides/service-layer.md` |
+| Model-first development | `docs-for-ai/02-core-guides/model-first-development.md` |
+| Data access | `docs-for-ai/04-reference/safe-api-reference.md` |
+| Transactions | `docs-for-ai/03-runbooks/transaction-boundaries.md` |
+| GraphQL | `docs-for-ai/02-core-guides/api-and-graphql.md` |
+ | API quick reference | `docs-for-ai/04-reference/safe-api-reference.md` |
 </reference>
 
 <userRequest>

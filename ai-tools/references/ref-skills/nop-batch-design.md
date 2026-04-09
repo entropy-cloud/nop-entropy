@@ -1,5 +1,7 @@
 # nop-batch-design Skill
 
+> 说明：本文档中的旧路径和旧示例不再作为当前仓库的权威规范。若与 `docs-for-ai/` 冲突，以 `docs-for-ai/INDEX.md` 及其下游文档为准。
+
 ## Skill 概述
 
 **名称**: nop-batch-design（批处理设计）
@@ -22,7 +24,8 @@
 - 集成TaskFlow任务编排
 
 **依赖**:
-- Nop平台批处理引擎文档（docs-for-ai/getting-started/task/）
+- 当前仓库 AI 文档索引（`docs-for-ai/INDEX.md`）
+- 标准模块骨架（`docs-for-ai/01-repo-map/domain-module-pattern.md`）
 - Nop平台TaskFlow模型（`/nop/task/lib/common.task.xml`）
 
 ## 核心原则

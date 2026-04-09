@@ -1,5 +1,7 @@
 # nop-database-design Skill（完整实现版）
 
+> 说明：本文档中的旧路径和旧示例不再作为当前仓库的权威规范。若与 `docs-for-ai/` 冲突，以 `docs-for-ai/INDEX.md` 及其下游文档为准。
+
 ## Skill 概述
 
 **名称**: nop-database-design（数据库设计完整版）
@@ -30,8 +32,9 @@
 
 **依赖**:
 - Nop平台理论文档（docs/theory/）
-- Nop平台代码生成指南（docs-for-ai/getting-started/）
-- XDSL相关文档（docs-for-ai/getting-started/xlang/）
+- 模型优先开发（`docs-for-ai/02-core-guides/model-first-development.md`）
+- XDef 与 XDSL 规则（`docs-for-ai/02-core-guides/xdef-and-xdsl.md`）
+- 标准模块骨架（`docs-for-ai/01-repo-map/domain-module-pattern.md`）
 
 ## 核心原则
 
@@ -328,4 +331,3 @@ AI分析业务描述，识别业务规则和约束：
 3. `{module}.xmeta.xml` - XMeta元数据配置
 
 这些产物将传递给下一个skill（nop-service-layer）用于服务层设计。
-

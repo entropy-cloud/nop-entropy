@@ -1,0 +1,99 @@
+# 服务层与 BizModel 默认模式
+
+当前仓库的默认服务层就是 BizModel 层。
+
+如果你在写普通业务逻辑，默认先考虑：
+
+1. 标准实体服务是否可以直接复用 `CrudBizModel<T>`。
+2. 自定义动作是否可以写成 `@BizQuery` / `@BizMutation`。
+3. 复杂流程是否需要拆成 Processor。
+
+## 默认服务层模型
+
+| 场景 | 默认做法 |
+|------|---------|
+| 标准实体服务 | `@BizModel + extends CrudBizModel<T>` |
+| 普通查询 | `@BizQuery` + `QueryBean` + `doFindList()` / `doFindPage()` |
+| 普通修改 | `@BizMutation` + `requireEntity()` + `updateEntity()` / `save()` / `delete()` |
+| 跨模块调用 | 注入 `I*Biz` 接口 |
+| 复杂流程 | BizModel 入口 + Processor |
+
+## 最小结构
+
+```java
+@BizModel("Order")
+public class OrderBizModel extends CrudBizModel<Order> implements IOrderBiz {
+    public OrderBizModel() {
+        setEntityName(Order.class.getName());
+    }
+}
+```
+
+## 方法规则
+
+### 查询
+
+- 使用 `@BizQuery`
+- 最后一个参数通常是 `IServiceContext`
+- 需要字段选择时带 `FieldSelectionBean`
+- 查询能力优先走 `doFindList()`、`doFindPage()`
+
+### 修改
+
+- 使用 `@BizMutation`
+- 取实体优先走 `requireEntity()`
+- 持久化优先走 `updateEntity()`、`save()`、`delete()`
+- 提交后副作用优先走 `txn().afterCommit(...)`
+
+### 参数与返回值
+
+- 单个或少量参数使用 `@Name`
+- 多参数输入优先 `@RequestBean`
+- 多字段返回优先 `@DataBean`
+- 不要把复杂返回值做成 `Map<String, Object>`
+
+## 普通 BizModel 默认优先的 API
+
+| 场景 | 默认方法 |
+|------|---------|
+| 获取实体 | `requireEntity(id, action, context)` |
+| 列表查询 | `doFindList(query, selection, context)` |
+| 分页查询 | `doFindPage(query, selection, context)` |
+| 保存前端数据 | `save(data, context)` |
+| 更新实体 | `updateEntity(entity, action, context)` |
+| 删除实体 | `deleteEntity(entity, action, context)` / `delete(id, context)` |
+
+## 默认不要这样写
+
+| 不推荐 | 原因 |
+|--------|------|
+| `dao().getEntityById(id)` 作为默认模板 | 绕过 `CrudBizModel` 的统一流程 |
+| `dao().findAllByQuery(query)` 作为默认模板 | 绕过 query 预处理与权限过滤 |
+| `dao().saveEntity(entity)` 作为默认模板 | 绕过上层封装与默认行为 |
+| `@BizMutation @Transactional` | 重复事务包裹 |
+| 直接注入其他 BizModel 实现类 | 降低跨模块可替换性 |
+
+## 何时拆 Processor
+
+当出现以下特征时，Processor 通常比继续堆在 BizModel 方法里更合适：
+
+1. 方法已经明显是多步骤编排流程。
+2. 同一逻辑要被多个 BizModel 复用。
+3. 需要把外部系统交互和业务 orchestration 拆开。
+4. 单个 BizModel 方法已经难以阅读和测试。
+
+## 边界场景与默认模式的区别
+
+仓库里确实存在直接 `dao()`、`updateEntityDirectly()`、`REQUIRES_NEW` 的实现，例如调度 store 层或个别历史 BizModel。它们可以作为“边界场景参考”，但不要当普通业务层模板复制。
+
+## 相关文档
+
+- `./domain-logic-and-ddd.md`
+- `./dto-json-and-message-beans.md`
+- `./testing.md`
+- `./error-handling.md`
+- `../03-runbooks/write-bizmodel-method.md`
+- `../03-runbooks/choose-entity-bizmodel-processor.md`
+- `../03-runbooks/implement-complex-business-flow.md`
+- `../03-runbooks/create-request-response-dto.md`
+- `../04-reference/safe-api-reference.md`

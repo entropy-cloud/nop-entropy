@@ -1,5 +1,7 @@
 # nop-deploy Skill
 
+> 说明：本文档中的旧路径和旧示例不再作为当前仓库的权威规范。若与 `docs-for-ai/` 冲突，以 `docs-for-ai/INDEX.md` 及其下游文档为准。
+
 ## Skill 概述
 
 **名称**: nop-deploy（自动化部署）
@@ -25,7 +27,8 @@
 - 生成运维手册和故障排查指南
 
 **依赖**:
-- Nop平台部署文档（docs-for-ai/getting-started/deploy/）
+- 当前仓库 AI 文档索引（`docs-for-ai/INDEX.md`）
+- 仓库模块分组（`docs-for-ai/01-repo-map/module-groups.md`）
 - Kubernetes文档（https://kubernetes.io/docs/）
 - Prometheus文档（https://prometheus.io/docs/）
 - Grafana文档（https://grafana.com/docs/）
@@ -841,4 +844,3 @@ input {
 5. 运维文档（ops-guide.md）
 
 所有8个阶段的skill已完成，可以调用代码生成器生成完整应用并自动化部署！
-

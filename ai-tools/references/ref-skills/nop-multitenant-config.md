@@ -1,5 +1,7 @@
 # nop-multitenant-config Skill
 
+> 说明：本文档中的旧路径和旧示例不再作为当前仓库的权威规范。若与 `docs-for-ai/` 冲突，以 `docs-for-ai/INDEX.md` 及其下游文档为准。
+
 ## Skill 概述
 
 **名称**: nop-multitenant-config（多租户配置管理）
@@ -25,8 +27,9 @@
 - 设计租户升级和版本管理
 
 **依赖**:
-- Nop平台多租户文档（docs-for-ai/getting-started/multitenant/）
-- Nop平台Delta机制（docs-for-ai/getting-started/xlang/dsl-delta.md）
+- 当前仓库 AI 文档索引（`docs-for-ai/INDEX.md`）
+- Delta 定制文档（`docs-for-ai/02-core-guides/delta-customization.md`）
+- 仓库结构与模块骨架（`docs-for-ai/01-repo-map/domain-module-pattern.md`）
 
 ## 核心原则
 
@@ -665,4 +668,3 @@ public class TenantServiceModel {
 4. 租户管理接口文档（`tenant-management-api.md`）
 
 所有6个阶段的skill已完成，可以调用代码生成器生成完整的SaaS平台！
-

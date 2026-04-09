@@ -75,6 +75,6 @@
 
 ## 参考
 
-- `docs-for-ai/05-xlang/xdef-core.md` 第 292-334 行
+- `docs-for-ai/02-core-guides/xdef-and-xdsl.md`
 - `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/*.xdef` 中的实践
 - `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/beans.xdef` 中的实践
