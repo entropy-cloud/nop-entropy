@@ -20,6 +20,23 @@ This file is the **project-local** quick reference for AI assistants contributin
 - Prefer editing the source model/template files instead of generated outputs. Typical examples: edit `model/*.orm.xml`, not generated `_app.orm.xml`, `_gen/*.java`, or other `_*.xml` / `_*.java` files.
 - `docs-for-ai/` is the only runtime guidance source for normal development AI work. Do **not** read `docs/` or `docs-for-ai-old/` during ordinary development tasks.
 - If `docs-for-ai/` is insufficient, prefer LSP / definition lookup on classes and methods referenced from `docs-for-ai/04-reference/`. Only read raw source in exceptional blocker cases or for documentation maintenance, and then update `docs-for-ai/`.
+- If normal development reveals that `docs-for-ai/` is inaccurate, incomplete, or missing a high-frequency rule, treat that as a docs bug and fix the relevant owner doc in the same task whenever feasible.
+
+## Docs Maintenance
+
+`docs-for-ai/` must stay aligned with the live repository.
+
+After any significant code/doc change, or whenever ordinary development reveals a docs gap, you MUST:
+
+1. Update the smallest owning doc under `docs-for-ai/`.
+2. Update `docs-for-ai/INDEX.md` and `docs-for-ai/04-reference/source-anchors.md` if routing or implementation anchors changed.
+3. Append a short entry to `ai-dev/logs/{year}/{month}-{day}.md`; create the daily file if needed and keep `ai-dev/logs/index.md` updated.
+
+Rules:
+
+- `docs-for-ai/` remains the source of truth.
+- `ai-dev/logs/` records short-term execution context and decisions; it is not normative documentation.
+- Prefer fixing doc gaps immediately instead of leaving a note for later.
 
 ## Git Workflow
 
@@ -127,3 +144,5 @@ Windows PowerShell:
 | Task-based runbook | `docs-for-ai/03-runbooks/README.md` |
 | Safe API quick reference | `docs-for-ai/04-reference/safe-api-reference.md` |
 | Source anchors | `docs-for-ai/04-reference/source-anchors.md` |
+| Docs maintenance | `docs-for-ai/90-maintenance/maintenance-rules.md` |
+| Daily dev log guide | `ai-dev/logs/index.md` |
