@@ -203,8 +203,7 @@ public class NopAuthUserExBizModel extends NopAuthUserBizModel {
 ## 相关文档
 
 - [常见定制场景](./delta-scenarios.md)
-- [代码生成概念](../codegen/codegen-concepts.md)
+- [代码生成概念](../02-architecture/code-generation.md)
 - [nop-vs-traditional-frameworks.md](../nop-vs-traditional-frameworks.md)
 
 ---
-

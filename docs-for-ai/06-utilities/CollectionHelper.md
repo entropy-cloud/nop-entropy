@@ -74,7 +74,7 @@ String last = CollectionHelper.last(list);
 **使用示例**：
 
 ```java
-List<User> users = dao().findAllByQuery(query);
+List<User> users = loadUsers();
 
 if (CollectionHelper.notEmpty(users)) {
     User firstUser = CollectionHelper.first(users);

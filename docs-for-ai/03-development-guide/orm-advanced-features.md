@@ -546,7 +546,7 @@ public List<NopAuthUser> findUsersInRange(int minTenantId, int maxTenantId) {
     // ORM会自动调用ShardSelector.selectShards并合并结果
     QueryBean query = new QueryBean();
     query.setFilter(FilterBeans.range("tenantId", minTenantId, maxTenantId));
-    return dao().findAllByQuery(query);
+    return doFindList(query, null, context);
 }
 ```
 
@@ -558,12 +558,12 @@ public List<NopAuthUser> findUsersInRange(int minTenantId, int maxTenantId) {
 // ✅ 正确：直接查询，ORM自动解密
 QueryBean query = new QueryBean();
 query.setFilter(FilterBeans.eq("email", "user@example.com"));
-List<User> users = dao().findAllByQuery(query);
+List<User> users = doFindList(query, null, context);
 
 // ❌ 错误：手动处理加密
 String encrypted = encrypt("user@example.com");
 query.setFilter(FilterBeans.eq("email", encrypted));
-List<User> users = dao().findAllByQuery(query);  // 查询不到
+List<User> users = doFindList(query, null, context);  // 查询不到
 ```
 
 ### Q3: 如何自定义加密算法？

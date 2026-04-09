@@ -74,7 +74,7 @@ mvn clean install
 
 ### BizModel
 
-参见：[常见开发任务 - 新增变更API](./common-tasks.md#任务3新增变更api)
+参见：[任务型开发手册](../12-tasks/README.md)
 
 ## 步骤5：API测试
 
@@ -144,8 +144,7 @@ java -jar myapp-app-1.0.0-SNAPSHOT.jar
 ## 相关文档
 
 - [10分钟快速上手](../quickstart/10-min-quickstart.md)
-- [常见开发任务](../quickstart/common-tasks.md)
-- [代码生成概念](../codegen/codegen-concepts.md)
+- [任务型开发手册](../12-tasks/README.md)
+- [代码生成概念](./code-generation.md)
 
 ---
-

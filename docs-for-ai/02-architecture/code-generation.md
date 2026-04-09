@@ -551,7 +551,6 @@ flowchart LR
 ## 七、相关文档
 
 - [全栈代码生成详解](./full-stack-codegen.md) - ORM到前端全栈生成的完整流程
-- [Delta定制基础](../delta/delta-basics.md) - 差量定制机制
+- [Delta定制基础](../01-core-concepts/delta-basics.md) - 差量定制机制
 
 ---
-

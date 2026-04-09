@@ -1,5 +1,15 @@
 # XScript脚本语言
 
+> 本页是 XScript 语言参考，不单独作为普通 BizModel 默认生成规范。
+>
+> 如果示例中出现数据库访问或脚本内持久化调用，它描述的是脚本上下文能力，不代表普通业务服务应优先使用这些写法。
+>
+> 普通业务服务的默认模式请先看：
+>
+> - `../INDEX.md`
+> - `../03-development-guide/bizmodel-guide.md`
+> - `../09-quick-reference/api-reference.md`
+
 ## 概述
 
 XScript是Nop平台的脚本语言，基于JavaScript/TypeScript语法，提供了丰富的内置函数、数据查询、对象操作、数据库访问等能力。XScript可以在XPL模板中使用，也可以在BizModel方法中直接调用。

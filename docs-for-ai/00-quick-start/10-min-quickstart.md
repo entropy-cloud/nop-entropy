@@ -328,9 +328,8 @@ curl -X POST /graphql \
 
 ## 下一步
 
-- [常见开发任务](./common-tasks.md)
-- [Delta定制基础](../delta/delta-basics.md)
-- [代码生成概念](../codegen/codegen-concepts.md)
+- [任务型开发手册](../12-tasks/README.md)
+- [Delta定制基础](../01-core-concepts/delta-basics.md)
+- [代码生成概念](../02-architecture/code-generation.md)
 
 ---
-

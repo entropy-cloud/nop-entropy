@@ -1,5 +1,15 @@
 # GraphQL API Examples
 
+> 本页是示例集合，不单独作为 AI 默认生成规范。
+>
+> 如果你在写普通 BizModel，请先看：
+>
+> - `../INDEX.md`
+> - `../12-tasks/write-bizmodel-method.md`
+> - `../03-development-guide/bizmodel-guide.md`
+>
+> 本页中的旧示例可能包含历史写法或简化写法，不应反向覆盖规范主干。
+
 ## 概述
 
 本文档提供Nop Platform GraphQL API的完整示例，展示如何定义查询、变更、订阅等操作，以及如何处理参数、错误、分页等场景。

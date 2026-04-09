@@ -111,9 +111,8 @@ cd xxx-service && mvn clean install
 
 ## 相关文档
 
-- [代码生成概念](../codegen/codegen-concepts.md)
-- [全栈代码生成](../codegen/full-stack-codegen.md)
-- [Delta定制基础](../delta/delta-basics.md)
+- [代码生成概念](../02-architecture/code-generation.md)
+- [项目结构与代码生成流程](../03-development-guide/project-structure.md)
+- [Delta定制基础](../01-core-concepts/delta-basics.md)
 
 ---
-

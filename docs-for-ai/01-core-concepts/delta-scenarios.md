@@ -273,8 +273,7 @@ public class UserSaveInterceptor {
 ## 相关文档
 
 - [Delta定制基础](./delta-basics.md)
-- [常见开发任务](../quickstart/common-tasks.md)
+- [任务型开发手册](../12-tasks/README.md)
 - [服务层开发指南](../03-development-guide/service-layer.md)
 
 ---
-
