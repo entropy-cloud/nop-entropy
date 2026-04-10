@@ -41,4 +41,5 @@ ai-dev/logs/
 
 ### 2026-04
 
+- [04-10](2026/04-10.md) — 复核 `docs-for-ai` 审查意见，修正路由缺口、DTO 规则、CRUD hook / QueryBean 指南，并补充 XLang/XPL 基础文档
 - [04-09](2026/04-09.md) — `docs-for-ai` 重构收口、自动维护规则、`ai-dev/logs` 机制建立
