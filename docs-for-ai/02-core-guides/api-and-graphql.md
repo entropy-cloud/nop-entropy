@@ -18,6 +18,27 @@ BizModel 方法
   -> 选择字段、错误转换、事务边界由框架处理
 ```
 
+## BizModel REST Adapter Contract
+
+对前端或外部调用来说，当前仓库里最稳定的通用 REST adapter 入口是：
+
+1. `/r/{operationName}`
+2. `/p/{query}`
+
+其中 `operationName` 在 BizModel 场景下通常是：
+
+`{bizObj}__{method}`
+
+默认判断：
+
+1. 通用 adapter 下，`@BizQuery` 可通过 `GET /r/{operationName}` 或 `POST /r/{operationName}` 调用。
+2. 通用 adapter 下，`@BizMutation` 走 `POST /r/{operationName}`。
+3. `POST` 默认使用 JSON body。
+4. `GET` 场景会通过 `@args` 和普通 query 参数做特殊处理。
+5. `/p/...` 主要面向 web content / page provider 一类端点，不要把它和普通 `/r/...` JSON 接口混为一谈。
+
+补充说明：仓库里的生成型 typed API 目前是明显偏 `POST` 风格的，即使是 `@BizQuery` 生成接口也常见 `POST`，不要把通用 adapter 行为和 typed API 代码生成结果混为一谈。
+
 ## 普通 API 方法的默认写法
 
 ### 查询
@@ -33,6 +54,8 @@ BizModel 方法
 - `requireEntity()` / `save()` / `updateEntity()`
 - 必要时 `txn().afterCommit(...)`
 
+注意：`txn().afterCommit(...)` 依赖当前已有事务。普通 `@BizMutation` 默认有事务；query 场景不要把它当作无条件可用模板。
+
 ## 返回值建议
 
 | 场景 | 推荐 |
@@ -46,6 +69,15 @@ BizModel 方法
 1. 给已有字段补加载逻辑：`@BizLoader`。
 2. 给已有 API 增加新字段但不改基础代码：Delta + `@BizLoader(autoCreateField = true)`。
 3. 昂贵字段默认配合 `@LazyLoad`，只在 selection 请求时计算。
+
+## GraphQL relation 查询元数据
+
+对于关联字段，XMeta / prop meta 还可以提供这些查询元数据：
+
+1. `graphql:filter`
+2. `graphql:orderBy`
+
+它们会在 GraphQL ORM fetcher 中和运行时 query 一起合并，用来给 relation / connection 查询补默认过滤与排序。
 
 ## 当前仓库里应避免的旧模板
 

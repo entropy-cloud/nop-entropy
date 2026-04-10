@@ -42,7 +42,7 @@
 
 ## 默认开发流程
 
-1. 先定位模块骨架：看 `01-repo-map/domain-module-pattern.md`。
+1. 先定位模块骨架：看 `../01-repo-map/domain-module-pattern.md`。
 2. 改源模型、Delta 或保留层文件。
 3. 用 `./mvnw` 触发再生成与构建，而不是手改生成结果。
 4. 只在非生成文件里补业务逻辑、测试和扩展资源。

@@ -1,0 +1,139 @@
+# 外部应用模块开发
+
+本页回答一个高频问题：
+
+**当你不是在改 `nop-entropy` 内部框架模块，而是在开发外部业务应用模块时，默认应该怎么组织工程、建模、生成、扩展和集成。**
+
+## 先看什么
+
+外部应用的真实参考样例：`C:/can/nop/nop-app-mall`
+
+它不是 `nop-entropy` 主仓库内置模块，而是基于 `nop-entropy` parent 构建的独立应用工程。
+
+## 最小骨架
+
+`nop-app-mall/pom.xml` 展示了一个完整外部应用的常见模块拆分：
+
+1. `app-mall-codegen`
+2. `app-mall-api`
+3. `app-mall-dao`
+4. `app-mall-service`
+5. `app-mall-web`
+6. `app-mall-app`
+7. `app-mall-wx`
+8. `app-mall-delta`
+9. `app-mall-meta`
+
+这说明外部应用默认仍然沿用 `model -> codegen -> dao -> meta -> service -> web -> app -> api` 主链路，但经常会额外带上：
+
+1. `*-delta`，用于覆盖平台内置模块。
+2. 集成模块，例如 `*-wx`，用于放第三方实现。
+
+## 默认开发闭环
+
+### 1. 先改源模型
+
+`nop-app-mall` 的源模型位于：
+
+1. `C:/can/nop/nop-app-mall/model/app-mall.orm.xlsx`
+2. `C:/can/nop/nop-app-mall/model/app-mall.api.xlsx`
+
+说明：外部应用完全可以用 Excel 模型作为主入口，不必限定只有 `*.orm.xml`。
+
+### 2. 再走 codegen / meta / web 生成链
+
+真实入口：
+
+1. `app-mall-codegen/src/test/java/app/mall/codegen/AppMallCodeGen.java`
+2. `app-mall-web/src/test/java/app/mall/web/AppMallWebCodeGen.java`
+
+这两个文件直接展示了：
+
+1. `XCodeGenerator.runPostcompile(...)`
+2. `XCodeGenerator.runPrecompile(...)`
+
+如何在外部应用里按阶段执行生成。
+
+### 3. 手改保留层，而不是生成物
+
+典型例子：
+
+1. `app-mall-dao/src/main/resources/_vfs/app/mall/orm/app.orm.xml`
+   只做 `x:extends="_app.orm.xml"` 的薄扩展。
+2. `app-mall-meta/src/main/resources/_vfs/app/mall/model/LitemallGoods/LitemallGoods.xmeta`
+   只覆盖 `insertable` / `updatable` 等局部属性。
+3. `app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/LitemallGoods.view.xml`
+   继承 `_gen/_LitemallGoods.view.xml` 后做保留层定制。
+
+### 4. 服务层仍以 BizModel 为中心
+
+参考：`app-mall-service/src/main/java/app/mall/service/entity/LitemallGoodsBizModel.java`
+
+这个类展示了外部应用里最常见的 3 类定制：
+
+1. 覆盖 `defaultPrepareQuery(...)` 做查询条件转换。
+2. 覆盖 `defaultPrepareSave(...)` 做保存前同步字段。
+3. 覆盖 `defaultPrepareUpdate(...)` 做更新后联动处理。
+
+### 5. 集成接口与实现分离
+
+参考：
+
+1. `app-mall-api/src/main/java/app/mall/pay/PayService.java`
+2. `app-mall-wx/src/main/resources/_vfs/app/mall/beans/app-wx.beans.xml`
+
+默认模式：
+
+1. 对外或跨模块契约放 `*-api`。
+2. 第三方实现放独立集成模块。
+3. 通过 app beans 明确装配，不要把实现混进 app 主模块。
+
+## 外部应用里最值得记住的两类扩展
+
+### 1. 覆盖平台内置模块
+
+参考：
+
+1. `app-mall-delta/src/main/resources/_vfs/_delta/default/nop/auth/orm/app.orm.xml`
+2. `app-mall-delta/src/main/resources/_vfs/_delta/default/nop/auth/pages/NopAuthUser/NopAuthUser.view.xml`
+
+这说明外部应用并不只是开发自己的 `app/...` 资源，也经常要通过 `_delta/default/nop/...` 覆盖平台已有模块。
+
+### 2. 外部应用前端通常是“生成 + 保留层 + 少量 page.yaml 包装”
+
+参考：
+
+1. `app-mall-web/.../LitemallGoods/LitemallGoods.view.xml`
+2. `app-mall-web/.../LitemallGoods/attributes.page.yaml`
+3. `app-mall-web/.../LitemallGoods/add.page.yaml`
+
+默认顺序：
+
+1. 先让 `_gen/_Xxx.view.xml` 生成基线页面。
+2. 再用 `Xxx.view.xml` 改 grid / form / page 结构。
+3. 需要单独入口页时，再用 `page.yaml` 做很薄的包裹。
+
+## 与内置模块相比的关键差异
+
+| 场景 | 内置模块 | 外部应用 |
+|------|---------|---------|
+| 所在位置 | `nop-entropy` 主仓库 reactor 内 | 独立工程，但 parent 指向 `nop-entropy` |
+| 目标 | 平台能力 / 标准模块 | 业务应用落地 |
+| 常见附加模块 | 一般按平台模块职责拆分 | 常见 `*-delta`、第三方集成模块 |
+| 模型形式 | `*.orm.xml` 常见 | Excel 模型也很常见 |
+
+## 默认不要做的事
+
+1. 把外部应用当成平台内部模块去改平台源码。
+2. 直接手改 `_gen`、`_app.orm.xml`、`_service.beans.xml`。
+3. 业务接口和第三方实现不分层，全部塞进 `app` 模块。
+4. 页面定制一上来就复制整份生成 view，而不是做保留层覆盖。
+
+## 相关文档
+
+- `./model-first-development.md`
+- `./delta-customization.md`
+- `./service-layer.md`
+- `./view-and-page-customization.md`
+- `./page-dsl-pattern-catalog.md`
+- `../01-repo-map/domain-module-pattern.md`

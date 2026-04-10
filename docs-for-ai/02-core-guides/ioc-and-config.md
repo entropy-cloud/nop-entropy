@@ -36,9 +36,10 @@ public class MyComponent {
 
 对当前仓库里的 AI 开发，记住这几个结论就够了：
 
-1. 环境变量和系统属性优先级高于文件。
-2. `bootstrap.yaml` 会先于应用配置参与加载。
-3. `application-{profile}.yaml` 会覆盖 `application.yaml`。
+1. 基础层里，环境变量和系统属性优先级高于 `bootstrap.yaml`。
+2. 之后还可能叠加配置中心、key file、props file、JDBC、扩展配置和应用配置。
+3. `bootstrap.yaml` 会先于应用配置参与加载。
+4. `application-{profile}.yaml` 会覆盖 `application.yaml`。
 
 ### 激活 profile
 
@@ -62,6 +63,14 @@ nop:
 | 注入 bean | `@Inject` |
 | 注入配置值 | `@InjectValue("@cfg:key|default")` |
 | 需要动态测试配置 | `@NopTestConfig(testConfigFile = ...)` |
+
+## 模块与 bean 发现规则
+
+1. Nop 应用侧 bean 发现默认是基于文件，不是基于 Java classpath scanning。
+2. 启用模块通过 `/<moduleId>/_module` 被发现。
+3. app 容器自动加载的通常是 `/<moduleId>/beans/app.beans.xml` 和 `app-*.beans.xml`。
+4. `/nop/autoconfig/*.beans` 和 `nop.ioc.app-beans.files` 也可以补充 bean 文件。
+5. `_service.beans.xml` 这类生成文件通常是被 `app-service.beans.xml` 导入，而不是自己被自动发现。
 
 ## 不要默认传播的模式
 

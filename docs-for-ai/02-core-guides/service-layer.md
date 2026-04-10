@@ -45,6 +45,8 @@ public class OrderBizModel extends CrudBizModel<Order> implements IOrderBiz {
 - 持久化优先走 `updateEntity()`、`save()`、`delete()`
 - 提交后副作用优先走 `txn().afterCommit(...)`
 
+注意：`txn().afterCommit(...)` 只有在当前已经处于事务中时才能注册。普通 `@BizMutation` 场景满足这个前提；`@BizQuery` 和其他无事务场景下不要直接套用。
+
 ### 参数与返回值
 
 - 单个或少量参数使用 `@Name`

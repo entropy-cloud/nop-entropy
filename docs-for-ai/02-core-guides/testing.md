@@ -19,6 +19,12 @@
 
 ## `@NopTestConfig` 的关键点
 
+边界先记住：
+
+1. `JunitAutoTestCase` 需要类级别 `@NopTestConfig`。
+2. `JunitBaseTestCase` 不强制要求 `@NopTestConfig`；仓库里也存在不加该注解的普通测试。
+3. 只有需要本地库、测试配置、测试 beans 或快照相关能力时再加。
+
 当前仓库里的 `@NopTestConfig` 至少控制这些能力：
 
 - `localDb`
@@ -35,6 +41,15 @@
 1. 首次录制：`snapshotTest = SnapshotTest.RECORDING`
 2. 日常验证：默认 `CHECKING`
 3. 只更新输出时：`forceSaveOutput = true`
+
+实操里最常用的 helper：
+
+1. `input(...)`
+2. `request(...)`
+3. `output(...)`
+4. `outputText(...)`
+
+录制模式下，框架在保存快照后会抛出一个表示“录制完成”的专用异常，这是正常流程，不要误判成普通业务失败。
 
 ## 测试数据位置
 

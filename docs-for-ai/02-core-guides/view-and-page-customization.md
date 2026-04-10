@@ -2,6 +2,8 @@
 
 当前仓库里的页面定制默认不是直接手写前端框架代码，而是围绕 `view.xml` 和 `page.yaml` 展开。
 
+如果你已经知道要改 `view.xml` / `page.yaml`，但需要查“复杂配置应该抄哪一种现成模式”，直接看 `./page-dsl-pattern-catalog.md`。
+
 ## 默认结论
 
 1. 页面结构优先从 XView 的 `view.xml` 理解。
@@ -22,6 +24,8 @@
 
 1. `nop-auth/nop-auth-web/src/main/resources/_vfs/nop/auth/pages/NopAuthUser/NopAuthUser.view.xml`
 2. `nop-auth/nop-auth-web/src/main/resources/_vfs/nop/auth/pages/NopAuthUser/_gen/_NopAuthUser.view.xml`
+3. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/LitemallGoods.view.xml`
+4. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallAftersale/LitemallAftersale.view.xml`
 
 ## XView 的最小理解模型
 
@@ -154,6 +158,73 @@ AI 需要先记住三层：
 
 如果需求本质上是列表列、表单字段、按钮结构或 CRUD 页面拼装，通常先改 `view.xml` 更对路。
 
+## 外部应用里的高价值复杂样例
+
+### 生成 view 之上的深度保留层定制
+
+`C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/LitemallGoods.view.xml`
+
+这个例子展示了：
+
+1. `bounded-merge` 只保留指定列。
+2. 在 `gen-control` 中生成服务端模板控件。
+3. 用 `<view path="..." grid="ref-edit"/>` 引入外部子表 view。
+4. 用 `<view path="...attributes.page.yaml"/>` 引入外部页面片段。
+5. 用 `x:prototype` 复用 `edit` 表单生成 `add` 表单。
+6. 把默认新增按钮改成跳转页，把行编辑动作改成 drawer。
+
+### 状态分组 + tabs 页面
+
+`C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallAftersale/LitemallAftersale.view.xml`
+
+这个例子展示了：
+
+1. 用 `x:prototype="list"` 克隆多个 grid。
+2. 在不同 grid 上挂不同 filter，形成状态分组列表。
+3. 为不同 crud 页面挂不同 batch action / row action。
+4. 最终用 `<tabs>` 把多个 crud 页面组装成一个业务后台页面。
+
+### 可复用 page.yaml 片段
+
+`C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/attributes.page.yaml`
+
+这个例子展示了：
+
+1. 把一段 `input-table` 配置单独抽成外部 page 片段。
+2. 再从 `view.xml` 中引用，而不是把所有 AMIS 配置内联进去。
+
+### 薄 page wrapper
+
+参考：
+
+1. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallGoods/add.page.yaml`
+2. `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallBrand/main.page.yaml`
+
+这类文件说明：
+
+1. `page.yaml` 可以只做 `x:gen-extends` 包装。
+2. 页面级样式、title、aside 等少量 AMIS 壳层参数可以放在这里。
+3. 不要因为要改一点 page 级样式，就回头复制整份 `view.xml`。
+
+### Delta 覆盖平台页面 + feature 开关
+
+`C:/can/nop/nop-app-mall/app-mall-delta/src/main/resources/_vfs/_delta/default/nop/auth/pages/NopAuthUser/NopAuthUser.view.xml`
+
+这个例子展示了：
+
+1. 外部应用如何通过 `_delta/default/nop/...` 覆盖平台页面。
+2. 用 `feature:on` 在同一个 form 上切换两套布局。
+
+### 树形 CRUD 生成基线
+
+`C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallRegion/_gen/_LitemallRegion.view.xml`
+
+这个生成样例适合用来理解：
+
+1. `tree-list` + `@TreeChildren(max:5)` 的层级列表。
+2. `loadDataOnce="true"` 的树形页面加载方式。
+3. `add-child` 页面如何通过 `<data>` 预填父节点 id。
+
 ## 常见坑
 
 1. 直接改 `_gen/_Xxx.view.xml`。
@@ -167,4 +238,6 @@ AI 需要先记住三层：
 - `../01-repo-map/where-things-live.md`
 - `./model-first-development.md`
 - `./delta-customization.md`
+- `./external-app-development.md`
+- `./page-dsl-pattern-catalog.md`
 - `../03-runbooks/add-field-and-validation.md`

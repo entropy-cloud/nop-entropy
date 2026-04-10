@@ -6,7 +6,7 @@
 
 | 场景 | 默认做法 |
 |------|---------|
-| 当前任务里的 request / result DTO | `@DataBean` + `Serializable` + getter / setter |
+| 当前任务里的局部 request / result DTO | `@DataBean` + getter / setter；需要跨边界序列化时再补 `Serializable` |
 | 模块里已有成体系的 API message bean | `@DataBean` + `ExtensibleBean` + `@PropMeta` |
 | 很小的不可变值对象 | 仅在 surrounding style 已存在时使用构造函数 + `@JsonProperty` |
 | JSON / YAML 解析与序列化 | `JsonTool` |
@@ -16,10 +16,9 @@
 局部 DTO 的默认规则仍然很简单：
 
 1. 加 `@DataBean`。
-2. 实现 `Serializable`。
-3. 提供标准 getter / setter。
-4. 默认放在 `*-dao/.../dto/`，便于 BizModel 和 Processor 共用。
-5. 不要默认用 `Map<String, Object>` 代替强类型 DTO。
+2. 如果这是普通局部 Bean，默认提供标准 getter / setter；只有需要跨边界序列化或周边代码已经这样做时，再补 `Serializable`。
+3. 默认放在最贴近复用边界的位置：BizModel 和 Processor 共享的局部 DTO 常见于 `*-dao/.../dto/`，API message bean 常见于 `*-api/.../messages` 或 `.../beans`，优先跟随周边模块。
+4. 不要默认用 `Map<String, Object>` 代替强类型 DTO。
 
 如果只是当前任务中的局部请求和返回对象，通常不需要上升到 message bean 模式。
 
@@ -86,6 +85,7 @@ String pretty = JsonTool.serialize(result, true);
 | 问题 | 默认回答 |
 |------|---------|
 | 这个 Request DTO 要不要加 `@DataBean` | 要 |
+| 要不要一律实现 `Serializable` | 不要一刀切，按周边风格和跨边界需求判断 |
 | 要不要默认继承 `ExtensibleBean` | 不要，除非周边 API 已经明确使用 message bean 模式 |
 | JSON 解析用什么 | `JsonTool` |
 | YAML 解析用什么 | `JsonTool.parseBeanFromYaml` 或 `loadBean` |

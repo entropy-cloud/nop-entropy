@@ -29,7 +29,7 @@ nop:
 | GraphQL schema 或字段不对 | `DevDoc__graphql` |
 | Delta 合并结果不对 | `_dump/{appName}/...` 下对应模型的最终文件 |
 | 新增 `_vfs` 文件不生效 | 刷新 VFS / 清理缓存 |
-| 生成链路结果不对 | `03-runbooks/debug-codegen-and-generated-files.md` |
+| 生成链路结果不对 | `../03-runbooks/debug-codegen-and-generated-files.md` |
 
 ## `_dump` 是什么
 
