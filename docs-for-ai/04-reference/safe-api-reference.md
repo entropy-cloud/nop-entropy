@@ -37,6 +37,8 @@ txn().afterCommit(null, () -> {
 });
 ```
 
+前提：当前已经处于事务中。普通 `@BizMutation` 默认满足；query 默认不满足。
+
 ## 查询构造
 
 ### QueryBean
