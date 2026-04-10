@@ -55,6 +55,7 @@
 | 新增字典或常量 | `03-runbooks/add-dict-and-constants.md` |
 | 模型变更后重新生成 | `03-runbooks/change-model-and-regenerate.md` |
 | 调试生成链路或生成文件 | `03-runbooks/debug-codegen-and-generated-files.md` |
+| 查后台页面开发路线图 | `03-runbooks/admin-page-development-roadmap.md` |
 | 写 BizModel 方法 | `03-runbooks/write-bizmodel-method.md` |
 | 创建 Request / Response DTO | `03-runbooks/create-request-response-dto.md` |
 | 新增跨模块 Biz 接口 | `03-runbooks/add-cross-module-biz-interface.md` |
@@ -72,6 +73,10 @@
 | 给页面增加子表编辑 | `03-runbooks/add-child-table-editor-to-page.md` |
 | 给页面增加业务动作按钮 | `03-runbooks/add-page-business-action.md` |
 | 用 Delta 覆盖平台页面 | `03-runbooks/override-platform-page-with-delta.md` |
+| 给后台页增加导出或批量操作 | `03-runbooks/add-export-or-batch-operations.md` |
+| 给字段换复杂自定义控件 | `03-runbooks/replace-field-with-complex-control.md` |
+| 给页面增加运行态或关联页 | `03-runbooks/add-runtime-or-related-page.md` |
+| 构建完整后台工作台页面 | `03-runbooks/build-admin-workspace-page.md` |
 | 用 Delta 替代直接修改 | `03-runbooks/prefer-delta-over-direct-modification.md` |
 | 处理事务边界 | `03-runbooks/transaction-boundaries.md` |
 | 处理错误码和异常 | `03-runbooks/error-codes-and-nop-exception.md` |
@@ -113,5 +118,5 @@
 
 - 只想开始干活：先看 `00-start-here/ai-defaults.md`。
 - 需要定位该改哪里：看 `01-repo-map/where-things-live.md`。
-- 已经知道任务类型：先看 `03-runbooks/README.md`，再进入对应手册。
+- 已经知道任务类型：先看 `03-runbooks/README.md`，前端页面任务优先看 `03-runbooks/admin-page-development-roadmap.md`。
 - 需要继续维护这套文档：看 `90-maintenance/maintenance-rules.md`。

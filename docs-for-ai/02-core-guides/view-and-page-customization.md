@@ -2,7 +2,7 @@
 
 当前仓库里的页面定制默认不是直接手写前端框架代码，而是围绕 `view.xml` 和 `page.yaml` 展开。
 
-如果你已经知道要改 `view.xml` / `page.yaml`，但需要查“复杂配置应该抄哪一种现成模式”，直接看 `./page-dsl-pattern-catalog.md`。
+如果你已经知道要改 `view.xml` / `page.yaml`，但需要查“复杂配置应该抄哪一种现成模式”，直接看 `./page-dsl-pattern-catalog.md`。如果你还不确定当前页面任务该走哪条文档路径，先看 `../03-runbooks/admin-page-development-roadmap.md`。
 
 ## 默认结论
 
