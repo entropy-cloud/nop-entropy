@@ -50,6 +50,8 @@ txn().afterCommit(null, () -> {
 });
 ```
 
+这个写法只适用于当前已经在事务里的修改动作。普通 `@BizMutation` 可以这样写；`@BizQuery` 不要直接照搬。
+
 ## 常见坑
 
 1. `@BizMutation @Transactional`

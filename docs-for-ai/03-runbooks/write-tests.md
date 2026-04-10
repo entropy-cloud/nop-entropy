@@ -10,6 +10,7 @@
 - 需要快照录制时，优先 `JunitAutoTestCase`。
 - 不需要快照时，优先 `JunitBaseTestCase`。
 - 需要容器、数据库、配置、`_vfs` 时，使用 `@NopTestConfig`。
+- `JunitAutoTestCase` 必须带类级别 `@NopTestConfig`；`JunitBaseTestCase` 可按需添加。
 
 ## 最小闭环
 
@@ -20,7 +21,9 @@
 | 快照录制 / 校验 | `JunitAutoTestCase` |
 | 普通进程内测试 | `JunitBaseTestCase` |
 
-### 2. 添加 `@NopTestConfig`
+### 2. 按需添加 `@NopTestConfig`
+
+`JunitBaseTestCase` 并不是每次都要配 `@NopTestConfig`。只有在需要本地库、测试配置、测试 beans 或快照能力时再加。
 
 ```java
 @NopTestConfig(localDb = true)
@@ -35,6 +38,15 @@ public class OrderBizModelTest extends JunitBaseTestCase {
 1. 首次录制：`snapshotTest = SnapshotTest.RECORDING`
 2. 日常验证：默认 `CHECKING`
 3. 只更新输出：`forceSaveOutput = true`
+
+常用 helper：
+
+1. `input(...)`
+2. `request(...)`
+3. `output(...)`
+4. `outputText(...)`
+
+录制模式保存输出后会抛出一个表示快照录制完成的专用异常，这是框架预期行为。
 
 ### 4. 数据目录
 

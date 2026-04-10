@@ -12,6 +12,7 @@
 - 普通集成测试优先 `JunitBaseTestCase`。
 - 需要快照录制或校验时，优先 `JunitAutoTestCase`。
 - 不要默认从 HTTP E2E 开始。
+- `JunitAutoTestCase` 必须带类级别 `@NopTestConfig`；`JunitBaseTestCase` 只有在需要额外测试配置时再加。
 
 ## 最小闭环
 
@@ -23,6 +24,8 @@
 | 快照录制 / 校验 | `JunitAutoTestCase` |
 
 ### 2. 添加测试配置
+
+如果只是普通进程内测试，并不一定非要加 `@NopTestConfig`；但只要需要本地库、测试 beans、测试配置文件或快照能力，就应该显式加上。
 
 ```java
 @NopTestConfig(localDb = true)
@@ -50,7 +53,7 @@ public class OrderBizModelTest extends JunitBaseTestCase {
 
 ## 常见坑
 
-1. 忘记加 `@NopTestConfig`。
+1. `JunitAutoTestCase` 忘记加 `@NopTestConfig`。
 2. `@Inject private` 字段导致注入失败。
 3. 明明是进程内服务测试，却先去搭 HTTP E2E。
 4. 需要 mock bean 时去改生产 beans。

@@ -25,11 +25,13 @@ public String displayName(@ContextSource Order order, IServiceContext context) {
 ### 2. 关联数据优先批量加载
 
 ```java
-@BizLoader(forType = Order.class)
-public Map<Order, List<OrderItem>> batchLoadItems(List<Order> orders) {
-    // 批量查询并组装结果
+@BizLoader("items")
+public List<List<OrderItem>> getItems(@ContextSource List<Order> orders) {
+    // 按输入顺序批量查询并返回结果
 }
 ```
+
+当前仓库里的真实批量 loader 模式是：`@ContextSource List<T>` 作为输入，按输入顺序返回结果集合，而不是默认写成 `Map<Source, Result>` 模板。
 
 ### 3. 只在 selection 请求该字段时再计算
 

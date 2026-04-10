@@ -11,6 +11,7 @@
 - 普通 BizModel 写操作默认只用 `@BizMutation`。
 - 需要事务回调时，优先使用 `txn().afterCommit(...)` 或 `ITransactionTemplate`。
 - `@Transactional` 仅用于非 BizModel 场景或必须显式控制传播级别时。
+- `txn().afterCommit(...)` 只能在当前已经有事务时调用；如果当前不在事务里，会直接报错。
 
 ## 普通 BizModel 默认模式
 
@@ -28,6 +29,13 @@ txn().afterCommit(null, () -> {
     // 提交后副作用
 });
 ```
+
+这个模式最适合：
+
+1. 普通 `@BizMutation` 方法。
+2. 显式 `runInTransaction(...)` 包裹的代码块。
+
+不要在默认无事务的 query 场景直接调用它。
 
 ## 非 BizModel 场景
 

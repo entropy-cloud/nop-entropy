@@ -9,7 +9,7 @@
 
 - 多参数输入优先 `@RequestBean`。
 - 多字段输出优先 `@DataBean`。
-- DTO 默认放在 `*-dao/.../dto/`，便于 BizModel 与 Processor 共用。
+- DTO 默认放在最贴近复用边界的位置：BizModel 与 Processor 共用时常见于 `*-dao/.../dto/`，API message bean 常见于 `*-api/.../messages` 或 `.../beans`。
 - 如果周边模块已经大量使用 `ExtensibleBean` + `@PropMeta`，优先跟随该风格，而不是另起一套 DTO 风格。
 
 ## 最小模板
@@ -42,18 +42,18 @@ public SubmitOrderResult submitOrder(@RequestBean SubmitOrderRequest request,
 }
 ```
 
-## 必要约束
+## 默认约束
 
 1. 添加 `@DataBean`。
-2. 实现 `Serializable`。
-3. 提供标准 getter / setter。
+2. 提供标准 getter / setter。
+3. 如果这是局部 DTO 且需要跨边界序列化，或周边代码已经统一实现 `Serializable`，再补 `Serializable`。
 4. 不要默认使用 Lombok `@Data` 代替手写访问器。
 
 ## 什么时候跟随 `ExtensibleBean` 风格
 
 | 场景 | 默认做法 |
 |------|---------|
-| 当前任务里的局部 DTO | 普通 `@DataBean` + getter / setter |
+| 当前任务里的局部 DTO | 普通 `@DataBean` + getter / setter；按需要补 `Serializable` |
 | 模块内已有成体系的 API message bean | 跟随现有 `ExtensibleBean` + `@PropMeta` 风格 |
 
 不要为了一个简单本地 DTO 额外引入复杂 message bean 模式；只有周边代码已经明确采用这套风格时再跟随。

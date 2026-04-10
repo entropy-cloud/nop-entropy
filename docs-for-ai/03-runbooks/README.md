@@ -27,6 +27,14 @@
 | `extend-api-with-delta-bizloader.md` | 用 Delta 扩展既有 API 字段 |
 | `prefer-delta-over-direct-modification.md` | 用 Delta 替代直接修改 |
 | `create-request-response-dto.md` | 创建 Request / Response DTO |
+| `build-tree-crud-page.md` | 构建树形 CRUD 页面 |
+| `build-related-drawer-page.md` | 构建关联子表 Drawer 页面 |
+| `build-tabs-workspace-page.md` | 构建 Tabs 工作台页面 |
+| `build-designer-or-special-page.md` | 构建设计器或专用编辑器页面 |
+| `make-field-reach-page.md` | 让字段从模型落到页面 |
+| `add-child-table-editor-to-page.md` | 给页面增加子表编辑 |
+| `add-page-business-action.md` | 给页面增加业务动作按钮 |
+| `override-platform-page-with-delta.md` | 用 Delta 覆盖平台页面 |
 | `transaction-boundaries.md` | 事务边界 |
 | `error-codes-and-nop-exception.md` | 错误码与异常 |
 | `write-tests.md` | 编写测试 |

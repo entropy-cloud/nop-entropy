@@ -39,6 +39,12 @@ public class LoginApiBizModelDelta {
 2. 在 GraphQL selection 中显式请求新字段。
 3. 确认未请求时不会强制计算该字段。
 
+## Delta 覆盖已有方法时的额外规则
+
+如果 Delta 类里改了方法参数类型，导致签名不再直接覆盖基类实现，可以显式加 `@Priority` 来提高优先级。
+
+仓库里的真实例子：`nop-demo/nop-delta-demo/.../LoginApiBizModelDelta.java` 中，`loginAsync` 因为改了请求类型，所以用 `@Priority` 来覆盖基类定义。
+
 ## 关键点
 
 | 配置 | 作用 |
