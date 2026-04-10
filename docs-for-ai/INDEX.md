@@ -36,12 +36,19 @@
 | 找模型、页面、测试、模块入口 | `01-repo-map/where-things-live.md` |
 | 从模型开始开发 | `02-core-guides/model-first-development.md` |
 | 编写 BizModel / 服务层逻辑 | `02-core-guides/service-layer.md` |
+| 理解 GraphQL / API 暴露方式 | `02-core-guides/api-and-graphql.md` |
 | 判断领域逻辑和 DDD 落位 | `02-core-guides/domain-logic-and-ddd.md` |
 | 判断 DTO / JSON / message bean 写法 | `02-core-guides/dto-json-and-message-beans.md` |
+| 判断 IoC 注入和配置写法 | `02-core-guides/ioc-and-config.md` |
+| 判断错误处理和错误码写法 | `02-core-guides/error-handling.md` |
+| 查询当前仓库代码风格 | `02-core-guides/code-style.md` |
+| 理解外部应用模块开发 | `02-core-guides/external-app-development.md` |
 | 定制 view / page 页面 | `02-core-guides/view-and-page-customization.md` |
+| 查复杂页面 DSL 配置模式 | `02-core-guides/page-dsl-pattern-catalog.md` |
 | 调试与排障 | `02-core-guides/debugging-and-diagnostics.md` |
 | 做 Delta 定制 | `02-core-guides/delta-customization.md` |
 | 编写 XDef / XDSL 文件 | `02-core-guides/xdef-and-xdsl.md` |
+| 理解 XLang / XPL / xrun / xgen 基本写法 | `02-core-guides/xlang-and-xpl-basics.md` |
 | 编写测试 | `02-core-guides/testing.md` |
 | 新建实体 | `03-runbooks/create-new-entity.md` |
 | 新增字段或校验 | `03-runbooks/add-field-and-validation.md` |
@@ -49,6 +56,7 @@
 | 模型变更后重新生成 | `03-runbooks/change-model-and-regenerate.md` |
 | 调试生成链路或生成文件 | `03-runbooks/debug-codegen-and-generated-files.md` |
 | 写 BizModel 方法 | `03-runbooks/write-bizmodel-method.md` |
+| 创建 Request / Response DTO | `03-runbooks/create-request-response-dto.md` |
 | 新增跨模块 Biz 接口 | `03-runbooks/add-cross-module-biz-interface.md` |
 | 选择 Entity / BizModel / Processor | `03-runbooks/choose-entity-bizmodel-processor.md` |
 | 实现复杂业务流程 | `03-runbooks/implement-complex-business-flow.md` |
@@ -56,6 +64,14 @@
 | 扩展 CRUD 钩子 | `03-runbooks/extend-crud-with-hooks.md` |
 | 新增 BizLoader 字段 | `03-runbooks/add-bizloader-field.md` |
 | 通过 Delta 扩展 API 返回字段 | `03-runbooks/extend-api-with-delta-bizloader.md` |
+| 构建树形 CRUD 页面 | `03-runbooks/build-tree-crud-page.md` |
+| 构建关联子表 Drawer 页面 | `03-runbooks/build-related-drawer-page.md` |
+| 构建 Tabs 工作台页面 | `03-runbooks/build-tabs-workspace-page.md` |
+| 构建设计器或专用编辑器页面 | `03-runbooks/build-designer-or-special-page.md` |
+| 让字段从模型落到页面 | `03-runbooks/make-field-reach-page.md` |
+| 给页面增加子表编辑 | `03-runbooks/add-child-table-editor-to-page.md` |
+| 给页面增加业务动作按钮 | `03-runbooks/add-page-business-action.md` |
+| 用 Delta 覆盖平台页面 | `03-runbooks/override-platform-page-with-delta.md` |
 | 用 Delta 替代直接修改 | `03-runbooks/prefer-delta-over-direct-modification.md` |
 | 处理事务边界 | `03-runbooks/transaction-boundaries.md` |
 | 处理错误码和异常 | `03-runbooks/error-codes-and-nop-exception.md` |
@@ -97,5 +113,5 @@
 
 - 只想开始干活：先看 `00-start-here/ai-defaults.md`。
 - 需要定位该改哪里：看 `01-repo-map/where-things-live.md`。
-- 已经知道任务类型：直接进入 `03-runbooks/`。
+- 已经知道任务类型：先看 `03-runbooks/README.md`，再进入对应手册。
 - 需要继续维护这套文档：看 `90-maintenance/maintenance-rules.md`。
