@@ -12,6 +12,11 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.xlang.api.XLang;
+import io.nop.xlang.ast.BinaryExpression;
+import io.nop.xlang.ast.Expression;
+import io.nop.xlang.ast.ExpressionStatement;
+import io.nop.xlang.ast.Program;
+import io.nop.xlang.ast.XLangOperator;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -20,6 +25,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestXLangParser {
@@ -81,5 +87,80 @@ public class TestXLangParser {
         scope.setLocalValue("arr", new int[]{1, 2, 3, 4, 5});
 
         XLang.newCompileTool().allowUnregisteredScopeVar(true).compileFullExpr(null, "arr.map(f=>f+1)").invoke(scope);
+    }
+
+    @Test
+    public void testStrictEqXScript() {
+        IEvalScope scope = XLang.newEvalScope();
+        assertEquals(true, XLang.newCompileTool().allowUnregisteredScopeVar(true)
+                .compileFullExpr(null, "3 === 3").invoke(scope));
+        assertEquals(false, XLang.newCompileTool().allowUnregisteredScopeVar(true)
+                .compileFullExpr(null, "3 === 2").invoke(scope));
+        assertEquals(true, XLang.newCompileTool().allowUnregisteredScopeVar(true)
+                .compileFullExpr(null, "'abc' === 'abc'").invoke(scope));
+        assertEquals(false, XLang.newCompileTool().allowUnregisteredScopeVar(true)
+                .compileFullExpr(null, "'abc' === 'def'").invoke(scope));
+    }
+
+    @Test
+    public void testStrictNeXScript() {
+        IEvalScope scope = XLang.newEvalScope();
+        assertEquals(false, XLang.newCompileTool().allowUnregisteredScopeVar(true)
+                .compileFullExpr(null, "3 !== 3").invoke(scope));
+        assertEquals(true, XLang.newCompileTool().allowUnregisteredScopeVar(true)
+                .compileFullExpr(null, "3 !== 2").invoke(scope));
+    }
+
+    @Test
+    public void testStrictEqNullXScript() {
+        IEvalScope scope = XLang.newEvalScope();
+        assertEquals(true, XLang.newCompileTool().allowUnregisteredScopeVar(true)
+                .compileFullExpr(null, "null === null").invoke(scope));
+        assertEquals(false, XLang.newCompileTool().allowUnregisteredScopeVar(true)
+                .compileFullExpr(null, "1 === null").invoke(scope));
+        assertEquals(false, XLang.newCompileTool().allowUnregisteredScopeVar(true)
+                .compileFullExpr(null, "null !== null").invoke(scope));
+        assertEquals(true, XLang.newCompileTool().allowUnregisteredScopeVar(true)
+                .compileFullExpr(null, "1 !== null").invoke(scope));
+    }
+
+    @Test
+    public void testStrictEqParseXScript() {
+        Program program = XLang.newCompileTool().parseFullExpr(null, "a === b");
+        Expression expr = ((ExpressionStatement) program.getBody().get(0)).getExpression();
+        BinaryExpression binary = (BinaryExpression) expr;
+        assertNotNull(binary.getLeft());
+        assertEquals(XLangOperator.SEQ, binary.getOperator());
+    }
+
+    @Test
+    public void testStrictNeParseXScript() {
+        Program program = XLang.newCompileTool().parseFullExpr(null, "a !== b");
+        Expression expr = ((ExpressionStatement) program.getBody().get(0)).getExpression();
+        BinaryExpression binary = (BinaryExpression) expr;
+        assertNotNull(binary.getLeft());
+        assertEquals(XLangOperator.SNE, binary.getOperator());
+    }
+
+    @Test
+    public void testStrictEqInTernary() {
+        IEvalScope scope = XLang.newEvalScope();
+        Object result = XLang.newCompileTool().allowUnregisteredScopeVar(true)
+                .compileFullExpr(null, "1 === 1 ? 'yes' : 'no'").invoke(scope);
+        assertEquals("yes", result);
+
+        result = XLang.newCompileTool().allowUnregisteredScopeVar(true)
+                .compileFullExpr(null, "1 !== 1 ? 'yes' : 'no'").invoke(scope);
+        assertEquals("no", result);
+    }
+
+    @Test
+    public void testStrictEqWithVariable() {
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue("x", 10);
+        assertEquals(true, XLang.newCompileTool().allowUnregisteredScopeVar(true)
+                .compileFullExpr(null, "x === 10").invoke(scope));
+        assertEquals(false, XLang.newCompileTool().allowUnregisteredScopeVar(true)
+                .compileFullExpr(null, "x !== 10").invoke(scope));
     }
 }
