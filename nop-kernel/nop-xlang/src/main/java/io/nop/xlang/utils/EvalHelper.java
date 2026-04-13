@@ -42,8 +42,10 @@ public class EvalHelper {
             case LE:
                 return MathHelper.le(v1, v2);
             case EQ:
+            case SEQ:
                 return MathHelper.xlangEq(v1, v2);
             case NE:
+            case SNE:
                 return !MathHelper.xlangEq(v1, v2);
             case GE:
                 return MathHelper.ge(v1, v2);

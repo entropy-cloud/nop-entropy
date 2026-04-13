@@ -135,6 +135,12 @@ public abstract class AbstractExprParser<E> {
         } else if (mayMatch(sc, XLangOperator.NE)) {
             E y = relationalExpr(sc);
             return newBinaryExpr(loc, XLangOperator.NE, x, y);
+        } else if (mayMatch(sc, XLangOperator.SEQ)) {
+            E y = relationalExpr(sc);
+            return newBinaryExpr(loc, XLangOperator.SEQ, x, y);
+        } else if (mayMatch(sc, XLangOperator.SNE)) {
+            E y = relationalExpr(sc);
+            return newBinaryExpr(loc, XLangOperator.SNE, x, y);
         }
         return x;
     }
@@ -325,9 +331,11 @@ public abstract class AbstractExprParser<E> {
     protected void _peekEq(TextScanner sc) {
         int next = sc.peek();
         if (next == '=') {
-            if (sc.peek(2) == '=')
-                throw sc.newError(ERR_EXPR_UNSUPPORTED_OP).param(ARG_OP, "===");
-            sc.setPeekToken(XLangOperator.EQ, 2);
+            if (sc.peek(2) == '=') {
+                sc.setPeekToken(XLangOperator.SEQ, 3);
+            } else {
+                sc.setPeekToken(XLangOperator.EQ, 2);
+            }
         } else if (next == '>') {
             sc.setPeekToken(XLangOperator.ARROW, 2);
         } else {
@@ -337,7 +345,11 @@ public abstract class AbstractExprParser<E> {
 
     protected void _peekNot(TextScanner sc) {
         if (sc.peek() == '=') {
-            sc.setPeekToken(XLangOperator.NE, 2);
+            if (sc.peek(2) == '=') {
+                sc.setPeekToken(XLangOperator.SNE, 3);
+            } else {
+                sc.setPeekToken(XLangOperator.NE, 2);
+            }
         } else {
             sc.setPeekToken(XLangOperator.NOT, 1);
         }

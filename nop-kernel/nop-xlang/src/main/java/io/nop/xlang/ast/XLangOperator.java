@@ -16,7 +16,7 @@ public enum XLangOperator implements IToken {
     ASSIGN("="),
 
     ADD("+"), MINUS("-"), DIVIDE("/"), MULTIPLY("*"), MOD("%"), LT("<"), LE("<="), EQ("=="), NE("!="), GT(">"),
-    GE(">="), AND("&&"), OR("||"), NOT("!"),
+    GE(">="), AND("&&"), OR("||"), NOT("!"), SEQ("==="), SNE("!=="),
 
     IN("in"),
 
@@ -58,8 +58,10 @@ public enum XLangOperator implements IToken {
     public String toFilterOp() {
         switch (this) {
             case EQ:
+            case SEQ:
                 return FilterOp.EQ.name();
             case NE:
+            case SNE:
                 return FilterOp.NE.name();
             case GT:
                 return FilterOp.GT.name();
@@ -81,7 +83,7 @@ public enum XLangOperator implements IToken {
     }
 
     public XLangOperator switchLeftRight() {
-        if (this == EQ || this == NE)
+        if (this == EQ || this == NE || this == SEQ || this == SNE)
             return this;
         if (this == GT)
             return LT;
@@ -107,7 +109,7 @@ public enum XLangOperator implements IToken {
     }
 
     public boolean isEqualityOp() {
-        return this == EQ || this == NE;
+        return this == EQ || this == NE || this == SEQ || this == SNE;
     }
 
     public boolean isBitOp() {

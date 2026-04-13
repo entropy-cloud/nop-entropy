@@ -55,6 +55,22 @@ public class BinaryExecutable extends AbstractBinaryExecutable {
                     return new NeNullExecutable(loc, left);
                 return new NeExecutable(loc, left, right);
             }
+            case SEQ: {
+                if (left instanceof NullExecutable) {
+                    return new StrictEqNullExecutable(loc, right);
+                }
+                if (right instanceof NullExecutable)
+                    return new StrictEqNullExecutable(loc, left);
+                return new StrictEqExecutable(loc, left, right);
+            }
+            case SNE: {
+                if (left instanceof NullExecutable) {
+                    return new StrictNeNullExecutable(loc, right);
+                }
+                if (right instanceof NullExecutable)
+                    return new StrictNeNullExecutable(loc, left);
+                return new StrictNeExecutable(loc, left, right);
+            }
             case GT:
                 return new GtExecutable(loc, left, right);
             case GE:

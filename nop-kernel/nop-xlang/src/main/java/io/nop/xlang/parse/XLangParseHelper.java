@@ -158,6 +158,10 @@ public class XLangParseHelper {
                 return XLangOperator.EQ;
             case XLangParser.NotEquals:
                 return XLangOperator.NE;
+            case XLangParser.IdentityEquals:
+                return XLangOperator.SEQ;
+            case XLangParser.IdentityNotEquals:
+                return XLangOperator.SNE;
             case XLangParser.Not:
                 return XLangOperator.NOT;
             case XLangParser.And:
