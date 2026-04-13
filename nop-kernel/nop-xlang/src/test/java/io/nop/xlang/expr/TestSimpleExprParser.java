@@ -80,6 +80,50 @@ public class TestSimpleExprParser {
     }
 
     @Test
+    public void testStrictEq() {
+        assertEquals(true, eval("3 === 3"));
+        assertEquals(false, eval("3 === 2"));
+        assertEquals(true, eval("'abc' === 'abc'"));
+        assertEquals(false, eval("'abc' === 'def'"));
+    }
+
+    @Test
+    public void testStrictNe() {
+        assertEquals(false, eval("3 !== 3"));
+        assertEquals(true, eval("3 !== 2"));
+        assertEquals(false, eval("'abc' !== 'abc'"));
+        assertEquals(true, eval("'abc' !== 'def'"));
+    }
+
+    @Test
+    public void testStrictEqNull() {
+        assertEquals(true, eval("NULL === null"));
+        assertEquals(false, eval("x === null"));
+    }
+
+    @Test
+    public void testStrictNeNull() {
+        assertEquals(false, eval("NULL !== null"));
+        assertEquals(true, eval("x !== null"));
+    }
+
+    @Test
+    public void testStrictEqParse() {
+        String text = "a === b";
+        BinaryExpression expr = (BinaryExpression) SimpleExprParser.newDefault().parseExpr(null, text);
+        assertNotNull(expr.getLeft());
+        assertEquals(io.nop.xlang.ast.XLangOperator.SEQ, expr.getOperator());
+    }
+
+    @Test
+    public void testStrictNeParse() {
+        String text = "a !== b";
+        BinaryExpression expr = (BinaryExpression) SimpleExprParser.newDefault().parseExpr(null, text);
+        assertNotNull(expr.getLeft());
+        assertEquals(io.nop.xlang.ast.XLangOperator.SNE, expr.getOperator());
+    }
+
+    @Test
     public void testExtensionMethod() {
         assertEquals("myTest", eval("'my_test'.$camelCase(false)"));
     }
