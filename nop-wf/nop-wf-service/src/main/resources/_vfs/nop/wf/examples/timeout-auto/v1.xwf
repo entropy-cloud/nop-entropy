@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:extends="/nop/wf/base/oa.xwf"
+          x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          wfName="examples/timeout-auto" wfVersion="1" displayName="超时自动审批流程">
+    <description>超时自动审批：审批人有固定时限处理，超时后系统自动通过。
+        对应FlowLong的termAuto/term/termMode配置。</description>
+
+    <start startStepName="submit">
+        <arg name="urgency" type="String" displayName="紧急程度"/>
+    </start>
+
+    <end/>
+
+    <actions>
+        <!-- Auto-agree action: triggered when due-time expires.
+             Only sets appState="agree", does NOT specify a to-step.
+             Each step's own <transition onAppStates="agree"> handles routing. -->
+        <action name="auto-agree" displayName="超时自动通过" common="true" local="true">
+            <source>
+                <c:script>
+                    wfVars.setVar('autoApproved', true)
+                    wfVars.setVar('autoApprovedStep', wfRt.currentStep.stepName)
+                </c:script>
+            </source>
+            <transition appState="agree" splitType="and"/>
+        </action>
+    </actions>
+
+    <steps>
+        <step name="submit" displayName="提交申请">
+            <assignment>
+                <actors>
+                    <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="timed-approval"/>
+            </transition>
+        </step>
+
+        <!-- dueAction="auto-agree": when due-time-expr triggers, execute the "auto-agree" action.
+             The due-time-expr returns the timestamp when timeout should occur.
+             Here: 24 hours (1 day) from step activation.
+             This maps to FlowLong's term=1, termMode=0 (auto-pass after timeout). -->
+        <step name="timed-approval" displayName="限时审批"
+              dueAction="auto-agree" allowReject="true">
+            <due-time-expr>
+                <c:script>
+                    // Return the timestamp when timeout should occur
+                    // Here: current time + 24 hours (in milliseconds)
+                    return sysDate + 24 * 60 * 60 * 1000
+                </c:script>
+            </due-time-expr>
+            <assignment>
+                <actors>
+                    <actor actorModelId="manager" actorType="wf-actor:StarterManager"
+                           selectUser="true" wf:upLevel="1"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+                <ref-action name="reject"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="manager-approval"/>
+            </transition>
+        </step>
+
+        <step name="manager-approval" displayName="经理审批" allowReject="true"
+              dueAction="auto-agree">
+            <due-time-expr>
+                <c:script>
+                    // 1 hour timeout for manager
+                    return sysDate + 60 * 60 * 1000
+                </c:script>
+            </due-time-expr>
+            <assignment>
+                <actors>
+                    <actor actorModelId="senior-manager" actorType="wf-actor:StarterManager"
+                           selectUser="true" wf:upLevel="2"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+                <ref-action name="reject"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+</workflow>

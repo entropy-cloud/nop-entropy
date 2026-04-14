@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:extends="/nop/wf/base/oa.xwf"
+          x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          wfName="examples/simple-approval" wfVersion="1" displayName="简单审批流程">
+    <description>简单的两步审批流程：提交申请 → 主管审批 → 结束</description>
+
+    <start startStepName="submit">
+        <arg name="reason" type="String" displayName="申请原因"/>
+    </start>
+
+    <end/>
+
+    <steps>
+        <step name="submit" displayName="提交申请">
+            <assignment>
+                <actors>
+                    <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="manager-approval"/>
+            </transition>
+        </step>
+
+        <step name="manager-approval" displayName="主管审批" allowWithdraw="true" allowReject="true">
+            <assignment>
+                <actors>
+                    <actor actorModelId="manager" actorType="wf-actor:StarterManager" selectUser="true"
+                           wf:upLevel="1"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+                <ref-action name="reject"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+</workflow>

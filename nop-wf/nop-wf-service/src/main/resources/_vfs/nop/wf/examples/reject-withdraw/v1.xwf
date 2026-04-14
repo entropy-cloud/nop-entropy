@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:extends="/nop/wf/base/oa.xwf"
+          x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          wfName="examples/reject-withdraw" wfVersion="1" displayName="驳回与撤回流程">
+    <description>驳回与撤回：支持驳回到发起人和撤回上一步操作。每个审批步骤都可以驳回或被撤回。</description>
+
+    <start startStepName="submit">
+        <arg name="amount" type="BigDecimal" displayName="申请金额"/>
+    </start>
+
+    <end/>
+
+    <!-- Custom reject actions with explicit targets (overrides oa.xwf default reject) -->
+    <actions>
+        <action name="reject-to-start" displayName="驳回到发起人" common="true" forReject="true"
+                forActivated="true">
+            <transition splitType="and">
+                <to-step stepName="submit" backLink="true"/>
+            </transition>
+        </action>
+
+        <action name="withdraw" displayName="撤回" common="true" forWithdraw="true"
+                forHistory="true">
+            <transition splitType="and">
+                <to-step stepName="submit" backLink="true"/>
+            </transition>
+        </action>
+    </actions>
+
+    <steps>
+        <step name="submit" displayName="提交申请" allowWithdraw="true">
+            <assignment>
+                <actors>
+                    <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="dept-approval"/>
+            </transition>
+        </step>
+
+        <!-- allowReject="true": enables reject button in UI
+             allowWithdraw="true": enables withdraw for the PREVIOUS step (submit) -->
+        <step name="dept-approval" displayName="部门审批" allowReject="true" allowWithdraw="true">
+            <assignment>
+                <actors>
+                    <actor actorModelId="dept-manager" actorType="wf-actor:StarterDeptManager"
+                           selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+                <ref-action name="reject-to-start"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="finance-approval"/>
+            </transition>
+        </step>
+
+        <step name="finance-approval" displayName="财务审批" allowReject="true"
+              allowWithdraw="true">
+            <assignment>
+                <actors>
+                    <actor actorModelId="finance" actorType="role" actorId="finance-manager"
+                           selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+                <ref-action name="reject-to-start"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+</workflow>
