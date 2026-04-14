@@ -10,7 +10,7 @@ package io.nop.ooxml.xlsx.chart;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.model.ExcelFont;
-import io.nop.excel.model.constants.ExcelFontUnderline;
+import io.nop.office.model.constants.OfficeFontUnderline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -184,7 +184,7 @@ public class ChartTextBuilder {
         rPrNode.setAttr("i", italic ? "1" : "0");
 
         // 设置下划线
-        ExcelFontUnderline underlineStyle = font.getUnderlineStyle();
+        OfficeFontUnderline underlineStyle = font.getUnderlineStyle();
         if (underlineStyle != null) {
             String underline = mapUnderlineStyleToOoxml(underlineStyle);
             rPrNode.setAttr("u", underline);
@@ -260,7 +260,7 @@ public class ChartTextBuilder {
     /**
      * 映射下划线样式到OOXML
      */
-    private String mapUnderlineStyleToOoxml(io.nop.excel.model.constants.ExcelFontUnderline underlineStyle) {
+    private String mapUnderlineStyleToOoxml(io.nop.office.model.constants.OfficeFontUnderline underlineStyle) {
         switch (underlineStyle) {
             case NONE:
                 return "none";
