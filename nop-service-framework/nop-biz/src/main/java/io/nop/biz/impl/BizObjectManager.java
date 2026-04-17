@@ -202,7 +202,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
     public GraphQLFieldDefinition getOperationDefinition(GraphQLOperationType opType, String name) {
         String bizObjName;
         String bizAction = name;
-        int pos = name.indexOf(OBJ_ACTION_SEPARATOR);
+        int pos = name.lastIndexOf(OBJ_ACTION_SEPARATOR);
         if (pos < 0) {
             bizObjName = GraphQLConstants.BIZ_OBJ_NAME_ROOT;
         } else {
