@@ -12,10 +12,41 @@ Agent Plan Metamodel Definition
 <plan x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
       xdef:name="AgentPlan" xdef:bean-package="io.nop.ai.agent.plan.model"
       xmlns:xdef="/nop/schema/xdef.xdef"
-      currentPhase="string" createdAt="datetime" updatedAt="datetime"
+      title="string" currentPhase="string" currentTaskNo="string"
+      createdAt="datetime" updatedAt="datetime" reviewedAt="date"
       status="enum:io.nop.ai.agent.model.AgentExecStatus">
 
+    <purpose>string</purpose>
+
     <goal>string</goal>
+
+    <currentBaseline>string</currentBaseline>
+
+    <sources xdef:body-type="list" xdef:key-attr="id">
+        <source id="!string" path="string" xdef:name="AgentPlanSourceRef">string</source>
+    </sources>
+
+    <relatedPlans xdef:body-type="list" xdef:key-attr="id">
+        <relatedPlan id="!string" path="string" xdef:name="AgentPlanRelatedRef">string</relatedPlan>
+    </relatedPlans>
+
+    <successCriteria xdef:body-type="list" xdef:key-attr="id">
+        <criterion id="!string" xdef:name="AgentPlanSuccessCriterion">string</criterion>
+    </successCriteria>
+
+    <nonGoals xdef:body-type="list" xdef:key-attr="id">
+        <nonGoal id="!string" xdef:name="AgentPlanNonGoalItem">string</nonGoal>
+    </nonGoals>
+
+    <scope>
+        <inScope xdef:body-type="list" xdef:key-attr="id">
+            <item id="!string" xdef:name="AgentPlanScopeItem">string</item>
+        </inScope>
+
+        <outOfScope xdef:body-type="list" xdef:key-attr="id">
+            <item id="!string" xdef:ref="AgentPlanScopeItem"/>
+        </outOfScope>
+    </scope>
 
     <!-- 读取过的有用文件 -->
     <readFiles xdef:body-type="list">
@@ -32,10 +63,20 @@ Agent Plan Metamodel Definition
 
         <!-- 每个阶段包含多个任务，任务支持递归子任务 -->
         <phase xdef:name="AgentPlanPhase" name="!string"
+               kind="string"
                status="enum:io.nop.ai.agent.model.AgentExecStatus"
                startedAt="datetime" completedAt="datetime">
             <!-- 阶段描述（大文本） -->
             <description>string</description>
+
+            <targets xdef:body-type="list" xdef:key-attr="id">
+                <target id="!string" path="string" xdef:name="AgentPlanTarget">string</target>
+            </targets>
+
+            <exitCriteria xdef:body-type="list" xdef:key-attr="id">
+                <criterion id="!string" completed="boolean" required="boolean" blocking="boolean"
+                           xdef:name="AgentPlanCriterion">string</criterion>
+            </exitCriteria>
 
             <!-- 阶段任务列表：支持递归子任务 -->
             <tasks xdef:body-type="list" xdef:key-attr="taskNo">
@@ -53,6 +94,11 @@ Agent Plan Metamodel Definition
                     <!-- 任务结果消息（大文本） -->
                     <resultMessage>string</resultMessage>
 
+                    <checks xdef:body-type="list" xdef:key-attr="id">
+                        <check id="!string" completed="boolean" required="boolean" blocking="boolean"
+                               xdef:ref="AgentPlanCriterion"/>
+                    </checks>
+
                     <!-- 递归子任务列表：支持任务分解 -->
                     <subTasks xdef:body-type="list" xdef:key-attr="taskNo">
                         <task xdef:ref="AgentPlanTaskModel" taskNo="!string"/>
@@ -62,45 +108,29 @@ Agent Plan Metamodel Definition
         </phase>
     </phases>
 
-    <!-- ========== 关键问题 ========== -->
-
-    <!-- 需要回答的关键问题列表 -->
-    <questions xdef:body-type="list" xdef:key-attr="id">
-        <question id="!string" xdef:name="AgentPlanQuestion" relatedTaskNo="string" askedAt="datetime"
-                  answeredAt="datetime">
-            <questionText>string</questionText>
-            <answerText>string</answerText>
-        </question>
-    </questions>
-
-    <!-- ========== 决策记录 ========== -->
-
-    <!-- 任务执行过程中做出的决策记录 -->
-    <decisions xdef:body-type="list" xdef:key-attr="id">
-        <decision id="!string" madeAt="!datetime" xdef:name="AgentPlanDecision" relatedTaskNo="string">
-            <!-- 决策内容（大文本） -->
-            <decisionText>string</decisionText>
-
-            <!-- 决策理由（大文本） -->
-            <rationale>string</rationale>
-        </decision>
-    </decisions>
-
     <!-- ========== 错误记录 ========== -->
 
-    <!-- 任务执行过程中遇到的值得记录的错误记录 -->
+    <!-- 任务执行过程中遇到的阻断性或值得追踪的错误记录 -->
     <errors xdef:body-type="list" xdef:key-attr="id">
         <error id="!string" encounteredAt="datetime" attemptNumber="int" resolvedAt="datetime" relatedTaskNo="string"
+               blocking="boolean"
                xdef:name="AgentPlanError">
-            <!-- 错误描述（大文本） -->
             <errorText>string</errorText>
-            <!-- 错误解决方案（大文本） -->
             <resolution>string</resolution>
         </error>
     </errors>
 
-    <!-- 任务笔记列表, 用于记录任意扩展信息 -->
-    <additionalNotes xdef:body-type="list" xdef:key-attr="id">
-        <additionalNote id="!string" xdef:name="AgentPlanNote" relatedTaskNo="string">string</additionalNote>
-    </additionalNotes>
+    <validationChecklist xdef:body-type="list" xdef:key-attr="id">
+        <check id="!string" completed="boolean" required="boolean" blocking="boolean"
+               xdef:ref="AgentPlanCriterion"/>
+    </validationChecklist>
+
+    <closure reviewedBy="string" reviewedAt="datetime" completedAt="datetime"
+             xdef:name="AgentPlanClosure">
+        <statusNote>string</statusNote>
+        <auditEvidence>string</auditEvidence>
+        <followUps xdef:body-type="list" xdef:key-attr="id">
+            <followUp id="!string" xdef:name="AgentPlanFollowUp">string</followUp>
+        </followUps>
+    </closure>
 </plan>
