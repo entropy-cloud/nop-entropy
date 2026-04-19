@@ -41,5 +41,6 @@ ai-dev/logs/
 
 ### 2026-04
 
+- [04-14](2026/04-14.md) — 仅在 `nop-ai-agent/docs/` 内拆分 Agent 设计草稿，保留原大文档不动，收敛为总览 / 运行时 / 扩展 / 可靠性 / 路线图五篇专题文档
 - [04-10](2026/04-10.md) — 复核 `docs-for-ai` 审查意见，修正路由缺口、DTO 规则、CRUD hook / QueryBean 指南，并补充 XLang/XPL 基础文档
 - [04-09](2026/04-09.md) — `docs-for-ai` 重构收口、自动维护规则、`ai-dev/logs` 机制建立
