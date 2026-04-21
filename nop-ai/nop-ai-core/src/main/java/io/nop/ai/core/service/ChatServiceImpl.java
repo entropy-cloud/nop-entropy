@@ -301,13 +301,14 @@ public class ChatServiceImpl implements IChatService {
      * 流式响应汇聚器
      * 将多个 ChatStreamChunk 聚合成一个 ChatResponse
      */
-    private static class StreamAggregator {
+    static class StreamAggregator {
         private final StringBuilder contentBuilder = new StringBuilder();
         private final StringBuilder thinkingBuilder = new StringBuilder();
         private final Map<Integer, ToolCallAccumulator> toolCallAccumulators = new LinkedHashMap<>();
         private String id;
         private String model;
         private String finishReason;
+        private io.nop.ai.api.chat.messages.ChatUsage usage;
 
         void addChunk(ChatStreamChunk chunk) {
             if (chunk.getId() != null) {
@@ -327,6 +328,9 @@ public class ChatServiceImpl implements IChatService {
             }
             if (chunk.getToolCall() != null) {
                 addToolCallChunk(chunk.getToolCall());
+            }
+            if (chunk.getUsage() != null) {
+                this.usage = chunk.getUsage();
             }
         }
 
@@ -350,6 +354,7 @@ public class ChatServiceImpl implements IChatService {
             response.setId(id);
             response.setModel(model);
             response.setFinishReason(finishReason);
+            response.setUsage(usage);
 
             io.nop.ai.api.chat.messages.ChatAssistantMessage message =
                     new io.nop.ai.api.chat.messages.ChatAssistantMessage();
