@@ -41,6 +41,7 @@ ai-dev/logs/
 
 ### 2026-04
 
+- [04-22](2026/04-22.md) — relation writeMode 元数据链路打通：补齐 `schema.xdef`/`obj-schema.xdef` 共享定义、刷新 `nop-xlang` 生成结果，并为 `nop-biz` 增加 writeMode 校验测试
 - [04-19](2026/04-19.md) — relation writeMode 设计收敛：以 ObjMeta 读写对称性和同构 relation payload 为核心，确认 `OrmEntityCopier` 为 prop-level routing 主落点，去除 action-style relation op 表述
 - [04-14](2026/04-14.md) — 仅在 `nop-ai-agent/docs/` 内拆分 Agent 设计草稿，保留原大文档不动，收敛为总览 / 运行时 / 扩展 / 可靠性 / 路线图五篇专题文档
 - [04-10](2026/04-10.md) — 复核 `docs-for-ai` 审查意见，修正路由缺口、DTO 规则、CRUD hook / QueryBean 指南，并补充 XLang/XPL 基础文档

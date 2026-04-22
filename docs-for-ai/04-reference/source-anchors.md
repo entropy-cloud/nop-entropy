@@ -61,6 +61,7 @@
 | `XLANG-005` | `nop-task/nop-task-core/src/main/resources/_vfs/nop/task/xlib/task.xlib` | `xpl:is` 与 XLib 入口的真实例子 |
 | `XLANG-006` | `nop-runner/nop-cli-core/tasks/gen-web.xrun` | `xpl:lib` 调用 XLib 的 runner 任务例子 |
 | `XLANG-007` | `nop-kernel/nop-core/precompile/src/main/java/io/nop/core/type/PredefinedGenericTypes.java.xgen` | 文本输出型 `.xgen` 模板例子 |
+| `XLANG-008` | `nop-kernel/nop-xlang/precompile/gen-xlang-xdsl.xgen` + `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/obj-schema.xdef` + `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/schema.xdef` | XDef schema 变更会驱动 `nop-xlang` 的 XDSL 生成链；共享 prop 定义常同时分布在 `obj-schema.xdef` / `schema.xdef` |
 
 ## 当前最重要的校准点
 

@@ -39,11 +39,19 @@
 2. `*-meta` 下的 XMeta / i18n
 3. `*-web` 下的页面资源
 
+### 5. XDef / XMeta 特例
+
+- 如果改的是 `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/**/*.xdef` 这类 XDef 源模型，不要只重建 `nop-xdefs`。
+- `obj-schema.xdef` 这类 schema 还会通过 `nop-kernel/nop-xlang/precompile/gen-xlang-xdsl.xgen` 生成 `nop-xlang/src/main/java/**/_gen/*.java`。
+- 这类改动至少要继续验证 `nop-xlang` 的生成结果和相关测试，例如 `TestXMetaRef`。
+- 注意同名结构可能在多个 xdef 中重复定义，例如 `obj-schema.xdef` 里的 `props` 改动，往往还需要同步检查 `schema.xdef`。
+
 ## 常见坑
 
 1. 只重跑下游模块，没有刷新上游生成物。
 2. 以为 `*-meta` 会直接生成全部 service / web 代码。
 3. 手改生成物后再去构建，结果改动被覆盖。
+4. 只改了 `obj-schema.xdef`，却漏掉 `schema.xdef` 等共享定义点，导致运行时解析出的 xdef/xmeta 仍然缺字段。
 
 ## 相关文档
 
