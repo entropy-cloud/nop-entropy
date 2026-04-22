@@ -13,6 +13,7 @@ import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.ReflectionManager;
@@ -37,6 +38,7 @@ import io.nop.orm.support.OrmCompositePk;
 import io.nop.orm.support.OrmEntityHelper;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xmeta.IObjPropMeta;
+import io.nop.xlang.xmeta.ObjRelationWriteMode;
 import io.nop.xlang.xmeta.IObjSchema;
 
 import java.util.Collection;
@@ -65,6 +67,8 @@ public class OrmEntityCopier {
     private final IDaoProvider daoProvider;
 
     private Map<String, String> relationChangeTypes;
+    private IServiceContext context;
+    private List<DelayedRelationAction> delayedActions;
 
     private boolean updateUseId;
 
@@ -85,6 +89,14 @@ public class OrmEntityCopier {
 
     public void setUpdateUseId(boolean updateUseId) {
         this.updateUseId = updateUseId;
+    }
+
+    public void setServiceContext(IServiceContext context) {
+        this.context = context;
+    }
+
+    public void setDelayedActions(List<DelayedRelationAction> delayedActions) {
+        this.delayedActions = delayedActions;
     }
 
     public OrmEntityCopier addRelationCopyOptions(String relationName, String chgType) {
@@ -134,6 +146,9 @@ public class OrmEntityCopier {
                     String name = entry.getKey();
                     // 忽略_chgType属性
                     if (name.startsWith(DaoConstants.PROP_CHANGE_TYPE))
+                        continue;
+
+                    if (name.startsWith(BizConstants.PROP_WRITE_MODE + '_'))
                         continue;
 
                     if (name.equals(OrmConstants.PROP_ID))
@@ -225,10 +240,12 @@ public class OrmEntityCopier {
         } else {
             if (propModel.isToOneRelation()) {
                 IObjSchema subSchema = getPropSchema(propMeta, false, bizObjectManager, baseBizObjName);
-                copyRefEntity(fromValue, map, target, (IEntityRelationModel) propModel, field, subSchema, baseBizObjName, scope);
+                copyRefEntity(fromValue, map, target, (IEntityRelationModel) propModel, field, propMeta,
+                        subSchema, baseBizObjName, scope);
             } else if (propModel.isToManyRelation()) {
                 IObjSchema subSchema = getPropSchema(propMeta, true, bizObjectManager, baseBizObjName);
-                copyRefEntitySet(fromValue, map, target, (IEntityRelationModel) propModel, field, subSchema, baseBizObjName, scope);
+                copyRefEntitySet(fromValue, map, target, (IEntityRelationModel) propModel, field, propMeta,
+                        subSchema, baseBizObjName, scope);
             } else {
                 target.orm_propValueByName(name, fromValue);
             }
@@ -236,16 +253,36 @@ public class OrmEntityCopier {
     }
 
     private void copyRefEntity(Object fromValue, Map<String, Object> map,
-                               IOrmEntity target, IEntityRelationModel propModel,
-                               FieldSelectionBean field, IObjSchema objMeta, String baseBizObjName, IEvalScope scope) {
+                                IOrmEntity target, IEntityRelationModel propModel,
+                                FieldSelectionBean field, IObjPropMeta propMeta,
+                                IObjSchema objMeta, String baseBizObjName, IEvalScope scope) {
+        ObjRelationWriteMode writeMode = resolveWriteMode(propMeta, map, propModel.getName());
         if (StringHelper.isEmptyObject(fromValue)) {
-            target.orm_propValueByName(propModel.getName(), null);
+            if (writeMode == ObjRelationWriteMode.BIZ) {
+                collectRelationBizAction(null, field, target, propModel, propMeta, objMeta);
+            } else {
+                target.orm_propValueByName(propModel.getName(), null);
+            }
         } else {
             String propName = propModel.getName();
             if (StdDataType.fromJavaClass(fromValue.getClass()).isSimpleType()) {
-                Object refEntity = daoProvider.dao(propModel.getRefEntityName()).loadEntityById(fromValue);
-                target.orm_propValueByName(propName, refEntity);
+                if (writeMode == ObjRelationWriteMode.BIZ) {
+                    collectRelationBizAction(fromValue, field, target, propModel, propMeta, objMeta);
+                } else {
+                    Object refEntity = daoProvider.dao(propModel.getRefEntityName()).loadEntityById(fromValue);
+                    target.orm_propValueByName(propName, refEntity);
+                }
             } else {
+                if (writeMode == ObjRelationWriteMode.LINK) {
+                    copyRefEntityLink(fromValue, target, propModel);
+                    return;
+                }
+
+                if (writeMode == ObjRelationWriteMode.BIZ) {
+                    collectRelationBizAction(fromValue, field, target, propModel, propMeta, objMeta);
+                    return;
+                }
+
                 String chgType = getRelationChangeTypes(OrmModelHelper.buildRelationName(propModel));
                 if (chgType == null && map != null) {
                     chgType = (String) map.get(DaoConstants.PROP_CHANGE_TYPE + '_' + propName);
@@ -283,8 +320,19 @@ public class OrmEntityCopier {
     }
 
     private void copyRefEntitySet(Object fromValue, Map<String, Object> map, IOrmEntity target, IEntityRelationModel propModel,
-                                  FieldSelectionBean field, IObjSchema objMeta, String baseBizObjName,
+                                  FieldSelectionBean field, IObjPropMeta propMeta,
+                                  IObjSchema objMeta, String baseBizObjName,
                                   IEvalScope scope) {
+        ObjRelationWriteMode writeMode = resolveWriteMode(propMeta, map, propModel.getName());
+        if (writeMode == ObjRelationWriteMode.BIZ) {
+            if (fromValue instanceof Collection) {
+                for (Object item : (Collection<?>) fromValue) {
+                    collectRelationBizAction(item, field, target, propModel, propMeta, objMeta);
+                }
+            }
+            return;
+        }
+
         String propName = propModel.getName();
         IOrmEntitySet<IOrmEntity> refSet = target.orm_refEntitySet(propName);
         // 强制加载关联实体
@@ -305,13 +353,135 @@ public class OrmEntityCopier {
                 if (chgType == null || chgType.contains(DaoConstants.CHANGE_TYPE_DELETE))
                     refSet.clear();
             } else {
-                syncEntitySet(c, refSet, propModel.getKeyProp(), field, propModel.getRefEntityName(), propModel, objMeta,
-                        baseBizObjName, scope);
+                if (writeMode == ObjRelationWriteMode.LINK) {
+                    syncEntitySetInLinkMode(c, refSet, propModel.getRefEntityName(), propModel);
+                } else {
+                    syncEntitySet(c, refSet, propModel.getKeyProp(), field, propModel.getRefEntityName(), propModel,
+                            objMeta, baseBizObjName, scope);
+                }
             }
         } else {
             throw new OrmException(ERR_ORM_COPY_ENTITY_PROP_NOT_COLLECTION).param(ARG_PROP_NAME, propModel.getName())
                     .param(ARG_PROP_CLASS, fromValue.getClass());
         }
+    }
+
+    private void copyRefEntityLink(Object fromValue, IOrmEntity target, IEntityRelationModel propModel) {
+        assignRefProps(fromValue, target, propModel);
+        Object id = getId(fromValue, propModel.getRefEntityModel());
+        if (StringHelper.isEmptyObject(id)) {
+            return;
+        }
+        IOrmEntity refEntity = (IOrmEntity) daoProvider.dao(propModel.getRefEntityName()).loadEntityById(id);
+        checkRefEntity(refEntity, fromValue, target, propModel);
+        target.orm_propValueByName(propModel.getName(), refEntity);
+    }
+
+    private void syncEntitySetInLinkMode(Collection<?> c, IOrmEntitySet<IOrmEntity> refSet,
+                                         String refEntityName, IEntityRelationModel refModel) {
+        Set<IOrmEntity> ret = new LinkedHashSet<>();
+        IEntityDao<IOrmEntity> dao = daoProvider.dao(refEntityName);
+        for (Object item : c) {
+            if (StringHelper.isEmptyObject(item)) {
+                continue;
+            }
+
+            if (StdDataType.isSimpleType(item.getClass().getName())) {
+                ret.add(dao.loadEntityById(item));
+                continue;
+            }
+
+            assignRefProps(item, refSet.orm_owner(), refModel);
+            Object id = getId(item, refModel.getRefEntityModel());
+            if (StringHelper.isEmptyObject(id)) {
+                continue;
+            }
+
+            IOrmEntity refEntity = dao.loadEntityById(id);
+            checkRefEntity(refEntity, item, null, refModel);
+            ret.add(refEntity);
+        }
+        refSet.clear();
+        refSet.addAll(ret);
+    }
+
+    private ObjRelationWriteMode resolveWriteMode(IObjPropMeta propMeta, Map<String, Object> map, String propName) {
+        ObjRelationWriteMode propMode = propMeta == null ? null : propMeta.getWriteMode();
+        ObjRelationWriteMode requestMode = null;
+        if (map != null) {
+            Object mode = map.get(BizConstants.PROP_WRITE_MODE + '_' + propName);
+            if (mode instanceof ObjRelationWriteMode) {
+                requestMode = (ObjRelationWriteMode) mode;
+            } else if (mode != null) {
+                requestMode = ObjRelationWriteMode.fromText(StringHelper.toString(mode, null));
+            }
+        }
+
+        if (propMode == ObjRelationWriteMode.LINK || propMode == ObjRelationWriteMode.BIZ) {
+            return propMode;
+        }
+        if (requestMode != null) {
+            return requestMode;
+        }
+        if (propMode != null) {
+            return propMode;
+        }
+        return ObjRelationWriteMode.INLINE;
+    }
+
+    private void collectRelationBizAction(Object payload, FieldSelectionBean field,
+                                          IOrmEntity parentEntity, IEntityRelationModel relationModel,
+                                          IObjPropMeta propMeta, IObjSchema objMeta) {
+        if (delayedActions == null || bizObjectManager == null || context == null) {
+            return;
+        }
+
+        DelayedRelationAction action = new DelayedRelationAction();
+        action.setPropName(relationModel.getName());
+        action.setWriteMode(ObjRelationWriteMode.BIZ);
+        action.setBizAction(resolveBizAction(payload, relationModel));
+        action.setPayload(payload);
+        action.setSelection(field != null && field.hasField() ? field : null);
+        action.setParentEntity(parentEntity);
+        action.setRelationModel(relationModel);
+        action.setOrder(propMeta == null || propMeta.getPropId() == null ? 0 : propMeta.getPropId());
+        action.setTargetBizObjName(resolveTargetBizObjName(propMeta, objMeta));
+        delayedActions.add(action);
+    }
+
+    private String resolveTargetBizObjName(IObjPropMeta propMeta, IObjSchema objMeta) {
+        if (propMeta != null && propMeta.getRefBizObjName() != null) {
+            return propMeta.getRefBizObjName();
+        }
+        if (objMeta != null && objMeta.getBizObjName() != null) {
+            return objMeta.getBizObjName();
+        }
+        return null;
+    }
+
+    private String resolveBizAction(Object payload, IEntityRelationModel relationModel) {
+        if (payload == null) {
+            return "unlink";
+        }
+
+        if (payload instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) payload;
+            String chgType = (String) map.get(DaoConstants.PROP_CHANGE_TYPE);
+            if (DaoConstants.CHANGE_TYPE_DELETE.equals(chgType)) {
+                return BizConstants.METHOD_DELETE;
+            }
+            if (DaoConstants.CHANGE_TYPE_ADD.equals(chgType)) {
+                return BizConstants.METHOD_SAVE;
+            }
+            if (DaoConstants.CHANGE_TYPE_UPDATE.equals(chgType)) {
+                return BizConstants.METHOD_UPDATE;
+            }
+
+            Object id = getId(payload, relationModel.getRefEntityModel());
+            return StringHelper.isEmptyObject(id) ? BizConstants.METHOD_SAVE : BizConstants.METHOD_UPDATE;
+        }
+
+        return BizConstants.METHOD_UPDATE;
     }
 
     void syncEntitySet(Collection<?> c, IOrmEntitySet<IOrmEntity> refSet, String keyProp, FieldSelectionBean field,

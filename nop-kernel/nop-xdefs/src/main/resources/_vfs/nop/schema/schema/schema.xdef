@@ -59,6 +59,7 @@
         @depends 获取本字段的值的时候，需要依赖其他字段。例如在批量加载的时候，表示需要把相关字段也进行批量加载
         @tagSet 逗号分隔的自定义附加标识
         @defaultValue 缺省值
+        @writeMode relation 写入语义，支持 inline/link/biz 三种模式
         -->
         <prop xdef:name="ObjPropMetaImpl"
               name="!prop-name" displayName="string"
@@ -68,7 +69,8 @@
               xmlName="xml-name" childXmlName="xml-name" xmlPos="enum:io.nop.core.lang.xml.XNodeValuePosition"
               childName="prop-name" defaultOverride="enum:io.nop.xlang.xdef.XDefOverride"
               tagSet="tag-set" lazy="!boolean=false" type="generic-type" sortable="!boolean=false"
-              insertable="!boolean=false" updatable="!boolean=false" queryable="!boolean=false" virtual="!boolean=false"
+              insertable="!boolean=false" updatable="!boolean=false"
+              writeMode="enum:io.nop.xlang.xmeta.ObjRelationWriteMode" queryable="!boolean=false" virtual="!boolean=false"
               published="!boolean=true" exportable="!boolean=true"
               allowFilterOp="word-set" kind="enum:io.nop.xlang.xmeta.ObjPropKind"
               ui:control="xml-name" ui:show="string" ui:labelProp="prop-path" ui:filterOp="xml-name"

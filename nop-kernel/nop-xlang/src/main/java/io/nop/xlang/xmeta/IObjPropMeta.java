@@ -119,6 +119,8 @@ public interface IObjPropMeta
 
     boolean isUpdatable();
 
+    ObjRelationWriteMode getWriteMode();
+
 //    boolean isReadable();
 
     /**

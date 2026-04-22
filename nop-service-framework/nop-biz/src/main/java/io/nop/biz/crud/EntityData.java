@@ -9,6 +9,8 @@ package io.nop.biz.crud;
 
 import io.nop.xlang.xmeta.IObjMeta;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class EntityData<T> {
@@ -18,6 +20,7 @@ public class EntityData<T> {
     private final IObjMeta objMeta;
     private boolean recoverDeleted;
     private Map<String, Object> extData;
+    private List<DelayedRelationAction> delayedActions;
 
     public EntityData(Map<String, Object> data, Map<String, Object> validatedData, T entity, IObjMeta objMeta) {
         this.data = data;
@@ -63,5 +66,16 @@ public class EntityData<T> {
 
     public T getEntity() {
         return entity;
+    }
+
+    public List<DelayedRelationAction> getDelayedActions() {
+        if (delayedActions == null) {
+            delayedActions = new ArrayList<>();
+        }
+        return delayedActions;
+    }
+
+    public boolean hasDelayedActions() {
+        return delayedActions != null && !delayedActions.isEmpty();
     }
 }

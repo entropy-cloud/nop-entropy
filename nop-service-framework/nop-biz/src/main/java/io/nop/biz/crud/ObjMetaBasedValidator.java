@@ -40,6 +40,7 @@ import io.nop.xlang.filter.BizExprHelper;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.IObjSchema;
+import io.nop.xlang.xmeta.ObjRelationWriteMode;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.SimpleSchemaValidator;
 import io.nop.xlang.xmeta.impl.ObjSelectionMeta;
@@ -161,6 +162,11 @@ public class ObjMetaBasedValidator {
                 continue;
             }
 
+            if (name.startsWith(BizConstants.PROP_WRITE_MODE + '_')) {
+                ret.put(name, value);
+                continue;
+            }
+
             IObjPropMeta propMeta = schema.getProp(name);
             if (propMeta == null)
                 throw new NopException(ERR_BIZ_UNKNOWN_PROP).source(objMeta).param(ARG_PROP_NAME, name)
@@ -197,6 +203,7 @@ public class ObjMetaBasedValidator {
             }
 
             String subPropName = propName == null ? propMeta.getName() : propName + '.' + propMeta.getName();
+            ObjRelationWriteMode writeMode = resolveWriteMode(propMeta, data);
 
             if (value instanceof Collection) {
                 ISchema propSchema = getPropSchema(propMeta, true, bizObjectManager, bizObjName);
@@ -204,9 +211,16 @@ public class ObjMetaBasedValidator {
                     List<Object> list = CollectionHelper.toList(value);
                     List<Object> converted = new ArrayList<>(list.size());
                     for (Object item : list) {
-                        Map<String, Object> itemMap = (Map<String, Object>) item;
-                        checkNoJoinProp(itemMap, propMeta, subPropName);
-                        item = _validate(propSchema.getBizObjName(), propSchema, subPropName, itemMap, propSelection, filter, true, scope);
+                        if (item instanceof Map) {
+                            Map<String, Object> itemMap = (Map<String, Object>) item;
+                            checkNoJoinProp(itemMap, propMeta, subPropName);
+                            if (writeMode == ObjRelationWriteMode.LINK) {
+                                item = validateLinkObject(propSchema, subPropName, itemMap, filter, scope);
+                            } else {
+                                item = _validate(propSchema.getBizObjName(), propSchema, subPropName, itemMap,
+                                        propSelection, filter, true, scope);
+                            }
+                        }
                         converted.add(item);
                     }
                     value = converted;
@@ -216,7 +230,12 @@ public class ObjMetaBasedValidator {
                 if (propSchema != null) {
                     Map<String, Object> itemMap = (Map<String, Object>) value;
                     checkNoJoinProp(itemMap, propMeta, subPropName);
-                    value = _validate(propSchema.getBizObjName(), propSchema, subPropName, itemMap, propSelection, filter, true, scope);
+                    if (writeMode == ObjRelationWriteMode.LINK) {
+                        value = validateLinkObject(propSchema, subPropName, itemMap, filter, scope);
+                    } else {
+                        value = _validate(propSchema.getBizObjName(), propSchema, subPropName, itemMap,
+                                propSelection, filter, true, scope);
+                    }
                 }
             } else {
                 validateValue(propMeta.getSchema(), subPropName, value, propMeta, schema, scope);
@@ -225,6 +244,71 @@ public class ObjMetaBasedValidator {
             setIn(ret, schema, propMeta, value);
         }
         return ret;
+    }
+
+    protected ObjRelationWriteMode resolveWriteMode(IObjPropMeta propMeta, Map<String, Object> data) {
+        ObjRelationWriteMode propMode = propMeta.getWriteMode();
+        ObjRelationWriteMode requestMode = null;
+        if (data != null) {
+            requestMode = toWriteMode(data.get(BizConstants.PROP_WRITE_MODE + '_' + propMeta.getName()));
+        }
+
+        if (propMode == ObjRelationWriteMode.LINK || propMode == ObjRelationWriteMode.BIZ) {
+            return propMode;
+        }
+
+        if (requestMode != null) {
+            return requestMode;
+        }
+
+        if (propMode != null) {
+            return propMode;
+        }
+        return ObjRelationWriteMode.INLINE;
+    }
+
+    protected ObjRelationWriteMode toWriteMode(Object value) {
+        if (value instanceof ObjRelationWriteMode) {
+            return (ObjRelationWriteMode) value;
+        }
+        if (value == null) {
+            return null;
+        }
+        return ObjRelationWriteMode.fromText(StringHelper.toString(value, null));
+    }
+
+    protected Map<String, Object> validateLinkObject(ISchema schema, String subPropName,
+                                                     Map<String, Object> itemMap,
+                                                     ITriPredicate<IObjPropMeta, FieldSelectionBean, Boolean> filter,
+                                                     IEvalScope scope) {
+        Map<String, Object> filtered = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : itemMap.entrySet()) {
+            String name = entry.getKey();
+            Object value = entry.getValue();
+            if (GraphQLConstants.PROP_ID.equals(name)
+                    || name.startsWith(DaoConstants.PROP_CHANGE_TYPE)
+                    || name.startsWith(BizConstants.PROP_WRITE_MODE + '_')) {
+                filtered.put(name, value);
+                continue;
+            }
+
+            if (isLinkIdentityProp(schema, name)) {
+                filtered.put(name, value);
+            }
+        }
+        return _validate(schema.getBizObjName(), schema, subPropName, filtered, null,
+                (propMeta, sel, subTable) -> isLinkIdentityProp(schema, propMeta.getName())
+                        || filter.test(propMeta, sel, subTable),
+                true, scope);
+    }
+
+    protected boolean isLinkIdentityProp(ISchema schema, String propName) {
+        if (schema == null || schema.getBizObjName() == null) {
+            return false;
+        }
+        IBizObject bizObject = bizObjectManager.getBizObject(schema.getBizObjName());
+        IObjMeta objMeta = bizObject.getObjMeta();
+        return objMeta != null && objMeta.getPrimaryKey() != null && objMeta.getPrimaryKey().contains(propName);
     }
 
     protected void checkNoJoinProp(Map<String, Object> item, IObjPropMeta propMeta, String subPropName) {

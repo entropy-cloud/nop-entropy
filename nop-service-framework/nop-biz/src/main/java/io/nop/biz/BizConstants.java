@@ -83,6 +83,8 @@ public interface BizConstants {
 
     String VAR_PROP_META = "propMeta";
 
+    String PROP_WRITE_MODE = "_writeMode";
+
     String VAR_OBJ_META = "objMeta";
 
     String OBJ_DICT_PREFIX = "obj/";

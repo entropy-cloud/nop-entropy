@@ -260,6 +260,13 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: writeMode
+     * relation 写入语义，支持 inline/link/biz 三种模式
+     */
+    private io.nop.xlang.xmeta.ObjRelationWriteMode _writeMode ;
+    
+    /**
+     *  
      * xml name: xmlName
      * 转换为xml属性或者节点时对应的标签名，一般情况下与属性名一致
      */
@@ -976,6 +983,25 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     
     /**
      * 
+     * xml name: writeMode
+     *  relation 写入语义，支持 inline/link/biz 三种模式
+     */
+    
+    public io.nop.xlang.xmeta.ObjRelationWriteMode getWriteMode(){
+      return _writeMode;
+    }
+
+    
+    public void setWriteMode(io.nop.xlang.xmeta.ObjRelationWriteMode value){
+        checkAllowChange();
+        
+        this._writeMode = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: xmlName
      *  转换为xml属性或者节点时对应的标签名，一般情况下与属性名一致
      */
@@ -1069,6 +1095,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
         out.putNotNull("type",this.getType());
         out.putNotNull("updatable",this.isUpdatable());
         out.putNotNull("virtual",this.isVirtual());
+        out.putNotNull("writeMode",this.getWriteMode());
         out.putNotNull("xmlName",this.getXmlName());
         out.putNotNull("xmlPos",this.getXmlPos());
     }
@@ -1116,6 +1143,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
         instance.setType(this.getType());
         instance.setUpdatable(this.isUpdatable());
         instance.setVirtual(this.isVirtual());
+        instance.setWriteMode(this.getWriteMode());
         instance.setXmlName(this.getXmlName());
         instance.setXmlPos(this.getXmlPos());
     }

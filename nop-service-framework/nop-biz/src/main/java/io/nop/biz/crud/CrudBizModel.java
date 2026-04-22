@@ -75,6 +75,7 @@ import io.nop.xlang.xdsl.ExtPropsGetter;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.ISchema;
+import io.nop.xlang.xmeta.ObjRelationWriteMode;
 import io.nop.xlang.xmeta.impl.ObjKeyModel;
 import io.nop.xlang.xmeta.impl.ObjTreeModel;
 import jakarta.annotation.Nullable;
@@ -91,6 +92,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -124,6 +126,7 @@ import static io.nop.biz.BizErrors.ARG_KEY;
 import static io.nop.biz.BizErrors.ARG_PARAM_NAME;
 import static io.nop.biz.BizErrors.ARG_PROP_NAME;
 import static io.nop.biz.BizErrors.ARG_PROP_NAMES;
+import static io.nop.biz.BizErrors.ARG_PROP_VALUE;
 import static io.nop.biz.BizErrors.ARG_REF_ENTITY_NAME;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_SAVE;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_UPDATE;
@@ -141,6 +144,7 @@ import static io.nop.biz.BizErrors.ERR_BIZ_NO_STATE_MACHINE;
 import static io.nop.biz.BizErrors.ERR_BIZ_OBJ_NO_DICT_TAG;
 import static io.nop.biz.BizErrors.ERR_BIZ_PROP_NOT_MANY_TO_MANY_REF;
 import static io.nop.biz.BizErrors.ERR_BIZ_TOO_MANY_LEFT_JOIN_PROPS_IN_QUERY;
+import static io.nop.biz.BizErrors.ERR_BIZ_UNKNOWN_REF_ENTITY_WITH_PROP;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
 import static io.nop.orm.utils.OrmQueryHelper.resolveRef;
 
@@ -536,7 +540,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         EntityData<T> entityData = buildEntityDataForSave(data, inputSelection, context);
         checkUniqueForSave(entityData);
 
-        crudToolProvider.newOrmEntityCopier(entityData.getObjMeta()).copyToEntity(entityData.getValidatedData(),
+        crudToolProvider.newOrmEntityCopier(entityData.getObjMeta(), context, entityData.getDelayedActions()).copyToEntity(entityData.getValidatedData(),
                 entityData.getEntity(), null, entityData.getObjMeta(), getBizObjName(),
                 BizConstants.METHOD_SAVE, context.getEvalScope());
 
@@ -544,6 +548,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
             prepareSave.accept(entityData, context);
 
         checkDataAuth(BizConstants.METHOD_SAVE, entityData.getEntity(), context);
+        executeDelayedRelationActions(entityData, context);
 
         doSaveEntity(entityData, context);
 
@@ -831,7 +836,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         if (entityData.getEntity() == null)
             throw new NopException(ERR_BIZ_NO_ENTITY_ID).param(ARG_BIZ_OBJ_NAME, getBizObjName());
 
-        crudToolProvider.newOrmEntityCopier(entityData.getObjMeta()).copyToEntity(entityData.getValidatedData(),
+        crudToolProvider.newOrmEntityCopier(entityData.getObjMeta(), context, entityData.getDelayedActions()).copyToEntity(entityData.getValidatedData(),
                 entityData.getEntity(), null, entityData.getObjMeta(), getBizObjName(),
                 BizConstants.METHOD_UPDATE, context.getEvalScope());
 
@@ -840,6 +845,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
 
         checkDataAuthAfterUpdate(entityData.getEntity(), context);
         checkUniqueForUpdate(entityData.getEntity(), context);
+        executeDelayedRelationActions(entityData, context);
 
         doUpdateEntity(entityData, context);
 
@@ -852,8 +858,151 @@ public abstract class CrudBizModel<T extends IOrmEntity>
      */
     protected void copyToEntity(Map<String, Object> data, T entity, String action, IServiceContext context) {
         IObjMeta objMeta = this.getThisObj().requireObjMeta();
-        crudToolProvider.newOrmEntityCopier(objMeta).copyToEntity(data,
+        EntityData<T> entityData = new EntityData<>(data, data, entity, objMeta);
+        crudToolProvider.newOrmEntityCopier(objMeta, context, entityData.getDelayedActions()).copyToEntity(data,
                 entity, null, objMeta, getBizObjName(), action, context.getEvalScope());
+        executeDelayedRelationActions(entityData, context);
+    }
+
+    @BizAction
+    protected void executeDelayedRelationActions(@Name("entityData") EntityData<T> entityData,
+                                                 IServiceContext context) {
+        if (entityData == null || !entityData.hasDelayedActions()) {
+            return;
+        }
+
+        List<DelayedRelationAction> actions = new ArrayList<>(entityData.getDelayedActions());
+        actions.sort((a, b) -> Integer.compare(a.getOrder(), b.getOrder()));
+        for (DelayedRelationAction action : actions) {
+            executeDelayedRelationAction(action, context);
+        }
+    }
+
+    protected void executeDelayedRelationAction(DelayedRelationAction action, IServiceContext context) {
+        if (action.getWriteMode() != ObjRelationWriteMode.BIZ) {
+            return;
+        }
+
+        if (StringHelper.isEmpty(action.getTargetBizObjName())) {
+            throw new NopException(ERR_BIZ_UNKNOWN_REF_ENTITY_WITH_PROP)
+                    .param(ARG_BIZ_OBJ_NAME, getBizObjName())
+                    .param(ARG_PROP_NAME, action.getPropName())
+                    .param(ARG_PROP_VALUE, action.getRelationModel().getRefEntityName());
+        }
+
+        IEntityRelationModel relationModel = action.getRelationModel();
+        if (relationModel.isToOneRelation()) {
+            applyToOneDelayedRelationAction(action, context);
+        } else {
+            applyToManyDelayedRelationAction(action, context);
+        }
+    }
+
+    protected void applyToOneDelayedRelationAction(DelayedRelationAction action, IServiceContext context) {
+        if ("unlink".equals(action.getBizAction())) {
+            action.getParentEntity().orm_propValueByName(action.getPropName(), null);
+            return;
+        }
+
+        Object result = invokeDelayedRelationBizAction(action, context);
+        if (BizConstants.METHOD_DELETE.equals(action.getBizAction())) {
+            action.getParentEntity().orm_propValueByName(action.getPropName(), null);
+            return;
+        }
+
+        IOrmEntity refEntity = resolveDelayedRelationResult(action, result);
+        if (refEntity != null) {
+            action.getParentEntity().orm_propValueByName(action.getPropName(), refEntity);
+        }
+    }
+
+    protected void applyToManyDelayedRelationAction(DelayedRelationAction action, IServiceContext context) {
+        IOrmEntitySet<IOrmEntity> refSet = action.getParentEntity().orm_refEntitySet(action.getPropName());
+        refSet.orm_forceLoad();
+
+        if ("unlink".equals(action.getBizAction())) {
+            return;
+        }
+
+        Object result = invokeDelayedRelationBizAction(action, context);
+        if (BizConstants.METHOD_DELETE.equals(action.getBizAction())) {
+            removeDelayedRelationEntity(refSet, action);
+            return;
+        }
+
+        IOrmEntity refEntity = resolveDelayedRelationResult(action, result);
+        if (refEntity != null) {
+            refSet.add(refEntity);
+        }
+    }
+
+    protected Object invokeDelayedRelationBizAction(DelayedRelationAction action, IServiceContext context) {
+        IBizObject targetBizObj = bizObjectManager.getBizObject(action.getTargetBizObjName());
+        if (BizConstants.METHOD_DELETE.equals(action.getBizAction())) {
+            Object id = extractDelayedRelationId(action);
+            if (StringHelper.isEmptyObject(id)) {
+                return null;
+            }
+            Map<String, Object> req = new HashMap<>();
+            req.put(OrmConstants.PROP_ID, StringHelper.toString(id, null));
+            targetBizObj.invoke(BizConstants.METHOD_DELETE, req, null, context);
+            return null;
+        }
+
+        Map<String, Object> req = buildDelayedRelationRequest(action);
+        return targetBizObj.invoke(action.getBizAction(), req, action.getSelection(), context);
+    }
+
+    protected Map<String, Object> buildDelayedRelationRequest(DelayedRelationAction action) {
+        Object payload = action.getPayload();
+        if (payload instanceof Map) {
+            return new LinkedHashMap<>((Map<String, Object>) payload);
+        }
+
+        Map<String, Object> req = new LinkedHashMap<>();
+        if (!StringHelper.isEmptyObject(payload)) {
+            req.put(OrmConstants.PROP_ID, payload);
+        }
+        return req;
+    }
+
+    protected IOrmEntity resolveDelayedRelationResult(DelayedRelationAction action, Object result) {
+        if (result instanceof IOrmEntity) {
+            return (IOrmEntity) result;
+        }
+
+        Object id = extractDelayedRelationId(action);
+        if (StringHelper.isEmptyObject(id)) {
+            return null;
+        }
+        return (IOrmEntity) daoProvider.dao(action.getRelationModel().getRefEntityName()).loadEntityById(id);
+    }
+
+    protected Object extractDelayedRelationId(DelayedRelationAction action) {
+        Object payload = action.getPayload();
+        if (StringHelper.isEmptyObject(payload)) {
+            return null;
+        }
+
+        if (payload instanceof Map) {
+            return ((Map<String, Object>) payload).get(OrmConstants.PROP_ID);
+        }
+        return payload;
+    }
+
+    protected void removeDelayedRelationEntity(IOrmEntitySet<IOrmEntity> refSet, DelayedRelationAction action) {
+        Object id = extractDelayedRelationId(action);
+        if (StringHelper.isEmptyObject(id)) {
+            return;
+        }
+
+        List<IOrmEntity> toRemove = new ArrayList<>();
+        for (IOrmEntity entity : refSet) {
+            if (Objects.equals(entity.orm_idString(), StringHelper.toString(id, null))) {
+                toRemove.add(entity);
+            }
+        }
+        refSet.removeAll(toRemove);
     }
 
     @BizAction

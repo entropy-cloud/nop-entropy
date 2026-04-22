@@ -35,8 +35,9 @@
         @xmlPos XML序列化时属性值的位置，枚举类型，包括attr、element、text等选项
         @lazy 是否延迟加载，用于ORM等场景下控制属性的加载时机
         @insertable 是否可插入，控制属性是否允许在插入操作中被设置
-        @updatable 是否可更新，控制属性是否允许在更新操作中被修改
-        @queryable 是否可查询，控制属性是否可以作为查询条件
+         @updatable 是否可更新，控制属性是否允许在更新操作中被修改
+         @writeMode relation 写入语义，支持 inline/link/biz 三种模式
+         @queryable 是否可查询，控制属性是否可以作为查询条件
         @sortable 是否可排序，控制属性是否可以作为排序字段
         @published 是否发布，控制属性是否对外可见
         @exportable 是否可导出，控制属性是否允许被导出
@@ -82,8 +83,9 @@
               xmlName="xml-name" childXmlName="xml-name" xmlPos="enum:io.nop.core.lang.xml.XNodeValuePosition"
               childName="prop-name" defaultOverride="enum:io.nop.xlang.xdef.XDefOverride"
               tagSet="tag-set" lazy="!boolean=false"
-              insertable="!boolean=false" updatable="!boolean=false" queryable="!boolean=false"
-              sortable="!boolean=false" virtual="!boolean=false" published="!boolean=true" exportable="!boolean=true"
+               insertable="!boolean=false" updatable="!boolean=false"
+               writeMode="enum:io.nop.xlang.xmeta.ObjRelationWriteMode" queryable="!boolean=false"
+               sortable="!boolean=false" virtual="!boolean=false" published="!boolean=true" exportable="!boolean=true"
               allowFilterOp="word-set" kind="enum:io.nop.xlang.xmeta.ObjPropKind"
               ui:control="xml-name" ui:show="string" ui:labelProp="prop-path" ui:filterOp="xml-name"
               ui:maxUploadSize="long-size" ui:supportFileLink="boolean" ui:uploadAccept="string"

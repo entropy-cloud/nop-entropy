@@ -16,6 +16,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.XNodeValuePosition;
 import io.nop.core.type.IGenericType;
 import io.nop.xlang.xmeta.IObjPropMeta;
+import io.nop.xlang.xmeta.ObjRelationWriteMode;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.ISchemaNode;
 import io.nop.xlang.xmeta.impl._gen._ObjPropMetaImpl;
@@ -62,6 +63,16 @@ public class ObjPropMetaImpl extends _ObjPropMetaImpl implements IObjPropMeta {
             return authModel.toActionAuthMeta();
         }
         return getWriteAuth();
+    }
+
+    @Override
+    public ObjRelationWriteMode getWriteMode() {
+        return (ObjRelationWriteMode) getExtProp("writeMode");
+    }
+
+    public void setWriteMode(ObjRelationWriteMode writeMode) {
+        checkAllowChange();
+        prop_set("writeMode", writeMode);
     }
 
     public String getChildName() {
@@ -131,6 +142,7 @@ public class ObjPropMetaImpl extends _ObjPropMetaImpl implements IObjPropMeta {
         if (this.getXmlPos() != null && this.getXmlPos() != XNodeValuePosition.attr)
             node.setAttr(getLocation(), "xmlPos", this.getXmlPos());
         if (getMapToProp() != null) node.setAttr(getLocation(), "mapToProp", getMapToProp());
+        if (getWriteMode() != null) node.setAttr(getLocation(), "writeMode", getWriteMode().toString());
 
         if (getSchema() != null) {
             XNode schemaN = getSchema().toNode(nodeRefs);
