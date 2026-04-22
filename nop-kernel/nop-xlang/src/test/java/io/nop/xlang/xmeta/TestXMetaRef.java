@@ -125,6 +125,7 @@ public class TestXMetaRef extends BaseTestCase {
         IObjMeta objMeta = SchemaLoader.loadXMeta("/nop/schema/schema/obj-schema.xdef");
         ISchema propSchema = objMeta.getDefine("ObjPropMetaImpl");
         assertNotNull(propSchema.getProp("lazy"));
+        assertNotNull(propSchema.getProp("writeMode"));
     }
 
     @Test
