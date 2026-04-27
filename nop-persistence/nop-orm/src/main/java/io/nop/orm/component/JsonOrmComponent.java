@@ -74,6 +74,10 @@ public class JsonOrmComponent extends AbstractOrmComponent
         return null;
     }
 
+    public void set_jsonMap(Map<String, Object> jsonMap) {
+        set_jsonValue(jsonMap);
+    }
+
     public Map<String, Object> require_jsonMap() {
         Map<String, Object> map = get_jsonMap();
         if (map == null) {
@@ -96,6 +100,18 @@ public class JsonOrmComponent extends AbstractOrmComponent
     @JsonIgnore
     public List<String> getStringList() {
         return (List<String>) get_jsonValue();
+    }
+
+    @JsonIgnore
+    public List<Object> get_jsonList() {
+        Object value = get_jsonValue();
+        if(value instanceof List)
+            return (List<Object>) value;
+        return null;
+    }
+
+    public void set_jsonList(List<Object> jsonList) {
+        set_jsonValue(jsonList);
     }
 
     public void setStringList(List<String> list) {
