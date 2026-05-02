@@ -15639,6 +15639,13 @@
         ]
       },
       {
+        "name": "executeDelayedRelationActions",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "findCount",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
