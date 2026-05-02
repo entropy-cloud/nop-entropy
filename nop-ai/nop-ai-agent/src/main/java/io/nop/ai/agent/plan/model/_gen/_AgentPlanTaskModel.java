@@ -18,6 +18,13 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
     
     /**
      *  
+     * xml name: checks
+     * 
+     */
+    private KeyedList<io.nop.ai.agent.plan.model.AgentPlanCriterion> _checks = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: completedAt
      * 
      */
@@ -78,6 +85,51 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
      * 
      */
     private java.lang.String _title ;
+    
+    /**
+     * 
+     * xml name: checks
+     *  
+     */
+    
+    public java.util.List<io.nop.ai.agent.plan.model.AgentPlanCriterion> getChecks(){
+      return _checks;
+    }
+
+    
+    public void setChecks(java.util.List<io.nop.ai.agent.plan.model.AgentPlanCriterion> value){
+        checkAllowChange();
+        
+        this._checks = KeyedList.fromList(value, io.nop.ai.agent.plan.model.AgentPlanCriterion::getId);
+           
+    }
+
+    
+    public io.nop.ai.agent.plan.model.AgentPlanCriterion getCheck(String name){
+        return this._checks.getByKey(name);
+    }
+
+    public boolean hasCheck(String name){
+        return this._checks.containsKey(name);
+    }
+
+    public void addCheck(io.nop.ai.agent.plan.model.AgentPlanCriterion item) {
+        checkAllowChange();
+        java.util.List<io.nop.ai.agent.plan.model.AgentPlanCriterion> list = this.getChecks();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.ai.agent.plan.model.AgentPlanCriterion::getId);
+            setChecks(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_checks(){
+        return this._checks.keySet();
+    }
+
+    public boolean hasChecks(){
+        return !this._checks.isEmpty();
+    }
     
     /**
      * 
@@ -284,6 +336,8 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._checks = io.nop.api.core.util.FreezeHelper.deepFreeze(this._checks);
+            
            this._subTasks = io.nop.api.core.util.FreezeHelper.deepFreeze(this._subTasks);
             
         }
@@ -293,6 +347,7 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("checks",this.getChecks());
         out.putNotNull("completedAt",this.getCompletedAt());
         out.putNotNull("dependsOn",this.getDependsOn());
         out.putNotNull("instructions",this.getInstructions());
@@ -313,6 +368,7 @@ public abstract class _AgentPlanTaskModel extends io.nop.core.resource.component
     protected void copyTo(AgentPlanTaskModel instance){
         super.copyTo(instance);
         
+        instance.setChecks(this.getChecks());
         instance.setCompletedAt(this.getCompletedAt());
         instance.setDependsOn(this.getDependsOn());
         instance.setInstructions(this.getInstructions());

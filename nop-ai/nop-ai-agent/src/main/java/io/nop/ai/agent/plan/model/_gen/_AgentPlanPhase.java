@@ -32,6 +32,20 @@ public abstract class _AgentPlanPhase extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: exitCriteria
+     * 
+     */
+    private KeyedList<io.nop.ai.agent.plan.model.AgentPlanCriterion> _exitCriteria = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: kind
+     * 
+     */
+    private java.lang.String _kind ;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -50,6 +64,13 @@ public abstract class _AgentPlanPhase extends io.nop.core.resource.component.Abs
      * 
      */
     private io.nop.ai.agent.model.AgentExecStatus _status ;
+    
+    /**
+     *  
+     * xml name: targets
+     * 
+     */
+    private KeyedList<io.nop.ai.agent.plan.model.AgentPlanTarget> _targets = KeyedList.emptyList();
     
     /**
      *  
@@ -92,6 +113,70 @@ public abstract class _AgentPlanPhase extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._description = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: exitCriteria
+     *  
+     */
+    
+    public java.util.List<io.nop.ai.agent.plan.model.AgentPlanCriterion> getExitCriteria(){
+      return _exitCriteria;
+    }
+
+    
+    public void setExitCriteria(java.util.List<io.nop.ai.agent.plan.model.AgentPlanCriterion> value){
+        checkAllowChange();
+        
+        this._exitCriteria = KeyedList.fromList(value, io.nop.ai.agent.plan.model.AgentPlanCriterion::getId);
+           
+    }
+
+    
+    public io.nop.ai.agent.plan.model.AgentPlanCriterion getCriterion(String name){
+        return this._exitCriteria.getByKey(name);
+    }
+
+    public boolean hasCriterion(String name){
+        return this._exitCriteria.containsKey(name);
+    }
+
+    public void addCriterion(io.nop.ai.agent.plan.model.AgentPlanCriterion item) {
+        checkAllowChange();
+        java.util.List<io.nop.ai.agent.plan.model.AgentPlanCriterion> list = this.getExitCriteria();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.ai.agent.plan.model.AgentPlanCriterion::getId);
+            setExitCriteria(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_exitCriteria(){
+        return this._exitCriteria.keySet();
+    }
+
+    public boolean hasExitCriteria(){
+        return !this._exitCriteria.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: kind
+     *  
+     */
+    
+    public java.lang.String getKind(){
+      return _kind;
+    }
+
+    
+    public void setKind(java.lang.String value){
+        checkAllowChange();
+        
+        this._kind = value;
            
     }
 
@@ -155,6 +240,51 @@ public abstract class _AgentPlanPhase extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: targets
+     *  
+     */
+    
+    public java.util.List<io.nop.ai.agent.plan.model.AgentPlanTarget> getTargets(){
+      return _targets;
+    }
+
+    
+    public void setTargets(java.util.List<io.nop.ai.agent.plan.model.AgentPlanTarget> value){
+        checkAllowChange();
+        
+        this._targets = KeyedList.fromList(value, io.nop.ai.agent.plan.model.AgentPlanTarget::getId);
+           
+    }
+
+    
+    public io.nop.ai.agent.plan.model.AgentPlanTarget getTarget(String name){
+        return this._targets.getByKey(name);
+    }
+
+    public boolean hasTarget(String name){
+        return this._targets.containsKey(name);
+    }
+
+    public void addTarget(io.nop.ai.agent.plan.model.AgentPlanTarget item) {
+        checkAllowChange();
+        java.util.List<io.nop.ai.agent.plan.model.AgentPlanTarget> list = this.getTargets();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.ai.agent.plan.model.AgentPlanTarget::getId);
+            setTargets(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_targets(){
+        return this._targets.keySet();
+    }
+
+    public boolean hasTargets(){
+        return !this._targets.isEmpty();
+    }
+    
+    /**
+     * 
      * xml name: tasks
      *  阶段任务列表：支持递归子任务
      */
@@ -206,6 +336,10 @@ public abstract class _AgentPlanPhase extends io.nop.core.resource.component.Abs
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._exitCriteria = io.nop.api.core.util.FreezeHelper.deepFreeze(this._exitCriteria);
+            
+           this._targets = io.nop.api.core.util.FreezeHelper.deepFreeze(this._targets);
+            
            this._tasks = io.nop.api.core.util.FreezeHelper.deepFreeze(this._tasks);
             
         }
@@ -217,9 +351,12 @@ public abstract class _AgentPlanPhase extends io.nop.core.resource.component.Abs
         
         out.putNotNull("completedAt",this.getCompletedAt());
         out.putNotNull("description",this.getDescription());
+        out.putNotNull("exitCriteria",this.getExitCriteria());
+        out.putNotNull("kind",this.getKind());
         out.putNotNull("name",this.getName());
         out.putNotNull("startedAt",this.getStartedAt());
         out.putNotNull("status",this.getStatus());
+        out.putNotNull("targets",this.getTargets());
         out.putNotNull("tasks",this.getTasks());
     }
 
@@ -234,9 +371,12 @@ public abstract class _AgentPlanPhase extends io.nop.core.resource.component.Abs
         
         instance.setCompletedAt(this.getCompletedAt());
         instance.setDescription(this.getDescription());
+        instance.setExitCriteria(this.getExitCriteria());
+        instance.setKind(this.getKind());
         instance.setName(this.getName());
         instance.setStartedAt(this.getStartedAt());
         instance.setStatus(this.getStatus());
+        instance.setTargets(this.getTargets());
         instance.setTasks(this.getTasks());
     }
 

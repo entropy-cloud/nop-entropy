@@ -25,6 +25,13 @@ public abstract class _AgentPlanError extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: blocking
+     * 
+     */
+    private java.lang.Boolean _blocking ;
+    
+    /**
+     *  
      * xml name: encounteredAt
      * 
      */
@@ -33,7 +40,7 @@ public abstract class _AgentPlanError extends io.nop.core.resource.component.Abs
     /**
      *  
      * xml name: errorText
-     * 错误描述（大文本）
+     * 
      */
     private java.lang.String _errorText ;
     
@@ -54,7 +61,7 @@ public abstract class _AgentPlanError extends io.nop.core.resource.component.Abs
     /**
      *  
      * xml name: resolution
-     * 错误解决方案（大文本）
+     * 
      */
     private java.lang.String _resolution ;
     
@@ -86,6 +93,25 @@ public abstract class _AgentPlanError extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: blocking
+     *  
+     */
+    
+    public java.lang.Boolean getBlocking(){
+      return _blocking;
+    }
+
+    
+    public void setBlocking(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._blocking = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: encounteredAt
      *  
      */
@@ -106,7 +132,7 @@ public abstract class _AgentPlanError extends io.nop.core.resource.component.Abs
     /**
      * 
      * xml name: errorText
-     *  错误描述（大文本）
+     *  
      */
     
     public java.lang.String getErrorText(){
@@ -163,7 +189,7 @@ public abstract class _AgentPlanError extends io.nop.core.resource.component.Abs
     /**
      * 
      * xml name: resolution
-     *  错误解决方案（大文本）
+     *  
      */
     
     public java.lang.String getResolution(){
@@ -214,6 +240,7 @@ public abstract class _AgentPlanError extends io.nop.core.resource.component.Abs
         super.outputJson(out);
         
         out.putNotNull("attemptNumber",this.getAttemptNumber());
+        out.putNotNull("blocking",this.getBlocking());
         out.putNotNull("encounteredAt",this.getEncounteredAt());
         out.putNotNull("errorText",this.getErrorText());
         out.putNotNull("id",this.getId());
@@ -232,6 +259,7 @@ public abstract class _AgentPlanError extends io.nop.core.resource.component.Abs
         super.copyTo(instance);
         
         instance.setAttemptNumber(this.getAttemptNumber());
+        instance.setBlocking(this.getBlocking());
         instance.setEncounteredAt(this.getEncounteredAt());
         instance.setErrorText(this.getErrorText());
         instance.setId(this.getId());

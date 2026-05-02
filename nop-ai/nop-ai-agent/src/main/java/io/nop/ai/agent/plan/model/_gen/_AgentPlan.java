@@ -22,10 +22,10 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
     
     /**
      *  
-     * xml name: additionalNotes
-     * 任务笔记列表, 用于记录任意扩展信息
+     * xml name: closure
+     * 
      */
-    private KeyedList<io.nop.ai.agent.plan.model.AgentPlanNote> _additionalNotes = KeyedList.emptyList();
+    private io.nop.ai.agent.plan.model.AgentPlanClosure _closure ;
     
     /**
      *  
@@ -36,6 +36,13 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
     
     /**
      *  
+     * xml name: currentBaseline
+     * 
+     */
+    private java.lang.String _currentBaseline ;
+    
+    /**
+     *  
      * xml name: currentPhase
      * 
      */
@@ -43,15 +50,15 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
     
     /**
      *  
-     * xml name: decisions
-     * 任务执行过程中做出的决策记录
+     * xml name: currentTaskNo
+     * 
      */
-    private KeyedList<io.nop.ai.agent.plan.model.AgentPlanDecision> _decisions = KeyedList.emptyList();
+    private java.lang.String _currentTaskNo ;
     
     /**
      *  
      * xml name: errors
-     * 任务执行过程中遇到的值得记录的错误记录
+     * 任务执行过程中遇到的阻断性或值得追踪的错误记录
      */
     private KeyedList<io.nop.ai.agent.plan.model.AgentPlanError> _errors = KeyedList.emptyList();
     
@@ -64,6 +71,13 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
     
     /**
      *  
+     * xml name: nonGoals
+     * 
+     */
+    private KeyedList<io.nop.ai.agent.plan.model.AgentPlanNonGoalItem> _nonGoals = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: phases
      * 任务阶段列表：用于高层任务分类
      */
@@ -71,10 +85,10 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
     
     /**
      *  
-     * xml name: questions
-     * 需要回答的关键问题列表
+     * xml name: purpose
+     * 
      */
-    private KeyedList<io.nop.ai.agent.plan.model.AgentPlanQuestion> _questions = KeyedList.emptyList();
+    private java.lang.String _purpose ;
     
     /**
      *  
@@ -85,10 +99,52 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
     
     /**
      *  
+     * xml name: relatedPlans
+     * 
+     */
+    private KeyedList<io.nop.ai.agent.plan.model.AgentPlanRelatedRef> _relatedPlans = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: reviewedAt
+     * 
+     */
+    private java.time.LocalDate _reviewedAt ;
+    
+    /**
+     *  
+     * xml name: scope
+     * 
+     */
+    private io.nop.ai.agent.plan.model.AgentPlanScope _scope ;
+    
+    /**
+     *  
+     * xml name: sources
+     * 
+     */
+    private KeyedList<io.nop.ai.agent.plan.model.AgentPlanSourceRef> _sources = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: status
      * 
      */
     private io.nop.ai.agent.model.AgentExecStatus _status ;
+    
+    /**
+     *  
+     * xml name: successCriteria
+     * 
+     */
+    private KeyedList<io.nop.ai.agent.plan.model.AgentPlanSuccessCriterion> _successCriteria = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: title
+     * 
+     */
+    private java.lang.String _title ;
     
     /**
      *  
@@ -99,6 +155,13 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
     
     /**
      *  
+     * xml name: validationChecklist
+     * 
+     */
+    private KeyedList<io.nop.ai.agent.plan.model.AgentPlanCriterion> _validationChecklist = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: writtenFiles
      * 编写的文件
      */
@@ -106,48 +169,22 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
     
     /**
      * 
-     * xml name: additionalNotes
-     *  任务笔记列表, 用于记录任意扩展信息
+     * xml name: closure
+     *  
      */
     
-    public java.util.List<io.nop.ai.agent.plan.model.AgentPlanNote> getAdditionalNotes(){
-      return _additionalNotes;
+    public io.nop.ai.agent.plan.model.AgentPlanClosure getClosure(){
+      return _closure;
     }
 
     
-    public void setAdditionalNotes(java.util.List<io.nop.ai.agent.plan.model.AgentPlanNote> value){
+    public void setClosure(io.nop.ai.agent.plan.model.AgentPlanClosure value){
         checkAllowChange();
         
-        this._additionalNotes = KeyedList.fromList(value, io.nop.ai.agent.plan.model.AgentPlanNote::getId);
+        this._closure = value;
            
     }
 
-    
-    public io.nop.ai.agent.plan.model.AgentPlanNote getAdditionalNote(String name){
-        return this._additionalNotes.getByKey(name);
-    }
-
-    public boolean hasAdditionalNote(String name){
-        return this._additionalNotes.containsKey(name);
-    }
-
-    public void addAdditionalNote(io.nop.ai.agent.plan.model.AgentPlanNote item) {
-        checkAllowChange();
-        java.util.List<io.nop.ai.agent.plan.model.AgentPlanNote> list = this.getAdditionalNotes();
-        if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.ai.agent.plan.model.AgentPlanNote::getId);
-            setAdditionalNotes(list);
-        }
-        list.add(item);
-    }
-    
-    public java.util.Set<String> keySet_additionalNotes(){
-        return this._additionalNotes.keySet();
-    }
-
-    public boolean hasAdditionalNotes(){
-        return !this._additionalNotes.isEmpty();
-    }
     
     /**
      * 
@@ -164,6 +201,25 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
         checkAllowChange();
         
         this._createdAt = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: currentBaseline
+     *  
+     */
+    
+    public java.lang.String getCurrentBaseline(){
+      return _currentBaseline;
+    }
+
+    
+    public void setCurrentBaseline(java.lang.String value){
+        checkAllowChange();
+        
+        this._currentBaseline = value;
            
     }
 
@@ -189,53 +245,27 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
     
     /**
      * 
-     * xml name: decisions
-     *  任务执行过程中做出的决策记录
+     * xml name: currentTaskNo
+     *  
      */
     
-    public java.util.List<io.nop.ai.agent.plan.model.AgentPlanDecision> getDecisions(){
-      return _decisions;
+    public java.lang.String getCurrentTaskNo(){
+      return _currentTaskNo;
     }
 
     
-    public void setDecisions(java.util.List<io.nop.ai.agent.plan.model.AgentPlanDecision> value){
+    public void setCurrentTaskNo(java.lang.String value){
         checkAllowChange();
         
-        this._decisions = KeyedList.fromList(value, io.nop.ai.agent.plan.model.AgentPlanDecision::getId);
+        this._currentTaskNo = value;
            
     }
 
     
-    public io.nop.ai.agent.plan.model.AgentPlanDecision getDecision(String name){
-        return this._decisions.getByKey(name);
-    }
-
-    public boolean hasDecision(String name){
-        return this._decisions.containsKey(name);
-    }
-
-    public void addDecision(io.nop.ai.agent.plan.model.AgentPlanDecision item) {
-        checkAllowChange();
-        java.util.List<io.nop.ai.agent.plan.model.AgentPlanDecision> list = this.getDecisions();
-        if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.ai.agent.plan.model.AgentPlanDecision::getId);
-            setDecisions(list);
-        }
-        list.add(item);
-    }
-    
-    public java.util.Set<String> keySet_decisions(){
-        return this._decisions.keySet();
-    }
-
-    public boolean hasDecisions(){
-        return !this._decisions.isEmpty();
-    }
-    
     /**
      * 
      * xml name: errors
-     *  任务执行过程中遇到的值得记录的错误记录
+     *  任务执行过程中遇到的阻断性或值得追踪的错误记录
      */
     
     public java.util.List<io.nop.ai.agent.plan.model.AgentPlanError> getErrors(){
@@ -298,6 +328,51 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
     
     /**
      * 
+     * xml name: nonGoals
+     *  
+     */
+    
+    public java.util.List<io.nop.ai.agent.plan.model.AgentPlanNonGoalItem> getNonGoals(){
+      return _nonGoals;
+    }
+
+    
+    public void setNonGoals(java.util.List<io.nop.ai.agent.plan.model.AgentPlanNonGoalItem> value){
+        checkAllowChange();
+        
+        this._nonGoals = KeyedList.fromList(value, io.nop.ai.agent.plan.model.AgentPlanNonGoalItem::getId);
+           
+    }
+
+    
+    public io.nop.ai.agent.plan.model.AgentPlanNonGoalItem getNonGoal(String name){
+        return this._nonGoals.getByKey(name);
+    }
+
+    public boolean hasNonGoal(String name){
+        return this._nonGoals.containsKey(name);
+    }
+
+    public void addNonGoal(io.nop.ai.agent.plan.model.AgentPlanNonGoalItem item) {
+        checkAllowChange();
+        java.util.List<io.nop.ai.agent.plan.model.AgentPlanNonGoalItem> list = this.getNonGoals();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.ai.agent.plan.model.AgentPlanNonGoalItem::getId);
+            setNonGoals(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_nonGoals(){
+        return this._nonGoals.keySet();
+    }
+
+    public boolean hasNonGoals(){
+        return !this._nonGoals.isEmpty();
+    }
+    
+    /**
+     * 
      * xml name: phases
      *  任务阶段列表：用于高层任务分类
      */
@@ -343,48 +418,22 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
     
     /**
      * 
-     * xml name: questions
-     *  需要回答的关键问题列表
+     * xml name: purpose
+     *  
      */
     
-    public java.util.List<io.nop.ai.agent.plan.model.AgentPlanQuestion> getQuestions(){
-      return _questions;
+    public java.lang.String getPurpose(){
+      return _purpose;
     }
 
     
-    public void setQuestions(java.util.List<io.nop.ai.agent.plan.model.AgentPlanQuestion> value){
+    public void setPurpose(java.lang.String value){
         checkAllowChange();
         
-        this._questions = KeyedList.fromList(value, io.nop.ai.agent.plan.model.AgentPlanQuestion::getId);
+        this._purpose = value;
            
     }
 
-    
-    public io.nop.ai.agent.plan.model.AgentPlanQuestion getQuestion(String name){
-        return this._questions.getByKey(name);
-    }
-
-    public boolean hasQuestion(String name){
-        return this._questions.containsKey(name);
-    }
-
-    public void addQuestion(io.nop.ai.agent.plan.model.AgentPlanQuestion item) {
-        checkAllowChange();
-        java.util.List<io.nop.ai.agent.plan.model.AgentPlanQuestion> list = this.getQuestions();
-        if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.ai.agent.plan.model.AgentPlanQuestion::getId);
-            setQuestions(list);
-        }
-        list.add(item);
-    }
-    
-    public java.util.Set<String> keySet_questions(){
-        return this._questions.keySet();
-    }
-
-    public boolean hasQuestions(){
-        return !this._questions.isEmpty();
-    }
     
     /**
      * 
@@ -407,6 +456,134 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
     
     /**
      * 
+     * xml name: relatedPlans
+     *  
+     */
+    
+    public java.util.List<io.nop.ai.agent.plan.model.AgentPlanRelatedRef> getRelatedPlans(){
+      return _relatedPlans;
+    }
+
+    
+    public void setRelatedPlans(java.util.List<io.nop.ai.agent.plan.model.AgentPlanRelatedRef> value){
+        checkAllowChange();
+        
+        this._relatedPlans = KeyedList.fromList(value, io.nop.ai.agent.plan.model.AgentPlanRelatedRef::getId);
+           
+    }
+
+    
+    public io.nop.ai.agent.plan.model.AgentPlanRelatedRef getRelatedPlan(String name){
+        return this._relatedPlans.getByKey(name);
+    }
+
+    public boolean hasRelatedPlan(String name){
+        return this._relatedPlans.containsKey(name);
+    }
+
+    public void addRelatedPlan(io.nop.ai.agent.plan.model.AgentPlanRelatedRef item) {
+        checkAllowChange();
+        java.util.List<io.nop.ai.agent.plan.model.AgentPlanRelatedRef> list = this.getRelatedPlans();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.ai.agent.plan.model.AgentPlanRelatedRef::getId);
+            setRelatedPlans(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_relatedPlans(){
+        return this._relatedPlans.keySet();
+    }
+
+    public boolean hasRelatedPlans(){
+        return !this._relatedPlans.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: reviewedAt
+     *  
+     */
+    
+    public java.time.LocalDate getReviewedAt(){
+      return _reviewedAt;
+    }
+
+    
+    public void setReviewedAt(java.time.LocalDate value){
+        checkAllowChange();
+        
+        this._reviewedAt = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: scope
+     *  
+     */
+    
+    public io.nop.ai.agent.plan.model.AgentPlanScope getScope(){
+      return _scope;
+    }
+
+    
+    public void setScope(io.nop.ai.agent.plan.model.AgentPlanScope value){
+        checkAllowChange();
+        
+        this._scope = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: sources
+     *  
+     */
+    
+    public java.util.List<io.nop.ai.agent.plan.model.AgentPlanSourceRef> getSources(){
+      return _sources;
+    }
+
+    
+    public void setSources(java.util.List<io.nop.ai.agent.plan.model.AgentPlanSourceRef> value){
+        checkAllowChange();
+        
+        this._sources = KeyedList.fromList(value, io.nop.ai.agent.plan.model.AgentPlanSourceRef::getId);
+           
+    }
+
+    
+    public io.nop.ai.agent.plan.model.AgentPlanSourceRef getSource(String name){
+        return this._sources.getByKey(name);
+    }
+
+    public boolean hasSource(String name){
+        return this._sources.containsKey(name);
+    }
+
+    public void addSource(io.nop.ai.agent.plan.model.AgentPlanSourceRef item) {
+        checkAllowChange();
+        java.util.List<io.nop.ai.agent.plan.model.AgentPlanSourceRef> list = this.getSources();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.ai.agent.plan.model.AgentPlanSourceRef::getId);
+            setSources(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_sources(){
+        return this._sources.keySet();
+    }
+
+    public boolean hasSources(){
+        return !this._sources.isEmpty();
+    }
+    
+    /**
+     * 
      * xml name: status
      *  
      */
@@ -420,6 +597,70 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
         checkAllowChange();
         
         this._status = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: successCriteria
+     *  
+     */
+    
+    public java.util.List<io.nop.ai.agent.plan.model.AgentPlanSuccessCriterion> getSuccessCriteria(){
+      return _successCriteria;
+    }
+
+    
+    public void setSuccessCriteria(java.util.List<io.nop.ai.agent.plan.model.AgentPlanSuccessCriterion> value){
+        checkAllowChange();
+        
+        this._successCriteria = KeyedList.fromList(value, io.nop.ai.agent.plan.model.AgentPlanSuccessCriterion::getId);
+           
+    }
+
+    
+    public io.nop.ai.agent.plan.model.AgentPlanSuccessCriterion getCriterion(String name){
+        return this._successCriteria.getByKey(name);
+    }
+
+    public boolean hasCriterion(String name){
+        return this._successCriteria.containsKey(name);
+    }
+
+    public void addCriterion(io.nop.ai.agent.plan.model.AgentPlanSuccessCriterion item) {
+        checkAllowChange();
+        java.util.List<io.nop.ai.agent.plan.model.AgentPlanSuccessCriterion> list = this.getSuccessCriteria();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.ai.agent.plan.model.AgentPlanSuccessCriterion::getId);
+            setSuccessCriteria(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_successCriteria(){
+        return this._successCriteria.keySet();
+    }
+
+    public boolean hasSuccessCriteria(){
+        return !this._successCriteria.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: title
+     *  
+     */
+    
+    public java.lang.String getTitle(){
+      return _title;
+    }
+
+    
+    public void setTitle(java.lang.String value){
+        checkAllowChange();
+        
+        this._title = value;
            
     }
 
@@ -442,6 +683,51 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
            
     }
 
+    
+    /**
+     * 
+     * xml name: validationChecklist
+     *  
+     */
+    
+    public java.util.List<io.nop.ai.agent.plan.model.AgentPlanCriterion> getValidationChecklist(){
+      return _validationChecklist;
+    }
+
+    
+    public void setValidationChecklist(java.util.List<io.nop.ai.agent.plan.model.AgentPlanCriterion> value){
+        checkAllowChange();
+        
+        this._validationChecklist = KeyedList.fromList(value, io.nop.ai.agent.plan.model.AgentPlanCriterion::getId);
+           
+    }
+
+    
+    public io.nop.ai.agent.plan.model.AgentPlanCriterion getCheck(String name){
+        return this._validationChecklist.getByKey(name);
+    }
+
+    public boolean hasCheck(String name){
+        return this._validationChecklist.containsKey(name);
+    }
+
+    public void addCheck(io.nop.ai.agent.plan.model.AgentPlanCriterion item) {
+        checkAllowChange();
+        java.util.List<io.nop.ai.agent.plan.model.AgentPlanCriterion> list = this.getValidationChecklist();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.ai.agent.plan.model.AgentPlanCriterion::getId);
+            setValidationChecklist(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_validationChecklist(){
+        return this._validationChecklist.keySet();
+    }
+
+    public boolean hasValidationChecklist(){
+        return !this._validationChecklist.isEmpty();
+    }
     
     /**
      * 
@@ -470,17 +756,25 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._additionalNotes = io.nop.api.core.util.FreezeHelper.deepFreeze(this._additionalNotes);
-            
-           this._decisions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._decisions);
+           this._closure = io.nop.api.core.util.FreezeHelper.deepFreeze(this._closure);
             
            this._errors = io.nop.api.core.util.FreezeHelper.deepFreeze(this._errors);
             
+           this._nonGoals = io.nop.api.core.util.FreezeHelper.deepFreeze(this._nonGoals);
+            
            this._phases = io.nop.api.core.util.FreezeHelper.deepFreeze(this._phases);
             
-           this._questions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._questions);
-            
            this._readFiles = io.nop.api.core.util.FreezeHelper.deepFreeze(this._readFiles);
+            
+           this._relatedPlans = io.nop.api.core.util.FreezeHelper.deepFreeze(this._relatedPlans);
+            
+           this._scope = io.nop.api.core.util.FreezeHelper.deepFreeze(this._scope);
+            
+           this._sources = io.nop.api.core.util.FreezeHelper.deepFreeze(this._sources);
+            
+           this._successCriteria = io.nop.api.core.util.FreezeHelper.deepFreeze(this._successCriteria);
+            
+           this._validationChecklist = io.nop.api.core.util.FreezeHelper.deepFreeze(this._validationChecklist);
             
            this._writtenFiles = io.nop.api.core.util.FreezeHelper.deepFreeze(this._writtenFiles);
             
@@ -491,17 +785,26 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("additionalNotes",this.getAdditionalNotes());
+        out.putNotNull("closure",this.getClosure());
         out.putNotNull("createdAt",this.getCreatedAt());
+        out.putNotNull("currentBaseline",this.getCurrentBaseline());
         out.putNotNull("currentPhase",this.getCurrentPhase());
-        out.putNotNull("decisions",this.getDecisions());
+        out.putNotNull("currentTaskNo",this.getCurrentTaskNo());
         out.putNotNull("errors",this.getErrors());
         out.putNotNull("goal",this.getGoal());
+        out.putNotNull("nonGoals",this.getNonGoals());
         out.putNotNull("phases",this.getPhases());
-        out.putNotNull("questions",this.getQuestions());
+        out.putNotNull("purpose",this.getPurpose());
         out.putNotNull("readFiles",this.getReadFiles());
+        out.putNotNull("relatedPlans",this.getRelatedPlans());
+        out.putNotNull("reviewedAt",this.getReviewedAt());
+        out.putNotNull("scope",this.getScope());
+        out.putNotNull("sources",this.getSources());
         out.putNotNull("status",this.getStatus());
+        out.putNotNull("successCriteria",this.getSuccessCriteria());
+        out.putNotNull("title",this.getTitle());
         out.putNotNull("updatedAt",this.getUpdatedAt());
+        out.putNotNull("validationChecklist",this.getValidationChecklist());
         out.putNotNull("writtenFiles",this.getWrittenFiles());
     }
 
@@ -514,17 +817,26 @@ public abstract class _AgentPlan extends io.nop.core.resource.component.Abstract
     protected void copyTo(AgentPlan instance){
         super.copyTo(instance);
         
-        instance.setAdditionalNotes(this.getAdditionalNotes());
+        instance.setClosure(this.getClosure());
         instance.setCreatedAt(this.getCreatedAt());
+        instance.setCurrentBaseline(this.getCurrentBaseline());
         instance.setCurrentPhase(this.getCurrentPhase());
-        instance.setDecisions(this.getDecisions());
+        instance.setCurrentTaskNo(this.getCurrentTaskNo());
         instance.setErrors(this.getErrors());
         instance.setGoal(this.getGoal());
+        instance.setNonGoals(this.getNonGoals());
         instance.setPhases(this.getPhases());
-        instance.setQuestions(this.getQuestions());
+        instance.setPurpose(this.getPurpose());
         instance.setReadFiles(this.getReadFiles());
+        instance.setRelatedPlans(this.getRelatedPlans());
+        instance.setReviewedAt(this.getReviewedAt());
+        instance.setScope(this.getScope());
+        instance.setSources(this.getSources());
         instance.setStatus(this.getStatus());
+        instance.setSuccessCriteria(this.getSuccessCriteria());
+        instance.setTitle(this.getTitle());
         instance.setUpdatedAt(this.getUpdatedAt());
+        instance.setValidationChecklist(this.getValidationChecklist());
         instance.setWrittenFiles(this.getWrittenFiles());
     }
 

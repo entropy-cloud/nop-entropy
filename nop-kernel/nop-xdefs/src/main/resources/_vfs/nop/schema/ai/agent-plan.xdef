@@ -38,13 +38,13 @@ Agent Plan Metamodel Definition
         <nonGoal id="!string" xdef:name="AgentPlanNonGoalItem">string</nonGoal>
     </nonGoals>
 
-    <scope>
+    <scope xdef:name="AgentPlanScope">
         <inScope xdef:body-type="list" xdef:key-attr="id">
-            <item id="!string" xdef:name="AgentPlanScopeItem">string</item>
+            <inItem id="!string" xdef:name="AgentPlanScopeItem">string</inItem>
         </inScope>
 
         <outOfScope xdef:body-type="list" xdef:key-attr="id">
-            <item id="!string" xdef:ref="AgentPlanScopeItem"/>
+            <outItem id="!string" xdef:ref="AgentPlanScopeItem"/>
         </outOfScope>
     </scope>
 
