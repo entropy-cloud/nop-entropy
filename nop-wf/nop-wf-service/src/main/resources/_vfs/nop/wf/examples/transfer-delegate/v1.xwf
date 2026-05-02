@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:extends="/nop/wf/base/oa.xwf"
+          x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          wfName="examples/transfer-delegate" wfVersion="1" displayName="转办与委派流程">
+    <description>转办与委派：审批人可以将任务转交给他人处理（转办），或委托他人代办后返回给自己（委派）。
+    对应FlowLong的transfer(转办)和delegate(委派)模式。
+
+    注意：oa.xwf 内置的 delegate/delegateReturn 动作的 when 条件限制为 specialType=="cc"。
+    本示例定义了自定义的 delegate 动作，绕过此限制。</description>
+
+    <start startStepName="submit">
+        <arg name="requestType" type="String" displayName="申请类型"/>
+    </start>
+
+    <end/>
+
+    <actions>
+        <!-- Custom delegate actions without the CC restriction from oa.xwf.
+             oa.xwf's WhenAllowDelegate only allows delegate for specialType="cc" steps.
+             These custom actions work for ANY step. -->
+        <action name="my-delegate" displayName="委派" common="true" local="true">
+            <transition appState="delegate" splitType="and"/>
+        </action>
+        <action name="my-delegate-return" displayName="委办完成" common="true" local="true">
+            <transition appState="agree" splitType="and"/>
+        </action>
+    </actions>
+
+    <steps>
+        <step name="submit" displayName="提交申请">
+            <assignment>
+                <actors>
+                    <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="approval"/>
+            </transition>
+        </step>
+
+        <!-- Transfer and Delegate support:
+             - wf:permissions="transfer,delegate" enables the UI to show transfer/delegate buttons
+             - Custom my-delegate/my-delegate-return actions bypass oa:WhenAllowDelegate CC restriction -->
+        <step name="approval" displayName="审批" allowReject="true">
+            <assignment>
+                <actors>
+                    <actor actorModelId="reviewer" actorType="wf-actor:StarterManager"
+                           selectUser="true" wf:upLevel="1"
+                           wf:permissions="transfer,delegate"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+                <ref-action name="reject"/>
+                <ref-action name="my-delegate"/>
+                <ref-action name="my-delegate-return"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="cc-result"/>
+            </transition>
+        </step>
+
+        <step name="cc-result" displayName="抄送结果" specialType="cc">
+            <assignment>
+                <actors>
+                    <actor actorModelId="notify" actorType="user" actorId="test001" selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="confirm"/>
+            </ref-actions>
+            <transition onAppStates="confirm" splitType="and">
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+</workflow>

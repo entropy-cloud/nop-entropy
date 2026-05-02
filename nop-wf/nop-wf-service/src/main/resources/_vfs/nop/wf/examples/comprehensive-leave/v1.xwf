@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:extends="/nop/wf/base/oa.xwf"
+          x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          wfName="examples/comprehensive-leave" wfVersion="1" displayName="综合请假审批流程">
+
+  <description>
+    综合请假审批流程，演示多种工作流模式的组合使用：
+    1. 条件分支：根据请假天数选择不同审批路径
+    2. 或签：VP审批时多位VP任意一人即可
+    3. 抄送：审批完成后通知考勤系统
+    4. 驳回：支持驳回到发起人
+    5. 撤回：支持撤回已提交的申请
+    6. 超时：主管超过24小时未审批自动通过
+
+    对应FlowLong的模式组合：条件路由 + 会签/或签 + 抄送 + 驳回 + 超时审批
+  </description>
+
+  <start startStepName="submit">
+    <arg name="leaveDays" type="Integer" mandatory="true" displayName="请假天数"/>
+    <arg name="leaveType" type="String" displayName="请假类型"/>
+    <arg name="reason" type="String" displayName="请假原因"/>
+  </start>
+
+  <end/>
+
+  <!-- Custom actions for this workflow -->
+  <actions>
+    <!-- Reject back to submit step -->
+    <action name="reject-to-starter" displayName="驳回到发起人"
+            common="true" forReject="true" forActivated="true">
+      <transition splitType="and">
+        <to-step stepName="submit" backLink="true"/>
+      </transition>
+    </action>
+
+    <!-- Withdraw action -->
+    <action name="withdraw-to-submit" displayName="撤回"
+            common="true" forWithdraw="true" forHistory="true">
+      <transition splitType="and">
+        <to-step stepName="submit" backLink="true"/>
+      </transition>
+    </action>
+
+    <!-- Auto-agree on timeout -->
+    <action name="timeout-auto-agree" displayName="超时自动通过" common="true" local="true">
+      <source>
+        <c:script>
+          wfVars.setVar('timeoutAutoApproved', true)
+        </c:script>
+      </source>
+      <transition appState="agree" splitType="and"/>
+    </action>
+  </actions>
+
+  <steps>
+    <!-- Step 1: Employee submits leave request -->
+    <step name="submit" displayName="提交请假申请">
+      <assignment>
+        <actors>
+          <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
+        </actors>
+      </assignment>
+      <ref-actions>
+        <ref-action name="agree"/>
+      </ref-actions>
+      <!-- Conditional routing based on leave days:
+           days > 7: dept manager -> VP (or-sign) -> HR
+           days > 3: dept manager -> HR
+           days <= 3: direct to HR -->
+      <transition onAppStates="agree" splitType="or">
+        <to-step stepName="dept-approval" order="1">
+          <when>
+            <gt name="wfVars.leaveDays" value="${3}"/>
+          </when>
+        </to-step>
+        <to-step stepName="hr-review" order="2"/>
+      </transition>
+    </step>
+
+    <!-- Step 2a: Department manager approval (for days > 3) -->
+    <step name="dept-approval" displayName="部门经理审批"
+          allowReject="true" allowWithdraw="true"
+          dueAction="timeout-auto-agree">
+      <due-time-expr>
+        <c:script>
+          // 24 hours timeout for manager
+          return sysDate + 24 * 60 * 60 * 1000
+        </c:script>
+      </due-time-expr>
+      <assignment>
+        <actors>
+          <actor actorModelId="dept-manager" actorType="wf-actor:StarterDeptManager"
+                 selectUser="true" wf:upLevel="0"/>
+        </actors>
+      </assignment>
+      <ref-actions>
+        <ref-action name="agree"/>
+        <ref-action name="reject-to-starter"/>
+      </ref-actions>
+      <transition onAppStates="agree" splitType="or">
+        <!-- If days > 7, also need VP approval -->
+        <to-step stepName="vp-approval" order="1">
+          <when>
+            <gt name="wfVars.leaveDays" value="${7}"/>
+          </when>
+        </to-step>
+        <!-- Otherwise go to HR -->
+        <to-step stepName="hr-review" order="2"/>
+      </transition>
+    </step>
+
+    <!-- Step 2b: VP approval with or-sign (for days > 7) -->
+    <!-- execGroupType="or-group": any one VP approval is sufficient -->
+    <step name="vp-approval" displayName="副总裁审批(或签)"
+          execGroupType="or-group"
+          allowReject="true" allowWithdraw="true"
+          dueAction="timeout-auto-agree">
+      <due-time-expr>
+        <c:script>
+          // 48 hours timeout for VP
+          return sysDate + 48 * 60 * 60 * 1000
+        </c:script>
+      </due-time-expr>
+      <assignment selection="auto">
+        <actors>
+          <actor actorModelId="vp1" actorType="user" actorId="vp-finance" selectUser="true"/>
+          <actor actorModelId="vp2" actorType="user" actorId="vp-operations" selectUser="true"/>
+          <actor actorModelId="vp3" actorType="user" actorId="vp-hr" selectUser="true"/>
+        </actors>
+      </assignment>
+      <ref-actions>
+        <ref-action name="agree"/>
+        <ref-action name="reject-to-starter"/>
+      </ref-actions>
+      <transition onAppStates="agree" splitType="and">
+        <to-step stepName="hr-review"/>
+      </transition>
+    </step>
+
+    <!-- Step 3: HR review and record -->
+    <step name="hr-review" displayName="HR审核确认" allowReject="true">
+      <assignment>
+        <actors>
+          <actor actorModelId="hr" actorType="role" actorId="hr-manager" selectUser="true"/>
+        </actors>
+      </assignment>
+      <ref-actions>
+        <ref-action name="agree"/>
+        <ref-action name="reject-to-starter"/>
+      </ref-actions>
+      <transition onAppStates="agree" splitType="and">
+        <to-step stepName="cc-attendance"/>
+      </transition>
+    </step>
+
+    <!-- Step 4: CC to attendance system (informational, does not block) -->
+    <step name="cc-attendance" displayName="抄送考勤系统" specialType="cc">
+      <assignment>
+        <actors>
+          <actor actorModelId="attendance-admin" actorType="role" actorId="attendance-admin" selectUser="true"/>
+        </actors>
+      </assignment>
+      <ref-actions>
+        <ref-action name="confirm"/>
+      </ref-actions>
+      <transition onAppStates="confirm" splitType="and">
+        <to-end/>
+      </transition>
+    </step>
+  </steps>
+</workflow>

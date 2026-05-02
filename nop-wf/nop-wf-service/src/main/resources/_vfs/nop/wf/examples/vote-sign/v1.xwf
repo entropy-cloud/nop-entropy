@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:extends="/nop/wf/base/oa.xwf"
+          x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          wfName="examples/vote-sign" wfVersion="1" displayName="票签审批流程">
+    <description>票签：按权重投票，总同意权重大于50即通过</description>
+
+    <start startStepName="submit">
+        <arg name="proposalContent" type="String" displayName="提案内容"/>
+    </start>
+
+    <end/>
+
+    <steps>
+        <step name="submit" displayName="提交提案">
+            <assignment>
+                <actors>
+                    <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="vote-review"/>
+            </transition>
+        </step>
+
+        <!-- execGroupType="vote-group": weighted voting.
+             passWeight="50": total weight of agreeing actors must exceed 50 to pass.
+             Each actor has a voteWeight attribute. -->
+        <step name="vote-review" displayName="董事会投票" execGroupType="vote-group" passWeight="50">
+            <assignment selection="auto">
+                <actors>
+                    <actor actorModelId="ceo" actorType="user" actorId="test001" selectUser="true"
+                           voteWeight="30"/>
+                    <actor actorModelId="director1" actorType="user" actorId="test002"
+                           selectUser="true" voteWeight="35"/>
+                    <actor actorModelId="director2" actorType="user" actorId="test003"
+                           selectUser="true" voteWeight="35"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+                <ref-action name="reject"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="cc-notify"/>
+            </transition>
+        </step>
+
+        <step name="cc-notify" displayName="抄送通知" specialType="cc">
+            <assignment>
+                <actors>
+                    <actor actorModelId="admin" actorType="user" actorId="test005" selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="confirm"/>
+            </ref-actions>
+            <transition onAppStates="confirm" splitType="and">
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+</workflow>

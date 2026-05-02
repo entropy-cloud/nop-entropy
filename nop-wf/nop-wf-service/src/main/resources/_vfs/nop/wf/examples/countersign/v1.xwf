@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:extends="/nop/wf/base/oa.xwf"
+          x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          wfName="examples/countersign" wfVersion="1" displayName="会签审批流程">
+    <description>会签：多个部门同时审批，所有人必须同意才能通过</description>
+
+    <start startStepName="submit">
+        <arg name="amount" type="BigDecimal" displayName="合同金额"/>
+    </start>
+
+    <end/>
+
+    <steps>
+        <step name="submit" displayName="提交申请">
+            <assignment>
+                <actors>
+                    <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="countersign-review"/>
+            </transition>
+        </step>
+
+        <!-- execGroupType="and-group": all actors must approve.
+             The step transitions only when ALL actors in the execGroup have completed. -->
+        <step name="countersign-review" displayName="多部门会签" execGroupType="and-group"
+              allowWithdraw="true" allowReject="true">
+            <assignment selection="auto">
+                <actors>
+                    <actor actorModelId="finance" actorType="user" actorId="finance-manager"
+                           selectUser="true"/>
+                    <actor actorModelId="hr" actorType="user" actorId="hr-manager" selectUser="true"/>
+                    <actor actorModelId="legal" actorType="user" actorId="legal-manager"
+                           selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+                <ref-action name="reject"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="confirm"/>
+            </transition>
+        </step>
+
+        <step name="confirm" displayName="确认" allowWithdraw="true">
+            <assignment>
+                <actors>
+                    <actor actorModelId="dept-manager" actorType="wf-actor:StarterDeptManager"
+                           selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+</workflow>

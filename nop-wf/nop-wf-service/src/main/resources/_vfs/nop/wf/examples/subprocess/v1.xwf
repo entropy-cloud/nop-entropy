@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:extends="/nop/wf/base/oa.xwf"
+          x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          wfName="examples/subprocess" wfVersion="1" displayName="子流程示例">
+    <description>子流程：人事审批后调用工作交接子流程，子流程完成后由主管确认</description>
+
+    <start startStepName="submit">
+        <arg name="employeeId" type="String" displayName="员工ID"/>
+        <arg name="handoverItems" type="String" displayName="交接事项"/>
+    </start>
+
+    <end/>
+
+    <steps>
+        <step name="submit" displayName="提交申请">
+            <assignment>
+                <actors>
+                    <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="hr-approval"/>
+            </transition>
+        </step>
+
+        <step name="hr-approval" displayName="人事审批">
+            <assignment>
+                <actors>
+                    <actor actorModelId="hr" actorType="role" actorId="hr-manager" selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+                <ref-action name="reject"/>
+            </ref-actions>
+            <!-- splitType="or": only the FIRST matching branch is taken.
+                 If handoverItems is non-empty, go to sub-flow; otherwise skip directly to manager-confirm.
+                 Note: handoverItems is String type, so we use string-length check. -->
+            <transition onAppStates="agree" splitType="or">
+                <to-step stepName="handover-subflow" order="1">
+                    <when>
+                        <c:script>return wfVars.handoverItems != null &amp;&amp; wfVars.handoverItems.length() &gt; 0</c:script>
+                    </when>
+                </to-step>
+                <to-step stepName="manager-confirm" order="2"/>
+            </transition>
+        </step>
+
+        <!-- Sub-process: invokes another workflow. Parent step enters WAITING until sub-flow ends. -->
+        <flow name="handover-subflow" displayName="工作交接">
+            <start wfName="examples/subprocess/sub-workflow" wfVersion="1">
+                <arg name="employeeId">
+                    <source>wfVars.employeeId</source>
+                </arg>
+                <arg name="items">
+                    <source>wfVars.handoverItems</source>
+                </arg>
+                <!-- Capture sub-flow output -->
+                <return var="handoverResult" output="result"/>
+            </start>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="manager-confirm"/>
+            </transition>
+        </flow>
+
+        <step name="manager-confirm" displayName="主管确认" allowReject="true">
+            <assignment>
+                <actors>
+                    <actor actorModelId="manager" actorType="wf-actor:StarterManager" selectUser="true"
+                           wf:upLevel="1"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+                <ref-action name="reject"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+</workflow>

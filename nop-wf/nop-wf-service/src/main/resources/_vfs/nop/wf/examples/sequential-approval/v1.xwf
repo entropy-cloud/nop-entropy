@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:extends="/nop/wf/base/oa.xwf"
+          x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          wfName="examples/sequential-approval" wfVersion="1" displayName="串签审批流程">
+    <description>按顺序依次审批：团队主管 → 部门经理 → 副总裁，所有人必须按顺序通过</description>
+
+    <start startStepName="submit">
+        <arg name="amount" type="BigDecimal" displayName="申请金额"/>
+        <arg name="reason" type="String" displayName="申请原因"/>
+    </start>
+
+    <end/>
+
+    <steps>
+        <step name="submit" displayName="提交申请">
+            <assignment>
+                <actors>
+                    <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="sequential-review"/>
+            </transition>
+        </step>
+
+        <!-- execGroupType="seq-group": actors execute sequentially in declaration order -->
+        <step name="sequential-review" displayName="逐级审批" execGroupType="seq-group"
+              allowWithdraw="true" allowReject="true">
+            <assignment selection="auto">
+                <actors>
+                    <actor actorModelId="team-lead" actorType="wf-actor:StarterManager"
+                           selectUser="true" wf:upLevel="1"/>
+                    <actor actorModelId="dept-manager" actorType="wf-actor:StarterManager"
+                           selectUser="true" wf:upLevel="2"/>
+                    <actor actorModelId="vp" actorType="wf-actor:StarterManager"
+                           selectUser="true" wf:upLevel="3"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+                <ref-action name="reject"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+</workflow>

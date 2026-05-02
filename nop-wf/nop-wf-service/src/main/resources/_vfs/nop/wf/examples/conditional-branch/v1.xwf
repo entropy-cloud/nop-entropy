@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:extends="/nop/wf/base/oa.xwf"
+          x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          wfName="examples/conditional-branch" wfVersion="1" displayName="条件分支流程">
+  <description>条件分支：根据请假天数走不同的审批路径。3天以内只需HR审批，超过3天需要经理和HR同时审批</description>
+
+  <start startStepName="submit">
+    <arg name="leaveDays" type="Integer" mandatory="true" displayName="请假天数"/>
+    <arg name="reason" type="String" displayName="请假原因"/>
+  </start>
+
+  <end/>
+
+  <steps>
+    <step name="submit" displayName="提交请假">
+      <assignment>
+        <actors>
+          <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
+        </actors>
+      </assignment>
+      <ref-actions>
+        <ref-action name="agree"/>
+      </ref-actions>
+      <!-- splitType="or": only the FIRST matching to-step branch is taken -->
+      <transition onAppStates="agree" splitType="or">
+        <to-step stepName="manager-approval" order="1">
+          <when>
+            <gt name="wfVars.leaveDays" value="${3}"/>
+          </when>
+        </to-step>
+        <to-step stepName="hr-approval" order="2">
+          <when>
+            <le name="wfVars.leaveDays" value="${3}"/>
+          </when>
+        </to-step>
+      </transition>
+    </step>
+
+    <step name="manager-approval" displayName="经理审批" allowReject="true">
+      <assignment>
+        <actors>
+          <actor actorModelId="manager" actorType="wf-actor:StarterManager" selectUser="true" wf:upLevel="1"/>
+        </actors>
+      </assignment>
+      <ref-actions>
+        <ref-action name="agree"/>
+        <ref-action name="reject"/>
+      </ref-actions>
+      <transition onAppStates="agree" splitType="and">
+        <to-step stepName="hr-approval"/>
+      </transition>
+    </step>
+
+    <step name="hr-approval" displayName="HR审批" allowReject="true">
+      <assignment>
+        <actors>
+          <actor actorModelId="hr" actorType="role" actorId="hr-manager" selectUser="true"/>
+        </actors>
+      </assignment>
+      <ref-actions>
+        <ref-action name="agree"/>
+        <ref-action name="reject"/>
+      </ref-actions>
+      <transition onAppStates="agree" splitType="and">
+        <to-end/>
+      </transition>
+    </step>
+  </steps>
+</workflow>

@@ -4,7 +4,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.excel.chart.constants.ChartTextDirection;
 import io.nop.excel.chart.model.ChartTextStyleModel;
 import io.nop.excel.model.ExcelFont;
-import io.nop.excel.model.constants.ExcelFontUnderline;
+import io.nop.office.model.constants.OfficeFontUnderline;
 import io.nop.office.model.constants.OfficeHorizontalAlignment;
 import io.nop.office.model.constants.OfficeVerticalAlignment;
 import org.slf4j.Logger;
@@ -173,7 +173,7 @@ public class ChartTextStyleParser {
         // 解析下划线
         String u = rPrNode.attrText("u");
         if (u != null) {
-            ExcelFontUnderline underlineStyle = mapUnderlineStyle(u);
+            OfficeFontUnderline underlineStyle = mapUnderlineStyle(u);
             font.setUnderlineStyle(underlineStyle);
         }
 
@@ -282,27 +282,27 @@ public class ChartTextStyleParser {
      * @param underlineValue OOXML下划线值
      * @return 对应的下划线枚举
      */
-    private ExcelFontUnderline mapUnderlineStyle(String underlineValue) {
+    private OfficeFontUnderline mapUnderlineStyle(String underlineValue) {
         if (underlineValue == null) {
-            return ExcelFontUnderline.NONE;
+            return OfficeFontUnderline.NONE;
         }
 
         switch (underlineValue.toLowerCase()) {
             case "none":
-                return ExcelFontUnderline.NONE;
+                return OfficeFontUnderline.NONE;
             case "single":
-                return ExcelFontUnderline.SINGLE;
+                return OfficeFontUnderline.SINGLE;
             case "double":
-                return ExcelFontUnderline.DOUBLE;
+                return OfficeFontUnderline.DOUBLE;
             case "singleaccounting":
             case "single-accounting":
-                return ExcelFontUnderline.SINGLE_ACCOUNTING;
+                return OfficeFontUnderline.SINGLE_ACCOUNTING;
             case "doubleaccounting":
             case "double-accounting":
-                return ExcelFontUnderline.DOUBLE_ACCOUNTING;
+                return OfficeFontUnderline.DOUBLE_ACCOUNTING;
             default:
                 // 对于未知值，默认使用单下划线
-                return ExcelFontUnderline.SINGLE;
+                return OfficeFontUnderline.SINGLE;
         }
     }
 }

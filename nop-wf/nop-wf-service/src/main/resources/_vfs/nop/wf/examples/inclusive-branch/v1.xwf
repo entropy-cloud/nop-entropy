@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:extends="/nop/wf/base/oa.xwf"
+          x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          wfName="examples/inclusive-branch" wfVersion="1" displayName="包容分支流程">
+  <description>包容分支：根据条件激活一个或多个分支，所有激活的分支完成后才继续。
+  与条件分支不同：多个条件可以同时满足，导致多个分支同时执行。
+  
+  关键：使用 splitType="and" 而非 splitType="or"。
+  splitType="or" 只执行第一个匹配的分支（排他网关）。
+  splitType="and" 让每个 to-step 的 when 条件独立评估，满足条件的分支都会被执行（包容网关）。</description>
+
+  <start startStepName="submit">
+    <arg name="riskLevel" type="Integer" displayName="风险等级(1-10)"/>
+    <arg name="amount" type="BigDecimal" displayName="金额"/>
+  </start>
+
+  <end/>
+
+  <steps>
+    <step name="submit" displayName="提交申请">
+      <assignment>
+        <actors>
+          <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
+        </actors>
+      </assignment>
+      <ref-actions>
+        <ref-action name="agree"/>
+      </ref-actions>
+      <!-- splitType="and" with when conditions: EACH branch is evaluated independently.
+           Multiple branches can be activated simultaneously (inclusive gateway semantics).
+           Unlike splitType="or" which only fires the FIRST matching branch. -->
+      <transition onAppStates="agree" splitType="and">
+        <to-step stepName="security-review">
+          <when>
+            <gt name="wfVars.riskLevel" value="${7}"/>
+          </when>
+        </to-step>
+        <to-step stepName="compliance-review">
+          <when>
+            <gt name="wfVars.riskLevel" value="${5}"/>
+          </when>
+        </to-step>
+        <!-- Default branch: fires when riskLevel <= 5 (no other branch matched) -->
+        <to-step stepName="final-review">
+          <when>
+            <le name="wfVars.riskLevel" value="${5}"/>
+          </when>
+        </to-step>
+      </transition>
+    </step>
+
+    <step name="security-review" displayName="安全审查">
+      <assignment>
+        <actors>
+          <actor actorModelId="security" actorType="user" actorId="test001" selectUser="true"/>
+        </actors>
+      </assignment>
+      <ref-actions>
+        <ref-action name="agree"/>
+      </ref-actions>
+      <transition onAppStates="agree" splitType="and">
+        <to-step stepName="final-review"/>
+      </transition>
+    </step>
+
+    <step name="compliance-review" displayName="合规审查">
+      <assignment>
+        <actors>
+          <actor actorModelId="compliance" actorType="user" actorId="test002" selectUser="true"/>
+        </actors>
+      </assignment>
+      <ref-actions>
+        <ref-action name="agree"/>
+      </ref-actions>
+      <transition onAppStates="agree" splitType="and">
+        <to-step stepName="final-review"/>
+      </transition>
+    </step>
+
+    <!-- Join step: waits for all preceding branches that were activated.
+         joinType="and" means it waits for ALL active upstream steps to complete. -->
+    <join name="final-review" displayName="最终审核" joinType="and"
+          waitStepNames="security-review,compliance-review">
+      <assignment>
+        <actors>
+          <actor actorModelId="reviewer" actorType="user" actorId="test003" selectUser="true"/>
+        </actors>
+      </assignment>
+      <ref-actions>
+        <ref-action name="agree"/>
+        <ref-action name="reject"/>
+      </ref-actions>
+      <transition onAppStates="agree" splitType="and">
+        <to-end/>
+      </transition>
+    </join>
+  </steps>
+</workflow>

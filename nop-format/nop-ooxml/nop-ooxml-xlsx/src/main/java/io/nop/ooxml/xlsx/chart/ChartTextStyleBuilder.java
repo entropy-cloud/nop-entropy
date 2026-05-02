@@ -5,7 +5,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.excel.chart.constants.ChartTextDirection;
 import io.nop.excel.chart.model.ChartTextStyleModel;
 import io.nop.excel.model.ExcelFont;
-import io.nop.excel.model.constants.ExcelFontUnderline;
+import io.nop.office.model.constants.OfficeFontUnderline;
 import io.nop.office.model.constants.OfficeHorizontalAlignment;
 import io.nop.office.model.constants.OfficeVerticalAlignment;
 import org.slf4j.Logger;
@@ -181,7 +181,7 @@ public class ChartTextStyleBuilder {
         rPrNode.setAttr("i", italic ? "1" : "0");
 
         // 设置下划线
-        ExcelFontUnderline underlineStyle = font.getUnderlineStyle();
+        OfficeFontUnderline underlineStyle = font.getUnderlineStyle();
         if (underlineStyle != null) {
             String underline = mapUnderlineStyleToOoxml(underlineStyle);
             rPrNode.setAttr("u", underline);
@@ -299,7 +299,7 @@ public class ChartTextStyleBuilder {
     /**
      * 映射下划线样式到OOXML
      */
-    private String mapUnderlineStyleToOoxml(ExcelFontUnderline underlineStyle) {
+    private String mapUnderlineStyleToOoxml(OfficeFontUnderline underlineStyle) {
         switch (underlineStyle) {
             case NONE:
                 return "none";

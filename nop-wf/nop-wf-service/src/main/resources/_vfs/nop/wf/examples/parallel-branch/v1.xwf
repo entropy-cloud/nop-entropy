@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:extends="/nop/wf/base/oa.xwf"
+          x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          wfName="examples/parallel-branch" wfVersion="1" displayName="并行分支流程">
+  <description>并行分支：同时进行技术审核和财务审核，两个都完成后汇总到抄送步骤</description>
+
+  <start startStepName="submit">
+    <arg name="projectName" type="String" displayName="项目名称"/>
+    <arg name="budget" type="BigDecimal" displayName="预算金额"/>
+  </start>
+
+  <end/>
+
+  <steps>
+    <step name="submit" displayName="提交申请">
+      <assignment>
+        <actors>
+          <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
+        </actors>
+      </assignment>
+      <ref-actions>
+        <ref-action name="agree"/>
+      </ref-actions>
+      <!-- splitType="and": ALL branches execute simultaneously -->
+      <transition onAppStates="agree" splitType="and">
+        <to-step stepName="tech-review"/>
+        <to-step stepName="finance-review"/>
+      </transition>
+    </step>
+
+    <step name="tech-review" displayName="技术审核">
+      <assignment>
+        <actors>
+          <actor actorModelId="tech-lead" actorType="user" actorId="test003" selectUser="true"/>
+        </actors>
+      </assignment>
+      <ref-actions>
+        <ref-action name="agree"/>
+        <ref-action name="reject"/>
+      </ref-actions>
+      <transition onAppStates="agree" splitType="and">
+        <to-step stepName="merge"/>
+      </transition>
+    </step>
+
+    <step name="finance-review" displayName="财务审核">
+      <assignment>
+        <actors>
+          <actor actorModelId="finance" actorType="user" actorId="test002" selectUser="true"/>
+        </actors>
+      </assignment>
+      <ref-actions>
+        <ref-action name="agree"/>
+        <ref-action name="reject"/>
+      </ref-actions>
+      <transition onAppStates="agree" splitType="and">
+        <to-step stepName="merge"/>
+      </transition>
+    </step>
+
+    <!-- join: waits for both tech-review AND finance-review to complete -->
+    <join name="merge" displayName="汇总" joinType="and" waitStepNames="tech-review,finance-review">
+      <assignment>
+        <actors>
+          <actor actorModelId="admin" actorType="user" actorId="test001" selectUser="true"/>
+        </actors>
+      </assignment>
+      <ref-actions>
+        <ref-action name="confirm"/>
+      </ref-actions>
+      <transition onAppStates="confirm" splitType="and">
+        <to-end/>
+      </transition>
+    </join>
+  </steps>
+</workflow>

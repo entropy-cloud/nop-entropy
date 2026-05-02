@@ -18,8 +18,8 @@ import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.color.ColorHelper;
 import io.nop.excel.model.color.PredefinedColors;
 import io.nop.excel.model.constants.ExcelFontFamily;
-import io.nop.excel.model.constants.ExcelFontUnderline;
-import io.nop.excel.model.constants.ExcelFontVerticalAlign;
+import io.nop.office.model.constants.OfficeFontUnderline;
+import io.nop.office.model.constants.OfficeFontVerticalAlign;
 import io.nop.ooxml.xlsx.model.ExcelOfficePackage;
 import io.nop.ooxml.xlsx.model.ThemesPart;
 import io.nop.office.model.OfficeBorder;
@@ -96,7 +96,7 @@ public class StylesPartParser {
             ret.setBold(true);
         }
         if (node.hasChild("u")) {
-            ret.setUnderlineStyle(ExcelFontUnderline.SINGLE);
+            ret.setUnderlineStyle(OfficeFontUnderline.SINGLE);
         }
         if (node.hasChild("strike")) {
             ret.setStrikeout(true);
@@ -120,7 +120,7 @@ public class StylesPartParser {
 
         String vertAlign = (String) node.childAttr("vertAlign", "val");
         if (vertAlign != null) {
-            ret.setVerticalAlign(ExcelFontVerticalAlign.fromText(vertAlign));
+            ret.setVerticalAlign(OfficeFontVerticalAlign.fromText(vertAlign));
         }
 
         ret.setItalic(node.hasChild("i"));

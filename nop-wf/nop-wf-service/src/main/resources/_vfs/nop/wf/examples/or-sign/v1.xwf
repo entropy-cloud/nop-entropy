@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:extends="/nop/wf/base/oa.xwf"
+          x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          wfName="examples/or-sign" wfVersion="1" displayName="或签审批流程">
+    <description>或签：多个审批人，任意一人同意即可通过</description>
+
+    <start startStepName="submit">
+        <arg name="expenseType" type="String" displayName="报销类型"/>
+        <arg name="amount" type="BigDecimal" displayName="报销金额"/>
+    </start>
+
+    <end/>
+
+    <steps>
+        <step name="submit" displayName="提交报销">
+            <assignment>
+                <actors>
+                    <actor actorModelId="starter" actorType="wf-actor:Starter" selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="or-sign-review"/>
+            </transition>
+        </step>
+
+        <!-- execGroupType="or-group": any single actor's approval is sufficient.
+             When one actor agrees, remaining actors in the group are automatically skipped. -->
+        <step name="or-sign-review" displayName="领导审批(或签)" execGroupType="or-group">
+            <assignment selection="auto">
+                <actors>
+                    <actor actorModelId="manager-a" actorType="user" actorId="test001"
+                           selectUser="true"/>
+                    <actor actorModelId="manager-b" actorType="user" actorId="test003"
+                           selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="agree"/>
+                <ref-action name="reject"/>
+            </ref-actions>
+            <transition onAppStates="agree" splitType="and">
+                <to-step stepName="cc-hr"/>
+            </transition>
+        </step>
+
+        <!-- CC step: uses confirm action from oa.xwf -->
+        <step name="cc-hr" displayName="抄送人力资源" specialType="cc">
+            <assignment>
+                <actors>
+                    <actor actorModelId="hr" actorType="user" actorId="test002" selectUser="true"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="confirm"/>
+            </ref-actions>
+            <transition onAppStates="confirm" splitType="and">
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+</workflow>
