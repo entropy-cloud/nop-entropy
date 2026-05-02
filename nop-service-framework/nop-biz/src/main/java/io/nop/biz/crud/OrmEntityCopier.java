@@ -68,7 +68,7 @@ public class OrmEntityCopier {
 
     private Map<String, String> relationChangeTypes;
     private IServiceContext context;
-    private List<DelayedRelationAction> delayedActions;
+    private List<IDelayedAction> delayedActions;
 
     private boolean updateUseId;
 
@@ -95,7 +95,7 @@ public class OrmEntityCopier {
         this.context = context;
     }
 
-    public void setDelayedActions(List<DelayedRelationAction> delayedActions) {
+    public void setDelayedActions(List<IDelayedAction> delayedActions) {
         this.delayedActions = delayedActions;
     }
 
@@ -436,7 +436,7 @@ public class OrmEntityCopier {
             return;
         }
 
-        DelayedRelationAction action = new DelayedRelationAction();
+        DelayedRelationAction action = new DelayedRelationAction(bizObjectManager, daoProvider);
         action.setPropName(relationModel.getName());
         action.setWriteMode(ObjRelationWriteMode.BIZ);
         action.setBizAction(resolveBizAction(payload, relationModel));

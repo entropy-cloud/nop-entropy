@@ -75,7 +75,6 @@ import io.nop.xlang.xdsl.ExtPropsGetter;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.ISchema;
-import io.nop.xlang.xmeta.ObjRelationWriteMode;
 import io.nop.xlang.xmeta.impl.ObjKeyModel;
 import io.nop.xlang.xmeta.impl.ObjTreeModel;
 import jakarta.annotation.Nullable;
@@ -87,12 +86,12 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -144,7 +143,6 @@ import static io.nop.biz.BizErrors.ERR_BIZ_NO_STATE_MACHINE;
 import static io.nop.biz.BizErrors.ERR_BIZ_OBJ_NO_DICT_TAG;
 import static io.nop.biz.BizErrors.ERR_BIZ_PROP_NOT_MANY_TO_MANY_REF;
 import static io.nop.biz.BizErrors.ERR_BIZ_TOO_MANY_LEFT_JOIN_PROPS_IN_QUERY;
-import static io.nop.biz.BizErrors.ERR_BIZ_UNKNOWN_REF_ENTITY_WITH_PROP;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
 import static io.nop.orm.utils.OrmQueryHelper.resolveRef;
 
@@ -871,138 +869,11 @@ public abstract class CrudBizModel<T extends IOrmEntity>
             return;
         }
 
-        List<DelayedRelationAction> actions = new ArrayList<>(entityData.getDelayedActions());
-        actions.sort((a, b) -> Integer.compare(a.getOrder(), b.getOrder()));
-        for (DelayedRelationAction action : actions) {
-            executeDelayedRelationAction(action, context);
+        List<IDelayedAction> actions = new ArrayList<>(entityData.getDelayedActions());
+        actions.sort(Comparator.comparingInt(IDelayedAction::getOrder));
+        for (IDelayedAction action : actions) {
+            action.execute(context);
         }
-    }
-
-    protected void executeDelayedRelationAction(DelayedRelationAction action, IServiceContext context) {
-        if (action.getWriteMode() != ObjRelationWriteMode.BIZ) {
-            return;
-        }
-
-        if (StringHelper.isEmpty(action.getTargetBizObjName())) {
-            throw new NopException(ERR_BIZ_UNKNOWN_REF_ENTITY_WITH_PROP)
-                    .param(ARG_BIZ_OBJ_NAME, getBizObjName())
-                    .param(ARG_PROP_NAME, action.getPropName())
-                    .param(ARG_PROP_VALUE, action.getRelationModel().getRefEntityName());
-        }
-
-        IEntityRelationModel relationModel = action.getRelationModel();
-        if (relationModel.isToOneRelation()) {
-            applyToOneDelayedRelationAction(action, context);
-        } else {
-            applyToManyDelayedRelationAction(action, context);
-        }
-    }
-
-    protected void applyToOneDelayedRelationAction(DelayedRelationAction action, IServiceContext context) {
-        if ("unlink".equals(action.getBizAction())) {
-            action.getParentEntity().orm_propValueByName(action.getPropName(), null);
-            return;
-        }
-
-        Object result = invokeDelayedRelationBizAction(action, context);
-        if (BizConstants.METHOD_DELETE.equals(action.getBizAction())) {
-            action.getParentEntity().orm_propValueByName(action.getPropName(), null);
-            return;
-        }
-
-        IOrmEntity refEntity = resolveDelayedRelationResult(action, result);
-        if (refEntity != null) {
-            action.getParentEntity().orm_propValueByName(action.getPropName(), refEntity);
-        }
-    }
-
-    protected void applyToManyDelayedRelationAction(DelayedRelationAction action, IServiceContext context) {
-        IOrmEntitySet<IOrmEntity> refSet = action.getParentEntity().orm_refEntitySet(action.getPropName());
-        refSet.orm_forceLoad();
-
-        if ("unlink".equals(action.getBizAction())) {
-            return;
-        }
-
-        Object result = invokeDelayedRelationBizAction(action, context);
-        if (BizConstants.METHOD_DELETE.equals(action.getBizAction())) {
-            removeDelayedRelationEntity(refSet, action);
-            return;
-        }
-
-        IOrmEntity refEntity = resolveDelayedRelationResult(action, result);
-        if (refEntity != null) {
-            refSet.add(refEntity);
-        }
-    }
-
-    protected Object invokeDelayedRelationBizAction(DelayedRelationAction action, IServiceContext context) {
-        IBizObject targetBizObj = bizObjectManager.getBizObject(action.getTargetBizObjName());
-        if (BizConstants.METHOD_DELETE.equals(action.getBizAction())) {
-            Object id = extractDelayedRelationId(action);
-            if (StringHelper.isEmptyObject(id)) {
-                return null;
-            }
-            Map<String, Object> req = new HashMap<>();
-            req.put(OrmConstants.PROP_ID, StringHelper.toString(id, null));
-            targetBizObj.invoke(BizConstants.METHOD_DELETE, req, null, context);
-            return null;
-        }
-
-        Map<String, Object> req = buildDelayedRelationRequest(action);
-        return targetBizObj.invoke(action.getBizAction(), req, action.getSelection(), context);
-    }
-
-    protected Map<String, Object> buildDelayedRelationRequest(DelayedRelationAction action) {
-        Object payload = action.getPayload();
-        if (payload instanceof Map) {
-            return new LinkedHashMap<>((Map<String, Object>) payload);
-        }
-
-        Map<String, Object> req = new LinkedHashMap<>();
-        if (!StringHelper.isEmptyObject(payload)) {
-            req.put(OrmConstants.PROP_ID, payload);
-        }
-        return req;
-    }
-
-    protected IOrmEntity resolveDelayedRelationResult(DelayedRelationAction action, Object result) {
-        if (result instanceof IOrmEntity) {
-            return (IOrmEntity) result;
-        }
-
-        Object id = extractDelayedRelationId(action);
-        if (StringHelper.isEmptyObject(id)) {
-            return null;
-        }
-        return (IOrmEntity) daoProvider.dao(action.getRelationModel().getRefEntityName()).loadEntityById(id);
-    }
-
-    protected Object extractDelayedRelationId(DelayedRelationAction action) {
-        Object payload = action.getPayload();
-        if (StringHelper.isEmptyObject(payload)) {
-            return null;
-        }
-
-        if (payload instanceof Map) {
-            return ((Map<String, Object>) payload).get(OrmConstants.PROP_ID);
-        }
-        return payload;
-    }
-
-    protected void removeDelayedRelationEntity(IOrmEntitySet<IOrmEntity> refSet, DelayedRelationAction action) {
-        Object id = extractDelayedRelationId(action);
-        if (StringHelper.isEmptyObject(id)) {
-            return;
-        }
-
-        List<IOrmEntity> toRemove = new ArrayList<>();
-        for (IOrmEntity entity : refSet) {
-            if (Objects.equals(entity.orm_idString(), StringHelper.toString(id, null))) {
-                toRemove.add(entity);
-            }
-        }
-        refSet.removeAll(toRemove);
     }
 
     @BizAction

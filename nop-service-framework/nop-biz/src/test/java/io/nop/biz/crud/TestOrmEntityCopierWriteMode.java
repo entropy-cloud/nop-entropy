@@ -69,7 +69,7 @@ public class TestOrmEntityCopierWriteMode {
         FakeDaoProvider daoProvider = new FakeDaoProvider();
         FakeBizObjectManager bizObjectManager = new FakeBizObjectManager();
         OrmEntityCopier copier = new OrmEntityCopier(daoProvider, bizObjectManager);
-        List<DelayedRelationAction> delayedActions = new ArrayList<>();
+        List<IDelayedAction> delayedActions = new ArrayList<>();
         copier.setDelayedActions(delayedActions);
         copier.setServiceContext(NoopServiceContext.instance());
 
@@ -88,7 +88,7 @@ public class TestOrmEntityCopierWriteMode {
                 payload, payload, parent.asOrmEntity(), relation, null, propMeta, objMeta, "ParentBiz", null);
 
         assertEquals(1, delayedActions.size());
-        DelayedRelationAction action = delayedActions.get(0);
+        DelayedRelationAction action = (DelayedRelationAction) delayedActions.get(0);
         assertEquals(ObjRelationWriteMode.BIZ, action.getWriteMode());
         assertEquals(BizConstants.METHOD_UPDATE, action.getBizAction());
         assertSame(parent.asOrmEntity(), action.getParentEntity());
@@ -122,7 +122,7 @@ public class TestOrmEntityCopierWriteMode {
         FakeDaoProvider daoProvider = new FakeDaoProvider();
         FakeBizObjectManager bizObjectManager = new FakeBizObjectManager();
         OrmEntityCopier copier = new OrmEntityCopier(daoProvider, bizObjectManager);
-        List<DelayedRelationAction> delayedActions = new ArrayList<>();
+        List<IDelayedAction> delayedActions = new ArrayList<>();
         copier.setDelayedActions(delayedActions);
         copier.setServiceContext(NoopServiceContext.instance());
 
@@ -145,8 +145,8 @@ public class TestOrmEntityCopierWriteMode {
                 payload, new HashMap<>(), parent.asOrmEntity(), relation, null, propMeta, objMeta, "ParentBiz", null);
 
         assertEquals(2, delayedActions.size());
-        assertEquals(BizConstants.METHOD_UPDATE, delayedActions.get(0).getBizAction());
-        assertEquals(BizConstants.METHOD_SAVE, delayedActions.get(1).getBizAction());
+        assertEquals(BizConstants.METHOD_UPDATE, ((DelayedRelationAction) delayedActions.get(0)).getBizAction());
+        assertEquals(BizConstants.METHOD_SAVE, ((DelayedRelationAction) delayedActions.get(1)).getBizAction());
         assertTrue(daoProvider.loadByIdCalls.isEmpty());
     }
 

@@ -8,8 +8,10 @@ import io.nop.biz.api.IBizObject;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.action.IServiceAction;
-import io.nop.fsm.execution.IStateMachine;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.api.IEntityDao;
+import io.nop.fsm.execution.IStateMachine;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
@@ -35,12 +37,13 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestCrudBizModelDelayedRelationAction {
@@ -48,13 +51,12 @@ public class TestCrudBizModelDelayedRelationAction {
     @Test
     public void testToOneUnlinkClearsParentRelation() {
         TestBizObject targetBizObject = new TestBizObject();
-        TestCrudBizModel model = newModel(targetBizObject);
         FakeOrmEntity parent = new FakeOrmEntity("parent-1");
 
-        DelayedRelationAction action = newAction(parent, relation("child", true), "child",
+        DelayedRelationAction action = newAction(targetBizObject, parent, relation("child", true), "child",
                 ObjRelationWriteMode.BIZ, "unlink", null);
 
-        model.runAction(action);
+        action.execute(null);
 
         assertNull(parent.get("child"));
         assertTrue(targetBizObject.invocations.isEmpty());
@@ -63,16 +65,15 @@ public class TestCrudBizModelDelayedRelationAction {
     @Test
     public void testToOneDeleteInvokesTargetAndClearsRelation() {
         TestBizObject targetBizObject = new TestBizObject();
-        TestCrudBizModel model = newModel(targetBizObject);
         FakeOrmEntity parent = new FakeOrmEntity("parent-1");
         FakeOrmEntity child = new FakeOrmEntity("child-1");
         targetBizObject.result = child.asOrmEntity();
         parent.put("child", child.asOrmEntity());
 
-        DelayedRelationAction action = newAction(parent, relation("child", true), "child",
+        DelayedRelationAction action = newAction(targetBizObject, parent, relation("child", true), "child",
                 ObjRelationWriteMode.BIZ, BizConstants.METHOD_DELETE, mapOf(OrmConstants.PROP_ID, "child-1"));
 
-        model.runAction(action);
+        action.execute(null);
 
         assertNull(parent.get("child"));
         assertEquals(1, targetBizObject.invocations.size());
@@ -83,17 +84,16 @@ public class TestCrudBizModelDelayedRelationAction {
     @Test
     public void testToManyUnlinkIsNoOp() {
         TestBizObject targetBizObject = new TestBizObject();
-        TestCrudBizModel model = newModel(targetBizObject);
         FakeOrmEntity parent = new FakeOrmEntity("parent-1");
         FakeOrmEntitySet set = new FakeOrmEntitySet(parent);
         FakeOrmEntity child = new FakeOrmEntity("child-1");
         set.add(child.asOrmEntity());
         parent.setRefSet("children", set);
 
-        DelayedRelationAction action = newAction(parent, relation("children", false), "children",
+        DelayedRelationAction action = newAction(targetBizObject, parent, relation("children", false), "children",
                 ObjRelationWriteMode.BIZ, "unlink", null);
 
-        model.runAction(action);
+        action.execute(null);
 
         assertEquals(1, set.size());
         assertTrue(targetBizObject.invocations.isEmpty());
@@ -102,7 +102,6 @@ public class TestCrudBizModelDelayedRelationAction {
     @Test
     public void testToManyDeleteRemovesMatchingEntity() {
         TestBizObject targetBizObject = new TestBizObject();
-        TestCrudBizModel model = newModel(targetBizObject);
         FakeOrmEntity parent = new FakeOrmEntity("parent-1");
         FakeOrmEntitySet set = new FakeOrmEntitySet(parent);
         FakeOrmEntity keep = new FakeOrmEntity("keep-1");
@@ -111,10 +110,10 @@ public class TestCrudBizModelDelayedRelationAction {
         set.add(remove.asOrmEntity());
         parent.setRefSet("children", set);
 
-        DelayedRelationAction action = newAction(parent, relation("children", false), "children",
+        DelayedRelationAction action = newAction(targetBizObject, parent, relation("children", false), "children",
                 ObjRelationWriteMode.BIZ, BizConstants.METHOD_DELETE, mapOf(OrmConstants.PROP_ID, "remove-1"));
 
-        model.runAction(action);
+        action.execute(null);
 
         assertEquals(1, set.size());
         assertTrue(set.contains(keep.asOrmEntity()));
@@ -126,28 +125,144 @@ public class TestCrudBizModelDelayedRelationAction {
     @Test
     public void testNonBizWriteModeIsIgnored() {
         TestBizObject targetBizObject = new TestBizObject();
-        TestCrudBizModel model = newModel(targetBizObject);
         FakeOrmEntity parent = new FakeOrmEntity("parent-1");
 
-        DelayedRelationAction action = newAction(parent, relation("child", true), "child",
+        DelayedRelationAction action = newAction(targetBizObject, parent, relation("child", true), "child",
                 ObjRelationWriteMode.LINK, BizConstants.METHOD_UPDATE, mapOf(OrmConstants.PROP_ID, "child-1"));
 
-        model.runAction(action);
+        action.execute(null);
 
         assertTrue(targetBizObject.invocations.isEmpty());
         assertNull(parent.get("child"));
     }
 
-    private static TestCrudBizModel newModel(TestBizObject targetBizObject) {
-        TestCrudBizModel model = new TestCrudBizModel();
-        model.setBizObjectManager(new SingleBizObjectManager(targetBizObject));
-        return model;
+    @Test
+    public void testToOneSaveInvokesTargetAndAssignsRef() {
+        TestBizObject targetBizObject = new TestBizObject();
+        FakeOrmEntity parent = new FakeOrmEntity("parent-1");
+        FakeOrmEntity child = new FakeOrmEntity("child-1");
+        targetBizObject.result = child.asOrmEntity();
+
+        DelayedRelationAction action = newAction(targetBizObject, parent, relation("child", true), "child",
+                ObjRelationWriteMode.BIZ, BizConstants.METHOD_SAVE, mapOf("name", "new-child"));
+
+        action.execute(null);
+
+        assertEquals(1, targetBizObject.invocations.size());
+        assertEquals(BizConstants.METHOD_SAVE, targetBizObject.invocations.get(0).action);
+        assertEquals("new-child", targetBizObject.invocations.get(0).request.get("name"));
+        assertSame(child.asOrmEntity(), parent.get("child"));
     }
 
-    private static DelayedRelationAction newAction(FakeOrmEntity parent, IEntityRelationModel relation,
-                                                   String propName, ObjRelationWriteMode writeMode,
-                                                   String bizAction, Object payload) {
-        DelayedRelationAction action = new DelayedRelationAction();
+    @Test
+    public void testToOneUpdateInvokesTargetAndAssignsRef() {
+        TestBizObject targetBizObject = new TestBizObject();
+        FakeOrmEntity parent = new FakeOrmEntity("parent-1");
+        FakeOrmEntity child = new FakeOrmEntity("child-1");
+        targetBizObject.result = child.asOrmEntity();
+
+        DelayedRelationAction action = newAction(targetBizObject, parent, relation("child", true), "child",
+                ObjRelationWriteMode.BIZ, BizConstants.METHOD_UPDATE, mapOf(OrmConstants.PROP_ID, "child-1"));
+
+        action.execute(null);
+
+        assertEquals(1, targetBizObject.invocations.size());
+        assertEquals(BizConstants.METHOD_UPDATE, targetBizObject.invocations.get(0).action);
+        assertSame(child.asOrmEntity(), parent.get("child"));
+    }
+
+    @Test
+    public void testToManySaveInvokesTargetAndAddsToSet() {
+        TestBizObject targetBizObject = new TestBizObject();
+        FakeOrmEntity parent = new FakeOrmEntity("parent-1");
+        FakeOrmEntitySet set = new FakeOrmEntitySet(parent);
+        parent.setRefSet("children", set);
+        FakeOrmEntity child = new FakeOrmEntity("child-1");
+        targetBizObject.result = child.asOrmEntity();
+
+        DelayedRelationAction action = newAction(targetBizObject, parent, relation("children", false), "children",
+                ObjRelationWriteMode.BIZ, BizConstants.METHOD_SAVE, mapOf("name", "new-child"));
+
+        action.execute(null);
+
+        assertEquals(1, targetBizObject.invocations.size());
+        assertEquals(BizConstants.METHOD_SAVE, targetBizObject.invocations.get(0).action);
+        assertEquals(1, set.size());
+        assertTrue(set.contains(child.asOrmEntity()));
+    }
+
+    @Test
+    public void testToManyUpdateInvokesTargetAndAddsToSet() {
+        TestBizObject targetBizObject = new TestBizObject();
+        FakeOrmEntity parent = new FakeOrmEntity("parent-1");
+        FakeOrmEntitySet set = new FakeOrmEntitySet(parent);
+        FakeOrmEntity existing = new FakeOrmEntity("existing-1");
+        set.add(existing.asOrmEntity());
+        parent.setRefSet("children", set);
+        FakeOrmEntity child = new FakeOrmEntity("child-1");
+        targetBizObject.result = child.asOrmEntity();
+
+        DelayedRelationAction action = newAction(targetBizObject, parent, relation("children", false), "children",
+                ObjRelationWriteMode.BIZ, BizConstants.METHOD_UPDATE, mapOf(OrmConstants.PROP_ID, "child-1"));
+
+        action.execute(null);
+
+        assertEquals(1, targetBizObject.invocations.size());
+        assertEquals(BizConstants.METHOD_UPDATE, targetBizObject.invocations.get(0).action);
+        assertEquals(2, set.size());
+        assertTrue(set.contains(child.asOrmEntity()));
+        assertTrue(set.contains(existing.asOrmEntity()));
+    }
+
+    @Test
+    public void testSimplePayloadIdExtracted() {
+        TestBizObject targetBizObject = new TestBizObject();
+        FakeOrmEntity parent = new FakeOrmEntity("parent-1");
+        FakeOrmEntity child = new FakeOrmEntity("child-1");
+        targetBizObject.result = child.asOrmEntity();
+
+        DelayedRelationAction action = newAction(targetBizObject, parent, relation("child", true), "child",
+                ObjRelationWriteMode.BIZ, BizConstants.METHOD_UPDATE, "child-1");
+
+        action.execute(null);
+
+        assertEquals(1, targetBizObject.invocations.size());
+        assertEquals(BizConstants.METHOD_UPDATE, targetBizObject.invocations.get(0).action);
+        assertEquals("child-1", targetBizObject.invocations.get(0).request.get(OrmConstants.PROP_ID));
+        assertSame(child.asOrmEntity(), parent.get("child"));
+    }
+
+    @Test
+    public void testToOneSaveWithNullResultLoadsById() {
+        TestBizObject targetBizObject = new TestBizObject();
+        targetBizObject.result = null;
+        FakeOrmEntity parent = new FakeOrmEntity("parent-1");
+
+        FakeDaoProvider daoProvider = new FakeDaoProvider();
+        IBizObjectManager bizObjManager = new SingleBizObjectManager(targetBizObject);
+
+        DelayedRelationAction action = new DelayedRelationAction(bizObjManager, daoProvider);
+        action.setParentEntity(parent.asOrmEntity());
+        action.setRelationModel(relation("child", true));
+        action.setPropName("child");
+        action.setWriteMode(ObjRelationWriteMode.BIZ);
+        action.setBizAction(BizConstants.METHOD_UPDATE);
+        action.setTargetBizObjName("ChildBiz");
+        action.setPayload("child-1");
+
+        action.execute(null);
+
+        assertEquals(1, targetBizObject.invocations.size());
+        assertNotNull(parent.get("child"));
+    }
+
+    private static DelayedRelationAction newAction(TestBizObject targetBizObject, FakeOrmEntity parent,
+                                                   IEntityRelationModel relation, String propName,
+                                                   ObjRelationWriteMode writeMode, String bizAction,
+                                                   Object payload) {
+        IBizObjectManager bizObjManager = new SingleBizObjectManager(targetBizObject);
+        IDaoProvider daoProvider = new FakeDaoProvider();
+        DelayedRelationAction action = new DelayedRelationAction(bizObjManager, daoProvider);
         action.setParentEntity(parent.asOrmEntity());
         action.setRelationModel(relation);
         action.setPropName(propName);
@@ -217,12 +332,6 @@ public class TestCrudBizModelDelayedRelationAction {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put(key, value);
         return map;
-    }
-
-    private static class TestCrudBizModel extends CrudBizModel<IOrmEntity> {
-        void runAction(DelayedRelationAction action) {
-            executeDelayedRelationAction(action, null);
-        }
     }
 
     private static class SingleBizObjectManager implements IBizObjectManager {
@@ -371,6 +480,48 @@ public class TestCrudBizModelDelayedRelationAction {
             this.action = action;
             this.request = request;
             this.selection = selection;
+        }
+    }
+
+    private static class FakeDaoProvider implements IDaoProvider {
+        private final List<String> loadByIdCalls = new ArrayList<>();
+
+        @Override
+        public Set<String> getEntityNames() {
+            return Collections.singleton("ChildEntity");
+        }
+
+        @Override
+        public String normalizeEntityName(String entityName) {
+            return entityName;
+        }
+
+        @Override
+        public boolean hasDao(String entityName) {
+            return true;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public <T extends io.nop.dao.api.IDaoEntity> IEntityDao<T> dao(String entityName) {
+            return (IEntityDao<T>) Proxy.newProxyInstance(
+                    TestCrudBizModelDelayedRelationAction.class.getClassLoader(),
+                    new Class[]{IEntityDao.class},
+                    (proxy, method, args) -> {
+                        switch (method.getName()) {
+                            case "loadEntityById":
+                            case "getEntityById":
+                                loadByIdCalls.add(entityName + "#" + args[0]);
+                                return new FakeOrmEntity(String.valueOf(args[0])).asOrmEntity();
+                            default:
+                                return defaultValue(method.getReturnType());
+                        }
+                    });
+        }
+
+        @Override
+        public <T extends io.nop.dao.api.IDaoEntity> IEntityDao<T> daoForTable(String tableName) {
+            return dao(tableName);
         }
     }
 

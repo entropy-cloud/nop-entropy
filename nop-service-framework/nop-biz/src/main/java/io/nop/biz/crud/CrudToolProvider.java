@@ -27,7 +27,7 @@ public class CrudToolProvider {
     }
 
     public OrmEntityCopier newOrmEntityCopier(IObjMeta objMeta, IServiceContext context,
-                                              List<DelayedRelationAction> delayedActions) {
+                                               List<IDelayedAction> delayedActions) {
         OrmEntityCopier copier = new OrmEntityCopier(daoProvider, bizObjectManager);
         copier.setServiceContext(context);
         copier.setDelayedActions(delayedActions);
