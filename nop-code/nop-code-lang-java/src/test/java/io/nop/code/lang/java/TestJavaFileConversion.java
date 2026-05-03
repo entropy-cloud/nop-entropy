@@ -1,6 +1,7 @@
 package io.nop.code.lang.java;
 
 import io.nop.code.core.model.*;
+import io.nop.code.lang.java.analyzer.JavaFileAnalyzer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -11,11 +12,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestJavaFileConversion {
 
-    private JavaCodeFileAnalyzer analyzer;
+    private JavaFileAnalyzer analyzer;
 
     @BeforeEach
     void setUp() {
-        analyzer = new JavaCodeFileAnalyzer();
+        analyzer = new JavaFileAnalyzer();
     }
 
     @Test

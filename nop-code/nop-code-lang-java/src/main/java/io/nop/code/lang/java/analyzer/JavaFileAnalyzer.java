@@ -1,4 +1,4 @@
-package io.nop.javaparser.analyzer;
+package io.nop.code.lang.java.analyzer;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseResult;
@@ -16,13 +16,11 @@ import com.github.javaparser.ast.body.AnnotationMemberDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.JavadocComment;
 import com.github.javaparser.ast.expr.AnnotationExpr;
-import com.github.javaparser.ast.expr.MarkerAnnotationExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NormalAnnotationExpr;
 import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.nodeTypes.NodeWithAnnotations;
-import com.github.javaparser.ast.nodeTypes.NodeWithName;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
@@ -30,100 +28,85 @@ import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.commons.util.StringHelper;
+import io.nop.code.core.analyzer.ICodeFileAnalyzer;
+import io.nop.code.core.model.CodeAccessModifier;
+import io.nop.code.core.model.CodeAnnotationUsage;
+import io.nop.code.core.model.CodeFileAnalysisResult;
+import io.nop.code.core.model.CodeInheritance;
+import io.nop.code.core.model.CodeLanguage;
+import io.nop.code.core.model.CodeMethodCall;
+import io.nop.code.core.model.CodeRelationType;
+import io.nop.code.core.model.CodeSymbol;
+import io.nop.code.core.model.CodeSymbolKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
+
 /**
  * Java文件分析器
  * 使用JavaParser解析Java源代码，提取符号信息、引用关系等
  * 支持符号解析，可获取方法调用的全限定名
+ * 直接输出Code*模型，无需转换层
  */
-public class JavaFileAnalyzer {
-    
+public class JavaFileAnalyzer implements ICodeFileAnalyzer {
+
     private static final Logger LOG = LoggerFactory.getLogger(JavaFileAnalyzer.class);
 
-    /**
-     * JavaParser实例，配置了SymbolSolver用于符号解析
-     */
     private final JavaParser javaParser;
-    
-    /**
-     * TypeSolver组合器
-     */
+
     private final CombinedTypeSolver typeSolver;
 
-    /**
-     * 方法调用过滤器，默认使用默认过滤器（忽略java.lang/java.util的调用）
-     */
     private MethodCallFilter methodCallFilter = MethodCallFilter.createDefault();
-    
-    /**
-     * 是否启用符号解析
-     */
+
     private boolean enableSymbolResolution = true;
 
-    /**
-     * 默认构造函数，使用ReflectionTypeSolver解析JDK类型
-     */
     public JavaFileAnalyzer() {
         this.typeSolver = new CombinedTypeSolver();
         this.typeSolver.add(new ReflectionTypeSolver(true));
-        
+
         JavaSymbolSolver symbolSolver = new JavaSymbolSolver(typeSolver);
         ParserConfiguration config = new ParserConfiguration()
                 .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
                 .setSymbolResolver(symbolSolver);
-        
+
         this.javaParser = new JavaParser(config);
     }
-    
-    /**
-     * 设置方法调用过滤器
-     *
-     * @param filter 过滤器，设为null表示不过滤
-     */
+
     public void setMethodCallFilter(MethodCallFilter filter) {
         this.methodCallFilter = filter;
     }
 
-    /**
-     * 获取当前的方法调用过滤器
-     */
     public MethodCallFilter getMethodCallFilter() {
         return methodCallFilter;
     }
-    
-    /**
-     * 设置是否启用符号解析
-     * @param enable true启用，false禁用
-     */
+
     public void setEnableSymbolResolution(boolean enable) {
         this.enableSymbolResolution = enable;
     }
-    
-    /**
-     * 获取TypeSolver，可用于添加自定义类型解析器
-     */
+
     public CombinedTypeSolver getTypeSolver() {
         return typeSolver;
     }
 
-    /**
-     * 解析Java源代码文件
-     *
-     * @param filePath   文件路径（相对路径）
-     * @param sourceCode 源代码内容
-     * @return JavaFileAnalysisResult 包含所有解析出的信息
-     */
-    public JavaFileAnalysisResult analyze(String filePath, String sourceCode) {
+    @Override
+    public CodeLanguage getLanguage() {
+        return CodeLanguage.JAVA;
+    }
+
+    @Override
+    public CodeFileAnalysisResult analyze(String filePath, String sourceCode) {
         return analyze(SourceLocation.fromPath(filePath), sourceCode);
+    }
+
+    @Override
+    public List<String> getFileExtensions() {
+        return Collections.singletonList(".java");
     }
 
     /**
@@ -131,10 +114,10 @@ public class JavaFileAnalyzer {
      *
      * @param loc        源码位置
      * @param sourceCode 源代码内容
-     * @return JavaFileAnalysisResult 包含所有解析出的信息
+     * @return CodeFileAnalysisResult 包含所有解析出的信息
      */
-    public JavaFileAnalysisResult analyze(SourceLocation loc, String sourceCode) {
-        if (StringHelper.isBlank(sourceCode)) {
+    public CodeFileAnalysisResult analyze(SourceLocation loc, String sourceCode) {
+        if (sourceCode == null || sourceCode.isBlank()) {
             return null;
         }
 
@@ -144,11 +127,11 @@ public class JavaFileAnalyzer {
         }
 
         CompilationUnit cu = parseResult.getResult().get();
-        JavaFileAnalysisResult result = new JavaFileAnalysisResult();
+        CodeFileAnalysisResult result = new CodeFileAnalysisResult();
         result.setFilePath(loc.getPath());
         result.setSourceCode(sourceCode);
         result.setLineCount(countLines(sourceCode));
-        result.setLanguage("JAVA");
+        result.setLanguage(CodeLanguage.JAVA);
 
         // 提取包名
         cu.getPackageDeclaration().ifPresent(pkg ->
@@ -166,66 +149,57 @@ public class JavaFileAnalyzer {
         return result;
     }
 
-    /**
-     * 统计源代码行数
-     */
     private int countLines(String source) {
-        if (StringHelper.isBlank(source)) {
+        if (source == null || source.isBlank()) {
             return 0;
         }
         return source.split("\r?\n").length;
     }
 
     private class IndexVisitor extends VoidVisitorAdapter<Void> {
-        private final JavaFileAnalysisResult result;
+        private final CodeFileAnalysisResult result;
         private final MethodCallFilter methodCallFilter;
         private final boolean enableSymbolResolution;
-        private final Map<String, SymbolInfo> symbolMap = new HashMap<>();
-        // 当前所在的类型声明
-        private SymbolInfo currentTypeSymbol;
-        // 当前所在的方法声明
-        private SymbolInfo currentMethodSymbol;
+        private final Map<String, CodeSymbol> symbolMap = new HashMap<>();
+        private CodeSymbol currentTypeSymbol;
+        private CodeSymbol currentMethodSymbol;
 
-        public IndexVisitor(JavaFileAnalysisResult result, MethodCallFilter methodCallFilter, boolean enableSymbolResolution) {
+        public IndexVisitor(CodeFileAnalysisResult result, MethodCallFilter methodCallFilter, boolean enableSymbolResolution) {
             this.result = result;
             this.methodCallFilter = methodCallFilter;
             this.enableSymbolResolution = enableSymbolResolution;
         }
-        @Override
-        public void visit(CompilationUnit cu, Void arg) {
-            super.visit(cu, arg);
-        }
 
         @Override
         public void visit(ClassOrInterfaceDeclaration decl, Void arg) {
-            SymbolInfo symbol = createSymbolFromTypeDecl(decl, decl.isInterface() ? SymbolKind.INTERFACE : SymbolKind.CLASS);
-            
+            CodeSymbol symbol = createSymbolFromTypeDecl(decl, decl.isInterface() ? CodeSymbolKind.INTERFACE : CodeSymbolKind.CLASS);
+
             // 处理继承
             if (decl.getExtendedTypes().isNonEmpty()) {
                 for (ClassOrInterfaceType superType : decl.getExtendedTypes()) {
-                    InheritanceInfo inheritance = new InheritanceInfo();
+                    CodeInheritance inheritance = new CodeInheritance();
                     inheritance.setId(UUID.randomUUID().toString());
                     inheritance.setSubTypeId(symbol.getId());
                     inheritance.setSuperTypeQualifiedName(superType.getNameAsString());
-            inheritance.setRelationType(RelationType.EXTENDS);
-                    result.addInheritance(inheritance);
+                    inheritance.setRelationType(CodeRelationType.EXTENDS);
+                    result.getInheritances().add(inheritance);
                 }
             }
-            
+
             // 处理实现
             for (ClassOrInterfaceType implType : decl.getImplementedTypes()) {
-                InheritanceInfo inheritance = new InheritanceInfo();
+                CodeInheritance inheritance = new CodeInheritance();
                 inheritance.setId(UUID.randomUUID().toString());
                 inheritance.setSubTypeId(symbol.getId());
                 inheritance.setSuperTypeQualifiedName(implType.getNameAsString());
-            inheritance.setRelationType(RelationType.IMPLEMENTS);
-                    result.addInheritance(inheritance);
+                inheritance.setRelationType(CodeRelationType.IMPLEMENTS);
+                result.getInheritances().add(inheritance);
             }
 
             // 处理注解
             processAnnotations(decl, symbol);
 
-            SymbolInfo parentType = currentTypeSymbol;
+            CodeSymbol parentType = currentTypeSymbol;
             currentTypeSymbol = symbol;
             super.visit(decl, arg);
             currentTypeSymbol = parentType;
@@ -233,22 +207,22 @@ public class JavaFileAnalyzer {
 
         @Override
         public void visit(EnumDeclaration decl, Void arg) {
-            SymbolInfo symbol = createSymbolFromTypeDecl(decl, SymbolKind.ENUM);
+            CodeSymbol symbol = createSymbolFromTypeDecl(decl, CodeSymbolKind.ENUM);
 
             // 处理实现的接口
             for (ClassOrInterfaceType implType : decl.getImplementedTypes()) {
-                InheritanceInfo inheritance = new InheritanceInfo();
+                CodeInheritance inheritance = new CodeInheritance();
                 inheritance.setId(UUID.randomUUID().toString());
                 inheritance.setSubTypeId(symbol.getId());
                 inheritance.setSuperTypeQualifiedName(implType.getNameAsString());
-            inheritance.setRelationType(RelationType.IMPLEMENTS);
-                    result.addInheritance(inheritance);
+                inheritance.setRelationType(CodeRelationType.IMPLEMENTS);
+                result.getInheritances().add(inheritance);
             }
 
             // 处理注解
             processAnnotations(decl, symbol);
 
-            SymbolInfo parentType = currentTypeSymbol;
+            CodeSymbol parentType = currentTypeSymbol;
             currentTypeSymbol = symbol;
             super.visit(decl, arg);
             currentTypeSymbol = parentType;
@@ -256,12 +230,12 @@ public class JavaFileAnalyzer {
 
         @Override
         public void visit(AnnotationDeclaration decl, Void arg) {
-            SymbolInfo symbol = createSymbolFromTypeDecl(decl, SymbolKind.ANNOTATION_TYPE);
+            CodeSymbol symbol = createSymbolFromTypeDecl(decl, CodeSymbolKind.ANNOTATION_TYPE);
 
             // 处理注解
             processAnnotations(decl, symbol);
 
-            SymbolInfo parentType = currentTypeSymbol;
+            CodeSymbol parentType = currentTypeSymbol;
             currentTypeSymbol = symbol;
             super.visit(decl, arg);
             currentTypeSymbol = parentType;
@@ -269,9 +243,9 @@ public class JavaFileAnalyzer {
 
         @Override
         public void visit(MethodDeclaration decl, Void arg) {
-            SymbolInfo symbol = new SymbolInfo();
+            CodeSymbol symbol = new CodeSymbol();
             symbol.setId(UUID.randomUUID().toString());
-            symbol.setKind(SymbolKind.METHOD);
+            symbol.setKind(CodeSymbolKind.METHOD);
             symbol.setName(decl.getNameAsString());
             symbol.setAccessModifier(getAccessModifier(decl.getModifiers()));
             symbol.setDeprecated(hasDeprecatedAnnotation(decl));
@@ -289,8 +263,7 @@ public class JavaFileAnalyzer {
             symbol.setSignature(buildMethodSignature(decl));
             symbol.setReturnType(decl.getType().asString());
             symbol.setStaticFlag(decl.isStatic());
-            symbol.setSynchronizedFlag(decl.isSynchronized());
-            symbol.setNativeFlag(decl.isNative());
+            buildExtData(decl.isSynchronized(), decl.isNative(), false, false, symbol);
             symbol.setAbstractFlag(decl.isAbstract());
             symbol.setFinalFlag(decl.isFinal());
 
@@ -305,10 +278,10 @@ public class JavaFileAnalyzer {
             // 处理注解
             processAnnotations(decl, symbol);
 
-            result.addSymbol(symbol);
+            result.getSymbols().add(symbol);
             symbolMap.put(symbol.getQualifiedName(), symbol);
 
-            SymbolInfo parentMethod = currentMethodSymbol;
+            CodeSymbol parentMethod = currentMethodSymbol;
             currentMethodSymbol = symbol;
             super.visit(decl, arg);
             currentMethodSymbol = parentMethod;
@@ -316,9 +289,9 @@ public class JavaFileAnalyzer {
 
         @Override
         public void visit(ConstructorDeclaration decl, Void arg) {
-            SymbolInfo symbol = new SymbolInfo();
+            CodeSymbol symbol = new CodeSymbol();
             symbol.setId(UUID.randomUUID().toString());
-            symbol.setKind(SymbolKind.CONSTRUCTOR);
+            symbol.setKind(CodeSymbolKind.CONSTRUCTOR);
             symbol.setName(decl.getNameAsString());
             symbol.setAccessModifier(getAccessModifier(decl.getModifiers()));
             symbol.setDeprecated(hasDeprecatedAnnotation(decl));
@@ -347,10 +320,10 @@ public class JavaFileAnalyzer {
             // 处理注解
             processAnnotations(decl, symbol);
 
-            result.addSymbol(symbol);
+            result.getSymbols().add(symbol);
             symbolMap.put(symbol.getQualifiedName(), symbol);
 
-            SymbolInfo parentMethod = currentMethodSymbol;
+            CodeSymbol parentMethod = currentMethodSymbol;
             currentMethodSymbol = symbol;
             super.visit(decl, arg);
             currentMethodSymbol = parentMethod;
@@ -359,9 +332,9 @@ public class JavaFileAnalyzer {
         @Override
         public void visit(FieldDeclaration decl, Void arg) {
             for (VariableDeclarator var : decl.getVariables()) {
-                SymbolInfo symbol = new SymbolInfo();
+                CodeSymbol symbol = new CodeSymbol();
                 symbol.setId(UUID.randomUUID().toString());
-                symbol.setKind(SymbolKind.FIELD);
+                symbol.setKind(CodeSymbolKind.FIELD);
                 symbol.setName(var.getNameAsString());
                 symbol.setAccessModifier(getAccessModifier(decl.getModifiers()));
                 symbol.setDeprecated(hasDeprecatedAnnotation(decl));
@@ -379,8 +352,7 @@ public class JavaFileAnalyzer {
                 symbol.setFieldType(decl.getElementType().asString());
                 symbol.setStaticFlag(decl.isStatic());
                 symbol.setFinalFlag(decl.isFinal());
-                symbol.setVolatileFlag(decl.isVolatile());
-                symbol.setTransientFlag(decl.isTransient());
+                buildExtData(false, false, decl.isVolatile(), decl.isTransient(), symbol);
 
                 // 设置所属类型
                 if (currentTypeSymbol != null) {
@@ -393,7 +365,7 @@ public class JavaFileAnalyzer {
                 // 处理注解
                 processAnnotations(decl, symbol);
 
-                result.addSymbol(symbol);
+                result.getSymbols().add(symbol);
                 symbolMap.put(symbol.getQualifiedName(), symbol);
             }
             super.visit(decl, arg);
@@ -401,11 +373,11 @@ public class JavaFileAnalyzer {
 
         @Override
         public void visit(EnumConstantDeclaration decl, Void arg) {
-            SymbolInfo symbol = new SymbolInfo();
+            CodeSymbol symbol = new CodeSymbol();
             symbol.setId(UUID.randomUUID().toString());
-            symbol.setKind(SymbolKind.ENUM_CONSTANT);
+            symbol.setKind(CodeSymbolKind.CONSTANT);
             symbol.setName(decl.getNameAsString());
-            symbol.setAccessModifier(AccessModifier.PUBLIC);
+            symbol.setAccessModifier(CodeAccessModifier.PUBLIC);
             symbol.setDeprecated(hasDeprecatedAnnotation(decl));
             symbol.setDocumentation(getJavadoc(decl.getComment()));
 
@@ -428,7 +400,7 @@ public class JavaFileAnalyzer {
             // 处理注解
             processAnnotations(decl, symbol);
 
-            result.addSymbol(symbol);
+            result.getSymbols().add(symbol);
             symbolMap.put(symbol.getQualifiedName(), symbol);
 
             super.visit(decl, arg);
@@ -436,11 +408,11 @@ public class JavaFileAnalyzer {
 
         @Override
         public void visit(AnnotationMemberDeclaration decl, Void arg) {
-            SymbolInfo symbol = new SymbolInfo();
+            CodeSymbol symbol = new CodeSymbol();
             symbol.setId(UUID.randomUUID().toString());
-            symbol.setKind(SymbolKind.FIELD); // 注解成员作为字段处理
+            symbol.setKind(CodeSymbolKind.FIELD); // 注解成员作为字段处理
             symbol.setName(decl.getNameAsString());
-            symbol.setAccessModifier(AccessModifier.PUBLIC);
+            symbol.setAccessModifier(CodeAccessModifier.PUBLIC);
             symbol.setDeprecated(hasDeprecatedAnnotation(decl));
             symbol.setDocumentation(getJavadoc(decl.getComment()));
 
@@ -462,7 +434,7 @@ public class JavaFileAnalyzer {
                 symbol.setQualifiedName(decl.getNameAsString());
             }
 
-            result.addSymbol(symbol);
+            result.getSymbols().add(symbol);
             symbolMap.put(symbol.getQualifiedName(), symbol);
 
             super.visit(decl, arg);
@@ -471,7 +443,7 @@ public class JavaFileAnalyzer {
         @Override
         public void visit(MethodCallExpr expr, Void arg) {
             // 提取方法调用信息
-            MethodCall call = new MethodCall();
+            CodeMethodCall call = new CodeMethodCall();
             call.setId(UUID.randomUUID().toString());
             call.setMethodName(expr.getNameAsString());
 
@@ -495,35 +467,30 @@ public class JavaFileAnalyzer {
             if (enableSymbolResolution) {
                 try {
                     ResolvedMethodDeclaration resolved = expr.resolve();
-                    
-                    // 获取被调用方法的全限定名，例如: "com.example.service.UserService.save"
+
+                    // 获取被调用方法的全限定名
                     String qualifiedName = resolved.getQualifiedName();
                     call.setCalleeQualifiedName(qualifiedName);
-                    
-                    // 获取精确的参数类型（不是表达式字符串）
+
+                    // 获取精确的参数类型
                     if (resolved.getNumberOfParams() > 0) {
                         String paramTypes = java.util.stream.IntStream.range(0, resolved.getNumberOfParams())
                                 .mapToObj(i -> resolved.getParam(i).getType().describe())
                                 .collect(java.util.stream.Collectors.joining(", "));
                         call.setArgumentTypes(paramTypes);
                     }
-                    
+
                     // 获取返回类型
                     call.setCallType(resolved.getReturnType().describe());
-                    
+
                 } catch (Exception e) {
-                    // resolve() 可能失败的原因：
-                    // 1. 缺少类型依赖（第三方库未注册）
-                    // 2. 动态类型（反射调用）
-                    // 3. 未注册的项目内类型
-                    // 降级处理：保持原有逻辑，通过 context + methodName 推断
                     if (LOG.isDebugEnabled()) {
-                        LOG.debug("Failed to resolve method call: {} at {} - {}", 
-                                expr.getNameAsString(), 
+                        LOG.debug("Failed to resolve method call: {} at {} - {}",
+                                expr.getNameAsString(),
                                 expr.getRange().map(r -> r.begin.line + ":" + r.begin.column).orElse("unknown"),
                                 e.getMessage());
                     }
-                    
+
                     // 降级处理：提取参数表达式作为参数类型
                     if (!expr.getArguments().isEmpty()) {
                         String args = expr.getArguments().stream()
@@ -534,7 +501,7 @@ public class JavaFileAnalyzer {
                     }
                 }
             } else {
-                // 未启用符号解析，使用原有逻辑
+                // 未启用符号解析
                 if (!expr.getArguments().isEmpty()) {
                     String args = expr.getArguments().stream()
                             .map(a -> a.toString())
@@ -546,7 +513,7 @@ public class JavaFileAnalyzer {
 
             // 应用过滤器，只有通过过滤的调用才记录
             if (methodCallFilter == null || methodCallFilter.test(call)) {
-                result.addCall(call);
+                result.getCalls().add(call);
             }
 
             super.visit(expr, arg);
@@ -555,8 +522,8 @@ public class JavaFileAnalyzer {
         /**
          * 从类型声明创建符号信息
          */
-        private SymbolInfo createSymbolFromTypeDecl(TypeDeclaration<?> decl, SymbolKind kind) {
-            SymbolInfo symbol = new SymbolInfo();
+        private CodeSymbol createSymbolFromTypeDecl(TypeDeclaration<?> decl, CodeSymbolKind kind) {
+            CodeSymbol symbol = new CodeSymbol();
             symbol.setId(UUID.randomUUID().toString());
             symbol.setKind(kind);
             symbol.setName(decl.getNameAsString());
@@ -581,7 +548,7 @@ public class JavaFileAnalyzer {
                 ClassOrInterfaceDeclaration cid = (ClassOrInterfaceDeclaration) decl;
                 symbol.setAbstractFlag(cid.isAbstract());
                 symbol.setFinalFlag(cid.isFinal());
-                
+
                 // 父类（仅对类）
                 if (!cid.isInterface() && cid.getExtendedTypes().isNonEmpty()) {
                     symbol.setSuperClassName(cid.getExtendedTypes().get(0).getNameAsString());
@@ -593,7 +560,7 @@ public class JavaFileAnalyzer {
                 symbol.setParentId(currentTypeSymbol.getId());
             }
 
-            result.addSymbol(symbol);
+            result.getSymbols().add(symbol);
             symbolMap.put(qualifiedName, symbol);
 
             return symbol;
@@ -602,9 +569,9 @@ public class JavaFileAnalyzer {
         /**
          * 处理注解
          */
-        private void processAnnotations(NodeWithAnnotations<?> node, SymbolInfo annotatedSymbol) {
+        private void processAnnotations(NodeWithAnnotations<?> node, CodeSymbol annotatedSymbol) {
             for (AnnotationExpr annotation : node.getAnnotations()) {
-                AnnotationUsage usage = new AnnotationUsage();
+                CodeAnnotationUsage usage = new CodeAnnotationUsage();
                 usage.setId(UUID.randomUUID().toString());
                 usage.setAnnotationTypeQualifiedName(annotation.getNameAsString());
                 usage.setAnnotatedSymbolId(annotatedSymbol.getId());
@@ -625,27 +592,27 @@ public class JavaFileAnalyzer {
                     usage.setAttributes(toJson(Map.of("value", smae.getMemberValue().toString())));
                 }
 
-                result.addAnnotationUsage(usage);
+                result.getAnnotationUsages().add(usage);
             }
         }
 
         /**
          * 获取访问修饰符
          */
-        private AccessModifier getAccessModifier(List<com.github.javaparser.ast.Modifier> modifiers) {
+        private CodeAccessModifier getAccessModifier(List<com.github.javaparser.ast.Modifier> modifiers) {
             for (com.github.javaparser.ast.Modifier mod : modifiers) {
                 switch (mod.getKeyword()) {
                     case PUBLIC:
-                        return AccessModifier.PUBLIC;
+                        return CodeAccessModifier.PUBLIC;
                     case PROTECTED:
-                        return AccessModifier.PROTECTED;
+                        return CodeAccessModifier.PROTECTED;
                     case PRIVATE:
-                        return AccessModifier.PRIVATE;
+                        return CodeAccessModifier.PRIVATE;
                     default:
                         break;
                 }
             }
-            return AccessModifier.PACKAGE_PRIVATE;
+            return CodeAccessModifier.PACKAGE_PRIVATE;
         }
 
         /**
@@ -653,7 +620,7 @@ public class JavaFileAnalyzer {
          */
         private boolean hasDeprecatedAnnotation(NodeWithAnnotations<?> node) {
             return node.getAnnotations().stream()
-                    .anyMatch(a -> a.getNameAsString().equals("Deprecated") 
+                    .anyMatch(a -> a.getNameAsString().equals("Deprecated")
                             || a.getNameAsString().equals("java.lang.Deprecated"));
         }
 
@@ -700,6 +667,38 @@ public class JavaFileAnalyzer {
             }
             sb.append(")");
             return sb.toString();
+        }
+
+        /**
+         * 将Java特定标志存储到extData
+         */
+        private void buildExtData(boolean synchronizedFlag, boolean nativeFlag, boolean volatileFlag, boolean transientFlag, CodeSymbol symbol) {
+            if (synchronizedFlag || nativeFlag || volatileFlag || transientFlag) {
+                StringBuilder json = new StringBuilder("{");
+                boolean first = true;
+                if (synchronizedFlag) {
+                    if (!first) json.append(",");
+                    json.append("\"synchronized\":true");
+                    first = false;
+                }
+                if (nativeFlag) {
+                    if (!first) json.append(",");
+                    json.append("\"native\":true");
+                    first = false;
+                }
+                if (volatileFlag) {
+                    if (!first) json.append(",");
+                    json.append("\"volatile\":true");
+                    first = false;
+                }
+                if (transientFlag) {
+                    if (!first) json.append(",");
+                    json.append("\"transient\":true");
+                    first = false;
+                }
+                json.append("}");
+                symbol.setExtData(json.toString());
+            }
         }
 
         /**

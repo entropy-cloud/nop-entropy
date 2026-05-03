@@ -1,6 +1,7 @@
 package io.nop.code.lang.java;
 
 import io.nop.code.core.model.CodeLanguage;
+import io.nop.code.lang.java.analyzer.JavaFileAnalyzer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -45,6 +46,6 @@ class TestJavaLanguageAdapter {
     @Test
     void testGetFileAnalyzer() {
         assertNotNull(adapter.getFileAnalyzer());
-        assertInstanceOf(JavaCodeFileAnalyzer.class, adapter.getFileAnalyzer());
+        assertInstanceOf(JavaFileAnalyzer.class, adapter.getFileAnalyzer());
     }
 }
