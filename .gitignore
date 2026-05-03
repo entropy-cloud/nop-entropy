@@ -104,3 +104,7 @@ dependency-reduced-pom.xml
 .sisyphus/
 /nop-task.md
 /nul
+
+# Graphify tool output
+graphify-out/
+.graphifyignore
