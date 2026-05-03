@@ -2720,6 +2720,13 @@
         ]
       },
       {
+        "name": "executeDelayedRelationActions",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "findLogicalDeleted",
         "parameterTypes": [
           "java.util.Map",

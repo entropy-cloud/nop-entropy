@@ -42,16 +42,14 @@
         </dependency>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-web-amis-editor</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-web-site</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-jdbc-mysql</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-jdbc-h2</artifactId>

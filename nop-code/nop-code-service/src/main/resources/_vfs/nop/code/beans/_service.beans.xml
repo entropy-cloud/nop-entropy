@@ -5,9 +5,6 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="io.nop.code.service.api.ICodeIndexService" ioc:default="true"
-          class="io.nop.code.service.impl.CodeIndexService"/>
-
     <bean id="io.nop.code.service.entity.NopCodeIndexBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopCodeIndex" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.code.biz.INopCodeIndexBiz"
@@ -58,8 +55,4 @@
           primary="true">
         <property name="bizObjName" value="NopCodeAnnotationUsage"/>
     </bean>
-
-    <bean id="NopCodeTypeHierarchyBizModel" class="io.nop.code.service.entity.NopCodeTypeHierarchyBizModel"/>
-    <bean id="NopCodeCallHierarchyBizModel" class="io.nop.code.service.entity.NopCodeCallHierarchyBizModel"/>
-    <bean id="NopCodeTypeBizModel" class="io.nop.code.service.entity.NopCodeTypeBizModel"/>
 </beans>

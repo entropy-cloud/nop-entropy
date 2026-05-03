@@ -28,5 +28,6 @@ public class NopCodeApplication {
     public static void main(String... args) {
         globalArgs = args;
         Quarkus.run(args);
+        System.out.println("started");
     }
 }
