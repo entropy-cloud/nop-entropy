@@ -1,5 +1,10 @@
 package io.nop.javaparser.analyzer;
 
+import io.nop.code.core.analyzer.CommunityDetector;
+import io.nop.code.core.graph.CallGraph;
+import io.nop.code.core.graph.SymbolTable;
+import io.nop.code.core.model.CodeSymbol;
+import io.nop.code.core.model.CodeSymbolKind;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
@@ -15,8 +20,8 @@ class CommunityDetectorTest {
     @Test
     @DisplayName("空调用图返回空结果")
     void testEmptyCallGraph() {
-        Map<String, List<String>> callGraph = new HashMap<>();
-        Map<String, SymbolInfo> symbolTable = new HashMap<>();
+        CallGraph callGraph = new CallGraph();
+        SymbolTable symbolTable = new SymbolTable();
         
         CommunityDetector.CommunityDetectionResult result = 
                 CommunityDetector.detectCommunities(callGraph, symbolTable);
@@ -30,15 +35,15 @@ class CommunityDetectorTest {
     @Test
     @DisplayName("单个孤立节点返回空社区")
     void testSingleIsolatedNode() {
-        Map<String, List<String>> callGraph = new HashMap<>();
-        callGraph.put("com.example.Service", Collections.emptyList());
-        
-        Map<String, SymbolInfo> symbolTable = new HashMap<>();
-        SymbolInfo symbol = new SymbolInfo();
+        // CallGraph only tracks nodes via edges; isolated nodes produce 0 totalSymbols
+        CallGraph callGraph = new CallGraph();
+        SymbolTable symbolTable = new SymbolTable();
+        CodeSymbol symbol = new CodeSymbol();
         symbol.setId("com.example.Service");
         symbol.setQualifiedName("com.example.Service.method");
         symbol.setName("method");
-        symbolTable.put("com.example.Service", symbol);
+        symbol.setKind(CodeSymbolKind.METHOD);
+        symbolTable.add(symbol);
         
         CommunityDetector.CommunityDetectionResult result = 
                 CommunityDetector.detectCommunities(callGraph, symbolTable);
@@ -51,12 +56,11 @@ class CommunityDetectorTest {
     @Test
     @DisplayName("简单链式调用形成社区")
     void testSimpleChain() {
-        Map<String, List<String>> callGraph = new HashMap<>();
-        callGraph.put("A", List.of("B"));
-        callGraph.put("B", List.of("C"));
-        callGraph.put("C", Collections.emptyList());
+        CallGraph callGraph = new CallGraph();
+        callGraph.addEdge("A", "B");
+        callGraph.addEdge("B", "C");
         
-        Map<String, SymbolInfo> symbolTable = createSymbolTable("A", "B", "C");
+        SymbolTable symbolTable = createSymbolTable("A", "B", "C");
         
         CommunityDetector.CommunityDetectionResult result = 
                 CommunityDetector.detectCommunities(callGraph, symbolTable);
@@ -70,12 +74,12 @@ class CommunityDetectorTest {
     @Test
     @DisplayName("环形调用形成社区")
     void testCyclicCalls() {
-        Map<String, List<String>> callGraph = new HashMap<>();
-        callGraph.put("A", List.of("B"));
-        callGraph.put("B", List.of("C"));
-        callGraph.put("C", List.of("A"));
+        CallGraph callGraph = new CallGraph();
+        callGraph.addEdge("A", "B");
+        callGraph.addEdge("B", "C");
+        callGraph.addEdge("C", "A");
         
-        Map<String, SymbolInfo> symbolTable = createSymbolTable("A", "B", "C");
+        SymbolTable symbolTable = createSymbolTable("A", "B", "C");
         
         CommunityDetector.CommunityDetectionResult result = 
                 CommunityDetector.detectCommunities(callGraph, symbolTable);
@@ -89,17 +93,15 @@ class CommunityDetectorTest {
     @Test
     @DisplayName("两个独立社区")
     void testTwoIndependentCommunities() {
-        Map<String, List<String>> callGraph = new HashMap<>();
+        CallGraph callGraph = new CallGraph();
         // 社区 1
-        callGraph.put("A1", List.of("A2"));
-        callGraph.put("A2", List.of("A3"));
-        callGraph.put("A3", Collections.emptyList());
+        callGraph.addEdge("A1", "A2");
+        callGraph.addEdge("A2", "A3");
         // 社区 2
-        callGraph.put("B1", List.of("B2"));
-        callGraph.put("B2", List.of("B3"));
-        callGraph.put("B3", Collections.emptyList());
+        callGraph.addEdge("B1", "B2");
+        callGraph.addEdge("B2", "B3");
         
-        Map<String, SymbolInfo> symbolTable = createSymbolTable("A1", "A2", "A3", "B1", "B2", "B3");
+        SymbolTable symbolTable = createSymbolTable("A1", "A2", "A3", "B1", "B2", "B3");
         
         CommunityDetector.CommunityDetectionResult result = 
                 CommunityDetector.detectCommunities(callGraph, symbolTable);
@@ -115,20 +117,21 @@ class CommunityDetectorTest {
     @DisplayName("大图模式自动启用")
     void testLargeGraphModeEnabled() {
         // 创建 15,000 个节点 (超过默认阈值 10,000)
-        Map<String, List<String>> callGraph = new HashMap<>();
-        Map<String, SymbolInfo> symbolTable = new HashMap<>();
+        CallGraph callGraph = new CallGraph();
+        SymbolTable symbolTable = new SymbolTable();
         
         for (int i = 0; i < 15000; i++) {
             String nodeId = "Node" + i;
             // 每个节点调用下一个节点，形成链
             String nextNodeId = "Node" + ((i + 1) % 15000);
-            callGraph.put(nodeId, List.of(nextNodeId));
+            callGraph.addEdge(nodeId, nextNodeId);
             
-            SymbolInfo symbol = new SymbolInfo();
+            CodeSymbol symbol = new CodeSymbol();
             symbol.setId(nodeId);
             symbol.setQualifiedName("com.example.pkg" + (i / 1000) + "." + nodeId);
             symbol.setName(nodeId);
-            symbolTable.put(nodeId, symbol);
+            symbol.setKind(CodeSymbolKind.METHOD);
+            symbolTable.add(symbol);
         }
         
         // 配置较低阈值以快速测试
@@ -145,7 +148,7 @@ class CommunityDetectorTest {
         assertNotNull(result);
         assertTrue(result.isLargeGraphMode(), "应该启用大图模式");
         assertTrue(result.getTotalSymbols() >= 1000);
-        assertNotNull(result.getProcessingTimeMs());
+        assertTrue(result.getProcessingTimeMs() >= 0);
         
         System.out.println(CommunityDetector.printSummary(result));
     }
@@ -153,37 +156,37 @@ class CommunityDetectorTest {
     @Test
     @DisplayName("大图模式过滤低度数节点")
     void testLargeGraphFiltersLowDegreeNodes() {
-        Map<String, List<String>> callGraph = new HashMap<>();
-        Map<String, SymbolInfo> symbolTable = new HashMap<>();
+        CallGraph callGraph = new CallGraph();
+        SymbolTable symbolTable = new SymbolTable();
         
         // 创建核心社区 (高度数节点)
         for (int i = 0; i < 100; i++) {
             String nodeId = "Core" + i;
-            List<String> callees = new ArrayList<>();
             for (int j = 0; j < 100; j++) {
                 if (i != j) {
-                    callees.add("Core" + j);
+                    callGraph.addEdge(nodeId, "Core" + j);
                 }
             }
-            callGraph.put(nodeId, callees);
             
-            SymbolInfo symbol = new SymbolInfo();
+            CodeSymbol symbol = new CodeSymbol();
             symbol.setId(nodeId);
             symbol.setQualifiedName("com.example.core." + nodeId);
             symbol.setName(nodeId);
-            symbolTable.put(nodeId, symbol);
+            symbol.setKind(CodeSymbolKind.METHOD);
+            symbolTable.add(symbol);
         }
         
         // 添加噪音节点 (度数为 1)
         for (int i = 0; i < 500; i++) {
             String noiseId = "Noise" + i;
-            callGraph.put(noiseId, List.of("Core0"));
+            callGraph.addEdge(noiseId, "Core0");
             
-            SymbolInfo symbol = new SymbolInfo();
+            CodeSymbol symbol = new CodeSymbol();
             symbol.setId(noiseId);
             symbol.setQualifiedName("com.example.noise." + noiseId);
             symbol.setName(noiseId);
-            symbolTable.put(noiseId, symbol);
+            symbol.setKind(CodeSymbolKind.METHOD);
+            symbolTable.add(symbol);
         }
         
         // 启用大图模式，过滤度数 < 2 的节点
@@ -207,13 +210,12 @@ class CommunityDetectorTest {
     @Test
     @DisplayName("自定义配置测试")
     void testCustomConfig() {
-        Map<String, List<String>> callGraph = new HashMap<>();
-        callGraph.put("A", List.of("B"));
-        callGraph.put("B", List.of("C"));
-        callGraph.put("C", List.of("D"));
-        callGraph.put("D", Collections.emptyList());
+        CallGraph callGraph = new CallGraph();
+        callGraph.addEdge("A", "B");
+        callGraph.addEdge("B", "C");
+        callGraph.addEdge("C", "D");
         
-        Map<String, SymbolInfo> symbolTable = createSymbolTable("A", "B", "C", "D");
+        SymbolTable symbolTable = createSymbolTable("A", "B", "C", "D");
         
         CommunityDetector.CommunityConfig config = new CommunityDetector.CommunityConfig();
         config.setMinCommunitySize(3);  // 只保留 3+ 节点的社区
@@ -228,12 +230,15 @@ class CommunityDetectorTest {
     @DisplayName("内聚度计算正确性")
     void testCohesionCalculation() {
         // 完全连接的社区 (内聚度 = 1.0)
-        Map<String, List<String>> callGraph = new HashMap<>();
-        callGraph.put("A", List.of("B", "C"));
-        callGraph.put("B", List.of("A", "C"));
-        callGraph.put("C", List.of("A", "B"));
+        CallGraph callGraph = new CallGraph();
+        callGraph.addEdge("A", "B");
+        callGraph.addEdge("A", "C");
+        callGraph.addEdge("B", "A");
+        callGraph.addEdge("B", "C");
+        callGraph.addEdge("C", "A");
+        callGraph.addEdge("C", "B");
         
-        Map<String, SymbolInfo> symbolTable = createSymbolTable("A", "B", "C");
+        SymbolTable symbolTable = createSymbolTable("A", "B", "C");
         
         CommunityDetector.CommunityDetectionResult result = 
                 CommunityDetector.detectCommunities(callGraph, symbolTable);
@@ -248,30 +253,32 @@ class CommunityDetectorTest {
     @Test
     @DisplayName("社区标签生成测试")
     void testLabelGeneration() {
-        Map<String, List<String>> callGraph = new HashMap<>();
-        callGraph.put("A", List.of("B"));
-        callGraph.put("B", List.of("C"));
-        callGraph.put("C", Collections.emptyList());
+        CallGraph callGraph = new CallGraph();
+        callGraph.addEdge("A", "B");
+        callGraph.addEdge("B", "C");
         
-        Map<String, SymbolInfo> symbolTable = new HashMap<>();
+        SymbolTable symbolTable = new SymbolTable();
         
-        SymbolInfo symbolA = new SymbolInfo();
+        CodeSymbol symbolA = new CodeSymbol();
         symbolA.setId("A");
         symbolA.setQualifiedName("com.example.service.UserService.methodA");
         symbolA.setName("methodA");
-        symbolTable.put("A", symbolA);
+        symbolA.setKind(CodeSymbolKind.METHOD);
+        symbolTable.add(symbolA);
         
-        SymbolInfo symbolB = new SymbolInfo();
+        CodeSymbol symbolB = new CodeSymbol();
         symbolB.setId("B");
         symbolB.setQualifiedName("com.example.service.UserService.methodB");
         symbolB.setName("methodB");
-        symbolTable.put("B", symbolB);
+        symbolB.setKind(CodeSymbolKind.METHOD);
+        symbolTable.add(symbolB);
         
-        SymbolInfo symbolC = new SymbolInfo();
+        CodeSymbol symbolC = new CodeSymbol();
         symbolC.setId("C");
         symbolC.setQualifiedName("com.example.service.UserService.methodC");
         symbolC.setName("methodC");
-        symbolTable.put("C", symbolC);
+        symbolC.setKind(CodeSymbolKind.METHOD);
+        symbolTable.add(symbolC);
         
         CommunityDetector.CommunityDetectionResult result = 
                 CommunityDetector.detectCommunities(callGraph, symbolTable);
@@ -287,12 +294,11 @@ class CommunityDetectorTest {
     @Test
     @DisplayName("打印摘要测试")
     void testPrintSummary() {
-        Map<String, List<String>> callGraph = new HashMap<>();
-        callGraph.put("A", List.of("B"));
-        callGraph.put("B", List.of("C"));
-        callGraph.put("C", Collections.emptyList());
+        CallGraph callGraph = new CallGraph();
+        callGraph.addEdge("A", "B");
+        callGraph.addEdge("B", "C");
         
-        Map<String, SymbolInfo> symbolTable = createSymbolTable("A", "B", "C");
+        SymbolTable symbolTable = createSymbolTable("A", "B", "C");
         
         CommunityDetector.CommunityDetectionResult result = 
                 CommunityDetector.detectCommunities(callGraph, symbolTable);
@@ -308,12 +314,11 @@ class CommunityDetectorTest {
     @Test
     @DisplayName("获取符号所属社区")
     void testGetCommunityForSymbol() {
-        Map<String, List<String>> callGraph = new HashMap<>();
-        callGraph.put("A", List.of("B"));
-        callGraph.put("B", List.of("C"));
-        callGraph.put("C", Collections.emptyList());
+        CallGraph callGraph = new CallGraph();
+        callGraph.addEdge("A", "B");
+        callGraph.addEdge("B", "C");
         
-        Map<String, SymbolInfo> symbolTable = createSymbolTable("A", "B", "C");
+        SymbolTable symbolTable = createSymbolTable("A", "B", "C");
         
         CommunityDetector.CommunityDetectionResult result = 
                 CommunityDetector.detectCommunities(callGraph, symbolTable);
@@ -337,14 +342,15 @@ class CommunityDetectorTest {
     
     // ==================== 辅助方法 ====================
     
-    private Map<String, SymbolInfo> createSymbolTable(String... ids) {
-        Map<String, SymbolInfo> symbolTable = new HashMap<>();
+    private SymbolTable createSymbolTable(String... ids) {
+        SymbolTable symbolTable = new SymbolTable();
         for (String id : ids) {
-            SymbolInfo symbol = new SymbolInfo();
+            CodeSymbol symbol = new CodeSymbol();
             symbol.setId(id);
             symbol.setQualifiedName("com.example." + id);
             symbol.setName(id);
-            symbolTable.put(id, symbol);
+            symbol.setKind(CodeSymbolKind.METHOD);
+            symbolTable.add(symbol);
         }
         return symbolTable;
     }
