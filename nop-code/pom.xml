@@ -19,6 +19,8 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>nop-code-core</module>
+        <module>nop-code-lang-java</module>
         <module>nop-code-codegen</module>
         <module>nop-code-api</module>
         <module>nop-code-dao</module>
