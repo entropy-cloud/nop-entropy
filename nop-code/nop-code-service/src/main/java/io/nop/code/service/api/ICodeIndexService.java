@@ -35,6 +35,11 @@ public interface ICodeIndexService {
 
     List<CodeSymbol> getFileTypes(String indexId, String filePath);
 
+    /**
+     * 获取文件树结构（按包名分层）
+     */
+    List<FileTreeNode> getFileTree(String indexId);
+
     // ==================== Symbol Queries ====================
 
     CodeSymbol getSymbolById(String indexId, String symbolId);

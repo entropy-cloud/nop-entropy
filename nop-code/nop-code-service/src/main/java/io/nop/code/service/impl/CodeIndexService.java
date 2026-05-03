@@ -106,6 +106,62 @@ public class CodeIndexService implements ICodeIndexService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<FileTreeNode> getFileTree(String indexId) {
+        List<CodeFileAnalysisResult> files = getFiles(indexId);
+
+        FileTreeNode root = new FileTreeNode();
+        root.setName("root");
+        root.setPath("");
+        root.setType("package");
+
+        Map<String, FileTreeNode> nodeMap = new LinkedHashMap<>();
+        nodeMap.put("", root);
+
+        for (CodeFileAnalysisResult file : files) {
+            String packageName = file.getPackageName();
+            if (packageName == null || packageName.isEmpty()) {
+                packageName = "(default)";
+            }
+
+            String[] parts = packageName.split("\\.");
+            StringBuilder currentPath = new StringBuilder();
+            for (String part : parts) {
+                String parentPath = currentPath.toString();
+                currentPath.append(currentPath.length() > 0 ? "." : "").append(part);
+                String packagePath = currentPath.toString();
+
+                if (!nodeMap.containsKey(packagePath)) {
+                    FileTreeNode packageNode = new FileTreeNode();
+                    packageNode.setName(part);
+                    packageNode.setPath(packagePath);
+                    packageNode.setType("package");
+                    nodeMap.put(packagePath, packageNode);
+
+                    FileTreeNode parentNode = nodeMap.get(parentPath);
+                    if (parentNode != null) {
+                        parentNode.getChildren().add(packageNode);
+                    }
+                }
+            }
+
+            FileTreeNode fileNode = new FileTreeNode();
+            fileNode.setName(file.getFilePath() != null
+                    ? file.getFilePath().substring(file.getFilePath().lastIndexOf('/') + 1)
+                    : "unknown");
+            fileNode.setPath(file.getFilePath());
+            fileNode.setType("file");
+            fileNode.setSymbolCount(file.getSymbols() != null ? file.getSymbols().size() : 0);
+
+            FileTreeNode packageParent = nodeMap.get(packageName);
+            if (packageParent != null) {
+                packageParent.getChildren().add(fileNode);
+            }
+        }
+
+        return root.getChildren();
+    }
+
     // ==================== Symbol Queries ====================
 
     @Override

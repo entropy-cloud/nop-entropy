@@ -12,6 +12,7 @@ import io.nop.code.core.model.*;
 import io.nop.code.dao.entity.NopCodeFile;
 import io.nop.code.service.api.ICodeIndexService;
 import io.nop.code.service.api.dto.FileOutlineDTO;
+import io.nop.code.service.api.dto.FileTreeNode;
 import io.nop.code.service.api.dto.SymbolInfoDTO;
 import jakarta.inject.Inject;
 
@@ -50,6 +51,11 @@ public class NopCodeFileBizModel extends CrudBizModel<NopCodeFile> implements IN
             return files.subList(0, limit);
         }
         return files;
+    }
+
+    @BizQuery
+    public List<FileTreeNode> fileTree(@Name("indexId") String indexId) {
+        return codeIndexService.getFileTree(indexId);
     }
 
     @BizLoader(forType = CodeFileAnalysisResult.class)
