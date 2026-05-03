@@ -1,18 +1,66 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<view x:extends="_gen/_NopCodeSymbol.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<view x:extends="_gen/_NopCodeSymbol.view.xml" x:schema="/nop/schema/xui/xview.xdef"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:gql="graphql">
 
     <grids>
-        <grid id="list"/>
+        <grid id="list" x:override="replace">
+            <cols>
+                <col id="name" sortable="true"/>
+                <col id="qualifiedName" sortable="true" width="350"/>
+                <col id="kind" sortable="true"/>
+                <col id="accessModifier" sortable="true"/>
+                <col id="signature" width="300"/>
+                <col id="returnType"/>
+                <col id="line" ui:number="true" sortable="true"/>
+            </cols>
+        </grid>
         <grid id="pick-list"/>
     </grids>
 
     <forms>
-        <form id="view"/>
+        <form id="query" x:override="replace" editMode="query" title="符号搜索">
+            <layout>
+ query[名称关键词]
+ kinds[符号类型]
+ packageName[包名]
+            </layout>
+        </form>
+
+        <form id="view" x:override="replace" editMode="view" title="符号详情">
+            <layout>
+ name[名称]
+ qualifiedName[全限定名]
+ kind[类型]
+ accessModifier[访问修饰符]
+ signature[签名]
+ returnType[返回类型]
+ line[行号]
+ endLine[结束行]
+ deprecated[已废弃]
+ isStatic[静态]
+ isAbstract[抽象]
+            </layout>
+        </form>
+
         <form id="edit"/>
     </forms>
 
     <pages>
-        <crud name="main"/>
+        <crud name="main" x:override="merge">
+            <table autoFillHeight="true">
+                <api url="@query:NopCodeSymbol__findSymbols?indexId=$indexId" gql:selection="{@pageSelection}"/>
+            </table>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="查看详情">
+                    <dialog page="view"/>
+                </action>
+            </rowActions>
+        </crud>
+
+        <simple name="view" form="view">
+            <initApi url="@query:NopCodeSymbol__getById?id=$id&amp;indexId=$indexId" gql:selection="{@formSelection}"/>
+        </simple>
+
         <picker name="picker"/>
     </pages>
 </view>

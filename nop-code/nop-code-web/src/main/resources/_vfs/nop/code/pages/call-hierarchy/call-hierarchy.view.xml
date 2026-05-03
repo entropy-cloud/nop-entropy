@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:gql="graphql">
+
+    <forms>
+        <form id="queryForm" editMode="query" title="调用链查询">
+            <layout>
+ indexId[索引ID]
+ qualifiedName[方法全限定名]
+ direction[方向]
+ maxDepth[最大深度]
+            </layout>
+        </form>
+    </forms>
+
+    <pages>
+        <simple name="main" form="queryForm">
+            <initApi url="@query:NopCodeCallHierarchy__get?qualifiedName=$qualifiedName&amp;indexId=$indexId&amp;direction=$direction&amp;maxDepth=$maxDepth"/>
+        </simple>
+    </pages>
+</view>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<view x:extends="_gen/_NopCodeIndex.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<view x:extends="_gen/_NopCodeIndex.view.xml" x:schema="/nop/schema/xui/xview.xdef"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:gql="graphql">
 
     <grids>
         <grid id="list"/>
@@ -8,11 +9,49 @@
 
     <forms>
         <form id="view"/>
-        <form id="edit"/>
+        <form id="edit" x:override="replace" editMode="edit">
+            <layout>
+ name[索引名称]
+ rootPath[根路径]
+ language[编程语言]
+            </layout>
+        </form>
+        <form id="statsForm" editMode="view" title="索引统计">
+            <layout>
+ indexId[索引ID]
+ fileCount[文件数量]
+ symbolCount[符号数量]
+            </layout>
+        </form>
     </forms>
 
     <pages>
-        <crud name="main"/>
+        <crud name="main" x:override="merge">
+            <listActions>
+                <action id="add-button" level="primary" label="新增索引" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="查看统计">
+                    <dialog page="statsView"/>
+                </action>
+                <action id="row-trigger-index" level="success" label="触发索引"
+                        icon="fa fa-play">
+                    <api url="@mutation:NopCodeIndex__indexDirectory?indexId=$id&amp;directoryPath=$rootPath&amp;filePattern=**/*.java"/>
+                    <confirmText>确认触发索引？此操作可能需要一些时间。</confirmText>
+                </action>
+                <action id="row-delete-button" level="danger" label="删除索引">
+                    <api url="@mutation:NopCodeIndex__deleteIndex?indexId=$id"/>
+                    <confirmText>确认删除该索引及其所有数据？</confirmText>
+                </action>
+            </rowActions>
+        </crud>
+
+        <simple name="statsView" form="statsForm">
+            <initApi url="@query:NopCodeIndex__getStats?indexId=$id"/>
+        </simple>
+
         <picker name="picker"/>
     </pages>
 </view>

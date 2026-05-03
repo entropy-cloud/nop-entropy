@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:gql="graphql">
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+                <col id="name" mandatory="true" sortable="true"/>
+                <col id="rootPath" mandatory="true" sortable="true" width="300"/>
+                <col id="language" sortable="true"/>
+                <col id="fileCount" ui:number="true" sortable="true"/>
+                <col id="symbolCount" ui:number="true" sortable="true"/>
+                <col id="status" sortable="true"/>
+            </cols>
+        </grid>
+    </grids>
+
+    <pages>
+        <crud name="main" grid="list">
+            <table autoFillHeight="true">
+                <api url="@query:NopCodeIndex__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <rowActions>
+                <action id="row-view-stats" level="primary" label="查看统计">
+                    <dialog page="statsView"/>
+                </action>
+                <action id="row-browse-code" level="success" label="浏览代码"
+                        link="/nop/code/pages/code-browser/main?indexId=$id"/>
+                <action id="row-trigger-index" level="warning" label="触发索引"
+                        icon="fa fa-play">
+                    <api url="@mutation:NopCodeIndex__indexDirectory?indexId=$id&amp;directoryPath=$rootPath&amp;filePattern=**/*.java"/>
+                    <confirmText>确认触发索引？此操作可能需要一些时间。</confirmText>
+                </action>
+            </rowActions>
+        </crud>
+
+        <simple name="statsView">
+            <initApi url="@query:NopCodeIndex__getStats?indexId=$id"/>
+        </simple>
+    </pages>
+</view>

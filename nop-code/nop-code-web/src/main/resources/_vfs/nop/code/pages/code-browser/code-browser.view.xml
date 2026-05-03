@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:gql="graphql">
+
+    <grids>
+        <grid id="outlineGrid" x:abstract="true">
+            <cols>
+                <col id="name" sortable="true"/>
+                <col id="kind" sortable="true"/>
+                <col id="accessModifier" sortable="true"/>
+                <col id="line" ui:number="true" sortable="true"/>
+            </cols>
+        </grid>
+
+        <grid id="symbolsGrid" x:abstract="true">
+            <cols>
+                <col id="name" sortable="true"/>
+                <col id="kind" sortable="true"/>
+                <col id="qualifiedName" sortable="true" width="300"/>
+            </cols>
+        </grid>
+    </grids>
+
+    <forms>
+        <form id="queryForm" editMode="query" title="文件浏览">
+            <layout>
+ indexId[索引ID]
+            </layout>
+        </form>
+    </forms>
+
+    <pages>
+        <simple name="main" form="queryForm">
+        </simple>
+
+        <simple name="fileDetail">
+            <initApi url="@query:NopCodeFile__getByPath?filePath=$filePath&amp;indexId=$indexId"/>
+        </simple>
+
+        <simple name="fileTree">
+            <initApi url="@query:NopCodeFile__fileTree?indexId=$indexId"/>
+        </simple>
+    </pages>
+</view>
