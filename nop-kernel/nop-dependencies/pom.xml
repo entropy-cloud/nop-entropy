@@ -23,10 +23,10 @@
 
         <compiler-plugin.version>3.11.0</compiler-plugin.version>
 
-        <quarkus.platform.version>3.29.2</quarkus.platform.version>
-        <spring-boot.version>3.5.7</spring-boot.version>
-        <spring-cloud.version>2025.0.0</spring-cloud.version>
-        <spring-ai.version>1.0.0</spring-ai.version>
+        <quarkus.platform.version>3.35.1</quarkus.platform.version>
+        <spring-boot.version>3.5.14</spring-boot.version>
+        <spring-cloud.version>2025.0.2</spring-cloud.version>
+        <spring-ai.version>1.1.5</spring-ai.version>
         <graalvm.version>23.1.2</graalvm.version>
         <!-- 与quarkus3.14.4中使用版本一致 -->
         <antlr.version>4.13.0</antlr.version>

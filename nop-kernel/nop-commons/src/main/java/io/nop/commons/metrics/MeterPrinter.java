@@ -23,7 +23,7 @@ import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.binder.BaseUnits;
 import io.micrometer.core.instrument.distribution.HistogramSnapshot;
 import io.micrometer.core.instrument.util.TimeUtils;
-import io.micrometer.core.lang.Nullable;
+import jakarta.annotation.Nullable;
 
 import java.time.Duration;
 import java.util.List;

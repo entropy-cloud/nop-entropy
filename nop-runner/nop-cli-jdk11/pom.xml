@@ -16,7 +16,7 @@
         <maven.compiler.target>11</maven.compiler.target>
         <maven.compiler.release>11</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <quarkus.platform.version>3.0.0</quarkus.platform.version>
+        <quarkus.platform.version>3.35.1</quarkus.platform.version>
     </properties>
 
     <dependencies>
