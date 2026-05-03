@@ -20,23 +20,23 @@ import io.nop.code.dao.entity.NopCodeInheritance;
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopCodeInheritance extends DynamicOrmEntity{
     
-    /* ID: id VARCHAR */
+    /* ID: ID VARCHAR */
     public static final String PROP_NAME_id = "id";
     public static final int PROP_ID_id = 1;
     
-    /* 索引ID: index_id VARCHAR */
+    /* 索引ID: INDEX_ID VARCHAR */
     public static final String PROP_NAME_indexId = "indexId";
     public static final int PROP_ID_indexId = 2;
     
-    /* 子类型ID: sub_type_id VARCHAR */
+    /* 子类型ID: SUB_TYPE_ID VARCHAR */
     public static final String PROP_NAME_subTypeId = "subTypeId";
     public static final int PROP_ID_subTypeId = 3;
     
-    /* 父类型ID: super_type_id VARCHAR */
+    /* 父类型ID: SUPER_TYPE_ID VARCHAR */
     public static final String PROP_NAME_superTypeId = "superTypeId";
     public static final int PROP_ID_superTypeId = 4;
     
-    /* 关系类型: relation_type VARCHAR */
+    /* 关系类型: RELATION_TYPE VARCHAR */
     public static final String PROP_NAME_relationType = "relationType";
     public static final int PROP_ID_relationType = 5;
     
@@ -79,19 +79,19 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
     }
 
     
-    /* ID: id */
+    /* ID: ID */
     private java.lang.String _id;
     
-    /* 索引ID: index_id */
+    /* 索引ID: INDEX_ID */
     private java.lang.String _indexId;
     
-    /* 子类型ID: sub_type_id */
+    /* 子类型ID: SUB_TYPE_ID */
     private java.lang.String _subTypeId;
     
-    /* 父类型ID: super_type_id */
+    /* 父类型ID: SUPER_TYPE_ID */
     private java.lang.String _superTypeId;
     
-    /* 关系类型: relation_type */
+    /* 关系类型: RELATION_TYPE */
     private java.lang.String _relationType;
     
 
@@ -295,7 +295,7 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
 
     
     /**
-     * ID: id
+     * ID: ID
      */
     public final java.lang.String getId(){
          onPropGet(PROP_ID_id);
@@ -303,7 +303,7 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
     }
 
     /**
-     * ID: id
+     * ID: ID
      */
     public final void setId(java.lang.String value){
         if(onPropSet(PROP_ID_id,value)){
@@ -314,7 +314,7 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
     }
     
     /**
-     * 索引ID: index_id
+     * 索引ID: INDEX_ID
      */
     public final java.lang.String getIndexId(){
          onPropGet(PROP_ID_indexId);
@@ -322,7 +322,7 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
     }
 
     /**
-     * 索引ID: index_id
+     * 索引ID: INDEX_ID
      */
     public final void setIndexId(java.lang.String value){
         if(onPropSet(PROP_ID_indexId,value)){
@@ -333,7 +333,7 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
     }
     
     /**
-     * 子类型ID: sub_type_id
+     * 子类型ID: SUB_TYPE_ID
      */
     public final java.lang.String getSubTypeId(){
          onPropGet(PROP_ID_subTypeId);
@@ -341,7 +341,7 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
     }
 
     /**
-     * 子类型ID: sub_type_id
+     * 子类型ID: SUB_TYPE_ID
      */
     public final void setSubTypeId(java.lang.String value){
         if(onPropSet(PROP_ID_subTypeId,value)){
@@ -352,7 +352,7 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
     }
     
     /**
-     * 父类型ID: super_type_id
+     * 父类型ID: SUPER_TYPE_ID
      */
     public final java.lang.String getSuperTypeId(){
          onPropGet(PROP_ID_superTypeId);
@@ -360,7 +360,7 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
     }
 
     /**
-     * 父类型ID: super_type_id
+     * 父类型ID: SUPER_TYPE_ID
      */
     public final void setSuperTypeId(java.lang.String value){
         if(onPropSet(PROP_ID_superTypeId,value)){
@@ -371,7 +371,7 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
     }
     
     /**
-     * 关系类型: relation_type
+     * 关系类型: RELATION_TYPE
      */
     public final java.lang.String getRelationType(){
          onPropGet(PROP_ID_relationType);
@@ -379,7 +379,7 @@ public class _NopCodeInheritance extends DynamicOrmEntity{
     }
 
     /**
-     * 关系类型: relation_type
+     * 关系类型: RELATION_TYPE
      */
     public final void setRelationType(java.lang.String value){
         if(onPropSet(PROP_ID_relationType,value)){

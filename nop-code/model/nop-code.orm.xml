@@ -25,10 +25,19 @@
             <option code="INTERFACE" label="接口" value="20"/>
             <option code="ENUM" label="枚举" value="30"/>
             <option code="ANNOTATION_TYPE" label="注解类型" value="40"/>
+            <option code="TYPE_ALIAS" label="类型别名" value="45"/>
+            <option code="MIXIN" label="Mixin" value="46"/>
+            <option code="DECORATOR" label="装饰器" value="47"/>
             <option code="METHOD" label="方法" value="50"/>
+            <option code="FUNCTION" label="函数" value="55"/>
             <option code="CONSTRUCTOR" label="构造器" value="60"/>
             <option code="FIELD" label="字段" value="70"/>
-            <option code="ENUM_CONSTANT" label="枚举常量" value="80"/>
+            <option code="CONSTANT" label="常量" value="80"/>
+            <option code="NAMESPACE" label="命名空间" value="90"/>
+            <option code="PARAMETER" label="参数" value="95"/>
+            <option code="LOCAL_VARIABLE" label="局部变量" value="96"/>
+            <option code="TYPE_PARAMETER" label="类型参数" value="97"/>
+            <option code="IMPORT" label="导入" value="98"/>
         </dict>
         <dict label="访问修饰符" name="code/access_modifier" valueType="int">
             <description>符号的访问级别</description>
@@ -36,6 +45,8 @@
             <option code="PROTECTED" label="受保护" value="20"/>
             <option code="PRIVATE" label="私有" value="30"/>
             <option code="PACKAGE_PRIVATE" label="包私有" value="40"/>
+            <option code="INTERNAL" label="内部" value="41"/>
+            <option code="NO_MODIFIER" label="无修饰符" value="50"/>
         </dict>
         <dict label="引用类型" name="code/reference_kind" valueType="int">
             <description>符号引用的类型</description>
@@ -55,6 +66,13 @@
             <option code="INDEXING" label="索引中" value="20"/>
             <option code="READY" label="就绪" value="30"/>
             <option code="ERROR" label="错误" value="40"/>
+        </dict>
+        <dict label="编程语言" name="code/language" valueType="int">
+            <description>编程语言类型</description>
+            <option code="JAVA" label="Java" value="10"/>
+            <option code="PYTHON" label="Python" value="20"/>
+            <option code="TYPESCRIPT" label="TypeScript" value="30"/>
+            <option code="JAVASCRIPT" label="JavaScript" value="40"/>
         </dict>
     </dicts>
 
@@ -212,6 +230,10 @@
                 <!-- JSON扩展字段 - 存储详细信息 -->
                 <column code="EXT_DATA" displayName="扩展数据" domain="jsonContent" name="extData"
                         propId="28" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
+                <column code="ASYNC_FLAG" displayName="异步" name="asyncFlag"
+                        propId="29" stdDataType="boolean" stdSqlType="BOOLEAN"/>
+                <column code="READONLY_FLAG" displayName="只读" name="readonlyFlag"
+                        propId="30" stdDataType="boolean" stdSqlType="BOOLEAN"/>
             </columns>
             <comment>
                 符号统一表。extData存储JSON格式的扩展信息：

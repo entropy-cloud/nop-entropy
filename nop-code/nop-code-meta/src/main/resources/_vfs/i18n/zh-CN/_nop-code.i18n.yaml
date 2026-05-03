@@ -86,6 +86,7 @@ prop:
       accessModifier_label: 访问修饰符
       annotationUsages: 注解使用
       annotations: 注解使用
+      asyncFlag: 异步
       callees: 被调用者
       callers: 调用者
       children: 子符号
@@ -123,6 +124,7 @@ prop:
       parent.name: null
       parentId: 父符号ID
       qualifiedName: 全限定名
+      readonlyFlag: 只读
       returnType: 返回类型
       signature: 签名
       subTypes: 子类型

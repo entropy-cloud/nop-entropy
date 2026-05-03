@@ -112,6 +112,8 @@ prop:
       isVolatile: null
       isTransient: null
       extData: null
+      asyncFlag: null
+      readonlyFlag: null
       index: null
       file: null
       file.filePath: null

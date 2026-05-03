@@ -29,6 +29,8 @@
   "isVolatile": false,
   "isTransient": false,
   "extData": "",
+  "asyncFlag": false,
+  "readonlyFlag": false,
   "index": null,
   "file": null,
   "file.filePath": "",

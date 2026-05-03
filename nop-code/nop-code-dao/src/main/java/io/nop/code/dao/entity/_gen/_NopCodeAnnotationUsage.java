@@ -20,31 +20,31 @@ import io.nop.code.dao.entity.NopCodeAnnotationUsage;
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     
-    /* ID: id VARCHAR */
+    /* ID: ID VARCHAR */
     public static final String PROP_NAME_id = "id";
     public static final int PROP_ID_id = 1;
     
-    /* 索引ID: index_id VARCHAR */
+    /* 索引ID: INDEX_ID VARCHAR */
     public static final String PROP_NAME_indexId = "indexId";
     public static final int PROP_ID_indexId = 2;
     
-    /* 注解类型ID: annotation_type_id VARCHAR */
+    /* 注解类型ID: ANNOTATION_TYPE_ID VARCHAR */
     public static final String PROP_NAME_annotationTypeId = "annotationTypeId";
     public static final int PROP_ID_annotationTypeId = 3;
     
-    /* 被注解符号ID: annotated_symbol_id VARCHAR */
+    /* 被注解符号ID: ANNOTATED_SYMBOL_ID VARCHAR */
     public static final String PROP_NAME_annotatedSymbolId = "annotatedSymbolId";
     public static final int PROP_ID_annotatedSymbolId = 4;
     
-    /* 行号: line INTEGER */
+    /* 行号: LINE INTEGER */
     public static final String PROP_NAME_line = "line";
     public static final int PROP_ID_line = 5;
     
-    /* 列号: column INTEGER */
+    /* 列号: COLUMN INTEGER */
     public static final String PROP_NAME_column = "column";
     public static final int PROP_ID_column = 6;
     
-    /* 属性值: attributes VARCHAR */
+    /* 属性值: ATTRIBUTES VARCHAR */
     public static final String PROP_NAME_attributes = "attributes";
     public static final int PROP_ID_attributes = 7;
     
@@ -96,25 +96,25 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     }
 
     
-    /* ID: id */
+    /* ID: ID */
     private java.lang.String _id;
     
-    /* 索引ID: index_id */
+    /* 索引ID: INDEX_ID */
     private java.lang.String _indexId;
     
-    /* 注解类型ID: annotation_type_id */
+    /* 注解类型ID: ANNOTATION_TYPE_ID */
     private java.lang.String _annotationTypeId;
     
-    /* 被注解符号ID: annotated_symbol_id */
+    /* 被注解符号ID: ANNOTATED_SYMBOL_ID */
     private java.lang.String _annotatedSymbolId;
     
-    /* 行号: line */
+    /* 行号: LINE */
     private java.lang.Integer _line;
     
-    /* 列号: column */
+    /* 列号: COLUMN */
     private java.lang.Integer _column;
     
-    /* 属性值: attributes */
+    /* 属性值: ATTRIBUTES */
     private java.lang.String _attributes;
     
 
@@ -358,7 +358,7 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
 
     
     /**
-     * ID: id
+     * ID: ID
      */
     public final java.lang.String getId(){
          onPropGet(PROP_ID_id);
@@ -366,7 +366,7 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     }
 
     /**
-     * ID: id
+     * ID: ID
      */
     public final void setId(java.lang.String value){
         if(onPropSet(PROP_ID_id,value)){
@@ -377,7 +377,7 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     }
     
     /**
-     * 索引ID: index_id
+     * 索引ID: INDEX_ID
      */
     public final java.lang.String getIndexId(){
          onPropGet(PROP_ID_indexId);
@@ -385,7 +385,7 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     }
 
     /**
-     * 索引ID: index_id
+     * 索引ID: INDEX_ID
      */
     public final void setIndexId(java.lang.String value){
         if(onPropSet(PROP_ID_indexId,value)){
@@ -396,7 +396,7 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     }
     
     /**
-     * 注解类型ID: annotation_type_id
+     * 注解类型ID: ANNOTATION_TYPE_ID
      */
     public final java.lang.String getAnnotationTypeId(){
          onPropGet(PROP_ID_annotationTypeId);
@@ -404,7 +404,7 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     }
 
     /**
-     * 注解类型ID: annotation_type_id
+     * 注解类型ID: ANNOTATION_TYPE_ID
      */
     public final void setAnnotationTypeId(java.lang.String value){
         if(onPropSet(PROP_ID_annotationTypeId,value)){
@@ -415,7 +415,7 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     }
     
     /**
-     * 被注解符号ID: annotated_symbol_id
+     * 被注解符号ID: ANNOTATED_SYMBOL_ID
      */
     public final java.lang.String getAnnotatedSymbolId(){
          onPropGet(PROP_ID_annotatedSymbolId);
@@ -423,7 +423,7 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     }
 
     /**
-     * 被注解符号ID: annotated_symbol_id
+     * 被注解符号ID: ANNOTATED_SYMBOL_ID
      */
     public final void setAnnotatedSymbolId(java.lang.String value){
         if(onPropSet(PROP_ID_annotatedSymbolId,value)){
@@ -434,7 +434,7 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     }
     
     /**
-     * 行号: line
+     * 行号: LINE
      */
     public final java.lang.Integer getLine(){
          onPropGet(PROP_ID_line);
@@ -442,7 +442,7 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     }
 
     /**
-     * 行号: line
+     * 行号: LINE
      */
     public final void setLine(java.lang.Integer value){
         if(onPropSet(PROP_ID_line,value)){
@@ -453,7 +453,7 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     }
     
     /**
-     * 列号: column
+     * 列号: COLUMN
      */
     public final java.lang.Integer getColumn(){
          onPropGet(PROP_ID_column);
@@ -461,7 +461,7 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     }
 
     /**
-     * 列号: column
+     * 列号: COLUMN
      */
     public final void setColumn(java.lang.Integer value){
         if(onPropSet(PROP_ID_column,value)){
@@ -472,7 +472,7 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     }
     
     /**
-     * 属性值: attributes
+     * 属性值: ATTRIBUTES
      */
     public final java.lang.String getAttributes(){
          onPropGet(PROP_ID_attributes);
@@ -480,7 +480,7 @@ public class _NopCodeAnnotationUsage extends DynamicOrmEntity{
     }
 
     /**
-     * 属性值: attributes
+     * 属性值: ATTRIBUTES
      */
     public final void setAttributes(java.lang.String value){
         if(onPropSet(PROP_ID_attributes,value)){

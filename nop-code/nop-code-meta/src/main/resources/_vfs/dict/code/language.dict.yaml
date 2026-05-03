@@ -1,0 +1,23 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 编程语言
+locale: zh-CN
+valueType: int
+description: 编程语言类型
+options:
+
+  - label: Java
+    value: 10
+    description: 
+  
+  - label: Python
+    value: 20
+    description: 
+  
+  - label: TypeScript
+    value: 30
+    description: 
+  
+  - label: JavaScript
+    value: 40
+    description: 
+  

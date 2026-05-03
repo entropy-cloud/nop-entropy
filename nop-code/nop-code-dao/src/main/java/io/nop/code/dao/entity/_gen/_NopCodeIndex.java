@@ -20,31 +20,31 @@ import io.nop.code.dao.entity.NopCodeIndex;
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopCodeIndex extends DynamicOrmEntity{
     
-    /* 索引ID: id VARCHAR */
+    /* 索引ID: ID VARCHAR */
     public static final String PROP_NAME_id = "id";
     public static final int PROP_ID_id = 1;
     
-    /* 索引名称: name VARCHAR */
+    /* 索引名称: NAME VARCHAR */
     public static final String PROP_NAME_name = "name";
     public static final int PROP_ID_name = 2;
     
-    /* 根路径: root_path VARCHAR */
+    /* 根路径: ROOT_PATH VARCHAR */
     public static final String PROP_NAME_rootPath = "rootPath";
     public static final int PROP_ID_rootPath = 3;
     
-    /* 编程语言: language VARCHAR */
+    /* 编程语言: LANGUAGE VARCHAR */
     public static final String PROP_NAME_language = "language";
     public static final int PROP_ID_language = 4;
     
-    /* 符号数量: symbol_count INTEGER */
+    /* 符号数量: SYMBOL_COUNT INTEGER */
     public static final String PROP_NAME_symbolCount = "symbolCount";
     public static final int PROP_ID_symbolCount = 5;
     
-    /* 文件数量: file_count INTEGER */
+    /* 文件数量: FILE_COUNT INTEGER */
     public static final String PROP_NAME_fileCount = "fileCount";
     public static final int PROP_ID_fileCount = 6;
     
-    /* 状态: status VARCHAR */
+    /* 状态: STATUS VARCHAR */
     public static final String PROP_NAME_status = "status";
     public static final int PROP_ID_status = 7;
     
@@ -102,25 +102,25 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     }
 
     
-    /* 索引ID: id */
+    /* 索引ID: ID */
     private java.lang.String _id;
     
-    /* 索引名称: name */
+    /* 索引名称: NAME */
     private java.lang.String _name;
     
-    /* 根路径: root_path */
+    /* 根路径: ROOT_PATH */
     private java.lang.String _rootPath;
     
-    /* 编程语言: language */
+    /* 编程语言: LANGUAGE */
     private java.lang.String _language;
     
-    /* 符号数量: symbol_count */
+    /* 符号数量: SYMBOL_COUNT */
     private java.lang.Integer _symbolCount;
     
-    /* 文件数量: file_count */
+    /* 文件数量: FILE_COUNT */
     private java.lang.Integer _fileCount;
     
-    /* 状态: status */
+    /* 状态: STATUS */
     private java.lang.String _status;
     
 
@@ -364,7 +364,7 @@ public class _NopCodeIndex extends DynamicOrmEntity{
 
     
     /**
-     * 索引ID: id
+     * 索引ID: ID
      */
     public final java.lang.String getId(){
          onPropGet(PROP_ID_id);
@@ -372,7 +372,7 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     }
 
     /**
-     * 索引ID: id
+     * 索引ID: ID
      */
     public final void setId(java.lang.String value){
         if(onPropSet(PROP_ID_id,value)){
@@ -383,7 +383,7 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     }
     
     /**
-     * 索引名称: name
+     * 索引名称: NAME
      */
     public final java.lang.String getName(){
          onPropGet(PROP_ID_name);
@@ -391,7 +391,7 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     }
 
     /**
-     * 索引名称: name
+     * 索引名称: NAME
      */
     public final void setName(java.lang.String value){
         if(onPropSet(PROP_ID_name,value)){
@@ -402,7 +402,7 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     }
     
     /**
-     * 根路径: root_path
+     * 根路径: ROOT_PATH
      */
     public final java.lang.String getRootPath(){
          onPropGet(PROP_ID_rootPath);
@@ -410,7 +410,7 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     }
 
     /**
-     * 根路径: root_path
+     * 根路径: ROOT_PATH
      */
     public final void setRootPath(java.lang.String value){
         if(onPropSet(PROP_ID_rootPath,value)){
@@ -421,7 +421,7 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     }
     
     /**
-     * 编程语言: language
+     * 编程语言: LANGUAGE
      */
     public final java.lang.String getLanguage(){
          onPropGet(PROP_ID_language);
@@ -429,7 +429,7 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     }
 
     /**
-     * 编程语言: language
+     * 编程语言: LANGUAGE
      */
     public final void setLanguage(java.lang.String value){
         if(onPropSet(PROP_ID_language,value)){
@@ -440,7 +440,7 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     }
     
     /**
-     * 符号数量: symbol_count
+     * 符号数量: SYMBOL_COUNT
      */
     public final java.lang.Integer getSymbolCount(){
          onPropGet(PROP_ID_symbolCount);
@@ -448,7 +448,7 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     }
 
     /**
-     * 符号数量: symbol_count
+     * 符号数量: SYMBOL_COUNT
      */
     public final void setSymbolCount(java.lang.Integer value){
         if(onPropSet(PROP_ID_symbolCount,value)){
@@ -459,7 +459,7 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     }
     
     /**
-     * 文件数量: file_count
+     * 文件数量: FILE_COUNT
      */
     public final java.lang.Integer getFileCount(){
          onPropGet(PROP_ID_fileCount);
@@ -467,7 +467,7 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     }
 
     /**
-     * 文件数量: file_count
+     * 文件数量: FILE_COUNT
      */
     public final void setFileCount(java.lang.Integer value){
         if(onPropSet(PROP_ID_fileCount,value)){
@@ -478,7 +478,7 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     }
     
     /**
-     * 状态: status
+     * 状态: STATUS
      */
     public final java.lang.String getStatus(){
          onPropGet(PROP_ID_status);
@@ -486,7 +486,7 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     }
 
     /**
-     * 状态: status
+     * 状态: STATUS
      */
     public final void setStatus(java.lang.String value){
         if(onPropSet(PROP_ID_status,value)){

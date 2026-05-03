@@ -98,6 +98,12 @@
 
                 <!--扩展数据-->
                 <col id="extData" sortable="true"/>
+
+                <!--异步-->
+                <col id="asyncFlag" sortable="true"/>
+
+                <!--只读-->
+                <col id="readonlyFlag" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -119,7 +125,8 @@
  isStatic[static] isSynchronized[synchronized]
  isNative[native] fieldType[字段类型]
  isVolatile[volatile] isTransient[transient]
- extData[扩展数据] 
+ extData[扩展数据] asyncFlag[异步]
+ readonlyFlag[只读] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-符号" i18n-en:title="Add " x:prototype="edit"/>
@@ -138,7 +145,8 @@
  isStatic[static] isSynchronized[synchronized]
  isNative[native] fieldType[字段类型]
  isVolatile[volatile] isTransient[transient]
- extData[扩展数据] 
+ extData[扩展数据] asyncFlag[异步]
+ readonlyFlag[只读] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

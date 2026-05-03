@@ -20,39 +20,39 @@ import io.nop.code.dao.entity.NopCodeUsage;
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopCodeUsage extends DynamicOrmEntity{
     
-    /* ID: id VARCHAR */
+    /* ID: ID VARCHAR */
     public static final String PROP_NAME_id = "id";
     public static final int PROP_ID_id = 1;
     
-    /* 索引ID: index_id VARCHAR */
+    /* 索引ID: INDEX_ID VARCHAR */
     public static final String PROP_NAME_indexId = "indexId";
     public static final int PROP_ID_indexId = 2;
     
-    /* 被引用符号ID: symbol_id VARCHAR */
+    /* 被引用符号ID: SYMBOL_ID VARCHAR */
     public static final String PROP_NAME_symbolId = "symbolId";
     public static final int PROP_ID_symbolId = 3;
     
-    /* 文件ID: file_id VARCHAR */
+    /* 文件ID: FILE_ID VARCHAR */
     public static final String PROP_NAME_fileId = "fileId";
     public static final int PROP_ID_fileId = 4;
     
-    /* 引用类型: kind VARCHAR */
+    /* 引用类型: KIND VARCHAR */
     public static final String PROP_NAME_kind = "kind";
     public static final int PROP_ID_kind = 5;
     
-    /* 行号: line INTEGER */
+    /* 行号: LINE INTEGER */
     public static final String PROP_NAME_line = "line";
     public static final int PROP_ID_line = 6;
     
-    /* 列号: column INTEGER */
+    /* 列号: COLUMN INTEGER */
     public static final String PROP_NAME_column = "column";
     public static final int PROP_ID_column = 7;
     
-    /* 所在符号ID: enclosing_symbol_id VARCHAR */
+    /* 所在符号ID: ENCLOSING_SYMBOL_ID VARCHAR */
     public static final String PROP_NAME_enclosingSymbolId = "enclosingSymbolId";
     public static final int PROP_ID_enclosingSymbolId = 8;
     
-    /* 上下文: context VARCHAR */
+    /* 上下文: CONTEXT VARCHAR */
     public static final String PROP_NAME_context = "context";
     public static final int PROP_ID_context = 9;
     
@@ -110,31 +110,31 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
 
     
-    /* ID: id */
+    /* ID: ID */
     private java.lang.String _id;
     
-    /* 索引ID: index_id */
+    /* 索引ID: INDEX_ID */
     private java.lang.String _indexId;
     
-    /* 被引用符号ID: symbol_id */
+    /* 被引用符号ID: SYMBOL_ID */
     private java.lang.String _symbolId;
     
-    /* 文件ID: file_id */
+    /* 文件ID: FILE_ID */
     private java.lang.String _fileId;
     
-    /* 引用类型: kind */
+    /* 引用类型: KIND */
     private java.lang.String _kind;
     
-    /* 行号: line */
+    /* 行号: LINE */
     private java.lang.Integer _line;
     
-    /* 列号: column */
+    /* 列号: COLUMN */
     private java.lang.Integer _column;
     
-    /* 所在符号ID: enclosing_symbol_id */
+    /* 所在符号ID: ENCLOSING_SYMBOL_ID */
     private java.lang.String _enclosingSymbolId;
     
-    /* 上下文: context */
+    /* 上下文: CONTEXT */
     private java.lang.String _context;
     
 
@@ -418,7 +418,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
 
     
     /**
-     * ID: id
+     * ID: ID
      */
     public final java.lang.String getId(){
          onPropGet(PROP_ID_id);
@@ -426,7 +426,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
 
     /**
-     * ID: id
+     * ID: ID
      */
     public final void setId(java.lang.String value){
         if(onPropSet(PROP_ID_id,value)){
@@ -437,7 +437,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
     
     /**
-     * 索引ID: index_id
+     * 索引ID: INDEX_ID
      */
     public final java.lang.String getIndexId(){
          onPropGet(PROP_ID_indexId);
@@ -445,7 +445,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
 
     /**
-     * 索引ID: index_id
+     * 索引ID: INDEX_ID
      */
     public final void setIndexId(java.lang.String value){
         if(onPropSet(PROP_ID_indexId,value)){
@@ -456,7 +456,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
     
     /**
-     * 被引用符号ID: symbol_id
+     * 被引用符号ID: SYMBOL_ID
      */
     public final java.lang.String getSymbolId(){
          onPropGet(PROP_ID_symbolId);
@@ -464,7 +464,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
 
     /**
-     * 被引用符号ID: symbol_id
+     * 被引用符号ID: SYMBOL_ID
      */
     public final void setSymbolId(java.lang.String value){
         if(onPropSet(PROP_ID_symbolId,value)){
@@ -475,7 +475,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
     
     /**
-     * 文件ID: file_id
+     * 文件ID: FILE_ID
      */
     public final java.lang.String getFileId(){
          onPropGet(PROP_ID_fileId);
@@ -483,7 +483,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
 
     /**
-     * 文件ID: file_id
+     * 文件ID: FILE_ID
      */
     public final void setFileId(java.lang.String value){
         if(onPropSet(PROP_ID_fileId,value)){
@@ -494,7 +494,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
     
     /**
-     * 引用类型: kind
+     * 引用类型: KIND
      */
     public final java.lang.String getKind(){
          onPropGet(PROP_ID_kind);
@@ -502,7 +502,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
 
     /**
-     * 引用类型: kind
+     * 引用类型: KIND
      */
     public final void setKind(java.lang.String value){
         if(onPropSet(PROP_ID_kind,value)){
@@ -513,7 +513,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
     
     /**
-     * 行号: line
+     * 行号: LINE
      */
     public final java.lang.Integer getLine(){
          onPropGet(PROP_ID_line);
@@ -521,7 +521,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
 
     /**
-     * 行号: line
+     * 行号: LINE
      */
     public final void setLine(java.lang.Integer value){
         if(onPropSet(PROP_ID_line,value)){
@@ -532,7 +532,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
     
     /**
-     * 列号: column
+     * 列号: COLUMN
      */
     public final java.lang.Integer getColumn(){
          onPropGet(PROP_ID_column);
@@ -540,7 +540,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
 
     /**
-     * 列号: column
+     * 列号: COLUMN
      */
     public final void setColumn(java.lang.Integer value){
         if(onPropSet(PROP_ID_column,value)){
@@ -551,7 +551,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
     
     /**
-     * 所在符号ID: enclosing_symbol_id
+     * 所在符号ID: ENCLOSING_SYMBOL_ID
      */
     public final java.lang.String getEnclosingSymbolId(){
          onPropGet(PROP_ID_enclosingSymbolId);
@@ -559,7 +559,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
 
     /**
-     * 所在符号ID: enclosing_symbol_id
+     * 所在符号ID: ENCLOSING_SYMBOL_ID
      */
     public final void setEnclosingSymbolId(java.lang.String value){
         if(onPropSet(PROP_ID_enclosingSymbolId,value)){
@@ -570,7 +570,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
     
     /**
-     * 上下文: context
+     * 上下文: CONTEXT
      */
     public final java.lang.String getContext(){
          onPropGet(PROP_ID_context);
@@ -578,7 +578,7 @@ public class _NopCodeUsage extends DynamicOrmEntity{
     }
 
     /**
-     * 上下文: context
+     * 上下文: CONTEXT
      */
     public final void setContext(java.lang.String value){
         if(onPropSet(PROP_ID_context,value)){

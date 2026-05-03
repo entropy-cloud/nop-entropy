@@ -20,120 +20,128 @@ import io.nop.code.dao.entity.NopCodeSymbol;
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopCodeSymbol extends DynamicOrmEntity{
     
-    /* 符号ID: id VARCHAR */
+    /* 符号ID: ID VARCHAR */
     public static final String PROP_NAME_id = "id";
     public static final int PROP_ID_id = 1;
     
-    /* 索引ID: index_id VARCHAR */
+    /* 索引ID: INDEX_ID VARCHAR */
     public static final String PROP_NAME_indexId = "indexId";
     public static final int PROP_ID_indexId = 2;
     
-    /* 文件ID: file_id VARCHAR */
+    /* 文件ID: FILE_ID VARCHAR */
     public static final String PROP_NAME_fileId = "fileId";
     public static final int PROP_ID_fileId = 3;
     
-    /* 符号类型: kind VARCHAR */
+    /* 符号类型: KIND VARCHAR */
     public static final String PROP_NAME_kind = "kind";
     public static final int PROP_ID_kind = 4;
     
-    /* 名称: name VARCHAR */
+    /* 名称: NAME VARCHAR */
     public static final String PROP_NAME_name = "name";
     public static final int PROP_ID_name = 5;
     
-    /* 全限定名: qualified_name VARCHAR */
+    /* 全限定名: QUALIFIED_NAME VARCHAR */
     public static final String PROP_NAME_qualifiedName = "qualifiedName";
     public static final int PROP_ID_qualifiedName = 6;
     
-    /* 访问修饰符: access_modifier VARCHAR */
+    /* 访问修饰符: ACCESS_MODIFIER VARCHAR */
     public static final String PROP_NAME_accessModifier = "accessModifier";
     public static final int PROP_ID_accessModifier = 7;
     
-    /* 已废弃: deprecated BOOLEAN */
+    /* 已废弃: DEPRECATED BOOLEAN */
     public static final String PROP_NAME_deprecated = "deprecated";
     public static final int PROP_ID_deprecated = 8;
     
-    /* 文档注释: documentation VARCHAR */
+    /* 文档注释: DOCUMENTATION VARCHAR */
     public static final String PROP_NAME_documentation = "documentation";
     public static final int PROP_ID_documentation = 9;
     
-    /* 起始行: line INTEGER */
+    /* 起始行: LINE INTEGER */
     public static final String PROP_NAME_line = "line";
     public static final int PROP_ID_line = 10;
     
-    /* 起始列: column INTEGER */
+    /* 起始列: COLUMN INTEGER */
     public static final String PROP_NAME_column = "column";
     public static final int PROP_ID_column = 11;
     
-    /* 结束行: end_line INTEGER */
+    /* 结束行: END_LINE INTEGER */
     public static final String PROP_NAME_endLine = "endLine";
     public static final int PROP_ID_endLine = 12;
     
-    /* 结束列: end_column INTEGER */
+    /* 结束列: END_COLUMN INTEGER */
     public static final String PROP_NAME_endColumn = "endColumn";
     public static final int PROP_ID_endColumn = 13;
     
-    /* 使用次数: usage_count INTEGER */
+    /* 使用次数: USAGE_COUNT INTEGER */
     public static final String PROP_NAME_usageCount = "usageCount";
     public static final int PROP_ID_usageCount = 14;
     
-    /* 父符号ID: parent_id VARCHAR */
+    /* 父符号ID: PARENT_ID VARCHAR */
     public static final String PROP_NAME_parentId = "parentId";
     public static final int PROP_ID_parentId = 15;
     
-    /* 所属类型ID: declaring_symbol_id VARCHAR */
+    /* 所属类型ID: DECLARING_SYMBOL_ID VARCHAR */
     public static final String PROP_NAME_declaringSymbolId = "declaringSymbolId";
     public static final int PROP_ID_declaringSymbolId = 16;
     
-    /* 父类名: super_class_name VARCHAR */
+    /* 父类名: SUPER_CLASS_NAME VARCHAR */
     public static final String PROP_NAME_superClassName = "superClassName";
     public static final int PROP_ID_superClassName = 17;
     
-    /* 抽象: is_abstract BOOLEAN */
+    /* 抽象: IS_ABSTRACT BOOLEAN */
     public static final String PROP_NAME_isAbstract = "isAbstract";
     public static final int PROP_ID_isAbstract = 18;
     
-    /* final: is_final BOOLEAN */
+    /* final: IS_FINAL BOOLEAN */
     public static final String PROP_NAME_isFinal = "isFinal";
     public static final int PROP_ID_isFinal = 19;
     
-    /* 签名: signature VARCHAR */
+    /* 签名: SIGNATURE VARCHAR */
     public static final String PROP_NAME_signature = "signature";
     public static final int PROP_ID_signature = 20;
     
-    /* 返回类型: return_type VARCHAR */
+    /* 返回类型: RETURN_TYPE VARCHAR */
     public static final String PROP_NAME_returnType = "returnType";
     public static final int PROP_ID_returnType = 21;
     
-    /* static: is_static BOOLEAN */
+    /* static: IS_STATIC BOOLEAN */
     public static final String PROP_NAME_isStatic = "isStatic";
     public static final int PROP_ID_isStatic = 22;
     
-    /* synchronized: is_synchronized BOOLEAN */
+    /* synchronized: IS_SYNCHRONIZED BOOLEAN */
     public static final String PROP_NAME_isSynchronized = "isSynchronized";
     public static final int PROP_ID_isSynchronized = 23;
     
-    /* native: is_native BOOLEAN */
+    /* native: IS_NATIVE BOOLEAN */
     public static final String PROP_NAME_isNative = "isNative";
     public static final int PROP_ID_isNative = 24;
     
-    /* 字段类型: field_type VARCHAR */
+    /* 字段类型: FIELD_TYPE VARCHAR */
     public static final String PROP_NAME_fieldType = "fieldType";
     public static final int PROP_ID_fieldType = 25;
     
-    /* volatile: is_volatile BOOLEAN */
+    /* volatile: IS_VOLATILE BOOLEAN */
     public static final String PROP_NAME_isVolatile = "isVolatile";
     public static final int PROP_ID_isVolatile = 26;
     
-    /* transient: is_transient BOOLEAN */
+    /* transient: IS_TRANSIENT BOOLEAN */
     public static final String PROP_NAME_isTransient = "isTransient";
     public static final int PROP_ID_isTransient = 27;
     
-    /* 扩展数据: ext_data VARCHAR */
+    /* 扩展数据: EXT_DATA VARCHAR */
     public static final String PROP_NAME_extData = "extData";
     public static final int PROP_ID_extData = 28;
     
+    /* 异步: ASYNC_FLAG BOOLEAN */
+    public static final String PROP_NAME_asyncFlag = "asyncFlag";
+    public static final int PROP_ID_asyncFlag = 29;
+    
+    /* 只读: READONLY_FLAG BOOLEAN */
+    public static final String PROP_NAME_readonlyFlag = "readonlyFlag";
+    public static final int PROP_ID_readonlyFlag = 30;
+    
 
-    private static int _PROP_ID_BOUND = 29;
+    private static int _PROP_ID_BOUND = 31;
 
     
     /* relation:  */
@@ -185,7 +193,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
 
-    private static final String[] PROP_ID_TO_NAME = new String[29];
+    private static final String[] PROP_ID_TO_NAME = new String[31];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -273,92 +281,104 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_extData] = PROP_NAME_extData;
           PROP_NAME_TO_ID.put(PROP_NAME_extData, PROP_ID_extData);
       
+          PROP_ID_TO_NAME[PROP_ID_asyncFlag] = PROP_NAME_asyncFlag;
+          PROP_NAME_TO_ID.put(PROP_NAME_asyncFlag, PROP_ID_asyncFlag);
+      
+          PROP_ID_TO_NAME[PROP_ID_readonlyFlag] = PROP_NAME_readonlyFlag;
+          PROP_NAME_TO_ID.put(PROP_NAME_readonlyFlag, PROP_ID_readonlyFlag);
+      
     }
 
     
-    /* 符号ID: id */
+    /* 符号ID: ID */
     private java.lang.String _id;
     
-    /* 索引ID: index_id */
+    /* 索引ID: INDEX_ID */
     private java.lang.String _indexId;
     
-    /* 文件ID: file_id */
+    /* 文件ID: FILE_ID */
     private java.lang.String _fileId;
     
-    /* 符号类型: kind */
+    /* 符号类型: KIND */
     private java.lang.String _kind;
     
-    /* 名称: name */
+    /* 名称: NAME */
     private java.lang.String _name;
     
-    /* 全限定名: qualified_name */
+    /* 全限定名: QUALIFIED_NAME */
     private java.lang.String _qualifiedName;
     
-    /* 访问修饰符: access_modifier */
+    /* 访问修饰符: ACCESS_MODIFIER */
     private java.lang.String _accessModifier;
     
-    /* 已废弃: deprecated */
+    /* 已废弃: DEPRECATED */
     private java.lang.Boolean _deprecated;
     
-    /* 文档注释: documentation */
+    /* 文档注释: DOCUMENTATION */
     private java.lang.String _documentation;
     
-    /* 起始行: line */
+    /* 起始行: LINE */
     private java.lang.Integer _line;
     
-    /* 起始列: column */
+    /* 起始列: COLUMN */
     private java.lang.Integer _column;
     
-    /* 结束行: end_line */
+    /* 结束行: END_LINE */
     private java.lang.Integer _endLine;
     
-    /* 结束列: end_column */
+    /* 结束列: END_COLUMN */
     private java.lang.Integer _endColumn;
     
-    /* 使用次数: usage_count */
+    /* 使用次数: USAGE_COUNT */
     private java.lang.Integer _usageCount;
     
-    /* 父符号ID: parent_id */
+    /* 父符号ID: PARENT_ID */
     private java.lang.String _parentId;
     
-    /* 所属类型ID: declaring_symbol_id */
+    /* 所属类型ID: DECLARING_SYMBOL_ID */
     private java.lang.String _declaringSymbolId;
     
-    /* 父类名: super_class_name */
+    /* 父类名: SUPER_CLASS_NAME */
     private java.lang.String _superClassName;
     
-    /* 抽象: is_abstract */
+    /* 抽象: IS_ABSTRACT */
     private java.lang.Boolean _isAbstract;
     
-    /* final: is_final */
+    /* final: IS_FINAL */
     private java.lang.Boolean _isFinal;
     
-    /* 签名: signature */
+    /* 签名: SIGNATURE */
     private java.lang.String _signature;
     
-    /* 返回类型: return_type */
+    /* 返回类型: RETURN_TYPE */
     private java.lang.String _returnType;
     
-    /* static: is_static */
+    /* static: IS_STATIC */
     private java.lang.Boolean _isStatic;
     
-    /* synchronized: is_synchronized */
+    /* synchronized: IS_SYNCHRONIZED */
     private java.lang.Boolean _isSynchronized;
     
-    /* native: is_native */
+    /* native: IS_NATIVE */
     private java.lang.Boolean _isNative;
     
-    /* 字段类型: field_type */
+    /* 字段类型: FIELD_TYPE */
     private java.lang.String _fieldType;
     
-    /* volatile: is_volatile */
+    /* volatile: IS_VOLATILE */
     private java.lang.Boolean _isVolatile;
     
-    /* transient: is_transient */
+    /* transient: IS_TRANSIENT */
     private java.lang.Boolean _isTransient;
     
-    /* 扩展数据: ext_data */
+    /* 扩展数据: EXT_DATA */
     private java.lang.String _extData;
+    
+    /* 异步: ASYNC_FLAG */
+    private java.lang.Boolean _asyncFlag;
+    
+    /* 只读: READONLY_FLAG */
+    private java.lang.Boolean _readonlyFlag;
     
 
     public _NopCodeSymbol(){
@@ -517,6 +537,12 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
         
             case PROP_ID_extData:
                return getExtData();
+        
+            case PROP_ID_asyncFlag:
+               return getAsyncFlag();
+        
+            case PROP_ID_readonlyFlag:
+               return getReadonlyFlag();
         
            default:
               return super.orm_propValue(propId);
@@ -809,6 +835,26 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_asyncFlag:{
+               java.lang.Boolean typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBoolean(value,
+                       err-> newTypeConversionError(PROP_NAME_asyncFlag));
+               }
+               setAsyncFlag(typedValue);
+               break;
+            }
+        
+            case PROP_ID_readonlyFlag:{
+               java.lang.Boolean typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBoolean(value,
+                       err-> newTypeConversionError(PROP_NAME_readonlyFlag));
+               }
+               setReadonlyFlag(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -1014,6 +1060,20 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_asyncFlag:{
+               onInitProp(propId);
+               this._asyncFlag = (java.lang.Boolean)value;
+               
+               break;
+            }
+        
+            case PROP_ID_readonlyFlag:{
+               onInitProp(propId);
+               this._readonlyFlag = (java.lang.Boolean)value;
+               
+               break;
+            }
+        
            default:
               super.orm_internalSet(propId,value);
         }
@@ -1021,7 +1081,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
 
     
     /**
-     * 符号ID: id
+     * 符号ID: ID
      */
     public final java.lang.String getId(){
          onPropGet(PROP_ID_id);
@@ -1029,7 +1089,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 符号ID: id
+     * 符号ID: ID
      */
     public final void setId(java.lang.String value){
         if(onPropSet(PROP_ID_id,value)){
@@ -1040,7 +1100,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 索引ID: index_id
+     * 索引ID: INDEX_ID
      */
     public final java.lang.String getIndexId(){
          onPropGet(PROP_ID_indexId);
@@ -1048,7 +1108,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 索引ID: index_id
+     * 索引ID: INDEX_ID
      */
     public final void setIndexId(java.lang.String value){
         if(onPropSet(PROP_ID_indexId,value)){
@@ -1059,7 +1119,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 文件ID: file_id
+     * 文件ID: FILE_ID
      */
     public final java.lang.String getFileId(){
          onPropGet(PROP_ID_fileId);
@@ -1067,7 +1127,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 文件ID: file_id
+     * 文件ID: FILE_ID
      */
     public final void setFileId(java.lang.String value){
         if(onPropSet(PROP_ID_fileId,value)){
@@ -1078,7 +1138,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 符号类型: kind
+     * 符号类型: KIND
      */
     public final java.lang.String getKind(){
          onPropGet(PROP_ID_kind);
@@ -1086,7 +1146,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 符号类型: kind
+     * 符号类型: KIND
      */
     public final void setKind(java.lang.String value){
         if(onPropSet(PROP_ID_kind,value)){
@@ -1097,7 +1157,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 名称: name
+     * 名称: NAME
      */
     public final java.lang.String getName(){
          onPropGet(PROP_ID_name);
@@ -1105,7 +1165,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 名称: name
+     * 名称: NAME
      */
     public final void setName(java.lang.String value){
         if(onPropSet(PROP_ID_name,value)){
@@ -1116,7 +1176,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 全限定名: qualified_name
+     * 全限定名: QUALIFIED_NAME
      */
     public final java.lang.String getQualifiedName(){
          onPropGet(PROP_ID_qualifiedName);
@@ -1124,7 +1184,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 全限定名: qualified_name
+     * 全限定名: QUALIFIED_NAME
      */
     public final void setQualifiedName(java.lang.String value){
         if(onPropSet(PROP_ID_qualifiedName,value)){
@@ -1135,7 +1195,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 访问修饰符: access_modifier
+     * 访问修饰符: ACCESS_MODIFIER
      */
     public final java.lang.String getAccessModifier(){
          onPropGet(PROP_ID_accessModifier);
@@ -1143,7 +1203,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 访问修饰符: access_modifier
+     * 访问修饰符: ACCESS_MODIFIER
      */
     public final void setAccessModifier(java.lang.String value){
         if(onPropSet(PROP_ID_accessModifier,value)){
@@ -1154,7 +1214,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 已废弃: deprecated
+     * 已废弃: DEPRECATED
      */
     public final java.lang.Boolean getDeprecated(){
          onPropGet(PROP_ID_deprecated);
@@ -1162,7 +1222,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 已废弃: deprecated
+     * 已废弃: DEPRECATED
      */
     public final void setDeprecated(java.lang.Boolean value){
         if(onPropSet(PROP_ID_deprecated,value)){
@@ -1173,7 +1233,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 文档注释: documentation
+     * 文档注释: DOCUMENTATION
      */
     public final java.lang.String getDocumentation(){
          onPropGet(PROP_ID_documentation);
@@ -1181,7 +1241,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 文档注释: documentation
+     * 文档注释: DOCUMENTATION
      */
     public final void setDocumentation(java.lang.String value){
         if(onPropSet(PROP_ID_documentation,value)){
@@ -1192,7 +1252,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 起始行: line
+     * 起始行: LINE
      */
     public final java.lang.Integer getLine(){
          onPropGet(PROP_ID_line);
@@ -1200,7 +1260,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 起始行: line
+     * 起始行: LINE
      */
     public final void setLine(java.lang.Integer value){
         if(onPropSet(PROP_ID_line,value)){
@@ -1211,7 +1271,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 起始列: column
+     * 起始列: COLUMN
      */
     public final java.lang.Integer getColumn(){
          onPropGet(PROP_ID_column);
@@ -1219,7 +1279,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 起始列: column
+     * 起始列: COLUMN
      */
     public final void setColumn(java.lang.Integer value){
         if(onPropSet(PROP_ID_column,value)){
@@ -1230,7 +1290,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 结束行: end_line
+     * 结束行: END_LINE
      */
     public final java.lang.Integer getEndLine(){
          onPropGet(PROP_ID_endLine);
@@ -1238,7 +1298,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 结束行: end_line
+     * 结束行: END_LINE
      */
     public final void setEndLine(java.lang.Integer value){
         if(onPropSet(PROP_ID_endLine,value)){
@@ -1249,7 +1309,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 结束列: end_column
+     * 结束列: END_COLUMN
      */
     public final java.lang.Integer getEndColumn(){
          onPropGet(PROP_ID_endColumn);
@@ -1257,7 +1317,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 结束列: end_column
+     * 结束列: END_COLUMN
      */
     public final void setEndColumn(java.lang.Integer value){
         if(onPropSet(PROP_ID_endColumn,value)){
@@ -1268,7 +1328,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 使用次数: usage_count
+     * 使用次数: USAGE_COUNT
      */
     public final java.lang.Integer getUsageCount(){
          onPropGet(PROP_ID_usageCount);
@@ -1276,7 +1336,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 使用次数: usage_count
+     * 使用次数: USAGE_COUNT
      */
     public final void setUsageCount(java.lang.Integer value){
         if(onPropSet(PROP_ID_usageCount,value)){
@@ -1287,7 +1347,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 父符号ID: parent_id
+     * 父符号ID: PARENT_ID
      */
     public final java.lang.String getParentId(){
          onPropGet(PROP_ID_parentId);
@@ -1295,7 +1355,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 父符号ID: parent_id
+     * 父符号ID: PARENT_ID
      */
     public final void setParentId(java.lang.String value){
         if(onPropSet(PROP_ID_parentId,value)){
@@ -1306,7 +1366,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 所属类型ID: declaring_symbol_id
+     * 所属类型ID: DECLARING_SYMBOL_ID
      */
     public final java.lang.String getDeclaringSymbolId(){
          onPropGet(PROP_ID_declaringSymbolId);
@@ -1314,7 +1374,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 所属类型ID: declaring_symbol_id
+     * 所属类型ID: DECLARING_SYMBOL_ID
      */
     public final void setDeclaringSymbolId(java.lang.String value){
         if(onPropSet(PROP_ID_declaringSymbolId,value)){
@@ -1325,7 +1385,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 父类名: super_class_name
+     * 父类名: SUPER_CLASS_NAME
      */
     public final java.lang.String getSuperClassName(){
          onPropGet(PROP_ID_superClassName);
@@ -1333,7 +1393,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 父类名: super_class_name
+     * 父类名: SUPER_CLASS_NAME
      */
     public final void setSuperClassName(java.lang.String value){
         if(onPropSet(PROP_ID_superClassName,value)){
@@ -1344,7 +1404,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 抽象: is_abstract
+     * 抽象: IS_ABSTRACT
      */
     public final java.lang.Boolean getIsAbstract(){
          onPropGet(PROP_ID_isAbstract);
@@ -1352,7 +1412,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 抽象: is_abstract
+     * 抽象: IS_ABSTRACT
      */
     public final void setIsAbstract(java.lang.Boolean value){
         if(onPropSet(PROP_ID_isAbstract,value)){
@@ -1363,7 +1423,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * final: is_final
+     * final: IS_FINAL
      */
     public final java.lang.Boolean getIsFinal(){
          onPropGet(PROP_ID_isFinal);
@@ -1371,7 +1431,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * final: is_final
+     * final: IS_FINAL
      */
     public final void setIsFinal(java.lang.Boolean value){
         if(onPropSet(PROP_ID_isFinal,value)){
@@ -1382,7 +1442,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 签名: signature
+     * 签名: SIGNATURE
      */
     public final java.lang.String getSignature(){
          onPropGet(PROP_ID_signature);
@@ -1390,7 +1450,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 签名: signature
+     * 签名: SIGNATURE
      */
     public final void setSignature(java.lang.String value){
         if(onPropSet(PROP_ID_signature,value)){
@@ -1401,7 +1461,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 返回类型: return_type
+     * 返回类型: RETURN_TYPE
      */
     public final java.lang.String getReturnType(){
          onPropGet(PROP_ID_returnType);
@@ -1409,7 +1469,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 返回类型: return_type
+     * 返回类型: RETURN_TYPE
      */
     public final void setReturnType(java.lang.String value){
         if(onPropSet(PROP_ID_returnType,value)){
@@ -1420,7 +1480,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * static: is_static
+     * static: IS_STATIC
      */
     public final java.lang.Boolean getIsStatic(){
          onPropGet(PROP_ID_isStatic);
@@ -1428,7 +1488,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * static: is_static
+     * static: IS_STATIC
      */
     public final void setIsStatic(java.lang.Boolean value){
         if(onPropSet(PROP_ID_isStatic,value)){
@@ -1439,7 +1499,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * synchronized: is_synchronized
+     * synchronized: IS_SYNCHRONIZED
      */
     public final java.lang.Boolean getIsSynchronized(){
          onPropGet(PROP_ID_isSynchronized);
@@ -1447,7 +1507,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * synchronized: is_synchronized
+     * synchronized: IS_SYNCHRONIZED
      */
     public final void setIsSynchronized(java.lang.Boolean value){
         if(onPropSet(PROP_ID_isSynchronized,value)){
@@ -1458,7 +1518,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * native: is_native
+     * native: IS_NATIVE
      */
     public final java.lang.Boolean getIsNative(){
          onPropGet(PROP_ID_isNative);
@@ -1466,7 +1526,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * native: is_native
+     * native: IS_NATIVE
      */
     public final void setIsNative(java.lang.Boolean value){
         if(onPropSet(PROP_ID_isNative,value)){
@@ -1477,7 +1537,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 字段类型: field_type
+     * 字段类型: FIELD_TYPE
      */
     public final java.lang.String getFieldType(){
          onPropGet(PROP_ID_fieldType);
@@ -1485,7 +1545,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 字段类型: field_type
+     * 字段类型: FIELD_TYPE
      */
     public final void setFieldType(java.lang.String value){
         if(onPropSet(PROP_ID_fieldType,value)){
@@ -1496,7 +1556,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * volatile: is_volatile
+     * volatile: IS_VOLATILE
      */
     public final java.lang.Boolean getIsVolatile(){
          onPropGet(PROP_ID_isVolatile);
@@ -1504,7 +1564,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * volatile: is_volatile
+     * volatile: IS_VOLATILE
      */
     public final void setIsVolatile(java.lang.Boolean value){
         if(onPropSet(PROP_ID_isVolatile,value)){
@@ -1515,7 +1575,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * transient: is_transient
+     * transient: IS_TRANSIENT
      */
     public final java.lang.Boolean getIsTransient(){
          onPropGet(PROP_ID_isTransient);
@@ -1523,7 +1583,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * transient: is_transient
+     * transient: IS_TRANSIENT
      */
     public final void setIsTransient(java.lang.Boolean value){
         if(onPropSet(PROP_ID_isTransient,value)){
@@ -1534,7 +1594,7 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
     
     /**
-     * 扩展数据: ext_data
+     * 扩展数据: EXT_DATA
      */
     public final java.lang.String getExtData(){
          onPropGet(PROP_ID_extData);
@@ -1542,12 +1602,50 @@ public class _NopCodeSymbol extends DynamicOrmEntity{
     }
 
     /**
-     * 扩展数据: ext_data
+     * 扩展数据: EXT_DATA
      */
     public final void setExtData(java.lang.String value){
         if(onPropSet(PROP_ID_extData,value)){
             this._extData = value;
             internalClearRefs(PROP_ID_extData);
+            
+        }
+    }
+    
+    /**
+     * 异步: ASYNC_FLAG
+     */
+    public final java.lang.Boolean getAsyncFlag(){
+         onPropGet(PROP_ID_asyncFlag);
+         return _asyncFlag;
+    }
+
+    /**
+     * 异步: ASYNC_FLAG
+     */
+    public final void setAsyncFlag(java.lang.Boolean value){
+        if(onPropSet(PROP_ID_asyncFlag,value)){
+            this._asyncFlag = value;
+            internalClearRefs(PROP_ID_asyncFlag);
+            
+        }
+    }
+    
+    /**
+     * 只读: READONLY_FLAG
+     */
+    public final java.lang.Boolean getReadonlyFlag(){
+         onPropGet(PROP_ID_readonlyFlag);
+         return _readonlyFlag;
+    }
+
+    /**
+     * 只读: READONLY_FLAG
+     */
+    public final void setReadonlyFlag(java.lang.Boolean value){
+        if(onPropSet(PROP_ID_readonlyFlag,value)){
+            this._readonlyFlag = value;
+            internalClearRefs(PROP_ID_readonlyFlag);
             
         }
     }

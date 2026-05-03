@@ -20,39 +20,39 @@ import io.nop.code.dao.entity.NopCodeCall;
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopCodeCall extends DynamicOrmEntity{
     
-    /* ID: id VARCHAR */
+    /* ID: ID VARCHAR */
     public static final String PROP_NAME_id = "id";
     public static final int PROP_ID_id = 1;
     
-    /* 索引ID: index_id VARCHAR */
+    /* 索引ID: INDEX_ID VARCHAR */
     public static final String PROP_NAME_indexId = "indexId";
     public static final int PROP_ID_indexId = 2;
     
-    /* 调用方ID: caller_id VARCHAR */
+    /* 调用方ID: CALLER_ID VARCHAR */
     public static final String PROP_NAME_callerId = "callerId";
     public static final int PROP_ID_callerId = 3;
     
-    /* 被调用方ID: callee_id VARCHAR */
+    /* 被调用方ID: CALLEE_ID VARCHAR */
     public static final String PROP_NAME_calleeId = "calleeId";
     public static final int PROP_ID_calleeId = 4;
     
-    /* 文件ID: file_id VARCHAR */
+    /* 文件ID: FILE_ID VARCHAR */
     public static final String PROP_NAME_fileId = "fileId";
     public static final int PROP_ID_fileId = 5;
     
-    /* 行号: line INTEGER */
+    /* 行号: LINE INTEGER */
     public static final String PROP_NAME_line = "line";
     public static final int PROP_ID_line = 6;
     
-    /* 列号: column INTEGER */
+    /* 列号: COLUMN INTEGER */
     public static final String PROP_NAME_column = "column";
     public static final int PROP_ID_column = 7;
     
-    /* 调用类型: call_type VARCHAR */
+    /* 调用类型: CALL_TYPE VARCHAR */
     public static final String PROP_NAME_callType = "callType";
     public static final int PROP_ID_callType = 8;
     
-    /* 上下文: context VARCHAR */
+    /* 上下文: CONTEXT VARCHAR */
     public static final String PROP_NAME_context = "context";
     public static final int PROP_ID_context = 9;
     
@@ -110,31 +110,31 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
 
     
-    /* ID: id */
+    /* ID: ID */
     private java.lang.String _id;
     
-    /* 索引ID: index_id */
+    /* 索引ID: INDEX_ID */
     private java.lang.String _indexId;
     
-    /* 调用方ID: caller_id */
+    /* 调用方ID: CALLER_ID */
     private java.lang.String _callerId;
     
-    /* 被调用方ID: callee_id */
+    /* 被调用方ID: CALLEE_ID */
     private java.lang.String _calleeId;
     
-    /* 文件ID: file_id */
+    /* 文件ID: FILE_ID */
     private java.lang.String _fileId;
     
-    /* 行号: line */
+    /* 行号: LINE */
     private java.lang.Integer _line;
     
-    /* 列号: column */
+    /* 列号: COLUMN */
     private java.lang.Integer _column;
     
-    /* 调用类型: call_type */
+    /* 调用类型: CALL_TYPE */
     private java.lang.String _callType;
     
-    /* 上下文: context */
+    /* 上下文: CONTEXT */
     private java.lang.String _context;
     
 
@@ -418,7 +418,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
 
     
     /**
-     * ID: id
+     * ID: ID
      */
     public final java.lang.String getId(){
          onPropGet(PROP_ID_id);
@@ -426,7 +426,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
 
     /**
-     * ID: id
+     * ID: ID
      */
     public final void setId(java.lang.String value){
         if(onPropSet(PROP_ID_id,value)){
@@ -437,7 +437,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
     
     /**
-     * 索引ID: index_id
+     * 索引ID: INDEX_ID
      */
     public final java.lang.String getIndexId(){
          onPropGet(PROP_ID_indexId);
@@ -445,7 +445,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
 
     /**
-     * 索引ID: index_id
+     * 索引ID: INDEX_ID
      */
     public final void setIndexId(java.lang.String value){
         if(onPropSet(PROP_ID_indexId,value)){
@@ -456,7 +456,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
     
     /**
-     * 调用方ID: caller_id
+     * 调用方ID: CALLER_ID
      */
     public final java.lang.String getCallerId(){
          onPropGet(PROP_ID_callerId);
@@ -464,7 +464,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
 
     /**
-     * 调用方ID: caller_id
+     * 调用方ID: CALLER_ID
      */
     public final void setCallerId(java.lang.String value){
         if(onPropSet(PROP_ID_callerId,value)){
@@ -475,7 +475,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
     
     /**
-     * 被调用方ID: callee_id
+     * 被调用方ID: CALLEE_ID
      */
     public final java.lang.String getCalleeId(){
          onPropGet(PROP_ID_calleeId);
@@ -483,7 +483,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
 
     /**
-     * 被调用方ID: callee_id
+     * 被调用方ID: CALLEE_ID
      */
     public final void setCalleeId(java.lang.String value){
         if(onPropSet(PROP_ID_calleeId,value)){
@@ -494,7 +494,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
     
     /**
-     * 文件ID: file_id
+     * 文件ID: FILE_ID
      */
     public final java.lang.String getFileId(){
          onPropGet(PROP_ID_fileId);
@@ -502,7 +502,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
 
     /**
-     * 文件ID: file_id
+     * 文件ID: FILE_ID
      */
     public final void setFileId(java.lang.String value){
         if(onPropSet(PROP_ID_fileId,value)){
@@ -513,7 +513,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
     
     /**
-     * 行号: line
+     * 行号: LINE
      */
     public final java.lang.Integer getLine(){
          onPropGet(PROP_ID_line);
@@ -521,7 +521,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
 
     /**
-     * 行号: line
+     * 行号: LINE
      */
     public final void setLine(java.lang.Integer value){
         if(onPropSet(PROP_ID_line,value)){
@@ -532,7 +532,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
     
     /**
-     * 列号: column
+     * 列号: COLUMN
      */
     public final java.lang.Integer getColumn(){
          onPropGet(PROP_ID_column);
@@ -540,7 +540,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
 
     /**
-     * 列号: column
+     * 列号: COLUMN
      */
     public final void setColumn(java.lang.Integer value){
         if(onPropSet(PROP_ID_column,value)){
@@ -551,7 +551,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
     
     /**
-     * 调用类型: call_type
+     * 调用类型: CALL_TYPE
      */
     public final java.lang.String getCallType(){
          onPropGet(PROP_ID_callType);
@@ -559,7 +559,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
 
     /**
-     * 调用类型: call_type
+     * 调用类型: CALL_TYPE
      */
     public final void setCallType(java.lang.String value){
         if(onPropSet(PROP_ID_callType,value)){
@@ -570,7 +570,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
     
     /**
-     * 上下文: context
+     * 上下文: CONTEXT
      */
     public final java.lang.String getContext(){
          onPropGet(PROP_ID_context);
@@ -578,7 +578,7 @@ public class _NopCodeCall extends DynamicOrmEntity{
     }
 
     /**
-     * 上下文: context
+     * 上下文: CONTEXT
      */
     public final void setContext(java.lang.String value){
         if(onPropSet(PROP_ID_context,value)){

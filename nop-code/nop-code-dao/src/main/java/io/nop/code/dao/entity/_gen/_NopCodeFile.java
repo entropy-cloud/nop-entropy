@@ -20,35 +20,35 @@ import io.nop.code.dao.entity.NopCodeFile;
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopCodeFile extends DynamicOrmEntity{
     
-    /* 文件ID: id VARCHAR */
+    /* 文件ID: ID VARCHAR */
     public static final String PROP_NAME_id = "id";
     public static final int PROP_ID_id = 1;
     
-    /* 索引ID: index_id VARCHAR */
+    /* 索引ID: INDEX_ID VARCHAR */
     public static final String PROP_NAME_indexId = "indexId";
     public static final int PROP_ID_indexId = 2;
     
-    /* 文件路径: file_path VARCHAR */
+    /* 文件路径: FILE_PATH VARCHAR */
     public static final String PROP_NAME_filePath = "filePath";
     public static final int PROP_ID_filePath = 3;
     
-    /* 包名: package_name VARCHAR */
+    /* 包名: PACKAGE_NAME VARCHAR */
     public static final String PROP_NAME_packageName = "packageName";
     public static final int PROP_ID_packageName = 4;
     
-    /* 语言: language VARCHAR */
+    /* 语言: LANGUAGE VARCHAR */
     public static final String PROP_NAME_language = "language";
     public static final int PROP_ID_language = 5;
     
-    /* 行数: line_count INTEGER */
+    /* 行数: LINE_COUNT INTEGER */
     public static final String PROP_NAME_lineCount = "lineCount";
     public static final int PROP_ID_lineCount = 6;
     
-    /* 导入列表: imports VARCHAR */
+    /* 导入列表: IMPORTS VARCHAR */
     public static final String PROP_NAME_imports = "imports";
     public static final int PROP_ID_imports = 7;
     
-    /* 源代码: source_code VARCHAR */
+    /* 源代码: SOURCE_CODE VARCHAR */
     public static final String PROP_NAME_sourceCode = "sourceCode";
     public static final int PROP_ID_sourceCode = 8;
     
@@ -109,28 +109,28 @@ public class _NopCodeFile extends DynamicOrmEntity{
     }
 
     
-    /* 文件ID: id */
+    /* 文件ID: ID */
     private java.lang.String _id;
     
-    /* 索引ID: index_id */
+    /* 索引ID: INDEX_ID */
     private java.lang.String _indexId;
     
-    /* 文件路径: file_path */
+    /* 文件路径: FILE_PATH */
     private java.lang.String _filePath;
     
-    /* 包名: package_name */
+    /* 包名: PACKAGE_NAME */
     private java.lang.String _packageName;
     
-    /* 语言: language */
+    /* 语言: LANGUAGE */
     private java.lang.String _language;
     
-    /* 行数: line_count */
+    /* 行数: LINE_COUNT */
     private java.lang.Integer _lineCount;
     
-    /* 导入列表: imports */
+    /* 导入列表: IMPORTS */
     private java.lang.String _imports;
     
-    /* 源代码: source_code */
+    /* 源代码: SOURCE_CODE */
     private java.lang.String _sourceCode;
     
 
@@ -394,7 +394,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
 
     
     /**
-     * 文件ID: id
+     * 文件ID: ID
      */
     public final java.lang.String getId(){
          onPropGet(PROP_ID_id);
@@ -402,7 +402,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
     }
 
     /**
-     * 文件ID: id
+     * 文件ID: ID
      */
     public final void setId(java.lang.String value){
         if(onPropSet(PROP_ID_id,value)){
@@ -413,7 +413,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
     }
     
     /**
-     * 索引ID: index_id
+     * 索引ID: INDEX_ID
      */
     public final java.lang.String getIndexId(){
          onPropGet(PROP_ID_indexId);
@@ -421,7 +421,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
     }
 
     /**
-     * 索引ID: index_id
+     * 索引ID: INDEX_ID
      */
     public final void setIndexId(java.lang.String value){
         if(onPropSet(PROP_ID_indexId,value)){
@@ -432,7 +432,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
     }
     
     /**
-     * 文件路径: file_path
+     * 文件路径: FILE_PATH
      */
     public final java.lang.String getFilePath(){
          onPropGet(PROP_ID_filePath);
@@ -440,7 +440,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
     }
 
     /**
-     * 文件路径: file_path
+     * 文件路径: FILE_PATH
      */
     public final void setFilePath(java.lang.String value){
         if(onPropSet(PROP_ID_filePath,value)){
@@ -451,7 +451,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
     }
     
     /**
-     * 包名: package_name
+     * 包名: PACKAGE_NAME
      */
     public final java.lang.String getPackageName(){
          onPropGet(PROP_ID_packageName);
@@ -459,7 +459,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
     }
 
     /**
-     * 包名: package_name
+     * 包名: PACKAGE_NAME
      */
     public final void setPackageName(java.lang.String value){
         if(onPropSet(PROP_ID_packageName,value)){
@@ -470,7 +470,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
     }
     
     /**
-     * 语言: language
+     * 语言: LANGUAGE
      */
     public final java.lang.String getLanguage(){
          onPropGet(PROP_ID_language);
@@ -478,7 +478,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
     }
 
     /**
-     * 语言: language
+     * 语言: LANGUAGE
      */
     public final void setLanguage(java.lang.String value){
         if(onPropSet(PROP_ID_language,value)){
@@ -489,7 +489,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
     }
     
     /**
-     * 行数: line_count
+     * 行数: LINE_COUNT
      */
     public final java.lang.Integer getLineCount(){
          onPropGet(PROP_ID_lineCount);
@@ -497,7 +497,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
     }
 
     /**
-     * 行数: line_count
+     * 行数: LINE_COUNT
      */
     public final void setLineCount(java.lang.Integer value){
         if(onPropSet(PROP_ID_lineCount,value)){
@@ -508,7 +508,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
     }
     
     /**
-     * 导入列表: imports
+     * 导入列表: IMPORTS
      */
     public final java.lang.String getImports(){
          onPropGet(PROP_ID_imports);
@@ -516,7 +516,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
     }
 
     /**
-     * 导入列表: imports
+     * 导入列表: IMPORTS
      */
     public final void setImports(java.lang.String value){
         if(onPropSet(PROP_ID_imports,value)){
@@ -527,7 +527,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
     }
     
     /**
-     * 源代码: source_code
+     * 源代码: SOURCE_CODE
      */
     public final java.lang.String getSourceCode(){
          onPropGet(PROP_ID_sourceCode);
@@ -535,7 +535,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
     }
 
     /**
-     * 源代码: source_code
+     * 源代码: SOURCE_CODE
      */
     public final void setSourceCode(java.lang.String value){
         if(onPropSet(PROP_ID_sourceCode,value)){

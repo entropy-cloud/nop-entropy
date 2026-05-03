@@ -21,8 +21,24 @@ options:
     value: 40
     description: 
   
+  - label: 类型别名
+    value: 45
+    description: 
+  
+  - label: Mixin
+    value: 46
+    description: 
+  
+  - label: 装饰器
+    value: 47
+    description: 
+  
   - label: 方法
     value: 50
+    description: 
+  
+  - label: 函数
+    value: 55
     description: 
   
   - label: 构造器
@@ -33,7 +49,27 @@ options:
     value: 70
     description: 
   
-  - label: 枚举常量
+  - label: 常量
     value: 80
+    description: 
+  
+  - label: 命名空间
+    value: 90
+    description: 
+  
+  - label: 参数
+    value: 95
+    description: 
+  
+  - label: 局部变量
+    value: 96
+    description: 
+  
+  - label: 类型参数
+    value: 97
+    description: 
+  
+  - label: 导入
+    value: 98
     description: 
   

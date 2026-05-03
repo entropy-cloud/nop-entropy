@@ -24,9 +24,29 @@ public interface _NopCodeDaoConstants {
     int SYMBOL_KIND_ANNOTATION_TYPE = 40;
                     
     /**
+     * 符号类型: 类型别名 
+     */
+    int SYMBOL_KIND_TYPE_ALIAS = 45;
+                    
+    /**
+     * 符号类型: Mixin 
+     */
+    int SYMBOL_KIND_MIXIN = 46;
+                    
+    /**
+     * 符号类型: 装饰器 
+     */
+    int SYMBOL_KIND_DECORATOR = 47;
+                    
+    /**
      * 符号类型: 方法 
      */
     int SYMBOL_KIND_METHOD = 50;
+                    
+    /**
+     * 符号类型: 函数 
+     */
+    int SYMBOL_KIND_FUNCTION = 55;
                     
     /**
      * 符号类型: 构造器 
@@ -39,9 +59,34 @@ public interface _NopCodeDaoConstants {
     int SYMBOL_KIND_FIELD = 70;
                     
     /**
-     * 符号类型: 枚举常量 
+     * 符号类型: 常量 
      */
-    int SYMBOL_KIND_ENUM_CONSTANT = 80;
+    int SYMBOL_KIND_CONSTANT = 80;
+                    
+    /**
+     * 符号类型: 命名空间 
+     */
+    int SYMBOL_KIND_NAMESPACE = 90;
+                    
+    /**
+     * 符号类型: 参数 
+     */
+    int SYMBOL_KIND_PARAMETER = 95;
+                    
+    /**
+     * 符号类型: 局部变量 
+     */
+    int SYMBOL_KIND_LOCAL_VARIABLE = 96;
+                    
+    /**
+     * 符号类型: 类型参数 
+     */
+    int SYMBOL_KIND_TYPE_PARAMETER = 97;
+                    
+    /**
+     * 符号类型: 导入 
+     */
+    int SYMBOL_KIND_IMPORT = 98;
                     
     /**
      * 访问修饰符: 公开 
@@ -62,6 +107,16 @@ public interface _NopCodeDaoConstants {
      * 访问修饰符: 包私有 
      */
     int ACCESS_MODIFIER_PACKAGE_PRIVATE = 40;
+                    
+    /**
+     * 访问修饰符: 内部 
+     */
+    int ACCESS_MODIFIER_INTERNAL = 41;
+                    
+    /**
+     * 访问修饰符: 无修饰符 
+     */
+    int ACCESS_MODIFIER_NO_MODIFIER = 50;
                     
     /**
      * 引用类型: 读取 
@@ -127,5 +182,25 @@ public interface _NopCodeDaoConstants {
      * 索引状态: 错误 
      */
     int INDEX_STATUS_ERROR = 40;
+                    
+    /**
+     * 编程语言: Java 
+     */
+    int LANGUAGE_JAVA = 10;
+                    
+    /**
+     * 编程语言: Python 
+     */
+    int LANGUAGE_PYTHON = 20;
+                    
+    /**
+     * 编程语言: TypeScript 
+     */
+    int LANGUAGE_TYPESCRIPT = 30;
+                    
+    /**
+     * 编程语言: JavaScript 
+     */
+    int LANGUAGE_JAVASCRIPT = 40;
                     
 }
