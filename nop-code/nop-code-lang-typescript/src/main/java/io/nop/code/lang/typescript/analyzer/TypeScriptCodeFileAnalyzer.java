@@ -1,0 +1,540 @@
+package io.nop.code.lang.typescript.analyzer;
+
+import io.nop.code.core.analyzer.ICodeFileAnalyzer;
+import io.nop.code.core.model.CodeAccessModifier;
+import io.nop.code.core.model.CodeAnnotationUsage;
+import io.nop.code.core.model.CodeFileAnalysisResult;
+import io.nop.code.core.model.CodeInheritance;
+import io.nop.code.core.model.CodeLanguage;
+import io.nop.code.core.model.CodeRelationType;
+import io.nop.code.core.model.CodeSymbol;
+import io.nop.code.core.model.CodeSymbolKind;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.treesitter.TSLanguage;
+import org.treesitter.TSNode;
+import org.treesitter.TSParser;
+import org.treesitter.TSTree;
+import org.treesitter.TreeSitterTypescript;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * TypeScript/TSX 文件分析器
+ * 使用 bonede tree-sitter-typescript 解析源代码，提取符号信息、继承关系和装饰器。
+ * <p>
+ * TreeSitterTypescript 同时处理 .ts 和 .tsx 文件。
+ */
+public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(TypeScriptCodeFileAnalyzer.class);
+
+    private static final List<String> EXTENSIONS = Arrays.asList(".ts", ".tsx");
+
+    @Override
+    public CodeLanguage getLanguage() {
+        return CodeLanguage.TYPESCRIPT;
+    }
+
+    @Override
+    public List<String> getFileExtensions() {
+        return EXTENSIONS;
+    }
+
+    @Override
+    public CodeFileAnalysisResult analyze(String filePath, String sourceCode) {
+        if (sourceCode == null || sourceCode.isBlank()) {
+            return null;
+        }
+
+        TSLanguage language = new TreeSitterTypescript();
+        TSParser parser = new TSParser();
+        parser.setLanguage(language);
+
+        TSTree tree = parser.parseString(null, sourceCode);
+        if (tree == null) {
+            return null;
+        }
+
+        TSNode root = tree.getRootNode();
+        if (root.isNull()) {
+            return null;
+        }
+
+        CodeFileAnalysisResult result = new CodeFileAnalysisResult();
+        result.setFilePath(filePath);
+        result.setSourceCode(sourceCode);
+        result.setLineCount(countLines(sourceCode));
+        result.setLanguage(CodeLanguage.TYPESCRIPT);
+
+        String qualifiedPrefix = buildQualifiedPrefix(filePath);
+
+        walkNode(root, sourceCode, result, qualifiedPrefix, null);
+
+        return result;
+    }
+
+    private void walkNode(TSNode node, String source, CodeFileAnalysisResult result,
+                         String qualifiedPrefix, CodeSymbol parentSymbol) {
+        if (node.isNull()) {
+            return;
+        }
+
+        String type = node.getType();
+        int childCount = node.getChildCount();
+
+        switch (type) {
+            case "class_declaration":
+                handleClassDeclaration(node, source, result, qualifiedPrefix, parentSymbol);
+                return;
+            case "interface_declaration":
+                handleInterfaceDeclaration(node, source, result, qualifiedPrefix, parentSymbol);
+                return;
+            case "enum_declaration":
+                handleEnumDeclaration(node, source, result, qualifiedPrefix, parentSymbol);
+                return;
+            case "function_declaration":
+                handleFunctionDeclaration(node, source, result, qualifiedPrefix, parentSymbol);
+                return;
+            case "method_definition":
+                handleMethodDefinition(node, source, result, qualifiedPrefix, parentSymbol);
+                return;
+            case "method_signature":
+                handleMethodSignature(node, source, result, qualifiedPrefix, parentSymbol);
+                return;
+            case "public_field_definition":
+            case "property_signature":
+            case "property_declaration":
+                handleProperty(node, source, result, qualifiedPrefix, parentSymbol);
+                return;
+            default:
+                break;
+        }
+
+        for (int i = 0; i < childCount; i++) {
+            TSNode child = node.getChild(i);
+            walkNode(child, source, result, qualifiedPrefix, parentSymbol);
+        }
+    }
+
+    private void handleClassDeclaration(TSNode node, String source, CodeFileAnalysisResult result,
+                                        String qualifiedPrefix, CodeSymbol parentSymbol) {
+        CodeSymbol symbol = new CodeSymbol();
+        symbol.setId(UUID.randomUUID().toString());
+        symbol.setKind(CodeSymbolKind.CLASS);
+        symbol.setName(getName(node, source));
+        symbol.setAccessModifier(getAccessModifier(node, source));
+        symbol.setAbstractFlag(hasModifier(node, source, "abstract"));
+
+        setLineInfo(symbol, node);
+
+        String qualifiedName = qualifiedPrefix + "." + symbol.getName();
+        symbol.setQualifiedName(qualifiedName);
+
+        if (parentSymbol != null) {
+            symbol.setParentId(parentSymbol.getId());
+            symbol.setDeclaringSymbolId(parentSymbol.getId());
+        }
+
+        result.getSymbols().add(symbol);
+
+        processHeritageClauses(node, source, result, symbol);
+        processDecorators(node, source, result, symbol);
+
+        TSNode body = node.getChildByFieldName("body");
+        if (!body.isNull()) {
+            walkChildren(body, source, result, qualifiedPrefix, symbol);
+        }
+    }
+
+    private void handleInterfaceDeclaration(TSNode node, String source, CodeFileAnalysisResult result,
+                                            String qualifiedPrefix, CodeSymbol parentSymbol) {
+        CodeSymbol symbol = new CodeSymbol();
+        symbol.setId(UUID.randomUUID().toString());
+        symbol.setKind(CodeSymbolKind.INTERFACE);
+        symbol.setName(getName(node, source));
+        symbol.setAccessModifier(getAccessModifier(node, source));
+
+        setLineInfo(symbol, node);
+
+        String qualifiedName = qualifiedPrefix + "." + symbol.getName();
+        symbol.setQualifiedName(qualifiedName);
+
+        if (parentSymbol != null) {
+            symbol.setParentId(parentSymbol.getId());
+            symbol.setDeclaringSymbolId(parentSymbol.getId());
+        }
+
+        result.getSymbols().add(symbol);
+
+        processHeritageClauses(node, source, result, symbol);
+        processDecorators(node, source, result, symbol);
+
+        TSNode body = node.getChildByFieldName("body");
+        if (!body.isNull()) {
+            walkChildren(body, source, result, qualifiedPrefix, symbol);
+        }
+    }
+
+    private void handleEnumDeclaration(TSNode node, String source, CodeFileAnalysisResult result,
+                                       String qualifiedPrefix, CodeSymbol parentSymbol) {
+        CodeSymbol symbol = new CodeSymbol();
+        symbol.setId(UUID.randomUUID().toString());
+        symbol.setKind(CodeSymbolKind.ENUM);
+        symbol.setName(getName(node, source));
+        symbol.setAccessModifier(getAccessModifier(node, source));
+
+        setLineInfo(symbol, node);
+
+        String qualifiedName = qualifiedPrefix + "." + symbol.getName();
+        symbol.setQualifiedName(qualifiedName);
+
+        if (parentSymbol != null) {
+            symbol.setParentId(parentSymbol.getId());
+            symbol.setDeclaringSymbolId(parentSymbol.getId());
+        }
+
+        result.getSymbols().add(symbol);
+
+        processDecorators(node, source, result, symbol);
+    }
+
+    private void handleFunctionDeclaration(TSNode node, String source, CodeFileAnalysisResult result,
+                                           String qualifiedPrefix, CodeSymbol parentSymbol) {
+        CodeSymbol symbol = new CodeSymbol();
+        symbol.setId(UUID.randomUUID().toString());
+        symbol.setKind(parentSymbol != null && isTypeSymbol(parentSymbol) ? CodeSymbolKind.METHOD : CodeSymbolKind.FUNCTION);
+        symbol.setName(getName(node, source));
+        symbol.setAccessModifier(getAccessModifier(node, source));
+        symbol.setAsyncFlag(hasModifier(node, source, "async"));
+
+        setLineInfo(symbol, node);
+
+        String qualifiedName;
+        if (parentSymbol != null) {
+            qualifiedName = parentSymbol.getQualifiedName() + "." + symbol.getName();
+            symbol.setDeclaringSymbolId(parentSymbol.getId());
+        } else {
+            qualifiedName = qualifiedPrefix + "." + symbol.getName();
+        }
+        symbol.setQualifiedName(qualifiedName);
+
+        result.getSymbols().add(symbol);
+
+        processDecorators(node, source, result, symbol);
+    }
+
+    private void handleMethodDefinition(TSNode node, String source, CodeFileAnalysisResult result,
+                                        String qualifiedPrefix, CodeSymbol parentSymbol) {
+        CodeSymbol symbol = new CodeSymbol();
+        symbol.setId(UUID.randomUUID().toString());
+        symbol.setKind(CodeSymbolKind.METHOD);
+        symbol.setName(getName(node, source));
+        symbol.setAccessModifier(getAccessModifier(node, source));
+        symbol.setAsyncFlag(hasModifier(node, source, "async"));
+        symbol.setStaticFlag(hasModifier(node, source, "static"));
+        symbol.setAbstractFlag(hasModifier(node, source, "abstract"));
+
+        setLineInfo(symbol, node);
+
+        String qualifiedName;
+        if (parentSymbol != null) {
+            qualifiedName = parentSymbol.getQualifiedName() + "." + symbol.getName();
+            symbol.setDeclaringSymbolId(parentSymbol.getId());
+        } else {
+            qualifiedName = qualifiedPrefix + "." + symbol.getName();
+        }
+        symbol.setQualifiedName(qualifiedName);
+
+        result.getSymbols().add(symbol);
+
+        processDecorators(node, source, result, symbol);
+    }
+
+    private void handleMethodSignature(TSNode node, String source, CodeFileAnalysisResult result,
+                                        String qualifiedPrefix, CodeSymbol parentSymbol) {
+        CodeSymbol symbol = new CodeSymbol();
+        symbol.setId(UUID.randomUUID().toString());
+        symbol.setKind(CodeSymbolKind.METHOD);
+        symbol.setName(getName(node, source));
+        symbol.setAccessModifier(getAccessModifier(node, source));
+
+        setLineInfo(symbol, node);
+
+        String qualifiedName;
+        if (parentSymbol != null) {
+            qualifiedName = parentSymbol.getQualifiedName() + "." + symbol.getName();
+            symbol.setDeclaringSymbolId(parentSymbol.getId());
+        } else {
+            qualifiedName = qualifiedPrefix + "." + symbol.getName();
+        }
+        symbol.setQualifiedName(qualifiedName);
+
+        result.getSymbols().add(symbol);
+    }
+
+    private void handleProperty(TSNode node, String source, CodeFileAnalysisResult result,
+                                String qualifiedPrefix, CodeSymbol parentSymbol) {
+        CodeSymbol symbol = new CodeSymbol();
+        symbol.setId(UUID.randomUUID().toString());
+        symbol.setKind(CodeSymbolKind.FIELD);
+        symbol.setName(getName(node, source));
+        symbol.setAccessModifier(getAccessModifier(node, source));
+        symbol.setStaticFlag(hasModifier(node, source, "static"));
+        symbol.setReadonlyFlag(hasModifier(node, source, "readonly"));
+
+        setLineInfo(symbol, node);
+
+        TSNode typeNode = node.getChildByFieldName("type");
+        if (!typeNode.isNull()) {
+            symbol.setFieldType(getNodeText(typeNode, source));
+        }
+
+        String qualifiedName;
+        if (parentSymbol != null) {
+            qualifiedName = parentSymbol.getQualifiedName() + "." + symbol.getName();
+            symbol.setDeclaringSymbolId(parentSymbol.getId());
+        } else {
+            qualifiedName = qualifiedPrefix + "." + symbol.getName();
+        }
+        symbol.setQualifiedName(qualifiedName);
+
+        result.getSymbols().add(symbol);
+    }
+
+    private void processHeritageClauses(TSNode node, String source, CodeFileAnalysisResult result,
+                                        CodeSymbol ownerSymbol) {
+        int childCount = node.getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            TSNode child = node.getChild(i);
+            String childType = child.getType();
+
+            if ("class_heritage".equals(childType)) {
+                processClassHeritage(child, source, result, ownerSymbol);
+            } else if ("extends_clause".equals(childType)) {
+                addHeritage(child, source, result, ownerSymbol, CodeRelationType.EXTENDS);
+            } else if ("implements_clause".equals(childType)) {
+                addHeritage(child, source, result, ownerSymbol, CodeRelationType.IMPLEMENTS);
+            }
+        }
+    }
+
+    private void processClassHeritage(TSNode heritageNode, String source, CodeFileAnalysisResult result,
+                                      CodeSymbol ownerSymbol) {
+        int count = heritageNode.getChildCount();
+        for (int i = 0; i < count; i++) {
+            TSNode child = heritageNode.getChild(i);
+            String childType = child.getType();
+
+            if ("extends_clause".equals(childType)) {
+                addHeritage(child, source, result, ownerSymbol, CodeRelationType.EXTENDS);
+            } else if ("implements_clause".equals(childType)) {
+                addHeritage(child, source, result, ownerSymbol, CodeRelationType.IMPLEMENTS);
+            }
+        }
+    }
+
+    private void addHeritage(TSNode clauseNode, String source, CodeFileAnalysisResult result,
+                             CodeSymbol ownerSymbol, CodeRelationType relationType) {
+        int count = clauseNode.getChildCount();
+        for (int i = 0; i < count; i++) {
+            TSNode child = clauseNode.getChild(i);
+            if (!child.isNamed()) continue;
+
+            String superTypeName = extractTypeName(child, source);
+            if (superTypeName != null && !superTypeName.isEmpty()) {
+                CodeInheritance inheritance = new CodeInheritance();
+                inheritance.setId(UUID.randomUUID().toString());
+                inheritance.setSubTypeId(ownerSymbol.getId());
+                inheritance.setSuperTypeQualifiedName(superTypeName);
+                inheritance.setRelationType(relationType);
+                result.getInheritances().add(inheritance);
+            }
+        }
+    }
+
+    private String extractTypeName(TSNode typeNode, String source) {
+        String nodeType = typeNode.getType();
+        switch (nodeType) {
+            case "type_identifier":
+                return getNodeText(typeNode, source);
+            case "generic_type":
+            case "nested_type_identifier": {
+                TSNode nameNode = typeNode.getChildByFieldName("name");
+                if (!nameNode.isNull()) {
+                    return getNodeText(nameNode, source);
+                }
+                int count = typeNode.getChildCount();
+                for (int i = 0; i < count; i++) {
+                    TSNode child = typeNode.getChild(i);
+                    if (child.isNamed()) {
+                        return getNodeText(child, source);
+                    }
+                }
+                return getNodeText(typeNode, source);
+            }
+            default:
+                return getNodeText(typeNode, source);
+        }
+    }
+
+    private void processDecorators(TSNode node, String source, CodeFileAnalysisResult result,
+                                   CodeSymbol ownerSymbol) {
+        // Check direct children for decorators
+        int childCount = node.getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            TSNode child = node.getChild(i);
+            if ("decorator".equals(child.getType())) {
+                addDecoratorUsage(child, source, result, ownerSymbol);
+            }
+        }
+
+        // Check parent for preceding decorator siblings (e.g., @Injectable() before export class)
+        TSNode parent = node.getParent();
+        if (!parent.isNull()) {
+            int nodeStartByte = node.getStartByte();
+            int parentCount = parent.getChildCount();
+            for (int i = 0; i < parentCount; i++) {
+                TSNode sibling = parent.getChild(i);
+                if ("decorator".equals(sibling.getType()) && sibling.getEndByte() <= nodeStartByte) {
+                    addDecoratorUsage(sibling, source, result, ownerSymbol);
+                }
+            }
+        }
+    }
+
+    private void addDecoratorUsage(TSNode decoratorNode, String source, CodeFileAnalysisResult result,
+                                    CodeSymbol ownerSymbol) {
+        CodeAnnotationUsage usage = new CodeAnnotationUsage();
+        usage.setId(UUID.randomUUID().toString());
+        usage.setAnnotationTypeQualifiedName(extractDecoratorName(decoratorNode, source));
+        usage.setAnnotatedSymbolId(ownerSymbol.getId());
+        usage.setLine(decoratorNode.getStartPoint().getRow() + 1);
+        usage.setColumn(decoratorNode.getStartPoint().getColumn());
+        result.getAnnotationUsages().add(usage);
+    }
+
+    private String extractDecoratorName(TSNode decoratorNode, String source) {
+        int count = decoratorNode.getChildCount();
+        for (int i = 0; i < count; i++) {
+            TSNode child = decoratorNode.getChild(i);
+            if (child.isNamed()) {
+                if ("identifier".equals(child.getType())) {
+                    return getNodeText(child, source);
+                } else if ("call_expression".equals(child.getType())) {
+                    TSNode funcNode = child.getChildByFieldName("function");
+                    if (!funcNode.isNull()) {
+                        return getNodeText(funcNode, source);
+                    }
+                    int callCount = child.getChildCount();
+                    for (int j = 0; j < callCount; j++) {
+                        TSNode callChild = child.getChild(j);
+                        if (callChild.isNamed()) {
+                            return getNodeText(callChild, source);
+                        }
+                    }
+                }
+                return getNodeText(child, source);
+            }
+        }
+        return getNodeText(decoratorNode, source);
+    }
+
+    /**
+     * Tree-sitter does NOT provide node.getText(). Use byte offsets instead.
+     */
+    private String getNodeText(TSNode node, String source) {
+        int startByte = node.getStartByte();
+        int endByte = node.getEndByte();
+        if (startByte >= endByte || endByte > source.length()) {
+            return "";
+        }
+        return source.substring(startByte, endByte);
+    }
+
+    private String getName(TSNode node, String source) {
+        TSNode nameNode = node.getChildByFieldName("name");
+        if (!nameNode.isNull()) {
+            String text = getNodeText(nameNode, source);
+            if (text != null && !text.isEmpty()) {
+                return text;
+            }
+        }
+        return "<anonymous>";
+    }
+
+    /**
+     * Set line info converting from tree-sitter 0-based to CodeSymbol 1-based rows.
+     */
+    private void setLineInfo(CodeSymbol symbol, TSNode node) {
+        symbol.setLine(node.getStartPoint().getRow() + 1);
+        symbol.setColumn(node.getStartPoint().getColumn());
+        symbol.setEndLine(node.getEndPoint().getRow() + 1);
+        symbol.setEndColumn(node.getEndPoint().getColumn());
+    }
+
+    private CodeAccessModifier getAccessModifier(TSNode node, String source) {
+        int childCount = node.getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            TSNode child = node.getChild(i);
+            if ("accessibility_modifier".equals(child.getType())) {
+                String text = getNodeText(child, source);
+                if ("public".equals(text)) {
+                    return CodeAccessModifier.PUBLIC;
+                } else if ("private".equals(text)) {
+                    return CodeAccessModifier.PRIVATE;
+                } else if ("protected".equals(text)) {
+                    return CodeAccessModifier.PROTECTED;
+                }
+            }
+        }
+        return CodeAccessModifier.NO_MODIFIER;
+    }
+
+    private boolean hasModifier(TSNode node, String source, String modifier) {
+        int childCount = node.getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            TSNode child = node.getChild(i);
+            if (modifier.equals(child.getType())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isTypeSymbol(CodeSymbol symbol) {
+        return symbol.getKind() == CodeSymbolKind.CLASS
+                || symbol.getKind() == CodeSymbolKind.INTERFACE
+                || symbol.getKind() == CodeSymbolKind.ENUM;
+    }
+
+    private void walkChildren(TSNode node, String source, CodeFileAnalysisResult result,
+                              String qualifiedPrefix, CodeSymbol parentSymbol) {
+        int count = node.getChildCount();
+        for (int i = 0; i < count; i++) {
+            TSNode child = node.getChild(i);
+            walkNode(child, source, result, qualifiedPrefix, parentSymbol);
+        }
+    }
+
+    private String buildQualifiedPrefix(String filePath) {
+        if (filePath == null || filePath.isEmpty()) {
+            return "";
+        }
+        String normalized = filePath.replace('\\', '/');
+        int dotIdx = normalized.lastIndexOf('.');
+        if (dotIdx > 0) {
+            normalized = normalized.substring(0, dotIdx);
+        }
+        return normalized.replace('/', '.');
+    }
+
+    private int countLines(String source) {
+        if (source == null || source.isBlank()) {
+            return 0;
+        }
+        return source.split("\r?\n").length;
+    }
+}
