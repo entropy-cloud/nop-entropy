@@ -37,9 +37,9 @@ BizModel 方法
 4. **RPC JSON body 格式：参数直接平铺，不包裹 `data` 字段。**
    ```bash
    # 正确
-   curl -X POST /r/NopCodeTypeHierarchy__get -d '{"indexId":"test","qualifiedName":"com.example.Foo","direction":"super","maxDepth":3}'
+   curl -X POST /r/NopCodeTypeHierarchy__getTypeHierarchy -d '{"indexId":"test","qualifiedName":"com.example.Foo","direction":"super","maxDepth":3}'
    # 错误（不要包裹 data）
-   curl -X POST /r/NopCodeTypeHierarchy__get -d '{"data":{"indexId":"test",...}}'
+   curl -X POST /r/NopCodeTypeHierarchy__getTypeHierarchy -d '{"data":{"indexId":"test",...}}'
    ```
 5. `GET` 场景会通过 `@args` 和普通 query 参数做特殊处理。
 6. `/p/PageProvider__getPage?path=xxx.page.yaml` — 获取页面 AMIS JSON，返回前端渲染所需的完整 schema。
@@ -92,6 +92,19 @@ BizModel 方法
 2. `@BizMutation @Transactional`。
 3. `@Inject private`。
 4. 把底层 DAO / infra 的实现方式直接提升为 API 层模板。
+
+## `@query:` AMIS API URL 机制
+
+view.xml 中 `<api url="@query:BizObjName__actionName?param=$param"/>` 的处理流程：
+
+1. **后端**（`WebPageHelper.fixPage`）：仅转义空格/换行，`@query:` 原样输出到 AMIS JSON
+2. **前端**（`nop-chaos/packages/nop-core/src/core/graphql.ts`）：
+   - 解析 URL，取 `__` 后的方法名后缀作为 `stdAction`
+   - `stdAction` 匹配 `operationRegistry` → 使用预定义参数签名
+   - `stdAction` 不匹配 → 调用 `guessDefinition(data)` 从表单数据自动推断参数类型
+3. **生成 GraphQL 查询**：POST 到 `/graphql`，参数从表单数据映射
+
+**关键约束**：`stdAction` 不得与标准 CRUD 动作名重名（`get`、`findPage`、`save`、`update`、`delete` 等），否则前端使用预定义参数签名（如 `get` → `{id, ignoreUnknown}`），自定义参数被忽略。详见 `view-and-page-customization.md`。
 
 ## 相关文档
 

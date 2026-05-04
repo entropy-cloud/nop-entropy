@@ -101,7 +101,7 @@ pnpm test
 
 ```typescript
 // POST /r/{operation}，JSON body 参数平铺（不包裹 data）
-const resp = await request.post('/r/NopCodeTypeHierarchy__get', {
+const resp = await request.post('/r/NopCodeTypeHierarchy__getTypeHierarchy', {
   data: { indexId: 'test', qualifiedName: 'io.nop.Foo', direction: 'super', maxDepth: 3 },
 });
 const json = await resp.json();
@@ -121,7 +121,8 @@ const resp = await request.get('/p/PageProvider__getPage?path=/nop/code/pages/xx
 2. **页面 URL**：`/#/type-hierarchy-main`（不是 `/#/page?pagePath=...`），URL 格式为 `/#/{pageId}`
 3. **API 路由**：AMIS 表单 `@query:` API 走 `/graphql`（POST），RPC 测试走 `/r/{operation}`
 4. **字段名**：`editMode="query"` 自动加 `filter_` 前缀，`editMode="edit"` 不加前缀
-5. **无 meta 表单**：必须在 view.xml `<cells>` 中配置 `domain`，否则字段渲染为 `static`
+5. **无 meta 表单**：必须在 view.xml `<cells>` 中配置 `domain` 和 `label`，否则字段渲染为 `static` 且无标签
+6. **BizModel 命名**：方法名不得与标准 CRUD（`get`/`findPage`/`save`/`update`/`delete` 等）重名，否则前端 `@query:` API 参数被忽略
 
 ## 相关文档
 
