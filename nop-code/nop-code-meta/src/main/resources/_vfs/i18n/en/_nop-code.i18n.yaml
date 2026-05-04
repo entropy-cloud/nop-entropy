@@ -49,6 +49,9 @@ prop:
       lineCount: null
       imports: null
       sourceCode: null
+      fileHash: null
+      lastModified: null
+      fileSize: null
       index: null
       symbols: null
       usages: null
@@ -64,6 +67,8 @@ prop:
       fileCount: null
       status: null
       status_label: null
+      lastIndexed: null
+      indexVersion: null
       files: null
       symbols: null
       usages: null

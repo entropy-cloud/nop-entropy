@@ -35,6 +35,12 @@
 
                 <!--状态-->
                 <col id="status" sortable="true"/>
+
+                <!--最后索引时间-->
+                <col id="lastIndexed" ui:number="true" sortable="true"/>
+
+                <!--索引版本-->
+                <col id="indexVersion" ui:number="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -49,6 +55,8 @@
  symbolCount[符号数量]
  fileCount[文件数量]
  status[状态]
+ lastIndexed[最后索引时间]
+ indexVersion[索引版本]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-代码索引" i18n-en:title="Add " x:prototype="edit"/>
@@ -60,6 +68,8 @@
  symbolCount[符号数量]
  fileCount[文件数量]
  status[状态]
+ lastIndexed[最后索引时间]
+ indexVersion[索引版本]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

@@ -52,8 +52,20 @@ public class _NopCodeFile extends DynamicOrmEntity{
     public static final String PROP_NAME_sourceCode = "sourceCode";
     public static final int PROP_ID_sourceCode = 8;
     
+    /* 文件内容哈希: FILE_HASH VARCHAR */
+    public static final String PROP_NAME_fileHash = "fileHash";
+    public static final int PROP_ID_fileHash = 9;
+    
+    /* 最后修改时间: LAST_MODIFIED BIGINT */
+    public static final String PROP_NAME_lastModified = "lastModified";
+    public static final int PROP_ID_lastModified = 10;
+    
+    /* 文件大小: FILE_SIZE BIGINT */
+    public static final String PROP_NAME_fileSize = "fileSize";
+    public static final int PROP_ID_fileSize = 11;
+    
 
-    private static int _PROP_ID_BOUND = 9;
+    private static int _PROP_ID_BOUND = 12;
 
     
     /* relation:  */
@@ -78,7 +90,7 @@ public class _NopCodeFile extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
 
-    private static final String[] PROP_ID_TO_NAME = new String[9];
+    private static final String[] PROP_ID_TO_NAME = new String[12];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -106,6 +118,15 @@ public class _NopCodeFile extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_sourceCode] = PROP_NAME_sourceCode;
           PROP_NAME_TO_ID.put(PROP_NAME_sourceCode, PROP_ID_sourceCode);
       
+          PROP_ID_TO_NAME[PROP_ID_fileHash] = PROP_NAME_fileHash;
+          PROP_NAME_TO_ID.put(PROP_NAME_fileHash, PROP_ID_fileHash);
+      
+          PROP_ID_TO_NAME[PROP_ID_lastModified] = PROP_NAME_lastModified;
+          PROP_NAME_TO_ID.put(PROP_NAME_lastModified, PROP_ID_lastModified);
+      
+          PROP_ID_TO_NAME[PROP_ID_fileSize] = PROP_NAME_fileSize;
+          PROP_NAME_TO_ID.put(PROP_NAME_fileSize, PROP_ID_fileSize);
+      
     }
 
     
@@ -132,6 +153,15 @@ public class _NopCodeFile extends DynamicOrmEntity{
     
     /* 源代码: SOURCE_CODE */
     private java.lang.String _sourceCode;
+    
+    /* 文件内容哈希: FILE_HASH */
+    private java.lang.String _fileHash;
+    
+    /* 最后修改时间: LAST_MODIFIED */
+    private java.lang.Long _lastModified;
+    
+    /* 文件大小: FILE_SIZE */
+    private java.lang.Long _fileSize;
     
 
     public _NopCodeFile(){
@@ -231,6 +261,15 @@ public class _NopCodeFile extends DynamicOrmEntity{
             case PROP_ID_sourceCode:
                return getSourceCode();
         
+            case PROP_ID_fileHash:
+               return getFileHash();
+        
+            case PROP_ID_lastModified:
+               return getLastModified();
+        
+            case PROP_ID_fileSize:
+               return getFileSize();
+        
            default:
               return super.orm_propValue(propId);
         }
@@ -322,6 +361,36 @@ public class _NopCodeFile extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_fileHash:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_fileHash));
+               }
+               setFileHash(typedValue);
+               break;
+            }
+        
+            case PROP_ID_lastModified:{
+               java.lang.Long typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toLong(value,
+                       err-> newTypeConversionError(PROP_NAME_lastModified));
+               }
+               setLastModified(typedValue);
+               break;
+            }
+        
+            case PROP_ID_fileSize:{
+               java.lang.Long typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toLong(value,
+                       err-> newTypeConversionError(PROP_NAME_fileSize));
+               }
+               setFileSize(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -383,6 +452,27 @@ public class _NopCodeFile extends DynamicOrmEntity{
             case PROP_ID_sourceCode:{
                onInitProp(propId);
                this._sourceCode = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_fileHash:{
+               onInitProp(propId);
+               this._fileHash = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_lastModified:{
+               onInitProp(propId);
+               this._lastModified = (java.lang.Long)value;
+               
+               break;
+            }
+        
+            case PROP_ID_fileSize:{
+               onInitProp(propId);
+               this._fileSize = (java.lang.Long)value;
                
                break;
             }
@@ -541,6 +631,63 @@ public class _NopCodeFile extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_sourceCode,value)){
             this._sourceCode = value;
             internalClearRefs(PROP_ID_sourceCode);
+            
+        }
+    }
+    
+    /**
+     * 文件内容哈希: FILE_HASH
+     */
+    public final java.lang.String getFileHash(){
+         onPropGet(PROP_ID_fileHash);
+         return _fileHash;
+    }
+
+    /**
+     * 文件内容哈希: FILE_HASH
+     */
+    public final void setFileHash(java.lang.String value){
+        if(onPropSet(PROP_ID_fileHash,value)){
+            this._fileHash = value;
+            internalClearRefs(PROP_ID_fileHash);
+            
+        }
+    }
+    
+    /**
+     * 最后修改时间: LAST_MODIFIED
+     */
+    public final java.lang.Long getLastModified(){
+         onPropGet(PROP_ID_lastModified);
+         return _lastModified;
+    }
+
+    /**
+     * 最后修改时间: LAST_MODIFIED
+     */
+    public final void setLastModified(java.lang.Long value){
+        if(onPropSet(PROP_ID_lastModified,value)){
+            this._lastModified = value;
+            internalClearRefs(PROP_ID_lastModified);
+            
+        }
+    }
+    
+    /**
+     * 文件大小: FILE_SIZE
+     */
+    public final java.lang.Long getFileSize(){
+         onPropGet(PROP_ID_fileSize);
+         return _fileSize;
+    }
+
+    /**
+     * 文件大小: FILE_SIZE
+     */
+    public final void setFileSize(java.lang.Long value){
+        if(onPropSet(PROP_ID_fileSize,value)){
+            this._fileSize = value;
+            internalClearRefs(PROP_ID_fileSize);
             
         }
     }

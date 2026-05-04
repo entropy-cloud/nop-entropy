@@ -48,8 +48,16 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     public static final String PROP_NAME_status = "status";
     public static final int PROP_ID_status = 7;
     
+    /* 最后索引时间: LAST_INDEXED BIGINT */
+    public static final String PROP_NAME_lastIndexed = "lastIndexed";
+    public static final int PROP_ID_lastIndexed = 8;
+    
+    /* 索引版本: INDEX_VERSION INTEGER */
+    public static final String PROP_NAME_indexVersion = "indexVersion";
+    public static final int PROP_ID_indexVersion = 9;
+    
 
-    private static int _PROP_ID_BOUND = 8;
+    private static int _PROP_ID_BOUND = 10;
 
     
     /* relation: 文件列表 */
@@ -74,7 +82,7 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
 
-    private static final String[] PROP_ID_TO_NAME = new String[8];
+    private static final String[] PROP_ID_TO_NAME = new String[10];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -99,6 +107,12 @@ public class _NopCodeIndex extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
       
+          PROP_ID_TO_NAME[PROP_ID_lastIndexed] = PROP_NAME_lastIndexed;
+          PROP_NAME_TO_ID.put(PROP_NAME_lastIndexed, PROP_ID_lastIndexed);
+      
+          PROP_ID_TO_NAME[PROP_ID_indexVersion] = PROP_NAME_indexVersion;
+          PROP_NAME_TO_ID.put(PROP_NAME_indexVersion, PROP_ID_indexVersion);
+      
     }
 
     
@@ -122,6 +136,12 @@ public class _NopCodeIndex extends DynamicOrmEntity{
     
     /* 状态: STATUS */
     private java.lang.String _status;
+    
+    /* 最后索引时间: LAST_INDEXED */
+    private java.lang.Long _lastIndexed;
+    
+    /* 索引版本: INDEX_VERSION */
+    private java.lang.Integer _indexVersion;
     
 
     public _NopCodeIndex(){
@@ -218,6 +238,12 @@ public class _NopCodeIndex extends DynamicOrmEntity{
             case PROP_ID_status:
                return getStatus();
         
+            case PROP_ID_lastIndexed:
+               return getLastIndexed();
+        
+            case PROP_ID_indexVersion:
+               return getIndexVersion();
+        
            default:
               return super.orm_propValue(propId);
         }
@@ -299,6 +325,26 @@ public class _NopCodeIndex extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_lastIndexed:{
+               java.lang.Long typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toLong(value,
+                       err-> newTypeConversionError(PROP_NAME_lastIndexed));
+               }
+               setLastIndexed(typedValue);
+               break;
+            }
+        
+            case PROP_ID_indexVersion:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_indexVersion));
+               }
+               setIndexVersion(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -353,6 +399,20 @@ public class _NopCodeIndex extends DynamicOrmEntity{
             case PROP_ID_status:{
                onInitProp(propId);
                this._status = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_lastIndexed:{
+               onInitProp(propId);
+               this._lastIndexed = (java.lang.Long)value;
+               
+               break;
+            }
+        
+            case PROP_ID_indexVersion:{
+               onInitProp(propId);
+               this._indexVersion = (java.lang.Integer)value;
                
                break;
             }
@@ -492,6 +552,44 @@ public class _NopCodeIndex extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
+            
+        }
+    }
+    
+    /**
+     * 最后索引时间: LAST_INDEXED
+     */
+    public final java.lang.Long getLastIndexed(){
+         onPropGet(PROP_ID_lastIndexed);
+         return _lastIndexed;
+    }
+
+    /**
+     * 最后索引时间: LAST_INDEXED
+     */
+    public final void setLastIndexed(java.lang.Long value){
+        if(onPropSet(PROP_ID_lastIndexed,value)){
+            this._lastIndexed = value;
+            internalClearRefs(PROP_ID_lastIndexed);
+            
+        }
+    }
+    
+    /**
+     * 索引版本: INDEX_VERSION
+     */
+    public final java.lang.Integer getIndexVersion(){
+         onPropGet(PROP_ID_indexVersion);
+         return _indexVersion;
+    }
+
+    /**
+     * 索引版本: INDEX_VERSION
+     */
+    public final void setIndexVersion(java.lang.Integer value){
+        if(onPropSet(PROP_ID_indexVersion,value)){
+            this._indexVersion = value;
+            internalClearRefs(PROP_ID_indexVersion);
             
         }
     }

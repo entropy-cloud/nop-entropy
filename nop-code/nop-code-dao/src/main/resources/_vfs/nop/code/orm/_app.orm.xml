@@ -103,6 +103,10 @@
                         stdSqlType="INTEGER"/>
                 <column code="STATUS" displayName="状态" name="status" precision="20" propId="7" stdDataType="string"
                         stdSqlType="VARCHAR" ext:dict="code/index_status"/>
+                <column code="LAST_INDEXED" displayName="最后索引时间" name="lastIndexed" propId="8" stdDataType="long"
+                        stdSqlType="BIGINT"/>
+                <column code="INDEX_VERSION" displayName="索引版本" name="indexVersion" propId="9" stdDataType="int"
+                        stdSqlType="INTEGER"/>
             </columns>
             <comment>代码索引主表</comment>
             <relations>
@@ -163,6 +167,12 @@
                         propId="7" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" ui:control="textarea"/>
                 <column code="SOURCE_CODE" displayName="源代码" domain="jsonContent" name="sourceCode" precision="65536"
                         propId="8" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" ui:control="textarea"/>
+                <column code="FILE_HASH" displayName="文件内容哈希" name="fileHash" precision="64" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="LAST_MODIFIED" displayName="最后修改时间" name="lastModified" propId="10" stdDataType="long"
+                        stdSqlType="BIGINT"/>
+                <column code="FILE_SIZE" displayName="文件大小" name="fileSize" propId="11" stdDataType="long"
+                        stdSqlType="BIGINT"/>
             </columns>
             <comment>源代码文件，imports字段存储JSON数组</comment>
             <relations>

@@ -54,6 +54,18 @@
               updatable="true" graphql:jsonComponentProp="sourceCodeComponent" ui:control="textarea">
             <schema stdDomain="json" domain="jsonContent" type="java.lang.String" precision="65536"/>
         </prop>
+        <prop name="fileHash" displayName="文件内容哈希" propId="9" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="64"/>
+        </prop>
+        <prop name="lastModified" displayName="最后修改时间" propId="10" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="fileSize" displayName="文件大小" propId="11" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Long"/>
+        </prop>
         <prop name="index" tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="indexId"
               ext:joinRightProp="id" insertable="false" updatable="false" mandatory="true" lazy="true">
             <schema bizObjName="NopCodeIndex"/>

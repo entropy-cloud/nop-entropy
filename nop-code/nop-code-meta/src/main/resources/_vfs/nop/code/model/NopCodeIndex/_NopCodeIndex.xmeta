@@ -46,6 +46,14 @@
               updatable="true">
             <schema type="java.lang.String" precision="20" dict="code/index_status"/>
         </prop>
+        <prop name="lastIndexed" displayName="最后索引时间" propId="8" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="indexVersion" displayName="索引版本" propId="9" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
         <prop name="files" displayName="文件列表" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
               ext:joinRightProp="indexId" ext:joinRightDisplayProp="filePath" lazy="true" published="false">
             <schema>
