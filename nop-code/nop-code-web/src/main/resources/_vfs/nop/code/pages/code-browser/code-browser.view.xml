@@ -26,17 +26,30 @@
  indexId[索引ID]
             </layout>
         </form>
+        <form id="fileDetailForm" editMode="view" title="文件详情">
+            <layout>
+ filePath[文件路径]
+ packageName[包名]
+ language[语言]
+ lineCount[行数]
+            </layout>
+        </form>
+        <form id="fileTreeForm" editMode="view" title="文件树">
+            <layout>
+ indexId[索引ID]
+            </layout>
+        </form>
     </forms>
 
     <pages>
         <simple name="main" form="queryForm">
         </simple>
 
-        <simple name="fileDetail">
+        <simple name="fileDetail" form="fileDetailForm">
             <initApi url="@query:NopCodeFile__getByPath?filePath=$filePath&amp;indexId=$indexId"/>
         </simple>
 
-        <simple name="fileTree">
+        <simple name="fileTree" form="fileTreeForm">
             <initApi url="@query:NopCodeFile__fileTree?indexId=$indexId"/>
         </simple>
     </pages>

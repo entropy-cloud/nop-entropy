@@ -122,13 +122,16 @@ prop:
       isVolatile: volatile
       kind: 符号类型
       kind_label: 符号类型
+      kinds: 符号类型
       line: 起始行
       members: 成员
       name: 名称
+      packageName: 包名
       parent: null
       parent.name: null
       parentId: 父符号ID
       qualifiedName: 全限定名
+      query: 名称关键词
       readonlyFlag: 只读
       returnType: 返回类型
       signature: 签名

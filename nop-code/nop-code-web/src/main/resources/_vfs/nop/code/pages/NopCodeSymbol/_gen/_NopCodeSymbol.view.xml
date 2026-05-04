@@ -104,6 +104,15 @@
 
                 <!--只读-->
                 <col id="readonlyFlag" sortable="true"/>
+
+                <!--名称关键词-->
+                <col id="query"/>
+
+                <!--符号类型-->
+                <col id="kinds"/>
+
+                <!--包名-->
+                <col id="packageName"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -126,7 +135,8 @@
  isNative[native] fieldType[字段类型]
  isVolatile[volatile] isTransient[transient]
  extData[扩展数据] asyncFlag[异步]
- readonlyFlag[只读] 
+ readonlyFlag[只读] query[名称关键词]
+ kinds[符号类型] packageName[包名]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-符号" i18n-en:title="Add " x:prototype="edit"/>

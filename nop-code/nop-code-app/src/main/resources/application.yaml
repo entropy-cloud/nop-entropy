@@ -55,3 +55,10 @@ quarkus:
     category:
       "io.nop":
         level: INFO
+
+"%dev":
+  nop:
+    core:
+      resource:
+        check-duplicate-vfs-resource: false
+    debug: true

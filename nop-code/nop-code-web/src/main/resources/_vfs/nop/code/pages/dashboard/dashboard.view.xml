@@ -2,7 +2,7 @@
 <view x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:gql="graphql">
 
     <grids>
-        <grid id="list" x:abstract="true">
+        <grid id="list">
             <cols>
                 <col id="name" mandatory="true" sortable="true"/>
                 <col id="rootPath" mandatory="true" sortable="true" width="300"/>
@@ -13,6 +13,16 @@
             </cols>
         </grid>
     </grids>
+
+    <forms>
+        <form id="statsForm" editMode="view" title="索引统计">
+            <layout>
+ indexId[索引ID]
+ fileCount[文件数量]
+ symbolCount[符号数量]
+            </layout>
+        </form>
+    </forms>
 
     <pages>
         <crud name="main" grid="list">
@@ -33,7 +43,7 @@
             </rowActions>
         </crud>
 
-        <simple name="statsView">
+        <simple name="statsView" form="statsForm">
             <initApi url="@query:NopCodeIndex__getStats?indexId=$id"/>
         </simple>
     </pages>

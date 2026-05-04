@@ -137,6 +137,9 @@ prop:
       subTypes: null
       annotationUsages: null
       extDataComponent: null
+      query: null
+      kinds: null
+      packageName: null
     NopCodeUsage:
       id: null
       indexId: null

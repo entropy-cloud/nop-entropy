@@ -18,7 +18,7 @@
         </form>
         <form id="statsForm" editMode="view" title="索引统计">
             <layout>
- indexId[索引ID]
+  id[索引ID]
  fileCount[文件数量]
  symbolCount[符号数量]
             </layout>

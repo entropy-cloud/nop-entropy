@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopCodeSymbol.xmeta">
 
-    <props/>
+    <props>
+        <prop name="query" displayName="名称关键词" queryable="true" insertable="false" updatable="false">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="kinds" displayName="符号类型" queryable="true" insertable="false" updatable="false">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="packageName" displayName="包名" queryable="true" insertable="false" updatable="false">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+    </props>
 </meta>
