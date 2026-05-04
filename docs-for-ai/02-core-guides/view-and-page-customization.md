@@ -94,6 +94,40 @@ AI 需要先记住三层：
 </form>
 ```
 
+### Form cells 与 objMeta 校验
+
+View 绑定了 `objMeta` 后，`<layout>` 中出现的每个字段 ID 默认要求在 objMeta 的 props 中有定义。
+如果字段不属于实体（如来自 DTO、前端计算字段、密码确认等），必须在 `<cells>` 中声明 `custom="true"` 跳过校验：
+
+```xml
+<form id="statsForm" editMode="view" title="索引统计">
+    <cells>
+        <!-- custom=true 表示此字段不需要在 objMeta 中定义 -->
+        <cell id="indexId" custom="true"/>
+        <cell id="fileCount" custom="true"/>
+    </cells>
+    <layout>
+        indexId[索引ID] fileCount[文件数量]
+    </layout>
+</form>
+```
+
+**校验规则**（`UiFormModel.validate()`）：
+
+1. 如果 view 没有配置 `<objMeta>`（且 form 也没有自己的 objMeta），**所有字段跳过实体属性校验**。
+2. 如果有 objMeta，字段默认必须对应实体属性。标记 `custom="true"` 的 cell 除外。
+3. `custom` 属性定义在 `<cell>` 节点上，属于 `disp.xdef` schema。
+
+**常见使用场景**：
+
+| 场景 | 示例 |
+|------|------|
+| 密码确认（前端专用） | `__password2` — `nop-auth/.../NopAuthUser.view.xml` |
+| 导入文件开关（前端状态） | `__useImportFile` — `nop-rule/.../NopRuleDefinition.view.xml` |
+| initApi 返回 DTO 数据 | `statsForm` 中的 `indexId`/`fileCount` — `nop-code/.../dashboard.view.xml` |
+
+**约定**：前端专用字段以 `__`（双下划线）为前缀，配合 `notSubmit="true"` 防止提交到后台。
+
 ### Page
 
 ```xml
@@ -122,6 +156,16 @@ AI 需要先记住三层：
 1. `_gen/_Xxx.view.xml` 是生成基线。
 2. `Xxx.view.xml` 是保留层定制文件。
 3. 日常修改优先放在保留层文件，而不是 `_gen`。
+
+## objMeta 与 bizObjName
+
+- `<objMeta>` 指向 xmeta 文件的 VFS 路径，如 `/nop/auth/model/NopAuthUser/NopAuthUser.xmeta`。
+- `bizObjName` 是业务对象名（如 `NopAuthUser`），用于自动推导 page URL、picker URL 等。
+- 生成 view（`_gen/`）同时设置了 `objMeta` 和 `bizObjName`。
+- **CRUD 页面**（`<crud>`）需要 objMeta，因为 `grid_crud.xpl` 模板访问 `objMeta.displayProp`。
+- **Simple 页面**（`<simple>`）不强制要求 objMeta，没有时表单校验自动跳过实体属性检查。
+- 如果 view 没有配置 `<objMeta>`，grid 和 form 的 validate 方法在 `objMeta == null` 时直接 return，不报错。
+- 目前 objMeta 不会从 bizObjName 自动推导，需要在 view 中显式配置 `<objMeta>` 路径。
 
 ## 最常用的 Delta / override 写法
 
@@ -232,6 +276,9 @@ AI 需要先记住三层：
 3. 该改 `grid/form/page` 的地方没分清，结果把配置写散。
 4. 表单字段来自 `objMeta` / XMeta，却只改 view 不回看模型或 meta。
 5. 只记得 AMIS，忘了当前仓库的主入口仍然是 XView。
+6. `<simple>` 页面缺少 `form` 属性导致启动报错 — 每个 `<simple>` 节点必须有 `form` 指向已定义的 form ID。
+7. CRUD 页面引用了 `x:abstract="true"` 的 grid — abstract grid 是模板，CRUD 页面需要非 abstract 的 grid 或通过 objMeta 由代码生成器具体化。
+8. form layout 里写了不属于 objMeta 的字段却没在 `<cells>` 中加 `custom="true"` — 报错 `cell-not-prop`。
 
 ## 相关文档
 

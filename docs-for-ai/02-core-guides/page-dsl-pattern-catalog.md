@@ -26,6 +26,7 @@
 | `initApi` / `api` / `gql:selection` / `withFormData` | 统一 CRUD 页面取数、初始化、提交 wiring | `C:/can/nop/nop-app-mall/app-mall-web/src/main/resources/_vfs/app/mall/pages/LitemallRegion/_gen/_LitemallRegion.view.xml` |
 | `fixedProps` 关联子表页 | 把某个外键固定为上层传入值 | `nop-rule/nop-rule-web/src/main/resources/_vfs/nop/rule/pages/NopRuleNode/ref-ruleDefinition.page.yaml` |
 | 混合生成页 + 大块手写 page | 专用设计器、编辑器一类页面 | `nop-wf/nop-wf-web/src/main/resources/_vfs/nop/wf/designer/designer.page.yaml` |
+| `custom="true"` 非实体字段 | 表单字段不在 objMeta 中时跳过校验 | `nop-auth/.../NopAuthUser.view.xml`（`__password2`）、`nop-rule/.../NopRuleDefinition.view.xml`（`__useImportFile`） |
 
 ## 1. `bounded-merge`
 

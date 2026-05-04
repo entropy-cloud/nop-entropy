@@ -30,6 +30,7 @@ nop:
 | Delta 合并结果不对 | `_dump/{appName}/...` 下对应模型的最终文件 |
 | 新增 `_vfs` 文件不生效 | 刷新 VFS / 清理缓存 |
 | 生成链路结果不对 | `../03-runbooks/debug-codegen-and-generated-files.md` |
+| 页面生成结果不对 | `PageProvider__getPage`（见下方） |
 
 ## `_dump` 是什么
 
@@ -40,6 +41,18 @@ nop:
 1. 某个 Delta 到底有没有生效。
 2. 某个 bean 最终是否真的被启用。
 3. 一个模型最终长成了什么样。
+
+## 页面生成调试
+
+通过 REST 接口获取 view.xml 经过模板展开后的最终 AMIS JSON，用于验证页面配置是否正确：
+
+```bash
+curl -s "http://localhost:8080/p/PageProvider__getPage?path=/nop/code/pages/dashboard/main.page.yaml"
+```
+
+- `path` 参数为 `.page.yaml` 的 VFS 路径，不是 `.view.xml`。
+- 只有存在 `.page.yaml` 入口文件的页面才能独立获取。view.xml 中的 `<simple>` 页面如果没有对应的 `.page.yaml`，只能被其他页面内嵌引用，无法独立访问。
+- 返回的 JSON 即前端实际渲染用的 AMIS schema，可直接对比 view.xml 中的 grid 列、form 字段、action 配置是否正确生成了。
 
 ## DevDoc / DevTool
 
@@ -96,6 +109,80 @@ nop:
 1. Java 代码默认用 SLF4J。
 2. 调试时优先读取异常里的 `SourceLocation` 和 XLang 堆栈。
 3. 如果只是想确认配置/bean/schema 的最终状态，先看 `_dump` 和 DevDoc，不要一开始就盲目加日志。
+
+## 启动与调试 Quarkus 应用
+
+Nop 平台的 `*-app` 模块基于 Quarkus。以 `nop-code-app` 为例：
+
+### 前提：构建
+
+`nop-code` 不在根 `pom.xml` 的 `<modules>` 中，需要单独构建：
+
+```bash
+cd nop-code
+../mvnw clean install -DskipTests -T 1C
+```
+
+其他在根 `pom.xml` `<modules>` 中的模块（如 `nop-auth-app`）可以直接从根目录构建。
+
+### java -jar 启动
+
+```bash
+cd nop-code/nop-code-app
+java -Dquarkus.profile=dev -jar target/quarkus-app/quarkus-run.jar
+```
+
+指定端口：`-Dquarkus.http.port=9090`
+
+### Maven quarkus:dev（支持热重载）
+
+```bash
+cd nop-code/nop-code-app
+../../mvnw quarkus:dev -Dquarkus.profile=dev
+```
+
+指定端口：加 `-Dquarkus.http.port=9090`
+
+### dev profile 的作用
+
+`-Dquarkus.profile=dev` 激活 `%dev` 配置段，典型配置：
+
+```yaml
+"%dev":
+  nop:
+    core:
+      resource:
+        check-duplicate-vfs-resource: false  # 开发模式跳过 VFS 重复资源检查
+    debug: true
+```
+
+### 跳过登录认证
+
+引入了 `nop-auth-web` 的应用默认要求登录才能访问 `/graphql`、`/r/*` 等服务路径。开发调试时可通过配置跳过：
+
+启动参数：`-Dnop.auth.service-public=true`
+
+或在 `application.yaml` 的 `%dev` 段中：
+
+```yaml
+"%dev":
+  nop:
+    auth:
+      service-public: true
+```
+
+`service-public=true` 时，未登录访问服务路径会自动创建 `sys` 用户上下文，不返回 401。
+
+另一种方案是从 pom.xml 移除 `nop-auth-web` 和 `nop-auth-service` 依赖，完全去掉认证过滤器，但同时失去用户管理和登录页。
+
+### 验证启动成功
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/
+# 返回 200 即启动成功
+```
+
+同样的模式适用于仓库中所有 Quarkus 应用模块（`nop-quarkus-demo`、`nop-auth-app` 等），替换路径即可。
 
 ## 相关文档
 
