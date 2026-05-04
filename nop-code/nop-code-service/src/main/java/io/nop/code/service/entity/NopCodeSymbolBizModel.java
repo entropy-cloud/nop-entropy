@@ -6,6 +6,8 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.biz.ContextSource;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.beans.PageBean;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.code.biz.INopCodeSymbolBiz;
 import io.nop.code.core.model.*;
@@ -40,12 +42,13 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
     }
 
     @BizQuery
-    public List<CodeSymbol> findSymbols(
-            @Name("query") String query,
-            @Name("kinds") List<String> kinds,
-            @Name("packageName") String packageName,
+    public PageBean<CodeSymbol> findSymbols(
+            @Name("query") @Optional String query,
+            @Name("kinds") @Optional List<String> kinds,
+            @Name("packageName") @Optional String packageName,
             @Name("indexId") String indexId,
-            @Name("limit") int limit) {
+            @Name("offset") @Optional long offset,
+            @Name("limit") @Optional int limit) {
         List<CodeSymbolKind> kindList = null;
         if (kinds != null) {
             kindList = kinds.stream()
@@ -59,7 +62,8 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
         }
-        return codeIndexService.findSymbols(indexId, query, kindList, packageName, limit > 0 ? limit : 20);
+        return codeIndexService.findSymbolsPage(indexId, query, kindList, packageName,
+                offset, limit > 0 ? limit : 20);
     }
 
     @BizLoader

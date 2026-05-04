@@ -1,5 +1,6 @@
 package io.nop.code.service.impl;
 
+import io.nop.api.core.beans.PageBean;
 import io.nop.code.core.adapter.LanguageAdapterRegistry;
 import io.nop.code.core.analyzer.ProjectAnalyzer;
 import io.nop.code.core.graph.CallGraph;
@@ -219,6 +220,47 @@ public class CodeIndexService implements ICodeIndexService {
                 })
                 .limit(limit > 0 ? limit : Integer.MAX_VALUE)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public PageBean<CodeSymbol> findSymbolsPage(String indexId, String query, List<CodeSymbolKind> kinds,
+                                                 String packageName, long offset, int limit) {
+        SymbolTable table = symbolTableMap.get(indexId);
+        PageBean<CodeSymbol> pageBean = new PageBean<>();
+        pageBean.setOffset(offset);
+        pageBean.setLimit(limit);
+
+        if (table == null) {
+            pageBean.setTotal(0);
+            pageBean.setItems(Collections.emptyList());
+            return pageBean;
+        }
+
+        List<CodeSymbol> filtered = table.getAll().stream().filter(s -> {
+            if (query != null && !query.isEmpty()) {
+                if (!s.getName().contains(query)
+                        && (s.getQualifiedName() == null || !s.getQualifiedName().contains(query))) {
+                    return false;
+                }
+            }
+            if (kinds != null && !kinds.isEmpty()) {
+                if (!kinds.contains(s.getKind()))
+                    return false;
+            }
+            if (packageName != null && !packageName.isEmpty()) {
+                if (s.getQualifiedName() == null || !s.getQualifiedName().startsWith(packageName))
+                    return false;
+            }
+            return true;
+        }).collect(Collectors.toList());
+
+        pageBean.setTotal(filtered.size());
+        int pageSize = limit > 0 ? limit : 20;
+        int from = (int) Math.min(offset, filtered.size());
+        int to = (int) Math.min(offset + pageSize, filtered.size());
+        pageBean.setItems(filtered.subList(from, to));
+
+        return pageBean;
     }
 
     @Override

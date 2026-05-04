@@ -14,7 +14,17 @@
                 <col id="line" ui:number="true" sortable="true"/>
             </cols>
         </grid>
-        <grid id="pick-list"/>
+        <grid id="pick-list" x:override="replace">
+            <cols>
+                <col id="name" sortable="true"/>
+                <col id="qualifiedName" sortable="true" width="350"/>
+                <col id="kind" sortable="true"/>
+                <col id="accessModifier" sortable="true"/>
+                <col id="signature" width="300"/>
+                <col id="returnType"/>
+                <col id="line" ui:number="true" sortable="true"/>
+            </cols>
+        </grid>
     </grids>
 
     <forms>
@@ -48,7 +58,7 @@
     <pages>
         <crud name="main" x:override="merge">
             <table autoFillHeight="true">
-                <api url="@query:NopCodeSymbol__findSymbols?indexId=$indexId" gql:selection="{@pageSelection}"/>
+                <api url="@query:NopCodeSymbol__findSymbols?indexId=$indexId" gql:selection="total,page,items{ id,name,qualifiedName,kind,accessModifier,signature,returnType,line }"/>
             </table>
             <rowActions>
                 <action id="row-view-button" level="primary" label="查看详情">
@@ -58,7 +68,7 @@
         </crud>
 
         <simple name="view" form="view">
-            <initApi url="@query:NopCodeSymbol__getById?id=$id&amp;indexId=$indexId" gql:selection="{@formSelection}"/>
+            <initApi url="@query:NopCodeSymbol__getById?id=$id&amp;indexId=$indexId" gql:selection="id,name,qualifiedName,kind,accessModifier,signature,returnType,line,endLine,deprecated,isStatic,isAbstract"/>
         </simple>
 
         <picker name="picker"/>

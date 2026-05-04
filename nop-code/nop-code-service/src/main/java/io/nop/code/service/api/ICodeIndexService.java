@@ -1,5 +1,6 @@
 package io.nop.code.service.api;
 
+import io.nop.api.core.beans.PageBean;
 import io.nop.code.core.model.*;
 import io.nop.code.service.api.dto.*;
 
@@ -48,6 +49,9 @@ public interface ICodeIndexService {
 
     List<CodeSymbol> findSymbols(String indexId, String query, List<CodeSymbolKind> kinds,
                                  String packageName, int limit);
+
+    PageBean<CodeSymbol> findSymbolsPage(String indexId, String query, List<CodeSymbolKind> kinds,
+                                         String packageName, long offset, int limit);
 
     List<CodeAnnotationUsage> getSymbolUsages(String indexId, String symbolId, int limit);
 
