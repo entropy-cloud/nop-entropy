@@ -99,12 +99,48 @@ view.xml 中 `<api url="@query:BizObjName__actionName?param=$param"/>` 的处理
 
 1. **后端**（`WebPageHelper.fixPage`）：仅转义空格/换行，`@query:` 原样输出到 AMIS JSON
 2. **前端**（`nop-chaos/packages/nop-core/src/core/graphql.ts`）：
-   - 解析 URL，取 `__` 后的方法名后缀作为 `stdAction`
-   - `stdAction` 匹配 `operationRegistry` → 使用预定义参数签名
+   - 解析 URL，取最后一个 `_` 后的方法名后缀作为 `stdAction`
+   - `stdAction` 匹配 `operationRegistry` → 使用预定义参数签名和参数构建器
    - `stdAction` 不匹配 → 调用 `guessDefinition(data)` 从表单数据自动推断参数类型
 3. **生成 GraphQL 查询**：POST 到 `/graphql`，参数从表单数据映射
 
-**关键约束**：`stdAction` 不得与标准 CRUD 动作名重名（`get`、`findPage`、`save`、`update`、`delete` 等），否则前端使用预定义参数签名（如 `get` → `{id, ignoreUnknown}`），自定义参数被忽略。详见 `view-and-page-customization.md`。
+### 前端 `operationRegistry` 标准动作签名
+
+`stdAction` 匹配到以下动作名时，前端**强制使用预定义参数**，URL 中的自定义参数被忽略：
+
+| stdAction | 预定义参数 | 参数构建器语义 | 对应 BizModel 方法 |
+|-----------|-----------|--------------|-------------------|
+| `get` | `id: String`, `ignoreUnknown: Boolean` | 按字段名从 data 取值，转 String/Boolean | `get(id)` — 按 ID 获取单条 |
+| `findPage` | `query: QueryBeanInput` | 从 data 中收集 `filter_` 前缀字段构造查询条件 + `pageSize`/`offset`/`orderBy` | `findPage(query)` — 分页查询 |
+| `findList` | `query: QueryBeanInput` | 同 findPage 但不分页 | `findList(query)` — 列表查询 |
+| `findFirst` | `query: QueryBeanInput` | 同 findPage，取第一条 | `findFirst(query)` — 取首条 |
+| `save` | `data: Map` | 从 data 中提取所有非 `__`/`@`/`_` 前缀字段 | `save(data)` — 新增 |
+| `update` | `data: Map` | 同 save | `update(data)` — 修改 |
+| `saveOrUpdate` | `data: Map` | 同 save | `saveOrUpdate(data)` — 新增或修改 |
+| `upsert` | `data: Map` | 同 save | `upsert(data)` — 存在则更新 |
+| `copyForNew` | `data: Map` | 同 save | `copyForNew(data)` — 复制新增 |
+| `delete` | `id: String` | 按字段名取值转 String | `delete(id)` — 按 ID 删除 |
+| `batchGet` | `ids: [String]` | 按字段名取值，字符串按逗号分割 | `batchGet(ids)` — 批量获取 |
+| `batchDelete` | `ids: [String]` | 同 batchGet | `batchDelete(ids)` — 批量删除 |
+| `batchModify` | `data: [Map]`, `delIds: [String]` | 批量数据 + 删除 ID 列表 | `batchModify(data, delIds)` — 批量修改 |
+
+### 非标准动作的参数推断
+
+当 `stdAction` 不在 `operationRegistry` 中时，前端 `guessDefinition(data)` 逐字段推断：
+- `String` 值 → `String` 类型
+- 整数 → `Int` 类型
+- 浮点数 → `Float` 类型
+- 布尔 → `Boolean` 类型
+- 对象 → `Map` 类型
+- 数组 → `[String]` 类型
+
+额外以 `v_` 为前缀的字段（`guessExtArgDefinitions`）会追加到标准动作的参数列表中，实现向标准动作传递自定义参数。
+
+### 命名规则
+
+**自定义 BizModel 的 `@BizQuery`/`@BizMutation` 方法名不得与上表中的标准动作名重名。** 后端 `BizObjectBuilder` 用 `HashMap.put()` 注册 operation，不检测重名，不会报错。问题只在前端：重名会导致自定义参数被预定义签名覆盖。
+
+源码位置：`nop-chaos/packages/nop-core/src/core/graphql.ts`
 
 ## 相关文档
 
