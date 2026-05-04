@@ -1,7 +1,7 @@
 # Plan Authoring And Execution Guide
 
 > Status: active workflow guide
-> Last Reviewed: 2026-04-14
+> Last Reviewed: 2026-05-04
 > Source: adapted from `nop-chaos-flux/docs/plans/00-plan-authoring-and-execution-guide.md`
 
 ## Purpose
@@ -13,6 +13,18 @@ This guide defines how to write, execute, review, and close plans under `ai-dev/
 All plans under `ai-dev/plans/` must be written in English.
 
 The guide is intentionally strict only where it improves execution quality, review quality, or closure quality.
+
+## Lessons From History
+
+From actual plan execution in this repo, the most common problems are:
+
+1. Not auditing the live repo baseline before writing a plan, directly reusing old baselines or old completion notes.
+2. A plan that is too wide, requiring rewrite or split later.
+3. Only recording the most recent landing, not going back to check every item in the entire plan.
+4. Leftover work has no clear ownership, making the plan appear complete while carrying hidden debt.
+5. Marking `completed` as a side effect of finishing the last coding slice, without an independent closure audit.
+6. Seeing that interfaces, types, or method names exist, and incorrectly assuming the corresponding semantics are fully implemented — without checking live behavior and focused tests.
+7. All Phase/Task statuses and checkboxes left in their initial `pending` / `[ ]` state even though the implementation landed — the plan document was never updated to reflect reality.
 
 ## Runtime-Consumed Fields Vs Narrative Guidance
 
@@ -27,6 +39,8 @@ These are the parts that the runtime may validate strongly and may use to block 
 - phase and task structure
 - dependency links
 - success criteria, exit criteria, task checks, validation checklist
+- closure gates
+- deferred but adjudicated items
 - unresolved blocking errors
 - closure state
 
@@ -59,9 +73,100 @@ These are primarily for AI and human readers. They help a plan stay readable and
 4. `completed` means the current plan-owned scope is truly done and any leftover work has been explicitly moved out.
 5. `completed` must come from a separate closure audit, not from finishing the last coding slice.
 6. If any execution slice still has unfinished or blocked required work, the plan must not be marked `completed`.
-7. Distinguish “contract surface exists” from “contract semantics are implemented and verified”.
+7. Distinguish "contract surface exists" from "contract semantics are implemented and verified". An interface, type, or method signature existing is NOT sufficient — the actual runtime behavior and focused tests must confirm the semantics.
 8. If a baseline is outdated, explicitly mark the note as outdated or superseded.
 9. Plans should be concise, but the baseline, execution structure, and leftover ownership must always be obvious.
+10. When closing a plan, ALL phase statuses, task statuses, exit criteria checkboxes, and validation checklist items must be updated to reflect the actual state. Leaving them as `pending` / `[ ]` while the plan header says `completed` is a closure violation.
+11. If a Phase changes live baseline, public contract, or owner behavior, that Phase's Exit Criteria must include corresponding documentation update items. Pure internal refactoring can explicitly write `No doc update required`, but cannot silently skip the adjudication.
+12. Each execution item must be classifiable as `Fix`, `Decision`, `Proof`, or `Follow-up`. Confirmed live defects or contract drift can only be `Fix`, not downgraded to `Follow-up`.
+
+## Closure Gates
+
+Every plan must define explicit closure gates. These are the hard prerequisites that ALL must be `[x]` before the plan can be marked `completed`.
+
+Closure gates are plan-level (not phase-level) and must include at minimum:
+
+- All in-scope confirmed live defects are fixed
+- All in-scope confirmed contract drifts are converged
+- Necessary focused verification is complete
+- All applicable build/test gates pass (`mvn compile`, `mvn test`, etc.)
+- Affected `docs-for-ai/` docs are synced to live baseline, or explicitly marked `No doc update required`
+- No in-scope item was silently downgraded to deferred / follow-up
+
+The closure gates section goes between `Scope` and `Execution Plan` in the plan document.
+
+## Deferred But Adjudicated
+
+When an in-scope item is deferred rather than completed in the current plan, it must be explicitly classified and justified. This prevents hiding real problems as "we'll do it later."
+
+### Classification
+
+Each deferred item must be classified as exactly one of:
+
+- `watch-only residual` — Known minor issue that does not affect correctness
+- `optimization candidate` — Performance or quality improvement, not a correctness issue
+- `out-of-scope improvement` — Valid improvement but outside current plan's scope
+
+### Required Fields
+
+For each deferred item:
+
+- **Classification**: one of the above three
+- **Why Not Blocking Closure**: one clear reason why this does not block plan closure
+- **Successor Required**: `yes` or `no`
+- **Successor Path**: plan file path if a successor plan is needed
+
+### Non-Degradable Items
+
+The following items **cannot** be deferred or classified as non-blocking:
+
+- Confirmed live defects (bugs, incorrect behavior)
+- Confirmed public-contract drift (API does not match documentation)
+- Confirmed owner-doc drift (`docs-for-ai/` does not match live code)
+- Missing focused verification for already-landed behavior
+- Build or test failures
+
+If any of these exist, the plan **must not** be marked `completed`. They must be fixed, not deferred.
+
+### Allowed Deferral
+
+Only the following types of work may be deferred:
+
+- Watch-only residuals
+- Optimization candidates
+- Out-of-scope improvements
+
+Each must include an explicit `Why Not Blocking Closure` reason. Deferred items without a reason are treated as unfinished work.
+
+## Closure Audit Rule
+
+Marking a plan `completed` requires treating "execution" and "closure audit" as two separate activities.
+
+### Requirements
+
+1. The closure action must happen during a dedicated closure-audit pass, not as a side effect of completing the last implementation task.
+2. The closure audit must look at the live repo, not just old completion notes, old checklists, or the most recent commit messages.
+3. The closure audit must be performed by an independent reviewer or an independent sub-agent (a fresh session started specifically for the audit). The implementer's own self-audit cannot be the sole basis for `completed`.
+4. Every `Phase` and `Workstream` must already be `completed`. If any slice is not `completed`, the plan cannot close.
+5. If a slice's work no longer belongs to this plan, it must be explicitly moved to a successor plan or cancelled with a recorded reason before closing.
+6. `Validation Checklist` incomplete items can only remain if the plan is still open. If the plan closes, these items must be completed or moved out of current scope.
+7. The closure audit must spot-check that "key behavior is actually implemented" — not just that interfaces, types, method names, or comments exist.
+8. If the closure audit finds only partial landing, the plan must be changed to `running` (not kept as `completed`).
+9. The closure audit must verify that deferred / follow-up items are honestly classified. Confirmed live defects, contract drift, owner-doc drift, or hard-gate failures cannot remain in the non-blocking area.
+
+### Closure Audit Evidence
+
+The closure audit must produce evidence, recorded in the plan or the corresponding daily log:
+
+- Live code or docs paths that satisfy each slice's exit criterion
+- Focused verification results or a clearly cited already-green workspace baseline
+- Daily log entry recording the closure pass and any final doc-sync work
+- Independent reviewer / sub-agent findings (task ID or cited review note) that explicitly check for plan/doc drift and interface-vs-semantics mismatch
+- Explicit justification for each deferred item that remained non-blocking at closure
+
+A common mistake: "The interface already exists, so this phase should be considered complete."
+
+Correct approach: Continue checking whether that interface is actually called, whether it satisfies the documented semantics, and whether focused tests prove the behavior works. Otherwise it is at most a partial landing.
 
 ## Required Status Markers
 
@@ -111,9 +216,18 @@ These sections should always exist in a normal execution plan:
 4. `Success Criteria`
 5. `Non-Goals`
 6. `Scope`
-7. `Execution Plan`
-8. `Validation Checklist`
-9. `Closure`
+7. `Closure Gates`
+8. `Execution Plan`
+9. `Validation Checklist`
+10. `Closure`
+
+## Conditionally Required Sections
+
+These sections are required when the condition is met, omitted otherwise:
+
+- `Deferred But Adjudicated` — required when any in-scope item is deferred rather than completed
+- `Non-Blocking Follow-ups` — required when there are follow-up items that don't block closure
+- `Errors` — required when blocking errors exist (unresolved blocking errors stop closure)
 
 ## Recommended Sections
 
@@ -125,8 +239,6 @@ These sections are recommended when they improve clarity:
 - `Risks And Rollback`
 - `Supersession Note`
 - `Documentation Follow-Up`
-
-`Errors` should be added whenever execution hits errors worth tracking. If any blocking error remains unresolved, it stops closure.
 
 ## Canonical Template
 
@@ -174,15 +286,16 @@ These sections are recommended when they improve clarity:
 - [O1] <Out-of-scope item>
 - [O2] <Out-of-scope item>
 
-## Read Files
+## Closure Gates
 
-- `path/to/fileA` - <why it was read>
-- `path/to/fileB` - <why it was read>
+> All gates must be `[x]` before `Plan Status` can change to `completed`. See Closure Audit Rule in the Guide.
 
-## Written Files
-
-- `path/to/fileC` - <what changed>
-- `path/to/fileD` - <what changed>
+- [ ] All in-scope confirmed live defects are fixed
+- [ ] All in-scope confirmed contract drifts are converged
+- [ ] Necessary focused verification is complete
+- [ ] All applicable build/test gates pass (`mvn compile`, `mvn test`)
+- [ ] Affected `docs-for-ai/` docs are synced to live baseline, or `No doc update required`
+- [ ] No in-scope item was silently downgraded to deferred / follow-up
 
 ## Execution Plan
 
@@ -250,6 +363,24 @@ Checks:
 
 - [ ] [CHK-T2-1] <required task check>
 
+## Deferred But Adjudicated
+
+> Only include this section if items are deferred. Each item must have Classification, Why Not Blocking Closure, and Successor Required.
+
+### <Item Name>
+
+- Classification: `watch-only residual | optimization candidate | out-of-scope improvement`
+- Why Not Blocking Closure: <one clear reason>
+- Successor Required: `yes | no`
+- Successor Path: <plan path if yes>
+
+## Non-Blocking Follow-ups
+
+> Only include this section if there are non-blocking follow-up items. Confirmed live defects MUST NOT appear here.
+
+- <follow-up item that does not affect current contract closure>
+- <follow-up item that does not affect current contract closure>
+
 ## Questions
 
 - [Q1] Task: T1 | Asked: YYYY-MM-DDTHH:mm:ssZ | Answered:
@@ -274,8 +405,15 @@ Checks:
 
 ## Validation Checklist
 
-- [ ] [VC1] <required validation check>
-- [ ] [VC2] <required validation check>
+> **Closure condition**: This section, `Closure Gates`, and every Phase's Exit Criteria must ALL be `[x]` before `Plan Status` can change to `completed`. See Closure Audit Rule in the Guide.
+
+- [ ] [VC1] <behavior/contract result>
+- [ ] [VC2] <relevant docs/examples updated>
+- [ ] [VC3] <focused verification complete>
+- [ ] [VC4] <no silently downgraded in-scope live defects or contract drifts>
+- [ ] [VC5] <independent closure-audit by separate agent/session complete, evidence recorded>
+- [ ] [VC6] `mvn compile` passes for affected modules
+- [ ] [VC7] `mvn test` passes for affected modules
 
 ## Closure
 
@@ -289,7 +427,8 @@ Status Note:
 
 Audit Evidence:
 
-<Independent review evidence or runtime evidence>
+- Reviewer / Agent: <independent reviewer or independent sub-agent>
+- Evidence: <task id / daily log link / findings summary>
 
 Follow-Ups:
 
@@ -339,16 +478,22 @@ Before execution starts, review whether:
 - dependencies are executable
 - exit criteria and checks are concrete enough to evaluate later
 - the plan is still a plan, not just a todo list or checklist dump
+- closure gates are defined and concrete
+- deferred items (if any) have honest classifications and reasons
 
 ### Closure Audit
 
-Before marking a plan `completed`, audit whether:
+Before marking a plan `completed`, follow the Closure Audit Rule (see above). At minimum:
 
-- all required checks are complete
-- all validation checklist items are complete
+- all required checks are complete (`[x]`)
+- all validation checklist items are complete (`[x]`)
+- all closure gates are complete (`[x]`)
+- all phase and task statuses are updated to `completed`
 - no unresolved blocking error remains
 - no unfinished phase or task remains
+- no in-scope live defect was silently deferred
 - closure note and follow-up ownership match the actual state
+- audit evidence from an independent reviewer/agent is recorded
 
 ### Reviewer Prompts
 
@@ -375,21 +520,26 @@ Use these prompts for independent review:
 
 ### When Closing The Plan
 
-Before closure:
+Before closure, do ALL of the following:
 
 1. Re-read the entire plan, not just the last landing.
-2. Re-check every phase/workstream exit criterion.
-3. Re-check the validation checklist.
-4. Move leftover work into explicit follow-up ownership.
-5. Distinguish “interface exists” from “behavior is verified”.
-6. Record independent closure-audit evidence.
+2. Check every phase/workstream exit criterion — update each `[ ]` to `[x]` if satisfied, or fix the implementation.
+3. Check every task check — update each `[ ]` to `[x]` if satisfied.
+4. Check the Validation Checklist — update each `[ ]` to `[x]`.
+5. Check the Closure Gates — update each `[ ]` to `[x]`.
+6. Update ALL phase and task statuses from `pending`/`running` to `completed`. Leaving statuses as `pending` while the plan header says `completed` is a closure violation.
+7. Move leftover work into explicit follow-up ownership.
+8. Distinguish "interface exists" from "behavior is verified" — spot-check live code paths and tests.
+9. Verify deferred items are honestly classified (no live defects hidden as follow-ups).
+10. Record independent closure-audit evidence from a separate agent/session.
 
 If these are not done, do not mark the plan `completed`.
 
 ## Practical Rule
 
-The plan does not need to be long, but three things must always be obvious:
+The plan does not need to be long, but four things must always be obvious:
 
 - what the baseline is
 - where execution currently is
 - who owns the remaining work
+- what must be true before the plan can close (closure gates)

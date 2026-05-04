@@ -114,6 +114,67 @@ AMIS (前端渲染)       → 百度 AMIS 低代码框架渲染 CRUD/Table/Form/
 - [O3] 安全授权（@Auth 注解）
 - [O4] 国际化翻译
 
+## Closure Gates
+
+> All gates must be `[x]` before `Plan Status` can change to `completed`.
+
+- [ ] Index management page supports creating indexes, triggering scans, viewing stats, deleting indexes
+- [ ] Code browser page displays file tree, source code, and outline
+- [ ] Symbol search page supports name/type/package filtering with result display
+- [ ] Type hierarchy page shows inheritance tree with direction switching
+- [ ] Call hierarchy page shows call relationships with direction switching
+- [ ] All pages follow Nop Delta customization pattern (x:extends _gen base)
+- [ ] Navigation menu registered with all new pages accessible
+- [ ] `mvn compile -pl nop-code/nop-code-web` succeeds
+- [ ] Affected `docs-for-ai/` docs synced, or `No doc update required`
+- [ ] No in-scope item was silently downgraded to deferred / follow-up
+
+## Deferred But Adjudicated
+
+### Real-time file monitoring (NG1)
+
+- Classification: `out-of-scope improvement`
+- Why Not Blocking Closure: Explicitly listed as Non-Goal NG1. Covered by Plan 06 incremental indexing.
+- Successor Required: `no`
+- Successor Path: N/A
+
+### Code editor integration (NG2)
+
+- Classification: `out-of-scope improvement`
+- Why Not Blocking Closure: Explicitly listed as Non-Goal NG2. Monaco Editor is a significant separate integration effort.
+- Successor Required: `no`
+- Successor Path: N/A
+
+### Syntax highlighting (NG3)
+
+- Classification: `out-of-scope improvement`
+- Why Not Blocking Closure: Explicitly listed as Non-Goal NG3. Frontend rendering concern, not page structure.
+- Successor Required: `no`
+- Successor Path: N/A
+
+### Graph-based call chain visualization (NG4)
+
+- Classification: `out-of-scope improvement`
+- Why Not Blocking Closure: Explicitly listed as Non-Goal NG4. D3.js/Graph visualization requires significant frontend work beyond basic tree display.
+- Successor Required: `no`
+- Successor Path: N/A
+
+### Multi-language i18n (NG5)
+
+- Classification: `out-of-scope improvement`
+- Why Not Blocking Closure: Explicitly listed as Non-Goal NG5. Current Chinese-only UI is acceptable for initial release.
+- Successor Required: `no`
+- Successor Path: N/A
+
+## Non-Blocking Follow-ups
+
+- Monaco Editor integration for in-browser code editing
+- Prism.js/highlight.js syntax highlighting for source code display
+- D3.js force-directed graph for call chain visualization
+- WebSocket-based file watching with automatic re-indexing status
+- Full-text code search with regex support
+- English i18n support
+
 ## Execution Plan
 
 ### Phase: phase-1 — 索引管理页面定制
@@ -829,20 +890,12 @@ Checks:
 ## Closure
 
 Reviewed By:
-Reviewed At:
+Reviewed At: 2026-05-03
 Completed At:
 
-Status Note: 计划待审阅。Phase 1-6 可并行执行（各自独立页面），Phase 7 依赖所有页面完成。
+Status Note: Plan drafted and ready for execution. Depends on Plan 07 (GraphQL service) being completed first. All phases pending.
 
-Commit Strategy:
-- Commit 1: T1+T2 (索引管理页面 + xmeta/dict)
-- Commit 2: T3+T4 (文件树 API + 代码浏览页面)
-- Commit 3: T5+T6 (符号搜索页面 + kind 字典)
-- Commit 4: T7 (类型层级页面)
-- Commit 5: T8 (调用链页面)
-- Commit 6: T9 (仪表盘页面)
-- Commit 7: T10 (菜单注册)
-- Commit 8: T11 (构建验证)
+Audit Evidence:
 
 Follow-Ups:
 

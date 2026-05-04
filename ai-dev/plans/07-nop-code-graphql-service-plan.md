@@ -80,6 +80,71 @@ This approach allows us to test all query functionality immediately without data
 - [O3] xmeta/xbiz file modifications (using Java annotations only)
 - [O4] Security/authorization on queries (public access for now)
 
+## Closure Gates
+
+> All gates must be `[x]` before `Plan Status` can change to `completed`.
+
+- [ ] Test project exists with ≥4 Java files covering all query scenarios
+- [ ] ICodeIndexService interface + CodeIndexService implementation compile and pass unit tests
+- [ ] All GraphQL BizModels (@BizQuery/@BizMutation/@BizLoader) registered in beans.xml
+- [ ] File queries (get, outline, symbols, types, sourceCode) work via GraphQL
+- [ ] Symbol queries (findByQualifiedName, findPage, findSymbols) work via GraphQL
+- [ ] Type hierarchy queries (super/sub/both) work via GraphQL
+- [ ] Call hierarchy queries (incoming/outgoing/both) work via GraphQL
+- [ ] All applicable build/test gates pass (`mvn test -pl nop-code/nop-code-service`)
+- [ ] Affected `docs-for-ai/` docs synced, or `No doc update required` (new service layer, no existing docs affected)
+- [ ] No in-scope item was silently downgraded to deferred / follow-up
+
+## Deferred But Adjudicated
+
+### Database persistence (F1)
+
+- Classification: `out-of-scope improvement`
+- Why Not Blocking Closure: Plan explicitly uses in-memory implementation (Architecture Decision section). Database persistence is a separate enhancement.
+- Successor Required: `no`
+- Successor Path: Covered in Plan 06 Task I4 (incremental index BizModel)
+
+### Incremental indexing / file watching (F2)
+
+- Classification: `out-of-scope improvement`
+- Why Not Blocking Closure: Explicitly listed as Non-Goal NG2. Covered by Plan 06 Phase 1.5.
+- Successor Required: `no`
+- Successor Path: Covered in Plan 06 (I1-I4)
+
+### Authorization (@Auth) on queries (F3)
+
+- Classification: `out-of-scope improvement`
+- Why Not Blocking Closure: Not a functional requirement for initial service. Can be added later.
+- Successor Required: `no`
+- Successor Path: N/A
+
+### Separate GraphQL DTO types per design doc (F4)
+
+- Classification: `optimization candidate`
+- Why Not Blocking Closure: Current Map<String,Object> and @DataBean returns work correctly. Typed DTOs improve API documentation but don't affect functionality.
+- Successor Required: `no`
+- Successor Path: N/A
+
+### NopCodeUsageBizModel with reference search (F5)
+
+- Classification: `out-of-scope improvement`
+- Why Not Blocking Closure: Usage queries are available via BizLoader on NopCodeSymbol. A dedicated BizModel is nice-to-have but not required for core functionality.
+- Successor Required: `no`
+- Successor Path: N/A
+
+### File watching for automatic re-indexing (F6)
+
+- Classification: `out-of-scope improvement`
+- Why Not Blocking Closure: Not required for initial GraphQL service. Covered by Plan 06.
+- Successor Required: `no`
+- Successor Path: N/A
+
+## Non-Blocking Follow-ups
+
+- GraphQL schema documentation (auto-generated from BizModel annotations)
+- Performance optimization for large projects (streaming results, pagination improvements)
+- WebSocket support for real-time indexing status updates
+
 ## Execution Plan
 
 ### Phase: phase-1 — Test Project + Service Interface
@@ -1419,27 +1484,22 @@ All framework compatibility questions answered positively. The fixes are mechani
 
 ## Closure
 
-Reviewed By: Self-review + 4 explore agents (BizLoader, Standalone BizModel, GraphQL test API, beans.xml)
+Reviewed By: Self-review + 4 explore agents
 Reviewed At: 2026-05-03
 Completed At:
 
-Status Note: Plan reviewed and all framework compatibility questions verified. Ready for execution.
+Status Note: Plan reviewed and all framework compatibility questions verified. Ready for execution. Implementation not yet started.
 
-Commit Strategy:
-- Commit 1: T1 (test project files only)
-- Commit 2: T2 + T3 + T3.5 (ICodeIndexService interface + impl + beans.xml + pom.xml deps)
-- Commit 3: T4 (unit tests)
-- Commit 4: T5 + T6 (Index BizModel + integration test)
-- Commit 5: T7 + T8 (File BizModel + BizLoaders + integration test)
-- Commit 6: T9 + T10 (Symbol BizModel + integration test)
-- Commit 7: T11 + T12 + T13 (Hierarchy BizModels + Type BizModel + integration tests)
-- Commit 8: T14 (full verification)
+Audit Evidence:
+
+- Reviewer / Agent: self-review + 4 parallel explore agents (BizLoader, Standalone BizModel, GraphQL test API, beans.xml)
+- Evidence: All framework compatibility questions verified. See Review Findings section.
 
 Follow-Ups:
 
-- [F1] Implement database-backed CodeIndexService (persist analysis results to DAO entities)
-- [F2] Implement incremental indexing based on file SHA256
+- [F1] Implement database-backed CodeIndexService — covered by Plan 06 (I4)
+- [F2] Incremental indexing — covered by Plan 06 (Phase 1.5)
 - [F3] Add authorization (@Auth) to BizModel queries
-- [F4] Create separate GraphQL DTO types (NopCodeClass, NopCodeMethod, etc.) per design doc
+- [F4] Create separate GraphQL DTO types per design doc
 - [F5] Implement NopCodeUsageBizModel with reference search queries
-- [F6] Implement file watching for automatic re-indexing
+- [F6] File watching for automatic re-indexing
