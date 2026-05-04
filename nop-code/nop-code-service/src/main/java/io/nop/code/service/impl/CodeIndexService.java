@@ -32,6 +32,11 @@ public class CodeIndexService implements ICodeIndexService {
         this.analyzer = new ProjectAnalyzer(registry);
     }
 
+    public CodeIndexService(LanguageAdapterRegistry registry, ProjectAnalyzer analyzer) {
+        this.registry = registry;
+        this.analyzer = analyzer;
+    }
+
     public void updateAnalysisResult(String indexId, ProjectAnalyzer.ProjectAnalysisResult result) {
         fileResultsMap.put(indexId, result.getFileResults());
         symbolTableMap.put(indexId, result.getGlobalSymbolTable());
