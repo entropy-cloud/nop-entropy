@@ -27,7 +27,7 @@ test.describe('类型层级查询', () => {
   test('RPC: 查询 super 方向类型层级', async ({ request }) => {
     const resp = await rpc<{ symbol: { name: string; qualifiedName: string }; superTypes: unknown[] }>(
       request,
-      'NopCodeTypeHierarchy__get',
+      'NopCodeTypeHierarchy__getTypeHierarchy',
       {
         indexId: INDEX_ID,
         qualifiedName: 'io.nop.code.service.impl.CodeIndexService',
@@ -44,7 +44,7 @@ test.describe('类型层级查询', () => {
   test('RPC: 查询 sub 方向类型层级', async ({ request }) => {
     const resp = await rpc<{ symbol: { name: string }; subTypes: unknown[] }>(
       request,
-      'NopCodeTypeHierarchy__get',
+      'NopCodeTypeHierarchy__getTypeHierarchy',
       {
         indexId: INDEX_ID,
         qualifiedName: 'io.nop.code.service.api.ICodeIndexService',
@@ -59,13 +59,13 @@ test.describe('类型层级查询', () => {
   });
 
   test('RPC: 查询不存在的类型正常返回', async ({ request }) => {
-    const resp = await rpc(request, 'NopCodeTypeHierarchy__get', {
+    const resp = await rpc(request, 'NopCodeTypeHierarchy__getTypeHierarchy', {
       indexId: INDEX_ID,
       qualifiedName: 'com.nonexistent.FooBar',
       direction: 'both',
       maxDepth: 5,
     });
-    expect(resp.status).toBe(200);
+    expect(resp.ok).toBeTruthy();
   });
 
   test('浏览器: 登录后导航到类型层级页面', async ({ page }) => {

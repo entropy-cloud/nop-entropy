@@ -52,7 +52,7 @@ public class TestNopCodeHierarchyQueries extends JunitAutoTestCase {
         data.put("indexId", "test");
         data.put("direction", "super");
         data.put("maxDepth", 3);
-        ApiResponse<?> response = rpcQuery("NopCodeTypeHierarchy__get", data);
+        ApiResponse<?> response = rpcQuery("NopCodeTypeHierarchy__getTypeHierarchy", data);
         assertTrue(response.isOk());
         assertNotNull(response.getData());
     }
@@ -64,7 +64,7 @@ public class TestNopCodeHierarchyQueries extends JunitAutoTestCase {
         data.put("indexId", "test");
         data.put("direction", "sub");
         data.put("maxDepth", 3);
-        ApiResponse<?> response = rpcQuery("NopCodeTypeHierarchy__get", data);
+        ApiResponse<?> response = rpcQuery("NopCodeTypeHierarchy__getTypeHierarchy", data);
         assertTrue(response.isOk());
         assertNotNull(response.getData());
     }

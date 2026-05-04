@@ -187,7 +187,7 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
         data.put("indexId", INDEX_ID);
         data.put("direction", "super");
         data.put("maxDepth", 5);
-        ApiResponse<?> response = rpcQuery("NopCodeTypeHierarchy__get", data);
+        ApiResponse<?> response = rpcQuery("NopCodeTypeHierarchy__getTypeHierarchy", data);
         assertTrue(response.isOk());
         System.out.println("NopAuthUserBizModel super hierarchy: " + response.getData());
     }
@@ -200,7 +200,7 @@ public class TestIndexNopEntropyProject extends JunitAutoTestCase {
         data.put("indexId", INDEX_ID);
         data.put("direction", "sub");
         data.put("maxDepth", 2);
-        ApiResponse<?> response = rpcQuery("NopCodeTypeHierarchy__get", data);
+        ApiResponse<?> response = rpcQuery("NopCodeTypeHierarchy__getTypeHierarchy", data);
         assertTrue(response.isOk());
         System.out.println("CrudBizModel sub types returned");
     }

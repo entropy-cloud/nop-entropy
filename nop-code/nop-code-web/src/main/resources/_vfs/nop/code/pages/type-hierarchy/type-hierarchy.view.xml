@@ -11,17 +11,17 @@
             </layout>
 
             <cells>
-                <cell id="indexId" domain="string"/>
-                <cell id="qualifiedName" domain="string"/>
-                <cell id="direction" domain="string"/>
-                <cell id="maxDepth" domain="int"/>
+                <cell id="indexId" label="索引ID" domain="string"/>
+                <cell id="qualifiedName" label="全限定类型名" domain="string"/>
+                <cell id="direction" label="方向" domain="string"/>
+                <cell id="maxDepth" label="最大深度" domain="int"/>
             </cells>
         </form>
     </forms>
 
     <pages>
         <simple name="main" form="queryForm">
-            <api url="@query:NopCodeTypeHierarchy__get?qualifiedName=$qualifiedName&amp;indexId=$indexId&amp;direction=$direction&amp;maxDepth=$maxDepth"/>
+            <api url="@query:NopCodeTypeHierarchy__getTypeHierarchy?qualifiedName=$qualifiedName&amp;indexId=$indexId&amp;direction=$direction&amp;maxDepth=$maxDepth"/>
         </simple>
     </pages>
 </view>

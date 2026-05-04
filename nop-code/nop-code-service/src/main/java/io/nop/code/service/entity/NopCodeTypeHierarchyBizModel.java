@@ -14,7 +14,7 @@ public class NopCodeTypeHierarchyBizModel {
     protected ICodeIndexService codeIndexService;
 
     @BizQuery
-    public TypeHierarchyDTO get(
+    public TypeHierarchyDTO getTypeHierarchy(
             @Name("qualifiedName") String qualifiedName,
             @Name("indexId") String indexId,
             @Name("direction") String direction,
