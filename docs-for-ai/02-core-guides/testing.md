@@ -73,6 +73,56 @@
 3. 快照测试把数据放错目录。
 4. 明明是进程内服务测试，却先去搭 HTTP E2E。
 
+## E2E 测试（Playwright）
+
+`nop-code/nop-code-e2e/` 是基于 pnpm + Vite 8 + Playwright 的 E2E 测试模块。
+
+### 启动被测应用
+
+```bash
+# 1. 先构建 nop-code-app
+cd nop-code && ../mvnw clean install -DskipTests -T 1C
+
+# 2. 启动（免认证模式）
+java -Dquarkus.profile=dev -Dnop.auth.service-public=true \
+  -jar nop-code-app/target/quarkus-app/quarkus-run.jar
+```
+
+### 运行 E2E 测试
+
+```bash
+cd nop-code/nop-code-e2e
+pnpm install
+pnpm exec playwright install chromium
+pnpm test
+```
+
+### Nop RPC 调用模式（Playwright 中）
+
+```typescript
+// POST /r/{operation}，JSON body 参数平铺（不包裹 data）
+const resp = await request.post('/r/NopCodeTypeHierarchy__get', {
+  data: { indexId: 'test', qualifiedName: 'io.nop.Foo', direction: 'super', maxDepth: 3 },
+});
+const json = await resp.json();
+// json.status === 0 表示成功, json.data 是返回数据
+```
+
+### 页面 JSON 获取
+
+```typescript
+// 获取 AMIS 页面 schema
+const resp = await request.get('/p/PageProvider__getPage?path=/nop/code/pages/xxx/main.page.yaml');
+```
+
+### 浏览器 E2E 测试要点
+
+1. **登录**：SPA 前端需要登录才能访问页面（`nop`/`123`）
+2. **页面 URL**：`/#/type-hierarchy-main`（不是 `/#/page?pagePath=...`），URL 格式为 `/#/{pageId}`
+3. **API 路由**：AMIS 表单 `@query:` API 走 `/graphql`（POST），RPC 测试走 `/r/{operation}`
+4. **字段名**：`editMode="query"` 自动加 `filter_` 前缀，`editMode="edit"` 不加前缀
+5. **无 meta 表单**：必须在 view.xml `<cells>` 中配置 `domain`，否则字段渲染为 `static`
+
 ## 相关文档
 
 - `../03-runbooks/write-tests.md`

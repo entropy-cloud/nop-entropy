@@ -2,19 +2,26 @@
 <view x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:gql="graphql">
 
     <forms>
-        <form id="queryForm" editMode="query" title="类型层级查询">
+        <form id="queryForm" editMode="edit" title="类型层级查询">
             <layout>
  indexId[索引ID]
  qualifiedName[全限定类型名]
  direction[方向]
  maxDepth[最大深度]
             </layout>
+
+            <cells>
+                <cell id="indexId" domain="string"/>
+                <cell id="qualifiedName" domain="string"/>
+                <cell id="direction" domain="string"/>
+                <cell id="maxDepth" domain="int"/>
+            </cells>
         </form>
     </forms>
 
     <pages>
         <simple name="main" form="queryForm">
-            <initApi url="@query:NopCodeTypeHierarchy__get?qualifiedName=$qualifiedName&amp;indexId=$indexId&amp;direction=$direction&amp;maxDepth=$maxDepth"/>
+            <api url="@query:NopCodeTypeHierarchy__get?qualifiedName=$qualifiedName&amp;indexId=$indexId&amp;direction=$direction&amp;maxDepth=$maxDepth"/>
         </simple>
     </pages>
 </view>

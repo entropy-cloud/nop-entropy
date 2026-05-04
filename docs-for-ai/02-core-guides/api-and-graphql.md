@@ -34,8 +34,15 @@ BizModel 方法
 1. 通用 adapter 下，`@BizQuery` 可通过 `GET /r/{operationName}` 或 `POST /r/{operationName}` 调用。
 2. 通用 adapter 下，`@BizMutation` 走 `POST /r/{operationName}`。
 3. `POST` 默认使用 JSON body。
-4. `GET` 场景会通过 `@args` 和普通 query 参数做特殊处理。
-5. `/p/...` 主要面向 web content / page provider 一类端点，不要把它和普通 `/r/...` JSON 接口混为一谈。
+4. **RPC JSON body 格式：参数直接平铺，不包裹 `data` 字段。**
+   ```bash
+   # 正确
+   curl -X POST /r/NopCodeTypeHierarchy__get -d '{"indexId":"test","qualifiedName":"com.example.Foo","direction":"super","maxDepth":3}'
+   # 错误（不要包裹 data）
+   curl -X POST /r/NopCodeTypeHierarchy__get -d '{"data":{"indexId":"test",...}}'
+   ```
+5. `GET` 场景会通过 `@args` 和普通 query 参数做特殊处理。
+6. `/p/PageProvider__getPage?path=xxx.page.yaml` — 获取页面 AMIS JSON，返回前端渲染所需的完整 schema。
 
 补充说明：仓库里的生成型 typed API 目前是明显偏 `POST` 风格的，即使是 `@BizQuery` 生成接口也常见 `POST`，不要把通用 adapter 行为和 typed API 代码生成结果混为一谈。
 
