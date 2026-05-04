@@ -71,7 +71,7 @@
                 xpl:attrs="xpl('thisLib:NormalizeApi',pageModel.table?.saveOrderApi || gridModel.saveOrderApi,genScope)"
                 xpl:if="pageModel.table?.saveOrderApi || gridModel.saveOrderApi"/>
 
-        <c:if test="${objMeta.displayProp}">
+        <c:if test="${objMeta?.displayProp}">
             <labelTpl>$${objMeta.displayProp}</labelTpl>
         </c:if>
 
