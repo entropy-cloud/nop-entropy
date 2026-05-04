@@ -32,6 +32,17 @@ public class CodeIndexService implements ICodeIndexService {
         this.analyzer = new ProjectAnalyzer(registry);
     }
 
+    public void updateAnalysisResult(String indexId, ProjectAnalyzer.ProjectAnalysisResult result) {
+        fileResultsMap.put(indexId, result.getFileResults());
+        symbolTableMap.put(indexId, result.getGlobalSymbolTable());
+        callGraphMap.put(indexId, result.buildCallGraph());
+        analysisResultsMap.put(indexId, result);
+    }
+
+    public ProjectAnalyzer getAnalyzer() {
+        return analyzer;
+    }
+
     @Override
     public int indexDirectory(String indexId, Path directoryPath, String filePattern) {
         try {
@@ -440,5 +451,19 @@ public class CodeIndexService implements ICodeIndexService {
         symbolTableMap.remove(indexId);
         callGraphMap.remove(indexId);
         analysisResultsMap.remove(indexId);
+    }
+
+    // ==================== Graph Accessors ====================
+
+    public CallGraph getCallGraph(String indexId) {
+        return callGraphMap.get(indexId);
+    }
+
+    public SymbolTable getSymbolTable(String indexId) {
+        return symbolTableMap.get(indexId);
+    }
+
+    public ProjectAnalyzer.ProjectAnalysisResult getAnalysisResult(String indexId) {
+        return analysisResultsMap.get(indexId);
     }
 }

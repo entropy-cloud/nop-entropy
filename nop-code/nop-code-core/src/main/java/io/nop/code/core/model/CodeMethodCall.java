@@ -17,6 +17,7 @@ public class CodeMethodCall {
     private String context;
     private int line;
     private int column;
+    private String confidence;  // EXTRACTED or INFERRED
 
     public String getId() {
         return id;
@@ -96,5 +97,13 @@ public class CodeMethodCall {
 
     public void setColumn(int column) {
         this.column = column;
+    }
+
+    public String getConfidence() {
+        return confidence;
+    }
+
+    public void setConfidence(String confidence) {
+        this.confidence = confidence;
     }
 }
